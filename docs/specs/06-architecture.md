@@ -126,7 +126,7 @@ Rules: features depend only on `core:*`; pure modules (`model`, `common`,
 | Serialization | kotlinx-serialization-json |
 | HTTP | OkHttp (no Retrofit needed) |
 | HTML parsing | Jsoup |
-| Background work | WorkManager (catalog refresh as expedited/long-running work with progress notification; reminders) |
+| Background work | WorkManager (catalog refresh as long-running worker in a `dataSync` foreground service; reminders) |
 | Images | Coil 3 (local files only) |
 | Charts | Vico for bar charts; custom Canvas for radar and donut |
 | Markdown (guides) | Compose Markdown renderer or minimal in-house renderer (D-008) |
@@ -153,8 +153,12 @@ re-downloaded only if URL/ETag changed.
 
 ### 5.3 Catalog refresh
 
-1. `CatalogRefreshWorker` (user-initiated; foreground notification with
-   progress on the `catalog` channel; cancellable).
+1. `CatalogRefreshWorker`: user-initiated long-running WorkManager worker
+   using `setForeground()` with foreground service type `dataSync`
+   (permission `FOREGROUND_SERVICE_DATA_SYNC`; WorkManager's
+   `SystemForegroundService` declared with `foregroundServiceType="dataSync"`
+   via manifest merge); progress notification on the `catalog` channel;
+   cancellable.
 2. Fetch `robots.txt`; then category listing pages (with pagination) per
    [08 §2.2](08-content.md#22-source-structure), collect product URLs;
    de-duplicate by base article number.
@@ -163,11 +167,13 @@ re-downloaded only if URL/ETag changed.
    `parserVersion`).
 4. Merge variants, map styles, derive recipes, compute content hashes.
 5. Download changed photos (if SET-22).
-6. Sanity check (CAT-07 AC5); write staging tables; atomic swap
+6. Fetch and convert *Tee-Info* guides (CAT-09) into staging.
+7. Sanity check (CAT-07 AC5); atomic swap of the staging tables
    ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
-7. Fetch and convert *Tee-Info* guides (CAT-09).
 
-Expected duration: ~150–250 requests → 3–5 minutes at 1 req/s.
+All requests (pages and images) share the 1 req/s limit. Expected
+duration: first refresh ~150–250 pages + ~200 photos + guides → ~8–10 min;
+later refreshes skip unchanged photos (conditional requests) → ~4–6 min.
 
 ### 5.4 Background work
 
@@ -178,6 +184,20 @@ Expected duration: ~150–250 requests → 3–5 minutes at 1 req/s.
 | `ReminderWorker` | Daily check (backup, stock digest) |
 
 ### 5.5 Edge-to-edge, predictive back, insets — required (target SDK 36).
+
+### 5.7 Manifest permissions (complete list)
+
+| Permission | Purpose |
+|---|---|
+| `INTERNET` | Catalog refresh only (GEN-01) |
+| `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress |
+| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
+| `FOREGROUND_SERVICE_DATA_SYNC` | Catalog refresh worker |
+| `WAKE_LOCK`, `VIBRATE` | Timer |
+| `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED` | Timer alarms and reboot recovery |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
+
+No storage, camera, location or contacts permissions.
 
 ### 5.6 Error handling & logging
 

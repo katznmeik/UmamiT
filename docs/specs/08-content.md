@@ -64,6 +64,17 @@ Survey examples (paraphrased; to verify):
 | `base_price_cents_per_100g` | Shop base price, else computed from the cheapest regular package |
 | `photo_url` | Main product image (largest reasonable size) |
 
+**Conversion into collection-tea fields** (when adding to the collection,
+CAT-12):
+
+| Catalog text | Collection field | Rule |
+|---|---|---|
+| `harvest` | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
+| `harvest` | `harvest_season` | „Erste Pflückung", „First Flush", „Frühling", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „Zweite Pflückung", „Second Flush", „Nibancha" → `SECOND_FLUSH`; „Sommer" → `SUMMER`; „Herbst", „Aki" → `AUTUMN`; else `UNKNOWN` |
+| `shading` | `shading_days` | „<n> Tage" → n; „<n> Wochen" → 7n; ranges → midpoint; „beschattet"/„Kabuse" without a number → empty |
+| `steaming`, other processing words | `processing_notes` | Copied as text (e.g. „Chumushi") |
+| `ingredients` | `ingredients` | Copied |
+
 ### 2.4 Variant merging
 
 All article numbers sharing a base number form one tea. Package rows

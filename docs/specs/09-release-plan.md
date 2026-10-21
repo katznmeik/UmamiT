@@ -20,7 +20,7 @@
 |---|---|---|---|---|
 | **M0** | **Specification** | These documents; PO review; open questions answered | — | — (PR only) |
 | — | **Go gate** | PO gives explicit go for development | — | — |
-| **M1** | **Timer first** | Project skeleton, CI, signing & release workflow, design system (washi/steeping themes, serif font, core components), navigation shell (Start · Journal · Sammlung · Statistik, placeholders), Einrichtung reliability page, complete timer (multi-step recipes, Pause, pre-alert, alerts per ringer mode, Live Update, exact alarms, FGS, recovery, reboot), quick timer, active brew bar, timer settings, a handful of built-in teas from the style list for testing, minimal session log | ONB-01/02/04, BRW-01…03, BRW-10, TMR-*, NOT-01…03, SET-09…11, SET-14, SET-17, SET-24, SET-31, GEN-* | v0.1.0 |
+| **M1** | **Timer first** | Project skeleton, CI, signing & release workflow, design system (washi/steeping themes, serif font, core components), navigation shell (Start · Journal · Sammlung · Statistik, placeholders), Einrichtung reliability page, complete timer (multi-step recipes, Pause, pre-alert, alerts per ringer mode, Live Update, exact alarms, FGS, recovery, reboot), quick timer, active brew bar, timer settings, minimal manual tea + recipe creation (name, style template, recipe) for testing, minimal session log | ONB-01/02/04, BRW-01…03, BRW-10, TMR-*, NOT-01…03, SET-09…11, SET-14, SET-17, SET-24, SET-31, GEN-* | v0.1.0 |
 | **M2** | **Tee-Kontor catalog** | Verify site (V-01), parser + fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, guides, „Rezept prüfen" | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
 | **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.3.0 |
 | **M4** | **Journal & statistics** | Auto-log refinements, „Gespeichert" sheet with notes and recipe update, session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-*, TMR-12 | v0.4.0 |
@@ -52,7 +52,7 @@ PO's review and testing turnaround.
 - [ ] Screen off during a 2-min step: pre-alert and alert on time.
 - [ ] App swiped from recents during a step: alert still fires.
 - [ ] Live Update visible as status chip, on lock screen and in the Now Bar; *Pause*/*Weiter*/*Abgegossen* work from it.
-- [ ] Reboot during a 30-min cold-brew step: alert still fires.
+- [ ] Reboot during a 25-min cold-brew step and unlock the phone: alert still fires (on time if unlocked before the deadline).
 - [ ] Session appears in the minimal journal list with actual times.
 
 ### M2 — Catalog
@@ -91,7 +91,7 @@ PO's review and testing turnaround.
 | Weekly stock digest | INV-07 |
 | CSV export | BAK-04 |
 | Galaxy Watch tile / companion | — |
-| Tags, manual journal entries, session photos | TEA-07, JRN-12, JRN-07 |
+| Tags, manual journal entries | TEA-07, JRN-12 |
 | Non-green Tee-Kontor categories in the catalog | NG6 |
 | Bundled catalog snapshot | CAT-14 |
 

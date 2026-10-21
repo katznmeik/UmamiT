@@ -15,8 +15,9 @@
 4. **Timestamps** epoch ms UTC; sessions also store the IANA zone ID.
 5. **Snapshots for history:** sessions copy tea name, type, recipe and vessel
    values.
-6. **Catalog is separate and replaceable.** Catalog tables are rebuilt by each
-   refresh; collection teas are independent copies with a *soft* link
+6. **Catalog is separate and replaceable.** Catalog tables live in a
+   **separate Room database `catalog.db`** (excluded from device backup) and
+   are rebuilt by each refresh; collection teas are independent copies with a *soft* link
    (`catalog_key`) — no foreign key — so catalog refreshes and restores never
    cascade into personal data (CAT-13).
 7. **Built-in styles** are a bundled asset referenced by key.
@@ -66,6 +67,7 @@ Table `tea`
 | `umami_level` | TEXT | | `UmamiLevel`; null = style's |
 | `is_flavored` | INTEGER | ✓ | aromatisiert |
 | `is_organic` | INTEGER | ✓ | Bio |
+| `ingredients` | TEXT | | ≤ 1000, flavoured teas (from catalog) |
 | `origin_country` | TEXT | | ISO 3166-1 alpha-2 |
 | `origin_region` | TEXT | | ≤ 80 |
 | `cultivar` | TEXT | | ≤ 80 |
@@ -155,6 +157,7 @@ Table `brew_session`
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | |
 | `times_offered` | INTEGER | ✓ | PRF-07 prompt was applicable |
+| `times_applied` | INTEGER | ✓ | user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
 FTS4 `session_fts` (tea_name, notes); descriptor search via join.
 
@@ -174,9 +177,10 @@ built-in key or `custom:<id>`.
 
 ### 3.9 Photo
 
-Table `photo`: `id` (file `<id>.jpg` in `filesDir/photos/`), exactly one of
+Table `photo`: `id` (file `<id>.jpg` in `filesDir/photos/`; catalog copies are
+re-encoded from WebP to JPEG when copied), exactly one of
 `tea_id` / `session_id` / `vessel_id` (FK CASCADE), `position`, `width_px`,
-`height_px`, `byte_size`, `origin` (`OWN` / `CATALOG_COPY`).
+`height_px`, `byte_size`, `origin` (`PhotoOrigin`).
 When a tea is added from the catalog, the catalog photo is **copied** into
 `photo` (origin `CATALOG_COPY`) so the tea stays independent.
 
@@ -292,6 +296,7 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `SessionStatus` | `IN_PROGRESS`, `COMPLETED`, `MANUAL` |
 | `TimerPhase` | `READY`, `RUNNING`, `PAUSED`, `ALERTING`, `FINISHED` |
 | `InventoryEventType` | `INITIAL`, `PURCHASE`, `BREW`, `ADJUSTMENT` |
+| `PhotoOrigin` | `OWN`, `CATALOG_COPY` |
 | `RecipeSource` | `CATALOG_TABLE`, `CATALOG_TEXT`, `STYLE_DEFAULT`, `USER` |
 | `RecipeCheckReason` | `FROM_TEXT`, `FROM_STYLE_DEFAULT`, `TABLE_TEXT_CONFLICT`, `IMPLAUSIBLE_VALUE`, `UNMAPPED_STYLE` |
 | `DescriptorGroup` | `MARINE`, `VEGETAL`, `SWEET`, `ROASTED_NUTTY`, `FLORAL`, `FRUITY`, `EARTHY_WOODY`, `SPICE_HERB`, `MOUTHFEEL`, `OFF_NOTE`, `OTHER` |
@@ -351,7 +356,11 @@ Time rounding for derived recipes: nearest 5 s (half up).
   files decodable; safety backup of current data; staging; single
   transaction; rollback on failure.
 - **Android device backup** (`data_extraction_rules.xml`): include the
-  database and DataStore; exclude `photos/`, `catalog/`, caches.
+  personal database (`umamitea.db`) and DataStore; exclude `catalog.db`,
+  `photos/`, `catalog/`, caches. After a device restore, the orphan sweeper
+  removes `photo` rows whose files are missing and clears dangling
+  `cover_photo_id`s; after the next catalog refresh, catalog teas without a
+  cover get the catalog photo copied again (via `catalog_key`).
 
 ## 9. Migrations
 

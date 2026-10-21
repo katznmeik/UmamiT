@@ -229,7 +229,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen.
    Each row has an action button; *Weiter* always available.
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
-   machen" · *Jetzt laden* (progress inline) / *Später*.
+   machen" · *Katalog jetzt laden* (progress inline) / *Später*.
 
 ### SCR-02 Start (Home)
 
@@ -316,9 +316,17 @@ Always dark ("Steeping"), edge-to-edge, keeps the screen on.
 | ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07" | **Abgegossen** (*Weggegossen* for rinse) |
 | FINISHED | full | „Alle Aufgüsse fertig" | **Sitzung beenden**, secondary *Weiterer Aufguss* |
 
-Overflow ⋮: *Aufguss jetzt beenden*, *Schritt überspringen*, *Schritte
-bearbeiten*, *Weiterer Aufguss*, *Sitzung beenden*, *Sitzung verwerfen*,
-*Timer-Einstellungen*.
+Overflow ⋮ items by state:
+
+| Item | READY | RUNNING | PAUSED | ALERTING | FINISHED |
+|---|---|---|---|---|---|
+| Aufguss jetzt beenden | – | ✓ | ✓ | – | – |
+| Schritt überspringen | ✓ | – | – | – | – |
+| Schritte bearbeiten | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Weiterer Aufguss | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
+| Sitzung beenden | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
+| Sitzung verwerfen | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Timer-Einstellungen | ✓ | ✓ | ✓ | ✓ | ✓ |
 TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
 
 ### SCR-06 „Gespeichert" sheet
@@ -329,7 +337,9 @@ PRF-07 applies) *Zeiten ins Rezept übernehmen*.
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*.
+Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
+while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
+([04 §10](04-brew-timer.md#10-quick-timer)).
 
 ### SCR-08 Sammlung › Meine Tees
 
@@ -433,7 +443,8 @@ safety backup, (Could) CSV export, *Alle Daten löschen*.
 ### SCR-27 Über
 
 Logo, version, Tee-Kontor source note („Katalogdaten und Fotos © Tee-Kontor
-Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*.
+Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*,
+*Diagnose* (local timer/catalog log, *Kopieren*; [06 §5.6](06-architecture.md#56-error-handling--logging)).
 
 ### SCR-28 Fotos, SCR-29 Vorrat, SCR-30 Beschreibungen
 

@@ -30,7 +30,6 @@
 | **Kyusu** (急須) | Japanese teapot, typically with a side handle. |
 | **Houhin** (宝瓶) | Small handleless teapot, often used for gyokuro. |
 | **Shiboridashi** (絞り出し) | Handleless brewing vessel with a notched lid. |
-| **Yuzamashi** (湯冷まし) | Cooling water by pouring it between vessels (or a dedicated cooling bowl). |
 | **Mizudashi** (水出し) | Cold brewing in cold water over hours. |
 | **Kōridashi** (氷出し) | Ice brewing: ice melts slowly over the leaves. |
 | **Gongfu** (功夫) | Chinese brewing style: high leaf-to-water ratio, many short infusions, often in a gaiwan. |
@@ -41,7 +40,6 @@
 | **Liquor** | The brewed tea liquid. |
 | **Flush** | A harvest period (first flush = spring). |
 | **Cultivar** | A cultivated tea plant variety (e.g. Yabukita, Saemidori). |
-| **TDS** | Total dissolved solids — a measure of mineral content in water. |
 
 ## Product & technical terms
 

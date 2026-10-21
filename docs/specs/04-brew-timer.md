@@ -19,7 +19,7 @@ notifications and alerts. Functional requirements: TMR-xx and NOT-xx in
 |---|---|
 | **Session** | One brewing of one tea (`BrewSession`), made of steps. |
 | **Step** | One timed unit: RINSE, INFUSION or WHISK, with planned duration and optional temperature. |
-| **Short / long step** | Planned duration < 30 min / ≥ 30 min (`LONG_STEP_THRESHOLD`). |
+| **Short / long step** | Planned duration < 10 min / ≥ 10 min (`LONG_STEP_THRESHOLD`). Cold and ice brews are always long steps. |
 | **Deadline** | Monotonic time (`SystemClock.elapsedRealtime()`) at which the running step ends. |
 | **Pre-alert** | Soft tick *N* seconds before the deadline (TMR-23). |
 | **Overtime** | Time between deadline and the user tapping *Abgegossen*. |
@@ -94,7 +94,7 @@ stateDiagram-v2
 | `editSteps(list)` | any except Idle | Replace steps not yet started. Session-only. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
-| `idleTimeout` | Ready, Paused, Finished; 60 min without interaction | As `finishSession` without confirmation; notification „Sitzung gespeichert". |
+| `idleTimeout` | Ready, Paused, Finished; 60 min without interaction | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise the session is discarded silently (no notification). |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
 
@@ -133,8 +133,8 @@ flowchart LR
 - Remaining time is displayed rounded **up** to whole seconds; overtime rounded
   down („+0:07"); ≥ 1 h as `h:mm:ss`.
 - Pre-alert: `preAlertAt = deadline − N·1000` where N = recipe override ?:
-  global setting (default 5 s); none if N = 0, if planned < N + 5 s, or for
-  rinse steps < 15 s.
+  global setting (default 5 s); none if N = 0, if planned < N + 5 s, for
+  rinse steps < 15 s, or for long steps (≥ 10 min).
 
 ### 5.1 Recorded step data
 
@@ -154,8 +154,8 @@ flowchart LR
 | Situation | Mechanisms (all active together) |
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
-| Long step RUNNING (≥ 30 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
-| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) · idle-timeout alarm (60 min, inexact) |
+| Long step RUNNING (≥ 10 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
+| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) · idle-timeout alarm (60 min, inexact). After a process restart the FGS cannot be started from the background: a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
 
 ### 6.2 Exact alarms
@@ -177,7 +177,7 @@ flowchart LR
 
 ### 6.3 Foreground service
 
-- Type `specialUse` with subtype „Tee-Ziehzeit-Timer" (no store review, but
+- Type `specialUse` with the subtype string from §13 (no store review, but
   Android requires a type).
 - Started from the user's *Start* tap (foreground), from notification
   actions, or from the exact alarm (§6.2). Never from boot directly.
@@ -212,7 +212,7 @@ records, in one Room transaction.
 
 ### 7.3 Reboot
 
-`BootReceiver` (`BOOT_COMPLETED`) restores the state from wall-clock data,
+`BootReceiver` (`BOOT_COMPLETED`, delivered after the first unlock) restores the state from wall-clock data,
 reschedules the exact alarms (or applies §7.2 if the deadline already passed)
 and posts a notification „Dein Gyokuro-Timer läuft weiter". The deadline alarm
 then starts the FGS when it fires (§6.2).
@@ -244,7 +244,7 @@ Alarms are cleared by the system; on next launch §7.2 applies and the UI says
 | PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
 | ALERTING (separate heads-up on `steep_finished`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
 | FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Sitzung beenden* |
-| Long step | Gyokuro · Kaltaufguss | Fertig um 14:30 | *Öffnen* |
+| Long step | Gyokuro · Kaltaufguss | Fertig um 14:30 | *Pause* |
 
 Content intent → SCR-05; actions → non-exported receiver → controller.
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
@@ -296,22 +296,33 @@ alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a very short soft
 
 ## 10. Quick timer
 
-Ephemeral session (no journal, no stock); one INFUSION step; READY → RUNNING
-⇄ PAUSED; RUNNING → ALERTING → *Fertig* → Idle. Uses global pre-alert, the
-same alert and the Live Update („Schnelltimer"). Counts as the single active
-timer.
+Ephemeral session (no journal, no stock) using the same engine with one
+INFUSION step and these differences:
+
+| Event | Allowed in | Effect |
+|---|---|---|
+| `start` | Ready | as §3.2 |
+| `pause` / `resume` | Running / Paused | as §3.2 |
+| `deadlineReached` | Running | → Alerting |
+| `poured` (button *Fertig*) | Alerting | → Idle |
+| `cancel` (*Abbrechen*, overflow and notification) | Ready, Running, Paused | → Idle, nothing recorded |
+
+Uses the global pre-alert, the same alert and the Live Update
+(„Schnelltimer"). Counts as the single active timer. No `endStepNow`,
+`skipStep`, `addStep` or idle timeout (an unstarted quick timer is cancelled
+after 60 min).
 
 ## 11. Edge cases
 
 | # | Case | Expected behaviour |
 |---|---|---|
 | E1 | Clock or time zone changed during a step | No effect (monotonic). |
-| E2 | Reboot during a step | §7.3: alarms rescheduled at boot; alert still fires. |
+| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime. Accepted for a personal app. |
 | E3 | Process killed during a short step | Exact alarm fires → FGS started → alert plays. |
 | E4 | App swiped from recents | Session continues. |
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; otherwise rescheduled. |
-| E7 | Pre-alert N ≥ step duration − 5 s | No pre-alert for that step. |
+| E7 | Planned step < N + 5 s | No pre-alert for that step. |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |

@@ -164,7 +164,7 @@ Database and settings in device backup; manual export file as extra safety;
 photos only in the manual export.
 
 <a id="d-023"></a>
-### D-023 — Min SDK 35, target SDK 36 · *Proposed*
+### D-023 — Min SDK 35, target SDK 36 · *Accepted* (PO, 2026-10-21)
 
 PO's phone runs Android 16; one version of slack.
 

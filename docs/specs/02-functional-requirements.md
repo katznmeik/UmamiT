@@ -112,7 +112,7 @@ One page „Damit der Timer zuverlässig klingelt" walks through:
    to the app's battery settings.
 3. Live notifications: verify that the app may show Live Updates; deep link to
    the setting if not.
-Each item shows a ✓ when satisfied. *Später* (later) is allowed; missing items
+Each item shows a ✓ when satisfied. *Weiter* is always allowed; missing items
 are then shown as a banner on Home and the timer (TMR-31).
 
 **ONB-03 — Load catalog** `Must`
@@ -172,8 +172,8 @@ fallback recipe. Unmapped teas use `green_generic` and are flagged.
 *Katalog aktualisieren* (Sammlung › Katalog, overflow, and Settings) fetches
 the shop, parses all products, and replaces the catalog atomically.
 - AC1: Progress shows pages and products processed; the refresh can be
-  cancelled; the phone may be locked during refresh (runs as a user-initiated
-  data-transfer job / expedited work).
+  cancelled; the phone may be locked during refresh (long-running WorkManager
+  worker in a `dataSync` foreground service with a progress notification).
 - AC2: Requests are polite: ≤ 1 request/second, identifying user agent,
   `robots.txt` respected, timeouts and ≤ 3 retries.
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
@@ -240,7 +240,8 @@ All fields of `Tea` ([05 §3.1](05-data-model.md#31-tea)) in sections:
 *Allgemein* (photo, name, secondary name, style/type, umami level, flavoured),
 *Herkunft* (country, region, cultivar, harvest year & flush, shading days,
 processing), *Kauf* (vendor — default „Tee-Kontor Kiel" for catalog teas —
-purchase date, package size, price), *Vorrat & Frische* (stock, opened
+plus purchase date, package size and price, which are stored as the tea's
+INITIAL stock event, [05 §3.10](05-data-model.md#310-inventoryevent)), *Vorrat & Frische* (stock, opened
 date, best before, storage note), *Notizen & Schlagwörter*.
 
 **TEA-03 — Edit** `Must`
@@ -401,7 +402,8 @@ parameters.
 
 **BRW-10 — Kettle hint** `Must`
 The setup and every READY state show the step temperature prominently as a
-kettle instruction: „Wasserkocher auf 60 °C".
+kettle instruction: „Wasserkocher auf 60 °C". For temperatures ≤ 10 °C the
+hint reads „Kaltes Wasser" (cold brew) or „Eiswürfel" (ice brew) instead.
 
 ---
 
@@ -445,8 +447,9 @@ ring is also tappable.
 **TMR-09 — Skip step** `Should` (overflow).
 
 **TMR-10 — Add infusion** `Must`
-In FINISHED and via overflow: *Weiteren Aufguss* appends a step (last
-temperature; last duration + 50 %, rounded to 5 s), editable before start.
+In FINISHED and via overflow: *Weiterer Aufguss* appends a step (last
+temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
+1 min above), editable before start.
 
 **TMR-11 — Edit remaining steps** `Should` (overflow; this session only).
 
@@ -463,7 +466,8 @@ PRF-07 applies — *Zeiten ins Rezept übernehmen*. Ignoring it is fine.
 
 **TMR-14 — Auto-finish idle sessions** `Must`
 60 min without interaction in READY/PAUSED/FINISHED → finished and logged
-(TMR-12 rules), notification „Sitzung gespeichert".
+with notification „Sitzung gespeichert"; a session without any completed
+non-rinse step is discarded silently instead.
 
 **TMR-15 — Background & lock screen** `Must`
 The timer continues when leaving the app or locking the phone.
@@ -474,8 +478,9 @@ See [04 §7](04-brew-timer.md#7-persistence--recovery).
 **TMR-17 — Keep screen on** `Must` while SCR-05 is visible (setting, default on).
 
 **TMR-18 — Long steps (cold brew, ice brew)** `Must`
-Steps ≥ 30 min use exact alarms without keeping a service running; the Live
-Update shows „Fertig um 14:30".
+Steps ≥ 10 min (always including cold and ice brew) use exact alarms
+without keeping a service running; no pre-alert; the Live Update shows
+„Fertig um 14:30".
 
 **TMR-19 — Whisk steps** `Must` („Zügig in M/W-Form aufschlagen").
 
@@ -495,8 +500,8 @@ A soft tick sound (plus short haptic) **N seconds before the end** of each
 step so the kyusu can be picked up.
 - N comes from the recipe's pre-alert override, else the global setting
   (SET-10): Aus or 5–30 s in 5 s steps; default 5 s.
-- Skipped if the step is shorter than N + 5 s, and for RINSE steps shorter
-  than 15 s.
+- Skipped if the step is shorter than N + 5 s, for RINSE steps shorter
+  than 15 s, and for long steps (≥ 10 min, TMR-18).
 - The tick follows the ringer mode like the alert (vibrate mode → short
   vibration only).
 - The Live Update / timer caption switches to „Gleich fertig…" at the
@@ -539,7 +544,7 @@ plus custom ones; max 20 per session.
 
 **JRN-05 — Notes** `Must` (≤ 5000 chars; per-step notes ≤ 300).
 
-**JRN-07 — Session photos** `Could` (≤ 6).
+**JRN-07 — Session photos** `Should` (≤ 6, via *Notizen hinzufügen*).
 
 **JRN-08 — Journal list** `Must`
 Newest first, grouped by day („Heute", „Gestern", „Montag, 12. Oktober").
@@ -578,8 +583,10 @@ history list (SCR-29).
 Leer (≤ 0 g), Knapp (≤ threshold, default 10 g), Vorrätig.
 
 **INV-06 — Opened date & freshness** `Should`
-*Geöffnet am* is set automatically on the first session of a package
-(snackbar *Rückgängig*); freshness from the style's window: „Frisch",
+*Geöffnet am* is set automatically (snackbar *Rückgängig*) on the first
+session after a new package: i.e. when `opened_date` is empty, or when the
+latest INITIAL/PURCHASE event is newer than `opened_date` and the stock had
+reached 0 g before that purchase; freshness from the style's window: „Frisch",
 „Bald genießen", „Über dem Höhepunkt".
 
 **INV-07 — Low stock & freshness reminders** `Could`
@@ -602,8 +609,9 @@ sessions per week (last 12 weeks), current and longest streak (shown neutrally),
 most-brewed teas (top 5).
 
 **INS-02 — Ratings** `Must`
-Average rating and distribution 1–5 ★ (rated sessions only, with count of
-rated vs. total), top-rated teas (≥ 3 ratings).
+Average rating and distribution in five buckets 1–5 ★ (half stars rounded
+down, 0,5 counts as 1 ★; rated sessions only, with count of rated vs.
+total), top-rated teas (≥ 3 ratings).
 
 **INS-03 — Tea types** `Must`
 Share of sessions by type (Gyokuro, Sencha, Matcha, …) as donut with legend
