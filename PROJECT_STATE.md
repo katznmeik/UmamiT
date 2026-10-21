@@ -60,6 +60,7 @@
 | `release.yml` PR (D-039) | Its own branch `claude/umamit-release-yml`, deleted after the merge |
 | Reporting | Milestones and blockers in the session; **push notifications only when the PO must act** (key files ready, probe ready, blocking decisions) |
 | Probe results | The PO replies in the session; Claude transfers them to #17 and this file |
+| Next spec (waves 2–3) | Started by the PO; include the design/motion skills per `docs/plans/M1-timer.md` §3.2 (motion section in 03, `/review-animations` on UI tickets, worst-case renders in M1-17) |
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps (from 2026-10-22 09:05 Europe/Berlin)
@@ -88,6 +89,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Removed 7 web/iOS-only Emil Kowalski skills; noted how the remaining design/motion skills enter the waves 2–3 spec (M1 plan §3.2). |
 | 2026-10-21 | Grilled the M1 start with the PO: working agreements recorded above; D-040 (probe gate, fix loop); 09:05 start re-created as a scheduled task in this session (the earlier one had disappeared). |
 | 2026-10-21 | Emil Kowalski's design skills installed (`npx skills add emilkowalski/skills`, MIT): 15 skills in `.claude/skills/`, pinned in `skills-lock.json`. Useful here: `emil-design-eng`, `apple-design`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`; the rest target web/React/Swift. |
 | 2026-10-21 | Project skill `/implement-spec` added (vendored beta from mattpocock/skills, MIT, with UmamiT rules); usable for spec #6 once the go is in effect. |

@@ -101,6 +101,33 @@ Agreed with the PO (spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6
 | 4 | **Version → versionCode:** one pure function, unit-tested with the 06 §6 examples and malformed inputs | M1-01 |
 | 5 | **On-device probe checklist** (09 §4) by the PO; the only check for One UI behaviour (Now Bar) | M1-03a |
 
+### 3.2 Design and motion skills (for the waves 2–3 spec)
+
+Agreed with the PO on 2026-10-21. When the PO starts the spec for waves 2–3
+(`/to-spec`), build Emil Kowalski's design skills (`.claude/skills/`, see
+CLAUDE.md "Project skills") into the work instead of using them ad hoc:
+
+- **Spec:** add a short **motion** section to `docs/specs/03-ux-ui.md`,
+  shaped with `/emil-design-eng` and `/apple-design`:
+  - motion tokens (durations, easings and springs, expressed as Compose
+    `tween` / `spring` specs);
+  - the motions that exist: `TimerRing` progress and the pre-alert tick
+    visual, step transitions, the Schritte-Sheet, the active brew bar,
+    dimming (TMR-17);
+  - reduce-motion handling (Android *Animationen entfernen* / animator
+    duration scale) and TalkBack.
+- **Building:** `/animate` decides individual motions (whether to animate,
+  curve, duration, interruption). The result is implemented with Compose
+  animation APIs.
+- **Review:** UI tickets (M1-04, M1-05, M1-12, M1-13, M1-14, M1-19) get a
+  `/review-animations` check in addition to the normal review.
+- **Design review (M1-17):** `/find-animation-opportunities` on the
+  finished screens, plus `/break-ui`-style worst-case renders as extra
+  Roborazzi screenshots: long German tea names, missing photos, 2.0 font
+  scale, many steps (up to 30).
+- Timer reliability beats polish (CLAUDE.md rule 8). No motion may delay or
+  hide an alert.
+
 ## 4. Order and parallelism
 
 ```mermaid
