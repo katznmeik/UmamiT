@@ -301,6 +301,19 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-039"></a>
+### D-039 — `release.yml` on `main` before the first dispatch · *Accepted* (PO, 2026-10-21)
+
+GitHub only dispatches a `workflow_dispatch` workflow that exists on the
+default branch. So `release.yml` (M1-03) reaches `main` through a small
+housekeeping PR before the probe release `v0.0.1-probe` is dispatched from
+the M1 PR branch; release candidates are dispatched the same way. This is an
+exception to „one PR per milestone" limited to the release workflow; later
+changes to `release.yml` within M1 travel with the milestone PR. Agreed with
+the PO as part of the spec issue
+[katznmeik/UmamiT#6](https://github.com/katznmeik/UmamiT/issues/6), which
+also fixes the M1-00 … M1-03a test seams (M1 plan §3.1).
+
 <a id="d-038"></a>
 ### D-038 — Go for development · *Accepted* (PO, 2026-10-21)
 
@@ -400,6 +413,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | D-039: `release.yml` on `main` before the first dispatch; spec issue #6 and test seams for M1-00 … M1-03a. |
 | 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |

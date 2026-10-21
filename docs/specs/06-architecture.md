@@ -253,7 +253,9 @@ No personal content (tea names are allowed, notes are not).
   builds, tests, signs the APK, verifies the certificate fingerprint (§6.1),
   **creates the tag** `v<version>` and the **GitHub Release** with the APK
   and release notes. Claude triggers it through the GitHub Actions API / tool
-  (no local tag push needed).
+  (no local tag push needed). GitHub only dispatches workflows that exist on
+  the default branch, so `release.yml` reaches `main` through a small
+  housekeeping PR before the first dispatch (D-039).
 - **Release candidates:** `vX.Y.Z-rc.N` are built from the milestone's PR
   branch and published as **pre-releases** for the PO's on-device testing.
   After the PR is merged, the final `vX.Y.Z` is built from `main`.
