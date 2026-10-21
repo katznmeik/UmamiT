@@ -22,7 +22,7 @@
 |---|---|---|---|---|
 | **M0** | **Specification** | These documents; PO review; open questions answered | — | — (PR only) |
 | — | **Go gate** | PO gives explicit go for development | — | — |
-| **M1** | **Timer first** | Project skeleton, CI, signing & release workflow, design system (washi/steeping themes, serif font, core components), navigation shell (Start · Journal · Sammlung · Statistik, placeholders), Einrichtung reliability page, complete timer (multi-step recipes, Pause, pre-alert, alerts per ringer mode, Live Update, exact alarms, FGS, recovery, reboot), quick timer, active brew bar, timer settings, minimal manual tea + recipe creation (name, style template, recipe) for testing, minimal session log | ONB-01/02/04, BRW-01…03, BRW-10, TMR-*, NOT-01…03, SET-09…11, SET-14, SET-17, SET-24, SET-31, GEN-* | v0.1.0 |
+| **M1** | **Timer first** | Project skeleton, CI, signing & release workflow, design system (washi/steeping themes, serif font, core components), navigation shell (Start · Journal · Sammlung · Statistik, placeholders), Einrichtung reliability page, complete timer (multi-step recipes, Pause, pre-alert, alerts per ringer mode, Live Update, exact alarms, FGS, recovery, reboot), quick timer, active brew bar, timer settings, the PO's two seed teas Bio Sencha Tanabata and Bio Sencha Hisui with recipes and 100 g stock each ([08 §2.5a](08-content.md#25a-m1-seed-teas-pos-current-teas)), minimal session log | ONB-01/02/04, BRW-01…03, BRW-10, BRW-11, TMR-*, NOT-01…03, SET-09…11, SET-14, SET-17, SET-24, SET-31, GEN-* | v0.1.0 |
 | **M2** | **Tee-Kontor catalog** | Re-check selectors (V-01 done), parser + synthetic fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, guides, „Rezept prüfen" | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
 | **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.3.0 |
 | **M4** | **Journal & statistics** | Auto-log refinements, „Gespeichert" sheet with notes and recipe update, session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-*, TMR-12 | v0.4.0 |
@@ -50,7 +50,10 @@ PO's review and testing turnaround.
 
 - [ ] APK installs from the GitHub Release; updates install over it.
 - [ ] Einrichtung: notifications, battery „Uneingeschränkt", Live notifications all show ✓ after setup.
+- [ ] Seed teas Tanabata and Hisui present with photos (after first start online), recipes and 100 g stock.
+- [ ] *Nochmal brühen* tea → timer READY in one tap; *Start* = second tap.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
+- [ ] Screen dims ~10 s into a steep and brightens at the pre-alert.
 - [ ] Pre-alert tick at 5 s (global) and at 15 s (recipe override); none for a 5 s step.
 - [ ] Listen to all alert sounds via *Alarm testen*; approve the default „Klangschale" or pick another (Q-15).
 - [ ] Alert with ringer normal (sound + vibration), vibrate (vibration only), silent (visual only); stops on *Abgegossen* or after ~15 s.

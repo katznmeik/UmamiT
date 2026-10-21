@@ -228,6 +228,23 @@ committed (D-016, synthetic test fixtures); secrets only in GitHub Actions
 secrets; the APK on GitHub Releases is publicly downloadable (contains no
 personal data or shop content).
 
+<a id="d-031"></a>
+### D-031 — Grill round 2 decisions · *Accepted* (PO, 2026-10-21)
+
+- Catalog refresh only on user request, on any connection (CAT-07 AC7).
+- Discontinued catalog teas are hidden; kept only if owned (CAT-07 AC4).
+- Empty teas stay in the collection, marked „Leer", sorted last (INV-05).
+- Finishing early is a normal session (TMR-12).
+- One poured infusion = one cup for cost and statistics (INV-08, INS-05).
+- Manual tea entry stays comfortable (PO sometimes buys elsewhere).
+- *Nochmal brühen*: 3 most recently brewed teas; tap → timer READY with the
+  last parameters (BRW-11).
+- Rinse steps never added automatically; matcha keeps the whisk timer.
+- Screen dims while steeping (TMR-17, SET-25); streaks shown neutrally; theme
+  follows the system.
+- M1 ships the PO's two teas (Bio Sencha Tanabata, Bio Sencha Hisui) as seed
+  data with 100 g stock each ([08 §2.5a](08-content.md#25a-m1-seed-teas-pos-current-teas)).
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -253,6 +270,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Grill round 2 (D-031): manual-only refresh on any network; discontinued teas hidden unless owned; empty teas stay marked „Leer"; early finish = normal session; one infusion = one cup; *Nochmal brühen* (3 last teas) opens the timer directly; no automatic rinse; screen dims while steeping; M1 seed teas Tanabata & Hisui with live data; small-size prices not estimated. |
 | 2026-10-21 | Mockups v2 added (`docs/design/mockup-v2-*.png`) and reviewed in 03 §1.1; journal row format adopted from them. |
 | 2026-10-21 | Q-04 → D-029 (imagery), Q-11 → D-030 (public repo); asset list `docs/design/assets.md`. |
 | 2026-10-21 | V-01: Tee-Kontor structure verified live (Shopware 6.7, Cloudflare, sitemap discovery, Kyusu/Westlich brewing grid, variants per URL, shop taste scales); 08 §2 rewritten; rate limit 2 req/s; estimated package prices. |

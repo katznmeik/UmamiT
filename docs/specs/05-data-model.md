@@ -252,7 +252,7 @@ Table `catalog_tea`
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh |
-| `discontinued` | INTEGER | not found in the latest refresh (CAT-07 AC4) |
+| `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
 | `photo_file` | TEXT | `filesDir/catalog/<key>.webp` |
 | `photo_url`, `photo_etag` | TEXT | change detection |
 | `content_hash` | TEXT | to report „geändert" |
@@ -336,6 +336,7 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 |
 | `collectionSort`, `catalogSort` | enums | name | |
 | `statsRange` | enum | DAYS_90 | INS-07 |
+| `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
 
 ## 7. Units & rounding

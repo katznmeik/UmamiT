@@ -46,7 +46,7 @@ parser (NFR-MAINT-04).
 | Price | `.product-detail-price` („17,90 €") | default package price |
 | Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)") | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
 | Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock | `available` |
-| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison*, *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
+| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
 | Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
 | Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
 | Description | `.product-detail-description-text` paragraphs | `description_html`; also the source of brewing prose and „Zutaten: …" |
@@ -88,11 +88,15 @@ comes from titles („2026 Shincha …").
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
    sitemap; products missing from the sitemap → discontinued.
 6. **Package prices:** variant sizes come from the configurator labels and
-   variant URLs. Prices are **estimated** without extra requests:
-   `price(size) = parent price ÷ parent grams × size × (1 − savings %)`,
-   rounded to the cent, marked as estimate. The exact price is fetched from
-   the variant URL when the user adds that package to the collection
-   (CAT-12, online only; offline the estimate is used and editable).
+   variant URLs. Sizes **larger** than the parent package are **estimated**
+   without extra requests: `price(size) = parent price ÷ parent grams × size ×
+   (1 − savings %)`, rounded to the cent, marked as estimate (verified: within
+   ±0,05 € of the real prices). Sizes **smaller** than the parent (e.g. 10 g
+   samples) carry a surcharge and are **not estimated** (Hisui 10 g = 2,80 € =
+   280 €/kg vs. 179 €/kg) — shown as „Preis beim Hinzufügen". The exact price
+   of any size is fetched from its variant URL when the user adds that package
+   (CAT-12, online only; offline the estimate or an empty price is used and
+   editable).
 7. Teas split into separate base numbers per size but with the same name are
    merged by normalised name.
 8. New harvests usually get new article numbers; the old one becomes
@@ -125,14 +129,18 @@ the Kyusu row for Japanese teas when present, otherwise the first row.
 built-in style default.
 
 **Step 4 — Normalise:** ranges → midpoint; temperature → `snap5` (half up:
-52,5 → 55 °C); times → nearest 5 s; amounts: water = stated volume (per-litre
-amounts use 1000 ml for western recipes, style default volume for kyusu
-recipes, leaf scaled by the ratio); leaf rounded to 0,1 g.
+52,5 → 55 °C; 67,5 → 70 °C); times → nearest 5 s; amounts: water = stated
+volume; per-litre amounts (`~10g/L`) use **250 ml** (one mug) for western
+recipes and the style's default volume for kyusu recipes, leaf scaled by the
+ratio (10 g/L → 2,5 g / 250 ml); leaf rounded to 0,1 g. The vessel picker
+rescales later (WARE-03).
 
 **Step 5 — Steps:** one INFUSION per given infusion (1–3) at the recipe
 temperature. If only the first infusion is given and the method is KYUSU or
 GONGFU, follow-up infusions come from the style default. Matcha: one WHISK
 step with the style's whisk duration (the shop states none; not flagged).
+**Rinse steps are never added automatically**; they exist only when the user
+adds one to a recipe.
 
 **Step 6 — Cold brew.** If the „Coldbrew geeignet" badge is present or the
 prose describes a Kaltaufguss, add a recipe „Kaltaufguss" (`COLD_BREW`):
@@ -161,9 +169,49 @@ the recipe instead of flagging the tea.
 | Tea | Grid / prose | Derived recipes | Tea flag |
 |---|---|---|---|
 | Bio Uji Gyokuro Gokō `AT0634` | Kyusu `~4g/100ml · 50-55°C · ~90 Sek · ~30 Sek · ~20 Sek` | **Kyusu** 4,0 g / 100 ml / 55 °C: 1:30, 0:30, 0:20 · Kaltaufguss from style if badge present | — |
-| Bio Sencha Hisui `TG0557` | Westlich `~10g/L · ~65°C · ~1 Min`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` | **Kyusu** 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Westlich 10,0 g / 1000 ml / 65 °C: 1:00 | — |
+| Bio Sencha Hisui `TG0557` | Westlich `~10g/L · ~65°C · ~1 Min`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek`; badge „Coldbrew geeignet" | **Kyusu** 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 65 °C: 1:00 · Kaltaufguss (style default) 10,0 g / 1000 ml / 5 °C: 4:00:00 | — |
 | Bio Premium Matcha Horai `AT0220a` | Kyusu `~1g/100ml · ~70°C · -` | **Usucha** 1,0 g / 100 ml / 70 °C: whisk 0:20 | — |
-| Bio Yuzu Sencha `TG0569` (flavoured) | Westlich `~10g/L · ~65-75°C · ~1 Min`; Kyusu `~4g/200ml · 65-75°C · 60 Sek · 10 Sek · 10 Sek`; prose: Kaltaufguss 20–30 min, double dose | **Kyusu** 4,0 g / 200 ml / 70 °C: 1:00, 0:10, 0:10 · Westlich 10,0 g / 1000 ml / 70 °C: 1:00 · Kaltaufguss 8,0 g / 200 ml / 5 °C: 25:00 | — |
+| Bio Yuzu Sencha `TG0569` (flavoured) | Westlich `~10g/L · ~65-75°C · ~1 Min`; Kyusu `~4g/200ml · 65-75°C · 60 Sek · 10 Sek · 10 Sek`; prose: Kaltaufguss 20–30 min, double dose | **Kyusu** 4,0 g / 200 ml / 70 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 70 °C: 1:00 · Kaltaufguss 8,0 g / 200 ml / 5 °C: 25:00 | — |
+
+### 2.5a M1 seed teas (PO's current teas)
+
+The M1 timer APK has no catalog yet. It ships these two teas, which the PO
+owns, as **seed data** in the collection (verified on the live site on
+2026-10-21). Only factual data is committed (names, article numbers, origin,
+cultivar, processing, brewing parameters, prices); the shop's description
+texts and photos are **not** committed (D-016). On first start the app
+downloads the two product photos from the allow-listed host; without network
+the timer fallback image (A4) is used. Descriptions arrive with the catalog in
+M2 (*Aus Katalog zurücksetzen*).
+
+| Field | Bio Sencha Tanabata | Bio Sencha Hisui |
+|---|---|---|
+| `catalog_key` | `TG0213` | `TG0557` |
+| URL | `/bio-sencha-tanabata/TG0213` | `/bio-sencha-hisui/TG0557` |
+| Style / type | `sencha` / „Sencha" | `sencha` / „Sencha" |
+| Origin | JP, Kagoshima (Kyushu) | JP, Kirishima, Kagoshima (Kyushu) |
+| Cultivar | Blend, mainly Yabukita | Okumidori (100 %) |
+| Harvest | Summer harvest, early July (`SUMMER`) | First flush (`FIRST_FLUSH`) |
+| Shading | — | 6 days |
+| Processing | Asamushi (light steaming) | Asamushi (light steaming) |
+| Organic / flavoured | Bio / no | Bio / no |
+| Shop taste scales | Komplexität 1, Bitterstoffe 1, Süße 1, Fruchtig 2 (no Umami scale) | Umami 1, Komplexität 2, Bitterstoffe 1, Süße 3, Fruchtig 2, Nussig 1, Würzig 1, Röstnoten 1 |
+| Umami level | `MEDIUM` (style default — no shop scale) | `LOW` (shop scale 1) |
+| Taste notes (*Geschmack*) | fruchtig, mild, süß | fruchtig, mild, mittelkräftig, süß |
+| Badges | Für Einsteiger | Coldbrew geeignet, Für Einsteiger, Preistipp |
+| Brewing grid (verbatim) | Westlich `~10g/L · ~65-70°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-70°C · 45 Sek · 10 Sek · 10 Sek` | Westlich `~10g/L · ~65°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` |
+| **Recipe „Kyusu" (default)** | 4,0 g / 200 ml / **65 °C**: 0:45, 0:10, 0:10 | 4,0 g / 200 ml / **65 °C**: 1:00, 0:10, 0:10 |
+| Recipe „Westlich" | 2,5 g / 250 ml / 70 °C: 1:00 | 2,5 g / 250 ml / 65 °C: 1:00 |
+| Recipe „Kaltaufguss" | — | 10,0 g / 1000 ml / 5 °C: 4:00:00 (style default, from badge) |
+| Recipe check flag | none | none |
+| Packages (exact prices) | 10 g 1,85 € · 100 g 8,50 € · 250 g 20,60 € · 500 g 40,35 € · 1000 g 76,50 € | 10 g 2,80 € · 50 g 8,95 € · 100 g 17,90 € · 250 g 43,40 € · 500 g 85,05 € · 1000 g 161,10 € |
+| Base price | 85,00 €/kg | 179,00 €/kg |
+| **PO's stock (seed)** | INITIAL 100 g, 8,50 €, unopened | INITIAL 100 g, 17,90 €, unopened |
+| Cost per cup (Kyusu, 3 infusions) | 4,0 g × 0,085 €/g = 0,34 € → 0,11 €/Tasse | 4,0 g × 0,179 €/g = 0,72 € → 0,24 €/Tasse |
+| Photo URL (downloaded at runtime) | `/media/ab/15/63/1727307323/gtbiosenchatanabataaiya.jpg` | `/media/7c/c3/7c/1727308250/gtbiosenchahisui.jpg` |
+
+Purchase date of the seed stock = first app start; `opened_date` is set by
+the first session (INV-06).
 
 ### 2.6 Style mapping and umami level
 

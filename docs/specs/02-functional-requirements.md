@@ -188,12 +188,16 @@ the shop, parses all products, and replaces the catalog atomically.
   Cloudflare challenge stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
   3 Rezepte prüfen".
-- AC4: Teas no longer found are kept, marked „Nicht mehr im Sortiment".
+- AC4: Teas no longer found are **hidden** from the catalog. They are kept
+  (marked „Nicht mehr im Sortiment") only if a collection tea links to them
+  via `catalog_key`; otherwise they are deleted with their photos.
 - AC5: If parsing fails structurally (e.g. < 50 % of the previous product
   count, or required fields missing on most products), the existing catalog
   is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
   App-Update ist nötig" is shown with technical details for the developer.
 - AC6: Date of the last successful refresh is shown in the catalog header.
+- AC7: Refresh runs **only when the user taps it** (never automatically) and
+  is allowed on any connection (Wi-Fi or mobile data) without a warning.
 
 **CAT-08 — Photos** `Must`
 The main product photo of each tea is downloaded, resized (max 1600 px long
@@ -390,9 +394,18 @@ E.g. KYUSU → „Kyusu 180 ml".
 ## 8. Brew setup (BRW) — SCR-03, SCR-04
 
 **BRW-01 — Start a brew** `Must`
-Entry points: Home *Aufguss starten* (tea picker), *Nochmal brühen* items on
-Home, tea detail *Brühen*, journal *Nochmal brühen*. A known tea starts in ≤ 3
-taps.
+Entry points: Home *Aufguss starten* (tea picker → setup), tea detail
+*Brühen* (→ setup), journal *Nochmal brühen* (→ setup prefilled), and Home
+*Nochmal brühen* (→ **directly to the timer**, BRW-11).
+
+**BRW-11 — One-tap brew again** `Must`
+Home *Nochmal brühen* shows the **3 most recently brewed distinct teas**
+(non-archived). Tapping one starts a session immediately and opens the timer
+in READY with the parameters of that tea's last session (recipe, vessel, leaf,
+water, temperatures, step durations as planned). The kettle hint shows the
+temperature. Timer ⋮ › *Brühen anpassen* opens the setup screen for this
+session (only while no step has started). A known tea starts in **2 taps**
+(tea → *Start*).
 
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
@@ -466,6 +479,10 @@ temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
 **TMR-11 — Edit remaining steps** `Should` (overflow; this session only).
 
 **TMR-12 — Finish & auto-log** `Must`
+Finishing early (e.g. after infusion 2 of 3) is a normal session; the
+journal shows „2 von 3 Aufgüssen". Planned steps that were never started are
+not recorded as skipped and do not count as a time difference for PRF-07.
+
 *Sitzung beenden* (FINISHED state or overflow) completes the session; it is
 saved to the journal automatically **without a summary screen**. A bottom
 sheet (SCR-06) appears for 10 s and stays reachable from the journal:
@@ -487,7 +504,11 @@ The timer continues when leaving the app or locking the phone.
 **TMR-16 — Survive process death and reboot** `Must`
 See [04 §7](04-brew-timer.md#7-persistence--recovery).
 
-**TMR-17 — Keep screen on** `Must` while SCR-05 is visible (setting, default on).
+**TMR-17 — Keep screen on, dimmed while steeping** `Must`
+While SCR-05 is visible the screen stays on (SET-17). While a step is
+RUNNING and the screen is untouched for 10 s, the window brightness dims to
+~20 % (SET-25, default on); it returns to normal at the pre-alert, at the
+alert, on any touch, and in READY/PAUSED/FINISHED.
 
 **TMR-18 — Long steps (cold brew, ice brew)** `Must`
 Steps ≥ 10 min (always including cold and ice brew) use exact alarms
@@ -593,7 +614,9 @@ history list (SCR-29).
 **INV-04 — Session edits** `Must` update the linked deduction.
 
 **INV-05 — Stock status** `Must`
-Leer (≤ 0 g), Knapp (≤ threshold, default 10 g), Vorrätig.
+Leer (≤ 0 g), Knapp (≤ threshold, default 10 g), Vorrätig. Empty teas stay
+in *Meine Tees* with a „Leer" chip and are sorted to the bottom in every sort
+order; they are never archived automatically.
 
 **INV-06 — Opened date & freshness** `Should`
 *Geöffnet am* is set automatically (snackbar *Rückgängig*) on the first
@@ -607,7 +630,10 @@ Weekly digest notification (off by default).
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
-per session = leaf × cost per gram; shown on tea detail and in statistics.
+per session = leaf × cost per gram. **One poured infusion = one cup**: cost
+per cup = session cost ÷ completed infusions (rinse and whisk-only matcha:
+the whole session is one cup). Shown on tea detail („0,24 € pro Tasse") and in
+statistics.
 
 ---
 
@@ -634,8 +660,9 @@ and percentages.
 Average taste radar of sessions rated ≥ 4 ★; most frequent descriptors.
 
 **INS-05 — Consumption & cost** `Must`
-Grams used per month (bar chart, 12 months), money spent on tea per month
-(purchases), average cost per session, teas running out (Knapp/Leer).
+Grams used per month (bar chart, 12 months), cups per month (one cup per
+infusion, INV-08), money spent on tea per month (purchases), average cost per
+cup, teas running out (Knapp/Leer).
 
 **INS-07 — Time range** `Must`: 30 Tage, 90 Tage, 12 Monate, Gesamt (default 90 Tage).
 
@@ -656,6 +683,7 @@ Every chart has an accessible table alternative.
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" | 0–500 g — 10 g | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
+| SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |
 | SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07) | aus | Could |
 | SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |

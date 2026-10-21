@@ -275,7 +275,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 │ │    Tee wählen und los    │ │
 │ └──────────────────────────┘ │
 │ ⏱ Schnelltimer               │
-│ NOCHMAL BRÜHEN   Alle anzeigen│  recent teas, tap → SCR-04
+│ NOCHMAL BRÜHEN               │  3 last brewed teas, tap → timer READY (BRW-11)
 │ (○ Gyokuro) (○ Sencha) (○ …) │
 │ ZULETZT GEBRÜHT  Alle anzeigen│  last 3 sessions
 │ (○) Sencha Asamushi    ★ 4,5 │
@@ -351,6 +351,7 @@ Overflow ⋮ items by state:
 
 | Item | READY | RUNNING | PAUSED | ALERTING | FINISHED |
 |---|---|---|---|---|---|
+| Brühen anpassen (only before the first step started) | ✓ | – | – | – | – |
 | Aufguss jetzt beenden | – | ✓ | ✓ | – | – |
 | Schritt überspringen | ✓ | – | – | – | – |
 | Schritte bearbeiten | ✓ | ✓ | ✓ | ✓ | ✓ |
