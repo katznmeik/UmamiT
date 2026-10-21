@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | A1 | **Logo sprig** (two tea leaves) | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
 | A2 | **Welcome landscape** | SCR-01 welcome (full screen, portrait) | PNG ≥ 1440 × 3120 (9:19.5) | light |
-| A3 | **Home header landscape** | SCR-02 header behind „Guter Tee schenkt …" | PNG ≥ 2400 × 1000 (≈ 2.4:1), calm area at the lower left for text | light **and** dark |
+| A3 | **Home header landscape** | SCR-02 header (no text on it) | PNG ≥ 2400 × 1000 (≈ 2.4:1) | light **and** dark |
 | A4 | **Timer fallback photo** | SCR-05 top area when a tea has no photo, quick timer | PNG ≥ 1440 × 1440, dark and moody, subject in the centre-top | dark only (timer is always dark) |
 | A5 | **Reliability illustration** | SCR-01 page „Damit der Timer zuverlässig klingelt" | PNG ≥ 1200 × 900, transparent or washi background | light |
 
@@ -91,8 +91,7 @@ mist, leaving room for a logo and title.
 ```text
 <style block> Wide panoramic composition about 2.4:1. Soft layered mountain
 ridges in mist, a distant tea plantation on rolling hills, delicate
-gradients of grey. The lower-left third is calm and light (a title will be
-placed there). Very subtle warm morning light.
+gradients of grey. Very subtle warm morning light.
 ```
 (then the dark variant with the dark block, "evening, moonlit mist")
 

@@ -228,7 +228,7 @@ confirm on *Abgegossen*.
 
 Ruhig, warm, knapp; informal **„du"**; sentence case; Japanese terms in
 romanisation with macrons (Kōridashi) where standard. Examples:
-- Home: „Guter Tee schenkt einen Moment der Ruhe."
+- Welcome: „Aus Liebe zum Tee"
 - Empty journal: „Deine erste Tasse wartet."
 - Alert: „Jetzt abgießen!"
 - Pre-alert caption: „Gleich fertig …"
@@ -255,8 +255,8 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 ### SCR-01 Einrichtung (first start)
 
-1. *Willkommen* — full-bleed ink-wash, logo, „UmamiT", „BESSERER TEE.
-   TIEFERE MOMENTE.", お茶で、いい時間を。, *Los geht's*.
+1. *Willkommen* — full-bleed ink-wash, logo, „UmamiT", welcome text
+   **„Aus Liebe zum Tee"** (serif), お茶で、いい時間を。, *Los geht's*.
 2. *Damit der Timer zuverlässig klingelt* — checklist rows with status ✓/!:
    Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen.
    Each row has an action button; *Weiter* always available.
@@ -268,9 +268,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 ```
 ┌──────────────────────────────┐
 │ UmamiT                 ⚙   │
-│  [ink-wash mountains ……… ]   │
-│  Guter Tee schenkt einen     │
-│  Moment der Ruhe.            │
+│  [ink-wash mountains ……… ]   │  header illustration only, no text
 │ ┌──────────────────────────┐ │
 │ │ 🍃 Aufguss starten     › │ │  → SCR-03
 │ │    Tee wählen und los    │ │
@@ -312,7 +310,7 @@ footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*.
 │ 1  Aufguss  1:30   55 °C      │
 │ 2  Aufguss  0:30   60 °C      │
 │ 3  Aufguss  0:20   60 °C      │
-│ Vorwarnung  5 s (Standard)    │
+│ Vorwarnung  10 s (Standard)   │
 │ [ Im Rezept speichern ]       │ only when changed
 │ [      Brühen starten      ]  │
 └──────────────────────────────┘

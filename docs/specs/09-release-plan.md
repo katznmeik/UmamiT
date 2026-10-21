@@ -62,7 +62,7 @@ PO's review and testing turnaround.
 - [ ] *Nochmal brühen* tea → timer READY in one tap; *Start* = second tap.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
 - [ ] Screen dims ~10 s into a steep and brightens at the pre-alert.
-- [ ] Pre-alert tick at 5 s (global) and at 15 s (recipe override); none for a 5 s step.
+- [ ] Pre-alert tick 10 s before the end (global default) and at 15 s (recipe override); none for steps shorter than 15 s (e.g. the 0:10 infusions).
 - [ ] Listen to all alert sounds via *Alarm testen*; approve the default „Klangschale" or pick another (Q-15).
 - [ ] Alert with ringer normal (sound + vibration), vibrate (vibration only), silent (visual only); stops on *Abgegossen* or after ~15 s.
 - [ ] Screen off during a 2-min step: pre-alert and alert on time.

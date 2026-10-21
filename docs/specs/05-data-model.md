@@ -323,7 +323,7 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `theme` | SYSTEM/LIGHT/DARK | SYSTEM | SET-05 |
 | `dynamicColor` | Boolean | false | SET-06 |
 | `alertSound` | key | `klangschale` | SET-09 |
-| `preAlertSeconds` | Int (0, 5…30) | 5 | SET-10 |
+| `preAlertSeconds` | Int (0, 5…30) | 10 | SET-10 |
 | `vibration` | Boolean | true | SET-11 |
 | `alertLength` | SHORT/NORMAL/LONG | NORMAL | SET-14 |
 | `deductStock` | Boolean | true | SET-15 |

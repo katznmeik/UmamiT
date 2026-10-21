@@ -44,7 +44,7 @@ items with thin icons: "Start", "Journal", "Sammlung", "Statistik".
 
 SCREENS (top row, left to right)
 1. START (home): serif title "UmamiT" with a settings gear; ink-wash mountain
-   header with the serif line "Guter Tee schenkt einen Moment der Ruhe.";
+   header illustration (no text over it);
    a dark-green card with a leaf icon "Aufguss starten"; a section label
    "NOCHMAL BRÜHEN" with three round tea thumbnails; a section "ZULETZT
    GEBRÜHT" with two list rows ("Gyokuro · 3 Aufgüsse", "★ 4,5").
@@ -118,7 +118,7 @@ Additional single screens worth generating:
 - **Brühen (setup):** tea name, recipe chips „Kyusu" and „Kaltaufguss",
   rows „Gefäß Houhin 120 ml", „Wasser 100 ml", „Blätter 4,0 g", kettle hint
   „Wasserkocher auf 55 °C", a steps list „1 Aufguss 1:30 · 55 °C",
-  „2 Aufguss 0:30 · 60 °C", „3 Aufguss 0:20 · 60 °C", „Vorwarnung 5 s",
+  „2 Aufguss 0:30 · 60 °C", „3 Aufguss 0:20 · 60 °C", „Vorwarnung 10 s",
   primary button „Brühen starten".
 
 ## 3. Tips

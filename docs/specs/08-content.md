@@ -350,10 +350,8 @@ tips:
 
 ## 7. Micro-copy (de)
 
-- Greetings: „Guter Tee schenkt einen Moment der Ruhe." · „Eine stille
-  Tasse wartet." · „Atme durch. Wärm die Kanne vor." · Morgen: „Guten
-  Morgen – frische Blätter, frischer Start." · Abend: „Etwas Sanftes für den
-  Abend?"
+- Welcome page (SCR-01): „Aus Liebe zum Tee". The Start screen has **no
+  greeting text** — only the ink-wash header (PO decision, D-035).
 - Empty states: Meine Tees „Noch keine Tees – stöbere im Katalog." ·
   Journal „Deine erste Tasse wartet." · Katalog „Der Katalog ist noch leer." ·
   Suche „Nichts gefunden – weniger Filter probieren."

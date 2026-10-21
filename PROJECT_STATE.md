@@ -37,8 +37,8 @@
 3. Optional: rename the GitHub repository to `UmamiT` (Settings › General).
 4. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-5. During M1: add the signing secrets to GitHub (instructions follow in
-   M1-03), then listen to the alert sounds and approve the default (Q-15).
+5. During M1: save the two signing files and add 2 GitHub secrets
+   (06 §6.1), then listen to the alert sounds and approve the default (Q-15).
 
 ## Next steps (after the go)
 

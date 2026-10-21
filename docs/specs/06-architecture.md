@@ -214,9 +214,8 @@ issue when something goes wrong.
 | `debug` | `.debug` suffix, installable side-by-side, StrictMode, LeakCanary |
 | `release` | R8 + resource shrinking, signed with the release key |
 
-- **Signing:** a release keystore is generated once; stored as a base64 GitHub
-  Actions secret plus passwords; never committed. The PO keeps an offline copy
-  — losing it means updates can no longer be installed over the old app.
+- **Signing:** see §6.1. Losing the key means updates can no longer be
+  installed over the existing app.
 - **Versioning:** SemVer `versionName`; `versionCode = MAJOR*10000 +
   MINOR*100 + PATCH`.
 - **Release workflow** (`release.yml`, on tag `v*`): build, test, sign APK,
@@ -224,6 +223,27 @@ issue when something goes wrong.
 - **Installing:** the PO downloads the APK from the release page on the
   phone and allows *Unbekannte Apps installieren* for the browser once.
   Updates install over the existing app (same key, higher versionCode).
+
+### 6.1 Signing process (D-035)
+
+Claude does everything except the two steps only the PO can do: storing the
+backup and pasting the secrets into GitHub. Claude has no access to
+repository secrets.
+
+| # | Step | Who |
+|---|---|---|
+| 1 | Generate the release keystore with `keytool`: PKCS12, RSA 4096, alias `umamit`, validity 10 000 days (~27 years), DN `CN=UmamiT, O=Personal, C=DE`. Use one random 32-character password (PKCS12 uses the same password for store and key). The keystore is created in the session scratchpad and **never committed**. | Claude |
+| 2 | Write a backup file `umamit-signing.txt` with the password, the alias, the SHA-256 certificate fingerprint and the base64-encoded keystore. Send it together with `umamit-release.p12` to the PO as session files. The password is never printed in chat or committed. | Claude |
+| 3 | Save both files in a safe place (password manager or private cloud folder). | **PO** |
+| 4 | Add **two** repository secrets (GitHub › Settings › Secrets and variables › Actions › *New repository secret*): `UMAMIT_KEYSTORE_B64` and `UMAMIT_KEYSTORE_PASSWORD`, copying the values from `umamit-signing.txt`. Takes about 2 minutes. | **PO** |
+| 5 | Delete the scratchpad copies once the PO confirms the backup. | Claude |
+| 6 | `release.yml` decodes the keystore into the runner's temp directory and signs with alias `umamit`. It then **checks the APK's certificate fingerprint** against the expected SHA-256 stored in the repository (`signing/release-cert-sha256.txt`, a public value) and fails the release if they differ. | Claude |
+| 7 | Test the setup with a test tag (`v0.0.1-test`), then delete that release. | Claude |
+
+The public certificate fingerprint is also listed in the README. If ever in
+doubt, the PO can compare it with *Einstellungen › Apps › UmamiT*. Debug
+builds use the per-machine debug key and are never installed on the PO's
+phone.
 
 ## 7. Quality gates
 

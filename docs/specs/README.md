@@ -47,7 +47,7 @@ handover), [`docs/plans/`](../plans/) (milestone implementation plans, e.g.
 - **Timer:**
   - waits for your tap between infusions
   - Pause is the only control while running
-  - pre-alert tick: global default 5 s, overridable per recipe
+  - pre-alert tick: global default 10 s, overridable per recipe
   - alert follows the ringer mode
   - Live Update on lock screen and Now Bar
   - exact alarms plus a foreground service

@@ -166,7 +166,7 @@ guides live in the catalog.
 - READY always waits for the user's tap between infusions.
 - Running controls: Pause only (others in the overflow menu); no ±10 s.
 - Pre-alert tick before the end: global setting (Aus, 5–30 s in 5 s steps;
-  default 5 s), overridable per recipe.
+  default 10 s since D-035), overridable per recipe.
 - Alert follows the ringer mode (sound / vibration / silent), repeats ~15 s.
 - Live Update on lock screen, status bar and Now Bar.
 - One timer at a time.
@@ -285,6 +285,17 @@ personal data or shop content).
 - Starting a second tea keeps the confirmation dialog (TMR-21).
 - Overtime ≥ 15 s is shown prominently (TMR-06).
 
+<a id="d-035"></a>
+### D-035 — Welcome text, no home greeting, 10 s pre-alert, signing process · *Accepted* (PO, 2026-10-21)
+
+- Welcome page text: **„Aus Liebe zum Tee"**.
+- The Start screen shows no greeting text (header illustration only).
+- Pre-alert default **10 s** before the end of a step (SET-10). Steps shorter
+  than 15 s get no pre-alert.
+- Signing: Claude generates the key, the backup file and the fingerprint
+  check; the PO only saves the backup and adds two GitHub secrets
+  ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -310,6 +321,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | D-035: welcome text „Aus Liebe zum Tee", no home greeting, pre-alert default 10 s, signing process with 2 secrets. |
 | 2026-10-21 | Grill round 4 (D-034): silent stays visual-only, Claude-generated signing key, CC0 sounds, releases announced by Claude, seed teas linked on first refresh, prominent overtime. |
 | 2026-10-21 | App renamed to UmamiT (D-033); application ID `com.umamit.app`. |
 | 2026-10-21 | Second mug steep set to 0,25 × first duration (+5 °C) per PO experience (D-032). |

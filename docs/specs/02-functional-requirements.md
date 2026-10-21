@@ -551,7 +551,7 @@ custom; same alert, pre-alert (global setting) and Live Update; not logged.
 A soft tick sound (plus short haptic) **N seconds before the end** of each
 step so the kyusu can be picked up.
 - N comes from the recipe's pre-alert override, else the global setting
-  (SET-10): Aus or 5–30 s in 5 s steps; default 5 s.
+  (SET-10): Aus or 5–30 s in 5 s steps; default **10 s**.
 - Skipped if the step is shorter than N + 5 s, for RINSE steps shorter
   than 15 s, and for long steps (≥ 10 min, TMR-18).
 - The tick follows the ringer mode like the alert (vibrate mode → short
@@ -696,7 +696,7 @@ Every chart has an accessible table alternative.
 | SET-05 | Design (*Hell / Dunkel / System*) | System | Must |
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft) — Klangschale | Must |
-| SET-10 | Vorwarnung (pre-alert) | Aus, 5, 10, 15, 20, 25, 30 s — **5 s** | Must |
+| SET-10 | Vorwarnung (pre-alert) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |

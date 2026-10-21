@@ -134,7 +134,7 @@ flowchart LR
 - Remaining time is displayed rounded **up** to whole seconds; overtime rounded
   down („+0:07"); ≥ 1 h as `h:mm:ss`.
 - Pre-alert: `preAlertAt = deadline − N·1000` where N = recipe override ?:
-  global setting (default 5 s); none if N = 0, if planned < N + 5 s, for
+  global setting (default **10 s**); none if N = 0, if planned < N + 5 s, for
   rinse steps < 15 s, or for long steps (≥ 10 min).
 
 ### 5.1 Recorded step data
