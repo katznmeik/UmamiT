@@ -6,8 +6,6 @@
 
 | ID | Question | Proposed default | Needed by |
 |---|---|---|---|
-| Q-04 | Source of the **ink-wash illustrations**, photos and logo — options below; it must feel high quality. | Option C (AI-generated, curated and post-processed), logo redrawn as vector | M1 (logo), M5 (illustrations) |
-| Q-11 | Keep the GitHub repository **public or private**? Not a problem either way once D-016 applies (no shop content in the repo); see notes below. | Either; private is simplest | M2 |
 | Q-15 | Default **alert sound** „Klangschale" (singing bowl): PO agrees in principle but wants to **hear it** before final approval → listen via *Alarm testen* in the M1 APK. | Klangschale | M1 acceptance |
 
 ### Notes on Q-04 — illustration and imagery options
@@ -41,6 +39,8 @@ structure without the shop's texts or images. Other aspects:
 
 | ID | Resolution (2026-10-21) |
 |---|---|
+| Q-04 Illustrations | Option C (AI-generated, curated), optionally with D (CC0 museum art) — D-029; asset list in `docs/design/assets.md`. |
+| Q-11 Repository visibility | Public — D-030. |
 | Q-01 Application ID | `com.umamitea.app` (accepted). |
 | Q-05 Serif font | Cormorant Garamond (accepted). |
 | Q-18 Galaxy Watch | Not used; no watch support needed (NOT-04 → Won't). |
@@ -212,6 +212,22 @@ PO's phone runs Android 16; one version of slack.
 The PO's kettle is adjustable in 5 °C steps; the timer shows a kettle hint per
 step.
 
+<a id="d-029"></a>
+### D-029 — Imagery: AI-generated and curated, optional CC0 museum art · *Accepted* (PO, 2026-10-21)
+
+Illustrations are generated (ChatGPT) in one consistent style, curated and
+post-processed (palette match, light/dark variants, WebP). Hero landscapes may
+use public-domain (CC0) museum ink paintings instead. The logo is redrawn as a
+vector in M1. Asset list and prompts: [`docs/design/assets.md`](../design/assets.md).
+
+<a id="d-030"></a>
+### D-030 — Public repository · *Accepted* (PO, 2026-10-21)
+
+The repository is public. Consequences: no Tee-Kontor content is ever
+committed (D-016, synthetic test fixtures); secrets only in GitHub Actions
+secrets; the APK on GitHub Releases is publicly downloadable (contains no
+personal data or shop content).
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -237,6 +253,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Q-04 → D-029 (imagery), Q-11 → D-030 (public repo); asset list `docs/design/assets.md`. |
 | 2026-10-21 | V-01: Tee-Kontor structure verified live (Shopware 6.7, Cloudflare, sitemap discovery, Kyusu/Westlich brewing grid, variants per URL, shop taste scales); 08 §2 rewritten; rate limit 2 req/s; estimated package prices. |
 | 2026-10-21 | Agent plan (12, D-026); Q-01, Q-05, Q-18 resolved (D-027, D-028); Q-04 options and Q-11 notes added; D-016 switched to synthetic fixtures; tee-kontor-kiel.de reachable from the cloud environment. |
 | 2026-10-21 | v0.2: PO interview — personal sideloaded app, German, Samsung/Android 16, Tee-Kontor catalog with in-app refresh, timer details (pre-alert, ringer-mode alert, Live Update), auto-journal, Stats tab, delivery plan. D-013 … D-025 added; D-004, D-010 superseded; D-001, D-006 amended. |

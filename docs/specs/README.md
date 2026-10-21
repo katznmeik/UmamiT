@@ -30,6 +30,7 @@ explicit go ([D-024](10-open-questions-and-decisions.md#d-024)).
 
 Design reference: [`docs/design/brand-mockup.png`](../design/brand-mockup.png).
 Prompt for new mockups: [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md).
+Image assets to create, with prompts: [`docs/design/assets.md`](../design/assets.md).
 
 ## Key decisions at a glance
 

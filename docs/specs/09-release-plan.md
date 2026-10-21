@@ -39,7 +39,9 @@ PO's review and testing turnaround.
 | P-02 | ✅ `www.tee-kontor-kiel.de` allowed in the cloud environment (verified 2026-10-21); add any image CDN host found during V-01 | M2 |
 | P-03 | ✅ Application ID `com.umamitea.app` (D-027) | M1 |
 | P-04 | Release keystore created; stored in GitHub secrets; PO keeps an offline copy | M1 release |
-| P-05 | ✅ Serif font Cormorant Garamond (D-027); illustration source (Q-04) open | M5 (illustrations) |
+| P-05 | ✅ Serif font Cormorant Garamond (D-027); imagery approach decided (D-029) | — |
+| P-06 | PO generates and uploads images A1–A5 ([`docs/design/assets.md`](../design/assets.md)) | M1 (placeholders are used until they arrive) |
+| P-07 | PO generates A6–A12 | M2–M5 |
 | V-01 | ✅ [08 §2](08-content.md#2-tee-kontor-catalog-import) verified against the live site and updated (2026-10-21); re-check selectors at M2 start | M2 start |
 
 ## 4. Acceptance checklists (on the PO's Galaxy)
