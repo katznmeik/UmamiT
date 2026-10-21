@@ -127,3 +127,17 @@ Filled in once the project skeleton exists (M1-01):
 - Kotlin official style (Spotless/ktlint), Detekt and Lint with no baseline.
 - Prefer fakes over mocks; pure Kotlin modules for logic (`core:timer-engine`,
   `core:catalog-parser`, `core:domain`).
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues in `katznmeik/UmamiT` (GitHub MCP tools in cloud sessions, `gh` locally); specs in `docs/specs/` stay the source of truth. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: glossary `docs/specs/11-glossary.md`, decisions (ADRs) `docs/specs/10-open-questions-and-decisions.md`. See `docs/agents/domain.md`.
