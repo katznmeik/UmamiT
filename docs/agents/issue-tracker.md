@@ -29,6 +29,12 @@ sessions may use `gh`.
 | Close | `issue_write` (`state: closed`, always with `state_reason`) plus a closing comment | `gh issue close <number> --comment "..."` |
 | Sub-issues | `sub_issue_write` | `gh api` on the sub-issues endpoint |
 
+Labels must already exist in the repository: the GitHub MCP tools cannot
+create labels and reject unknown ones. The PO creates missing labels at
+<https://github.com/katznmeik/UmamiT/labels> (or `gh label create` locally).
+`issue_write` with `parent_issue_number` creates an issue directly as a
+sub-issue.
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
