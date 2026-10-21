@@ -1,383 +1,345 @@
 # 04 · Brew Timer Specification
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-21
+> v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
+> control, exact alarms always available (personal app, no store review),
+> Live Update on Android 16, Samsung battery handling, one timer at a time.
 
-The steep timer is UmamiTea's most critical feature: a missed alert ruins a
-cup of gyokuro. This document specifies its behaviour, state machine,
-background execution, persistence, notifications and alerts in enough detail
-to implement and test it. Functional requirements: TMR-xx and NOT-xx in
+The steep timer is the most important feature of UmamiTea. This document
+specifies its behaviour, state machine, background execution, persistence,
+notifications and alerts. Functional requirements: TMR-xx and NOT-xx in
 [02](02-functional-requirements.md).
+
+**Target platform:** Samsung Galaxy, Android 16 / One UI 8 (minimum Android
+15, API 35).
 
 ## 1. Terminology
 
 | Term | Meaning |
 |---|---|
-| **Session** | One brewing of one tea (`BrewSession`), consisting of steps. |
+| **Session** | One brewing of one tea (`BrewSession`), made of steps. |
 | **Step** | One timed unit: RINSE, INFUSION or WHISK, with planned duration and optional temperature. |
-| **Short step** | Planned duration < 30 min (`LONG_STEP_THRESHOLD`). |
-| **Long step** | Planned duration ≥ 30 min (cold brew, ice brew). |
-| **Deadline** | The monotonic time (`SystemClock.elapsedRealtime()`) at which the running step ends. |
-| **Overtime** | Time between the deadline and the user acknowledging (*Poured*). |
+| **Short / long step** | Planned duration < 30 min / ≥ 30 min (`LONG_STEP_THRESHOLD`). |
+| **Deadline** | Monotonic time (`SystemClock.elapsedRealtime()`) at which the running step ends. |
+| **Pre-alert** | Soft tick *N* seconds before the deadline (TMR-23). |
+| **Overtime** | Time between deadline and the user tapping *Abgegossen*. |
 | **Active time** | Time a step spent RUNNING or ALERTING (excludes PAUSED). |
 
 ## 2. Design principles
 
-1. **Single source of truth:** a pure-Kotlin `BrewTimerEngine` state machine,
-   owned by an app-scoped `BrewSessionController`, is the only place timer state
-   changes. UI, service and notifications *observe* it.
-2. **Derived, not accumulated time:** remaining time is always computed as
-   `deadline − now` from the monotonic clock; the app never decrements a
-   counter every second. This prevents drift.
-3. **Persist every transition** before side effects (notifications, sounds).
-4. **Idempotent events:** a deadline fired twice (coroutine + alarm backstop),
-   or a *Poured* tapped in the app and the notification simultaneously, has the
-   same effect as once.
-5. **Testable with virtual time:** the engine takes an injected
-   `MonotonicClock` and `WallClock`.
+1. **Single source of truth:** a pure-Kotlin `BrewTimerEngine` state machine
+   owned by an app-scoped `BrewSessionController`; UI, service, alarms and
+   notifications only observe it or send events.
+2. **Derived time:** remaining = `deadline − now` from the monotonic clock;
+   never a decrementing counter.
+3. **Persist every transition** before side effects.
+4. **Idempotent events** (deadline from coroutine *and* alarm, *Abgegossen*
+   from app *and* notification).
+5. **Belt and braces:** in-process timing **and** exact alarms **and** a
+   foreground service; any one of them is enough to alert.
+6. **Testable with virtual time** (`MonotonicClock`, `WallClock` injected).
 
 ## 3. State machine
 
 ```mermaid
 stateDiagram-v2
-    [*] --> READY: startSession(profile)
-    [*] --> RUNNING: startSession (SET-12 on)
+    [*] --> READY: startSession(recipe)
     READY --> RUNNING: start
     RUNNING --> PAUSED: pause
     PAUSED --> RUNNING: resume
-    RUNNING --> ALERTING: deadline reached / adjust below 0
-    RUNNING --> READY: pourEarly (more steps)
-    RUNNING --> FINISHED: pourEarly (last step)
-    PAUSED --> READY: pourEarly (more steps)
-    PAUSED --> FINISHED: pourEarly (last step)
-    ALERTING --> READY: poured (more steps)
-    ALERTING --> FINISHED: poured (last step)
-    ALERTING --> READY: overtimeTimeout (more steps)
-    ALERTING --> FINISHED: overtimeTimeout (last step)
+    RUNNING --> RUNNING: preAlertReached (tick only)
+    RUNNING --> ALERTING: deadlineReached
+    RUNNING --> READY: endStepNow (more steps)
+    RUNNING --> FINISHED: endStepNow (last step)
+    PAUSED --> READY: endStepNow (more steps)
+    PAUSED --> FINISHED: endStepNow (last step)
+    ALERTING --> READY: poured / overtimeTimeout (more steps)
+    ALERTING --> FINISHED: poured / overtimeTimeout (last step)
     READY --> READY: skipStep (more steps)
     READY --> FINISHED: skipStep (last step)
     FINISHED --> READY: addStep
-    READY --> [*]: finishSession / discard / idle timeout
-    PAUSED --> [*]: finishSession / discard / idle timeout
-    FINISHED --> [*]: finishSession / discard / idle timeout
+    READY --> [*]: finishSession / discard / idleTimeout
+    PAUSED --> [*]: finishSession / discard / idleTimeout
+    FINISHED --> [*]: finishSession / discard / idleTimeout
     RUNNING --> [*]: finishSession / discard
     ALERTING --> [*]: finishSession / discard
 ```
 
 ### 3.1 States
 
-| State | Data held | Meaning |
+| State | Data | Meaning |
 |---|---|---|
-| `Idle` | — | No active session (no row in `active_brew`). |
-| `Ready(stepIndex)` | session, step index, `readySince` | Waiting for the user to pour water and start the step. |
-| `Running(stepIndex, deadline)` | deadline (monotonic + wall), `activeElapsedBeforeMs` | Counting down. |
-| `Paused(stepIndex, remainingMs)` | remaining ms, active elapsed so far, `pausedSince` | Frozen. |
-| `Alerting(stepIndex, deadline)` | deadline; overtime = now − deadline | Step finished; alert playing; waiting for *Poured*. |
-| `Finished` | session | All planned steps done; waiting for *Finish & log* or *Add infusion*. |
+| `Idle` | — | No active session. |
+| `Ready(i)` | step index, `readySince` | Waiting for the user to pour water and tap *Start*. Never auto-starts (TMR-08). |
+| `Running(i)` | deadline (monotonic + wall), pre-alert time, active elapsed before | Counting down. |
+| `Paused(i)` | remaining ms, active elapsed, `pausedSince` | Frozen. |
+| `Alerting(i)` | deadline | Step done; alert playing; waiting for *Abgegossen*. |
+| `Finished` | — | All planned steps done; waiting for *Sitzung beenden* or *Weiterer Aufguss*. |
 
 ### 3.2 Events and transitions
 
 | Event | Allowed in | Effect |
 |---|---|---|
-| `startSession(teaId?, profileSnapshot)` | Idle | Create `BrewSession` (IN_PROGRESS) + planned steps → `Ready(0)` (or `Running(0)` if SET-12). |
-| `start` | Ready | `deadline = now + plannedMs` → Running. Record step `startedAt` (wall). |
-| `pause` | Running | `remaining = deadline − now` (clamped ≥ 0) → Paused. |
-| `resume` | Paused | `deadline = now + remaining` → Running. |
-| `adjust(deltaSec)` | Running, Paused | Running: `deadline += delta`; if `deadline ≤ now` → Alerting. Paused: `remaining += delta`, min 1 s. Accumulate `adjustedSeconds`. |
-| `deadlineReached` | Running | → Alerting; start alert. Ignored in any other state (idempotency). |
-| `pourEarly` | Running, Paused | Record actual = active elapsed; → next Ready or Finished. No alert. |
-| `poured` | Alerting | Stop alert; record actual = active elapsed incl. overtime (capped, §5.3); → next Ready or Finished. |
-| `skipStep` | Ready | Mark step `skipped`; → next Ready or Finished. |
-| `addStep(step)` | any except Idle | Append step; if Finished → Ready(new index). |
-| `editSteps(list)` | any except Idle | Replace steps with index > current (or ≥ current in Ready). |
-| `finishSession` | any except Idle | A RUNNING/PAUSED step is first completed as `pourEarly`, an ALERTING step as `poured`. Then: if ≥ 1 non-rinse step completed → COMPLETED; else discard (after UI confirm). → Idle. |
-| `discard` | any except Idle | Delete session and its inventory event → Idle. |
-| `idleTimeout` | Ready, Paused, Finished (60 min without interaction) | As `finishSession` without confirmation; post "Session saved" notification. |
-| `overtimeTimeout` | Alerting (10 min after deadline) | As `poured`, but actual = planned + adjustments and overtime = 0 (assume the user poured on time and forgot to tap); flag `overtimeAutoAcknowledged`. |
+| `startSession(teaId?, recipeSnapshot)` | Idle | Create IN_PROGRESS session + planned steps → `Ready(0)`. |
+| `start` | Ready | `deadline = now + planned`; `preAlertAt = deadline − N` if applicable (TMR-23) → Running. Schedule exact alarms (§6.2). |
+| `pause` | Running | `remaining = deadline − now` → Paused; cancel alarms; release wake lock. |
+| `resume` | Paused | `deadline = now + remaining`; recompute `preAlertAt` (skip if already passed) → Running; reschedule alarms. |
+| `preAlertReached` | Running | Play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. |
+| `deadlineReached` | Running | → Alerting; start alert. Ignored in other states. |
+| `endStepNow` | Running, Paused | Record actual = active elapsed; → next Ready or Finished. No alert. |
+| `poured` | Alerting | Stop alert; record actual incl. overtime; → next Ready or Finished. |
+| `overtimeTimeout` | Alerting, 10 min after deadline | As `poured`, but actual = planned and overtime = 0 (assume poured on time); flag `overtimeAutoAck`. |
+| `skipStep` | Ready | Mark skipped → next Ready or Finished. |
+| `addStep(step)` | any except Idle | Append; if Finished → `Ready(new)`. |
+| `editSteps(list)` | any except Idle | Replace steps not yet started. Session-only. |
+| `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
+| `discard` | any except Idle | Delete session and stock deduction → Idle. |
+| `idleTimeout` | Ready, Paused, Finished; 60 min without interaction | As `finishSession` without confirmation; notification „Sitzung gespeichert". |
 
-## 4. Architecture of the timer
+There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
+
+## 4. Components
 
 ```mermaid
 flowchart LR
-    UI[Timer screen & ActiveBrewBar] -- events --> C[BrewSessionController\napp-scoped singleton]
-    N[Notification actions\nBroadcastReceiver] -- events --> C
-    A[AlarmReceiver\nbackstop / long steps] -- deadlineReached --> C
-    C --> E[BrewTimerEngine\npure Kotlin state machine]
-    C -- persist --> DB[(Room: active_brew,\nbrew_session, session_step)]
+    UI[Timer screen, ActiveBrewBar] -- events --> C[BrewSessionController]
+    N[Notification / Live Update actions] -- events --> C
+    A[ExactAlarmReceiver\npre-alert & deadline] -- events --> C
+    B[BootReceiver] -- reschedule --> C
+    C --> E[BrewTimerEngine\npure Kotlin]
+    C -- persist --> DB[(Room: active_brew, brew_session, session_step)]
     C -- StateFlow --> UI
-    C -- start/stop --> S[BrewTimerService\nforeground service]
-    S --> NB[Notifications]
-    S --> AP[AlertPlayer\nsound + vibration]
-    C -- schedule/cancel --> AM[AlarmManager]
+    C -- start/stop --> S[BrewTimerService\nforeground]
+    S --> NB[Live Update notification]
+    S --> AP[AlertPlayer]
+    C -- schedule/cancel --> AM[AlarmManager exact]
 ```
 
-- `BrewTimerEngine` — pure function `reduce(state, event, now) → (state, effects)`.
-  Effects: `PersistState`, `ScheduleDeadline`, `CancelDeadline`, `StartAlert`,
+- `BrewTimerEngine.reduce(state, event, now) → (state, effects)`; effects:
+  `Persist`, `ScheduleAlarms`, `CancelAlarms`, `PlayPreAlert`, `StartAlert`,
   `StopAlert`, `StartForeground`, `StopForeground`, `UpdateNotification`,
-  `RecordStep`, `CompleteSession`, `DiscardSession`.
-- `BrewSessionController` — serialises events through a single coroutine
-  `Mutex`/actor, executes effects, exposes `StateFlow<TimerUiState>`.
-- `BrewTimerService` — foreground service; holds the wake lock, posts the
-  ongoing notification, hosts the `AlertPlayer`. Contains no timer logic.
-- UI computes the displayed remaining time each frame from `deadline` and
-  `elapsedRealtime()` (`withFrameNanos` loop only while visible).
+  `RecordStep`, `CompleteSession`, `DiscardSession`, `ShowSavedSheet`.
+- `BrewSessionController` serialises events (single coroutine/Mutex),
+  executes effects, exposes `StateFlow<TimerUiState>`.
+- `BrewTimerService` hosts the Live Update notification, the wake lock and the
+  `AlertPlayer`; no timer logic.
+- UI renders remaining time per frame from the deadline while visible.
 
 ## 5. Time computation
 
-### 5.1 Clocks
+- **Monotonic** `elapsedRealtime()` for all countdown arithmetic; **wall**
+  clock for journal timestamps, notification chronometer and reboot recovery;
+  `Settings.Global.BOOT_COUNT` stored to detect reboots.
+- Remaining time is displayed rounded **up** to whole seconds; overtime rounded
+  down („+0:07"); ≥ 1 h as `h:mm:ss`.
+- Pre-alert: `preAlertAt = deadline − N·1000` where N = recipe override ?:
+  global setting (default 5 s); none if N = 0, if planned < N + 5 s, or for
+  rinse steps < 15 s.
 
-- **Monotonic:** `SystemClock.elapsedRealtime()` — includes deep sleep, not
-  affected by the user changing the clock or time zone. Used for all countdown
-  arithmetic.
-- **Wall:** `System.currentTimeMillis()` — used only for timestamps in the
-  journal, notification chronometer (`setWhen`), and reboot recovery.
-- **Boot detection:** `Settings.Global.BOOT_COUNT` stored with each persisted
-  state; if it differs on restore, monotonic values are invalid and wall-clock
-  values are used.
-
-### 5.2 Display rounding
-
-- Remaining time is displayed rounded **up** to whole seconds
-  (`ceil(remainingMs / 1000)`), so "0:01" shows until the true end and "0:00"
-  appears exactly at alert time.
-- Overtime is displayed rounded down ("+0:07").
-- Durations ≥ 1 h display `h:mm:ss`.
-
-### 5.3 Recorded step data
+### 5.1 Recorded step data
 
 | Field | Rule |
 |---|---|
-| `plannedSeconds` | Planned duration at step start (adjustments not included). |
-| `adjustedSeconds` | Net sum of ±10 s adjustments. |
-| `actualSeconds` | Active elapsed time from *start* to *Poured* / *Pour now*, excluding paused time, rounded to nearest second. Overtime is included when the user taps *Poured* within 10 min; after that `overtimeTimeout` applies (§3.2). |
-| `pausedSeconds` | Total time paused. |
-| `overtimeSeconds` | Time between deadline and *Poured* (0 if poured early or auto-acknowledged). |
-| `startedAt` / `endedAt` | Wall-clock timestamps. |
-| `skipped` | True if skipped. |
+| `plannedSeconds` | Planned duration at step start. |
+| `actualSeconds` | Active elapsed from *Start* to *Abgegossen* / *Aufguss jetzt beenden*, excluding pauses, rounded to 1 s. Includes overtime if acknowledged within 10 min; else `overtimeTimeout` rule. |
+| `pausedSeconds` | Total paused time. |
+| `overtimeSeconds` | Deadline → *Abgegossen* (0 if ended early or auto-acknowledged). |
+| `startedAt`, `endedAt` | Wall clock. |
+| `skipped`, `overtimeAutoAck` | Flags. |
 
 ## 6. Background execution
 
-### 6.1 Strategy summary
+### 6.1 Strategy
 
-| Situation | Mechanism |
+| Situation | Mechanisms (all active together) |
 |---|---|
-| App visible | Controller coroutine delays until deadline; UI renders. Service also running (started at session start). |
-| Short step running, app in background / screen off | **Foreground service** (`specialUse`), **partial wake lock** with timeout, deadline coroutine; **exact alarm backstop** if permitted. |
-| Long step running (≥ 30 min) | No wake lock; foreground service stopped; **AlarmManager** alarm (exact if permitted, else windowed 10 min); ongoing low-priority notification. |
-| Ready / Paused / Finished | Foreground service keeps the ongoing notification (no wake lock). Idle timeout 60 min via coroutine + inexact alarm. If the service is not running (e.g. after a long step or process restart), a regular ongoing notification is shown and the FGS is started again on the next user interaction (notification action or app open). |
-| Alerting | Foreground service plays alert (sound/vibration) and shows the heads-up alert notification; wake lock held until the alert ends (§6.2). |
+| Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
+| Long step RUNNING (≥ 30 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
+| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) · idle-timeout alarm (60 min, inexact) |
+| ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
 
-### 6.2 Short steps: foreground service
+### 6.2 Exact alarms
 
-- `BrewTimerService` is started with `startForegroundService()` from the
-  `start`/`startSession` user action while the app is in the foreground (allowed
-  on all API levels). It stays in the foreground until the session ends or
-  enters a long step.
-- **Type:** `foregroundServiceType="specialUse"` with
-  `PROPERTY_SPECIAL_USE_FGS_SUBTYPE = "Tea steeping countdown timer started by the user; alerts the user when the infusion must be poured."`
-  The Play Console foreground-service declaration must include a short video of
-  the timer. See decision [D-004](10-open-questions-and-decisions.md#d-004).
-  (`shortService` is not suitable: it times out after ~3 minutes, while western
-  steeps take 3–5 minutes.)
-- **Wake lock:** `PARTIAL_WAKE_LOCK` acquired when a short step enters RUNNING,
-  with timeout `remaining + alert length + 30 s` (max 2.5 min beyond the deadline);
-  kept through ALERTING; released on pause, pour, alert end, or session end. Never held in READY/PAUSED/FINISHED or for long steps. This keeps
-  `delay()`-based deadlines accurate while the screen is off and keeps the app
-  well clear of Android vitals' excessive-wake-lock thresholds (sessions are
-  minutes, not hours).
-- **Notification updates:** the ongoing notification uses the system
-  chronometer in countdown mode (`setUsesChronometer(true)`,
-  `setChronometerCountDown(true)`, `setWhen(deadlineWall)`), so it does not
-  need per-second updates. It is updated only on state transitions.
+- The app declares **`USE_EXACT_ALARM`**, which is granted automatically.
+  This is acceptable because the app is sideloaded and never goes through
+  Play review (D-013). `SCHEDULE_EXACT_ALARM` is not needed.
+- On `start`/`resume`: `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP, …)`
+  for `preAlertAt` (short steps) and `deadline`; cancelled on pause, end,
+  discard. Request codes are fixed per alarm type, so rescheduling replaces
+  them.
+- `ExactAlarmReceiver` forwards `preAlertReached` / `deadlineReached`
+  (idempotent). If the service is not running (process was killed), it
+  starts `BrewTimerService` in the foreground (exact-alarm delivery is an
+  allowed exemption for starting an FGS from the background) so the
+  `AlertPlayer` can play.
+- `AlarmManager.canScheduleExactAlarms()` is still checked; if false (should
+  not happen), the reliability banner is shown (TMR-31).
 
-### 6.3 Long steps (reminder mode)
+### 6.3 Foreground service
 
-- On entering RUNNING for a long step: stop foreground (keep a regular ongoing
-  notification "Cold brew · ready at ~14:30"), release any wake lock, schedule
-  an alarm:
-  - if `AlarmManager.canScheduleExactAlarms()` →
-    `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP, deadline)`;
-  - else `setWindow(ELAPSED_REALTIME_WAKEUP, deadline, 10 min)` — the UI says
-    "around 14:30" and explains on tap how to enable precise reminders (SET-21).
-    Windowed alarms are not exempt from Doze: in deep idle they may be deferred
-    to the next maintenance window, so the reminder can be later than 10 min.
-    This is acceptable for cold brews and stated in the help text.
-- The alarm's receiver posts the alert notification on the *Cold brew & long
-  steeps* channel (sound from the channel, not from `AlertPlayer`) and sends
-  `deadlineReached` to the controller.
-- **Limitation:** an app cannot change a channel's sound or vibration after
-  creating it, so long-step alerts follow the *Cold brew & long steeps*
-  channel settings (changed in system settings, linked via SET-32), not
-  SET-09/11/13/14, and — being notification sounds — do not ring in silent
-  mode. SCR-25 states this under *Timer & alerts*.
-- Pause/resume/adjust reschedule the alarm. After reboot, `BOOT_COMPLETED`
-  (and `LOCKED_BOOT_COMPLETED` is **not** used) reschedules long-step alarms from
-  wall-clock data.
+- Type `specialUse` with subtype „Tee-Ziehzeit-Timer" (no store review, but
+  Android requires a type).
+- Started from the user's *Start* tap (foreground), from notification
+  actions, or from the exact alarm (§6.2). Never from boot directly.
+- Partial wake lock during short RUNNING steps and ALERTING, with timeout
+  `remaining + alert length + 30 s`.
 
-### 6.4 Exact alarm backstop for short steps
+### 6.4 Samsung battery management
 
-`SCHEDULE_EXACT_ALARM` is declared (not `USE_EXACT_ALARM`). If granted (default
-on Android 12–13; user-granted on 14+), each short-step deadline is *also*
-scheduled with `setExactAndAllowWhileIdle`, in case the process is killed
-while the service runs. When it fires, the receiver forwards `deadlineReached`
-(idempotent) and, if the service is not running, starts `BrewTimerService` in
-the foreground so the `AlertPlayer` sounds the alert (starting an FGS from an
-exact alarm is an allowed background-start exemption). If the FGS start
-fails, it posts the alert on the `long_steep` channel, which has its own sound,
-so the backstop is never silent. Alarms are cancelled on pause/pour/discard.
-
-### 6.5 Restrictions & policies to respect
-
-| Platform rule | Handling |
-|---|---|
-| Android 13+ notification permission | Requested in onboarding; banner TMR-31 if missing. FGS still runs without it; the `AlertPlayer` sound/vibration still works because it is played by the service, not the notification. |
-| Android 14+ FGS types | `specialUse` declared with `FOREGROUND_SERVICE_SPECIAL_USE` permission. |
-| Background FGS start restrictions (Android 12+) | FGS is only started from user actions in the foreground, from notification actions, or from the exact backstop alarm (all exempt). Never from inexact alarms or boot. |
-| Android 14+ exact alarms denied by default | Treated as optional (§6.3, §6.4). |
-| Full-screen intents restricted (Android 14+) | Not used. Heads-up notification + sound instead. |
-| Doze / App Standby | Short steps: wake lock + FGS. Long steps: `AllowWhileIdle` exact or windowed alarms. |
-| Battery optimisation exemptions | The app **does not** ask to be excluded from battery optimisation. |
-| OEM background killers | Settings › Timer shows a "Timer not ringing?" help page with general advice for aggressive OEM battery managers. |
+- First-start setup (ONB-02) requests `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
+  (permission `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, allowed for a sideloaded
+  app) and guides the PO to One UI's *Akku › Uneingeschränkt* and to add
+  UmamiTea to *Nie schlafende Apps*.
+- `PowerManager.isIgnoringBatteryOptimizations()` is checked at app start and
+  before each session; if false → reliability banner.
+- Verified on the PO's Galaxy (Android 16 / One UI 8) as part of acceptance.
 
 ## 7. Persistence & recovery
 
-### 7.1 What is persisted
+### 7.1 Persisted on every transition
 
-On every transition, inside one Room transaction:
-- `active_brew` single row (see [05 §3.12](05-data-model.md#312-activebrew)):
-  session id, step index, phase, deadline (monotonic and wall), remaining ms,
-  active elapsed ms, paused-since, boot count, last-interaction time.
-- Changes to `brew_session` / `session_step` (recorded actuals).
+`active_brew` row ([05 §3.12](05-data-model.md#312-activebrew)) and step
+records, in one Room transaction.
 
 ### 7.2 Recovery on process start
 
-At `Application.onCreate` the controller loads `active_brew`:
+| Persisted phase | Behaviour (same boot uses monotonic values; after reboot wall-clock values) |
+|---|---|
+| READY / PAUSED / FINISHED | Restore; re-post Live Update; FGS restarted on the next interaction. |
+| RUNNING, deadline in future | Restore; reschedule alarms (pre-alert only if still ahead). |
+| RUNNING/ALERTING, deadline passed ≤ 10 min ago | → ALERTING with overtime; alert plays if not already played for this step. |
+| RUNNING/ALERTING, deadline passed > 10 min ago | `overtimeTimeout` applied silently. |
 
-| Persisted phase | Same boot | After reboot / clock unknown |
-|---|---|---|
-| READY / PAUSED / FINISHED | Restore as-is; re-post ongoing notification (start FGS only when the user next interacts, because background FGS start is restricted). | Same. |
-| RUNNING, deadline in future | Restore RUNNING with the same deadline; schedule deadline. If app not in foreground, rely on the exact alarm backstop or show notification "Timer was interrupted — open to continue". | Recompute remaining from `deadlineWall − now`. |
-| RUNNING, deadline passed ≤ 10 min ago | → ALERTING with overtime; play alert only if the app is in the foreground (otherwise the backstop alarm has already notified). | Same, using wall clock. |
-| RUNNING, deadline passed > 10 min ago | → step auto-acknowledged (`overtimeTimeout`), state READY/FINISHED, no sound. | Same. |
-| ALERTING | Same rules as "deadline passed". | Same. |
+### 7.3 Reboot
 
-If the persisted data is inconsistent (e.g. session row missing), the active
-state is cleared and the error is logged locally (debug builds only).
+`BootReceiver` (`BOOT_COMPLETED`) restores the state from wall-clock data,
+reschedules the exact alarms (or applies §7.2 if the deadline already passed)
+and posts a notification „Dein Gyokuro-Timer läuft weiter". The deadline alarm
+then starts the FGS when it fires (§6.2).
 
-### 7.3 Force-stop
+### 7.4 Force stop
 
-After the user force-stops the app, alarms are cleared by the system. On next
-launch, recovery (§7.2) applies and the UI clearly shows "The timer was
-stopped by the system."
+Alarms are cleared by the system; on next launch §7.2 applies and the UI says
+„Der Timer wurde vom System angehalten."
 
 ## 8. Notifications
 
 ### 8.1 Channels
 
-| Channel ID | Name (en) | Importance | Sound | Vibration | Purpose |
-|---|---|---|---|---|---|
-| `brew_timer` | Brew timer | LOW | none | none | Ongoing countdown / FGS notification |
-| `steep_finished` | Steep finished | HIGH | none (played by app, §9) | none (app) | Heads-up "Pour now" for short steps |
-| `long_steep` | Cold brew & long steeps | HIGH | channel default (bundled "Singing bowl") | on | Alert for long steps |
-| `session_updates` | Session updates | LOW | none | none | Auto-finished session, interrupted timer |
-| `reminders` | Reminders | LOW | none | none | Backup, stock & freshness digests |
+| Channel ID | Name | Importance | Sound / vibration | Purpose |
+|---|---|---|---|---|
+| `brew_timer` | Brühtimer | DEFAULT (required for promotion; silent) | none | Live Update / ongoing |
+| `steep_finished` | Aufguss fertig | HIGH | none (played by `AlertPlayer`) | Heads-up „Jetzt abgießen!" |
+| `sessions` | Sitzungen | LOW | none | Auto-finished session, reboot notice |
+| `reminders` | Erinnerungen | LOW | none | Backup, stock reminders |
+| `catalog` | Katalog | LOW | none | Refresh progress and result |
 
 ### 8.2 Notification content
 
-| Phase | Notification | Title | Text | Actions |
-|---|---|---|---|---|
-| READY | `brew_timer` ongoing | Gyokuro · Infusion 2 of 4 | Ready · 0:20 at 55 °C | *Start* |
-| RUNNING | `brew_timer` ongoing, chronometer countdown | Gyokuro · Infusion 2 of 4 | Steeping at 55 °C | *Pause*, *+10 s* |
-| PAUSED | `brew_timer` ongoing | Gyokuro · Infusion 2 of 4 | Paused · 0:12 left | *Resume* |
-| ALERTING | `steep_finished` (heads-up, category `ALARM`, public) | Pour now! | Gyokuro · Infusion 2 | *Poured* |
-| FINISHED | `brew_timer` ongoing | Gyokuro · All infusions done | Tap to log your session | *Finish & log* |
-| Long step | `brew_timer` (non-FGS ongoing) | Gyokuro · Cold brew | Ready around 14:30 | *Open* |
-| Long step done | `long_steep` | Your cold brew is ready | Gyokuro · steeped 3 h | *Done* |
+| Phase | Title | Text | Actions |
+|---|---|---|---|
+| READY | Gyokuro · Aufguss 2 von 3 | Bereit · 0:20 · Wasserkocher auf 60 °C | *Start* |
+| RUNNING | Gyokuro · Aufguss 2 von 3 | Zieht bei 60 °C (chronometer countdown) | *Pause* |
+| RUNNING after pre-alert | Gyokuro · Aufguss 2 von 3 | Gleich fertig … | *Pause* |
+| PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
+| ALERTING (separate heads-up on `steep_finished`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
+| FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Sitzung beenden* |
+| Long step | Gyokuro · Kaltaufguss | Fertig um 14:30 | *Öffnen* |
 
-- Content intent → SCR-05. All actions go to an internal (non-exported)
-  `BroadcastReceiver` that forwards to the controller.
-- Notification ID constants: 1 = ongoing/FGS, 2 = alert, 3 = session updates,
-  10+ = reminders.
-- Lock-screen visibility: public.
-- Live Updates (TMR-41, Could): on platforms that support promoted ongoing
-  notifications with progress, the RUNNING notification uses the progress style
-  with a segment per step.
+Content intent → SCR-05; actions → non-exported receiver → controller.
+Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
+
+### 8.3 Live Update
+
+On Android 16 the `brew_timer` notification is requested as a **promoted
+ongoing notification** (Live Update):
+
+- `Notification.ProgressStyle` with one **segment per step** (length ∝
+  planned duration, rinse segments in a muted colour) and a **point** at the
+  pre-alert of the current step; progress = elapsed active time of the
+  session's planned total.
+- Ongoing, with content title, `setRequestPromotedOngoing(true)` (or the final
+  API name), a short critical text for the status-bar chip (e.g. „1:12" or
+  „60 °C" in READY) and the chronometer countdown (`setUsesChronometer`,
+  countdown, `setWhen(deadlineWall)`).
+- Shown as a status-bar chip, on the lock screen and, on One UI 8, in the
+  Samsung **Now Bar** (to be verified on the PO's device).
+- If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
+  false), it falls back to a normal ongoing notification and the
+  reliability banner offers to enable Live notifications.
+- API names follow the Android 16 SDK and are verified at implementation.
 
 ## 9. Alerts
 
-### 9.1 AlertPlayer
+### 9.1 AlertPlayer — follows the ringer mode
 
-- Plays the chosen bundled tone (SET-09) with `AudioAttributes`:
-  - SET-13 "Ring even in silent mode" → `USAGE_ALARM` (respects Do Not
-    Disturb's alarm setting; audible when the ringer is silent).
-  - SET-13 "Follow ringer mode" → `USAGE_NOTIFICATION_EVENT`; silent/vibrate
-    ringer mode is respected.
-- Requests transient audio focus (`AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`) so music
-  ducks; abandons it when done.
-- During a phone call (`AudioManager.mode` in call/communication) → vibrate only.
-- Alert length (SET-14): Short = tone once (~3 s); Normal = repeat with 2 s gaps
-  up to 15 s; Long = repeat until acknowledged, max 2 min. The heads-up
-  notification remains until acknowledged or replaced.
-- Vibration (SET-11): pattern `[0, 400, 200, 400, 200, 800]` ms, repeated with
-  the tone; via `VibratorManager` (API 31+) / `Vibrator`. Uses
-  `VibrationAttributes.USAGE_ALARM` where available.
-- Pre-alert (SET-10, Could): a single soft tick at T−5 s, notification stream.
-- Test alert in settings (SET-31) uses the same player.
+| Ringer mode | Pre-alert tick | Alert |
+|---|---|---|
+| Normal (Ton) | Soft tick sound + short haptic | Alert tone + vibration pattern (if SET-11) |
+| Vibrate | Short haptic | Vibration pattern |
+| Silent (Stumm) | — | Visual only (screen, heads-up, Live Update) |
 
-### 9.2 Bundled tones
+- Audio uses `AudioAttributes.USAGE_NOTIFICATION_EVENT`, so volume follows the
+  notification volume; Do Not Disturb is respected.
+- Transient audio focus with ducking; vibrate only during calls.
+- Alert length (SET-14): Kurz = once; **Normal = repeat up to 15 s**
+  (default); Lang = until acknowledged, max 2 min.
+- Vibration pattern `[0, 400, 200, 400, 200, 800]` ms with
+  `VibrationAttributes.USAGE_NOTIFICATION` semantics.
+- Test via SET-31 (*Alarm testen*).
 
-5 short, calm tones (OGG Vorbis, mono, 44.1 kHz, ≤ 60 KB each): *Singing bowl*
-(default), *Bell*, *Wood block*, *Chime*, *Soft*. Loudness normalised to
-−16 LUFS. Licences recorded in About.
+### 9.2 Sounds
+
+Bundled OGG, mono, ≤ 60 KB each, loudness-normalised: Klangschale (default
+alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a very short soft
+**tick** for the pre-alert.
 
 ## 10. Quick timer
 
-- Uses the same engine with an ephemeral session (`sessionId = null`): one
-  INFUSION step, no journal entry, no inventory.
-- States: READY → RUNNING ⇄ PAUSED; RUNNING → ALERTING → (Done) → Idle.
-- Shares the FGS, notifications (title "Quick timer"), and alert settings.
-- Counts as the single active timer (GEN-03).
+Ephemeral session (no journal, no stock); one INFUSION step; READY → RUNNING
+⇄ PAUSED; RUNNING → ALERTING → *Fertig* → Idle. Uses global pre-alert, the
+same alert and the Live Update („Schnelltimer"). Counts as the single active
+timer.
 
 ## 11. Edge cases
 
 | # | Case | Expected behaviour |
 |---|---|---|
-| E1 | User changes device time / time zone during a step | No effect on countdown (monotonic). Journal timestamps use wall clock at the moment of recording. |
-| E2 | Device reboots during a short step | The FGS cannot be restarted from boot, so no alert sound plays. `BootReceiver` posts a `session_updates` notification "Your Gyokuro timer was interrupted by a restart — tap to continue". Next app open → recovery §7.2. |
-| E3 | Device reboots during a long step | `BOOT_COMPLETED` receiver reschedules the alarm from wall-clock deadline. |
-| E4 | Low memory kill during a short step | FGS processes are rarely killed; if killed, backstop exact alarm (if allowed) notifies; recovery on open. |
-| E5 | User swipes app from recents | Session continues (FGS keeps running). |
-| E6 | User taps *Poured* in notification and app simultaneously | Second event ignored (idempotent by state check). |
-| E7 | +10 s tapped during ALERTING | Not available in ALERTING (buttons hidden). |
-| E8 | −10 s with 4 s remaining | Deadline in the past → ALERTING immediately. |
-| E9 | Phone call arrives during RUNNING | Countdown continues; alert vibrates only if call still active. |
-| E10 | Headphones connected | Alert plays through the active output per Android routing for the chosen usage (alarm usage also plays on speaker). |
-| E11 | Notification permission revoked mid-session | FGS continues; alert sound still plays; banner shown in app. |
-| E12 | Tea deleted while its session is active | Delete disabled for the tea with an active session ("Finish the session first"). |
-| E13 | Restore backup while a session is active | Restore disabled until the session is finished. |
-| E14 | Multi-window / rotation on timer screen | State unaffected; layout adapts. |
-| E15 | Battery saver on | No change for short steps; long-step windowed alarms may be deferred further — UI wording "around" covers this. |
-| E16 | 24 h maximum step | Allowed; always long-step mode. |
-| E17 | Session spans midnight | Session belongs to the local date of `startedAt` for grouping and streaks. |
+| E1 | Clock or time zone changed during a step | No effect (monotonic). |
+| E2 | Reboot during a step | §7.3: alarms rescheduled at boot; alert still fires. |
+| E3 | Process killed during a short step | Exact alarm fires → FGS started → alert plays. |
+| E4 | App swiped from recents | Session continues. |
+| E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
+| E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; otherwise rescheduled. |
+| E7 | Pre-alert N ≥ step duration − 5 s | No pre-alert for that step. |
+| E8 | Phone call during alert | Vibration only. |
+| E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
+| E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |
+| E11 | Restore while a session is active | Restore disabled until the session ends. |
+| E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
+| E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
+| E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. |
 
-## 12. Testing the timer
+## 12. Testing
 
 | Level | Tests |
 |---|---|
-| Unit (JVM) | Engine transitions for every row in §3.2; idempotency; rounding (§5.2); recorded data (§5.3); recovery table (§7.2) with fake clocks and boot counts; idle and overtime timeouts. |
-| Integration (Robolectric) | Controller + Room persistence; notification content per phase; alarm scheduling choices with/without exact permission. |
-| Instrumented | Service lifecycle; alert with screen off on real devices; process death (`adb shell am kill`) and recovery; reboot during long step. |
-| Manual device matrix | See [07 §8](07-non-functional.md#8-compatibility--device-matrix); includes Samsung, Xiaomi, OnePlus/Oppo for OEM battery behaviour; Doze forced via `adb shell dumpsys deviceidle force-idle`. |
-| Accuracy benchmark | Automated: 50 runs of a 60 s step with screen off; alert timestamp vs. deadline; pass if p95 ≤ 250 ms and max ≤ 1 s. |
+| Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts. |
+| Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
+| On the PO's Galaxy (acceptance) | Alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update / Now Bar; reboot during a cold-brew step; ringer normal/vibrate/silent; DND. |
+| Accuracy | 50 × 60 s steps screen off (emulator + device): p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 
 ## 13. Manifest declarations (timer-related)
 
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 <uses-permission android:name="android.permission.WAKE_LOCK" />
 <uses-permission android:name="android.permission.VIBRATE" />
-<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
 <service
@@ -388,9 +350,8 @@ stopped by the system."
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
         android:value="Tea steeping countdown timer started by the user" />
 </service>
-
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
-<receiver android:name=".timer.DeadlineAlarmReceiver" android:exported="false" />
+<receiver android:name=".timer.ExactAlarmReceiver" android:exported="false" />
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -398,4 +359,5 @@ stopped by the system."
 </receiver>
 ```
 
-(Class names are indicative; final packages per [06](06-architecture.md).)
+Class names are indicative. Permission names for Live Updates are verified
+against the Android 16 SDK at implementation.

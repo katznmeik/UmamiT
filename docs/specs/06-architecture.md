@@ -1,322 +1,229 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-21
+> v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
+> Jsoup), GitHub Releases distribution, Claude as developer.
 
 ## 1. Platform & tooling
 
 | Item | Decision |
 |---|---|
-| Language | Kotlin 2.x (K2 compiler), 100 % Kotlin, no Java sources |
-| UI | Jetpack Compose + Material 3 (+ Material 3 Adaptive) — no XML layouts except manifest/resources |
-| Min SDK | **26** (Android 8.0) — notification channels, adaptive icons, `java.time` without desugaring |
-| Target / compile SDK | Latest stable API level that Google Play requires at release time (≥ 36) |
-| Build | Gradle (Kotlin DSL), Android Gradle Plugin (latest stable), version catalog `gradle/libs.versions.toml`, convention plugins in `build-logic/` |
-| JDK | 17 (or the version required by AGP) |
-| Distribution | Android App Bundle (AAB) via Google Play; Play App Signing |
-| Application ID | **TBD** (open question Q-01) — placeholder `com.umamitea.app`; must be final before the first Play upload |
-| Source control | GitHub `katznmeik/UmamiTea`, trunk-based with short-lived feature branches |
+| Language | Kotlin 2.x, 100 % Kotlin |
+| UI | Jetpack Compose + Material 3 (+ Adaptive) |
+| Min SDK | **35** (Android 15) — PO's phone runs Android 16 |
+| Target / compile SDK | **36** (Android 16) or newer stable |
+| Build | Gradle Kotlin DSL, version catalog, convention plugins in `build-logic/` |
+| Distribution | **Signed APK on GitHub Releases** (no Play Store, no AAB needed) |
+| Application ID | `com.umamitea.app` (proposed, Q-01); must stay constant so updates install over the previous version |
+| Repository | `katznmeik/UmamiTea`; one PR per milestone into `main` |
+| Developer | Claude (cloud sessions); PO reviews PRs and tests APKs on the phone |
 
-All library versions are pinned in the version catalog at project start
-(latest stable) and updated deliberately (Renovate/Dependabot PRs, CI must be
-green).
+Library versions are pinned in `gradle/libs.versions.toml` (latest stable at
+project start).
 
 ## 2. Architecture overview
 
-UmamiTea follows the **official Android app architecture** guidance:
-unidirectional data flow (UDF), a UI layer of Compose screens + ViewModels, an
-optional domain layer for reusable business logic, and a data layer of
-repositories over Room/DataStore/assets/files.
+Official Android architecture: UDF, Compose UI + ViewModels, domain layer for
+shared logic, repositories over Room / DataStore / network / files.
 
 ```mermaid
 flowchart TB
     subgraph UI[UI layer]
-      S[Compose screens] <--> VM[ViewModels\nStateFlow<UiState>]
+      S[Compose screens] <--> VM[ViewModels]
     end
-    subgraph Domain[Domain layer]
-      UC[Use cases\ne.g. ScaleRecipe, FinishSession,\nComputeStreak, BuildBackup]
+    subgraph Domain[Domain]
+      UC[Use cases]
       ENG[BrewTimerEngine]
+      PAR[TeeKontorParser\n+ RecipeDeriver]
     end
-    subgraph Data[Data layer]
+    subgraph Data[Data]
       R[Repositories]
-      DB[(Room DB)]
+      DB[(Room)]
       DS[(DataStore)]
-      AS[Bundled assets\nstyles, descriptors, guides]
-      FS[Photo files]
-    end
-    subgraph System[Platform services]
-      SVC[BrewTimerService]
-      AM[AlarmManager]
-      WM[WorkManager]
-      NM[NotificationManager]
+      NET[OkHttp\nhost allow-list]
+      FS[Files: photos, catalog images]
     end
     VM --> UC --> R
-    VM --> R
-    R --> DB & DS & AS & FS
-    CTRL[BrewSessionController\napp-scoped] --> ENG
-    VM --> CTRL
-    CTRL --> R
-    CTRL --> SVC & AM
-    SVC --> NM
-    WM --> R
+    R --> DB & DS & FS
+    CAT[CatalogRefreshWorker] --> NET --> PAR --> R
+    CTRL[BrewSessionController] --> ENG
+    VM --> CTRL --> R
+    CTRL --> SVC[BrewTimerService] & AM[AlarmManager]
 ```
 
-### 2.1 UI layer rules
+### 2.1 UI layer
 
-- One ViewModel per screen (or per navigation destination), Hilt-injected.
-- ViewModels expose a single `StateFlow<XxxUiState>` (immutable data class,
-  annotated `@Immutable` where needed) and accept user intents via functions
-  (`onAction(XxxAction)` or named functions). One-off events (snackbars,
-  navigation) are modelled as state, consumed and cleared.
-- Screens are split into a stateful `XxxRoute` (collects state with
-  `collectAsStateWithLifecycle`) and a stateless `XxxScreen(state, onAction)` used
-  in previews and tests.
-- No ViewModel or repository is passed down the composable tree.
-- Navigation: **Navigation Compose with type-safe routes**
-  (`@Serializable` route objects). Each feature module exposes a
-  `NavGraphBuilder.xxxGraph()` extension and route types. (Navigation 3 may be
-  adopted if stable and adopted widely at project start; decision D-007.)
-- Strings, plurals and content descriptions only from resources.
+- One ViewModel per destination exposing `StateFlow<UiState>`; stateless
+  `XxxScreen(state, onAction)` + stateful `XxxRoute`.
+- Navigation Compose with type-safe routes (D-007).
+- All strings in `res/values/strings.xml` (German); no English resource set
+  is needed, but strings are never hard-coded.
 
-### 2.2 Domain layer
+### 2.2 Domain layer (pure Kotlin)
 
-- Pure Kotlin (no Android dependencies), in `:core:domain` and
-  `:core:timer-engine`.
-- Use cases exist only where logic is shared or non-trivial:
-  `ScaleRecipeUseCase`, `ConvertUnitsUseCase`, `CoolingTransfersUseCase`,
-  `StartSessionUseCase`, `FinishSessionUseCase` (status, inventory deduction,
-  opened date), `DiscardSessionUseCase`, `ComputeFreshnessUseCase`,
-  `ComputeStockStatusUseCase`, `ComputeStreakUseCase`,
-  `BuildInsightsUseCase`, `BrewCoachUseCase`, `CreateBackupUseCase`,
-  `RestoreBackupUseCase`, `ExportCsvUseCase`.
+Use cases: `ScaleRecipe`, `Snap5`, `StartSession`, `FinishSession`
+(status, stock deduction, cost, opened date, recipe-update applicability),
+`DiscardSession`, `ComputePreAlert`, `ComputeFreshness`, `ComputeStock`,
+`ComputeCostPerGram`, `ComputeStreak`, `BuildStatistics`,
+`AddFromCatalog`, `ResetFromCatalog`, `CreateBackup`, `RestoreBackup`.
 
-### 2.3 Data layer
+Catalog: `TeeKontorParser` (HTML → `ParsedProduct`), `VariantMerger`,
+`StyleMapper`, `RecipeDeriver` (rules in [08 §2.5](08-content.md#25-recipe-derivation)),
+`CatalogDiff`. All pure and unit-testable with HTML fixtures.
 
-- Repositories are interfaces in `:core:data` with Room/DataStore
-  implementations; they expose `Flow` for observation and `suspend` functions
-  for one-shot writes.
-- Repositories own transactions spanning multiple tables (e.g. delete tea +
-  photos files scheduling; finish session + inventory event).
-- Bundled content repositories parse JSON assets once (lazy, on IO dispatcher)
-  and cache in memory.
+### 2.3 Concurrency
 
-### 2.4 Concurrency
+Coroutines/Flow; injected dispatchers; app-scoped scope for the timer
+controller; no main-thread database access.
 
-- Kotlin coroutines & Flow everywhere; dispatchers injected
-  (`@IoDispatcher`, `@DefaultDispatcher`) for testability.
-- App-scoped `CoroutineScope` (SupervisorJob) provided by Hilt for the
-  `BrewSessionController` and long-lived work; no `GlobalScope`.
-- Room queries: `suspend`/`Flow`; never on the main thread
-  (`allowMainThreadQueries` forbidden).
-
-## 3. Module structure
+## 3. Modules
 
 ```
 UmamiTea/
-├── app/                         Application, MainActivity, NavHost, DI graph root, manifest
-├── build-logic/convention/      Gradle convention plugins (android-app, android-library, compose, feature, hilt, room, jvm-library)
+├── app/                       Application, MainActivity, NavHost, DI root, manifest
+├── build-logic/convention/
 ├── core/
-│   ├── model/                   Pure Kotlin models & enums (Tea, BrewProfile, …)
-│   ├── common/                  Result types, dispatchers, clocks (MonotonicClock, WallClock), utils
-│   ├── domain/                  Use cases, unit conversion, brewing math (pure Kotlin)
-│   ├── timer-engine/            BrewTimerEngine state machine (pure Kotlin)
-│   ├── timer/                   BrewSessionController, BrewTimerService, AlertPlayer, receivers, notifications
-│   ├── database/                Room DB, entities, DAOs, migrations, schemas/
-│   ├── datastore/               UserSettings DataStore & serializer
-│   ├── content/                 Bundled assets (styles.json, descriptors, guides) + loaders
-│   ├── data/                    Repository interfaces & implementations, photo storage
-│   ├── backup/                  Backup/restore/CSV (zip, JSON, validation)
-│   ├── designsystem/            Theme (colors, type, shapes), fonts, core components, icons
-│   ├── ui/                      Shared composables bound to models (TeaListItem, TasteRadar, …)
-│   └── testing/                 Fakes, test rules, fixtures, test data builders
+│   ├── model/                 Pure Kotlin models & enums
+│   ├── common/                Clocks, dispatchers, result types, Snap5
+│   ├── domain/                Use cases
+│   ├── timer-engine/          BrewTimerEngine (pure)
+│   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
+│   ├── catalog-parser/        TeeKontorParser, VariantMerger, StyleMapper, RecipeDeriver (pure JVM)
+│   ├── network/               OkHttp client with host allow-list, rate limiter, robots.txt
+│   ├── database/              Room, DAOs, migrations, schemas/
+│   ├── datastore/             Settings
+│   ├── content/               Bundled styles, descriptors, sounds, illustrations
+│   ├── data/                  Repositories, photo storage, CatalogRefreshWorker
+│   ├── backup/                Export/restore
+│   ├── designsystem/          Theme, fonts, components, icons
+│   ├── ui/                    Shared composables
+│   └── testing/               Fakes, fixtures, builders
 ├── feature/
-│   ├── onboarding/
+│   ├── onboarding/            Einrichtung
 │   ├── home/
-│   ├── brew/                    Tea picker, brew setup, timer screen, session summary, quick timer
-│   ├── collection/              Tea list/detail/editor, style picker, profile editor, stock history
+│   ├── brew/                  Tea picker, setup, timer, saved sheet, quick timer
+│   ├── collection/            Meine Tees, tea detail/editor, recipes, stock
+│   ├── catalog/               Katalog list/detail, add sheet, refresh sheet, guides
+│   ├── journal/
+│   ├── stats/
 │   ├── teaware/
-│   ├── journal/                 Journal list, session detail/editor, descriptor picker
-│   ├── insights/
-│   ├── learn/                   Guides, style reference, tools
-│   └── settings/                Settings, backup & restore screens, about
-├── benchmark/                   Macrobenchmarks & Baseline Profile generator
+│   └── settings/              Settings, reliability, backup, about
 └── docs/
 ```
 
-Dependency rules (enforced by convention plugins and a Gradle module-graph
-check in CI):
-- `feature:*` → `core:*` only; features never depend on each other.
-  Cross-feature navigation goes through route types declared in the feature's
-  `api` package and wired in `:app`.
-- `core:model`, `core:common`, `core:domain`, `core:timer-engine` are pure
-  JVM/Kotlin modules (fast unit tests, no Robolectric).
-- `core:designsystem` does not depend on `core:model`.
+Rules: features depend only on `core:*`; pure modules (`model`, `common`,
+`domain`, `timer-engine`, `catalog-parser`) have no Android dependency.
 
 ## 4. Key libraries
 
 | Purpose | Library |
 |---|---|
-| UI | Compose BOM, `material3`, `material3-adaptive`, `material3-adaptive-navigation-suite`, `activity-compose`, `lifecycle-runtime-compose`, `lifecycle-viewmodel-compose` |
-| Navigation | `navigation-compose` (type-safe), `hilt-navigation-compose` |
+| UI | Compose BOM, Material 3, Material 3 Adaptive, Activity/Lifecycle Compose |
+| Navigation | Navigation Compose (type-safe) |
 | DI | Hilt (KSP) |
-| Database | Room (`room-runtime`, `room-ktx`, KSP compiler, `room-testing`) |
-| Settings | DataStore (typed, kotlinx-serialization serializer) |
-| Serialization | `kotlinx-serialization-json` |
-| Background work | WorkManager (`work-runtime-ktx`, `hilt-work`) — reminders, orphan photo sweep |
-| Images | Coil 3 (`coil-compose`) — local files only, no network fetcher module |
-| Charts | Vico (Compose) for bar charts; custom Compose `Canvas` for radar and donut |
-| Rich text guides | Markdown rendering via a Compose Markdown renderer (e.g. `multiplatform-markdown-renderer-m3`) or a small in-house renderer for the subset used (decision D-008) |
-| Splash | `core-splashscreen` |
-| Licences | AboutLibraries (Gradle plugin + Compose UI) |
-| Startup | `profileinstaller` + Baseline Profiles |
-| Debug only | LeakCanary, StrictMode |
-| Testing | JUnit4, `kotlinx-coroutines-test`, Turbine, Truth (or kotlin.test), Robolectric, Compose UI test, Roborazzi (screenshot tests), Hilt testing, `work-testing`, Macrobenchmark, UI Automator |
+| Database | Room (KSP) |
+| Settings | DataStore (kotlinx-serialization) |
+| Serialization | kotlinx-serialization-json |
+| HTTP | OkHttp (no Retrofit needed) |
+| HTML parsing | Jsoup |
+| Background work | WorkManager (catalog refresh as expedited/long-running work with progress notification; reminders) |
+| Images | Coil 3 (local files only) |
+| Charts | Vico for bar charts; custom Canvas for radar and donut |
+| Markdown (guides) | Compose Markdown renderer or minimal in-house renderer (D-008) |
+| Licences | AboutLibraries |
+| Testing | JUnit4, Turbine, Truth, coroutines-test, Robolectric, Compose UI test, Roborazzi, MockWebServer |
+| Debug | LeakCanary, StrictMode |
 
-**Dependency policy:** no library that adds the `INTERNET` permission, analytics,
-crash reporting SDKs, or ads. Every new dependency needs a one-line
-justification in its PR. A CI task fails if the merged manifest contains
-`INTERNET` or `ACCESS_NETWORK_STATE` (GEN-01); library-declared network
-permissions (WorkManager) are removed with `tools:node="remove"`.
+No analytics, ads or crash-reporting SDKs. Only the catalog refresh uses the
+network (GEN-01); an OkHttp interceptor rejects any host other than
+`www.tee-kontor-kiel.de` (and its image CDN host if it differs, configured
+after inspection).
 
 ## 5. Key technical designs
 
-### 5.1 Brew timer
-
-See [04 · Brew Timer](04-brew-timer.md). Components live in `:core:timer-engine`
-(pure state machine) and `:core:timer` (Android integration).
+### 5.1 Brew timer — see [04](04-brew-timer.md).
 
 ### 5.2 Photos
 
-- Pick via `ActivityResultContracts.PickVisualMedia` (system photo picker,
-  backported through Google Play services on older versions) — no storage
-  permission.
-- Capture via `ActivityResultContracts.TakePicture` into a `FileProvider` URI in
-  `cacheDir/capture/` — the app does **not** declare `CAMERA`.
-- Processing on `Dispatchers.Default`: decode with sampling, apply EXIF
-  orientation, resize to max 2048 px on the long edge, re-encode JPEG quality 85,
-  **drop all EXIF metadata** (incl. GPS), write to `filesDir/photos/<uuid>.jpg`,
-  create the `photo` row; delete the temporary file.
-- Thumbnails are produced on the fly by Coil with memory + disk cache
-  (`cacheDir/coil`).
+Photo picker (`PickVisualMedia`) and camera (`TakePicture` into a
+`FileProvider` URI; no `CAMERA` permission); decode with sampling, rotate per
+EXIF, resize to 2048 px, JPEG 85, strip EXIF; store in `filesDir/photos/`.
+Catalog photos: downloaded to `filesDir/catalog/`, resized to 1600 px WebP,
+re-downloaded only if URL/ETag changed.
 
-### 5.3 Search
+### 5.3 Catalog refresh
 
-- FTS4 tables (`tea_fts`, `session_fts`) maintained by Room
-  (`@Fts4(contentEntity = …)`). Query string sanitised and turned into prefix
-  tokens (`word*`).
+1. `CatalogRefreshWorker` (user-initiated; foreground notification with
+   progress on the `catalog` channel; cancellable).
+2. Fetch `robots.txt`; then category listing pages (with pagination) per
+   [08 §2.2](08-content.md#22-source-structure), collect product URLs;
+   de-duplicate by base article number.
+3. Fetch each product page (≤ 1 req/s, retry ≤ 3 with backoff, 20 s
+   timeout); parse with `TeeKontorParser` (selectors versioned as
+   `parserVersion`).
+4. Merge variants, map styles, derive recipes, compute content hashes.
+5. Download changed photos (if SET-22).
+6. Sanity check (CAT-07 AC5); write staging tables; atomic swap
+   ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
+7. Fetch and convert *Tee-Info* guides (CAT-09).
 
-### 5.4 Background work (WorkManager)
+Expected duration: ~150–250 requests → 3–5 minutes at 1 req/s.
 
-| Worker | Schedule | Constraints |
-|---|---|---|
-| `OrphanPhotoSweepWorker` | Daily; also one-off after restore | Device idle not required; battery not low |
-| `ReminderDigestWorker` | Weekly if INV-07 on | Battery not low |
-| `BackupReminderWorker` | Daily check if SET-20 ≠ OFF | — |
+### 5.4 Background work
 
-The timer does **not** use WorkManager (insufficient precision).
+| Work | Trigger |
+|---|---|
+| `CatalogRefreshWorker` | User action only |
+| `OrphanFileSweepWorker` | Daily, idle |
+| `ReminderWorker` | Daily check (backup, stock digest) |
 
-### 5.5 Edge-to-edge, insets, predictive back
+### 5.5 Edge-to-edge, predictive back, insets — required (target SDK 36).
 
-- `enableEdgeToEdge()` in `MainActivity`; all screens handle system bar and
-  display cutout insets via Material 3 scaffolds and `WindowInsets` APIs
-  (mandatory when targeting Android 15+).
-- Predictive back supported (`android:enableOnBackInvokedCallback="true"`), using
-  Compose `PredictiveBackHandler`/`BackHandler` for editors' discard dialogs.
+### 5.6 Error handling & logging
 
-### 5.6 Localisation
+Typed errors for validation, I/O, network and parsing; release builds keep a
+small local rolling log (≤ 200 KB) of timer and catalog events, viewable and
+copyable in Einstellungen › Über › *Diagnose*, so the PO can paste it into an
+issue when something goes wrong.
 
-- All strings in `strings.xml` with translator comments; plurals via
-  `pluralStringResource`; numbers, dates and currency via `java.time` /
-  `NumberFormat` with the current locale.
-- `res/xml/locales_config.xml` for per-app language (Android 13+).
-- RTL support: `start`/`end` everywhere; mirrored icons where directional.
-
-### 5.7 Error handling & logging
-
-- Expected failures (validation, I/O, corrupt backup) are returned as typed
-  results (`sealed interface XxxError`) and shown as inline errors/snackbars.
-- Unexpected exceptions crash (no swallowing); Play Console vitals collects
-  crashes and ANRs without an SDK.
-- Logging via a thin `Logger` wrapper over `android.util.Log`; debug builds log
-  verbosely, release builds log warnings and errors only, never user content.
-
-### 5.8 App startup
-
-- No content providers from libraries running work at startup except
-  `androidx.startup` initializers required by WorkManager/profileinstaller
-  (WorkManager uses on-demand initialization via `Configuration.Provider`).
-- `Application.onCreate`: Hilt, notification channels, timer recovery (§7 of
-  [04](04-brew-timer.md)) on a background dispatcher.
-- Baseline Profile covers: cold start → Home, Home → Brew setup → Timer,
-  Collection scroll, Journal scroll.
-
-## 6. Build configuration
+## 6. Build & distribution
 
 | Variant | Details |
 |---|---|
-| `debug` | `applicationIdSuffix ".debug"`, app name "UmamiTea Debug", debuggable, StrictMode (penalty log), LeakCanary |
-| `release` | R8 full mode, `isMinifyEnabled = true`, `isShrinkResources = true`, signed with upload key (CI secrets), crunch PNGs |
-| `benchmark` | Release-like, debuggable false, signed with debug key, used by `:benchmark` |
+| `debug` | `.debug` suffix, installable side-by-side, StrictMode, LeakCanary |
+| `release` | R8 + resource shrinking, signed with the release key |
 
-- Versioning: `versionName` = SemVer `MAJOR.MINOR.PATCH`;
-  `versionCode = MAJOR*10000 + MINOR*100 + PATCH` (e.g. 1.0.0 → 10000).
-- Native libraries (if any via dependencies) must support 16 KB page sizes.
-- Resource configuration limited to shipped languages (`androidResources.localeFilters`).
-- Reproducible builds: no timestamps in BuildConfig.
+- **Signing:** a release keystore is generated once; stored as a base64 GitHub
+  Actions secret plus passwords; never committed. The PO keeps an offline copy
+  — losing it means updates can no longer be installed over the old app.
+- **Versioning:** SemVer `versionName`; `versionCode = MAJOR*10000 +
+  MINOR*100 + PATCH`.
+- **Release workflow** (`release.yml`, on tag `v*`): build, test, sign APK,
+  create a GitHub Release with the APK and release notes.
+- **Installing:** the PO downloads the APK from the release page on the
+  phone and allows *Unbekannte Apps installieren* for the browser once.
+  Updates install over the existing app (same key, higher versionCode).
 
 ## 7. Quality gates
 
-### 7.1 Static analysis
-
-- **Spotless + ktlint** (official Kotlin style) — formatting.
-- **Detekt** with a project config; no baseline at project start (zero issues).
-- **Android Lint** — `warningsAsErrors` for: `HardcodedText`, `MissingTranslation`
-  (for shipped locales), `UnusedResources`, `ContentDescription`,
-  `ObsoleteSdkInt`, accessibility checks; lint baseline forbidden.
-- **Compose rules** (ktlint/detekt Compose ruleset).
-- **Dependency analysis** plugin to catch unused/misdeclared dependencies.
-
-### 7.2 Testing strategy
-
-| Layer | What | Tooling | Target |
-|---|---|---|---|
-| Unit (pure JVM) | Engine, use cases, unit conversion, scaling, streaks, freshness, backup validation, CSV | JUnit, Truth, Turbine, coroutines-test | ≥ 90 % line coverage for `core:domain`, `core:timer-engine`, `core:backup` |
-| Unit (Robolectric) | DAOs, repositories, migrations, DataStore, notifications | Robolectric, room-testing | All DAO queries; every migration |
-| ViewModel | UiState for each action, error handling | Fakes from `core:testing` | Every ViewModel |
-| UI (Compose) | Screen behaviour with fake state, semantics, a11y | Compose UI test (Robolectric where possible) | All screens' main flows |
-| Screenshot | Each screen state in light/dark, font scale 1.0 & 2.0, compact & expanded | Roborazzi | All screens; diffs reviewed in PR |
-| Instrumented E2E | Critical journeys on emulator: onboarding → add tea → brew → finish → journal; backup → restore | UI Automator / Compose test on device | Run nightly + before release |
-| Performance | Startup, scroll jank, timer accuracy | Macrobenchmark | Budgets in [07](07-non-functional.md) |
-| Manual | Device matrix, OEM battery behaviour, TalkBack, Doze | Checklist | Every release candidate |
-
-Fakes over mocks: `core:testing` provides in-memory repositories, fake clocks
-(`TestMonotonicClock`), and data builders (`aTea { name = "…" }`).
-
-### 7.3 Continuous integration (GitHub Actions)
-
-| Workflow | Trigger | Jobs |
-|---|---|---|
-| `ci.yml` | PR, push to `main` | `spotlessCheck`, `detekt`, `lint`, unit tests (`testDebugUnitTest`), `verifyRoborazziDebug`, `assembleDebug`, manifest permission check, module-graph check; cache Gradle |
-| `instrumented.yml` | Nightly, manual | Emulator (API 26, 30, latest) E2E tests via Gradle Managed Devices |
-| `release.yml` | Tag `v*` | Build signed AAB + R8 mapping, upload as artifact; optionally upload to Play internal track (Gradle Play Publisher) |
-
-Branch protection on `main`: CI green + 1 review (or self-review checklist for
-solo development).
-
-### 7.4 Definition of Done (per feature)
-
-- Requirements' acceptance criteria met and covered by tests.
-- Light/dark, compact/expanded, 200 % font, TalkBack checked; screenshot tests
-  added.
-- No new lint/detekt warnings; strings externalised.
-- Room schema exported and migration added if schema changed.
-- Docs updated if behaviour diverges from these specs (specs are living
-  documents).
+- Spotless/ktlint, Detekt, Android Lint (no baseline), Compose rules.
+- Tests:
+  - **Pure unit:** timer engine, recipe derivation, variant merge, style
+    mapping, stock/cost, streaks, backup validation (≥ 90 % line coverage in
+    these modules).
+  - **Parser:** fixture tests on saved product/category HTML from
+    tee-kontor-kiel.de (kept as minimal excerpts, used only for tests; D-016).
+  - **Robolectric:** DAOs, migrations, notifications, alarms.
+  - **Compose UI and Roborazzi** screenshot tests for key screens (light/dark,
+    200 % font).
+  - **Instrumented:** E2E on an emulator (API 35/36).
+- CI (`ci.yml`) on every PR: format (Spotless), Detekt, Android Lint, unit tests, screenshot
+  verification, assemble debug APK (artifact attached for quick testing).
+- **Acceptance on the PO's Galaxy** per milestone (checklists in [09](09-release-plan.md)).
 
 ## 8. Repository conventions
 
-- Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `build:`).
-- Branch naming: `feature/<short-name>`, `fix/<short-name>`.
-- PR template: summary, linked requirement IDs (e.g. `TMR-06`), screenshots,
-  test notes.
-- `CHANGELOG.md` maintained per release (Keep a Changelog format).
-- Licence of the repository: TBD (Q-11).
+- One PR per milestone into `main`, CI green, PO merges.
+- Conventional Commits; `CHANGELOG.md`; tags `vX.Y.Z` produce releases.
+- PR description lists the requirement IDs implemented and an on-device test
+  checklist.

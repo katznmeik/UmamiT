@@ -4,132 +4,189 @@
 
 ## Open questions
 
-Questions that need an answer from the product owner (PO) or a specialist
-before or during development. "Needed by" refers to milestones in
-[09](09-release-plan.md#3-milestones).
+| ID | Question | Proposed default | Needed by |
+|---|---|---|---|
+| Q-01 | Final **application ID**? It must never change, or updates can't install over the old app. | `com.umamitea.app` | M1 |
+| Q-04 | Source of the **ink-wash illustrations** and logo (the mockup's images may not be licensed for reuse)? | Simple original illustrations created for the app (vector), logo redrawn from the mockup | M5 (logo: M1) |
+| Q-05 | **Serif display font**? | Cormorant Garamond (OFL) | M1 |
+| Q-11 | Is the GitHub repository **private**? (Relevant for parser test fixtures excerpted from the shop.) | Keep private | M2 |
+| Q-15 | Default **alert sound**: is „Klangschale" (singing bowl) right? | Yes | M1 |
+| Q-18 | Do you use a **Galaxy Watch**? (Decides whether NOT-04 is tested.) | — | M1 |
 
-| ID | Question | Proposed default | Owner | Needed by |
-|---|---|---|---|---|
-| Q-01 | What is the final **application ID** (package name)? It can never change after the first Play upload. | `com.umamitea.app` (owning the `umamitea.com` domain is not required, but recommended) | PO | M0 |
-| Q-02 | **Monetisation:** free forever, one-time "supporter" unlock, or paid app? (In-app purchases would need Play Billing and a review of the no-network decision.) | Free, no ads, no IAP in 1.0 | PO | M5 |
-| Q-03 | Which **languages** at launch besides English? | English only at 1.0; Japanese and German in 1.1 | PO | M5 |
-| Q-04 | Who produces the **final brand assets** (logo, colour palette, ink-wash illustrations, style photos)? Are the mockup images licensed for use? | Designer commissioned; mockup used as reference only | PO | M1 (palette), M4 (imagery) |
-| Q-05 | Which **serif display font**? | Cormorant Garamond (OFL) — closest to the mockup; alternatives EB Garamond, Noto Serif Display | Designer | M0 |
-| Q-06 | Who **reviews tea content** (parameters, guides) for accuracy? | An experienced tea professional / educator, paid review | PO | M4 |
-| Q-07 | Bottom navigation: mockup shows **Home · Journal · Collection · Stats**; spec proposes **Home · Journal · Collection · Learn** with stats inside Journal. Which? | Spec proposal (Learn top-level) | PO | M0 |
-| Q-08 | Are **tablet / foldable-optimised layouts** required for 1.0, or is "works well, not optimised" acceptable? | List-detail for Collection & Journal in 1.0; other screens centred with max width | PO | M5 |
-| Q-09 | Is the Play developer account **personal or organisation**? Personal accounts created after Nov 2023 must run a closed test (≥ 12 testers, ≥ 14 days) before production. | Assume personal → plan M6 accordingly | PO | M0 |
-| Q-10 | Confirm **minimum Android version** 8.0 (API 26). | Yes | PO | M0 |
-| Q-11 | Will the project be **open source**? Which licence? | Private repo; decide before 1.0 | PO | M6 |
-| Q-12 | Should onboarding default to **sample teas**? | Yes (ONB-04), removable anytime | PO | M5 |
-| ~~Q-13~~ | ~~Add the **brand mockup** image to `docs/design/brand-mockup.png`?~~ **Resolved 2026-10-21:** added. | — | PO | — |
-| Q-14 | **Support e-mail** and **privacy policy hosting** (e.g. GitHub Pages)? | Dedicated address + GitHub Pages | PO | M6 |
-| Q-15 | Default **alert sound**: is a singing-bowl tone right for the brand, and should the default alert ring in silent mode (SET-13)? | Singing bowl; ring in silent mode | PO | M2 |
+### Resolved questions
+
+| ID | Resolution (2026-10-21) |
+|---|---|
+| Q-02 Monetisation | Not applicable: personal use only. |
+| Q-03 Languages | German only (D-017). |
+| Q-06 Content review | Tee-Kontor is the content source; built-in styles are fallbacks only. |
+| Q-07 Navigation | Start · Journal · Sammlung · Statistik (D-018). |
+| Q-08 Tablet layouts | Phone-first; wider layouts best effort. |
+| Q-09 Play account | Not applicable: no store (D-013). |
+| Q-10 Min Android | Android 15 / API 35 (D-023). |
+| Q-12 Sample teas | Dropped; catalog replaces them. |
+| Q-13 Brand mockup | Added at `docs/design/brand-mockup.png`. |
+| Q-14 Support/privacy policy hosting | Not applicable. |
 
 ## Decision log
 
-Lightweight architecture/product decision records. Status: *Accepted*,
-*Proposed* (default unless PO objects), *Superseded*.
+Status: *Accepted* (by the PO), *Proposed* (default unless the PO objects),
+*Superseded*.
 
 <a id="d-001"></a>
-### D-001 — Offline only, no accounts · *Accepted* (PO, 2026-10-21)
+### D-001 — No accounts; personal data local only · *Accepted*, amended by D-014
 
-- **Context:** Options were offline-only, or accounts + cloud sync.
-- **Decision:** 1.x is fully offline with no accounts and no backend.
-- **Consequences:** No server costs or GDPR processing; strong privacy story;
-  no `INTERNET` permission. Data safety relies on user backups and Android
-  Auto Backup. Multi-device sync is out of scope (NG1).
+Originally "offline only, no accounts" (2026-10-21). Still true for all
+personal data; the catalog refresh is the one network exception (D-014).
 
 <a id="d-002"></a>
-### D-002 — Product concept: tea brewing companion · *Accepted* (PO, 2026-10-21)
+### D-002 — Concept: tea brewing companion · *Accepted*
 
-- **Context:** Candidate concepts: brewing companion, tea-shop ordering app,
-  discovery/community, e-commerce.
-- **Decision:** Personal tea library + brewing guidance + steep timer + tasting
-  journal, focused on umami-rich teas but supporting all teas.
+Collection + brewing guidance + steep timer + journal, umami-focused.
 
 <a id="d-003"></a>
-### D-003 — Kotlin, Jetpack Compose, Material 3, min SDK 26 · *Proposed*
+### D-003 — Kotlin, Jetpack Compose, Material 3 · *Proposed*
 
-- **Alternatives:** Flutter / Kotlin Multiplatform (no need for iOS now);
-  XML views (legacy).
-- **Rationale:** Modern, officially recommended stack; best access to
-  platform features needed by the timer (FGS, notifications, alarms).
-  API 26 covers the vast majority of active devices and removes legacy
-  notification/channel workarounds.
+Min SDK changed by D-023.
 
 <a id="d-004"></a>
-### D-004 — Timer background strategy · *Proposed*
+### D-004 — Timer background strategy · *Superseded by D-019 / [04 §6](04-brew-timer.md#6-background-execution)*
 
-- **Context:** Alerts must be reliable with the screen off. Options:
-  1. Foreground service type `specialUse` + partial wake lock during short
-     steps, exact-alarm backstop when permitted (chosen).
-  2. `shortService` FGS — rejected: ~3 min timeout is shorter than western
-     steeps.
-  3. Exact alarms only via `USE_EXACT_ALARM` — Play restricts this permission to
-     apps whose core function is an alarm clock or timer; acceptance for a
-     brewing companion is uncertain.
-  4. Exact alarms via `SCHEDULE_EXACT_ALARM` only — denied by default on
-     Android 14+, so every user would need to grant it manually.
-  5. WorkManager — rejected: not precise.
-- **Decision:** Option 1, with long steps (≥ 30 min) using alarms (exact if
-  permitted, else a 10-minute window). See [04 §6](04-brew-timer.md#6-background-execution).
-- **Consequences:** Play Console FGS declaration and video required. If Play
-  rejects `specialUse`, fall back to option 4 with an in-app permission flow
-  (and evaluate option 3).
+v0.1 avoided exact-alarm permissions because of Play policy. As a sideloaded
+personal app (D-013), v0.2 uses `USE_EXACT_ALARM` + foreground service +
+battery-optimisation exemption together.
 
 <a id="d-005"></a>
-### D-005 — Persistence: Room + typed DataStore, UUIDs, metric storage · *Proposed*
-
-- **Rationale:** Relational data with FTS search and migrations; UUIDs enable
-  future merge/sync; metric storage avoids rounding drift.
+### D-005 — Room + DataStore, UUIDs, metric storage · *Proposed*
 
 <a id="d-006"></a>
-### D-006 — No network permission, no analytics · *Proposed*
-
-- **Rationale:** Privacy principle, simpler Data safety, fewer dependencies.
-- **Consequences:** Usage insights only from Play Console; content updates only
-  with app updates; feedback via e-mail.
+### D-006 — No analytics or tracking SDKs · *Proposed* (network part superseded by D-014)
 
 <a id="d-007"></a>
-### D-007 — Navigation library · *Proposed*
-
-- **Decision:** Navigation Compose with type-safe `@Serializable` routes.
-  Re-evaluate Navigation 3 at M0 if it is stable and offers better adaptive
-  (list-detail) support.
+### D-007 — Navigation Compose, type-safe routes · *Proposed*
 
 <a id="d-008"></a>
-### D-008 — Guides authored in Markdown · *Proposed*
-
-- **Rationale:** Easy to write, review and translate; rendered by a Compose
-  Markdown renderer limited to headings, paragraphs, emphasis, lists, tables
-  and images. If the library adds unwanted weight, build a minimal renderer.
+### D-008 — Guides rendered from Markdown · *Proposed* (now Tee-Info guides converted to Markdown)
 
 <a id="d-009"></a>
-### D-009 — Brand theme by default, dynamic colour optional · *Proposed*
-
-- **Rationale:** The calm washi/matcha palette is central to the brand
-  (mockup). Material You colours would dilute it; offered as an opt-in setting.
+### D-009 — Brand theme by default, dynamic colour opt-in · *Proposed*
 
 <a id="d-010"></a>
-### D-010 — Statistics inside Journal; Learn as top-level tab · *Proposed* (pending Q-07)
+### D-010 — Stats inside Journal · *Superseded by D-018*
 
 <a id="d-011"></a>
 ### D-011 — Photo handling · *Proposed*
 
-- **Decision:** Photo Picker + camera intent (no storage/camera permissions),
-  resized to 2048 px JPEG, EXIF removed, stored in app-private storage;
-  included in manual backups; excluded from Auto Backup (25 MB limit).
+Photo picker/camera intent, resized, EXIF stripped, app-private storage;
+excluded from device backup; own photos included in manual export.
 
 <a id="d-012"></a>
 ### D-012 — Timer screen always dark · *Proposed*
 
-- **Rationale:** Matches the mockup; reduces glare in dim rooms during a calm
-  ritual; dark backgrounds use less power on OLED when the screen is kept on.
+<a id="d-013"></a>
+### D-013 — Personal app, sideloaded, no store · *Accepted* (PO, 2026-10-21)
+
+- No Play Store or other store; one user, one device (Samsung Galaxy,
+  Android 16 / One UI 8).
+- Consequences: no store policies, listings or beta. The app may use
+  `USE_EXACT_ALARM`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` and a
+  `specialUse` foreground service without review.
+
+<a id="d-014"></a>
+### D-014 — In-app catalog refresh over the internet · *Accepted* (PO, 2026-10-21)
+
+- The app declares `INTERNET` and fetches tee-kontor-kiel.de when the user
+  taps *Katalog aktualisieren*.
+- Alternatives rejected: bundling the catalog only in each APK (needs a
+  developer for every refresh), one-time snapshot.
+- Consequences: parser maintenance when the shop changes; host allow-list;
+  atomic refresh with sanity checks.
+
+<a id="d-015"></a>
+### D-015 — Tee-Kontor catalog scope and independence · *Accepted* (PO, 2026-10-21)
+
+- All green teas incl. flavoured teas, matcha and powders; one entry per tea;
+  product photos and *Tee-Info* guides imported.
+- Catalog lives in *Sammlung › Katalog*; adding a tea creates an independent
+  copy; refresh updates only the catalog; manual *Aus Katalog zurücksetzen*.
+- Adding asks for the package size; stock and price are prefilled.
+
+<a id="d-016"></a>
+### D-016 — Handling of scraped content · *Proposed*
+
+Scraped texts and photos are stored only on the phone for personal use and are
+not committed to the repository, except minimal HTML excerpts needed as
+parser test fixtures (repository kept private, Q-11). No bundled snapshot
+unless generated at build time and not committed (CAT-14).
+
+<a id="d-017"></a>
+### D-017 — German only, metric · *Accepted* (PO, 2026-10-21)
+
+German UI and content; °C, g, ml; German formats.
+
+<a id="d-018"></a>
+### D-018 — Navigation: Start · Journal · Sammlung · Statistik · *Accepted* (PO, 2026-10-21)
+
+As in the brand mockup. Learn tab and own guides/tools dropped; Tee-Kontor
+guides live in the catalog.
+
+<a id="d-019"></a>
+### D-019 — Timer behaviour · *Accepted* (PO, 2026-10-21)
+
+- Supports all styles (kyusu, mug, gongfu, cold brew).
+- READY always waits for the user's tap between infusions.
+- Running controls: Pause only (others in the overflow menu); no ±10 s.
+- Pre-alert tick before the end: global setting (Aus, 5–30 s in 5 s steps;
+  default 5 s), overridable per recipe.
+- Alert follows the ringer mode (sound / vibration / silent), repeats ~15 s.
+- Live Update on lock screen, status bar and Now Bar.
+- One timer at a time.
+- Samsung reliability: exact alarms, FGS, battery exemption (see D-013).
+
+<a id="d-020"></a>
+### D-020 — Automatic journaling · *Accepted* (PO, 2026-10-21)
+
+Sessions are logged automatically without a summary screen; a short sheet
+offers *Notizen hinzufügen* and, if times changed, *Zeiten ins Rezept
+übernehmen* (ask, never automatic).
+
+<a id="d-021"></a>
+### D-021 — Recipe derivation from Tee-Kontor data · *Accepted* (PO, 2026-10-21)
+
+Ranges → midpoint; temperature snapped to 5 °C, time to 5 s; brewing table
+wins over prose, prose over style defaults; non-table recipes flagged
+„Rezept prüfen". Details: [08 §2.5](08-content.md#25-recipe-derivation).
+
+<a id="d-022"></a>
+### D-022 — Backup via Android device backup · *Accepted* (PO, 2026-10-21)
+
+Database and settings in device backup; manual export file as extra safety;
+photos only in the manual export.
+
+<a id="d-023"></a>
+### D-023 — Min SDK 35, target SDK 36 · *Proposed*
+
+PO's phone runs Android 16; one version of slack.
+
+<a id="d-024"></a>
+### D-024 — Delivery: Claude builds, PR per milestone, GitHub Releases · *Accepted* (PO, 2026-10-21)
+
+- Claude develops in cloud sessions; one PR per milestone into `main`.
+- Signed APK published on GitHub Releases per milestone; PO installs on the
+  phone.
+- Timer first (M1).
+- **No development starts before the PO's explicit go.**
+
+<a id="d-025"></a>
+### D-025 — Temperatures in 5 °C steps; no cooling helper · *Accepted* (PO, 2026-10-21)
+
+The PO's kettle is adjustable in 5 °C steps; the timer shows a kettle hint per
+step.
 
 ## Change log
 
 | Date | Change |
 |---|---|
-| 2026-10-21 | Initial specification set (v0.1); D-001 and D-002 accepted by PO; brand mockup received and incorporated into [03](03-ux-ui.md). |
-| 2026-10-21 | Brand mockup committed at `docs/design/brand-mockup.png`; Q-13 resolved. |
+| 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
+| 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | v0.2: PO interview — personal sideloaded app, German, Samsung/Android 16, Tee-Kontor catalog with in-app refresh, timer details (pre-alert, ringer-mode alert, Live Update), auto-journal, Stats tab, delivery plan. D-013 … D-025 added; D-004, D-010 superseded; D-001, D-006 amended. |

@@ -1,41 +1,35 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-21
 
-This document defines the information architecture, navigation, visual design
-system and every screen of UmamiTea. Functional rules live in
-[02 · Functional Requirements](02-functional-requirements.md); this document
-references them by ID.
+Information architecture, navigation, visual design system and screens.
+Functional rules: [02](02-functional-requirements.md). The UI language is
+**German**; copy examples below are the intended German strings.
 
 ## 1. Design reference — brand mockup
 
-The product owner supplied a brand mockup (October 2026) that defines the
-**look and feel**. The screens in it are *illustrative*: they do not define the
-feature set. It is stored at [`docs/design/brand-mockup.png`](../design/brand-mockup.png)
-so designers and developers share the same reference.
+The PO's brand mockup defines the **look and feel**. Its screens are
+*illustrative*, not a feature list. It is stored at
+[`docs/design/brand-mockup.png`](../design/brand-mockup.png).
 
 ![UmamiTea brand mockup](../design/brand-mockup.png)
 
-What the mockup establishes and this spec adopts:
-
 | Element | In the mockup | Adopted as |
 |---|---|---|
-| Mood | Calm, quiet, premium, Japanese tea-house; lots of whitespace | Product principle "Calm over clever" |
-| Background | Warm off-white "washi paper" with subtle texture | `background` / `surface` tokens (§3.1) |
-| Primary colour | Deep matcha / olive green (*Start Steeping* card, FAB) | `primary` token |
-| Dark surface | Deep forest-green near-black (timer screen) | Timer screen always uses the dark "Steeping" scheme |
-| Display type | Elegant serif for titles and tea names ("UmamiTea", "Journal", "Sencha Asamushi") | Serif display font (§3.2) |
-| Labels | Small, letter-spaced uppercase labels ("RECENTLY LOGGED", "TASTING NOTES") | `labelOverline` style |
-| Body type | Small, quiet sans-serif in warm grey | Sans body font |
-| Imagery | Sumi-e / ink-wash mountain landscapes, tea leaves, moody tea-cup photography | Bundled illustrations & style photos (§3.5) |
-| Logo | Two-leaf tea sprig, dark green | App icon & splash |
-| Japanese | Secondary names (煎茶 浅蒸し), tagline お茶で、いい時間を。 | GEN-11, onboarding |
-| Timer | Large thin ring, centred light digits, "Steeping" caption, pill-shaped cream *Pause* button | SCR-05 |
-| Lists | Round photo thumbnails, serif title, "Jun 8, 2025 · 3 min · 80 °C", "★ 4.5" right-aligned | Journal & Home lists |
-| Tea detail | Hero photo, serif name, Japanese subtitle, rating with count, category chip, 3-column stat row (Temperature · Steep time · Infusions) with line icons | SCR-09 |
-| Stats | "Your Tea Journey" with tabs, big numerals, rating bars, donut of tea types | SCR-18 |
-| Bottom navigation | Four items with thin line icons and small labels: Home, Journal, Collection, Stats | §2.2 (see note on Stats vs Learn) |
-| Edit affordance | Small round dark-green FAB with pencil | Detail screens |
+| Mood | Calm, quiet, premium, Japanese tea house; generous whitespace | Principle "Calm over clever" |
+| Background | Warm off-white "washi paper" | `background`/`surface` tokens (§3.1) |
+| Primary colour | Deep matcha/olive green (*Start Steeping* card, FAB) | `primary` |
+| Dark surface | Deep forest green-black (timer) | Timer always uses the dark "Steeping" scheme |
+| Display type | Elegant serif for titles and tea names | Serif display font (§3.2) |
+| Labels | Small, letter-spaced uppercase labels („ZULETZT GEBRÜHT") | `labelOverline` |
+| Imagery | Ink-wash mountains, tea leaves, moody tea photography | Illustrations + Tee-Kontor product photos |
+| Logo | Two-leaf tea sprig | App icon & splash |
+| Japanese | Secondary names (煎茶 浅蒸し), tagline お茶で、いい時間を。 | GEN-11, welcome |
+| Timer | Thin ring, light centred digits, caption, cream pill *Pause* | SCR-05 |
+| Lists | Round photo thumbnails, serif title, meta line, „★ 4,5" | Journal & Home |
+| Tea detail | Hero photo, serif name, subtitle, rating with count, type chip, Temperature · Steep time · Infusions row | SCR-09 / SCR-21 |
+| Stats | "Your Tea Journey" with tabs, big numerals, rating bars, tea-type donut | SCR-18 |
+| Bottom nav | **Home · Journal · Collection · Stats** with thin line icons | §2.2 (German labels) |
 
 ## 2. Information architecture & navigation
 
@@ -43,568 +37,425 @@ What the mockup establishes and this spec adopts:
 
 ```
 App
-├── Onboarding (SCR-01)  — first launch only
-├── Home (SCR-02)
-│   ├── Start steeping → Tea picker (SCR-03) → Brew setup (SCR-04) → Timer (SCR-05) → Summary (SCR-06)
-│   ├── Brew again (recent teas) → Brew setup
-│   ├── Quick timer (SCR-07)
-│   └── Settings (SCR-25) — top-bar action
-├── Collection (SCR-08)
-│   ├── Tea detail (SCR-09)
-│   │   ├── Tea editor (SCR-10)
-│   │   ├── Profile editor (SCR-12)
-│   │   ├── Stock history (SCR-29)
-│   │   └── Photo viewer (SCR-28)
-│   └── Add tea → Style picker (SCR-11) → Tea editor (SCR-10)
+├── Einrichtung (SCR-01) — first start only
+├── Start / Home (SCR-02)
+│   ├── Aufguss starten → Teeauswahl (SCR-03) → Brühen (SCR-04) → Timer (SCR-05) → Gespeichert-Sheet (SCR-06)
+│   ├── Nochmal brühen (recent teas) → SCR-04
+│   ├── Schnelltimer (SCR-07)
+│   └── Einstellungen (SCR-25) — top-bar action
 ├── Journal (SCR-15)
-│   ├── Session detail (SCR-16) → Session editor (SCR-17)
-│   ├── Log a session → Session editor (SCR-17)
-│   └── Your Tea Journey (SCR-18)
-├── Learn (SCR-19)
-│   ├── Guide (SCR-20)
-│   ├── Tea style detail (SCR-21)
-│   └── Tools: Ratio calculator (SCR-22), Cooling helper (SCR-23), Unit converter (SCR-24)
-└── Settings (SCR-25)
-    ├── My teaware (SCR-13) → Teaware editor (SCR-14)
-    ├── Backup & restore (SCR-26)
-    └── About & licences (SCR-27)
+│   └── Sitzung (SCR-16) → Sitzung bearbeiten / Notizen (SCR-17) → Beschreibungen (SCR-30)
+├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
+│   ├── Meine Tees (SCR-08)
+│   │   ├── Tee (SCR-09) → Bearbeiten (SCR-10), Rezept (SCR-12), Vorrat (SCR-29), Fotos (SCR-28)
+│   │   └── Tee ohne Katalog anlegen → Sorte wählen (SCR-11) → SCR-10
+│   └── Katalog (SCR-19)
+│       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
+│       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
+│       └── Katalog aktualisieren (SCR-22)
+├── Statistik (SCR-18)
+└── Einstellungen (SCR-25)
+    ├── Teegeschirr (SCR-13) → SCR-14
+    ├── Daten & Sicherung (SCR-26)
+    └── Über (SCR-27)
 ```
 
 ### 2.2 Primary navigation
 
-Four top-level destinations, shown as a **bottom navigation bar** on compact
-widths and a **navigation rail** on medium/expanded widths (Material 3
-`NavigationSuiteScaffold`):
+Bottom navigation bar (navigation rail on wide screens):
 
-| # | Label | Icon (line style) | Destination |
+| # | Label | Icon (line) | Destination |
 |---|---|---|---|
-| 1 | **Home** | house | SCR-02 |
+| 1 | **Start** | house | SCR-02 |
 | 2 | **Journal** | notebook | SCR-15 |
-| 3 | **Collection** | tea canister | SCR-08 |
-| 4 | **Learn** | open book / leaf | SCR-19 |
+| 3 | **Sammlung** | tea canister | SCR-08 / SCR-19 |
+| 4 | **Statistik** | bar chart | SCR-18 |
 
-> **Note:** the mockup shows *Stats* as the 4th item. Because Learn (guides,
-> styles, tools) is central to the umami/brewing mission, this spec places
-> statistics ("Your Tea Journey") inside Journal (header button and tab) and
-> keeps Learn as a top-level item. This is open question
-> [Q-07](10-open-questions-and-decisions.md#open-questions).
-
-Rules:
-- Re-selecting the current tab scrolls to top, then pops to the tab root.
-- Each tab keeps its own back stack; switching tabs preserves state.
-- Settings is reached from the top-app-bar action on Home (and from each tab's
-  overflow menu).
-- The **active brew bar** (GEN-06) sits directly above the navigation bar.
-- The timer (SCR-05) is full-screen: no navigation bar, no active brew bar.
+- **Sammlung** opens on the last used segment (*Meine Tees* by default).
+- Re-selecting a tab scrolls to top, then pops to its root; each tab keeps its
+  back stack.
+- Settings via the gear on Start and the ⋮ menu of the other tabs.
+- The active brew bar (GEN-06) sits above the navigation bar; the timer is
+  full-screen without either.
 
 ### 2.3 Back behaviour
 
-- System back / predictive back pops the current tab's stack; on a tab root it
-  goes to Home; on Home it exits the app.
-- Back from the timer returns to the previous screen; the session keeps running.
-- Back from the session summary saves (data is already persisted, JRN-01).
-- Editors with unsaved changes trigger GEN-08.
+Predictive back; back from the timer keeps the session running; editors with
+unsaved changes trigger GEN-08.
 
-### 2.4 Deep links (internal only)
+### 2.4 Internal deep links
 
 | Source | Target |
 |---|---|
-| Timer notification / alert notification | SCR-05 |
-| Auto-finished session notification | SCR-16 for that session |
-| Reminder notification | SCR-08 filtered (stock) or SCR-26 (backup) |
-| App shortcut "Quick timer" | SCR-07 |
-| Dynamic shortcut "Brew <tea>" | SCR-04 for that tea |
+| Timer notification / Live Update / alert | SCR-05 |
+| „Sitzung gespeichert" notification | SCR-16 |
+| Catalog refresh result notification | SCR-19 |
+| Reminder notification | SCR-08 (filtered) or SCR-26 |
+| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates) |
 
-Deep links use an internal scheme and are not exported to other apps except
-via `PendingIntent`s and shortcuts.
+### 2.5 Layout
 
-### 2.5 Adaptive layouts
-
-| Width class | Layout |
-|---|---|
-| Compact (< 600 dp) | Bottom bar; single pane |
-| Medium (600–839 dp) | Navigation rail; Collection and Journal use list-detail with detail pane when landscape |
-| Expanded (≥ 840 dp) | Navigation rail; list-detail panes for Collection and Journal; Learn shows list + article side by side |
-
-- The app supports portrait and landscape on all devices, and does not lock
-  orientation (Android 16 ignores orientation locks on large screens anyway).
-- Timer landscape layout: ring on the left, controls on the right.
-- Foldable tabletop posture: TMR-25.
+Phone-first (Galaxy, portrait and landscape). On wider windows (landscape,
+split screen, DeX) the app uses a navigation rail and list-detail panes for
+Sammlung and Journal; no orientation lock.
 
 ## 3. Visual design system
 
 ### 3.1 Colour tokens
 
-Values are first-pass approximations of the mockup and are to be finalized by
-a designer (open question [Q-04](10-open-questions-and-decisions.md#open-questions)).
-All pairs must meet the contrast targets in [07 §4](07-non-functional.md#4-accessibility).
+First-pass values approximated from the mockup, to be finalized with the PO.
 
-**Light scheme ("Washi")**
+**Light ("Washi")**
 
 | Token | Hex | Usage |
 |---|---|---|
-| `primary` | `#4A5643` | Primary buttons, *Start steeping* card, FAB, selected nav |
-| `onPrimary` | `#F6F3EC` | Text/icons on primary |
-| `primaryContainer` | `#DDE2D2` | Selected chips, subtle highlights |
+| `primary` | `#4A5643` | Primary buttons, *Aufguss starten* card, FAB, selected nav |
+| `onPrimary` | `#F6F3EC` | |
+| `primaryContainer` | `#DDE2D2` | Selected chips |
 | `onPrimaryContainer` | `#1F271B` | |
-| `secondary` | `#8A7B5E` | Hojicha-brown accents, secondary icons |
-| `secondaryContainer` | `#ECE5D6` | Cream pills (e.g. *Pause* on dark), tags |
-| `tertiary` | `#6F8A5A` | Fresh-leaf green accents (umami meter, charts) |
-| `background` | `#F3F0E9` | App background (washi) |
+| `secondary` | `#8A7B5E` | Hōjicha-brown accents |
+| `secondaryContainer` | `#ECE5D6` | Cream pills, tags |
+| `tertiary` | `#6F8A5A` | Umami meter, charts |
+| `background` | `#F3F0E9` | Washi background |
 | `surface` | `#F7F5F0` | Cards, sheets |
-| `surfaceContainerLow` | `#EFEBE3` | Input fields, search bar |
+| `surfaceContainerLow` | `#EFEBE3` | Inputs, search bar |
 | `surfaceContainerHigh` | `#E7E2D8` | Chips |
 | `onSurface` | `#2B2D27` | Primary text (ink) |
-| `onSurfaceVariant` | `#6B6A62` | Secondary text, captions (≈ 4.8:1 on `background`; the lighter grey in the mockup, ≈ `#77766D`, only reaches ≈ 4.0:1 and fails AA for body text) |
-| `outline` | `#D9D4C8` | Dividers, field outlines |
-| `error` | `#9E3B2F` | Errors (used sparingly) |
+| `onSurfaceVariant` | `#6B6A62` | Secondary text (≈ 4.8:1 on background; the mockup's lighter grey fails AA) |
+| `outline` | `#D9D4C8` | Hairlines |
+| `error` | `#9E3B2F` | Errors (rare) |
 
-**Dark scheme ("Steeping")** — also used for the timer screen in both themes.
+**Dark ("Steeping")** — dark theme and the timer screen in both themes.
 
 | Token | Hex | Usage |
 |---|---|---|
-| `background` | `#1C231D` | Deep forest green-black |
+| `background` | `#1C231D` | Forest green-black |
 | `surface` | `#232B24` | Cards |
 | `surfaceContainerHigh` | `#2E372F` | Chips, inputs |
-| `primary` | `#B9C8A6` | Ring progress, selected elements |
+| `primary` | `#B9C8A6` | Ring progress |
 | `onPrimary` | `#1F271B` | |
 | `secondaryContainer` | `#E5DFCF` | Cream *Pause* pill |
 | `onSecondaryContainer` | `#2B2D27` | |
-| `onSurface` | `#ECE8DE` | Primary text |
+| `onSurface` | `#ECE8DE` | Text |
 | `onSurfaceVariant` | `#A9A99D` | Secondary text |
-| `outline` | `#4A544A` | Ring track, dividers |
+| `outline` | `#4A544A` | Ring track |
 
-**Category accent colours** (chips, chart series, fallback thumbnails; always
-paired with a label/icon, never colour alone):
-Green `#7C9A5B`, Matcha/powder `#5F8C3E`, White `#C9C2A8`, Yellow `#C7B45A`,
-Oolong `#A88A4E`, Black `#8C4F35`, Dark `#5B4636`, Herbal `#9A7A9A`,
-Other `#8C8C80`.
+**Type colours** (chips, chart series; always with a label): Gyokuro
+`#5F7F45`, Kabusecha `#6C8A4F`, Sencha `#7C9A5B`, Fukamushi `#8AA463`,
+Shincha `#9DB86E`, Matcha `#5F8C3E`, Kukicha/Karigane `#A6B07A`, Hōjicha
+`#8C6A48`, Genmaicha `#B59A62`, China/Korea green `#8FA77A`, aromatisiert
+`#9A7A9A`, other `#8C8C80`. Liquor colours for the timer fill animation:
+green `#C9D58F`, gyokuro `#D7DF9F`, hōjicha `#B07A45`.
 
-**Liquor colours** for the timer's "tea fill" animation by category, e.g.
-green `#C9D58F`, gyokuro `#D7DF9F`, black `#B5672F`.
-
-Dynamic colour (Material You) is **off by default** to preserve the brand
-(SET-06).
+Dynamic colour is off by default (SET-06).
 
 ### 3.2 Typography
 
-| Role | Font | Size / line height | Notes |
-|---|---|---|---|
-| Display (splash, timer digits) | Serif display | 57 / 64 sp; timer 64–96 sp | Timer digits use tabular (monospaced) figures; light weight on dark |
-| Headline (screen titles "Journal") | Serif display | 28 / 36 sp | Regular weight |
-| Title (tea names) | Serif display | 20–22 / 28 sp | |
-| Body | Sans | 14–16 / 20–24 sp | Warm grey for secondary text |
-| Label | Sans | 12–14 / 16–20 sp | Buttons, chips |
-| Overline (`labelOverline`) | Sans, uppercase | 11 / 16 sp, letter-spacing 0.12 em | "RECENTLY LOGGED", "TASTING NOTES" |
+| Role | Font | Size / line height |
+|---|---|---|
+| Timer digits | Serif display or sans with tabular figures, light | 72–96 sp |
+| Headline („Journal") | Serif display | 28 / 36 sp |
+| Title (tea names) | Serif display | 20–22 / 28 sp |
+| Body | System sans | 14–16 / 20–24 sp |
+| Label | System sans | 12–14 sp |
+| Overline | System sans, uppercase, +0.12 em tracking | 11 / 16 sp |
 
-- **Serif display font:** a bundled OFL-licensed serif matching the mockup,
-  candidates *Cormorant Garamond*, *EB Garamond* or *Noto Serif Display*
-  (decision Q-05). Only the needed weights (Regular, Medium) are bundled,
-  subsetted to Latin + Latin Extended.
-- **Sans font:** system default (Roboto / device font) — no bundling.
-- **Japanese text** uses the system CJK fallback font (no bundled CJK font, to
-  keep APK size small).
-- All sizes in `sp`; layouts must reflow at 200 % font scale.
+- Serif: bundled OFL font closest to the mockup (proposed **Cormorant
+  Garamond**, Q-05), Regular + Medium, Latin subset incl. German umlauts/ß.
+- Japanese text via the system CJK fallback font.
+- Uppercase overlines use German `ẞ`-safe uppercasing (`ZULETZT GEBRÜHT`).
 
 ### 3.3 Shape, spacing, elevation
 
-- Spacing scale: 4, 8, 12, 16, 24, 32, 48 dp. Screen side margin 20 dp
-  (compact), 24 dp (medium+).
-- Corner radii: cards 16 dp, primary card (*Start steeping*) 12 dp, chips 8 dp,
-  pills/buttons fully rounded, thumbnails circular (journal/home) or 12 dp
-  (collection grid).
-- Elevation: flat design; cards use `surface` on `background` with a 1 dp
-  `outline` hairline or tonal difference instead of shadows.
-- Dividers: hairline `outline`, inset to text start, as in mockup lists.
+Spacing 4/8/12/16/24/32/48 dp; side margin 20 dp; cards 16 dp radius;
+primary card 12 dp; pills fully rounded; circular thumbnails in lists; flat
+design with hairlines instead of shadows.
 
 ### 3.4 Iconography
 
-- Material Symbols **Outlined / Light (weight 300)** to match the thin line icons.
-- Custom vector icons (same stroke weight) for: tea leaf logo, kyusu, houhin,
-  shiboridashi, gaiwan, chawan, chasen (whisk), cold-brew bottle, thermometer,
-  leaf amount, infusion count, umami.
-- Icons imported as individual vector drawables (no full icon font).
+Material Symbols Outlined, weight 300; custom line icons for kyusu, houhin,
+shiboridashi, gaiwan, chawan, chasen, cold-brew bottle, kettle, thermometer,
+leaf amount, infusions, umami.
 
-### 3.5 Imagery & illustration
+### 3.5 Imagery
 
-- **Ink-wash landscapes** (mountains, mist, tea fields): Home header, onboarding,
-  empty states, Learn hero images. Format: optimized WebP or vector; light and
-  dark variants (dark variant inverted/tinted to fit the Steeping scheme).
-- **Tea photography**: one moody photo per style (cup of liquor, top-down leaf
-  shot) used as fallback hero/thumbnail when a tea has no user photo. Bundled
-  WebP ≈ 40–80 KB each, ≤ 2.5 MB total.
-- All imagery must be original or properly licensed for commercial
-  redistribution (open question Q-04). AI-generated imagery must have its
-  licence/terms checked before use.
-- Decorative images have no content description; meaningful images do.
+- Ink-wash landscape illustrations (Home header, welcome, empty states),
+  light and dark variants. Origin/licence to be settled with the PO (Q-04).
+- Tea photos: Tee-Kontor product photos (downloaded by the catalog refresh,
+  personal use) and the PO's own photos; fallback = type-coloured leaf
+  illustration.
 
-### 3.6 Motion
+### 3.6 Motion & haptics
 
-- Standard Material 3 motion; shared-axis transitions between tabs' screens,
-  container transform from list items to detail.
-- Timer ring progresses smoothly (frame-based), not in 1 s jumps.
-- Optional "tea fill" animation: the ring's interior slowly fills with the
-  liquor colour during a step.
-- *Alerting* state: a slow (2 s) pulse of the ring; no flashing (≤ 3 flashes/s
-  rule, WCAG 2.3.1).
-- All non-essential motion is disabled when the system "Remove animations"
-  setting is on.
+Material 3 motion; ring progresses per frame; optional liquor-fill
+animation; *Alerting*: slow ring pulse (no flashing); honours "Remove
+animations". Haptics: tick on start/pause, pre-alert tick, alert pattern,
+confirm on *Abgegossen*.
 
-### 3.7 Haptics
+### 3.7 Voice & tone (German)
 
-- Light tick on step start/pause; a distinct pattern on alert (in addition to
-  vibration settings); confirm haptic on *Poured*.
+Ruhig, warm, knapp; informal **„du"**; sentence case; Japanese terms in
+romanisation with macrons (Kōridashi) where standard. Examples:
+- Home: „Guter Tee schenkt einen Moment der Ruhe."
+- Empty journal: „Deine erste Tasse wartet."
+- Alert: „Jetzt abgießen!"
+- Pre-alert caption: „Gleich fertig …"
 
-### 3.8 Voice & tone
-
-- Calm, warm, concise, encouraging. Second person, sentence case.
-- Japanese terms are used where natural and explained once (e.g. "Yuzamashi —
-  cooling water by pouring it between vessels").
-- No exclamation marks except "Pour now!" in the alert. No guilt ("You broke
-  your streak").
-- Examples: Home greeting "Good tea brings a moment of calm." Empty journal:
-  "Your first cup is waiting."
-
-### 3.9 Core components
+### 3.8 Core components
 
 | Component | Description |
 |---|---|
-| `TeaListItem` | Circular 48 dp thumbnail, serif title, meta line ("Jun 8 · 3 min · 80 °C"), trailing rating "★ 4.5", hairline divider |
-| `PrimaryActionCard` | Dark-green card with leaf icon, title + subtitle, chevron (*Start steeping*) |
-| `StatTriplet` | Three equal columns with line icon, value, caption (Temperature / Steep time / Infusions) |
-| `SectionHeader` | Overline label + optional "See all" text button |
-| `TimerRing` | Thin (3 dp) ring, round cap, track in `outline`, progress in `primary`, leaf glyph at top, digits + caption inside |
-| `PillButton` | Fully rounded, cream on dark or green on light |
-| `RatingStars` | Half-star input, 48 dp touch targets, accessible adjustable semantics |
-| `TasteSlider` | 0–5 discrete slider with label and value |
-| `TasteRadar` | Hexagonal radar (6 axes), with table alternative for accessibility |
-| `DescriptorChip` | Filter chip with group colour dot |
-| `UmamiMeter` | 5 leaf glyphs filled per umami level |
-| `StockChip`, `FreshnessChip` | Quiet chips: "42 g left", "Low · 8 g", "Opened 21 d ago · Enjoy soon" |
-| `ActiveBrewBar` | 56 dp bar: mini ring, tea name, step, remaining time |
-| `EmptyState` | Ink-wash illustration, serif title, body, primary button |
+| `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min · 80 °C"), trailing „★ 4,5", hairline divider |
+| `PrimaryActionCard` | Dark-green card, leaf icon, title + subtitle, chevron |
+| `StatTriplet` | Temperatur · Ziehzeit · Aufgüsse with line icons |
+| `SectionHeader` | Overline + optional „Alle anzeigen" |
+| `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
+| `PillButton` | Cream on dark / green on light |
+| `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
+| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
+| `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
+| `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step, remaining time |
+| `ReliabilityBanner` | Quiet warning bar with *Beheben* |
+| `EmptyState` | Illustration, serif title, body, button |
 
-## 4. Screen specifications
+## 4. Screens
 
-Each screen lists: purpose, entry points, layout & content, actions, states,
-and related requirements. Wireframes are indicative only.
+### SCR-01 Einrichtung (first start)
 
-### SCR-01 Onboarding
+1. *Willkommen* — full-bleed ink-wash, logo, „UmamiTea", „BESSERER TEE.
+   TIEFERE MOMENTE.", お茶で、いい時間を。, *Los geht's*.
+2. *Damit der Timer zuverlässig klingelt* — checklist rows with status ✓/!:
+   Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen.
+   Each row has an action button; *Weiter* always available.
+3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
+   machen" · *Jetzt laden* (progress inline) / *Später*.
 
-- **Purpose:** welcome, units, notifications, starting content (ONB-01…06).
-- **Pages:**
-  1. *Welcome* — ink-wash landscape (full-bleed), leaf logo, "UmamiTea", "BETTER
-     TEA. DEEPER MOMENTS.", お茶で、いい時間を。, *Get started*.
-  2. *Your units* — three segmented buttons (°C/°F, g/oz, ml/fl oz) pre-selected
-     from locale; *Continue*; *Skip*.
-  3. *Alerts* (Android 13+ only) — illustration of a phone ringing beside a
-     kyusu, explanation, *Allow notifications* → system dialog; *Not now*.
-  4. *Start* — two selectable cards: *Start with sample teas* (default) / *Start
-     empty*; *Begin*.
-- **States:** page indicator dots; back moves to the previous page.
-
-### SCR-02 Home
+### SCR-02 Start (Home)
 
 ```
 ┌──────────────────────────────┐
-│ UmamiTea                 ⚙   │  serif title, settings action
-│  [ink-wash mountains ……… ]   │  header illustration (~180 dp)
-│  Good tea                    │  serif greeting over illustration
-│  brings a moment of calm.    │
-├──────────────────────────────┤
+│ UmamiTea                 ⚙   │
+│  [ink-wash mountains ……… ]   │
+│  Guter Tee schenkt einen     │
+│  Moment der Ruhe.            │
 │ ┌──────────────────────────┐ │
-│ │ 🍃 Start steeping      › │ │  PrimaryActionCard → SCR-03
-│ │    Choose a tea and brew │ │
+│ │ 🍃 Aufguss starten     › │ │  → SCR-03
+│ │    Tee wählen und los    │ │
 │ └──────────────────────────┘ │
-│ ⏱ Quick timer                │  text button
-│ BREW AGAIN           See all │  horizontal cards of recent teas
-│ (○ Gyokuro) (○ Sencha) (○ …) │  tap → SCR-04
-│ RECENTLY LOGGED      See all │
-│ (○) Sencha Asamushi    ★ 4.5 │  last 3 sessions → SCR-16
-│     Jun 8 · 3 min · 80 °C    │
-│ FAVOURITES                   │
-│ (○) Kabusecha  (○) Matcha    │
+│ ⏱ Schnelltimer               │
+│ NOCHMAL BRÜHEN   Alle anzeigen│  recent teas, tap → SCR-04
+│ (○ Gyokuro) (○ Sencha) (○ …) │
+│ ZULETZT GEBRÜHT  Alle anzeigen│  last 3 sessions
+│ (○) Sencha Asamushi    ★ 4,5 │
+│     8. Juni · 3 Min · 80 °C  │
+│ FAVORITEN                    │
 └──────────────────────────────┘
-│ ▣ Home  ▢ Journal ▢ Collection ▢ Learn │
+│ Start · Journal · Sammlung · Statistik │
 ```
 
-- **Greeting** rotates among a few calm lines by time of day ("Good morning",
-  "A quiet afternoon cup?") — no user name (no accounts).
-- **Nudges** (Should): at most one card, e.g. "Your shincha is best enjoyed
-  soon" or "Back up your journal" — dismissible.
-- **Empty state** (no teas): illustration, "Your first cup is waiting", *Add a
-  tea*, *Explore tea styles*, *Quick timer*.
-- **Active session:** the *Start steeping* card is replaced by a *Resume
-  steeping* card showing the live countdown.
-- Requirements: BRW-01, GEN-06, TEA-06, JRN-08, LRN-07.
+- Reliability banner (TMR-31) at top when needed.
+- Active session replaces the card with *Aufguss fortsetzen* + live countdown.
+- At most one nudge card (knapper Vorrat, Backup, Katalog nie geladen).
+- Empty state: „Deine Sammlung ist leer" · *Katalog öffnen* · *Schnelltimer*.
 
-### SCR-03 Tea picker (bottom sheet)
+### SCR-03 Teeauswahl (bottom sheet)
 
-- Modal bottom sheet, full height when expanded. Search field, then sections:
-  *Recent*, *Favourites*, *All teas* (A–Z, non-archived). Each row shows stock
-  chip if tracked.
-- Footer: *Add a new tea* (→ SCR-11) and *Brew without a tea* (→ quick timer).
-- Selecting a tea → SCR-04.
+Search; sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned teas);
+footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*.
 
-### SCR-04 Brew setup
+### SCR-04 Brühen (setup)
 
 ```
 ┌──────────────────────────────┐
-│ ←  Brew                       │
-│ Gyokuro Yame Premium          │ serif
-│ 玉露 · ★ 4.6 · 38 g left       │
-│ [Houhin✓] [Ice brew] [Cold]  ✎│ profile chips + edit
-│ Vessel   Houhin 120 ml      ▾ │
-│ Water    60 ml        [−][+]  │
-│ Leaf     6.0 g  ≈2 tsp [−][+] │  🔒 ratio 10 g/100 ml · 1:10
-│ Water temp  50 °C             │
-│   From boiling: ~5 transfers ›│ cooling hint (BRW-05)
-│ STEPS                     Edit│
-│ 1  Infusion  2:00   50 °C     │
-│ 2  Infusion  0:20   55 °C     │
-│ 3  Infusion  1:00   65 °C     │
-│ ▸ Before you start (3)        │ (Could)
-│ [ Save to profile ]           │ visible only when changed
-│ [      Start brewing       ]  │ primary
+│ ←  Brühen                     │
+│ Bio Uji Gyokuro Gokō          │ serif
+│ 玉露 · ★ 4,6 · 38 g übrig      │
+│ [Kyusu ✓] [Kaltaufguss]     ✎ │ recipe chips
+│ Gefäß    Houhin 120 ml      ▾ │
+│ Wasser   100 ml       [−][+]  │
+│ Blätter  4,0 g        [−][+]  │ 🔒 4,0 g / 100 ml
+│ 🫖 Wasserkocher auf 55 °C      │ KettleHint
+│ AUFGÜSSE                Bearb.│
+│ 1  Aufguss  1:30   55 °C      │
+│ 2  Aufguss  0:30   60 °C      │
+│ 3  Aufguss  0:20   60 °C      │
+│ Vorwarnung  5 s (Standard)    │
+│ [ Im Rezept speichern ]       │ only when changed
+│ [      Brühen starten      ]  │
 └──────────────────────────────┘
 ```
 
-- Numeric fields support direct entry (tap value) and steppers (long-press
-  repeats).
-- If another session is active → TMR-21 dialog on *Start brewing*.
-- Requirements: BRW-02…09, PRF-03/04.
+„Rezept prüfen" badge with reason above the steps if flagged.
 
-### SCR-05 Brew timer
+### SCR-05 Timer
 
-Always uses the dark "Steeping" scheme, edge-to-edge, status bar icons light.
+Always dark ("Steeping"), edge-to-edge, keeps the screen on.
 
 ```
 ┌──────────────────────────────┐
 │ ←                         ⋮  │
-│   [moody tea photo/illus.]   │ top ~35 %, fades into background
-│      Sencha Asamushi         │ serif
-│      80 °C · Infusion 2 of 4 │
-│     ●  ●  ◉  ○  ○            │ step dots (rinse = small hollow square)
+│   [tea photo, fades out]     │
+│      Bio Uji Gyokuro Gokō    │
+│      55 °C · Aufguss 1 von 3 │
+│        ●  ○  ○               │ step dots (rinse = small square)
 │        ╭────────╮            │
-│       │   🍃    │            │
-│       │  02:48  │            │ tabular serif/sans digits
-│       │ Steeping│            │
+│       │   🍃    │            │ tick mark on ring = pre-alert point
+│       │  01:12  │            │
+│       │ Zieht … │            │
 │        ╰────────╯            │
-│   [−10 s]  [ ⏸ Pause ]  [+10 s]│
-│          Pour now            │ text button (TMR-05)
+│      [  ❙❙  Pause  ]         │ cream pill (only control)
 └──────────────────────────────┘
 ```
 
-| State | Ring | Caption | Primary control | Secondary |
-|---|---|---|---|---|
-| READY | empty track | "Pour water at 55 °C, then start" | **Start infusion 2** (whole ring also tappable) | Skip step (overflow) |
-| RUNNING | progress | "Steeping" | **Pause** | −10 s, +10 s, Pour now |
-| PAUSED | frozen, dimmed | "Paused" | **Resume** | Pour now |
-| ALERTING | full, pulsing | "Pour now!" + overtime "+0:07" | **Poured** (or *Discarded* for rinse) | — |
-| FINISHED | full | "All infusions done" | **Finish & log** | Add another infusion |
+| State | Ring | Caption | Primary control |
+|---|---|---|---|
+| READY | empty | KettleHint „Wasserkocher auf 60 °C" + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
+| RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
+| PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
+| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07" | **Abgegossen** (*Weggegossen* for rinse) |
+| FINISHED | full | „Alle Aufgüsse fertig" | **Sitzung beenden**, secondary *Weiterer Aufguss* |
 
-- Overflow menu: Edit steps, Skip step, Add infusion, Finish session, Discard
-  session, Timer settings.
-- Warning banner (TMR-31) under the top bar when notifications are blocked.
-- TalkBack: the time is announced on state changes, at 10 s remaining, and at
-  the end — not every second (see [07 §4](07-non-functional.md#4-accessibility)).
+Overflow ⋮: *Aufguss jetzt beenden*, *Schritt überspringen*, *Schritte
+bearbeiten*, *Weiterer Aufguss*, *Sitzung beenden*, *Sitzung verwerfen*,
+*Timer-Einstellungen*.
+TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
 
-### SCR-06 Session summary & tasting
+### SCR-06 „Gespeichert" sheet
 
-- Header: tea name, date/time, "3 infusions · 4 min 30 s total".
-- Steps table: #, planned, actual, temperature (actual > planned highlighted
-  neutrally, e.g. "+0:12").
-- *How was it?* — RatingStars (JRN-02).
-- *Taste* — six TasteSliders (collapsed into an expandable card if empty),
-  live TasteRadar preview.
-- *Notes* — descriptor chips (opens SCR-30), notes field, photos row, water.
-- Contextual cards: *Save today's times to this profile* (PRF-07); brew coach
-  tip (JRN-14).
-- Bottom bar: *Skip* (text) and *Done* (primary).
+Small bottom sheet after *Sitzung beenden*, auto-dismisses after 10 s:
+„Gespeichert im Journal · 3 Aufgüsse · 2:20" with *Notizen hinzufügen* and (if
+PRF-07 applies) *Zeiten ins Rezept übernehmen*.
 
-### SCR-07 Quick timer
+### SCR-07 Schnelltimer
 
-- Dark scheme like SCR-05. Preset chips row, large time display; tapping the
-  time opens a duration picker (h/m/s wheels). *Start* → same states as SCR-05
-  except FINISHED (returns to idle after *Done*).
+Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*.
 
-### SCR-08 Collection
+### SCR-08 Sammlung › Meine Tees
 
-```
-┌──────────────────────────────┐
-│ Collection              ⋮    │
-│ [🔍 Search your teas…      ] │
-│ [♡ Favourites][Category ▾][Stock ▾][Tags ▾] ⇅ │
-│ (○) Gyokuro Yame Premium   ♡ │
-│     玉露 · Hoshinomura · ★4.6 │
-│     [38 g left] [Opened 12 d] │
-│ ───────────────────────────── │
-│ (○) Kabusecha Saemidori       │
-│ …                             │
-│                         (＋)  │ FAB: Add tea
-└──────────────────────────────┘
-```
+Segmented control [ **Meine Tees** | Katalog ] at the top; search
+„Deine Tees durchsuchen …"; filter chips; sort; rows per TEA-08; FAB *Tee
+hinzufügen* (→ choice: *Aus dem Katalog* / *Ohne Katalog*).
+Empty: „Noch keine Tees · Im Katalog stöbern".
 
-- Requirements: TEA-08…12, ONB-05 sample card.
-- Empty state: "Your collection is empty" + *Add a tea* + *Browse tea styles*.
-- No results: "No teas match" + *Clear filters*.
+### SCR-09 Tee (my tea detail)
 
-### SCR-09 Tea detail
+As in the mockup's tea detail: collapsing hero photo, serif name, subtitle,
+„★ 4,5 (12)", type chip, umami meter, `StatTriplet`, sticky *Brühen*, pencil
+FAB. Sections: REZEPTE, VORRAT & KOSTEN („38 g übrig · 0,42 € pro Tasse"),
+FRISCHE, GESCHMACK (radar, top descriptors), LETZTE SITZUNGEN, NOTIZEN,
+DETAILS. Overflow: Favorit, Aus Katalog zurücksetzen, Im Shop öffnen,
+Archivieren, Löschen.
 
-Matches the mockup's tea detail.
+### SCR-10 Tee bearbeiten
 
-- Collapsing hero photo (user cover → style photo → illustration); back and
-  overflow over the image with scrim for contrast.
-- Serif name, secondary name, rating "★ 4.5 (12)", category chip, umami meter.
-- `StatTriplet` for the default profile: Temperature · Steep time (first
-  infusion) · Infusions.
-- Primary *Brew* button (sticky at bottom on scroll) and FAB-pencil for edit.
-- Sections (overline headers): BREWING PROFILES, STOCK & FRESHNESS, TASTING
-  NOTES (average radar + top descriptors), RECENT SESSIONS, NOTES, DETAILS
-  (origin, cultivar, harvest, shading, vendor, purchase), TAGS.
-- Overflow: Favourite, Duplicate (Could), Archive, Delete.
+Full-screen dialog (✕ · „Tee bearbeiten" · *Speichern*), photo drop zone,
+sections per TEA-02.
 
-### SCR-10 Tea editor
+### SCR-11 Sorte wählen (manual add)
 
-- Full-screen dialog style: close (✕), title "Add tea"/"Edit tea", *Save* text
-  action (as in the mockup).
-- Photo drop zone at top ("Add a photo", dashed outline).
-- Sections as TEA-02, with collapsed optional sections.
-- Inline validation; *Save* disabled until name is valid.
+List of built-in styles by group with search; *Andere / unbekannt*.
 
-### SCR-11 Style picker
+### SCR-12 Rezept bearbeiten
 
-- Search, category tabs (All, Green, White, Yellow, Oolong, Black, Dark,
-  Herbal), list rows with style photo, name, secondary name, umami meter.
-- *Other / not sure* sticky at top.
+Fields per PRF-03/04 incl. *Vorwarnung* selector; step list with drag
+handles; *Aufgüsse erzeugen* sheet; *Als Standard*.
 
-### SCR-12 Profile editor
+### SCR-13 / SCR-14 Teegeschirr
 
-- Fields per PRF-03; steps list with drag handles; *Generate infusions* sheet
-  (PRF-05); *Reset to style defaults* in overflow; *Set as default* switch.
-
-### SCR-13 / SCR-14 Teaware list & editor
-
-- List with type icon, name, capacity; editor with name, type grid (icons),
-  capacity, material, notes, photos.
+List (type icon, name, volume) and editor.
 
 ### SCR-15 Journal
 
-Matches the mockup's journal.
+Serif „Journal", search „Journal durchsuchen …", filter icon; day-grouped
+`TeaListItem`s; in-progress session pinned. Empty: „Deine erste Tasse wartet."
 
-- Serif title "Journal", actions: *Your Tea Journey* (chart icon), filter icon.
-- Search bar "Search your journal…".
-- Day-grouped list of `TeaListItem`s; IN_PROGRESS session pinned at top (live).
-- FAB *Log a session* (JRN-12).
-- Empty state: "Your first cup is waiting" + *Start steeping*.
+### SCR-16 Sitzung (detail)
 
-### SCR-16 Session detail
+Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
+(geplant / tatsächlich / °C), rating, radar, descriptors, notes, photos.
+Actions: *Notizen hinzufügen*/*Bearbeiten*, *Nochmal brühen*, *Löschen*.
 
-- Hero (session photo or tea photo), tea name (link to tea), date/time, method,
-  vessel, leaf/water/ratio, steps table, rating, radar, descriptors, notes,
-  water, photos.
-- Actions: *Brew this again*, edit (pencil FAB), overflow *Delete*, *Share*
-  (Could).
+### SCR-17 Sitzung bearbeiten / Notizen
 
-### SCR-17 Session editor
+Rating, taste sliders with live radar, descriptors (→ SCR-30), notes, photos,
+and (edit mode) date/time, leaf, water, step times.
 
-- Same fields as SCR-06 plus date/time, tea selection (manual only), method,
-  leaf, water, temperature and steps (manual entries may give only an infusion
-  count).
+### SCR-18 Statistik
 
-### SCR-18 Your Tea Journey (Insights)
+Serif „Deine Tee-Reise"; tabs **Überblick · Bewertungen · Verbrauch**; range
+selector. Überblick: teas total („24 · +3 diesen Monat"), sessions this
+week/month, streak, sessions per week, tea-type donut. Bewertungen: average,
+distribution bars, top teas, taste radar. Verbrauch: grams per month, money
+spent per month, cost per session, running-out list.
 
-Matches the mockup's stats screen.
+### SCR-19 Sammlung › Katalog
 
-- Serif title "Your Tea Journey"; tabs **Overview** · **Ratings** · **Tasting**.
-- Overview: Total teas (big numeral, "+3 this month"), sessions this week/month,
-  streak, activity bar chart, tea types donut + legend with percentages.
-- Ratings: average rating, distribution bars, top-rated teas.
-- Tasting: "What you love" radar, top descriptors, umami preference by style.
-- Range selector (INS-07) in the top bar.
-- Every chart has a "View as table" accessible alternative.
+Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
+142 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
+search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
+Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
+„15,90 €/100 g", flag chips. Overflow: *Katalog aktualisieren*.
+Empty (never loaded): „Der Katalog ist noch leer" · *Katalog laden*.
 
-### SCR-19 Learn
+### SCR-20 Ratgeber-Artikel
 
-- Sections: GUIDES (cards with ink-wash hero, title, reading time), TEA STYLES
-  (search + category chips → list), TOOLS (Ratio calculator, Cooling helper,
-  Unit converter).
+Hero image (if any), serif title, source line „Tee-Kontor Kiel · Tee-Info",
+rich text, links to catalog teas resolved locally, *Im Browser öffnen*.
 
-### SCR-20 Guide (article)
+### SCR-21 Katalog-Tee
 
-- Hero illustration, serif title, reading time, rich text body (max line length
-  ~65 characters on large screens), related styles/guides at the end.
+Photo, name, subtitle, type, origin/cultivar/harvest/shading/steaming, Bio /
+aromatisiert, description, ZUBEREITUNG (shop table and text, verbatim),
+ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
+*In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*.
 
-### SCR-21 Tea style detail
+### SCR-22 Katalog aktualisieren (sheet)
 
-- Style photo, name, secondary name, category, origin, umami meter,
-  description, default profiles (readable, e.g. "Houhin · 6 g / 60 ml · 50 °C ·
-  2:00, 0:20, 1:00, 1:30"), freshness advice, related guides, *Add to my
-  collection*.
+Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3);
+error state with *Details kopieren* for the developer.
 
-### SCR-22 Ratio calculator, SCR-23 Cooling helper, SCR-24 Unit converter
+### SCR-23 In Sammlung aufnehmen (sheet)
 
-- Single-screen tools per LRN-04…06. Cooling helper shows a vertical sequence
-  of vessels with the temperature after each transfer, e.g. 100 → 90 → 80 → 70
-  → 60 → 50 °C.
+Package option radio list („50 g · 8,50 €", „100 g · 15,90 €", custom),
+Kaufdatum, *Aufnehmen*.
 
-### SCR-25 Settings
+### SCR-25 Einstellungen
 
-- Grouped list per SET-30; each setting shows its current value as supporting
-  text. Version number at the bottom.
+Sections per SET-30; *Timer-Zuverlässigkeit* card at the top with status rows
+and *Beheben* buttons; *Alarm testen*.
 
-### SCR-26 Backup & restore
+### SCR-26 Daten & Sicherung
 
-- Last backup date; *Back up now*; *Back up & share* (Could); *Restore from
-  file*; *Restore safety backup* (if present); *Export CSV*; explanation of OS
-  auto-backup; backup reminder setting.
-- Restore flow: pick file → validating (progress) → preview card → confirm
-  dialog ("This replaces all your teas, journal and settings") → progress →
-  success → app restarts its UI at Home.
+Device-backup explanation, *Sicherung erstellen*, *Wiederherstellen*,
+safety backup, (Could) CSV export, *Alle Daten löschen*.
 
-### SCR-27 About & licences
+### SCR-27 Über
 
-- Logo, version, tagline, privacy statement ("UmamiTea has no internet access.
-  Your data never leaves your device unless you export it."), privacy policy
-  (bundled text), open-source licences, *Send feedback* (opens e-mail app),
-  *Rate on Google Play*, *Show introduction*, content credits (photos,
-  illustrations, fonts).
+Logo, version, Tee-Kontor source note („Katalogdaten und Fotos © Tee-Kontor
+Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*.
 
-### SCR-28 Photo viewer
+### SCR-28 Fotos, SCR-29 Vorrat, SCR-30 Beschreibungen
 
-- Full-screen pager, pinch-zoom, caption (≤ 200 chars), delete, set as cover,
-  share (system share).
+Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
+erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
+groups, custom).
 
-### SCR-29 Stock history (sheet)
+## 5. Dialogs & messages (German)
 
-- Remaining amount, *Add purchase*, *Set remaining*, list of events (date, type,
-  ±g, linked session).
+| Situation | Copy |
+|---|---|
+| Unsaved changes | „Änderungen verwerfen?" · Weiter bearbeiten / Verwerfen |
+| Delete tea | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
+| Another session | „Erst die *Sencha*-Sitzung beenden?" · Beenden & neu starten / Abbrechen |
+| Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
+| Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
+| Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
+| Restore | „Alles durch diese Sicherung vom 3. Okt. 2026 ersetzen?" |
 
-### SCR-30 Descriptor picker (sheet)
+## 6. Accessibility
 
-- Search, grouped chips, *Add custom descriptor*, selected count; *Done*.
-
-## 5. Dialogs & messages
-
-| Situation | Type | Copy (draft) |
-|---|---|---|
-| Unsaved changes | Dialog | "Discard changes?" · Keep editing / Discard |
-| Delete tea with sessions | Dialog | "Delete *Gyokuro*? Your 12 journal entries stay, but profiles and photos are removed." · Archive instead / Delete |
-| Another session active | Dialog | "Finish your *Sencha* session first?" · Finish & start new / Cancel |
-| Discard session | Dialog | "Discard this session? Nothing will be saved." · Discard / Keep brewing |
-| Restore | Dialog | "Replace everything with this backup from 3 Oct 2026? Your current data is saved as a safety backup first." · Restore / Cancel |
-| Deleted item | Snackbar | "Tea deleted" · Undo |
-| Auto-finished session | Notification | "Your Gyokuro session was saved to your journal." |
-| Notifications blocked | Banner | "Alerts won't show while UmamiTea is closed." · Fix |
-
-## 6. Accessibility in the UI
-
-Summary (full requirements in [07 §4](07-non-functional.md#4-accessibility)):
-
-- Touch targets ≥ 48 × 48 dp; timer primary button ≥ 72 dp tall.
-- Text contrast ≥ 4.5:1 (body) and ≥ 3:1 (large text, UI components) in both
-  schemes — verify warm-grey secondary text on washi background.
-- Every icon-only button has a content description; decorative images none.
-- Charts have table alternatives; radar values are readable via TalkBack.
-- Custom controls (rating, sliders, ring) expose correct semantics and actions.
-- Layouts tested at 200 % font size and with display size "Largest".
+Touch targets ≥ 48 dp (timer pill ≥ 72 dp high); contrast ≥ 4.5:1 for body
+text in all schemes; content descriptions in German; chart table
+alternatives; correct semantics for rating, sliders, ring; 200 % font scale
+without loss of essential content.

@@ -1,233 +1,254 @@
-# 08 · Content Specification
+# 08 · Content & Catalog Import
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
->
-> ⚠️ **Content review required.** All brewing parameters, freshness windows and
-> guide outlines below are well-established *starting points* compiled for this
-> spec. Before release they must be reviewed by an experienced tea professional
-> (open question Q-06). The app always presents them as suggestions.
+> Status: **Draft v0.2** · Last updated: 2026-10-21
+> v0.2: Tee-Kontor Kiel is the primary content source; built-in styles become
+> internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
-## 1. Content principles
+## 1. Principles
 
-- **Starting points, not rules.** Every parameter is editable; guides explain
-  *why* so users can adjust confidently.
-- **Accurate and sourced.** Each guide keeps a list of sources in the content
-  repository (not necessarily shown in-app).
-- **No health claims.** Do not claim effects of caffeine, L-theanine,
-  catechins, etc. on health, mood or focus (NFR-POL-03). Chemistry is described
-  only in terms of *taste* and *brewing*.
-- **Respectful use of Japanese and Chinese terms** with romanisation, native
-  script, and a one-line explanation the first time.
-- **Calm tone** consistent with [03 §3.8](03-ux-ui.md#38-voice--tone).
+- **Primary source:** [Tee-Kontor Kiel](https://www.tee-kontor-kiel.de/)
+  product pages and *Tee-Info* guides, fetched by the app (CAT-07).
+- **Personal use:** content is stored on the PO's phone only and not
+  redistributed (NFR-PRIV-10). About screen credits the source.
+- **Shown verbatim, derived transparently:** the shop's brewing table and text
+  are always shown as found; the derived timer recipe is shown next to them,
+  with a „Rezept prüfen" reason when it is not a straight table conversion.
+- **No health claims** in any app-authored text.
+- **Language:** German.
 
-## 2. Tea style catalog
+## 2. Tee-Kontor catalog import
 
-### 2.1 Style record schema
+### 2.1 Status of this section
 
-`assets/content/styles.json`:
+The structure below comes from a desk survey via search-engine results on
+2026-10-21. The shop could not be opened directly because the cloud
+environment's network policy blocks `www.tee-kontor-kiel.de`. **Before the
+parser is implemented, the domain must be allowed** and this section must be
+verified against the live pages (task V-01 in [09](09-release-plan.md)).
 
-```json
-{
-  "contentCatalogVersion": 1,
-  "styles": [
-    {
-      "key": "gyokuro",
-      "name": "Gyokuro",
-      "secondaryName": "玉露",
-      "category": "GREEN",
-      "form": "LOOSE_LEAF",
-      "origin": "JP",
-      "umamiLevel": "VERY_HIGH",
-      "freshnessDays": 60,
-      "gramsPerTsp": 3.0,
-      "image": "style_gyokuro",
-      "descriptionRes": "style_gyokuro_description",
-      "brewingNotesRes": "style_gyokuro_notes",
-      "relatedGuides": ["umami", "shade-grown", "temperature"],
-      "profiles": [
-        {
-          "name": "Houhin / kyusu",
-          "method": "KYUSU",
-          "leafGrams": 6.0,
-          "waterMl": 60,
-          "baseTempC": 50,
-          "steps": [
-            { "kind": "INFUSION", "seconds": 120 },
-            { "kind": "INFUSION", "seconds": 20, "tempC": 55 },
-            { "kind": "INFUSION", "seconds": 60, "tempC": 65 },
-            { "kind": "INFUSION", "seconds": 90, "tempC": 75 }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
+### 2.2 Source structure
 
-Localised texts are string resources referenced by key; names of styles are
-proper nouns and usually not translated.
-
-### 2.2 Styles and default profiles
-
-Notation for steps: `2:00` = 2 min; `@55` = temperature override in °C;
-`R` = rinse; `W` = whisk. First profile listed is the default.
-Freshness = suggested days after opening. g/tsp = approximate grams per level
-teaspoon.
-
-#### Japanese green teas (category GREEN, origin JP)
-
-| Key | Name | Umami | Fresh. | g/tsp | Profiles |
-|---|---|---|---|---|---|
-| `gyokuro` | Gyokuro 玉露 — shaded ~3 weeks; intensely savoury, sweet, brothy | VERY_HIGH | 60 | 3.0 | **Houhin/kyusu** KYUSU 6 g / 60 ml / 50 °C: 2:00, 0:20 @55, 1:00 @65, 1:30 @75 · **Ice brew** ICE_BREW 6 g / 100 ml ice / 0 °C: 2:00:00 (note: cover leaves with ice; ready when melted, typically 1.5–3 h) · **Cold brew** COLD_BREW 10 g / 500 ml / 5 °C: 3:00:00 |
-| `kabusecha` | Kabusecha かぶせ茶 — shaded ~1–2 weeks; between sencha and gyokuro | HIGH | 45 | 2.5 | **Kyusu** KYUSU 5 g / 120 ml / 65 °C: 1:30, 0:20 @70, 1:00 @80 · **Cold brew** 10 g / 500 ml / 5 °C: 3:00:00 |
-| `sencha` | Sencha 煎茶 — steamed, unshaded; fresh, vegetal, balanced | MEDIUM | 45 | 2.5 | **Kyusu** KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85, 1:00 @90 · **Mug** WESTERN 3 g / 250 ml / 75 °C: 1:30, 2:00 @80 · **Cold brew** 10 g / 1000 ml / 5 °C: 4:00:00 |
-| `fukamushi_sencha` | Fukamushi sencha 深蒸し煎茶 — deep-steamed; rich, cloudy, sweet | MEDIUM | 45 | 3.0 | **Kyusu** KYUSU 5 g / 150 ml / 70 °C: 0:45, 0:05 @75, 0:30 @80 (note: fine-mesh kyusu recommended) |
-| `shincha` | Shincha 新茶 — first spring harvest, sold fresh | HIGH | 30 | 2.5 | **Kyusu** KYUSU 5 g / 150 ml / 70 °C: 1:00, 0:15 @75, 0:45 @80 |
-| `matcha` | Matcha 抹茶 — stone-ground shaded tencha | HIGH | 30 | 2.0 | **Usucha** MATCHA_USUCHA 2 g / 70 ml / 75 °C: W 0:20 (note: sift first; whisk in M/W motion) · **Koicha** MATCHA_KOICHA 4 g / 35 ml / 75 °C: W 0:40 (note: knead slowly, no froth) — form POWDER |
-| `karigane` | Kukicha / Karigane 茎茶・雁ヶ音 — stems; sweet, light, savoury (gyokuro karigane especially) | MEDIUM | 45 | 1.5 | **Kyusu** KYUSU 5 g / 150 ml / 70 °C: 1:00, 0:20 @75, 1:00 @85 |
-| `tamaryokucha` | Tamaryokucha 玉緑茶 — curly leaf (Kyushu); mellow, sweet | MEDIUM | 45 | 2.5 | **Kyusu** KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85 |
-| `genmaicha` | Genmaicha 玄米茶 — green tea with toasted rice | LOW | 45 | 3.0 | **Kyusu** KYUSU 5 g / 200 ml / 85 °C: 0:45, 0:15 @90, 1:00 @95 · **Mug** WESTERN 3 g / 250 ml / 85 °C: 2:00 |
-| `hojicha` | Hōjicha ほうじ茶 — roasted; toasty, low bitterness | LOW | 60 | 1.5 | **Kyusu** KYUSU 4 g / 200 ml / 95 °C: 0:30, 0:30, 1:00 · **Mug** WESTERN 3 g / 250 ml / 95 °C: 2:00 |
-
-#### Other green teas
-
-| Key | Name | Umami | Fresh. | g/tsp | Profiles |
-|---|---|---|---|---|---|
-| `longjing` | Longjing (Dragon Well) 龙井 — CN pan-fired; chestnut, savoury | MEDIUM | 90 | 1.5 | **Gongfu** GONGFU 5 g / 100 ml / 80 °C: 0:20, 0:25, 0:30, 0:40, 1:00 · **Western** 3 g / 250 ml / 80 °C: 2:00, 2:30, 3:00 |
-| `anji_bai_cha` | Anji Bai Cha 安吉白茶 — CN green from a pale-leaf cultivar; notably high in amino acids, brothy-sweet | HIGH | 90 | 1.0 | **Gongfu** 4 g / 100 ml / 80 °C: 0:20, 0:25, 0:30, 0:40, 1:00 · **Western** 3 g / 250 ml / 80 °C: 2:00, 2:30 |
-| `bi_luo_chun` | Bi Luo Chun 碧螺春 — CN; fruity-floral, delicate | MEDIUM | 90 | 2.0 | **Gongfu** 4 g / 100 ml / 75 °C: 0:15, 0:20, 0:25, 0:35, 0:50 · **Western** 2.5 g / 250 ml / 75 °C: 2:00 |
-| `korean_green` | Korean green (Ujeon / Sejak) 우전·세작 — KR; nutty, savoury, sweet | HIGH | 60 | 2.0 | **Kyusu** KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
-| `green_generic` | Green tea (other) | MEDIUM | 90 | 2.5 | **Western** 3 g / 250 ml / 80 °C: 2:00, 2:30 · **Gongfu** 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
-
-#### White, yellow, oolong, black, dark, herbal
-
-| Key | Name | Cat. | Umami | Fresh. | g/tsp | Profiles |
-|---|---|---|---|---|---|---|
-| `silver_needle` | Silver Needle 白毫银针 | WHITE | LOW | 365 | 1.0 | **Western** 3 g / 250 ml / 85 °C: 4:00, 5:00 · **Gongfu** 5 g / 100 ml / 85 °C: 0:30, 0:30, 0:40, 0:50, 1:00, 1:30 |
-| `white_peony` | White Peony (Bai Mu Dan) 白牡丹 | WHITE | LOW | 365 | 0.8 | **Western** 3 g / 250 ml / 90 °C: 3:00, 4:00 · **Gongfu** 5 g / 100 ml / 90 °C: 0:20, 0:25, 0:30, 0:40, 1:00 |
-| `yellow_generic` | Yellow tea 黄茶 | YELLOW | LOW | 180 | 2.0 | **Western** 3 g / 250 ml / 80 °C: 2:30, 3:00 · **Gongfu** 5 g / 100 ml / 80 °C: 0:20, 0:25, 0:30, 0:40 |
-| `rolled_oolong` | Rolled oolong (e.g. high-mountain, Tieguanyin) | OOLONG | LOW | 180 | 3.5 | **Gongfu** 6 g / 100 ml / 95 °C: R 0:05, 0:45, 0:30, 0:40, 0:50, 1:00, 1:30 · **Western** 3 g / 250 ml / 95 °C: 3:00, 4:00 |
-| `strip_oolong` | Strip oolong (e.g. Wuyi yancha, Dancong) | OOLONG | NONE | 365 | 1.5 | **Gongfu** 6 g / 100 ml / 98 °C: R 0:05, 0:10, 0:15, 0:20, 0:25, 0:35, 0:50, 1:10 · **Western** 3 g / 250 ml / 95 °C: 3:00 |
-| `black_generic` | Black tea (e.g. Assam, Ceylon, Darjeeling, wakōcha) | BLACK | LOW | 365 | 2.5 | **Western** 2.5 g / 250 ml / 95 °C: 4:00 · **Gongfu** 5 g / 100 ml / 95 °C: 0:10, 0:15, 0:20, 0:25, 0:35, 0:50 (note: Darjeeling first flush 85–90 °C) |
-| `sheng_puerh` | Sheng (raw) pu-erh 生普洱 | DARK | LOW | — | 2.5 | **Gongfu** 6 g / 100 ml / 95 °C: R 0:05, 0:10, 0:10, 0:15, 0:20, 0:25, 0:35, 0:50, 1:10 |
-| `shou_puerh` | Shou (ripe) pu-erh 熟普洱 | DARK | NONE | — | 2.5 | **Gongfu** 6 g / 100 ml / 100 °C: R 0:10, 0:10, 0:10, 0:15, 0:20, 0:25, 0:35, 0:50 · **Western** 2.5 g / 250 ml / 100 °C: 4:00 |
-| `herbal` | Herbal infusion (tisane) | HERBAL | NONE | 180 | 1.5 | **Western** 2 g / 250 ml / 100 °C: 5:00 |
-| `other` | Other / not sure | OTHER | — | — | 2.5 | **Western** 3 g / 250 ml / 85 °C: 3:00 (PRF-02) |
-
-`—` freshness = no freshness indicator (e.g. pu-erh is often aged on purpose).
-
-### 2.3 Style descriptions (draft copy, en)
-
-Each style needs ~40–70 words of description and ~30–60 words of brewing notes.
-Example:
-
-> **Gyokuro** — Japan's most prized leaf tea. For about three weeks before
-> harvest the bushes are shaded from the sun, which keeps the leaves rich in
-> the amino acids responsible for its savoury-sweet, brothy taste. Brewed
-> concentrated and cool, the first cup is small, thick and intensely umami.
->
-> *Brewing notes:* Use plenty of leaf, little water and low temperature
-> (around 50 °C). Pour out every last drop so the leaves don't keep steeping.
-> Later infusions can be hotter and shorter.
-
-Writing the remaining 24 descriptions is a content task in milestone M4
-([09](09-release-plan.md)).
-
-## 3. Tasting descriptor vocabulary
-
-Built-in keys (`snake_case`) grouped by `DescriptorGroup`. Labels shown in
-English; translations via string resources.
-
-| Group | Descriptors |
+| Aspect | Observation (to verify) |
 |---|---|
-| MARINE | `seaweed` Seaweed, `nori` Nori, `kombu` Kombu, `marine` Marine / ocean breeze, `dashi` Dashi / brothy |
-| VEGETAL | `spinach` Spinach, `snap_pea` Snap pea, `edamame` Edamame, `asparagus` Asparagus, `steamed_greens` Steamed greens, `fresh_grass` Fresh-cut grass, `hay` Hay, `artichoke` Artichoke |
-| SWEET | `sweet_corn` Sweet corn, `chestnut` Chestnut, `honey` Honey, `caramel` Caramel, `cane_sugar` Cane sugar, `sweet_potato` Sweet potato, `vanilla` Vanilla |
-| ROASTED_NUTTY | `toasted_rice` Toasted rice, `roasted_nuts` Roasted nuts, `toast` Toast, `cocoa` Cocoa, `coffee` Coffee, `smoke` Smoke |
-| FLORAL | `orchid` Orchid, `jasmine` Jasmine, `osmanthus` Osmanthus, `rose` Rose, `honeysuckle` Honeysuckle, `sakura` Cherry blossom |
-| FRUITY | `citrus` Citrus, `yuzu` Yuzu, `stone_fruit` Stone fruit, `muscatel` Muscatel grape, `melon` Melon, `dried_fruit` Dried fruit, `berry` Berry |
-| EARTHY_WOODY | `forest_floor` Forest floor, `mushroom` Mushroom, `wood` Wood, `leather` Leather, `camphor` Camphor, `mineral` Mineral / wet stone |
-| SPICE_HERB | `mint` Mint, `pine` Pine, `cinnamon` Cinnamon, `herbal` Herbal |
-| MOUTHFEEL | `creamy` Creamy, `silky` Silky, `thick` Thick / viscous, `brisk` Brisk, `drying` Drying, `coating` Coating, `clean_finish` Clean finish, `lingering_sweet` Lingering sweetness |
-| OFF_NOTE | `stale` Stale, `flat` Flat / weak, `harsh_bitter` Harshly bitter, `metallic` Metallic, `musty` Musty, `sour` Sour |
+| Shop platform | Most likely Shopware 5 (product URLs `/<slug>/<articleNumber>`, legacy `/detail/index/sArticle/<id>`) |
+| Green tea root | `/tee/gruener-tee/` |
+| Sub-sections | `japan/` (with `alle-japantees-nach-sorten/<sorte>/` for Matcha, Shincha, Sencha, Kabusecha, Gyokuro, Kukicha, Bancha, Houjicha, Kamairicha, Tamaryokucha, Genmaicha), `china/`, `china-taiwan/`, Korea/other, `aromatisierter-gruentee/`, `bio/`, `klassischer-gruentee/`, Shincha (seasonal) |
+| Matcha | `/matcha/matcha-teepulver/` (also a top-level `/matcha/` section) |
+| Excluded | `/tee/multipacks-sets-zum-probieren/…` (sets), accessories |
+| Product IDs | Article numbers like `TG0557`, `AT0634`; variants with suffixes (`TG0028-10`, `TG0028-50`, `TG0557M` for sample) |
+| Product page data | Name (sometimes with Japanese gloss), properties list (*Anbauland*, *Region*, *Kultivar*, *Ernte/Pflückung*, *Beschattung*, *Dämpfung*, *Bio*, *Hersteller*), description prose, a „Zubereitungsempfehlung" table (Menge, Temperatur, 1./2./3. Aufguss) plus prose, variants with price, base price per kg/100 g, images |
+| Discovery | Crawl section listings with pagination (and/or `sitemap.xml` filtered to the sections above); de-duplicate by base article number |
 
-The umami taste itself is captured by the *Umami* slider, not a descriptor.
+Survey examples (paraphrased; to verify):
 
-## 4. Learn guides
+| Tea | Brewing info found |
+|---|---|
+| Bio Uji Gyokuro Gokō (`AT0634`) | ~4 g / 100 ml; 50–55 °C; 1st ~90 s, 2nd ~30 s, 3rd ~20 s; cold brew 20–30 min, double dose |
+| Bio Sencha Hisui (`TG0557`) | ~4 g / 200 ml; 60–65 °C; 1st ~60 s, 2nd/3rd ~10 s; cold brew 20–30 min, double dose |
+| Westlake Xi Hu Long Jing (`TG0566`) | ~3 g / 150 ml; ~80 °C; 1st ~60 s, then ~20 s; gaiwan |
+| Bio Premium Matcha Horai (`AT0220a`) | Text: 1–2 g with 80–100 ml at ~80 °C, whisk; table: ~1 g / 100 ml at ~70 °C (conflict) |
 
-Format: one Markdown file per guide in `assets/content/guides/<slug>.md` with
-front matter (`slug`, `title`, `readingMinutes`, `heroImage`, `relatedStyles`,
-`relatedGuides`, `version`). Target length 400–900 words. Outlines:
+### 2.3 Field mapping
 
-| # | Slug | Title | Key points |
-|---|---|---|---|
-| 1 | `umami` | What is umami — and why is it in my tea? | Fifth basic taste (savoury), associated with glutamate; in tea it comes from free amino acids — glutamic acid and L-theanine (the most abundant amino acid in tea, with a milder savoury-sweet taste) among them; why umami teas taste brothy/sweet; how to taste it (coats the tongue, lingers). |
-| 2 | `shade-grown` | Shade-grown teas: gyokuro, kabusecha, matcha | Shading before harvest (kabuse); sunlight converts theanine into catechins (bitter/astringent), so shading keeps more theanine and chlorophyll; ~1–2 weeks kabusecha vs ~3 weeks gyokuro/tencha; tana vs direct covering. |
-| 3 | `temperature` | Temperature: the umami dial | Amino acids dissolve well even in cool water; catechins and caffeine extract more at higher temperatures → cooler water emphasises umami and sweetness; examples per style; yuzamashi technique (≈ 10 °C drop per transfer); link to cooling helper. |
-| 4 | `ratios` | Leaf, water, time | Ratio concept (g / 100 ml); why Japanese and gongfu use more leaf and shorter steeps; adjusting one variable at a time; using the ratio calculator. |
-| 5 | `water` | Water matters | Soft water with low mineral content suits Japanese greens; avoid heavily chlorinated water; filtered water; don't re-boil repeatedly; mention TDS without health claims. |
-| 6 | `japanese-teaware` | Kyusu, houhin and shiboridashi | Side-handle kyusu, handleless houhin for gyokuro, shiboridashi; filters (ceramic, mesh); clay types (Tokoname, Banko); warming cups; pouring the last drops ("golden drops"). |
-| 7 | `matcha` | Matcha: usucha and koicha | Grades (avoid "ceremonial" marketing confusion — describe by taste and use); sifting; water temperature; whisking (chasen, M/W motion); koicha kneading; caring for the chasen. |
-| 8 | `cold-brew` | Cold brew and ice brew | Mizudashi (cold water, hours in fridge) and kōridashi (ice melting over leaves); why it's sweeter and less bitter; food-safety basics (fridge, consume within ~24 h). |
-| 9 | `freshness` | Keeping tea fresh | Enemies: oxygen, light, heat, moisture, odours; airtight, opaque containers; unopened in fridge OK — let it reach room temperature before opening to avoid condensation; opened green tea best within weeks; how the app's freshness hints work. |
-| 10 | `labels` | Reading a Japanese tea label | Region (Uji, Yame, Shizuoka, Kagoshima…), harvest (ichibancha, shincha), cultivar (Yabukita, Saemidori, Okumidori, Gokō…), steaming level (asamushi, chūmushi, fukamushi), shading. |
-| 11 | `tasting` | Tasting like a pro | Look, smell (dry leaf, wet leaf, liquor), sip, slurp, finish; using the taste sliders and descriptors; comparing infusions; brew coach. |
-| 12 | `gongfu-vs-western` | Gongfu, western and kyusu brewing | Differences in ratio, time, number of infusions; when to use which; how the timer handles multi-infusion. |
+| Catalog field ([05 §4.1](05-data-model.md#41-catalogtea)) | Source |
+|---|---|
+| `key` | Base article number (strip `-<n>`, trailing `M`, bulk suffixes) |
+| `name` / `secondary_name` | Product title; a Japanese/Chinese term or gloss in the title/properties becomes the secondary name where identifiable (e.g. „玉露" added via style if absent) |
+| `tea_type` | *Sorte* from the category path (`…/nach-sorten/<sorte>/`) or properties; else from name keywords |
+| `origin_*`, `cultivar`, `harvest`, `shading`, `steaming` | Properties list |
+| `is_organic` | „Bio" in title/properties/category |
+| `is_flavored`, `ingredients` | Category *Aromatisierter Grüntee* or an ingredients list („Zutaten") |
+| `description_html` | Description section, sanitised (§2.8) |
+| `brew_table_raw`, `brew_text_raw` | „Zubereitungsempfehlung" table and accompanying prose |
+| `catalog_package` rows | Variant selector: label, grams, price, availability |
+| `base_price_cents_per_100g` | Shop base price, else computed from the cheapest regular package |
+| `photo_url` | Main product image (largest reasonable size) |
 
-All guides must be fact-checked against reputable sources (tea research
-institutes, established tea educators) before release.
+### 2.4 Variant merging
 
-## 5. Sample teas
+All article numbers sharing a base number form one tea. Package rows
+include samples („Probe") and bulk sizes. If two variants have different
+names (e.g. a different harvest year), the newest name wins and the year is
+kept in `harvest`.
 
-Added if the user chooses *Start with sample teas* (ONB-04), flagged
-`isSample = true`, with no vendor, no stock, and the style's profiles:
+### 2.5 Recipe derivation
 
-| Name | Secondary | Style | Notes field |
-|---|---|---|---|
-| Sample Gyokuro | 玉露 | `gyokuro` | "A sample tea — edit or remove it anytime." |
-| Everyday Sencha | 煎茶 | `sencha` | same |
-| Matcha for Usucha | 抹茶 | `matcha` | same |
-| Roasted Hōjicha | ほうじ茶 | `hojicha` | same |
+`RecipeDeriver` converts brewing info to timer recipes (CAT-04).
 
-No sample sessions are created (the journal starts empty and honest).
+**Step 1 — Extract** from the table and, separately, from the prose:
+- Amount: patterns like „4 g / 100 ml", „2–2,5 g auf 50 ml", „10–12 g/l",
+  „1 TL" (teaspoons converted with the style's internal grams-per-teaspoon),
+  „1–2 Bambuslöffel" (≈ 0,5 g each, matcha).
+- Temperature: „50–55 °C", „ca. 80 °C", „abgekocht und auf etwa 80 °C
+  abgekühlt".
+- Infusions: „1. Aufguss 90 Sek.", „2. Aufguss 30 s", „1–2 Min", optional
+  per-infusion temperatures („2. und 3. Aufguss 60 °C").
+- Cold brew: „Kaltaufguss", „kalt", „Eis" with duration and dose hint
+  („Dosierung verdoppeln").
+- Vessel hints: „Kyusu", „Gaiwan", „Kanne", „Glas", „Chasen".
 
-## 6. Autocomplete suggestions
+**Step 2 — Choose per field:** table value → else prose value → else
+built-in style default. Then flag:
+- any field from prose → `FROM_TEXT`,
+- any field from style default → `FROM_STYLE_DEFAULT` (except matcha whisk
+  duration, which the shop never states),
+- table and prose both present but differing (temperature > 5 °C, time >
+  max(10 s, 20 %), amount > 20 %) → `TABLE_TEXT_CONFLICT` (table still wins).
 
-**Regions** (with country): Uji (Kyoto, JP), Yame (Fukuoka, JP), Hoshino
-(Fukuoka, JP), Shizuoka (JP), Kakegawa (Shizuoka, JP), Kawane (Shizuoka, JP),
-Okabe (Shizuoka, JP), Kagoshima (JP), Chiran (Kagoshima, JP), Nishio (Aichi,
-JP), Sayama (Saitama, JP), Ureshino (Saga, JP), Wazuka (Kyoto, JP), Hangzhou
-(Zhejiang, CN), Anji (Zhejiang, CN), Wuyi Shan (Fujian, CN), Anxi (Fujian, CN),
-Fuding (Fujian, CN), Yunnan (CN), Alishan (TW), Lishan (TW), Nantou (TW),
-Boseong (KR), Hadong (KR), Jeju (KR), Darjeeling (IN), Assam (IN), Nilgiri
-(IN), Uva (LK), Nuwara Eliya (LK).
+**Step 3 — Normalise:**
+- Ranges → midpoint.
+- Temperature → `snap5` (half up; 52,5 → 55 °C).
+- Times → nearest 5 s (half up).
+- Amount → recipe `water_ml` = the stated volume (e.g. 100 ml); per-litre
+  statements use the style's default water volume and scale the leaf; leaf
+  rounded to 0,1 g.
 
-**Cultivars:** Yabukita, Saemidori, Okumidori, Asatsuyu, Gokō, Yamakai,
-Tsuyuhikari, Kanaya Midori, Sae Akari, Samidori, Asanoka, Benifūki, Ujihikari,
-Okuyutaka, Meiryoku, Sōfū, Fushun, Jin Xuan, Qing Xin, Da Hong Pao,
-Tieguanyin, Longjing #43.
+**Step 4 — Build steps:**
+- One INFUSION per stated infusion with its temperature (or base
+  temperature).
+- If only the first infusion is stated and the style is multi-infusion
+  (KYUSU/GONGFU), append the style's follow-up infusions (flag
+  `FROM_STYLE_DEFAULT`).
+- Matcha: one WHISK step (20 s usucha); koicha only if stated.
 
-## 7. Brew coach rules
+**Step 5 — Method:** Matcha → `MATCHA_USUCHA`; „Gaiwan" → `GONGFU`; Japanese
+types or „Kyusu" → `KYUSU`; ratio ≥ 3 g/100 ml with first infusion ≤ 90 s →
+`GONGFU` for non-Japanese teas; else `WESTERN`.
 
-Evaluated in order on the session summary (JRN-14); show at most two tips.
-Thresholds use the 0–5 taste scales.
+**Step 6 — Cold brew:** if prose mentions cold brewing, add a second recipe
+„Kaltaufguss" (`COLD_BREW`): leaf = hot ratio × (2 if „verdoppeln", else 1),
+same water, 5 °C, one INFUSION with the midpoint duration (e.g. 20–30 min →
+25 min).
 
-| # | Condition | Tip |
+**Step 7 — Plausibility:** hot temperature 40–100 °C; first hot infusion
+5 s–10 min; ratio 0,5–15 g/100 ml. Out-of-range values are replaced by style
+defaults and flagged `IMPLAUSIBLE_VALUE`.
+
+**Worked examples (from survey data):**
+
+| Tea | Derived recipe | Flag |
 |---|---|---|
-| 1 | bitterness ≥ 4 **or** astringency ≥ 4, and base temp > style default − 5 °C | "Quite bitter or drying? Try about 5 °C cooler, or shorten the first infusion by ~20 %." |
-| 2 | style umami ≥ HIGH and umami ≤ 2 and base temp ≥ style default + 5 °C | "Umami teas shine with cooler water. Try the suggested temperature next time." |
-| 3 | body ≤ 1 **or** descriptor `flat` | "A bit thin? Try 10–20 % more leaf or a slightly longer steep." |
-| 4 | descriptor `stale` and tea past freshness window | "Opened a while ago? Green teas fade after a few weeks — see *Keeping tea fresh*." |
-| 5 | any actual step ≥ planned + 50 % (overtime) | "Your infusions ran long today — the alert sound can be made longer in settings." |
-| 6 | rating ≥ 4.5 and the session differed from the profile | "Loved this one? Save today's parameters to the profile." (pairs with PRF-07) |
+| Bio Uji Gyokuro Gokō | KYUSU 4,0 g / 100 ml / 55 °C: 1:30, 0:30, 0:20 · Kaltaufguss 8,0 g / 100 ml / 5 °C: 25:00 | `FROM_TEXT` (cold-brew recipe from prose) |
+| Bio Sencha Hisui | KYUSU 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Kaltaufguss 8,0 g / 200 ml: 25:00 | `FROM_TEXT` (cold brew) |
+| Xi Hu Long Jing | GONGFU 3,0 g / 150 ml / 80 °C: 1:00, 0:20, 0:20 | depends on table |
+| Matcha Horai | MATCHA_USUCHA 1,0 g / 100 ml / 70 °C: whisk 0:20 | `TABLE_TEXT_CONFLICT` |
 
-## 8. Micro-copy
+### 2.6 Style mapping
 
-- Home greetings (rotating): "Good tea brings a moment of calm." · "A quiet cup
-  awaits." · "Take a breath. Warm the pot." · Morning: "Good morning — fresh
-  leaves, fresh start." · Evening: "Something gentle for the evening?"
-- Tips of the day (LRN-07, ~30): short facts drawn from the guides, e.g.
-  "Pouring water between two cups cools it by roughly 10 °C each time."
-- Empty states: Collection "Your collection is empty. Add the teas you own to
-  get brewing suggestions." · Journal "Your first cup is waiting." · Search "No
-  teas match — try fewer filters."
+| Shop *Sorte* / keyword | Style key |
+|---|---|
+| Gyokuro | `gyokuro` |
+| Kabusecha | `kabusecha` |
+| Sencha + „Fukamushi" | `fukamushi_sencha` |
+| Sencha | `sencha` |
+| Shincha | `shincha` |
+| Matcha | `matcha` |
+| Kukicha, Karigane | `karigane` |
+| Bancha | `bancha` |
+| Houjicha, Hōjicha, Hojicha | `hojicha` |
+| Genmaicha | `genmaicha` |
+| Kamairicha | `kamairicha` |
+| Tamaryokucha | `tamaryokucha` |
+| Long Jing, Lung Ching | `longjing` |
+| Bi Luo Chun, Pi Lo Chun | `bi_luo_chun` |
+| Anji Bai Cha | `anji_bai_cha` |
+| Sejak, Ujeon, Korea | `korean_green` |
+| Aromatisierter Grüntee / flavoured | `flavored_green` |
+| Teepulver other than matcha | `green_generic` (form POWDER) |
+| anything else | `green_generic` + flag `UNMAPPED_STYLE` |
+
+### 2.7 Tee-Info guides
+
+Discover articles under `/tee-info/` whose title or body matches green-tea
+keywords (Grüntee, Japantee, Matcha, Sencha, Gyokuro, Kyusu, Umami,
+Kaltaufguss). Known examples: „Ein Guide für Japantee", „Matcha-Eistee".
+Convert to Markdown (headings, paragraphs, lists, tables, images
+downloaded locally); rewrite links to catalog products as in-app links.
+
+### 2.8 Sanitising
+
+Strip scripts, styles, iframes, forms, tracking pixels and remote embeds
+(e.g. YouTube → plain link). Keep basic formatting only.
+
+### 2.9 Sanity thresholds (CAT-07 AC5)
+
+Abort the refresh without changes if: fewer than 50 % of the previous
+product count (or < 30 on first import) are parsed; or > 30 % of products
+lack a name, price or article number; or every product lacks a brewing table
+**and** brewing text (selector broke).
+
+## 3. Built-in tea styles
+
+Internal fallbacks (STY-01). Temperatures already in 5 °C steps; `g/TL` is
+used only to convert teaspoon amounts during import. Freshness = suggested
+days after opening.
+
+| Key | Name (de) | Umami | Fresh. | g/TL | Default recipes |
+|---|---|---|---|---|---|
+| `gyokuro` | Gyokuro 玉露 | VERY_HIGH | 60 | 3,0 | KYUSU 6 g / 60 ml / 50 °C: 2:00, 0:20 @55, 1:00 @65, 1:30 @75 · Kaltaufguss 10 g / 500 ml / 5 °C: 3 h · Eisaufguss (ICE_BREW) 6 g / 100 ml Eis / 5 °C: 2 h |
+| `kabusecha` | Kabusecha かぶせ茶 | HIGH | 45 | 2,5 | KYUSU 5 g / 120 ml / 65 °C: 1:30, 0:20 @70, 1:00 @80 |
+| `sencha` | Sencha 煎茶 | MEDIUM | 45 | 2,5 | KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85 · Kaltaufguss 10 g / 1000 ml: 4 h |
+| `fukamushi_sencha` | Fukamushi Sencha 深蒸し煎茶 | MEDIUM | 45 | 3,0 | KYUSU 5 g / 150 ml / 70 °C: 0:45, 0:05 @75, 0:30 @80 |
+| `shincha` | Shincha 新茶 | HIGH | 30 | 2,5 | KYUSU 5 g / 150 ml / 70 °C: 1:00, 0:15 @75, 0:45 @80 |
+| `matcha` | Matcha 抹茶 | HIGH | 30 | 2,0 | Usucha 2 g / 70 ml / 75 °C: Aufschlagen 0:20 · Koicha 4 g / 35 ml / 75 °C: 0:40 |
+| `karigane` | Kukicha / Karigane 茎茶 | MEDIUM | 45 | 1,5 | KYUSU 5 g / 150 ml / 70 °C: 1:00, 0:20 @75, 1:00 @85 |
+| `bancha` | Bancha 番茶 | LOW | 60 | 2,0 | KYUSU 5 g / 200 ml / 85 °C: 0:45, 0:20 @90, 1:00 @95 |
+| `hojicha` | Hōjicha ほうじ茶 | LOW | 60 | 1,5 | KYUSU 4 g / 200 ml / 95 °C: 0:30, 0:30, 1:00 |
+| `genmaicha` | Genmaicha 玄米茶 | LOW | 45 | 3,0 | KYUSU 5 g / 200 ml / 85 °C: 0:45, 0:15 @90, 1:00 @95 |
+| `kamairicha` | Kamairicha 釜炒り茶 | LOW | 60 | 2,5 | KYUSU 5 g / 150 ml / 80 °C: 1:00, 0:20 @85, 0:45 @90 |
+| `tamaryokucha` | Tamaryokucha 玉緑茶 | MEDIUM | 45 | 2,5 | KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85 |
+| `longjing` | Long Jing 龙井 | MEDIUM | 90 | 1,5 | GONGFU 5 g / 100 ml / 80 °C: 0:20, 0:25, 0:30, 0:40, 1:00 · WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 |
+| `anji_bai_cha` | Anji Bai Cha 安吉白茶 | HIGH | 90 | 1,0 | GONGFU 4 g / 100 ml / 80 °C: 0:20, 0:25, 0:30, 0:40, 1:00 |
+| `bi_luo_chun` | Bi Luo Chun 碧螺春 | MEDIUM | 90 | 2,0 | GONGFU 4 g / 100 ml / 75 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
+| `korean_green` | Koreanischer Grüntee (Ujeon/Sejak) | HIGH | 60 | 2,0 | KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
+| `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
+| `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
+| `white_generic`, `oolong_generic`, `black_generic`, `dark_generic`, `herbal` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräuter | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 / 100 °C) for manually added non-green teas |
+| `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
+
+These values are well-known starting points; imported Tee-Kontor recipes
+take precedence for catalog teas.
+
+## 4. Tasting descriptor vocabulary
+
+| Gruppe | Beschreibungen |
+|---|---|
+| Meer (MARINE) | Algen, Nori, Kombu, Meeresbrise, Dashi / brühig |
+| Gemüse (VEGETAL) | Spinat, Zuckerschote, Edamame, Spargel, gedämpftes Gemüse, frisch gemähtes Gras, Heu, Artischocke |
+| Süß (SWEET) | Zuckermais, Esskastanie, Honig, Karamell, Rohrzucker, Süßkartoffel, Vanille |
+| Geröstet & nussig (ROASTED_NUTTY) | Gerösteter Reis, geröstete Nüsse, Toast, Kakao, Kaffee, Rauch |
+| Blumig (FLORAL) | Orchidee, Jasmin, Osmanthus, Rose, Geißblatt, Kirschblüte |
+| Fruchtig (FRUITY) | Zitrus, Yuzu, Steinobst, Muskateller, Melone, Trockenfrüchte, Beeren |
+| Erdig & holzig (EARTHY_WOODY) | Waldboden, Pilze, Holz, Leder, Kampfer, mineralisch |
+| Würzig & kräutrig (SPICE_HERB) | Minze, Kiefer, Zimt, Kräuter |
+| Mundgefühl (MOUTHFEEL) | cremig, seidig, vollmundig, frisch-herb, trocknend, belegend, klarer Abgang, anhaltende Süße |
+| Fehlnoten (OFF_NOTE) | abgestanden, flach, zu bitter, metallisch, muffig, sauer |
+
+The umami taste is captured by the Umami slider, not a descriptor.
+
+## 5. (Removed) Sample teas
+
+Dropped in v0.2; the catalog replaces them.
+
+## 6. Brew coach rules
+
+`Could` (JRN-14). Evaluated after the PO adds tasting notes; at most two
+tips:
+
+| # | Condition | Tip (de) |
+|---|---|---|
+| 1 | Bitterkeit ≥ 4 or Adstringenz ≥ 4 | „Recht bitter? Versuch es 5 °C kühler oder den ersten Aufguss ~20 % kürzer." |
+| 2 | Umami-style ≥ HIGH, Umami ≤ 2, temperature ≥ recipe + 5 °C | „Umami-Tees mögen es kühler – probier die Rezepttemperatur." |
+| 3 | Körper ≤ 1 or „flach" | „Etwas dünn? 10–20 % mehr Blätter oder etwas länger ziehen lassen." |
+| 4 | „abgestanden" and past freshness window | „Schon länger offen? Grüntee verliert nach einigen Wochen an Frische." |
+| 5 | Rating ≥ 4,5 and session differed from recipe | „Hat dir geschmeckt? Übernimm die heutigen Werte ins Rezept." |
+
+## 7. Micro-copy (de)
+
+- Greetings: „Guter Tee schenkt einen Moment der Ruhe." · „Eine stille
+  Tasse wartet." · „Atme durch. Wärm die Kanne vor." · Morgen: „Guten
+  Morgen – frische Blätter, frischer Start." · Abend: „Etwas Sanftes für den
+  Abend?"
+- Empty states: Meine Tees „Noch keine Tees – stöbere im Katalog." ·
+  Journal „Deine erste Tasse wartet." · Katalog „Der Katalog ist noch leer." ·
+  Suche „Nichts gefunden – weniger Filter probieren."

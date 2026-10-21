@@ -1,850 +1,722 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-21
+> v0.2 incorporates the PO interview of 2026-10-21. Requirements dropped in
+> v0.2 are listed in §16. A few v0.1 IDs were given new meanings in v0.2 (no
+> code existed yet); from v0.2 on, IDs are stable and never reused.
 
 ## 0. Conventions
 
 ### 0.1 Requirement IDs
 
-Every requirement has a stable ID `AREA-NN`. IDs are never reused; removed
-requirements are marked ~~struck through~~ with a note.
-
 | Prefix | Area | Section |
 |---|---|---|
-| GEN | Cross-cutting / general | §1 |
-| ONB | Onboarding | §2 |
-| TEA | Collection (user's teas) | §3 |
-| STY | Tea style catalog | §4 |
-| PRF | Brew profiles | §5 |
-| WARE | Teaware (vessels) | §6 |
-| BRW | Brew setup & calculator | §7 |
-| TMR | Steep timer & brew sessions | §8 |
-| JRN | Journal & tasting notes | §9 |
-| INV | Inventory & freshness | §10 |
-| INS | Insights ("Your Tea Journey") | §11 |
-| LRN | Learn & tools | §12 |
+| GEN | Cross-cutting | §1 |
+| ONB | First-start setup | §2 |
+| CAT | Tee-Kontor catalog | §3 |
+| TEA | Collection (my teas) | §4 |
+| STY | Built-in tea styles (fallback) | §5 |
+| PRF | Brew recipes (profiles) | §6 |
+| WARE | Teaware | §7 |
+| BRW | Brew setup | §8 |
+| TMR | Steep timer & sessions | §9 |
+| JRN | Journal | §10 |
+| INV | Stock, cost & freshness | §11 |
+| INS | Statistics | §12 |
 | SET | Settings | §13 |
-| BAK | Backup, restore & export | §14 |
-| NOT | Notifications | §15 |
+| BAK | Backup & export | §14 |
+| NOT | Notifications & Live Update | §15 |
 
-### 0.2 Priorities (MoSCoW)
+### 0.2 Priorities
 
 | Priority | Meaning |
 |---|---|
-| **Must** | Required for the MVP / closed beta. The app is not usable without it. |
-| **Should** | Required for public release 1.0. |
-| **Could** | Desirable; post-1.0 backlog candidate. Build only if time allows. |
-| **Won't** | Explicitly out of scope for 1.x (documented to prevent scope creep). |
+| **Must** | Required for the first complete version (v1.0). |
+| **Should** | Planned for v1.0; may slip to v1.1 if needed. |
+| **Could** | Backlog. |
+| **Won't** | Out of scope (documented to prevent scope creep). |
 
-### 0.3 Format
+The delivery order (timer first) is defined in [09](09-release-plan.md).
+Screen IDs `SCR-xx` refer to [03](03-ux-ui.md); timer details to
+[04](04-brew-timer.md); catalog import rules to [08](08-content.md).
 
-Each requirement contains a short statement and, where useful, acceptance
-criteria (AC) in *Given / When / Then* style. Screen references (`SCR-xx`)
-point to [03 · UX & UI](03-ux-ui.md); entity names point to
-[05 · Data Model](05-data-model.md). Timer behaviour is specified in depth in
-[04 · Brew Timer](04-brew-timer.md).
-
-Units in this document are metric; the app stores metric values and converts
-for display (see GEN-04).
+**Language:** the app UI is German. UI strings in this document are given in
+German with an English gloss where helpful.
 
 ---
 
 ## 1. General (GEN)
 
-**GEN-01 — Fully offline** `Must`
-The app works without any network connection and declares **no `INTERNET`
-permission**. All content (styles, articles, images, fonts, sounds) is bundled.
-- AC1: The merged release manifest contains no `android.permission.INTERNET`
-  and no `ACCESS_NETWORK_STATE` permission (verified by a CI check).
-  Permissions merged in from libraries (e.g. WorkManager declares
-  `ACCESS_NETWORK_STATE`) are stripped with `tools:node="remove"`; no
-  network-based work constraints are used.
-- AC2: Every feature in this document works in airplane mode.
+**GEN-01 — Local-first, single network use** `Must`
+All personal data is stored only on the device. The app declares
+`INTERNET` **solely** for the catalog refresh (CAT-07).
+- AC1: Network requests are made only to `www.tee-kontor-kiel.de` (and its
+  image host, if different), enforced by a host allow-list in the HTTP client.
+- AC2: Every feature except catalog refresh works in airplane mode.
+- AC3: No analytics, ads, crash-reporting or other third-party network SDKs.
 
 **GEN-02 — No accounts** `Must`
-There is no sign-in, registration or user identifier of any kind.
 
 **GEN-03 — Single active timer** `Must`
-At most one brew session or quick timer is active at any time (multiple
-concurrent timers are TMR-40, `Could`).
+At most one brew session or quick timer is active at any time.
 
-**GEN-04 — Unit handling** `Must`
-Values are stored in metric (°C, grams, millilitres) and displayed in the user's
-chosen units (°C/°F, g/oz, ml/fl oz US). Input fields accept the displayed unit
-and convert on save. Conversion and rounding rules: [05 §6](05-data-model.md#6-units-precision-and-rounding).
+**GEN-04 — German & metric** `Must`
+UI language German (`de-DE`) only; units °C, g, ml; German number, date and
+time formats (e.g. „21. Okt. 2026", „4,5 g").
 
 **GEN-05 — Undo for destructive actions** `Should`
-Deleting a tea, profile, vessel, session or photo shows a snackbar with **Undo**
-for 5 seconds. Destructive actions affecting more than one object (e.g. deleting
-a tea that has sessions, restoring a backup, deleting all data) use a
-confirmation dialog instead and are not undoable.
+Deletions show a snackbar „Gelöscht · Rückgängig" for 5 s. Multi-object or
+irreversible actions (restore, delete all) use a confirmation dialog.
 
-**GEN-06 — Persistent "active brew" bar** `Must`
-While a session or quick timer is active, every top-level screen shows a compact
-bar above the navigation bar with tea name, step (e.g. "Infusion 2/4") and live
-remaining time; tapping it opens the timer (SCR-05).
+**GEN-06 — Active brew bar** `Must`
+While a session or quick timer is active, top-level screens show a compact bar
+above the navigation bar with tea name, step („Aufguss 2/4") and live remaining
+time; tapping it opens the timer (SCR-05).
 
-**GEN-07 — Configuration changes & process death** `Must`
-No user input or timer state is lost on rotation, theme change, multi-window
-resize, or when the OS kills the process in the background. Unsaved editor
-forms are restored after process death.
+**GEN-07 — State survives everything** `Must`
+No input or timer state is lost on rotation, theme change, multi-window, or
+process death.
 
 **GEN-08 — Unsaved changes guard** `Must`
-Leaving an editor with unsaved changes (back, close, predictive back) shows
-"Discard changes?" with *Keep editing* / *Discard*.
+„Änderungen verwerfen?" (*Weiter bearbeiten* / *Verwerfen*) when leaving an
+editor with unsaved changes.
 
-**GEN-09 — Empty, loading and error states** `Must`
-Every list and detail screen defines an empty state (illustration + explanation
-+ primary action), a loading state (only if > 300 ms; no spinners for local
-reads under that) and an error state (message + retry where applicable).
+**GEN-09 — Empty, loading, error states** `Must`
+Every list and detail screen defines all three.
 
-**GEN-10 — Search is local and instant** `Must`
-Search results update as the user types (debounced 150 ms), are
-case-insensitive, accent-insensitive where supported, and match prefixes of
-words.
+**GEN-10 — Instant local search** `Must`
+Case- and diacritics-insensitive prefix search, debounced 150 ms.
 
-**GEN-11 — Japanese names** `Should`
-Teas and styles can show an optional secondary name (e.g. 「煎茶 浅蒸し」) under
-the main name, as in the brand mockup.
+**GEN-11 — Secondary names** `Should`
+Teas can show a Japanese/Chinese secondary name (e.g. 「煎茶 浅蒸し」).
+
+**GEN-12 — Temperatures in 5 °C steps** `Must`
+All temperature inputs and displays use 5 °C steps (matching the PO's
+kettle). Imported or legacy values are snapped to the nearest 5 °C
+(half up: 52,5 → 55).
 
 ---
 
-## 2. Onboarding (ONB) — SCR-01
-
-**User stories**
-- As a new user, I want to understand what the app does in a few seconds, so that I can start brewing quickly.
-- As a new user, I want sensible units preselected, so that I do not have to configure anything.
+## 2. First-start setup (ONB) — SCR-01
 
 **ONB-01 — Welcome** `Must`
-First launch shows a welcome page with logo, tagline ("Better tea. Deeper
-moments."), an ink-wash illustration, and *Get started*. At most 4 onboarding
-pages in total (Welcome, Units, Alerts — Android 13+ only — and Start); Units
-and Alerts have *Skip*, which jumps to the Start page.
+Welcome page with logo, „UmamiTea", tagline, ink-wash illustration,
+*Los geht's*.
 
-**ONB-02 — Units** `Must`
-The units page preselects units from the device locale (US → °F, oz, fl oz;
-everywhere else → °C, g, ml) and lets the user change temperature, weight and
-volume units independently.
+**ONB-02 — Reliability setup** `Must`
+One page „Damit der Timer zuverlässig klingelt" walks through:
+1. Notification permission (`POST_NOTIFICATIONS`).
+2. Battery: request exemption from battery optimisation
+   (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) and explain Samsung's
+   „Akku › Uneingeschränkt" and „Nie schlafende Apps" settings with a deep link
+   to the app's battery settings.
+3. Live notifications: verify that the app may show Live Updates; deep link to
+   the setting if not.
+Each item shows a ✓ when satisfied. *Später* (later) is allowed; missing items
+are then shown as a banner on Home and the timer (TMR-31).
 
-**ONB-03 — Notification permission** `Must`
-On Android 13+ a page explains *why* notifications are needed ("so your steep
-alert rings when the phone is locked") before requesting `POST_NOTIFICATIONS`.
-- AC1: If the user denies, onboarding continues; the timer shows a
-  non-blocking warning banner (TMR-31).
-- AC2: The system dialog is never shown without the explanation first.
+**ONB-03 — Load catalog** `Must`
+Final page offers *Katalog jetzt laden* (runs CAT-07 with progress) or
+*Später*.
 
-**ONB-04 — Starting content** `Should`
-The final page offers *Start with sample teas* (adds the sample teas defined in
-[08 §5](08-content.md#5-sample-teas), flagged `isSample`) or *Start with an
-empty collection*. Default selection: sample teas.
-
-**ONB-05 — Remove samples** `Should`
-While sample teas exist, the Collection shows a dismissible card "These are
-sample teas. Remove them?"; Settings › Data also offers *Remove sample teas*.
-Removing samples also deletes their sessions.
-
-**ONB-06 — Run once** `Must`
-Onboarding is shown only until completed or skipped; it can be replayed from
-Settings › About › *Show introduction*.
+**ONB-04 — Run once** `Must`
+Shown until completed; reachable again via Einstellungen › Über ›
+*Einrichtung erneut zeigen*.
 
 ---
 
-## 3. Collection — the user's teas (TEA) — SCR-08 … SCR-11
+## 3. Tee-Kontor catalog (CAT) — SCR-19 … SCR-23
 
-**User stories**
-- As an enthusiast, I want to record every tea I own with origin, cultivar and harvest, so that I can compare them.
-- As a beginner, I want to add a tea by picking its style, so that brewing parameters are filled in for me.
+The catalog is a local, read-only copy of all green teas from
+[tee-kontor-kiel.de](https://www.tee-kontor-kiel.de/), refreshed on demand.
+Source structure, field mapping and parsing rules: [08 §2](08-content.md#2-tee-kontor-catalog-import).
+
+**CAT-01 — Scope** `Must`
+All products in the shop's green tea sections: Japan, China, Taiwan, Korea and
+other origins, *Bio*, *Klassischer Grüntee*, *Aromatisierter Grüntee*
+(flavoured teas and blends), the current *Shincha* section and *Matcha &
+Teepulver*. Excluded: tea sets/multipacks, accessories, gift cards.
+
+**CAT-02 — One entry per tea** `Must`
+Size variants, samples („M") and bulk packs of the same tea are merged into one
+catalog entry with a list of package options (weight, price).
+
+**CAT-03 — Extracted data** `Must`
+Per tea: name, secondary name, article number, product URL, shop category and
+tea type (*Sorte*: Sencha, Gyokuro, …), origin country & region, cultivar,
+harvest/flush, shading, steaming, organic flag, flavoured flag and
+ingredients, description and taste notes (German text), raw brewing table,
+raw brewing text, package options with price, base price per 100 g,
+availability, main photo. Unavailable fields stay empty.
+
+**CAT-04 — Derived recipe** `Must`
+For each tea, one or more timer-ready recipes are derived from the brewing
+information using the rules in [08 §2.5](08-content.md#25-recipe-derivation):
+table wins over text, then the built-in style default; ranges use the
+midpoint; temperatures snap to 5 °C, times to 5 s; cold-brew instructions
+produce an extra cold-brew recipe.
+
+**CAT-05 — „Rezept prüfen" flag** `Must`
+A tea is flagged „Rezept prüfen" (check recipe) with a reason when its recipe
+came from the text or a style default instead of the table, when table and
+text contradict, or when values were implausible. The flag is visible in the
+catalog and carries over to collection teas created from it until the user
+edits or confirms the recipe.
+
+**CAT-06 — Style mapping** `Must`
+Every catalog tea is mapped to a built-in style (STY) by its *Sorte* or name
+(e.g. „Gyokuro" → `gyokuro`), providing umami level, freshness window and
+fallback recipe. Unmapped teas use `green_generic` and are flagged.
+
+**CAT-07 — Refresh** `Must`
+*Katalog aktualisieren* (Sammlung › Katalog, overflow, and Settings) fetches
+the shop, parses all products, and replaces the catalog atomically.
+- AC1: Progress shows pages and products processed; the refresh can be
+  cancelled; the phone may be locked during refresh (runs as a user-initiated
+  data-transfer job / expedited work).
+- AC2: Requests are polite: ≤ 1 request/second, identifying user agent,
+  `robots.txt` respected, timeouts and ≤ 3 retries.
+- AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
+  3 Rezepte prüfen".
+- AC4: Teas no longer found are kept, marked „Nicht mehr im Sortiment".
+- AC5: If parsing fails structurally (e.g. < 50 % of the previous product
+  count, or required fields missing on most products), the existing catalog
+  is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
+  App-Update ist nötig" is shown with technical details for the developer.
+- AC6: Date of the last successful refresh is shown in the catalog header.
+
+**CAT-08 — Photos** `Must`
+The main product photo of each tea is downloaded, resized (max 1600 px long
+edge, JPEG/WebP) and stored locally; unchanged photos are not downloaded
+again.
+
+**CAT-09 — Tee-Info guides** `Should`
+Tee-Kontor's guide articles relevant to green tea (e.g. „Ein Guide für
+Japantee", matcha guides and recipes) are imported as readable articles and
+listed in Katalog › *Ratgeber*. Links between guides and to catalog teas are
+resolved locally where possible; other links open the browser.
+
+**CAT-10 — Browse & search** `Must`
+SCR-19 lists catalog teas with photo, name, secondary name, type, origin,
+price per 100 g and flags (Bio, aromatisiert, im Besitz, Rezept prüfen).
+Filters: type (multi), origin country (multi), organic, flavoured / pure,
+umami level, „im Besitz" (owned), available. Sort: name, price per 100 g,
+type. Search over name, secondary name, description, cultivar, region.
+
+**CAT-11 — Catalog tea detail** `Must`
+SCR-21 shows photo, names, type, origin details, organic/flavoured,
+description, brewing guide (raw table and text as on the shop), the derived
+recipe(s) with flag reason, package options and prices, and actions
+*In Sammlung aufnehmen* and *Im Shop öffnen* (browser).
+
+**CAT-12 — Add to collection** `Must`
+*In Sammlung aufnehmen* opens SCR-23: choose package option (weight & price,
+prefilled), purchase date (default today); creates a collection tea that is
+an independent copy (TEA-01) with recipes, stock (INV-01) and price. If the
+tea is already in the collection, the action becomes *Nachkauf erfassen*
+(record repurchase), adding stock instead of a duplicate.
+
+**CAT-13 — Collection teas stay independent** `Must`
+A refresh never changes collection teas. Tea detail offers *Aus Katalog
+zurücksetzen* (reset description/recipes from the current catalog entry, with
+confirmation and a choice of what to reset).
+
+**CAT-14 — Bundled snapshot** `Could`
+An initial catalog snapshot (without photos) is bundled in the APK so the
+catalog is available before the first refresh. Generated by the same parser
+at build time; not committed to the repository (see D-016).
+
+---
+
+## 4. Collection — my teas (TEA) — SCR-08 … SCR-11
 
 **TEA-01 — Add a tea** `Must`
-The user adds a tea from the Collection FAB, the Home screen, a style detail
-page (*Add to my collection*), or the tea picker.
-- AC1: Step 1 is the style picker (SCR-11) with search; *Other / not sure* is
-  always available.
-- AC2: Choosing a style pre-fills category, form, secondary name suggestion,
-  umami level and **copies the style's default brew profiles** into the new tea
-  (PRF-02).
-- AC3: Only **Name** is mandatory (1–80 characters after trimming). Saving
-  with an empty name shows an inline error and does not save.
-- AC4: After save, the app navigates to the new tea's detail page (SCR-09).
+From the catalog (CAT-12, primary path) or manually (*Tee ohne Katalog
+anlegen*): style picker (SCR-11) → editor (SCR-10) with defaults from the
+style. Only *Name* is mandatory (1–80 chars).
 
 **TEA-02 — Tea fields** `Must`
-The editor (SCR-10) supports all fields of the `Tea` entity
-([05 §3.1](05-data-model.md#31-tea)), grouped in sections: *Basics* (photo, name,
-secondary name, style, category, form, umami level — pre-filled from the style), *Origin* (country, region, cultivar,
-harvest year, harvest season, shading days, processing notes), *Purchase*
-(vendor, purchase date, price & currency, package size), *Stock & freshness*
-(see INV; includes a short storage note, e.g. "fridge, 2nd shelf"), *Notes & tags*.
-- AC1: Optional sections are collapsed by default when empty.
-- AC2: Country is chosen from a localized, searchable list (ISO 3166-1);
-  Japan, China, Taiwan, Korea, India, Sri Lanka appear first.
-- AC3: Region and cultivar fields offer autocomplete from the suggestion lists in
-  [08 §6](08-content.md#6-autocomplete-suggestions) plus values the user entered
-  before.
+All fields of `Tea` ([05 §3.1](05-data-model.md#31-tea)) in sections:
+*Allgemein* (photo, name, secondary name, style/type, umami level, flavoured),
+*Herkunft* (country, region, cultivar, harvest year & flush, shading days,
+processing), *Kauf* (vendor — default „Tee-Kontor Kiel" for catalog teas —
+purchase date, package size, price), *Vorrat & Frische* (stock, opened
+date, best before, storage note), *Notizen & Schlagwörter*.
 
-**TEA-03 — Edit a tea** `Must`
-All fields are editable later. Changing the style does **not** overwrite
-existing brew profiles; instead the user is asked "Also add the default profiles
-of *<style>*?" (*Add* / *Keep current*).
+**TEA-03 — Edit** `Must`
+All fields editable. Changing the style does not overwrite recipes.
 
-**TEA-04 — Delete or archive a tea** `Must`
-- AC1: *Archive* hides the tea from the default Collection view, pickers and
-  Home; its sessions remain fully visible in the Journal.
-- AC2: *Delete* asks for confirmation showing how many journal sessions refer to
-  the tea. Sessions are **kept** (they store a snapshot of the tea name, see
-  [05 §3.6](05-data-model.md#36-brewsession)) and display "Tea removed from
-  collection". Profiles, photos, tags links and inventory events of the tea are
-  deleted.
-- AC3: The confirmation dialog offers *Archive instead* as secondary action.
+**TEA-04 — Archive / delete** `Must`
+*Archivieren* hides a tea from lists and pickers (e.g. when used up); journal
+entries remain. *Löschen* keeps journal sessions (name snapshot) and removes
+recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
 
 **TEA-05 — Photos** `Should`
-Up to 10 photos per tea, from the system photo picker or the camera; the first
-photo is the cover by default; *Set as cover* in the photo viewer (SCR-28) changes it (`coverPhotoId`). Photos are reorderable by drag. Processing rules: [06 §5.2](06-architecture.md#52-photos) and [07 §6](07-non-functional.md#6-privacy).
+Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
+teas); own photos via photo picker or camera; *Als Titelbild* sets the cover.
+Processing rules: [06 §5.2](06-architecture.md#52-photos).
 
 **TEA-06 — Favourites** `Must`
-A tea can be marked favourite from list, detail and timer-summary screens.
-Favourites appear on Home and can be filtered.
 
-**TEA-07 — Tags** `Should`
-Free-form tags (e.g. "gift", "Yame", "competition grade"); 1–30 characters,
-case-insensitive unique; up to 20 tags per tea; autocomplete from existing tags;
-tags can be renamed or deleted in Settings › Data › *Manage tags*.
+**TEA-07 — Tags** `Could`
+Free-form tags (1–30 chars, ≤ 20 per tea).
 
-**TEA-08 — Collection list** `Must`
-The list (SCR-08) shows: cover photo or category illustration, name, secondary
-name, style · vendor, average rating with count, stock chip and freshness chip
-(if tracked), favourite indicator.
+**TEA-08 — List** `Must`
+SCR-08 („Meine Tees") rows: cover photo, name, secondary name, type, average
+rating, stock chip („38 g übrig"), freshness chip, favourite, „Rezept prüfen"
+badge.
 
-**TEA-09 — Search** `Must`
-Searches name, secondary name, vendor, region, cultivar, notes and tags (FTS).
+**TEA-09 — Search** `Must` over name, secondary name, vendor, region,
+cultivar, notes, tags.
 
-**TEA-10 — Filters** `Should`
-Combinable filter chips: *Favourites*, *Category* (multi-select), *Umami level*
-(multi-select), *Stock* (in stock / low / out / not tracked), *Tags*
-(multi-select, any-of), *Show archived*. Active filter count is shown; *Clear
-all* resets.
+**TEA-10 — Filters** `Should`: favourites, type, stock (vorrätig / knapp /
+leer), flavoured, archived.
 
-**TEA-11 — Sorting** `Must`
-Sort by: Name (A–Z, default), Recently brewed, Recently added, Rating (high →
-low), Stock remaining (low → high), Opened date (oldest first). The choice is
-remembered.
-
-**TEA-12 — List / grid view** `Could`
-Toggle between list and 2-column photo grid; remembered.
+**TEA-11 — Sorting** `Must`: name, zuletzt gebrüht (recently brewed), zuletzt
+hinzugefügt, Bewertung, Vorrat (low → high), geöffnet seit (oldest first).
 
 **TEA-13 — Tea detail** `Must`
-SCR-09 shows hero photo, names, rating, category chip, the **default profile
-summary** (temperature · steep time · infusions, as in the mockup), *Brew*
-primary action, profiles, stock & freshness, tasting summary (average rating,
-average taste radar, top 5 descriptors), recent sessions (last 5 + *See all*),
-notes, tags, origin and purchase details.
+SCR-09: hero photo, names, rating „★ 4,5 (12)", type chip, umami meter,
+`StatTriplet` of the default recipe (Temperatur · Ziehzeit · Aufgüsse), primary
+*Brühen*, recipes, stock & cost, freshness, tasting summary, recent sessions,
+notes, details, *Im Shop öffnen* (catalog teas).
 
-**TEA-14 — Duplicate a tea** `Could`
-Creates a copy (name + " (copy)") with profiles and tags, without photos,
-sessions or inventory — useful for a new harvest of the same tea.
+**TEA-14 — Duplicate** `Could`
 
-**TEA-15 — Bulk actions** `Could`
-Long-press enters multi-select: archive, delete, add tag, mark favourite.
-
-**TEA-16 — Barcode / label scanning** `Won't`
-No reliable product database exists offline. (Label OCR is a post-1.0 idea, see
-[09 §6](09-release-plan.md#6-post-10-roadmap).)
+**TEA-17 — Recipe check** `Must`
+Teas flagged „Rezept prüfen" show the reason and *Rezept bestätigen*
+(confirm) / *Rezept bearbeiten*; editing or confirming clears the flag.
 
 ---
 
-## 4. Tea style catalog (STY) — SCR-11, SCR-21
+## 5. Built-in tea styles (STY)
 
-**STY-01 — Bundled catalog** `Must`
-The app ships the read-only catalog in [08 §2](08-content.md#2-tea-style-catalog)
-(≥ 25 styles). Each style has: key, name, secondary name, category, typical
-origin, umami level, short description, brewing notes, freshness window,
-grams-per-teaspoon factor, and 1–3 default brew profiles.
+**STY-01 — Built-in styles** `Must`
+The app ships the style list in [08 §3](08-content.md#3-built-in-tea-styles)
+(Japanese and other green teas plus generic other categories). Styles are
+**not** browsable as a catalog; they provide: mapping targets for catalog teas
+(CAT-06), umami level, freshness window, and fallback recipes; and templates
+for manually added teas.
 
-**STY-02 — Browse & search styles** `Must`
-Learn › *Tea styles* lists styles grouped by category with search and an umami
-level filter.
-
-**STY-03 — Style detail** `Should`
-Shows description, umami meter, default profiles in readable form, storage /
-freshness advice, links to related guides, and *Add to my collection*.
-
-**STY-04 — Catalog updates** `Must`
-The catalog is versioned with the app. Updating the app never modifies a user's
-existing teas or profiles; new styles simply become available.
-
-**STY-05 — Custom styles** `Won't`
-Users cannot create styles; *Other* + custom profiles covers this.
+**STY-02 — Versioned with the app** `Must`
+Updates never change existing teas or recipes.
 
 ---
 
-## 5. Brew profiles (PRF) — SCR-12
+## 6. Brew recipes (PRF) — SCR-12
 
-A **brew profile** is a recipe: method, leaf amount, water volume, base
-temperature, optional vessel, and an ordered list of **steps** (rinse,
-infusion, whisk) each with a duration and optional temperature override.
+A **recipe** (*Rezept*; data entity `BrewProfile`) is: method, leaf amount,
+water volume, base temperature, optional vessel, optional pre-alert override,
+and an ordered list of steps (rinse, infusion, whisk).
 
-**PRF-01 — Profiles per tea** `Must`
-A tea has 1–10 profiles; exactly one is the **default**. Profiles are listed on
-the tea detail page with the default first.
+**PRF-01 — Recipes per tea** `Must`
+1–10 recipes per tea, exactly one default.
 
-**PRF-02 — Defaults from style** `Must`
-New teas receive copies of their style's default profiles. Teas with style
-*Other* receive one generic profile (WESTERN, 3 g, 250 ml, 85 °C, one 3:00
-infusion).
+**PRF-02 — Defaults** `Must`
+Catalog teas get the recipes derived by CAT-04; manual teas get the style's
+recipes; teas without style get *Western 3 g / 250 ml / 85 °C / 3:00*.
 
-**PRF-03 — Edit profile** `Must`
-Fields and limits:
+**PRF-03 — Edit recipe** `Must`
 
-| Field | Limits | Notes |
-|---|---|---|
-| Name | 1–40 chars | e.g. "Houhin", "Ice brew" |
-| Method | enum, see [05 §4](05-data-model.md#4-enumerations) | Changing method offers to load the style's defaults for that method |
-| Vessel | optional | Selecting a vessel sets water to its capacity (editable) |
-| Leaf | 0.1–100 g | step 0.1 g (or 0.5 g if SET-08) |
-| Water | 10–3000 ml | step 5 ml |
-| Base temperature | 0–100 °C | step 1 °C / 1 °F; "Cold" label for ≤ 10 °C |
-| Steps | 1–30 | see PRF-04 |
-| Notes | 0–500 chars | |
+| Field | Limits |
+|---|---|
+| Name | 1–40 chars (e.g. „Kyusu", „Kaltaufguss") |
+| Method | `BrewMethod` |
+| Vessel | optional; selecting one sets water to its volume |
+| Leaf | 0,1–100 g, step 0,1 g |
+| Water | 10–3000 ml, step 5 ml |
+| Base temperature | 5–100 °C in 5 °C steps; „kalt" (cold) for ≤ 10 °C |
+| Pre-alert | „Wie in Einstellungen" (default) or Aus / 5 … 30 s in 5 s steps |
+| Steps | 1–30 |
+| Notes | 0–500 chars |
 
-- AC1: The ratio is shown live as "x.x g / 100 ml" and "1 : n".
-- AC2: Water greater than the selected vessel's capacity shows a warning (not an error).
+- AC1: Ratio shown live („4,0 g / 100 ml").
 
 **PRF-04 — Steps editor** `Must`
-- Add, remove (swipe or delete icon), reorder (drag handle) steps.
-- Each step: kind (Rinse / Infusion / Whisk), duration 1 s – 24 h (picker with
-  h:mm:ss; quick chips ±5 s, ±10 s), optional temperature override, optional
-  note (≤ 120 chars).
-- Rinse steps are numbered separately ("Rinse", then "Infusion 1, 2 …").
-- AC1: A profile must contain at least one non-rinse step.
+Add, delete, reorder steps; per step: kind, duration 5 s – 24 h (5 s steps
+below 10 min, 1 min steps above), optional temperature (5 °C steps), note.
+At least one non-rinse step.
 
-**PRF-05 — Generate a series** `Should`
-"Generate infusions": first duration, increment (e.g. +5 s) or multiplier, count
-(2–20), optional temperature increment per step → replaces or appends steps.
-Typical gongfu use: 10 s + 5 s × 8.
+**PRF-05 — Generate series** `Should`
+First duration + increment × count, optional +5 °C per step.
 
-**PRF-06 — Reset to style defaults** `Should`
-Replaces a profile's values with the style default for the same method (confirm).
+**PRF-06 — Reset** `Should`
+*Aus Katalog zurücksetzen* (catalog teas) or *Auf Standard zurücksetzen*
+(style default).
 
-**PRF-07 — Learn from sessions** `Should`
-After a session whose actual step durations differ from the plan by more than
-max(5 s, 10 %) on any step, the summary (SCR-06) offers "Save today's times to
-this profile". Accepting updates the durations (rounded to 5 s, or to 1 min for
-steps ≥ 10 min) and the leaf/water used.
-
-**PRF-08 — Duplicate profile** `Should`
-Creates "<name> (copy)" on the same tea.
-
-**PRF-09 — Share profile between teas** `Won't`
-Profiles belong to one tea. Duplicate the tea or re-enter values instead.
+**PRF-07 — Learn from sessions** `Must`
+If a session's actual step times differ from the plan by more than
+max(5 s, 10 %) on any step, or steps were edited/added during the session, the
+post-session prompt (TMR-12) offers *Zeiten ins Rezept übernehmen*. Accepting
+writes the actual durations (rounded to 5 s, or 1 min for steps ≥ 10 min) and
+added steps into the recipe used.
 
 ---
 
-## 6. Teaware (WARE) — SCR-13, SCR-14
+## 7. Teaware (WARE) — SCR-13, SCR-14
 
-**WARE-01 — Manage vessels** `Should`
-Create, edit, archive, delete vessels: name (1–40), type, capacity (10–3000 ml),
-material, notes, up to 3 photos, favourite. Reached from Settings › *My teaware*
-and from vessel pickers (*Manage teaware*).
+**WARE-01 — Manage vessels** `Must`
+Name, type, volume (10–3000 ml), material, notes, photo, favourite.
 
-**WARE-02 — Vessel picker** `Should`
-Brew setup and the profile editor list favourite vessels first, then others
-alphabetically, then *No vessel*.
+**WARE-02 — Vessel picker** `Must`
+In brew setup and recipe editor: favourites first.
 
-**WARE-03 — Deleting a vessel** `Should`
-Profiles that referenced it keep their water volume and lose the vessel link;
-sessions keep the vessel name snapshot.
+**WARE-03 — Scaling** `Must`
+Choosing a vessel sets the water volume to the vessel's brewing volume and
+scales leaf by the recipe's ratio (BRW-03).
 
-**WARE-04 — Usable vs. nominal capacity** `Could`
-Optional "usable brewing volume" in addition to nominal capacity (a 200 ml
-kyusu often brews 150 ml with leaves).
+**WARE-04 — Usable volume** `Should`
+Optional usable brewing volume (e.g. 180 ml kyusu brews 150 ml), used for
+scaling if set.
+
+**WARE-05 — Default vessel per method** `Could`
+E.g. KYUSU → „Kyusu 180 ml".
 
 ---
 
-## 7. Brew setup & calculator (BRW) — SCR-03, SCR-04
+## 8. Brew setup (BRW) — SCR-03, SCR-04
 
 **BRW-01 — Start a brew** `Must`
-Entry points: Home *Start steeping* card (opens tea picker SCR-03), *Brew again*
-items on Home, tea detail *Brew*, journal session *Brew this again*,
-notification/shortcut (Could).
-- AC1: From Home, a tea brewed before can be started in ≤ 3 taps
-  (Brew again item → *Start brewing* → *Start*).
+Entry points: Home *Aufguss starten* (tea picker), *Nochmal brühen* items on
+Home, tea detail *Brühen*, journal *Nochmal brühen*. A known tea starts in ≤ 3
+taps.
 
 **BRW-02 — Setup screen** `Must`
-SCR-04 shows the tea, profile chips, vessel, water, leaf, ratio lock, base
-temperature, step list and *Start brewing*. Changes made here apply **to this
-session only** unless the user taps *Save to profile*.
+Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
+step list, effective pre-alert, *Brühen starten*. Changes apply to this
+session only unless *Im Rezept speichern* is tapped.
 
 **BRW-03 — Ratio scaling** `Must`
-With the ratio lock on (default), changing water or vessel rescales leaf:
-`leaf = round(ratio × water / 100, precision)`; changing leaf rescales water
-(rounded to 5 ml). With the lock off, values change independently and the ratio
-updates. Steep times and temperatures are never scaled.
-
-**BRW-04 — Leaf display in teaspoons** `Should`
-If SET-04 *Show leaf in teaspoons too* is on, leaf amounts additionally
-show "≈ n tsp" using the tea's (or style's) grams-per-teaspoon factor, rounded
-to ¼ tsp. Grams remain the stored value.
-
-**BRW-05 — Cooling helper inline** `Should`
-When the base temperature is ≤ 85 °C, setup shows a hint "From boiling: about
-*n* transfers between room-temperature vessels" (formula in LRN-06) linking to
-the full cooling helper.
+With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
+changing leaf rescales water (5 ml). Times and temperatures never scale.
 
 **BRW-06 — Brew from a past session** `Should`
-*Brew this again* on a journal session pre-fills setup with that session's
-leaf, water, temperatures and step durations (actual if PRF-07 rounding
-applied, else planned).
-
-**BRW-07 — Pre-brew checklist** `Could`
-Collapsible "Before you start" list (warm the vessel, weigh leaf, prepare water
-at X °C). Checkbox state is not persisted.
+*Nochmal brühen* on a journal entry pre-fills setup with that session's
+parameters.
 
 **BRW-08 — Stock warning** `Should`
-If inventory is tracked and remaining stock is below the leaf amount, setup
-shows "Only *x* g left" (non-blocking).
+„Nur noch 3 g übrig" if stock is below the leaf amount.
 
 **BRW-09 — Freshness hint** `Could`
-If the tea is past its freshness window, setup shows a subtle hint linking to
-the storage guide.
+
+**BRW-10 — Kettle hint** `Must`
+The setup and every READY state show the step temperature prominently as a
+kettle instruction: „Wasserkocher auf 60 °C".
 
 ---
 
-## 8. Steep timer & brew sessions (TMR) — SCR-05, SCR-06, SCR-07
+## 9. Steep timer & sessions (TMR) — SCR-05, SCR-06, SCR-07
 
-Detailed behaviour, states and background execution: [04 · Brew Timer](04-brew-timer.md).
-
-**User stories**
-- As a kyusu brewer, I want each infusion to have its own time and temperature, so that I do not have to remember the sequence.
-- As anyone, I want the alert to ring even when my phone is locked and in another room.
-- As an enthusiast, I want the journal to record how long I actually steeped, including when I poured late.
+Full behaviour: [04 · Brew Timer](04-brew-timer.md).
 
 **TMR-01 — Start session** `Must`
-*Start brewing* creates a `BrewSession` (status IN_PROGRESS) and opens the timer
-in the READY state for the first step. If SET-12 "Start first step immediately"
-is on, the first step starts running right away.
+*Brühen starten* creates an IN_PROGRESS session and opens the timer in READY
+for the first step.
 
-**TMR-02 — Step countdown** `Must`
-In RUNNING, the screen shows the remaining time (mm:ss, or h:mm:ss ≥ 1 h) in a
-large tabular font inside a thin circular progress ring, the step label
-("Infusion 2 of 4"), and the step temperature.
+**TMR-02 — Countdown** `Must`
+Large tabular digits (mm:ss, h:mm:ss ≥ 1 h) in a thin ring, caption, step
+label „Aufguss 2 von 4", step temperature.
 
 **TMR-03 — Pause / resume** `Must`
-Pause freezes remaining time; resume continues from it.
+A cream pill button *Pause* / *Weiter* below the ring (as in the mockup) is the
+only primary control while running.
 
-**TMR-04 — Adjust while running** `Must`
-Buttons −10 s / +10 s adjust the remaining time. Reducing below zero ends the
-step immediately (→ ALERTING).
-
-**TMR-05 — Pour early** `Must`
-"Pour now" ends the running step immediately, records the actual time and moves
-to READY for the next step (no alert).
+**TMR-05 — End step early** `Must`
+Overflow ⋮ › *Aufguss jetzt beenden* ends the running step, records the actual
+time and moves on (no alert).
 
 **TMR-06 — Alert** `Must`
-When a step reaches zero, the app alerts with sound, vibration and a heads-up
-notification as configured (SET-09…SET-11), in foreground and background,
-including with the screen locked. The screen shows "Pour now", the overtime
-counting up ("+0:07"), and a large *Poured* button.
+At zero: sound and vibration **following the phone's ringer mode** (normal →
+sound + vibration; vibrate → vibration; silent → no sound/vibration, visual
+only), repeated for up to ~15 s or until acknowledged; heads-up notification
+and Live Update show „Jetzt abgießen!". Screen shows overtime („+0:07") and a
+large *Abgegossen* button.
 
-**TMR-07 — Acknowledge ("Poured")** `Must`
-*Poured* (in-app or notification action) stops the alert, records the step's
-actual duration (running time including overtime) and moves to READY for the
-next step, or to FINISHED after the last step.
+**TMR-07 — Acknowledge** `Must`
+*Abgegossen* (in app, notification, or Live Update) stops the alert, records
+the actual time (including overtime) and moves to READY for the next step or
+FINISHED.
 
-**TMR-08 — Next-step guidance** `Must`
-READY shows the upcoming step's duration and temperature and, if the
-temperature differs from the previous step, a hint ("Slightly hotter: 55 °C").
+**TMR-08 — Wait for the user between steps** `Must`
+READY never starts automatically. It shows the next step („Aufguss 2 ·
+0:20 · 60 °C"), the kettle hint (BRW-10) and a large *Start* button; the whole
+ring is also tappable.
 
-**TMR-09 — Skip step** `Should`
-Overflow › *Skip this step* moves to the next step without recording an actual
-time (stored as skipped).
+**TMR-09 — Skip step** `Should` (overflow).
 
 **TMR-10 — Add infusion** `Must`
-In FINISHED (and via overflow at any time) *Add another infusion* appends a step
-copying the last infusion's temperature with duration = last duration + 50 %
-(rounded to 5 s); editable before starting.
+In FINISHED and via overflow: *Weiteren Aufguss* appends a step (last
+temperature; last duration + 50 %, rounded to 5 s), editable before start.
 
-**TMR-11 — Edit remaining steps** `Should`
-Overflow › *Edit steps* opens the steps editor for steps not yet started.
-Changes affect this session only.
+**TMR-11 — Edit remaining steps** `Should` (overflow; this session only).
 
-**TMR-12 — Finish session** `Must`
-*Finish & log* (FINISHED state or overflow in any state) sets status COMPLETED,
-end time, and opens the session summary (SCR-06). If a step is running, paused
-or alerting, it is first completed as if *Pour now* / *Poured* had been tapped.
-- AC1: Sessions with zero completed non-rinse steps are discarded instead,
-  after confirmation ("Nothing brewed yet — discard session?").
+**TMR-12 — Finish & auto-log** `Must`
+*Sitzung beenden* (FINISHED state or overflow) completes the session; it is
+saved to the journal automatically **without a summary screen**. A bottom
+sheet (SCR-06) appears for 10 s and stays reachable from the journal:
+„Gespeichert im Journal" with *Notizen hinzufügen* (opens SCR-17) and — only if
+PRF-07 applies — *Zeiten ins Rezept übernehmen*. Ignoring it is fine.
+- AC1: Sessions with no completed non-rinse step are discarded after
+  confirmation.
 
-**TMR-13 — Discard session** `Must`
-Overflow › *Discard session* (confirm) deletes the session and any inventory
-deduction.
+**TMR-13 — Discard session** `Must` (overflow, with confirmation).
 
 **TMR-14 — Auto-finish idle sessions** `Must`
-A session left in READY, PAUSED or FINISHED for 60 minutes without interaction
-is finished automatically (COMPLETED if ≥ 1 non-rinse step was completed, else
-discarded) and a low-priority notification informs the user.
+60 min without interaction in READY/PAUSED/FINISHED → finished and logged
+(TMR-12 rules), notification „Sitzung gespeichert".
 
 **TMR-15 — Background & lock screen** `Must`
-The timer continues when the user leaves the screen, switches app, or locks the
-device. An ongoing notification shows the countdown with actions (see NOT-02).
+The timer continues when leaving the app or locking the phone.
 
 **TMR-16 — Survive process death and reboot** `Must`
-Timer state is persisted on every transition; after the process is killed or
-the device reboots, opening the app restores the session in the correct state
-(see [04 §7](04-brew-timer.md#7-persistence--recovery)).
+See [04 §7](04-brew-timer.md#7-persistence--recovery).
 
-**TMR-17 — Keep screen on** `Must`
-While SCR-05 is visible and the setting is on (default on), the screen does not
-time out.
+**TMR-17 — Keep screen on** `Must` while SCR-05 is visible (setting, default on).
 
-**TMR-18 — Long steeps (cold brew, ice brew)** `Must`
-Steps of 30 min or more run in "reminder mode": the user can leave the app; an
-ongoing notification shows "Ready around 14:30"; an alert notification fires at
-the end. Precision is lower (typically within ~10 min; possibly later while the
-device is in deep Doze) unless exact alarms are permitted ([04 §6.3](04-brew-timer.md#63-long-steps-reminder-mode)).
+**TMR-18 — Long steps (cold brew, ice brew)** `Must`
+Steps ≥ 30 min use exact alarms without keeping a service running; the Live
+Update shows „Fertig um 14:30".
 
-**TMR-19 — Matcha whisk steps** `Must`
-WHISK steps show a whisk illustration and the text "Whisk briskly in an M/W
-motion" (usucha) or "Knead slowly" (koicha); otherwise behave like infusions.
+**TMR-19 — Whisk steps** `Must` („Zügig in M/W-Form aufschlagen").
 
-**TMR-20 — Rinse steps** `Must`
-RINSE steps are labelled "Rinse — discard the water"; their *Poured* button
-reads *Discarded*. They are recorded but excluded from infusion counts and
-tasting.
+**TMR-20 — Rinse steps** `Must` („Spülen – Wasser weggießen"; button
+*Weggegossen*).
 
-**TMR-21 — Starting a second session** `Must`
-Starting a brew while another session/timer is active shows "Finish *Gyokuro*
-session first?" with *Finish & start new* / *Cancel*.
+**TMR-21 — Second session** `Must`
+Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
+(*Beenden & neu starten* / *Abbrechen*).
 
 **TMR-22 — Quick timer** `Should`
-SCR-07: a single countdown without a tea: preset chips 0:30, 1:00, 1:30, 2:00,
-3:00, 5:00 and custom duration; same alert behaviour; not logged in the journal.
+SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00 and
+custom; same alert, pre-alert (global setting) and Live Update; not logged.
 
-**TMR-23 — Pre-alert tick** `Could`
-Optional soft tick 5 seconds before the end of a step (SET-10).
+**TMR-23 — Pre-alert tick** `Must`
+A soft tick sound (plus short haptic) **N seconds before the end** of each
+step so the kyusu can be picked up.
+- N comes from the recipe's pre-alert override, else the global setting
+  (SET-10): Aus or 5–30 s in 5 s steps; default 5 s.
+- Skipped if the step is shorter than N + 5 s, and for RINSE steps shorter
+  than 15 s.
+- The tick follows the ringer mode like the alert (vibrate mode → short
+  vibration only).
+- The Live Update / timer caption switches to „Gleich fertig…" at the
+  pre-alert.
 
-**TMR-24 — Spoken countdown** `Could`
-Optional text-to-speech announcements ("10 seconds", "Pour now") using the
-on-device TTS engine.
+**TMR-30 — Accuracy** `Must`
+Alerts and pre-alerts within 1 s of target (typical ≤ 250 ms), screen on or
+off, app foreground or background.
 
-**TMR-25 — Tabletop posture layout** `Could`
-On foldables in tabletop posture, the time shows on the upper half and controls
-on the lower half.
+**TMR-31 — Reliability banner** `Must`
+If notifications are blocked, Live Updates are disabled, the battery is
+restricted for the app, or exact alarms are unavailable, the timer and Home
+show „Der Timer ist eventuell unzuverlässig – *Beheben*" deep-linking to the
+relevant setting.
 
-**TMR-30 — Timer accuracy** `Must`
-Alert fires within 1 s of the target (typical ≤ 250 ms) for steps < 30 min,
-with the app in foreground or background and the screen on or off. See
-[07 §2](07-non-functional.md#2-performance).
-
-**TMR-31 — Missing permissions banner** `Must`
-If notifications are disabled (permission or channel), the timer and the
-active-brew bar show "Alerts won't show while the app is closed — *Fix*",
-deep-linking to the relevant system settings.
-
-**TMR-40 — Multiple concurrent timers** `Could`
-Run up to 3 independent sessions (e.g. a cold brew in the fridge plus a hot
-session). Data model already supports it; UI and service do not in 1.0.
-
-**TMR-41 — Live Updates / progress notification** `Could`
-On Android versions that support promoted ongoing notifications with progress
-("Live Updates"), show the session as a progress-style live update.
+**TMR-41 — Live Update** `Must`
+On Android 16, the active timer is a promoted ongoing notification (Live
+Update) with progress-style segments per step, visible as status bar chip, on
+the lock screen and in Samsung's Now Bar. Details:
+[04 §8.3](04-brew-timer.md#83-live-update).
 
 ---
 
-## 9. Journal & tasting notes (JRN) — SCR-06, SCR-15 … SCR-17, SCR-30
+## 10. Journal (JRN) — SCR-15 … SCR-17, SCR-30
 
-**JRN-01 — Session summary** `Must`
-After finishing, SCR-06 shows tea, date/time, method, leaf, water, a table of
-steps (planned vs actual, temperature), and tasting inputs. *Done* saves;
-*Skip* keeps the session without tasting notes. The session is already
-persisted before this screen opens, so leaving it by any means loses nothing.
+**JRN-01 — Automatic logging** `Must`
+Every finished session is stored with tea, date/time, recipe used, vessel,
+leaf, water, and per step the planned and actual time and temperature.
 
-**JRN-02 — Rating** `Must`
-Overall rating 0.5–5.0 in half-star steps; optional. Displayed as "★ 4.5" in
-lists (as in the mockup).
+**JRN-02 — Rating** `Should`
+Optional 0,5–5,0 stars (half steps), added later via *Notizen hinzufügen*.
 
 **JRN-03 — Taste profile** `Should`
-Six optional 0–5 sliders: **Umami, Sweetness, Bitterness, Astringency, Body,
-Aroma**. Visualised as a hexagonal radar chart on session and tea detail
-(average).
+Optional 0–5 sliders: Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma;
+radar chart on session and tea detail (average).
 
 **JRN-04 — Descriptors** `Should`
-Multi-select chips from the bundled vocabulary ([08 §3](08-content.md#3-tasting-descriptor-vocabulary)),
-grouped (Marine, Vegetal, Sweet, Roasted & nutty, Floral, Fruity, Earthy &
-woody, Spice & herb, Mouthfeel, Off-notes), searchable; users can add custom descriptors
-(1–30 chars). Max 20 per session.
+Multi-select chips from the German vocabulary ([08 §4](08-content.md#4-tasting-descriptor-vocabulary)),
+plus custom ones; max 20 per session.
 
-**JRN-05 — Notes** `Must`
-Free-text notes up to 5,000 characters, with optional per-step notes (≤ 300
-chars each).
+**JRN-05 — Notes** `Must` (≤ 5000 chars; per-step notes ≤ 300).
 
-**JRN-06 — Water note** `Could`
-Free text "Water" (e.g. "Volvic", "filtered tap") with autocomplete from history.
-
-**JRN-07 — Session photos** `Should`
-Up to 6 photos per session.
+**JRN-07 — Session photos** `Could` (≤ 6).
 
 **JRN-08 — Journal list** `Must`
-SCR-15 lists sessions newest first, grouped by day with headers ("Today",
-"Yesterday", "Monday, 12 October"). Item: thumbnail (session photo → tea cover
-→ category illustration), tea name, date · total steep time · base temperature,
-rating (as in the mockup).
+Newest first, grouped by day („Heute", „Gestern", „Montag, 12. Oktober").
+Row: thumbnail, tea name, „8. Juni · 3 Min · 80 °C", rating if present, a
+subtle dot for sessions without notes. In-progress session pinned on top.
 
-**JRN-09 — Journal search & filters** `Should`
-Search tea names, notes and descriptors. Filters: tea, category, minimum rating,
-date range, method, "has notes".
+**JRN-09 — Search & filters** `Should` (tea, type, rating, date range, with/without notes).
 
-**JRN-10 — Session detail** `Must`
-SCR-16 shows everything recorded, with *Edit*, *Delete*, *Brew this again*.
+**JRN-10 — Session detail** `Must` with *Bearbeiten*, *Löschen*, *Nochmal brühen*.
 
-**JRN-11 — Edit session** `Must`
-All tasting fields, date/time, leaf, water, notes and step actual times are
-editable. Editing leaf amount updates the linked inventory event (INV-04).
+**JRN-11 — Edit session** `Must` (all fields incl. times; leaf edits update the stock deduction).
 
-**JRN-12 — Manual entry** `Should`
-"Log a session" (Journal FAB) creates a MANUAL session without the timer: tea
-(or free text name), date/time (default now), method, leaf, water, temperature,
-number of infusions + optional durations, and tasting fields.
+**JRN-12 — Manual entry** `Could` (session without the timer).
 
-**JRN-13 — In-progress session in journal** `Must`
-The IN_PROGRESS session is shown at the top of the journal with a live badge and
-opens the timer.
-
-**JRN-14 — Brew coach suggestions** `Could`
-Rule-based tips on the summary screen derived from tasting input (rules in
-[08 §7](08-content.md#7-brew-coach-rules)), e.g. "Quite bitter? Try 5 °C cooler next time."
-
-**JRN-15 — Share session as text/image** `Could`
-Share sheet with a formatted text summary (and later a styled card image).
-
-**JRN-16 — Calendar view** `Could`
-Month calendar with dots on days with sessions.
+**JRN-14 — Brew coach tips** `Could` ([08 §6](08-content.md#6-brew-coach-rules)).
 
 ---
 
-## 10. Inventory & freshness (INV)
+## 11. Stock, cost & freshness (INV)
 
-**INV-01 — Track stock** `Should`
-Per tea, the user can enable stock tracking by entering the current amount
-(g). Remaining stock = sum of inventory events ([05 §3.10](05-data-model.md#310-inventoryevent)).
+**INV-01 — Stock from purchase** `Must`
+Adding a catalog tea with a package option (CAT-12) or entering a package size
+manually creates an initial stock event with the package weight and price.
 
-**INV-02 — Auto-deduct on brew** `Should`
-When a session is finished (COMPLETED) for a tracked tea and SET-15 is on
-(default), an inventory event of −leaf grams is created and linked to the
-session. Discarding the session removes it.
+**INV-02 — Auto-deduct** `Must`
+Finishing a session deducts the leaf amount used (setting SET-15, default on);
+discarding or deleting the session restores it.
 
-**INV-03 — Manual adjustments** `Should`
-On tea detail: *Add purchase* (+g, optional price/date), *Set remaining*
-(creates a correcting event), and a history list of events (SCR-29).
+**INV-03 — Manual adjustments** `Must`
+*Nachkauf erfassen* (+g, price, date), *Bestand korrigieren* (set remaining),
+history list (SCR-29).
 
-**INV-04 — Editing / deleting sessions** `Should`
-Editing a session's leaf amount updates its deduction; deleting a session
-deletes its deduction.
+**INV-04 — Session edits** `Must` update the linked deduction.
 
-**INV-05 — Stock status** `Should`
-Status: *Out* (≤ 0 g), *Low* (≤ threshold; default 10 g, per-tea override),
-*In stock*. Negative values are displayed as 0 g with status *Out*.
+**INV-05 — Stock status** `Must`
+Leer (≤ 0 g), Knapp (≤ threshold, default 10 g), Vorrätig.
 
 **INV-06 — Opened date & freshness** `Should`
-Fields *Opened on* and *Best before*. Freshness status from the tea's (or
-style's) freshness window: *Fresh* (< 75 % elapsed), *Enjoy soon* (75–100 %),
-*Past its best* (> 100 %), or *Past best-before*. Shown as a subtle chip; never
-red/alarming.
-- AC1: When the first session of a tea is finished and *Opened on* is empty,
-  the app sets it to today (with a snackbar *Undo*). `Could`
+*Geöffnet am* is set automatically on the first session of a package
+(snackbar *Rückgängig*); freshness from the style's window: „Frisch",
+„Bald genießen", „Über dem Höhepunkt".
 
 **INV-07 — Low stock & freshness reminders** `Could`
-Optional weekly digest notification (off by default): "2 teas are running low;
-your shincha is best enjoyed soon."
+Weekly digest notification (off by default).
 
-**INV-08 — Price per cup** `Could`
-If price and package size are known: cost per gram and per session.
-
----
-
-## 11. Insights — "Your Tea Journey" (INS) — SCR-18
-
-**INS-01 — Overview** `Should`
-Cards: total teas in collection (+ added this month), sessions this week /
-month, current and longest daily streak (consecutive local days with ≥ 1
-completed or manual session; shown neutrally, no "streak lost" messaging),
-grams brewed this month (if inventory used).
-
-**INS-02 — Ratings overview** `Should`
-Average rating and distribution bars by star (1–5, half stars rounded down), as
-in the mockup.
-
-**INS-03 — Tea types** `Should`
-Share of sessions by category (and by style when filtered to one category),
-shown as a donut with legend and percentages, plus an accessible table
-alternative.
-
-**INS-04 — Activity over time** `Should`
-Sessions per week for the last 12 weeks (bar chart).
-
-**INS-05 — Top teas** `Should`
-Top 5 teas by sessions and top 5 by average rating (min. 3 rated sessions).
-
-**INS-06 — Taste preferences** `Could`
-Average taste radar across all sessions rated ≥ 4 ("what you love"), and the
-most frequent descriptors.
-
-**INS-07 — Time range** `Should`
-Range selector: 30 days, 90 days, 12 months, all time (default 90 days).
-
-**INS-08 — Caffeine tracking** `Won't` — see NG4.
+**INV-08 — Cost** `Must`
+Cost per gram from purchase events (weighted by grams of each purchase); cost
+per session = leaf × cost per gram; shown on tea detail and in statistics.
 
 ---
 
-## 12. Learn & tools (LRN) — SCR-19 … SCR-24
+## 12. Statistics (INS) — SCR-18
 
-**LRN-01 — Guides** `Should`
-Bundled articles ([08 §4](08-content.md#4-learn-guides)) with title, ink-wash
-hero illustration, reading time, and body in rich text (headings, paragraphs,
-lists, tables, figures). Available offline; no external links required to
-understand them.
+Top-level tab „Statistik" with tabs **Überblick · Bewertungen · Verbrauch**
+(as in the mockup's "Your Tea Journey").
 
-**LRN-02 — Contextual links** `Should`
-Style detail, brew setup and brew coach tips link to relevant guides.
+**INS-01 — Activity** `Must`
+Sessions this week / month, total teas in collection („+3 diesen Monat"),
+sessions per week (last 12 weeks), current and longest streak (shown neutrally),
+most-brewed teas (top 5).
 
-**LRN-03 — Tea styles** `Must` — see STY-02/03.
+**INS-02 — Ratings** `Must`
+Average rating and distribution 1–5 ★ (rated sessions only, with count of
+rated vs. total), top-rated teas (≥ 3 ratings).
 
-**LRN-04 — Ratio calculator** `Should`
-Inputs: water (or vessel) and ratio (g/100 ml, or pick a style/profile), or
-leaf and ratio → computes the missing value. Shows teaspoons if enabled.
+**INS-03 — Tea types** `Must`
+Share of sessions by type (Gyokuro, Sencha, Matcha, …) as donut with legend
+and percentages.
 
-**LRN-05 — Unit converter** `Could`
-°C↔°F, g↔oz, ml↔fl oz, g↔tsp (per style factor).
+**INS-04 — Taste** `Should`
+Average taste radar of sessions rated ≥ 4 ★; most frequent descriptors.
 
-**LRN-06 — Cooling helper** `Should`
-Inputs: start temperature (default 100 °C), target temperature, drop per
-transfer (default 10 °C, adjustable 5–15 °C, with explanation).
-Output: `transfers = ceil((start − target) / drop)` with a visual of pouring
-between vessels and the temperature after each transfer. Disclaimer: "An
-estimate — vessels, room temperature and volume all matter. A thermometer or
-variable-temperature kettle is most accurate."
+**INS-05 — Consumption & cost** `Must`
+Grams used per month (bar chart, 12 months), money spent on tea per month
+(purchases), average cost per session, teas running out (Knapp/Leer).
 
-**LRN-07 — Tip of the day** `Could`
-Home shows one short tip from the guides, rotating daily; dismissible.
+**INS-07 — Time range** `Must`: 30 Tage, 90 Tage, 12 Monate, Gesamt (default 90 Tage).
+
+Every chart has an accessible table alternative.
 
 ---
 
 ## 13. Settings (SET) — SCR-25
 
-| ID | Setting | Values / default | Priority |
+| ID | Setting (German label) | Values / default | Priority |
 |---|---|---|---|
-| SET-01 | Temperature unit | °C / °F — from locale | Must |
-| SET-02 | Weight unit | g / oz — from locale | Must |
-| SET-03 | Volume unit | ml / fl oz (US) — from locale | Must |
-| SET-04 | Show leaf in teaspoons too | on / off — off | Should |
-| SET-05 | Theme | System / Light / Dark — System | Must |
-| SET-06 | Use wallpaper colours (dynamic colour, Android 12+) | on / off — **off** (brand palette) | Could |
-| SET-07 | App language | Android 13+ per-app language (system settings link) | Should |
-| SET-08 | Leaf precision | 0.1 g / 0.5 g — 0.1 g | Should |
-| SET-09 | Alert sound | Bundled tones (Bell, Singing bowl, Wood block, Chime, Soft) / Silent — Singing bowl | Must |
-| SET-10 | Pre-alert tick 5 s before end | on / off — off | Could |
-| SET-11 | Vibration | on / off — on | Must |
-| SET-12 | Start first step immediately | on / off — off | Should |
-| SET-13 | Alert loudness mode | "Ring even in silent mode" (alarm stream) / "Follow ringer mode" (notification stream) — Ring | Should |
-| SET-14 | Alert length | Short (1×) / Normal (up to 15 s) / Long (until acknowledged, max 2 min) — Normal | Should |
-| SET-15 | Deduct leaf from stock after brewing | on / off — on | Should |
-| SET-16 | Default low-stock threshold | 0–500 g — 10 g | Should |
-| SET-17 | Keep screen on during brewing | on / off — on | Must |
-| SET-18 | Offer to save adjusted times (PRF-07) | on / off — on | Should |
-| SET-19 | Weekly stock & freshness digest (INV-07) | on / off — off | Could |
-| SET-20 | Backup reminder | Off / Monthly / Weekly — Monthly | Should |
-| SET-21 | Precise reminders for long steeps (exact alarm access) | Link to system "Alarms & reminders" setting, shows status | Could |
+| SET-05 | Design (*Hell / Dunkel / System*) | System | Must |
+| SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
+| SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft) — Klangschale | Must |
+| SET-10 | Vorwarnung (pre-alert) | Aus, 5, 10, 15, 20, 25, 30 s — **5 s** | Must |
+| SET-11 | Vibration | an | Must |
+| SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
+| SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
+| SET-16 | Schwelle „knapp" | 0–500 g — 10 g | Should |
+| SET-17 | Bildschirm beim Brühen anlassen | an | Must |
+| SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |
+| SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07) | aus | Could |
+| SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |
+| SET-22 | Katalog: Fotos laden | an | Should |
+| SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren* | — | Must |
+| SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, battery, exact alarm with *Beheben* links) | — | Must |
 
-**SET-30 — Sections** `Must`
-Settings are grouped: *Units*, *Timer & alerts*, *Brewing*, *Stock*,
-*Appearance*, *Teaware* (→ SCR-13), *Data* (→ SCR-26, tags, remove samples,
-delete all), *About* (→ SCR-27).
+**SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
+*Teegeschirr* (→ SCR-13), *Darstellung*, *Daten* (→ SCR-26, Alle Daten
+löschen), *Über* (→ SCR-27).
 
-**SET-31 — Test alert** `Should`
-*Timer & alerts* has *Play test alert* using current sound/vibration/stream.
+**SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert.
 
-**SET-32 — Notification channel shortcuts** `Should`
-Links to the system notification settings of each channel.
-
-**SET-33 — Delete all data** `Must`
-Two-step confirmation (type "DELETE") wipes database, photos, settings, and
-returns to onboarding.
+**SET-33 — Delete all data** `Must` (type „LÖSCHEN" to confirm).
 
 ---
 
-## 14. Backup, restore & export (BAK) — SCR-26
+## 14. Backup & export (BAK) — SCR-26
 
-Format: [05 §8](05-data-model.md#8-backup-file-format).
+**BAK-05 — Android device backup** `Must`
+Database and settings participate in Android Auto Backup / Samsung & Google
+device backup and device-to-device transfer. Catalog photos and own photos are
+excluded (size limit; catalog photos can be re-downloaded).
 
-**BAK-01 — Create backup** `Must`
-*Back up now* writes a single `.umamitea` file (ZIP) containing all data,
-settings and photos, to a location chosen with the system file picker
-(Storage Access Framework). Progress is shown; the app records the last backup
-date.
+**BAK-01 — Manual export** `Should`
+*Sicherung erstellen* writes a `.umamitea` file (data, settings and own photos;
+catalog excluded) via the system file picker. Format:
+[05 §8](05-data-model.md#8-backup-file-format).
 
-**BAK-02 — Restore backup** `Must`
-*Restore* picks a file, validates it, shows a preview (date, app version,
-counts of teas/sessions/photos) and replaces **all** current data after
-confirmation.
-- AC1: Before replacing, an automatic safety backup of current data is written
-  to app-private storage (last one kept) and can be restored from the same
-  screen.
-- AC2: Invalid, corrupt, or newer-format files are rejected with a clear
-  message; existing data is untouched.
-- AC3: Restore is atomic: on any failure, the previous state remains.
+**BAK-02 — Restore** `Should`
+Validate, preview, confirm, safety backup, atomic replace.
 
-**BAK-03 — Merge restore** `Could`
-Import a backup and merge by ID (newer `updatedAt` wins).
-
-**BAK-04 — CSV export** `Should`
-Exports `teas.csv`, `sessions.csv`, `steps.csv` (zipped) for spreadsheets.
-
-**BAK-05 — OS backup** `Should`
-The database and settings participate in Android Auto Backup and
-device-to-device transfer; photos are excluded (25 MB limit). Explained on
-SCR-26.
+**BAK-04 — CSV export** `Could`
 
 **BAK-06 — Backup reminder** `Should`
-If SET-20 is on and the last backup is older than the interval and there are
-≥ 5 sessions since, a notification on the low-importance *Reminders* channel
-suggests backing up.
-
-**BAK-07 — Share backup** `Could`
-*Back up & share* sends the backup file via the share sheet (e.g. to a cloud
-drive app) — the app itself never uploads anything.
+Monthly low-importance reminder to create a manual export if there are ≥ 20
+new sessions since the last export.
 
 ---
 
-## 15. Notifications (NOT)
+## 15. Notifications & Live Update (NOT)
 
-Channels and content: [04 §8](04-brew-timer.md#8-notifications).
+**NOT-01 — Channels** `Must`: Brühtimer (live/ongoing, silent), Aufguss
+fertig (high), Sitzungen (low), Erinnerungen (low), Katalog (low, refresh
+progress/result).
 
-**NOT-01 — Channels** `Must`
-Separate channels: *Brew timer* (ongoing, silent), *Steep finished* (high
-importance), *Cold brew & long steeps*, *Reminders*, *Session updates*. Created
-on first launch with localized names and descriptions.
+**NOT-02 — Actions** `Must`: READY → *Start*; RUNNING → *Pause*; PAUSED →
+*Weiter*; ALERTING → *Abgegossen*; FINISHED → *Sitzung beenden*. Tapping opens
+SCR-05.
 
-**NOT-02 — Ongoing timer notification** `Must`
-Shows tea name, step, countdown (system chronometer), and actions depending on
-state: RUNNING → *Pause*, *+10 s*; PAUSED → *Resume*; READY → *Start*;
-FINISHED → *Finish & log*. In ALERTING a separate heads-up notification on the
-*Steep finished* channel carries the *Poured* action ([04 §8.2](04-brew-timer.md#82-notification-content)).
-Tapping any of them opens SCR-05.
+**NOT-03 — Lock screen** `Must`: timer notifications public.
 
-**NOT-03 — Lock screen** `Must`
-Timer notifications are public on the lock screen (tea names are not
-sensitive); the user can change this via system settings.
+**NOT-04 — Smartwatch** `Should`: alerts bridge to a paired Galaxy Watch with
+*Abgegossen*.
 
-**NOT-04 — Wearables** `Should`
-Alerts bridge to paired watches with the *Poured* action available.
+**NOT-05 — No promotional notifications** `Must`.
 
-**NOT-05 — No marketing notifications** `Must`
-The app never sends promotional notifications.
+**NOT-06 — App shortcuts** `Could`: *Schnelltimer*, last 3 teas.
 
-**NOT-06 — App shortcuts** `Could`
-Launcher long-press shortcuts: *Quick timer*, and dynamic shortcuts for the 3
-most recently brewed teas.
+**NOT-07 — Quick Settings tile** `Could`.
 
-**NOT-07 — Quick Settings tile** `Could`
-Tile to start the quick timer / show the active session.
+**NOT-08 — Home-screen widget** `Could`.
 
-**NOT-08 — Home screen widget** `Could`
-Glance widget: active session countdown or "Brew again" for 2–3 recent teas.
+---
+
+## 16. Dropped in v0.2 (IDs retired)
+
+| ID | Was | Reason |
+|---|---|---|
+| ONB-02 (v0.1), ONB-04/05 (v0.1) | Unit selection, sample teas | German/metric only; catalog replaces samples (IDs reused for new meaning in v0.2 — no code existed) |
+| TMR-04 | −10 s / +10 s buttons | PO wants a calm running screen (Pause only) |
+| TMR-24/25 | Spoken countdown, tabletop layout | Not needed |
+| TMR-40 | Multiple concurrent timers | One at a time |
+| SET-01…04, SET-07, SET-08 | Units, teaspoons, language, leaf precision | German/metric only |
+| SET-12 | Start first step immediately | Always wait for the user |
+| SET-13 | Alarm stream choice | Alert always follows ringer mode |
+| SET-21 | Precise reminders permission | Exact alarms always available (`USE_EXACT_ALARM`, no store review) |
+| BRW-04, BRW-05, BRW-07 | Teaspoons, cooling helper, checklist | Kettle with 5 °C steps |
+| LRN-01…07 | Learn tab, own guides, calculators, tip of the day | Replaced by Tee-Kontor guides (CAT-09); Stats takes the tab |
+| STY-02/03 (v0.1) | Browsable style reference | Styles are internal fallbacks only |
+| JRN-01 (v0.1) | Session summary screen | Auto-logging (TMR-12) |
+| JRN-06, JRN-15, JRN-16 | Water note, share, calendar | Not needed |
+| TEA-12, TEA-15, TEA-16 | Grid view, bulk actions, label scanning | Not needed |
+| BAK-03, BAK-07 | Merge restore, share backup | Not needed |
+| NOT (store-related) | — | No store |

@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.1** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-21
 
 ## Tea terms
 
@@ -24,6 +24,9 @@
 | **Genmaicha** (玄米茶) | Green tea blended with toasted rice. |
 | **Kukicha / Karigane** | Stem teas; *karigane* often refers to stems from gyokuro or high-grade sencha. |
 | **Tamaryokucha** (玉緑茶) | Curly-leaf green tea from Kyushu. |
+| **Bancha** (番茶) | Later-harvest Japanese green tea; lighter, low in umami. |
+| **Kamairicha** (釜炒り茶) | Pan-fired (not steamed) Japanese green tea. |
+| **Aufguss** | German for infusion/steep. **Ziehzeit**: steep time. **Kaltaufguss**: cold brew. |
 | **Kyusu** (急須) | Japanese teapot, typically with a side handle. |
 | **Houhin** (宝瓶) | Small handleless teapot, often used for gyokuro. |
 | **Shiboridashi** (絞り出し) | Handleless brewing vessel with a notched lid. |
@@ -44,8 +47,17 @@
 
 | Term | Meaning |
 |---|---|
-| **Collection** | The user's own teas (UI name for the tea library). |
-| **Style** | A built-in reference entry (e.g. "Gyokuro") with default parameters. |
+| **Tee-Kontor Kiel** | German tea shop (tee-kontor-kiel.de) whose green tea range forms the in-app catalog. |
+| **Katalog / Sammlung** | Catalog = read-only copy of the shop's green teas; Sammlung (collection) = the teas the user owns. |
+| **Rezept** | UI name for a brew profile (recipe). |
+| **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
+| **Pre-alert (Vorwarnung)** | Soft tick a configurable number of seconds before a steep ends. |
+| **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip, on the lock screen and in Samsung's Now Bar. |
+| **Now Bar** | Samsung One UI area on the lock screen for live activities. |
+| **Sideloading** | Installing an APK directly (here from GitHub Releases) instead of from a store. |
+| **snap5** | Rounding a temperature to the nearest 5 °C (half up). |
+| **Collection** | The user's own teas (UI name: Sammlung › Meine Tees). |
+| **Style** | A built-in internal reference entry (e.g. "Gyokuro") with fallback parameters; not browsable. |
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |
 | **Step** | One timed part of a profile/session: rinse, infusion or whisk. |
 | **Session** | One brewing occasion recorded in the journal. |
