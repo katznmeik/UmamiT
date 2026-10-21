@@ -1,7 +1,7 @@
 # 08 · Content & Catalog Import
 
 > Status: **Draft v0.2** · Last updated: 2026-10-21
-> v0.2: Tee-Kontor Kiel is the primary content source; built-in styles become
+> v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
 ## 1. Principles
@@ -20,173 +20,214 @@
 
 ### 2.1 Status of this section
 
-The structure below comes from a desk survey via search-engine results on
-2026-10-21. The shop could not be opened directly because the cloud
-environment's network policy blocks `www.tee-kontor-kiel.de`. **Before the
-parser is implemented, the domain must be allowed** and this section must be
-verified against the live pages (task V-01 in [09](09-release-plan.md)).
+**Verified against the live site on 2026-10-21 (task V-01)** with 19 sample
+requests. The shop can change at any time; selectors are isolated in the
+parser (NFR-MAINT-04).
 
 ### 2.2 Source structure
 
-| Aspect | Observation (to verify) |
+| Aspect | Verified finding |
 |---|---|
-| Shop platform | Most likely Shopware 5 (product URLs `/<slug>/<articleNumber>`, legacy `/detail/index/sArticle/<id>`) |
-| Green tea root | `/tee/gruener-tee/` |
-| Sub-sections | `japan/` (with `alle-japantees-nach-sorten/<sorte>/` for Matcha, Shincha, Sencha, Kabusecha, Gyokuro, Kukicha, Bancha, Houjicha, Kamairicha, Tamaryokucha, Genmaicha), `china/`, `china-taiwan/`, Korea/other, `aromatisierter-gruentee/`, `bio/`, `klassischer-gruentee/`, Shincha (seasonal) |
-| Matcha | `/matcha/matcha-teepulver/` (also a top-level `/matcha/` section) |
-| Excluded | `/tee/multipacks-sets-zum-probieren/…` (sets), accessories |
-| Product IDs | Article numbers like `TG0557`, `AT0634`; variants with suffixes (`TG0028-10`, `TG0028-50`, `TG0557M` for sample) |
-| Product page data | Name (sometimes with Japanese gloss), properties list (*Anbauland*, *Region*, *Kultivar*, *Ernte/Pflückung*, *Beschattung*, *Dämpfung*, *Bio*, *Hersteller*), description prose, a „Zubereitungsempfehlung" table (Menge, Temperatur, 1./2./3. Aufguss) plus prose, variants with price, base price per kg/100 g, images |
-| Discovery | Crawl section listings with pagination (and/or `sitemap.xml` filtered to the sections above); de-duplicate by base article number |
+| Platform | **Shopware 6.7** storefront behind **Cloudflare** (bot challenges possible) |
+| Host | All pages and images on `www.tee-kontor-kiel.de` (`/media/…` originals, `/thumbnail/…_{W}x{W}.jpg`). This is the only allow-listed host. |
+| `robots.txt` | `Allow: /`, but `Disallow: */?` (so paginated listings `?p=N` are off-limits), `*/widgets/`, `*/navigation/`, `*/bundles/`, account/checkout. No crawl-delay. Sitemap: `/sitemap.xml`. |
+| Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
+| Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
+| Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. |
+| Article numbers | Parent `TG0557`; size variants `TG0557-10/-50/-100/-250/-500/-1000` (suffix = grams); `TG0557M` is the same page as the parent (canonical `TG0557`), not a sample; lower-case suffixes like `AT0220a` are separate articles; `…SET` = sets (excluded); some teas are split into separate base numbers per size (e.g. `AT0868`/`AT0869`). |
 
-Survey examples (paraphrased; to verify):
+### 2.3 Product page selectors and field mapping
 
-| Tea | Brewing info found |
-|---|---|
-| Bio Uji Gyokuro Gokō (`AT0634`) | ~4 g / 100 ml; 50–55 °C; 1st ~90 s, 2nd ~30 s, 3rd ~20 s; cold brew 20–30 min, double dose |
-| Bio Sencha Hisui (`TG0557`) | ~4 g / 200 ml; 60–65 °C; 1st ~60 s, 2nd/3rd ~10 s; cold brew 20–30 min, double dose |
-| Westlake Xi Hu Long Jing (`TG0566`) | ~3 g / 150 ml; ~80 °C; 1st ~60 s, then ~20 s; gaiwan |
-| Bio Premium Matcha Horai (`AT0220a`) | Text: 1–2 g with 80–100 ml at ~80 °C, whisk; table: ~1 g / 100 ml at ~70 °C (conflict) |
-
-### 2.3 Field mapping
-
-| Catalog field ([05 §4.1](05-data-model.md#41-catalogtea)) | Source |
-|---|---|
-| `key` | Base article number (strip `-<n>`, trailing `M`, bulk suffixes) |
-| `name` / `secondary_name` | Product title; a Japanese/Chinese term or gloss in the title/properties becomes the secondary name where identifiable (e.g. „玉露" added via style if absent) |
-| `tea_type` | *Sorte* from the category path (`…/nach-sorten/<sorte>/`) or properties; else from name keywords |
-| `origin_*`, `cultivar`, `harvest`, `shading`, `steaming` | Properties list |
-| `is_organic` | „Bio" in title/properties/category |
-| `is_flavored`, `ingredients` | Category *Aromatisierter Grüntee* or an ingredients list („Zutaten") |
-| `description_html` | Description section, sanitised (§2.8) |
-| `brew_table_raw`, `brew_text_raw` | „Zubereitungsempfehlung" table and accompanying prose |
-| `catalog_package` rows | Variant selector: label, grams, price, availability |
-| `base_price_cents_per_100g` | Shop base price, else computed from the cheapest regular package |
-| `photo_url` | Main product image (largest reasonable size) |
-
-**Conversion into collection-tea fields** (when adding to the collection,
-CAT-12):
-
-| Catalog text | Collection field | Rule |
+| Data | Selector / source | Catalog field ([05 §4.1](05-data-model.md#41-catalogtea)) |
 |---|---|---|
-| `harvest` | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
-| `harvest` | `harvest_season` | „Erste Pflückung", „First Flush", „Frühling", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „Zweite Pflückung", „Second Flush", „Nibancha" → `SECOND_FLUSH`; „Sommer" → `SUMMER`; „Herbst", „Aki" → `AUTUMN`; else `UNKNOWN` |
-| `shading` | `shading_days` | „<n> Tage" → n; „<n> Wochen" → 7n; ranges → midpoint; „beschattet"/„Kabuse" without a number → empty |
-| `steaming`, other processing words | `processing_notes` | Copied as text (e.g. „Chumushi") |
-| `ingredients` | `ingredients` | Copied |
+| Title | `h1.product-detail-name` (strip size suffix „– 30g") | `name` |
+| Article number | `span.product-detail-ordernumber[itemprop=sku]` (label „Produktnummer:") | `key` (base number: strip `-<grams>` and `M`; keep lower-case letters) |
+| Canonical URL | `link[rel=canonical]` | `product_url` |
+| Price | `.product-detail-price` („17,90 €") | default package price |
+| Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)") | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
+| Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock | `available` |
+| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison*, *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
+| Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
+| Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
+| Description | `.product-detail-description-text` paragraphs | `description_html`; also the source of brewing prose and „Zutaten: …" |
+| Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
+| Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea, **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
+| Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon) or `st-zubereitung-westlich` (western icon); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
+| Brewing prose | Description paragraphs mentioning Zubereitung, Aufguss, g/ml, °C, Kaltaufguss | `brew_text_raw` |
+| Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
+| Photo | `img.gallery-slider-image[data-full-image]` (original); thumbnails via `data-srcset` | `photo_url` |
+| Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`) | `breadcrumb`, `tea_type`, section membership |
+| Structured data | Microdata `schema.org/Product` (name, sku, gtin13, image, offers, aggregateRating) — **no JSON-LD**; used only as a fallback for name/price/image | — |
 
-### 2.4 Variant merging
+Region is not a property; it is taken from the title or prose where
+recognisable (e.g. „Uji", „Kirishima", „Yame"), else left empty. Harvest year
+comes from titles („2026 Shincha …").
 
-All article numbers sharing a base number form one tea. Package rows
-include samples („Probe") and bulk sizes. If two variants have different
-names (e.g. a different harvest year), the newest name wins and the year is
-kept in `harvest`.
+**Conversion into collection-tea fields** (CAT-12):
+
+| Catalog data | Collection field | Rule |
+|---|---|---|
+| Ernte badge / Saison / title | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
+| Ernte badge / Saison | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Sommerernte", „Nibancha" → `SECOND_FLUSH`; „Herbst" → `AUTUMN`; else `UNKNOWN` |
+| Beschattung badge / prose | `shading_days` | Number + „Tage" → n; + „Wochen" → 7n; ranges → midpoint (e.g. prose „für 6 Tage beschattet"); badge without number → empty |
+| Dämpfung badge | `processing_notes` | Copied as text (e.g. „Chumushi") |
+| Ingredients | `ingredients` | Copied |
+
+### 2.4 Discovery, variants and request budget
+
+1. Fetch `robots.txt` and respect it; fetch `sitemap.xml` and its `.xml.gz`.
+2. From product URLs, derive base numbers; group variant URLs per base
+   number. Skip `…SET`.
+3. **First refresh:** fetch the parent page of every base number not yet
+   classified, read the breadcrumb, and keep products under
+   `/tee/gruener-tee/`, `/tee/japantee/` (green types only) or
+   `/matcha/matcha-teepulver/`. Store non-green base numbers in a skip list
+   (`catalog_skip`) so later refreshes don't fetch them again.
+4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
+   Shot" in the flavoured section).
+5. **Later refreshes:** fetch known green parents plus base numbers new in the
+   sitemap; products missing from the sitemap → discontinued.
+6. **Package prices:** variant sizes come from the configurator labels and
+   variant URLs. Prices are **estimated** without extra requests:
+   `price(size) = parent price ÷ parent grams × size × (1 − savings %)`,
+   rounded to the cent, marked as estimate. The exact price is fetched from
+   the variant URL when the user adds that package to the collection
+   (CAT-12, online only; offline the estimate is used and editable).
+7. Teas split into separate base numbers per size but with the same name are
+   merged by normalised name.
+8. New harvests usually get new article numbers; the old one becomes
+   discontinued.
+
+Request budget at the default rate limit (2 requests/s, all requests
+including images):
+
+| Refresh | Requests (approx.) | Duration |
+|---|---|---|
+| First | sitemap + ~700 parent pages for classification + ~280 photos + ~10 guides | ~9–10 min |
+| Later | sitemap + ~280 green pages + new items + changed photos | ~3–4 min |
 
 ### 2.5 Recipe derivation
 
-`RecipeDeriver` converts brewing info to timer recipes (CAT-04).
+`RecipeDeriver` turns the brewing grid and prose into timer recipes
+(CAT-04).
 
-**Step 1 — Extract** from the table and, separately, from the prose:
-- Amount: patterns like „4 g / 100 ml", „2–2,5 g auf 50 ml", „10–12 g/l",
-  „1 TL" (teaspoons converted with the style's internal grams-per-teaspoon),
-  „1–2 Bambuslöffel" (≈ 0,5 g each, matcha).
-- Temperature: „50–55 °C", „ca. 80 °C", „abgekocht und auf etwa 80 °C
-  abgekühlt".
-- Infusions: „1. Aufguss 90 Sek.", „2. Aufguss 30 s", „1–2 Min", optional
-  per-infusion temperatures („2. und 3. Aufguss 60 °C").
-- Cold brew: „Kaltaufguss", „kalt", „Eis" with duration and dose hint
-  („Dosierung verdoppeln").
-- Vessel hints: „Kyusu", „Gaiwan", „Kanne", „Glas", „Chasen".
+**Step 1 — Rows to recipes.** Each grid row becomes one recipe:
+`st-zubereitung-japan` → „Kyusu" (`KYUSU`, or `MATCHA_USUCHA` for matcha);
+`st-zubereitung-westlich` → „Westlich" (`WESTERN`). The **default recipe** is
+the Kyusu row for Japanese teas when present, otherwise the first row.
 
-**Step 2 — Choose per field:** table value → else prose value → else
-built-in style default. Then flag:
-- any field from prose → `FROM_TEXT`,
-- any field from style default → `FROM_STYLE_DEFAULT` (except matcha whisk
-  duration, which the shop never states),
-- table and prose both present but differing (temperature > 5 °C, time >
-  max(10 s, 20 %), amount > 20 %) → `TABLE_TEXT_CONFLICT` (table still wins).
+**Step 2 — Parse cells.** Patterns observed: amounts `~4g/100ml`,
+`~4g/200ml`, `~10g/L`, `2-2,5g/50ml`; temperatures `50-55°C`, `~65°C`,
+`~65-75°C`; times `~90 Sek`, `60 Sek`, `~1 Min`; `-` = not given. A leading
+`~` is ignored.
 
-**Step 3 — Normalise:**
-- Ranges → midpoint.
-- Temperature → `snap5` (half up; 52,5 → 55 °C).
-- Times → nearest 5 s (half up).
-- Amount → recipe `water_ml` = the stated volume (e.g. 100 ml); per-litre
-  statements use the style's default water volume and scale the leaf; leaf
-  rounded to 0,1 g.
+**Step 3 — Fill gaps per field:** grid value → else prose value → else the
+built-in style default.
 
-**Step 4 — Build steps:**
-- One INFUSION per stated infusion with its temperature (or base
-  temperature).
-- If only the first infusion is stated and the style is multi-infusion
-  (KYUSU/GONGFU), append the style's follow-up infusions (flag
-  `FROM_STYLE_DEFAULT`).
-- Matcha: one WHISK step (20 s usucha); koicha only if stated.
+**Step 4 — Normalise:** ranges → midpoint; temperature → `snap5` (half up:
+52,5 → 55 °C); times → nearest 5 s; amounts: water = stated volume (per-litre
+amounts use 1000 ml for western recipes, style default volume for kyusu
+recipes, leaf scaled by the ratio); leaf rounded to 0,1 g.
 
-**Step 5 — Method:** Matcha → `MATCHA_USUCHA`; „Gaiwan" → `GONGFU`; Japanese
-types or „Kyusu" → `KYUSU`; ratio ≥ 3 g/100 ml with first infusion ≤ 90 s →
-`GONGFU` for non-Japanese teas; else `WESTERN`.
+**Step 5 — Steps:** one INFUSION per given infusion (1–3) at the recipe
+temperature. If only the first infusion is given and the method is KYUSU or
+GONGFU, follow-up infusions come from the style default. Matcha: one WHISK
+step with the style's whisk duration (the shop states none; not flagged).
 
-**Step 6 — Cold brew:** if prose mentions cold brewing, add a second recipe
-„Kaltaufguss" (`COLD_BREW`): leaf = hot ratio × (2 if „verdoppeln", else 1),
-same water, 5 °C, one INFUSION with the midpoint duration (e.g. 20–30 min →
-25 min).
+**Step 6 — Cold brew.** If the „Coldbrew geeignet" badge is present or the
+prose describes a Kaltaufguss, add a recipe „Kaltaufguss" (`COLD_BREW`):
+values from the prose when given (e.g. „Ziehzeit … 20 - 30 Minuten …
+Dosierung verdoppeln" → 25 min, double leaf), otherwise the style's
+cold-brew default. Temperature 5 °C („kalt").
 
-**Step 7 — Plausibility:** hot temperature 40–100 °C; first hot infusion
-5 s–10 min; ratio 0,5–15 g/100 ml. Out-of-range values are replaced by style
-defaults and flagged `IMPLAUSIBLE_VALUE`.
+**Step 7 — Plausibility:** hot 40–100 °C; first hot infusion 5 s–10 min;
+ratio 0,5–15 g/100 ml; otherwise style default + `IMPLAUSIBLE_VALUE`.
 
-**Worked examples (from survey data):**
+**Flags.** Every recipe stores its `source` (`CATALOG_TABLE`, `CATALOG_TEXT`,
+`STYLE_DEFAULT`). The tea-level „Rezept prüfen" flag (CAT-05) is set only for
+the **default recipe**:
+- any of its fields from prose → `FROM_TEXT`;
+- any field (except the matcha whisk time) from the style default →
+  `FROM_STYLE_DEFAULT`;
+- grid and prose both present but differing (temperature > 5 °C, time >
+  max(10 s, 20 %), amount > 20 %) → `TABLE_TEXT_CONFLICT` (grid wins);
+- implausible values → `IMPLAUSIBLE_VALUE`.
 
-| Tea | Derived recipe | Flag |
-|---|---|---|
-| Bio Uji Gyokuro Gokō | KYUSU 4,0 g / 100 ml / 55 °C: 1:30, 0:30, 0:20 · Kaltaufguss 8,0 g / 100 ml / 5 °C: 25:00 | `FROM_TEXT` (cold-brew recipe from prose) |
-| Bio Sencha Hisui | KYUSU 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Kaltaufguss 8,0 g / 200 ml: 25:00 | `FROM_TEXT` (cold brew) |
-| Xi Hu Long Jing | GONGFU 3,0 g / 150 ml / 80 °C: 1:00, 0:20, 0:20 | depends on table |
-| Matcha Horai | MATCHA_USUCHA 1,0 g / 100 ml / 70 °C: whisk 0:20 | `TABLE_TEXT_CONFLICT` |
+Additional recipes (cold brew, western) show their source as a small note in
+the recipe instead of flagging the tea.
 
-### 2.6 Style mapping
+**Worked examples (live data, 2026-10-21):**
 
-| Shop *Sorte* / keyword | Style key |
+| Tea | Grid / prose | Derived recipes | Tea flag |
+|---|---|---|---|
+| Bio Uji Gyokuro Gokō `AT0634` | Kyusu `~4g/100ml · 50-55°C · ~90 Sek · ~30 Sek · ~20 Sek` | **Kyusu** 4,0 g / 100 ml / 55 °C: 1:30, 0:30, 0:20 · Kaltaufguss from style if badge present | — |
+| Bio Sencha Hisui `TG0557` | Westlich `~10g/L · ~65°C · ~1 Min`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` | **Kyusu** 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Westlich 10,0 g / 1000 ml / 65 °C: 1:00 | — |
+| Bio Premium Matcha Horai `AT0220a` | Kyusu `~1g/100ml · ~70°C · -` | **Usucha** 1,0 g / 100 ml / 70 °C: whisk 0:20 | — |
+| Bio Yuzu Sencha `TG0569` (flavoured) | Westlich `~10g/L · ~65-75°C · ~1 Min`; Kyusu `~4g/200ml · 65-75°C · 60 Sek · 10 Sek · 10 Sek`; prose: Kaltaufguss 20–30 min, double dose | **Kyusu** 4,0 g / 200 ml / 70 °C: 1:00, 0:10, 0:10 · Westlich 10,0 g / 1000 ml / 70 °C: 1:00 · Kaltaufguss 8,0 g / 200 ml / 5 °C: 25:00 | — |
+
+### 2.6 Style mapping and umami level
+
+Style from the breadcrumb's last segment, else name keywords:
+
+| Breadcrumb / keyword | Style key |
 |---|---|
-| Gyokuro | `gyokuro` |
-| Kabusecha | `kabusecha` |
-| Sencha + „Fukamushi" | `fukamushi_sencha` |
-| Sencha | `sencha` |
-| Shincha | `shincha` |
-| Matcha | `matcha` |
-| Kukicha, Karigane | `karigane` |
-| Bancha | `bancha` |
-| Houjicha, Hōjicha, Hojicha | `hojicha` |
-| Genmaicha | `genmaicha` |
-| Kamairicha | `kamairicha` |
-| Tamaryokucha | `tamaryokucha` |
-| Long Jing, Lung Ching | `longjing` |
-| Bi Luo Chun, Pi Lo Chun | `bi_luo_chun` |
-| Anji Bai Cha | `anji_bai_cha` |
-| Sejak, Ujeon, Korea | `korean_green` |
-| Aromatisierter Grüntee / flavoured | `flavored_green` |
-| Teepulver other than matcha | `green_generic` (form POWDER) |
+| `gyokuro` | `gyokuro` |
+| `kabusecha` | `kabusecha` |
+| `sencha` + „Fukamushi" in name | `fukamushi_sencha` |
+| `sencha` | `sencha` (flavoured → `flavored_green`) |
+| `shincha`, `shincha-<year>` | `shincha` |
+| `matcha`, `matcha-teepulver` | `matcha` (latte/flavoured blends → `matcha`, flavoured) |
+| `kukicha`, `kukicha-karigane-shiraore` | `karigane` |
+| `bancha` | `bancha` |
+| `houjicha` (incl. powder → form POWDER) | `hojicha` |
+| `genmaicha` | `genmaicha` |
+| `kamairicha` | `kamairicha` |
+| `tamaryokucha` | `tamaryokucha` |
+| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic`; form TEA_BAG; default recipe = cold brew |
+| `aromatisierter-gruentee` | `flavored_green` |
+| China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun" / „Anji" / „Sejak" | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` |
 | anything else | `green_generic` + flag `UNMAPPED_STYLE` |
+
+**Umami level** from the shop's Umami scale when present: 0 → `NONE`, 1 →
+`LOW`, 2 → `MEDIUM`, 3 → `HIGH`, 4–5 → `VERY_HIGH`; otherwise the style's
+level. All shop scales (Umami, Bitterstoffe, …) are shown on the catalog
+detail page.
 
 ### 2.7 Tee-Info guides
 
-Discover articles under `/tee-info/` whose title or body matches green-tea
-keywords (Grüntee, Japantee, Matcha, Sencha, Gyokuro, Kyusu, Umami,
-Kaltaufguss). Known examples: „Ein Guide für Japantee", „Matcha-Eistee".
-Convert to Markdown (headings, paragraphs, lists, tables, images
-downloaded locally); rewrite links to catalog products as in-app links.
+The blog (`/tee-info/`, canonical `/blog`) shows only category tiles; articles
+are discovered from the sitemap (`/tee-info/<slug>`, ~300). Articles are
+selected by slug keywords (japantee, gruentee, matcha, sencha, gyokuro,
+kabuse, shincha, houjicha, genmaicha, kaltaufguss, kyusu, umami) and fetched
+individually. Article body: `.pixel-blog-detail .cms-element-text` (h1
+inside; gallery `.st-blog-gallery`); JSON-LD `BlogPosting` provides title,
+date and image.
 
-### 2.8 Sanitising
+Confirmed relevant articles: `ein-guide-fuer-japantee`,
+`matcha-verstehen-ein-guide-fuer-teefans`, `a-guide-to-sencha`,
+`kabuse-beschattung-von-japanischem-gruentee`, `teerezepte-matcha-eistee`,
+`teefibel-zubereitung-der-kaltaufguss-fahrplan-wie-geht-eigentlich-die-teezubereitung-als-kaltaufguss`.
 
-Strip scripts, styles, iframes, forms, tracking pixels and remote embeds
-(e.g. YouTube → plain link). Keep basic formatting only.
+Conversion: Markdown (headings, paragraphs, lists, tables, images downloaded
+locally); links to product pages become in-app catalog links.
+
+### 2.8 Sanitising and robustness
+
+- Strip scripts, styles, iframes, forms, tracking pixels and embeds (YouTube →
+  plain link); keep basic formatting only.
+- **Cloudflare:** if a response is a challenge page (HTTP 403/503 with
+  `cdn-cgi/challenge-platform` markers) the refresh stops immediately, keeps
+  the old catalog, and shows „Der Shop hat den Abruf vorübergehend blockiert –
+  bitte später erneut versuchen." No attempt is made to bypass challenges.
+- Identify with a clear user agent („UmamiTea/<version> (private app)").
 
 ### 2.9 Sanity thresholds (CAT-07 AC5)
 
-Abort the refresh without changes if: fewer than 50 % of the previous
-product count (or < 30 on first import) are parsed; or > 30 % of products
-lack a name, price or article number; or every product lacks a brewing table
-**and** brewing text (selector broke).
+Abort without changes if: fewer than 50 % of the previous green product count
+(or < 150 on first import) are parsed; or > 30 % of products lack name, price
+or article number; or > 50 % lack a brewing grid **and** brewing prose
+(selector broke). Out-of-stock products have a price but no availability and
+count as valid.
 
 ## 3. Built-in tea styles
 

@@ -132,21 +132,27 @@ The catalog is a local, read-only copy of all green teas from
 Source structure, field mapping and parsing rules: [08 §2](08-content.md#2-tee-kontor-catalog-import).
 
 **CAT-01 — Scope** `Must`
-All products in the shop's green tea sections: Japan, China, Taiwan, Korea and
-other origins, *Bio*, *Klassischer Grüntee*, *Aromatisierter Grüntee*
-(flavoured teas and blends), the current *Shincha* section and *Matcha &
-Teepulver*. Excluded: tea sets/multipacks, accessories, gift cards.
+All products in the shop's green tea sections (verified structure in
+[08 §2.2](08-content.md#22-source-structure)): Japan (all types incl.
+Mizudashi cold-brew bags), China, Taiwan, *andere Regionen*, *Bio*,
+*Klassischer Grüntee*, *Aromatisierter Grüntee* (flavoured teas and blends),
+the current *Shincha* section and *Matcha-Teepulver* — about 260–280 teas.
+Excluded: sets (`…SET`), matcha bowls and accessories, sweets, and items
+containing no tea.
 
 **CAT-02 — One entry per tea** `Must`
-Size variants, samples („M") and bulk packs of the same tea are merged into one
-catalog entry with a list of package options (weight, price).
+Size variants (10 g … 1000 g, each a separate article in the shop) and teas
+split into separate article numbers per size are merged into one catalog
+entry with a list of package options (weight, price, savings).
 
 **CAT-03 — Extracted data** `Must`
 Per tea: name, secondary name, article number, product URL, shop category and
 tea type (*Sorte*: Sencha, Gyokuro, …), origin country & region, cultivar,
-harvest/flush, shading, steaming, organic flag, flavoured flag and
-ingredients, description and taste notes (German text), raw brewing table,
-raw brewing text, package options with price, base price per 100 g,
+harvest/flush, shading, steaming, organic flag, „Coldbrew geeignet" badge,
+flavoured flag, aroma, taste notes (*Geschmack*), manufacturer, matcha
+grade, ingredients, the shop's taste scales (Umami, Bitterstoffe, … 0–5),
+description (German text), raw brewing grid (Kyusu and/or Westlich rows),
+brewing prose, package options with price, base price per 100 g,
 availability, main photo. Unavailable fields stay empty.
 
 **CAT-04 — Derived recipe** `Must`
@@ -157,9 +163,11 @@ midpoint; temperatures snap to 5 °C, times to 5 s; cold-brew instructions
 produce an extra cold-brew recipe.
 
 **CAT-05 — „Rezept prüfen" flag** `Must`
-A tea is flagged „Rezept prüfen" (check recipe) with a reason when its recipe
-came from the text or a style default instead of the table, when table and
-text contradict, or when values were implausible. The flag is visible in the
+A tea is flagged „Rezept prüfen" (check recipe) with a reason when its
+**default** recipe came (partly) from the text or a style default instead of
+the shop's brewing grid, when grid and text contradict, or when values were
+implausible. Additional recipes (e.g. a cold brew from the style default)
+only show their source as a note. The flag is visible in the
 catalog and carries over to collection teas created from it until the user
 edits or confirms the recipe.
 
@@ -174,8 +182,10 @@ the shop, parses all products, and replaces the catalog atomically.
 - AC1: Progress shows pages and products processed; the refresh can be
   cancelled; the phone may be locked during refresh (long-running WorkManager
   worker in a `dataSync` foreground service with a progress notification).
-- AC2: Requests are polite: ≤ 1 request/second, identifying user agent,
-  `robots.txt` respected, timeouts and ≤ 3 retries.
+- AC2: Requests are polite: ≤ 2 requests/second (all requests, incl.
+  images), identifying user agent, `robots.txt` respected (no paginated
+  listings; discovery via the sitemap), timeouts and ≤ 3 retries; a
+  Cloudflare challenge stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
   3 Rezepte prüfen".
 - AC4: Teas no longer found are kept, marked „Nicht mehr im Sortiment".
@@ -210,8 +220,10 @@ recipe(s) with flag reason, package options and prices, and actions
 *In Sammlung aufnehmen* and *Im Shop öffnen* (browser).
 
 **CAT-12 — Add to collection** `Must`
-*In Sammlung aufnehmen* opens SCR-23: choose package option (weight & price,
-prefilled), purchase date (default today); creates a collection tea that is
+*In Sammlung aufnehmen* opens SCR-23: choose package option (weight & price;
+prices of other sizes are estimates from the base price and savings until the
+exact price is fetched from the shop when online — editable either way),
+purchase date (default today); creates a collection tea that is
 an independent copy (TEA-01) with recipes, stock (INV-01) and price. If the
 tea is already in the collection, the action becomes *Nachkauf erfassen*
 (record repurchase), adding stock instead of a duplicate.

@@ -117,8 +117,8 @@ There is no analytics. Success means:
   only the specifications are worked on.
 - **C3** The catalog depends on the structure of tee-kontor-kiel.de, which can
   change at any time without notice.
-- **C4** The cloud environment must allow `www.tee-kontor-kiel.de` before the
-  catalog parser can be developed and tested.
+- **C4** ✅ The cloud environment allows `www.tee-kontor-kiel.de` (verified
+  2026-10-21); the shop uses Cloudflare, so refreshes must stay polite.
 
 ## 9. Related documents
 

@@ -159,21 +159,22 @@ re-downloaded only if URL/ETag changed.
    `SystemForegroundService` declared with `foregroundServiceType="dataSync"`
    via manifest merge); progress notification on the `catalog` channel;
    cancellable.
-2. Fetch `robots.txt`; then category listing pages (with pagination) per
-   [08 §2.2](08-content.md#22-source-structure), collect product URLs;
-   de-duplicate by base article number.
-3. Fetch each product page (≤ 1 req/s, retry ≤ 3 with backoff, 20 s
-   timeout); parse with `TeeKontorParser` (selectors versioned as
-   `parserVersion`).
+2. Fetch `robots.txt` and the sitemap; derive base article numbers from
+   product URLs, skip known out-of-scope numbers (`catalog_skip`) per
+   [08 §2.4](08-content.md#24-discovery-variants-and-request-budget).
+3. Fetch each candidate parent page (≤ 2 req/s, retry ≤ 3 with backoff,
+   20 s timeout); classify by breadcrumb; parse with `TeeKontorParser`
+   (selectors versioned as `parserVersion`); stop on Cloudflare challenge.
 4. Merge variants, map styles, derive recipes, compute content hashes.
 5. Download changed photos (if SET-22).
 6. Fetch and convert *Tee-Info* guides (CAT-09) into staging.
 7. Sanity check (CAT-07 AC5); atomic swap of the staging tables
    ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
 
-All requests (pages and images) share the 1 req/s limit. Expected
-duration: first refresh ~150–250 pages + ~200 photos + guides → ~8–10 min;
-later refreshes skip unchanged photos (conditional requests) → ~4–6 min.
+All requests (pages and images) share the 2 req/s limit. Expected
+duration: first refresh (~700 classification pages + ~280 photos + guides)
+≈ 9–10 min; later refreshes (~280 pages, changed photos only) ≈ 3–4 min.
+Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 ### 5.4 Background work
 

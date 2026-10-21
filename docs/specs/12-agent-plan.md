@@ -103,7 +103,7 @@ Answer the questions in order and take the first tier that matches:
 
 | Task | Tier |
 |---|---|
-| Verify live site structure, update spec §2 of [08](08-content.md) | T2 |
+| Re-check parser selectors against the live site (structure verified in [08 §2](08-content.md#2-tee-kontor-catalog-import)) | T2 |
 | HTTP client: host allow-list, rate limiter, robots.txt, retries | T3 |
 | `TeeKontorParser` (selectors, properties, variants, images) | T3 |
 | `RecipeDeriver` (extraction, normalisation, flags, cold brew) | T4 (complex rules and the most visible risk to recipe quality) |

@@ -240,10 +240,13 @@ Table `catalog_tea`
 | `tea_type` | TEXT | *Sorte* as named by the shop |
 | `style_key` | TEXT | mapped built-in style (CAT-06) |
 | `origin_country`, `origin_region`, `cultivar`, `harvest`, `shading`, `steaming` | TEXT | as found |
-| `is_organic`, `is_flavored` | INTEGER | |
+| `is_organic`, `is_flavored`, `cold_brew_suitable` | INTEGER | badges / aroma / ingredients |
+| `aroma`, `taste_notes`, `manufacturer`, `season`, `matcha_grade` | TEXT | properties table |
+| `taste_scales_json` | TEXT | shop scales, e.g. `{"Umami":4,"Bitterstoffe":1}` |
+| `breadcrumb` | TEXT | category path of the product page |
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
-| `brew_table_raw` | TEXT | brewing table as found (JSON of rows) |
+| `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cell texts) |
 | `brew_text_raw` | TEXT | brewing prose as found |
 | `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
@@ -260,8 +263,17 @@ origin_region.
 
 ### 4.2 CatalogPackage
 
-Table `catalog_package`: `catalog_key` FK CASCADE, `article_number`,
-`label` („100 g", „Probe 10 g"), `grams` REAL, `price_cents`, `available`.
+Table `catalog_package`: `catalog_key` FK CASCADE, `article_number`
+(e.g. `TG0557-50`), `label` („50 g", „250 g · 3 % gespart"), `grams` REAL,
+`price_cents`, `price_is_estimate` INTEGER, `savings_percent` INTEGER,
+`variant_url`, `available`.
+
+### 4.2a CatalogSkip
+
+Table `catalog_skip`: `base_key` PK, `reason` (`NOT_GREEN`, `SET`,
+`NO_TEA`), `checked_at` — base numbers from the sitemap that were classified
+as out of scope, so later refreshes don't fetch them again (re-checked after
+90 days).
 
 ### 4.3 CatalogGuide
 
@@ -373,7 +385,7 @@ prompt to refresh), since they are re-downloadable.
 
 | Entity | Expected | Test |
 |---|---|---|
-| Catalog teas | 100–200 | 500 |
+| Catalog teas | 260–280 | 500 |
 | Own teas | 10–40 | 300 |
 | Sessions | ~1,000 / year | 10,000 |
-| Photos | catalog 200 (~20 MB), own < 200 | 1,000 |
+| Photos | catalog ~280 (~30 MB), own < 200 | 1,000 |

@@ -23,7 +23,7 @@
 | **M0** | **Specification** | These documents; PO review; open questions answered | — | — (PR only) |
 | — | **Go gate** | PO gives explicit go for development | — | — |
 | **M1** | **Timer first** | Project skeleton, CI, signing & release workflow, design system (washi/steeping themes, serif font, core components), navigation shell (Start · Journal · Sammlung · Statistik, placeholders), Einrichtung reliability page, complete timer (multi-step recipes, Pause, pre-alert, alerts per ringer mode, Live Update, exact alarms, FGS, recovery, reboot), quick timer, active brew bar, timer settings, minimal manual tea + recipe creation (name, style template, recipe) for testing, minimal session log | ONB-01/02/04, BRW-01…03, BRW-10, TMR-*, NOT-01…03, SET-09…11, SET-14, SET-17, SET-24, SET-31, GEN-* | v0.1.0 |
-| **M2** | **Tee-Kontor catalog** | Verify site (V-01), parser + fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, guides, „Rezept prüfen" | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
+| **M2** | **Tee-Kontor catalog** | Re-check selectors (V-01 done), parser + synthetic fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, guides, „Rezept prüfen" | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
 | **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.3.0 |
 | **M4** | **Journal & statistics** | Auto-log refinements, „Gespeichert" sheet with notes and recipe update, session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-*, TMR-12 | v0.4.0 |
 | **M5** | **Data & polish → 1.0** | Device backup rules, manual export/restore, reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log, final illustrations | BAK-*, SET-*, NFR-* | **v1.0.0** |
@@ -40,7 +40,7 @@ PO's review and testing turnaround.
 | P-03 | ✅ Application ID `com.umamitea.app` (D-027) | M1 |
 | P-04 | Release keystore created; stored in GitHub secrets; PO keeps an offline copy | M1 release |
 | P-05 | ✅ Serif font Cormorant Garamond (D-027); illustration source (Q-04) open | M5 (illustrations) |
-| V-01 | Verify [08 §2](08-content.md#2-tee-kontor-catalog-import) against the live site and update the spec | M2 start |
+| V-01 | ✅ [08 §2](08-content.md#2-tee-kontor-catalog-import) verified against the live site and updated (2026-10-21); re-check selectors at M2 start | M2 start |
 
 ## 4. Acceptance checklists (on the PO's Galaxy)
 
@@ -60,7 +60,7 @@ PO's review and testing turnaround.
 
 ### M2 — Catalog
 
-- [ ] *Katalog laden* completes; count roughly matches the shop's green tea sections; no duplicates per size.
+- [ ] *Katalog laden* completes (first run ≈ 10 min); ~260–280 teas; no duplicates per size; no sets or accessories.
 - [ ] 10 spot-checked teas: name, type, origin, prices, photo correct; brewing table/text shown verbatim; derived recipe follows §2.5; flags plausible.
 - [ ] Second refresh reports „0 neu · 0 geändert" when nothing changed.
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
@@ -103,6 +103,7 @@ PO's review and testing turnaround.
 | # | Risk | Mitigation |
 |---|---|---|
 | R1 | Samsung battery management delays alerts | Exact alarms + FGS + battery exemption + Never-sleeping apps; on-device acceptance tests |
+| R2b | Cloudflare bot protection blocks the refresh | Low rate, clear user agent, stop on challenge with a clear message, retry later; no bypassing |
 | R2 | Tee-Kontor site changes break the parser | Isolated parser with fixtures and `parserVersion`; atomic refresh with sanity checks; clear error; quick fix release |
 | R3 | Brewing info too inconsistent for good recipes | Table-first rules, verbatim display, „Rezept prüfen" flags, easy editing |
 | R4 | Live Update APIs or Now Bar behave differently on One UI 8 | Fallback to normal ongoing notification; verify early in M1 |

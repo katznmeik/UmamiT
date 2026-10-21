@@ -29,7 +29,7 @@ Automated checks run on emulators with API 35 and 36.
 | NFR-PERF-06 | Statistics compute within 500 ms for 10,000 sessions. |
 | NFR-PERF-07 | **Timer accuracy:** pre-alert and alert within 1 s of target (p95 ≤ 250 ms), screen on or off, app foreground, background or killed. Displayed time never deviates > 100 ms from the deadline. |
 | NFR-PERF-08 | Timer screen animates smoothly while visible; no animation work when not visible. |
-| NFR-PERF-11 | Catalog refresh of ~200 products completes in ≤ 6 min on Wi-Fi without blocking the UI. |
+| NFR-PERF-11 | Catalog refresh on Wi-Fi without blocking the UI: first refresh ≤ 12 min, later refreshes ≤ 5 min (rate-limited to 2 req/s, [08 §2.4](08-content.md#24-discovery-variants-and-request-budget)). |
 
 ## 3. Reliability & data integrity
 

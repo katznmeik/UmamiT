@@ -402,7 +402,7 @@ spent per month, cost per session, running-out list.
 ### SCR-19 Sammlung › Katalog
 
 Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
-142 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
+274 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
 search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
 Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
 „15,90 €/100 g", flag chips. Overflow: *Katalog aktualisieren*.
@@ -416,7 +416,8 @@ rich text, links to catalog teas resolved locally, *Im Browser öffnen*.
 ### SCR-21 Katalog-Tee
 
 Photo, name, subtitle, type, origin/cultivar/harvest/shading/steaming, Bio /
-aromatisiert, description, ZUBEREITUNG (shop table and text, verbatim),
+aromatisiert / Coldbrew geeignet, the shop's taste scales (Umami,
+Bitterstoffe, … as leaf rows 0–5), aroma and taste notes, description, ZUBEREITUNG (shop table and text, verbatim),
 ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
 *In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*.
 
@@ -427,8 +428,9 @@ error state with *Details kopieren* for the developer.
 
 ### SCR-23 In Sammlung aufnehmen (sheet)
 
-Package option radio list („50 g · 8,50 €", „100 g · 15,90 €", custom),
-Kaufdatum, *Aufnehmen*.
+Package option radio list („50 g · 8,95 €", „100 g · 17,90 €", „250 g ·
+≈ 43,41 € · 3 % gespart", custom); estimated prices are marked „≈" and
+replaced by the exact price when fetched; Kaufdatum; *Aufnehmen*.
 
 ### SCR-25 Einstellungen
 
