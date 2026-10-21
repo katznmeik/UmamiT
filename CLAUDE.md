@@ -152,4 +152,9 @@ Design and motion skills from emilkowalski/skills (MIT), installed with
 Framer Motion); for UmamiT, apply their principles to Compose and the
 washi/matcha design in `docs/specs/03-ux-ui.md`. The most relevant are
 `/emil-design-eng`, `/apple-design`, `/review-animations`,
-`/improve-animations` and `/find-animation-opportunities`.
+`/improve-animations` and `/find-animation-opportunities`; `/animate`,
+`/break-ui` and `/animation-vocabulary` are also kept. The web/iOS-only skills
+(`animate-expo`, `ask-sonner`, `write-swift`, `mobile-native`,
+`pick-ui-library`, `animation-performance`, `prototype`) were removed. How
+they enter the M1 work: `docs/plans/M1-timer.md` §3.2. Timer reliability
+still beats polish (rule 8).
