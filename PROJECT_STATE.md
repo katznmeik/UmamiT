@@ -53,7 +53,7 @@
 Follow `docs/plans/M1-timer.md`, starting with M1-00 (session-start hook
 that installs the Android SDK), M1-01 (Gradle skeleton with all module
 stubs), M1-02/03 (CI incl. emulator job, signing, release workflow) and the
-probe release M1-03a (spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6)).
+probe release M1-03a (spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6); tickets #8–#17 in dependency order, start with #8 and #9).
 
 ## Open questions
 
@@ -74,6 +74,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Spec #6 broken into 10 tickets (#8–#17, sub-issues of #6); frontier: #8 (SDK hook) and #9 (signing key). Label `ready-for-human` still to be created by the PO for #9 and #17. |
 | 2026-10-21 | Spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6) for M1-00 … M1-03a (`ready-for-agent`); M1 plan updated (test seams §3.1, task details); D-039 recorded. |
 | 2026-10-21 | Matt Pocock skills set up: GitHub Issues as tracker, default triage labels, domain docs mapped to specs 10/11 (`docs/agents/`). An early M1 start was stopped by the PO; the go stays 2026-10-22 09:05. |
 | 2026-10-21 | PO gave the go for development, effective 2026-10-22 09:05 Europe/Berlin (D-038); a scheduled check-in starts M1 then. |
