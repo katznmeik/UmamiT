@@ -6,17 +6,44 @@
 
 | ID | Question | Proposed default | Needed by |
 |---|---|---|---|
-| Q-01 | Final **application ID**? It must never change, or updates can't install over the old app. | `com.umamitea.app` | M1 |
-| Q-04 | Source of the **ink-wash illustrations** and logo (the mockup's images may not be licensed for reuse)? | Simple original illustrations created for the app (vector), logo redrawn from the mockup | M5 (logo: M1) |
-| Q-05 | **Serif display font**? | Cormorant Garamond (OFL) | M1 |
-| Q-11 | Is the GitHub repository **private**? (Relevant for parser test fixtures excerpted from the shop.) | Keep private | M2 |
-| Q-15 | Default **alert sound**: is „Klangschale" (singing bowl) right? | Yes | M1 |
-| Q-18 | Do you use a **Galaxy Watch**? (Decides whether NOT-04 is tested.) | — | M1 |
+| Q-04 | Source of the **ink-wash illustrations**, photos and logo — options below; it must feel high quality. | Option C (AI-generated, curated and post-processed), logo redrawn as vector | M1 (logo), M5 (illustrations) |
+| Q-11 | Keep the GitHub repository **public or private**? Not a problem either way once D-016 applies (no shop content in the repo); see notes below. | Either; private is simplest | M2 |
+| Q-15 | Default **alert sound** „Klangschale" (singing bowl): PO agrees in principle but wants to **hear it** before final approval → listen via *Alarm testen* in the M1 APK. | Klangschale | M1 acceptance |
+
+### Notes on Q-04 — illustration and imagery options
+
+| Option | Quality | Effort / cost | Notes |
+|---|---|---|---|
+| **A. Commission an illustrator** (sumi-e / ink-wash artist) | Highest, unique, consistent | Highest (typically several hundred €; weeks) | Best if the look should be truly one-of-a-kind |
+| **B. Licensed stock art** (e.g. Adobe Stock, Shutterstock, Creative Market ink-wash packs) | High, professional | Low–medium (per image or pack) | Check the licence covers use in an app; style consistency across images can vary |
+| **C. AI-generated, curated and post-processed** (ChatGPT / similar, same session as the mockups) | High if curated: generate many, pick the best, colour-match to the palette, clean up, export light and dark variants | Low | Matches the mockup look exactly; fine for a personal app; check the tool's terms |
+| **D. Public-domain museum art** (CC0 open-access collections, e.g. Met Museum, Rijksmuseum, Smithsonian: historical Japanese ink landscapes) | Very high, authentic | Low (curation and cropping) | Real historical artworks; need toning to the washi palette; fewer tea-specific motifs |
+| **E. Generated in code** (Compose canvas "ink" mountains) | Medium | Medium (development time) | Tiny size and infinitely scalable, but less rich than painted art |
+
+Recommendation: **C** for illustrations (fast, on-brand, matches the
+mockup), optionally mixed with **D** for one or two hero landscapes;
+logo redrawn as a clean vector from the mockup. Tea photos come from
+Tee-Kontor (catalog) and the PO's own photos.
+
+### Notes on Q-11 — public vs private repository
+
+A public repository is fine **as long as no Tee-Kontor content is committed**
+(D-016): parser tests use synthetic HTML fixtures that mimic the page
+structure without the shop's texts or images. Other aspects:
+- Signing keys are GitHub secrets and never visible, public or not.
+- Public GitHub Releases mean anyone could download the APK. It contains no
+  personal data and no shop content, so this is harmless.
+- The specs and the brand mockup would be visible to anyone.
+- Private repositories have a limited free GitHub Actions quota; public ones
+  have unlimited minutes for standard runners.
 
 ### Resolved questions
 
 | ID | Resolution (2026-10-21) |
 |---|---|
+| Q-01 Application ID | `com.umamitea.app` (accepted). |
+| Q-05 Serif font | Cormorant Garamond (accepted). |
+| Q-18 Galaxy Watch | Not used; no watch support needed (NOT-04 → Won't). |
 | Q-02 Monetisation | Not applicable: personal use only. |
 | Q-03 Languages | German only (D-017). |
 | Q-06 Content review | Tee-Kontor is the content source; built-in styles are fallbacks only. |
@@ -115,9 +142,11 @@ excluded from device backup; own photos included in manual export.
 ### D-016 — Handling of scraped content · *Proposed*
 
 Scraped texts and photos are stored only on the phone for personal use and are
-not committed to the repository, except minimal HTML excerpts needed as
-parser test fixtures (repository kept private, Q-11). No bundled snapshot
-unless generated at build time and not committed (CAT-14).
+**never committed** to the repository. Parser tests use **synthetic HTML
+fixtures** that reproduce the page structure (element classes, table layout)
+with invented text. A manual "live parser check" task runs the parser against
+the real site from a cloud session when needed. No bundled snapshot unless
+generated at build time and not committed (CAT-14).
 
 <a id="d-017"></a>
 ### D-017 — German only, metric · *Accepted* (PO, 2026-10-21)
@@ -183,10 +212,30 @@ PO's phone runs Android 16; one version of slack.
 The PO's kettle is adjustable in 5 °C steps; the timer shows a kettle hint per
 step.
 
+<a id="d-026"></a>
+### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
+
+Development tasks are delegated to subagents by tier: T1 simple → Sonnet,
+low effort; T2 standard → Opus, medium; T3 complex → Opus, high; T4 critical →
+Opus, extra high (`xhigh`, the ceiling; `max` not used). Details, task
+catalogue and escalation rules: [12 · Subagent Distribution Plan](12-agent-plan.md).
+
+<a id="d-027"></a>
+### D-027 — Application ID and display font · *Accepted* (PO, 2026-10-21)
+
+Application ID `com.umamitea.app`; serif display font Cormorant Garamond (OFL).
+
+<a id="d-028"></a>
+### D-028 — No smartwatch support · *Accepted* (PO, 2026-10-21)
+
+No Galaxy Watch integration or testing; notification bridging may happen by
+default but is not a requirement.
+
 ## Change log
 
 | Date | Change |
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Agent plan (12, D-026); Q-01, Q-05, Q-18 resolved (D-027, D-028); Q-04 options and Q-11 notes added; D-016 switched to synthetic fixtures; tee-kontor-kiel.de reachable from the cloud environment. |
 | 2026-10-21 | v0.2: PO interview — personal sideloaded app, German, Samsung/Android 16, Tee-Kontor catalog with in-app refresh, timer details (pre-alert, ringer-mode alert, Live Update), auto-journal, Stats tab, delivery plan. D-013 … D-025 added; D-004, D-010 superseded; D-001, D-006 amended. |

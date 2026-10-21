@@ -72,7 +72,7 @@ Automated checks run on emulators with API 35 and 36.
 | NFR-PRIV-03 | No analytics, ads, crash reporting or tracking SDKs. |
 | NFR-PRIV-04 | Own photos have EXIF (incl. GPS) removed. |
 | NFR-PRIV-07 | Android device backup includes database and settings only (photos/catalog excluded). |
-| NFR-PRIV-10 | Scraped Tee-Kontor content (texts, photos) is used for personal use only: it is stored on the phone, not redistributed, and not committed to the repository beyond minimal test fixtures (D-016). |
+| NFR-PRIV-10 | Scraped Tee-Kontor content (texts, photos) is used for personal use only: it is stored on the phone, not redistributed, and never committed to the repository; tests use synthetic fixtures (D-016). |
 
 ## 7. Security
 
@@ -93,7 +93,6 @@ Automated checks run on emulators with API 35 and 36.
 | NFR-COMP-02 | Portrait and landscape; split screen; Samsung DeX and foldables should not break layouts (best effort). |
 | NFR-COMP-04 | Edge-to-edge, gesture and 3-button navigation. |
 | NFR-COMP-05 | Light and dark system themes. |
-| NFR-COMP-06 | Galaxy Watch notification bridging for alerts (Should). |
 
 ## 9. Battery & resources
 

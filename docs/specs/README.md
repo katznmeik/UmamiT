@@ -26,8 +26,10 @@ explicit go ([D-024](10-open-questions-and-decisions.md#d-024)).
 | 09 | [Delivery Plan & Roadmap](09-release-plan.md) | Milestones, prerequisites, acceptance checklists, risks |
 | 10 | [Open Questions & Decision Log](10-open-questions-and-decisions.md) | What is still open, what was decided and why |
 | 11 | [Glossary](11-glossary.md) | Tea and technical terms |
+| 12 | [Subagent Distribution Plan](12-agent-plan.md) | Which model and effort Claude's subagents use for which tasks |
 
 Design reference: [`docs/design/brand-mockup.png`](../design/brand-mockup.png).
+Prompt for new mockups: [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md).
 
 ## Key decisions at a glance
 
@@ -51,6 +53,8 @@ Design reference: [`docs/design/brand-mockup.png`](../design/brand-mockup.png).
 - **Stack:** Kotlin, Jetpack Compose, Material 3, Room, Hilt, OkHttp and
   Jsoup; min SDK 35. — D-003, D-023
 - **Delivery:** timer first; one PR per milestone. — D-024
+- **Subagents:** simple tasks use Sonnet at low effort; complex ones use Opus
+  at medium, high or extra-high effort, never max. — D-026
 
 ## Conventions
 

@@ -14,9 +14,9 @@
 | Target / compile SDK | **36** (Android 16) or newer stable |
 | Build | Gradle Kotlin DSL, version catalog, convention plugins in `build-logic/` |
 | Distribution | **Signed APK on GitHub Releases** (no Play Store, no AAB needed) |
-| Application ID | `com.umamitea.app` (proposed, Q-01); must stay constant so updates install over the previous version |
+| Application ID | `com.umamitea.app` (D-027); must stay constant so updates install over the previous version |
 | Repository | `katznmeik/UmamiTea`; one PR per milestone into `main` |
-| Developer | Claude (cloud sessions); PO reviews PRs and tests APKs on the phone |
+| Developer | Claude (cloud sessions), delegating to subagents per [12 · Subagent Distribution Plan](12-agent-plan.md); PO reviews PRs and tests APKs on the phone |
 
 Library versions are pinned in `gradle/libs.versions.toml` (latest stable at
 project start).
@@ -231,8 +231,9 @@ issue when something goes wrong.
   - **Pure unit:** timer engine, recipe derivation, variant merge, style
     mapping, stock/cost, streaks, backup validation (≥ 90 % line coverage in
     these modules).
-  - **Parser:** fixture tests on saved product/category HTML from
-    tee-kontor-kiel.de (kept as minimal excerpts, used only for tests; D-016).
+  - **Parser:** tests on synthetic HTML fixtures that mirror the shop's page
+    structure without its content (D-016), plus an on-demand live check
+    against the real site from a cloud session.
   - **Robolectric:** DAOs, migrations, notifications, alarms.
   - **Compose UI and Roborazzi** screenshot tests for key screens (light/dark,
     200 % font).

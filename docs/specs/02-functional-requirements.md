@@ -695,8 +695,7 @@ SCR-05.
 
 **NOT-03 — Lock screen** `Must`: timer notifications public.
 
-**NOT-04 — Smartwatch** `Should`: alerts bridge to a paired Galaxy Watch with
-*Abgegossen*.
+**NOT-04 — Smartwatch** `Won't` (D-028).
 
 **NOT-05 — No promotional notifications** `Must`.
 

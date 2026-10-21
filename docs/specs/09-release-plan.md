@@ -13,6 +13,8 @@
 3. **Every milestone ends with an installable APK** on a GitHub Release
    (`v0.x.0`), plus an on-device acceptance checklist in the PR.
 4. Specs are updated in the same PR when behaviour changes.
+5. Work is delegated to subagents with model and effort per
+   [12 · Subagent Distribution Plan](12-agent-plan.md).
 
 ## 2. Milestones
 
@@ -34,10 +36,10 @@ PO's review and testing turnaround.
 | ID | Item | Needed for |
 |---|---|---|
 | P-01 | PO's explicit go | M1 start |
-| P-02 | `www.tee-kontor-kiel.de` allowed in the cloud environment's network settings (and any image CDN host found during V-01) | M2 |
-| P-03 | Application ID confirmed (Q-01) | M1 |
+| P-02 | ✅ `www.tee-kontor-kiel.de` allowed in the cloud environment (verified 2026-10-21); add any image CDN host found during V-01 | M2 |
+| P-03 | ✅ Application ID `com.umamitea.app` (D-027) | M1 |
 | P-04 | Release keystore created; stored in GitHub secrets; PO keeps an offline copy | M1 release |
-| P-05 | Serif font confirmed (Q-05) and illustration source (Q-04) | M1 (font), M5 (illustrations) |
+| P-05 | ✅ Serif font Cormorant Garamond (D-027); illustration source (Q-04) open | M5 (illustrations) |
 | V-01 | Verify [08 §2](08-content.md#2-tee-kontor-catalog-import) against the live site and update the spec | M2 start |
 
 ## 4. Acceptance checklists (on the PO's Galaxy)
@@ -48,6 +50,7 @@ PO's review and testing turnaround.
 - [ ] Einrichtung: notifications, battery „Uneingeschränkt", Live notifications all show ✓ after setup.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
 - [ ] Pre-alert tick at 5 s (global) and at 15 s (recipe override); none for a 5 s step.
+- [ ] Listen to all alert sounds via *Alarm testen*; approve the default „Klangschale" or pick another (Q-15).
 - [ ] Alert with ringer normal (sound + vibration), vibrate (vibration only), silent (visual only); stops on *Abgegossen* or after ~15 s.
 - [ ] Screen off during a 2-min step: pre-alert and alert on time.
 - [ ] App swiped from recents during a step: alert still fires.
@@ -105,4 +108,4 @@ PO's review and testing turnaround.
 | R4 | Live Update APIs or Now Bar behave differently on One UI 8 | Fallback to normal ongoing notification; verify early in M1 |
 | R5 | Losing the release keystore blocks updates | Keystore in GitHub secrets + PO offline copy |
 | R6 | Network allowlist not granted | M1, M4 and M5 do not depend on it; M3 works with manually added teas; M2 waits |
-| R7 | Copyright of scraped content | Personal use only, not redistributed, not committed (D-016) |
+| R7 | Copyright of scraped content | Personal use only, not redistributed, never committed; synthetic test fixtures (D-016) |
