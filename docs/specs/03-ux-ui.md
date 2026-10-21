@@ -11,8 +11,10 @@ references them by ID.
 
 The product owner supplied a brand mockup (October 2026) that defines the
 **look and feel**. The screens in it are *illustrative*: they do not define the
-feature set. Store a copy at `docs/design/brand-mockup.png` (to be added by the
-product owner) so designers and developers share the same reference.
+feature set. It is stored at [`docs/design/brand-mockup.png`](../design/brand-mockup.png)
+so designers and developers share the same reference.
+
+![UmamiTea brand mockup](../design/brand-mockup.png)
 
 What the mockup establishes and this spec adopts:
 

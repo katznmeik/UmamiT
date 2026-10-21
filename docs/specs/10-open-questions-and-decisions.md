@@ -22,7 +22,7 @@ before or during development. "Needed by" refers to milestones in
 | Q-10 | Confirm **minimum Android version** 8.0 (API 26). | Yes | PO | M0 |
 | Q-11 | Will the project be **open source**? Which licence? | Private repo; decide before 1.0 | PO | M6 |
 | Q-12 | Should onboarding default to **sample teas**? | Yes (ONB-04), removable anytime | PO | M5 |
-| Q-13 | Add the **brand mockup** image to `docs/design/brand-mockup.png`? | Yes | PO | M0 |
+| ~~Q-13~~ | ~~Add the **brand mockup** image to `docs/design/brand-mockup.png`?~~ **Resolved 2026-10-21:** added. | — | PO | — |
 | Q-14 | **Support e-mail** and **privacy policy hosting** (e.g. GitHub Pages)? | Dedicated address + GitHub Pages | PO | M6 |
 | Q-15 | Default **alert sound**: is a singing-bowl tone right for the brand, and should the default alert ring in silent mode (SET-13)? | Singing bowl; ring in silent mode | PO | M2 |
 
@@ -132,3 +132,4 @@ Lightweight architecture/product decision records. Status: *Accepted*,
 | Date | Change |
 |---|---|
 | 2026-10-21 | Initial specification set (v0.1); D-001 and D-002 accepted by PO; brand mockup received and incorporated into [03](03-ux-ui.md). |
+| 2026-10-21 | Brand mockup committed at `docs/design/brand-mockup.png`; Q-13 resolved. |
