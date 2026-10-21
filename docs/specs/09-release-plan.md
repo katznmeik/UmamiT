@@ -23,7 +23,8 @@
    the PO's Galaxy **and** a design review round passes. For the review,
    every PR includes automatically rendered screenshots (Roborazzi) of all
    new or changed screens in light and dark theme, committed under
-   `docs/design/review/<milestone>/`. Screenshots use placeholder images,
+   `docs/design/review/<milestone>/`, plus short GIF recordings of the key
+   motions (D-041). Screenshots use placeholder images,
    never Tee-Kontor photos (public repo, D-016). The PO compares them with
    the mockups and comments in the PR; fixes follow before Claude merges.
 6. Work is delegated to subagents with model and effort per

@@ -83,7 +83,7 @@ Tier: T1 = Sonnet/low, T2 = Opus/medium, T3 = Opus/high, T4 = Opus/xhigh.
 | **M1-14** | **Quick timer (SCR-07).** | T2 | M1-12 | Chips and custom duration; alert and Live Update work; not logged. |
 | **M1-15** | **Setup + settings:** Einrichtung (SCR-01 welcome + reliability checklist: notifications, battery exemption / Samsung hints incl. automatic restart, Live notifications, full-screen alert; seed photo progress from M1-07); reliability banner (TMR-31); timer & alert settings incl. *Vorwarnung*, dimming, *Alarm testen*, reliability status card (SET-24); *Über › Diagnose* (from M1-20). | T2 | M1-10, M1-11, M1-20 | All checks show the correct status; deep links open the right system pages. |
 | **M1-16** | **Minimal journal:** list of auto-logged sessions with the mockup row format (time of day, „55 °C · 1:00 · 3 Aufgüsse", „2 von 3 Aufgüssen" from `planned_step_count`), the „Gespeichert" sheet without the notes editor, stock deduction. | T2 | M1-06, M1-09 | A finished session appears immediately; stock is reduced. |
-| **M1-17** | **Design review renders:** Roborazzi screenshots of all M1 screens and states (light/dark), incl. the Schritte-Sheet, committed under `docs/design/review/M1/`. | T1 | M1-12…16, M1-19 | Images present, with placeholders only. |
+| **M1-17** | **Design review renders:** Roborazzi screenshots of all M1 screens and states (light/dark), incl. the Schritte-Sheet, plus GIF motion recordings of the key motions (D-041, §3.2), committed under `docs/design/review/M1/`. | T1 | M1-12…16, M1-19 | Images and recordings present, with placeholders only. |
 | **M1-18** | **Milestone review + release:** review the full diff against the specs (T4), fix the findings, update the specs if needed, update `PROJECT_STATE.md`, open the PR with the template and checklist, dispatch `release.yml` for `v0.1.0-rc.N` from the PR branch (repeat after fixes); after the PO's approval, Claude merges and dispatches the final `v0.1.0` from `main`. | **T4** | all | PR open; rc pre-release available; final release after merge. |
 | **M1-19** | **Schritte-Sheet (SCR-31):** session-only editing of duration and temperature per step, add/remove steps, pre-alert selector (Wie Einstellung / Aus / 5–30 s), *Im Rezept speichern*; used by SCR-04 *Bearb.*, *Weiterer Aufguss* (TMR-10) and ⋮ *Schritte bearbeiten* (TMR-11); sends `editSteps`. | T2 | M1-08, M1-04 | Compose UI tests; edited steps are used by the timer; done/running steps are read-only. |
 | **M1-20** | **Diagnostics log (06 §5.6):** rolling log of timer events with scheduled vs actual fire times (pre-alert, deadline), FGS start/stop and refusals, ringer mode, boot / package-replaced, permission states; screen *Einstellungen › Über › Diagnose* with *Kopieren*. | T3 | M1-09 | Unit tests for the log; entries appear for a test session. |
@@ -121,6 +121,13 @@ CLAUDE.md "Project skills") into the work instead of using them ad hoc:
   animation APIs.
 - **Review:** UI tickets (M1-04, M1-05, M1-12, M1-13, M1-14, M1-19) get a
   `/review-animations` check in addition to the normal review.
+- **Guardrails:** D-041 / 03 §3.6 (calm style, liquor fill and pre-alert
+  glow, strong non-flashing alert, reduce motion).
+- **Motion recordings:** for the key motions (ring progress with liquor
+  fill, pre-alert glow, alert pulse and its static reduce-motion variant,
+  Schritte-Sheet, active brew bar), short GIFs recorded with Roborazzi's
+  experimental `recordRoboVideo` (record-only, no verification), committed
+  next to the screenshots; kept small (short loops, reduced size).
 - **Design review (M1-17):** `/find-animation-opportunities` on the
   finished screens, plus `/break-ui`-style worst-case renders as extra
   Roborazzi screenshots: long German tea names, missing photos, 2.0 font
