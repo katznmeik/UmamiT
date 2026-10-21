@@ -31,6 +31,37 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 | Stats | "Your Tea Journey" with tabs, big numerals, rating bars, tea-type donut | SCR-18 |
 | Bottom nav | **Home · Journal · Collection · Stats** with thin line icons | §2.2 (German labels) |
 
+### 1.1 Mockups v2 (aligned with spec v0.2)
+
+Generated from [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md) and
+added by the PO on 2026-10-21. They are the **current visual reference**;
+`brand-mockup.png` remains the original mood reference.
+
+| File | Content |
+|---|---|
+| [`mockup-v2-board.png`](../design/mockup-v2-board.png) | Board with 8 screens: Start, timer running, timer READY, lock screen with Now Bar, Sammlung › Katalog, tea detail, Journal, Statistik › Verbrauch |
+| [`mockup-v2-start.png`](../design/mockup-v2-start.png) | Start screen in detail |
+
+![Mockup v2 board](../design/mockup-v2-board.png)
+
+**Review notes:** where the mockups and the spec differ, these rules apply.
+
+| Screen | Observation | Resolution |
+|---|---|---|
+| All | German labels, nav Start · Journal · Sammlung · Statistik, Samsung frame, palette and typography match the spec | Adopted as reference |
+| Start (board) | Section label misspelt „ZULETZT GERÜHRT" | Spec wins: „ZULETZT GEBRÜHT" (the single Start mockup is correct) |
+| Start (single) | The *Matcha* thumbnail shows a brown liquor (looks like hōjicha) | Image glitch; real thumbnails are tea photos |
+| Timer running | Top-right shows an ⓘ icon | Spec wins: ⋮ overflow menu (SCR-05) |
+| Timer running | Ring with a small marker near the end | Adopted: marker = pre-alert point on the ring |
+| Timer READY | Step dots highlight step 1 while the label says „Aufguss 2 von 3" | Spec wins: dots show completed steps and the current step |
+| Timer READY | Big „Start" inside the empty ring; kettle icon with „Wasserkocher auf 60 °C" and „Aufguss 2 · 0:20" below | Adopted as designed |
+| Lock screen | Now Bar pill: thumbnail, „Gyokuro · Aufguss 2", progress bar, „0:14", pause button | Adopted as the Live Update target look |
+| Katalog | Segmented „Meine Tees / Katalog", source line, search, chips Sorte / Herkunft / Bio, rows with origin · type, price per 100 g, chips „im Besitz" / „Rezept prüfen" | Adopted (count in the header is the real number, ≈ 270) |
+| Tea detail | No *Brühen* button visible, only the pencil FAB | Spec wins: sticky primary *Brühen* button plus the pencil FAB |
+| Tea detail | Stat row Temperatur · Ziehzeit · Aufgüsse; VORRAT & KOSTEN „62 g übrig · 0,64 € pro Tasse" | Adopted |
+| Journal | Within a day group, rows show the time of day on the right („09:12") and a meta line „55 °C · 1:00 · 3 Aufgüsse" plus rating | **Adopted** — replaces the earlier meta line format (JRN-08 updated) |
+| Statistik | Verbrauch tab with „38 g diesen Monat", monthly bar chart, Tee-Typen donut | Adopted; the donut may appear on Überblick and Verbrauch |
+
 ## 2. Information architecture & navigation
 
 ### 2.1 Site map
@@ -377,8 +408,10 @@ List (type icon, name, volume) and editor.
 
 ### SCR-15 Journal
 
-Serif „Journal", search „Journal durchsuchen …", filter icon; day-grouped
-`TeaListItem`s; in-progress session pinned. Empty: „Deine erste Tasse wartet."
+Serif „Journal", search „Tees, Notizen, …", filter icon; day-grouped rows
+(header „HEUTE", „GESTERN", dates) with round photo, serif tea name, meta line
+„55 °C · 1:00 · 3 Aufgüsse", rating, and the time of day on the right
+(„09:12"); in-progress session pinned. Empty: „Deine erste Tasse wartet."
 
 ### SCR-16 Sitzung (detail)
 

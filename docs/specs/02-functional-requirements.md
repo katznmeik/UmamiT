@@ -560,8 +560,9 @@ plus custom ones; max 20 per session.
 
 **JRN-08 — Journal list** `Must`
 Newest first, grouped by day („Heute", „Gestern", „Montag, 12. Oktober").
-Row: thumbnail, tea name, „8. Juni · 3 Min · 80 °C", rating if present, a
-subtle dot for sessions without notes. In-progress session pinned on top.
+Row (as in mockup v2): thumbnail, tea name, time of day („09:12"), meta line
+„55 °C · 1:00 · 3 Aufgüsse" (base temperature · first infusion · count),
+rating if present, a subtle dot for sessions without notes. In-progress session pinned on top.
 
 **JRN-09 — Search & filters** `Should` (tea, type, rating, date range, with/without notes).
 

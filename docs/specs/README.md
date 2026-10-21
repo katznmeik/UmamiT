@@ -28,7 +28,9 @@ explicit go ([D-024](10-open-questions-and-decisions.md#d-024)).
 | 11 | [Glossary](11-glossary.md) | Tea and technical terms |
 | 12 | [Subagent Distribution Plan](12-agent-plan.md) | Which model and effort Claude's subagents use for which tasks |
 
-Design reference: [`docs/design/brand-mockup.png`](../design/brand-mockup.png).
+Design reference: [`docs/design/mockup-v2-board.png`](../design/mockup-v2-board.png)
+and [`mockup-v2-start.png`](../design/mockup-v2-start.png) (current), and
+[`brand-mockup.png`](../design/brand-mockup.png) (original mood).
 Prompt for new mockups: [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md).
 Image assets to create, with prompts: [`docs/design/assets.md`](../design/assets.md).
 
