@@ -47,6 +47,10 @@ the timer ring.
   size budget (≤ 4 MB of imagery).
 - For museum images (option D), note the source URL and licence (must be
   CC0 / public domain) next to the file in `docs/design/assets/source/CREDITS.md`.
+- **Sounds** (D-036): the alert tones and the pre-alert tick are synthesised
+  by Claude (ffmpeg) in M1. To replace a tone, upload a CC0 recording to
+  `docs/design/assets/source/` and note its source URL and licence in
+  `CREDITS.md`.
 
 ## 3. Shared style block
 

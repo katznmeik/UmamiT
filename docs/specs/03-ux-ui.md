@@ -51,6 +51,9 @@ added by the PO on 2026-10-21. They are the **current visual reference** (they s
 |---|---|---|
 | All | German labels, nav Start · Journal · Sammlung · Statistik, Samsung frame, palette and typography match the spec | Adopted as reference |
 | Start (board) | Section label misspelt „ZULETZT GERÜHRT" | Spec wins: „ZULETZT GEBRÜHT" (the single Start mockup is correct) |
+| Start (both) | Greeting text „Guter Tee schenkt …" under the header | Spec wins: no greeting text, header illustration only (D-035) |
+| Start (both) | No *Schnelltimer* entry and no FAVORITEN section | Spec wins: both are present (SCR-02) |
+| Start (both) | ZULETZT GEBRÜHT rows in a free-form layout | Spec wins: rows use the `TeaListItem` format (§3.8) |
 | Start (single) | The *Matcha* thumbnail shows a brown liquor (looks like hōjicha) | Image glitch; real thumbnails are tea photos |
 | Timer running | Top-right shows an ⓘ icon | Spec wins: ⋮ overflow menu (SCR-05) |
 | Timer running | Ring with a small marker near the end | Adopted: marker = pre-alert point on the ring |
@@ -72,7 +75,8 @@ App
 ├── Einrichtung (SCR-01) — first start only
 ├── Start / Home (SCR-02)
 │   ├── Aufguss starten → Teeauswahl (SCR-03) → Brühen (SCR-04) → Timer (SCR-05) → Gespeichert-Sheet (SCR-06)
-│   ├── Nochmal brühen (recent teas) → SCR-04
+│   │   └── Schritte-Sheet (SCR-31) from SCR-04 *Bearb.* and the timer
+│   ├── Nochmal brühen (recent teas) → Timer READY (SCR-05, BRW-11)
 │   ├── Schnelltimer (SCR-07)
 │   └── Einstellungen (SCR-25) — top-bar action
 ├── Journal (SCR-15)
@@ -123,7 +127,7 @@ unsaved changes trigger GEN-08.
 | „Sitzung gespeichert" notification | SCR-16 |
 | Catalog refresh result notification | SCR-19 |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
-| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates) |
+| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
 
 ### 2.5 Layout
 
@@ -136,6 +140,16 @@ Sammlung and Journal; no orientation lock.
 ### 3.1 Colour tokens
 
 First-pass values approximated from the mockup, to be finalized with the PO.
+
+**How the theme is built (D-036):**
+- Full Material 3 **light and dark colour schemes** (every M3 role) are
+  generated from the seed colour `#4A5643` with material-color-utilities /
+  Material Theme Builder. The values in the tables below are applied as
+  **overrides** on top; roles not listed come from the generated scheme.
+- The timer always uses the dark ("Steeping") scheme.
+- **Extended tokens** that M3 has no role for are provided through a
+  `CompositionLocal` (`UmamiExtendedColors`): warm accent `#D9A35F`
+  (prominent overtime), the liquor colours and the type colours below.
 
 **Light ("Washi")**
 
@@ -185,15 +199,19 @@ Dynamic colour is off by default (SET-06).
 
 | Role | Font | Size / line height |
 |---|---|---|
-| Timer digits | Serif display or sans with tabular figures, light | 72–96 sp |
+| Timer digits | Cormorant Garamond **Light** with `lnum` + `tnum` font features (lining, tabular figures) | 72–96 sp |
 | Headline („Journal") | Serif display | 28 / 36 sp |
 | Title (tea names) | Serif display | 20–22 / 28 sp |
 | Body | System sans | 14–16 / 20–24 sp |
 | Label | System sans | 12–14 sp |
 | Overline | System sans, uppercase, +0.12 em tracking | 11 / 16 sp |
 
-- Serif: bundled OFL font closest to the mockup (proposed **Cormorant
-  Garamond**, Q-05), Regular + Medium, Latin subset incl. German umlauts/ß.
+- Serif: bundled OFL font **Cormorant Garamond** (D-027), Light + Regular +
+  Medium, Latin subset incl. German umlauts/ß. Subsetting keeps the `lnum`
+  and `tnum` OpenType features for the timer digits.
+- A screenshot test renders the timer digits for all values 0–9 in every
+  position and fails on width changes (digit jitter). Fallback if the
+  features do not work: system sans with tabular figures, Light weight.
 - Japanese text via the system CJK fallback font.
 - Uppercase overlines use German `ẞ`-safe uppercasing (`ZULETZT GEBRÜHT`).
 
@@ -249,6 +267,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step, remaining time |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
+| `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
 
 ## 4. Screens
@@ -258,8 +277,14 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 1. *Willkommen* — full-bleed ink-wash, logo, „UmamiT", welcome text
    **„Aus Liebe zum Tee"** (serif), お茶で、いい時間を。, *Los geht's*.
 2. *Damit der Timer zuverlässig klingelt* — checklist rows with status ✓/!:
-   Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen.
-   Each row has an action button; *Weiter* always available.
+   Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen ·
+   Vollbild-Alarm (ONB-02). Each row has an action button; *Weiter* always
+   available. Below: hint on Samsung's automatic restart
+   (*Automatische Optimierung › Automatisch neu starten*) with a link to the
+   setting.
+   Meanwhile the two seed photos download once in the background with a
+   small progress line „Teefotos werden geladen …" and *Überspringen*
+   (ONB-06).
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
    machen" · *Katalog jetzt laden* (progress inline) / *Später*.
 
@@ -309,18 +334,22 @@ footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*.
 │ AUFGÜSSE                Bearb.│
 │ 1  Aufguss  1:30   55 °C      │
 │ 2  Aufguss  0:30   60 °C      │
-│ 3  Aufguss  0:20   60 °C      │
+│ 3  Aufguss  0:20   60 °C      │  Bearb. → Schritte-Sheet (SCR-31)
 │ Vorwarnung  10 s (Standard)   │
 │ [ Im Rezept speichern ]       │ only when changed
 │ [      Brühen starten      ]  │
 └──────────────────────────────┘
 ```
 
-„Rezept prüfen" badge with reason above the steps if flagged.
+„Rezept prüfen" badge with reason above the steps if flagged. *Bearb.* and
+the *Vorwarnung* row open the Schritte-Sheet (SCR-31).
 
 ### SCR-05 Timer
 
-Always dark ("Steeping"), edge-to-edge, keeps the screen on.
+Always dark ("Steeping"), edge-to-edge, keeps the screen on. At the end of a
+step it is brought up by the full-screen intent (TMR-06) and shown **over the
+lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
+is only needed to leave the timer.
 
 ```
 ┌──────────────────────────────┐
@@ -353,7 +382,7 @@ Overflow ⋮ items by state:
 | Brühen anpassen (only before the first step started) | ✓ | – | – | – | – |
 | Aufguss jetzt beenden | – | ✓ | ✓ | – | – |
 | Schritt überspringen | ✓ | – | – | – | – |
-| Schritte bearbeiten | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Schritte bearbeiten (→ SCR-31) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Weiterer Aufguss | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
 | Sitzung beenden | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
 | Sitzung verwerfen | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -468,24 +497,56 @@ replaced by the exact price when fetched; Kaufdatum; *Aufnehmen*.
 ### SCR-25 Einstellungen
 
 Sections per SET-30; *Timer-Zuverlässigkeit* card at the top with status rows
-and *Beheben* buttons; *Alarm testen*.
+(Benachrichtigungen, Live-Benachrichtigungen, Vollbild-Alarm, Akku, exakte
+Alarme) and *Beheben* buttons; *Alarm testen*.
 
 ### SCR-26 Daten & Sicherung
 
-Device-backup explanation, *Sicherung erstellen*, *Wiederherstellen*,
-safety backup, (Could) CSV export, *Alle Daten löschen*.
+Device-backup explanation, *Sicherung erstellen* (BAK-01), (Could) CSV
+export, *Alle Daten löschen*. No in-app restore in 1.x (BAK-02 `Won't`,
+D-036).
 
 ### SCR-27 Über
 
 Logo, version, Tee-Kontor source note („Katalogdaten und Fotos © Tee-Kontor
 Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*,
-*Diagnose* (local timer/catalog log, *Kopieren*; [06 §5.6](06-architecture.md#56-error-handling--logging)).
+*Diagnose* (local timer/catalog log, *Kopieren*; from M1;
+[06 §5.6](06-architecture.md#56-error-handling--logging)).
 
 ### SCR-28 Fotos, SCR-29 Vorrat, SCR-30 Beschreibungen
 
 Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
 erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
 groups, custom).
+
+### SCR-31 Schritte-Sheet (session steps)
+
+Bottom sheet that edits the steps of **this session only** (D-036). Opened
+from SCR-04 *Bearb.* / *Vorwarnung*, from the timer overflow ⋮ *Schritte
+bearbeiten* (TMR-11) and after *Weiterer Aufguss* (TMR-10, the new step is
+editable before *Start*).
+
+```
+┌──────────────────────────────┐
+│ Schritte für diese Sitzung    │
+│ ✓ 1 Aufguss  1:30   55 °C     │ done steps read-only
+│   2 Aufguss  [0:30] [60 °C] ✕ │ steppers: 5 s (<10 min) / 1 min, 5 °C
+│   3 Aufguss  [0:20] [60 °C] ✕ │
+│ + Aufguss hinzufügen          │
+│ Vorwarnung  Wie Einstellung ▾ │ Wie Einstellung / Aus / 5–30 s
+│ [ Im Rezept speichern ]       │ only for a session with a recipe
+│ [          Fertig          ]  │
+└──────────────────────────────┘
+```
+
+- Per step: duration (5 s steps below 10 min, 1 min steps above, PRF-04),
+  temperature (5 °C steps), delete; *Aufguss hinzufügen* appends a step
+  (TMR-10 defaults). Started and completed steps are read-only; the running
+  step is not editable.
+- Pre-alert selector overrides the effective pre-alert for this session.
+- *Im Rezept speichern* writes the steps and pre-alert into the recipe used
+  (with a confirmation snackbar). Notes per step arrive in M4.
+- Changes apply via the `editSteps` event (04 §3.2).
 
 ## 5. Dialogs & messages (German)
 
@@ -497,7 +558,6 @@ groups, custom).
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
 | Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
-| Restore | „Alles durch diese Sicherung vom 3. Okt. 2026 ersetzen?" |
 
 ## 6. Accessibility
 

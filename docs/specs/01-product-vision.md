@@ -55,8 +55,9 @@ Japanese tagline: **「お茶で、いい時間を。」**
    controls; no gamification pressure.
 3. **Zero-effort logging.** Sessions log themselves; notes are optional.
 4. **Brew first.** From launch to a running timer in ≤ 3 taps for a known tea.
-5. **Local-first.** All personal data stays on the phone. The only network
-   access is the user-triggered catalog refresh from tee-kontor-kiel.de.
+5. **Local-first.** All personal data stays on the phone. Network access goes
+   only to tee-kontor-kiel.de: the user-triggered catalog refresh, a one-time
+   seed photo download and exact prices when adding a package (D-036).
 6. **Starting points, not rules.** Imported recipes are defaults; every value
    can be changed, and the app offers to save adjusted times.
 

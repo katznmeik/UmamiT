@@ -28,7 +28,11 @@
 - App renamed to **UmamiT** (D-033), application ID `com.umamit.app`.
 - `CLAUDE.md`, this file, PR template and the M1 plan (`docs/plans/M1-timer.md`).
 - Environment checked: Android SDK, Maven, Gradle and font hosts are
-  reachable; JDK 21 and Gradle are preinstalled; the Android SDK is not.
+  reachable; JDK 21 and Gradle are preinstalled; the Android SDK is not; no
+  KVM (emulator tests run in CI).
+- Spec review (Opus xhigh) and PO decisions applied as D-036: three network
+  uses, synthesised sounds, full-screen alert, simplified backup, Schritte-Sheet,
+  CI emulator job, release candidates, probe release, catalog hardening.
 
 ## Waiting on the PO
 
@@ -37,13 +41,19 @@
 3. Optional: rename the GitHub repository to `UmamiT` (Settings › General).
 4. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-5. During M1: save the two signing files and add 2 GitHub secrets
-   (06 §6.1), then listen to the alert sounds and approve the default (Q-15).
+5. During M1: save the two signing files Claude delivers in the session and
+   add 2 GitHub secrets (06 §6.1).
+6. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
+   report the results.
+7. At the M1 PR: test the release candidate, listen to the alert sounds and
+   approve the default (Q-15).
 
 ## Next steps (after the go)
 
 Follow `docs/plans/M1-timer.md`, starting with M1-00 (session-start hook
-that installs the Android SDK) and M1-01 (Gradle skeleton).
+that installs the Android SDK), M1-01 (Gradle skeleton with all module
+stubs), M1-02/03 (CI incl. emulator job, signing, release workflow) and the
+probe release M1-03a.
 
 ## Open questions
 
@@ -52,15 +62,18 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 ## Known caveats
 
 - Mockup images still show the old name „UmamiTea".
-- Live Update / ProgressStyle API names must be verified against the
-  Android 16 SDK at implementation (`docs/specs/04-brew-timer.md` §8.3).
+- Live Update / ProgressStyle and full-screen intent behaviour must be
+  verified with the probe release on the Galaxy (`docs/specs/04-brew-timer.md`
+  §8.3). Now Bar presence is best effort.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping
   without changes).
-- After a reboot, alerts fire only once the phone has been unlocked (E2).
+- After a reboot, alerts fire only once the phone has been unlocked (E2);
+  Samsung's automatic overnight restart should be disabled (ONB-02).
 
 ## Session log
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Opus xhigh spec review; fixes applied (D-036). |
 | 2026-10-21 | Grill round 4 (D-034) recorded; PO asked for an M1 walkthrough before deciding on the go. |
 | 2026-10-21 | Specs v0.1 → v0.2 after PO interviews (grill rounds 1–3), live Tee-Kontor verification, seed teas, agent plan, rename to UmamiT, project docs. |

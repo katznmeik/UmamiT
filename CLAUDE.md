@@ -52,16 +52,24 @@ commit and push.
    result (build, tests, diff) yourself.
 6. **One PR per milestone** into `main`. A milestone is done when:
    - CI is green;
-   - a signed APK is on a GitHub Release;
+   - a signed APK is on a GitHub Release. Claude dispatches `release.yml`
+     (`workflow_dispatch`, inputs `ref` + `version`), which creates the tag
+     and the release. Release candidates `vX.Y.Z-rc.N` are pre-releases
+     from the PR branch for the PO's testing; the final `vX.Y.Z` is built
+     from `main` after the merge. The version lives only in
+     `gradle.properties` (versionCode scheme: `docs/specs/06-architecture.md` §6);
    - the on-device checklist passes (`docs/specs/09-release-plan.md` §4);
    - the design review passes. Rendered screenshots (light and dark) go in
      `docs/design/review/<milestone>/`, using placeholder images only.
-7. **The app's only network use** is the user-triggered catalog refresh to
-   `www.tee-kontor-kiel.de`. Its rules:
+7. **The app uses the network for exactly three things**, all only to
+   `www.tee-kontor-kiel.de` (D-036): the user-triggered catalog refresh, a
+   one-time download of the two seed teas' photos at first start, and the
+   exact price fetch when the user adds a package. Rules:
    - host allow-list;
-   - at most 2 requests per second;
+   - at most 2 requests per second, one connection;
    - respect `robots.txt` and discover pages through the sitemap;
-   - stop on a Cloudflare challenge and never bypass it.
+   - stop on a Cloudflare challenge, HTTP 429 or `Retry-After`, and never
+     bypass a challenge.
 8. **Timer reliability beats features.** Any change to the timer needs the
    unit tests in `docs/specs/04-brew-timer.md` §12 to pass.
 
@@ -87,8 +95,12 @@ commit and push.
     `plugins.gradle.org`, `services.gradle.org` (build);
   - `raw.githubusercontent.com` (fonts);
   - `www.tee-kontor-kiel.de` (catalog).
-- There is no device or emulator for the PO's phone. Behaviour on the device
-  is verified by the PO from the release APK.
+- The container has **no KVM, so no Android emulator** runs here.
+  Instrumented tests run in the **CI emulator job** on GitHub Actions
+  (`reactivecircus/android-emulator-runner`, API 35 and 36).
+- There is no device for the PO's phone. Behaviour on the device is verified
+  by the PO from release APKs (probe, release candidates).
+- `ffmpeg` is available for synthesising the alert sounds.
 
 ## Commands
 

@@ -47,12 +47,17 @@ German with an English gloss where helpful.
 
 ## 1. General (GEN)
 
-**GEN-01 — Local-first, single network use** `Must`
+**GEN-01 — Local-first, three network uses** `Must`
 All personal data is stored only on the device. The app declares
-`INTERNET` **solely** for the catalog refresh (CAT-07).
-- AC1: Network requests are made only to `www.tee-kontor-kiel.de` (and its
-  image host, if different), enforced by a host allow-list in the HTTP client.
-- AC2: Every feature except catalog refresh works in airplane mode.
+`INTERNET` for exactly three uses (D-036), all to the shop host:
+(a) the user-triggered catalog refresh (CAT-07); (b) the one-time download
+of the two seed teas' photos at first start (ONB-06); (c) the on-demand
+exact price fetch when the user adds a package (CAT-12).
+- AC1: Network requests are made only to `www.tee-kontor-kiel.de` (the shop
+  serves its images from the same host), enforced by a host allow-list in
+  the HTTP client.
+- AC2: Every feature except these three works in airplane mode (the seed
+  teas then use the placeholder image; prices stay estimates).
 - AC3: No analytics, ads, crash-reporting or other third-party network SDKs.
 
 **GEN-02 — No accounts** `Must`
@@ -66,7 +71,7 @@ time formats (e.g. „21. Okt. 2026", „4,5 g").
 
 **GEN-05 — Undo for destructive actions** `Should`
 Deletions show a snackbar „Gelöscht · Rückgängig" for 5 s. Multi-object or
-irreversible actions (restore, delete all) use a confirmation dialog.
+irreversible actions (e.g. delete all) use a confirmation dialog.
 
 **GEN-06 — Active brew bar** `Must`
 While a session or quick timer is active, top-level screens show a compact bar
@@ -100,8 +105,8 @@ kettle). Imported or legacy values are snapped to the nearest 5 °C
 ## 2. First-start setup (ONB) — SCR-01
 
 **ONB-01 — Welcome** `Must`
-Welcome page with logo, „UmamiT", tagline, ink-wash illustration,
-*Los geht's*.
+Welcome page with logo, „UmamiT", the welcome text „Aus Liebe zum Tee",
+ink-wash illustration, *Los geht's*.
 
 **ONB-02 — Reliability setup** `Must`
 One page „Damit der Timer zuverlässig klingelt" walks through:
@@ -110,14 +115,27 @@ One page „Damit der Timer zuverlässig klingelt" walks through:
    (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) and explain Samsung's
    „Akku › Uneingeschränkt" and „Nie schlafende Apps" settings with a deep link
    to the app's battery settings.
-3. Live notifications: verify that the app may show Live Updates; deep link to
-   the setting if not.
+3. Live notifications: verify that the app may show Live Updates
+   (`canPostPromotedNotifications()`); deep link to
+   `Settings.ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS` if not.
+4. Full-screen alert: verify `NotificationManager.canUseFullScreenIntent()`;
+   deep link to `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` if not
+   (TMR-06).
+5. Hint (no ✓): Samsung's *Automatische Optimierung* may restart the phone
+   at night; disable *Automatisch neu starten* or note its time window (04
+   §7.3).
 Each item shows a ✓ when satisfied. *Weiter* is always allowed; missing items
 are then shown as a banner on Home and the timer (TMR-31).
 
 **ONB-03 — Load catalog** `Must`
 Final page offers *Katalog jetzt laden* (runs CAT-07 with progress) or
 *Später*.
+
+**ONB-06 — Seed photos** `Must`
+During the first-start setup the app downloads the product photos of the two
+seed teas once (08 §2.5a; network use (b) of GEN-01) with visible progress.
+The step can be skipped and fails silently offline; the placeholder image is
+used until the first catalog refresh (CAT-15).
 
 **ONB-04 — Run once** `Must`
 Shown until completed; reachable again via Einstellungen › Über ›
@@ -180,12 +198,14 @@ fallback recipe. Unmapped teas use `green_generic` and are flagged.
 *Katalog aktualisieren* (Sammlung › Katalog, overflow, and Settings) fetches
 the shop, parses all products, and replaces the catalog atomically.
 - AC1: Progress shows pages and products processed; the refresh can be
-  cancelled; the phone may be locked during refresh (long-running WorkManager
-  worker in a `dataSync` foreground service with a progress notification).
+  cancelled; the phone may be locked during refresh (the app's own
+  foreground service of type `dataSync`, started from the user's tap, with a
+  progress notification; not WorkManager, 06 §5.3).
 - AC2: Requests are polite: ≤ 2 requests/second (all requests, incl.
-  images), identifying user agent, `robots.txt` respected (no paginated
-  listings; discovery via the sitemap), timeouts and ≤ 3 retries; a
-  Cloudflare challenge stops the refresh without changes (08 §2.8).
+  images), one HTTP connection, identifying user agent, `robots.txt`
+  respected (no paginated listings; discovery via the sitemap), timeouts and
+  ≤ 3 retries; a Cloudflare challenge, HTTP 429 or a `Retry-After` header
+  stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
   3 Rezepte prüfen".
 - AC4: Teas no longer found are **hidden** from the catalog. They are kept
@@ -227,7 +247,8 @@ recipe(s) with flag reason, package options and prices, and actions
 *In Sammlung aufnehmen* opens SCR-23: choose package option (weight & price;
 prices of other sizes are estimates from the base price and savings until the
 exact price is fetched from the shop when online — editable either way),
-purchase date (default today); creates a collection tea that is
+purchase date (default today). The exact-price fetch is network use (c) of
+GEN-01. Creates a collection tea that is
 an independent copy (TEA-01) with recipes, stock (INV-01) and price. If the
 tea is already in the collection, the action becomes *Nachkauf erfassen*
 (record repurchase), adding stock instead of a duplicate.
@@ -240,14 +261,14 @@ automatically. Recipes, stock, journal entries and user edits are never
 changed.
 
 **CAT-13 — Collection teas stay independent** `Must`
-A refresh never changes collection teas. Tea detail offers *Aus Katalog
+A refresh never changes collection teas, except the one-time linking of seed
+teas in CAT-15. Tea detail offers *Aus Katalog
 zurücksetzen* (reset description/recipes from the current catalog entry, with
 confirmation and a choice of what to reset).
 
-**CAT-14 — Bundled snapshot** `Could`
-An initial catalog snapshot (without photos) is bundled in the APK so the
-catalog is available before the first refresh. Generated by the same parser
-at build time; not committed to the repository (see D-016).
+**CAT-14 — Bundled snapshot** `Won't`
+No catalog snapshot is bundled in the APK: the APK is publicly downloadable
+from GitHub Releases, which would redistribute shop content (D-016, D-036).
 
 ---
 
@@ -466,8 +487,12 @@ time and moves on (no alert).
 **TMR-06 — Alert** `Must`
 At zero: sound and vibration **following the phone's ringer mode** (normal →
 sound + vibration; vibrate → vibration; silent → no sound/vibration, visual
-only), repeated for up to ~15 s or until acknowledged; heads-up notification
-and Live Update show „Jetzt abgießen!". Screen shows overtime („+0:07") and a
+only), repeated for up to ~15 s or until acknowledged. The alert
+notification uses a **full-screen intent** (short and long steps, all ringer
+modes): the screen turns on and SCR-05 in ALERTING is shown over the lock
+screen; when the phone is in use it appears as a heads-up „Jetzt
+abgießen!". Requires `USE_FULL_SCREEN_INTENT` (checked in ONB-02/TMR-31;
+without it: heads-up only). Screen shows overtime („+0:07") and a
 large *Abgegossen* button. From 15 s of overtime on, the overtime is shown
 prominently (large „+2:30 überzogen" in a warm accent colour) so a missed
 alert is obvious when returning to the app.
@@ -487,14 +512,17 @@ ring is also tappable.
 **TMR-10 — Add infusion** `Must`
 In FINISHED and via overflow: *Weiterer Aufguss* appends a step (last
 temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
-1 min above), editable before start.
+1 min above), editable before start in the Schritte-Sheet (SCR-31).
 
-**TMR-11 — Edit remaining steps** `Should` (overflow; this session only).
+**TMR-11 — Edit remaining steps** `Should` (overflow ⋮ *Schritte
+bearbeiten* → Schritte-Sheet SCR-31; this session only unless *Im Rezept
+speichern*).
 
 **TMR-12 — Finish & auto-log** `Must`
 Finishing early (e.g. after infusion 2 of 3) is a normal session; the
 journal shows „2 von 3 Aufgüssen". Planned steps that were never started are
-not recorded as skipped and do not count as a time difference for PRF-07.
+not recorded as skipped (their rows are deleted at finish, 05 §3.7) and do
+not count as a time difference for PRF-07.
 
 *Sitzung beenden* (FINISHED state or overflow) completes the session; it is
 saved to the journal automatically **without a summary screen**. A bottom
@@ -512,7 +540,8 @@ later at work).
 - After **30 min** without interaction the timer service stops and the Live
   Update becomes a quiet, regular ongoing notification („Hisui · Aufguss 2
   bereit" with *Start*).
-- At **local midnight**, or when another session is started (TMR-21), a
+- At **midnight** — the first local midnight at least 6 h after the last
+  interaction — or when another session is started (TMR-21), a
   waiting session is finished and logged with the notification „Sitzung
   gespeichert"; a session without any completed non-rinse step is discarded
   silently instead.
@@ -564,15 +593,18 @@ Alerts and pre-alerts within 1 s of target (typical ≤ 250 ms), screen on or
 off, app foreground or background.
 
 **TMR-31 — Reliability banner** `Must`
-If notifications are blocked, Live Updates are disabled, the battery is
-restricted for the app, or exact alarms are unavailable, the timer and Home
-show „Der Timer ist eventuell unzuverlässig – *Beheben*" deep-linking to the
-relevant setting.
+If notifications are blocked, Live Updates are not allowed
+(`canPostPromotedNotifications()` false), full-screen alerts are not allowed
+(`canUseFullScreenIntent()` false), the battery is restricted for the app, or
+exact alarms are unavailable, the timer and Home show „Der Timer ist
+eventuell unzuverlässig – *Beheben*" deep-linking to the relevant setting.
+Now Bar presence is not checked (best effort, TMR-41).
 
 **TMR-41 — Live Update** `Must`
 On Android 16, the active timer is a promoted ongoing notification (Live
-Update) with progress-style segments per step, visible as status bar chip, on
-the lock screen and in Samsung's Now Bar. Details:
+Update) with progress-style segments per step, visible as status bar chip and
+on the lock screen. Appearing in Samsung's Now Bar is **best effort** (One UI
+may require the user to enable live notifications per app). Details:
 [04 §8.3](04-brew-timer.md#83-live-update).
 
 ---
@@ -695,7 +727,7 @@ Every chart has an accessible table alternative.
 |---|---|---|---|
 | SET-05 | Design (*Hell / Dunkel / System*) | System | Must |
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
-| SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft) — Klangschale | Must |
+| SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
 | SET-10 | Vorwarnung (pre-alert) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
@@ -708,7 +740,7 @@ Every chart has an accessible table alternative.
 | SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |
 | SET-22 | Katalog: Fotos laden | an | Should |
 | SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren* | — | Must |
-| SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, battery, exact alarm with *Beheben* links) | — | Must |
+| SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm with *Beheben* links) | — | Must |
 
 **SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
 *Teegeschirr* (→ SCR-13), *Darstellung*, *Daten* (→ SCR-26, Alle Daten
@@ -728,12 +760,14 @@ device backup and device-to-device transfer. Catalog photos and own photos are
 excluded (size limit; catalog photos can be re-downloaded).
 
 **BAK-01 — Manual export** `Should`
-*Sicherung erstellen* writes a `.umamit` file (data, settings and own photos;
-catalog excluded) via the system file picker. Format:
-[05 §8](05-data-model.md#8-backup-file-format).
+*Sicherung erstellen* writes a simple `.umamit` ZIP file (personal data and
+settings as JSON plus own photos; catalog excluded) via the system file
+picker. Format: [05 §8](05-data-model.md#8-backup-file-format).
 
-**BAK-02 — Restore** `Should`
-Validate, preview, confirm, safety backup, atomic replace.
+**BAK-02 — Restore** `Won't` (1.x; post-1.0 backlog as `Could`, D-036)
+In-app restore of a `.umamit` file with validation, preview, safety backup
+and atomic replace. Until then, data comes back via Android device backup
+(BAK-05); the export file is readable JSON.
 
 **BAK-04 — CSV export** `Could`
 

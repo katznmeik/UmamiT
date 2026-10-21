@@ -84,7 +84,9 @@ Answer the questions in order and take the first tier that matches:
 
 | Task | Tier |
 |---|---|
-| Gradle project skeleton, version catalog, convention plugins, module stubs | T2 |
+| Gradle project skeleton, version catalog, convention plugins, **all** module stubs (before parallel work) | T2 |
+| Probe release `v0.0.1-probe` (exact alarm, FGS, Live Update, full-screen alert, synthesised sound) | T3 |
+| CI emulator job (GitHub Actions, API 35/36) | T3 |
 | Design system: colour tokens, typography (Cormorant Garamond), shapes, core components | T2 |
 | Navigation shell with placeholder tabs | T1 |
 | `BrewTimerEngine` state machine + exhaustive unit tests | T3 (design reviewed at T4) |
@@ -93,10 +95,13 @@ Answer the questions in order and take the first tier that matches:
 | `AlertPlayer` (ringer-mode matrix, audio focus, pre-alert tick) | T3 |
 | Persistence & recovery of `active_brew` | T4 |
 | Timer screen UI (all states, overflow per state) | T2 |
+| Schritte-Sheet (SCR-31, session-only step editing) | T2 |
+| App icon (adaptive + monochrome) and status-bar small icon | T1 |
+| Diagnostics log (timer events with scheduled vs actual times) | T3 |
 | Reliability setup page and banner (battery, notifications, Live Update checks) | T2 |
 | Quick timer | T2 |
 | Minimal manual tea and recipe creation for testing | T2 |
-| Bundled sounds integration | T1 |
+| Synthesised sounds (ffmpeg generator script, OGG) and integration | T2 |
 | Milestone review before the PR | T4 |
 
 **M2 — Tee-Kontor catalog**
@@ -109,7 +114,7 @@ Answer the questions in order and take the first tier that matches:
 | `RecipeDeriver` (extraction, normalisation, flags, cold brew) | T4 (complex rules and the most visible risk to recipe quality) |
 | Style mapping table | T1 |
 | Synthetic HTML fixtures and parser tests | T2 |
-| Refresh worker (dataSync FGS), staging tables, atomic swap, sanity checks | T3 |
+| Refresh service (own `dataSync` FGS), staging tables, atomic swap, sanity checks | T3 |
 | Photo download and caching | T2 |
 | Tee-Info guide conversion and Markdown rendering | T3 (sanitising untrusted HTML) |
 | Catalog list and detail screens, add-to-collection sheet | T2 |
@@ -143,11 +148,11 @@ Answer the questions in order and take the first tier that matches:
 
 | Task | Tier |
 |---|---|
-| Device backup rules (`data_extraction_rules.xml`) | T2 |
-| Manual export/restore with validation, safety backup, atomic replace | T4 |
+| Device backup verification and refinements (rules and `active_brew` clearing exist since M1) | T3 |
+| Simple manual export (ZIP: data JSON + own photos) | T2 |
 | Orphan sweeper and reminders | T2 |
 | Remaining settings screens | T1 |
-| Diagnostics log | T2 |
+| Diagnostics log extended to the catalog | T2 |
 | Accessibility and dark-theme pass | T2 |
 | Baseline Profile and performance budgets | T3 |
 | Final 1.0 review (whole app, timer and data safety focus) | T4 |
@@ -172,7 +177,8 @@ A task is never moved to a *lower* tier after it failed.
    (requirement IDs), files involved, acceptance criteria, and tests to add.
 2. **Parallelise** independent tasks (different modules). Code-writing
    subagents that run in parallel use isolated git worktrees, and the
-   orchestrator merges their results.
+   orchestrator merges their results. The module graph and version catalog
+   are created up front (M1-01), so parallel tasks never edit them.
 3. **Verify:** for every result, the orchestrator runs the build,
    lint/detekt, unit tests and screenshot tests, and reads the diff. Failures
    follow §4.
@@ -197,6 +203,9 @@ Report: <what to return: changed files, test results, open questions>
 
 ## 7. Notes
 
+- **Setting model and effort:** the Agent tool accepts `model` and `effort`
+  per subagent call, so the tier is set directly on each delegation; no
+  `.claude/agents/` definitions are needed.
 - Tiers are a default. The orchestrator may *raise* a tier when it judges the
   risk to be higher. It lowers a tier only when §2.1 clearly allows it, and
   never after a failure.

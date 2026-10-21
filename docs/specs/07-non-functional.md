@@ -5,7 +5,8 @@
 > no store; catalog network access.
 
 Reference device: **the PO's Samsung Galaxy (Android 16 / One UI 8)**.
-Automated checks run on emulators with API 35 and 36.
+Automated instrumented checks run in the CI emulator job on GitHub Actions
+(API 35 and 36); the cloud container has no emulator ([06 §7](06-architecture.md#7-quality-gates)).
 
 ## 1. Summary
 
@@ -15,7 +16,7 @@ Automated checks run on emulators with API 35 and 36.
 | Performance | Cold start to Home ≤ 1 s; smooth scrolling |
 | Reliability | No data loss; no crashes during sessions; missed alerts = 0 |
 | Accessibility | Large fonts, TalkBack basics, contrast AA |
-| Privacy | Personal data never leaves the phone; network only to tee-kontor-kiel.de |
+| Privacy | Personal data never leaves the phone; network only to tee-kontor-kiel.de (three uses, GEN-01) |
 | Size | APK ≤ 20 MB |
 
 ## 2. Performance
@@ -39,7 +40,7 @@ Automated checks run on emulators with API 35 and 36.
 | NFR-REL-02 | Confirmed writes are committed before UI success; multi-table changes are transactional. |
 | NFR-REL-03 | Timer survives process death and reboot ([04 §7](04-brew-timer.md#7-persistence--recovery)). |
 | NFR-REL-04 | Every schema migration tested; no destructive migrations of personal data. |
-| NFR-REL-05 | Restore and catalog refresh are atomic; failures leave previous data intact. |
+| NFR-REL-05 | The catalog refresh is atomic; a failure leaves the previous catalog intact. (In-app restore is post-1.0, BAK-02.) |
 | NFR-REL-06 | Network failures, timeouts and shop-structure changes during refresh never corrupt or delete the existing catalog and never affect personal data. |
 | NFR-REL-07 | A local diagnostic log (timer, alarms, catalog) is available for bug reports ([06 §5.6](06-architecture.md#56-error-handling--logging)). |
 
@@ -53,7 +54,7 @@ Automated checks run on emulators with API 35 and 36.
 | NFR-A11Y-05 | Information never by colour alone. |
 | NFR-A11Y-06 | TalkBack: German content descriptions; timer announces state changes, pre-alert, 10 s remaining and alert (no per-second announcements). |
 | NFR-A11Y-08 | Honour "Remove animations"; no flashing. |
-| NFR-A11Y-09 | Alerts are multi-modal (sound/vibration per ringer mode + heads-up + Live Update + screen). |
+| NFR-A11Y-09 | Alerts are multi-modal (sound/vibration per ringer mode + full-screen alert that turns the screen on over the lock screen + Live Update), also visual-only in silent mode. |
 
 ## 5. Language & formats
 
@@ -68,7 +69,7 @@ Automated checks run on emulators with API 35 and 36.
 | ID | Requirement |
 |---|---|
 | NFR-PRIV-01 | Personal data (collection, journal, stock, settings, photos) is never transmitted. |
-| NFR-PRIV-02 | The only network traffic is the user-initiated catalog refresh to the allow-listed Tee-Kontor host(s) (GEN-01). No background network activity. |
+| NFR-PRIV-02 | The only network traffic goes to the allow-listed host `www.tee-kontor-kiel.de` for exactly three uses (GEN-01, D-036): the user-initiated catalog refresh, the one-time seed photo download at first start, and the exact price fetch when the user adds a package. No other background network activity. |
 | NFR-PRIV-03 | No analytics, ads, crash reporting or tracking SDKs. |
 | NFR-PRIV-04 | Own photos have EXIF (incl. GPS) removed. |
 | NFR-PRIV-07 | Android device backup includes database and settings only (photos/catalog excluded). |
@@ -78,10 +79,10 @@ Automated checks run on emulators with API 35 and 36.
 
 | ID | Requirement |
 |---|---|
-| NFR-SEC-01 | Components `exported="false"` except launcher and boot receiver (library components protected by system permissions are acceptable). |
+| NFR-SEC-01 | Components `exported="false"` except launcher and boot receiver (library components protected by system permissions are acceptable; the `MY_PACKAGE_REPLACED` receiver stays non-exported). |
 | NFR-SEC-02 | Immutable, explicit `PendingIntent`s. |
 | NFR-SEC-03 | `FileProvider` limited to capture/share cache folders. |
-| NFR-SEC-04 | Backup import and HTML parsing treat input as untrusted: size limits, zip-slip protection, HTML sanitised (no scripts, no remote content in rendered guides/descriptions; images only from local storage). |
+| NFR-SEC-04 | HTML parsing (and a future backup import, BAK-02) treat input as untrusted: size limits, zip-slip protection, HTML sanitised (no scripts, no remote content in rendered guides/descriptions; images only from local storage). |
 | NFR-SEC-05 | No WebView; HTTPS only (cleartext disabled). |
 | NFR-SEC-08 | Release keystore only in GitHub secrets and the PO's offline backup. |
 

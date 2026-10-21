@@ -45,9 +45,12 @@ items with thin icons: "Start", "Journal", "Sammlung", "Statistik".
 SCREENS (top row, left to right)
 1. START (home): serif title "UmamiT" with a settings gear; ink-wash mountain
    header illustration (no text over it);
-   a dark-green card with a leaf icon "Aufguss starten"; a section label
+   a dark-green card with a leaf icon "Aufguss starten"; a small text button
+   with a stopwatch icon "Schnelltimer"; a section label
    "NOCHMAL BRÜHEN" with three round tea thumbnails; a section "ZULETZT
-   GEBRÜHT" with two list rows ("Gyokuro · 3 Aufgüsse", "★ 4,5").
+   GEBRÜHT" with two list rows (round thumbnail, serif tea name, small meta
+   line "8. Juni · 3 Min · 80 °C", "★ 4,5" on the right); a section label
+   "FAVORITEN". No greeting text.
    Navigation "Start" selected.
 2. TIMER, running (dark screen): moody tea-cup photo at the top fading into
    the dark background; serif tea name "Bio Uji Gyokuro"; small line

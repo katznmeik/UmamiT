@@ -18,8 +18,8 @@
 6. **Catalog is separate and replaceable.** Catalog tables live in a
    **separate Room database `catalog.db`** (excluded from device backup) and
    are rebuilt by each refresh; collection teas are independent copies with a *soft* link
-   (`catalog_key`) — no foreign key — so catalog refreshes and restores never
-   cascade into personal data (CAT-13).
+   (`catalog_key`) — no foreign key — so catalog refreshes and device
+   restores never cascade into personal data (CAT-13).
 7. **Built-in styles** are a bundled asset referenced by key.
 
 ## 2. Entity-relationship diagram
@@ -148,6 +148,7 @@ Table `brew_session`
 | `water_ml` | INTEGER | | |
 | `base_temp_c` | INTEGER | | |
 | `pre_alert_seconds` | INTEGER | | effective value used |
+| `planned_step_count` | INTEGER | ✓ | number of steps planned at finish (incl. never-started ones), for „2 von 3 Aufgüssen" (TMR-12) |
 | `cost_cents` | INTEGER | | leaf × cost per gram at finish (INV-08) |
 | `started_at` | INTEGER | ✓ | |
 | `ended_at` | INTEGER | | |
@@ -167,6 +168,13 @@ Table `session_step`: `id`; `session_id` FK CASCADE; `position`; `kind`;
 `planned_seconds`; `actual_seconds`; `paused_seconds`; `overtime_seconds`;
 `temp_c`; `started_at`; `ended_at`; `skipped`; `overtime_auto_ack`
 (see [04 §3.2](04-brew-timer.md#32-events-and-transitions)); `note` ≤ 300.
+
+**Lifecycle:** all planned rows are created when the session starts
+(`startSession`); `editSteps` / `addStep` insert, update or delete rows that
+have not started. When the session finishes, rows that were never started
+are **deleted**; `brew_session.planned_step_count` keeps the planned total so
+the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
+`skipped = 1`.
 
 ### 3.8 Descriptors
 
@@ -223,7 +231,7 @@ Single-row table `active_brew` (`id` = 1)
 | `step_started_wall_ms` | INTEGER | |
 | `alert_played` | INTEGER | per current step |
 | `boot_count` | INTEGER | |
-| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min |
+| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min; `midnightTimeout` at the first local midnight ≥ 6 h after it |
 | `demoted` | INTEGER | FGS stopped, regular notification shown |
 
 ## 4. Catalog tables (rebuilt by each refresh)
@@ -365,13 +373,19 @@ Time rounding for derived recipes: nearest 5 s (half up).
 - `data.json`: arrays for teas, brewProfiles, brewSteps, vessels, tags,
   teaTags, sessions, sessionSteps, customDescriptors, sessionDescriptors,
   inventoryEvents, photos (camelCase fields mirroring §3).
-- Restore validation: ZIP limits and zip-slip protection, manifest/version
-  check, checksums, types/enums, constraints, referential integrity, photo
-  files decodable; safety backup of current data; staging; single
-  transaction; rollback on failure.
-- **Android device backup** (`data_extraction_rules.xml`): include the
-  personal database (`umamit.db`) and DataStore; exclude `catalog.db`,
-  `photos/`, `catalog/`, caches. After a device restore, the orphan sweeper
+- **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
+  restore validation covers ZIP limits and zip-slip protection,
+  manifest/version check, checksums, types/enums, constraints, referential
+  integrity, photo files decodable; safety backup of current data; staging;
+  single transaction; rollback on failure. The 1.x export already writes
+  `manifest.json` with checksums so such a restore can read it.
+- **Android device backup** (`data_extraction_rules.xml`, cloud backup and
+  device transfer): include the whole `database` domain **except**
+  `catalog.db*` (so `umamit.db` and its `-wal`/`-shm` files are included),
+  and the DataStore files; exclude `photos/`, `catalog/`, caches.
+- **After a device restore** (detected on the first start by a restored
+  database whose install marker in no-backup storage is missing): clear
+  `active_brew` (no session is resumed, 04 §11 E11); the orphan sweeper
   removes `photo` rows whose files are missing and clears dangling
   `cover_photo_id`s; after the next catalog refresh, catalog teas without a
   cover get the catalog photo copied again (via `catalog_key`).

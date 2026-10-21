@@ -19,14 +19,23 @@
 <!-- Rendered screenshots (light/dark) committed under docs/design/review/<milestone>/.
      List the screens and any known differences from the mockups. Placeholder images only — no Tee-Kontor photos. -->
 
+## Deviations from spec / known issues
+
+<!-- Anything that differs from docs/specs (with the reason) and known open issues, or "none" -->
+
+## Test releases (rc/probe)
+
+<!-- Pre-releases built from this branch for the PO, e.g. v0.0.1-probe, v0.1.0-rc.1, v0.1.0-rc.2, with what changed between them -->
+
 ## Subagent tiers used
 
 <!-- Critical parts and the tier used (docs/specs/12-agent-plan.md), e.g. "Timer background integration — T4 (Opus, xhigh)" -->
 
 ## Verification
 
-- [ ] CI green (format, Detekt, Lint, unit tests, screenshot tests, assemble)
-- [ ] Release APK attached to GitHub Release `vX.Y.Z`
+- [ ] CI green (format, Detekt, Lint, unit tests, screenshot tests, emulator job, assembleDebug + assembleRelease)
+- [ ] Release candidate `vX.Y.Z-rc.N` published (pre-release) and tested by the PO
+- [ ] After merge: final `vX.Y.Z` dispatched from `main`
 - [ ] No Tee-Kontor content and no secrets committed
 - [ ] `PROJECT_STATE.md` updated
 

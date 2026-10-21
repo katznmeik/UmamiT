@@ -48,19 +48,24 @@ handover), [`docs/plans/`](../plans/) (milestone implementation plans, e.g.
   - waits for your tap between infusions
   - Pause is the only control while running
   - pre-alert tick: global default 10 s, overridable per recipe
-  - alert follows the ringer mode
-  - Live Update on lock screen and Now Bar
+  - alert follows the ringer mode; full-screen alert turns the screen on
+  - Live Update on lock screen (Now Bar best effort)
   - exact alarms plus a foreground service
   - one timer at a time
-  - — D-019
+  - — D-019, D-036
 - **Catalog:** all green teas from tee-kontor-kiel.de, refreshed in the app.
   Recipes are derived from the shop's brewing guides; teas whose recipe needs
   checking are flagged. — D-014, D-015, D-021
+- **Network:** only to tee-kontor-kiel.de — catalog refresh, one-time seed
+  photo download, exact prices when adding a package. — D-014, D-036
 - **Journal:** sessions are logged automatically; notes are optional. — D-020
+- **Backup:** Android device backup plus a simple manual export; no in-app
+  restore in 1.x. — D-022, D-036
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018
 - **Stack:** Kotlin, Jetpack Compose, Material 3, Room, Hilt, OkHttp and
   Jsoup; min SDK 35. — D-003, D-023
-- **Delivery:** timer first; one PR per milestone. — D-024
+- **Delivery:** timer first, starting with a probe release; one PR per
+  milestone; release candidates for testing. — D-024, D-036
 - **Subagents:** simple tasks use Sonnet at low effort; complex ones use Opus
   at medium, high or extra-high effort, never max. — D-026
 

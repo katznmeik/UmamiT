@@ -50,7 +50,7 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | Soft tick a configurable number of seconds before a steep ends. |
-| **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip, on the lock screen and in Samsung's Now Bar. |
+| **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip and on the lock screen; on One UI also in Samsung's Now Bar (best effort). |
 | **Now Bar** | Samsung One UI area on the lock screen for live activities. |
 | **Sideloading** | Installing an APK directly (here from GitHub Releases) instead of from a store. |
 | **snap5** | Rounding a temperature to the nearest 5 °C (half up). |
@@ -62,7 +62,10 @@
 | **Teaware / vessel** | A brewing vessel with capacity (kyusu, gaiwan, …). |
 | **Ratio** | Leaf grams per 100 ml of water. |
 | **Active brew bar** | The persistent mini-timer shown above the navigation bar while a session runs. |
-| **Short / long step** | Steps under / at least 30 minutes; handled differently in the background. |
+| **Short / long step** | Steps under / at least 10 minutes (`LONG_STEP_THRESHOLD`); handled differently in the background. |
+| **Full-screen intent** | A notification that turns the screen on and opens an activity over the lock screen; used for the step alert (`USE_FULL_SCREEN_INTENT`). |
+| **Schritte-Sheet** | Session-only step editor (SCR-31). |
+| **Release candidate (rc)** | Pre-release APK `vX.Y.Z-rc.N` built from a milestone PR branch for the PO's testing. |
 | **FGS** | Foreground service — an Android service with a visible notification that keeps the timer alive. |
 | **Doze** | Android power-saving mode that defers background work when the device is idle. |
 | **Exact alarm** | An `AlarmManager` alarm delivered at a precise time; needs special permission on Android 12+. |

@@ -64,7 +64,8 @@ Status: *Accepted* (by the PO), *Proposed* (default unless the PO objects),
 ### D-001 — No accounts; personal data local only · *Accepted*, amended by D-014
 
 Originally "offline only, no accounts" (2026-10-21). Still true for all
-personal data; the catalog refresh is the one network exception (D-014).
+personal data; the network exceptions to the shop host are listed in D-014
+and D-036.
 
 <a id="d-002"></a>
 ### D-002 — Concept: tea brewing companion · *Accepted*
@@ -123,7 +124,8 @@ excluded from device backup; own photos included in manual export.
 ### D-014 — In-app catalog refresh over the internet · *Accepted* (PO, 2026-10-21)
 
 - The app declares `INTERNET` and fetches tee-kontor-kiel.de when the user
-  taps *Katalog aktualisieren*.
+  taps *Katalog aktualisieren* (the complete list of network uses is in
+  D-036).
 - Alternatives rejected: bundling the catalog only in each APK (needs a
   developer for every refresh), one-time snapshot.
 - Consequences: parser maintenance when the shop changes; host allow-list;
@@ -139,14 +141,14 @@ excluded from device backup; own photos included in manual export.
 - Adding asks for the package size; stock and price are prefilled.
 
 <a id="d-016"></a>
-### D-016 — Handling of scraped content · *Proposed*
+### D-016 — Handling of scraped content · *Accepted* (PO, 2026-10-21)
 
 Scraped texts and photos are stored only on the phone for personal use and are
 **never committed** to the repository. Parser tests use **synthetic HTML
 fixtures** that reproduce the page structure (element classes, table layout)
 with invented text. A manual "live parser check" task runs the parser against
-the real site from a cloud session when needed. No bundled snapshot unless
-generated at build time and not committed (CAT-14).
+the real site from a cloud session when needed. No bundled catalog snapshot
+in the APK (CAT-14 is `Won't`, D-036): the APK is public.
 
 <a id="d-017"></a>
 ### D-017 — German only, metric · *Accepted* (PO, 2026-10-21)
@@ -168,7 +170,8 @@ guides live in the catalog.
 - Pre-alert tick before the end: global setting (Aus, 5–30 s in 5 s steps;
   default 10 s since D-035), overridable per recipe.
 - Alert follows the ringer mode (sound / vibration / silent), repeats ~15 s.
-- Live Update on lock screen, status bar and Now Bar.
+- Live Update on lock screen, status bar and Now Bar (Now Bar best effort,
+  D-036).
 - One timer at a time.
 - Samsung reliability: exact alarms, FGS, battery exemption (see D-013).
 
@@ -190,7 +193,7 @@ wins over prose, prose over style defaults; non-table recipes flagged
 ### D-022 — Backup via Android device backup · *Accepted* (PO, 2026-10-21)
 
 Database and settings in device backup; manual export file as extra safety;
-photos only in the manual export.
+photos only in the manual export. In-app restore is post-1.0 (D-036).
 
 <a id="d-023"></a>
 ### D-023 — Min SDK 35, target SDK 36 · *Accepted* (PO, 2026-10-21)
@@ -278,7 +281,9 @@ personal data or shop content).
   the phone on vibrate or ring when brewing.
 - Claude generates the release keystore and hands file and passwords to the
   PO, who stores them offline and adds the GitHub secrets.
-- Alert sounds come from free CC0 recordings, credited in About.
+- ~~Alert sounds come from free CC0 recordings, credited in About.~~
+  *Amended by D-036:* the tones are synthesised first; the PO may replace
+  any of them later with CC0 recordings (credited in About).
 - New APKs are announced by Claude in the session/PR; no in-app update check.
 - Seed teas are linked to the catalog and filled with description and photo on
   the first refresh (CAT-15).
@@ -291,10 +296,69 @@ personal data or shop content).
 - Welcome page text: **„Aus Liebe zum Tee"**.
 - The Start screen shows no greeting text (header illustration only).
 - Pre-alert default **10 s** before the end of a step (SET-10). Steps shorter
-  than 15 s get no pre-alert.
+  than N + 5 s get no pre-alert (15 s with the default 10 s).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-036"></a>
+### D-036 — Spec review fixes and PO decisions · *Accepted* (PO, 2026-10-21)
+
+Result of an Opus `xhigh` review of spec v0.2 plus the PO's answers.
+
+**PO decisions**
+- **Three network uses**, all only to the allow-listed host
+  `www.tee-kontor-kiel.de`: (a) the user-triggered catalog refresh (CAT-07);
+  (b) a **one-time download of the two seed teas' product photos** at first
+  start (during the first-start setup, visible progress, skippable,
+  placeholder fallback; ONB-06); (c) the on-demand exact variant price fetch
+  when the user adds a package (CAT-12). Updates GEN-01, NFR-PRIV-02,
+  06 §4/§5.7, 08 §2.5a.
+- **Sounds:** synthesised first (ffmpeg in the cloud container): Klangschale
+  (default), Glocke, Holzblock, Glockenspiel, Sanft and the pre-alert tick.
+  The PO may replace any tone later with uploaded CC0 recordings (licence in
+  `docs/design/assets/source/CREDITS.md`). Amends D-034.
+- **Screen wake:** at the end of every step (short and long) the alert is a
+  **full-screen intent** on `steep_finished`: the screen turns on and SCR-05
+  in ALERTING is shown over the lock screen, also in silent mode (then
+  visual only). Needs `USE_FULL_SCREEN_INTENT`; checked in ONB-02, SET-24
+  and the reliability banner (TMR-06, 04 §8–9).
+- **Backup simplified:** Android device backup (BAK-05) plus a simple manual
+  export ZIP (BAK-01). In-app restore with validation (BAK-02) is `Won't`
+  for 1.x (post-1.0 backlog).
+- Tee-Info guides import (CAT-09) and wider layouts stay (cuts declined).
+
+**Review fixes** (IDs from the review)
+- R-02: session-only **Schritte-Sheet** (SCR-31) for SCR-04 *Bearb.*,
+  TMR-10 and TMR-11; executable M1 checklist.
+- R-03: the cloud container has no emulator; instrumented tests run in a
+  **CI emulator job** on GitHub Actions (API 35 and 36).
+- R-04: `release.yml` runs via `workflow_dispatch` and creates tag and
+  release; release candidates `vX.Y.Z-rc.N` (pre-releases from the PR
+  branch) and the final `vX.Y.Z` from `main`; versionCode scheme
+  ([06 §6](06-architecture.md#6-build--distribution)).
+- R-05: keystore hand-off as session file attachments; fallback commands
+  for the PO ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+- R-07: Live Update corrections; Now Bar is best effort; a **probe release**
+  `v0.0.1-probe` is tested on the Galaxy before the full timer is built
+  ([04 §8.3](04-brew-timer.md#83-live-update)).
+- R-09: recovery tries to restart the FGS immediately; app-update receiver;
+  midnight passed while killed → `midnightTimeout`
+  ([04 §7](04-brew-timer.md#7-persistence--recovery)).
+- R-10: minimal diagnostics log already in M1.
+- R-11: Material 3 schemes generated from seed `#4A5643` with overrides;
+  extended tokens; timer digit font features ([03 §3](03-ux-ui.md#3-visual-design-system)).
+- R-17: CAT-14 (bundled snapshot) → `Won't`.
+- R-18: CI also builds `assembleRelease` (R8).
+- R-19: `planned_step_count`, session-step lifecycle, midnight rule
+  (first local midnight ≥ 6 h after the last interaction), device restore
+  clears `active_brew`, backup rules include all of `umamit.db*`.
+- R-20: catalog hardening (Cloudflare detection, stop on HTTP 429, own
+  `dataSync` foreground service instead of WorkManager).
+- R-21: app icon and status-bar icon in M1; Samsung auto-restart hint.
+- R-23: all module stubs before parallel work; PR template sections.
+- R-12…R-16: consistency fixes (mockup notes, seed descriptions via CAT-15,
+  worked examples, glossary, single source of M1 scope).
 
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
@@ -319,6 +383,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
 | 2026-10-21 | D-035: welcome text „Aus Liebe zum Tee", no home greeting, pre-alert default 10 s, signing process with 2 secrets. |

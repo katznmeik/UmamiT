@@ -67,8 +67,8 @@ comes from titles („2026 Shincha …").
 
 | Catalog data | Collection field | Rule |
 |---|---|---|
-| Ernte badge / Saison / title | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
-| Ernte badge / Saison | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Sommerernte", „Nibancha" → `SECOND_FLUSH`; „Herbst" → `AUTUMN`; else `UNKNOWN` |
+| Ernte badge / prose / title | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
+| Ernte badge / prose | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Nibancha" → `SECOND_FLUSH`; „Sommerernte", „Sommer" → `SUMMER`; „Herbst" → `AUTUMN`; else `UNKNOWN`. Never taken from *Saison* (that is when to drink the tea). |
 | Beschattung badge / prose | `shading_days` | Number + „Tage" → n; + „Wochen" → 7n; ranges → midpoint (e.g. prose „für 6 Tage beschattet"); badge without number → empty |
 | Dämpfung badge | `processing_notes` | Copied as text (e.g. „Chumushi") |
 | Ingredients | `ingredients` | Copied |
@@ -95,10 +95,12 @@ comes from titles („2026 Shincha …").
    samples) carry a surcharge and are **not estimated** (Hisui 10 g = 2,80 € =
    280 €/kg vs. 179 €/kg) — shown as „Preis beim Hinzufügen". The exact price
    of any size is fetched from its variant URL when the user adds that package
-   (CAT-12, online only; offline the estimate or an empty price is used and
-   editable).
+   (CAT-12, network use (c) of GEN-01, online only; offline the estimate or
+   an empty price is used and editable).
 7. Teas split into separate base numbers per size but with the same name are
-   merged by normalised name.
+   merged by normalised name. The merged entry's `key` is deterministic: the
+   **lowest** base number (string order, e.g. `AT0868` for
+   `AT0868`/`AT0869`).
 8. New harvests usually get new article numbers; the old one becomes
    discontinued.
 
@@ -107,8 +109,8 @@ including images):
 
 | Refresh | Requests (approx.) | Duration |
 |---|---|---|
-| First | sitemap + ~700 parent pages for classification + ~280 photos + ~10 guides | ~9–10 min |
-| Later | sitemap + ~280 green pages + new items + changed photos | ~3–4 min |
+| First | sitemap + ~700 parent pages for classification + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, plus their images; ~10–40) | ~9–10 min |
+| Later | sitemap + ~280 green pages + new items + changed photos + G guides and changed guide images | ~3–4 min |
 
 ### 2.5 Recipe derivation
 
@@ -116,7 +118,8 @@ including images):
 (CAT-04).
 
 **Step 1 — Rows to recipes.** Each grid row becomes one recipe:
-`st-zubereitung-japan` → „Kyusu" (`KYUSU`, or `MATCHA_USUCHA` for matcha);
+`st-zubereitung-japan` → „Kyusu" (`KYUSU`), or for matcha „Usucha"
+(`MATCHA_USUCHA`);
 `st-zubereitung-westlich` → „Westlich" (`WESTERN`). The **default recipe** is
 the Kyusu row for Japanese teas when present, otherwise the first row.
 
@@ -149,7 +152,9 @@ adds one to a recipe.
 prose describes a Kaltaufguss, add a recipe „Kaltaufguss" (`COLD_BREW`):
 values from the prose when given (e.g. „Ziehzeit … 20 - 30 Minuten …
 Dosierung verdoppeln" → 25 min, double leaf), otherwise the style's
-cold-brew default. Temperature 5 °C („kalt").
+cold-brew default. Temperature 5 °C („kalt"). **„Dosierung verdoppeln"**
+means: double the default recipe's leaf amount at the default recipe's
+water volume (e.g. Kyusu 4,0 g / 200 ml → 8,0 g / 200 ml).
 
 **Step 7 — Plausibility:** hot 40–100 °C; first hot infusion 5 s–10 min;
 ratio 0,5–15 g/100 ml; otherwise style default + `IMPLAUSIBLE_VALUE`.
@@ -172,9 +177,9 @@ the recipe instead of flagging the tea.
 | Tea | Grid / prose | Derived recipes | Tea flag |
 |---|---|---|---|
 | Bio Uji Gyokuro Gokō `AT0634` | Kyusu `~4g/100ml · 50-55°C · ~90 Sek · ~30 Sek · ~20 Sek` | **Kyusu** 4,0 g / 100 ml / 55 °C: 1:30, 0:30, 0:20 · Kaltaufguss from style if badge present | — |
-| Bio Sencha Hisui `TG0557` | Westlich `~10g/L · ~65°C · ~1 Min`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek`; badge „Coldbrew geeignet" | **Kyusu** 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 65 °C: 1:00 · Kaltaufguss (style default) 10,0 g / 1000 ml / 5 °C: 4:00:00 | — |
+| Bio Sencha Hisui `TG0557` | Westlich `~10g/L · ~65°C · ~1 Min`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek`; badge „Coldbrew geeignet" | **Kyusu** 4,0 g / 200 ml / 65 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 65 °C: 1:00, 0:15 @70 · Kaltaufguss (style default) 10,0 g / 1000 ml / 5 °C: 4:00:00 | — |
 | Bio Premium Matcha Horai `AT0220a` | Kyusu `~1g/100ml · ~70°C · -` | **Usucha** 1,0 g / 100 ml / 70 °C: whisk 0:20 | — |
-| Bio Yuzu Sencha `TG0569` (flavoured) | Westlich `~10g/L · ~65-75°C · ~1 Min`; Kyusu `~4g/200ml · 65-75°C · 60 Sek · 10 Sek · 10 Sek`; prose: Kaltaufguss 20–30 min, double dose | **Kyusu** 4,0 g / 200 ml / 70 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 70 °C: 1:00 · Kaltaufguss 8,0 g / 200 ml / 5 °C: 25:00 | — |
+| Bio Yuzu Sencha `TG0569` (flavoured) | Westlich `~10g/L · ~65-75°C · ~1 Min`; Kyusu `~4g/200ml · 65-75°C · 60 Sek · 10 Sek · 10 Sek`; prose: Kaltaufguss 20–30 min, double dose | **Kyusu** 4,0 g / 200 ml / 70 °C: 1:00, 0:10, 0:10 · Westlich 2,5 g / 250 ml / 70 °C: 1:00, 0:15 @75 · Kaltaufguss 8,0 g / 200 ml / 5 °C: 25:00 | — |
 
 ### 2.5a M1 seed teas (PO's current teas)
 
@@ -182,10 +187,12 @@ The M1 timer APK has no catalog yet. It ships these two teas, which the PO
 owns, as **seed data** in the collection (verified on the live site on
 2026-10-21). Only factual data is committed (names, article numbers, origin,
 cultivar, processing, brewing parameters, prices); the shop's description
-texts and photos are **not** committed (D-016). On first start the app
-downloads the two product photos from the allow-listed host; without network
-the timer fallback image (A4) is used. Descriptions arrive with the catalog in
-M2 (*Aus Katalog zurücksetzen*).
+texts and photos are **not** committed (D-016). During the first-start setup
+the app downloads the two product photos **once** from the allow-listed host
+(ONB-06, network use (b) of GEN-01; visible progress, skippable); without
+network the timer fallback image (A4) is used. Descriptions (and photos, if
+still missing) arrive **automatically** with the first catalog refresh in M2
+via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 
 | Field | Bio Sencha Tanabata | Bio Sencha Hisui |
 |---|---|---|
@@ -268,10 +275,18 @@ locally); links to product pages become in-app catalog links.
 
 - Strip scripts, styles, iframes, forms, tracking pixels and embeds (YouTube →
   plain link); keep basic formatting only.
-- **Cloudflare:** if a response is a challenge page (HTTP 403/503 with
-  `cdn-cgi/challenge-platform` markers) the refresh stops immediately, keeps
-  the old catalog, and shows „Der Shop hat den Abruf vorübergehend blockiert –
-  bitte später erneut versuchen." No attempt is made to bypass challenges.
+- **Cloudflare:** a response is a challenge if it has the header
+  `cf-mitigated: challenge`, or (HTTP 403/503) its body contains challenge
+  markers (`cdn-cgi/challenge-platform`, `_cf_chl_opt`, „Just a moment…").
+  The refresh then stops immediately, keeps the old catalog, and shows „Der
+  Shop hat den Abruf vorübergehend blockiert – bitte später erneut
+  versuchen." No attempt is made to bypass challenges.
+- **Rate signals:** HTTP 429 or any `Retry-After` header also stops the
+  refresh (old catalog kept, same message); no automatic waiting and retry.
+- **One connection:** all requests go through a single HTTP connection,
+  sequentially, at ≤ 2 requests/s.
+- **robots.txt:** rules are matched with longest-match precedence and `*` /
+  `$` wildcards (RFC 9309); a disallowed URL is never fetched.
 - Identify with a clear user agent („UmamiT/<version> (private app)").
 
 ### 2.9 Sanity thresholds (CAT-07 AC5)

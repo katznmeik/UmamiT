@@ -91,11 +91,11 @@ stateDiagram-v2
 | `overtimeTimeout` | Alerting, 10 min after deadline | As `poured`, but actual = planned and overtime = 0 (assume poured on time); flag `overtimeAutoAck`. |
 | `skipStep` | Ready | Mark skipped → next Ready or Finished. |
 | `addStep(step)` | any except Idle | Append; if Finished → `Ready(new)`. |
-| `editSteps(list)` | any except Idle | Replace steps not yet started. Session-only. |
+| `editSteps(list, preAlertOverride?)` | any except Idle | From the Schritte-Sheet (SCR-31): replace steps not yet started and optionally the session's pre-alert. Session-only unless *Im Rezept speichern*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
 | `idleDemote` | Ready, Paused, Finished; 30 min without interaction | No state change: stop the foreground service, demote the Live Update to a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any interaction restarts the FGS (notification action exemption). |
-| `midnightTimeout` | Ready, Paused, Finished; local midnight (inexact alarm) | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise discarded silently. |
+| `midnightTimeout` | Ready, Paused, Finished; the first local midnight at least 6 h after the last interaction (`last_interaction_wall_ms`; inexact alarm, also checked on recovery §7.2) | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise discarded silently. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
 
@@ -106,7 +106,7 @@ flowchart LR
     UI[Timer screen, ActiveBrewBar] -- events --> C[BrewSessionController]
     N[Notification / Live Update actions] -- events --> C
     A[ExactAlarmReceiver\npre-alert & deadline] -- events --> C
-    B[BootReceiver] -- reschedule --> C
+    B[BootReceiver / PackageReplacedReceiver] -- recover --> C
     C --> E[BrewTimerEngine\npure Kotlin]
     C -- persist --> DB[(Room: active_brew, brew_session, session_step)]
     C -- StateFlow --> UI
@@ -156,7 +156,7 @@ flowchart LR
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
 | Long step RUNNING (≥ 10 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
-| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart the FGS cannot be started from the background: a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
+| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart, recovery tries to restart the FGS immediately (§6.3); if Android refuses, a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
 
 ### 6.2 Exact alarms
@@ -181,7 +181,13 @@ flowchart LR
 - Type `specialUse` with the subtype string from §13 (no store review, but
   Android requires a type).
 - Started from the user's *Start* tap (foreground), from notification
-  actions, or from the exact alarm (§6.2). Never from boot directly.
+  actions, from the exact alarm (§6.2), and **attempted** during recovery
+  (§7.2), on `BOOT_COMPLETED` (§7.3) and on `MY_PACKAGE_REPLACED` (§7.5).
+  Background starts are allowed while the app is exempt from battery
+  optimisation (ONB-02), and `specialUse` is not among the FGS types
+  restricted after boot. Every start from the background catches
+  `ForegroundServiceStartNotAllowedException`, logs it (06 §5.6) and falls
+  back to the plain ongoing notification.
 - Partial wake lock during short RUNNING steps and ALERTING, with timeout
   `remaining + alert length + 30 s`.
 
@@ -206,22 +212,37 @@ records, in one Room transaction.
 
 | Persisted phase | Behaviour (same boot uses monotonic values; after reboot wall-clock values) |
 |---|---|
-| READY / PAUSED / FINISHED | Restore; re-post Live Update; FGS restarted on the next interaction. |
-| RUNNING, deadline in future | Restore; reschedule alarms (pre-alert only if still ahead). |
+| READY / PAUSED / FINISHED | Restore; try to restart the FGS now (§6.3), else re-post a plain ongoing notification and restart the FGS on the next interaction. |
+| READY / PAUSED / FINISHED, local date changed past the midnight threshold (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged). |
+| RUNNING, deadline in future | Restore; reschedule alarms (pre-alert only if still ahead); try to restart the FGS (§6.3). |
 | RUNNING/ALERTING, deadline passed ≤ 10 min ago | → ALERTING with overtime; alert plays if not already played for this step. |
 | RUNNING/ALERTING, deadline passed > 10 min ago | `overtimeTimeout` applied silently. |
 
 ### 7.3 Reboot
 
 `BootReceiver` (`BOOT_COMPLETED`, delivered after the first unlock) restores the state from wall-clock data,
-reschedules the exact alarms (or applies §7.2 if the deadline already passed)
-and posts a notification „Dein Gyokuro-Timer läuft weiter". The deadline alarm
-then starts the FGS when it fires (§6.2).
+reschedules the exact alarms (or applies §7.2 if the deadline already passed),
+tries to restart the FGS (§6.3) and posts a notification „Dein
+Gyokuro-Timer läuft weiter". If the FGS start was refused, the deadline
+alarm starts it when it fires (§6.2).
+
+Samsung's *Automatische Optimierung* may restart the phone at night; the
+first-start setup shows a hint to disable *Automatisch neu starten* (ONB-02).
+
+`Could`: a direct-boot alert path — `LOCKED_BOOT_COMPLETED` receiver
+(`directBootAware`) plus the current deadline mirrored in device-protected
+storage — would let the alert fire before the first unlock (E2).
 
 ### 7.4 Force stop
 
 Alarms are cleared by the system; on next launch §7.2 applies and the UI says
 „Der Timer wurde vom System angehalten."
+
+### 7.5 App update
+
+Installing an update kills the process and a running FGS (alarms survive).
+`PackageReplacedReceiver` (`MY_PACKAGE_REPLACED`) runs §7.2 recovery right
+away, including the FGS restart attempt.
 
 ## 8. Notifications
 
@@ -229,8 +250,8 @@ Alarms are cleared by the system; on next launch §7.2 applies and the UI says
 
 | Channel ID | Name | Importance | Sound / vibration | Purpose |
 |---|---|---|---|---|
-| `brew_timer` | Brühtimer | DEFAULT (required for promotion; silent) | none | Live Update / ongoing |
-| `steep_finished` | Aufguss fertig | HIGH | none (played by `AlertPlayer`) | Heads-up „Jetzt abgießen!" |
+| `brew_timer` | Brühtimer | DEFAULT, silent (promotion only needs importance above MIN) | none | Live Update / ongoing |
+| `steep_finished` | Aufguss fertig | HIGH | none (played by `AlertPlayer`) | Full-screen intent / heads-up „Jetzt abgießen!" |
 | `sessions` | Sitzungen | LOW | none | Auto-finished session, reboot notice |
 | `reminders` | Erinnerungen | LOW | none | Backup, stock reminders |
 | `catalog` | Katalog | LOW | none | Refresh progress and result |
@@ -243,12 +264,22 @@ Alarms are cleared by the system; on next launch §7.2 applies and the UI says
 | RUNNING | Gyokuro · Aufguss 2 von 3 | Zieht bei 60 °C (chronometer countdown) | *Pause* |
 | RUNNING after pre-alert | Gyokuro · Aufguss 2 von 3 | Gleich fertig … | *Pause* |
 | PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
-| ALERTING (separate heads-up on `steep_finished`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
+| ALERTING (separate notification on `steep_finished` with `setFullScreenIntent(SCR-05)`, `CATEGORY_ALARM`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
 | FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Sitzung beenden* |
 | Long step | Gyokuro · Kaltaufguss | Fertig um 14:30 | *Pause* |
 
 Content intent → SCR-05; actions → non-exported receiver → controller.
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
+
+**Full-screen alert (D-036):** the alert notification (ID 2) carries a
+full-screen intent to SCR-05 for short **and** long steps. With the screen
+off or locked, the screen turns on and the timer activity is shown over the
+lock screen (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); while the
+phone is in use, it shows as a heads-up instead. This also happens in silent
+mode (visual only). Requires `USE_FULL_SCREEN_INTENT`; the app checks
+`NotificationManager.canUseFullScreenIntent()` and, if false, ONB-02 and the
+reliability banner deep-link to `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`
+(fallback: heads-up only).
 
 ### 8.3 Live Update
 
@@ -256,19 +287,32 @@ On Android 16 the `brew_timer` notification is requested as a **promoted
 ongoing notification** (Live Update):
 
 - `Notification.ProgressStyle` with one **segment per step** (length ∝
-  planned duration, rinse segments in a muted colour) and a **point** at the
-  pre-alert of the current step; progress = elapsed active time of the
-  session's planned total.
+  planned duration with a minimum visible length so short steps stay
+  visible; at most 30 steps, PRF-03; rinse segments in a muted colour) and a
+  **point** at the pre-alert of the current step; progress = elapsed active
+  time of the session's planned total. Progress is updated on every state
+  transition and **every 15 s** while RUNNING (not per second).
 - Ongoing, with content title, `setRequestPromotedOngoing(true)` (or the final
-  API name), a short critical text for the status-bar chip (e.g. „1:12" or
-  „60 °C" in READY) and the chronometer countdown (`setUsesChronometer`,
-  countdown, `setWhen(deadlineWall)`).
-- Shown as a status-bar chip, on the lock screen and, on One UI 8, in the
-  Samsung **Now Bar** (to be verified on the PO's device).
+  API name) and a monochrome small icon (M1 app icon task).
+- **Status-bar chip:** in RUNNING it is driven by the chronometer countdown
+  (`setUsesChronometer(true)`, `setChronometerCountDown(true)`,
+  `setWhen(deadlineWall)`); no static short critical text with a time. In
+  READY / PAUSED / FINISHED a short critical text is used (e.g. „60 °C",
+  „Pause").
+- Shown as a status-bar chip and on the lock screen. On One UI 8 it may also
+  appear in the Samsung **Now Bar**; this is **best effort** (One UI may
+  require the user to enable live notifications per app or a developer
+  option) and is not a release blocker.
+- **User dismissal is respected:** `setDeleteIntent` records the dismissal;
+  the notification is not re-posted until the next state change.
 - If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
   false), it falls back to a normal ongoing notification and the
-  reliability banner offers to enable Live notifications.
-- API names follow the Android 16 SDK and are verified at implementation.
+  reliability banner deep-links to
+  `Settings.ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS`. The banner is based
+  only on this check, not on Now Bar presence.
+- API names follow the Android 16 SDK and are verified in the **probe
+  release** `v0.0.1-probe` (M1 plan) on the PO's Galaxy before the full timer
+  is built.
 
 ## 9. Alerts
 
@@ -278,7 +322,7 @@ ongoing notification** (Live Update):
 |---|---|---|
 | Normal (Ton) | Soft tick sound + short haptic | Alert tone + vibration pattern (if SET-11) |
 | Vibrate | Short haptic | Vibration pattern |
-| Silent (Stumm) | — | Visual only (screen, heads-up, Live Update) |
+| Silent (Stumm) | — | Visual only (full-screen alert turns the screen on, Live Update) |
 
 - Audio uses `AudioAttributes.USAGE_NOTIFICATION_EVENT`, so volume follows the
   notification volume; Do Not Disturb is respected.
@@ -294,6 +338,14 @@ ongoing notification** (Live Update):
 Bundled OGG, mono, ≤ 60 KB each, loudness-normalised: Klangschale (default
 alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a very short soft
 **tick** for the pre-alert.
+
+Sourcing (D-036): all tones are **synthesised** first with ffmpeg in the
+cloud container (e.g. additive partials with exponential decay for the bowl,
+bell and chime; filtered noise burst for the wood block), loudness-normalised
+and encoded to OGG; the generator script is committed. The PO may later
+replace any tone with an uploaded **CC0 recording**; its source URL and
+licence are recorded in `docs/design/assets/source/CREDITS.md` and shown in
+About.
 
 ## 10. Quick timer
 
@@ -318,7 +370,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | # | Case | Expected behaviour |
 |---|---|---|
 | E1 | Clock or time zone changed during a step | No effect (monotonic). |
-| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime. Accepted for a personal app. |
+| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime. Accepted for a personal app; a direct-boot path is `Could` (§7.3). |
 | E3 | Process killed during a short step | Exact alarm fires → FGS started → alert plays. |
 | E4 | App swiped from recents | Session continues. |
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
@@ -327,7 +379,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |
-| E11 | Restore while a session is active | Restore disabled until the session ends. |
+| E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
 | E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. |
@@ -338,8 +390,9 @@ Uses the global pre-alert, the same alert and the Live Update
 |---|---|
 | Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts. |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
-| On the PO's Galaxy (acceptance) | Alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update / Now Bar; reboot during a cold-brew step; ringer normal/vibrate/silent; DND. |
-| Accuracy | 50 × 60 s steps screen off (emulator + device): p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
+| Instrumented (CI emulator job, API 35 and 36) | Process death (`am kill`) during a step; alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
+| On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
+| Accuracy | 50 × 60 s steps screen off in the CI emulator job; on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 
 ## 13. Manifest declarations (timer-related)
 
@@ -353,6 +406,10 @@ Uses the global pre-alert, the same alert and the Live Update
 <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+<!-- Timer activity: setShowWhenLocked(true) / setTurnScreenOn(true) are set
+     from code only while SCR-05 is shown for an alert (not in the manifest,
+     so the rest of the app never appears over the lock screen). -->
 
 <service
     android:name=".timer.BrewTimerService"
@@ -367,6 +424,11 @@ Uses the global pre-alert, the same alert and the Live Update
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
+    </intent-filter>
+</receiver>
+<receiver android:name=".timer.PackageReplacedReceiver" android:exported="false">
+    <intent-filter>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
     </intent-filter>
 </receiver>
 ```
