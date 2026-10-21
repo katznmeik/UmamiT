@@ -74,6 +74,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Matt Pocock skills set up: GitHub Issues as tracker, default triage labels, domain docs mapped to specs 10/11 (`docs/agents/`). An early M1 start was stopped by the PO; the go stays 2026-10-22 09:05. |
 | 2026-10-21 | PO gave the go for development, effective 2026-10-22 09:05 Europe/Berlin (D-038); a scheduled check-in starts M1 then. |
 | 2026-10-21 | PR #2 merged by Claude; rule D-037 (Claude merges all PRs) added. |
 | 2026-10-21 | PR #1 (M0 specs) merged; repository renamed to `katznmeik/UmamiT`; references updated. |
