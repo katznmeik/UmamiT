@@ -237,10 +237,36 @@ leaf amount, infusions, umami.
 
 ### 3.6 Motion & haptics
 
-Material 3 motion; ring progresses per frame; optional liquor-fill
-animation; *Alerting*: slow ring pulse (no flashing); honours "Remove
-animations". Haptics: tick on start/pause, pre-alert tick, alert pattern,
-confirm on *Abgegossen*.
+Guardrails (D-041); curves, durations, the fill direction and the pulse
+rhythm are worked out in the waves 2–3 spec (M1 plan §3.2) and judged by the
+PO in motion recordings.
+
+- **Character:** calm and ritual-like. Material 3 motion system with soft
+  ease-out, hardly any overshoot, slightly slower than the Material
+  defaults. Motion explains state; it is never decoration for its own sake.
+- **Functional motion:** ring progress (per frame in short steps), sheet
+  and state transitions, the active brew bar.
+- **Two signature moments:**
+  1. **Liquor fill:** while a step runs, the inside of the ring fills in the
+     tea's liquor colour (§3.1: green, gyokuro, hōjicha).
+  2. **Pre-alert glow:** the pre-alert marker on the ring glows gently, in
+     sync with the pre-alert tick.
+- **Long steps** (≥ `LONG_STEP_THRESHOLD`, 10 min): ring and liquor fill
+  update in coarse steps (about every 10 s) with a short glide instead of
+  per frame, to save battery.
+- **Alerting** deliberately breaks the calm style. A strong, slow pulse of
+  the whole surface (washi → matcha green) at about a 1–2 s rhythm, with high
+  contrast and **no flashing**. It must be unmistakable from across the
+  room, including in silent mode, where the alert is visual only (04 §9.1).
+- **Reduce motion:** follows only the system setting „Animationen
+  entfernen" (no in-app switch). The pre-alert glow is off; the liquor
+  fill still shows the level but updates without gliding; functional motion
+  becomes instant or very short; the alert becomes a **static**
+  high-contrast matcha surface without pulse.
+- No motion may delay, hide or soften an alert (CLAUDE.md rule 8).
+
+Haptics: tick on start/pause, pre-alert tick, alert pattern, confirm on
+*Abgegossen*.
 
 ### 3.7 Voice & tone (German)
 

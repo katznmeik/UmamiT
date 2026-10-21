@@ -89,6 +89,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |
 | 2026-10-21 | Removed 7 web/iOS-only Emil Kowalski skills; noted how the remaining design/motion skills enter the waves 2–3 spec (M1 plan §3.2). |
 | 2026-10-21 | Grilled the M1 start with the PO: working agreements recorded above; D-040 (probe gate, fix loop); 09:05 start re-created as a scheduled task in this session (the earlier one had disappeared). |
 | 2026-10-21 | Emil Kowalski's design skills installed (`npx skills add emilkowalski/skills`, MIT): 15 skills in `.claude/skills/`, pinned in `skills-lock.json`. Useful here: `emil-design-eng`, `apple-design`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`; the rest target web/React/Swift. |

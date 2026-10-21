@@ -301,6 +301,28 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-041"></a>
+### D-041 — Motion guardrails · *Accepted* (PO, 2026-10-21)
+
+Grilled with the PO; details in 03 §3.6:
+
+- **Style:** calm, ritual-like motion.
+- **Signature moments:** functional motion plus exactly two of them, the
+  liquor fill and the pre-alert glow. The liquor fill replaces the
+  „optional" fill of v0.2.
+- **Long steps:** coarse updates.
+- **Alert:** deliberately strong but non-flashing surface pulse.
+- **Reduce motion:** the system setting only; under it the alert is static
+  and high-contrast.
+- **Review:** the PO judges motion on the device (release candidates) and
+  in short motion recordings. These are GIFs made with Roborazzi's
+  experimental, record-only `recordRoboVideo`, committed next to the
+  screenshots in `docs/design/review/<milestone>/`.
+- **Details:** curves, durations, the fill direction and the pulse rhythm
+  are worked out in the waves 2–3 spec with `/animate` and `/apple-design`.
+- **Skills:** the design skills are part of Claude's workflow (M1 plan
+  §3.2); the PO does not need to invoke them.
+
 <a id="d-040"></a>
 ### D-040 — The probe gates the real timer; fix loop until it passes · *Accepted* (PO, 2026-10-21)
 
@@ -437,6 +459,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | D-041: motion guardrails (calm style, liquor fill + pre-alert glow, strong non-flashing alert, reduce motion, GIF recordings for review); 03 §3.6 rewritten. |
 | 2026-10-21 | D-040: the probe gates M1-09/M1-11; fix loop with `0.0.N-probe`; Now Bar best effort; runtime fallbacks stay. |
 | 2026-10-21 | D-039: `release.yml` on `main` before the first dispatch; spec issue #6 and test seams for M1-00 … M1-03a. |
 | 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
