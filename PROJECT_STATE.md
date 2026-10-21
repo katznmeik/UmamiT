@@ -16,6 +16,7 @@
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Merged PRs | [katznmeik/UmamiT#1](https://github.com/katznmeik/UmamiT/pull/1): M0 specification (merged 2026-10-21) |
 | Open PR | none |
+| Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | none |
 
 ## Done (M0)
@@ -74,6 +75,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | PR #2 merged by Claude; rule D-037 (Claude merges all PRs) added. |
 | 2026-10-21 | PR #1 (M0 specs) merged; repository renamed to `katznmeik/UmamiT`; references updated. |
 | 2026-10-21 | Opus xhigh spec review; fixes applied (D-036). |
 | 2026-10-21 | Grill round 4 (D-034) recorded; PO asked for an M1 walkthrough before deciding on the go. |

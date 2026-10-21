@@ -72,6 +72,15 @@ commit and push.
      bypass a challenge.
 8. **Timer reliability beats features.** Any change to the timer needs the
    unit tests in `docs/specs/04-brew-timer.md` §12 to pass.
+9. **Claude merges every PR; the PO never merges** (D-037).
+   - Documentation/housekeeping PRs: merge as soon as CI (if any) is green
+     and you have checked the diff.
+   - Milestone PRs: merge only when all done criteria of rule 6 are met,
+     including the PO's explicit approval of the on-device checklist and the
+     design review (given in the session or as a PR comment). Then dispatch
+     the final release from `main`.
+   - Use merge commits. After merging, restart the working branch from
+     `main` for follow-up work.
 
 ## Key facts
 

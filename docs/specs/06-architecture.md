@@ -319,7 +319,7 @@ phone.
 
 ## 8. Repository conventions
 
-- One PR per milestone into `main`, CI green, PO merges.
+- One PR per milestone into `main`, CI green, PO approves, **Claude merges** (D-037).
 - Conventional Commits; `CHANGELOG.md`; tags `vX.Y.Z` / `vX.Y.Z-rc.N` are
   created by `release.yml` (§6).
 - PR description lists the requirement IDs implemented and an on-device test
