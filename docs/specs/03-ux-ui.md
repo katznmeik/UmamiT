@@ -345,7 +345,7 @@ Always dark ("Steeping"), edge-to-edge, keeps the screen on.
 | READY | empty | KettleHint „Wasserkocher auf 60 °C" + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
-| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07" | **Abgegossen** (*Weggegossen* for rinse) |
+| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in warm accent `#D9A35F` | **Abgegossen** (*Weggegossen* for rinse) |
 | FINISHED | full | „Alle Aufgüsse fertig" | **Sitzung beenden**, secondary *Weiterer Aufguss* |
 
 Overflow ⋮ items by state:

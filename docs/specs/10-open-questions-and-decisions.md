@@ -271,6 +271,20 @@ personal data or shop content).
 - The existing mockup images still show „UmamiTea"; the wordmark in the app
   and in new mockups is „UmamiT".
 
+<a id="d-034"></a>
+### D-034 — Grill round 4 · *Accepted* (PO, 2026-10-21)
+
+- Silent ringer mode stays visual-only (no vibration override); the PO keeps
+  the phone on vibrate or ring when brewing.
+- Claude generates the release keystore and hands file and passwords to the
+  PO, who stores them offline and adds the GitHub secrets.
+- Alert sounds come from free CC0 recordings, credited in About.
+- New APKs are announced by Claude in the session/PR; no in-app update check.
+- Seed teas are linked to the catalog and filled with description and photo on
+  the first refresh (CAT-15).
+- Starting a second tea keeps the confirmation dialog (TMR-21).
+- Overtime ≥ 15 s is shown prominently (TMR-06).
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -296,6 +310,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Grill round 4 (D-034): silent stays visual-only, Claude-generated signing key, CC0 sounds, releases announced by Claude, seed teas linked on first refresh, prominent overtime. |
 | 2026-10-21 | App renamed to UmamiT (D-033); application ID `com.umamit.app`. |
 | 2026-10-21 | Second mug steep set to 0,25 × first duration (+5 °C) per PO experience (D-032). |
 | 2026-10-21 | Grill round 3 (D-032): seed teaware, second mug steep, waiting sessions until midnight, screenshot design review per milestone. |

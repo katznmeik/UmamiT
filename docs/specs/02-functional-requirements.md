@@ -232,6 +232,13 @@ an independent copy (TEA-01) with recipes, stock (INV-01) and price. If the
 tea is already in the collection, the action becomes *Nachkauf erfassen*
 (record repurchase), adding stock instead of a duplicate.
 
+**CAT-15 — Link seed teas on first refresh** `Must`
+After the first successful catalog refresh, collection teas whose
+`catalog_key` matches a catalog entry but which have no description (the M1
+seed teas) are linked and receive the catalog description and photo
+automatically. Recipes, stock, journal entries and user edits are never
+changed.
+
 **CAT-13 — Collection teas stay independent** `Must`
 A refresh never changes collection teas. Tea detail offers *Aus Katalog
 zurücksetzen* (reset description/recipes from the current catalog entry, with
@@ -461,7 +468,9 @@ At zero: sound and vibration **following the phone's ringer mode** (normal →
 sound + vibration; vibrate → vibration; silent → no sound/vibration, visual
 only), repeated for up to ~15 s or until acknowledged; heads-up notification
 and Live Update show „Jetzt abgießen!". Screen shows overtime („+0:07") and a
-large *Abgegossen* button.
+large *Abgegossen* button. From 15 s of overtime on, the overtime is shown
+prominently (large „+2:30 überzogen" in a warm accent colour) so a missed
+alert is obvious when returning to the app.
 
 **TMR-07 — Acknowledge** `Must`
 *Abgegossen* (in app, notification, or Live Update) stops the alert, records
