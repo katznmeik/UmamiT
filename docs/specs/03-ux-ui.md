@@ -259,9 +259,10 @@ PO in motion recordings.
   contrast and **no flashing**. It must be unmistakable from across the
   room, including in silent mode, where the alert is visual only (04 §9.1).
 - **Reduce motion:** follows only the system setting „Animationen
-  entfernen" (no in-app switch). Decorative motion (liquor fill glide,
-  pre-alert glow) is off; functional motion becomes instant or very short;
-  the alert becomes a **static** high-contrast matcha surface without pulse.
+  entfernen" (no in-app switch). The pre-alert glow is off; the liquor
+  fill still shows the level but updates without gliding; functional motion
+  becomes instant or very short; the alert becomes a **static**
+  high-contrast matcha surface without pulse.
 - No motion may delay, hide or soften an alert (CLAUDE.md rule 8).
 
 Haptics: tick on start/pause, pre-alert tick, alert pattern, confirm on
