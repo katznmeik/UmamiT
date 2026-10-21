@@ -10,7 +10,7 @@
 | Item | Status |
 |---|---|
 | Current milestone | **M0 — Specification** |
-| Development go from PO | ❌ **Not given.** Do not write app code. |
+| Development go from PO | ✅ **Given on 2026-10-21, effective 2026-10-22 09:05 Europe/Berlin** (after the PO's weekly usage limit resets), unless the PO says otherwise before then. **No app code before that time.** |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/sweet-brown-e16crp` |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -39,17 +39,16 @@
 
 ## Waiting on the PO
 
-1. **Explicit go** for development.
-2. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
+1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-3. During M1: save the two signing files Claude delivers in the session and
+2. During M1: save the two signing files Claude delivers in the session and
    add 2 GitHub secrets (06 §6.1).
-4. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
+3. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
    report the results.
-5. At the M1 PR: test the release candidate, listen to the alert sounds and
+4. At the M1 PR: test the release candidate, listen to the alert sounds and
    approve the default (Q-15).
 
-## Next steps (after the go)
+## Next steps (from 2026-10-22 09:05 Europe/Berlin)
 
 Follow `docs/plans/M1-timer.md`, starting with M1-00 (session-start hook
 that installs the Android SDK), M1-01 (Gradle skeleton with all module
@@ -75,6 +74,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | PO gave the go for development, effective 2026-10-22 09:05 Europe/Berlin (D-038); a scheduled check-in starts M1 then. |
 | 2026-10-21 | PR #2 merged by Claude; rule D-037 (Claude merges all PRs) added. |
 | 2026-10-21 | PR #1 (M0 specs) merged; repository renamed to `katznmeik/UmamiT`; references updated. |
 | 2026-10-21 | Opus xhigh spec review; fixes applied (D-036). |
