@@ -269,8 +269,8 @@ personal data or shop content).
 - The app is called **UmamiT** everywhere (app name, wordmark, docs).
 - Application ID `com.umamit.app`; backup extension `.umamit`; database
   `umamit.db`; user agent `UmamiT/<version>`.
-- The GitHub repository keeps its name `katznmeik/UmamiTea` unless the PO
-  renames it on GitHub (GitHub redirects old URLs).
+- The GitHub repository was renamed to `katznmeik/UmamiT` by the PO on
+  2026-10-21 (GitHub redirects the old `UmamiTea` URLs).
 - The existing mockup images still show „UmamiTea"; the wordmark in the app
   and in new mockups is „UmamiT".
 
@@ -386,6 +386,7 @@ default but is not a requirement.
 | 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Repository renamed to `katznmeik/UmamiT` (D-033 updated); PR #1 merged. |
 | 2026-10-21 | D-035: welcome text „Aus Liebe zum Tee", no home greeting, pre-alert default 10 s, signing process with 2 secrets. |
 | 2026-10-21 | Grill round 4 (D-034): silent stays visual-only, Claude-generated signing key, CC0 sounds, releases announced by Claude, seed teas linked on first refresh, prominent overtime. |
 | 2026-10-21 | App renamed to UmamiT (D-033); application ID `com.umamit.app`. |

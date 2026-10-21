@@ -13,7 +13,9 @@
 | Development go from PO | ❌ **Not given.** Do not write app code. |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/sweet-brown-e16crp` |
-| Open PR | [katznmeik/UmamiTea#1](https://github.com/katznmeik/UmamiTea/pull/1): M0 specification (not merged) |
+| Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
+| Merged PRs | [katznmeik/UmamiT#1](https://github.com/katznmeik/UmamiT/pull/1): M0 specification (merged 2026-10-21) |
+| Open PR | none |
 | Latest APK | none |
 
 ## Done (M0)
@@ -37,15 +39,13 @@
 ## Waiting on the PO
 
 1. **Explicit go** for development.
-2. Review and merge [katznmeik/UmamiTea#1](https://github.com/katznmeik/UmamiTea/pull/1).
-3. Optional: rename the GitHub repository to `UmamiT` (Settings › General).
-4. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
+2. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-5. During M1: save the two signing files Claude delivers in the session and
+3. During M1: save the two signing files Claude delivers in the session and
    add 2 GitHub secrets (06 §6.1).
-6. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
+4. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
    report the results.
-7. At the M1 PR: test the release candidate, listen to the alert sounds and
+5. At the M1 PR: test the release candidate, listen to the alert sounds and
    approve the default (Q-15).
 
 ## Next steps (after the go)
@@ -74,6 +74,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | PR #1 (M0 specs) merged; repository renamed to `katznmeik/UmamiT`; references updated. |
 | 2026-10-21 | Opus xhigh spec review; fixes applied (D-036). |
 | 2026-10-21 | Grill round 4 (D-034) recorded; PO asked for an M1 walkthrough before deciding on the go. |
 | 2026-10-21 | Specs v0.1 → v0.2 after PO interviews (grill rounds 1–3), live Tee-Kontor verification, seed teas, agent plan, rename to UmamiT, project docs. |

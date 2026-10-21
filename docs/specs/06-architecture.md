@@ -15,7 +15,7 @@
 | Build | Gradle Kotlin DSL, version catalog, convention plugins in `build-logic/` |
 | Distribution | **Signed APK on GitHub Releases** (no Play Store, no AAB needed) |
 | Application ID | `com.umamit.app` (D-027); must stay constant so updates install over the previous version |
-| Repository | `katznmeik/UmamiTea`; one PR per milestone into `main` |
+| Repository | `katznmeik/UmamiT` (renamed from `UmamiTea`, old URLs redirect); one PR per milestone into `main` |
 | Developer | Claude (cloud sessions), delegating to subagents per [12 · Subagent Distribution Plan](12-agent-plan.md); PO reviews PRs and tests APKs on the phone |
 
 Library versions are pinned in `gradle/libs.versions.toml` (latest stable at
