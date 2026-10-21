@@ -141,3 +141,7 @@ The five default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready
 ### Domain docs
 
 Single-context: glossary `docs/specs/11-glossary.md`, decisions (ADRs) `docs/specs/10-open-questions-and-decisions.md`. See `docs/agents/domain.md`.
+
+### Project skills
+
+`/implement-spec` (`.claude/skills/implement-spec/`): beta skill vendored from mattpocock/skills (MIT) with UmamiT rules (gate, tiers, verification, milestone PR) that take precedence. It works a spec's tickets as a task graph on one PR.
