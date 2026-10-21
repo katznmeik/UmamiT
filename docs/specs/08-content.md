@@ -137,8 +137,8 @@ rescales later (WARE-03).
 
 **Step 5 — Steps:** one INFUSION per given infusion (1–3) at the recipe
 temperature. **PO preference:** a Westlich recipe with only one infusion gets
-a second infusion of **0,2 ×** the first duration (rounded to 5 s, minimum
-5 s; e.g. 1:00 → 0:10) at +5 °C
+a second infusion of **0,25 ×** the first duration (rounded to 5 s, minimum
+5 s; e.g. 1:00 → 0:15) at +5 °C
 (source noted, not flagged). If only the first infusion is given and the method is KYUSU or
 GONGFU, follow-up infusions come from the style default. Matcha: one WHISK
 step with the style's whisk duration (the shop states none; not flagged).
@@ -204,7 +204,7 @@ M2 (*Aus Katalog zurücksetzen*).
 | Badges | Für Einsteiger | Coldbrew geeignet, Für Einsteiger, Preistipp |
 | Brewing grid (verbatim) | Westlich `~10g/L · ~65-70°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-70°C · 45 Sek · 10 Sek · 10 Sek` | Westlich `~10g/L · ~65°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` |
 | **Recipe „Kyusu" (default)**, vessel „Kyusu" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
-| Recipe „Westlich", vessel „Becher mit Sieb" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:10 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:10 @70 |
+| Recipe „Westlich", vessel „Becher mit Sieb" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:15 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:15 @70 |
 | Recipe „Kaltaufguss" | — | 10,0 g / 1000 ml / 5 °C: 4:00:00 (style default, from badge) |
 | Recipe check flag | none | none |
 | Packages (exact prices) | 10 g 1,85 € · 100 g 8,50 € · 250 g 20,60 € · 500 g 40,35 € · 1000 g 76,50 € | 10 g 2,80 € · 50 g 8,95 € · 100 g 17,90 € · 250 g 43,40 € · 500 g 85,05 € · 1000 g 161,10 € |

@@ -252,8 +252,8 @@ personal data or shop content).
   (work); seed recipes scaled to them (WARE-06, 08 §2.5a).
 - *Nochmal brühen* keeps the last session's parameters even across vessels;
   switching via ⋮ *Brühen anpassen*.
-- Westlich recipes with one infusion get a second (0,2 × the first duration,
-  rounded to 5 s, +5 °C; corrected by the PO from 1,5 ×).
+- Westlich recipes with one infusion get a second (0,25 × the first duration,
+  rounded to 5 s, +5 °C; set by the PO from experience).
 - Leaf in grams with 0,1 g; Google device backup is on.
 - Waiting sessions live until midnight; Live Update demoted after 30 min
   (TMR-14).
@@ -285,7 +285,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
-| 2026-10-21 | Second mug steep changed to 0,2 × first duration (+5 °C) per PO experience (D-032). |
+| 2026-10-21 | Second mug steep set to 0,25 × first duration (+5 °C) per PO experience (D-032). |
 | 2026-10-21 | Grill round 3 (D-032): seed teaware, second mug steep, waiting sessions until midnight, screenshot design review per milestone. |
 | 2026-10-21 | Grill round 2 (D-031): manual-only refresh on any network; discontinued teas hidden unless owned; empty teas stay marked „Leer"; early finish = normal session; one infusion = one cup; *Nochmal brühen* (3 last teas) opens the timer directly; no automatic rinse; screen dims while steeping; M1 seed teas Tanabata & Hisui with live data; small-size prices not estimated. |
 | 2026-10-21 | Mockups v2 added (`docs/design/mockup-v2-*.png`) and reviewed in 03 §1.1; journal row format adopted from them. |
