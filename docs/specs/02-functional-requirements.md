@@ -100,7 +100,7 @@ kettle). Imported or legacy values are snapped to the nearest 5 °C
 ## 2. First-start setup (ONB) — SCR-01
 
 **ONB-01 — Welcome** `Must`
-Welcome page with logo, „UmamiTea", tagline, ink-wash illustration,
+Welcome page with logo, „UmamiT", tagline, ink-wash illustration,
 *Los geht's*.
 
 **ONB-02 — Reliability setup** `Must`
@@ -719,7 +719,7 @@ device backup and device-to-device transfer. Catalog photos and own photos are
 excluded (size limit; catalog photos can be re-downloaded).
 
 **BAK-01 — Manual export** `Should`
-*Sicherung erstellen* writes a `.umamitea` file (data, settings and own photos;
+*Sicherung erstellen* writes a `.umamit` file (data, settings and own photos;
 catalog excluded) via the system file picker. Format:
 [05 §8](05-data-model.md#8-backup-file-format).
 

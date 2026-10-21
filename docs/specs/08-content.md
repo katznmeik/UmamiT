@@ -272,7 +272,7 @@ locally); links to product pages become in-app catalog links.
   `cdn-cgi/challenge-platform` markers) the refresh stops immediately, keeps
   the old catalog, and shows „Der Shop hat den Abruf vorübergehend blockiert –
   bitte später erneut versuchen." No attempt is made to bypass challenges.
-- Identify with a clear user agent („UmamiTea/<version> (private app)").
+- Identify with a clear user agent („UmamiT/<version> (private app)").
 
 ### 2.9 Sanity thresholds (CAT-07 AC5)
 

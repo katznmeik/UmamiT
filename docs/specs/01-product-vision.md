@@ -6,7 +6,7 @@
 
 ## 1. Elevator pitch
 
-**UmamiTea** is a **personal** Android app for its owner's daily tea ritual,
+**UmamiT** is a **personal** Android app for its owner's daily tea ritual,
 with a love for umami-rich Japanese green teas (gyokuro, kabusecha, sencha,
 matcha). It combines:
 
@@ -103,7 +103,7 @@ Detailed in [02 · Functional Requirements](02-functional-requirements.md).
 
 There is no analytics. Success means:
 
-- The PO uses UmamiTea for every hot-tea session for 4 weeks after the first
+- The PO uses UmamiT for every hot-tea session for 4 weeks after the first
   full release.
 - Zero missed or late alerts reported by the PO.
 - The catalog refresh works without manual fixes for at least 3 months, or

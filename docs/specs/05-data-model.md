@@ -356,10 +356,10 @@ Time rounding for derived recipes: nearest 5 s (half up).
 
 ## 8. Backup file format
 
-- Manual export `.umamitea` (ZIP): `manifest.json`, `data.json`,
+- Manual export `.umamit` (ZIP): `manifest.json`, `data.json`,
   `settings.json`, `photos/<id>.jpg`. The **catalog is not included** (it is
   re-downloadable); collection teas keep their `catalog_key`.
-- `manifest.json`: format id `umamitea-backup`, `formatVersion` 1,
+- `manifest.json`: format id `umamit-backup`, `formatVersion` 1,
   `createdAt`, app version, database schema version, counts, SHA-256 of JSON
   entries.
 - `data.json`: arrays for teas, brewProfiles, brewSteps, vessels, tags,
@@ -370,7 +370,7 @@ Time rounding for derived recipes: nearest 5 s (half up).
   files decodable; safety backup of current data; staging; single
   transaction; rollback on failure.
 - **Android device backup** (`data_extraction_rules.xml`): include the
-  personal database (`umamitea.db`) and DataStore; exclude `catalog.db`,
+  personal database (`umamit.db`) and DataStore; exclude `catalog.db`,
   `photos/`, `catalog/`, caches. After a device restore, the orphan sweeper
   removes `photo` rows whose files are missing and clears dangling
   `cover_photo_id`s; after the next catalog refresh, catalog teas without a

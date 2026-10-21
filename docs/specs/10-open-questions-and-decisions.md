@@ -41,7 +41,7 @@ structure without the shop's texts or images. Other aspects:
 |---|---|
 | Q-04 Illustrations | Option C (AI-generated, curated), optionally with D (CC0 museum art) — D-029; asset list in `docs/design/assets.md`. |
 | Q-11 Repository visibility | Public — D-030. |
-| Q-01 Application ID | `com.umamitea.app` (accepted). |
+| Q-01 Application ID | `com.umamit.app` (originally `com.umamitea.app`; changed with the rename, D-033). |
 | Q-05 Serif font | Cormorant Garamond (accepted). |
 | Q-18 Galaxy Watch | Not used; no watch support needed (NOT-04 → Won't). |
 | Q-02 Monetisation | Not applicable: personal use only. |
@@ -260,6 +260,17 @@ personal data or shop content).
 - Milestone done = on-device checklist + design review of rendered
   screenshots in the PR (09 §1).
 
+<a id="d-033"></a>
+### D-033 — App renamed to „UmamiT" · *Accepted* (PO, 2026-10-21)
+
+- The app is called **UmamiT** everywhere (app name, wordmark, docs).
+- Application ID `com.umamit.app`; backup extension `.umamit`; database
+  `umamit.db`; user agent `UmamiT/<version>`.
+- The GitHub repository keeps its name `katznmeik/UmamiTea` unless the PO
+  renames it on GitHub (GitHub redirects old URLs).
+- The existing mockup images still show „UmamiTea"; the wordmark in the app
+  and in new mockups is „UmamiT".
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -271,7 +282,7 @@ catalogue and escalation rules: [12 · Subagent Distribution Plan](12-agent-plan
 <a id="d-027"></a>
 ### D-027 — Application ID and display font · *Accepted* (PO, 2026-10-21)
 
-Application ID `com.umamitea.app`; serif display font Cormorant Garamond (OFL).
+Application ID `com.umamit.app`; serif display font Cormorant Garamond (OFL).
 
 <a id="d-028"></a>
 ### D-028 — No smartwatch support · *Accepted* (PO, 2026-10-21)
@@ -285,6 +296,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | App renamed to UmamiT (D-033); application ID `com.umamit.app`. |
 | 2026-10-21 | Second mug steep set to 0,25 × first duration (+5 °C) per PO experience (D-032). |
 | 2026-10-21 | Grill round 3 (D-032): seed teaware, second mug steep, waiting sessions until midnight, screenshot design review per milestone. |
 | 2026-10-21 | Grill round 2 (D-031): manual-only refresh on any network; discontinued teas hidden unless owned; empty teas stay marked „Leer"; early finish = normal session; one infusion = one cup; *Nochmal brühen* (3 last teas) opens the timer directly; no automatic rinse; screen dims while steeping; M1 seed teas Tanabata & Hisui with live data; small-size prices not estimated. |

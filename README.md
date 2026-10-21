@@ -1,8 +1,8 @@
-# UmamiTea
+# UmamiT
 
 **Besserer Tee. Tiefere Momente.**
 
-UmamiTea is a personal Android app for brewing tea well, especially umami-rich
+UmamiT is a personal Android app for brewing tea well, especially umami-rich
 Japanese green teas such as gyokuro, kabusecha, sencha and matcha. It brings
 together:
 

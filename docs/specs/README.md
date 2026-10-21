@@ -1,8 +1,8 @@
-# UmamiTea — Specifications
+# UmamiT — Specifications
 
 > Status: **Draft v0.2 — for review** · Last updated: 2026-10-21
 
-Product and technical specification of **UmamiTea**, a personal Android app
+Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
 multi-infusion steep timer, a catalog of Tee-Kontor Kiel's green teas, a
 personal collection with stock and cost, an automatic journal and
@@ -33,6 +33,11 @@ and [`mockup-v2-start.png`](../design/mockup-v2-start.png) (current), and
 [`brand-mockup.png`](../design/brand-mockup.png) (original mood).
 Prompt for new mockups: [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md).
 Image assets to create, with prompts: [`docs/design/assets.md`](../design/assets.md).
+
+Working documents: [`CLAUDE.md`](../../CLAUDE.md) (rules for every Claude
+session), [`PROJECT_STATE.md`](../../PROJECT_STATE.md) (current status and
+handover), [`docs/plans/`](../plans/) (milestone implementation plans, e.g.
+[M1](../plans/M1-timer.md)).
 
 ## Key decisions at a glance
 

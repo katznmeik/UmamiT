@@ -3,7 +3,7 @@
 > Status: **Draft v0.2** · Last updated: 2026-10-21
 > Decision: [D-026](10-open-questions-and-decisions.md#d-026)
 
-UmamiTea is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
+UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
 A main **orchestrating session** plans each milestone, splits it into tasks,
 and delegates tasks to **subagents**. This document defines which **model**
 and which **reasoning effort** each kind of task gets, so that simple work is
@@ -167,7 +167,8 @@ A task is never moved to a *lower* tier after it failed.
 ## 5. Orchestration workflow
 
 1. **Plan:** the orchestrator breaks the milestone into tasks with the tier
-   from §3. It writes each task prompt as self-contained: spec references
+   from §3, written to `docs/plans/<milestone>.md` (e.g.
+   [M1-timer.md](../plans/M1-timer.md)). It writes each task prompt as self-contained: spec references
    (requirement IDs), files involved, acceptance criteria, and tests to add.
 2. **Parallelise** independent tasks (different modules). Code-writing
    subagents that run in parallel use isolated git worktrees, and the

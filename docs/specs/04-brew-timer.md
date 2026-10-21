@@ -5,7 +5,7 @@
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
 
-The steep timer is the most important feature of UmamiTea. This document
+The steep timer is the most important feature of UmamiT. This document
 specifies its behaviour, state machine, background execution, persistence,
 notifications and alerts. Functional requirements: TMR-xx and NOT-xx in
 [02](02-functional-requirements.md).
@@ -190,7 +190,7 @@ flowchart LR
 - First-start setup (ONB-02) requests `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`
   (permission `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, allowed for a sideloaded
   app) and guides the PO to One UI's *Akku › Uneingeschränkt* and to add
-  UmamiTea to *Nie schlafende Apps*.
+  UmamiT to *Nie schlafende Apps*.
 - `PowerManager.isIgnoringBatteryOptimizations()` is checked at app start and
   before each session; if false → reliability banner.
 - Verified on the PO's Galaxy (Android 16 / One UI 8) as part of acceptance.

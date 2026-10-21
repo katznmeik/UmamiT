@@ -12,7 +12,7 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 *illustrative*, not a feature list. It is stored at
 [`docs/design/brand-mockup.png`](../design/brand-mockup.png).
 
-![UmamiTea brand mockup](../design/brand-mockup.png)
+![UmamiT brand mockup](../design/brand-mockup.png)
 
 | Element | In the mockup | Adopted as |
 |---|---|---|
@@ -34,7 +34,8 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 ### 1.1 Mockups v2 (aligned with spec v0.2)
 
 Generated from [`docs/design/mockup-prompt.md`](../design/mockup-prompt.md) and
-added by the PO on 2026-10-21. They are the **current visual reference**;
+added by the PO on 2026-10-21. They are the **current visual reference** (they still show the former name
+„UmamiTea"; the wordmark is now „UmamiT", D-033);
 `brand-mockup.png` remains the original mood reference.
 
 | File | Content |
@@ -254,7 +255,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 ### SCR-01 Einrichtung (first start)
 
-1. *Willkommen* — full-bleed ink-wash, logo, „UmamiTea", „BESSERER TEE.
+1. *Willkommen* — full-bleed ink-wash, logo, „UmamiT", „BESSERER TEE.
    TIEFERE MOMENTE.", お茶で、いい時間を。, *Los geht's*.
 2. *Damit der Timer zuverlässig klingelt* — checklist rows with status ✓/!:
    Benachrichtigungen erlauben · Akku: Uneingeschränkt · Live-Benachrichtigungen.
@@ -266,7 +267,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 ```
 ┌──────────────────────────────┐
-│ UmamiTea                 ⚙   │
+│ UmamiT                 ⚙   │
 │  [ink-wash mountains ……… ]   │
 │  Guter Tee schenkt einen     │
 │  Moment der Ruhe.            │
