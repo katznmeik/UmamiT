@@ -301,6 +301,15 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-037"></a>
+### D-037 — Claude merges all pull requests · *Accepted* (PO, 2026-10-21)
+
+The PO never merges. Claude merges documentation and housekeeping PRs after
+checking the diff (and green CI, if any). Milestone PRs are merged by Claude
+once the done criteria are met, including the PO's explicit approval of the
+on-device checklist and the design review. Merge commits; the working branch
+is restarted from `main` afterwards. Recorded as rule 9 in `CLAUDE.md`.
+
 <a id="d-036"></a>
 ### D-036 — Spec review fixes and PO decisions · *Accepted* (PO, 2026-10-21)
 
@@ -386,6 +395,7 @@ default but is not a requirement.
 | 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | D-037: Claude merges all PRs; PO only approves milestone PRs. |
 | 2026-10-21 | Repository renamed to `katznmeik/UmamiT` (D-033 updated); PR #1 merged. |
 | 2026-10-21 | D-035: welcome text „Aus Liebe zum Tee", no home greeting, pre-alert default 10 s, signing process with 2 secrets. |
 | 2026-10-21 | Grill round 4 (D-034): silent stays visual-only, Claude-generated signing key, CC0 sounds, releases announced by Claude, seed teas linked on first refresh, prominent overtime. |

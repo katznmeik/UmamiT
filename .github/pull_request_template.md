@@ -35,6 +35,7 @@
 
 - [ ] CI green (format, Detekt, Lint, unit tests, screenshot tests, emulator job, assembleDebug + assembleRelease)
 - [ ] Release candidate `vX.Y.Z-rc.N` published (pre-release) and tested by the PO
+- [ ] PO approval received (checklist + design review); Claude merged
 - [ ] After merge: final `vX.Y.Z` dispatched from `main`
 - [ ] No Tee-Kontor content and no secrets committed
 - [ ] `PROJECT_STATE.md` updated

@@ -9,7 +9,7 @@
 1. **No development before the PO's explicit go.** Milestone M0 (this
    specification) is the only work until then.
 2. **One pull request per milestone** into `main`; CI must be green; the PO
-   reviews and merges.
+   reviews and approves; **Claude merges** (D-037).
 3. **Every milestone ends with an installable APK** on a GitHub Release
    (`v0.x.0`), plus an on-device acceptance checklist in the PR. Release
    path ([06 §6](06-architecture.md#6-build--distribution)): Claude triggers
@@ -25,7 +25,7 @@
    new or changed screens in light and dark theme, committed under
    `docs/design/review/<milestone>/`. Screenshots use placeholder images,
    never Tee-Kontor photos (public repo, D-016). The PO compares them with
-   the mockups and comments in the PR; fixes follow before merge.
+   the mockups and comments in the PR; fixes follow before Claude merges.
 6. Work is delegated to subagents with model and effort per
    [12 · Subagent Distribution Plan](12-agent-plan.md).
 
