@@ -8,8 +8,8 @@ multi-infusion steep timer, a catalog of Tee-Kontor Kiel's green teas, a
 personal collection with stock and cost, an automatic journal and
 statistics.
 
-**Development has not started.** It begins only after the product owner's
-explicit go ([D-024](10-open-questions-and-decisions.md#d-024)).
+**Development starts on 2026-10-22 at 09:05 (Europe/Berlin)**, per the product
+owner's go ([D-038](10-open-questions-and-decisions.md#d-038)).
 
 ## Documents
 
