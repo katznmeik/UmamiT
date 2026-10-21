@@ -246,7 +246,8 @@ No personal content (tea names are allowed, notes are not).
   the release-candidate number (1–98) and **99 for the final release**.
   Examples: `0.1.0-rc.1` → 10001, `0.1.0-rc.2` → 10002, `0.1.0` → 10099,
   `1.0.0` → 1000099. Every later build therefore has a higher versionCode.
-  The probe release `0.0.1-probe` uses 101.
+  The probe release `0.0.1-probe` uses 101; further probes (D-040) are
+  `0.0.2-probe` → 201, `0.0.3-probe` → 301, and so on.
 - **Release workflow** (`release.yml`): triggered by `workflow_dispatch`
   with inputs `ref` (branch or commit) and `version`; permissions
   `contents: write`. It checks that `version` matches `gradle.properties`,

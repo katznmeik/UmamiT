@@ -301,6 +301,30 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-040"></a>
+### D-040 — The probe gates the real timer; fix loop until it passes · *Accepted* (PO, 2026-10-21)
+
+Grilled with the PO before the M1 start:
+
+- **Gate:** all four items of the probe checklist (09 §4) must pass on the
+  PO's Galaxy before M1-09 and M1-11 are finished:
+  1. the APK installs;
+  2. the alert follows the ringer mode, with the full-screen alert over the
+     lock screen;
+  3. the status-bar chip and the lock-screen Live Update are shown;
+  4. all status rows show ✓.
+- **Now Bar:** stays best effort (04 §8.3). Its presence is recorded but
+  never blocks.
+- **Fix loop:** a failing item is fixed and re-tested with a new probe:
+  `v0.0.2-probe` (versionCode 201), `v0.0.3-probe` (301) and so on, per the
+  06 §6 rule. If the same item fails twice and the diagnosis points outside
+  the app (system setting, One UI behaviour, platform bug), Claude brings it
+  to the PO with the analysis and they decide together.
+- **Fallbacks stay:** the runtime fallbacks of 04 §8 (normal ongoing
+  notification, heads-up instead of full-screen) stay in the real timer
+  (M1-11) even if the probe passes, because permissions can be revoked and
+  One UI can change later.
+
 <a id="d-039"></a>
 ### D-039 — `release.yml` on `main` before the first dispatch · *Accepted* (PO, 2026-10-21)
 
@@ -413,6 +437,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | D-040: the probe gates M1-09/M1-11; fix loop with `0.0.N-probe`; Now Bar best effort; runtime fallbacks stay. |
 | 2026-10-21 | D-039: `release.yml` on `main` before the first dispatch; spec issue #6 and test seams for M1-00 … M1-03a. |
 | 2026-10-21 | D-036: spec review (Opus xhigh) fixes and PO decisions — three network uses incl. one-time seed photo download, synthesised sounds, full-screen alert, simplified backup (no in-app restore in 1.x), Schritte-Sheet, CI emulator job, release candidates, probe release, catalog hardening; D-016 accepted. |
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
