@@ -74,6 +74,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-21 | Emil Kowalski's design skills installed (`npx skills add emilkowalski/skills`, MIT): 15 skills in `.claude/skills/`, pinned in `skills-lock.json`. Useful here: `emil-design-eng`, `apple-design`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`; the rest target web/React/Swift. |
 | 2026-10-21 | Project skill `/implement-spec` added (vendored beta from mattpocock/skills, MIT, with UmamiT rules); usable for spec #6 once the go is in effect. |
 | 2026-10-21 | Spec #6 broken into 10 tickets (#8–#17, sub-issues of #6); frontier: #8 (SDK hook) and #9 (signing key). The PO created the missing triage labels; #9 and #17 are labelled `ready-for-human`. |
 | 2026-10-21 | Spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6) for M1-00 … M1-03a (`ready-for-agent`); M1 plan updated (test seams §3.1, task details); D-039 recorded. |

@@ -145,3 +145,11 @@ Single-context: glossary `docs/specs/11-glossary.md`, decisions (ADRs) `docs/spe
 ### Project skills
 
 `/implement-spec` (`.claude/skills/implement-spec/`): beta skill vendored from mattpocock/skills (MIT) with UmamiT rules (gate, tiers, verification, milestone PR) that take precedence. It works a spec's tickets as a task graph on one PR.
+
+Design and motion skills from emilkowalski/skills (MIT), installed with
+`npx skills add` and pinned in `skills-lock.json` (update with
+`npx skills update -p`). Most of them are written for the web (CSS, React,
+Framer Motion); for UmamiT, apply their principles to Compose and the
+washi/matcha design in `docs/specs/03-ux-ui.md`. The most relevant are
+`/emil-design-eng`, `/apple-design`, `/review-animations`,
+`/improve-animations` and `/find-animation-opportunities`.
