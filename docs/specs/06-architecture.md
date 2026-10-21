@@ -174,7 +174,8 @@ check in CI):
 **Dependency policy:** no library that adds the `INTERNET` permission, analytics,
 crash reporting SDKs, or ads. Every new dependency needs a one-line
 justification in its PR. A CI task fails if the merged manifest contains
-`INTERNET` (GEN-01).
+`INTERNET` or `ACCESS_NETWORK_STATE` (GEN-01); library-declared network
+permissions (WorkManager) are removed with `tools:node="remove"`.
 
 ## 5. Key technical designs
 

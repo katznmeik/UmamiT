@@ -232,7 +232,7 @@ Dynamic colour (Material You) is **off by default** to preserve the brand
   shot) used as fallback hero/thumbnail when a tea has no user photo. Bundled
   WebP ≈ 40–80 KB each, ≤ 2.5 MB total.
 - All imagery must be original or properly licensed for commercial
-  redistribution (open question Q-04/Q-06). AI-generated imagery must have its
+  redistribution (open question Q-04). AI-generated imagery must have its
   licence/terms checked before use.
 - Decorative images have no content description; meaningful images do.
 
@@ -570,7 +570,8 @@ Matches the mockup's stats screen.
 
 ### SCR-28 Photo viewer
 
-- Full-screen pager, pinch-zoom, delete, set as cover, share (system share).
+- Full-screen pager, pinch-zoom, caption (≤ 200 chars), delete, set as cover,
+  share (system share).
 
 ### SCR-29 Stock history (sheet)
 

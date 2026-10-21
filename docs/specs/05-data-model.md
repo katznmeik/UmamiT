@@ -180,7 +180,9 @@ Table `brew_session`
 | `auto_finished` | INTEGER | ✓ | 1 if finished by idle timeout |
 
 Indices: `started_at DESC`, `tea_id`, `status`.
-FTS: `session_fts` over `tea_name`, `notes`, `water_note`.
+FTS: `session_fts` over `tea_name`, `notes`, `water_note`; descriptor matches
+(JRN-09) via a join on `session_descriptor` — built-in labels resolved in the
+current locale, custom labels from `custom_descriptor`.
 Rule: at most one row with `status = IN_PROGRESS` in 1.0 (GEN-03).
 
 ### 3.7 SessionStep
@@ -202,7 +204,7 @@ Table `session_step`
 | `started_at` | INTEGER | | |
 | `ended_at` | INTEGER | | |
 | `skipped` | INTEGER | ✓ | |
-| `overtime_auto_ack` | INTEGER | ✓ | §5.3 of [04](04-brew-timer.md) |
+| `overtime_auto_ack` | INTEGER | ✓ | Set by `overtimeTimeout`, see [04 §3.2](04-brew-timer.md#32-events-and-transitions) |
 | `note` | TEXT | | ≤ 300 |
 
 ### 3.8 Descriptors
@@ -210,7 +212,7 @@ Table `session_step`
 - Built-in descriptors are a bundled list ([08 §3](08-content.md#3-tasting-descriptor-vocabulary)),
   identified by keys such as `seaweed`, labels from string resources.
 - `custom_descriptor`: `id` TEXT PK, `label` TEXT Req. 1–30 UNIQUE NOCASE,
-  `group` TEXT (`DescriptorGroup`, default `OTHER`), `is_hidden` INTEGER.
+  `group` TEXT (`DescriptorGroup`, default `OTHER`).
 - `session_descriptor`: (`session_id` FK CASCADE, `descriptor_key` TEXT) PK both.
   `descriptor_key` is a built-in key or `custom:<custom_descriptor.id>`.
   Deleting a custom descriptor deletes its `session_descriptor` rows in the same
@@ -248,6 +250,7 @@ Table `inventory_event`
 | `delta_grams` | REAL | ✓ | positive = added, negative = used |
 | `occurred_at` | INTEGER | ✓ | |
 | `price_minor` | INTEGER | | for PURCHASE |
+| `currency` | TEXT | | ISO 4217; required if `price_minor` set (defaults to the tea's currency) |
 | `note` | TEXT | | ≤ 200 |
 
 Remaining stock = `SUM(delta_grams)` per tea. A tea "tracks stock" iff it has ≥ 1
@@ -256,7 +259,7 @@ event. *Set remaining* inserts an ADJUSTMENT with `delta = target − current`.
 ### 3.11 TeaStyle (bundled asset, not a table)
 
 Loaded from `assets/content/styles.json` (schema in [08 §2.1](08-content.md#21-style-record-schema)),
-parsed once into memory (≈ 30 records), exposed via `TeaStyleRepository`.
+parsed once into memory (25 records in catalog v1), exposed via `TeaStyleRepository`.
 
 ### 3.12 ActiveBrew
 
@@ -275,7 +278,9 @@ TMR-40 later).
 | `deadline_wall_ms` | INTEGER | | wall clock equivalent |
 | `remaining_ms` | INTEGER | | PAUSED |
 | `active_elapsed_ms` | INTEGER | ✓ | current step |
+| `ready_since_wall_ms` | INTEGER | | READY/FINISHED: when the phase began |
 | `paused_since_elapsed_ms` | INTEGER | | |
+| `paused_since_wall_ms` | INTEGER | | for pause duration after reboot |
 | `paused_total_ms` | INTEGER | ✓ | current step |
 | `adjusted_seconds` | INTEGER | ✓ | current step |
 | `step_started_wall_ms` | INTEGER | | |

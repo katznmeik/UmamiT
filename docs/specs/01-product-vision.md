@@ -150,7 +150,7 @@ Pre-launch qualitative goals (closed testing):
 - **A2** Most sessions are short multi-infusion steeps (< 10 min per step); some are long cold brews (1–12 h).
 - **A3** Users are willing to manually enter tea details (no barcode database exists for artisan teas).
 - **C1** No network access: all content (styles, articles, images, fonts) is bundled.
-- **C2** Single developer or small team; scope must fit roughly 17–18 weeks to 1.0, including the closed beta (see [09 · Release Plan](09-release-plan.md)).
+- **C2** Single developer or small team; scope must fit roughly 17 weeks to 1.0, including the closed beta (see [09 · Release Plan](09-release-plan.md)).
 - **C3** Google Play policies (target API level, foreground-service types, data safety) apply.
 
 ## 10. Related documents

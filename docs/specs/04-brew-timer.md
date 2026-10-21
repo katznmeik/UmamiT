@@ -40,6 +40,7 @@ to implement and test it. Functional requirements: TMR-xx and NOT-xx in
 ```mermaid
 stateDiagram-v2
     [*] --> READY: startSession(profile)
+    [*] --> RUNNING: startSession (SET-12 on)
     READY --> RUNNING: start
     RUNNING --> PAUSED: pause
     PAUSED --> RUNNING: resume
@@ -50,14 +51,16 @@ stateDiagram-v2
     PAUSED --> FINISHED: pourEarly (last step)
     ALERTING --> READY: poured (more steps)
     ALERTING --> FINISHED: poured (last step)
+    ALERTING --> READY: overtimeTimeout (more steps)
+    ALERTING --> FINISHED: overtimeTimeout (last step)
     READY --> READY: skipStep (more steps)
     READY --> FINISHED: skipStep (last step)
     FINISHED --> READY: addStep
     READY --> [*]: finishSession / discard / idle timeout
     PAUSED --> [*]: finishSession / discard / idle timeout
     FINISHED --> [*]: finishSession / discard / idle timeout
-    RUNNING --> [*]: discard
-    ALERTING --> [*]: discard
+    RUNNING --> [*]: finishSession / discard
+    ALERTING --> [*]: finishSession / discard
 ```
 
 ### 3.1 States
@@ -86,10 +89,10 @@ stateDiagram-v2
 | `skipStep` | Ready | Mark step `skipped`; → next Ready or Finished. |
 | `addStep(step)` | any except Idle | Append step; if Finished → Ready(new index). |
 | `editSteps(list)` | any except Idle | Replace steps with index > current (or ≥ current in Ready). |
-| `finishSession` | Ready, Paused, Finished | If ≥ 1 non-rinse step completed → COMPLETED; else discard (after UI confirm). → Idle. |
+| `finishSession` | any except Idle | A RUNNING/PAUSED step is first completed as `pourEarly`, an ALERTING step as `poured`. Then: if ≥ 1 non-rinse step completed → COMPLETED; else discard (after UI confirm). → Idle. |
 | `discard` | any except Idle | Delete session and its inventory event → Idle. |
 | `idleTimeout` | Ready, Paused, Finished (60 min without interaction) | As `finishSession` without confirmation; post "Session saved" notification. |
-| `overtimeTimeout` | Alerting (10 min after deadline) | As `poured` with actual = planned + adjustments (assume poured on time); flag `overtimeAutoAcknowledged`. |
+| `overtimeTimeout` | Alerting (10 min after deadline) | As `poured`, but actual = planned + adjustments and overtime = 0 (assume the user poured on time and forgot to tap); flag `overtimeAutoAcknowledged`. |
 
 ## 4. Architecture of the timer
 
@@ -145,9 +148,9 @@ flowchart LR
 |---|---|
 | `plannedSeconds` | Planned duration at step start (adjustments not included). |
 | `adjustedSeconds` | Net sum of ±10 s adjustments. |
-| `actualSeconds` | Active elapsed time from *start* to *Poured* / *Pour now*, excluding paused time, rounded to nearest second. Overtime included, capped at 10 min. |
+| `actualSeconds` | Active elapsed time from *start* to *Poured* / *Pour now*, excluding paused time, rounded to nearest second. Overtime is included when the user taps *Poured* within 10 min; after that `overtimeTimeout` applies (§3.2). |
 | `pausedSeconds` | Total time paused. |
-| `overtimeSeconds` | Time between deadline and *Poured* (0 if poured early). |
+| `overtimeSeconds` | Time between deadline and *Poured* (0 if poured early or auto-acknowledged). |
 | `startedAt` / `endedAt` | Wall-clock timestamps. |
 | `skipped` | True if skipped. |
 
@@ -160,8 +163,8 @@ flowchart LR
 | App visible | Controller coroutine delays until deadline; UI renders. Service also running (started at session start). |
 | Short step running, app in background / screen off | **Foreground service** (`specialUse`), **partial wake lock** with timeout, deadline coroutine; **exact alarm backstop** if permitted. |
 | Long step running (≥ 30 min) | No wake lock; foreground service stopped; **AlarmManager** alarm (exact if permitted, else windowed 10 min); ongoing low-priority notification. |
-| Ready / Paused / Finished | Foreground service keeps the ongoing notification (no wake lock). Idle timeout 60 min via coroutine + inexact alarm. |
-| Alerting | Foreground service plays alert (sound/vibration) and shows the heads-up alert notification. |
+| Ready / Paused / Finished | Foreground service keeps the ongoing notification (no wake lock). Idle timeout 60 min via coroutine + inexact alarm. If the service is not running (e.g. after a long step or process restart), a regular ongoing notification is shown and the FGS is started again on the next user interaction (notification action or app open). |
+| Alerting | Foreground service plays alert (sound/vibration) and shows the heads-up alert notification; wake lock held until the alert ends (§6.2). |
 
 ### 6.2 Short steps: foreground service
 
@@ -176,8 +179,8 @@ flowchart LR
   (`shortService` is not suitable: it times out after ~3 minutes, while western
   steeps take 3–5 minutes.)
 - **Wake lock:** `PARTIAL_WAKE_LOCK` acquired when a short step enters RUNNING,
-  with timeout `remaining + 30 s`; released on pause, pour, alert end, or
-  session end. Never held in READY/PAUSED/FINISHED or for long steps. This keeps
+  with timeout `remaining + alert length + 30 s` (max 2.5 min beyond the deadline);
+  kept through ALERTING; released on pause, pour, alert end, or session end. Never held in READY/PAUSED/FINISHED or for long steps. This keeps
   `delay()`-based deadlines accurate while the screen is off and keeps the app
   well clear of Android vitals' excessive-wake-lock thresholds (sessions are
   minutes, not hours).
@@ -195,9 +198,17 @@ flowchart LR
     `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP, deadline)`;
   - else `setWindow(ELAPSED_REALTIME_WAKEUP, deadline, 10 min)` — the UI says
     "around 14:30" and explains on tap how to enable precise reminders (SET-21).
+    Windowed alarms are not exempt from Doze: in deep idle they may be deferred
+    to the next maintenance window, so the reminder can be later than 10 min.
+    This is acceptable for cold brews and stated in the help text.
 - The alarm's receiver posts the alert notification on the *Cold brew & long
   steeps* channel (sound from the channel, not from `AlertPlayer`) and sends
   `deadlineReached` to the controller.
+- **Limitation:** an app cannot change a channel's sound or vibration after
+  creating it, so long-step alerts follow the *Cold brew & long steeps*
+  channel settings (changed in system settings, linked via SET-32), not
+  SET-09/11/13/14, and — being notification sounds — do not ring in silent
+  mode. SCR-25 states this under *Timer & alerts*.
 - Pause/resume/adjust reschedule the alarm. After reboot, `BOOT_COMPLETED`
   (and `LOCKED_BOOT_COMPLETED` is **not** used) reschedules long-step alarms from
   wall-clock data.
@@ -207,9 +218,12 @@ flowchart LR
 `SCHEDULE_EXACT_ALARM` is declared (not `USE_EXACT_ALARM`). If granted (default
 on Android 12–13; user-granted on 14+), each short-step deadline is *also*
 scheduled with `setExactAndAllowWhileIdle`, in case the process is killed
-while the service runs. The receiver posts the alert notification and, if the
-app process is alive, forwards `deadlineReached` (idempotent). Alarms are
-cancelled on pause/pour/discard.
+while the service runs. When it fires, the receiver forwards `deadlineReached`
+(idempotent) and, if the service is not running, starts `BrewTimerService` in
+the foreground so the `AlertPlayer` sounds the alert (starting an FGS from an
+exact alarm is an allowed background-start exemption). If the FGS start
+fails, it posts the alert on the `long_steep` channel, which has its own sound,
+so the backstop is never silent. Alarms are cancelled on pause/pour/discard.
 
 ### 6.5 Restrictions & policies to respect
 
@@ -217,7 +231,7 @@ cancelled on pause/pour/discard.
 |---|---|
 | Android 13+ notification permission | Requested in onboarding; banner TMR-31 if missing. FGS still runs without it; the `AlertPlayer` sound/vibration still works because it is played by the service, not the notification. |
 | Android 14+ FGS types | `specialUse` declared with `FOREGROUND_SERVICE_SPECIAL_USE` permission. |
-| Background FGS start restrictions (Android 12+) | FGS is only started from user actions in the foreground or from notification actions (exempt). Never from alarms or boot. |
+| Background FGS start restrictions (Android 12+) | FGS is only started from user actions in the foreground, from notification actions, or from the exact backstop alarm (all exempt). Never from inexact alarms or boot. |
 | Android 14+ exact alarms denied by default | Treated as optional (§6.3, §6.4). |
 | Full-screen intents restricted (Android 14+) | Not used. Heads-up notification + sound instead. |
 | Doze / App Standby | Short steps: wake lock + FGS. Long steps: `AllowWhileIdle` exact or windowed alarms. |
@@ -265,7 +279,7 @@ stopped by the system."
 | `steep_finished` | Steep finished | HIGH | none (played by app, §9) | none (app) | Heads-up "Pour now" for short steps |
 | `long_steep` | Cold brew & long steeps | HIGH | channel default (bundled "Singing bowl") | on | Alert for long steps |
 | `session_updates` | Session updates | LOW | none | none | Auto-finished session, interrupted timer |
-| `reminders` | Reminders | DEFAULT | default | default | Backup, stock & freshness digests |
+| `reminders` | Reminders | LOW | none | none | Backup, stock & freshness digests |
 
 ### 8.2 Notification content
 
@@ -319,7 +333,7 @@ stopped by the system."
 
 - Uses the same engine with an ephemeral session (`sessionId = null`): one
   INFUSION step, no journal entry, no inventory.
-- States: READY → RUNNING ⇄ PAUSED → ALERTING → (Done) → Idle.
+- States: READY → RUNNING ⇄ PAUSED; RUNNING → ALERTING → (Done) → Idle.
 - Shares the FGS, notifications (title "Quick timer"), and alert settings.
 - Counts as the single active timer (GEN-03).
 
@@ -328,7 +342,7 @@ stopped by the system."
 | # | Case | Expected behaviour |
 |---|---|---|
 | E1 | User changes device time / time zone during a step | No effect on countdown (monotonic). Journal timestamps use wall clock at the moment of recording. |
-| E2 | Device reboots during a short step | On boot, nothing rings (FGS not restartable from boot). Next app open → recovery §7.2. If the exact backstop alarm existed it was cleared by reboot — note in "Timer not ringing?" help. |
+| E2 | Device reboots during a short step | The FGS cannot be restarted from boot, so no alert sound plays. `BootReceiver` posts a `session_updates` notification "Your Gyokuro timer was interrupted by a restart — tap to continue". Next app open → recovery §7.2. |
 | E3 | Device reboots during a long step | `BOOT_COMPLETED` receiver reschedules the alarm from wall-clock deadline. |
 | E4 | Low memory kill during a short step | FGS processes are rarely killed; if killed, backstop exact alarm (if allowed) notifies; recovery on open. |
 | E5 | User swipes app from recents | Session continues (FGS keeps running). |

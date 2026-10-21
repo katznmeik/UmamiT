@@ -91,7 +91,7 @@ means a device with 3–4 GB RAM running Android 10–12.
 
 | ID | Requirement |
 |---|---|
-| NFR-SEC-01 | Only the launcher activity and the boot receiver are exported; all other components `exported="false"`. |
+| NFR-SEC-01 | App components are `exported="false"` except the launcher activity, the boot receiver, and future widget / Quick Settings tile components. Exported library components must be protected by a system permission (e.g. WorkManager's diagnostics and profileinstaller receivers use `DUMP`). |
 | NFR-SEC-02 | `PendingIntent`s are `FLAG_IMMUTABLE` unless mutability is required, and always explicit. |
 | NFR-SEC-03 | `FileProvider` exposes only `cacheDir/capture/` and `cacheDir/share/`; shared files are deleted after use (or on next start). |
 | NFR-SEC-04 | Backup import is treated as untrusted input: zip-slip protection, size and count limits, schema & constraint validation, image decoding with bounds ([05 §8.4](05-data-model.md#84-validation-on-restore)). |

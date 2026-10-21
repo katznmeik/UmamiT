@@ -6,7 +6,7 @@
 
 | Term | Meaning |
 |---|---|
-| **Umami** | The savoury "fifth taste" (alongside sweet, sour, salty, bitter), associated with glutamate. In tea it comes mainly from amino acids, chiefly L-theanine. |
+| **Umami** | The savoury "fifth taste" (alongside sweet, sour, salty, bitter), associated with glutamate. In tea it comes from free amino acids such as glutamic acid and L-theanine. |
 | **L-theanine** | The most abundant amino acid in tea leaves; contributes savoury-sweet taste. Shading preserves it. |
 | **Catechins** | Polyphenols that give tea bitterness and astringency; extracted more at higher temperatures. |
 | **Gyokuro** (玉露) | Japanese green tea shaded for about three weeks before harvest; very high umami. |

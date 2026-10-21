@@ -56,6 +56,9 @@ The app works without any network connection and declares **no `INTERNET`
 permission**. All content (styles, articles, images, fonts, sounds) is bundled.
 - AC1: The merged release manifest contains no `android.permission.INTERNET`
   and no `ACCESS_NETWORK_STATE` permission (verified by a CI check).
+  Permissions merged in from libraries (e.g. WorkManager declares
+  `ACCESS_NETWORK_STATE`) are stripped with `tools:node="remove"`; no
+  network-based work constraints are used.
 - AC2: Every feature in this document works in airplane mode.
 
 **GEN-02 — No accounts** `Must`
@@ -114,8 +117,9 @@ the main name, as in the brand mockup.
 
 **ONB-01 — Welcome** `Must`
 First launch shows a welcome page with logo, tagline ("Better tea. Deeper
-moments."), an ink-wash illustration, and *Get started*. At most 3 onboarding
-pages in total; every page except the first has *Skip*.
+moments."), an ink-wash illustration, and *Get started*. At most 4 onboarding
+pages in total (Welcome, Units, Alerts — Android 13+ only — and Start); Units
+and Alerts have *Skip*, which jumps to the Start page.
 
 **ONB-02 — Units** `Must`
 The units page preselects units from the device locale (US → °F, oz, fl oz;
@@ -166,10 +170,10 @@ page (*Add to my collection*), or the tea picker.
 **TEA-02 — Tea fields** `Must`
 The editor (SCR-10) supports all fields of the `Tea` entity
 ([05 §3.1](05-data-model.md#31-tea)), grouped in sections: *Basics* (photo, name,
-secondary name, style, category, form), *Origin* (country, region, cultivar,
+secondary name, style, category, form, umami level — pre-filled from the style), *Origin* (country, region, cultivar,
 harvest year, harvest season, shading days, processing notes), *Purchase*
 (vendor, purchase date, price & currency, package size), *Stock & freshness*
-(see INV), *Notes & tags*.
+(see INV; includes a short storage note, e.g. "fridge, 2nd shelf"), *Notes & tags*.
 - AC1: Optional sections are collapsed by default when empty.
 - AC2: Country is chosen from a localized, searchable list (ISO 3166-1);
   Japan, China, Taiwan, Korea, India, Sri Lanka appear first.
@@ -194,7 +198,7 @@ of *<style>*?" (*Add* / *Keep current*).
 
 **TEA-05 — Photos** `Should`
 Up to 10 photos per tea, from the system photo picker or the camera; the first
-photo is the cover (reorderable by drag). Processing rules: [07 §6](07-non-functional.md#6-privacy).
+photo is the cover by default; *Set as cover* in the photo viewer (SCR-28) changes it (`coverPhotoId`). Photos are reorderable by drag. Processing rules: [06 §5.2](06-architecture.md#52-photos) and [07 §6](07-non-functional.md#6-privacy).
 
 **TEA-06 — Favourites** `Must`
 A tea can be marked favourite from list, detail and timer-summary screens.
@@ -376,7 +380,7 @@ With the ratio lock on (default), changing water or vessel rescales leaf:
 updates. Steep times and temperatures are never scaled.
 
 **BRW-04 — Leaf display in teaspoons** `Should`
-If the leaf unit setting is *teaspoons (approx.)*, leaf amounts additionally
+If SET-04 *Show leaf in teaspoons too* is on, leaf amounts additionally
 show "≈ n tsp" using the tea's (or style's) grams-per-teaspoon factor, rounded
 to ¼ tsp. Grams remain the stored value.
 
@@ -463,8 +467,9 @@ Overflow › *Edit steps* opens the steps editor for steps not yet started.
 Changes affect this session only.
 
 **TMR-12 — Finish session** `Must`
-*Finish & log* (FINISHED state or overflow) sets status COMPLETED, end time, and
-opens the session summary (SCR-06).
+*Finish & log* (FINISHED state or overflow in any state) sets status COMPLETED,
+end time, and opens the session summary (SCR-06). If a step is running, paused
+or alerting, it is first completed as if *Pour now* / *Poured* had been tapped.
 - AC1: Sessions with zero completed non-rinse steps are discarded instead,
   after confirmation ("Nothing brewed yet — discard session?").
 
@@ -492,9 +497,9 @@ time out.
 
 **TMR-18 — Long steeps (cold brew, ice brew)** `Must`
 Steps of 30 min or more run in "reminder mode": the user can leave the app; an
-ongoing notification shows "Ready at ~14:30"; an alert notification fires at
-the end. Precision may be lower (≤ 10 min late) unless exact alarms are
-permitted ([04 §6.3](04-brew-timer.md#63-long-steps-reminder-mode)).
+ongoing notification shows "Ready around 14:30"; an alert notification fires at
+the end. Precision is lower (typically within ~10 min; possibly later while the
+device is in deep Doze) unless exact alarms are permitted ([04 §6.3](04-brew-timer.md#63-long-steps-reminder-mode)).
 
 **TMR-19 — Matcha whisk steps** `Must`
 WHISK steps show a whisk illustration and the text "Whisk briskly in an M/W
@@ -564,7 +569,7 @@ Aroma**. Visualised as a hexagonal radar chart on session and tea detail
 **JRN-04 — Descriptors** `Should`
 Multi-select chips from the bundled vocabulary ([08 §3](08-content.md#3-tasting-descriptor-vocabulary)),
 grouped (Marine, Vegetal, Sweet, Roasted & nutty, Floral, Fruity, Earthy &
-woody, Mouthfeel, Off-notes), searchable; users can add custom descriptors
+woody, Spice & herb, Mouthfeel, Off-notes), searchable; users can add custom descriptors
 (1–30 chars). Max 20 per session.
 
 **JRN-05 — Notes** `Must`
@@ -799,7 +804,8 @@ SCR-26.
 
 **BAK-06 — Backup reminder** `Should`
 If SET-20 is on and the last backup is older than the interval and there are
-≥ 5 sessions since, a low-priority notification suggests backing up.
+≥ 5 sessions since, a notification on the low-importance *Reminders* channel
+suggests backing up.
 
 **BAK-07 — Share backup** `Could`
 *Back up & share* sends the backup file via the share sheet (e.g. to a cloud
@@ -818,8 +824,10 @@ on first launch with localized names and descriptions.
 
 **NOT-02 — Ongoing timer notification** `Must`
 Shows tea name, step, countdown (system chronometer), and actions depending on
-state: RUNNING → *Pause*, *+10 s*; PAUSED → *Resume*; READY → *Start infusion n*;
-ALERTING → *Poured*. Tapping opens SCR-05.
+state: RUNNING → *Pause*, *+10 s*; PAUSED → *Resume*; READY → *Start*;
+FINISHED → *Finish & log*. In ALERTING a separate heads-up notification on the
+*Steep finished* channel carries the *Poured* action ([04 §8.2](04-brew-timer.md#82-notification-content)).
+Tapping any of them opens SCR-05.
 
 **NOT-03 — Lock screen** `Must`
 Timer notifications are public on the lock screen (tea names are not

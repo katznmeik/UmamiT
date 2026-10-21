@@ -78,7 +78,7 @@ teaspoon.
 
 | Key | Name | Umami | Fresh. | g/tsp | Profiles |
 |---|---|---|---|---|---|
-| `gyokuro` | Gyokuro 玉露 — shaded ~3 weeks; intensely savoury, sweet, brothy | VERY_HIGH | 60 | 3.0 | **Houhin/kyusu** KYUSU 6 g / 60 ml / 50 °C: 2:00, 0:20 @55, 1:00 @65, 1:30 @75 · **Ice brew** ICE_BREW 6 g / 100 ml ice / 0 °C: 45:00 (note: cover leaves with ice; ready when melted) · **Cold brew** COLD_BREW 10 g / 500 ml / 5 °C: 3:00:00 |
+| `gyokuro` | Gyokuro 玉露 — shaded ~3 weeks; intensely savoury, sweet, brothy | VERY_HIGH | 60 | 3.0 | **Houhin/kyusu** KYUSU 6 g / 60 ml / 50 °C: 2:00, 0:20 @55, 1:00 @65, 1:30 @75 · **Ice brew** ICE_BREW 6 g / 100 ml ice / 0 °C: 2:00:00 (note: cover leaves with ice; ready when melted, typically 1.5–3 h) · **Cold brew** COLD_BREW 10 g / 500 ml / 5 °C: 3:00:00 |
 | `kabusecha` | Kabusecha かぶせ茶 — shaded ~1–2 weeks; between sencha and gyokuro | HIGH | 45 | 2.5 | **Kyusu** KYUSU 5 g / 120 ml / 65 °C: 1:30, 0:20 @70, 1:00 @80 · **Cold brew** 10 g / 500 ml / 5 °C: 3:00:00 |
 | `sencha` | Sencha 煎茶 — steamed, unshaded; fresh, vegetal, balanced | MEDIUM | 45 | 2.5 | **Kyusu** KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85, 1:00 @90 · **Mug** WESTERN 3 g / 250 ml / 75 °C: 1:30, 2:00 @80 · **Cold brew** 10 g / 1000 ml / 5 °C: 4:00:00 |
 | `fukamushi_sencha` | Fukamushi sencha 深蒸し煎茶 — deep-steamed; rich, cloudy, sweet | MEDIUM | 45 | 3.0 | **Kyusu** KYUSU 5 g / 150 ml / 70 °C: 0:45, 0:05 @75, 0:30 @80 (note: fine-mesh kyusu recommended) |
@@ -161,7 +161,7 @@ front matter (`slug`, `title`, `readingMinutes`, `heroImage`, `relatedStyles`,
 
 | # | Slug | Title | Key points |
 |---|---|---|---|
-| 1 | `umami` | What is umami — and why is it in my tea? | Fifth basic taste (savoury), associated with glutamate; in tea it comes mainly from amino acids, above all L-theanine, plus glutamic acid; why umami teas taste brothy/sweet; how to taste it (coats the tongue, lingers). |
+| 1 | `umami` | What is umami — and why is it in my tea? | Fifth basic taste (savoury), associated with glutamate; in tea it comes from free amino acids — glutamic acid and L-theanine (the most abundant amino acid in tea, with a milder savoury-sweet taste) among them; why umami teas taste brothy/sweet; how to taste it (coats the tongue, lingers). |
 | 2 | `shade-grown` | Shade-grown teas: gyokuro, kabusecha, matcha | Shading before harvest (kabuse); sunlight converts theanine into catechins (bitter/astringent), so shading keeps more theanine and chlorophyll; ~1–2 weeks kabusecha vs ~3 weeks gyokuro/tencha; tana vs direct covering. |
 | 3 | `temperature` | Temperature: the umami dial | Amino acids dissolve well even in cool water; catechins and caffeine extract more at higher temperatures → cooler water emphasises umami and sweetness; examples per style; yuzamashi technique (≈ 10 °C drop per transfer); link to cooling helper. |
 | 4 | `ratios` | Leaf, water, time | Ratio concept (g / 100 ml); why Japanese and gongfu use more leaf and shorter steeps; adjusting one variable at a time; using the ratio calculator. |

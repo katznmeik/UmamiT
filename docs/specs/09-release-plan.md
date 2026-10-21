@@ -42,7 +42,7 @@
 | M6 | **Closed beta** | 2–3 wk | Play internal → closed track, 12+ testers × 14 days, feedback triage, bug fixing, store listing assets, privacy policy page, FGS declaration video | — |
 | M7 | **Launch 1.0** | 1 wk | Production release with staged rollout, monitoring | — |
 
-**Total:** ≈ 17–18 weeks to production, including beta.
+**Total:** ≈ 16.5–17.5 weeks to production, including beta.
 
 Critical path: M2 (timer) — start its engine and a spike of the service/alert
 behaviour on real Samsung/Xiaomi devices during M0 to retire the biggest risk
