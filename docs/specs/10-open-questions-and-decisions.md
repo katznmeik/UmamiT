@@ -245,6 +245,20 @@ personal data or shop content).
 - M1 ships the PO's two teas (Bio Sencha Tanabata, Bio Sencha Hisui) as seed
   data with 100 g stock each ([08 §2.5a](08-content.md#25a-m1-seed-teas-pos-current-teas)).
 
+<a id="d-032"></a>
+### D-032 — Grill round 3: seed teaware, waiting sessions, review process · *Accepted* (PO, 2026-10-21)
+
+- Seed vessels: Kyusu 300 ml (brews 250 ml, home) and Becher mit Sieb 400 ml
+  (work); seed recipes scaled to them (WARE-06, 08 §2.5a).
+- *Nochmal brühen* keeps the last session's parameters even across vessels;
+  switching via ⋮ *Brühen anpassen*.
+- Westlich recipes with one infusion get a second (1,5 ×, +5 °C).
+- Leaf in grams with 0,1 g; Google device backup is on.
+- Waiting sessions live until midnight; Live Update demoted after 30 min
+  (TMR-14).
+- Milestone done = on-device checklist + design review of rendered
+  screenshots in the PR (09 §1).
+
 <a id="d-026"></a>
 ### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
 
@@ -270,6 +284,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-21 | v0.1: initial specification set; D-001, D-002 accepted; brand mockup incorporated. |
 | 2026-10-21 | Brand mockup committed; Q-13 resolved. |
+| 2026-10-21 | Grill round 3 (D-032): seed teaware, second mug steep, waiting sessions until midnight, screenshot design review per milestone. |
 | 2026-10-21 | Grill round 2 (D-031): manual-only refresh on any network; discontinued teas hidden unless owned; empty teas stay marked „Leer"; early finish = normal session; one infusion = one cup; *Nochmal brühen* (3 last teas) opens the timer directly; no automatic rinse; screen dims while steeping; M1 seed teas Tanabata & Hisui with live data; small-size prices not estimated. |
 | 2026-10-21 | Mockups v2 added (`docs/design/mockup-v2-*.png`) and reviewed in 03 §1.1; journal row format adopted from them. |
 | 2026-10-21 | Q-04 → D-029 (imagery), Q-11 → D-030 (public repo); asset list `docs/design/assets.md`. |

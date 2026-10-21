@@ -223,7 +223,8 @@ Single-row table `active_brew` (`id` = 1)
 | `step_started_wall_ms` | INTEGER | |
 | `alert_played` | INTEGER | per current step |
 | `boot_count` | INTEGER | |
-| `last_interaction_wall_ms` | INTEGER | idle timeout |
+| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min |
+| `demoted` | INTEGER | FGS stopped, regular notification shown |
 
 ## 4. Catalog tables (rebuilt by each refresh)
 

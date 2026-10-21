@@ -136,7 +136,9 @@ ratio (10 g/L → 2,5 g / 250 ml); leaf rounded to 0,1 g. The vessel picker
 rescales later (WARE-03).
 
 **Step 5 — Steps:** one INFUSION per given infusion (1–3) at the recipe
-temperature. If only the first infusion is given and the method is KYUSU or
+temperature. **PO preference:** a Westlich recipe with only one infusion gets
+a second infusion of 1,5 × the first duration (rounded to 5 s) at +5 °C
+(source noted, not flagged). If only the first infusion is given and the method is KYUSU or
 GONGFU, follow-up infusions come from the style default. Matcha: one WHISK
 step with the style's whisk duration (the shop states none; not flagged).
 **Rinse steps are never added automatically**; they exist only when the user
@@ -200,18 +202,20 @@ M2 (*Aus Katalog zurücksetzen*).
 | Taste notes (*Geschmack*) | fruchtig, mild, süß | fruchtig, mild, mittelkräftig, süß |
 | Badges | Für Einsteiger | Coldbrew geeignet, Für Einsteiger, Preistipp |
 | Brewing grid (verbatim) | Westlich `~10g/L · ~65-70°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-70°C · 45 Sek · 10 Sek · 10 Sek` | Westlich `~10g/L · ~65°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` |
-| **Recipe „Kyusu" (default)** | 4,0 g / 200 ml / **65 °C**: 0:45, 0:10, 0:10 | 4,0 g / 200 ml / **65 °C**: 1:00, 0:10, 0:10 |
-| Recipe „Westlich" | 2,5 g / 250 ml / 70 °C: 1:00 | 2,5 g / 250 ml / 65 °C: 1:00 |
+| **Recipe „Kyusu" (default)**, vessel „Kyusu" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
+| Recipe „Westlich", vessel „Becher mit Sieb" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 1:30 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 1:30 @70 |
 | Recipe „Kaltaufguss" | — | 10,0 g / 1000 ml / 5 °C: 4:00:00 (style default, from badge) |
 | Recipe check flag | none | none |
 | Packages (exact prices) | 10 g 1,85 € · 100 g 8,50 € · 250 g 20,60 € · 500 g 40,35 € · 1000 g 76,50 € | 10 g 2,80 € · 50 g 8,95 € · 100 g 17,90 € · 250 g 43,40 € · 500 g 85,05 € · 1000 g 161,10 € |
 | Base price | 85,00 €/kg | 179,00 €/kg |
 | **PO's stock (seed)** | INITIAL 100 g, 8,50 €, unopened | INITIAL 100 g, 17,90 €, unopened |
-| Cost per cup (Kyusu, 3 infusions) | 4,0 g × 0,085 €/g = 0,34 € → 0,11 €/Tasse | 4,0 g × 0,179 €/g = 0,72 € → 0,24 €/Tasse |
+| Cost per cup (Kyusu, 3 infusions) | 5,0 g × 0,085 €/g = 0,43 € → 0,14 €/Tasse | 5,0 g × 0,179 €/g = 0,90 € → 0,30 €/Tasse |
+| Cost per cup (Becher, 2 infusions) | 4,0 g × 0,085 €/g = 0,34 € → 0,17 €/Tasse | 4,0 g × 0,179 €/g = 0,72 € → 0,36 €/Tasse |
 | Photo URL (downloaded at runtime) | `/media/ab/15/63/1727307323/gtbiosenchatanabataaiya.jpg` | `/media/7c/c3/7c/1727308250/gtbiosenchahisui.jpg` |
 
-Purchase date of the seed stock = first app start; `opened_date` is set by
-the first session (INV-06).
+Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
+seed vessels (WARE-06). Purchase date of the seed stock = first app start;
+`opened_date` is set by the first session (INV-06).
 
 ### 2.6 Style mapping and umami level
 

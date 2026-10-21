@@ -386,6 +386,10 @@ scales leaf by the recipe's ratio (BRW-03).
 Optional usable brewing volume (e.g. 180 ml kyusu brews 150 ml), used for
 scaling if set.
 
+**WARE-06 — Seed teaware** `Must`
+M1 ships the PO's vessels: „Kyusu" (KYUSU, 300 ml, usable 250 ml, at home)
+and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
+
 **WARE-05 — Default vessel per method** `Could`
 E.g. KYUSU → „Kyusu 180 ml".
 
@@ -493,10 +497,16 @@ PRF-07 applies — *Zeiten ins Rezept übernehmen*. Ignoring it is fine.
 
 **TMR-13 — Discard session** `Must` (overflow, with confirmation).
 
-**TMR-14 — Auto-finish idle sessions** `Must`
-60 min without interaction in READY/PAUSED/FINISHED → finished and logged
-with notification „Sitzung gespeichert"; a session without any completed
-non-rinse step is discarded silently instead.
+**TMR-14 — Long waits and auto-finish** `Must`
+A session may wait in READY/PAUSED/FINISHED for hours (e.g. a second mug
+later at work).
+- After **30 min** without interaction the timer service stops and the Live
+  Update becomes a quiet, regular ongoing notification („Hisui · Aufguss 2
+  bereit" with *Start*).
+- At **local midnight**, or when another session is started (TMR-21), a
+  waiting session is finished and logged with the notification „Sitzung
+  gespeichert"; a session without any completed non-rinse step is discarded
+  silently instead.
 
 **TMR-15 — Background & lock screen** `Must`
 The timer continues when leaving the app or locking the phone.

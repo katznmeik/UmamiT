@@ -13,7 +13,14 @@
 3. **Every milestone ends with an installable APK** on a GitHub Release
    (`v0.x.0`), plus an on-device acceptance checklist in the PR.
 4. Specs are updated in the same PR when behaviour changes.
-5. Work is delegated to subagents with model and effort per
+5. **Definition of done per milestone:** the on-device checklist passes on
+   the PO's Galaxy **and** a design review round passes. For the review,
+   every PR includes automatically rendered screenshots (Roborazzi) of all
+   new or changed screens in light and dark theme, committed under
+   `docs/design/review/<milestone>/`. Screenshots use placeholder images,
+   never Tee-Kontor photos (public repo, D-016). The PO compares them with
+   the mockups and comments in the PR; fixes follow before merge.
+6. Work is delegated to subagents with model and effort per
    [12 · Subagent Distribution Plan](12-agent-plan.md).
 
 ## 2. Milestones
@@ -50,7 +57,8 @@ PO's review and testing turnaround.
 
 - [ ] APK installs from the GitHub Release; updates install over it.
 - [ ] Einrichtung: notifications, battery „Uneingeschränkt", Live notifications all show ✓ after setup.
-- [ ] Seed teas Tanabata and Hisui present with photos (after first start online), recipes and 100 g stock.
+- [ ] Seed teas Tanabata and Hisui present with photos (after first start online), recipes and 100 g stock; seed vessels Kyusu (250 ml) and Becher mit Sieb (400 ml).
+- [ ] Waiting 30 min in READY demotes the Live Update to a quiet notification; *Start* from it works; the session is saved at midnight.
 - [ ] *Nochmal brühen* tea → timer READY in one tap; *Start* = second tap.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
 - [ ] Screen dims ~10 s into a steep and brightens at the pre-alert.

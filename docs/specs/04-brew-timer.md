@@ -58,9 +58,9 @@ stateDiagram-v2
     READY --> READY: skipStep (more steps)
     READY --> FINISHED: skipStep (last step)
     FINISHED --> READY: addStep
-    READY --> [*]: finishSession / discard / idleTimeout
-    PAUSED --> [*]: finishSession / discard / idleTimeout
-    FINISHED --> [*]: finishSession / discard / idleTimeout
+    READY --> [*]: finishSession / discard / midnightTimeout
+    PAUSED --> [*]: finishSession / discard / midnightTimeout
+    FINISHED --> [*]: finishSession / discard / midnightTimeout
     RUNNING --> [*]: finishSession / discard
     ALERTING --> [*]: finishSession / discard
 ```
@@ -94,7 +94,8 @@ stateDiagram-v2
 | `editSteps(list)` | any except Idle | Replace steps not yet started. Session-only. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
-| `idleTimeout` | Ready, Paused, Finished; 60 min without interaction | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise the session is discarded silently (no notification). |
+| `idleDemote` | Ready, Paused, Finished; 30 min without interaction | No state change: stop the foreground service, demote the Live Update to a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any interaction restarts the FGS (notification action exemption). |
+| `midnightTimeout` | Ready, Paused, Finished; local midnight (inexact alarm) | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise discarded silently. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
 
@@ -155,7 +156,7 @@ flowchart LR
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
 | Long step RUNNING (≥ 10 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
-| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) · idle-timeout alarm (60 min, inexact). After a process restart the FGS cannot be started from the background: a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
+| READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart the FGS cannot be started from the background: a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
 
 ### 6.2 Exact alarms
@@ -309,8 +310,8 @@ INFUSION step and these differences:
 
 Uses the global pre-alert, the same alert and the Live Update
 („Schnelltimer"). Counts as the single active timer. No `endStepNow`,
-`skipStep`, `addStep` or idle timeout (an unstarted quick timer is cancelled
-after 60 min).
+`skipStep` or `addStep`; an unstarted or paused quick timer is cancelled after
+30 min without interaction.
 
 ## 11. Edge cases
 
