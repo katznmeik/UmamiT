@@ -61,6 +61,11 @@ PO's review and testing turnaround.
 
 ### M1 — Probe release (`v0.0.1-probe`, early in M1)
 
+All four items must pass before M1-09/M1-11 are finished; a failing item is
+fixed and re-tested with `v0.0.N-probe` (D-040). Now Bar presence is recorded
+only.
+
+
 - [ ] APK installs from the GitHub pre-release.
 - [ ] Probe screen: a 1-min test step with the phone locked and the screen off → screen turns on with the full-screen alert at the end; synthesised sound plays (ringer normal), vibration only (vibrate), visual only (silent).
 - [ ] Status-bar chip and lock-screen Live Update with countdown visible during the step; note whether it also appears in the Now Bar (best effort, report the result).
