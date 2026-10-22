@@ -382,10 +382,12 @@ personal data or shop content).
   marker. **PAUSED** dims only the ring, the liquor and the marker; the digits
   and the caption keep full contrast (≥ 4.5:1, tested).
 - **The pill never moves under the finger.** The kettle hint and the overtime
-  share one slot of fixed minimum height, the photo's space stays on the alert
-  surface (the photo is not drawn there), and the reliability banner sits below
-  the controls (hidden while the alert plays). Tested at *Start*, at the alert
-  and at 15 s overtime.
+  share one slot, sized by invisible copies of its tallest contents (a two-line
+  kettle hint, the large overtime), so it holds under non-linear font scaling;
+  the photo's space stays on the alert surface (the photo is not drawn there),
+  and the reliability banner sits below the controls (hidden while the alert
+  plays). Tested at *Start*, at the alert and at 15 s overtime, at font scale
+  1.0 and 2.0.
 - **First frame of a new state.** The screen reads the clock in the first
   composition of every new state, so *Start* or *Weiter* after a long wait
   never shows the stale time for a frame. The pre-alert glow is keyed by the
@@ -396,14 +398,18 @@ personal data or shop content).
   verwerfen? Nichts wird gespeichert." (*Verwerfen* / *Weiter brühen*), because
   that is what it does; *Verwerfen* sends `finishSession`, which discards
   (TMR-12 AC1).
-- **Alerts first for every overlay and route (motion review of #45).** Like
-  the Schritte-Sheet (D-051), a menu or a question opened before the alert is
-  removed in the frame ALERTING starts; the menu is then not composed at all,
-  so Material's exit animation cannot show over the alert. One opened during
-  the alert stays. No route transition runs into, out of or onto an alerting
-  timer (`EnterTransition.None`/`ExitTransition.None`), and
-  *Timer-Einstellungen* opened before the alert is popped back to the timer
-  when it starts. Navigation settles that swap within about five frames.
+- **Alerts first for every overlay and route (motion reviews of #45).** Each
+  alert has an identity (`alertKey`: session, step and deadline). A menu, a
+  question or *Timer-Einstellungen* remembers the alert it was opened in, and
+  only that alert may play under it: whatever was opened before an alert, or
+  during an earlier one, is removed when a new alert starts. The menu is then
+  not composed at all, so Material's exit animation cannot show over the alert.
+  The settings route is popped back to the timer for every new alert, checked
+  on each new alert and on resume, so an alert that started while the app was
+  in the background is caught too. No route transition runs into, out of or
+  onto an alerting timer (`EnterTransition.None`/`ExitTransition.None`);
+  Navigation settles that swap within about five frames. The timer's body has
+  one movable call site, so it keeps its state when the surface changes.
 - **No *Im Rezept speichern* on SCR-05.** The screen calls only the
   controller, so the sheet opens without a recipe (`hasRecipe = false`); the
   recipe save stays on the setup (SCR-04). Steps without their own temperature
