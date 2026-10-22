@@ -3,7 +3,8 @@
 > Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
 > recovery and snapshot, D-048; time rules and service contract, D-053;
 > slice review: controller rules, alarm kinds, notification per state, D-054;
-> controller inputs and ports, D-056)
+> controller inputs and ports, D-056; alarms, service and recovery in the
+> first turn, D-057)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -224,7 +225,9 @@ flowchart LR
   and send each through `reduce`; an event an earlier one made obsolete is
   ignored.
 - **Recovery.** The controller sends `recover` exactly once per process, as
-  the first event, inside the same lock as the restore of `active_brew`.
+  the first event, inside the same lock as the restore of `active_brew`: the
+  first turn of the process restores it before its own input, whatever that
+  input is (an alarm, a tap; D-057).
   `restore` throws only `IllegalArgumentException`; the controller then logs
   it (06 §5.6) and clears `active_brew` instead of running a wrong timer.
 - **Alert.** `StartAlert` means "ensure the alert of the alerting step is
@@ -250,11 +253,11 @@ flowchart LR
 - **Which notification (D-044, D-054).** `StartForeground` and
   `UpdateNotification` use the notification of the **new** state (§8.2):
   - in Alerting, the alert (ID 2, `steep_finished`) is the foreground
-    notification. `UpdateNotification` refreshes ID 2 — with the full-screen
-    intent only when `StartAlert` is in the same transition — and cancels
-    ID 1 if it is posted. ID 1 is never posted while alerting
-    (`deadlineReached`, `addStep`/`editSteps` while alerting, `recover` of an
-    alerting state);
+    notification. `StartForeground` and `UpdateNotification` show ID 2 — with
+    the full-screen intent only when `StartAlert` is in the same transition
+    (D-057) — and cancel ID 1 if it is posted. ID 1 is never posted while
+    alerting (`deadlineReached`, `addStep`/`editSteps` while alerting,
+    `recover` of an alerting state);
   - in every other active state, ID 1: the Live Update while the service
     runs, a regular, silent ongoing notification while the session is
     demoted or a long step runs. ID 2 is cancelled when the alert ends.
@@ -273,7 +276,8 @@ flowchart LR
     cancelled, so a transition is never half applied.
   - **A port that throws is logged,** and the next effect still runs.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
-  `AlertPlayer`; no timer logic.
+  `AlertPlayer`; no timer logic. Its port sends it the notification of the
+  state and the wake-lock time (§6.3, D-057).
 - UI renders remaining time per frame from the deadline while visible.
 
 ## 5. Time computation
@@ -366,11 +370,13 @@ rules (D-047):
   row; the event is accepted only when due (§3.2 guards), so a late, early
   or stale alarm is harmless. After a reboot the alarms are gone and
   `recover` schedules them again (§7.3).
-- `ExactAlarmReceiver` forwards the events of the elapsed rows (idempotent).
-  If the service is not running (process was killed), it starts
-  `BrewTimerService` in the foreground (exact-alarm delivery is an allowed
-  exemption for starting an FGS from the background) so the `AlertPlayer`
-  can play.
+- `TimerAlarmReceiver` hands every alarm to the controller's `onAlarm`
+  (idempotent); it finds the controller through the app (D-057). If the
+  process was killed (E3), the alarm starts a new one, whose controller first
+  recovers the state (§7.2); the `StartForeground` of recovery or of the
+  transition then starts `BrewTimerService` in the foreground (exact-alarm
+  delivery is an allowed exemption for starting an FGS from the background),
+  so the `AlertPlayer` can play.
 - `AlarmManager.canScheduleExactAlarms()` is still checked; if false (should
   not happen), the reliability banner is shown (TMR-31).
 
@@ -387,7 +393,15 @@ rules (D-047):
   `ForegroundServiceStartNotAllowedException`, logs it (06 §5.6) and falls
   back to the plain ongoing notification.
 - Partial wake lock during short RUNNING steps and ALERTING, with timeout
-  `remaining + alert length + 30 s`.
+  `remaining + alert length + 30 s`; the alert length is the longest one
+  (Lang, 2 min). Waiting states release it.
+- While the service runs in the foreground, the port sends its commands with
+  `startService`, which a running foreground service allows from the
+  background; the same notification ID only updates the notification, a new
+  one (the alert) takes `startForeground`. If that is refused, the service
+  leaves the foreground and posts the alert alone (§8.2). A stop never
+  reaches the service before a pending start has called `startForeground`
+  (D-057).
 
 ### 6.4 Samsung battery management
 
@@ -418,8 +432,9 @@ once and runs the side effects anyway (§4 controller rules, D-054). A
 
 ### 7.2 Recovery on process start
 
-The controller restores the state and sends `recover`, which the engine
-applies purely (§12 unit tests with fake clocks and boot counts; D-048).
+The controller restores the state and sends `recover` in the first turn of
+the process, before that turn's own input (D-057), which the engine applies
+purely (§12 unit tests with fake clocks and boot counts; D-048).
 After a reboot it first moves every elapsed value to the new elapsed clock at
 the same distance from now as its wall value, within physical bounds: every
 instant of the old boot lies before elapsed 0, so a pause start and a passed
@@ -664,7 +679,7 @@ Uses the global pre-alert, the same alert and the Live Update
 |---|---|
 | Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
-| Instrumented (CI emulator job, API 35 and 36) | Process death (`am kill`) during a step; alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
+| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057); alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps screen off in the CI emulator job; on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 
@@ -686,7 +701,7 @@ Uses the global pre-alert, the same alert and the Live Update
      so the rest of the app never appears over the lock screen). -->
 
 <service
-    android:name=".timer.BrewTimerService"
+    android:name=".timer.service.BrewTimerService"
     android:exported="false"
     android:foregroundServiceType="specialUse">
     <property
@@ -694,7 +709,7 @@ Uses the global pre-alert, the same alert and the Live Update
         android:value="Tea steeping countdown timer started by the user" />
 </service>
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
-<receiver android:name=".timer.ExactAlarmReceiver" android:exported="false" />
+<receiver android:name=".timer.alarm.TimerAlarmReceiver" android:exported="false" />
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
