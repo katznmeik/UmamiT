@@ -101,9 +101,59 @@ class RobotsTxtTest {
     }
 
     @Test
+    fun aLeadingByteOrderMarkDoesNotHideTheFirstGroup() {
+        val bom = 0xFEFF.toChar()
+        val robots = RobotsTxt.parse("${bom}User-agent: *\nDisallow: /media/\n".encodeToByteArray())
+
+        assertThat(robots.isAllowed("/media/a.jpg")).isFalse()
+    }
+
+    @Test
+    fun aUserAgentLineWithAVersionStillNamesUmamiT() {
+        val robots = RobotsTxt.parse("User-agent: UmamiT/1.0\nDisallow: /media/\n\nUser-agent: *\nAllow: /\n")
+
+        assertThat(robots.isAllowed("/media/a.jpg")).isFalse()
+    }
+
+    @Test(timeout = 2_000)
+    fun pathologicalWildcardPatternsMatchQuickly() {
+        val stars = "*".repeat(STAR_COUNT)
+        val robots = RobotsTxt.parse("User-agent: *\nDisallow: /${stars}Z\nDisallow: /a*a*a*a*a*a*a*a*a*a*b\n")
+        val longPath = "/" + "a".repeat(LONG_PATH)
+
+        assertThat(robots.isAllowed("/media/ab/15/63/1727307323/photo.jpg")).isTrue()
+        assertThat(robots.isAllowed("/media/xZ")).isFalse()
+        assertThat(robots.isAllowed(longPath)).isTrue()
+    }
+
+    @Test
+    fun onlyTheFirst512KiBAreRead() {
+        val filler = "# " + "x".repeat(RobotsTxt.MAX_BYTES) + "\n"
+        val robots = RobotsTxt.parse(
+            "User-agent: *\nDisallow: /early/\n$filler\nDisallow: /late/\n".encodeToByteArray(),
+        )
+
+        assertThat(robots.isAllowed("/early/a")).isFalse()
+        assertThat(robots.isAllowed("/late/a")).isTrue()
+    }
+
+    @Test
+    fun wildcardsMatchLikeRfc9309() {
+        assertThat(wildcardMatches("/a*b*", "/axxbyy")).isTrue()
+        assertThat(wildcardMatches("/a*b", "/axxbyy")).isFalse()
+        assertThat(wildcardMatches("*", "")).isTrue()
+        assertThat(wildcardMatches("/x", "/")).isFalse()
+    }
+
+    @Test
     fun disallowAllBlocksEverythingButRobotsTxtItself() {
         assertThat(RobotsTxt.DISALLOW_ALL.isAllowed("/media/a.jpg")).isFalse()
         assertThat(RobotsTxt.DISALLOW_ALL.isAllowed("/robots.txt")).isTrue()
         assertThat(RobotsTxt.parse("User-agent: *\nDisallow: /\n").isAllowed("/media/a.jpg")).isFalse()
+    }
+
+    private companion object {
+        const val STAR_COUNT = 25
+        const val LONG_PATH = 10_000
     }
 }

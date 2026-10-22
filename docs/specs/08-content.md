@@ -221,6 +221,12 @@ via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 | Cost per cup (Becher, 2 infusions) | 4,0 g × 0,085 €/g = 0,34 € → 0,17 €/Tasse | 4,0 g × 0,179 €/g = 0,72 € → 0,36 €/Tasse |
 | Photo URL (downloaded at runtime) | `/media/ab/15/63/1727307323/gtbiosenchatanabataaiya.jpg` | `/media/7c/c3/7c/1727308250/gtbiosenchahisui.jpg` |
 
+The photo download (D-050) reads robots.txt first, runs at most once
+(marker set before the first request), stops on every stop signal of §2.8
+and on a 401/403/5xx, and stores each photo re-encoded as a JPEG cover
+(≤ 2048 px, no metadata, origin `CATALOG_COPY`). A photo the shop doesn't
+have, that robots.txt disallows or that doesn't decode keeps the placeholder.
+
 Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
 seed vessels (WARE-06). Purchase date of the seed stock = first app start;
 `opened_date` is set by the first session (INV-06).

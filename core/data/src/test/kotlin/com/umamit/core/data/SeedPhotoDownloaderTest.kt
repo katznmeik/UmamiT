@@ -1,5 +1,8 @@
 package com.umamit.core.data
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedPhotoProgress.Failed
 import com.umamit.core.data.SeedPhotoProgress.FailureCause
@@ -12,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -28,6 +32,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -39,6 +45,7 @@ import java.util.concurrent.TimeUnit
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SeedPhotoDownloaderTest {
     @get:Rule
     val folder = TemporaryFolder()
@@ -105,13 +112,130 @@ class SeedPhotoDownloaderTest {
         assertThat(tanabata.owner).isEqualTo(PhotoOwner.OfTea(SeedData.TANABATA_TEA_ID))
         assertThat(tanabata.origin).isEqualTo(PhotoOrigin.CATALOG_COPY)
         assertThat(tanabata.widthPx to tanabata.heightPx).isEqualTo(800 to 600)
-        assertThat(tanabata.byteSize).isEqualTo(tanabataJpeg.size.toLong())
-        assertThat(File(photosDir, "${tanabata.id}.jpg").readBytes()).isEqualTo(tanabataJpeg)
+        val tanabataFile = File(photosDir, "${tanabata.id}.jpg")
+        assertThat(tanabata.byteSize).isEqualTo(tanabataFile.length())
+        assertThat(decodedSize(tanabataFile.readBytes())).isEqualTo(800 to 600)
         val hisui = checkNotNull(cover(SeedData.HISUI_TEA_ID))
         assertThat(hisui.origin).isEqualTo(PhotoOrigin.CATALOG_COPY)
         assertThat(hisui.widthPx to hisui.heightPx).isEqualTo(640 to 640)
-        assertThat(File(photosDir, "${hisui.id}.jpg").readBytes()).isEqualTo(hisuiJpeg)
+        assertThat(decodedSize(File(photosDir, "${hisui.id}.jpg").readBytes())).isEqualTo(640 to 640)
         assertThat(photosDir.list()).asList().containsExactly("${tanabata.id}.jpg", "${hisui.id}.jpg")
+    }
+
+    @Test
+    fun theRunIsRecordedBeforeTheFirstRequest() = runTest {
+        seedTeas()
+        var markedAtFirstRequest: Boolean? = null
+        routes[ROBOTS] = {
+            markedAtFirstRequest = runBlocking { settings.seedPhotosAttempted.first() }
+            ok("")
+        }
+
+        downloader().downloadIfNeeded()
+
+        assertThat(markedAtFirstRequest).isTrue()
+    }
+
+    @Test
+    fun largePhotosAreScaledTo2048PxAndReencodedWithoutMetadata() = runTest {
+        seedTeas()
+        val withExif = withExifSegment(syntheticJpeg(width = 3000, height = 2000))
+        routes[SeedData.TANABATA_PHOTO_PATH] = { jpeg(withExif) }
+
+        assertThat(downloader().downloadIfNeeded()).isEqualTo(SeedPhotoProgress.Done(stored = 2))
+
+        val tanabata = checkNotNull(cover(SeedData.TANABATA_TEA_ID))
+        assertThat(tanabata.widthPx to tanabata.heightPx).isEqualTo(2048 to 1365)
+        val stored = File(photosDir, "${tanabata.id}.jpg").readBytes()
+        assertThat(decodedSize(stored)).isEqualTo(2048 to 1365)
+        assertThat(stored.decodeToString(throwOnInvalidSequence = false)).doesNotContain("Exif")
+    }
+
+    @Test
+    fun truncatedOversizedOrUndecodableImagesAreLeftOut() = runTest {
+        seedTeas()
+        val truncated = tanabataJpeg.copyOf(tanabataJpeg.size / 2)
+        val garbage = byteArrayOf(0xFF.toByte(), 0xD8.toByte()) + ByteArray(GARBAGE_BYTES) { 7 } +
+            byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+        val huge = syntheticJpeg(width = 8200, height = 8)
+        listOf(truncated, garbage, huge).forEach { body ->
+            routes[SeedData.TANABATA_PHOTO_PATH] = { jpeg(body) }
+            data.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, null)
+
+            assertThat(downloader(FakeSettingsRepository()).downloadIfNeeded())
+                .isEqualTo(SeedPhotoProgress.Done(stored = 1))
+            assertThat(cover(SeedData.TANABATA_TEA_ID)).isNull()
+        }
+    }
+
+    @Test
+    fun aMissingPhotoIsLeftOutAndTheRunGoesOn() = runTest {
+        seedTeas()
+        routes.remove(SeedData.TANABATA_PHOTO_PATH)
+
+        assertThat(downloader().downloadIfNeeded()).isEqualTo(SeedPhotoProgress.Done(stored = 1))
+        assertThat(cover(SeedData.HISUI_TEA_ID)).isNotNull()
+    }
+
+    @Test
+    fun refusalsAndServerErrorsStopTheRun() = runTest {
+        seedTeas()
+        val stops = listOf(
+            MockResponse.Builder().code(403).build() to FailureCause.HTTP_ERROR,
+            MockResponse.Builder().code(500).build() to FailureCause.HTTP_ERROR,
+            MockResponse.Builder().code(503).build() to FailureCause.HTTP_ERROR,
+            MockResponse.Builder().code(403).addHeader("CF-RAY", "x").addHeader("Server", "cloudflare")
+                .body("Sorry, you have been blocked").build() to FailureCause.BLOCKED,
+            MockResponse.Builder().code(503).addHeader("Retry-After", "0").build() to FailureCause.RETRY_AFTER,
+        )
+        stops.forEach { (response, cause) ->
+            requests.clear()
+            routes[SeedData.TANABATA_PHOTO_PATH] = { response }
+
+            assertThat(downloader(FakeSettingsRepository()).downloadIfNeeded()).isEqualTo(Failed(cause))
+            assertThat(requestedPaths()).containsExactly(ROBOTS, SeedData.TANABATA_PHOTO_PATH).inOrder()
+        }
+        assertThat(cover(SeedData.TANABATA_TEA_ID)).isNull()
+        assertThat(cover(SeedData.HISUI_TEA_ID)).isNull()
+    }
+
+    @Test
+    fun aForbiddenRobotsTxtStopsInsteadOfAllowingAll() = runTest {
+        seedTeas()
+        routes[ROBOTS] = { MockResponse.Builder().code(403).build() }
+
+        assertThat(downloader().downloadIfNeeded()).isEqualTo(Failed(FailureCause.HTTP_ERROR))
+        assertThat(requestedPaths()).containsExactly(ROBOTS)
+    }
+
+    @Test
+    fun aRobotsTxtWithAByteOrderMarkIsStillRespected() = runTest {
+        seedTeas()
+        routes[ROBOTS] = { ok("${0xFEFF.toChar()}User-agent: *\nDisallow: /media/\n") }
+
+        assertThat(downloader().downloadIfNeeded()).isEqualTo(SeedPhotoProgress.Done(stored = 0))
+        assertThat(requestedPaths()).containsExactly(ROBOTS)
+    }
+
+    @Test
+    fun aStorageErrorFailsQuietly() = runTest {
+        seedTeas()
+        val notADirectory = folder.newFile("photos-is-a-file")
+        val downloader = SeedPhotoDownloader(
+            client = ShopClient.forTesting(baseUrl = server.url("/")),
+            db = data.db,
+            teas = data.teas,
+            settings = settings,
+            photoFiles = PhotoFiles(notADirectory),
+        )
+
+        val result = downloader.downloadIfNeeded()
+
+        assertThat(result).isEqualTo(Failed(FailureCause.STORAGE))
+        assertThat(downloader.progress.value).isEqualTo(Failed(FailureCause.STORAGE))
+        assertThat(requestedPaths()).containsExactly(ROBOTS, SeedData.TANABATA_PHOTO_PATH).inOrder()
+        assertThat(cover(SeedData.TANABATA_TEA_ID)).isNull()
+        assertThat(settings.seedPhotosAttempted.first()).isTrue()
     }
 
     @Test
@@ -181,6 +305,10 @@ class SeedPhotoDownloaderTest {
         assertThat(cover(SeedData.TANABATA_TEA_ID)).isNotNull()
         assertThat(cover(SeedData.HISUI_TEA_ID)).isNull()
         assertThat(photosDir.list()).hasLength(1)
+        // Nothing more goes out after the skip, not even once the rate-limit gap has passed.
+        Thread.sleep(AFTER_SKIP_MS)
+        assertThat(requestedPaths())
+            .containsExactly(ROBOTS, SeedData.TANABATA_PHOTO_PATH, SeedData.HISUI_PHOTO_PATH).inOrder()
         assertThat(settings.seedPhotosAttempted.first()).isTrue()
     }
 
@@ -290,9 +418,9 @@ class SeedPhotoDownloaderTest {
     }
 
     @Test
-    fun unreachableRobotsTxtCountsAsCompleteDisallow() = runTest {
+    fun anUnusableRobotsTxtCountsAsCompleteDisallow() = runTest {
         seedTeas()
-        routes[ROBOTS] = { MockResponse.Builder().code(500).build() }
+        routes[ROBOTS] = { MockResponse.Builder().code(400).build() }
 
         val result = downloader().downloadIfNeeded()
 
@@ -388,21 +516,30 @@ class SeedPhotoDownloaderTest {
         const val ROBOTS = "/robots.txt"
         const val MIN_GAP_MS = 480L
         const val BLOCK_SECONDS = 10L
+        const val AFTER_SKIP_MS = 700L
+        const val GARBAGE_BYTES = 200
     }
 }
 
-/**
- * A synthetic baseline JPEG header (SOI, APP0/JFIF, SOF0 with the size, EOI) plus filler bytes:
- * enough for the size check, and no shop photo (D-016).
- */
+/** A synthetic one-colour JPEG of the given size, encoded on the spot: no shop photo (D-016). */
 internal fun syntheticJpeg(width: Int, height: Int): ByteArray {
-    val header = intArrayOf(
-        0xFF, 0xD8,
-        0xFF, 0xE0, 0x00, 0x10, 'J'.code, 'F'.code, 'I'.code, 'F'.code, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00,
-        0x01, 0x00, 0x00,
-        0xFF, 0xC0, 0x00, 0x11, 0x08, height shr 8, height and 0xFF, width shr 8, width and 0xFF,
-        0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
-    )
-    val filler = ByteArray(width % 97 + 16) { it.toByte() }
-    return header.map { it.toByte() }.toByteArray() + filler + byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(74, 86, 67)) }
+    return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }.toByteArray()
+}
+
+/** [jpeg] with an APP1 „Exif" segment after SOI, as camera and shop images carry. */
+internal fun withExifSegment(jpeg: ByteArray): ByteArray {
+    // "Exif\0\0", a big-endian TIFF header pointing at an empty IFD, then a marker string.
+    val payload = "Exif\u0000\u0000MM\u0000*\u0000\u0000\u0000\u0008\u0000\u0000\u0000\u0000\u0000\u0000"
+        .encodeToByteArray() + "synthetic-metadata".encodeToByteArray()
+    val length = payload.size + 2
+    val segment = byteArrayOf(0xFF.toByte(), 0xE1.toByte(), (length shr 8).toByte(), length.toByte()) + payload
+    return jpeg.copyOfRange(0, 2) + segment + jpeg.copyOfRange(2, jpeg.size)
+}
+
+/** The decoded pixel size of [bytes]. */
+internal fun decodedSize(bytes: ByteArray): Pair<Int, Int> {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    return bounds.outWidth to bounds.outHeight
 }

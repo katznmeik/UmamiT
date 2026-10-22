@@ -302,6 +302,55 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-050"></a>
+### D-050 — Shop client and seed photo download (M1-07, #37 and its T4 review) · *Accepted* (Claude, 2026-10-22)
+
+**Shop client (`core:network`, rule 7):**
+- One `ShopClient` singleton for all three network uses. Allow-list = scheme,
+  host and port of `https://www.tee-kontor-kiel.de`, checked before any
+  connection and again on the network; redirects are never followed; the
+  base URL can be changed only by a `@VisibleForTesting` factory.
+- **Direct connection** (`Proxy.NO_PROXY`): a system, Wi-Fi or PAC proxy is
+  not used, so the shop is the real TCP destination of every request.
+- **One connection, one request per call:** one dispatcher thread,
+  `maxRequests = maxRequestsPerHost = 1`, a pool of one connection, no fast
+  fallback (no parallel connects), no connection retries. OkHttp repeats a
+  503 with `Retry-After: 0` by itself, so the client hides `Retry-After` from
+  OkHttp (it is kept under an internal header for the stop rule) and refuses
+  any second network attempt of a call before it is written.
+- **≤ 2 requests/s on the wire:** the limiter runs as a network interceptor,
+  so requests are written ≥ 500 ms apart however long the connection setup
+  takes.
+- **Stop signals** (08 §2.8): `cf-mitigated: challenge`; a 401/403/503 with
+  challenge markers (incl. `challenges.cloudflare.com`, `cf-turnstile`) or
+  served by Cloudflare (`CF-RAY`, `Server: cloudflare`, a block page); HTTP
+  429; any `Retry-After`. Bodies over 5 MB are refused.
+- **robots.txt:** RFC 9309 with a backtracking-free wildcard matcher (runs
+  of `*` collapsed), only the first 512 KiB read, a leading BOM ignored, a
+  `User-agent` product token matched without its version. The parser lives
+  in `core:network` from M1 on (06 §3 had it in M2). `Crawl-delay` is not
+  yet honoured (M2).
+
+**Seed photo download (`core:data`, ONB-06):**
+- Runs once: the marker `seedPhotosAttempted` (05 §6) is set **before the
+  first request**, so a skip, a failure or a crash never repeats it. It is in
+  DataStore and so in the device backup: a restored phone doesn't download
+  again (CAT-15 fills in photos).
+- robots.txt first. 404/410 → everything allowed; 401/403 or 5xx → stop;
+  any other failure (3xx, other 4xx) → everything disallowed.
+- Progress: `Idle`, `Running(current, total)` (photo being fetched, robots.txt
+  counts as photo 1), `Done(stored)`, `Skipped` (*Überspringen* or the
+  caller's cancellation), `Failed(cause)`.
+- `Failed` = the run stopped: a stop signal, a 401/403/5xx, a network error
+  (offline), or a storage error (disk full, database). Nothing is shown and
+  nothing escapes as an exception. Photos stored before stay.
+- Per photo, without stopping: a robots-disallowed path, a 404 or other 4xx,
+  or an answer that is no complete JPEG is left out (placeholder), and so is
+  a seed tea that is gone or already has a cover.
+- Images are decoded and **re-encoded** (05 §3.9, 06 §5.2): sources larger
+  than 8192 px per side or 40 MP and truncated images (no EOI) are refused;
+  the stored JPEG is at most 2048 px, quality 85, without metadata.
+
 <a id="d-049"></a>
 ### D-049 — Navigation shell details (M1-05, #34) · *Accepted* (Claude, 2026-10-22)
 
@@ -754,6 +803,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-050: shop client (allow-list, direct single connection, one request per call, rate limit on the wire, stop signals incl. Cloudflare block pages, hardened robots.txt) and the run-once seed photo download (marker before the first request, stop rules, re-encoded covers) from #37 and its T4 review; 05 §6 and 08 §2.5a updated. |
 | 2026-10-22 | D-049: navigation shell details (re-select order, tab fade-through, insets of the active brew bar); 03 §3.6 `tabSwitch` token. |
 | 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |

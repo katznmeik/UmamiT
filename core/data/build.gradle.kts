@@ -12,6 +12,8 @@ dependencies {
     // The allow-listed shop client for the seed photo download (ONB-06, GEN-01).
     implementation(project(":core:network"))
     implementation(libs.kotlinx.coroutines.core)
+    // Bitmap.scale for re-encoding the seed photos (05 §3.9, D-050).
+    implementation(libs.androidx.core.ktx)
 
     // Robolectric tests against an in-memory Room database (05, #30).
     testImplementation(libs.robolectric)
