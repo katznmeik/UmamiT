@@ -64,6 +64,10 @@ data class SessionStep(
     val status: StepStatus,
     val record: StepRecord?,
 ) {
+    init {
+        require(plannedSeconds > 0) { "plannedSeconds must be positive, was $plannedSeconds" }
+    }
+
     /** The planned values of this step. */
     val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC)
 }

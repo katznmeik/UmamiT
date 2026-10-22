@@ -218,6 +218,33 @@ class QuickTimerTest {
         assertThat(driver.state).isSameInstanceAs(before)
     }
 
+    @Test
+    fun `a quick timer outside 5 s to 24 h or with an unknown pre-alert is rejected, never thrown`() {
+        val invalid = listOf(
+            TimerEvent.StartQuickTimer(0, globalPreAlertSeconds = 10),
+            TimerEvent.StartQuickTimer(4, globalPreAlertSeconds = 10),
+            TimerEvent.StartQuickTimer(86_401, globalPreAlertSeconds = 10),
+            TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = -5),
+            TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = 3),
+            TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = 35),
+        )
+        invalid.forEach { event ->
+            val driver = EngineDriver()
+            assertWithMessage("$event").that(driver.send(event)).isEmpty()
+            assertWithMessage("$event").that(driver.state).isEqualTo(TimerState.Idle)
+            assertWithMessage("$event").that(driver.outcome)
+                .isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
+        }
+        listOf(
+            TimerEvent.StartQuickTimer(5, globalPreAlertSeconds = 0),
+            TimerEvent.StartQuickTimer(86_400, globalPreAlertSeconds = 30),
+        ).forEach { event ->
+            val driver = EngineDriver()
+            driver.send(event)
+            assertWithMessage("$event").that(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
+        }
+    }
+
     private fun quick(seconds: Int) =
         EngineDriver().apply { send(TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = 10)) }
 }

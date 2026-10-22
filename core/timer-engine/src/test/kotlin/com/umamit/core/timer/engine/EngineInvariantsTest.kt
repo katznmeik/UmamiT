@@ -70,6 +70,7 @@ class EngineInvariantsTest {
             checkPendingRows(label, transition)
             checkQuickTimer(label, before, transition)
             checkSnapshot(label, transition.state)
+            checkNothingOverdue(label, transition.state, driver)
         }
     }
 
@@ -193,6 +194,36 @@ class EngineInvariantsTest {
             .that(BrewTimerEngine.restore(BrewTimerEngine.snapshot(state))).isEqualTo(state)
     }
 
+    /**
+     * A due time-based event is never ignored, it is applied or consumed
+     * (D-048): after an accepted transition nothing is overdue, except the
+     * deadline of a running step, whose event is always accepted.
+     */
+    private fun checkNothingOverdue(label: String, state: TimerState, driver: EngineDriver) {
+        val due = BrewTimerEngine.dueTimes(state)
+        val now = driver.clocks.now()
+        assertWithMessage("$label: pre-alert not overdue").that(due.preAlertAtElapsedMs?.let { it <= now.elapsedMs })
+            .isNotEqualTo(true)
+        assertWithMessage("$label: quick-timer cancel not overdue")
+            .that(due.quickCancelAtWallMs?.let { it <= now.wallMs }).isNotEqualTo(true)
+        if (state !is TimerState.Running) {
+            assertWithMessage("$label: only a running step has a deadline").that(due.deadlineElapsedMs).isNull()
+        }
+        // The times of the state are possible on this elapsed clock (D-048, reboot rebase).
+        when (state) {
+            is TimerState.Running -> assertWithMessage("$label: at most the planned time left")
+                .that(state.deadlineElapsedMs - now.elapsedMs).isAtMost(state.plannedMs)
+
+            is TimerState.Paused -> assertWithMessage("$label: the pause started before now")
+                .that(state.pausedSinceElapsedMs).isAtMost(now.elapsedMs)
+
+            is TimerState.Alerting -> assertWithMessage("$label: the deadline of an alert has passed")
+                .that(state.deadlineElapsedMs).isAtMost(now.elapsedMs)
+
+            else -> Unit
+        }
+    }
+
     private fun advanceClock(random: Random, driver: EngineDriver) {
         val running = driver.state as? TimerState.Running
         val alerting = driver.state as? TimerState.Alerting
@@ -209,6 +240,15 @@ class EngineInvariantsTest {
                 )
 
             random.nextInt(25) == 0 -> driver.clocks.reboot(offMs = random.nextLong(0, 900_000), upMs = 30_000)
+
+            // A reboot during which the wall clock did not move: wall values are behind the new elapsed clock.
+            random.nextInt(25) == 0 -> driver.clocks.apply {
+                reboot(offMs = 0, upMs = 30_000)
+                wall -= 30_000
+            }
+
+            // The user or the network moves the wall clock alone, either way (E1).
+            random.nextInt(25) == 0 -> driver.clocks.wall += random.nextLong(-3_600_000, 3_600_000)
 
             random.nextInt(20) == 0 -> driver.clocks.advance(QUICK_TIMER_IDLE_MS + random.nextLong(-1, 2))
 

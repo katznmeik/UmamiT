@@ -201,6 +201,44 @@ class SnapshotTest {
         }
     }
 
+    @Test
+    fun `out-of-range values and fields of another phase are refused with IllegalArgumentException`() {
+        val ready = BrewTimerEngine.snapshot(sessionWith(infusion(60), infusion(20)).state)!!
+        val paused = BrewTimerEngine.snapshot(running().apply { send(TimerEvent.Pause) }.state)!!
+        val alerting = BrewTimerEngine.snapshot(alerting().state)!!
+        val finished = BrewTimerEngine.snapshot(sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.state)!!
+        val quick = BrewTimerEngine.snapshot(quick().state)!!
+        fun TimerSnapshot.row(transform: ActiveBrewSnapshot.() -> ActiveBrewSnapshot) =
+            copy(activeBrew = activeBrew.transform())
+        fun TimerSnapshot.step(index: Int, transform: SessionStepRow.() -> SessionStepRow) =
+            copy(steps = steps.mapIndexed { i, step -> if (i == index) step.transform() else step })
+        val broken = listOf(
+            "Ready without a pending step" to finished.row { copy(phase = TimerPhase.READY) },
+            "Finished with a step index inside the plan" to finished.row { copy(stepIndex = 0) },
+            "a planned duration of 0" to ready.step(1) { copy(plannedSeconds = 0) },
+            "a quick timer of 0 s" to quick.row { copy(quickDurationSeconds = 0) },
+            "a quick timer with a step index" to quick.row { copy(stepIndex = 1) },
+            "nothing remaining in a pause" to paused.row { copy(remainingMs = 0) },
+            "more remaining than planned" to paused.row { copy(remainingMs = 60_001) },
+            "a negative paused total" to paused.row { copy(pausedTotalMs = -1) },
+            "a pending step marked skipped" to ready.step(1) { copy(skipped = true) },
+            "a pending step with a start time" to ready.step(1) { copy(startedAtWallMs = START_WALL_MS) },
+            "a recorded step without its paused time" to finished.step(0) { copy(pausedSeconds = null) },
+            "Ready with a deadline" to ready.row { copy(deadlineElapsedMs = 1, deadlineWallMs = 1) },
+            "Ready with a played alert" to ready.row { copy(alertPlayed = true) },
+            "Ready with a step start" to ready.row { copy(stepStartedWallMs = START_WALL_MS) },
+            "Paused with a deadline" to paused.row { copy(deadlineElapsedMs = 1) },
+            "Paused with a ready time" to paused.row { copy(readySinceWallMs = START_WALL_MS) },
+            "Alerting with a pre-alert time" to alerting.row { copy(preAlertElapsedMs = 1) },
+            "Alerting with a remaining time" to alerting.row { copy(remainingMs = 1) },
+            "a negative pre-alert" to ready.row { copy(preAlertInheritedSeconds = -1) },
+            "an unknown time zone" to ready.row { copy(zoneId = "Mars/Olympus") },
+        )
+        broken.forEach { (name, snapshot) ->
+            assertThrows(name, IllegalArgumentException::class.java) { BrewTimerEngine.restore(snapshot) }
+        }
+    }
+
     private fun running() = sessionWith(infusion(60), infusion(20)).apply { send(TimerEvent.Start) }
 
     private fun alerting(vararg steps: PlannedStep = arrayOf(infusion(60), infusion(20))) = sessionWith(*steps).apply {

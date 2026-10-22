@@ -45,7 +45,11 @@ sealed interface TimerEffect {
     /** Play the pre-alert tick once (#31). */
     data object PlayPreAlert : TimerEffect
 
-    /** Start the step alert (04 §9); the AlertPlayer answers with [TimerEvent.AlertCompleted]. */
+    /**
+     * Ensure the alert of the alerting step is playing (04 §9), idempotent: if
+     * it already plays for that step, nothing restarts (a deadline event and a
+     * `recover` may both ask). The AlertPlayer answers with [TimerEvent.AlertCompleted].
+     */
     data object StartAlert : TimerEffect
 
     /** Stop the step alert. */

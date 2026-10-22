@@ -292,7 +292,7 @@ class RecoveryTest {
         val before = driver.state
         driver.clocks.reboot(offMs = 10_000, upMs = 10_000)
 
-        listOf(TimerEvent.DeadlineReached, TimerEvent.Pause, TimerEvent.EndStepNow, startSession(infusion(30)))
+        listOf(TimerEvent.DeadlineReached, TimerEvent.Pause, TimerEvent.EndStepNow, TimerEvent.AddStep)
             .forEach { event ->
                 assertWithMessage("$event").that(driver.send(event)).isEmpty()
                 assertWithMessage("$event").that(driver.state).isSameInstanceAs(before)
@@ -303,6 +303,153 @@ class RecoveryTest {
         driver.send(TimerEvent.Recover)
         driver.send(TimerEvent.Pause)
         assertThat(driver.state).isInstanceOf(TimerState.Paused::class.java)
+    }
+
+    // --- Wall-clock error across a reboot: the rebase never produces an impossible state (D-048).
+
+    @Test
+    fun `after a reboot with the wall clock set back an alerting deadline stays in the past`() {
+        val driver = alerting(infusion(60))
+        driver.clocks.reboot(offMs = 0, upMs = 20_000)
+        driver.clocks.wall -= 3_600_000
+
+        val effects = driver.send(TimerEvent.Recover)
+
+        val alerting = driver.state as TimerState.Alerting
+        assertThat(alerting.deadlineElapsedMs).isEqualTo(0)
+        assertThat(effects).contains(StartAlert)
+        driver.send(TimerEvent.Poured)
+        val record = driver.recordOf(0)
+        assertThat(record.overtimeSeconds).isEqualTo(20)
+        assertThat(record.actualSeconds).isEqualTo(80)
+    }
+
+    @Test
+    fun `after a reboot with the wall clock set back a running step never has more than its planned time left`() {
+        val driver = sessionWith(infusion(600)).apply { send(TimerEvent.Start) }
+        driver.clocks.reboot(offMs = 0, upMs = 30_000)
+        driver.clocks.wall -= 3_600_000
+
+        driver.send(TimerEvent.Recover)
+
+        val running = driver.state as TimerState.Running
+        assertThat(running.deadlineElapsedMs).isEqualTo(600_000)
+        assertThat(driver.display()!!.remainingSeconds).isEqualTo(570)
+    }
+
+    @Test
+    fun `after a reboot with the wall clock set back a pause started before the boot`() {
+        val driver = sessionWith(infusion(60)).apply {
+            send(TimerEvent.Start)
+            clocks.advanceSeconds(20)
+            send(TimerEvent.Pause)
+        }
+        driver.clocks.reboot(offMs = 0, upMs = 20_000)
+        driver.clocks.wall -= 3_600_000
+
+        driver.send(TimerEvent.Recover)
+        driver.send(TimerEvent.Resume)
+
+        val running = driver.state as TimerState.Running
+        assertThat(running.pausedTotalMs).isEqualTo(20_000)
+        assertThat(running.deadlineElapsedMs).isEqualTo(20_000 + 40_000)
+    }
+
+    @Test
+    fun `a running step that is impossible on the same boot count is rebased from the wall clock`() {
+        val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
+        driver.clocks.rebootUnnoticed(offMs = 100_000, upMs = 20_000) // deadline passed 60 s ago
+
+        val effects = driver.send(TimerEvent.Recover)
+
+        val alerting = driver.state as TimerState.Alerting
+        assertThat(alerting.deadlineElapsedMs).isEqualTo(20_000 - 60_000)
+        assertThat(driver.display()!!.overtimeSeconds).isEqualTo(60)
+        assertThat(effects).contains(StartAlert)
+    }
+
+    @Test
+    fun `alerting and paused states that are impossible on the same boot count are rebased`() {
+        val alerting = alerting(infusion(60)).apply {
+            clocks.rebootUnnoticed(offMs = 60_000, upMs = 20_000)
+            send(TimerEvent.Recover)
+        }
+        assertThat((alerting.state as TimerState.Alerting).deadlineElapsedMs).isEqualTo(20_000 - 80_000)
+
+        val paused = sessionWith(infusion(60)).apply {
+            send(TimerEvent.Start)
+            clocks.advanceSeconds(20)
+            send(TimerEvent.Pause)
+            clocks.rebootUnnoticed(offMs = 100_000, upMs = 20_000)
+            send(TimerEvent.Recover)
+            send(TimerEvent.Resume)
+        }
+        assertThat((paused.state as TimerState.Running).pausedTotalMs).isEqualTo(120_000)
+    }
+
+    @Test
+    fun `a possible state on the same boot is kept as it is`() {
+        val driver = sessionWith(infusion(60)).apply {
+            send(TimerEvent.Start)
+            clocks.advanceSeconds(20)
+            send(TimerEvent.Pause)
+        }
+        val before = driver.state
+        driver.clocks.wall -= 3_600_000 // a wall-clock change on the same boot changes nothing
+
+        driver.send(TimerEvent.Recover)
+
+        assertThat(driver.state).isEqualTo(before)
+    }
+
+    // --- Boundaries and orders.
+
+    @Test
+    fun `recovery 1 ms before the overtime timeout still alerts`() {
+        val driver = alerting(infusion(60))
+        driver.clocks.advance(tenMinutes - 1)
+
+        driver.send(TimerEvent.Recover)
+
+        assertThat(driver.state).isInstanceOf(TimerState.Alerting::class.java)
+        assertThat(driver.effects).contains(StartAlert)
+    }
+
+    @Test
+    fun `the deadline before recover and a second recover each ask for the alert, which StartAlert ensures once`() {
+        // The controller sends recover exactly once per process, first (04 §4). If it does not,
+        // the engine asks for the alert again; StartAlert is idempotent for the alerting step.
+        val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
+        driver.clocks.advanceSeconds(61)
+
+        assertThat(driver.send(TimerEvent.DeadlineReached)).contains(StartAlert)
+        assertThat(driver.send(TimerEvent.Recover))
+            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+        assertThat(driver.send(TimerEvent.Recover))
+            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+        driver.send(TimerEvent.AlertCompleted)
+        assertThat(driver.send(TimerEvent.Recover)).doesNotContain(StartAlert)
+    }
+
+    @Test
+    fun `a quick timer whose inactivity cancel passed while the process was dead ends silently on recovery`() {
+        val driver = EngineDriver().apply { send(TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = 10)) }
+        driver.clocks.advance(30 * 60_000L)
+
+        val effects = driver.send(TimerEvent.Recover)
+
+        assertThat(driver.state).isEqualTo(TimerState.Idle)
+        assertThat(effects).containsExactly(Persist, NO_ALARMS, StopForeground).inOrder()
+    }
+
+    @Test
+    fun `a start before recovery is refused as a second timer, so the UI can still ask (TMR-21)`() {
+        val driver = sessionWith(infusion(60))
+        driver.clocks.reboot(offMs = 10_000, upMs = 10_000)
+
+        driver.send(startSession(infusion(30)))
+
+        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(BREW)))
     }
 
     @Test

@@ -14,7 +14,23 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
  * finishSession and discard do not apply.
  */
 
+/** Global pre-alert values the settings offer (SET-10): off, or 5–30 s. */
+private val PRE_ALERT_SECONDS = 5..30
+
+/**
+ * Starts the quick timer, or rejects a duration outside 5 s – 24 h or a
+ * global pre-alert other than 0 or 5–30 s with [RejectionReason.InvalidQuickTimer].
+ */
 internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReading): TimerTransition {
+    val valid = event.durationSeconds in MIN_STEP_SECONDS..MAX_STEP_SECONDS &&
+        (event.globalPreAlertSeconds == 0 || event.globalPreAlertSeconds in PRE_ALERT_SECONDS)
+    if (!valid) {
+        return TimerTransition(
+            TimerState.Idle,
+            emptyList(),
+            TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer),
+        )
+    }
     val session = TimerSession(
         kind = SessionKind.Quick,
         steps = listOf(SessionStep(StepKind.INFUSION, event.durationSeconds, null, StepStatus.PENDING, null)),

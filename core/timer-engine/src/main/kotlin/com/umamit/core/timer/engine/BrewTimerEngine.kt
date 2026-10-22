@@ -39,6 +39,9 @@ sealed interface RejectionReason {
      * values; the controller has to send [TimerEvent.Recover] first (04 §7.2).
      */
     data object BootChanged : RejectionReason
+
+    /** `startQuickTimer` with a duration outside 5 s – 24 h or a pre-alert other than 0 or 5–30 s (04 §10). */
+    data object InvalidQuickTimer : RejectionReason
 }
 
 /**

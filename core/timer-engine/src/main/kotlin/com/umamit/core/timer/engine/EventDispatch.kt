@@ -4,9 +4,11 @@ import com.umamit.core.common.ClockReading
 
 /*
  * Which transition an event selects (04 §3.2, §7.2, §10). Idle only starts a
- * timer; `recover` comes first; any other event from another boot is
- * rejected; then the step lifecycle the brew session and the quick timer
- * share, then the events of the session kind. Null means "not allowed".
+ * timer; `recover` comes first; a start while a timer is active is refused
+ * as a second timer (also before recovery, so the UI can still ask, TMR-21);
+ * any other event from another boot is rejected; then the step lifecycle the
+ * brew session and the quick timer share, then the events of the session
+ * kind. Null means "not allowed".
  */
 
 internal fun dispatch(state: TimerState, event: TimerEvent, now: ClockReading): TimerTransition {
@@ -14,6 +16,8 @@ internal fun dispatch(state: TimerState, event: TimerEvent, now: ClockReading): 
         state !is TimerState.Active -> onIdle(event, now)
 
         event == TimerEvent.Recover -> recover(state, now)
+
+        event.isStart -> null
 
         state.session.bootCount != now.bootCount ->
             TimerTransition(state, emptyList(), TransitionOutcome.Rejected(RejectionReason.BootChanged))
@@ -81,9 +85,10 @@ private fun onBrewEvent(state: TimerState.Active, event: TimerEvent, now: ClockR
     else -> null
 }
 
+private val TimerEvent.isStart: Boolean get() = this is TimerEvent.StartSession || this is TimerEvent.StartQuickTimer
+
 private fun notAccepted(state: TimerState, event: TimerEvent): TimerTransition {
-    val isStart = event is TimerEvent.StartSession || event is TimerEvent.StartQuickTimer
-    val outcome = if (isStart && state is TimerState.Active) {
+    val outcome = if (event.isStart && state is TimerState.Active) {
         TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(state.session.kind))
     } else {
         TransitionOutcome.Ignored

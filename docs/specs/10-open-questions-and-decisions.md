@@ -338,12 +338,21 @@ spec gaps it left ([04 §3.2](04-brew-timer.md#32-events-and-transitions),
   other waiting timeouts (`DueTimes.quickCancelAtWallMs`). `editSteps`,
   `addStep`, `endStepNow`, `skipStep`, `finishSession` and `discard` are
   ignored, and `finishWouldDiscard` is false. A start of either kind while
-  one is active is `Rejected(ActiveTimerExists(kind))`.
+  one is active is `Rejected(ActiveTimerExists(kind))`, also before
+  `recover`. A duration outside 5 s – 24 h or a pre-alert other than 0 or
+  5–30 s is `Rejected(InvalidQuickTimer)`; `reduce` never throws.
 - **Recovery in the engine.** The clock reading carries the boot count, and
   the session records the boot of its elapsed values. `recover` is an event
   sent on every process start:
   - after a reboot, every elapsed value is first moved to the new elapsed
-    clock at the same distance from now as its wall value;
+    clock at the same distance from now as its wall value, clamped to
+    physical bounds: a passed deadline and a pause start ≤ 0, a running
+    deadline ≤ the planned time (every old-boot instant lies before
+    elapsed 0). A state impossible on the same boot count (an alert deadline
+    or a pause start after now, more than the planned time left) is treated
+    as a reboot. This catches a wall clock set back across the reboot. A
+    wall clock set forward cannot be detected: the step counts as longer
+    off and past 10 min is auto-acknowledged silently, an accepted limit;
   - waiting states and a running step with its deadline ahead are restored;
   - a deadline passed less than 10 min ago alerts with overtime;
   - from 10 min on (`≥`, the same instant at which the #31 timeout event
@@ -352,12 +361,27 @@ spec gaps it left ([04 §3.2](04-brew-timer.md#32-events-and-transitions),
   - every row emits `StartForeground` and `UpdateNotification`, and the
     alert is replayed while `alertPlayed` is false;
   - an unplayed pre-alert stays due even if its time has passed, so a
-    pre-alert alarm that restarts the process can still tick; whether a late
-    tick plays is the rule of `preAlertReached` (#31);
+    pre-alert alarm that restarts the process can still tick. #31 implements
+    the rule: a due `preAlertReached` is never ignored. It plays the tick and
+    sets `preAlertPlayed` while there is still time before the deadline;
+    otherwise, and always at or after the deadline, it only sets
+    `preAlertPlayed` (accepted, no `PlayPreAlert`). In general a time-based
+    event that is due is applied or consumed, never `Ignored`, so the
+    controller's wake-up cannot spin;
+  - a quick timer whose 30-min cancel passed while the process was dead
+    ends silently;
   - the midnight row comes with #31's midnight rule.
   Any other event whose reading comes from another boot is
-  `Rejected(BootChanged)` until `recover` ran. The overtime-timeout
-  transition is shared, so #31 only adds the event and its due time.
+  `Rejected(BootChanged)` until `recover` ran. The controller sends
+  `recover` exactly once per process, first, inside the lock of the restore,
+  and re-arms alarms only from a recovered state. `StartAlert` is
+  idempotent ("ensure the alert of the alerting step plays"), so a deadline
+  event before `recover`, or a second `recover`, gives one alert. The
+  overtime-timeout transition is shared, so #31 only adds the event and its
+  due time. For #31: a live `poured`/`endStepNow`/`finishSession` at
+  ≥ deadline + 10 min should record the timeout's auto-ack like `recover`,
+  and recovery must not restart the service for a `demoted` session or a
+  long step.
 - **Snapshot.** `ActiveBrewSnapshot` (`core:model`) mirrors 05 §3.12 and
   adds `pre_alert_override_seconds`, `pre_alert_inherited_seconds` and
   `zone_id`. It carries `alert_played`, `demoted` and `boot_count`.
@@ -365,7 +389,19 @@ spec gaps it left ([04 §3.2](04-brew-timer.md#32-events-and-transitions),
   `active_elapsed_ms` is dropped, because it is derived. A step's status is
   derived, not stored. In FINISHED, `step_index` is the number of steps. The
   quick timer has no step rows. `restore` refuses an inconsistent snapshot
-  with `IllegalArgumentException`. The Room entity follows in #36.
+  with `IllegalArgumentException` and nothing else: a missing or
+  out-of-range value (planned ≤ 0, a pause with nothing or more than planned
+  left, a negative paused total, a FINISHED index other than the step
+  count), a field of another phase, a recorded field on an unrecorded row,
+  or a plan that is not ended steps, the current step, then pending steps
+  (a READY needs a pending step). The controller then clears `active_brew`.
+  The Room entity follows in #36.
+- **Idle time on the wall clock.** The quick-timer cancel, #31's idle demote
+  and the midnight rule measure from `last_interaction_wall_ms` on the wall
+  clock. It survives a reboot without a rebase, the midnight rule needs the
+  wall clock anyway, and no extra `active_brew` column is needed. A manual
+  wall-clock jump forward can therefore cancel or demote early; that is
+  accepted, because the waiting timeouts are housekeeping, not timing.
 - **`demoted`** is a field of the session, false until #31's idle rules set
   it.
 
@@ -706,7 +742,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
-| 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine and the lossless `active_brew` snapshot (#32); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
+| 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
 | 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |
 | 2026-10-22 | Q-15 → D-045: Klangschale variant C (880 Hz) and a bowl-like 0.8 s pre-alert tick; probe `v0.0.2-probe` passed, the Live Update also appeared in the Now Bar. |

@@ -85,7 +85,7 @@ stateDiagram-v2
 | `start` | Ready | `deadline = now + planned`; `preAlertAt = deadline − N` if applicable (TMR-23) → Running. Schedule exact alarms (§6.2). |
 | `pause` | Running | `remaining = deadline − now` → Paused; cancel alarms; release wake lock. |
 | `resume` | Paused | `deadline = now + remaining`; recompute `preAlertAt` (skip if already passed) → Running; reschedule alarms. |
-| `preAlertReached` | Running | Play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. |
+| `preAlertReached` | Running, when the pre-alert is due | Play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. A due pre-alert is never ignored: too close to or past the deadline it sets `preAlertPlayed` without `PlayPreAlert`, so its due time is consumed and no tick sounds at or after the deadline (D-048). |
 | `deadlineReached` | Running | → Alerting; start alert. Ignored in other states. |
 | `endStepNow` | Running, Paused | Record actual = active elapsed; → next Ready or Finished. No alert. |
 | `poured` | Alerting | Stop alert; record actual incl. overtime; → next Ready or Finished. |
@@ -163,7 +163,17 @@ flowchart LR
   reconciles it per alarm type: it schedules a type whose time is present and
   cancels one whose time is absent. There is no separate `CancelAlarms`.
   After every `reduce`, accepted or not, the controller re-arms its
-  in-process wake-up from `dueTimes(state)`.
+  in-process wake-up from `dueTimes(state)`, but only from a state of the
+  current boot (after `recover`). A time-based event that is due is never
+  `Ignored`: it is applied or consumed, so the wake-up cannot spin (D-048).
+- **Recovery.** The controller sends `recover` exactly once per process, as
+  the first event, inside the same lock as the restore of `active_brew`.
+  `restore` throws only `IllegalArgumentException`; the controller then logs
+  it (06 §5.6) and clears `active_brew` instead of running a wrong timer.
+- **Alert.** `StartAlert` means "ensure the alert of the alerting step is
+  playing": if it already plays for that step, nothing restarts. So a
+  `deadlineReached` and a `recover` (or two `recover`s) that both ask for it
+  give one alert (D-048).
 - **Foreground service.** `StartForeground` means "ensure it runs"; it is
   emitted at `startSession`, `startQuickTimer`, `recover` and before `StartAlert`. `StopForeground` also
   removes the timer notifications. The full service rules for long steps,
@@ -284,7 +294,15 @@ step is `quick_duration_seconds`.
 The controller restores the state and sends `recover`, which the engine
 applies purely (§12 unit tests with fake clocks and boot counts; D-048).
 After a reboot it first moves every elapsed value to the new elapsed clock at
-the same distance from now as its wall value. Every row emits
+the same distance from now as its wall value, within physical bounds: every
+instant of the old boot lies before elapsed 0, so a pause start and a passed
+deadline are clamped to ≤ 0, and a running step keeps at most its planned
+time. A state that is impossible on the same boot count (a deadline of an
+alert or a pause start after now, more than the planned time left) is
+treated as a reboot. The bounds catch a wall clock set back across the
+reboot; a wall clock set forward cannot be told apart from a longer time off,
+so the step counts as longer off and past 10 min is auto-acknowledged
+(accepted limit, D-048). Every row emits
 `StartForeground` (an attempt, §6.3) and `UpdateNotification`; the timeout
 rows are silent (no `StartAlert`, no saved sheet).
 
@@ -295,6 +313,7 @@ rows are silent (no `StartAlert`, no saved sheet).
 | RUNNING, deadline in future | Restore; reschedule alarms from `dueTimes`; try to restart the FGS (§6.3). An unplayed pre-alert stays due even if its time has passed, so a pre-alert alarm that restarted the process still reaches `preAlertReached`, whose rules decide whether a late tick plays. |
 | RUNNING/ALERTING, deadline passed < 10 min ago | → ALERTING with overtime; `StartAlert` while `alertPlayed` is false (at-least-once). |
 | RUNNING/ALERTING, deadline passed ≥ 10 min ago | `overtimeTimeout` applied silently: poured on time with `overtimeAutoAck`, ended at the deadline's wall time. A quick timer just ends. |
+| Quick timer READY / PAUSED, 30 min after the last interaction | Ended silently (`StopForeground`), as by `quickTimerTimeout`. |
 
 ### 7.3 Reboot
 
@@ -468,7 +487,9 @@ INFUSION step and these differences:
 | `quickTimerTimeout` | Ready, Paused; 30 min after the last interaction (`dueTimes.quickCancelAt`, wall clock) | → Idle, nothing recorded |
 | `recover` | any | as §7.2; after 10 min of overtime → Idle |
 
-`startQuickTimer(duration, globalPreAlert)` starts it in Ready. It has no
+`startQuickTimer(duration, globalPreAlert)` starts it in Ready; a duration
+outside 5 s – 24 h or a pre-alert other than 0 or 5–30 s is rejected as
+`InvalidQuickTimer`. It has no
 `brew_session` row, so `CreateSession`, `RecordStep`, `ShowSavedSheet` and
 the other data effects never occur. Starting a session or another quick
 timer while one is active is rejected as `ActiveTimerExists` (TMR-21);

@@ -29,17 +29,19 @@ sealed interface TimerEvent {
      * *Schnelltimer* (TMR-22, 04 §10), only in Idle (else rejected with
      * [RejectionReason.ActiveTimerExists]): one INFUSION step of
      * [durationSeconds] with the global pre-alert [globalPreAlertSeconds];
-     * nothing is recorded.
+     * nothing is recorded. A duration outside 5 s – 24 h or a pre-alert other
+     * than 0 or 5–30 s is rejected with [RejectionReason.InvalidQuickTimer].
      */
     data class StartQuickTimer(val durationSeconds: Int, val globalPreAlertSeconds: Int) : TimerEvent
 
     /**
      * The process started with a persisted active state (any active state;
      * 04 §7.2, §7.3, §7.5): after a reboot the elapsed values are first
-     * rebased from the wall values, then the recovery table applies. Not a
-     * user interaction. Until it is processed, every other event whose clock
-     * reading comes from another boot is rejected with
-     * [RejectionReason.BootChanged].
+     * rebased from the wall values within physical bounds, then the recovery
+     * table applies. The controller sends it exactly once per process, as the
+     * first event, inside the lock of the restore. Not a user interaction.
+     * Until it is processed, every other event whose clock reading comes from
+     * another boot is rejected with [RejectionReason.BootChanged].
      */
     data object Recover : TimerEvent
 

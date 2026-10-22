@@ -78,14 +78,24 @@ internal fun snapshotOf(state: TimerState): TimerSnapshot? {
     return TimerSnapshot(activeBrew, rows)
 }
 
-/** The state of [snapshot]; Idle for none. Throws [IllegalArgumentException] for an inconsistent snapshot. */
+/**
+ * The state of [snapshot]; Idle for none. Every inconsistency (a missing or
+ * out-of-range value, a field of another phase, a plan that is not ended
+ * steps, the current step, then pending steps) throws
+ * [IllegalArgumentException] and nothing else, so the controller can clear
+ * `active_brew` instead of running a wrong timer.
+ */
 internal fun stateOf(snapshot: TimerSnapshot?): TimerState {
     if (snapshot == null) return TimerState.Idle
     val row = snapshot.activeBrew
+    requirePhaseFields(row)
+    require(row.pausedTotalMs >= 0) { "a paused total is never negative" }
     val state = when (row.phase) {
         TimerPhase.READY -> TimerState.Ready(sessionOf(snapshot), row.stepIndex, required(row.readySinceWallMs))
 
-        TimerPhase.FINISHED -> TimerState.Finished(sessionOf(snapshot), required(row.readySinceWallMs))
+        TimerPhase.FINISHED -> TimerState.Finished(sessionOf(snapshot), required(row.readySinceWallMs)).also {
+            require(row.stepIndex == it.session.steps.size) { "FINISHED stores the number of steps as its index" }
+        }
 
         TimerPhase.RUNNING -> TimerState.Running(
             session = sessionOf(snapshot),
@@ -120,7 +130,35 @@ internal fun stateOf(snapshot: TimerSnapshot?): TimerState {
         )
     }
     requirePlanShape(state)
+    if (state is TimerState.Paused) {
+        require(state.remainingMs in 1..state.plannedMs) { "a pause keeps 1 ms up to the planned time" }
+    }
     return state
+}
+
+/** The fields each phase may set (05 §3.12); every other phase field must be null, false or 0. */
+private val PHASE_FIELDS = mapOf(
+    TimerPhase.READY to setOf("ready_since"),
+    TimerPhase.FINISHED to setOf("ready_since"),
+    TimerPhase.RUNNING to setOf("deadline", "pre_alert", "pre_alert_played", "paused_total", "step_started"),
+    TimerPhase.PAUSED to setOf("remaining", "paused_since", "pre_alert_played", "paused_total", "step_started"),
+    TimerPhase.ALERTING to setOf("deadline", "alert_played", "paused_total", "step_started"),
+)
+
+private fun requirePhaseFields(row: ActiveBrewSnapshot) {
+    val set = buildSet {
+        if (row.deadlineElapsedMs != null || row.deadlineWallMs != null) add("deadline")
+        if (row.preAlertElapsedMs != null) add("pre_alert")
+        if (row.preAlertPlayed) add("pre_alert_played")
+        if (row.remainingMs != null) add("remaining")
+        if (row.pausedTotalMs != 0L) add("paused_total")
+        if (row.pausedSinceElapsedMs != null || row.pausedSinceWallMs != null) add("paused_since")
+        if (row.readySinceWallMs != null) add("ready_since")
+        if (row.stepStartedWallMs != null) add("step_started")
+        if (row.alertPlayed) add("alert_played")
+    }
+    val foreign = set - PHASE_FIELDS.getValue(row.phase)
+    require(foreign.isEmpty()) { "fields $foreign do not belong to ${row.phase}" }
 }
 
 private fun sessionOf(snapshot: TimerSnapshot): TimerSession {
@@ -172,6 +210,12 @@ private fun rowOf(position: Int, step: SessionStep) = SessionStepRow(
 )
 
 private fun stepOf(row: SessionStepRow, current: Boolean): SessionStep {
+    require(row.actualSeconds != null || row == row.unrecorded()) {
+        "a step without recorded values has no recorded fields"
+    }
+    require(row.actualSeconds == null || row.skipped == (row.startedAtWallMs == null && row.endedAtWallMs == null)) {
+        "a skipped step has no times, a done step both"
+    }
     val record = row.actualSeconds?.let { actual ->
         StepRecord(
             plannedSeconds = row.plannedSeconds,
@@ -205,12 +249,22 @@ private fun requirePlanShape(state: TimerState.Active) {
     val ok = when (state) {
         is TimerState.Finished -> rest.isEmpty()
 
-        is TimerState.Ready -> state.stepIndex == ended && rest.all { it == StepStatus.PENDING }
+        is TimerState.Ready -> state.stepIndex == ended && rest.isNotEmpty() && rest.all { it == StepStatus.PENDING }
 
         is TimerState.StepStarted -> state.stepIndex == ended && rest.firstOrNull() == StepStatus.STARTED &&
             rest.drop(1).all { it == StepStatus.PENDING }
     }
     require(ok) { "the plan must be ended steps, the current step, then pending steps: $rest at ${state.phase}" }
 }
+
+private fun SessionStepRow.unrecorded() = copy(
+    actualSeconds = null,
+    pausedSeconds = null,
+    overtimeSeconds = null,
+    startedAtWallMs = null,
+    endedAtWallMs = null,
+    skipped = false,
+    overtimeAutoAck = false,
+)
 
 private fun <T : Any> required(value: T?): T = requireNotNull(value) { "a required snapshot value is missing" }

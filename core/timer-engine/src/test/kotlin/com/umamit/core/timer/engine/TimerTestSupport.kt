@@ -46,6 +46,12 @@ class VirtualClocks(
         elapsed = upMs
     }
 
+    /** A reboot whose boot count could not be read: the elapsed clock restarted, the boot count did not change. */
+    fun rebootUnnoticed(offMs: Long, upMs: Long) {
+        wall += offMs + upMs
+        elapsed = upMs
+    }
+
     fun advanceSeconds(seconds: Long) = advance(seconds * 1000)
 
     fun now(): ClockReading = readClocks(this, this)
