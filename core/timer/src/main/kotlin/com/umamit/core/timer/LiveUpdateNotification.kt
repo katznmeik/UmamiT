@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.ColorInt
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -17,6 +18,9 @@ import androidx.core.content.ContextCompat
  * @property segments ProgressStyle segments (lengths in any common unit).
  * @property points ProgressStyle points, positions in the unit of [segments].
  * @property progress progress in the unit of [segments].
+ * @property requestPromotion request promotion on Android 16 (a Live Update); false for a
+ *   regular ongoing notification, such as a demoted session (TMR-14).
+ * @property deleteIntent sent when the user dismisses it (04 §8.3).
  */
 data class LiveUpdateContent(
     val title: String,
@@ -28,6 +32,8 @@ data class LiveUpdateContent(
     val progress: Int,
     val contentIntent: PendingIntent? = null,
     val actions: List<NotificationCompat.Action> = emptyList(),
+    val requestPromotion: Boolean = true,
+    val deleteIntent: PendingIntent? = null,
 ) {
     data class Segment(val length: Int, @param:ColorInt val color: Int)
 
@@ -53,17 +59,22 @@ data class LiveUpdateContent(
 object LiveUpdateNotification {
     private const val TAG = "UmamiTLiveUpdate"
 
-    fun build(context: Context, content: LiveUpdateContent): Notification {
-        val requestPromotion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
-        val plain = builder(context, content, requestPromotion, colorized = false).build()
-        if (!requestPromotion || plain.hasPromotableCharacteristics()) {
-            return plain
+    fun build(context: Context, content: LiveUpdateContent): Notification =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA && content.requestPromotion) {
+            promotable(context, content)
+        } else {
+            builder(context, content, requestPromotion = false, colorized = false).build()
         }
+
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun promotable(context: Context, content: LiveUpdateContent): Notification {
+        val plain = builder(context, content, requestPromotion = true, colorized = false).build()
+        if (plain.hasPromotableCharacteristics()) return plain
         // Android 16 without the Live Update UI (flag android.app.ui_rich_ongoing off,
         // e.g. the first API 36 release and the framework Robolectric 4.17 ships) only
         // promotes colorized notifications; with it (Android 16 QPR1 and later) only
         // non-colorized ones that carry the request. Use the variant this device accepts.
-        val colorized = builder(context, content, requestPromotion, colorized = true).build()
+        val colorized = builder(context, content, requestPromotion = true, colorized = true).build()
         val promotable = colorized.hasPromotableCharacteristics()
         if (promotable) {
             Log.i(TAG, "Promotable only when colorized on this build; using the colorized Live Update")
@@ -115,6 +126,7 @@ object LiveUpdateNotification {
             content.shortCriticalText?.let(builder::setShortCriticalText)
         }
         content.contentIntent?.let(builder::setContentIntent)
+        content.deleteIntent?.let(builder::setDeleteIntent)
         content.actions.forEach(builder::addAction)
         return builder
     }

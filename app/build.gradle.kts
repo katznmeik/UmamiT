@@ -43,6 +43,8 @@ dependencies {
     testImplementation(libs.truth)
     // Fake repositories and controller for the journal, the saved sheet (M1-16) and the Start and setup flows (M1-13).
     testImplementation(project(":core:testing"))
+    // Start on the real controller with an in-memory database (#47, BRW-11).
+    testImplementation(project(":core:database"))
 
     debugImplementation(libs.leakcanary.android)
 

@@ -48,6 +48,8 @@ class ControllerHarness(
     alertPort: (ControllerHarness.() -> TimerAlertPort)? = null,
     /** The diagnostics port; the default is [diagnostics]. */
     diagnosticsPort: TimerDiagnosticsPort? = null,
+    /** The service and notifier ports; the default is [service] and [notifier]. The Android adapters for M1-11. */
+    private val notificationPorts: (ControllerHarness.() -> Pair<TimerServicePort, TimerNotifierPort>)? = null,
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettingsRepository = FakeSettingsRepository(),
     val db: UmamiDatabase = Room
@@ -71,6 +73,8 @@ class ControllerHarness(
     val savedSheet = FakeSavedSheet(log)
     val wakeUp = FakeTimerWakeUp(clock)
 
+    private val shownBy = notificationPorts?.invoke(this)
+
     /** The controller for a port that reports back to it (Hilt gives the alert port a provider, too). */
     val controllerProvider: Provider<BrewSessionController> = Provider { controller }
 
@@ -82,8 +86,8 @@ class ControllerHarness(
         settings = settings,
         ports = TimerPorts(
             alarms = alarms,
-            service = service,
-            notifier = notifier,
+            service = shownBy?.first ?: service,
+            notifier = shownBy?.second ?: notifier,
             alert = alertPort?.invoke(this) ?: alert,
             diagnostics = diagnosticsPort ?: diagnostics,
             savedSheet = savedSheet,
@@ -120,7 +124,8 @@ class ControllerHarness(
      * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
      * on the same database, settings and clocks. Close only one of the two harnesses.
      */
-    fun processRestarted(): ControllerHarness = ControllerHarness(clock = clock, settings = settings, db = db)
+    fun processRestarted(): ControllerHarness =
+        ControllerHarness(clock = clock, settings = settings, db = db, notificationPorts = notificationPorts)
 
     fun close() = db.close()
 
