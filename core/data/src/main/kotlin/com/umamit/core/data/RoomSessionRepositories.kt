@@ -14,8 +14,10 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerSnapshot
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -128,6 +130,11 @@ class RoomSessionRepository @Inject constructor(
 
     override suspend fun getSession(id: String): BrewSession? = db.withTransaction {
         sessions.get(id)?.toModel(sessions.steps(id))
+    }
+
+    override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = sessions.observeFinished().map { rows ->
+        // The rows are small; only the shown ones load their steps.
+        db.withTransaction { rows.take(limit).map { it.toModel(sessions.steps(it.id)) } }
     }
 
     /**
