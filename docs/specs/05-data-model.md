@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (`active_brew` snapshot, D-048)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -48,7 +48,8 @@ erDiagram
 ## 3. Personal data tables
 
 Booleans are `INTEGER` 0/1; all non-cross-ref tables have `created_at` and
-`updated_at` (omitted below).
+`updated_at` (omitted below). Writes insert or update rows (`@Upsert`), never
+`REPLACE`, which would delete the row first and cascade into its children.
 
 ### 3.1 Tea
 
@@ -147,18 +148,18 @@ Table `brew_session`
 | `leaf_grams` | REAL | | |
 | `water_ml` | INTEGER | | |
 | `base_temp_c` | INTEGER | | |
-| `pre_alert_seconds` | INTEGER | | effective value used |
+| `pre_alert_seconds` | INTEGER | | effective value used (04 §5); set at the start and by `editSteps` |
 | `planned_step_count` | INTEGER | ✓ | number of steps planned at finish (incl. never-started ones), for „2 von 3 Aufgüssen" (TMR-12) |
-| `cost_cents` | INTEGER | | leaf × cost per gram at finish (INV-08) |
+| `cost_cents` | INTEGER | | leaf × cost per gram at finish (INV-08), rounded half up; null without a tea, leaf amount or priced stock |
 | `started_at` | INTEGER | ✓ | |
-| `ended_at` | INTEGER | | |
+| `ended_at` | INTEGER | | at completion: the end of the last ended step (the time of the completion if none has one) |
 | `zone_id` | TEXT | ✓ | |
 | `rating` | REAL | | 0.5–5.0 step 0.5 |
 | `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each |
 | `notes` | TEXT | | ≤ 5000 |
 | `auto_finished` | INTEGER | ✓ | |
-| `times_offered` | INTEGER | ✓ | PRF-07 prompt was applicable |
-| `times_applied` | INTEGER | ✓ | user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
+| `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable |
+| `times_applied` | INTEGER | ✓ | boolean: user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
 FTS4 `session_fts` (tea_name, notes); descriptor search via join.
 
@@ -169,12 +170,37 @@ Table `session_step`: `id`; `session_id` FK CASCADE; `position`; `kind`;
 `temp_c`; `started_at`; `ended_at`; `skipped`; `overtime_auto_ack`
 (see [04 §3.2](04-brew-timer.md#32-events-and-transitions)); `note` ≤ 300.
 
-**Lifecycle:** all planned rows are created when the session starts
-(`startSession`); `editSteps` / `addStep` insert, update or delete rows that
-have not started. When the session finishes, rows that were never started
-are **deleted**; `brew_session.planned_step_count` keeps the planned total so
-the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
-`skipped = 1`.
+`(session_id, position)` is unique; positions run 0…n−1.
+
+**Lifecycle** (`SessionRepository` in `core:data`, one operation per data
+effect of the timer engine, 04 §4; D-052):
+
+- **Start** (`CreateSession`): the `brew_session` row with its snapshots
+  (05 §1.5), the effective pre-alert, `started_at` and `zone_id`, status
+  `IN_PROGRESS`, and all planned rows.
+- **Edit/add** (`ReplacePendingSteps`): the rows from the first unstarted
+  position on are deleted and the new pending steps inserted; the session's
+  `pre_alert_seconds` becomes the effective value after the edit. Started and
+  ended rows are never touched.
+- **Record** (`RecordStep`): the step's row gets the recorded values of
+  [04 §5.1](04-brew-timer.md#51-recorded-step-data). A row is ended exactly
+  when `actual_seconds` is set.
+- **Complete** (`CompleteSession`, TMR-12): rows that were never started are
+  **deleted**; `brew_session.planned_step_count` keeps the planned total so
+  the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
+  `skipped = 1`. It also sets `cost_cents` and `ended_at`, adds the BREW stock
+  event (−leaf, at `ended_at`, linked by `session_id`) when *Bestand
+  abziehen* is on (SET-15), and sets the tea's `opened_date` to the session's
+  local date when it has none, or when the latest INITIAL/PURCHASE event is
+  on a later day than `opened_date` and the stock had run out before it
+  (INV-06). Completing a session that is no longer `IN_PROGRESS` changes
+  nothing.
+- **Discard** (`DiscardSession`, TMR-13): the session row is deleted; its
+  steps, its stock event and the `active_brew` row go with it (FK CASCADE).
+
+Each operation is one transaction; the controller runs a transition's data
+effects and its `Persist` in one more (`DatabaseTransactions`, 04 §7.1).
+Temperatures are snapped to 5 °C on the way in (GEN-12).
 
 ### 3.8 Descriptors
 
@@ -190,7 +216,10 @@ re-encoded from WebP to JPEG when copied), exactly one of
 `tea_id` / `session_id` / `vessel_id` (FK CASCADE), `position`, `width_px`,
 `height_px`, `byte_size`, `origin` (`PhotoOrigin`).
 When a tea is added from the catalog, the catalog photo is **copied** into
-`photo` (origin `CATALOG_COPY`) so the tea stays independent.
+`photo` (origin `CATALOG_COPY`) so the tea stays independent. The single
+owner is enforced by the model type (`PhotoOwner`), so no row can name two.
+Replacing a recipe's steps (*Im Rezept speichern*) writes new `brew_step` rows
+with new ids.
 
 ### 3.10 InventoryEvent
 
@@ -210,7 +239,8 @@ Table `inventory_event`
 | `note` | TEXT | | ≤ 200 |
 
 Remaining stock = SUM(`delta_grams`). Cost per gram = Σ price / Σ grams of
-INITIAL+PURCHASE events.
+the INITIAL and PURCHASE events **that carry a price**; with no such event,
+the cost per gram (and so the session cost) is null (#30).
 
 ### 3.12 ActiveBrew
 
@@ -221,6 +251,14 @@ it with `snapshot(state)` / `restore(snapshot)`
 ([04 §7.1](04-brew-timer.md#71-persisted-on-every-transition), D-048). A
 step's status is not stored: rows with recorded values are ended, the
 current step of RUNNING/PAUSED/ALERTING is started, all others are pending.
+
+The `ActiveBrewStore` in `core:data` reads and writes the engine's
+`TimerSnapshot` (this row plus the step rows) in one transaction each. A
+write also brings the session's step rows to the snapshot's plan (rows keep
+their id, note and `created_at`), so a persisted state always restores
+equal, for every engine state whose temperatures are multiples of 5 °C
+(D-052). Counters and flags are `NOT NULL`; values that only some phases set
+are nullable (#30). A device restore clears the row (§8).
 
 | Column | Type | Notes |
 |---|---|---|
@@ -237,17 +275,17 @@ current step of RUNNING/PAUSED/ALERTING is started, all others are pending.
 | `step_started_wall_ms` | INTEGER | RUNNING/PAUSED/ALERTING |
 | `alert_played` | INTEGER | ALERTING; recovery replays the alert while 0 |
 | `boot_count` | INTEGER | boot of the `…_elapsed_ms` values |
-| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min; `midnightTimeout` at the first local midnight ≥ 6 h after it; quick-timer cancel after 30 min |
+| `last_interaction_wall_ms` | INTEGER | last user event. `idleDemote` 30 min and `midnightTimeout` at the first local midnight ≥ 6 h after the later of it and `ready_since_wall_ms` / `paused_since_wall_ms` (D-053); quick-timer cancel 30 min after it |
 | `demoted` | INTEGER | FGS stopped, regular notification shown |
 | `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus* |
 | `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off) |
-| `zone_id` | TEXT | the session's time zone; needed for the quick timer, which has no `brew_session` row |
+| `zone_id` | TEXT | the session's time zone (IANA id); needed for the quick timer, which has no `brew_session` row |
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
 the state (D-048). Whether every step is a long step (cold or ice brew) is not
-a column either: the controller passes it to `restore` from
-`brew_session.method` (`TimerSnapshot.longStepsOnly`, D-053).
+a column either: the active brew store reads it from
+`brew_session.method` into `TimerSnapshot.longStepsOnly` (D-053).
 
 ## 4. Catalog tables (rebuilt by each refresh)
 
@@ -346,7 +384,7 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `theme` | SYSTEM/LIGHT/DARK | SYSTEM | SET-05 |
 | `dynamicColor` | Boolean | false | SET-06 |
 | `alertSound` | key | `klangschale` | SET-09 |
-| `preAlertSeconds` | Int (0, 5…30) | 10 | SET-10 |
+| `preAlertSeconds` | Int (0, 5…30) | 10 | SET-10; a written value is snapped to 5 s and clamped to 0 or 5…30 |
 | `vibration` | Boolean | true | SET-11 |
 | `alertLength` | SHORT/NORMAL/LONG | NORMAL | SET-14 |
 | `deductStock` | Boolean | true | SET-15 |
@@ -362,8 +400,12 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
-| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07) |
+| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
+
+The settings are one JSON file, `files/datastore/settings.json`. A missing
+key reads as its default, an unknown enum name falls back to the default,
+and an unreadable file reads as all defaults (#30).
 
 ## 7. Units & rounding
 
@@ -396,14 +438,27 @@ Time rounding for derived recipes: nearest 5 s (half up).
   integrity, photo files decodable; safety backup of current data; staging;
   single transaction; rollback on failure. The 1.x export already writes
   `manifest.json` with checksums so such a restore can read it.
-- **Android device backup** (`data_extraction_rules.xml`, cloud backup and
-  device transfer): include the whole `database` domain **except**
-  `catalog.db*` (so `umamit.db` and its `-wal`/`-shm` files are included),
-  and the DataStore files; exclude `photos/`, `catalog/`, caches.
-- **After a device restore** (detected on the first start by a restored
-  database whose install marker in no-backup storage is missing): clear
-  `active_brew` (no session is resumed, 04 §11 E11); the orphan sweeper
-  removes `photo` rows whose files are missing and clears dangling
+- **Android device backup** (`res/xml/data_extraction_rules.xml` for cloud
+  backup and device transfer, the same set in `res/xml/backup_rules.xml` as
+  `fullBackupContent`; both referenced from the manifest): **only included
+  files** are backed up, and the rules include exactly `umamit.db`,
+  `umamit.db-wal`, `umamit.db-shm` (domain `database`) and `datastore/`
+  (domain `file`, the settings). Everything else stays out because nothing
+  includes it: `catalog.db*`, `photos/`, `catalog/`, caches, other libraries'
+  databases and the no-backup storage (D-052). `BackupRulesTest` checks the
+  sets.
+- **Restore detection** (D-052): an empty install marker file
+  `umamit-install-marker` in `Context.noBackupFilesDir`, which no backup
+  carries. When Room creates `umamit.db` (a fresh install, or cleared app
+  data), the marker is written. When Room opens a database and the marker is
+  missing, the database came from a backup: `active_brew` is cleared, then the
+  marker is written, so this happens exactly once. It runs in Room's open
+  callback, before any query is served, so nothing reads the restored row.
+- **After a device restore:** `active_brew` is cleared as above (no session
+  is resumed, 04 §11 E11). A session that was in progress keeps its
+  `brew_session` row with status `IN_PROGRESS`; it is not in the journal
+  (M1-09 decides how such rows are finished). The orphan sweeper removes
+  `photo` rows whose files are missing and clears dangling
   `cover_photo_id`s; after the next catalog refresh, catalog teas without a
   cover get the catalog photo copied again (via `catalog_key`).
 
@@ -411,6 +466,10 @@ Time rounding for derived recipes: nearest 5 s (half up).
 
 Room `exportSchema = true` with schemas committed; every version change ships
 a migration and a `MigrationTestHelper` test; no destructive fallback. The
+build rewrites the schema JSON, so CI fails when the committed copy differs
+from it after the build (`git diff --exit-code core/database/schemas`) or a
+schema file is not committed. Until the first release, version 1 is changed
+in place: no release has used it yet (D-052). The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.
 

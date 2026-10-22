@@ -11,8 +11,8 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerPhase
 
-// Session tables of 05 §3.6, §3.7 and §3.12. Their lifecycle operations come with
-// the sessions ticket (#36); this ticket only creates them.
+// Session tables of 05 §3.6, §3.7 and §3.12. The lifecycle (05 §3.7) lives in
+// core:data's RoomSessionRepository, the active brew in RoomActiveBrewStore.
 
 /** Table `brew_session` (05 §3.6); the tea, recipe and vessel values are snapshots (05 §1.5). */
 @Entity(
@@ -88,7 +88,7 @@ data class BrewSessionEntity(
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index(value = ["session_id", "position"])],
+    indices = [Index(value = ["session_id", "position"], unique = true)],
 )
 data class SessionStepEntity(
     @PrimaryKey val id: String,
@@ -109,7 +109,11 @@ data class SessionStepEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
 
-/** Single-row table `active_brew` (05 §3.12, `id` = [ActiveBrewEntity.SINGLE_ROW_ID]). */
+/**
+ * Single-row table `active_brew` (05 §3.12, `id` = [ActiveBrewEntity.SINGLE_ROW_ID]): the timer
+ * engine's `ActiveBrewSnapshot` column by column. Counters and flags are non-null, values that
+ * only some phases set are nullable.
+ */
 @Entity(
     tableName = "active_brew",
     foreignKeys = [
@@ -134,7 +138,6 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "pre_alert_elapsed_ms") val preAlertElapsedMs: Long?,
     @ColumnInfo(name = "pre_alert_played") val preAlertPlayed: Boolean,
     @ColumnInfo(name = "remaining_ms") val remainingMs: Long?,
-    @ColumnInfo(name = "active_elapsed_ms") val activeElapsedMs: Long,
     @ColumnInfo(name = "paused_total_ms") val pausedTotalMs: Long,
     @ColumnInfo(name = "paused_since_elapsed_ms") val pausedSinceElapsedMs: Long?,
     @ColumnInfo(name = "paused_since_wall_ms") val pausedSinceWallMs: Long?,
@@ -144,6 +147,9 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "boot_count") val bootCount: Int,
     @ColumnInfo(name = "last_interaction_wall_ms") val lastInteractionWallMs: Long,
     @ColumnInfo(name = "demoted") val demoted: Boolean,
+    @ColumnInfo(name = "pre_alert_override_seconds") val preAlertOverrideSeconds: Int?,
+    @ColumnInfo(name = "pre_alert_inherited_seconds") val preAlertInheritedSeconds: Int,
+    @ColumnInfo(name = "zone_id") val zoneId: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 ) {

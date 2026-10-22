@@ -306,7 +306,7 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 | `emphasized` | `tween(450, CalmEaseOut)` | Step changes, a whole surface changing state (never into ALERTING) | Bigger change, more time to follow it. |
 | `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` | Opacity and colour (never into ALERTING) | Fades help comprehension, so they stay under reduce motion, very short. |
 | `tabSwitch` | out `tween(90, CalmEaseOut)`, in `tween(210, delay 90, CalmEaseOut)` (fade-through); reduce motion: `fade` (100 ms, no delay) | Switching between the four tabs | Tab switches happen tens of times a day, so they are short, and the old screen is gone before the new one arrives: no double exposure of two top bars. |
-| `sheet` | `spring(dampingRatio = 1, stiffness = 320)` (response ≈ 0.35 s) | Schritte-Sheet and other sheets | Critically damped: no overshoot. A spring starts from the current value and keeps velocity, so a sheet grabbed mid-motion follows the finger. |
+| `sheet` | `spring(dampingRatio = 1, stiffness = 320)` (response ≈ 0.35 s) | Own sheets (not the Schritte-Sheet, which uses Material 3's modal sheet and its motion, D-051) | Critically damped: no overshoot. A spring starts from the current value and keeps velocity, so a sheet grabbed mid-motion follows the finger. |
 | `activeBrewBar` | `spring(dampingRatio = 1, stiffness = 250)` (response ≈ 0.4 s) | Active brew bar arriving and leaving | Same physics as sheets, a touch slower: it is ambient, not asked for. |
 | short-step ring | none, per frame | Ring and liquor fill while a step under 10 min runs | Progress follows the remaining time exactly; any easing would lie about it. |
 | `longStepGlide` | `tween(600, CalmEaseInOut)` every `10 000` ms | Ring and liquor fill of long steps (≥ 10 min) | One redraw burst every 10 s saves battery; the 600 ms glide keeps the jump from looking like a glitch. |
@@ -677,7 +677,19 @@ editable before *Start*).
 - Pre-alert selector overrides the effective pre-alert for this session.
 - *Im Rezept speichern* writes the steps and pre-alert into the recipe used
   (with a confirmation snackbar). Notes per step arrive in M4.
-- Changes apply via the `editSteps` event (04 §3.2).
+- Changes apply via the `editSteps` event (04 §3.2) on *Fertig*; closing the
+  sheet any other way (swipe down, back, scrim, handle) applies nothing.
+- Built in `feature:brew` as the stateless `StepsSheet` plus the state holder
+  `StepsSheetState` (#38): it emits the `editSteps` request and a
+  save-to-recipe request and calls neither the engine nor the database, so
+  SCR-04 and SCR-05 host it unchanged. It is Material 3's modal bottom sheet
+  (own window for TalkBack focus, predictive back, drag and fling), always
+  fully expanded, with Material's calm sheet motion instead of the `sheet`
+  token (§3.6); under reduce motion it appears and leaves without the slide.
+- **Alerts first (rule 8):** the sheet never covers the alert. On entering
+  ALERTING the host passes `alerting = true` and `visible = false`; the sheet
+  is removed at once, without animation, and unapplied edits are dropped.
+  Details: [D-051](10-open-questions-and-decisions.md#d-051).
 
 ## 5. Dialogs & messages (German)
 

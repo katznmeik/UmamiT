@@ -64,6 +64,21 @@ jobs:
           verifyRoborazziDebug
           checkManifestPermissions
 
+      # The quality gate compiles core:database, and Room then rewrites the
+      # exported schema JSON (05 §9). ExportedSchemaTest cannot see a stale
+      # committed copy, so any difference here means the entities changed
+      # without committing the regenerated schema (#36). An uncommitted new
+      # version's file (e.g. 2.json) counts too.
+      - name: Committed database schema is up to date
+        if: ${{ !cancelled() }}
+        run: |
+          git diff --exit-code core/database/schemas
+          untracked="$(git ls-files --others --exclude-standard core/database/schemas)"
+          if [ -n "$untracked" ]; then
+            echo "::error::schema files not committed: $untracked"
+            exit 1
+          fi
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
@@ -185,6 +200,36 @@ jobs:
 
       - name: Build app and test APKs
         run: ./gradlew assembleDebug assembleDebugAndroidTest
+
+      # The emulator action downloads the emulator and the system image on every
+      # run, and dl.google.com sometimes serves a truncated archive or index
+      # ("Error on ZipFile unknown archive", "Failed to find package"), which
+      # fails the job before any test runs. Cache both packages and install
+      # them up front with retries; the action then finds them installed.
+      - name: Locate the Android SDK
+        run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Emulator and system image cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.SDK_DIR }}/emulator
+            ${{ env.SDK_DIR }}/system-images/android-${{ matrix.api-level }}/${{ env.AVD_TARGET }}/${{ env.AVD_ARCH }}
+          key: sdk-emulator-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-v1
+
+      - name: Install emulator and system image (with retries)
+        run: |
+          sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          image="system-images;android-${{ matrix.api-level }};$AVD_TARGET;$AVD_ARCH"
+          for attempt in 1 2 3; do
+            if yes | "$sdkmanager" --install emulator "$image" > /dev/null; then
+              exit 0
+            fi
+            echo "sdkmanager attempt $attempt failed; retrying in 30 s."
+            sleep 30
+          done
+          echo "::error::Could not install the emulator or $image after 3 attempts (dl.google.com)."
+          exit 1
 
       - name: AVD cache
         id: avd-cache

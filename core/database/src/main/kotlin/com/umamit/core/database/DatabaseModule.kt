@@ -1,7 +1,6 @@
 package com.umamit.core.database
 
 import android.content.Context
-import androidx.room.Room
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,8 +13,7 @@ import javax.inject.Singleton
 object DatabaseModule {
     @Provides
     @Singleton
-    fun database(@ApplicationContext context: Context): UmamiDatabase =
-        Room.databaseBuilder(context, UmamiDatabase::class.java, UmamiDatabase.NAME).build()
+    fun database(@ApplicationContext context: Context): UmamiDatabase = umamiDatabaseBuilder(context).build()
 
     @Provides
     fun teaDao(db: UmamiDatabase) = db.teaDao()

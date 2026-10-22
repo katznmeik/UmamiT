@@ -12,15 +12,19 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeSettingsRepository
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-/** An in-memory database with all collection repositories on top of it. */
-class TestDatabase(now: Long = 1_000L) {
+/** An in-memory database (or [db]) with all repositories on top of it. */
+class TestDatabase(
+    now: Long = 1_000L,
     val db: UmamiDatabase = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UmamiDatabase::class.java)
         .allowMainThreadQueries()
-        .build()
+        .build(),
+    val settings: FakeSettingsRepository = FakeSettingsRepository(),
+) {
     val time = object : WallClock {
         override fun nowMs(): Long = now
 
@@ -30,6 +34,9 @@ class TestDatabase(now: Long = 1_000L) {
     val recipes = RoomRecipeRepository(db.recipeDao(), time)
     val vessels = RoomVesselRepository(db.vesselDao(), time)
     val stock = RoomStockRepository(db.inventoryDao(), time)
+    val transactions = RoomDatabaseTransactions(db)
+    val sessions = RoomSessionRepository(db, settings, time)
+    val activeBrew = RoomActiveBrewStore(db, time)
 
     fun close() = db.close()
 }
