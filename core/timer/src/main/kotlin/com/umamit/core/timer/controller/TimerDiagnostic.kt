@@ -11,6 +11,24 @@ import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 
+/** What recovery did with the persisted state: the row of 04 §7.2 that applied (06 §5.6). */
+enum class RecoveryDecision {
+    /** Restored as it was: alarms, notification, and the service where the state needs it. */
+    RESTORED,
+
+    /** The deadline passed less than 10 min ago, or the alert had not run its cycle: replayed. */
+    ALERT_REPLAYED,
+
+    /** The deadline passed 10 min or more ago: poured on time, silently (`overtimeAutoAck`). */
+    OVERTIME_ACKNOWLEDGED,
+
+    /** Waiting for 30 min: demoted, without the service. */
+    DEMOTED,
+
+    /** The midnight timeout or the quick timer's cancel ended the session silently. */
+    SESSION_ENDED,
+}
+
 /** Where an event came from, for the diagnostics log (06 §5.6). */
 enum class EventSource {
     /** A tap in the app (timer screen, active brew bar, Start). */
@@ -101,6 +119,12 @@ sealed interface TimerDiagnostic {
     data class RecoveryFailed(override val at: ClockReading, val error: Throwable) : TimerDiagnostic
 
     /**
+     * The persisted state could not be read for [failingForMs] (04 §7.2, D-063): recovery stops
+     * trying, clears it as unreadable and cancels its alarms; logged once.
+     */
+    data class RecoveryAbandoned(override val at: ClockReading, val failingForMs: Long) : TimerDiagnostic
+
+    /**
      * The alarm of [kind] could not be exact (`canScheduleExactAlarms()` false or a
      * `SecurityException`) and was set inexact, allowed while idle; the reliability banner
      * reads the same check (04 §6.2, TMR-31).
@@ -110,10 +134,15 @@ sealed interface TimerDiagnostic {
     /**
      * Android refused to start the foreground service, or to make it show notification
      * [notificationId] in the foreground ([error], 04 §6.3); the notification was posted
-     * without the service until the next interaction or alarm.
+     * without the service until the next interaction or alarm. [again]: the refused start
+     * sent once more was refused too (D-063).
      */
-    data class ServiceStartRefused(override val at: ClockReading, val notificationId: Int, val error: Exception) :
-        TimerDiagnostic
+    data class ServiceStartRefused(
+        override val at: ClockReading,
+        val notificationId: Int,
+        val error: Exception,
+        val again: Boolean = false,
+    ) : TimerDiagnostic
 
     /** The foreground service runs in the foreground with notification [notificationId] (04 §6.3). */
     data class ServiceInForeground(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
@@ -134,6 +163,42 @@ sealed interface TimerDiagnostic {
         val tone: String,
         val length: AlertLength,
     ) : TimerDiagnostic
+
+    /**
+     * [trigger] asked the controller to recover the persisted timer (04 §7.2): the app start,
+     * `BOOT_COMPLETED` or `MY_PACKAGE_REPLACED` (06 §5.6). [alreadyRecovered]: this process
+     * had recovered before, so nothing changed.
+     */
+    data class RecoveryRequested(
+        override val at: ClockReading,
+        val trigger: RecoveryTrigger,
+        val alreadyRecovered: Boolean,
+    ) : TimerDiagnostic
+
+    /**
+     * Recovery restored the persisted [from] state and applied the row of 04 §7.2 that
+     * [decision] names, leaving [to] (null: idle). [rebooted]: the phone booted since it was
+     * persisted, so its elapsed values were moved to the new clock (E2). [service]: the state
+     * runs with the foreground service, whose start recovery attempted.
+     */
+    data class Recovered(
+        override val at: ClockReading,
+        val from: TimerPhase,
+        val to: TimerPhase?,
+        val rebooted: Boolean,
+        val decision: RecoveryDecision,
+        val service: Boolean,
+    ) : TimerDiagnostic
+
+    /**
+     * Recovery found a session in progress without its `active_brew` row (a device restore, E11,
+     * or a stored timer that was cleared as unreadable) and ended it (04 §7.2): [saved] when it
+     * had a completed infusion, else it was discarded.
+     */
+    data class OrphanSessionEnded(override val at: ClockReading, val saved: Boolean) : TimerDiagnostic
+
+    /** Ending the sessions left in progress failed ([error]); the next process start tries again. */
+    data class OrphanSessionsFailed(override val at: ClockReading, val error: Throwable) : TimerDiagnostic
 
     /** The process started with these permission [states] (06 §5.6, TMR-31). */
     data class PermissionsAtStart(override val at: ClockReading, val states: PermissionStates) : TimerDiagnostic

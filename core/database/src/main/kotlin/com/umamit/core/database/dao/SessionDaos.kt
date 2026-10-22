@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
  * Row access to `brew_session` and `session_step` (05 §3.6, §3.7). The lifecycle and its
  * transactions are in core:data (`RoomSessionRepository`).
  */
+@Suppress("TooManyFunctions") // one query per row operation of the session lifecycle (05 §3.6, §3.7)
 @Dao
 interface SessionDao {
     @Query("SELECT * FROM brew_session WHERE id = :id")
@@ -21,6 +22,10 @@ interface SessionDao {
 
     @Query("SELECT * FROM brew_session WHERE status != 'IN_PROGRESS' ORDER BY started_at DESC")
     fun observeFinished(): Flow<List<BrewSessionEntity>>
+
+    /** The sessions still in progress: the active one, and any left behind (a device restore, E11). */
+    @Query("SELECT id FROM brew_session WHERE status = 'IN_PROGRESS'")
+    suspend fun inProgressIds(): List<String>
 
     @Insert
     suspend fun insert(session: BrewSessionEntity)

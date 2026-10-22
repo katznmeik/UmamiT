@@ -130,6 +130,8 @@ class RoomSessionRepository @Inject constructor(
         sessions.get(id)?.toModel(sessions.steps(id))
     }
 
+    override suspend fun inProgressSessionIds(): List<String> = sessions.inProgressIds()
+
     /**
      * *Geöffnet am* (INV-06): set to the session's local date when the tea has none yet, or
      * when its latest INITIAL/PURCHASE is newer than the opened date and the stock had run

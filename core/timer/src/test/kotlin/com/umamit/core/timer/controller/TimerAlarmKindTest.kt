@@ -19,6 +19,7 @@ class TimerAlarmKindTest {
             listOf("IDLE_DEMOTE", 104, AlarmClock.WALL, true, true),
             listOf("QUICK_CANCEL", 105, AlarmClock.WALL, true, true),
             listOf("MIDNIGHT", 106, AlarmClock.WALL, false, false),
+            listOf("ALERT_WATCHDOG", 107, AlarmClock.ELAPSED, true, true),
         ).inOrder()
     }
 
@@ -33,9 +34,13 @@ class TimerAlarmKindTest {
             quickCancelAtWallMs = 5,
         )
 
-        assertThat(TimerAlarmKind.entries.map { it.timeIn(due) }).containsExactly(1L, 2L, 3L, 4L, 5L, 6L).inOrder()
+        assertThat(TimerAlarmKind.DUE.map { it.timeIn(due) }).containsExactly(1L, 2L, 3L, 4L, 5L, 6L).inOrder()
         assertThat(TimerAlarmKind.entries.map { it.timeIn(DueTimes.NONE) }.toSet()).containsExactly(null)
-        assertThat(TimerAlarmKind.entries.map { TimerAlarmKind.of(it.event) }).isEqualTo(TimerAlarmKind.entries)
+        assertThat(TimerAlarmKind.DUE.map { TimerAlarmKind.of(checkNotNull(it.event)) }).isEqualTo(TimerAlarmKind.DUE)
         assertThat(TimerAlarmKind.of(TimerEvent.Poured)).isNull()
+        // The alert watchdog stands for no event and no due time (D-063).
+        assertThat(TimerAlarmKind.ALERT_WATCHDOG.timeIn(due)).isNull()
+        assertThat(TimerAlarmKind.ALERT_WATCHDOG.event).isNull()
+        assertThat(TimerAlarmKind.DUE).doesNotContain(TimerAlarmKind.ALERT_WATCHDOG)
     }
 }

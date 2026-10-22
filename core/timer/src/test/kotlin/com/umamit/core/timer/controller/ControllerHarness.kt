@@ -122,6 +122,16 @@ class ControllerHarness(
      */
     fun processRestarted(): ControllerHarness = ControllerHarness(clock = clock, settings = settings, db = db)
 
+    /**
+     * The database came to a new phone (or a reset one) in a device backup (E11, 05 §8): restore
+     * detection cleared `active_brew` when it opened, so only the session rows are left; then
+     * the app's process starts.
+     */
+    suspend fun restoredOnAnotherPhone(): ControllerHarness {
+        db.activeBrewDao().clear()
+        return processRestarted()
+    }
+
     fun close() = db.close()
 
     companion object {

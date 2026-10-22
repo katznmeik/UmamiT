@@ -152,6 +152,9 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
 
     override suspend fun getSession(id: String): BrewSession? = s.sessionRows.value[id]
 
+    override suspend fun inProgressSessionIds(): List<String> =
+        s.sessionRows.value.values.filter { it.status == SessionStatus.IN_PROGRESS }.map { it.id }
+
     private fun PlannedStep.row(position: Int) = SessionStepRow(
         position = position,
         kind = kind,

@@ -25,6 +25,8 @@ class LogcatTimerPorts :
 
     override fun notifySessionSaved(sessionId: String) = log("session saved $sessionId")
 
+    override fun notifyTimerResumed(state: TimerUiState.Active) = log("timer resumed ${state.phase}")
+
     override fun showSavedSheet(sessionId: String) = log("saved sheet $sessionId")
 
     private fun log(message: String) {

@@ -13,13 +13,16 @@ import com.umamit.core.timer.alert.ControllerAlertPort
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.CoroutineTimerWakeUp
+import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerInputs
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.diagnostics.LogTimerDiagnostics
 import com.umamit.core.timer.service.BrewTimerServicePort
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Provider
 
@@ -31,6 +34,9 @@ import javax.inject.Provider
  *
  * Hilt is not used here: `@HiltAndroidApp` must sit in an application module. The test
  * runner's own process creates this app too, but never builds the controller.
+ *
+ * Like the app, it recovers the persisted timer when its process starts (04 §7.2, D-063), off
+ * the main thread; a process an alarm started may recover in that alarm's turn instead.
  */
 class TimerTestApplication :
     Application(),
@@ -38,6 +44,13 @@ class TimerTestApplication :
     val controller: BrewSessionController by lazy { buildController() }
 
     override val timerInputs: TimerInputs get() = controller
+
+    override fun onCreate() {
+        super.onCreate()
+        if (getProcessName() == packageName) {
+            CoroutineScope(Dispatchers.Default).launch { controller.recover(RecoveryTrigger.APP_START) }
+        }
+    }
 
     private fun buildController(): BrewSessionController {
         val db = umamiDatabaseBuilder(this).build()

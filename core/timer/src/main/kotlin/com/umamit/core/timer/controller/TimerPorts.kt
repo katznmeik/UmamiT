@@ -39,6 +39,14 @@ interface TimerAlarmPort {
      * timer, so the alarm must come again (04 §7.2, D-057).
      */
     fun retry(kind: TimerAlarmKind, atMs: Long)
+
+    /**
+     * Sets the alert watchdog ([TimerAlarmKind.ALERT_WATCHDOG], exact, elapsed clock) at
+     * [atElapsedMs], replacing the earlier one, or cancels it (null); [reconcile] leaves it alone.
+     * It comes while the alert plays, so a process killed meanwhile is started again and its
+     * recovery replays the alert (04 §7.2, D-063).
+     */
+    fun watchAlert(atElapsedMs: Long?)
 }
 
 /** `StartForeground` / `StopForeground`: the `specialUse` foreground service (04 §6.3, D-053). */
@@ -56,6 +64,17 @@ interface TimerServicePort {
 
     /** Stops the service if it runs and removes notifications 1 and 2, also when posted without it (04 §8). */
     fun stopForeground()
+
+    /**
+     * Sends the start Android refused last once more (04 §6.3, §7.2; D-057, D-063), from a turn
+     * that may start the service from the background (an exact alarm, a notification action, a
+     * tap) and sent no service command itself. The notification is that of [state], the state
+     * now, not the refused one, and it does not alert again; the alert keeps its full-screen
+     * intent while [fullScreen] (it still plays). A null [state] (the timer needs no service
+     * now) drops the refused start. Nothing happens when no start was refused since the last
+     * command or stop. A start refused again is logged and waits for the next such turn.
+     */
+    fun retryRefusedStart(state: TimerUiState.Active?, fullScreen: Boolean)
 }
 
 /** `UpdateNotification` and `NotifySessionSaved` (04 §8.2, §8.3). */
@@ -69,8 +88,17 @@ interface TimerNotifierPort {
      */
     fun update(state: TimerUiState.Active, fullScreen: Boolean)
 
-    /** „Sitzung gespeichert" (ID 3, channel `sessions`) for session [sessionId] (TMR-14). */
+    /**
+     * „Sitzung gespeichert" (ID 3, channel `sessions`) for session [sessionId]: the midnight
+     * timeout (TMR-14) and *Beenden & neu starten* (TMR-21, D-054).
+     */
     fun notifySessionSaved(sessionId: String)
+
+    /**
+     * „Dein Gyokuro-Timer läuft weiter" (channel `sessions`, 04 §7.3): the session of [state]
+     * survived a reboot. Never while alerting: the alert is the notice then (D-044).
+     */
+    fun notifyTimerResumed(state: TimerUiState.Active)
 }
 
 /**

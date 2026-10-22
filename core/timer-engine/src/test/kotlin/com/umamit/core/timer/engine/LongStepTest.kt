@@ -40,6 +40,24 @@ class LongStepTest {
     }
 
     @Test
+    fun `every active state needs the service except a demoted session and a running long step`() {
+        val short = sessionWith(infusion(60))
+        val long = sessionWith(infusion(600))
+        assertThat(BrewTimerEngine.needsService(short.state)).isTrue()
+        assertThat(BrewTimerEngine.needsService(long.state)).isTrue()
+        short.send(TimerEvent.Start)
+        long.send(TimerEvent.Start)
+        assertThat(BrewTimerEngine.needsService(short.state)).isTrue()
+        assertThat(BrewTimerEngine.needsService(long.state)).isFalse()
+        long.send(TimerEvent.Pause)
+        assertThat(BrewTimerEngine.needsService(long.state)).isTrue()
+        long.clocks.advance(IDLE_DEMOTE_MS)
+        long.send(TimerEvent.IdleDemote)
+        assertThat(BrewTimerEngine.needsService(long.state)).isFalse()
+        assertThat(BrewTimerEngine.needsService(TimerState.Idle)).isFalse()
+    }
+
+    @Test
     fun `cold and ice brew have long steps only`() {
         val methods = BrewMethod.entries.filter(BrewTimerEngine::longStepsOnly)
 

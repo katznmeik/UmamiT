@@ -3,11 +3,14 @@ package com.umamit.core.timer.diagnostics
 import android.app.ForegroundServiceStartNotAllowedException
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.RingerMode
+import com.umamit.core.timer.controller.RecoveryDecision
+import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerDiagnostic
@@ -25,6 +28,58 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class TimerDiagnosticFormatTest {
     private val now = FakeClock().reading()
+
+    @Test
+    fun `recovery logs what triggered it and what it decided`() {
+        val lines = listOf(
+            TimerDiagnostic.RecoveryRequested(now, RecoveryTrigger.BOOT_COMPLETED, alreadyRecovered = false),
+            TimerDiagnostic.RecoveryRequested(now, RecoveryTrigger.APP_START, alreadyRecovered = true),
+            TimerDiagnostic.Recovered(
+                now,
+                from = TimerPhase.RUNNING,
+                to = TimerPhase.ALERTING,
+                rebooted = true,
+                decision = RecoveryDecision.ALERT_REPLAYED,
+                service = true,
+            ),
+            TimerDiagnostic.Recovered(
+                now,
+                from = TimerPhase.PAUSED,
+                to = null,
+                rebooted = false,
+                decision = RecoveryDecision.SESSION_ENDED,
+                service = false,
+            ),
+            TimerDiagnostic.OrphanSessionEnded(now, saved = true),
+            TimerDiagnostic.RecoveryAbandoned(now, failingForMs = 660_500),
+        ).map(TimerDiagnosticFormat::message)
+
+        assertThat(lines).containsExactly(
+            "recovery requested by BOOT_COMPLETED | mono 5000000 boot 1",
+            "recovery requested by APP_START: already done in this process | mono 5000000 boot 1",
+            "recovery: stored RUNNING from before a reboot -> ALERTING: alert replayed, with the service | " +
+                "mono 5000000 boot 1",
+            "recovery: stored PAUSED -> IDLE: session ended, without the service | mono 5000000 boot 1",
+            "recovery: a session left in progress without its timer was saved | mono 5000000 boot 1",
+            "recovery: given up after 660 s of failed reads; stored timer cleared | mono 5000000 boot 1",
+        ).inOrder()
+    }
+
+    @Test
+    fun `a refused start sent again and refused once more says so`() {
+        val entry = TimerDiagnostic.ServiceStartRefused(
+            now,
+            notificationId = 1,
+            error = ForegroundServiceStartNotAllowedException("background"),
+            again = true,
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry))
+            .isEqualTo(
+                "service: foreground start with notification 1 refused again: " +
+                    "ForegroundServiceStartNotAllowedException: background | mono 5000000 boot 1",
+            )
+    }
 
     @Test
     fun `an alert shows the ringer mode, call, Do Not Disturb and the outputs it used`() {

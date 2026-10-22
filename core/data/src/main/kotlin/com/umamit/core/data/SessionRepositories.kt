@@ -52,6 +52,12 @@ interface SessionRepository {
     suspend fun discardSession(sessionId: String)
 
     suspend fun getSession(id: String): BrewSession?
+
+    /**
+     * The ids of the sessions still `IN_PROGRESS`: the active session's, and any whose
+     * `active_brew` row is gone, e.g. after a device restore (E11, 04 §7.2).
+     */
+    suspend fun inProgressSessionIds(): List<String>
 }
 
 /**
