@@ -94,13 +94,15 @@ class PermissionTimerReliability(
 data class LockScreenFlags(val showWhenLocked: Boolean, val turnScreenOn: Boolean)
 
 /**
- * The timer shows over the lock screen while it is visible with an active
- * session (unlocking is only needed to leave it) and whenever the alert plays;
- * the alert also turns the screen on.
+ * Only the timer shows over the lock screen, while it is the current route with
+ * an active session (unlocking is only needed to leave it); the alert turns the
+ * screen on there. The full-screen intent (#47) opens the timer first, so an
+ * alert under the keyguard never shows the shell (D-058).
  */
 fun lockScreenFlags(state: TimerUiState, timerVisible: Boolean): LockScreenFlags {
-    val active = state as? TimerUiState.Active ?: return LockScreenFlags(showWhenLocked = false, turnScreenOn = false)
-    return LockScreenFlags(showWhenLocked = timerVisible || active.alerting, turnScreenOn = active.alerting)
+    val active = state as? TimerUiState.Active
+    val shown = timerVisible && active != null
+    return LockScreenFlags(showWhenLocked = shown, turnScreenOn = shown && active.alerting)
 }
 
 /**

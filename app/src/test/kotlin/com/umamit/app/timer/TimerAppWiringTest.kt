@@ -95,14 +95,15 @@ class TimerAppWiringTest {
         )
 
     @Test
-    fun `the timer shows over the lock screen while visible, and the alert turns the screen on (SCR-05, TMR-06)`() {
+    fun `only the timer shows over the lock screen, and its alert turns the screen on (SCR-05, TMR-06)`() {
         val running = active(TimerPhase.RUNNING, deadline = 1_000)
         val alerting = active(TimerPhase.ALERTING, deadline = 1_000)
 
         assertThat(lockScreenFlags(TimerUiState.Idle, timerVisible = false)).isEqualTo(LockScreenFlags(false, false))
         assertThat(lockScreenFlags(running, timerVisible = false)).isEqualTo(LockScreenFlags(false, false))
         assertThat(lockScreenFlags(running, timerVisible = true)).isEqualTo(LockScreenFlags(true, false))
-        assertThat(lockScreenFlags(alerting, timerVisible = false)).isEqualTo(LockScreenFlags(true, true))
+        assertThat(lockScreenFlags(alerting, timerVisible = false)).isEqualTo(LockScreenFlags(false, false))
+        assertThat(lockScreenFlags(alerting, timerVisible = true)).isEqualTo(LockScreenFlags(true, true))
         assertThat(lockScreenFlags(TimerUiState.Idle, timerVisible = true)).isEqualTo(LockScreenFlags(false, false))
     }
 
