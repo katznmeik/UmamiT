@@ -301,6 +301,31 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-042"></a>
+### D-042 — Build tooling choices from M1-01/M1-02 · *Accepted* (Claude, 2026-10-22)
+
+Technical decisions made while building the skeleton and the CI gate
+(M1-01, M1-02); no PO-visible behaviour.
+
+- **Detekt 2.0 alpha:** Detekt `2.0.0-alpha.6` (plugin `dev.detekt`)
+  instead of 1.23.x. Detekt 1.23 embeds Kotlin 2.0 and cannot load the
+  Compose rules (0.5+ need the Detekt 2 API; 0.4.x crash on Detekt 1.23's
+  Kotlin runtime). Detekt 2 is built with Kotlin 2.4 like the app. Move to
+  the stable 2.0 release when it ships.
+- **compileSdk 36 limits library versions:** many current AndroidX releases
+  require compileSdk 37. compileSdk stays pinned at 36 (D-023), so the
+  catalog uses the newest versions that build against 36 (comment in
+  `gradle/libs.versions.toml`).
+- **Gradle configuration cache off:** it replays dependency-resolution
+  failures (HTTP 429 from Maven Central in cloud sessions) instead of
+  retrying. Gradle's network retries are raised instead.
+- **Lint exceptions:** `MissingApplicationIcon` until M1-21 and
+  `DataExtractionRules` until M1-06 (TODOs in `config/lint/lint.xml`).
+  Network- and date-dependent checks are off. No baseline.
+- **GitHub Actions:** both workflows use the same major versions
+  (`checkout@v7`, `setup-java@v6`, `setup-gradle@v6` with the open-source
+  `basic` cache provider).
+
 <a id="d-041"></a>
 ### D-041 — Motion guardrails · *Accepted* (PO, 2026-10-21)
 
@@ -459,6 +484,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-042: build tooling choices (Detekt 2 alpha, compileSdk-36 library limits, configuration cache off, lint exceptions, action versions). |
 | 2026-10-21 | D-041: motion guardrails (calm style, liquor fill + pre-alert glow, strong non-flashing alert, reduce motion, GIF recordings for review); 03 §3.6 rewritten. |
 | 2026-10-21 | D-040: the probe gates M1-09/M1-11; fix loop with `0.0.N-probe`; Now Bar best effort; runtime fallbacks stay. |
 | 2026-10-21 | D-039: `release.yml` on `main` before the first dispatch; spec issue #6 and test seams for M1-00 … M1-03a. |

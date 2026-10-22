@@ -36,7 +36,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Check out ref
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -98,7 +98,7 @@ jobs:
           echo "Both signing secrets are set."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
@@ -116,9 +116,11 @@ jobs:
           "$sdk/build-tools/36.1.0/apksigner" --version
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
-          # Releases read the caches CI wrote but never write their own.
+          # Same open-source cache provider as ci.yml; releases read the
+          # caches CI wrote but never write their own.
+          cache-provider: basic
           cache-read-only: true
 
       - name: Read versionCode from the build

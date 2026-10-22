@@ -89,6 +89,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
 | 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
 | 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |
 | 2026-10-21 | Removed 7 web/iOS-only Emil Kowalski skills; noted how the remaining design/motion skills enter the waves 2–3 spec (M1 plan §3.2). |
