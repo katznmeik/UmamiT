@@ -16,6 +16,10 @@ class DataStoreSettingsRepository @Inject constructor(private val source: Settin
         source.update { current -> transform(current).normalized() }
 
     override suspend fun markSeedDataCreated() = source.markSeedDataCreated()
+
+    override val seedPhotosAttempted: Flow<Boolean> = source.seedPhotosAttempted
+
+    override suspend fun markSeedPhotosAttempted() = source.markSeedPhotosAttempted()
 }
 
 private const val MAX_PRE_ALERT_SECONDS = 30

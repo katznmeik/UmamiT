@@ -26,6 +26,16 @@ object SeedData {
     const val KYUSU_VESSEL_ID = "2c9a5e71-0d48-4b6f-a3e2-8f1b7c4d6e05"
     const val MUG_VESSEL_ID = "e4d1f7b3-6c2a-4f90-b85e-1a3c9d7e2f68"
 
+    /** The product photo paths on the shop host (08 §2.5a), downloaded once at runtime (ONB-06). */
+    const val TANABATA_PHOTO_PATH = "/media/ab/15/63/1727307323/gtbiosenchatanabataaiya.jpg"
+    const val HISUI_PHOTO_PATH = "/media/7c/c3/7c/1727308250/gtbiosenchahisui.jpg"
+
+    /** Tea id → photo path, in download order. */
+    val photoPaths: List<Pair<String, String>> = listOf(
+        TANABATA_TEA_ID to TANABATA_PHOTO_PATH,
+        HISUI_TEA_ID to HISUI_PHOTO_PATH,
+    )
+
     private const val VENDOR = "Tee-Kontor Kiel"
     private const val SHOP = "https://www.tee-kontor-kiel.de"
     private const val ASAMUSHI = "Asamushi (leicht gedämpft)"

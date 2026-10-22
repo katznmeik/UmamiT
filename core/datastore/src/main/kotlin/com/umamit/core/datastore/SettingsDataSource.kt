@@ -15,7 +15,7 @@ import java.io.OutputStream
 import javax.inject.Inject
 
 /**
- * The stored form of the settings (05 §6, M1 subset) plus the seed marker. Every field
+ * The stored form of the settings (05 §6, M1 subset) plus the seed markers. Every field
  * has its spec default, so a fresh install, a missing key or an older file read the
  * defaults. Enums are stored by name and unknown names fall back to the default.
  */
@@ -36,6 +36,8 @@ data class StoredSettings(
     val dismissedHints: Set<String> = emptySet(),
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
+    /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
+    val seedPhotosAttempted: Boolean = false,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -66,13 +68,19 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     val seedDataCreated: Flow<Boolean> = dataStore.data.map { it.seedDataCreated }
 
+    val seedPhotosAttempted: Flow<Boolean> = dataStore.data.map { it.seedPhotosAttempted }
+
     /** Applies [transform] atomically to the current settings. */
     suspend fun update(transform: (UserSettings) -> UserSettings) {
-        dataStore.updateData { stored -> transform(stored.toModel()).toStored(stored.seedDataCreated) }
+        dataStore.updateData { stored -> transform(stored.toModel()).toStored(markersOf = stored) }
     }
 
     suspend fun markSeedDataCreated() {
         dataStore.updateData { it.copy(seedDataCreated = true) }
+    }
+
+    suspend fun markSeedPhotosAttempted() {
+        dataStore.updateData { it.copy(seedPhotosAttempted = true) }
     }
 }
 
@@ -95,7 +103,7 @@ private fun StoredSettings.toModel() = UserSettings(
     dismissedHints = dismissedHints,
 )
 
-private fun UserSettings.toStored(seedDataCreated: Boolean) = StoredSettings(
+private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     schemaVersion = schemaVersion,
     onboardingCompleted = onboardingCompleted,
     theme = theme.name,
@@ -109,5 +117,6 @@ private fun UserSettings.toStored(seedDataCreated: Boolean) = StoredSettings(
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
-    seedDataCreated = seedDataCreated,
+    seedDataCreated = markersOf.seedDataCreated,
+    seedPhotosAttempted = markersOf.seedPhotosAttempted,
 )

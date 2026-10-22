@@ -30,6 +30,17 @@ class SettingsRepositoryTest {
 
         assertThat(repository.settings.first()).isEqualTo(UserSettings())
         assertThat(repository.seedDataCreated.first()).isFalse()
+        assertThat(repository.seedPhotosAttempted.first()).isFalse()
+    }
+
+    @Test
+    fun seedPhotoMarkerStaysSetAfterOtherChanges() = runTest {
+        val repository = repository()
+        repository.markSeedPhotosAttempted()
+        repository.update { it.copy(onboardingCompleted = true) }
+
+        assertThat(repository.seedPhotosAttempted.first()).isTrue()
+        assertThat(repository.seedDataCreated.first()).isFalse()
     }
 
     @Test

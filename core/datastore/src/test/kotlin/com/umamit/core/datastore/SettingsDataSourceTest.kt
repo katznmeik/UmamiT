@@ -44,6 +44,7 @@ class SettingsDataSourceTest {
         assertThat(settings.dimWhileSteeping).isTrue()
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(source.seedDataCreated.first()).isFalse()
+        assertThat(source.seedPhotosAttempted.first()).isFalse()
     }
 
     @Test
@@ -68,12 +69,14 @@ class SettingsDataSourceTest {
         val writer = SettingsDataSource(DataStoreFactory.create(SettingsSerializer, scope = writerScope) { file })
         writer.update { changed }
         writer.markSeedDataCreated()
+        writer.markSeedPhotosAttempted()
         writerScope.cancel()
         writerScope.coroutineContext.job.join()
 
         val reader = dataSource(file)
         assertThat(reader.settings.first()).isEqualTo(changed)
         assertThat(reader.seedDataCreated.first()).isTrue()
+        assertThat(reader.seedPhotosAttempted.first()).isTrue()
     }
 
     @Test
