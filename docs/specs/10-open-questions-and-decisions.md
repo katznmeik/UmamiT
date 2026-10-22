@@ -302,6 +302,64 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-058"></a>
+### D-058 — Timer screen SCR-05 (M1-12, #45) · *Accepted* (Claude, 2026-10-22)
+
+#45 built the timer screen in `feature:brew` on the controller's state
+([03 SCR-05](03-ux-ui.md#scr-05-timer)). Decided while building it:
+
+- **One seam to the controller.** `BrewTimer` (`state`, `send`) is all the
+  screen, its view model and the active brew bar use; `ControllerBrewTimer`
+  is the controller behind it. Until #42 binds the remaining ports the
+  controller cannot be injected (D-056), so the app binds `NoBrewTimer`
+  (always idle, events ignored): nothing runs, the bar stays hidden and the
+  timer route closes at once. Switching is one `@Binds` line in
+  `TimerAppModule`. `TimerUiState.Active` gains `preAlert` (the session's
+  own option) for the Schritte-Sheet.
+- **Step label.** „Aufguss 2 von 4" numbers the position in the whole plan;
+  the word follows the step kind („Spülaufguss 1 von 4", „Aufschlagen 1 von
+  1"). Dots: done and current filled, pending outlined, a rinse a small square.
+- **READY** keeps the digits in the ring with the caption „Bereit"; *Start* is
+  the cream pill below and the ring is tappable too. The kettle hint carries
+  „Aufguss 2 · 0:20" as its second line. **ALERTING** shows 0:00 in the ring
+  with „Jetzt abgießen!" and the overtime below it; the reliability banner is
+  hidden while the alert plays.
+- **Finishing without a completed step** asks with the same „Sitzung
+  verwerfen? Nichts wird gespeichert." (*Verwerfen* / *Weiter brühen*), because
+  that is what it does; *Verwerfen* sends `finishSession`, which discards
+  (TMR-12 AC1).
+- **Alerts first for every overlay.** Like the Schritte-Sheet (D-051), a menu
+  or a question opened before the alert is removed in the same frame as
+  ALERTING starts; one opened during the alert stays.
+- **No *Im Rezept speichern* on SCR-05.** The screen calls only the
+  controller, so the sheet opens without a recipe (`hasRecipe = false`); the
+  recipe save stays on the setup (SCR-04). Steps without their own temperature
+  show the plan's first temperature.
+- **Dimming (TMR-17, SET-25).** The window brightness drops to 0.2 after 10 s
+  untouched while RUNNING; the pre-alert brightens it until the step ends, a
+  new phase or step counts as a touch, and it never dims while the menu, a
+  question or the sheet is open. The rule is the pure `ScreenDimming`, tested
+  with a moved clock; the screen re-checks only when the result can change.
+- **Photo and liquor.** The tea photo sits at the top and fades into the
+  background (mockup v2). The screen takes it as a parameter: the session's
+  photo reaches the timer with M1-13, so the route passes none until then.
+  The liquor fill is the green liquor until the tea's style is in the state.
+- **TalkBack.** One live region announces the state („Aufguss 2 von 3
+  läuft", „Pausiert" …), the pre-alert („Gleich fertig"), „Noch 10 Sekunden"
+  (only for steps longer than 10 s) and the alert (assertive). A 10 s pre-alert
+  and the 10 s mark are one announcement („Gleich fertig, noch 10 Sekunden").
+- **Lock screen.** `MainActivity` shows over the lock screen while the timer is
+  visible with an active session or the alert plays, and turns the screen on
+  while alerting (`lockScreenFlags`). #47 routes the full-screen intent to the
+  timer.
+- **Navigation.** The timer is a top-level route above the shell; a tap on the
+  active brew bar opens it, back keeps the session. *Timer-Einstellungen*
+  opens the settings on the timer's stack; *Brühen anpassen* closes the timer
+  until the setup exists (M1-13).
+- **Active brew bar.** Fed by the controller's state; it ticks at each second
+  of the countdown or the overtime while collected (not in the background),
+  and a long step's progress moves only every 10 s (D-055 S9, tested).
+
 <a id="d-056"></a>
 ### D-056 — BrewSessionController core (M1-09 part 1, #41) · *Accepted* (Claude, 2026-10-22)
 
@@ -1254,6 +1312,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-058: timer screen SCR-05 (#45): `BrewTimer` seam with `NoBrewTimer` until #42, `TimerUiState.Active.preAlert`, step label and dots, READY/ALERTING layout, finish-would-discard question, every overlay removed on ALERTING, no recipe save on SCR-05, dimming rule, photo slot, TalkBack live region, lock-screen flags, top-level timer route, bar fed by the controller. 04 §4 updated. |
 | 2026-10-22 | D-056: BrewSessionController core (#41): suspend inputs and seven ports, alarm-kind table, in-process wake-up port, non-cancellable lock turns, persist retry and guarded side effects, one alert per deadline with stale end reports ignored, `TimerUiState`, pre-alert frozen at the start, Hilt bindings without stand-ins. 04 §4 updated. |
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
 | 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |
