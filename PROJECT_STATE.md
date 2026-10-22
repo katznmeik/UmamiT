@@ -41,8 +41,9 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. Spec [#40](https://github.com/katznmeik/UmamiT/issues/40) (M1 waves 4–7) is
-   written; break it into tickets (`/to-tickets`), then `/implement-spec`.
+2. Start `/implement-spec` on spec [#40](https://github.com/katznmeik/UmamiT/issues/40)
+   (tickets #41–#56). Later: test `v0.1.0-rc.N` and review the design (#55),
+   then give the explicit approval that allows the merge (#56).
 3. At the M1 PR: test the release candidate and listen to all alert sounds
    via *Alarm testen* (the default was chosen in D-045).
 
@@ -84,7 +85,10 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
    pulse and the light-green dark-mode card unchanged).
 2. Spec [#40](https://github.com/katznmeik/UmamiT/issues/40) for waves 4–7 is
    written (six test seams agreed with the PO; accuracy run as a manual CI
-   workflow before each rc). Next: `/to-tickets`. Scope: M1-09 background integration,
+   workflow before each rc) and broken into tickets #41–#56 (frontier: #41
+   controller core; then #42 alarms/service, #43 diagnostics, #44 alerts,
+   #45 timer screen; #55 is the PO's checklist and design review, #56 the
+   merge and `v0.1.0`). Next: `/implement-spec` on #40. Scope: M1-09 background integration,
    M1-10 alerts, M1-11 Live Update, M1-12 timer screen, M1-13 Start and
    setup, M1-14 quick timer, M1-15 Einrichtung and settings, M1-16 journal,
    M1-17 renders, M1-18 review and releases, M1-20 diagnostics. Notes carried
@@ -119,6 +123,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-22 | Spec #40 (M1 waves 4–7) written via `/to-spec` and broken into 16 tickets #41–#56 via `/to-tickets` (granularity and blockers approved by the PO). CI: build-logic plugin repositories fixed (failed with an empty Gradle cache). |
 | 2026-10-22 | PO approved the design and motion check #39 (pre-alert glow, alert pulse, light-green dark-mode card) without changes. Spec #27 complete; next is the waves 4–7 spec. |
 | 2026-10-22 | Spec #27 implemented via `/implement-spec`: tickets #28–#38 merged on PR #25 with per-ticket reviews; T4 slice review (engine, data/network/backup, UI) fixed (D-054, D-055); CI hardened (emulator/system-image cache with retries, schema freshness and frozen-schema checks); flaky probe and network tests fixed. #39 (PO design and motion check) open. |
 | 2026-10-22 | Spec #27 broken into 12 tickets #28–#39 via `/to-tickets` (granularity, blockers and the PO ticket #39 approved by the PO). Spec #27 for M1 waves 2–3 written via `/to-spec` (4 test seams agreed with the PO: engine reducer, data layer with MockWebServer, Compose rendering incl. record-only motion GIFs, CI pipeline). |
