@@ -1,5 +1,8 @@
 package com.umamit.core.timer.alert
 
+import com.umamit.core.model.AlertLength
+import com.umamit.core.model.UserSettings
+
 /** The phone's ringer mode (04 §9.1), read when an alert or pre-alert starts and on every repeat. */
 enum class RingerMode { NORMAL, VIBRATE, SILENT }
 
@@ -55,15 +58,37 @@ object AlertMatrix {
 
 /**
  * Bundled sounds (04 §9.2), synthesised by `scripts/sounds/generate.sh` into
- * `core:content` `res/raw`. [lengthMs] is the file's length; a test checks it
- * against the Ogg file. M1-10 adds Glocke, Holzblock, Glockenspiel and Sanft.
+ * `core:content` `res/raw`. [key] is the file name and the stored value of
+ * the `alertSound` setting (05 §6, SET-09); [lengthMs] is the file's length,
+ * which a test checks against the Ogg file.
  */
-enum class AlertSound(val lengthMs: Long) {
-    /** Default alert tone (Q-15: variant C chosen by the PO). */
-    KLANGSCHALE(lengthMs = 3_500L),
+enum class AlertSound(val key: String, val lengthMs: Long) {
+    /** Default alert tone, a bright singing bowl (Q-15: variant C chosen by the PO, D-045). */
+    KLANGSCHALE(key = "klangschale", lengthMs = 3_500L),
 
-    /** Pre-alert tick, a soft small-bowl „ting" (Q-15: variant C). */
-    TICK(lengthMs = 800L),
+    /** A small bell struck twice (D-059). */
+    GLOCKE(key = "glocke", lengthMs = 3_000L),
+
+    /** Two wood blocks knocked twice, „tok-tok … tok-tok" (D-059). */
+    HOLZBLOCK(key = "holzblock", lengthMs = 1_200L),
+
+    /** A rising four-note steel-bar arpeggio (D-059). */
+    GLOCKENSPIEL(key = "glockenspiel", lengthMs = 2_200L),
+
+    /** Two soft, round tones rising a fourth (D-059). */
+    SANFT(key = "sanft", lengthMs = 3_000L),
+
+    /** Pre-alert tick, a soft small-bowl „ting" (Q-15: variant C, D-045); not a tone choice. */
+    TICK(key = "tick", lengthMs = 800L),
+    ;
+
+    companion object {
+        /** The SET-09 choices in the settings' order, the default first. */
+        val TONES: List<AlertSound> = listOf(KLANGSCHALE, GLOCKE, HOLZBLOCK, GLOCKENSPIEL, SANFT)
+
+        /** The tone stored under [key]; an unknown key (or the tick's) is the default, the Klangschale. */
+        fun tone(key: String): AlertSound = TONES.firstOrNull { it.key == key } ?: KLANGSCHALE
+    }
 }
 
 private val PRE_ALERT_TIMINGS_MS = listOf(0L, 50L)
@@ -84,26 +109,35 @@ enum class Haptic(val timings: List<Long>) {
 }
 
 /**
- * SET-14 Alarmdauer (04 §9.1): Kurz = once, Normal = repeat up to 15 s,
- * Lang = repeat up to 2 min (until acknowledged; acknowledging calls
+ * SET-14 Alarmdauer (04 §9.1): Kurz = once (null), Normal = repeat up to
+ * 15 s, Lang = repeat up to 2 min (until acknowledged; acknowledging calls
  * `stopAlert()`).
  */
-enum class AlertLength(val limitMs: Long?) {
-    SHORT(limitMs = null),
-    NORMAL(limitMs = 15_000L),
-    LONG(limitMs = 120_000L),
-    ;
-
-    /** How many tone cycles of [cycleMs] fit into the limit; at least one. */
-    fun cycles(cycleMs: Long): Int {
-        val limit = limitMs ?: return 1
-        return (limit / cycleMs).toInt().coerceAtLeast(1)
+val AlertLength.limitMs: Long?
+    get() = when (this) {
+        AlertLength.SHORT -> null
+        AlertLength.NORMAL -> 15_000L
+        AlertLength.LONG -> 120_000L
     }
+
+/** How many tone cycles of [cycleMs] fit into the limit of this length; at least one. */
+fun AlertLength.cycles(cycleMs: Long): Int {
+    val limit = limitMs ?: return 1
+    return (limit / cycleMs).toInt().coerceAtLeast(1)
 }
 
-/** The user's alert settings (SET-11, SET-14; the tone picker comes with M1-10). The probe uses the defaults. */
+/** The user's alert settings: tone (SET-09), alert length (SET-14) and vibration (SET-11). */
 data class AlertSettings(
     val tone: AlertSound = AlertSound.KLANGSCHALE,
     val length: AlertLength = AlertLength.NORMAL,
     val vibration: Boolean = true,
-)
+) {
+    companion object {
+        /** The alert part of the stored [settings] (05 §6); an unknown tone key is the Klangschale. */
+        fun of(settings: UserSettings): AlertSettings = AlertSettings(
+            tone = AlertSound.tone(settings.alertSound),
+            length = settings.alertLength,
+            vibration = settings.vibration,
+        )
+    }
+}
