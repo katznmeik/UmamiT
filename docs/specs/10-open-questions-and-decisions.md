@@ -302,6 +302,55 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-060"></a>
+### D-060 — Diagnostics log and the *Diagnose* screen (M1-20, #43) · *Accepted* (Claude, 2026-10-22)
+
+#43 built the rolling diagnostics log of [06 §5.6](06-architecture.md#56-error-handling--logging)
+and *Diagnose* (SCR-27; TMR-30). Decided while building it:
+
+- **Storage** (`DiagnosticsLog`, `core:data`): plain text in
+  `Context.noBackupFilesDir/diagnostics/`, which no backup or device transfer
+  includes (05 §8; `BackupRulesTest` checks that no rule includes it). Two
+  files of 100 KB each, so the log never exceeds 200 KB: when the newer file
+  is full it replaces the older one, so the oldest entries go first, in
+  blocks. One line per entry: the local time to the millisecond with the zone
+  offset, a tab, the message; line breaks in a message become spaces.
+  - `core:data`, not `core:timer`: the catalog refresh writes to the same log
+    from M2, and `core:data` cannot depend on `core:timer`.
+- **Never in the timer's way** (rule 8): `append` only queues the line and
+  returns; one coroutine on the IO dispatcher writes the queue in order. An
+  I/O or security error loses that entry only. A read is queued behind the
+  writes before it. The timer's port (`LogTimerDiagnostics`) formats and
+  queues; it catches anything a broken entry throws. The alert player logs
+  after it has started the alert, the service through a guarded reporter.
+- **Entries in technical English, not localised:** they are pasted into
+  issues and read by the accuracy workflow (04 §12). Only plain values are
+  written, never a model's `toString()`, so no note text can reach the log;
+  tea names are not logged either (allowed, but not needed). The screen
+  around the entries is German.
+- **Scheduled vs actual** (TMR-30): a time-based event and its alarm log
+  `PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono
+  5050080) delta +80 ms`. The kind's own clock gives the scheduled time; the
+  other clock's is derived from the delay. Every other timer entry ends with
+  the monotonic time and the boot count.
+- **What is logged now:** every event the controller handles (source,
+  phases, outcome), each alarm received, persist and effect failures, stale
+  alert ends, a stored timer that is unreadable or cannot be read (recovery),
+  inexact alarms, the service's foreground starts, its end and refused
+  starts, the ringer mode, call and Do Not Disturb state with the outputs and
+  tone at each pre-alert, alert and *Alarm testen*, and the permission
+  states (notifications, Live Updates, full-screen alert, exact alarms,
+  battery) at every process start, read off the main thread.
+  `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` are logged by their receivers
+  when #46 adds them.
+- ***Diagnose***: newest first, the time in monospace above the message (also
+  monospace), *Kopieren* in the top bar. It copies a header line (app version
+  and versionCode, Android version and API level, device maker and model)
+  and the entries as shown, newest first. Android 13+ confirms the copy
+  itself, so the app shows no message. An empty log shows an empty state and
+  disables *Kopieren*. The settings placeholder has a *Diagnose* button until
+  M1-15 moves it under *Über*.
+
 <a id="d-059"></a>
 ### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted* (Claude, 2026-10-22)
 
@@ -1531,6 +1580,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-060: diagnostics log and *Diagnose* (#43): two-file rolling log ≤ 200 KB in the no-backup storage, written in order on the IO dispatcher and never blocking or throwing into the timer; technical English entries with scheduled vs actual times on both clocks and the delta; service starts and stops, ringer mode at each alert and test, permission states at each process start; *Diagnose* newest first with *Kopieren* (header + entries). 06 §5.6, 03 SCR-27 updated. |
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
 | 2026-10-22 | D-058: timer screen SCR-05 (#45), amended by its motion review (no route transitions or menu exit around the alert, settings popped on alert, paused ring contrast, stable pill, fresh first frame, glow per step, saveable overlays, timer-only lock screen, dim never brighter than the phone): `BrewTimer` seam with `NoBrewTimer` until #42, `TimerUiState.Active.preAlert`, step label and dots, READY/ALERTING layout, finish-would-discard question, every overlay removed on ALERTING, no recipe save on SCR-05, dimming rule, photo slot, TalkBack live region, lock-screen flags, top-level timer route, bar fed by the controller. 04 §4 updated. |
 | 2026-10-22 | D-057: exact alarms, BrewTimerService and recovery in the first turn (#42): alarm adapter per kind with request codes 101–106 and the inexact fallback logged; recovery once per process in the first controller turn (moved from #46, amends D-056); receiver and full-screen alert via the app's `TimerHost`; failed recovery reads retried and the alarm set again; service port with the full-screen flag, channels created, `startService` while in the foreground, deferred stop with `stopSelfResult`, handover wake lock, wake lock up to the longest alert, refusals logged and resent by the next alarm; minimal notification content and `TimerAlertActivity` until #47; process-death test with its runner in its own process. 04 §4, §6.2, §6.3, §7.2, §12, §13 updated. |

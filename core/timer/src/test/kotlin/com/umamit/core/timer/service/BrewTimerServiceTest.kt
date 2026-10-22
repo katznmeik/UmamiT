@@ -295,6 +295,33 @@ class BrewTimerServiceTest {
         assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isFalse()
     }
 
+    @Test
+    fun `each foreground start of the service and its end are logged`() {
+        port.startForeground(running(remainingMs = 60_000), fullScreen = false)
+        val service = run(startedCommand())
+        // An update of the same notification is no new foreground start.
+        port.startForeground(running(remainingMs = 50_000), fullScreen = false)
+        service.withIntent(startedCommand()).startCommand(0, 2)
+        port.startForeground(alerting(), fullScreen = true)
+        service.withIntent(startedCommand()).startCommand(0, 3)
+
+        port.stopForeground()
+        service.destroy()
+
+        assertThat(diagnostics.entries.map { it.describe() }).containsExactly(
+            "foreground ${TimerNotifications.ID_LIVE_UPDATE}",
+            "foreground ${TimerNotifications.ID_ALERT}",
+            "stopped",
+        ).inOrder()
+        assertThat(diagnostics.entries.first().at).isEqualTo(clock.reading())
+    }
+
+    private fun TimerDiagnostic.describe(): String = when (this) {
+        is TimerDiagnostic.ServiceInForeground -> "foreground $notificationId"
+        is TimerDiagnostic.ServiceStopped -> "stopped"
+        else -> toString()
+    }
+
     private fun portOn(context: android.content.Context) = BrewTimerServicePort(
         context = context,
         clocks = TimerClocks(clock, clock),

@@ -3,7 +3,11 @@ package com.umamit.core.timer.alert
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.FakeTimerDiagnostics
+import com.umamit.core.timer.controller.TimerDiagnostic
+import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +35,8 @@ class AlertPlaybackTest {
     private val sound = FakeSoundOutput(scheduler)
     private val haptics = FakeHaptics(scheduler)
     private val settings = FakeSettingsRepository()
+    private val diagnostics = FakeTimerDiagnostics()
+    private val clock = FakeClock()
 
     @Test
     fun theAlertPlaysTheStoredToneLengthAndVibration() = runTest {
@@ -162,13 +168,60 @@ class AlertPlaybackTest {
         assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L)
     }
 
+    @Test
+    fun eachAlertTickAndTestLogsTheRingerModeAndTheOutputsItUsed() = runTest {
+        settings.update { it.copy(alertSound = "glocke", alertLength = AlertLength.LONG, vibration = false) }
+        val playback = playback(settings.settings)
+
+        playback.playPreAlert()
+        scheduler.advanceBy(5_000L)
+        environment.conditions = AlertConditions(RingerMode.NORMAL, inCall = true)
+        playback.startAlert(onFinished = {})
+        playback.stopAlert()
+        environment.conditions = AlertConditions(RingerMode.SILENT)
+        playback.testAlert()
+
+        val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>()
+        assertThat(played.map { it.cue }).containsExactly(AlertCue.PRE_ALERT, AlertCue.ALERT, AlertCue.TEST).inOrder()
+        assertThat(played.map { it.conditions }).containsExactly(
+            AlertConditions(RingerMode.NORMAL),
+            AlertConditions(RingerMode.NORMAL, inCall = true),
+            AlertConditions(RingerMode.SILENT),
+        ).inOrder()
+        assertThat(played.map { it.outputs }).containsExactly(
+            AlertOutputs(sound = true, vibration = false),
+            AlertOutputs(sound = false, vibration = true),
+            AlertOutputs.NONE,
+        ).inOrder()
+        assertThat(played.map { it.tone }).containsExactly("tick", "glocke", "glocke").inOrder()
+        assertThat(played.map { it.length }).containsExactly(AlertLength.LONG, AlertLength.LONG, AlertLength.LONG)
+        assertThat(played.first().at).isEqualTo(clock.reading())
+    }
+
+    @Test
+    fun aDiagnosticsPortThatThrowsNeverStopsTheAlert() = runTest {
+        val playback = playback(settings.settings, diagnostics = { error("log broken (test)") })
+        val reported = mutableListOf<Long>()
+
+        playback.startAlert(onFinished = { reported += scheduler.now })
+        scheduler.advanceBy(300_000L)
+
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).hasSize(4)
+        assertThat(reported).containsExactly(14_000L)
+    }
+
     /** The playback on the test thread: its commands run as soon as they are sent. */
-    private fun TestScope.playback(settings: Flow<UserSettings>) = AlertPlayback(
+    private fun TestScope.playback(
+        settings: Flow<UserSettings>,
+        diagnostics: TimerDiagnosticsPort = this@AlertPlaybackTest.diagnostics,
+    ) = AlertPlayback(
         environment = environment,
         sound = sound,
         haptics = haptics,
         scheduler = scheduler,
         settings = settings,
         scope = CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler)),
+        diagnostics = diagnostics,
+        clock = clock::reading,
     )
 }

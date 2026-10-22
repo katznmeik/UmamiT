@@ -666,7 +666,10 @@ D-036).
 Logo, version, Tee-Kontor source note („Katalogdaten und Fotos © Tee-Kontor
 Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*,
 *Diagnose* (local timer/catalog log, *Kopieren*; from M1;
-[06 §5.6](06-architecture.md#56-error-handling--logging)).
+[06 §5.6](06-architecture.md#56-error-handling--logging)): entries newest
+first, the time in monospace above each message; *Kopieren* in the top bar
+copies a header (app and Android version, device) and every entry; an empty
+log shows an empty state (D-060).
 
 ### SCR-28 Fotos, SCR-29 Vorrat, SCR-30 Beschreibungen
 

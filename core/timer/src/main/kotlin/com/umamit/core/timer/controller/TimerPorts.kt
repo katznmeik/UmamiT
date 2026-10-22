@@ -18,7 +18,7 @@ import javax.inject.Inject
  * skipped; the next effect still runs (rule 8: nothing blocks `StartAlert`).
  *
  * The Android adapters come with M1-09 part 2 (#42: alarms, service), M1-10
- * (#44: alert player), M1-11 (#47: notifier), M1-20 (#43: diagnostics) and
+ * (#44: alert player), M1-20 (#43: diagnostics), M1-11 (#47: notifier) and
  * M1-16 (saved sheet). Until a ticket binds its adapter, the controller cannot
  * be injected, so no build ships a silent stand-in.
  */
@@ -102,8 +102,11 @@ interface SavedSheetPort {
     fun showSavedSheet(sessionId: String)
 }
 
-/** The diagnostics log (06 §5.6, M1-20). [record] is called inside the event lock: it must not block. */
-interface TimerDiagnosticsPort {
+/**
+ * The diagnostics log (06 §5.6, M1-20; `LogTimerDiagnostics`). [record] is called inside the
+ * event lock and on the main thread: it must not block, and it must not throw.
+ */
+fun interface TimerDiagnosticsPort {
     fun record(entry: TimerDiagnostic)
 }
 

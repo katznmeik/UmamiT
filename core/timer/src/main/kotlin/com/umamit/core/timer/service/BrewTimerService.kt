@@ -30,6 +30,7 @@ import com.umamit.core.timer.TimerNotifications
  *   the notification is posted without the service (04 §6.3): the service
  *   leaves the foreground first, so an alert is still the only notification,
  *   and the refusal is logged.
+ * - Each foreground start and the end of the service are logged too (06 §5.6).
  */
 class BrewTimerService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
@@ -65,6 +66,7 @@ class BrewTimerService : Service() {
     override fun onDestroy() {
         releaseWakeLock()
         ForegroundServiceState.foregroundId = 0
+        ForegroundServiceState.report(ServiceReport.Stopped)
         super.onDestroy()
     }
 
@@ -79,13 +81,14 @@ class BrewTimerService : Service() {
         try {
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
             ForegroundServiceState.foregroundId = id
+            ForegroundServiceState.report(ServiceReport.InForeground(id))
         } catch (e: ForegroundServiceStartNotAllowedException) {
             Log.w(TAG, "startForeground($id) refused; posting it without the service", e)
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             ForegroundServiceState.foregroundId = 0
             TimerNotifications.cancel(this, otherIdThan(id))
             TimerNotifications.post(this, id, notification)
-            ForegroundServiceState.report(id, e)
+            ForegroundServiceState.report(ServiceReport.Refused(id, e))
         }
     }
 

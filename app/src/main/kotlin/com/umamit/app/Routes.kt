@@ -33,6 +33,10 @@ internal data object StatsRoute
 @Serializable
 internal data object SettingsRoute
 
+/** *Diagnose* (SCR-27, M1-20), reached from the settings placeholder until M1-15 moves it under *Über*. */
+@Serializable
+internal data object DiagnosticsRoute
+
 /** Throwaway probe screen (M1-03a), reached from the settings until it is removed before v0.1.0. */
 @Serializable
 internal data object ProbeRoute

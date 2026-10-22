@@ -46,6 +46,8 @@ import javax.inject.Provider
 class ControllerHarness(
     /** The alert port; the default is [alert]. A real one reaches the controller through [controllerProvider]. */
     alertPort: (ControllerHarness.() -> TimerAlertPort)? = null,
+    /** The diagnostics port; the default is [diagnostics]. */
+    diagnosticsPort: TimerDiagnosticsPort? = null,
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettingsRepository = FakeSettingsRepository(),
     val db: UmamiDatabase = Room
@@ -83,7 +85,7 @@ class ControllerHarness(
             service = service,
             notifier = notifier,
             alert = alertPort?.invoke(this) ?: alert,
-            diagnostics = diagnostics,
+            diagnostics = diagnosticsPort ?: diagnostics,
             savedSheet = savedSheet,
             wakeUp = wakeUp,
         ),

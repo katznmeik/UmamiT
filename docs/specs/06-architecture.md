@@ -244,6 +244,13 @@ something goes wrong. It exists **from M1** (D-036) and records:
 
 No personal content (tea names are allowed, notes are not).
 
+Since M1-20 (D-060): `DiagnosticsLog` in `core:data` keeps two files of
+100 KB in `noBackupFilesDir/diagnostics/`, written in order on the IO
+dispatcher; writing never blocks or throws into the timer (rule 8). Entries
+are technical English, one line each, with the local time to the
+millisecond; time-based events show the scheduled and actual time on both
+clocks and the delta in ms.
+
 ## 6. Build & distribution
 
 | Variant | Details |
