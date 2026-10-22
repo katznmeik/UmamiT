@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -45,7 +46,7 @@ import kotlinx.coroutines.flow.StateFlow
  * A notification opens the timer (03 §2.4; #47): each new [timerRequest] token pops whatever
  * lies above the timer, or opens it. Until the timer is on top, the root draws the timer's dark
  * background over the shell and reports the timer as visible, so the shell never shows over
- * the lock screen, not even for one frame (D-058, D-NNN).
+ * the lock screen, not even for one frame (D-058, D-064).
  *
  * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
@@ -81,23 +82,11 @@ fun UmamitRoot(
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
-    // The request of a notification to open the timer, until it is handled (survives a configuration change).
-    val request by timerRequest.collectAsStateWithLifecycle()
-    var handledRequest by rememberSaveable { mutableLongStateOf(0L) }
-    val requestPending = request != 0L && request != handledRequest
+    val requestPending = openTimerOnRequest(navController, timerRequest)
     val timerShown = timerOnTop || requestPending
     val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
     LaunchedEffect(timerShown) { currentOnTimerVisibleChange(timerShown) }
-    LaunchedEffect(request) {
-        if (request != 0L && request != handledRequest) {
-            // Above the timer (Timer-Einstellungen, Diagnose): back to it; without it: open it.
-            if (!navController.popBackStack(TimerRoute, inclusive = false)) {
-                navController.navigate(TimerRoute) { launchSingleTop = true }
-            }
-            handledRequest = request
-        }
-    }
 
     // Each new alert pops *Timer-Einstellungen* opened before it, once (rule 8). Checked on every new alert
     // and on resume, so an alert that started while the app was in the background is caught too.
@@ -143,7 +132,15 @@ fun UmamitRoot(
             },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = {
-                if (AnimatedTimer(initialState, targetState).instant()) ExitTransition.None else fadeOut(motion.exitFade())
+                if (AnimatedTimer(
+                        initialState,
+                        targetState,
+                    ).instant()
+                ) {
+                    ExitTransition.None
+                } else {
+                    fadeOut(motion.exitFade())
+                }
             },
         ) {
             composable<ShellRoute> {
@@ -168,10 +165,36 @@ fun UmamitRoot(
             }
             composable<DiagnosticsRoute> { diagnosticsScreen { navController.popBackStack() } }
         }
-        // Opened from a notification, the timer comes next: its dark background covers the shell until then.
-        if (requestPending && !timerOnTop) {
-            Box(Modifier.fillMaxSize().background(SteepingColorScheme.background))
+        ShellCover(requestPending = requestPending, timerOnTop = timerOnTop)
+    }
+}
+
+/**
+ * Opens the timer for each new [timerRequest] token (a notification, #47): whatever lies above
+ * the timer (*Timer-Einstellungen*, *Diagnose*) is popped, or the timer is opened. Returns
+ * whether a request waits for that, from the first composition on. The handled token survives a
+ * configuration change, so a recreated activity does not open the timer again.
+ */
+@Composable
+private fun openTimerOnRequest(navController: NavHostController, timerRequest: StateFlow<Long>): Boolean {
+    val request by timerRequest.collectAsStateWithLifecycle()
+    var handledRequest by rememberSaveable { mutableLongStateOf(0L) }
+    LaunchedEffect(request) {
+        if (request != 0L && request != handledRequest) {
+            if (!navController.popBackStack(TimerRoute, inclusive = false)) {
+                navController.navigate(TimerRoute) { launchSingleTop = true }
+            }
+            handledRequest = request
         }
+    }
+    return request != 0L && request != handledRequest
+}
+
+/** Opened from a notification, the timer comes next: its dark background covers the shell until then. */
+@Composable
+private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
+    if (requestPending && !timerOnTop) {
+        Box(Modifier.fillMaxSize().background(SteepingColorScheme.background))
     }
 }
 

@@ -34,7 +34,7 @@ import javax.inject.Inject
  * (their content intent and the alert's full-screen intent, #47): the timer route
  * opens, and the lock-screen flags are set at once, before the first frame. Behind
  * the keyguard with the screen off no frame is drawn until the screen turns on, so
- * the flags cannot wait for the navigation (D-NNN).
+ * the flags cannot wait for the navigation (D-064).
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
