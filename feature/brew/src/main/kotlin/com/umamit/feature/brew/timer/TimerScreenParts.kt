@@ -1,6 +1,7 @@
 package com.umamit.feature.brew.timer
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -51,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -315,11 +317,14 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
         remember(coarse) { { coarse } }
     }
     // PAUSED dims only the ring, the liquor and the marker; digits and caption keep ≥ 4.5:1 (03 §6, D-058).
-    val dim by animateFloatAsState(
+    // The body moves to the alert surface with this state: the alert snaps to full strength and never
+    // inherits the paused dim, not even for a frame (rule 8, `alertEnter`).
+    val animatedDim by animateFloatAsState(
         targetValue = if (state.phase == TimerPhase.PAUSED) PAUSED_RING_ALPHA else 1f,
-        animationSpec = UmamiTheme.motion.fade(),
+        animationSpec = if (state.alerting) snap() else UmamiTheme.motion.fade(),
         label = "pausedRing",
     )
+    val dim = if (state.alerting) 1f else animatedDim
     val ready = state.phase == TimerPhase.READY
     val startLabel = stringResource(R.string.brew_timer_ring_start)
     TimerRing(
@@ -335,6 +340,7 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
         colors = TimerRingDefaults.colors().dimmed(dim),
         modifier = Modifier
             .testTag(TIMER_RING_TAG)
+            .semantics { this[RingDimKey] = dim }
             .then(
                 if (ready) {
                     Modifier.clickable(onClickLabel = startLabel) { actions.event(TimerEvent.Start) }
@@ -344,6 +350,9 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
             ),
     )
 }
+
+/** Test seam: the dim factor the ring is drawn with (1 = full strength). */
+internal val RingDimKey = SemanticsPropertyKey<Float>("RingDim")
 
 /** These colours with the ring, the liquor and the marker at [factor]; the digits and the caption unchanged. */
 internal fun TimerRingColors.dimmed(factor: Float): TimerRingColors = if (factor >= 1f) {

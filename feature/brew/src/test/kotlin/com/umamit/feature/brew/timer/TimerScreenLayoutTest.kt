@@ -28,8 +28,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05's layout and colours: the pill stays where the finger is (spatial
@@ -37,6 +37,7 @@ import org.robolectric.annotation.Config
  * the paused ring keeps its text readable (03 §6).
  */
 @RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
 class TimerScreenLayoutTest {
 
@@ -45,8 +46,7 @@ class TimerScreenLayoutTest {
 
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready())
 
-    private fun show(initial: TimerUiState.Active, fontScale: Float = 1f) {
-        RuntimeEnvironment.setFontScale(fontScale)
+    private fun show(initial: TimerUiState.Active) {
         state = initial
         val start = compose.mainClock.currentTime
         compose.setContent {
@@ -68,13 +68,19 @@ class TimerScreenLayoutTest {
     private fun top(text: String): Dp = compose.onNodeWithText(text).getUnclippedBoundsInRoot().top
 
     @Test
-    fun `the pill does not move at Start, at the alert, nor when the overtime turns large`() = pillStaysPut(1f)
+    fun `the pill does not move at Start, at the alert, nor when the overtime turns large`() = pillStaysPut()
 
+    /**
+     * Font scale 2.0 from the configuration, before the activity starts: only that applies Android's
+     * non-linear font scaling, under which two lines of text are not twice one line. Real text metrics
+     * (`GraphicsMode.NATIVE`) are needed for the heights to differ at all.
+     */
     @Test
-    fun `the pill does not move at font scale 2_0 either (non-linear font scaling)`() = pillStaysPut(2f)
+    @Config(fontScale = 2.0f)
+    fun `the pill does not move at font scale 2_0 either (non-linear font scaling)`() = pillStaysPut()
 
-    private fun pillStaysPut(fontScale: Float) {
-        show(TimerStates.ready(), fontScale)
+    private fun pillStaysPut() {
+        show(TimerStates.ready())
         val ready = top("Start")
 
         state = TimerStates.running()

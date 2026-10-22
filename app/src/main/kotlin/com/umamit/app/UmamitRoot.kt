@@ -74,6 +74,8 @@ fun UmamitRoot(
         }
     }
     LaunchedEffect(alert) { popSettingsForNewAlert() }
+    // A defensive belt: the keyed effect above already sees a new alert after the background, because the
+    // collected key resumes with it. This also checks once on every resume, should that ever change.
     LifecycleResumeEffect(Unit) {
         popSettingsForNewAlert()
         onPauseOrDispose {}

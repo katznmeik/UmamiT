@@ -380,7 +380,9 @@ personal data or shop content).
   „Aufguss 2 · 0:20" as its second line. **ALERTING** shows 0:00 in the ring
   with „Jetzt abgießen!" and the overtime below it, without the pre-alert
   marker. **PAUSED** dims only the ring, the liquor and the marker; the digits
-  and the caption keep full contrast (≥ 4.5:1, tested).
+  and the caption keep full contrast (≥ 4.5:1, tested). The dim never reaches
+  the alert: PAUSED → ALERTING (the step resumed from the Live Update while the
+  app was stopped) draws the ring at full strength in its first frame (tested).
 - **The pill never moves under the finger.** The kettle hint and the overtime
   share one slot, sized by invisible copies of its tallest contents (a two-line
   kettle hint, the large overtime), so it holds under non-linear font scaling;

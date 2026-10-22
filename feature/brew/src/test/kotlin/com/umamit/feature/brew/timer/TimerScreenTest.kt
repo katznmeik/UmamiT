@@ -349,6 +349,19 @@ class TimerScreenTest {
     }
 
     @Test
+    fun `an alert after PAUSED draws its ring at full strength in the first frame`() {
+        show(TimerStates.paused())
+        ring().assert(SemanticsMatcher.expectValue(RingDimKey, 0.6f))
+        compose.mainClock.autoAdvance = false
+
+        // The Live Update's *Weiter* and the deadline passed while the app was stopped: PAUSED → ALERTING.
+        Snapshot.withMutableSnapshot { state = TimerStates.alerting(stepIndex = 0) }
+        compose.mainClock.advanceTimeByFrame()
+
+        ring().assert(SemanticsMatcher.expectValue(RingDimKey, 1f))
+    }
+
+    @Test
     fun `a question opened during one alert never covers the next alert`() {
         show(TimerStates.alerting(stepIndex = 0))
         openMenu()
