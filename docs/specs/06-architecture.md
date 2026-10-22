@@ -249,7 +249,11 @@ Since M1-20 (D-060): `DiagnosticsLog` in `core:data` keeps two files of
 dispatcher; writing never blocks or throws into the timer (rule 8). Entries
 are technical English, one line each, with the local time to the
 millisecond; time-based events show the scheduled and actual time on both
-clocks and the delta in ms.
+clocks and the delta in ms. Since #46 (D-063) the controller also logs each
+recovery request (app start, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`), the
+row of the 04 §7.2 table that recovery applied, sessions ended after a device
+restore, a recovery given up, and a refused service start that was refused
+again.
 
 ## 6. Build & distribution
 

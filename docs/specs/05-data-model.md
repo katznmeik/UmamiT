@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -157,7 +157,7 @@ Table `brew_session`
 | `rating` | REAL | | 0.5–5.0 step 0.5 |
 | `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each |
 | `notes` | TEXT | | ≤ 5000 |
-| `auto_finished` | INTEGER | ✓ | 1 when the midnight timeout completed the session (TMR-14; `CompleteSession.autoFinished`, D-054); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
+| `auto_finished` | INTEGER | ✓ | 1 when the app completed the session on its own: the midnight timeout (TMR-14; `CompleteSession.autoFinished`, D-054), or recovery after a device restore that found it in progress without its `active_brew` row (E11, D-063); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
 | `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable |
 | `times_applied` | INTEGER | ✓ | boolean: user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
