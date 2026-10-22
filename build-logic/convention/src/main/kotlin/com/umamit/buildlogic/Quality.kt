@@ -44,15 +44,18 @@ internal fun Project.configureSpotless(
  * Detekt 1.23.x embeds the Kotlin 2.0 compiler (it cannot parse newer syntax and
  * needs its Kotlin artifacts pinned back), and the current compose-rules only
  * support the Detekt 2 API. The `detekt` task (no type resolution) is the gate;
- * the per-source-set tasks with type resolution are not part of it yet.
+ * the per-source-set tasks with type resolution are not part of it yet. Its
+ * default sources are only `src/{main,test}/{java,kotlin}`, so Android modules
+ * pass [includeDeviceTests] to check the instrumented tests too.
  */
-internal fun Project.configureDetekt(sources: List<Any>? = null) {
+internal fun Project.configureDetekt(sources: List<Any>? = null, includeDeviceTests: Boolean = false) {
     pluginManager.apply("dev.detekt")
     extensions.configure<DetektExtension> {
         buildUponDefaultConfig.set(true)
         parallel.set(true)
         config.setFrom(rootProject.file("config/detekt/detekt.yml"))
         if (sources != null) source.setFrom(sources)
+        if (includeDeviceTests) source.from("src/androidTest/java", "src/androidTest/kotlin")
     }
     dependencies {
         add("detektPlugins", libs.lib("compose-rules-detekt"))

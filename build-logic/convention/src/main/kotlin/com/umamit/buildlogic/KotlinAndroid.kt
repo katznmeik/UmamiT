@@ -29,7 +29,7 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
         configureLint(lint)
     }
     configureSpotless()
-    configureDetekt()
+    configureDetekt(includeDeviceTests = true)
     // AGP 9 has built-in Kotlin support; it registers the `kotlin` extension.
     extensions.configure<KotlinAndroidProjectExtension> {
         compilerOptions.jvmTarget.set(JVM_TARGET)
