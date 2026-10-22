@@ -14,6 +14,8 @@ import com.umamit.app.probe.startFirstPermissionStatusIntent
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -50,6 +52,14 @@ import kotlinx.coroutines.flow.stateIn
 object TimerAppModule {
     @Provides
     fun brewTimer(impl: ControllerBrewTimer): BrewTimer = impl
+
+    /**
+     * Start and the setup (M1-13) start brews through the same object as the timer, so this follows the
+     * `brewTimer` binding: the controller ([ControllerBrewTimer]) since #47.
+     */
+    @Provides
+    fun brewStarter(timer: BrewTimer): BrewStarter =
+        checkNotNull(timer as? BrewStarter) { "the bound BrewTimer must also start brews (BrewStarter)" }
 
     @Provides
     fun timerReliability(@ApplicationContext context: Context): TimerReliability = PermissionTimerReliability(

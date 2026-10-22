@@ -16,12 +16,12 @@ import com.umamit.core.timer.controller.TimerUiState
  * route closes itself ([onClose]) once no session is active any more, e.g.
  * after *Sitzung beenden* or *Sitzung verwerfen*.
  *
- * @param onAdjustBrew *Brühen anpassen*: back to the setup (SCR-04, M1-13).
+ * @param onAdjustBrew *Brühen anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
  */
 @Composable
 fun BrewTimerRoute(
     onClose: () -> Unit,
-    onAdjustBrew: () -> Unit,
+    onAdjustBrew: (sessionId: String) -> Unit,
     onOpenTimerSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TimerViewModel = hiltViewModel(),
@@ -40,7 +40,7 @@ fun BrewTimerRoute(
             nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
             onEvent = viewModel::send,
             onBack = onClose,
-            onAdjustBrew = onAdjustBrew,
+            onAdjustBrew = { active.sessionId?.let(onAdjustBrew) },
             onOpenTimerSettings = onOpenTimerSettings,
             modifier = modifier,
             settings = settings,

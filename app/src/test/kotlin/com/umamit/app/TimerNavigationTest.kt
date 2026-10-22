@@ -62,13 +62,17 @@ class TimerNavigationTest {
                     timerRequest = timerRequest,
                     onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
-                    timerScreen = { _, openSettings ->
+                    timerScreen = { _, openSettings, _ ->
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
                         }
                     },
                     diagnosticsScreen = { Text("DIAGNOSE-LOG") },
+                    startScreen = { tab ->
+                        Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
+                    },
+                    setupScreen = { _, _ -> Text("SETUP") },
                 )
             }
         }
@@ -150,6 +154,65 @@ class TimerNavigationTest {
 
         compose.onNodeWithText("DIAGNOSE-LOG").assertDoesNotExist()
         assertTimerOnTop()
+    }
+
+    private fun openSetupFromStart() {
+        compose.onNodeWithText("Tee brühen").performClick()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the alert replaces the setup with the timer at once (rule 8)`() {
+        show()
+        openSetupFromStart()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a tea tap on Start during an alert opens the timer, not the setup (rule 8)`() {
+        // Like a refused start during ALERTING (D-062 S3): the alerting timer is where to go now.
+        alert("A")
+        show()
+
+        compose.onNodeWithText("Tee brühen").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a route opened during an alert stays after a resume during the same alert`() {
+        // The route remembers the alert it was opened in (navigateAbove); only a new alert moves it.
+        alert("A")
+        show()
+        openSettingsFromTimer()
+
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Einstellungen").assertIsDisplayed()
+        compose.onNodeWithText("TIMER").assertDoesNotExist()
+    }
+
+    @Test
+    fun `back from the timer that replaced the setup returns to the shell`() {
+        show()
+        openSetupFromStart()
+        alert("A")
+        compose.waitForIdle()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Tee brühen").assertIsDisplayed()
     }
 
     @Test

@@ -11,9 +11,9 @@ import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.feature.brew.timer.BrewTimer
-import com.umamit.feature.brew.timer.alertKey
 import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
                     timerRequest = timerRequests.token,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
+                    startScreen = { StartTabContent(it) },
                 )
             }
         }

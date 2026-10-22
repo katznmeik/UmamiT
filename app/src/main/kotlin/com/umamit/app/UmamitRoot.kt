@@ -20,8 +20,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -34,20 +36,25 @@ import com.umamit.feature.settings.SettingsScreen
 import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
  * The app's top-level navigation: the shell with its tabs, and the full-screen
  * timer above it (03 §2.2). A tap on the active brew bar opens the timer; back
  * from the timer keeps the session and returns to the shell (03 §2.3).
  *
- * Alerts first (rule 8, D-058): no route transition runs into or out of the
- * timer while the alert plays, and *Timer-Einstellungen* opened before the
- * alert is popped back to the timer in the frame the alert starts.
+ * Alerts first (rule 8, D-058, D-062): no route transition runs into or out
+ * of the timer while the alert plays, and every full-screen route above the
+ * shell or the timer (the setup, *Timer-Einstellungen*, *Diagnose* and any
+ * later one) that was opened before the alert gives way to the timer in the
+ * frame the alert starts: popped back to the timer when it is on the stack,
+ * else replaced by it, without a transition.
  *
- * A notification opens the timer (03 §2.4; #47): each new [timerRequest] token pops whatever
- * lies above the timer, or opens it. Until the timer is on top, the root draws the timer's dark
- * background over the shell and reports the timer as visible, so the shell never shows over
- * the lock screen, not even for one frame (D-058, D-064).
+ * A notification opens the timer the same way (03 §2.4; D-064): each new [timerRequest] token
+ * (its content or full-screen intent) brings the timer to the top. Until it is there, the root
+ * draws the timer's dark background over the shell and reports the timer as visible, so the
+ * shell never shows over the lock screen, not even for one frame (D-058). One place decides
+ * both ([rememberTimerFirst]).
  *
  * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
@@ -56,11 +63,14 @@ import kotlinx.coroutines.flow.StateFlow
  *   content or full-screen intent); 0 for none.
  * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
+ *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
+ * @param startScreen the Start tab's content; the app passes [StartTabContent].
+ * @param setupScreen the setup route's content (SCR-04); tests replace it.
  * @param diagnosticsScreen *Diagnose* opened from *Timer-Einstellungen*; tests replace it, the app uses
  *   [DiagnosticsRoute].
  */
 @Composable
-fun UmamitRoot(
+internal fun UmamitRoot(
     activeBrewSource: ActiveBrewSource,
     journalSources: JournalSources,
     alertKey: StateFlow<String?>,
@@ -68,9 +78,16 @@ fun UmamitRoot(
     timerRequest: StateFlow<Long> = NO_TIMER_REQUEST,
     onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
-    timerScreen: @Composable (onClose: () -> Unit, onOpenTimerSettings: () -> Unit) -> Unit = { onClose, onSettings ->
-        // M1-13 opens the setup (SCR-04) for the waiting session from *Brühen anpassen*.
-        BrewTimerRoute(onClose = onClose, onAdjustBrew = onClose, onOpenTimerSettings = onSettings)
+    timerScreen: @Composable (
+        onClose: () -> Unit,
+        onOpenTimerSettings: () -> Unit,
+        onAdjustBrew: (sessionId: String) -> Unit,
+    ) -> Unit = { onClose, onSettings, onAdjust ->
+        BrewTimerRoute(onClose = onClose, onAdjustBrew = onAdjust, onOpenTimerSettings = onSettings)
+    },
+    startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    setupScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
+        BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
     },
     diagnosticsScreen: @Composable (onBack: () -> Unit) -> Unit = { onBack -> DiagnosticsRoute(onBack = onBack) },
 ) {
@@ -78,42 +95,37 @@ fun UmamitRoot(
     val motion = UmamiTheme.motion
     // Only the alert's identity is read here, so the root recomposes per alert, not per second.
     val alert by alertKey.collectAsStateWithLifecycle()
-    val currentAlert by rememberUpdatedState(alert)
     val currentAlerting by rememberUpdatedState(alert != null)
-    // The alert *Timer-Einstellungen* was opened in (null: none played). Only that alert may stay under it.
-    var settingsAlert by rememberSaveable { mutableStateOf<String?>(null) }
+    val timerFirst = rememberTimerFirst(navController, alert, timerRequest, onConsumeTimerRequest)
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
-    val requestPending = openTimerOnRequest(navController, timerRequest, onConsumeTimerRequest)
-    val timerShown = timerOnTop || requestPending
+    val timerShown = timerOnTop || timerFirst.requestPending
     val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
     LaunchedEffect(timerShown) { currentOnTimerVisibleChange(timerShown) }
-
-    // Each new alert pops *Timer-Einstellungen* opened before it, once (rule 8). Checked on every new alert
-    // and on resume, so an alert that started while the app was in the background is caught too.
-    val popSettingsForNewAlert = {
-        // *Timer-Einstellungen* or *Diagnose* opened from it: everything above the timer goes (rule 8).
-        val settingsOnTop = navController.currentDestination?.let {
-            it.hasRoute<TimerSettingsRoute>() || it.hasRoute<DiagnosticsRoute>()
-        } == true
-        val playing = currentAlert
-        if (playing != null && settingsOnTop && playing != settingsAlert) {
-            navController.popBackStack(TimerRoute, inclusive = false)
-        }
-    }
-    LaunchedEffect(alert) { popSettingsForNewAlert() }
-    // A defensive belt: the keyed effect above already sees a new alert after the background, because the
-    // collected key resumes with it. This also checks once on every resume, should that ever change.
-    LifecycleResumeEffect(Unit) {
-        popSettingsForNewAlert()
-        onPauseOrDispose {}
-    }
+    val navigateAbove = timerFirst.navigateAbove
 
     // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
     fun AnimatedTimer.instant(): Boolean = currentAlerting && (initial.isTimer() || target.isTimer())
     val closeTimer: () -> Unit = { navController.popBackStack(TimerRoute, inclusive = true) }
+    val openTimer: () -> Unit = { navController.navigate(TimerRoute) { launchSingleTop = true } }
+    val startNavigation = StartNavigation(
+        // During an alert a tea tap (*Favoriten*, the picker) opens the alerting timer, never a setup that
+        // would cover it (rule 8, D-062 S3).
+        openSetup = { teaId ->
+            if (currentAlerting) {
+                openTimer()
+            } else {
+                navigateAbove(BrewSetupRoute(teaId = teaId)) {
+                    launchSingleTop = true
+                }
+            }
+        },
+        openTimer = openTimer,
+        // M1-14 (#49) opens the quick timer (SCR-07) here.
+        openQuickTimer = {},
+    )
     Box(modifier) {
         NavHost(
             navController = navController,
@@ -151,52 +163,118 @@ fun UmamitRoot(
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
                     alerting = alert != null,
-                    onOpenTimer = { navController.navigate(TimerRoute) { launchSingleTop = true } },
+                    onOpenTimer = openTimer,
+                    startNavigation = startNavigation,
+                    alertKey = alert,
+                    startScreen = startScreen,
                 )
             }
             composable<TimerRoute> {
-                timerScreen(closeTimer) {
-                    settingsAlert = currentAlert
-                    navController.navigate(TimerSettingsRoute)
-                }
+                timerScreen(
+                    closeTimer,
+                    { navigateAbove(TimerSettingsRoute) {} },
+                    { sessionId ->
+                        // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                        navigateAbove(BrewSetupRoute(sessionId = sessionId)) {
+                            popUpTo<TimerRoute> { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable<BrewSetupRoute> {
+                setupScreen(
+                    { navController.popBackStack() },
+                    // The timer replaces the setup, so back from the timer returns to where the brew began.
+                    {
+                        navController.navigate(TimerRoute) {
+                            popUpTo<BrewSetupRoute> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
             composable<TimerSettingsRoute> {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
+                    onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
                 )
             }
             composable<DiagnosticsRoute> { diagnosticsScreen { navController.popBackStack() } }
         }
-        ShellCover(requestPending = requestPending, timerOnTop = timerOnTop)
+        ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }
 }
 
+/** What [rememberTimerFirst] gives the root. */
+private class TimerFirst(
+    /** A notification's request waits for the timer to be on top. */
+    val requestPending: Boolean,
+    /** Opens a route above the shell or the timer, remembering the alert it is opened in. */
+    val navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
+)
+
 /**
- * Opens the timer for each new [timerRequest] token (a notification, #47): whatever lies above
- * the timer (*Timer-Einstellungen*, *Diagnose*) is popped, or the timer is opened. Returns
- * whether a request waits for that, from the first composition on. The handled token survives a
- * configuration change, so a recreated activity does not open the timer again.
+ * The one place that puts the timer on top now (rule 8; D-058, D-062, D-064):
+ * - **a new alert:** a route above the shell or the timer (the setup, *Timer-Einstellungen*,
+ *   *Diagnose* and any later one) opened before it gives way to the timer, once; one opened in
+ *   this alert stays. Checked on every new alert and on resume, so an alert that started while
+ *   the app was in the background is caught too;
+ * - **a notification's request** (a new [timerRequest] token): the timer comes to the top, and
+ *   the activity forgets the token ([onConsume]) only then, so a recreation before keeps it.
+ *
+ * Either way the timer is popped back to when it is on the stack, else it replaces what lies
+ * above the shell, without a transition while alerting. The alert a route was opened in and the
+ * handled token survive a configuration change.
  */
 @Composable
-private fun openTimerOnRequest(
+private fun rememberTimerFirst(
     navController: NavHostController,
+    alert: String?,
     timerRequest: StateFlow<Long>,
-    onDone: (Long) -> Unit,
-): Boolean {
-    val request by timerRequest.collectAsStateWithLifecycle()
+    onConsume: (Long) -> Unit,
+): TimerFirst {
+    // The alert the route on top of the shell or timer was opened in (null: none played). Only that alert
+    // may stay under it.
+    var aboveAlert by rememberSaveable { mutableStateOf<String?>(null) }
     var handledRequest by rememberSaveable { mutableLongStateOf(0L) }
-    val currentOnDone by rememberUpdatedState(onDone)
-    LaunchedEffect(request) {
-        if (request != 0L && request != handledRequest) {
-            if (!navController.popBackStack(TimerRoute, inclusive = false)) {
-                navController.navigate(TimerRoute) { launchSingleTop = true }
+    val request by timerRequest.collectAsStateWithLifecycle()
+    val currentAlert by rememberUpdatedState(alert)
+    val currentOnConsume by rememberUpdatedState(onConsume)
+
+    val bringTimerToTop = {
+        if (!navController.popBackStack(TimerRoute, inclusive = false)) {
+            navController.navigate(TimerRoute) {
+                popUpTo<ShellRoute> { inclusive = false }
+                launchSingleTop = true
             }
-            handledRequest = request
-            currentOnDone(request)
         }
     }
-    return request != 0L && request != handledRequest
+    val giveWayToNewAlert = {
+        val playing = currentAlert
+        val above = navController.currentDestination?.isAboveShellAndTimer() == true
+        if (playing != null && above && playing != aboveAlert) bringTimerToTop()
+    }
+    LaunchedEffect(alert) { giveWayToNewAlert() }
+    // A defensive belt: the keyed effect above already sees a new alert after the background, because the
+    // collected key resumes with it. This also checks once on every resume, should that ever change.
+    LifecycleResumeEffect(Unit) {
+        giveWayToNewAlert()
+        onPauseOrDispose {}
+    }
+    LaunchedEffect(request) {
+        if (request != 0L && request != handledRequest) {
+            bringTimerToTop()
+            handledRequest = request
+            currentOnConsume(request)
+        }
+    }
+    return TimerFirst(
+        requestPending = request != 0L && request != handledRequest,
+        navigateAbove = { route, options ->
+            aboveAlert = currentAlert
+            navController.navigate(route, options)
+        },
+    )
 }
 
 /** Opened from a notification, the timer comes next: its dark background covers the shell until then. */
@@ -217,3 +295,6 @@ private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
 private class AnimatedTimer(val initial: NavBackStackEntry, val target: NavBackStackEntry)
 
 private fun NavBackStackEntry.isTimer(): Boolean = destination.hasRoute<TimerRoute>()
+
+/** A full-screen route above the shell or the timer: it gives way to a new alert (rule 8). */
+private fun NavDestination.isAboveShellAndTimer(): Boolean = !hasRoute<ShellRoute>() && !hasRoute<TimerRoute>()

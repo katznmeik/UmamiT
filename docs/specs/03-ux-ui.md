@@ -464,11 +464,12 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
 - At most one nudge card (knapper Vorrat, Backup, Katalog nie geladen).
 - Empty state: „Deine Sammlung ist leer" · *Katalog öffnen* · *Schnelltimer*.
+- Details (lists, row format, live countdown): [D-062](10-open-questions-and-decisions.md#d-062).
 
 ### SCR-03 Teeauswahl (bottom sheet)
 
-Search; sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned teas);
-footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*.
+Search (GEN-10); sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned teas);
+footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
 
 ### SCR-04 Brühen (setup)
 
@@ -493,7 +494,9 @@ footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*.
 ```
 
 „Rezept prüfen" badge with reason above the steps if flagged. *Bearb.* and
-the *Vorwarnung* row open the Schritte-Sheet (SCR-31).
+the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
+the ratio lock is a switch with the live ratio; at ≤ 10 °C the kettle hint reads „Kaltes Wasser" /
+„Eiswürfel" ([D-062](10-open-questions-and-decisions.md#d-062)).
 
 ### SCR-05 Timer
 

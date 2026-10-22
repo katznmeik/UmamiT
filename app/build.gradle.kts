@@ -41,8 +41,10 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.navigation.testing)
     testImplementation(libs.truth)
-    // Fake session repositories for the journal and the saved sheet in the shell tests (M1-16).
+    // Fake repositories and controller for the journal, the saved sheet (M1-16) and the Start and setup flows (M1-13).
     testImplementation(project(":core:testing"))
+    // Start on the real controller with an in-memory database (#47, BRW-11).
+    testImplementation(project(":core:database"))
 
     debugImplementation(libs.leakcanary.android)
 
