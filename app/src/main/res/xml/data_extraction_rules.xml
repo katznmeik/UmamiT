@@ -5,7 +5,8 @@
   DataStore settings. Nothing includes, so nothing backs up: catalog.db*
   (re-downloadable), filesDir/photos/ and filesDir/catalog/ (05 §8), caches,
   library databases such as LeakCanary's, and the no-backup storage with the
-  install marker whose absence marks a restore (active_brew is then cleared).
+  install marker whose absence marks a restore (active_brew is then cleared)
+  and the diagnostics log (06 §5.6).
   Keep in sync with backup_rules.xml (BackupRulesTest).
 -->
 <data-extraction-rules>

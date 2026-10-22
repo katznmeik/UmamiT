@@ -98,6 +98,22 @@ class BackupRulesTest {
         }
     }
 
+    @Test
+    fun `the diagnostics log is not backed up`() {
+        // DataModule keeps it in Context.noBackupFilesDir (06 §5.6), which the system never backs
+        // up; no rule may include it either way, nor the same log under filesDir.
+        val log = listOf(
+            "root" to "no_backup/diagnostics/diagnostics.log",
+            "root" to "no_backup/diagnostics/diagnostics.1.log",
+            "file" to "diagnostics/diagnostics.log",
+        )
+        allRuleSets().forEach { (kind, rules) ->
+            log.forEach { (domain, path) ->
+                assertWithMessage("$kind: $domain/$path").that(rules.backsUp(domain, path)).isFalse()
+            }
+        }
+    }
+
     private companion object {
         fun parse(path: String) = DocumentBuilderFactory.newInstance().apply { isNamespaceAware = false }
             .newDocumentBuilder()

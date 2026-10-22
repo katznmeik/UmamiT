@@ -1,7 +1,12 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.timer.alert.AlertConditions
+import com.umamit.core.timer.alert.AlertCue
+import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.diagnostics.PermissionStates
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -22,6 +27,9 @@ enum class EventSource {
 
     /** The AlertPlayer reporting the end of its cycle. */
     ALERT_PLAYER,
+
+    /** The controller's first turn in a process: `recover` from the persisted state (04 §7.2). */
+    RECOVERY,
 }
 
 /**
@@ -78,4 +86,55 @@ sealed interface TimerDiagnostic {
 
     /** The alert player reported the end of [alert], which is no longer the playing alert; ignored. */
     data class StaleAlertCompletion(override val at: ClockReading, val alert: StepAlert) : TimerDiagnostic
+
+    /**
+     * The persisted `active_brew` row is not a state `restore` accepts ([error]); it was
+     * cleared instead of running a wrong timer (04 §4, §7.2).
+     */
+    data class SnapshotUnreadable(override val at: ClockReading, val error: IllegalArgumentException) :
+        TimerDiagnostic
+
+    /**
+     * Reading the persisted state at process start failed ([error]); the controller stays
+     * idle for this turn and tries again in the next one (04 §7.2, D-057).
+     */
+    data class RecoveryFailed(override val at: ClockReading, val error: Throwable) : TimerDiagnostic
+
+    /**
+     * The alarm of [kind] could not be exact (`canScheduleExactAlarms()` false or a
+     * `SecurityException`) and was set inexact, allowed while idle; the reliability banner
+     * reads the same check (04 §6.2, TMR-31).
+     */
+    data class AlarmNotExact(override val at: ClockReading, val kind: TimerAlarmKind) : TimerDiagnostic
+
+    /**
+     * Android refused to start the foreground service, or to make it show notification
+     * [notificationId] in the foreground ([error], 04 §6.3); the notification was posted
+     * without the service until the next interaction or alarm.
+     */
+    data class ServiceStartRefused(override val at: ClockReading, val notificationId: Int, val error: Exception) :
+        TimerDiagnostic
+
+    /** The foreground service runs in the foreground with notification [notificationId] (04 §6.3). */
+    data class ServiceInForeground(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
+
+    /** The foreground service ended (stopped by the port or by itself). */
+    data class ServiceStopped(override val at: ClockReading) : TimerDiagnostic
+
+    /**
+     * The alert player started [cue] with the [conditions] it read (ringer mode, call, Do Not
+     * Disturb) and the [outputs] the ringer-mode matrix allowed then (04 §9.1, 06 §5.6), playing
+     * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14).
+     */
+    data class AlertPlayed(
+        override val at: ClockReading,
+        val cue: AlertCue,
+        val conditions: AlertConditions,
+        val outputs: AlertOutputs,
+        val tone: String,
+        val length: AlertLength,
+    ) : TimerDiagnostic
+
+    /** The process started with these permission [states] (06 §5.6, TMR-31). */
+    data class PermissionsAtStart(override val at: ClockReading, val states: PermissionStates) : TimerDiagnostic
 }

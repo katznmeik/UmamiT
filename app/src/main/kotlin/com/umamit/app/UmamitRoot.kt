@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.settings.SettingsScreen
+import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import kotlinx.coroutines.flow.StateFlow
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
@@ -40,6 +41,8 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
+ * @param diagnosticsScreen *Diagnose* opened from *Timer-Einstellungen*; tests replace it, the app uses
+ *   [DiagnosticsRoute].
  */
 @Composable
 internal fun UmamitRoot(
@@ -55,6 +58,7 @@ internal fun UmamitRoot(
         BrewTimerRoute(onClose = onClose, onAdjustBrew = onAdjust, onOpenTimerSettings = onSettings)
     },
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    diagnosticsScreen: @Composable (onBack: () -> Unit) -> Unit = { onBack -> DiagnosticsRoute(onBack = onBack) },
 ) {
     val navController = rememberNavController()
     val motion = UmamiTheme.motion
@@ -74,7 +78,10 @@ internal fun UmamitRoot(
     // Each new alert pops *Timer-Einstellungen* opened before it, once (rule 8). Checked on every new alert
     // and on resume, so an alert that started while the app was in the background is caught too.
     val popSettingsForNewAlert = {
-        val settingsOnTop = navController.currentDestination?.hasRoute<TimerSettingsRoute>() == true
+        // *Timer-Einstellungen* or *Diagnose* opened from it: everything above the timer goes (rule 8).
+        val settingsOnTop = navController.currentDestination?.let {
+            it.hasRoute<TimerSettingsRoute>() || it.hasRoute<DiagnosticsRoute>()
+        } == true
         val playing = currentAlert
         if (playing != null && settingsOnTop && playing != settingsAlert) {
             navController.popBackStack(TimerRoute, inclusive = false)
@@ -157,7 +164,13 @@ internal fun UmamitRoot(
                 },
             )
         }
-        composable<TimerSettingsRoute> { SettingsScreen(onBack = { navController.popBackStack() }) }
+        composable<TimerSettingsRoute> {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
+            )
+        }
+        composable<DiagnosticsRoute> { diagnosticsScreen { navController.popBackStack() } }
     }
 }
 

@@ -2,8 +2,12 @@ package com.umamit.core.timer.alert
 
 import android.content.Context
 import android.util.Log
+import com.umamit.core.common.ClockReading
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.UserSettings
+import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.controller.TimerDiagnostic
+import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -56,22 +60,31 @@ interface AlertTester {
  */
 @Singleton
 class AlertPlayback internal constructor(
-    environment: AlertEnvironment,
+    private val environment: AlertEnvironment,
     sound: AlertSoundOutput,
     haptics: AlertHaptics,
     scheduler: AlertScheduler,
     settings: Flow<UserSettings>,
     private val scope: CoroutineScope,
+    private val diagnostics: TimerDiagnosticsPort,
+    private val clock: () -> ClockReading,
 ) : AlertTester {
 
     @Inject
-    constructor(@ApplicationContext context: Context, settings: SettingsRepository) : this(
+    constructor(
+        @ApplicationContext context: Context,
+        settings: SettingsRepository,
+        diagnostics: TimerDiagnosticsPort,
+        clocks: TimerClocks,
+    ) : this(
         environment = AndroidAlertEnvironment(context),
         sound = MediaPlayerSoundOutput(context),
         haptics = VibratorHaptics(context),
         scheduler = HandlerAlertScheduler(),
         settings = settings.settings,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+        diagnostics = diagnostics,
+        clock = clocks::read,
     )
 
     private sealed interface Command {
@@ -139,11 +152,13 @@ class AlertPlayback internal constructor(
             Command.PreAlert -> {
                 current = settings()
                 player.playPreAlert()
+                logPlayed(AlertCue.PRE_ALERT)
             }
 
             is Command.Alert -> {
                 current = settings()
                 player.startAlert(onFinished = command.onFinished)
+                logPlayed(AlertCue.ALERT)
             }
 
             Command.Stop -> player.stopAlert()
@@ -151,9 +166,35 @@ class AlertPlayback internal constructor(
             Command.Test -> {
                 current = settings()
                 player.testAlert()
+                logPlayed(AlertCue.TEST)
             }
 
             Command.StopTest -> player.stopTestAlert()
+        }
+    }
+
+    /**
+     * Logs the ringer mode and the outputs of [cue] (06 §5.6), after the player has started
+     * it: the log never delays or stops an alert (rule 8).
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun logPlayed(cue: AlertCue) {
+        try {
+            val conditions = environment.conditions()
+            diagnostics.record(
+                TimerDiagnostic.AlertPlayed(
+                    at = clock(),
+                    cue = cue,
+                    conditions = conditions,
+                    outputs = AlertMatrix.outputs(conditions, current.vibration),
+                    tone = if (cue == AlertCue.PRE_ALERT) AlertSound.TICK.key else current.tone.key,
+                    length = current.length,
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Diagnostics of $cue lost", e)
         }
     }
 

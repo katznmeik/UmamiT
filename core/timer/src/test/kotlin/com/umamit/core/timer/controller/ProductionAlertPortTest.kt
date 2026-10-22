@@ -158,7 +158,16 @@ class ProductionAlertPortTest {
         playbackScope = CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler))
         h = ControllerHarness(alertPort = {
             ControllerAlertPort(
-                playback = AlertPlayback(environment, sound, haptics, scheduler, settings.settings, playbackScope),
+                playback = AlertPlayback(
+                    environment,
+                    sound,
+                    haptics,
+                    scheduler,
+                    settings.settings,
+                    playbackScope,
+                    diagnostics,
+                    clock::reading,
+                ),
                 controller = controllerProvider,
                 scope = reports,
             )

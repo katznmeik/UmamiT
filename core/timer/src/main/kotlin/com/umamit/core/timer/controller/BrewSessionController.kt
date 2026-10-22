@@ -57,9 +57,10 @@ data class BrewStart(
  * [state] is the UI state of the screens, the active brew bar and the
  * notifications.
  *
- * Recovery at process start comes with M1-09 part 3 (#46): it restores
- * `active_brew` and sends `recover` as the first turn. Until then the
- * controller starts in Idle.
+ * The first turn of every process recovers the persisted state before its
+ * own input (04 §7.2, D-057): a process an alarm started after the old one was
+ * killed (E3) handles that alarm on the recovered step. M1-09 part 3 (#46)
+ * adds the triggers at app start, after a reboot and an update.
  */
 @Singleton
 class BrewSessionController @Inject constructor(
@@ -69,12 +70,16 @@ class BrewSessionController @Inject constructor(
     transactions: DatabaseTransactions,
     private val settings: SettingsRepository,
     private val ports: TimerPorts,
-) {
+) : TimerInputs {
     private val lock = Mutex()
     private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
+    private val persistedTimer = PersistedTimer(activeBrew, sessions, effects)
 
     /** The engine state; read and written only inside [lock]. */
     private var timer: TimerState = TimerState.Idle
+
+    /** This process has read the persisted state and sent `recover` (04 §7.2); read and written inside [lock]. */
+    private var recovered = false
 
     /** The tea of the active session, for the UI and the notifications; read and written inside [lock]. */
     private var teaName: String? = null
@@ -129,7 +134,7 @@ class BrewSessionController @Inject constructor(
      * the time-based events), which throw [IllegalArgumentException]. Returns
      * the engine's outcome; a rejected or ignored event changes nothing (E5).
      */
-    suspend fun send(event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome {
+    override suspend fun send(event: TimerEvent, source: EventSource): TransitionOutcome {
         require(event in USER_EVENTS || event is TimerEvent.EditSteps) { "not a user event: $event" }
         return inTurn { handle(event, clocks.read(), source) }
     }
@@ -139,9 +144,13 @@ class BrewSessionController @Inject constructor(
      * time-based event due now is sent, not only the kind's own, so a late or
      * early alarm is harmless (04 §3.2 guards, §4).
      */
-    suspend fun onAlarm(kind: TimerAlarmKind) {
-        inTurn {
-            effects.record(TimerDiagnostic.AlarmReceived(clocks.read(), kind, scheduled(timer, kind)))
+    override suspend fun onAlarm(kind: TimerAlarmKind) {
+        inTurn { recoveredFrom ->
+            val now = clocks.read()
+            // An alarm that started the process was due in the state it recovered (06 §5.6).
+            effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled(recoveredFrom ?: timer, kind)))
+            // The persisted timer could not be read: the alarm comes again, in case it was the only one.
+            if (!recovered) effects.retryAlarm(kind, now)
             handleDue(EventSource.ALARM)
         }
     }
@@ -167,10 +176,30 @@ class BrewSessionController @Inject constructor(
      * One turn of the event lock (04 §4). Once it holds the lock, the turn
      * runs to its end even if the caller is cancelled (a screen that closes
      * right after *Abgegossen*): a transition half applied would leave the
-     * alert playing or the stored state behind (rule 8).
+     * alert playing or the stored state behind (rule 8). The first turn of
+     * the process recovers the persisted state before its own input; [block]
+     * gets the state it restored then, null in every other turn.
      */
-    private suspend fun <T> inTurn(block: suspend () -> T): T =
-        lock.withLock { withContext(NonCancellable) { block() } }
+    private suspend fun <T> inTurn(block: suspend (recoveredFrom: TimerState.Active?) -> T): T = lock.withLock {
+        withContext(NonCancellable) { block(recoverOnce()) }
+    }
+
+    /**
+     * Recovery on process start (04 §4, §7.2; D-048, D-057), inside the lock of
+     * the first turn: the persisted state is restored and `recover` applied
+     * once, so its alarms, service, notification and an unplayed alert come
+     * back. A read that fails is tried again in the next turn ([PersistedTimer]).
+     * Returns the restored state before `recover`, or null when this turn
+     * recovered nothing.
+     */
+    private suspend fun recoverOnce(): TimerState.Active? {
+        val persisted = if (recovered) null else persistedTimer.read(clocks.read())
+        if (persisted != null) recovered = true
+        return (persisted?.state as? TimerState.Active)?.also { restored ->
+            timer = restored
+            handle(TimerEvent.Recover, clocks.read(), EventSource.RECOVERY, startTeaName = persisted.teaName)
+        }
+    }
 
     /**
      * Every time-based event due now, in the engine's order (04 §4); one made
@@ -216,12 +245,17 @@ class BrewSessionController @Inject constructor(
     /**
      * Arms the wake-up for the earliest due time of the current state, or
      * disarms it when nothing is due; only from a state of the current boot
-     * (04 §4: after `recover`).
+     * (04 §4: after `recover`). While the persisted state could not be read,
+     * it comes back to read it again (D-057).
      */
     private fun rearmWakeUp() {
         val now = clocks.read()
         val active = (timer as? TimerState.Active)?.takeIf { it.session.bootCount == now.bootCount }
-        val delay = nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+        val delay = if (recovered) {
+            nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+        } else {
+            TransitionEffects.RETRY_DELAY_MS
+        }
         if (delay == null) ports.wakeUp.cancel() else ports.wakeUp.arm(delay) { wakeUp() }
     }
 

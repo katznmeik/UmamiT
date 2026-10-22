@@ -62,6 +62,7 @@ class TimerNavigationTest {
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
                         }
                     },
+                    diagnosticsScreen = { Text("DIAGNOSE-LOG") },
                 )
             }
         }
@@ -127,6 +128,21 @@ class TimerNavigationTest {
         alert("A")
         advanceFrames()
 
+        assertTimerOnTop()
+    }
+
+    @Test
+    fun `the alert pops Diagnose opened from Timer-Einstellungen back to the timer at once`() {
+        show()
+        openSettingsFromTimer()
+        compose.onNodeWithText("Diagnose").performClick()
+        compose.onNodeWithText("DIAGNOSE-LOG").assertIsDisplayed()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("DIAGNOSE-LOG").assertDoesNotExist()
         assertTimerOnTop()
     }
 
