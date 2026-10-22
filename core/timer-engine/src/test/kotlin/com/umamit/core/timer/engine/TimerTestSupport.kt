@@ -65,7 +65,7 @@ class EngineDriver(val clocks: VirtualClocks = VirtualClocks(), var state: Timer
 
 const val SESSION_ID = "session-1"
 val BREW = SessionKind.Brew(SESSION_ID)
-val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, recipeSeconds = null, globalSeconds = 10)
+val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 10)
 
 /** `ScheduleAlarms` with nothing due: every alarm cancelled. */
 val NO_ALARMS = TimerEffect.ScheduleAlarms(DueTimes.NONE)

@@ -124,14 +124,8 @@ private fun moveOn(
     leaveEffects: List<TimerEffect>,
 ): TimerTransition {
     val session = state.session.touched(now).withStep(state.stepIndex) { it.copy(status = status, record = record) }
-    val next = session.steps.indexOfFirst { it.status == StepStatus.PENDING }
-    val nextState = if (next >= 0) {
-        TimerState.Ready(session, next, readySinceWallMs = now.wallMs)
-    } else {
-        TimerState.Finished(session, readySinceWallMs = now.wallMs)
-    }
     return accepted(
-        nextState,
+        waitingFor(session, readySinceWallMs = now.wallMs),
         data = listOfNotNull(session.brewSessionId?.let { RecordStep(it, state.stepIndex, record) }),
         side = leaveEffects + UpdateNotification,
     )

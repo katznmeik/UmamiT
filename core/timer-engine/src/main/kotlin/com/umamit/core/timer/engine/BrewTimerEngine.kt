@@ -22,11 +22,17 @@ sealed interface TransitionOutcome {
     data class Rejected(val reason: RejectionReason) : TransitionOutcome
 }
 
-/** Why an event was refused. #32 adds the `editSteps` refusals. */
+/** Why an event was refused. */
 sealed interface RejectionReason {
 
     /** A session or quick timer is already [active] (GEN-03, TMR-21: „Erst die … -Sitzung beenden?"). */
     data class ActiveTimerExists(val active: SessionKind) : RejectionReason
+
+    /** `editSteps` would change, remove or reorder a started or ended step (SCR-31). */
+    data object StartedStepChanged : RejectionReason
+
+    /** `editSteps` would leave the session without a non-rinse step (PRF-04). */
+    data object NoBrewStepLeft : RejectionReason
 }
 
 /**
@@ -56,12 +62,12 @@ object BrewTimerEngine {
      */
     fun reduce(state: TimerState, event: TimerEvent, now: ClockReading): TimerTransition {
         val transition = when (state) {
-            TimerState.Idle -> if (event is TimerEvent.StartSession) startSession(event, now) else null
-            is TimerState.Ready -> onReady(state, event, now)
-            is TimerState.Running -> onRunning(state, event, now)
-            is TimerState.Paused -> onPaused(state, event, now)
-            is TimerState.Alerting -> onAlerting(state, event, now)
-            is TimerState.Finished -> onSessionEvent(state, event, now)
+            TimerState.Idle -> onIdle(event, now)
+
+            is TimerState.Active -> onStepEvent(state, event, now) ?: when (state.session.kind) {
+                is SessionKind.Brew -> onBrewEvent(state, event, now)
+                SessionKind.Quick -> onQuickEvent(state, event, now)
+            }
         }
         return transition ?: notAccepted(state, event)
     }
@@ -80,7 +86,16 @@ object BrewTimerEngine {
      * completed (a started step counts as completed). The UI confirms such a
      * finish first (TMR-12 AC1).
      */
-    fun finishWouldDiscard(state: TimerState): Boolean = state is TimerState.Active && !finishCompletes(state)
+    fun finishWouldDiscard(state: TimerState): Boolean =
+        state is TimerState.Active && state.session.kind is SessionKind.Brew && !finishCompletes(state)
+
+    /**
+     * The step *Weiterer Aufguss* appends to [plan] (TMR-10): the last non-rinse
+     * step's kind and temperature, 1.5 × its duration rounded half up to 5 s
+     * below 10 min and to whole minutes from 10 min on, within 5 s – 24 h.
+     * The Schritte-Sheet uses it for *Aufguss hinzufügen*.
+     */
+    fun defaultAddedStep(plan: List<PlannedStep>): PlannedStep = defaultAddedStepOf(plan)
 
     /**
      * The display values of [state] at [now]; null in Idle. Remaining time is
@@ -97,51 +112,64 @@ object BrewTimerEngine {
         is TimerState.Finished -> TimerDisplay(0, 0)
     }
 
-    private fun onReady(state: TimerState.Ready, event: TimerEvent, now: ClockReading) = when (event) {
-        TimerEvent.Start -> start(state, now)
-        TimerEvent.SkipStep -> skipStep(state, now)
-        else -> onSessionEvent(state, event, now)
+    private fun onIdle(event: TimerEvent, now: ClockReading) = when (event) {
+        is TimerEvent.StartSession -> startSession(event, now)
+        is TimerEvent.StartQuickTimer -> startQuickTimer(event, now)
+        else -> null
     }
 
-    private fun onRunning(state: TimerState.Running, event: TimerEvent, now: ClockReading) = when (event) {
-        TimerEvent.Pause -> if (now.elapsedMs < state.deadlineElapsedMs) pause(state, now) else null
+    /** The step lifecycle events a brew session and the quick timer share (04 §3.2, §10). */
+    private fun onStepEvent(state: TimerState.Active, event: TimerEvent, now: ClockReading) = when (state) {
+        is TimerState.Ready -> if (event == TimerEvent.Start) start(state, now) else null
 
-        TimerEvent.DeadlineReached -> if (isDue(
-                dueTimes(state).deadlineElapsedMs,
-                now,
-            )
+        is TimerState.Running -> onRunning(state, event, now)
+
+        is TimerState.Paused -> if (event == TimerEvent.Resume) resume(state, now) else null
+
+        is TimerState.Alerting -> if (event == TimerEvent.AlertCompleted &&
+            !state.alertPlayed
         ) {
-            deadlineReached(state)
+            alertCompleted(state)
         } else {
             null
         }
 
-        TimerEvent.EndStepNow -> endStepNow(state, now)
-
-        else -> onSessionEvent(state, event, now)
+        is TimerState.Finished -> null
     }
 
-    private fun onPaused(state: TimerState.Paused, event: TimerEvent, now: ClockReading) = when (event) {
-        TimerEvent.Resume -> resume(state, now)
-        TimerEvent.EndStepNow -> endStepNow(state, now)
-        else -> onSessionEvent(state, event, now)
+    /** Pause only before the deadline, the deadline only when due, so the alert is never lost or early. */
+    private fun onRunning(state: TimerState.Running, event: TimerEvent, now: ClockReading) = when {
+        event == TimerEvent.Pause && now.elapsedMs < state.deadlineElapsedMs -> pause(state, now)
+        event == TimerEvent.DeadlineReached && isDue(dueTimesOf(state).deadlineElapsedMs, now) -> deadlineReached(state)
+        else -> null
     }
 
-    private fun onAlerting(state: TimerState.Alerting, event: TimerEvent, now: ClockReading) = when (event) {
-        TimerEvent.Poured -> poured(state, now)
-        TimerEvent.AlertCompleted -> if (state.alertPlayed) null else alertCompleted(state)
-        else -> onSessionEvent(state, event, now)
-    }
+    /** The events only a brew session has. */
+    private fun onBrewEvent(state: TimerState.Active, event: TimerEvent, now: ClockReading) = when (event) {
+        TimerEvent.SkipStep -> (state as? TimerState.Ready)?.let { skipStep(it, now) }
 
-    /** The events every active state allows. */
-    private fun onSessionEvent(state: TimerState.Active, event: TimerEvent, now: ClockReading) = when (event) {
+        TimerEvent.EndStepNow -> when (state) {
+            is TimerState.Running -> endStepNow(state, now)
+            is TimerState.Paused -> endStepNow(state, now)
+            else -> null
+        }
+
+        TimerEvent.Poured -> (state as? TimerState.Alerting)?.let { poured(it, now) }
+
         TimerEvent.FinishSession -> finishSession(state, now)
+
         TimerEvent.Discard -> discard(state)
+
+        TimerEvent.AddStep -> addStep(state, now)
+
+        is TimerEvent.EditSteps -> editSteps(state, event, now)
+
         else -> null
     }
 
     private fun notAccepted(state: TimerState, event: TimerEvent): TimerTransition {
-        val outcome = if (event is TimerEvent.StartSession && state is TimerState.Active) {
+        val isStart = event is TimerEvent.StartSession || event is TimerEvent.StartQuickTimer
+        val outcome = if (isStart && state is TimerState.Active) {
             TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(state.session.kind))
         } else {
             TransitionOutcome.Ignored

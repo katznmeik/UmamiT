@@ -25,6 +25,14 @@ sealed interface TimerEvent {
         }
     }
 
+    /**
+     * *Schnelltimer* (TMR-22, 04 §10), only in Idle (else rejected with
+     * [RejectionReason.ActiveTimerExists]): one INFUSION step of
+     * [durationSeconds] with the global pre-alert [globalPreAlertSeconds];
+     * nothing is recorded.
+     */
+    data class StartQuickTimer(val durationSeconds: Int, val globalPreAlertSeconds: Int) : TimerEvent
+
     /** *Start*: the water is in; the countdown begins (Ready). */
     data object Start : TimerEvent
 
@@ -61,4 +69,30 @@ sealed interface TimerEvent {
 
     /** Discard the session (any active state; TMR-13). */
     data object Discard : TimerEvent
+
+    /** *Abbrechen* of the quick timer (Ready, Running, Paused; 04 §10): ends it, nothing recorded. */
+    data object Cancel : TimerEvent
+
+    /**
+     * The quick timer waited 30 min in Ready or Paused without an interaction
+     * (04 §10; due at [DueTimes.quickCancelAtWallMs]): ends it like [Cancel].
+     */
+    data object QuickTimerTimeout : TimerEvent
+
+    /**
+     * *Weiterer Aufguss* (any active state of a brew session; TMR-10): appends
+     * [BrewTimerEngine.defaultAddedStep]; from Finished the session waits in
+     * Ready for it.
+     */
+    data object AddStep : TimerEvent
+
+    /**
+     * *Fertig* in the Schritte-Sheet (any active state of a brew session;
+     * TMR-11, SCR-31): the whole plan [steps] and the session's [preAlert]
+     * choice. Only the pending steps may differ from the current plan; a
+     * request that changes, removes or reorders a started or ended step is
+     * rejected with [RejectionReason.StartedStepChanged], one without a
+     * non-rinse step with [RejectionReason.NoBrewStepLeft].
+     */
+    data class EditSteps(val steps: List<PlannedStep>, val preAlert: PreAlertChoice) : TimerEvent
 }
