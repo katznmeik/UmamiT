@@ -47,4 +47,11 @@
     <!-- ReliabilityBanner -->
     <string name="ds_reliability_fix">Beheben</string>
     <string name="ds_reliability_description">Warnung: %1$s</string>
+
+    <!-- TimerRing -->
+    <string name="ds_timer_remaining_description">noch %1$s</string>
+
+    <!-- ActiveBrewBar -->
+    <string name="ds_active_brew_description">Laufender Aufguss: %1$s, %2$s, noch %3$s. Zum Timer</string>
+    <string name="ds_active_brew_description_no_step">Laufender Timer: %1$s, noch %2$s. Zum Timer</string>
 </resources>

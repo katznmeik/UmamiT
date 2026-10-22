@@ -21,7 +21,7 @@ class TestDatabase(now: Long = 1_000L) {
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UmamiDatabase::class.java)
         .allowMainThreadQueries()
         .build()
-    private val time = object : WallClock {
+    val time = object : WallClock {
         override fun nowMs(): Long = now
 
         override fun zone(): ZoneId = ZoneOffset.UTC
