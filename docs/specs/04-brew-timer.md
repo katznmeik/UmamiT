@@ -1,7 +1,7 @@
 # 04 · Brew Timer Specification
 
 > Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
-> recovery and snapshot, D-048)
+> recovery and snapshot, D-048; time rules and service contract, D-053)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -82,21 +82,21 @@ stateDiagram-v2
 | Event | Allowed in | Effect |
 |---|---|---|
 | `startSession(teaId?, recipeSnapshot)` | Idle | Create IN_PROGRESS session + planned steps → `Ready(0)`. |
-| `start` | Ready | `deadline = now + planned`; `preAlertAt = deadline − N` if applicable (TMR-23) → Running. Schedule exact alarms (§6.2). |
-| `pause` | Running | `remaining = deadline − now` → Paused; cancel alarms; release wake lock. |
-| `resume` | Paused | `deadline = now + remaining`; recompute `preAlertAt` (skip if already passed) → Running; reschedule alarms. |
+| `start` | Ready | `deadline = now + planned`; `preAlertAt = deadline − N` if applicable (TMR-23) → Running. Schedule exact alarms (§6.2). A short step ensures the FGS, a long step stops it (§6.1, D-053). |
+| `pause` | Running | `remaining = deadline − now` → Paused; cancel alarms; release wake lock. A paused long step gets the FGS back. |
+| `resume` | Paused | `deadline = now + remaining`; recompute `preAlertAt`: a played one is not repeated, an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` (E6) → Running; reschedule alarms. FGS as for `start`. |
 | `preAlertReached` | Running, when the pre-alert is due | Play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. A due pre-alert is never ignored: too close to or past the deadline it sets `preAlertPlayed` without `PlayPreAlert`, so its due time is consumed and no tick sounds at or after the deadline (D-048). |
-| `deadlineReached` | Running | → Alerting; start alert. Ignored in other states. |
+| `deadlineReached` | Running | → Alerting; ensure the FGS, then start the alert. At or after deadline + 10 min it applies `overtimeTimeout` instead, without an alert, as recovery does (D-053). Ignored in other states. |
 | `endStepNow` | Running, Paused | Record actual = active elapsed; → next Ready or Finished. No alert. |
 | `poured` | Alerting | Stop alert; record actual incl. overtime; → next Ready or Finished. |
-| `overtimeTimeout` | Alerting, 10 min after deadline | As `poured`, but actual = planned and overtime = 0 (assume poured on time); flag `overtimeAutoAck`. |
+| `overtimeTimeout` | Alerting, 10 min after deadline (`dueTimes.overtimeTimeoutAt`) | As `poured`, but actual = planned, overtime = 0 and `endedAt` = the deadline's wall time (assume poured on time); flag `overtimeAutoAck`. Not an interaction; silent. A quick timer ends. A `poured`, `endStepNow` or `finishSession` at or after deadline + 10 min records the same auto-ack (D-053). |
 | `skipStep` | Ready | Mark skipped → next Ready or Finished. |
 | `addStep` | any except Idle | *Weiterer Aufguss* (TMR-10): append `defaultAddedStep(plan)` — the last non-rinse step's kind and temperature, 1.5 × its duration rounded half up to 5 s below 10 min and to whole minutes from 10 min on, within 5 s – 24 h; if Finished → `Ready(new)`. |
 | `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. Session-only unless *Im Rezept speichern*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
-| `idleDemote` | Ready, Paused, Finished; 30 min without interaction | No state change: stop the foreground service, demote the Live Update to a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any interaction restarts the FGS (notification action exemption). |
-| `midnightTimeout` | Ready, Paused, Finished; the first local midnight at least 6 h after the last interaction (`last_interaction_wall_ms`; inexact alarm, also checked on recovery §7.2) | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise discarded silently. |
+| `idleDemote` | Ready, Paused, Finished of a brew session, not yet demoted; 30 min after it became idle (`dueTimes.idleDemoteAt`) | Sets `demoted`, no other change: `StopForeground`, then the Live Update is posted again as a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any user event clears `demoted` and ensures the FGS (notification action exemption; D-053). |
+| `midnightTimeout` | Ready, Paused, Finished of a brew session, demoted or not; the first local midnight in the session's zone at least 6 h after it became idle (`dueTimes.midnightAt`; inexact alarm, also checked on recovery §7.2) | As `finishSession` without confirmation: if ≥ 1 non-rinse step completed (a paused step counts), COMPLETED with the notification „Sitzung gespeichert" (`NotifySessionSaved`, no saved sheet); otherwise discarded silently. A paused step ends where its pause began; the open pause is not recorded. Not an interaction. |
 | `recover` | any except Idle | Sent once on every process start with the persisted state (§7.2). Not an interaction. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
@@ -126,6 +126,14 @@ Engine rules (D-047):
 - **Finish fallback.** A `finishSession` that falls back to discard records
   nothing; a started step counts as completed. The UI asks
   `finishWouldDiscard(state)` before it confirms.
+- **Idle time (D-053).** A waiting state is idle since its last interaction
+  or since it started waiting (`readySince`, `pausedSince`), whichever is
+  later; idle demote and the midnight rule count from there, on the wall
+  clock. So a step ended by the overtime timeout, which is not an
+  interaction, starts a new idle period.
+- **Time-based events** (`preAlertReached`, `deadlineReached`,
+  `overtimeTimeout`, `idleDemote`, `midnightTimeout`, `quickTimerTimeout`) are
+  not interactions. Every user event updates `last_interaction_wall_ms`.
 
 ## 4. Components
 
@@ -150,7 +158,7 @@ flowchart LR
     `DiscardSession`;
   - `Persist`, `ScheduleAlarms`;
   - side effects: `PlayPreAlert`, `StartAlert`, `StopAlert`, `StartForeground`,
-    `StopForeground`, `UpdateNotification`, `ShowSavedSheet`.
+    `StopForeground`, `UpdateNotification`, `ShowSavedSheet`, `NotifySessionSaved`.
 - **Effect order (D-047).** Every accepted transition lists, in this order:
   1. its data effects;
   2. exactly one `Persist` (steps 1 and 2 run in one Room transaction);
@@ -174,10 +182,22 @@ flowchart LR
   playing": if it already plays for that step, nothing restarts. So a
   `deadlineReached` and a `recover` (or two `recover`s) that both ask for it
   give one alert (D-048).
-- **Foreground service.** `StartForeground` means "ensure it runs"; it is
-  emitted at `startSession`, `startQuickTimer`, `recover` and before `StartAlert`. `StopForeground` also
-  removes the timer notifications. The full service rules for long steps,
-  demote and recovery come with #31.
+- **Foreground service (D-053).** `StartForeground` means "ensure it runs";
+  `StopForeground` stops it and removes notifications 1 and 2, also when they
+  were posted without the service. Every active state runs with the service
+  except a demoted session and a long running step. So:
+  - `startSession`, `startQuickTimer`, and `start`/`resume` of a short step
+    emit `StartForeground`; `start`/`resume` of a long step emit
+    `StopForeground`;
+  - `deadlineReached` emits `StartForeground` before `StartAlert`;
+  - `idleDemote` and every transition to Idle emit `StopForeground`; a
+    transition to Idle never emits `UpdateNotification`;
+  - any other transition from a state without the service to one with it
+    (a user event on a demoted session, pausing or ending a long step) adds
+    `StartForeground`;
+  - `recover` emits `StartForeground` only where the state needs it.
+  `UpdateNotification` posts the Live Update while the service runs and a
+  regular ongoing notification while demoted or during a long step.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
   executes effects, exposes `StateFlow<TimerUiState>`.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
@@ -202,7 +222,12 @@ flowchart LR
   if N = 0, if planned < N + 5 s, for rinse steps < 15 s, or for long steps
   (≥ 10 min). `startSession` freezes recipe ?: global as the inherited value,
   so a later change of the recipe or the setting never changes an active
-  session; *Wie Einstellung* clears the session override (D-048).
+  session; *Wie Einstellung* clears the session override (D-048). `resume`
+  and `editSteps` recompute an unplayed pre-alert of the running step from its
+  deadline and the current N, and skip it when that time is not after now; a
+  played one never comes back. A due `preAlertReached` plays the tick while at
+  least **1 s** is left before the deadline and only marks it played after
+  that (D-053).
 
 ### 5.1 Recorded step data
 
@@ -231,7 +256,7 @@ rules (D-047):
 | Situation | Mechanisms (all active together) |
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
-| Long step RUNNING (≥ 10 min) | Exact alarm for deadline only (no pre-alert tick for cold brew) · Live Update notification without foreground service · no wake lock |
+| Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick) · regular ongoing notification „Fertig um 14:30" (`longStepEndWallMs`) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
 | READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart, recovery tries to restart the FGS immediately (§6.3); if Android refuses, a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
 
@@ -302,14 +327,19 @@ alert or a pause start after now, more than the planned time left) is
 treated as a reboot. The bounds catch a wall clock set back across the
 reboot; a wall clock set forward cannot be told apart from a longer time off,
 so the step counts as longer off and past 10 min is auto-acknowledged
-(accepted limit, D-048). Every row emits
-`StartForeground` (an attempt, §6.3) and `UpdateNotification`; the timeout
-rows are silent (no `StartAlert`, no saved sheet).
+(accepted limit, D-048). Every row that keeps the session emits
+`UpdateNotification` and, unless the session is demoted or a long step is
+running, `StartForeground` (an attempt, §6.3); the timeout rows are silent
+(no `StartAlert`, no saved sheet). A waiting session applies the timeouts that
+came while the process was dead in this order: quick-timer cancel, midnight,
+idle demote (D-053).
 
 | Persisted phase | Behaviour (same boot uses monotonic values; after reboot wall-clock values) |
 |---|---|
 | READY / PAUSED / FINISHED | Restore; try to restart the FGS now (§6.3), else re-post a plain ongoing notification and restart the FGS on the next interaction. |
-| READY / PAUSED / FINISHED, local date changed past the midnight threshold (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged). Added with the midnight rule (#31). |
+| READY / PAUSED / FINISHED, past the midnight timeout (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged), also after a reboot (wall clock). |
+| READY / PAUSED / FINISHED, demoted or idle for 30 min | Restored without the FGS: a regular ongoing notification; a not yet demoted session is demoted now (`StopForeground`). |
+| RUNNING long step, deadline in future | Restored without the FGS (§6.1); the deadline alarm restarts it for the alert. |
 | RUNNING, deadline in future | Restore; reschedule alarms from `dueTimes`; try to restart the FGS (§6.3). An unplayed pre-alert stays due even if its time has passed, so a pre-alert alarm that restarted the process still reaches `preAlertReached`, whose rules decide whether a late tick plays. |
 | RUNNING/ALERTING, deadline passed < 10 min ago | → ALERTING with overtime; `StartAlert` while `alertPlayed` is false (at-least-once). |
 | RUNNING/ALERTING, deadline passed ≥ 10 min ago | `overtimeTimeout` applied silently: poured on time with `overtimeAutoAck`, ended at the deadline's wall time. A quick timer just ends. |
@@ -367,6 +397,9 @@ away, including the FGS restart attempt.
 
 Content intent → SCR-05; actions → non-exported receiver → controller.
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
+Going to Idle removes notifications 1 and 2 through `StopForeground`, whether
+or not the service runs; the midnight timeout's „Sitzung gespeichert" is
+notification 3 (`NotifySessionSaved`, D-053).
 
 **While ALERTING the alert (ID 2) is the app's only notification of
 importance DEFAULT or higher (D-044):** it replaces the Live Update as the
@@ -485,7 +518,11 @@ INFUSION step and these differences:
 | `poured` (button *Fertig*) | Alerting | → Idle |
 | `cancel` (*Abbrechen*, overflow and notification) | Ready, Running, Paused | → Idle, nothing recorded |
 | `quickTimerTimeout` | Ready, Paused; 30 min after the last interaction (`dueTimes.quickCancelAt`, wall clock) | → Idle, nothing recorded |
+| `overtimeTimeout` | Alerting, 10 min after the deadline | → Idle, nothing recorded |
 | `recover` | any | as §7.2; after 10 min of overtime → Idle |
+
+The quick timer has no idle demote and no midnight timeout: its 30-min cancel
+comes first (D-053).
 
 `startQuickTimer(duration, globalPreAlert)` starts it in Ready; a duration
 outside 5 s – 24 h or a pre-alert other than 0 or 5–30 s is rejected as
@@ -523,7 +560,7 @@ Uses the global pre-alert, the same alert and the Live Update
 
 | Level | Tests |
 |---|---|
-| Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts. |
+| Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; the foreground-service contract (seeded invariant test). |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
 | Instrumented (CI emulator job, API 35 and 36) | Process death (`am kill`) during a step; alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |

@@ -245,7 +245,9 @@ current step of RUNNING/PAUSED/ALERTING is started, all others are pending.
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
-the state (D-048).
+the state (D-048). Whether every step is a long step (cold or ice brew) is not
+a column either: the controller passes it to `restore` from
+`brew_session.method` (`TimerSnapshot.longStepsOnly`, D-053).
 
 ## 4. Catalog tables (rebuilt by each refresh)
 
