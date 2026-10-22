@@ -41,13 +41,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -56,7 +56,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.KettleHint
 import com.umamit.core.designsystem.component.PillButton
@@ -84,18 +83,29 @@ private val TimerPillMinWidth = 200.dp
 private val OvertimeDotSize = 10.dp
 private const val PAUSED_RING_ALPHA = 0.6f
 private const val PHOTO_FADE_START = 0.35f
+private const val PLACEHOLDER_TEMPERATURE = 100
+private const val PLACEHOLDER_STEP = 10
+private const val PLACEHOLDER_SECONDS = 600
+
+/** What the timer's body shows; one value, so the body can move between the two surfaces. */
+internal class TimerBodyArgs(
+    val state: TimerUiState.Active,
+    val now: Long,
+    val nowElapsedMs: () -> Long,
+    val overlays: TimerOverlays,
+    val actions: TimerActions,
+    val reliabilityProblem: Boolean,
+    val onFixReliability: () -> Unit,
+    val teaPhoto: Painter?,
+)
 
 @Composable
-internal fun TimerBody(
-    state: TimerUiState.Active,
-    now: Long,
-    nowElapsedMs: () -> Long,
-    overlays: TimerOverlays,
-    actions: TimerActions,
-    reliabilityProblem: Boolean,
-    onFixReliability: () -> Unit,
-    teaPhoto: Painter?,
-) {
+internal fun TimerBody(args: TimerBodyArgs) {
+    val state = args.state
+    val now = args.now
+    val overlays = args.overlays
+    val actions = args.actions
+    val teaPhoto = args.teaPhoto
     Box(modifier = Modifier.fillMaxSize()) {
         // No photo on the alert surface, but its space stays, so nothing moves when the alert starts.
         if (teaPhoto != null && !state.alerting) TeaPhoto(teaPhoto)
@@ -111,20 +121,21 @@ internal fun TimerBody(
             if (teaPhoto != null) Spacer(Modifier.height(PhotoOverlap))
             TimerHeader(state)
             Spacer(Modifier.height(UmamiSpacing.Large))
-            TimerRingArea(state, now, nowElapsedMs, actions)
+            TimerRingArea(state, now, args.nowElapsedMs, actions)
             Spacer(Modifier.height(UmamiSpacing.Medium))
             // One fixed slot for the kettle hint and the overtime: the pill below never moves under the
             // finger, not at *Start*, not when the alert starts, not when the overtime turns large.
-            Box(modifier = Modifier.heightIn(min = belowRingMinHeight()), contentAlignment = Alignment.Center) {
+            Box(contentAlignment = Alignment.Center) {
+                BelowRingSpace()
                 TimerBelowRing(state, now)
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerControls(state, actions)
             // Below the controls, so it never moves them; hidden during the alert.
-            if (reliabilityProblem && !state.alerting) {
+            if (args.reliabilityProblem && !state.alerting) {
                 ReliabilityBanner(
                     message = stringResource(R.string.brew_timer_reliability),
-                    onFix = onFixReliability,
+                    onFix = args.onFixReliability,
                     modifier = Modifier.padding(
                         top = UmamiSpacing.Large,
                         start = UmamiSpacing.SideMargin,
@@ -136,11 +147,30 @@ internal fun TimerBody(
     }
 }
 
-/** The height of the slot below the ring: two lines of the kettle hint or one line of the large overtime. */
+/**
+ * Invisible copies of the slot's two tallest contents, a two-line kettle hint
+ * and the large overtime: the slot is as tall as they are at any font scale,
+ * so the pill below never moves (D-058).
+ */
 @Composable
-private fun belowRingMinHeight(): Dp = with(LocalDensity.current) {
-    val typography = MaterialTheme.typography
-    maxOf(typography.headlineMedium.lineHeight.toDp(), (typography.bodyLarge.lineHeight * 2).toDp())
+private fun BelowRingSpace() {
+    Box(
+        modifier = Modifier
+            .alpha(0f)
+            .clearAndSetSemantics {},
+        contentAlignment = Alignment.Center,
+    ) {
+        KettleHint(
+            temperatureCelsius = PLACEHOLDER_TEMPERATURE,
+            detail = stringResource(
+                R.string.brew_timer_ready_detail,
+                stringResource(R.string.brew_steps_kind_infusion),
+                PLACEHOLDER_STEP,
+                clockText(PLACEHOLDER_SECONDS),
+            ),
+        )
+        Overtime(PLACEHOLDER_SECONDS)
+    }
 }
 
 /** The tea photo at the top, fading into the background (SCR-05). Decorative: the title names the tea. */
@@ -182,7 +212,7 @@ private fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, act
             }
             // Not composed once the alert hides it: Material's menu would otherwise keep its popup for the
             // exit animation over the first frames of the alert (rule 8). A normal close still animates.
-            if (overlays.menuShown || !overlays.alerting) {
+            if (overlays.menuComposable) {
                 DropdownMenu(expanded = overlays.menuShown, onDismissRequest = { overlays.menuOpen = false }) {
                     state.menuItems().forEach { item ->
                         DropdownMenuItem(text = { Text(stringResource(item.label)) }, onClick = { actions.menu(item) })

@@ -28,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -44,7 +45,8 @@ class TimerScreenLayoutTest {
 
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready())
 
-    private fun show(initial: TimerUiState.Active) {
+    private fun show(initial: TimerUiState.Active, fontScale: Float = 1f) {
+        RuntimeEnvironment.setFontScale(fontScale)
         state = initial
         val start = compose.mainClock.currentTime
         compose.setContent {
@@ -66,8 +68,13 @@ class TimerScreenLayoutTest {
     private fun top(text: String): Dp = compose.onNodeWithText(text).getUnclippedBoundsInRoot().top
 
     @Test
-    fun `the pill does not move at Start, at the alert, nor when the overtime turns large`() {
-        show(TimerStates.ready())
+    fun `the pill does not move at Start, at the alert, nor when the overtime turns large`() = pillStaysPut(1f)
+
+    @Test
+    fun `the pill does not move at font scale 2_0 either (non-linear font scaling)`() = pillStaysPut(2f)
+
+    private fun pillStaysPut(fontScale: Float) {
+        show(TimerStates.ready(), fontScale)
         val ready = top("Start")
 
         state = TimerStates.running()

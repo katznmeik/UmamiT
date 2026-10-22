@@ -80,6 +80,15 @@ const val PROMINENT_OVERTIME_SECONDS = 15L
 /** A long step's ring and fill move only this often (03 §3.6 `longStepGlide`). */
 const val LONG_STEP_UPDATE_MS = 10_000L
 
+/**
+ * The identity of the alert playing now (the step and its deadline), or null
+ * when none plays. Each alert has its own: an overlay or a route opened during
+ * one alert never stays over the next (rule 8, D-058).
+ */
+fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { it.alerting }?.let {
+    "${it.sessionId ?: "quick"}:${it.stepIndex}:${it.deadlineWallMs}"
+}
+
 /** RUNNING: the pre-alert time has come, or its tick played; the caption reads „Gleich fertig …" (TMR-23). */
 fun TimerUiState.Active.preAlertReached(nowElapsedMs: Long): Boolean = phase == TimerPhase.RUNNING &&
     (preAlertPlayed || preAlertAtElapsedMs?.let { nowElapsedMs >= it } == true)

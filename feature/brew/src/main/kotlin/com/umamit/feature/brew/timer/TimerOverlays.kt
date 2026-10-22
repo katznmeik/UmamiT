@@ -42,61 +42,63 @@ internal enum class TimerConfirmation {
 }
 
 /**
- * The menu, the question and the Schritte-Sheet of the timer. A menu or a
- * question opened before the alert is hidden at once when the alert starts
- * (rule 8); one opened during the alert stays. The sheet never shows while
- * alerting (D-051). All of it survives a configuration change (GEN-07).
+ * The menu, the question and the Schritte-Sheet of the timer. Each menu or
+ * question remembers the alert it was opened in ([alertKey]); it shows only
+ * while no alert plays or while that same alert plays, so whatever was opened
+ * before an alert, or during an earlier one, never covers it (rule 8, D-058).
+ * The sheet never shows while alerting (D-051). All of it survives a
+ * configuration change (GEN-07).
  */
 internal class TimerOverlays {
-    var alerting by mutableStateOf(false)
+    /** The alert playing now, or null; set by the screen in each composition. */
+    var currentAlert by mutableStateOf<String?>(null)
     var menuOpen by mutableStateOf(false)
-    var menuOpenedAlerting by mutableStateOf(false)
+    var menuAlert by mutableStateOf<String?>(null)
     var confirmation by mutableStateOf<TimerConfirmation?>(null)
-    var confirmationOpenedAlerting by mutableStateOf(false)
+    var confirmationAlert by mutableStateOf<String?>(null)
     var stepsOpen by mutableStateOf(false)
 
-    val menuShown: Boolean get() = menuOpen && (!alerting || menuOpenedAlerting)
-    val confirmationShown: Boolean get() = confirmation != null && (!alerting || confirmationOpenedAlerting)
+    private val alerting: Boolean get() = currentAlert != null
+    val menuShown: Boolean get() = menuOpen && (!alerting || menuAlert == currentAlert)
+    val confirmationShown: Boolean get() = confirmation != null && (!alerting || confirmationAlert == currentAlert)
     val anyOpen: Boolean get() = menuShown || confirmationShown || (stepsOpen && !alerting)
+
+    /** Whether the menu may stay composed: not while an alert it was not opened in plays (no exit animation). */
+    val menuComposable: Boolean get() = !alerting || menuShown
 
     fun openMenu() {
         menuOpen = true
-        menuOpenedAlerting = alerting
+        menuAlert = currentAlert
     }
 
     fun ask(question: TimerConfirmation) {
         confirmation = question
-        confirmationOpenedAlerting = alerting
+        confirmationAlert = currentAlert
     }
 
     fun finish(state: TimerUiState.Active, onEvent: (TimerEvent) -> Unit) {
         if (state.finishWouldDiscard) ask(TimerConfirmation.FinishDiscard) else onEvent(TimerEvent.FinishSession)
     }
 
-    fun closeAllOpenedBeforeAlert() {
-        if (!menuOpenedAlerting) menuOpen = false
-        if (!confirmationOpenedAlerting) confirmation = null
+    /** Alert [alert] started: closes everything opened before it or during another alert. */
+    fun closeAllNotOpenedIn(alert: String) {
+        if (menuAlert != alert) menuOpen = false
+        if (confirmationAlert != alert) confirmation = null
         stepsOpen = false
     }
 
     companion object {
         val Saver: Saver<TimerOverlays, Any> = Saver(
             save = {
-                listOf(
-                    it.menuOpen,
-                    it.menuOpenedAlerting,
-                    it.confirmation?.name,
-                    it.confirmationOpenedAlerting,
-                    it.stepsOpen,
-                )
+                listOf(it.menuOpen, it.menuAlert, it.confirmation?.name, it.confirmationAlert, it.stepsOpen)
             },
             restore = { saved ->
                 val values = saved as List<*>
                 TimerOverlays().apply {
                     menuOpen = values[0] as Boolean
-                    menuOpenedAlerting = values[1] as Boolean
+                    menuAlert = values[1] as String?
                     confirmation = (values[2] as String?)?.let(TimerConfirmation::valueOf)
-                    confirmationOpenedAlerting = values[3] as Boolean
+                    confirmationAlert = values[3] as String?
                     stepsOpen = values[4] as Boolean
                 }
             },

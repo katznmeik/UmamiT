@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -76,11 +77,12 @@ fun TimerScreen(
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
+        val alertKey = state.alertKey()
         val now by rememberTimerNow(state, nowElapsedMs)
         val overlays = rememberTimerOverlays()
-        // Alerts first (rule 8): whatever was opened before the alert is gone in the same frame.
-        overlays.alerting = alerting
-        LaunchedEffect(alerting) { if (alerting) overlays.closeAllOpenedBeforeAlert() }
+        // Alerts first (rule 8): whatever was opened before this alert is gone in the same frame.
+        overlays.currentAlert = alertKey
+        LaunchedEffect(alertKey) { alertKey?.let(overlays::closeAllNotOpenedIn) }
 
         val dimming = rememberScreenDimming(
             state = state,
@@ -110,33 +112,14 @@ fun TimerScreen(
                     }
                 },
         ) {
+            val args = TimerBodyArgs(state, now, nowElapsedMs, overlays, actions, reliabilityProblem, onFixReliability, teaPhoto)
+            // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
+            val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }
             if (alerting) {
                 // `alertEnter`: no transition into the alert, the pulse starts at full matcha.
-                AlertSurface(modifier = Modifier.fillMaxSize()) {
-                    TimerBody(
-                        state,
-                        now,
-                        nowElapsedMs,
-                        overlays,
-                        actions,
-                        reliabilityProblem,
-                        onFixReliability,
-                        teaPhoto,
-                    )
-                }
+                AlertSurface(modifier = Modifier.fillMaxSize()) { body(args) }
             } else {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    TimerBody(
-                        state,
-                        now,
-                        nowElapsedMs,
-                        overlays,
-                        actions,
-                        reliabilityProblem,
-                        onFixReliability,
-                        teaPhoto,
-                    )
-                }
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { body(args) }
             }
             TimerAnnouncer(state, now)
         }

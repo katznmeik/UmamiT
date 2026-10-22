@@ -336,15 +336,36 @@ class TimerScreenTest {
     fun `a menu left open is gone, without its exit animation, when the alert starts`() {
         show(TimerStates.running(stepIndex = 1))
         openMenu()
-        compose.onNodeWithText("Aufguss jetzt beenden").assertIsDisplayed()
+        compose.onNodeWithText("Sitzung verwerfen").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false
         state = TimerStates.alerting()
         advanceTwoFrames()
 
+        // „Sitzung verwerfen" is an ALERTING item too: only a menu still on screen would show it.
         compose.onNode(isPopup()).assertDoesNotExist()
-        compose.onNodeWithText("Aufguss jetzt beenden").assertDoesNotExist()
+        compose.onNodeWithText("Sitzung verwerfen").assertDoesNotExist()
         compose.onNodeWithText("Abgegossen").assertExists()
+    }
+
+    @Test
+    fun `a question opened during one alert never covers the next alert`() {
+        show(TimerStates.alerting(stepIndex = 0))
+        openMenu()
+        compose.onNodeWithText("Sitzung verwerfen").performClick()
+        compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
+
+        // *Abgegossen* and *Start* from the notification; the question stays open meanwhile.
+        state = TimerStates.ready(stepIndex = 1)
+        compose.waitForIdle()
+        state = TimerStates.running(remainingMs = 10_000, stepIndex = 1)
+        compose.waitForIdle()
+        compose.onNodeWithText("Nichts wird gespeichert.").assertIsDisplayed()
+        compose.mainClock.autoAdvance = false
+        state = TimerStates.alerting(stepIndex = 1)
+        advanceTwoFrames()
+
+        compose.onNodeWithText("Nichts wird gespeichert.").assertDoesNotExist()
     }
 
     @Test
