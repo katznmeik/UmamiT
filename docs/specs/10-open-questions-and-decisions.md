@@ -356,6 +356,32 @@ long steps, idle demote and recovery (S5 → #31); recovery and the boot count i
 the engine (S6 → #32); pre-alert and zone columns in `active_brew` and
 *Wie Einstellung* in `editSteps` (S7 → #32/#36).
 
+<a id="d-046"></a>
+### D-046 — Design system details from M1-04 · *Accepted* (Claude, 2026-10-22)
+
+Settled while building the theme and the simple components (#29); the PO
+reviews them with the screenshots and motion recordings.
+
+- **Colour schemes:** generated once from `#4A5643` with material-color-utilities
+  (tonal spot, spec 2021) and committed as constants (03 §3.1). Where 03 §3.1
+  overrides a role, its twin follows: `onBackground` = `onSurface`,
+  `surfaceTint` = `primary`. All other unlisted roles keep the generated value.
+- **Fonts:** static instances of the Cormorant Garamond variable font; `lnum`
+  and `tnum` survived subsetting, so the 03 §3.2 fallback is not used. Every
+  serif style sets `lnum` (the font's default figures are old-style).
+- **German text:** all text styles carry the German locale and automatic
+  hyphenation, so long compounds break at syllables at font scale 2.0; ß in
+  overlines is uppercased to ẞ.
+- **Icons:** the Material Symbols (Apache 2.0) are the only third-party assets
+  besides the font; their licence is committed next to the OFL.
+- **Motion tokens:** 03 §3.6 „Motion tokens", with the reasons. Press feedback
+  (scale 0.97, faster spring release) is added to pills and cards, not list
+  rows; reduce motion keeps short fades.
+- **Alert motion (motion review):** entering ALERTING is always instant
+  (`alertEnter`); the pulse starts at full matcha; the pulse and the pre-alert
+  glow ignore developer animator scales (`UnscaledMotion`), while scale 0 still
+  means reduce motion.
+
 <a id="d-045"></a>
 ### D-045 — Default alert sound and pre-alert tick (Q-15) · *Accepted* (PO, 2026-10-22)
 
@@ -601,6 +627,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
+| 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |
 | 2026-10-22 | Q-15 → D-045: Klangschale variant C (880 Hz) and a bowl-like 0.8 s pre-alert tick; probe `v0.0.2-probe` passed, the Live Update also appeared in the Now Bar. |
 | 2026-10-22 | D-044: alert replaces the Live Update while ALERTING (Android 16 auto-group silencing); promotion always requested; D-043 amended; probe → v0.0.2-probe. |
 | 2026-10-22 | D-043: Android 16 Live Update API names corrected (promotion settings action, NotificationCompat request, POST_PROMOTED_NOTIFICATIONS not public). |
