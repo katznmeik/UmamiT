@@ -98,7 +98,10 @@ commit and push.
 ## Environment (cloud sessions)
 
 - JDK 21 and Gradle 8.14 are preinstalled. **The Android SDK is not**: it is
-  installed by the session-start hook created in task M1-00.
+  installed by the SessionStart hook `.claude/hooks/session-start.sh`
+  (registered in `.claude/settings.json`, runs only when
+  `CLAUDE_CODE_REMOTE=true`) into `/opt/android-sdk` (fallback
+  `$HOME/android-sdk`), which it exports as `ANDROID_HOME`.
 - These hosts are reachable:
   - `dl.google.com`, `maven.google.com`, `repo.maven.apache.org`,
     `plugins.gradle.org`, `services.gradle.org` (build);
