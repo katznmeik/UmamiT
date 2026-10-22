@@ -360,6 +360,52 @@ personal data or shop content).
   rows like the database; it has no rollback and implements only the
   "empty opened date" part of INV-06.
 
+<a id="d-051"></a>
+### D-051 — Schritte-Sheet details (M1-19) · *Accepted* (Claude, 2026-10-22)
+
+#38 settled these points of SCR-31 that the specs left open
+([03 SCR-31](03-ux-ui.md#scr-31-schritte-sheet-session-steps)):
+
+- **Material 3's `ModalBottomSheet`, with its own motion.** The sheet runs
+  in its own window, so TalkBack and keyboard focus stay inside it, and
+  Material brings predictive back, drag and fling to dismiss with the
+  gesture's velocity, nested scrolling of the step list and clean reopening.
+  It always opens fully expanded (`skipPartiallyExpanded`). Its show and hide
+  motion is Material's (calm, no overshoot), not the `sheet` token of
+  03 §3.6: Material 3 1.4 keeps the sheet's motion scheme internal. A first
+  version with an own sheet drawn in the host window applied the token, but
+  the motion and accessibility review of #38 blocked it (no focus trap, a
+  fling lost its velocity, a reopen during the exit stayed displaced, no
+  predictive back). Accessibility and reliability come before matching the
+  token; the PO judges the motion from the GIF in #39. Under reduce motion
+  the sheet opens already expanded and closes without the slide.
+- **Alerts first (rule 8).** The sheet never covers the alert. When the timer
+  enters ALERTING, the host sets `alerting = true` and `visible = false`: the
+  sheet's window is removed at once, without the close animation, and the
+  unapplied edits are dropped. While `alerting` is true the sheet stays
+  hidden.
+- **Closing applies nothing.** Only *Fertig* sends `editSteps`; a swipe,
+  back, the scrim or the handle close the sheet without changing the session.
+  *Im Rezept speichern* saves the recipe and keeps the sheet open, so the
+  session still changes only with *Fertig*.
+- **Stepper rules.** A tap moves to the next multiple of 5 s below 10 min and
+  of 1 min from 10 min on (lengthen: 9:55 → 10:00 → 11:00; shorten: 11:00 →
+  10:00 → 9:55), within 5 s – 24 h. Temperatures move to the next multiple of
+  5 °C within 5–100 °C (05 §3.2). A step without its own temperature shows the
+  recipe's base temperature and stays without one until it is changed; a step
+  without any (quick timer) has no temperature stepper.
+- **Delete** is disabled when it would leave no non-rinse step in the whole
+  plan, done steps included (D-048). Done (✓), running („läuft") and skipped
+  („übersprungen") steps are read-only.
+- **Recipe save.** The whole plan as shown (done steps included) replaces the
+  recipe's steps (step notes arrive in M4). *Wie Einstellung* keeps the
+  recipe's own pre-alert, *Aus* stores 0, a lead time stores its seconds.
+  The confirmation snackbar „Im Rezept gespeichert" shows on the tap, above
+  the buttons, once (a reopened sheet does not replay it); the host does the
+  write.
+- **Step kinds in German:** Aufguss (INFUSION), Spülaufguss (RINSE),
+  Aufschlagen (WHISK).
+
 <a id="d-050"></a>
 ### D-050 — Shop client and seed photo download (M1-07, #37 and its T4 review) · *Accepted* (Claude, 2026-10-22)
 
@@ -862,6 +908,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-22 | D-052: session lifecycle per engine effect, authoritative active brew store, `active_brew` columns of D-048 in schema v1, completion details (end time, cost, BREW event, full INV-06), include-only device backup rules with `fullBackupContent`, restore detection in Room's callbacks, CI schema-staleness check (#36); 05 §3, §6, §8, §9 updated with the #30 decisions. |
+| 2026-10-22 | D-051: Schritte-Sheet details (#38): Material 3 modal sheet with its own motion instead of the `sheet` token, closed at once on ALERTING, closing applies nothing, stepper and temperature rules, recipe save mapping; 03 SCR-31 updated. |
 | 2026-10-22 | D-050: shop client (allow-list, direct single connection, one request per call, rate limit on the wire, stop signals incl. Cloudflare block pages, hardened robots.txt) and the run-once seed photo download (marker before the first request, stop rules, re-encoded covers) from #37 and its T4 review; 05 §6 and 08 §2.5a updated. |
 | 2026-10-22 | D-049: navigation shell details (re-select order, tab fade-through, insets of the active brew bar); 03 §3.6 `tabSwitch` token. |
 | 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
