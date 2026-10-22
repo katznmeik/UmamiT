@@ -79,6 +79,13 @@ jobs:
             exit 1
           fi
 
+      # From v0.1.0-rc.1 on schema v1 may be on the PO's phone: every schema
+      # file a release tag (v*) contains is frozen, so a change needs a new
+      # version and a tested migration (05 §9, D-054).
+      - name: Released database schemas are unchanged
+        if: ${{ !cancelled() }}
+        run: scripts/check-frozen-schemas.sh
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
