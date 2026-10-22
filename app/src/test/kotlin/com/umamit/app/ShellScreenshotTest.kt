@@ -95,6 +95,7 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
                             override val activeBrew: StateFlow<ActiveBrew?> = source
                             override val progress: () -> Float = { 0.4f }
                         },
+                        journalSources = testJournalSources(),
                         layoutType = layout,
                     )
                 }

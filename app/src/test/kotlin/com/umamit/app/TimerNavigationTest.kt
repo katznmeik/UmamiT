@@ -55,6 +55,7 @@ class TimerNavigationTest {
             UmamiTheme(reduceMotion = false) {
                 UmamitRoot(
                     activeBrewSource = source,
+                    journalSources = testJournalSources(),
                     alertKey = alertKey,
                     timerRequest = timerRequest,
                     onTimerVisibleChange = { visible += it },

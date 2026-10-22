@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
+import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.settings.SettingsScreen
 import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,7 @@ import kotlinx.coroutines.flow.StateFlow
  * background over the shell and reports the timer as visible, so the shell never shows over
  * the lock screen, not even for one frame (D-058, D-NNN).
  *
+ * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerRequest a new non-zero token for each request to open the timer (a notification's
@@ -57,6 +59,7 @@ import kotlinx.coroutines.flow.StateFlow
 @Composable
 fun UmamitRoot(
     activeBrewSource: ActiveBrewSource,
+    journalSources: JournalSources,
     alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
     timerRequest: StateFlow<Long> = NO_TIMER_REQUEST,
@@ -146,6 +149,8 @@ fun UmamitRoot(
             composable<ShellRoute> {
                 UmamitApp(
                     activeBrewSource = activeBrewSource,
+                    journalSources = journalSources,
+                    alerting = alert != null,
                     onOpenTimer = { navController.navigate(TimerRoute) { launchSingleTop = true } },
                 )
             }

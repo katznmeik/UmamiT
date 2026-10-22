@@ -18,11 +18,10 @@ import dagger.hilt.components.SingletonComponent
 /**
  * The controller's clock, in-process wake-up, alarms and service (#42, D-057),
  * alert player (#44, D-059), diagnostics log and permission states (#43,
- * D-060), notifier (#47, D-NNN), and *Alarm testen* for the settings (SET-31).
- * The other [TimerPorts] are bound by the tickets that bring their Android
- * adapters (saved sheet M1-16); until then nothing can inject the controller,
- * so no stand-in ever ships. [AlertTester] does not need the controller, so
- * the settings screen can inject it already.
+ * D-060), the saved sheet (M1-16, D-061), the notifier (#47, D-NNN), and
+ * *Alarm testen* for the settings (SET-31): every port of [TimerPorts], so the
+ * controller can be injected (D-056). [AlertTester] does not need the
+ * controller.
  *
  * The alarm receiver reaches the controller through the app
  * ([TimerHost], D-057).
@@ -47,6 +46,9 @@ abstract class TimerModule {
 
     @Binds
     abstract fun alertPort(impl: ControllerAlertPort): TimerAlertPort
+
+    @Binds
+    abstract fun savedSheet(impl: SavedSheetRequests): SavedSheetPort
 
     @Binds
     abstract fun alertTester(impl: AlertPlayback): AlertTester

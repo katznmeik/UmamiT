@@ -6,6 +6,7 @@ import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import com.umamit.core.database.dao.ActiveBrewDao
 import com.umamit.core.database.dao.InventoryDao
+import com.umamit.core.database.dao.JournalDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.SessionDao
 import com.umamit.core.database.dao.TeaDao
@@ -53,6 +54,8 @@ abstract class UmamiDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
 
     abstract fun activeBrewDao(): ActiveBrewDao
+
+    abstract fun journalDao(): JournalDao
 
     companion object {
         const val NAME = "umamit.db"
