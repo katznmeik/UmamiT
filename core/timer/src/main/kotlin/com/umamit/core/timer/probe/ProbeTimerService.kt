@@ -23,6 +23,10 @@ import kotlin.time.Duration.Companion.seconds
  * Live Update (ID 1, 04 §8.3), the partial wake lock and the [AlertPlayer];
  * it has no timer logic: the transitions arrive as commands from
  * [ProbeTimer] (start) and from the exact alarms (pre-alert, deadline).
+ *
+ * At the deadline the alert (ID 2) becomes the foreground notification in
+ * place of the Live Update, so the alert is the app's only notification of
+ * importance DEFAULT or higher (see [TimerNotifications.ID_ALERT]).
  */
 class ProbeTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -103,6 +107,8 @@ class ProbeTimerService : Service() {
         }
         val advanced = reached > phase
         if (advanced) phase = reached
+        if (phase == ProbePhase.FINISHED) handler.removeCallbacks(refresh)
+        // In FINISHED this posts the alert with its full-screen intent (04 §8.2).
         startInForeground()
         if (!advanced) return
 
@@ -110,8 +116,6 @@ class ProbeTimerService : Service() {
             ProbePhase.PRE_ALERTED -> alertPlayer.playPreAlert()
 
             ProbePhase.FINISHED -> {
-                handler.removeCallbacks(refresh)
-                TimerNotifications.post(this, TimerNotifications.ID_ALERT, ProbeNotifications.alert(this))
                 alertPlayer.startAlert()
                 handler.postDelayed(endOfAlertWindow, ProbeTimer.ALERT_WINDOW.inWholeMilliseconds)
             }
@@ -120,38 +124,47 @@ class ProbeTimerService : Service() {
         }
     }
 
-    /** startForeground on every command keeps the promise of startForegroundService and updates the Live Update. */
+    /**
+     * startForeground on every command keeps the promise of startForegroundService.
+     * The foreground notification is the Live Update, and the alert once the
+     * step is FINISHED. Switching it to the alert removes the Live Update, so
+     * Android 16 does not force-group the two and mark the alert `FLAG_SILENT`,
+     * which would suppress its full-screen intent and heads-up
+     * ([TimerNotifications.ID_ALERT]).
+     */
     private fun startInForeground() {
-        val notification = liveUpdate() ?: return
+        val current = step ?: return
+        TimerNotifications.ensureChannels(this)
+        val alerting = phase == ProbePhase.FINISHED
+        val id = if (alerting) TimerNotifications.ID_ALERT else TimerNotifications.ID_LIVE_UPDATE
+        val notification = if (alerting) ProbeNotifications.alert(this) else liveUpdate(current)
+        if (alerting) {
+            // Removes a Live Update posted without the service (fallback below). The
+            // system ignores this for the foreground one, which the switch removes.
+            TimerNotifications.cancel(this, TimerNotifications.ID_LIVE_UPDATE)
+        }
         try {
-            ServiceCompat.startForeground(
-                this,
-                TimerNotifications.ID_LIVE_UPDATE,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
+            ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } catch (e: ForegroundServiceStartNotAllowedException) {
-            // 04 §6.3: fall back to a plain ongoing notification.
-            Log.w(TAG, "startForeground refused; showing a plain ongoing notification", e)
-            TimerNotifications.post(this, TimerNotifications.ID_LIVE_UPDATE, notification)
+            // 04 §6.3: fall back to a plain notification.
+            Log.w(TAG, "startForeground refused; posting notification $id without the service", e)
+            TimerNotifications.post(this, id, notification)
         }
     }
 
+    /** The 15 s refresh (04 §8.3); none once the alert has replaced the Live Update. */
     private fun postLiveUpdate() {
-        liveUpdate()?.let { TimerNotifications.post(this, TimerNotifications.ID_LIVE_UPDATE, it) }
+        val current = step ?: return
+        if (phase == ProbePhase.FINISHED) return
+        TimerNotifications.post(this, TimerNotifications.ID_LIVE_UPDATE, liveUpdate(current))
     }
 
-    private fun liveUpdate(): Notification? {
-        val current = step ?: return null
-        TimerNotifications.ensureChannels(this)
-        return ProbeNotifications.liveUpdate(
-            context = this,
-            step = current,
-            phase = phase,
-            nowElapsedMs = SystemClock.elapsedRealtime(),
-            promote = TimerNotifications.canPromote(this),
-        )
-    }
+    private fun liveUpdate(current: ProbeStep): Notification = ProbeNotifications.liveUpdate(
+        context = this,
+        step = current,
+        phase = phase,
+        nowElapsedMs = SystemClock.elapsedRealtime(),
+    )
 
     /** Partial wake lock for the step and the alert (04 §6.3: remaining + alert length + 30 s). */
     private fun acquireWakeLock(forStep: ProbeStep) {

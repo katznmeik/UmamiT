@@ -127,6 +127,8 @@ object ProbeTimer {
             Log.w(TAG, "FGS start refused at $alarm; posting the alert without the service", e)
             if (alarm == TimerAlarm.DEADLINE) {
                 TimerNotifications.ensureChannels(app)
+                // The alert must be the only alerting notification (TimerNotifications.ID_ALERT).
+                TimerNotifications.cancel(app, TimerNotifications.ID_LIVE_UPDATE)
                 TimerNotifications.post(app, TimerNotifications.ID_ALERT, ProbeNotifications.alert(app))
             }
         }
