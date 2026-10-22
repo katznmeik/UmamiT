@@ -1,6 +1,7 @@
 # 04 · Brew Timer Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
+> recovery and snapshot, D-048)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -90,12 +91,13 @@ stateDiagram-v2
 | `poured` | Alerting | Stop alert; record actual incl. overtime; → next Ready or Finished. |
 | `overtimeTimeout` | Alerting, 10 min after deadline | As `poured`, but actual = planned and overtime = 0 (assume poured on time); flag `overtimeAutoAck`. |
 | `skipStep` | Ready | Mark skipped → next Ready or Finished. |
-| `addStep(step)` | any except Idle | Append; if Finished → `Ready(new)`. |
-| `editSteps(list, preAlertOverride?)` | any except Idle | From the Schritte-Sheet (SCR-31): replace steps not yet started and optionally the session's pre-alert. Session-only unless *Im Rezept speichern*. |
+| `addStep` | any except Idle | *Weiterer Aufguss* (TMR-10): append `defaultAddedStep(plan)` — the last non-rinse step's kind and temperature, 1.5 × its duration rounded half up to 5 s below 10 min and to whole minutes from 10 min on, within 5 s – 24 h; if Finished → `Ready(new)`. |
+| `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. Session-only unless *Im Rezept speichern*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
 | `idleDemote` | Ready, Paused, Finished; 30 min without interaction | No state change: stop the foreground service, demote the Live Update to a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any interaction restarts the FGS (notification action exemption). |
 | `midnightTimeout` | Ready, Paused, Finished; the first local midnight at least 6 h after the last interaction (`last_interaction_wall_ms`; inexact alarm, also checked on recovery §7.2) | If ≥ 1 non-rinse step completed: COMPLETED, notification „Sitzung gespeichert". Otherwise discarded silently. |
+| `recover` | any except Idle | Sent once on every process start with the persisted state (§7.2). Not an interaction. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
 
@@ -114,6 +116,13 @@ Engine rules (D-047):
 - **Ending after the deadline.** `endStepNow` or `finishSession` in Running
   at or after the deadline, before `deadlineReached` was processed, counts as
   poured, with overtime.
+- **Boot (D-048).** The clock reading carries the boot count, and the state
+  records the boot its elapsed values belong to. `recover` rebases them from
+  the wall values after a reboot; every other event from another boot is
+  rejected as `BootChanged` until `recover` ran.
+- **Plan shape (D-048).** Started or ended steps always form a prefix and
+  pending steps the suffix. `addStep` and `editSteps` replace only the
+  suffix, through the data effect `ReplacePendingSteps(fromIndex, steps)`.
 - **Finish fallback.** A `finishSession` that falls back to discard records
   nothing; a started step counts as completed. The UI asks
   `finishWouldDiscard(state)` before it confirms.
@@ -137,7 +146,8 @@ flowchart LR
 
 - `BrewTimerEngine.reduce(state, event, now) → (state, effects, outcome)`.
   The effects are:
-  - data: `CreateSession`, `RecordStep`, `CompleteSession`, `DiscardSession`;
+  - data: `CreateSession`, `ReplacePendingSteps`, `RecordStep`, `CompleteSession`,
+    `DiscardSession`;
   - `Persist`, `ScheduleAlarms`;
   - side effects: `PlayPreAlert`, `StartAlert`, `StopAlert`, `StartForeground`,
     `StopForeground`, `UpdateNotification`, `ShowSavedSheet`.
@@ -155,7 +165,7 @@ flowchart LR
   After every `reduce`, accepted or not, the controller re-arms its
   in-process wake-up from `dueTimes(state)`.
 - **Foreground service.** `StartForeground` means "ensure it runs"; it is
-  emitted at `startSession` and before `StartAlert`. `StopForeground` also
+  emitted at `startSession`, `startQuickTimer`, `recover` and before `StartAlert`. `StopForeground` also
   removes the timer notifications. The full service rules for long steps,
   demote and recovery come with #31.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
@@ -177,9 +187,12 @@ flowchart LR
   `alertPlayed`, and recovery replays `StartAlert` while it is false. The
   pre-alert tick is **at-most-once**: `preAlertPlayed` is set in the
   transition that plays it.
-- Pre-alert: `preAlertAt = deadline − N·1000` where N = recipe override ?:
-  global setting (default **10 s**); none if N = 0, if planned < N + 5 s, for
-  rinse steps < 15 s, or for long steps (≥ 10 min).
+- Pre-alert: `preAlertAt = deadline − N·1000` where N = session override
+  (Schritte-Sheet) ?: recipe value ?: global setting (default **10 s**); none
+  if N = 0, if planned < N + 5 s, for rinse steps < 15 s, or for long steps
+  (≥ 10 min). `startSession` freezes recipe ?: global as the inherited value,
+  so a later change of the recipe or the setting never changes an active
+  session; *Wie Einstellung* clears the session override (D-048).
 
 ### 5.1 Recorded step data
 
@@ -259,17 +272,29 @@ rules (D-047):
 ### 7.1 Persisted on every transition
 
 `active_brew` row ([05 §3.12](05-data-model.md#312-activebrew)) and step
-records, in one Room transaction.
+records, in one Room transaction. The engine maps every state to this row
+plus the session's step rows and back without loss (`snapshot(state)`,
+`restore(snapshot)`; D-048): a step's status is derived, not stored (rows with
+recorded values are ended, the current step of Running, Paused or Alerting is
+started, all others are pending). The quick timer has no step rows; its one
+step is `quick_duration_seconds`.
 
 ### 7.2 Recovery on process start
+
+The controller restores the state and sends `recover`, which the engine
+applies purely (§12 unit tests with fake clocks and boot counts; D-048).
+After a reboot it first moves every elapsed value to the new elapsed clock at
+the same distance from now as its wall value. Every row emits
+`StartForeground` (an attempt, §6.3) and `UpdateNotification`; the timeout
+rows are silent (no `StartAlert`, no saved sheet).
 
 | Persisted phase | Behaviour (same boot uses monotonic values; after reboot wall-clock values) |
 |---|---|
 | READY / PAUSED / FINISHED | Restore; try to restart the FGS now (§6.3), else re-post a plain ongoing notification and restart the FGS on the next interaction. |
-| READY / PAUSED / FINISHED, local date changed past the midnight threshold (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged). |
-| RUNNING, deadline in future | Restore; reschedule alarms (pre-alert only if still ahead); try to restart the FGS (§6.3). |
-| RUNNING/ALERTING, deadline passed ≤ 10 min ago | → ALERTING with overtime; alert plays if not already played for this step. |
-| RUNNING/ALERTING, deadline passed > 10 min ago | `overtimeTimeout` applied silently. |
+| READY / PAUSED / FINISHED, local date changed past the midnight threshold (TMR-14) | `midnightTimeout` applied silently (with „Sitzung gespeichert" if logged). Added with the midnight rule (#31). |
+| RUNNING, deadline in future | Restore; reschedule alarms from `dueTimes`; try to restart the FGS (§6.3). An unplayed pre-alert stays due even if its time has passed, so a pre-alert alarm that restarted the process still reaches `preAlertReached`, whose rules decide whether a late tick plays. |
+| RUNNING/ALERTING, deadline passed < 10 min ago | → ALERTING with overtime; `StartAlert` while `alertPlayed` is false (at-least-once). |
+| RUNNING/ALERTING, deadline passed ≥ 10 min ago | `overtimeTimeout` applied silently: poured on time with `overtimeAutoAck`, ended at the deadline's wall time. A quick timer just ends. |
 
 ### 7.3 Reboot
 
@@ -440,6 +465,14 @@ INFUSION step and these differences:
 | `deadlineReached` | Running | → Alerting |
 | `poured` (button *Fertig*) | Alerting | → Idle |
 | `cancel` (*Abbrechen*, overflow and notification) | Ready, Running, Paused | → Idle, nothing recorded |
+| `quickTimerTimeout` | Ready, Paused; 30 min after the last interaction (`dueTimes.quickCancelAt`, wall clock) | → Idle, nothing recorded |
+| `recover` | any | as §7.2; after 10 min of overtime → Idle |
+
+`startQuickTimer(duration, globalPreAlert)` starts it in Ready. It has no
+`brew_session` row, so `CreateSession`, `RecordStep`, `ShowSavedSheet` and
+the other data effects never occur. Starting a session or another quick
+timer while one is active is rejected as `ActiveTimerExists` (TMR-21);
+`editSteps` and the session events are ignored (D-048).
 
 Uses the global pre-alert, the same alert and the Live Update
 („Schnelltimer"). Counts as the single active timer. No `endStepNow`,

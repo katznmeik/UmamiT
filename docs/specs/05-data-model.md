@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (`active_brew` snapshot, D-048)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -214,25 +214,38 @@ INITIAL+PURCHASE events.
 
 ### 3.12 ActiveBrew
 
-Single-row table `active_brew` (`id` = 1)
+Single-row table `active_brew` (`id` = 1). Together with the session's
+`session_step` rows it holds the timer engine's state without loss; the
+plain model type is `ActiveBrewSnapshot` in `core:model`, and the engine maps
+it with `snapshot(state)` / `restore(snapshot)`
+([04 §7.1](04-brew-timer.md#71-persisted-on-every-transition), D-048). A
+step's status is not stored: rows with recorded values are ended, the
+current step of RUNNING/PAUSED/ALERTING is started, all others are pending.
 
 | Column | Type | Notes |
 |---|---|---|
 | `session_id` | TEXT | FK CASCADE; null for quick timer |
-| `is_quick_timer`, `quick_duration_seconds` | | |
-| `step_index` | INTEGER | |
+| `is_quick_timer`, `quick_duration_seconds` | | the quick timer's one INFUSION step; it has no `session_step` rows |
+| `step_index` | INTEGER | current step; the number of steps in FINISHED |
 | `phase` | TEXT | `TimerPhase` |
 | `deadline_elapsed_ms`, `deadline_wall_ms` | INTEGER | RUNNING/ALERTING |
-| `pre_alert_elapsed_ms`, `pre_alert_played` | | |
+| `pre_alert_elapsed_ms`, `pre_alert_played` | | RUNNING; `pre_alert_played` also PAUSED |
 | `remaining_ms` | INTEGER | PAUSED |
-| `active_elapsed_ms`, `paused_total_ms` | INTEGER | current step |
-| `paused_since_elapsed_ms`, `paused_since_wall_ms` | INTEGER | |
+| `paused_total_ms` | INTEGER | current step, before the current phase |
+| `paused_since_elapsed_ms`, `paused_since_wall_ms` | INTEGER | PAUSED |
 | `ready_since_wall_ms` | INTEGER | READY/FINISHED |
-| `step_started_wall_ms` | INTEGER | |
-| `alert_played` | INTEGER | per current step |
-| `boot_count` | INTEGER | |
-| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min; `midnightTimeout` at the first local midnight ≥ 6 h after it |
+| `step_started_wall_ms` | INTEGER | RUNNING/PAUSED/ALERTING |
+| `alert_played` | INTEGER | ALERTING; recovery replays the alert while 0 |
+| `boot_count` | INTEGER | boot of the `…_elapsed_ms` values |
+| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min; `midnightTimeout` at the first local midnight ≥ 6 h after it; quick-timer cancel after 30 min |
 | `demoted` | INTEGER | FGS stopped, regular notification shown |
+| `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus* |
+| `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off) |
+| `zone_id` | TEXT | the session's time zone; needed for the quick timer, which has no `brew_session` row |
+
+The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
+planned − (deadline − now); PAUSED: planned − remaining) and is not part of
+the state (D-048).
 
 ## 4. Catalog tables (rebuilt by each refresh)
 
