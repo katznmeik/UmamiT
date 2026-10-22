@@ -54,6 +54,7 @@ import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.home.HomeScreen
 import com.umamit.feature.journal.JournalScreen
 import com.umamit.feature.settings.SettingsScreen
+import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -223,7 +224,11 @@ private fun TabHost(
         }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
-            SettingsScreen(onBack = { navController.popBackStack() }, scrollToTopRequest = scrollToTopRequest) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
+                scrollToTopRequest = scrollToTopRequest,
+            ) {
                 // Throwaway probe entry (M1-03a); removed or hidden before v0.1.0.
                 OutlinedButton(
                     onClick = { navController.navigate(ProbeRoute) },
@@ -233,6 +238,7 @@ private fun TabHost(
                 }
             }
         }
+        composable<DiagnosticsRoute> { DiagnosticsRoute(onBack = { navController.popBackStack() }) }
         composable<ProbeRoute> { ProbeScreen(onBack = { navController.popBackStack() }) }
     }
 }
