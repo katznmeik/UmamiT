@@ -41,8 +41,8 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. Break spec #27 into tickets (`/to-tickets`), then start
-   `/implement-spec`.
+2. Start `/implement-spec` on spec #27 (tickets #28–#39); later the design
+   and motion check #39.
 3. At the M1 PR: test the release candidate and listen to all alert sounds
    via *Alarm testen* (the default was chosen in D-045).
 
@@ -70,8 +70,10 @@ Galaxy (D-040 gate open for M1-09/M1-11).
 
 1. Spec [#27](https://github.com/katznmeik/UmamiT/issues/27) for M1 waves
    2–3 (M1-04 … M1-08, M1-19, M1-21, motion section in 03 §3.6) is written
-   (`ready-for-agent`); next: `/to-tickets`, then `/implement-spec` on the
-   same branch and PR #25.
+   (`ready-for-agent`) and broken into tickets #28–#39 (sub-issues of #27;
+   frontier #28 engine lifecycle, #29 design system foundation, #30 data
+   layer; #39 is the PO's design and motion check). Next: `/implement-spec`
+   on #27, on the same branch and PR #25.
 2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
    something on the device needs re-checking).
 
@@ -96,7 +98,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
-| 2026-10-22 | Spec #27 for M1 waves 2–3 written via `/to-spec` (4 test seams agreed with the PO: engine reducer, data layer with MockWebServer, Compose rendering incl. record-only motion GIFs, CI pipeline). |
+| 2026-10-22 | Spec #27 broken into 12 tickets #28–#39 via `/to-tickets` (granularity, blockers and the PO ticket #39 approved by the PO). Spec #27 for M1 waves 2–3 written via `/to-spec` (4 test seams agreed with the PO: engine reducer, data layer with MockWebServer, Compose rendering incl. record-only motion GIFs, CI pipeline). |
 | 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent; the PO chose C + C (D-045, committed). The countdown also appeared in the Now Bar. Run stopped after #17 as agreed. |
 | 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
 | 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
