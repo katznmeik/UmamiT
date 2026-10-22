@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- DELIBERATELY FORBIDDEN (CI gate proof, M1-02 #11). Reverted right after. -->
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-
     <application
         android:name=".UmamitApplication"
         android:allowBackup="true"
