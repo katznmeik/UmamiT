@@ -2,8 +2,32 @@ package com.umamit.core.timer.engine
 
 import com.umamit.core.common.ClockReading
 
-/** The result of one [BrewTimerEngine.reduce]: the new [state] and the [effects] to execute in order. */
-data class TimerTransition(val state: TimerState, val effects: List<TimerEffect>)
+/**
+ * The result of one [BrewTimerEngine.reduce]: the new [state], the [effects]
+ * to execute in order, and whether the event was accepted. A non-accepted
+ * event always returns the same state instance and no effects.
+ */
+data class TimerTransition(val state: TimerState, val effects: List<TimerEffect>, val outcome: TransitionOutcome)
+
+/** Whether the engine applied an event (logged by the controller for diagnostics, 06 §5.6). */
+sealed interface TransitionOutcome {
+
+    /** The event was applied. */
+    data object Accepted : TransitionOutcome
+
+    /** The event does not apply to the state (a duplicate, a race, a stale alarm); harmless. */
+    data object Ignored : TransitionOutcome
+
+    /** The event was refused for a [reason] the UI may explain. */
+    data class Rejected(val reason: RejectionReason) : TransitionOutcome
+}
+
+/** Why an event was refused. #32 adds the `editSteps` refusals. */
+sealed interface RejectionReason {
+
+    /** A session or quick timer is already [active] (GEN-03, TMR-21: „Erst die … -Sitzung beenden?"). */
+    data class ActiveTimerExists(val active: SessionKind) : RejectionReason
+}
 
 /**
  * What the timer shows, in whole seconds (04 §5). German formatting (`m:ss`,
@@ -26,8 +50,9 @@ object BrewTimerEngine {
      * Applies [event] to [state] at [now], following the table of 04 §3.2. An
      * event the state does not allow returns the same state and no effects, so
      * duplicates are harmless (04 §2.4, E5). In Running, [TimerEvent.Pause] is
-     * allowed only before the deadline and [TimerEvent.DeadlineReached] only at
-     * or after it, so a late or early deadline event never ends the wrong step.
+     * allowed only before the deadline and [TimerEvent.DeadlineReached] only
+     * when it is due, so a late or early deadline event never ends the wrong
+     * step.
      */
     fun reduce(state: TimerState, event: TimerEvent, now: ClockReading): TimerTransition {
         val transition = when (state) {
@@ -38,13 +63,30 @@ object BrewTimerEngine {
             is TimerState.Alerting -> onAlerting(state, event, now)
             is TimerState.Finished -> onSessionEvent(state, event, now)
         }
-        return transition ?: TimerTransition(state, emptyList())
+        return transition ?: notAccepted(state, event)
     }
+
+    /**
+     * When the time-based events of [state] are due. Every accepted transition
+     * emits this set for its new state as [TimerEffect.ScheduleAlarms]; the
+     * controller also re-arms its in-process wake-up from it after an ignored
+     * event, and recovery recomputes it from a persisted state.
+     */
+    fun dueTimes(state: TimerState): DueTimes = dueTimesOf(state)
+
+    /**
+     * True when [TimerEvent.FinishSession] in [state] would discard the session
+     * instead of completing it, because no non-rinse step was or would be
+     * completed (a started step counts as completed). The UI confirms such a
+     * finish first (TMR-12 AC1).
+     */
+    fun finishWouldDiscard(state: TimerState): Boolean = state is TimerState.Active && !finishCompletes(state)
 
     /**
      * The display values of [state] at [now]; null in Idle. Remaining time is
      * rounded up, so „0:01" never means the tea is done; overtime is rounded
-     * down (04 §5). Ready shows the step's planned duration.
+     * down (04 §5). Ready shows the step's planned duration; a running step
+     * past its deadline shows 0 until [TimerEvent.DeadlineReached] arrives.
      */
     fun display(state: TimerState, now: ClockReading): TimerDisplay? = when (state) {
         TimerState.Idle -> null
@@ -63,8 +105,19 @@ object BrewTimerEngine {
 
     private fun onRunning(state: TimerState.Running, event: TimerEvent, now: ClockReading) = when (event) {
         TimerEvent.Pause -> if (now.elapsedMs < state.deadlineElapsedMs) pause(state, now) else null
-        TimerEvent.DeadlineReached -> if (now.elapsedMs >= state.deadlineElapsedMs) deadlineReached(state) else null
+
+        TimerEvent.DeadlineReached -> if (isDue(
+                dueTimes(state).deadlineElapsedMs,
+                now,
+            )
+        ) {
+            deadlineReached(state)
+        } else {
+            null
+        }
+
         TimerEvent.EndStepNow -> endStepNow(state, now)
+
         else -> onSessionEvent(state, event, now)
     }
 
@@ -76,6 +129,7 @@ object BrewTimerEngine {
 
     private fun onAlerting(state: TimerState.Alerting, event: TimerEvent, now: ClockReading) = when (event) {
         TimerEvent.Poured -> poured(state, now)
+        TimerEvent.AlertCompleted -> if (state.alertPlayed) null else alertCompleted(state)
         else -> onSessionEvent(state, event, now)
     }
 
@@ -86,7 +140,19 @@ object BrewTimerEngine {
         else -> null
     }
 
-    private fun ceilSeconds(ms: Long): Long = Math.ceilDiv(ms.coerceAtLeast(0), MS_PER_SECOND)
+    private fun notAccepted(state: TimerState, event: TimerEvent): TimerTransition {
+        val outcome = if (event is TimerEvent.StartSession && state is TimerState.Active) {
+            TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(state.session.kind))
+        } else {
+            TransitionOutcome.Ignored
+        }
+        return TimerTransition(state, emptyList(), outcome)
+    }
 
-    private fun floorSeconds(ms: Long): Long = Math.floorDiv(ms.coerceAtLeast(0), MS_PER_SECOND)
+    private fun isDue(dueAtElapsedMs: Long?, now: ClockReading) =
+        dueAtElapsedMs != null && now.elapsedMs >= dueAtElapsedMs
+
+    private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
+
+    private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 }

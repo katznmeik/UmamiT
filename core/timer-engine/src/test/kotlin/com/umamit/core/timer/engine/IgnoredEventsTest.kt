@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * Idempotency (04 §2.4): an event the current state does not allow leaves the
- * state unchanged and returns no effects.
+ * state unchanged, returns no effects and is reported as ignored or rejected.
  */
 class IgnoredEventsTest {
 
@@ -16,6 +16,7 @@ class IgnoredEventsTest {
         TimerEvent.Pause,
         TimerEvent.Resume,
         TimerEvent.DeadlineReached,
+        TimerEvent.AlertCompleted,
         TimerEvent.Poured,
         TimerEvent.EndStepNow,
         TimerEvent.SkipStep,
@@ -25,7 +26,7 @@ class IgnoredEventsTest {
 
     private class Case(val name: String, val driver: () -> EngineDriver, val allowed: Set<Class<out TimerEvent>>)
 
-    /** Every state of 04 §3.1; Running is mid-step, before its deadline. */
+    /** Every state of 04 §3.1, plus Running past its deadline before the deadline event. */
     private val cases = listOf(
         Case("Idle", { EngineDriver() }, setOf(TimerEvent.StartSession::class.java)),
         Case(
@@ -34,9 +35,14 @@ class IgnoredEventsTest {
             allowed(TimerEvent.Start, TimerEvent.SkipStep, TimerEvent.FinishSession, TimerEvent.Discard),
         ),
         Case(
-            "Running",
+            "Running before the deadline",
             { running().apply { clocks.advanceSeconds(10) } },
             allowed(TimerEvent.Pause, TimerEvent.EndStepNow, TimerEvent.FinishSession, TimerEvent.Discard),
+        ),
+        Case(
+            "Running past the deadline",
+            { running().apply { clocks.advance(60_300) } },
+            allowed(TimerEvent.DeadlineReached, TimerEvent.EndStepNow, TimerEvent.FinishSession, TimerEvent.Discard),
         ),
         Case(
             "Paused",
@@ -46,6 +52,11 @@ class IgnoredEventsTest {
         Case(
             "Alerting",
             { alerting() },
+            allowed(TimerEvent.AlertCompleted, TimerEvent.Poured, TimerEvent.FinishSession, TimerEvent.Discard),
+        ),
+        Case(
+            "Alerting after the alert played",
+            { alerting().apply { send(TimerEvent.AlertCompleted) } },
             allowed(TimerEvent.Poured, TimerEvent.FinishSession, TimerEvent.Discard),
         ),
         Case(
@@ -64,8 +75,11 @@ class IgnoredEventsTest {
 
                 val transition = BrewTimerEngine.reduce(before, event, driver.clocks.now())
 
-                assertWithMessage("${case.name} + $event: state").that(transition.state).isSameInstanceAs(before)
-                assertWithMessage("${case.name} + $event: effects").that(transition.effects).isEmpty()
+                val label = "${case.name} + $event"
+                assertWithMessage("$label: state").that(transition.state).isSameInstanceAs(before)
+                assertWithMessage("$label: effects").that(transition.effects).isEmpty()
+                assertWithMessage("$label: outcome").that(transition.outcome)
+                    .isNotEqualTo(TransitionOutcome.Accepted)
             }
         }
     }
@@ -79,8 +93,10 @@ class IgnoredEventsTest {
 
                 val transition = BrewTimerEngine.reduce(before, event, driver.clocks.now())
 
-                assertWithMessage("${case.name} + $event: state").that(transition.state).isNotEqualTo(before)
-                assertWithMessage("${case.name} + $event: effects").that(transition.effects).isNotEmpty()
+                val label = "${case.name} + $event"
+                assertWithMessage("$label: state").that(transition.state).isNotEqualTo(before)
+                assertWithMessage("$label: effects").that(transition.effects).isNotEmpty()
+                assertWithMessage("$label: outcome").that(transition.outcome).isEqualTo(TransitionOutcome.Accepted)
             }
         }
     }
@@ -96,6 +112,7 @@ class IgnoredEventsTest {
         assertThat(driver.state).isSameInstanceAs(afterFirst)
         assertThat((driver.state as TimerState.Ready).stepIndex).isEqualTo(1)
         assertThat(effects).isEmpty()
+        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Ignored)
     }
 
     @Test
@@ -104,10 +121,20 @@ class IgnoredEventsTest {
         driver.send(TimerEvent.Poured)
         val ready = driver.state
 
-        val effects = driver.send(TimerEvent.DeadlineReached)
-
+        assertThat(driver.send(TimerEvent.DeadlineReached)).isEmpty()
         assertThat(driver.state).isSameInstanceAs(ready)
-        assertThat(effects).isEmpty()
+    }
+
+    @Test
+    fun `a stale deadline event of step 1 is ignored while step 2 runs`() {
+        val driver = alerting(infusion(60), infusion(120))
+        driver.send(TimerEvent.Poured)
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(1) // step 1's deadline is long past, step 2's is not
+
+        assertThat(driver.send(TimerEvent.DeadlineReached)).isEmpty()
+        val running = driver.state as TimerState.Running
+        assertThat(running.stepIndex).isEqualTo(1)
     }
 
     @Test
@@ -126,6 +153,7 @@ class IgnoredEventsTest {
 
         assertThat(driver.send(TimerEvent.DeadlineReached)).isEmpty()
         assertThat(driver.state).isSameInstanceAs(before)
+        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Ignored)
     }
 
     @Test
@@ -139,6 +167,27 @@ class IgnoredEventsTest {
 
         assertThat(driver.send(TimerEvent.DeadlineReached)).isEmpty()
         assertThat(driver.state).isInstanceOf(TimerState.Running::class.java)
+    }
+
+    @Test
+    fun `pause 1 ms before the deadline, resume, and the deadline arrives 1 ms later`() {
+        val driver = running()
+        driver.advanceTo(driver.deadline - 1)
+        driver.send(TimerEvent.Pause)
+        assertThat((driver.state as TimerState.Paused).remainingMs).isEqualTo(1)
+        driver.clocks.advanceSeconds(20)
+        assertThat(driver.send(TimerEvent.DeadlineReached)).isEmpty()
+
+        driver.send(TimerEvent.Resume)
+        driver.clocks.advance(1)
+        driver.send(TimerEvent.DeadlineReached)
+
+        assertThat(driver.state).isInstanceOf(TimerState.Alerting::class.java)
+        driver.send(TimerEvent.Poured)
+        val record = driver.recordOf(0)
+        assertThat(record.actualSeconds).isEqualTo(60)
+        assertThat(record.pausedSeconds).isEqualTo(20)
+        assertThat(record.overtimeSeconds).isEqualTo(0)
     }
 
     @Test
@@ -162,14 +211,16 @@ class IgnoredEventsTest {
     }
 
     @Test
-    fun `starting a second session while one is active is ignored (GEN-03)`() {
+    fun `starting a second session while one is active is rejected (GEN-03, TMR-21)`() {
         val driver = running()
         val before = driver.state
 
-        val effects = driver.send(TimerEvent.StartSession("session-2", listOf(infusion(90))))
+        val effects = driver.send(TimerEvent.StartSession("session-2", listOf(infusion(90)), PRE_ALERT))
 
         assertThat(driver.state).isSameInstanceAs(before)
         assertThat(effects).isEmpty()
+        assertThat(driver.outcome)
+            .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(BREW)))
     }
 
     private fun allowed(vararg events: TimerEvent): Set<Class<out TimerEvent>> = events.map { it.javaClass }.toSet()

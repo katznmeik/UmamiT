@@ -1,10 +1,9 @@
 package com.umamit.core.timer.engine
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.timer.engine.TimerEffect.CancelAlarms
+import com.umamit.core.timer.engine.TimerEffect.CreateSession
 import com.umamit.core.timer.engine.TimerEffect.Persist
 import com.umamit.core.timer.engine.TimerEffect.RecordStep
-import com.umamit.core.timer.engine.TimerEffect.ScheduleAlarms
 import com.umamit.core.timer.engine.TimerEffect.StartAlert
 import com.umamit.core.timer.engine.TimerEffect.StartForeground
 import com.umamit.core.timer.engine.TimerEffect.StopAlert
@@ -22,18 +21,23 @@ class StepLifecycleTest {
         val effects = driver.send(startSession(rinse(10), infusion(60), infusion(20)))
 
         val ready = driver.state as TimerState.Ready
+        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
         assertThat(ready.stepIndex).isEqualTo(0)
         assertThat(ready.readySinceWallMs).isEqualTo(START_WALL_MS)
-        assertThat(ready.session.sessionId).isEqualTo(SESSION_ID)
+        assertThat(ready.session.kind).isEqualTo(BREW)
         assertThat(ready.session.steps.map { it.status })
             .containsExactly(StepStatus.PENDING, StepStatus.PENDING, StepStatus.PENDING).inOrder()
         assertThat(ready.session.steps.map { it.plannedSeconds }).containsExactly(10, 60, 20).inOrder()
-        assertThat(effects).containsExactly(Persist, StartForeground, UpdateNotification).inOrder()
+        assertThat(effects)
+            .containsExactly(CreateSession(SESSION_ID), Persist, NO_ALARMS, StartForeground, UpdateNotification)
+            .inOrder()
     }
 
     @Test
     fun `a session needs at least one step and every step a positive duration`() {
-        assertThrows(IllegalArgumentException::class.java) { TimerEvent.StartSession(SESSION_ID, emptyList()) }
+        assertThrows(IllegalArgumentException::class.java) {
+            TimerEvent.StartSession(SESSION_ID, emptyList(), PRE_ALERT)
+        }
         assertThrows(IllegalArgumentException::class.java) { infusion(0) }
     }
 
@@ -50,12 +54,9 @@ class StepLifecycleTest {
         assertThat(running.deadlineWallMs).isEqualTo(START_WALL_MS + 30_000 + 60_000)
         assertThat(running.stepStartedWallMs).isEqualTo(START_WALL_MS + 30_000)
         assertThat(running.pausedTotalMs).isEqualTo(0)
-        assertThat(running.session.steps[0].status).isEqualTo(StepStatus.RUNNING)
-        assertThat(effects).containsExactly(
-            Persist,
-            ScheduleAlarms(deadlineElapsedMs = running.deadlineElapsedMs, preAlertAtElapsedMs = null),
-            UpdateNotification,
-        ).inOrder()
+        assertThat(running.session.steps[0].status).isEqualTo(StepStatus.STARTED)
+        assertThat(effects)
+            .containsExactly(Persist, deadlineAlarm(running.deadlineElapsedMs), UpdateNotification).inOrder()
     }
 
     @Test
@@ -70,7 +71,7 @@ class StepLifecycleTest {
         assertThat(paused.remainingMs).isEqualTo(34_600)
         assertThat(paused.pausedSinceElapsedMs).isEqualTo(START_ELAPSED_MS + 25_400)
         assertThat(paused.pausedSinceWallMs).isEqualTo(START_WALL_MS + 25_400)
-        assertThat(effects).containsExactly(Persist, CancelAlarms, UpdateNotification).inOrder()
+        assertThat(effects).containsExactly(Persist, NO_ALARMS, UpdateNotification).inOrder()
 
         driver.clocks.advanceSeconds(600)
         assertThat((driver.state as TimerState.Paused).remainingMs).isEqualTo(34_600)
@@ -92,15 +93,11 @@ class StepLifecycleTest {
         assertThat(running.deadlineWallMs).isEqualTo(START_WALL_MS + 25_400 + 90_000 + 34_600)
         assertThat(running.pausedTotalMs).isEqualTo(90_000)
         assertThat(running.stepStartedWallMs).isEqualTo(START_WALL_MS)
-        assertThat(effects).containsExactly(
-            Persist,
-            ScheduleAlarms(deadlineElapsedMs = now + 34_600, preAlertAtElapsedMs = null),
-            UpdateNotification,
-        ).inOrder()
+        assertThat(effects).containsExactly(Persist, deadlineAlarm(now + 34_600), UpdateNotification).inOrder()
     }
 
     @Test
-    fun `the deadline switches the step to Alerting and starts the alert`() {
+    fun `the deadline switches the step to Alerting, ensures the service and starts the alert`() {
         val driver = sessionWith(infusion(60))
         driver.send(TimerEvent.Start)
         driver.clocks.advanceSeconds(60)
@@ -110,8 +107,28 @@ class StepLifecycleTest {
         val alerting = driver.state as TimerState.Alerting
         assertThat(alerting.deadlineElapsedMs).isEqualTo(START_ELAPSED_MS + 60_000)
         assertThat(alerting.deadlineWallMs).isEqualTo(START_WALL_MS + 60_000)
-        assertThat(alerting.session.steps[0].status).isEqualTo(StepStatus.RUNNING)
-        assertThat(effects).containsExactly(Persist, StartAlert, UpdateNotification).inOrder()
+        assertThat(alerting.alertPlayed).isFalse()
+        assertThat(alerting.session.steps[0].status).isEqualTo(StepStatus.STARTED)
+        assertThat(effects)
+            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+    }
+
+    @Test
+    fun `alert completion marks the alert as played, once`() {
+        val driver = sessionWith(infusion(60))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.clocks.advanceSeconds(15)
+
+        val effects = driver.send(TimerEvent.AlertCompleted)
+
+        val alerting = driver.state as TimerState.Alerting
+        assertThat(alerting.alertPlayed).isTrue()
+        assertThat(alerting.session.lastInteractionWallMs).isEqualTo(START_WALL_MS)
+        assertThat(effects).containsExactly(Persist, NO_ALARMS).inOrder()
+        assertThat(driver.send(TimerEvent.AlertCompleted)).isEmpty()
+        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Ignored)
     }
 
     @Test
@@ -128,10 +145,10 @@ class StepLifecycleTest {
         assertThat(ready.stepIndex).isEqualTo(1)
         assertThat(ready.readySinceWallMs).isEqualTo(START_WALL_MS + 63_000)
         assertThat(ready.session.steps.map { it.status }).containsExactly(StepStatus.DONE, StepStatus.PENDING).inOrder()
-        val record = ready.session.steps[0].record!!
         assertThat(effects).containsExactly(
-            RecordStep(SESSION_ID, 0, record),
+            RecordStep(SESSION_ID, 0, driver.recordOf(0)),
             Persist,
+            NO_ALARMS,
             StopAlert,
             UpdateNotification,
         ).inOrder()
@@ -162,11 +179,10 @@ class StepLifecycleTest {
 
         val ready = driver.state as TimerState.Ready
         assertThat(ready.stepIndex).isEqualTo(1)
-        val record = ready.session.steps[0].record!!
         assertThat(effects).containsExactly(
-            RecordStep(SESSION_ID, 0, record),
+            RecordStep(SESSION_ID, 0, driver.recordOf(0)),
             Persist,
-            CancelAlarms,
+            NO_ALARMS,
             UpdateNotification,
         ).inOrder()
     }
@@ -181,9 +197,10 @@ class StepLifecycleTest {
 
         val effects = driver.send(TimerEvent.EndStepNow)
 
-        val finished = driver.state as TimerState.Finished
-        val record = finished.session.steps.single().record!!
-        assertThat(effects).containsExactly(RecordStep(SESSION_ID, 0, record), Persist, UpdateNotification).inOrder()
+        assertThat(driver.state).isInstanceOf(TimerState.Finished::class.java)
+        assertThat(effects)
+            .containsExactly(RecordStep(SESSION_ID, 0, driver.recordOf(0)), Persist, NO_ALARMS, UpdateNotification)
+            .inOrder()
     }
 
     @Test
@@ -195,8 +212,9 @@ class StepLifecycleTest {
         val ready = driver.state as TimerState.Ready
         assertThat(ready.stepIndex).isEqualTo(1)
         assertThat(ready.session.steps[0].status).isEqualTo(StepStatus.SKIPPED)
-        val record = ready.session.steps[0].record!!
-        assertThat(effects).containsExactly(RecordStep(SESSION_ID, 0, record), Persist, UpdateNotification).inOrder()
+        assertThat(effects)
+            .containsExactly(RecordStep(SESSION_ID, 0, driver.recordOf(0)), Persist, NO_ALARMS, UpdateNotification)
+            .inOrder()
     }
 
     @Test
@@ -229,8 +247,7 @@ class StepLifecycleTest {
     @Test
     fun `every user event counts as an interaction, the deadline does not`() {
         val driver = sessionWith(infusion(60), infusion(20))
-        val interactions = listOf(TimerEvent.Start, TimerEvent.Pause, TimerEvent.Resume)
-        interactions.forEach { event ->
+        listOf(TimerEvent.Start, TimerEvent.Pause, TimerEvent.Resume).forEach { event ->
             driver.clocks.advanceSeconds(5)
             driver.send(event)
             assertThat((driver.state as TimerState.Active).session.lastInteractionWallMs)

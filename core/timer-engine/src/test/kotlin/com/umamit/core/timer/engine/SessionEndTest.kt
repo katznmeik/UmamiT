@@ -2,7 +2,6 @@ package com.umamit.core.timer.engine
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import com.umamit.core.timer.engine.TimerEffect.CancelAlarms
 import com.umamit.core.timer.engine.TimerEffect.CompleteSession
 import com.umamit.core.timer.engine.TimerEffect.DiscardSession
 import com.umamit.core.timer.engine.TimerEffect.Persist
@@ -34,7 +33,7 @@ class SessionEndTest {
         assertThat(effects).containsExactly(
             CompleteSession(SESSION_ID),
             Persist,
-            CancelAlarms,
+            NO_ALARMS,
             StopForeground,
             ShowSavedSheet(SESSION_ID),
         ).inOrder()
@@ -68,12 +67,13 @@ class SessionEndTest {
             startedAtWallMs = START_WALL_MS,
             endedAtWallMs = START_WALL_MS + 42_000,
             skipped = false,
+            overtimeAutoAck = false,
         )
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, expectedRecord),
             CompleteSession(SESSION_ID),
             Persist,
-            CancelAlarms,
+            NO_ALARMS,
             StopForeground,
             ShowSavedSheet(SESSION_ID),
         ).inOrder()
@@ -112,11 +112,40 @@ class SessionEndTest {
             RecordStep(SESSION_ID, 0, record),
             CompleteSession(SESSION_ID),
             Persist,
-            CancelAlarms,
+            NO_ALARMS,
             StopAlert,
             StopForeground,
             ShowSavedSheet(SESSION_ID),
         ).inOrder()
+    }
+
+    @Test
+    fun `a whisk-only matcha session completes on finish`() {
+        val driver = sessionWith(whisk(15))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(15)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+
+        assertThat(BrewTimerEngine.finishWouldDiscard(driver.state)).isFalse()
+        assertThat(driver.send(TimerEvent.FinishSession)).contains(CompleteSession(SESSION_ID))
+    }
+
+    @Test
+    fun `a completed rinse plus a running infusion completes on finish, the running step counts`() {
+        val driver = sessionWith(rinse(10), infusion(60))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(10)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(5)
+
+        assertThat(BrewTimerEngine.finishWouldDiscard(driver.state)).isFalse()
+        val effects = driver.send(TimerEvent.FinishSession)
+
+        assertThat(effects).contains(CompleteSession(SESSION_ID))
+        assertThat((effects.first() as RecordStep).stepIndex).isEqualTo(1)
     }
 
     @Test
@@ -133,11 +162,47 @@ class SessionEndTest {
             "rinse running" to sessionWith(rinse(10)).apply { send(TimerEvent.Start) },
         )
         cases.forEach { (case, driver) ->
+            assertWithMessage(case).that(BrewTimerEngine.finishWouldDiscard(driver.state)).isTrue()
+
             val effects = driver.send(TimerEvent.FinishSession)
 
             assertWithMessage(case).that(driver.state).isEqualTo(TimerState.Idle)
             assertWithMessage(case).that(effects)
-                .containsExactly(DiscardSession(SESSION_ID), Persist, CancelAlarms, StopForeground).inOrder()
+                .containsExactly(DiscardSession(SESSION_ID), Persist, NO_ALARMS, StopForeground).inOrder()
+        }
+    }
+
+    @Test
+    fun `finishWouldDiscard predicts what finishSession does in every state`() {
+        val drivers = listOf(
+            EngineDriver(),
+            sessionWith(infusion(60)),
+            sessionWith(infusion(60)).apply { send(TimerEvent.Start) },
+            sessionWith(rinse(10)).apply { send(TimerEvent.Start) },
+            sessionWith(infusion(60)).apply {
+                send(TimerEvent.Start)
+                send(TimerEvent.Pause)
+            },
+            sessionWith(rinse(10), infusion(60)).apply {
+                send(TimerEvent.Start)
+                clocks.advanceSeconds(10)
+                send(TimerEvent.DeadlineReached)
+            },
+            sessionWith(infusion(60)).apply {
+                send(TimerEvent.Start)
+                clocks.advanceSeconds(60)
+                send(TimerEvent.DeadlineReached)
+            },
+            afterFirstInfusion(),
+            afterFirstInfusion().apply { send(TimerEvent.SkipStep) },
+            sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) },
+        )
+        drivers.forEachIndexed { i, driver ->
+            val wouldDiscard = BrewTimerEngine.finishWouldDiscard(driver.state)
+
+            val effects = driver.send(TimerEvent.FinishSession)
+
+            assertWithMessage("case $i: discarded").that(effects.any { it is DiscardSession }).isEqualTo(wouldDiscard)
         }
     }
 
@@ -157,7 +222,7 @@ class SessionEndTest {
 
             assertWithMessage(case).that(driver.state).isEqualTo(TimerState.Idle)
             assertWithMessage(case).that(effects)
-                .containsExactly(DiscardSession(SESSION_ID), Persist, CancelAlarms, StopForeground).inOrder()
+                .containsExactly(DiscardSession(SESSION_ID), Persist, NO_ALARMS, StopForeground).inOrder()
         }
     }
 
@@ -172,6 +237,6 @@ class SessionEndTest {
 
         assertThat(driver.state).isEqualTo(TimerState.Idle)
         assertThat(effects)
-            .containsExactly(DiscardSession(SESSION_ID), Persist, CancelAlarms, StopAlert, StopForeground).inOrder()
+            .containsExactly(DiscardSession(SESSION_ID), Persist, NO_ALARMS, StopAlert, StopForeground).inOrder()
     }
 }

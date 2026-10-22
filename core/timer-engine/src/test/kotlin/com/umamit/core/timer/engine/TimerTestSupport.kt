@@ -40,22 +40,38 @@ class VirtualClocks(
     fun now(): ClockReading = readClocks(this, this)
 }
 
-/** Drives the reducer like the controller will: one state, events in order, effects of the last event. */
+/** Drives the reducer like the controller will: one state, events in order, the result of the last event. */
 class EngineDriver(val clocks: VirtualClocks = VirtualClocks(), var state: TimerState = TimerState.Idle) {
     var effects: List<TimerEffect> = emptyList()
+        private set
+    var outcome: TransitionOutcome? = null
         private set
 
     fun send(event: TimerEvent): List<TimerEffect> {
         val transition = BrewTimerEngine.reduce(state, event, clocks.now())
         state = transition.state
         effects = transition.effects
+        outcome = transition.outcome
         return effects
     }
 
     fun display(): TimerDisplay? = BrewTimerEngine.display(state, clocks.now())
+
+    /** Moves both clocks to [elapsedMs] on the monotonic clock. */
+    fun advanceTo(elapsedMs: Long) = clocks.advance(elapsedMs - clocks.elapsed)
+
+    val deadline: Long get() = (state as TimerState.Running).deadlineElapsedMs
 }
 
 const val SESSION_ID = "session-1"
+val BREW = SessionKind.Brew(SESSION_ID)
+val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, recipeSeconds = null, globalSeconds = 10)
+
+/** `ScheduleAlarms` with nothing due: every alarm cancelled. */
+val NO_ALARMS = TimerEffect.ScheduleAlarms(DueTimes.NONE)
+
+/** `ScheduleAlarms` with only the deadline due (no pre-alert in #28). */
+fun deadlineAlarm(deadlineElapsedMs: Long) = TimerEffect.ScheduleAlarms(DueTimes(deadlineElapsedMs = deadlineElapsedMs))
 
 fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
@@ -63,7 +79,9 @@ fun infusion(seconds: Int, tempC: Int? = 60) = PlannedStep(StepKind.INFUSION, se
 
 fun whisk(seconds: Int) = PlannedStep(StepKind.WHISK, seconds, tempC = 80)
 
-fun startSession(vararg steps: PlannedStep) = TimerEvent.StartSession(SESSION_ID, steps.toList())
+fun startSession(vararg steps: PlannedStep) = TimerEvent.StartSession(SESSION_ID, steps.toList(), PRE_ALERT)
 
 /** A driver whose session with [steps] has just started (Ready(0)). */
 fun sessionWith(vararg steps: PlannedStep): EngineDriver = EngineDriver().apply { send(startSession(*steps)) }
+
+fun EngineDriver.recordOf(stepIndex: Int): StepRecord = (state as TimerState.Active).session.steps[stepIndex].record!!

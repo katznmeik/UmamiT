@@ -1,6 +1,6 @@
 # 04 · Brew Timer Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -99,6 +99,25 @@ stateDiagram-v2
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
 
+Engine rules (D-047):
+
+- **Guards.** Time-based events carry no payload. They are accepted only
+  when `dueTimes(state)` says they are due at `now`, so a stale alarm or an
+  early coroutine wake-up is harmless. *Pause* works only before the
+  deadline.
+- **Not accepted.** An event a state does not allow returns the same state
+  and no effects. The transition reports it as `Ignored`, or as
+  `Rejected(reason)` when the UI should explain it: `startSession` while a
+  timer is active is `ActiveTimerExists` (TMR-21).
+- **`alertCompleted`** (Alerting; from the AlertPlayer after its cycle) sets
+  `alertPlayed`.
+- **Ending after the deadline.** `endStepNow` or `finishSession` in Running
+  at or after the deadline, before `deadlineReached` was processed, counts as
+  poured, with overtime.
+- **Finish fallback.** A `finishSession` that falls back to discard records
+  nothing; a started step counts as completed. The UI asks
+  `finishWouldDiscard(state)` before it confirms.
+
 ## 4. Components
 
 ```mermaid
@@ -116,10 +135,29 @@ flowchart LR
     C -- schedule/cancel --> AM[AlarmManager exact]
 ```
 
-- `BrewTimerEngine.reduce(state, event, now) → (state, effects)`; effects:
-  `Persist`, `ScheduleAlarms`, `CancelAlarms`, `PlayPreAlert`, `StartAlert`,
-  `StopAlert`, `StartForeground`, `StopForeground`, `UpdateNotification`,
-  `RecordStep`, `CompleteSession`, `DiscardSession`, `ShowSavedSheet`.
+- `BrewTimerEngine.reduce(state, event, now) → (state, effects, outcome)`.
+  The effects are:
+  - data: `CreateSession`, `RecordStep`, `CompleteSession`, `DiscardSession`;
+  - `Persist`, `ScheduleAlarms`;
+  - side effects: `PlayPreAlert`, `StartAlert`, `StopAlert`, `StartForeground`,
+    `StopForeground`, `UpdateNotification`, `ShowSavedSheet`.
+- **Effect order (D-047).** Every accepted transition lists, in this order:
+  1. its data effects;
+  2. exactly one `Persist` (steps 1 and 2 run in one Room transaction);
+  3. exactly one `ScheduleAlarms(dueTimes(newState))`;
+  4. its side effects.
+- **Session rows.** The controller creates the session rows only for the
+  `CreateSession` of an accepted start, so a refused start leaves no orphaned
+  rows.
+- **Alarms.** `ScheduleAlarms` carries the full due set. The controller
+  reconciles it per alarm type: it schedules a type whose time is present and
+  cancels one whose time is absent. There is no separate `CancelAlarms`.
+  After every `reduce`, accepted or not, the controller re-arms its
+  in-process wake-up from `dueTimes(state)`.
+- **Foreground service.** `StartForeground` means "ensure it runs"; it is
+  emitted at `startSession` and before `StartAlert`. `StopForeground` also
+  removes the timer notifications. The full service rules for long steps,
+  demote and recovery come with #31.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
   executes effects, exposes `StateFlow<TimerUiState>`.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
@@ -132,7 +170,13 @@ flowchart LR
   clock for journal timestamps, notification chronometer and reboot recovery;
   `Settings.Global.BOOT_COUNT` stored to detect reboots.
 - Remaining time is displayed rounded **up** to whole seconds; overtime rounded
-  down („+0:07"); ≥ 1 h as `h:mm:ss`.
+  down („+0:07"); ≥ 1 h as `h:mm:ss`. Ready shows the planned duration;
+  Finished shows 0. A running step past its deadline shows 0 until
+  `deadlineReached` is processed.
+- Delivery (D-047): the alert is **at-least-once**. Alerting holds
+  `alertPlayed`, and recovery replays `StartAlert` while it is false. The
+  pre-alert tick is **at-most-once**: `preAlertPlayed` is set in the
+  transition that plays it.
 - Pre-alert: `preAlertAt = deadline − N·1000` where N = recipe override ?:
   global setting (default **10 s**); none if N = 0, if planned < N + 5 s, for
   rinse steps < 15 s, or for long steps (≥ 10 min).
@@ -147,6 +191,15 @@ flowchart LR
 | `overtimeSeconds` | Deadline → *Abgegossen* (0 if ended early or auto-acknowledged). |
 | `startedAt`, `endedAt` | Wall clock. |
 | `skipped`, `overtimeAutoAck` | Flags. |
+
+Durations are rounded half up. The journal can therefore differ from the
+display by 1 s: 2.5 s of overtime shows „+0:02" and is recorded as 3 s. Other
+rules (D-047):
+
+- A skipped step records 0 for actual, paused and overtime, and null for
+  `startedAt` and `endedAt`. It keeps `plannedSeconds`.
+- A Running step ended at or after the deadline counts as poured:
+  overtime = now − deadline, and actual = planned + overtime.
 
 ## 6. Background execution
 

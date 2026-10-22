@@ -23,7 +23,7 @@ sealed interface TimerState {
         val stepIndex: Int
     }
 
-    /** A state whose current step has started: its timing so far. */
+    /** A state whose current step has started (status STARTED): its timing so far. */
     sealed interface StepStarted : OnStep {
         /** Wall time of *Start* (`step_started_wall_ms`). */
         val stepStartedWallMs: Long
@@ -42,8 +42,8 @@ sealed interface TimerState {
      * Counting down to [deadlineElapsedMs] (04 §2: remaining = deadline − now).
      *
      * @property deadlineWallMs the same deadline on the wall clock, for „Fertig um 14:30" and reboot recovery.
-     * @property preAlertAtElapsedMs when the pre-alert tick is due; null when this step has none (TMR-23).
-     * @property preAlertPlayed the tick already played for this step (E6).
+     * @property preAlertAtElapsedMs when the pre-alert tick is due; null when this step has none (TMR-23, #31).
+     * @property preAlertPlayed the tick already played for this step: it plays at most once (E6).
      */
     data class Running(
         override val session: TimerSession,
@@ -52,8 +52,8 @@ sealed interface TimerState {
         override val pausedTotalMs: Long,
         val deadlineElapsedMs: Long,
         val deadlineWallMs: Long,
-        val preAlertAtElapsedMs: Long? = null,
-        val preAlertPlayed: Boolean = false,
+        val preAlertAtElapsedMs: Long?,
+        val preAlertPlayed: Boolean,
     ) : StepStarted {
         override val phase: TimerPhase get() = TimerPhase.RUNNING
     }
@@ -67,12 +67,17 @@ sealed interface TimerState {
         val remainingMs: Long,
         val pausedSinceElapsedMs: Long,
         val pausedSinceWallMs: Long,
-        val preAlertPlayed: Boolean = false,
+        val preAlertPlayed: Boolean,
     ) : StepStarted {
         override val phase: TimerPhase get() = TimerPhase.PAUSED
     }
 
-    /** The deadline passed; the alert plays until *Abgegossen*. Overtime = now − [deadlineElapsedMs]. */
+    /**
+     * The deadline passed; the alert plays until *Abgegossen*. Overtime = now − [deadlineElapsedMs].
+     *
+     * @property alertPlayed the alert ran its full cycle ([TimerEvent.AlertCompleted], `alert_played`).
+     *   The alert is at-least-once: recovery replays `StartAlert` while this is false (04 §7.2).
+     */
     data class Alerting(
         override val session: TimerSession,
         override val stepIndex: Int,
@@ -80,6 +85,7 @@ sealed interface TimerState {
         override val pausedTotalMs: Long,
         val deadlineElapsedMs: Long,
         val deadlineWallMs: Long,
+        val alertPlayed: Boolean,
     ) : StepStarted {
         override val phase: TimerPhase get() = TimerPhase.ALERTING
     }

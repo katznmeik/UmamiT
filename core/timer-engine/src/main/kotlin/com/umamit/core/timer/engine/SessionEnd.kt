@@ -1,10 +1,8 @@
 package com.umamit.core.timer.engine
 
 import com.umamit.core.common.ClockReading
-import com.umamit.core.timer.engine.TimerEffect.CancelAlarms
 import com.umamit.core.timer.engine.TimerEffect.CompleteSession
 import com.umamit.core.timer.engine.TimerEffect.DiscardSession
-import com.umamit.core.timer.engine.TimerEffect.Persist
 import com.umamit.core.timer.engine.TimerEffect.RecordStep
 import com.umamit.core.timer.engine.TimerEffect.ShowSavedSheet
 import com.umamit.core.timer.engine.TimerEffect.StopAlert
@@ -14,33 +12,39 @@ import com.umamit.core.timer.engine.TimerEffect.StopForeground
  * *Sitzung beenden* (TMR-12): a started step ends as by *Aufguss jetzt
  * beenden* (Running, Paused) or *Abgegossen* (Alerting). Then the session is
  * completed if a non-rinse step was completed, and discarded otherwise, in
- * which case nothing is recorded (the UI confirms the discard first).
+ * which case nothing is recorded (the UI confirms the discard first, using
+ * [BrewTimerEngine.finishWouldDiscard]).
  */
 internal fun finishSession(state: TimerState.Active, now: ClockReading): TimerTransition {
-    val ended = (state as? TimerState.StepStarted)?.let { it.stepIndex to endedRecord(it, now) }
-    val session = ended?.let { (index, record) ->
-        state.session.withStep(index) { it.copy(status = StepStatus.DONE, record = record) }
-    } ?: state.session
-    if (!session.hasCompletedBrewStep) return discard(state)
-
-    val sessionId = session.sessionId
-    val recordEffect = ended?.let { (index, record) -> sessionId?.let { RecordStep(it, index, record) } }
-    val effects = listOfNotNull(recordEffect, sessionId?.let(::CompleteSession)) +
-        sessionEndEffects(state) +
-        listOfNotNull(sessionId?.let(::ShowSavedSheet))
-    return TimerTransition(TimerState.Idle, effects)
+    if (!finishCompletes(state)) return discard(state)
+    val sessionId = state.session.brewSessionId
+    val recordEffect = (state as? TimerState.StepStarted)?.let { started ->
+        sessionId?.let { RecordStep(it, started.stepIndex, endedRecord(started, now)) }
+    }
+    return accepted(
+        TimerState.Idle,
+        data = listOfNotNull(recordEffect, sessionId?.let(::CompleteSession)),
+        side = sessionEndEffects(state) + listOfNotNull(sessionId?.let(::ShowSavedSheet)),
+    )
 }
 
 /** Discard (TMR-13): the session and its stock deduction are deleted; nothing is recorded. */
-internal fun discard(state: TimerState.Active): TimerTransition = TimerTransition(
+internal fun discard(state: TimerState.Active): TimerTransition = accepted(
     TimerState.Idle,
-    listOfNotNull(state.session.sessionId?.let(::DiscardSession)) + sessionEndEffects(state),
+    data = listOfNotNull(state.session.brewSessionId?.let(::DiscardSession)),
+    side = sessionEndEffects(state),
 )
 
-/** Leaving an active state for Idle: clear `active_brew`, cancel the alarms, stop the alert and the service. */
-private fun sessionEndEffects(state: TimerState.Active): List<TimerEffect> = listOfNotNull(
-    Persist,
-    CancelAlarms,
-    StopAlert.takeIf { state is TimerState.Alerting },
-    StopForeground,
-)
+/** True when finishing [state] completes the session: a non-rinse step is done, counting a started one as done. */
+internal fun finishCompletes(state: TimerState.Active): Boolean {
+    val session = if (state is TimerState.StepStarted) {
+        state.session.withStep(state.stepIndex) { it.copy(status = StepStatus.DONE) }
+    } else {
+        state.session
+    }
+    return session.hasCompletedBrewStep
+}
+
+/** Leaving an active state for Idle: stop the alert and the service (which removes the timer notifications). */
+private fun sessionEndEffects(state: TimerState.Active): List<TimerEffect> =
+    listOfNotNull(StopAlert.takeIf { state is TimerState.Alerting }, StopForeground)
