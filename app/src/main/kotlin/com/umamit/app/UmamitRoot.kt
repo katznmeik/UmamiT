@@ -22,6 +22,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
+import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.settings.SettingsScreen
 import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,7 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
  * timer while the alert plays, and *Timer-Einstellungen* opened before the
  * alert is popped back to the timer in the frame the alert starts.
  *
+ * @param journalSources the journal tab and the „Gespeichert" sheet, which never shows over an alert (M1-16).
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
@@ -47,6 +49,7 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 @Composable
 internal fun UmamitRoot(
     activeBrewSource: ActiveBrewSource,
+    journalSources: JournalSources,
     alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
     onTimerVisibleChange: (Boolean) -> Unit = {},
@@ -131,6 +134,8 @@ internal fun UmamitRoot(
         composable<ShellRoute> {
             UmamitApp(
                 activeBrewSource = activeBrewSource,
+                journalSources = journalSources,
+                alerting = alert != null,
                 onOpenTimer = openTimer,
                 startNavigation = startNavigation,
                 alertKey = alert,

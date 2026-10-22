@@ -39,7 +39,7 @@ interface BrewStarter {
  * *Beenden & neu starten* runs as two controller turns for now (finish or
  * cancel, then start). #46 replaces it with the controller's one-turn
  * operation that sends the finish's saved sheet as `NotifySessionSaved`
- * (D-054); the seam stays the same (D-061).
+ * (D-054); the seam stays the same (D-062).
  */
 class ControllerBrewStarter @Inject constructor(private val controller: BrewSessionController) : BrewStarter {
     override val state: StateFlow<TimerUiState> get() = controller.state
@@ -60,7 +60,7 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
  * last session: its snapshot of tea, recipe, vessel, leaf and water, its steps
  * as planned (in order) and its effective pre-alert, frozen like a recipe's.
  * A session finished early has kept only its started steps (TMR-12), so those
- * are the ones brewed again (D-061).
+ * are the ones brewed again (D-062).
  */
 fun brewAgainStart(last: BrewSession): BrewStart = BrewStart(
     snapshot = last.snapshot,

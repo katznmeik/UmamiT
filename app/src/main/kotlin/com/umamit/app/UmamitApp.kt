@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -51,11 +53,13 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
-import com.umamit.feature.journal.JournalScreen
+import com.umamit.feature.journal.JournalSources
+import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.settings.SettingsScreen
 import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
+import com.umamit.feature.journal.JournalRoute as JournalTab
 
 internal fun tabTag(tab: Tab) = "tab_${tab.name}"
 
@@ -67,8 +71,13 @@ private const val SLIDE_FRACTION = 12
  * a rail on wide windows, the active brew bar slot above the bar, and one
  * navigation controller per tab, so every tab keeps its own back stack.
  *
+ * The „Gespeichert" sheet (SCR-06) rises over the bottom of the tab content,
+ * above the active brew bar and the navigation; never while an alert plays (rule 8).
+ *
+ * @param journalSources the journal tab's sessions and the saved sheet's requests (M1-16).
+ * @param alerting whether an alert plays now.
  * @param layoutType forces the bar or the rail; `null` follows the window size.
- * @param onOpenTimer a tap on the active brew bar opens the timer (GEN-06).
+ * @param onOpenTimer a tap on the active brew bar, or on the running session in the journal, opens the timer (GEN-06).
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
@@ -76,7 +85,9 @@ private const val SLIDE_FRACTION = 12
 @Composable
 internal fun UmamitApp(
     activeBrewSource: ActiveBrewSource,
+    journalSources: JournalSources,
     modifier: Modifier = Modifier,
+    alerting: Boolean = false,
     layoutType: NavigationSuiteType? = null,
     onOpenTimer: () -> Unit = {},
     startNavigation: StartNavigation = StartNavigation(),
@@ -138,39 +149,57 @@ internal fun UmamitApp(
             WindowInsets(0)
         }
         Column(modifier = Modifier.fillMaxSize()) {
-            transition.AnimatedContent(
+            Box(
                 modifier = Modifier
                     .weight(1f)
                     .consumeWindowInsets(insetBelowContent),
-                transitionSpec = {
-                    // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
-                    fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
-                },
-            ) { tab ->
-                stateHolder.SaveableStateProvider(tab) {
-                    TabHost(
-                        tab = tab,
-                        navController = controllers.getValue(tab),
-                        scrollToTopRequest = reselection.scrollRequest(tab),
-                        segment = segment,
-                        onSegmentChange = { segment = it },
-                        start = { openSettings, scrollToTop ->
-                            startScreen(
-                                StartTab(
-                                    openSettings = openSettings,
-                                    scrollToTopRequest = scrollToTop,
-                                    showJournal = { selected = Tab.Journal },
-                                    openCatalog = {
-                                        segment = CollectionSegment.Catalog
-                                        selected = Tab.Collection
-                                    },
-                                    alertKey = alertKey,
-                                    navigation = startNavigation,
-                                ),
-                            )
-                        },
-                    )
+            ) {
+                transition.AnimatedContent(
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
+                        fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
+                    },
+                ) { tab ->
+                    stateHolder.SaveableStateProvider(tab) {
+                        TabHost(
+                            tab = tab,
+                            navController = controllers.getValue(tab),
+                            scrollToTopRequest = reselection.scrollRequest(tab),
+                            segment = segment,
+                            onSegmentChange = { segment = it },
+                            journalSources = journalSources,
+                            onOpenTimer = onOpenTimer,
+                            start = { openSettings, scrollToTop ->
+                                startScreen(
+                                    StartTab(
+                                        openSettings = openSettings,
+                                        scrollToTopRequest = scrollToTop,
+                                        showJournal = { selected = Tab.Journal },
+                                        openCatalog = {
+                                            segment = CollectionSegment.Catalog
+                                            selected = Tab.Collection
+                                        },
+                                        alertKey = alertKey,
+                                        navigation = startNavigation,
+                                    ),
+                                )
+                            },
+                        )
+                    }
                 }
+                SavedSheetHost(
+                    requests = journalSources.savedSheets,
+                    sessions = journalSources.sessions,
+                    alerting = alerting,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.
+                    windowInsets = if (rail && activeBrew == null) {
+                        WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+                    } else {
+                        WindowInsets(0)
+                    },
+                )
             }
             // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
             // layout leaves the system bar insets to the brew bar.
@@ -222,6 +251,8 @@ private fun TabHost(
     scrollToTopRequest: Int,
     segment: CollectionSegment,
     onSegmentChange: (CollectionSegment) -> Unit,
+    journalSources: JournalSources,
+    onOpenTimer: () -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -241,7 +272,9 @@ private fun TabHost(
         },
     ) {
         composable<StartRoute> { start(openSettings, scrollToTopRequest) }
-        composable<JournalRoute> { JournalScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
+        composable<JournalRoute> {
+            JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
+        }
         composable<CollectionRoute> {
             CollectionScreen(segment, onSegmentChange, openSettings, scrollToTopRequest = scrollToTopRequest)
         }

@@ -91,6 +91,7 @@ class BrewAgainFlowTest {
             UmamiTheme(reduceMotion = true) {
                 UmamitRoot(
                     activeBrewSource = NoActiveBrewSource,
+                    journalSources = testJournalSources(sessions),
                     alertKey = MutableStateFlow(null),
                     timerScreen = { onClose, _, _ ->
                         val state by starter.state.collectAsStateWithLifecycle()

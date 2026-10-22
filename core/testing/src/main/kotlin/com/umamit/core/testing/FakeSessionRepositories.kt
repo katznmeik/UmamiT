@@ -3,6 +3,8 @@ package com.umamit.core.testing
 import com.umamit.core.common.snap5
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
+import com.umamit.core.data.JournalRepository
+import com.umamit.core.data.JournalSession
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
@@ -42,6 +44,7 @@ class FakeSessions(
 
     val sessions = FakeSessionRepository(this)
     val activeBrew = FakeActiveBrewStore(this)
+    val journal = FakeJournalRepository(this)
     val transactions: DatabaseTransactions = FakeDatabaseTransactions
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
@@ -171,6 +174,20 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
         skipped = false,
         overtimeAutoAck = false,
     )
+}
+
+/**
+ * Fake [JournalRepository] on the fake session rows, newest start first, emitting again on
+ * every write; create it through [FakeSessions]. [coverPhotos] maps a tea id to its photo file.
+ */
+class FakeJournalRepository internal constructor(private val s: FakeSessions) : JournalRepository {
+    val coverPhotos = MutableStateFlow<Map<String, java.io.File>>(emptyMap())
+
+    override fun observeSessions(): Flow<List<JournalSession>> = s.sessionRows.map { rows ->
+        rows.values.sortedByDescending { it.startedAtMs }.map { session ->
+            JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
+        }
+    }
 }
 
 /** Fake [ActiveBrewStore]; create it through [FakeSessions]. */

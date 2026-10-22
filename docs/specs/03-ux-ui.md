@@ -464,12 +464,12 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
 - At most one nudge card (knapper Vorrat, Backup, Katalog nie geladen).
 - Empty state: „Deine Sammlung ist leer" · *Katalog öffnen* · *Schnelltimer*.
-- Details (lists, row format, live countdown): [D-061](10-open-questions-and-decisions.md#d-061).
+- Details (lists, row format, live countdown): [D-062](10-open-questions-and-decisions.md#d-062).
 
 ### SCR-03 Teeauswahl (bottom sheet)
 
 Search (GEN-10); sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned teas);
-footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-061](10-open-questions-and-decisions.md#d-061)).
+footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
 
 ### SCR-04 Brühen (setup)
 
@@ -496,7 +496,7 @@ footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*. Material 3'
 „Rezept prüfen" badge with reason above the steps if flagged. *Bearb.* and
 the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
 the ratio lock is a switch with the live ratio; at ≤ 10 °C the kettle hint reads „Kaltes Wasser" /
-„Eiswürfel" ([D-061](10-open-questions-and-decisions.md#d-061)).
+„Eiswürfel" ([D-062](10-open-questions-and-decisions.md#d-062)).
 
 ### SCR-05 Timer
 
@@ -553,6 +553,12 @@ Small bottom sheet after *Sitzung beenden*, auto-dismisses after 10 s:
 „Gespeichert im Journal · 3 Aufgüsse · 2:20" with *Notizen hinzufügen* and (if
 PRF-07 applies) *Zeiten ins Rezept übernehmen*.
 
+No scrim: it rises over the bottom of the tab content with the `sheet`
+spring. A swipe down or TalkBack's *Schließen* dismisses it; a finger on it
+holds it. It is never shown while an alert plays, and an alert removes it in
+the same frame (rule 8). M1 shows only the text; the two actions come with
+M4 (D-061).
+
 ### SCR-07 Schnelltimer
 
 Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
@@ -599,6 +605,11 @@ Serif „Journal", search „Tees, Notizen, …", filter icon; day-grouped rows
 (header „HEUTE", „GESTERN", dates) with round photo, serif tea name, meta line
 „55 °C · 1:00 · 3 Aufgüsse", rating, and the time of day on the right
 („09:12"); in-progress session pinned. Empty: „Deine erste Tasse wartet."
+
+M1 (minimal, D-061): read-only, without search, filter and rating. The
+in-progress session sits under „LÄUFT GERADE" and opens the timer. An early
+finish reads „2 von 3 Aufgüssen". A session belongs to the local day of its
+start in its own time zone (E13); older days read „MONTAG, 12. OKTOBER".
 
 ### SCR-16 Sitzung (detail)
 

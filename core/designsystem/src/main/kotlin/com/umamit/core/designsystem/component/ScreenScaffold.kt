@@ -41,7 +41,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
  *
  * @param scrollToTopRequest a counter; every increase scrolls the body to the top
  *   (re-selecting the tab, 03 §2.2).
- * @param verticalArrangement where a body shorter than the screen sits: centred (empty states) or at the top.
+ * @param verticalArrangement the body's arrangement: centred for an empty state, [Arrangement.Top] for a list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
