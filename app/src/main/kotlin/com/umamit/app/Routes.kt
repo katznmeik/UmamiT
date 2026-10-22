@@ -5,6 +5,18 @@ import androidx.annotation.StringRes
 import com.umamit.core.designsystem.icon.UmamiIcons
 import kotlinx.serialization.Serializable
 
+/** The navigation shell with its four tabs: the root of the app's top-level navigation. */
+@Serializable
+internal data object ShellRoute
+
+/** The timer (SCR-05): full-screen, above the shell, without the navigation bar and the active brew bar (03 §2.2). */
+@Serializable
+internal data object TimerRoute
+
+/** *Timer-Einstellungen* from the timer's overflow; on the timer's stack, so back returns to the timer. */
+@Serializable
+internal data object TimerSettingsRoute
+
 /** Type-safe routes (06 §5.5). Every tab owns a navigation controller, so each has its own back stack. */
 @Serializable
 internal data object StartRoute
