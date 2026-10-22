@@ -133,14 +133,23 @@ class ProcessDeathTest {
     }
 
     /**
-     * No timer from an earlier run: its process killed, its alarms cancelled (same uid), its
-     * database deleted, its notifications removed. A leftover session would refuse the start.
+     * No timer from an earlier run: its alarms cancelled (same uid), its screens closed, its
+     * process killed, its database deleted, its notifications removed. A leftover session would
+     * refuse the start.
+     *
+     * Alarms and screens go first: a resumed [TimerAlertActivity] (or an alarm) would start the
+     * killed process again at once, so it is killed until it stays dead.
      */
     private fun resetTimer() {
-        timerPid()?.let(Process::killProcess)
-        eventually("timer process gone", START_TIMEOUT) { Unit.takeIf { timerPid() == null } }
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
-        AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {}).reconcile(DueTimes.NONE)
+        val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
+        alarms.reconcile(DueTimes.NONE)
+        activityManager.appTasks.forEach { it.finishAndRemoveTask() }
+        eventually("timer process gone", START_TIMEOUT) {
+            timerPid()?.let(Process::killProcess)
+            Unit.takeIf { timerPid() == null }
+        }
+        alarms.reconcile(DueTimes.NONE)
         context.deleteDatabase(UmamiDatabase.NAME)
         TimerTestActivity.outcomeFile(context).delete()
         notificationManager.cancelAll()

@@ -288,8 +288,12 @@ class ShopClientTest {
 
         val gapsMs = arrivals.zipWithNext { a, b -> (b - a) / 1_000_000 }
         assertThat(gapsMs).hasSize(3)
-        // 500 ms between starts; a little slack for the server thread's own scheduling.
-        gapsMs.forEach { assertThat(it).isAtLeast(MIN_GAP_MS) }
+        // The exact 500 ms spacing is RequestRateLimiterTest's (fake clock); this proves the client
+        // uses the limiter. Arrivals at the server carry the runner's scheduling jitter, which can
+        // shorten one gap by delaying a single arrival: no two requests close together, and the
+        // four spread over about three intervals.
+        gapsMs.forEach { assertThat(it).isAtLeast(MIN_GAP_MS / 2) }
+        assertThat((arrivals.last() - arrivals.first()) / 1_000_000).isAtLeast(MIN_SPAN_OF_FOUR_MS)
     }
 
     @Test
@@ -357,6 +361,7 @@ class ShopClientTest {
     private companion object {
         const val SERVER_WORK_MS = 50L
         const val MIN_GAP_MS = 480L
+        const val MIN_SPAN_OF_FOUR_MS = 1_350L
         const val CONNECT_DELAY_MS = 400L
         const val SLOW_RESPONSE_MS = 300L
         const val QUEUE_SETTLE_MS = 100L
