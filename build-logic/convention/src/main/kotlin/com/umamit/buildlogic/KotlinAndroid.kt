@@ -38,6 +38,10 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
     // tests yet; without this, Gradle 9 fails their empty test tasks.
     tasks.withType<Test>().configureEach {
         failOnNoDiscoveredTests.set(false)
+        // Robolectric downloads its Android framework jars at test time; use the
+        // Maven Central host the cloud container reaches (`repo1.maven.org`
+        // answers HTTP 429 there).
+        systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
         // Robolectric's SDK 36 runtime needs these on JDK 21 ("Failed to interact
         // with raw FileDescriptor internals" otherwise).
         jvmArgs(

@@ -48,7 +48,7 @@ fun ProbeScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(top = 4.dp),
             )
 
-            // TODO(#14): PermissionStatusList()
+            PermissionStatusList()
             Spacer(Modifier.height(24.dp))
 
             ProbeStepSection()
