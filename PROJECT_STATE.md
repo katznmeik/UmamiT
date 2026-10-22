@@ -102,6 +102,42 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
    something on the device needs re-checking).
 
+### `/implement-spec` on #40 — progress (2026-10-22, 23:30 Europe/Berlin)
+
+A scheduled task ("Resume M1 after usage reset", `trig_01DxzSTk1mTMXZ7CkBoqUUGC`,
+daily at 23:55, 04:55, 09:55, 14:55, 19:55 Europe/Berlin) resumes this session
+after a usage-limit reset; delete it once M1 reaches #55.
+
+- **Merged on the M1 branch, CI green (474c906):** #41 controller, #42 alarms
+  and service (T4 review, `ProcessDeathTest` green on API 35/36), #43
+  diagnostics, #44 alert player and tones (the PO still listens to the four
+  new tones), #45 timer screen (three motion review rounds).
+- **In progress (subagent worktrees, uncommitted work is lost if cut off):**
+  #48 Start and setup, #51 journal. Both started from b9c3071 and merge the
+  M1 tip before reporting.
+- **Frontier next:** #46 recovery (T4), #47 notifications/Live Update (T3),
+  #52 accuracy workflow (T3); then #49 quick timer, #50 settings, #53
+  renders, #54 milestone review and rc.
+- **Hand-offs:**
+  - The ticket that binds the last controller port switches `TimerAppModule`
+    from `NoBrewTimer` to the controller and makes `UmamitApplication`
+    implement `TimerHost` (D-057).
+  - #46 also takes (see its issue comment): cap and back off the recovery
+    retry alarm (#42 review R2-1), build the refused-start resend from the
+    current state inside the turn and log a repeated refusal (R2-2), the
+    kill-during-ALERTING watchdog (fix the 04 §7.2/D-057 wording), and
+    diagnostics entries for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and
+    recovery decisions.
+  - #47: the full-screen intent opens `TimerRoute` (#45 S7), and the
+    notifier changes the notification ID through the service, never posting
+    ID 2 next to ID 1 (D-044, D-057).
+  - #50: inject #44's `AlertTester`; German tone names.
+- **Decision numbers:** D-060 is #43's; the next free number is **D-061**.
+- **Process:** verify every result with the full gate before merging, and
+  after each merge run the gate on the combined tree before pushing.
+  Branches touching shared types (`TimerUiState`, root navigation, the
+  timer ports) broke the build twice when combined.
+
 ## Open questions
 
 None blocking. The remaining approvals are listed under "Waiting on the PO".
