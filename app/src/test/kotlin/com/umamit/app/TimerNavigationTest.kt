@@ -33,7 +33,8 @@ class TimerNavigationTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private val running = ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
+    private val running =
+        ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
     private val brew = MutableStateFlow<ActiveBrew?>(running)
     private val alertKey = MutableStateFlow<String?>(null)
     private val visible = mutableListOf<Boolean>()

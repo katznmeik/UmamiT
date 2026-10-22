@@ -112,7 +112,17 @@ fun TimerScreen(
                     }
                 },
         ) {
-            val args = TimerBodyArgs(state, now, nowElapsedMs, overlays, actions, reliabilityProblem, onFixReliability, teaPhoto)
+            val args =
+                TimerBodyArgs(
+                    state,
+                    now,
+                    nowElapsedMs,
+                    overlays,
+                    actions,
+                    reliabilityProblem,
+                    onFixReliability,
+                    teaPhoto,
+                )
             // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
             val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }
             if (alerting) {
