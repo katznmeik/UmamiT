@@ -3,6 +3,7 @@ package com.umamit.core.timer
 import android.Manifest
 import android.app.ActivityManager
 import android.app.Application
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationManager
 import android.os.Build
@@ -45,7 +46,8 @@ import kotlin.time.TimeSource
  * - *Pause* and *Weiter* in the notification reach the controller;
  * - at the deadline the alert (ID 2) replaces the Live Update, is not `FLAG_SILENT` (D-044),
  *   and its full-screen intent opens the timer screen over the lock screen; *Abgegossen* in
- *   the notification ends the step.
+ *   the notification ends the step;
+ * - a long step's quiet notification (ID 4, D-064) gives way to the alert alone.
  *
  * Background for the API 36 checks: `docs/plans/M1-probe-api-notes.md`.
  */
@@ -56,6 +58,7 @@ class TimerNotificationsDeviceTest {
     private val packageName = context.packageName
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val activityManager = context.getSystemService(ActivityManager::class.java)
+    private val keyguard = context.getSystemService(KeyguardManager::class.java)
 
     /** The promotion toggle as it was before the test changed it; restored in [tearDown]. */
     private var promotionToRestore: Boolean? = null
@@ -83,7 +86,7 @@ class TimerNotificationsDeviceTest {
     @Test
     fun aRunningStepIsThePromotedLiveUpdateAndItsActionsReachTheController() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) allowPromotion()
-        startStep(LONG_STEP)
+        startStep(RUNNING_STEP)
 
         val liveUpdate = eventually("the Live Update (ID 1) as the foreground notification", TIMEOUT) {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)
@@ -147,6 +150,7 @@ class TimerNotificationsDeviceTest {
         )
         assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
         assertNull("the quiet notification must be gone too", activeNotification(TimerNotifications.ID_QUIET))
+        assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
 
         tap(alert, "Abgegossen")
         val finished = eventually("the session finished after Abgegossen in the notification", TIMEOUT) {
@@ -156,8 +160,41 @@ class TimerNotificationsDeviceTest {
         assertEquals("${TimerTestActivity.TEA} · Alle Aufgüsse fertig", finished.title())
     }
 
-    private fun startStep(step: Duration) {
-        context.startActivity(TimerTestActivity.intent(context, step.inWholeSeconds.toInt()))
+    @Test
+    fun aLongStepsQuietNotificationGivesWayToTheAlertAlone() {
+        // A cold brew: every step is long and runs without the service, on the quiet
+        // notification (ID 4, D-064). At the deadline the alert must still be the app's only
+        // notification, not force-grouped into the quiet one's group and not FLAG_SILENT (D-044).
+        startStep(COLD_BREW_STEP, coldBrew = true)
+        val quiet = eventually("the quiet notification (ID 4) of the long step", TIMEOUT) {
+            activeNotification(TimerNotifications.ID_QUIET)
+        }
+        assertEquals(TimerNotifications.CHANNEL_BREW_TIMER, quiet.channelId)
+        assertTrue("the long step must say when it is done", quiet.text()?.startsWith("Fertig um") == true)
+
+        shell("input keyevent KEYCODE_SLEEP")
+        eventually("the timer screen over the lock screen at the deadline", COLD_BREW_STEP + ALERT_TIMEOUT) {
+            resumedTimerScreen()
+        }
+
+        val alert = activeNotification(TimerNotifications.ID_ALERT)
+        assertNotNull("alert notification (ID 2) missing", alert)
+        alert!!
+        assertNotNull("the alert has no full-screen intent", alert.fullScreenIntent)
+        assertTrue(
+            "the alert is marked FLAG_SILENT (force-grouped), flags=0x${Integer.toHexString(alert.flags)}",
+            alert.flags and FLAG_SILENT == 0,
+        )
+        assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
+        assertEquals(
+            "the alert must be the app's only notification (no quiet one, no autogroup summary)",
+            listOf(TimerNotifications.ID_ALERT),
+            notificationManager.activeNotifications.map { it.id },
+        )
+    }
+
+    private fun startStep(step: Duration, coldBrew: Boolean = false) {
+        context.startActivity(TimerTestActivity.intent(context, step.inWholeSeconds.toInt(), coldBrew))
         val outcome = eventually("the step's start in the timer process", TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
@@ -278,7 +315,8 @@ class TimerNotificationsDeviceTest {
 
     private companion object {
         const val TAG = "TimerNotificationsTest"
-        val LONG_STEP = 120.seconds
+        val RUNNING_STEP = 120.seconds
+        val COLD_BREW_STEP = 20.seconds
         val SHORT_STEP = 15.seconds
         val TIMEOUT = 10.seconds
         val ALERT_TIMEOUT = 45.seconds

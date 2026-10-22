@@ -5,7 +5,11 @@ import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationManager
 import android.os.ParcelFileDescriptor
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -27,6 +31,7 @@ import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.feature.brew.timer.TIMER_RING_TAG
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -72,6 +77,11 @@ class TimerAlertOverLockScreenTest {
     @After
     fun tearDown() {
         endTimer()
+        instrumentation.runOnMainSync {
+            ActivityLifecycleMonitorRegistry.getInstance().let { monitor ->
+                Stage.entries.flatMap { monitor.getActivitiesInStage(it) }
+            }.filterIsInstance<MainActivity>().forEach { it.finish() }
+        }
         wakeAndUnlock()
     }
 
@@ -94,7 +104,11 @@ class TimerAlertOverLockScreenTest {
 
         val keyguard = context.getSystemService(KeyguardManager::class.java)
         assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
-        compose.onNodeWithText(context.getString(BrewR.string.brew_timer_caption_alert)).assertExists()
+        // The caption sits in the ring's description (TimerRing clears its semantics); the pill is a text.
+        compose.onNodeWithTag(TIMER_RING_TAG)
+            .assert(hasContentDescription(context.getString(BrewR.string.brew_timer_caption_alert), substring = true))
+            .assertIsDisplayed()
+        compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).assertIsDisplayed()
         val alert = activeNotification(TimerNotifications.ID_ALERT)
         assertNotNull("alert notification (ID 2) missing", alert)
         alert!!

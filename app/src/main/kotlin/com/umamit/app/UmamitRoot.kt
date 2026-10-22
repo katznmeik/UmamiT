@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -53,6 +54,7 @@ import kotlinx.coroutines.flow.StateFlow
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerRequest a new non-zero token for each request to open the timer (a notification's
  *   content or full-screen intent); 0 for none.
+ * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
  * @param diagnosticsScreen *Diagnose* opened from *Timer-Einstellungen*; tests replace it, the app uses
  *   [DiagnosticsRoute].
@@ -64,6 +66,7 @@ fun UmamitRoot(
     alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
     timerRequest: StateFlow<Long> = NO_TIMER_REQUEST,
+    onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
     timerScreen: @Composable (onClose: () -> Unit, onOpenTimerSettings: () -> Unit) -> Unit = { onClose, onSettings ->
         // M1-13 opens the setup (SCR-04) for the waiting session from *Brühen anpassen*.
@@ -82,7 +85,7 @@ fun UmamitRoot(
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
-    val requestPending = openTimerOnRequest(navController, timerRequest)
+    val requestPending = openTimerOnRequest(navController, timerRequest, onConsumeTimerRequest)
     val timerShown = timerOnTop || requestPending
     val currentOnTimerVisibleChange by rememberUpdatedState(onTimerVisibleChange)
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
@@ -176,15 +179,21 @@ fun UmamitRoot(
  * configuration change, so a recreated activity does not open the timer again.
  */
 @Composable
-private fun openTimerOnRequest(navController: NavHostController, timerRequest: StateFlow<Long>): Boolean {
+private fun openTimerOnRequest(
+    navController: NavHostController,
+    timerRequest: StateFlow<Long>,
+    onDone: (Long) -> Unit,
+): Boolean {
     val request by timerRequest.collectAsStateWithLifecycle()
     var handledRequest by rememberSaveable { mutableLongStateOf(0L) }
+    val currentOnDone by rememberUpdatedState(onDone)
     LaunchedEffect(request) {
         if (request != 0L && request != handledRequest) {
             if (!navController.popBackStack(TimerRoute, inclusive = false)) {
                 navController.navigate(TimerRoute) { launchSingleTop = true }
             }
             handledRequest = request
+            currentOnDone(request)
         }
     }
     return request != 0L && request != handledRequest
@@ -194,9 +203,12 @@ private fun openTimerOnRequest(navController: NavHostController, timerRequest: S
 @Composable
 private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
     if (requestPending && !timerOnTop) {
-        Box(Modifier.fillMaxSize().background(SteepingColorScheme.background))
+        Box(Modifier.fillMaxSize().background(SteepingColorScheme.background).testTag(SHELL_COVER_TAG))
     }
 }
+
+/** The cover over the shell while the timer opens from a notification. */
+internal const val SHELL_COVER_TAG = "shell_cover"
 
 /** No request to open the timer ever comes. */
 private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)

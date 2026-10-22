@@ -255,15 +255,19 @@ flowchart LR
   - in Alerting, the alert (ID 2, `steep_finished`) is the foreground
     notification. `StartForeground` and `UpdateNotification` show ID 2 — with
     the full-screen intent only when `StartAlert` is in the same transition
-    (D-057) — and cancel ID 1 if it is posted. ID 1 is never posted while
-    alerting (`deadlineReached`, `addStep`/`editSteps` while alerting,
+    (D-057) — and cancel IDs 1 and 4 if they are posted. Neither is posted
+    while alerting (`deadlineReached`, `addStep`/`editSteps` while alerting,
     `recover` of an alerting state);
-  - in every other active state, ID 1: the Live Update while the service
-    runs, a regular, silent ongoing notification while the session is
-    demoted or a long step runs. ID 2 is cancelled when the alert ends.
-  The M1-09/M1-11 Robolectric tests assert that no ID 1 is posted after
-  `deadlineReached`, after `addStep` while alerting and after `recover` of an
-  alerting state.
+  - in every other active state with the service, ID 1, the Live Update; while
+    the session is demoted or a long step runs, the quiet notification ID 4
+    without the service (a Live Update „Fertig um 14:30" for a long step, a
+    regular ongoing notification for a demoted session; D-064). ID 4 is
+    cancelled before every start of the service. ID 2 is cancelled when the
+    alert ends.
+  While the service runs, the notification changes only through it (D-057).
+  The M1-09/M1-11 Robolectric tests assert that neither ID 1 nor ID 4 is
+  posted after `deadlineReached`, after `addStep` while alerting, after
+  `recover` of an alerting state and at a long step's deadline.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
   executes effects, exposes `StateFlow<TimerUiState>` (D-056):
   - **Inputs** are suspend functions: the starts, the user events with their
@@ -342,7 +346,7 @@ rules (D-047):
 | Situation | Mechanisms (all active together) |
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
-| Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick) · regular ongoing notification „Fertig um 14:30" (`longStepEndWallMs`) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
+| Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick) · Live Update „Fertig um 14:30" (`longStepEndWallMs`, the quiet notification ID 4, promotion requested; D-064) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
 | READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart, recovery tries to restart the FGS immediately (§6.3); if Android refuses, a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service keeps the process in the foreground while the `AlertPlayer` plays; wake lock for the longest alert + 30 s (2 min 30 s) from the start of the alert, released by the next state (D-057) |
 
@@ -533,7 +537,7 @@ Actions → non-exported receiver → controller (source NOTIFICATION).
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 4 the quiet
 notification without the service (a long running step, a demoted session;
 D-064), 10+ reminders/catalog. Content intent → SCR-05 through the app's
-activity (`com.umamit.action.OPEN_TIMER`), which opens the timer route; the
+launcher activity, named explicitly with `com.umamit.action.OPEN_TIMER`, which opens the timer route; the
 same intent is the alert's full-screen intent (D-064). Actions: *Start*,
 *Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the
 quick timer), *Sitzung beenden* (FINISHED, demoted; not where it would
@@ -748,9 +752,14 @@ Uses the global pre-alert, the same alert and the Live Update
 <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-<!-- Timer activity: setShowWhenLocked(true) / setTurnScreenOn(true) are set
-     from code only while SCR-05 is shown for an alert (not in the manifest,
-     so the rest of the app never appears over the lock screen). -->
+<!-- Timer activity: setShowWhenLocked(true) is set from code only while the
+     timer route is on top with an active session, and setTurnScreenOn(true)
+     only while it alerts there (D-058); not in the manifest, so the rest of
+     the app never appears over the lock screen. The notifications' content
+     intent and the alert's full-screen intent name the app's launcher activity
+     explicitly with the action com.umamit.action.OPEN_TIMER, without an intent
+     filter; the activity opens the timer route and sets the flags before its
+     first frame (D-064). -->
 
 <service
     android:name=".timer.service.BrewTimerService"
@@ -761,8 +770,6 @@ Uses the global pre-alert, the same alert and the Live Update
         android:value="Tea steeping countdown timer started by the user" />
 </service>
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
-<!-- The app's activity declares com.umamit.action.OPEN_TIMER: the notifications'
-     content intent and the alert's full-screen intent open the timer route (D-064). -->
 <receiver android:name=".timer.alarm.TimerAlarmReceiver" android:exported="false" />
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>

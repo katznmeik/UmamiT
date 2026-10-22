@@ -16,6 +16,7 @@ import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.controller.TimerWakeUpPort
 import com.umamit.core.timer.service.BrewTimerService
 import com.umamit.core.timer.service.BrewTimerServicePort
 import com.umamit.core.timer.service.ForegroundServiceState
@@ -157,6 +158,36 @@ class AndroidTimerNotifierTest {
         notifier.update(states.paused(), fullScreen = false)
         startedCommand()
         refresh.advanceBy(60_000)
+
+        assertThat(shadowOf(app).nextStartedService).isNull()
+    }
+
+    @Test
+    fun `a refresh already due when a newer state comes sends nothing`() = runBlocking<Unit> {
+        // The refresh fired and waits for the lock while the controller sends the alert: it must
+        // not switch the service back to the Live Update (D-044).
+        val armed = mutableListOf<suspend () -> Unit>()
+        val keepsFired = object : TimerWakeUpPort {
+            override fun arm(delayMs: Long, onDue: suspend () -> Unit) {
+                armed += onDue
+            }
+
+            override fun cancel() = Unit
+        }
+        val port = BrewTimerServicePort(
+            app,
+            TimerClocks(clock, clock),
+            FakeTimerDiagnostics(),
+            TimerStateNotifications(app),
+            keepsFired,
+        )
+        port.startForeground(states.running(), fullScreen = false)
+        startedCommand()
+        ForegroundServiceState.foregroundId = TimerNotifications.ID_LIVE_UPDATE
+        port.startForeground(states.alerting(), fullScreen = true)
+        startedCommand()
+
+        armed.first().invoke()
 
         assertThat(shadowOf(app).nextStartedService).isNull()
     }

@@ -27,9 +27,10 @@ class TimerTestActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
+        val coldBrew = intent.getBooleanExtra(EXTRA_COLD_BREW, false)
         val controller = (application as TimerTestApplication).controller
         CoroutineScope(Dispatchers.Main).launch {
-            val started = controller.startSession(brew(seconds))
+            val started = controller.startSession(brew(seconds, coldBrew))
             val running = controller.send(TimerEvent.Start)
             Log.i(TAG, "Step of $seconds s: start $started, Start $running")
             // The test runs in another process: it reads the outcome here and fails fast on a refusal.
@@ -47,6 +48,7 @@ class TimerTestActivity : Activity() {
     companion object {
         private const val TAG = "UmamiTTimerTest"
         private const val EXTRA_SECONDS = "seconds"
+        private const val EXTRA_COLD_BREW = "coldBrew"
 
         /** The tea of the test session; the alert notification shows it after the restart. */
         const val TEA = "Testtee"
@@ -57,11 +59,14 @@ class TimerTestActivity : Activity() {
         /** Where the activity writes the outcome of the start (app-private, shared by both processes). */
         fun outcomeFile(context: Context): File = File(context.filesDir, "timer-test-start.txt")
 
-        fun intent(context: Context, seconds: Int): Intent = Intent(context, TimerTestActivity::class.java)
-            .putExtra(EXTRA_SECONDS, seconds)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        /** A step of [seconds]; with [coldBrew] every step is a long step without the service (TMR-18). */
+        fun intent(context: Context, seconds: Int, coldBrew: Boolean = false): Intent =
+            Intent(context, TimerTestActivity::class.java)
+                .putExtra(EXTRA_SECONDS, seconds)
+                .putExtra(EXTRA_COLD_BREW, coldBrew)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-        private fun brew(seconds: Int) = BrewStart(
+        private fun brew(seconds: Int, coldBrew: Boolean) = BrewStart(
             snapshot = SessionSnapshot(
                 teaId = null,
                 teaName = TEA,
@@ -71,7 +76,7 @@ class TimerTestActivity : Activity() {
                 category = null,
                 profileId = null,
                 profileName = null,
-                method = BrewMethod.KYUSU,
+                method = if (coldBrew) BrewMethod.COLD_BREW else BrewMethod.KYUSU,
                 vesselId = null,
                 vesselName = null,
                 leafGrams = null,

@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -39,6 +40,7 @@ class TimerNavigationTest {
     private val alertKey = MutableStateFlow<String?>(null)
     private val timerRequest = MutableStateFlow(0L)
     private val visible = mutableListOf<Boolean>()
+    private val handled = mutableListOf<Long>()
 
     private val source = object : ActiveBrewSource {
         override val activeBrew: StateFlow<ActiveBrew?> = brew
@@ -58,6 +60,7 @@ class TimerNavigationTest {
                     journalSources = testJournalSources(),
                     alertKey = alertKey,
                     timerRequest = timerRequest,
+                    onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
                     timerScreen = { _, openSettings ->
                         Column {
@@ -203,12 +206,17 @@ class TimerNavigationTest {
         compose.mainClock.autoAdvance = false
         show()
 
-        // The shell is never reported as what shows over the lock screen.
+        // The shell is never reported as what shows over the lock screen, and never drawn: the timer's dark
+        // background covers it until the timer is on top.
         assertThat(visible).doesNotContain(false)
+        compose.onNodeWithTag(SHELL_COVER_TAG).assertIsDisplayed()
         advanceFrames()
         bar().assertDoesNotExist()
         compose.onNodeWithText("TIMER").assertIsDisplayed()
+        compose.onNodeWithTag(SHELL_COVER_TAG).assertDoesNotExist()
         assertThat(visible).doesNotContain(false)
+        // The activity forgets the request only now, so a recreation before it reopens the timer.
+        assertThat(handled).containsExactly(1L)
     }
 
     @Test

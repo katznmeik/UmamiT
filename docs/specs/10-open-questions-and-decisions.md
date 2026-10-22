@@ -361,9 +361,10 @@ Decided while building them:
   record dies with the process.
 - **Full-screen target: the app's timer route; `TimerAlertActivity` is removed.**
   - The content intent of every timer notification and the alert's full-screen
-    intent open `MainActivity` with `com.umamit.action.OPEN_TIMER`, limited
-    to this package. A thin launcher activity was rejected: it would add a
-    hop and a second activity over the lock screen.
+    intent open `MainActivity` with `com.umamit.action.OPEN_TIMER`, naming the
+    app's launcher activity explicitly, so no intent filter is needed. A thin
+    launcher activity was rejected: it would add a hop and a second activity
+    over the lock screen.
   - `MainActivity` sets `showWhenLocked` (and `turnScreenOn` while alerting)
     at once, in `onCreate` or `onNewIntent`, while a session is active. Behind
     the keyguard with the screen off no frame is drawn, so the flags cannot
@@ -372,9 +373,11 @@ Decided while building them:
     timer is on top it draws the timer's dark background over the shell and
     reports the timer as visible, so the shell never shows over the lock screen
     (D-058).
-  - The exported launcher activity declares the action. Another app could open
-    the timer with it, which shows nothing new; it shows over the lock screen
-    only while a session is active.
+  - A request the navigation has not handled yet is saved with the activity's
+    state. A full-screen intent reaches a sleeping activity at once, and a
+    configuration change when it becomes visible (dark mode, rotation, a fold)
+    recreates it without delivering the intent again; the new activity
+    restores the request, sets the flags and opens the timer.
 - **„Sitzung gespeichert"** (ID 3, channel `sessions`, LOW, auto-cancel) names
   the session's tea as the notifier last showed it („Gyokuro · im Journal").
   It opens the app; the journal detail SCR-16 comes with M4.
@@ -398,8 +401,16 @@ Decided while building them:
     - *Pause* and *Weiter* from the notification;
     - the alert alone, not `FLAG_SILENT`, with the timer screen over the lock
       screen and *Abgegossen* from the notification (`core:timer`);
+    - a cold brew's quiet notification (ID 4) giving way to the alert alone,
+      without an autogroup summary (`core:timer`);
     - the app's own timer route over the lock screen through the app's
-      controller (`app`).
+      controller, found by the ring's description and *Abgegossen* (`app`).
+  - Not done (review of #47, open): a notification action can resend a stale
+    refused start (needs refused exact alarms and no battery exemption); *Sitzung
+    beenden* from the notification shows the „Gespeichert" sheet when the app
+    is next opened (03 SCR-06 to decide); „Sitzung gespeichert" after recovery
+    straight into the midnight timeout names no tea (the port would need the
+    tea name).
 
 <a id="d-061"></a>
 ### D-061 — Minimal journal and the „Gespeichert" sheet (M1-16, #51) · *Accepted* (Claude, 2026-10-22)

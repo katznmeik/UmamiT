@@ -2,12 +2,12 @@ package com.umamit.app
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.umamit.app.timer.TimerActiveBrewSource
+import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -49,14 +49,18 @@ class MainActivity : ComponentActivity() {
 
     private val timerVisible = MutableStateFlow(false)
 
-    /** A new token for each request to open the timer; 0 for none. */
-    private val timerRequest = MutableStateFlow(0L)
+    /** The notifications' requests to open the timer; a pending one survives a recreation. */
+    private val timerRequests = TimerScreenRequests()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        // A recreated activity has handled its intent already.
-        if (savedInstanceState == null) openTimerIfAsked(intent)
+        // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
+        if (savedInstanceState == null) {
+            openTimerIfAsked(intent)
+        } else if (timerRequests.restore(savedInstanceState)) {
+            showTimerOverLockScreen()
+        }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
@@ -71,7 +75,8 @@ class MainActivity : ComponentActivity() {
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
                     alertKey = alertKey,
-                    timerRequest = timerRequest,
+                    timerRequest = timerRequests.token,
+                    onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
                 )
             }
@@ -84,12 +89,22 @@ class MainActivity : ComponentActivity() {
         openTimerIfAsked(intent)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        timerRequests.save(outState)
+    }
+
     private fun openTimerIfAsked(intent: Intent?) {
         if (!TimerScreenIntents.isOpenTimer(intent)) return
+        showTimerOverLockScreen()
+        timerRequests.request()
+    }
+
+    /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
+    private fun showTimerOverLockScreen() {
         timerVisible.value = true
         val flags = lockScreenFlags(brewTimer.state.value, timerVisible = true)
         setShowWhenLocked(flags.showWhenLocked)
         setTurnScreenOn(flags.turnScreenOn)
-        timerRequest.value = SystemClock.elapsedRealtimeNanos()
     }
 }
