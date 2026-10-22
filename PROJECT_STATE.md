@@ -68,9 +68,10 @@ job, signing, release workflow, probe screen, exact-alarm/FGS/Live Update/
 full-screen probe and synthesised sounds; `v0.0.2-probe` passed on the
 Galaxy (D-040 gate open for M1-09/M1-11).
 
-1. The PO starts the next spec (M1 waves 2–3, `docs/plans/M1-timer.md`) with
-   `/to-spec`, including the design/motion skills (§3.2, D-041). Then
-   `/to-tickets` and `/implement-spec` on the same branch and PR #25.
+1. Spec [#27](https://github.com/katznmeik/UmamiT/issues/27) for M1 waves
+   2–3 (M1-04 … M1-08, M1-19, M1-21, motion section in 03 §3.6) is written
+   (`ready-for-agent`); next: `/to-tickets`, then `/implement-spec` on the
+   same branch and PR #25.
 2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
    something on the device needs re-checking).
 
