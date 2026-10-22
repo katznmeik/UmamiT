@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
 import com.umamit.core.designsystem.theme.SteepingTheme
@@ -85,6 +86,20 @@ class AlertSurfaceTest {
     }
 
     @Test
+    fun `returning to a running alert restarts the pulse at full matcha`() {
+        show(reduceMotion = false)
+        compose.mainClock.advanceTimeByFrame()
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        compose.mainClock.advanceTimeBy(QUARTER_CYCLE_MILLIS)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        assertClose(surfaceColor(), alert.matcha)
+        compose.mainClock.advanceTimeByFrame()
+        assertClose(surfaceColor(), alert.matcha)
+        compose.mainClock.advanceTimeBy(HALF_CYCLE_MILLIS)
+        assertClose(surfaceColor(), alert.washi)
+    }
+
+    @Test
     fun `under reduce motion the alert surface stays static matcha`() {
         show(reduceMotion = true)
         assertClose(surfaceColor(), alert.matcha)
@@ -94,6 +109,7 @@ class AlertSurfaceTest {
 
     private companion object {
         const val HALF_CYCLE_MILLIS = 750L
+        const val QUARTER_CYCLE_MILLIS = 375L
         const val FULL_CYCLE_MILLIS = 1_500L
         const val COLOR_TOLERANCE = 0.04f
     }

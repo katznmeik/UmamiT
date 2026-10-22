@@ -1,10 +1,10 @@
 package com.umamit.core.designsystem.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,12 +18,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,32 +48,40 @@ private val RemainingLineHeight = 32.sp
 /**
  * The active brew bar above the navigation bar (03 §3.8, GEN-06): a 56 dp mini
  * ring with the liquor fill, the tea name, the step and the remaining time.
- * It arrives and leaves with the `activeBrewBar` spring and a fade (03 §3.6);
- * while it leaves it keeps showing the last brew. Under reduce motion it
- * appears at once and fades very briefly.
+ * It arrives and leaves with the `activeBrewBar` spring and a fade (03 §3.6):
+ * it grows from the bottom edge (the navigation bar), clipped, so the content
+ * above glides with the same spring instead of jumping 72 dp. While it leaves
+ * it keeps showing the last brew. Under reduce motion it appears at once and
+ * fades very briefly.
  *
  * TalkBack: one clickable element with a German description, e.g.
  * „Laufender Aufguss: Bio Sencha Hisui, Aufguss 2 von 4, noch 1 Minute 12 Sekunden. Zum Timer".
  *
  * @param brew the active brew, or `null` when nothing runs.
+ * @param progress elapsed fraction of the current step, 0 to 1, read only while
+ *   drawing, so a per-frame value redraws the mini ring without recomposing the bar.
  */
 @Composable
-fun ActiveBrewBar(brew: ActiveBrew?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    var shown by remember { mutableStateOf(brew) }
-    if (brew != null) shown = brew
+fun ActiveBrewBar(brew: ActiveBrew?, progress: () -> Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // The last brew, so the bar keeps its content while it leaves.
+    val last = remember { LastBrew(brew) }
+    SideEffect { if (brew != null) last.value = brew }
+    val shown = brew ?: last.value
     val motion = UmamiTheme.motion
     AnimatedVisibility(
         visible = brew != null,
-        modifier = modifier,
-        enter = slideInVertically(motion.activeBrewBar()) { it } + fadeIn(motion.fade()),
-        exit = slideOutVertically(motion.activeBrewBar()) { it } + fadeOut(motion.exit()),
+        modifier = modifier.clipToBounds(),
+        enter = expandVertically(motion.activeBrewBar(), expandFrom = Alignment.Bottom) + fadeIn(motion.fade()),
+        exit = shrinkVertically(motion.activeBrewBar(), shrinkTowards = Alignment.Bottom) + fadeOut(motion.exit()),
     ) {
-        shown?.let { ActiveBrewBarContent(it, onClick) }
+        shown?.let { ActiveBrewBarContent(it, progress, onClick) }
     }
 }
 
+private class LastBrew(var value: ActiveBrew?)
+
 @Composable
-private fun ActiveBrewBarContent(brew: ActiveBrew, onClick: () -> Unit) {
+private fun ActiveBrewBarContent(brew: ActiveBrew, progress: () -> Float, onClick: () -> Unit) {
     val remaining = spokenDuration(brew.remainingSeconds)
     val spoken = if (brew.stepDescription != null) {
         stringResource(R.string.ds_active_brew_description, brew.title, brew.stepDescription, remaining)
@@ -97,7 +104,7 @@ private fun ActiveBrewBarContent(brew: ActiveBrew, onClick: () -> Unit) {
                 .padding(horizontal = UmamiSpacing.Medium, vertical = UmamiSpacing.XSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MiniRing(brew.progress, brew.liquorColor)
+            MiniRing(progress, brew.liquorColor)
             Spacer(Modifier.width(UmamiSpacing.Small))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -129,13 +136,13 @@ private fun ActiveBrewBarContent(brew: ActiveBrew, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MiniRing(progress: Float, liquorColor: Color) {
+private fun MiniRing(progress: () -> Float, liquorColor: Color) {
     val track = MaterialTheme.colorScheme.outline
     val arc = MaterialTheme.colorScheme.primary
     Canvas(modifier = Modifier.size(MiniRingSize)) {
         val stroke = MiniRingStroke.toPx()
         val radius = size.minDimension / 2 - stroke / 2
-        val level = progress.coerceIn(0f, 1f)
+        val level = progress().coerceIn(0f, 1f)
         drawLiquor(
             level,
             liquorColor.copy(alpha = MINI_RING_LIQUOR_ALPHA),

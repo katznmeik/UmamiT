@@ -50,7 +50,7 @@ class TimerRingTest {
             SteepingTheme(reduceMotion = reduceMotion) {
                 Box(Modifier.background(background)) {
                     TimerRing(
-                        progress = progress,
+                        progress = { progress },
                         remainingSeconds = 72,
                         caption = "Zieht\u00A0…",
                         liquorColor = liquor,
@@ -109,9 +109,16 @@ class TimerRingTest {
     @Test
     fun `long steps glide to a new level instead of jumping`() {
         show(initial = 0f, longStep = true)
-        updateProgress(1f)
+        updateProgress(NEARLY_DONE)
         assertThat(colorAtHeight(TOP).isTintedByLiquor()).isFalse()
         compose.mainClock.advanceTimeBy(GLIDE_MILLIS)
+        assertThat(colorAtHeight(TOP).isTintedByLiquor()).isTrue()
+    }
+
+    @Test
+    fun `a long step's last update snaps, so no glide runs into the alert`() {
+        show(initial = 0.5f, longStep = true)
+        updateProgress(1f)
         assertThat(colorAtHeight(TOP).isTintedByLiquor()).isTrue()
     }
 
@@ -138,5 +145,6 @@ class TimerRingTest {
         const val INNER_INSET = 0.1f
         const val LIQUOR_TINT = 0.1f
         const val GLIDE_MILLIS = 700L
+        const val NEARLY_DONE = 0.95f
     }
 }

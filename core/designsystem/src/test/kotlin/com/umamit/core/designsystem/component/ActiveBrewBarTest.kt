@@ -32,7 +32,6 @@ class ActiveBrewBarTest {
         step = "Aufguss 2/4",
         stepDescription = "Aufguss 2 von 4",
         remainingSeconds = 72,
-        progress = 0.4f,
         liquorColor = Color(0xFFC9D58F),
     )
 
@@ -43,7 +42,9 @@ class ActiveBrewBarTest {
     fun `the bar is one clickable element with a German description`() {
         var clicks = 0
         compose.setContent {
-            UmamiTheme(reduceMotion = false) { ActiveBrewBar(brew = hisui, onClick = { clicks++ }) }
+            UmamiTheme(reduceMotion = false) {
+                ActiveBrewBar(brew = hisui, progress = { 0.4f }, onClick = { clicks++ })
+            }
         }
         compose.onAllNodes(hasClickAction()).assertCountEquals(1)
         compose.onNodeWithContentDescription(description).assertHasClickAction().performClick()
@@ -60,6 +61,7 @@ class ActiveBrewBarTest {
                         step = null,
                         stepDescription = null,
                     ),
+                    progress = { 0.4f },
                     onClick = {
                     },
                 )
@@ -73,7 +75,7 @@ class ActiveBrewBarTest {
     fun `the bar leaves when no brew is active`() {
         var brew by mutableStateOf<ActiveBrew?>(hisui)
         compose.setContent {
-            UmamiTheme(reduceMotion = false) { ActiveBrewBar(brew = brew, onClick = {}) }
+            UmamiTheme(reduceMotion = false) { ActiveBrewBar(brew = brew, progress = { 0.4f }, onClick = {}) }
         }
         brew = null
         compose.waitForIdle()

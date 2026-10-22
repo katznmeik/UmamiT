@@ -111,7 +111,7 @@ class MotionRecordingTest {
     fun liquorFill() = record("liquor-fill", millis = 6_500) {
         val progress = rememberStepProgress(stepMillis = 6_000)
         TimerRing(
-            progress = progress,
+            progress = { progress },
             remainingSeconds = ceil((1f - progress) * 6).toInt(),
             caption = "Zieht\u00A0…",
             liquorColor = UmamiTheme.extendedColors.liquor.green,
@@ -122,22 +122,21 @@ class MotionRecordingTest {
     /** The pre-alert glow, one swell with the 0.8 s tick, shown twice. */
     @Test
     fun preAlertGlow() = record("pre-alert-glow", millis = 2_400) {
-        var tick by remember { mutableStateOf(false) }
+        var tick by remember { mutableStateOf<Long?>(null) }
         LaunchedEffect(Unit) {
-            repeat(2) {
+            repeat(2) { index ->
                 delay(400)
-                tick = true
+                tick = index.toLong()
                 delay(800)
-                tick = false
             }
         }
         TimerRing(
-            progress = 0.875f,
+            progress = { 0.875f },
             remainingSeconds = 10,
             caption = "Gleich fertig\u00A0…",
             liquorColor = UmamiTheme.extendedColors.liquor.green,
             preAlertPosition = 0.875f,
-            preAlertGlow = tick,
+            preAlertGlowTick = tick,
         )
     }
 
@@ -152,7 +151,7 @@ class MotionRecordingTest {
             }
         }
         TimerRing(
-            progress = progress,
+            progress = { progress },
             remainingSeconds = ((1f - progress) * 14_400).toInt(),
             caption = "Fertig um 14:30",
             liquorColor = UmamiTheme.extendedColors.liquor.green,
@@ -170,7 +169,7 @@ class MotionRecordingTest {
     private fun AlertingRing() {
         AlertSurface(modifier = Modifier.fillMaxWidth().height(360.dp)) {
             TimerRing(
-                progress = 1f,
+                progress = { 1f },
                 remainingSeconds = 0,
                 caption = "Jetzt abgießen!",
                 liquorColor = UmamiTheme.extendedColors.liquor.green,
@@ -194,14 +193,13 @@ class MotionRecordingTest {
             title = "Bio Sencha Hisui",
             step = "Aufguss 2/4",
             remainingSeconds = 72,
-            progress = 0.4f,
             liquorColor = UmamiTheme.extendedColors.liquor.green,
         )
         Box(
             modifier = Modifier.fillMaxWidth().height(360.dp).padding(bottom = 24.dp),
             contentAlignment = Alignment.BottomCenter,
         ) {
-            ActiveBrewBar(brew = brew.takeIf { visible }, onClick = {})
+            ActiveBrewBar(brew = brew.takeIf { visible }, progress = { 0.4f }, onClick = {})
         }
     }
 

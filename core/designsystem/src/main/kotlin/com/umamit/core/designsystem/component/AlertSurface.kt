@@ -14,6 +14,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.lerp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import com.umamit.core.designsystem.motion.UmamiMotion
 import com.umamit.core.designsystem.motion.UnscaledMotion
 import com.umamit.core.designsystem.theme.UmamiTheme
 import kotlinx.coroutines.withContext
@@ -29,7 +33,8 @@ import kotlinx.coroutines.withContext
  * - the content is never faded, moved or hidden: it sits on top in
  *   `AlertColors.content`, readable on both washi and matcha.
  *
- * Compose it only while ALERTING; it starts pulsing when it enters the composition.
+ * Compose it only while ALERTING; it starts pulsing at full matcha when it enters
+ * the composition and again each time the app returns to the foreground.
  */
 @Composable
 fun AlertSurface(
@@ -38,14 +43,18 @@ fun AlertSurface(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val colors = UmamiTheme.extendedColors.alert
-    val pulseSpec = UmamiTheme.motion.alertPulse.takeUnless { reduceMotion }
+    val pulseSpec = remember(reduceMotion) { UmamiMotion(reduceMotion) }.alertPulse
+    // The window's frame clock pauses while the app is in the background. Coming back
+    // to a running alert restarts the pulse at full matcha instead of a random phase.
+    val started = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value
+        .isAtLeast(Lifecycle.State.STARTED)
     // 0 = washi, 1 = matcha. Until the pulse runs (and under reduce motion) the surface is full matcha.
     val pulse = remember { Animatable(0f) }
     // Set on the pulse's first frame: before that the Animatable still holds its start value 0 (washi).
     var pulsing by remember { mutableStateOf(false) }
-    LaunchedEffect(pulseSpec) {
+    LaunchedEffect(pulseSpec, started) {
         pulsing = false
-        if (pulseSpec != null) {
+        if (pulseSpec != null && started) {
             pulse.snapTo(0f)
             withContext(UnscaledMotion) { pulse.animateTo(1f, pulseSpec) { pulsing = true } }
         }

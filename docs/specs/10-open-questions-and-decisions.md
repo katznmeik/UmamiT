@@ -386,8 +386,13 @@ reviews them with the screenshots and motion recordings.
   on both ends; the type colour Matcha `#5F8C3E` would give only 3.9:1). The ring
   shows no liquor while alerting. The liquor fill is drawn at 32 % opacity, its
   level linear in height. Ring captions use `onSurface`, not `onSurfaceVariant`,
-  because they sit on the liquor. The pre-alert glow runs once each time the
-  caller's glow state turns true. The motion GIFs come from Roborazzi's
+  because they sit on the liquor. The pre-alert glow is keyed on the tick's
+  identity (`preAlertGlowTick`), not on a level: it plays once per tick, is never
+  cut short and never replays when the ring comes back. Progress is a lambda read
+  in the draw phase; a long step's update to 1 is drawn without a glide. The
+  alert pulse restarts at full matcha when the app returns to the foreground.
+  The active brew bar grows from its bottom edge, so the content above does not
+  jump. Motion review findings for #33: M1 and S1–S5 applied, plus O3 and O5. The motion GIFs come from Roborazzi's
   experimental `recordRoboVideo` (record mode only), shrunk with ffmpeg.
 
 <a id="d-045"></a>

@@ -2,6 +2,7 @@ package com.umamit.core.designsystem.component
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -135,49 +140,46 @@ private const val GLOW_MIN_RADIUS = 0.4f
  * Motion (03 §3.6 „Motion tokens"):
  * - **Liquor fill:** the inside fills from the bottom in [liquorColor] as
  *   [progress] grows.
- * - **Short steps** follow [progress] per frame, without easing: the caller
- *   updates it every frame.
+ * - **Short steps** follow [progress] per frame, without easing. [progress] is
+ *   read only while drawing, so a per-frame value redraws the ring without
+ *   recomposing it; only [remainingSeconds] (1 Hz) recomposes.
  * - **Long steps** ([longStep]): the caller updates [progress] about every
  *   `UmamiMotion.longStepUpdateIntervalMillis`; ring and fill glide there with
- *   `longStepGlide`.
- * - **Pre-alert glow:** when [preAlertGlow] turns true (the caller does it with
- *   the pre-alert tick), the marker swells once with `preAlertGlow`, unscaled so
- *   it stays in sync with the 0.8 s tick.
+ *   `longStepGlide`. The last update to 1 snaps, so no glide runs into the alert.
+ * - **Pre-alert glow:** each new [preAlertGlowTick] (the caller passes one per
+ *   pre-alert tick, e.g. the tick's time) makes the marker swell once with
+ *   `preAlertGlow`, unscaled so it stays in sync with the 0.8 s tick. A glow is
+ *   never cut short, and the same tick never plays twice, also not after a
+ *   configuration change.
  * - **Reduce motion:** no glow; the fill still shows the level but jumps.
  *
  * TalkBack reads one sentence: [stepDescription], the remaining time in words
  * and the caption. It is not a live region: the screen announces state changes.
  *
- * @param progress elapsed fraction of the step, 0 (ready) to 1 (done).
+ * @param progress elapsed fraction of the step, 0 (ready) to 1 (done); read in the draw phase.
  * @param remainingSeconds remaining time as the engine shows it (rounded up).
  * @param preAlertPosition the pre-alert point as a fraction of the step; `null` without a pre-alert.
+ * @param preAlertGlowTick identity of the latest pre-alert tick; `null` before the first.
  * @param colors [TimerRingDefaults.alertColors] on the [AlertSurface].
  */
 @Composable
 fun TimerRing(
-    progress: Float,
+    progress: () -> Float,
     remainingSeconds: Int,
     caption: String,
     liquorColor: Color,
     modifier: Modifier = Modifier,
     stepDescription: String? = null,
     preAlertPosition: Float? = null,
-    preAlertGlow: Boolean = false,
+    preAlertGlowTick: Long? = null,
     longStep: Boolean = false,
     reduceMotion: Boolean = UmamiTheme.reduceMotion,
     colors: TimerRingColors = TimerRingDefaults.colors(),
     size: Dp = TimerRingDefaults.Size,
 ) {
     val motion = remember(reduceMotion) { UmamiMotion(reduceMotion) }
-    val target = progress.coerceIn(0f, 1f)
-    // Short steps draw the progress as given, per frame. Long steps glide to each coarse
-    // update; under reduce motion they jump.
-    val level = if (longStep && !reduceMotion) {
-        animateFloatAsState(target, motion.longStepGlide(), label = "longStepProgress").value
-    } else {
-        target
-    }
-    val glow = rememberPreAlertGlow(preAlertGlow, motion)
+    val level = rememberRingLevel(progress, longStep, motion)
+    val glow = rememberPreAlertGlow(preAlertGlowTick, motion)
 
     val spoken = listOfNotNull(
         stepDescription,
@@ -193,23 +195,50 @@ fun TimerRing(
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val radius = ringRadius()
-            drawLiquor(level, liquorColor.copy(alpha = colors.liquorAlpha), radius, strokePx() / 2 + LiquorInset.toPx())
-            drawRing(level, colors.track, colors.progress, radius, strokePx())
+            val current = level()
+            drawLiquor(
+                current,
+                liquorColor.copy(alpha = colors.liquorAlpha),
+                radius,
+                strokePx() / 2 + LiquorInset.toPx(),
+            )
+            drawRing(current, colors.track, colors.progress, radius, strokePx())
             if (preAlertPosition != null) drawPreAlertMarker(preAlertPosition, glow.value, colors)
         }
         RingContent(remainingSeconds, caption, colors)
     }
 }
 
+/**
+ * The level to draw, read in the draw phase. Short steps (and long steps under
+ * reduce motion) draw [progress] as given. Long steps glide to each coarse
+ * update; reading [progress] in composition is fine there, it changes every 10 s.
+ */
 @Composable
-private fun rememberPreAlertGlow(preAlertGlow: Boolean, motion: UmamiMotion): Animatable<Float, *> {
+private fun rememberRingLevel(progress: () -> Float, longStep: Boolean, motion: UmamiMotion): () -> Float {
+    if (!longStep || motion.reduceMotion) {
+        return remember(progress) { { progress().coerceIn(0f, 1f) } }
+    }
+    val target = progress().coerceIn(0f, 1f)
+    // The step's end is drawn at once: nothing may still be moving when the alert starts (rule 8).
+    val done = target >= 1f
+    val spec = if (done) snap() else motion.longStepGlide<Float>()
+    val glided = animateFloatAsState(target, spec, label = "longStepProgress")
+    return remember(glided, done) { { if (done) 1f else glided.value } }
+}
+
+@Composable
+private fun rememberPreAlertGlow(tick: Long?, motion: UmamiMotion): Animatable<Float, *> {
     val glow = remember { Animatable(0f) }
+    // Survives configuration changes, so returning to the ring never replays a tick's glow.
+    var lastPlayed by rememberSaveable { mutableStateOf(tick) }
     val spec = motion.preAlertGlow
-    LaunchedEffect(preAlertGlow, spec) {
+    LaunchedEffect(tick, spec) {
+        if (tick == null || tick == lastPlayed) return@LaunchedEffect
+        lastPlayed = tick
+        if (spec == null) return@LaunchedEffect
         glow.snapTo(0f)
-        if (preAlertGlow && spec != null) {
-            withContext(UnscaledMotion) { glow.animateTo(0f, spec) }
-        }
+        withContext(UnscaledMotion) { glow.animateTo(0f, spec) }
     }
     return glow
 }

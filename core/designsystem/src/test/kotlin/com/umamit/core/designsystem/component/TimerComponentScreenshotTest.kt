@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -58,12 +61,15 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     @get:Rule
     val compose = createComposeRule()
 
+    private var tick by mutableStateOf<Long?>(null)
+
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
     private fun capture(
         name: String,
         reduceMotion: Boolean = false,
         advanceMillis: Long = 0L,
+        preAlertTick: Boolean = false,
         content: @Composable () -> Unit,
     ) {
         compose.mainClock.autoAdvance = false
@@ -85,6 +91,12 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
             }
         }
         compose.mainClock.advanceTimeByFrame()
+        if (preAlertTick) {
+            // The tick arrives while the ring is on screen, as on the timer.
+            tick = 1L
+            compose.waitForIdle()
+            compose.mainClock.advanceTimeByFrame()
+        }
         if (advanceMillis > 0) compose.mainClock.advanceTimeBy(advanceMillis)
         compose.onNodeWithTag(TAG)
             .captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
@@ -96,7 +108,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     @Test
     fun ready() = capture("TimerRing_Ready") {
         TimerRing(
-            progress = 0f,
+            progress = { 0f },
             remainingSeconds = 20,
             caption = "Bereit",
             liquorColor = liquor().green,
@@ -109,7 +121,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     fun runningFillLevels() = capture("TimerRing_Running") {
         Column(verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
             TimerRing(
-                progress = 0.25f,
+                progress = { 0.25f },
                 remainingSeconds = 68,
                 caption = "Zieht\u00A0…",
                 liquorColor = liquor().green,
@@ -117,7 +129,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                 size = 220.dp,
             )
             TimerRing(
-                progress = 0.6f,
+                progress = { 0.6f },
                 remainingSeconds = 36,
                 caption = "Zieht\u00A0…",
                 liquorColor = liquor().gyokuro,
@@ -125,7 +137,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                 size = 220.dp,
             )
             TimerRing(
-                progress = 0.9f,
+                progress = { 0.9f },
                 remainingSeconds = 9,
                 caption = "Gleich fertig\u00A0…",
                 liquorColor = liquor().hojicha,
@@ -136,14 +148,14 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     }
 
     @Test
-    fun preAlertGlow() = capture("TimerRing_PreAlertGlow", advanceMillis = GLOW_PEAK_MILLIS) {
+    fun preAlertGlow() = capture("TimerRing_PreAlertGlow", advanceMillis = GLOW_PEAK_MILLIS, preAlertTick = true) {
         TimerRing(
-            progress = 0.875f,
+            progress = { 0.875f },
             remainingSeconds = 10,
             caption = "Gleich fertig\u00A0…",
             liquorColor = liquor().green,
             preAlertPosition = 0.875f,
-            preAlertGlow = true,
+            preAlertGlowTick = tick,
         )
     }
 
@@ -153,14 +165,15 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
         "TimerRing_PreAlertGlow_reduceMotion",
         reduceMotion = true,
         advanceMillis = GLOW_PEAK_MILLIS,
+        preAlertTick = true,
     ) {
         TimerRing(
-            progress = 0.875f,
+            progress = { 0.875f },
             remainingSeconds = 10,
             caption = "Gleich fertig\u00A0…",
             liquorColor = liquor().green,
             preAlertPosition = 0.875f,
-            preAlertGlow = true,
+            preAlertGlowTick = tick,
         )
     }
 
@@ -195,7 +208,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     @Composable
     private fun AlertingRing(modifier: Modifier = Modifier) {
         TimerRing(
-            progress = 1f,
+            progress = { 1f },
             remainingSeconds = 0,
             caption = "Jetzt abgießen! +0:07",
             liquorColor = liquor().green,
@@ -208,7 +221,7 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
     @Test
     fun longStep() = capture("TimerRing_LongStep") {
         TimerRing(
-            progress = 0.4f,
+            progress = { 0.4f },
             remainingSeconds = 8_640,
             caption = "Fertig um 14:30",
             liquorColor = liquor().green,
@@ -225,9 +238,9 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                     step = "Aufguss 2/4",
                     stepDescription = "Aufguss 2 von 4",
                     remainingSeconds = 72,
-                    progress = 0.4f,
                     liquorColor = liquor().green,
                 ),
+                progress = { 0.4f },
                 onClick = {},
             )
             ActiveBrewBar(
@@ -235,9 +248,9 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                     title = "Gyokuro Asahi Kōridashi mit überlangem Namen",
                     step = "Aufguss 1/3",
                     remainingSeconds = 8_640,
-                    progress = 0.4f,
                     liquorColor = liquor().gyokuro,
                 ),
+                progress = { 0.4f },
                 onClick = {},
             )
             ActiveBrewBar(
@@ -245,9 +258,9 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                     title = "Schnelltimer",
                     step = null,
                     remainingSeconds = 25,
-                    progress = 0.8f,
                     liquorColor = liquor().green,
                 ),
+                progress = { 0.8f },
                 onClick = {},
             )
         }

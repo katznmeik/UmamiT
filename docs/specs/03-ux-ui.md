@@ -335,12 +335,19 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
   0.67 flashes/s, far below WCAG 2.3.1's 3 per second, with sine edges. The
   content stays ≥ 4.5:1 on both ends and is never faded or moved. Inside the
   alert the ring shows no liquor, so nothing softens the pulse.
-- **How the components use the tokens** (M1-04, #33): `TimerRing` draws short
-  steps per frame and glides long steps (`longStepGlide`; the caller updates the
-  progress every `longStepUpdateIntervalMillis`); its pre-alert marker swells
-  once with `preAlertGlow` when the caller sets the glow state with the tick.
-  `AlertSurface` runs `alertPulse`; `ActiveBrewBar` slides in and out with the
-  `activeBrewBar` spring plus `fade` / `exit`. The liquor tints the ring at
+- **How the components use the tokens** (M1-04, #33): `TimerRing` takes
+  the progress as a lambda read only while drawing, so short steps redraw per
+  frame without recomposing. Long steps glide (`longStepGlide`; the caller
+  updates the progress every `longStepUpdateIntervalMillis`), but the update to
+  1 is drawn at once, so no glide runs into the alert. The pre-alert marker
+  swells once with `preAlertGlow` for each new tick identity the caller passes
+  (`preAlertGlowTick`). A glow is never cut short, and a ring that comes back
+  (rotation, navigation) never replays a tick it already showed.
+  `AlertSurface` runs `alertPulse` and restarts it at full matcha whenever the
+  app returns to the foreground during ALERTING. `ActiveBrewBar` grows from its
+  bottom edge (`expandVertically`/`shrinkVertically` with the `activeBrewBar`
+  spring, clipped, plus `fade`/`exit`), so the content above glides instead of
+  jumping 72 dp. The liquor tints the ring at
   32 % opacity, so the digits and caption (`onSurface`) stay ≥ 4.5:1 on it;
   timer digits keep their size at any font scale (80 sp is already large text)
   and shrink to 56 sp for h:mm:ss; the ring caption grows up to 1.5× (24 sp,
