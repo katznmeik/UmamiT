@@ -13,7 +13,9 @@ import org.gradle.kotlin.dsl.configure
  * - `debug` with the `.debug` suffix; `release` with R8 and resource shrinking;
  * - release signing only from the environment (`UMAMIT_KEYSTORE_FILE`,
  *   `UMAMIT_KEYSTORE_PASSWORD`; PKCS12, alias `umamit`, one password for store
- *   and key). Without them the release build stays unsigned.
+ *   and key). Without them the release build stays unsigned;
+ * - task `printReleaseVersion` prints `versionName=…` and `versionCode=…` so
+ *   `release.yml` verifies the APK against the same rule (06 §6).
  */
 class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
@@ -24,12 +26,22 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         val keystoreFile = providers.environmentVariable(ENV_KEYSTORE_FILE).orNull?.takeIf { it.isNotBlank() }
         val keystorePassword = providers.environmentVariable(ENV_KEYSTORE_PASSWORD).orNull?.takeIf { it.isNotBlank() }
 
+        val appVersionCode = versionCodeOf(appVersion)
+        tasks.register("printReleaseVersion") {
+            group = "help"
+            description = "Prints the versionName and versionCode derived from umamit.version (06 §6)."
+            doLast {
+                println("versionName=$appVersion")
+                println("versionCode=$appVersionCode")
+            }
+        }
+
         extensions.configure<ApplicationExtension> {
             configureKotlinAndroid(this)
             defaultConfig {
                 targetSdk = libs.int("targetSdk")
                 versionName = appVersion
-                versionCode = versionCodeOf(appVersion)
+                versionCode = appVersionCode
             }
 
             if (keystoreFile != null && keystorePassword != null) {
