@@ -193,6 +193,13 @@ Shincha `#9DB86E`, Matcha `#5F8C3E`, Kukicha/Karigane `#A6B07A`, Hōjicha
 `#9A7A9A`, other `#8C8C80`. Liquor colours for the timer fill animation:
 green `#C9D58F`, gyokuro `#D7DF9F`, hōjicha `#B07A45`.
 
+**Alert surface** (extended tokens `alert`, the same in both schemes; M1-04,
+D-046): washi `#F3F0E9`, matcha `#6B9845`, content (ring, digits, caption)
+`#1F271B`. The content stays readable through the whole pulse: 13.5:1 on
+washi, 4.55:1 on matcha (AA for body text). The surface itself swings 2.97:1
+in luminance (washi ↔ matcha), so the pulse is strong without changing hue.
+The darker type colour Matcha `#5F8C3E` was not used: ink on it is only 3.9:1.
+
 Dynamic colour is off by default (SET-06).
 
 ### 3.2 Typography
@@ -323,6 +330,23 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
   fixed scale of 1 (`UnscaledMotion`, as an `Animatable` inside
   `withContext(UnscaledMotion)`), so a developer scale cannot slow the alert or
   pull the glow away from the 0.8 s tick.
+- **Alert contrast, not flashing:** the pulse runs washi `#F3F0E9` ↔ matcha
+  `#6B9845` (§3.1 „Alert surface"), 2.97:1 in luminance, one cycle per 1.5 s:
+  0.67 flashes/s, far below WCAG 2.3.1's 3 per second, with sine edges. The
+  content stays ≥ 4.5:1 on both ends and is never faded or moved. Inside the
+  alert the ring shows no liquor, so nothing softens the pulse.
+- **How the components use the tokens** (M1-04, #33): `TimerRing` draws short
+  steps per frame and glides long steps (`longStepGlide`; the caller updates the
+  progress every `longStepUpdateIntervalMillis`); its pre-alert marker swells
+  once with `preAlertGlow` when the caller sets the glow state with the tick.
+  `AlertSurface` runs `alertPulse`; `ActiveBrewBar` slides in and out with the
+  `activeBrewBar` spring plus `fade` / `exit`. The liquor tints the ring at
+  32 % opacity, so the digits and caption (`onSurface`) stay ≥ 4.5:1 on it;
+  timer digits keep their size at any font scale (80 sp is already large text)
+  and shrink to 56 sp for h:mm:ss; the ring caption grows up to 1.5× (24 sp,
+  two lines) so it stays inside the ring, and TalkBack reads it in full.
+- **Recordings:** `scripts/motion/record-gifs.sh` renders the GIFs in
+  `docs/design/review/M1/motion/` (record-only, never in CI).
 
 **Reduce motion** (`LocalReduceMotion`): `true` when the system animator
 duration scale is 0 („Animationen entfernen"). Other scales are developer

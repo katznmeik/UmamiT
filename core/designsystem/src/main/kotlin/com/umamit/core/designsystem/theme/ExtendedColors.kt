@@ -26,6 +26,15 @@ data class TeaTypeColors(
 )
 
 /**
+ * The alert surface (03 §3.6 `alertPulse`): it pulses between [washi] and
+ * [matcha], and [content] stays readable on both (13.5:1 on washi, 4.55:1 on
+ * matcha). Under reduce motion it is static [matcha]. The luminance swing
+ * washi ↔ matcha is 2.97:1, so the pulse is strong, at 0.67 cycles per second.
+ */
+@Immutable
+data class AlertColors(val washi: Color, val matcha: Color, val content: Color)
+
+/**
  * Colour tokens Material 3 has no role for (03 §3.1, D-036), provided through
  * [LocalUmamiExtendedColors] and read with `UmamiTheme.extendedColors`. They are
  * the same in both schemes.
@@ -36,6 +45,8 @@ data class UmamiExtendedColors(
     val warmAccent: Color,
     val liquor: LiquorColors,
     val teaTypes: TeaTypeColors,
+    /** The alert surface; the same in both schemes, because it must look the same from across the room. */
+    val alert: AlertColors,
 )
 
 /** The 03 §3.1 values. */
@@ -59,6 +70,11 @@ val DefaultExtendedColors = UmamiExtendedColors(
         chinaKoreaGreen = Color(0xFF8FA77A),
         flavoured = Color(0xFF9A7A9A),
         other = Color(0xFF8C8C80),
+    ),
+    alert = AlertColors(
+        washi = Color(0xFFF3F0E9),
+        matcha = Color(0xFF6B9845),
+        content = Color(0xFF1F271B),
     ),
 )
 
