@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Start</string>
+    <string name="home_empty_title">Zeit für eine Tasse</string>
+    <string name="home_empty_body">Hier startest du bald deinen nächsten Aufguss.</string>
+</resources>

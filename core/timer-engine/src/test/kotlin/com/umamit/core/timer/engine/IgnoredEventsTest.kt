@@ -22,47 +22,64 @@ class IgnoredEventsTest {
         TimerEvent.SkipStep,
         TimerEvent.FinishSession,
         TimerEvent.Discard,
+        TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = 10),
+        TimerEvent.AddStep,
+        TimerEvent.EditSteps(listOf(infusion(60), infusion(25)), PreAlertChoice.Inherit),
+        TimerEvent.Cancel,
+        TimerEvent.QuickTimerTimeout,
+    )
+
+    /** What every active state of a brew session allows (`recover` is covered in RecoveryTest). */
+    private val sessionEvents = arrayOf(
+        TimerEvent.FinishSession,
+        TimerEvent.Discard,
+        TimerEvent.AddStep,
+        TimerEvent.EditSteps(emptyList(), PreAlertChoice.Inherit),
     )
 
     private class Case(val name: String, val driver: () -> EngineDriver, val allowed: Set<Class<out TimerEvent>>)
 
     /** Every state of 04 §3.1, plus Running past its deadline before the deadline event. */
     private val cases = listOf(
-        Case("Idle", { EngineDriver() }, setOf(TimerEvent.StartSession::class.java)),
+        Case(
+            "Idle",
+            { EngineDriver() },
+            setOf(TimerEvent.StartSession::class.java, TimerEvent.StartQuickTimer::class.java),
+        ),
         Case(
             "Ready",
             { sessionWith(infusion(60), infusion(20)) },
-            allowed(TimerEvent.Start, TimerEvent.SkipStep, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.Start, TimerEvent.SkipStep, *sessionEvents),
         ),
         Case(
             "Running before the deadline",
             { running().apply { clocks.advanceSeconds(10) } },
-            allowed(TimerEvent.Pause, TimerEvent.EndStepNow, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.Pause, TimerEvent.EndStepNow, *sessionEvents),
         ),
         Case(
             "Running past the deadline",
             { running().apply { clocks.advance(60_300) } },
-            allowed(TimerEvent.DeadlineReached, TimerEvent.EndStepNow, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.DeadlineReached, TimerEvent.EndStepNow, *sessionEvents),
         ),
         Case(
             "Paused",
             { running().apply { send(TimerEvent.Pause) } },
-            allowed(TimerEvent.Resume, TimerEvent.EndStepNow, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.Resume, TimerEvent.EndStepNow, *sessionEvents),
         ),
         Case(
             "Alerting",
             { alerting() },
-            allowed(TimerEvent.AlertCompleted, TimerEvent.Poured, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.AlertCompleted, TimerEvent.Poured, *sessionEvents),
         ),
         Case(
             "Alerting after the alert played",
             { alerting().apply { send(TimerEvent.AlertCompleted) } },
-            allowed(TimerEvent.Poured, TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(TimerEvent.Poured, *sessionEvents),
         ),
         Case(
             "Finished",
             { sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) } },
-            allowed(TimerEvent.FinishSession, TimerEvent.Discard),
+            allowed(*sessionEvents),
         ),
     )
 

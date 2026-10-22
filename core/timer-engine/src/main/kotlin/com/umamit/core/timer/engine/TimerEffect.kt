@@ -3,7 +3,8 @@ package com.umamit.core.timer.engine
 /**
  * What the controller does after an accepted transition (04 §4), in list
  * order. Every accepted transition lists its data effects first
- * ([CreateSession], [RecordStep], [CompleteSession], [DiscardSession]), then
+ * ([CreateSession], [ReplacePendingSteps], [RecordStep], [CompleteSession],
+ * [DiscardSession]), then
  * exactly one [Persist] (all of these in one Room transaction, 04 §2.3, §7.1),
  * then exactly one [ScheduleAlarms], then the side effects.
  */
@@ -11,6 +12,15 @@ sealed interface TimerEffect {
 
     /** Create the `brew_session` row and its planned `session_step` rows (05 §3.7) for an accepted start. */
     data class CreateSession(val sessionId: String) : TimerEffect
+
+    /**
+     * Replace the unstarted `session_step` rows of session [sessionId] (05 §3.7):
+     * delete the rows from position [fromIndex] on and insert [steps] there.
+     * Started and ended steps always form a prefix, so the rows before
+     * [fromIndex] are never touched (`addStep`, `editSteps`).
+     */
+    data class ReplacePendingSteps(val sessionId: String, val fromIndex: Int, val steps: List<PlannedStep>) :
+        TimerEffect
 
     /** Store the ended step [stepIndex] of session [sessionId] (`session_step`, 04 §5.1). */
     data class RecordStep(val sessionId: String, val stepIndex: Int, val record: StepRecord) : TimerEffect
@@ -35,7 +45,11 @@ sealed interface TimerEffect {
     /** Play the pre-alert tick once (#31). */
     data object PlayPreAlert : TimerEffect
 
-    /** Start the step alert (04 §9); the AlertPlayer answers with [TimerEvent.AlertCompleted]. */
+    /**
+     * Ensure the alert of the alerting step is playing (04 §9), idempotent: if
+     * it already plays for that step, nothing restarts (a deadline event and a
+     * `recover` may both ask). The AlertPlayer answers with [TimerEvent.AlertCompleted].
+     */
     data object StartAlert : TimerEffect
 
     /** Stop the step alert. */

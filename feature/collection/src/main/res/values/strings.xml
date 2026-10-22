@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="collection_title">Sammlung</string>
+    <string name="collection_segment_my_teas">Meine Tees</string>
+    <string name="collection_segment_catalog">Katalog</string>
+    <string name="collection_my_teas_empty_title">Dein Regal ist noch leer</string>
+    <string name="collection_my_teas_empty_body">Nimm einen Tee aus dem Katalog auf oder lege einen eigenen an.</string>
+    <string name="collection_catalog_empty_title">Der Katalog ruht noch</string>
+    <string name="collection_catalog_empty_body">Hier stöberst du bald durch die grünen Tees von Tee-Kontor Kiel.</string>
+</resources>
