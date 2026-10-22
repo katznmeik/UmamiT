@@ -292,8 +292,12 @@ ongoing notification** (Live Update):
   **point** at the pre-alert of the current step; progress = elapsed active
   time of the session's planned total. Progress is updated on every state
   transition and **every 15 s** while RUNNING (not per second).
-- Ongoing, with content title, `setRequestPromotedOngoing(true)` (or the final
-  API name) and a monochrome small icon (M1 app icon task).
+- Ongoing, with content title, `NotificationCompat.Builder.setRequestPromotedOngoing(true)`
+  (AndroidX core; the platform `Notification.Builder` of SDK 36 has no such
+  method, it sets the extra `android.requestPromotedOngoing`, D-043) and a
+  monochrome small icon (M1 app icon task). The system promotes it only if it
+  has promotable characteristics (`hasPromotableCharacteristics()`) and the
+  user allows it; the resulting flag is `FLAG_PROMOTED_ONGOING` (0x40000).
 - **Status-bar chip:** in RUNNING it is driven by the chronometer countdown
   (`setUsesChronometer(true)`, `setChronometerCountDown(true)`,
   `setWhen(deadlineWall)`); no static short critical text with a time. In
@@ -308,7 +312,7 @@ ongoing notification** (Live Update):
 - If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
   false), it falls back to a normal ongoing notification and the
   reliability banner deep-links to
-  `Settings.ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS`. The banner is based
+  `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` (D-043). The banner is based
   only on this check, not on Now Bar presence.
 - API names follow the Android 16 SDK and are verified in the **probe
   release** `v0.0.1-probe` (M1 plan) on the PO's Galaxy before the full timer
@@ -398,7 +402,7 @@ Uses the global pre-alert, the same alert and the Live Update
 
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" /> <!-- not a public SDK 36 permission; harmless, kept for forward compatibility (D-043) -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 <uses-permission android:name="android.permission.WAKE_LOCK" />

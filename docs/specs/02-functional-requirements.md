@@ -117,7 +117,7 @@ One page „Damit der Timer zuverlässig klingelt" walks through:
    to the app's battery settings.
 3. Live notifications: verify that the app may show Live Updates
    (`canPostPromotedNotifications()`); deep link to
-   `Settings.ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS` if not.
+   `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` if not.
 4. Full-screen alert: verify `NotificationManager.canUseFullScreenIntent()`;
    deep link to `Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` if not
    (TMR-06).

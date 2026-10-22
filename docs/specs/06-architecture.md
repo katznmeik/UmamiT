@@ -203,7 +203,7 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | Permission | Purpose |
 |---|---|
 | `INTERNET` | The three uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch (all to `www.tee-kontor-kiel.de`) |
-| `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress |
+| `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress (`POST_PROMOTED_NOTIFICATIONS` is not a public SDK 36 permission; promotion is controlled by the user via `canPostPromotedNotifications()`, D-043) |
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Catalog refresh service |

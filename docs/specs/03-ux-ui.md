@@ -127,7 +127,7 @@ unsaved changes trigger GEN-08.
 | „Sitzung gespeichert" notification | SCR-16 |
 | Catalog refresh result notification | SCR-19 |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
-| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
+| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
 
 ### 2.5 Layout
 

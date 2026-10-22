@@ -19,12 +19,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 
 /** Rendering of the stateless status list (M1-03a, #14): German labels, ✓/✗ states, taps. */
-// SDK 35: Robolectric's SDK 36 sandbox needs `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED`
-// on JDK 21 (ApplicationSharedMemory), which the shared test configuration does not pass yet.
-@Config(sdk = [35])
 @RunWith(RobolectricTestRunner::class)
 class PermissionStatusListContentTest {
 

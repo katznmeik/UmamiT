@@ -301,6 +301,24 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-043"></a>
+### D-043 — Android 16 Live Update API names corrected · *Accepted* (Claude, 2026-10-22)
+
+Verified against the compileSdk 36 `android.jar` and AndroidX core 1.18 during
+M1-03a (#14, #15); 04 §8.3, §13, 02 ONB-02, 03 and 06 §5.7 corrected:
+
+- the settings page for Live Updates is
+  `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` (with
+  `EXTRA_APP_PACKAGE`); `ACTION_MANAGE_APP_PROMOTED_NOTIFICATIONS` does not
+  exist;
+- promotion is requested with AndroidX
+  `NotificationCompat.Builder.setRequestPromotedOngoing(true)`; the platform
+  builder has no such method;
+- `android.permission.POST_PROMOTED_NOTIFICATIONS` is not a public SDK 36
+  permission. It stays declared (harmless, forward compatible); what counts is
+  `NotificationManager.canPostPromotedNotifications()`, which the user
+  controls.
+
 <a id="d-042"></a>
 ### D-042 — Build tooling choices from M1-01/M1-02 · *Accepted* (Claude, 2026-10-22)
 
@@ -484,6 +502,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-043: Android 16 Live Update API names corrected (promotion settings action, NotificationCompat request, POST_PROMOTED_NOTIFICATIONS not public). |
 | 2026-10-22 | D-042: build tooling choices (Detekt 2 alpha, compileSdk-36 library limits, configuration cache off, lint exceptions, action versions). |
 | 2026-10-21 | D-041: motion guardrails (calm style, liquor fill + pre-alert glow, strong non-flashing alert, reduce motion, GIF recordings for review); 03 §3.6 rewritten. |
 | 2026-10-21 | D-040: the probe gates M1-09/M1-11; fix loop with `0.0.N-probe`; Now Bar best effort; runtime fallbacks stay. |
