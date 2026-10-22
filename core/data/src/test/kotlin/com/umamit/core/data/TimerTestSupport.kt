@@ -80,7 +80,7 @@ class TimerDriver(
 
             is TimerEffect.RecordStep -> data.sessions.recordStep(effect.sessionId, effect.stepIndex, effect.record)
 
-            is TimerEffect.CompleteSession -> data.sessions.completeSession(effect.sessionId)
+            is TimerEffect.CompleteSession -> data.sessions.completeSession(effect.sessionId, effect.autoFinished)
 
             is TimerEffect.DiscardSession -> data.sessions.discardSession(effect.sessionId)
 

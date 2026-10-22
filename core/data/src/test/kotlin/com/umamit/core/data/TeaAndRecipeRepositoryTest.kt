@@ -8,6 +8,8 @@ import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.model.Vessel
+import com.umamit.core.model.VesselType
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -136,6 +138,36 @@ class TeaAndRecipeRepositoryTest {
 
         data.recipes.replaceStepsAndPreAlert("r1", listOf(RecipeStep(StepKind.INFUSION, 60, 53)), null)
         assertThat(data.recipes.getRecipe("r1")!!.steps.single().tempC).isEqualTo(55)
+    }
+
+    /**
+     * S7 of the #27 slice review: writes are upserts, never REPLACE (05 §3). A REPLACE deletes
+     * the row first, which would cascade into the recipes, steps, photos and stock and null the
+     * session links of a tea, vessel or recipe that is only edited.
+     */
+    @Test
+    fun savingAnExistingTeaVesselRecipeOrPhotoAgainKeepsEverythingThatHangsOffIt() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.vessels.saveVessel(Vessel("v1", "Kyusu", VesselType.KYUSU, 300))
+        data.recipes.saveRecipe(recipe("r1", "t1").copy(vesselId = "v1"))
+        data.teas.savePhoto(Photo("p1", PhotoOwner.OfTea("t1"), PhotoOrigin.OWN, 1, 1, 1L))
+        data.teas.setCoverPhoto("t1", "p1")
+        data.stock.addEvent(initial("e1", "t1", 100.0, 850))
+        val snapshot = snapshotOf(teaId = "t1").copy(profileId = "r1", vesselId = "v1")
+        TimerDriver(data) { id, steps, preAlert -> sessionStart(id, steps, preAlert, TestClocks(), snapshot) }
+            .send(startEvent(infusion(60)))
+
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(name = "Umbenannt"))
+        data.vessels.saveVessel(data.vessels.getVessel("v1")!!.copy(name = "Kyusu klein"))
+        data.recipes.saveRecipe(data.recipes.getRecipe("r1")!!.copy(name = "Neu"))
+        data.teas.savePhoto(Photo("p1", PhotoOwner.OfTea("t1"), PhotoOrigin.OWN, 2, 2, 2L))
+
+        assertThat(data.teas.getTea("t1")!!.coverPhotoId).isEqualTo("p1")
+        assertThat(data.recipes.getRecipe("r1")!!.vesselId).isEqualTo("v1")
+        assertThat(data.recipes.getRecipe("r1")!!.steps).isNotEmpty()
+        assertThat(data.stock.observeEvents("t1").first().map { it.id }).containsExactly("e1")
+        val session = data.sessions.getSession(SESSION_ID)!!.snapshot
+        assertThat(listOf(session.teaId, session.profileId, session.vesselId)).containsExactly("t1", "r1", "v1")
     }
 
     @Test

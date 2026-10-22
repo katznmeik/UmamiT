@@ -52,7 +52,7 @@ class FakeSessionsTest {
                 StepRecord(60, 62, 0, 2, START, START + 62_000, skipped = false, overtimeAutoAck = false),
             )
 
-            fakes.sessions.completeSession("s1")
+            fakes.sessions.completeSession("s1", autoFinished = false)
 
             val session = fakes.sessions.getSession("s1")!!
             assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)

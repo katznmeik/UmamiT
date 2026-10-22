@@ -23,7 +23,7 @@ class TestDatabase(
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UmamiDatabase::class.java)
         .allowMainThreadQueries()
         .build(),
-    val settings: FakeSettingsRepository = FakeSettingsRepository(),
+    val settings: SettingsRepository = FakeSettingsRepository(),
 ) {
     val time = object : WallClock {
         override fun nowMs(): Long = now

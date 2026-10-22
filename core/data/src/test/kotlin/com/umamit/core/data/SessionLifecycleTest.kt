@@ -1,21 +1,36 @@
 package com.umamit.core.data
 
+import androidx.datastore.core.DataStoreFactory
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.datastore.SettingsDataSource
+import com.umamit.core.datastore.SettingsSerializer
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
+import java.io.IOException
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * The session lifecycle of 05 §3.7 through the repositories, driven by the
@@ -25,6 +40,9 @@ import java.time.LocalDate
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class SessionLifecycleTest {
+    @get:Rule
+    val folder = TemporaryFolder()
+
     private val data = TestDatabase()
 
     @After
@@ -192,12 +210,134 @@ class SessionLifecycleTest {
     }
 
     @Test
+    fun `the midnight timeout stores the session as auto-finished, Sitzung beenden does not`() = runTest {
+        teaWithStock()
+        completeOneStep(TimerDriver(data))
+        assertThat(session().autoFinished).isFalse()
+
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60), id = "s2"))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        // Idle from 10:01 on: the first midnight at least 6 h later is 23 Oct, 00:00 in Berlin (TMR-14).
+        driver.clocks.wall = LocalDate.of(2026, 10, 23).atStartOfDay(BERLIN).toInstant().toEpochMilli()
+
+        driver.send(TimerEvent.MidnightTimeout)
+
+        val auto = data.sessions.getSession("s2")!!
+        assertThat(auto.status).isEqualTo(SessionStatus.COMPLETED)
+        assertThat(auto.autoFinished).isTrue()
+    }
+
+    /**
+     * The cost is leaf × Σ price ÷ Σ grams in exact decimals, rounded half up once (INV-08,
+     * O1 of the #27 slice review): a double product lands below the exact half.
+     */
+    @Test
+    fun `the session cost rounds exact halves up`() = runTest {
+        // (price in ct, package grams, leaf grams, expected cost in ct)
+        val cases = listOf(
+            Cost(850, 100.0, 5.0, 43), // Tanabata Kyusu: 42.5 ct
+            Cost(1790, 100.0, 5.0, 90), // Hisui Kyusu: 89.5 ct
+            Cost(1790, 100.0, 25.0, 448), // 447.5 ct
+            Cost(100, 4.0, 2.3, 58), // 57.5 ct
+        )
+        cases.forEachIndexed { i, case ->
+            data.teas.saveTea(tea("t$i"))
+            data.stock.addEvent(initial("buy$i", "t$i", case.grams, case.priceCents, at = START_WALL_MS - DAY_MS))
+            val driver = TimerDriver(data) { id, steps, preAlert ->
+                sessionStart(id, steps, preAlert, TestClocks(), snapshotOf(teaId = "t$i", leafGrams = case.leaf))
+            }
+
+            completeOneStep(driver, id = "s$i")
+
+            assertWithMessage("$case").that(data.sessions.getSession("s$i")!!.costCents).isEqualTo(case.expected)
+        }
+    }
+
+    private data class Cost(val priceCents: Long, val grams: Double, val leaf: Double, val expected: Long)
+
+    /**
+     * S4 of the #27 slice review: the data effects run inside the controller's transition
+     * transaction, so predictable bad input must not throw and roll back its `Persist`.
+     */
+    @Test
+    fun `recording a step whose row is missing changes nothing and does not throw`() = runTest {
+        val record = StepRecord(60, 60, 0, 0, START_WALL_MS, START_WALL_MS + 60_000, false, false)
+
+        data.transactions.inTransaction { data.sessions.recordStep("missing", 0, record) }
+
+        assertThat(data.sessions.getSession("missing")).isNull()
+    }
+
+    @Test
+    fun `unreadable settings complete the session with the default Bestand abziehen`() = runTest {
+        val broken = TestDatabase(settings = UnreadableSettings())
+        try {
+            broken.teas.saveTea(tea("t1"))
+            broken.stock.addEvent(initial("buy", "t1", grams = 100.0, priceCents = 850, at = START_WALL_MS - DAY_MS))
+
+            completeOneStep(TimerDriver(broken))
+
+            assertThat(broken.sessions.getSession(SESSION_ID)!!.status).isEqualTo(SessionStatus.COMPLETED)
+            assertThat(broken.activeBrew.read()).isNull()
+            assertThat(broken.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(96.0)
+        } finally {
+            broken.close()
+        }
+    }
+
+    @Test
+    fun `a session zone this device does not know completes in the device zone`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data) { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks()).copy(zoneId = "Mars/Olympus")
+        }
+
+        completeOneStep(driver)
+
+        assertThat(session().status).isEqualTo(SessionStatus.COMPLETED)
+        assertThat(data.activeBrew.read()).isNull()
+        val deviceDate = Instant.ofEpochMilli(START_WALL_MS).atZone(ZoneId.systemDefault()).toLocalDate()
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(deviceDate)
+    }
+
+    /** S7 of the #27 slice review: the production settings (a DataStore file) read inside the transaction. */
+    @Test
+    fun `the real settings store is read inside the transition transaction`() = runTest {
+        val store = DataStoreSettingsRepository(
+            SettingsDataSource(
+                DataStoreFactory.create(SettingsSerializer, scope = backgroundScope) { File(folder.root, "s.json") },
+            ),
+        )
+        store.update { it.copy(deductStock = false) }
+        val real = TestDatabase(settings = store)
+        try {
+            real.teas.saveTea(tea("t1"))
+            real.stock.addEvent(initial("buy", "t1", grams = 100.0, priceCents = 850, at = START_WALL_MS - DAY_MS))
+
+            completeOneStep(TimerDriver(real))
+
+            assertThat(real.sessions.getSession(SESSION_ID)!!.status).isEqualTo(SessionStatus.COMPLETED)
+            assertThat(
+                real.stock.observeEvents("t1").first().map {
+                    it.type
+                },
+            ).containsExactly(InventoryEventType.INITIAL)
+        } finally {
+            real.close()
+        }
+    }
+
+    @Test
     fun `completing twice changes nothing the second time`() = runTest {
         teaWithStock()
         completeOneStep(TimerDriver(data))
         val first = session()
 
-        data.sessions.completeSession(SESSION_ID)
+        data.sessions.completeSession(SESSION_ID, autoFinished = false)
 
         assertThat(session()).isEqualTo(first)
         assertThat(data.stock.observeEvents("t1").first().count { it.type == InventoryEventType.BREW }).isEqualTo(1)
@@ -286,6 +426,11 @@ class SessionLifecycleTest {
     /** 50 g bought for 9 € on 2026-10-20. */
     private fun purchaseTwoDaysAgo() =
         InventoryEvent("new", "t1", InventoryEventType.PURCHASE, 50.0, START_WALL_MS - 2 * DAY_MS, priceCents = 900)
+
+    /** Settings whose file can't be read: DataStore's IOException on every read. */
+    private class UnreadableSettings : SettingsRepository by FakeSettingsRepository() {
+        override val settings: Flow<UserSettings> = flow { throw IOException("unreadable settings") }
+    }
 
     private companion object {
         const val DAY_MS = 86_400_000L

@@ -3,6 +3,7 @@ package com.umamit.core.data
 import android.content.Context
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
+import com.umamit.core.database.PHOTOS_DIR
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -45,6 +46,7 @@ abstract class DataModule {
 
         /** Photo files in app-private `filesDir/photos/` (05 §3.9, 06 §5.2). */
         @Provides
-        fun photoFiles(@ApplicationContext context: Context): PhotoFiles = PhotoFiles(File(context.filesDir, "photos"))
+        fun photoFiles(@ApplicationContext context: Context): PhotoFiles =
+            PhotoFiles(File(context.filesDir, PHOTOS_DIR))
     }
 }

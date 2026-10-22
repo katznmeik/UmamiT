@@ -461,6 +461,23 @@ class SeedPhotoDownloaderTest {
         assertThat(requests).isEmpty()
     }
 
+    /** S1 of the #27 slice review: the seeder has not committed yet when the setup starts the download. */
+    @Test
+    fun aDownloadBeforeTheSeedTeasExistSendsNothingAndKeepsTheRunForLater() = runTest {
+        val downloader = downloader()
+
+        assertThat(downloader.downloadIfNeeded()).isEqualTo(SeedPhotoProgress.Idle)
+
+        assertThat(requests).isEmpty()
+        assertThat(downloader.isNeeded()).isTrue()
+        assertThat(settings.seedPhotosAttempted.first()).isFalse()
+
+        // Once the seed data is in, the same downloader runs the download.
+        seedTeas()
+        assertThat(downloader.downloadIfNeeded()).isEqualTo(SeedPhotoProgress.Done(stored = 2))
+        assertThat(downloader.isNeeded()).isFalse()
+    }
+
     @Test
     fun afterDoneItNeverRunsAgain() = runTest {
         seedTeas()

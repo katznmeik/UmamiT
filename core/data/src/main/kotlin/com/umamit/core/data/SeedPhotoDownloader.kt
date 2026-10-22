@@ -41,7 +41,7 @@ import javax.inject.Singleton
  *
  * - **Runs once:** the settings marker is set **before the first request**, so neither a skip,
  *   a failure nor a crash or kill mid-run ever repeats it; CAT-15 fills in missing photos with
- *   the first catalog refresh (M2).
+ *   the first catalog refresh (M2). It is not used up before a seed tea exists (D-054).
  * - **Polite:** every request goes through the allow-listed [ShopClient] (one connection,
  *   ≤ 2 requests/s, honest User-Agent). robots.txt is read first and a disallowed photo path
  *   is not fetched. A 404/410 robots.txt allows everything; a 401/403/5xx stops the run; any
@@ -81,21 +81,36 @@ class SeedPhotoDownloader @Inject constructor(
 
     /**
      * Runs the download unless it already ran (then nothing is sent and the current [progress]
-     * is returned, [SeedPhotoProgress.Idle] in a new process). Returns the final progress.
-     * Cancelling the caller has the same effect as [skip].
+     * is returned, [SeedPhotoProgress.Idle] in a new process). Before the seed teas exist (the
+     * seeder has not committed yet) it sends nothing, leaves the marker unset and returns the
+     * current progress, so a later call still runs it (D-054). Returns the final progress and
+     * never throws except for the caller's cancellation, which has the same effect as [skip].
      */
     suspend fun downloadIfNeeded(): SeedPhotoProgress {
-        if (!isNeeded() || !started.compareAndSet(false, true)) return state.value
+        if (!readyToRun() || !started.compareAndSet(false, true)) return state.value
         var outcome: SeedPhotoProgress = Skipped
         try {
             outcome = if (recordAttempt()) runCancellable() else Failed(FailureCause.STORAGE)
         } catch (_: CancellationException) {
             // Skipped by the caller's cancellation, which is rethrown below.
+        } catch (_: IOException) {
+            outcome = Failed(FailureCause.STORAGE) // a settings read failed after the marker
+        } catch (_: SQLException) {
+            outcome = Failed(FailureCause.STORAGE) // a tea could not be read
         } finally {
             state.value = outcome
         }
         currentCoroutineContext().ensureActive()
         return outcome
+    }
+
+    /** Not run yet, and a seed tea exists; false (nothing to do now) when either can't be read. */
+    private suspend fun readyToRun(): Boolean = try {
+        isNeeded() && SeedData.photoPaths.any { (teaId, _) -> teas.getTea(teaId) != null }
+    } catch (_: IOException) {
+        false
+    } catch (_: SQLException) {
+        false
     }
 
     /** *Überspringen*: stops the running download (or the one about to start) as skipped. */
