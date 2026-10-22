@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-21
+> Status: **Living document** · Last updated: 2026-10-22
 
 ## Open questions
 
@@ -302,6 +302,60 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-047"></a>
+### D-047 — Timer engine design (T4 review of #28) · *Accepted* (Claude, 2026-10-22)
+
+The T4 design review of the pure `BrewTimerEngine` (#28) settled these points
+before #31, #32 and M1-09 build on the engine
+([04 §3.2](04-brew-timer.md#32-events-and-transitions), §4, §5, §5.1):
+
+- **Due-time set.** A public, pure `dueTimes(state)` holds every alarm time of
+  a state. Today that is the pre-alert, until it has played, and the deadline.
+  #31 only adds fields: overtime timeout, idle demote, midnight and the
+  quick-timer cancel.
+  - Every accepted transition emits `ScheduleAlarms(dueTimes(newState))`. The
+    controller reconciles it per alarm type, and `CancelAlarms` is gone.
+  - Time-based events carry no payload and are accepted only when they are
+    due. The controller re-arms its in-process wake-up after every `reduce`,
+    and recovery uses the same function.
+- **Delivery.**
+  - The alert is at-least-once. `Alerting.alertPlayed` is set by the
+    `AlertCompleted` event from the AlertPlayer, and recovery replays
+    `StartAlert` while it is false.
+  - The pre-alert is at-most-once: `preAlertPlayed` is set in the transition
+    that plays it (#31).
+- **Outcome.** `TimerTransition` reports `Accepted`, `Ignored` or
+  `Rejected(reason)`. `RejectionReason.ActiveTimerExists` refuses a second
+  start (GEN-03, TMR-21); #32 adds the `editSteps` refusals. A non-accepted
+  event always keeps the state and has no effects.
+- **Session rows.** `CreateSession` is a data effect of an accepted start, so a
+  refused start leaves no orphaned `brew_session` or `session_step` rows.
+- **Effect order.** Data effects, then one `Persist` (one Room transaction),
+  then one `ScheduleAlarms`, then the side effects. `StartForeground` means
+  "ensure it runs" and is also emitted before `StartAlert`. `StopForeground`
+  removes the timer notifications.
+- **Session identity.** `SessionKind` is `Brew(sessionId)` or `Quick`, so a
+  brew session without an id cannot exist.
+- **Recorded data.**
+  - Durations are rounded half up; the display and the journal may differ by
+    1 s.
+  - A skipped step records zeros and null start/end times.
+  - A Running step ended at or after the deadline, before `deadlineReached`
+    was processed, counts as poured, with overtime.
+- **Finish.**
+  - A finish that falls back to discard emits only `DiscardSession`.
+  - A started step counts as completed.
+  - `finishWouldDiscard(state)` lets the UI confirm in advance (TMR-12 AC1).
+- **Small API changes.**
+  - `StepStatus.RUNNING` is renamed to `STARTED`.
+  - The state, step and `StartSession` constructors have no defaults.
+  - The display rounding uses plain arithmetic instead of `Math.ceilDiv`.
+
+These review points move to other tickets: service and notification rules for
+long steps, idle demote and recovery (S5 → #31); recovery and the boot count in
+the engine (S6 → #32); pre-alert and zone columns in `active_brew` and
+*Wie Einstellung* in `editSteps` (S7 → #32/#36).
+
 <a id="d-046"></a>
 ### D-046 — Design system details from M1-04 · *Accepted* (Claude, 2026-10-22)
 
@@ -572,6 +626,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
 | 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |
 | 2026-10-22 | Q-15 → D-045: Klangschale variant C (880 Hz) and a bowl-like 0.8 s pre-alert tick; probe `v0.0.2-probe` passed, the Live Update also appeared in the Now Bar. |
 | 2026-10-22 | D-044: alert replaces the Live Update while ALERTING (Android 16 auto-group silencing); promotion always requested; D-043 amended; probe → v0.0.2-probe. |
