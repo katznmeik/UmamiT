@@ -10,6 +10,17 @@ internal object Dumpsys {
     const val FLAG_PROMOTED_ONGOING = 0x00040000
 
     /**
+     * `Notification.FLAG_SILENT` (`@hide`, API 36): set by the system on
+     * force-grouped notifications; System UI then suppresses their full-screen
+     * intent and heads-up.
+     */
+    const val FLAG_SILENT = 0x00020000
+
+    /** The lines of [dump] that contain any of [markers], trimmed, or "" when none do. */
+    fun matchingLines(dump: String, markers: List<String>): String =
+        dump.lines().filter { line -> markers.any(line::contains) }.joinToString("\n") { it.trim() }
+
+    /**
      * The block of `dumpsys alarm` for the pending alarm whose tag is the
      * broadcast [action] (`tag=*walarm*:<action>`), or null.
      */

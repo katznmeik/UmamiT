@@ -6,6 +6,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.Process
 import android.util.Log
 import android.widget.Button
 import androidx.annotation.RequiresApi
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.core.app.NotificationCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
@@ -28,6 +30,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -44,10 +47,14 @@ import com.umamit.core.timer.R as TimerR
  * checked with `dumpsys` and the notification manager:
  * - exact alarms for the pre-alert and the deadline are pending;
  * - the `specialUse` foreground service runs with the Live Update (ID 1);
- * - API 36: the Live Update is promoted (FLAG_PROMOTED_ONGOING); API 35: a
- *   normal ongoing notification;
- * - at the deadline (shortened step, screen off) the full-screen alert
- *   activity is shown, and *Abgegossen* stops the service.
+ * - API 36: the Live Update requests promotion and, with the user's Live
+ *   Update toggle on, is promoted (FLAG_PROMOTED_ONGOING); API 35: a normal
+ *   ongoing notification;
+ * - at the deadline (shortened step, screen off) the alert replaces the Live
+ *   Update, is not marked silent, and its full-screen activity is shown;
+ *   *Abgegossen* stops the service.
+ *
+ * Background for both API 36 checks: `docs/plans/M1-probe-api-notes.md`.
  */
 @RunWith(AndroidJUnit4::class)
 class ProbeStepTest {
@@ -59,6 +66,9 @@ class ProbeStepTest {
     private val context = instrumentation.targetContext
     private val packageName = context.packageName
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
+
+    /** The promotion toggle as it was before [allowPromotion] changed it; restored in [tearDown]. */
+    private var promotionToRestore: Boolean? = null
 
     @Before
     fun setUp() {
@@ -73,6 +83,7 @@ class ProbeStepTest {
     fun tearDown() {
         ProbeTimer.stop(context)
         ProbeTimer.stepDurationOverride = null
+        promotionToRestore?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) setPromotionAllowed(it) }
         instrumentation.runOnMainSync {
             ActivityLifecycleMonitorRegistry.getInstance()
                 .getActivitiesInStage(Stage.RESUMED)
@@ -89,6 +100,7 @@ class ProbeStepTest {
     fun oneTapStartsExactAlarmsForegroundServiceAndLiveUpdate() {
         // Long enough that nothing fires while the state is checked.
         ProbeTimer.stepDurationOverride = 90.seconds
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) allowPromotion()
 
         tapStartOnProbeScreen()
 
@@ -122,6 +134,10 @@ class ProbeStepTest {
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+            assertTrue(
+                "API 36: the Live Update must request promotion (android.requestPromotedOngoing)",
+                NotificationCompat.isRequestPromotedOngoing(liveUpdate),
+            )
             assertPromoted()
         } else {
             assertFalse(
@@ -145,12 +161,28 @@ class ProbeStepTest {
         val alert = eventually("ProbeAlertActivity shown at the deadline", SHORT_STEP + ALERT_TIMEOUT) {
             alertActivity()
         }
+        Log.i(TAG, "System UI decisions:\n${systemUiInterruptionDecisions()}")
         val alertNotification = activeNotification(TimerNotifications.ID_ALERT)
         assertNotNull("alert notification (ID 2) missing", alertNotification)
         alertNotification!!
         assertEquals(TimerNotifications.CHANNEL_STEEP_FINISHED, alertNotification.channelId)
         assertEquals(Notification.CATEGORY_ALARM, alertNotification.category)
         assertNotNull("alert has no full-screen intent", alertNotification.fullScreenIntent)
+        // Android 16 force-groups two ungrouped notifications of an app and marks
+        // them FLAG_SILENT; System UI then suppresses the full-screen intent and
+        // the heads-up. The alert therefore replaces the Live Update.
+        assertTrue(
+            "alert is marked FLAG_SILENT (force-grouped), flags=0x${Integer.toHexString(alertNotification.flags)}",
+            alertNotification.flags and Dumpsys.FLAG_SILENT == 0,
+        )
+        assertTrue(
+            "alert is not the FGS notification",
+            alertNotification.flags and Notification.FLAG_FOREGROUND_SERVICE != 0,
+        )
+        assertNull(
+            "the Live Update (ID 1) must be gone while the alert is shown",
+            activeNotification(TimerNotifications.ID_LIVE_UPDATE),
+        )
 
         // *Abgegossen* stops the step and the foreground service.
         instrumentation.runOnMainSync { alert.findViewById<Button>(TimerR.id.probe_alert_done).performClick() }
@@ -172,6 +204,53 @@ class ProbeStepTest {
             ?.takeIf { it.contains("isForeground=true") }
     }
 
+    /**
+     * Turns the app's Live Update toggle on, as the PO does on the phone
+     * (Settings › Apps › UmamiT › Benachrichtigungen). On the API 36 emulator
+     * image it is off by default: Android 16 keeps it in
+     * NotificationManagerService (`PreferencesHelper.canHavePromotedNotifs`,
+     * default = the flag `android.app.ui_rich_ongoing`; with the flag on, the
+     * appop `POST_PROMOTED_NOTIFICATIONS`). No `cmd notification` command sets
+     * it, so this uses the test API that the Settings page uses
+     * (`setCanBePromoted(…, fromUser = true)`).
+     */
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun allowPromotion() {
+        if (notificationManager.canPostPromotedNotifications()) return
+        promotionToRestore = false
+        setPromotionAllowed(true)
+        assertTrue(
+            "test setup: canPostPromotedNotifications() still false after allowing promotion",
+            notificationManager.canPostPromotedNotifications(),
+        )
+    }
+
+    /**
+     * `NotificationManager.setCanPostPromotedNotifications(pkg, uid, allowed)`
+     * is a `@TestApi` (instrumented processes may call test APIs). The service
+     * accepts it from the shell or with `STATUS_BAR_SERVICE`, which the shell
+     * holds and lends to this test for the call.
+     */
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun setPromotionAllowed(allowed: Boolean) {
+        val uiAutomation = instrumentation.uiAutomation
+        uiAutomation.adoptShellPermissionIdentity(STATUS_BAR_SERVICE)
+        try {
+            NotificationManager::class.java
+                .getMethod(
+                    "setCanPostPromotedNotifications",
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                    Boolean::class.javaPrimitiveType,
+                )
+                .invoke(notificationManager, packageName, Process.myUid(), allowed)
+        } catch (e: ReflectiveOperationException) {
+            throw AssertionError("test setup: could not set the Live Update toggle to $allowed", e)
+        } finally {
+            uiAutomation.dropShellPermissionIdentity()
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun assertPromoted() {
         val canPromote = notificationManager.canPostPromotedNotifications()
@@ -184,6 +263,7 @@ class ProbeStepTest {
         val records = Dumpsys.notificationRecords(dump, packageName, TimerNotifications.ID_LIVE_UPDATE)
         Log.i(TAG, "dumpsys notification, Live Update:\n${records.joinToString("\n---\n")}")
         val posted = checkNotNull(activeNotification(TimerNotifications.ID_LIVE_UPDATE))
+        Log.i(TAG, "Promotion rule set:\n${promotionRuleSet(posted)}")
         assertTrue(
             "FLAG_PROMOTED_ONGOING missing on the posted notification (canPostPromotedNotifications=$canPromote, " +
                 "hasPromotableCharacteristics=${posted.hasPromotableCharacteristics()})",
@@ -203,6 +283,41 @@ class ProbeStepTest {
                 .firstOrNull()
         }
         return found
+    }
+
+    /** Every lifecycle stage a [ProbeAlertActivity] is in (launched but not visible shows as CREATED/STOPPED). */
+    private fun alertActivityStages(): String {
+        var stages = ""
+        instrumentation.runOnMainSync {
+            val monitor = ActivityLifecycleMonitorRegistry.getInstance()
+            stages = Stage.entries
+                .filter { stage -> monitor.getActivitiesInStage(stage).any { it is ProbeAlertActivity } }
+                .joinToString()
+                .ifEmpty { "(no ProbeAlertActivity in any stage)" }
+        }
+        return stages
+    }
+
+    /**
+     * Which Android 16 rule set this image uses (`docs/plans/M1-probe-api-notes.md`):
+     * the posted variant and the relevant aconfig flags, as far as the shell can read them.
+     */
+    private fun promotionRuleSet(posted: Notification): String = buildString {
+        appendLine("colorized=${posted.extras.getBoolean(Notification.EXTRA_COLORIZED)}")
+        appendLine("requestPromotedOngoing=${NotificationCompat.isRequestPromotedOngoing(posted)}")
+        appendLine("hasPromotableCharacteristics=${posted.hasPromotableCharacteristics()}")
+        appendLine(Dumpsys.matchingLines(shell("aflags list"), FLAG_NAMES).ifEmpty { "(aflags: no output)" })
+    }
+
+    /** System UI's interruption log for this app (`FSI allowed/suppressed: <reason>`), last lines. */
+    private fun systemUiInterruptionDecisions(): String {
+        val dump = shell("dumpsys activity service com.android.systemui/.SystemUIService NotifInterruptLog")
+        return Dumpsys.matchingLines(dump, listOf(packageName))
+            .lines()
+            .filter { line -> SYSTEM_UI_DECISIONS.any(line::contains) }
+            .takeLast(SYSTEM_UI_LINES)
+            .joinToString("\n")
+            .ifEmpty { "(no System UI decision lines for $packageName)" }
     }
 
     /**
@@ -237,6 +352,15 @@ class ProbeStepTest {
             TimerAlarm.entries.forEach { appendLine(Dumpsys.alarmBlock(alarms, it.action) ?: "($it: none)") }
             appendLine("--- notification records ---")
             appendLine(records.joinToString("\n---\n").ifEmpty { "(none)" })
+            appendLine("--- alert activity ---")
+            appendLine(alertActivityStages())
+            appendLine(Dumpsys.matchingLines(shell("dumpsys activity activities"), ACTIVITY_MARKERS))
+            appendLine("--- power ---")
+            appendLine(Dumpsys.matchingLines(shell("dumpsys power"), POWER_MARKERS))
+            appendLine("--- System UI interruption decisions ---")
+            appendLine(systemUiInterruptionDecisions())
+            appendLine("--- flags ---")
+            appendLine(Dumpsys.matchingLines(shell("aflags list"), FLAG_NAMES))
         }.also { Log.e(TAG, it) }
     }
 
@@ -253,5 +377,21 @@ class ProbeStepTest {
         /** Generous margin for alarm delivery, FGS start and the activity launch on a slow CI emulator. */
         val ALERT_TIMEOUT = 45.seconds
         const val POLL_INTERVAL_MS = 250L
+
+        /** Not in the SDK stubs as a `Manifest.permission` constant (system permission). */
+        const val STATUS_BAR_SERVICE = "android.permission.STATUS_BAR_SERVICE"
+
+        /** Android 16 flags behind the promotion rules and the force-grouping (api notes). */
+        val FLAG_NAMES = listOf(
+            "android.app.api_rich_ongoing",
+            "android.app.ui_rich_ongoing",
+            "android.app.opt_in_rich_ongoing",
+            "android.service.notification.notification_force_grouping",
+            "android.service.notification.notification_silent_flag",
+        )
+        val ACTIVITY_MARKERS = listOf("ResumedActivity", "ProbeAlertActivity", "mKeyguardShowing", "mOccluded")
+        val POWER_MARKERS = listOf("mWakefulness=", "Display Power: state=", "mIsPowered=")
+        val SYSTEM_UI_DECISIONS = listOf("FSI ", "PEEK", "PULSE")
+        const val SYSTEM_UI_LINES = 20
     }
 }
