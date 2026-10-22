@@ -3,6 +3,14 @@ plugins {
     alias(libs.plugins.umamit.hilt)
 }
 
+android {
+    defaultConfig {
+        // The process-death test (#42) runs in the CI emulator job; its runner runs in its
+        // own process (src/androidTest/AndroidManifest.xml).
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+}
+
 dependencies {
     // The BrewSessionController runs the engine and writes the session rows and the
     // active brew through the repositories (04 §4, §7.1); its API uses the engine's
@@ -22,4 +30,10 @@ dependencies {
     // Room database, fake clocks and fake ports from core:testing.
     testImplementation(project(":core:testing"))
     testImplementation(project(":core:database"))
+
+    // Process-death test in the CI emulator job (#42, spec #40 seam 5): the real
+    // controller, alarms, receiver, service and database in a test app.
+    androidTestImplementation(project(":core:database"))
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

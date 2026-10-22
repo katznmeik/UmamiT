@@ -22,6 +22,9 @@ enum class EventSource {
 
     /** The AlertPlayer reporting the end of its cycle. */
     ALERT_PLAYER,
+
+    /** The controller's first turn in a process: `recover` from the persisted state (04 §7.2). */
+    RECOVERY,
 }
 
 /**
@@ -78,4 +81,32 @@ sealed interface TimerDiagnostic {
 
     /** The alert player reported the end of [alert], which is no longer the playing alert; ignored. */
     data class StaleAlertCompletion(override val at: ClockReading, val alert: StepAlert) : TimerDiagnostic
+
+    /**
+     * The persisted `active_brew` row is not a state `restore` accepts ([error]); it was
+     * cleared instead of running a wrong timer (04 §4, §7.2).
+     */
+    data class SnapshotUnreadable(override val at: ClockReading, val error: IllegalArgumentException) :
+        TimerDiagnostic
+
+    /**
+     * Reading the persisted state at process start failed ([error]); the controller stays
+     * idle for this turn and tries again in the next one (04 §7.2, D-057).
+     */
+    data class RecoveryFailed(override val at: ClockReading, val error: Throwable) : TimerDiagnostic
+
+    /**
+     * The alarm of [kind] could not be exact (`canScheduleExactAlarms()` false or a
+     * `SecurityException`) and was set inexact, allowed while idle; the reliability banner
+     * reads the same check (04 §6.2, TMR-31).
+     */
+    data class AlarmNotExact(override val at: ClockReading, val kind: TimerAlarmKind) : TimerDiagnostic
+
+    /**
+     * Android refused to start the foreground service, or to make it show notification
+     * [notificationId] in the foreground ([error], 04 §6.3); the notification was posted
+     * without the service until the next interaction or alarm.
+     */
+    data class ServiceStartRefused(override val at: ClockReading, val notificationId: Int, val error: Exception) :
+        TimerDiagnostic
 }

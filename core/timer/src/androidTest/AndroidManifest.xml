@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The process-death test of the real timer (#42, E3; spec #40 seam 5). The test
+  runner runs in its own process of this test APK (targetProcesses), so the
+  test survives killing the main process, where the controller, the alarm
+  receiver and the foreground service run as in the app.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <instrumentation
+        android:name="androidx.test.runner.AndroidJUnitRunner"
+        android:targetProcesses="${applicationId}:runner" />
+
+    <application android:name="com.umamit.core.timer.TimerTestApplication">
+        <!-- Starts a step in the main process, as the user's tap does in the app. -->
+        <activity
+            android:name="com.umamit.core.timer.TimerTestActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>

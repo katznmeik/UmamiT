@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Timer components and the permissions they need (04 §13, 06 §5.7). The app
-  manifest declares the same permissions; duplicates merge. Today these are
-  the probe's components (M1-03a, #15); M1-09/M1-11 grow them into the real
-  timer.
+  manifest declares the same permissions; duplicates merge. The real timer's
+  alarm receiver, foreground service and full-screen alert (M1-09, #42) sit
+  next to the probe's components (M1-03a, #15), which go with the probe
+  screen (#54).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -23,6 +24,26 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application>
+        <!-- The timer's foreground service (04 §6.3, §13; #42). -->
+        <service
+            android:name=".service.BrewTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Tea steeping countdown timer started by the user" />
+        </service>
+
+        <!-- The real timer's full-screen alert until SCR-05 takes it over (M1-11).
+             setShowWhenLocked / setTurnScreenOn are set from code (04 §13). -->
+        <activity
+            android:name=".TimerAlertActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.UmamiT.TimerAlert" />
+
         <service
             android:name=".probe.ProbeTimerService"
             android:exported="false"
@@ -34,6 +55,11 @@
 
         <receiver
             android:name=".ExactAlarmReceiver"
+            android:exported="false" />
+
+        <!-- The timer's alarms (04 §6.2, #42): every kind to the controller's onAlarm. -->
+        <receiver
+            android:name=".alarm.TimerAlarmReceiver"
             android:exported="false" />
 
         <receiver
