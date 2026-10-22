@@ -302,6 +302,18 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-049"></a>
+### D-049 — Navigation shell details (M1-05, #34) · *Accepted* (Claude, 2026-10-22)
+
+- One navigation controller per tab; Settings and the probe sit on the stack
+  of the tab they were opened from.
+- Re-selecting a tab (03 §2.2): the first tap scrolls the screen on top to the
+  top; a second tap pops a deeper stack to the tab root. On a root screen every
+  tap scrolls. The scroll is a one-shot event, never replayed on return.
+- Tab switches use a fade-through (`tabSwitch`, 03 §3.6); back from another
+  tab returns to Start with a predictive-back preview.
+- The active brew bar applies the system bar insets itself in the rail layout.
+
 <a id="d-048"></a>
 ### D-048 — Step edits, quick timer, recovery and the `active_brew` snapshot · *Accepted* (Claude, 2026-10-22)
 
@@ -742,6 +754,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-049: navigation shell details (re-select order, tab fade-through, insets of the active brew bar); 03 §3.6 `tabSwitch` token. |
 | 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
 | 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |

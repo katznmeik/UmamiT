@@ -9,11 +9,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -58,11 +60,19 @@ private val RemainingLineHeight = 32.sp
  * „Laufender Aufguss: Bio Sencha Hisui, Aufguss 2 von 4, noch 1 Minute 12 Sekunden. Zum Timer".
  *
  * @param brew the active brew, or `null` when nothing runs.
+ * @param windowInsets system bar insets applied inside the bar, so its background stays
+ *   edge-to-edge and its content clear of the bars (the rail layout has no bar to do it).
  * @param progress elapsed fraction of the current step, 0 to 1, read only while
  *   drawing, so a per-frame value redraws the mini ring without recomposing the bar.
  */
 @Composable
-fun ActiveBrewBar(brew: ActiveBrew?, progress: () -> Float, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ActiveBrewBar(
+    brew: ActiveBrew?,
+    progress: () -> Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    windowInsets: WindowInsets = WindowInsets(0),
+) {
     // The last brew, so the bar keeps its content while it leaves.
     val last = remember { LastBrew(brew) }
     SideEffect { if (brew != null) last.value = brew }
@@ -74,14 +84,19 @@ fun ActiveBrewBar(brew: ActiveBrew?, progress: () -> Float, onClick: () -> Unit,
         enter = expandVertically(motion.activeBrewBar(), expandFrom = Alignment.Bottom) + fadeIn(motion.fade()),
         exit = shrinkVertically(motion.activeBrewBar(), shrinkTowards = Alignment.Bottom) + fadeOut(motion.exit()),
     ) {
-        shown?.let { ActiveBrewBarContent(it, progress, onClick) }
+        shown?.let { ActiveBrewBarContent(it, progress, onClick, windowInsets) }
     }
 }
 
 private class LastBrew(var value: ActiveBrew?)
 
 @Composable
-private fun ActiveBrewBarContent(brew: ActiveBrew, progress: () -> Float, onClick: () -> Unit) {
+private fun ActiveBrewBarContent(
+    brew: ActiveBrew,
+    progress: () -> Float,
+    onClick: () -> Unit,
+    windowInsets: WindowInsets,
+) {
     val remaining = spokenDuration(brew.remainingSeconds)
     val spoken = if (brew.stepDescription != null) {
         stringResource(R.string.ds_active_brew_description, brew.title, brew.stepDescription, remaining)
@@ -99,6 +114,7 @@ private fun ActiveBrewBarContent(brew: ActiveBrew, progress: () -> Float, onClic
         Row(
             // The visible texts are in the description already; the bar is one element.
             modifier = Modifier
+                .windowInsetsPadding(windowInsets)
                 .clearAndSetSemantics {}
                 .heightIn(min = 72.dp)
                 .padding(horizontal = UmamiSpacing.Medium, vertical = UmamiSpacing.XSmall),

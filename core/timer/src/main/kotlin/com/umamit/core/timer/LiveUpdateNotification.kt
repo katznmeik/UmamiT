@@ -90,7 +90,7 @@ object LiveUpdateNotification {
             .setProgress(content.progress)
 
         val builder = NotificationCompat.Builder(context, TimerNotifications.CHANNEL_BREW_TIMER)
-            .setSmallIcon(R.drawable.ic_timer_notification)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
             .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
             .setColorized(colorized)
             .setContentTitle(content.title)
