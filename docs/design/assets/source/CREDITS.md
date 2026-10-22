@@ -13,6 +13,10 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 |---|---|---|---|
 | `core/content/src/main/res/raw/klangschale.ogg` | Klangschale — default alert tone (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 | `core/content/src/main/res/raw/tick.ogg` | Tick — pre-alert, small-bowl „ting" (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/glocke.ogg` | Glocke — alert tone, small bell struck twice (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/holzblock.ogg` | Holzblock — alert tone, two wood blocks (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/glockenspiel.ogg` | Glockenspiel — alert tone, rising steel-bar arpeggio (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/sanft.ogg` | Sanft — alert tone, two soft rising tones (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 
 ## Fonts
 
