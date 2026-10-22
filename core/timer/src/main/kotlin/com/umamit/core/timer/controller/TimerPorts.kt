@@ -66,7 +66,7 @@ interface TimerNotifierPort {
      * same transition), and notification 1 is cancelled. Otherwise
      * notification 1, the Live Update, while the service runs, and the quiet
      * notification (ID 4) while the session is demoted or a long step runs
-     * (D-NNN). While the service runs, the notification changes only through
+     * (D-064). While the service runs, the notification changes only through
      * the service (D-057).
      */
     fun update(state: TimerUiState.Active, fullScreen: Boolean)

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Notification channels (04 §8.1) -->
     <string name="timer_channel_brew_timer_name">Brühtimer</string>
     <string name="timer_channel_brew_timer_description">Der laufende Aufguss als Live-Update</string>
@@ -23,7 +23,7 @@
     <string name="timer_step_rinse">Spülaufguss</string>
     <string name="timer_step_whisk">Aufschlagen</string>
     <!-- Gyokuro · Aufguss 2 von 3 -->
-    <string name="timer_title_step">%1$s · %2$s %3$d von %4$d</string>
+    <string name="timer_title_step" tools:ignore="PluralsCandidate">%1$s · %2$s %3$d von %4$d</string>
     <string name="timer_title_finished">%1$s · Alle Aufgüsse fertig</string>
     <!-- Bereit · 0:20 -->
     <string name="timer_text_ready">Bereit · %1$s</string>

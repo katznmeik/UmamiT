@@ -26,11 +26,15 @@ import kotlinx.coroutines.launch
  */
 class TimerActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        dismissedKeyOf(intent)?.let {
-            LiveUpdateDismissal.dismissedKey = it
-            return
+        val dismissed = dismissedKeyOf(intent)
+        if (dismissed != null) {
+            LiveUpdateDismissal.dismissedKey = dismissed
+        } else {
+            eventOf(intent)?.let { send(context, it) }
         }
-        val event = eventOf(intent) ?: return
+    }
+
+    private fun send(context: Context, event: TimerEvent) {
         val inputs = (context.applicationContext as? TimerHost)?.timerInputs
         if (inputs == null) {
             Log.e(TAG, "Notification action $event dropped: the app does not hand over its timer controller")

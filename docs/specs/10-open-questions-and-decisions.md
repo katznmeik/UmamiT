@@ -302,6 +302,105 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-nnn"></a>
+### D-NNN — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
+
+#47 replaced the interim notification content and `TimerAlertActivity` of #42
+with the real ones ([04 §8](04-brew-timer.md#8-notifications); TMR-06,
+TMR-14, TMR-18, TMR-41) and bound the notifier, the controller's last port.
+Decided while building them:
+
+- **One place shows notifications 1, 2 and 4.** `AndroidTimerNotifier` (the
+  notifier port) hands `UpdateNotification` to `BrewTimerServicePort`, which
+  also handles `StartForeground` and `StopForeground`. One lock orders the
+  controller's commands and the 15 s refresh, and a command is sent while it is
+  held, so the service receives them in that order.
+  - While the service runs or starts, every change goes to the service, which
+    shows it as its foreground notification. The ID changes only there, and the
+    notifier never posts notification 2 next to the service's notification 1
+    (D-044, D-057). The same state is not sent twice in one transition
+    (`StartForeground` and `UpdateNotification` of the deadline), so the alert
+    takes over the screen once.
+  - Without the service the notification is posted directly, after the other
+    two timer notifications are cancelled.
+- **The quiet notification has its own ID 4.** A long running step („Fertig um
+  14:30", TMR-18, a Live Update) and a demoted session (TMR-14, a regular
+  ongoing notification without the promotion request, with *Start* or *Weiter*
+  and *Sitzung beenden*) run without the service. When the service stops, the
+  system removes its foreground notification asynchronously, which could remove
+  a notification 1 posted right after; ID 4 avoids that race. ID 4 is never
+  posted while alerting and is cancelled before every start of the service and
+  every alert, so the alert stays the app's only notification of importance
+  DEFAULT or higher (D-044). `StopForeground` removes 1, 2 and 4.
+- **Content per phase** (04 §8.2): the title is „Gyokuro · Aufguss 2 von 3".
+  The step word follows the step kind, as on SCR-05 (D-058). The quick timer is
+  „Schnelltimer"; the alert text is „Gyokuro · Aufguss 2". The status-bar chip
+  is the chronometer while running, otherwise the short critical text
+  („60 °C", „Pause", „Fertig"). A long step keeps its step title (the state does
+  not know the brew method, so not „Kaltaufguss").
+- **Actions:**
+  - *Start*, *Pause* or *Weiter* by phase;
+  - *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the quick timer);
+  - *Sitzung beenden* in FINISHED and on a demoted session;
+  - *Abbrechen* for a waiting or running quick timer.
+
+  *Sitzung beenden* is left out where it would discard the session: only the
+  app may ask first (TMR-12 AC1). `TimerActionReceiver` (non-exported) sends
+  each action to the controller with `EventSource.NOTIFICATION` through
+  `TimerHost`. It then re-sends a refused service start within the tap's
+  exemption, as the alarm receiver does.
+- **ProgressStyle** (04 §8.3): one segment per step (at most 30) in tenths of a
+  second. Each segment is at least a twentieth of the plan, and a rinse is
+  drawn in a muted colour. The point marks the current step's pre-alert, and
+  the progress is the session's elapsed share on that scale. Refreshed every
+  15 s while running. The refresh runs only while the process lives and never
+  after a newer command.
+- **Dismissal** (04 §8.3): the delete intent records the dismissed state (session,
+  step, phase, pre-alert, demoted). That state is not posted again by an update
+  or the refresh; the next state change posts it. The alert ignores it. The
+  record dies with the process.
+- **Full-screen target: the app's timer route; `TimerAlertActivity` is removed.**
+  - The content intent of every timer notification and the alert's full-screen
+    intent open `MainActivity` with `com.umamit.action.OPEN_TIMER`, explicit
+    where it resolves. A thin launcher activity was rejected: it would add a
+    hop and a second activity over the lock screen.
+  - `MainActivity` sets `showWhenLocked` (and `turnScreenOn` while alerting)
+    at once, in `onCreate` or `onNewIntent`, while a session is active. Behind
+    the keyguard with the screen off no frame is drawn, so the flags cannot
+    wait for the navigation.
+  - `UmamitRoot` pops whatever lies above the timer, or opens it. Until the
+    timer is on top it draws the timer's dark background over the shell and
+    reports the timer as visible, so the shell never shows over the lock screen
+    (D-058).
+  - The exported launcher activity declares the action. Another app could open
+    the timer with it, which shows nothing new; it shows over the lock screen
+    only while a session is active.
+- **„Sitzung gespeichert"** (ID 3, channel `sessions`, LOW, auto-cancel) names
+  the session's tea as the notifier last showed it („Gyokuro · im Journal").
+  It opens the app; the journal detail SCR-16 comes with M4.
+- **The app runs the real timer.** With every port bound, `TimerAppModule`
+  binds `ControllerBrewTimer` instead of `NoBrewTimer` (removed), and
+  `UmamitApplication` is the `TimerHost` with the injected controller (`Lazy`,
+  built on first use; D-056, D-057).
+- **Tests.**
+  - Robolectric:
+    - content, actions, promotion, segments, intents and the delete intent
+      per phase;
+    - the notifier and the service port: through the service while it runs,
+      directly without it, ID 4, the refresh and the dismissal;
+    - D-044 through the real controller, service port, notifier and service:
+      after `deadlineReached`, `addStep` while alerting, `recover` of an
+      alerting state and a long step's deadline;
+    - action round trips into the real controller.
+  - Emulator (API 35/36):
+    - the promoted Live Update (`FLAG_PROMOTED_ONGOING` on API 36, a normal
+      ongoing notification on API 35);
+    - *Pause* and *Weiter* from the notification;
+    - the alert alone, not `FLAG_SILENT`, with the timer screen over the lock
+      screen and *Abgegossen* from the notification (`core:timer`);
+    - the app's own timer route over the lock screen through the app's
+      controller (`app`).
+
 <a id="d-061"></a>
 ### D-061 — Minimal journal and the „Gespeichert" sheet (M1-16, #51) · *Accepted* (Claude, 2026-10-22)
 
@@ -647,7 +746,7 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     point.
   - Alert: „Jetzt abgießen!" on `steep_finished`, `CATEGORY_ALARM`.
   - Channels and IDs as verified (D-043, D-044).
-- **Full-screen target until SCR-05 (#47):** `TimerAlertActivity`. It shows
+- **Full-screen target until SCR-05 (#47; replaced by the timer route, D-NNN):** `TimerAlertActivity`. It shows
   over the lock screen and turns the screen on, set from code only while it is
   shown (04 §13). *Abgegossen* sends `poured` to the controller and closes it;
   a later alert updates its tea (`onNewIntent`).
@@ -1633,6 +1732,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-NNN: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |
 | 2026-10-22 | D-060: diagnostics log and *Diagnose* (#43): two-file rolling log ≤ 200 KB in the no-backup storage, written in order on the IO dispatcher and never blocking or throwing into the timer; technical English entries with scheduled vs actual times on both clocks and the delta; service starts and stops, ringer mode at each alert and test, permission states at each process start; *Diagnose* newest first with *Kopieren* (header + entries). 06 §5.6, 03 SCR-27 updated. |
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |

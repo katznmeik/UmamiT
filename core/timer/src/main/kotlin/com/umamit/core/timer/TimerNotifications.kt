@@ -42,7 +42,7 @@ object TimerNotifications {
      * cancelled before every start of the service, so the alert stays the app's only
      * notification of importance DEFAULT or higher (D-044). An ID of its own, because the
      * foreground notification 1 is removed by the system asynchronously when the service
-     * stops, which could remove a notification 1 posted right after (D-NNN).
+     * stops, which could remove a notification 1 posted right after (D-064).
      */
     const val ID_QUIET = 4
 

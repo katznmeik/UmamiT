@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The controller's notifier (04 §8.2, §8.3; M1-11, D-NNN):
+ * The controller's notifier (04 §8.2, §8.3; M1-11, D-064):
  *
  * - `UpdateNotification` goes to the [BrewTimerServicePort], the one place that shows the
  *   timer's notifications 1, 2 and the quiet one. While the service runs, the notification

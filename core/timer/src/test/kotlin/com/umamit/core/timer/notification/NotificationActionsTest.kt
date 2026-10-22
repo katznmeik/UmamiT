@@ -104,7 +104,11 @@ class NotificationActionsTest {
     /** Taps the action [label] of the notification of the controller's state and waits for [expect] (null: idle). */
     private fun tap(label: String, expect: TimerPhase?) {
         val state = harness.active
-        val notification: Notification = notifications.build(state, fullScreen = state.alerting, now = harness.clock.reading())
+        val notification: Notification = notifications.build(
+            state,
+            fullScreen = state.alerting,
+            now = harness.clock.reading(),
+        )
         val action = notification.actions.firstOrNull { it.title.toString() == label }
         assertWithMessage("action $label in ${state.phase}").that(action).isNotNull()
         app.sendBroadcast(shadowOf(action!!.actionIntent).savedIntent)

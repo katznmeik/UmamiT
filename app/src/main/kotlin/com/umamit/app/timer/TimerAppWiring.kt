@@ -18,6 +18,7 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.feature.brew.timer.BrewTimer
+import com.umamit.feature.brew.timer.ControllerBrewTimer
 import com.umamit.feature.brew.timer.TimerReliability
 import com.umamit.feature.brew.timer.activeBrewOf
 import com.umamit.feature.brew.timer.displayTicks
@@ -39,20 +40,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * The timer screen's seams in the app (SCR-05, #45).
- *
- * **Until #42** binds the controller's remaining ports (alarms, service;
- * then #43, #44, #47 and M1-16), `BrewSessionController` cannot be injected
- * (D-056), so [BrewTimer] is [NoBrewTimer]: no session is ever active, the
- * timer route closes at once and the active brew bar stays hidden, exactly as
- * before. When the ports are bound, replace the `brewTimer` provider with
- * `@Binds fun brewTimer(impl: ControllerBrewTimer): BrewTimer` (feature:brew).
+ * The timer screen's seams in the app (SCR-05, #45): [BrewTimer] is the
+ * `BrewSessionController` itself ([ControllerBrewTimer]). Every port of the
+ * controller has its Android adapter since #47 bound the notifier (D-056,
+ * D-057), so the app runs the real timer.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object TimerAppModule {
     @Provides
-    fun brewTimer(): BrewTimer = NoBrewTimer
+    fun brewTimer(impl: ControllerBrewTimer): BrewTimer = impl
 
     @Provides
     fun timerReliability(@ApplicationContext context: Context): TimerReliability = PermissionTimerReliability(
@@ -60,13 +57,6 @@ object TimerAppModule {
         packageName = context.packageName,
         open = { context.startFirstPermissionStatusIntent(it) },
     )
-}
-
-/** No controller yet (#42): always idle, and every event is ignored. Not a stand-in timer: nothing ever runs. */
-object NoBrewTimer : BrewTimer {
-    override val state: StateFlow<TimerUiState> = MutableStateFlow<TimerUiState>(TimerUiState.Idle).asStateFlow()
-
-    override suspend fun send(event: TimerEvent): TransitionOutcome = TransitionOutcome.Ignored
 }
 
 /**

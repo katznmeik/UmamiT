@@ -525,18 +525,30 @@ away, including the FGS restart attempt.
 | PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
 | ALERTING (separate notification on `steep_finished` with `setFullScreenIntent(SCR-05)`, `CATEGORY_ALARM`) | Jetzt abgießen! | Gyokuro · Aufguss 2 | *Abgegossen* |
 | FINISHED | Gyokuro · Alle Aufgüsse fertig | Tippen zum Beenden | *Sitzung beenden* |
-| Long step | Gyokuro · Kaltaufguss | Fertig um 14:30 | *Pause* |
+| Long step (notification 4) | Gyokuro · Aufguss 1 von 1 | Fertig um 14:30 | *Pause* |
+| Demoted (notification 4, TMR-14) | as the phase | as the phase | *Start* / *Weiter*, *Sitzung beenden* |
+| Quick timer | Schnelltimer | as the phase | as the phase, plus *Abbrechen*; *Fertig* while alerting |
 
-Content intent → SCR-05; actions → non-exported receiver → controller.
-Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
-Going to Idle removes notifications 1 and 2 through `StopForeground`, whether
+Actions → non-exported receiver → controller (source NOTIFICATION).
+Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 4 the quiet
+notification without the service (a long running step, a demoted session;
+D-NNN), 10+ reminders/catalog. Content intent → SCR-05 through the app's
+activity (`com.umamit.action.OPEN_TIMER`), which opens the timer route; the
+same intent is the alert's full-screen intent (D-NNN). Actions: *Start*,
+*Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the
+quick timer), *Sitzung beenden* (FINISHED, demoted; not where it would
+discard the session, TMR-12 AC1), *Abbrechen* (quick timer).
+Going to Idle removes notifications 1, 2 and 4 through `StopForeground`, whether
 or not the service runs; the midnight timeout's „Sitzung gespeichert" is
 notification 3 (`NotifySessionSaved`, D-053).
 
 **While ALERTING the alert (ID 2) is the app's only notification of
 importance DEFAULT or higher (D-044):** it replaces the Live Update as the
 foreground-service notification, and a Live Update posted without the
-service is cancelled first; the Live Update returns with the next state.
+service (notification 1 after a refused start, notification 4) is cancelled
+first; the Live Update returns with the next state. While the service runs,
+every change of the timer notification goes through the service, never
+`notify` next to it (D-057, D-NNN).
 Reason: Android 16 force-groups two ungrouped notifications of an app in the
 same importance section (`config_autoGroupAtCount` = 2) and marks them
 `FLAG_SILENT`; System UI then suppresses the full-screen intent and the
@@ -562,7 +574,8 @@ ongoing notification** (Live Update):
   visible; at most 30 steps, PRF-03; rinse segments in a muted colour) and a
   **point** at the pre-alert of the current step; progress = elapsed active
   time of the session's planned total. Progress is updated on every state
-  transition and **every 15 s** while RUNNING (not per second).
+  transition and **every 15 s** while RUNNING (not per second), in order with
+  the controller's commands (D-NNN).
 - Ongoing, with content title, `NotificationCompat.Builder.setRequestPromotedOngoing(true)`
   (AndroidX core; the platform `Notification.Builder` of SDK 36 has no such
   method, it sets the extra `android.requestPromotedOngoing`, D-043) and a
@@ -584,7 +597,11 @@ ongoing notification** (Live Update):
   option) and is not a release blocker. With `v0.0.2-probe` the countdown did
   appear in the Now Bar on the PO's Galaxy (2026-10-22).
 - **User dismissal is respected:** `setDeleteIntent` records the dismissal;
-  the notification is not re-posted until the next state change.
+  the notification is not re-posted until the next state change (a new phase,
+  step, the pre-alert or the demotion; D-NNN).
+- A demoted session (TMR-14) is a regular ongoing notification without the
+  promotion request; a long running step keeps it (TMR-18, „Fertig um
+  14:30").
 - If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
   false), the system shows it as a normal ongoing notification (the request
   stays set) and the
@@ -744,6 +761,8 @@ Uses the global pre-alert, the same alert and the Live Update
         android:value="Tea steeping countdown timer started by the user" />
 </service>
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
+<!-- The app's activity declares com.umamit.action.OPEN_TIMER: the notifications'
+     content intent and the alert's full-screen intent open the timer route (D-NNN). -->
 <receiver android:name=".timer.alarm.TimerAlarmReceiver" android:exported="false" />
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>

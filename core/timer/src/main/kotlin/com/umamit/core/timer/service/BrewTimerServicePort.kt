@@ -20,7 +20,7 @@ import com.umamit.core.timer.controller.TimerServicePort
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerWakeUpPort
 import com.umamit.core.timer.notification.LiveUpdateDismissal
-import com.umamit.core.timer.runsWithService
+import com.umamit.core.timer.notification.runsWithService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +30,7 @@ import javax.inject.Singleton
 
 /**
  * The controller's service port (04 §4, §6.3; D-053, D-057) and the one place that shows the
- * timer's notifications 1 (Live Update), 2 (alert) and the quiet one (04 §8.2; D-NNN): it
+ * timer's notifications 1 (Live Update), 2 (alert) and the quiet one (04 §8.2; D-064): it
  * starts, updates and stops [BrewTimerService] with the notification of the state and the
  * wake lock it needs, and shows `UpdateNotification` for the notifier ([show]). Runs inside the
  * controller's event lock and never blocks: the service handles each command later on the

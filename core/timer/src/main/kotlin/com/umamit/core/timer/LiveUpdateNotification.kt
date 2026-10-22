@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.ColorInt
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -58,17 +59,22 @@ data class LiveUpdateContent(
 object LiveUpdateNotification {
     private const val TAG = "UmamiTLiveUpdate"
 
-    fun build(context: Context, content: LiveUpdateContent): Notification {
-        val requestPromotion = content.requestPromotion && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
-        val plain = builder(context, content, requestPromotion, colorized = false).build()
-        if (!requestPromotion || plain.hasPromotableCharacteristics()) {
-            return plain
+    fun build(context: Context, content: LiveUpdateContent): Notification =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA && content.requestPromotion) {
+            promotable(context, content)
+        } else {
+            builder(context, content, requestPromotion = false, colorized = false).build()
         }
+
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun promotable(context: Context, content: LiveUpdateContent): Notification {
+        val plain = builder(context, content, requestPromotion = true, colorized = false).build()
+        if (plain.hasPromotableCharacteristics()) return plain
         // Android 16 without the Live Update UI (flag android.app.ui_rich_ongoing off,
         // e.g. the first API 36 release and the framework Robolectric 4.17 ships) only
         // promotes colorized notifications; with it (Android 16 QPR1 and later) only
         // non-colorized ones that carry the request. Use the variant this device accepts.
-        val colorized = builder(context, content, requestPromotion, colorized = true).build()
+        val colorized = builder(context, content, requestPromotion = true, colorized = true).build()
         val promotable = colorized.hasPromotableCharacteristics()
         if (promotable) {
             Log.i(TAG, "Promotable only when colorized on this build; using the colorized Live Update")
