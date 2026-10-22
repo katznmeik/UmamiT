@@ -1,5 +1,6 @@
 package com.umamit.app
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,6 +24,6 @@ class LaunchSmokeTest {
         // Read the text from the app's resources, so the test follows strings.xml.
         val welcome = composeRule.activity.getString(R.string.placeholder_welcome)
 
-        composeRule.onNodeWithText(welcome).assertDoesNotExist()
+        composeRule.onNodeWithText(welcome).assertIsDisplayed()
     }
 }
