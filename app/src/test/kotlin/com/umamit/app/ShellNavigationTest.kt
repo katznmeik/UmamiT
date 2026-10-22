@@ -61,7 +61,7 @@ class ShellNavigationTest {
     private fun start(reduceMotion: Boolean = true) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
-                UmamitApp(activeBrewSource = source)
+                UmamitApp(activeBrewSource = source, journalSources = testJournalSources())
             }
         }
     }
@@ -191,7 +191,9 @@ class ShellNavigationTest {
     fun reselectStillScrollsAfterAConfigurationChange() {
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
-            UmamiTheme(darkTheme = false, reduceMotion = true) { UmamitApp(activeBrewSource = source) }
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
+                UmamitApp(activeBrewSource = source, journalSources = testJournalSources())
+            }
         }
         repeat(3) { tab(Tab.Start).performClick() }
 
