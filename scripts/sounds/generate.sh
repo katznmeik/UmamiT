@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Synthesises UmamiT's bundled alert sounds with ffmpeg (04 §9.2, D-036; M1-03a, #16):
-#   - klangschale.ogg  draft "Klangschale" (singing bowl): additive inharmonic
+#   - klangschale.ogg  "Klangschale" (singing bowl): additive inharmonic
 #                      partials with exponential decay, the default alert;
-#   - tick.ogg         very short soft tick for the pre-alert.
+#   - tick.ogg         short, soft small-bowl "ting" for the pre-alert.
+# Both are variant C of the Q-15 listening round (2026-10-22, chosen by the PO
+# after the probe: the first draft was not bright enough).
 # Own work, no third-party audio (docs/design/assets/source/CREDITS.md).
 #
 # Every file is mono, 48 kHz, Ogg Vorbis, ≤ 60 KB and loudness-normalised:
@@ -11,9 +13,8 @@
 # unless that would push the true peak above CEILING_DBTP (then the ceiling
 # wins). No limiter or compressor touches the waveform.
 #   - klangschale: -16 LUFS integrated, true peak ≤ -1.5 dBTP before encoding.
-#   - tick: shorter than one 400 ms EBU block, so it is measured padded to
-#     400 ms with silence (= its momentary loudness) and set to -24 LUFS,
-#     8 LU below the alert (a pre-alert is a reduced alert, 04 §9.1).
+#   - tick: -24 LUFS integrated (measured padded to at least one 400 ms EBU
+#     block), 8 LU below the alert (a pre-alert is a reduced alert, 04 §9.1).
 #
 # Reproducibility: the synthesis is plain arithmetic (aevalsrc, no random
 # source) and the encoder runs in bit-exact mode without metadata, so the same
@@ -59,35 +60,38 @@ fi
 
 # --- Synthesis -------------------------------------------------------------
 
-# Singing bowl: a fundamental and inharmonic partials at the ratios of a struck
-# bowl (≈ 1 : 2.76 : 5.40 : 8.93). The two lowest modes come as close pairs
-# (1.0037, 2.7605) so they beat slowly (≈ 1.6 Hz), the bowl's shimmer. Higher
-# partials decay faster. A 3 ms attack softens the strike; the last 0.6 s fade
-# out so a repeat (alert length "Normal", 04 §9.1) starts from silence.
-# The start phases are spread to lower the crest factor (more loudness at the
-# same true peak).
-readonly BOWL_F0=440
+# Singing bowl ("hell und klar"): a fundamental of 880 Hz and inharmonic
+# partials at the ratios of a struck bowl (≈ 1 : 2.76 : 5.40 : 8.93). The two
+# lowest modes come as close pairs (1.004, 2.7605) so they beat slowly, the
+# bowl's shimmer. Higher partials decay faster. A 1.5 ms attack keeps the
+# strike clear but soft; the last 0.6 s fade out so a repeat (alert length
+# "Normal", 04 §9.1) starts from silence. The start phases are spread to lower
+# the crest factor (more loudness at the same true peak).
+readonly BOWL_F0=880
 readonly BOWL_SECONDS=3.5
 bowl_expr() {
   local f=$BOWL_F0
-  printf '%s' "(1-exp(-t/0.003))*0.25*(" \
-    "1.00*sin(2*PI*$f*t)*exp(-t/1.7)" \
-    "+0.55*sin(2*PI*$f*1.0037*t+2.0)*exp(-t/1.5)" \
-    "+0.45*sin(2*PI*$f*2.756*t+4.0)*exp(-t/0.95)" \
-    "+0.22*sin(2*PI*$f*2.7605*t+1.0)*exp(-t/0.85)" \
-    "+0.20*sin(2*PI*$f*5.404*t+3.0)*exp(-t/0.45)" \
-    "+0.08*sin(2*PI*$f*8.933*t+5.0)*exp(-t/0.22)" \
+  printf '%s' "(1-exp(-t/0.0015))*0.22*(" \
+    "1.00*sin(2*PI*$f*t)*exp(-t/1.6)" \
+    "+0.50*sin(2*PI*$f*1.004*t+2.0)*exp(-t/1.4)" \
+    "+0.55*sin(2*PI*$f*2.756*t+4.0)*exp(-t/1.0)" \
+    "+0.25*sin(2*PI*$f*2.7605*t+1.0)*exp(-t/0.9)" \
+    "+0.25*sin(2*PI*$f*5.404*t+3.0)*exp(-t/0.6)" \
+    "+0.10*sin(2*PI*$f*8.933*t+5.0)*exp(-t/0.3)" \
     ")"
 }
 
-# Tick: a soft, wooden "tock" — two damped partials with a 1 ms attack, about
-# 90 ms long, ending in a short fade.
-readonly TICK_SECONDS=0.09
+# Tick ("warm lang"): a small bowl struck softly — 990 Hz with the same bowl
+# ratios and a slow beat, about 0.8 s long, ending in a 0.2 s fade.
+readonly TICK_F0=990
+readonly TICK_SECONDS=0.8
 tick_expr() {
-  printf '%s' "(1-exp(-t/0.001))*0.5*(" \
-    "1.00*sin(2*PI*1400*t)*exp(-t/0.018)" \
-    "+0.35*sin(2*PI*2390*t+1.0)*exp(-t/0.009)" \
-    "+0.12*sin(2*PI*3870*t+2.0)*exp(-t/0.005)" \
+  local f=$TICK_F0
+  printf '%s' "(1-exp(-t/0.0015))*0.4*(" \
+    "1.00*sin(2*PI*$f*t)*exp(-t/0.35)" \
+    "+0.50*sin(2*PI*$f*1.003*t+2.0)*exp(-t/0.3)" \
+    "+0.40*sin(2*PI*$f*2.756*t+4.0)*exp(-t/0.18)" \
+    "+0.15*sin(2*PI*$f*5.404*t+3.0)*exp(-t/0.09)" \
     ")"
 }
 
@@ -151,7 +155,7 @@ generate_into() {
   mkdir -p "$out_dir"
   make_sound klangschale "$(bowl_expr)" "$BOWL_SECONDS" 2.9 0.6 \
     "$BOWL_TARGET_LUFS" "$BOWL_CEILING_DBTP" 0 "$out_dir"
-  make_sound tick "$(tick_expr)" "$TICK_SECONDS" 0.07 0.02 \
+  make_sound tick "$(tick_expr)" "$TICK_SECONDS" 0.6 0.2 \
     "$TICK_TARGET_LUFS" "$TICK_CEILING_DBTP" 0.4 "$out_dir"
 }
 

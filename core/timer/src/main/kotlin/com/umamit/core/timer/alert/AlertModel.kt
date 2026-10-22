@@ -59,11 +59,11 @@ object AlertMatrix {
  * against the Ogg file. M1-10 adds Glocke, Holzblock, Glockenspiel and Sanft.
  */
 enum class AlertSound(val lengthMs: Long) {
-    /** Default alert tone (draft, Q-15). */
+    /** Default alert tone (Q-15: variant C chosen by the PO). */
     KLANGSCHALE(lengthMs = 3_500L),
 
-    /** Pre-alert tick. */
-    TICK(lengthMs = 90L),
+    /** Pre-alert tick, a soft small-bowl „ting" (Q-15: variant C). */
+    TICK(lengthMs = 800L),
 }
 
 private val PRE_ALERT_TIMINGS_MS = listOf(0L, 50L)

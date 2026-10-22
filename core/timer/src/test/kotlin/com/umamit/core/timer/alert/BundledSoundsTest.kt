@@ -35,8 +35,8 @@ class BundledSoundsTest {
     }
 
     @Test
-    fun tickIsShorterThan150Milliseconds() {
-        assertThat(AlertSound.TICK.lengthMs).isLessThan(150L)
+    fun tickIsAtMostOneSecond() {
+        assertThat(AlertSound.TICK.lengthMs).isAtMost(1_000L)
     }
 
     /** Just enough of RFC 3533 (Ogg) and the Vorbis I identification header. */

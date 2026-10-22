@@ -195,7 +195,7 @@ class RingerModeAlertPlayerTest {
 
         assertThat(sound.events).containsExactly("requestFocus @ 0", "play TICK @ 0").inOrder()
         assertThat(haptics.events).containsExactly("play PRE_ALERT @ 0")
-        scheduler.advanceBy(1_000L)
+        scheduler.advanceBy(2_000L)
         assertThat(sound.focusHeld).isFalse()
         assertThat(sound.plays(AlertSound.TICK)).hasSize(1)
         assertThat(scheduler.pendingCount).isEqualTo(0)

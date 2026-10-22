@@ -319,7 +319,8 @@ ongoing notification** (Live Update):
 - Shown as a status-bar chip and on the lock screen. On One UI 8 it may also
   appear in the Samsung **Now Bar**; this is **best effort** (One UI may
   require the user to enable live notifications per app or a developer
-  option) and is not a release blocker.
+  option) and is not a release blocker. With `v0.0.2-probe` the countdown did
+  appear in the Now Bar on the PO's Galaxy (2026-10-22).
 - **User dismissal is respected:** `setDeleteIntent` records the dismissal;
   the notification is not re-posted until the next state change.
 - If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
@@ -362,8 +363,9 @@ ongoing notification** (Live Update):
 ### 9.2 Sounds
 
 Bundled OGG, mono, ≤ 60 KB each, loudness-normalised: Klangschale (default
-alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a very short soft
-**tick** for the pre-alert.
+alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a short, soft
+**tick** for the pre-alert: a small singing-bowl „ting" of about 0.8 s, 8 LU
+below the alert (D-045).
 
 Sourcing (D-036): all tones are **synthesised** first with ffmpeg in the
 cloud container (e.g. additive partials with exponential decay for the bowl,

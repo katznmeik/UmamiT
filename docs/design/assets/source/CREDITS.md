@@ -9,8 +9,8 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 
 | File | Asset | Source | Licence |
 |---|---|---|---|
-| `core/content/src/main/res/raw/klangschale.ogg` | Klangschale (Entwurf) — default alert tone | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
-| `core/content/src/main/res/raw/tick.ogg` | Tick — pre-alert | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/klangschale.ogg` | Klangschale — default alert tone (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/tick.ogg` | Tick — pre-alert, small-bowl „ting" (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 
 ## Images
 

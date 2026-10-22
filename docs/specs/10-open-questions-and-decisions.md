@@ -6,7 +6,7 @@
 
 | ID | Question | Proposed default | Needed by |
 |---|---|---|---|
-| Q-15 | Default **alert sound** „Klangschale" (singing bowl): PO agrees in principle but wants to **hear it** before final approval → listen via *Alarm testen* in the M1 APK. *2026-10-22, probe `v0.0.2-probe`:* the Klangschale is not bright enough, and the pre-alert tick should sound more like a singing bowl → brighter variants were synthesised for the PO to choose from. | Klangschale | M1 acceptance |
+| — | None open. | — | — |
 
 ### Notes on Q-04 — illustration and imagery options
 
@@ -44,6 +44,7 @@ structure without the shop's texts or images. Other aspects:
 | Q-01 Application ID | `com.umamit.app` (originally `com.umamitea.app`; changed with the rename, D-033). |
 | Q-05 Serif font | Cormorant Garamond (accepted). |
 | Q-18 Galaxy Watch | Not used; no watch support needed (NOT-04 → Won't). |
+| Q-15 Default alert sound (2026-10-22) | Klangschale variant C and the bowl-like tick variant C, chosen by the PO after the probe — D-045. The M1 checklist still listens to all tones via *Alarm testen*. |
 | Q-02 Monetisation | Not applicable: personal use only. |
 | Q-03 Languages | German only (D-017). |
 | Q-06 Content review | Tee-Kontor is the content source; built-in styles are fallbacks only. |
@@ -301,6 +302,22 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-045"></a>
+### D-045 — Default alert sound and pre-alert tick (Q-15) · *Accepted* (PO, 2026-10-22)
+
+After the probe (`v0.0.2-probe`), the PO found the draft Klangschale (440 Hz)
+not bright enough and wanted the pre-alert tick to sound more like a singing
+bowl. From a listening round of three variants each, the PO chose **C + C**:
+
+- **Klangschale** „hell und klar": 880 Hz fundamental with the bowl partials,
+  3.5 s, -16 LUFS. It stays the default alert (04 §9.2).
+- **Tick** „warm lang": a softly struck small bowl at 990 Hz, about **0.8 s**
+  (no longer a 90 ms wooden tick), -24 LUFS, 8 LU below the alert.
+
+Both come from `scripts/sounds/generate.sh` and are byte-identical to the files
+the PO heard. The other tones (Glocke, Holzblock, Glockenspiel, Sanft) follow
+with SET-31 in M1.
+
 <a id="d-044"></a>
 ### D-044 — Alert replaces the Live Update while ALERTING; promotion always requested · *Accepted* (Claude, 2026-10-22)
 
@@ -529,6 +546,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | Q-15 → D-045: Klangschale variant C (880 Hz) and a bowl-like 0.8 s pre-alert tick; probe `v0.0.2-probe` passed, the Live Update also appeared in the Now Bar. |
 | 2026-10-22 | D-044: alert replaces the Live Update while ALERTING (Android 16 auto-group silencing); promotion always requested; D-043 amended; probe → v0.0.2-probe. |
 | 2026-10-22 | D-043: Android 16 Live Update API names corrected (promotion settings action, NotificationCompat request, POST_PROMOTED_NOTIFICATIONS not public). |
 | 2026-10-22 | D-042: build tooling choices (Detekt 2 alpha, compileSdk-36 library limits, configuration cache off, lint exceptions, action versions). |

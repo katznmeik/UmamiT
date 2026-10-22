@@ -41,14 +41,10 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. Q-15: pick one of the brighter Klangschale and singing-bowl tick variants
-   sent in the session on 2026-10-22 (A/B/C), or ask for another round.
-3. Say whether the Live Update also appeared in the Now Bar during the probe
-   (best effort, recorded only).
-4. Start the next spec (M1 waves 2–3) with `/to-spec` (working agreement
+2. Start the next spec (M1 waves 2–3) with `/to-spec` (working agreement
    below).
-5. At the M1 PR: test the release candidate, listen to all alert sounds and
-   approve the default (Q-15).
+3. At the M1 PR: test the release candidate and listen to all alert sounds
+   via *Alarm testen* (the default was chosen in D-045).
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
 
@@ -75,10 +71,8 @@ Galaxy (D-040 gate open for M1-09/M1-11).
 1. The PO starts the next spec (M1 waves 2–3, `docs/plans/M1-timer.md`) with
    `/to-spec`, including the design/motion skills (§3.2, D-041). Then
    `/to-tickets` and `/implement-spec` on the same branch and PR #25.
-2. Commit the PO's Q-15 sound choice (generator `scripts/sounds/generate.sh`,
-   04 §9.2) with the next implementation run.
-3. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
-   the sounds need a listening build).
+2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
+   something on the device needs re-checking).
 
 ## Open questions
 
@@ -101,7 +95,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
-| 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent. Run stopped after #17 as agreed. |
+| 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent; the PO chose C + C (D-045, committed). The countdown also appeared in the Now Bar. Run stopped after #17 as agreed. |
 | 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
 | 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
 | 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |
