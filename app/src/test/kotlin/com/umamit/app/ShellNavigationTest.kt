@@ -1,10 +1,11 @@
 package com.umamit.app
 
+import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -33,16 +34,16 @@ import com.umamit.feature.settings.R as SettingsR
 class ShellNavigationTest {
 
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     private val brew = MutableStateFlow<ActiveBrew?>(null)
 
     private fun str(@StringRes id: Int): String =
         ApplicationProvider.getApplicationContext<android.content.Context>().getString(id)
 
-    private fun start() {
+    private fun start(reduceMotion: Boolean = true) {
         compose.setContent {
-            UmamiTheme(darkTheme = false, reduceMotion = true) {
+            UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
                 UmamitApp(
                     activeBrewSource = object : ActiveBrewSource {
                         override val activeBrew: StateFlow<ActiveBrew?> = brew
@@ -94,12 +95,40 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun reselectPopsToRoot() {
+    fun reselectScrollsFirstAndPopsToRootOnTheSecondTap() {
         start()
         openSettingsFromStart()
         tab(Tab.Start).performClick()
+        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
+        tab(Tab.Start).performClick()
         compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertIsDisplayed()
         compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun backLeavesTheTabStackThenReturnsToStart() {
+        start()
+        tab(Tab.Journal).performClick()
+        compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
+        compose.onNodeWithText(str(DesignSystemR.string.ds_settings)).performClick()
+        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertIsDisplayed()
+        tab(Tab.Start).assertIsSelected()
+    }
+
+    @Test
+    fun tabSwitchSettlesWithMotion() {
+        start(reduceMotion = false)
+        tab(Tab.Journal).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertDoesNotExist()
     }
 
     @Test

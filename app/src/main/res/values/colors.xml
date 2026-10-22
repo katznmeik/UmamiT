@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Washi of the light scheme (03 §3.1). -->
-    <color name="ic_launcher_background">#FFF6F3EC</color>
+    <!-- Washi: the background of the light scheme (03 §3.1). -->
+    <color name="ic_launcher_background">#FFF3F0E9</color>
 </resources>

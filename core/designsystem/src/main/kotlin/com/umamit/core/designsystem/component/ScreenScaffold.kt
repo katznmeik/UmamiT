@@ -23,8 +23,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,8 +54,13 @@ fun ScreenScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState = rememberScrollState()
+    // The request is a counter; only an increase seen by this screen scrolls, so it never replays on return.
+    var handled by rememberSaveable { mutableIntStateOf(scrollToTopRequest) }
     LaunchedEffect(scrollToTopRequest) {
-        if (scrollToTopRequest > 0) scrollState.animateScrollTo(0)
+        if (scrollToTopRequest > handled) {
+            handled = scrollToTopRequest
+            scrollState.animateScrollTo(0)
+        }
     }
     Scaffold(
         modifier = modifier,

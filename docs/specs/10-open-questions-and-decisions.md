@@ -302,6 +302,18 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-048"></a>
+### D-048 — Navigation shell details (M1-05, #34) · *Accepted* (Claude, 2026-10-22)
+
+- One navigation controller per tab; Settings and the probe sit on the stack
+  of the tab they were opened from.
+- Re-selecting a tab (03 §2.2): the first tap scrolls the screen on top to the
+  top; a second tap pops a deeper stack to the tab root. On a root screen every
+  tap scrolls. The scroll is a one-shot event, never replayed on return.
+- Tab switches use a fade-through (`tabSwitch`, 03 §3.6); back from another
+  tab returns to Start with a predictive-back preview.
+- The active brew bar applies the system bar insets itself in the rail layout.
+
 <a id="d-047"></a>
 ### D-047 — Timer engine design (T4 review of #28) · *Accepted* (Claude, 2026-10-22)
 
@@ -639,6 +651,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-048: navigation shell details (re-select order, tab fade-through, insets of the active brew bar); 03 §3.6 `tabSwitch` token. |
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
 | 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |
 | 2026-10-22 | Q-15 → D-045: Klangschale variant C (880 Hz) and a bowl-like 0.8 s pre-alert tick; probe `v0.0.2-probe` passed, the Live Update also appeared in the Now Bar. |

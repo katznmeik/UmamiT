@@ -39,6 +39,18 @@ class UmamiMotionTest {
     }
 
     @Test
+    fun `tab switch fades out in 90 ms and in over 210 ms after it, and keeps a short fade under reduce motion`() {
+        assertThat((calm.tabSwitchOut<Float>() as TweenSpec).durationMillis).isEqualTo(90)
+        val tabIn = calm.tabSwitchIn<Float>() as TweenSpec
+        assertThat(tabIn.durationMillis).isEqualTo(210)
+        assertThat(tabIn.delay).isEqualTo(90)
+        assertThat((reduced.tabSwitchOut<Float>() as TweenSpec).durationMillis).isEqualTo(100)
+        assertThat((reduced.tabSwitchIn<Float>() as TweenSpec).delay).isEqualTo(0)
+        assertThat((reduced.exitFade<Float>() as TweenSpec).durationMillis).isEqualTo(100)
+        assertThat((calm.exitFade<Float>() as TweenSpec).durationMillis).isEqualTo(200)
+    }
+
+    @Test
     fun `exit is faster than enter`() {
         assertThat((calm.exit<Float>() as TweenSpec).durationMillis).isEqualTo(200)
     }

@@ -48,6 +48,12 @@ object MotionTokens {
     /** One full washi → matcha → washi alert pulse. */
     const val ALERT_PULSE_CYCLE_MILLIS = 1_500
 
+    /** Tab switch fade-through: the old tab leaves quickly ... */
+    const val TAB_SWITCH_OUT_MILLIS = 90
+
+    /** ... then the new tab arrives, after the old one is gone. */
+    const val TAB_SWITCH_IN_MILLIS = 210
+
     /** Under reduce motion, opacity and colour changes still fade, but only this long. */
     const val REDUCED_FADE_MILLIS = 100
 
@@ -83,6 +89,7 @@ object MotionTokens {
  * The liquor fill always rises from the bottom of the ring.
  */
 @Immutable
+@Suppress("TooManyFunctions") // one function per motion token of 03 §3.6
 class UmamiMotion(val reduceMotion: Boolean) {
 
     /** Standard transition: 300 ms soft ease-out. Never for entering ALERTING: use [alertEnter]. */
@@ -118,6 +125,23 @@ class UmamiMotion(val reduceMotion: Boolean) {
     } else {
         tween(MotionTokens.STANDARD_MILLIS, easing = MotionTokens.CalmEaseOut)
     }
+
+    /** Tab switch, outgoing tab: 90 ms; reduce motion: [fade]. */
+    fun <T> tabSwitchOut(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        fade()
+    } else {
+        tween(MotionTokens.TAB_SWITCH_OUT_MILLIS, easing = MotionTokens.CalmEaseOut)
+    }
+
+    /** Tab switch, incoming tab: 210 ms after the outgoing one has left; reduce motion: [fade]. */
+    fun <T> tabSwitchIn(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        fade()
+    } else {
+        tween(MotionTokens.TAB_SWITCH_IN_MILLIS, MotionTokens.TAB_SWITCH_OUT_MILLIS, MotionTokens.CalmEaseOut)
+    }
+
+    /** A fade of a leaving element: [exit] (200 ms), and under reduce motion a short [fade] instead of a snap. */
+    fun <T> exitFade(): FiniteAnimationSpec<T> = if (reduceMotion) fade() else exit()
 
     /** Bottom sheets (Schritte-Sheet): critically damped spring, interruptible. */
     fun <T> sheet(): FiniteAnimationSpec<T> = springOrSnap(reduceMotion, MotionTokens.SHEET_STIFFNESS)
