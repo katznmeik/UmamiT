@@ -29,6 +29,15 @@ abstract class DataModule {
     @Binds
     abstract fun settingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
 
+    @Binds
+    abstract fun sessionRepository(impl: RoomSessionRepository): SessionRepository
+
+    @Binds
+    abstract fun activeBrewStore(impl: RoomActiveBrewStore): ActiveBrewStore
+
+    @Binds
+    abstract fun databaseTransactions(impl: RoomDatabaseTransactions): DatabaseTransactions
+
     companion object {
         /** Wall clock for `created_at` / `updated_at` (epoch ms UTC, 05 §1.4). */
         @Provides
