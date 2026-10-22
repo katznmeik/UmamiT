@@ -6,10 +6,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.umamit.feature.home.R as HomeR
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import com.umamit.feature.home.R as HomeR
 
 /**
  * Launch smoke test (M1-02, #12; plan M1-timer.md §3.1 seam 2): the app starts

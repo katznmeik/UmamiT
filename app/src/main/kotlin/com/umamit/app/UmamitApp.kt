@@ -33,6 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.umamit.app.probe.ProbeScreen
+import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.collection.CollectionScreen
@@ -108,7 +109,8 @@ fun UmamitApp(
                     onSegmentChange = { segment = it },
                 )
             }
-            ActiveBrewBarSlot(activeBrew)
+            // Slot above the bar; the timer route (M1-09) will open on click.
+            ActiveBrewBar(brew = activeBrew, progress = activeBrewSource.progress, onClick = {})
         }
     }
 }

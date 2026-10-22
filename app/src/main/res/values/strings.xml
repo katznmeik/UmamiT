@@ -5,5 +5,4 @@
     <string name="tab_journal">Journal</string>
     <string name="tab_collection">Sammlung</string>
     <string name="tab_stats">Statistik</string>
-    <string name="active_brew_running">Aufguss läuft: %1$s</string>
 </resources>

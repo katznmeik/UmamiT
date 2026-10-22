@@ -13,9 +13,6 @@ import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.theme.UmamiSpacing
 
-/** The two segments of Sammlung (03 §2.2). The app remembers the last one. */
-enum class CollectionSegment { MyTeas, Catalog }
-
 /** Sammlung (SCR-08 / SCR-19), a calm placeholder until M2 and M3. */
 @Composable
 fun CollectionScreen(
@@ -48,6 +45,7 @@ fun CollectionScreen(
                 title = stringResource(R.string.collection_my_teas_empty_title),
                 body = stringResource(R.string.collection_my_teas_empty_body),
             )
+
             CollectionSegment.Catalog -> EmptyState(
                 title = stringResource(R.string.collection_catalog_empty_title),
                 body = stringResource(R.string.collection_catalog_empty_body),

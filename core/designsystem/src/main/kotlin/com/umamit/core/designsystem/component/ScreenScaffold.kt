@@ -76,17 +76,17 @@ fun ScreenScaffold(
 
 /** The gear on Start (03 §2.2). */
 @Composable
-fun SettingsGearAction(onOpenSettings: () -> Unit) {
-    IconButton(onClick = onOpenSettings) {
+fun SettingsGearAction(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(onClick = onOpenSettings, modifier = modifier) {
         Icon(painterResource(UmamiIcons.Settings), contentDescription = stringResource(R.string.ds_settings))
     }
 }
 
 /** The ⋮ menu of the other tabs, whose only entry for now is the settings (03 §2.2). */
 @Composable
-fun OverflowSettingsAction(onOpenSettings: () -> Unit) {
+fun OverflowSettingsAction(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    IconButton(onClick = { expanded = true }) {
+    IconButton(onClick = { expanded = true }, modifier = modifier) {
         Icon(painterResource(UmamiIcons.MoreVert), contentDescription = stringResource(R.string.ds_more_options))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -102,8 +102,8 @@ fun OverflowSettingsAction(onOpenSettings: () -> Unit) {
 
 /** Up arrow for pushed screens such as the settings. */
 @Composable
-fun BackAction(onBack: () -> Unit) {
-    IconButton(onClick = onBack) {
+fun BackAction(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    IconButton(onClick = onBack, modifier = modifier) {
         Icon(painterResource(UmamiIcons.ArrowBack), contentDescription = stringResource(R.string.ds_back))
     }
 }

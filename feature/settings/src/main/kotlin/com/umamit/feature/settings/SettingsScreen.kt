@@ -13,11 +13,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
  * must not depend on the app.
  */
 @Composable
-fun SettingsScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    extraContent: @Composable () -> Unit = {},
-) {
+fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, extraContent: @Composable () -> Unit = {}) {
     ScreenScaffold(
         title = stringResource(R.string.settings_title),
         modifier = modifier,

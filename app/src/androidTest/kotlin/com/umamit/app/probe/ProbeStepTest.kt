@@ -24,7 +24,6 @@ import com.umamit.app.MainActivity
 import com.umamit.app.R
 import com.umamit.core.timer.TimerAlarm
 import com.umamit.core.timer.TimerNotifications
-import com.umamit.core.designsystem.R as DesignSystemR
 import com.umamit.core.timer.probe.ProbeAlertActivity
 import com.umamit.core.timer.probe.ProbeTimer
 import com.umamit.core.timer.probe.ProbeTimerService
@@ -41,6 +40,7 @@ import org.junit.runner.RunWith
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import com.umamit.core.designsystem.R as DesignSystemR
 import com.umamit.core.timer.R as TimerR
 
 /**
