@@ -17,7 +17,6 @@
     <string name="brew_steps_save_to_recipe">Im Rezept speichern</string>
     <string name="brew_steps_saved_to_recipe">Im Rezept gespeichert</string>
     <string name="brew_steps_done">Fertig</string>
-    <string name="brew_steps_close">Schritte schließen</string>
 
     <!-- TalkBack (03 §6) -->
     <string name="brew_steps_step_label">%1$d %2$s</string>

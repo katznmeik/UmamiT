@@ -6,14 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.Density
-import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -24,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -32,6 +29,7 @@ import org.robolectric.annotation.GraphicsMode
  * scale 1.0 and 2.0 (03 §6): with done steps, without a recipe (quick timer),
  * and with many steps. Goldens: `src/test/screenshots/`.
  */
+@OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -43,8 +41,6 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
         fun parameters(): List<Array<Any>> = listOf(false, true).flatMap { dark ->
             listOf(1f, 2f).map { scale -> arrayOf<Any>(dark, scale) }
         }
-
-        private const val TAG = "screen"
     }
 
     @get:Rule
@@ -53,36 +49,35 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
     private fun capture(name: String, input: StepsSheetInput) {
+        // The sheet's window takes the font scale from the configuration, not from a LocalDensity override.
+        RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
-                val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                    Box(
-                        modifier = Modifier
-                            .testTag(TAG)
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background),
-                    ) {
-                        // A stand-in for the host screen (SCR-04 / SCR-05) under the scrim.
-                        Text(
-                            text = "Bio Sencha Hisui",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(UmamiSpacing.SideMargin),
-                        )
-                        StepsSheet(
-                            visible = true,
-                            state = StepsSheetState(input),
-                            onDone = {},
-                            onSaveToRecipe = {},
-                            onDismissRequest = {},
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background),
+                ) {
+                    // A stand-in for the host screen (SCR-04 / SCR-05) under the scrim.
+                    Text(
+                        text = "Bio Sencha Hisui",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(UmamiSpacing.SideMargin),
+                    )
+                    StepsSheet(
+                        visible = true,
+                        state = StepsSheetState(input),
+                        onDone = {},
+                        onSaveToRecipe = {},
+                        onDismissRequest = {},
+                    )
                 }
             }
         }
-        compose.onNodeWithTag(TAG)
-            .captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/StepsSheet_${name}_$variant.png")
+        // The sheet has its own window: capture the whole screen, host and sheet.
+        compose.waitForIdle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/StepsSheet_${name}_$variant.png")
     }
 
     @Test

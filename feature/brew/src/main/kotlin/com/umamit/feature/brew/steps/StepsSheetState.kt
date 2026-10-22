@@ -3,7 +3,6 @@ package com.umamit.feature.brew.steps
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -103,12 +102,11 @@ class StepsSheetState(input: StepsSheetInput) {
     var steps: List<StepsSheetStep> by mutableStateOf(input.steps)
         private set
 
-    /** The pre-alert option as edited so far. */
+    /** The pre-alert option (*Wie Einstellung* / *Aus* / 5–30 s) as edited so far. */
     var preAlert: PreAlertChoice by mutableStateOf(input.preAlert)
-        private set
 
-    /** Counts *Im Rezept speichern* taps; each one shows the confirmation snackbar. */
-    var saveConfirmations: Int by mutableIntStateOf(0)
+    /** *Im Rezept speichern* was tapped and its confirmation has not been shown yet (a one-shot event). */
+    var confirmationPending: Boolean by mutableStateOf(false)
         private set
 
     /** Done, running and skipped steps are read-only (SCR-31). */
@@ -143,8 +141,9 @@ class StepsSheetState(input: StepsSheetInput) {
         steps = steps + StepsSheetStep(added.kind, added.plannedSeconds, added.tempC, StepStatus.PENDING)
     }
 
-    fun selectPreAlert(choice: PreAlertChoice) {
-        preAlert = choice
+    /** The confirmation of the last save is on screen; a reopened sheet does not show it again. */
+    fun confirmationShown() {
+        confirmationPending = false
     }
 
     /** *Fertig*: the whole plan and the pre-alert option for the engine's `editSteps` (04 §3.2). */
@@ -152,7 +151,7 @@ class StepsSheetState(input: StepsSheetInput) {
 
     /** *Im Rezept speichern*: the request, and the confirmation snackbar. */
     fun saveRequest(): SaveToRecipeRequest {
-        saveConfirmations++
+        confirmationPending = true
         return SaveToRecipeRequest(steps.map { it.planned }, preAlert)
     }
 
@@ -226,8 +225,8 @@ private fun nextMultiple(value: Int, unit: Int): Int = Math.floorDiv(value, unit
 
 private fun previousMultiple(value: Int, unit: Int): Int = Math.floorDiv(value - 1, unit) * unit
 
-// Saver encoding: [hasRecipe, baseTempC?, preAlert, (kind, seconds, tempC?, status)*]. The snackbar
-// counter is not kept, so a configuration change never shows the confirmation again.
+// Saver encoding: [hasRecipe, baseTempC?, preAlert, (kind, seconds, tempC?, status)*]. A pending
+// confirmation is not kept, so a configuration change never shows it again.
 private const val INHERIT_CODE = -1
 private const val HEADER_SIZE = 3
 private const val STEP_SIZE = 4

@@ -1,5 +1,10 @@
 package com.umamit.feature.brew.steps
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -11,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
@@ -56,6 +62,12 @@ class StepsSheetTest {
     }
 
     private fun clickText(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
+
+    /** Opens the pre-alert menu the way TalkBack does: through the click action, not a touch. */
+    private fun openPreAlert(spoken: String) = compose.onNodeWithContentDescription("Vorwarnung: $spoken. Ändern")
+        .performScrollTo()
+        .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        .performSemanticsAction(SemanticsActions.OnClick)
 
     /** The action buttons stay below the scrolling plan. */
     private fun clickButton(text: String) = compose.onNodeWithText(text).performClick()
@@ -220,7 +232,7 @@ class StepsSheetTest {
     fun `the pre-alert selector offers Wie Einstellung, Aus and 5 to 30 s`() {
         show(listOf(pending()))
 
-        click("Vorwarnung: Wie Einstellung. Ändern")
+        openPreAlert("Wie Einstellung")
 
         val labels = listOf("Aus", "5 s", "10 s", "15 s", "20 s", "25 s", "30 s")
         labels.forEach { compose.onNodeWithText(it).assertIsDisplayed() }
@@ -238,10 +250,20 @@ class StepsSheetTest {
     }
 
     @Test
+    fun `a new step scrolls into view`() {
+        show((1..12).map { pending(seconds = 30 + it * 5) })
+
+        clickText("Aufguss hinzufügen")
+
+        compose.onNodeWithContentDescription("Ziehzeit verlängern, Schritt 13").assertIsDisplayed()
+        compose.onNodeWithText("Vorwarnung").assertIsDisplayed()
+    }
+
+    @Test
     fun `the selected pre-alert goes into the request`() {
         show(listOf(pending()), preAlert = PreAlertChoice.Seconds(10))
 
-        click("Vorwarnung: 10 Sekunden vorher. Ändern")
+        openPreAlert("10 Sekunden vorher")
         compose.onNodeWithText("Aus").performClick()
 
         compose.onNodeWithContentDescription("Vorwarnung: Aus. Ändern").assertExists()
@@ -259,7 +281,7 @@ class StepsSheetTest {
         click("Temperatur senken, Schritt 2")
         click("Löschen, Schritt 3")
         clickText("Aufguss hinzufügen")
-        click("Vorwarnung: Wie Einstellung. Ändern")
+        openPreAlert("Wie Einstellung")
         compose.onNodeWithText("15 s").performClick()
 
         assertThat(done()).isEqualTo(

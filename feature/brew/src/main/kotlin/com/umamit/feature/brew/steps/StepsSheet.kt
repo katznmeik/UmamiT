@@ -1,49 +1,35 @@
 package com.umamit.feature.brew.steps
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -52,15 +38,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -68,12 +54,12 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.dismiss
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -94,17 +80,25 @@ val PreAlertOptions: List<PreAlertChoice> =
     listOf(PreAlertChoice.Inherit, PreAlertChoice.Off) + (5..30 step 5).map { PreAlertChoice.Seconds(it) }
 
 /**
- * The Schritte-Sheet (SCR-31) as a modal bottom sheet over the host screen;
- * place it last in a full-size box. While [visible] it slides up from the
- * bottom edge with the critically damped `sheet` spring of 03 §3.6 (snap
- * under reduce motion) over a fading scrim, and it follows a downward drag.
+ * The Schritte-Sheet (SCR-31) as Material 3's modal bottom sheet. It runs in
+ * its own window, so TalkBack and keyboard focus stay inside it, and it brings
+ * predictive back, drag and fling to dismiss and nested scrolling of the
+ * step list. It opens fully expanded with Material's sheet motion (calm, no
+ * overshoot, D-051); under reduce motion it opens expanded and closes without
+ * the slide.
  *
  * *Fertig* emits [onDone] with the engine's `editSteps` request; the host
- * applies it and hides the sheet. *Im Rezept speichern* emits
+ * applies it and sets [visible] to false. *Im Rezept speichern* emits
  * [onSaveToRecipe] and shows a confirmation. A drag down, the scrim, back or
- * the handle call [onDismissRequest]: the host hides the sheet, and nothing
- * is applied. The sheet never calls the engine or the database itself.
+ * the handle call [onDismissRequest]: the host sets [visible] to false, and
+ * nothing is applied. The sheet never calls the engine or the database itself.
+ *
+ * **Alerts first (CLAUDE.md rule 8):** the sheet must never cover the alert.
+ * When the timer enters ALERTING, the host sets [alerting] to true (and
+ * [visible] to false, dropping the edits): the sheet is removed in the same
+ * frame, without any animation, and stays hidden while [alerting] is true.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StepsSheet(
     visible: Boolean,
@@ -113,115 +107,69 @@ fun StepsSheet(
     onSaveToRecipe: (SaveToRecipeRequest) -> Unit,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    alerting: Boolean = false,
 ) {
-    val motion = UmamiTheme.motion
-    BackHandler(enabled = visible, onBack = onDismissRequest)
-    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val maxSheetHeight = maxHeight * MAX_HEIGHT_FRACTION
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(motion.fade()),
-            exit = fadeOut(motion.exit()),
-        ) {
-            val closeLabel = stringResource(R.string.brew_steps_close)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
-                    .clickable(
-                        interactionSource = null,
-                        indication = null,
-                        onClickLabel = closeLabel,
-                        onClick = onDismissRequest,
-                    )
-                    .clearAndSetSemantics {},
-            )
-        }
-        AnimatedVisibility(
-            visible = visible,
-            modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(motion.sheet()) { it },
-            exit = slideOutVertically(motion.sheet()) { it },
-        ) {
-            SheetSurface(
-                maxHeight = maxSheetHeight,
-                onDismissRequest = onDismissRequest,
-            ) {
-                StepsSheetContent(state = state, onDone = onDone, onSaveToRecipe = onSaveToRecipe)
+    val reduceMotion = UmamiTheme.reduceMotion
+    val sheetState = rememberStepsSheetModalState(reduceMotion)
+    // Whether the sheet's window was shown and has not finished its hide animation yet.
+    var shown by remember { mutableStateOf(visible) }
+    LaunchedEffect(visible, reduceMotion) {
+        when {
+            visible && shown -> sheetState.show()
+
+            // reopened during the hide animation
+            visible -> shown = true
+
+            shown -> {
+                if (!reduceMotion) sheetState.hide()
+                shown = false
             }
+        }
+    }
+    // Alerting and reduce motion decide in this composition, without waiting for an effect.
+    val windowShown = !alerting && (visible || (shown && !reduceMotion))
+    if (windowShown) {
+        ModalBottomSheet(
+            onDismissRequest = onDismissRequest,
+            modifier = modifier,
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            StepsSheetContent(state = state, onDone = onDone, onSaveToRecipe = onSaveToRecipe)
         }
     }
 }
 
-/** The sheet's surface: drag handle, top corners, drag-to-dismiss, navigation bar inset. */
+/**
+ * The sheet state: always fully expanded (no half-open stop). Under reduce
+ * motion it starts expanded, so the sheet appears without the slide.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SheetSurface(maxHeight: Dp, onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
-    val motion = UmamiTheme.motion
-    val scope = rememberCoroutineScope()
-    val dragOffset = remember { Animatable(0f) }
-    var sheetHeight by remember { mutableIntStateOf(0) }
-    val title = stringResource(R.string.brew_steps_title)
-    val closeLabel = stringResource(R.string.brew_steps_close)
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = maxHeight)
-            .onSizeChanged { sheetHeight = it.height }
-            .graphicsLayer { translationY = dragOffset.value }
-            .draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { delta ->
-                    scope.launch { dragOffset.snapTo((dragOffset.value + delta).coerceAtLeast(0f)) }
-                },
-                onDragStopped = { velocity ->
-                    if (dragOffset.value > sheetHeight * DISMISS_FRACTION || velocity > DISMISS_VELOCITY) {
-                        onDismissRequest()
-                    } else {
-                        dragOffset.animateTo(0f, motion.sheet())
-                    }
-                },
-            )
-            .semantics {
-                paneTitle = title
-                dismiss(label = closeLabel) {
-                    onDismissRequest()
-                    true
-                }
-            },
-        shape = SheetShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+private fun rememberStepsSheetModalState(reduceMotion: Boolean): SheetState {
+    val density = LocalDensity.current
+    return rememberSaveable(
+        reduceMotion,
+        saver = SheetState.Saver(
+            skipPartiallyExpanded = true,
+            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
+            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
+            confirmValueChange = { true },
+            skipHiddenState = false,
+        ),
     ) {
-        Column(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(UmamiSpacing.Large)
-                    .clickable(onClickLabel = closeLabel, role = Role.Button, onClick = onDismissRequest)
-                    .semantics { contentDescription = closeLabel },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 32.dp, height = 4.dp)
-                        .background(
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HANDLE_ALPHA),
-                            UmamiShape.Pill,
-                        ),
-                )
-            }
-            content()
-        }
+        SheetState(
+            skipPartiallyExpanded = true,
+            positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
+            velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
+            initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
+        )
     }
 }
 
-private val SheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-private const val MAX_HEIGHT_FRACTION = 0.9f
-private const val SCRIM_ALPHA = 0.32f
-private const val HANDLE_ALPHA = 0.4f
-
-/** A drag past a third of the sheet, or a downward fling, closes it. */
-private const val DISMISS_FRACTION = 1f / 3f
-private const val DISMISS_VELOCITY = 1_500f
+// Material's own defaults for modal sheets (BottomSheetDefaults is internal for these).
+private val PositionalThreshold = 56.dp
+private val VelocityThreshold = 125.dp
 
 /**
  * The content of the Schritte-Sheet: the plan, *Aufguss hinzufügen*, the
@@ -238,20 +186,30 @@ fun StepsSheetContent(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val savedMessage = stringResource(R.string.brew_steps_saved_to_recipe)
-    LaunchedEffect(state.saveConfirmations) {
-        if (state.saveConfirmations > 0) snackbarHostState.showSnackbar(savedMessage)
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(state.confirmationPending) {
+        // A one-shot event: consumed as it shows, so a reopened sheet never replays it.
+        if (state.confirmationPending) {
+            state.confirmationShown()
+            scope.launch { snackbarHostState.showSnackbar(savedMessage) }
+        }
     }
-    Box(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = UmamiSpacing.Medium)) {
-            Text(
-                text = stringResource(R.string.brew_steps_title),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-            )
+    val scrollState = rememberScrollState()
+    val reduceMotion = UmamiTheme.reduceMotion
+    val motion = UmamiTheme.motion
+    Column(modifier = modifier.fillMaxWidth().padding(bottom = UmamiSpacing.Medium)) {
+        Text(
+            text = stringResource(R.string.brew_steps_title),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier
+                .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall)
+                .semantics { heading() },
+        )
+        // The snackbar overlays the end of the list, never the buttons below it.
+        Box(modifier = Modifier.weight(1f, fill = false)) {
             Column(
                 modifier = Modifier
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = UmamiSpacing.SideMargin),
             ) {
                 state.steps.forEachIndexed { index, _ ->
@@ -261,37 +219,53 @@ fun StepsSheetContent(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
-                TextButton(onClick = state::addStep, modifier = Modifier.padding(vertical = UmamiSpacing.XXSmall)) {
+                TextButton(
+                    onClick = {
+                        state.addStep()
+                        // Show the new step, which may land below the fold.
+                        scope.launch {
+                            scrollState.scrollToEnd(reduceMotion, motion.standard())
+                        }
+                    },
+                    modifier = Modifier.padding(vertical = UmamiSpacing.XXSmall),
+                ) {
                     Icon(painterResource(UmamiIcons.Add), contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(UmamiSpacing.XSmall))
                     Text(stringResource(R.string.brew_steps_add), style = MaterialTheme.typography.labelLarge)
                 }
-                PreAlertRow(selected = state.preAlert, onSelect = state::selectPreAlert)
+                PreAlertRow(selected = state.preAlert, onSelect = { state.preAlert = it })
             }
-            Column(
-                modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin).padding(top = UmamiSpacing.Small),
-                verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
-            ) {
-                if (state.hasRecipe) {
-                    OutlinedButton(
-                        onClick = { onSaveToRecipe(state.saveRequest()) },
-                        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget),
-                        shape = UmamiShape.Pill,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                        border = BorderStroke(UmamiSpacing.Hairline, MaterialTheme.colorScheme.outline),
-                    ) {
-                        Text(stringResource(R.string.brew_steps_save_to_recipe), textAlign = TextAlign.Center)
-                    }
-                }
-                PillButton(
-                    text = stringResource(R.string.brew_steps_done),
-                    onClick = { onDone(state.editRequest()) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
         }
-        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        Column(
+            modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin).padding(top = UmamiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            if (state.hasRecipe) {
+                OutlinedButton(
+                    onClick = { onSaveToRecipe(state.saveRequest()) },
+                    modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget),
+                    shape = UmamiShape.Pill,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                    border = BorderStroke(UmamiSpacing.Hairline, MaterialTheme.colorScheme.outline),
+                ) {
+                    Text(stringResource(R.string.brew_steps_save_to_recipe), textAlign = TextAlign.Center)
+                }
+            }
+            PillButton(
+                text = stringResource(R.string.brew_steps_done),
+                onClick = { onDone(state.editRequest()) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
+}
+
+/** Scrolls to the end once the new content is measured; instant under reduce motion. */
+private suspend fun ScrollState.scrollToEnd(reduceMotion: Boolean, spec: AnimationSpec<Float>) {
+    // The tap changes the state; the new row is composed and measured in the next frame.
+    repeat(2) { withFrameNanos {} }
+    if (reduceMotion) scrollTo(maxValue) else animateScrollTo(maxValue, spec)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -476,7 +450,15 @@ private fun PreAlertRow(selected: PreAlertChoice, onSelect: (PreAlertChoice) -> 
         Box {
             TextButton(
                 onClick = { expanded = true },
-                modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+                // One TalkBack element with the spoken value, a button role and a click action.
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = description
+                    role = Role.Button
+                    onClick {
+                        expanded = true
+                        true
+                    }
+                },
             ) {
                 Text(selectedLabel, style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.width(UmamiSpacing.XXSmall))
