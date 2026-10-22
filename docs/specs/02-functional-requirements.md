@@ -537,14 +537,22 @@ PRF-07 applies — *Zeiten ins Rezept übernehmen*. Ignoring it is fine.
 **TMR-14 — Long waits and auto-finish** `Must`
 A session may wait in READY/PAUSED/FINISHED for hours (e.g. a second mug
 later at work).
-- After **30 min** without interaction the timer service stops and the Live
+- The idle time counts from the last interaction or from the moment the
+  session started waiting, whichever is later (a step ended by the overtime
+  timeout starts a new idle period; D-053).
+- After **30 min** idle the timer service stops and the Live
   Update becomes a quiet, regular ongoing notification („Hisui · Aufguss 2
   bereit" with *Start*).
-- At **midnight** — the first local midnight at least 6 h after the last
-  interaction — or when another session is started (TMR-21), a
-  waiting session is finished and logged with the notification „Sitzung
-  gespeichert"; a session without any completed non-rinse step is discarded
-  silently instead.
+- At **midnight** — the first local midnight in the session's time zone at
+  least 6 h after it became idle — a waiting session is finished and logged
+  (marked auto-finished) with the notification „Sitzung gespeichert"; a
+  session without any completed non-rinse step is discarded silently
+  instead.
+- When another session is started with *Beenden & neu starten* (TMR-21), the
+  active session — waiting or not — is finished as by *Sitzung beenden* and
+  logged with the notification „Sitzung gespeichert" instead of the saved
+  sheet; without a completed non-rinse step it is discarded (04 §3.2,
+  D-054).
 
 **TMR-15 — Background & lock screen** `Must`
 The timer continues when leaving the app or locking the phone.
@@ -579,8 +587,9 @@ custom; same alert, pre-alert (global setting) and Live Update; not logged.
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
 step so the kyusu can be picked up.
-- N comes from the recipe's pre-alert override, else the global setting
-  (SET-10): Aus or 5–30 s in 5 s steps; default **10 s**.
+- N comes from the session's own choice in the Schritte-Sheet (SCR-31), else
+  the recipe's pre-alert override, else the global setting (SET-10): Aus or
+  5–30 s in 5 s steps; default **10 s**.
 - Skipped if the step is shorter than N + 5 s, for RINSE steps shorter
   than 15 s, and for long steps (≥ 10 min, TMR-18).
 - The tick follows the ringer mode like the alert (vibrate mode → short

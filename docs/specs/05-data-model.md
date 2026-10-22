@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -157,7 +157,7 @@ Table `brew_session`
 | `rating` | REAL | | 0.5–5.0 step 0.5 |
 | `taste_umami`, `taste_sweetness`, `taste_bitterness`, `taste_astringency`, `taste_body`, `taste_aroma` | INTEGER | | 0–5 each |
 | `notes` | TEXT | | ≤ 5000 |
-| `auto_finished` | INTEGER | ✓ | |
+| `auto_finished` | INTEGER | ✓ | 1 when the midnight timeout completed the session (TMR-14; `CompleteSession.autoFinished`, D-054); 0 when the user finished it, also by *Beenden & neu starten* (TMR-21). |
 | `times_offered` | INTEGER | ✓ | boolean: PRF-07 prompt was applicable |
 | `times_applied` | INTEGER | ✓ | boolean: user accepted *Zeiten ins Rezept übernehmen*; the offer is not shown again |
 
@@ -451,16 +451,22 @@ Time rounding for derived recipes: nearest 5 s (half up).
   `umamit-install-marker` in `Context.noBackupFilesDir`, which no backup
   carries. When Room creates `umamit.db` (a fresh install, or cleared app
   data), the marker is written. When Room opens a database and the marker is
-  missing, the database came from a backup: `active_brew` is cleared, then the
-  marker is written, so this happens exactly once. It runs in Room's open
-  callback, before any query is served, so nothing reads the restored row.
+  missing, the database came from a backup: in one transaction
+  `active_brew` is cleared and every `photo` row whose `photos/<id>.jpg` is
+  missing is deleted, with its `cover_photo_id`s cleared (`photos/` is never
+  backed up); then the marker is written, so this happens exactly once
+  (D-054). It runs in Room's open callback, before any query is served, so
+  nothing reads the restored row or a dangling cover. A row whose file exists
+  stays, so a false positive (a marker that could not be written) loses no
+  photo.
 - **After a device restore:** `active_brew` is cleared as above (no session
   is resumed, 04 §11 E11). A session that was in progress keeps its
   `brew_session` row with status `IN_PROGRESS`; it is not in the journal
-  (M1-09 decides how such rows are finished). The orphan sweeper removes
-  `photo` rows whose files are missing and clears dangling
-  `cover_photo_id`s; after the next catalog refresh, catalog teas without a
-  cover get the catalog photo copied again (via `catalog_key`).
+  (M1-09 decides how such rows are finished). The photo rows without a file
+  and their covers are gone (restore detection above), so after the next
+  catalog refresh (CAT-15) catalog teas without a cover, the seed teas
+  included, get the catalog photo copied again (via `catalog_key`). The M5
+  orphan sweeper (06 §5.4) removes leftover files and `*.tmp` files.
 
 ## 9. Migrations
 
@@ -468,8 +474,18 @@ Room `exportSchema = true` with schemas committed; every version change ships
 a migration and a `MigrationTestHelper` test; no destructive fallback. The
 build rewrites the schema JSON, so CI fails when the committed copy differs
 from it after the build (`git diff --exit-code core/database/schemas`) or a
-schema file is not committed. Until the first release, version 1 is changed
-in place: no release has used it yet (D-052). The
+schema file is not committed.
+
+**Schema freeze (D-054).** Version 1 was changed in place while no APK had
+used it (D-052). From the first APK that can reach the PO's phone,
+`v0.1.0-rc.1`, on, every schema change bumps the version and ships a tested
+migration; a release candidate counts like a release, because Room refuses to
+open a database whose schema changed under the same version and the app would
+not start until its data is cleared. CI enforces it
+(`scripts/check-frozen-schemas.sh`): every schema JSON that a `v*` tag
+contains must stay byte-identical. The tags, tea descriptors and FTS tables of
+§3 (`tag`, `tea_tag`, `custom_descriptor`, `session_descriptor`, `tea_fts`,
+`session_fts`) arrive with M3 and M4 through such migrations. The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.
 
