@@ -32,6 +32,13 @@ interface TimerAlarmPort {
      * absent is cancelled. [DueTimes.NONE] cancels all.
      */
     fun reconcile(due: DueTimes)
+
+    /**
+     * Sets the alarm of [kind] again at [atMs] on its clock and leaves the other
+     * kinds as they are: the turn of that alarm could not read the persisted
+     * timer, so the alarm must come again (04 §7.2, D-057).
+     */
+    fun retry(kind: TimerAlarmKind, atMs: Long)
 }
 
 /** `StartForeground` / `StopForeground`: the `specialUse` foreground service (04 §6.3, D-053). */

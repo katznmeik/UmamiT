@@ -46,6 +46,8 @@ class AndroidTimerAlarms @Inject constructor(
         }
     }
 
+    override fun retry(kind: TimerAlarmKind, atMs: Long) = schedule(kind, atMs)
+
     /**
      * Sets the alarm of [kind] at [atMs] on its clock, replacing the earlier one
      * (same request code and intent).

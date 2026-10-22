@@ -21,6 +21,7 @@ import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.After
@@ -75,6 +76,33 @@ class BrewTimerServiceTest {
         assertThat(service.lastForegroundNotification.channelId).isEqualTo(TimerNotifications.CHANNEL_BREW_TIMER)
         assertThat(service.lastForegroundNotification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
         assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isTrue()
+    }
+
+    @Test
+    fun `the service creates the timer channels before its first foreground notification`() {
+        port.startForeground(running(remainingMs = 60_000), fullScreen = false)
+        val command = startedCommand()
+        // A fresh install has no channels; a foreground notification on a missing channel crashes the app.
+        assertThat(notificationManager.notificationChannels).isEmpty()
+
+        run(command)
+
+        assertTimerChannels()
+    }
+
+    @Test
+    fun `a refused start posts its notification into the timer channels`() {
+        val refusing = portOn(
+            object : ContextWrapper(app) {
+                override fun startForegroundService(service: Intent): ComponentName =
+                    throw ForegroundServiceStartNotAllowedException("app is in the background (test)")
+            },
+        )
+
+        refusing.startForeground(alerting(), fullScreen = true)
+
+        assertTimerChannels()
+        assertThat(shadowOf(notificationManager).getNotification(TimerNotifications.ID_ALERT)).isNotNull()
     }
 
     @Test
@@ -166,6 +194,21 @@ class BrewTimerServiceTest {
     }
 
     @Test
+    fun `the deferred stop names its start, so a start sent meanwhile keeps the service`() {
+        port.startForeground(running(remainingMs = 60_000), fullScreen = false)
+        val pending = startedCommand()
+        port.stopForeground()
+
+        val service = Robolectric.buildService(BrewTimerService::class.java, pending).create().startCommand(0, 7)
+
+        // stopSelf() would stop unconditionally: a start queued meanwhile would crash the app
+        // (startForegroundService without startForeground) or be dropped. With its start ID,
+        // Android ignores the stop when a newer start exists.
+        assertThat(shadowOf(service.get()).stopSelfResultId).isEqualTo(7)
+        assertThat(shadowOf(service.get()).isForegroundStopped).isTrue()
+    }
+
+    @Test
     fun `a refused start shows the alert without the service and is logged`() {
         val refusing = portOn(
             object : ContextWrapper(app) {
@@ -183,6 +226,42 @@ class BrewTimerServiceTest {
         val refusal = diagnostics.entriesOf<TimerDiagnostic.ServiceStartRefused>().single()
         assertThat(refusal.notificationId).isEqualTo(TimerNotifications.ID_ALERT)
         assertThat(refusal.error).isInstanceOf(ForegroundServiceStartNotAllowedException::class.java)
+    }
+
+    @Test
+    fun `a refused start is sent again only once, and a newer command drops it`() {
+        val refusing = portOn(
+            object : ContextWrapper(app) {
+                override fun startForegroundService(service: Intent): ComponentName =
+                    throw ForegroundServiceStartNotAllowedException("app is in the background (test)")
+            },
+        )
+        refusing.startForeground(alerting(), fullScreen = true)
+
+        resendRefusedStart(app)
+        assertThat(BrewTimerService.notificationIdOf(startedCommand())).isEqualTo(TimerNotifications.ID_ALERT)
+        resendRefusedStart(app)
+        assertThat(shadowOf(app).nextStartedService).isNull()
+
+        refusing.startForeground(alerting(), fullScreen = true)
+        port.startForeground(ready(), fullScreen = false)
+        startedCommand()
+        resendRefusedStart(app)
+        assertThat(shadowOf(app).nextStartedService).isNull()
+    }
+
+    @Test
+    fun `the cpu stays awake from the command until the service holds its own wake lock`() {
+        port.startForeground(running(remainingMs = 60_000), fullScreen = false)
+        // The alarm's wake lock ends with the receiver; the service starts later on the main thread.
+        val handover = ShadowPowerManager.getLatestWakeLock()
+        assertThat(handover.isHeld).isTrue()
+
+        run(startedCommand())
+
+        assertThat(handover.isHeld).isFalse()
+        assertThat(ShadowPowerManager.getLatestWakeLock()).isNotSameInstanceAs(handover)
+        assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isTrue()
     }
 
     @Test
@@ -250,6 +329,14 @@ class BrewTimerServiceTest {
         notifications = TimerStateNotifications(app),
     )
 
+    /** `brew_timer` (DEFAULT, for promotion) and `steep_finished` (HIGH, for the full-screen alert), 04 §8.1. */
+    private fun assertTimerChannels() {
+        assertThat(notificationManager.getNotificationChannel(TimerNotifications.CHANNEL_BREW_TIMER)?.importance)
+            .isEqualTo(NotificationManager.IMPORTANCE_DEFAULT)
+        assertThat(notificationManager.getNotificationChannel(TimerNotifications.CHANNEL_STEEP_FINISHED)?.importance)
+            .isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+    }
+
     private fun startedCommand(): Intent = checkNotNull(shadowOf(app).nextStartedService) { "no command sent" }
 
     private fun run(command: Intent): ServiceController<BrewTimerService> =
@@ -285,5 +372,6 @@ class BrewTimerServiceTest {
         kettleTempC = 60,
         demoted = false,
         finishWouldDiscard = false,
+        preAlert = PreAlertChoice.Inherit,
     )
 }

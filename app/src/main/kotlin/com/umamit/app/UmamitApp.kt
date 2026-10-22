@@ -69,12 +69,14 @@ private const val SLIDE_FRACTION = 12
  * navigation controller per tab, so every tab keeps its own back stack.
  *
  * @param layoutType forces the bar or the rail; `null` follows the window size.
+ * @param onOpenTimer a tap on the active brew bar opens the timer (GEN-06).
  */
 @Composable
 fun UmamitApp(
     activeBrewSource: ActiveBrewSource,
     modifier: Modifier = Modifier,
     layoutType: NavigationSuiteType? = null,
+    onOpenTimer: () -> Unit = {},
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
@@ -150,12 +152,12 @@ fun UmamitApp(
                     )
                 }
             }
-            // Slot above the bar; the timer route (M1-09) will open on click. Without a bar to
-            // consume them, the rail layout leaves the system bar insets to the brew bar.
+            // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
+            // layout leaves the system bar insets to the brew bar.
             ActiveBrewBar(
                 brew = activeBrew,
                 progress = activeBrewSource.progress,
-                onClick = {},
+                onClick = onOpenTimer,
                 windowInsets = if (!rail) {
                     WindowInsets(0)
                 } else {

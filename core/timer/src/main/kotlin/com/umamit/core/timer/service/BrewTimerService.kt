@@ -35,6 +35,13 @@ import com.umamit.core.timer.TimerNotifications
 class BrewTimerService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        // A foreground notification on a channel that does not exist crashes the app (fresh
+        // install, cleared data); creating the channels is idempotent.
+        TimerNotifications.ensureChannels(this)
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -43,10 +50,16 @@ class BrewTimerService : Service() {
         if (notification != null && id != 0) {
             show(id, notification, foregroundRequired = isForegroundRequired(intent))
             holdWakeLock(wakeLockMsOf(intent))
+            ForegroundServiceState.releaseHandover()
         } else {
             Log.w(TAG, "Command without a notification: ${intent?.action}")
         }
-        if (ForegroundServiceState.commandHandled()) stopInForeground()
+        // The stop names this start: Android ignores it when a newer start is already queued
+        // (stopSelf() would stop anyway and crash a pending startForegroundService).
+        if (ForegroundServiceState.commandHandled() && stopSelfResult(startId)) {
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            ForegroundServiceState.foregroundId = 0
+        }
         return START_NOT_STICKY
     }
 
@@ -77,12 +90,6 @@ class BrewTimerService : Service() {
             TimerNotifications.post(this, id, notification)
             ForegroundServiceState.report(ServiceReport.Refused(id, e))
         }
-    }
-
-    private fun stopInForeground() {
-        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        ForegroundServiceState.foregroundId = 0
-        stopSelf()
     }
 
     /** Holds the partial wake lock for [timeoutMs] from now (04 §6.3), or releases it for 0. */
@@ -130,6 +137,10 @@ class BrewTimerService : Service() {
             .putExtra(EXTRA_FOREGROUND_REQUIRED, foregroundRequired)
 
         fun notificationIdOf(command: Intent): Int = command.getIntExtra(EXTRA_ID, 0)
+
+        /** [command] with [notification] in place of its own. */
+        fun withNotification(command: Intent, notification: Notification): Intent =
+            command.putExtra(EXTRA_NOTIFICATION, notification)
 
         fun notificationOf(command: Intent): Notification? =
             command.getParcelableExtra(EXTRA_NOTIFICATION, Notification::class.java)

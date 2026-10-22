@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.testing.AlarmRetried
 import com.umamit.core.testing.AlarmsReconciled
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.RejectionReason
@@ -144,20 +145,39 @@ class ProcessRestartTest {
     }
 
     @Test
-    fun `a failed read is logged and recovery is tried again in the next turn`() = runTest {
-        before.controller.startSession(brewStart(infusion(60)))
+    fun `a failed read is retried in the same turn, so the deadline alarm still alerts`() = runTest {
+        before.controller.startSession(brewStart(infusion(60), recipePreAlertSeconds = 0))
         before.controller.send(TimerEvent.Start)
 
         val after = before.processRestarted()
-        after.store.failNextReads(1)
+        after.store.failNextReads(2)
         after.clock.advanceBy(60_000)
-        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+
+        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryFailed>()).hasSize(2)
+        assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(after.alert.started).hasSize(1)
+    }
+
+    @Test
+    fun `when no read of the turn succeeds, the only alarm comes again and the alert still fires`() = runTest {
+        // No pre-alert: the deadline alarm is the only alarm of the killed step.
+        before.controller.startSession(brewStart(infusion(60), recipePreAlertSeconds = 0))
+        before.controller.send(TimerEvent.Start)
+
+        val after = before.processRestarted()
+        after.store.failNextReads(3)
+        after.clock.advanceBy(60_000)
+        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
 
         assertThat(after.ui).isEqualTo(TimerUiState.Idle)
-        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryFailed>()).hasSize(1)
         assertThat(after.store.storedPhase()).isEqualTo(TimerPhase.RUNNING)
+        // The alarm is set again a few seconds out, and the process's own wake-up retries too.
+        assertThat(after.alarms.retries)
+            .containsExactly(AlarmRetried(TimerAlarmKind.DEADLINE, after.clock.elapsed + 5_000))
+        assertThat(after.wakeUp.dueAtElapsedMs).isNotNull()
 
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.advanceSeconds(5)
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(after.alert.started).hasSize(1)

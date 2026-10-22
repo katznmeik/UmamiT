@@ -13,9 +13,9 @@ import com.umamit.core.timer.alert.ControllerAlertPort
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.CoroutineTimerWakeUp
-import com.umamit.core.timer.controller.TimerAlarmSink
-import com.umamit.core.timer.controller.TimerAlarmSinkHost
 import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.controller.TimerHost
+import com.umamit.core.timer.controller.TimerInputs
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.diagnostics.LogTimerDiagnostics
 import com.umamit.core.timer.service.BrewTimerServicePort
@@ -34,10 +34,10 @@ import javax.inject.Provider
  */
 class TimerTestApplication :
     Application(),
-    TimerAlarmSinkHost {
+    TimerHost {
     val controller: BrewSessionController by lazy { buildController() }
 
-    override val timerAlarmSink: TimerAlarmSink get() = controller
+    override val timerInputs: TimerInputs get() = controller
 
     private fun buildController(): BrewSessionController {
         val db = umamiDatabaseBuilder(this).build()

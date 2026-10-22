@@ -24,7 +24,7 @@ import dagger.hilt.components.SingletonComponent
  * settings screen can inject it already.
  *
  * The alarm receiver reaches the controller through the app
- * ([TimerAlarmSinkHost], D-057).
+ * ([TimerHost], D-057).
  */
 @Module
 @InstallIn(SingletonComponent::class)

@@ -83,6 +83,18 @@ internal class TransitionEffects(
             ?.let { record(TimerDiagnostic.EffectFailed(now, TimerEffect.ScheduleAlarms(DueTimes.NONE), it)) }
     }
 
+    /**
+     * Sets the alarm of [kind] again [RETRY_DELAY_MS] after [now]: its turn could not read the
+     * persisted timer, and it may have been the step's only alarm (04 §7.2, D-057).
+     */
+    fun retryAlarm(kind: TimerAlarmKind, now: ClockReading) {
+        val at = RETRY_DELAY_MS + when (kind.clock) {
+            AlarmClock.ELAPSED -> now.elapsedMs
+            AlarmClock.WALL -> now.wallMs
+        }
+        attempt { ports.alarms.retry(kind, at) }?.let { Log.e(TAG, "alarm $kind could not be set again", it) }
+    }
+
     /** Writes [entry] to the diagnostics log; a log that fails never stops the timer. */
     fun record(entry: TimerDiagnostic) {
         attempt { ports.diagnostics.record(entry) }?.let { Log.w(TAG, "diagnostics entry lost: $entry", it) }
@@ -154,6 +166,11 @@ internal class TransitionEffects(
 
             else -> error("not a side effect: $effect")
         }
+    }
+
+    companion object {
+        /** How soon a turn that could not read the persisted timer comes again (alarm and wake-up). */
+        const val RETRY_DELAY_MS = 5_000L
     }
 
     /**

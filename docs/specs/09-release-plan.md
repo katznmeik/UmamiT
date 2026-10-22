@@ -82,7 +82,7 @@ only.
 - [ ] Waiting 30 min in READY demotes the Live Update to a quiet notification; *Start* from it works. Next morning: the session left waiting the evening before is in the journal („Sitzung gespeichert").
 - [ ] *Nochmal brühen* tea → timer READY in one tap; *Start* = second tap.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
-- [ ] Screen dims ~10 s into a steep and brightens at the pre-alert.
+- [ ] Screen dims ~10 s into a steep and brightens at the pre-alert; at night with a low brightness setting, „dimming" never makes the screen brighter, also with adaptive brightness on (D-058).
 - [ ] Pre-alert tick 10 s before the end (global default) on the 1:00 Hisui infusion; none on the 0:10 infusions (shorter than 15 s).
 - [ ] Pre-alert override: in SCR-04 open the Schritte-Sheet, set *Vorwarnung* to 20 s → tick 20 s before the end of the first infusion.
 - [ ] Schritte-Sheet: change a step's time and temperature, add and delete a step; the timer uses the changes; *Weiterer Aufguss* in FINISHED opens an editable step.

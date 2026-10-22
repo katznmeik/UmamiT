@@ -4,6 +4,7 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.BrewTimerEngine
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerDisplay
@@ -59,6 +60,7 @@ sealed interface TimerUiState {
         val kettleTempC: Int?,
         val demoted: Boolean,
         val finishWouldDiscard: Boolean,
+        val preAlert: PreAlertChoice,
     ) : TimerUiState {
         /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051). */
         val alerting: Boolean get() = phase == TimerPhase.ALERTING
@@ -119,5 +121,6 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading): 
         kettleTempC = steps.getOrNull(stepIndex)?.tempC,
         demoted = state.session.demoted,
         finishWouldDiscard = BrewTimerEngine.finishWouldDiscard(state),
+        preAlert = PreAlertChoice.of(state.session.preAlert),
     )
 }
