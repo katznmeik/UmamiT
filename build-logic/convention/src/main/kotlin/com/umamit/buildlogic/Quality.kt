@@ -96,8 +96,8 @@ internal fun Project.configureJvmLint() {
 
 /**
  * Kover coverage for the pure modules (06 §7: ≥ 90 % line coverage in the
- * logic modules). Reports only for now; the verification rule is added with
- * the first real code (TODO(M1-08): `minBound(90)` for `core:timer-engine`).
+ * logic modules). A module adds its `koverVerify` rule with its first real
+ * code (`core:timer-engine`: `minBound(90)` in its build script).
  */
 internal fun Project.configureKover() {
     pluginManager.apply("org.jetbrains.kotlinx.kover")
