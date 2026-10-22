@@ -41,15 +41,15 @@ import kotlinx.coroutines.CompletableDeferred
  * and fake ports that share one [log], so the order of the controller's calls
  * across ports (and the store's persist) is observable.
  */
-class ControllerHarness {
-    val clock = FakeClock()
-    val log = TimerPortLog()
-    val settings = FakeSettingsRepository()
-
+class ControllerHarness(
+    val clock: FakeClock = FakeClock(),
+    val settings: FakeSettingsRepository = FakeSettingsRepository(),
     val db: UmamiDatabase = Room
         .inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), UmamiDatabase::class.java)
         .allowMainThreadQueries()
-        .build()
+        .build(),
+) {
+    val log = TimerPortLog()
     val sessions = RoomSessionRepository(db, settings, clock)
     val teas = RoomTeaRepository(db.teaDao(), clock)
     val stock = RoomStockRepository(db.inventoryDao(), clock)
@@ -107,6 +107,12 @@ class ControllerHarness {
         )
     }
 
+    /**
+     * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
+     * on the same database, settings and clocks. Close only one of the two harnesses.
+     */
+    fun processRestarted(): ControllerHarness = ControllerHarness(clock, settings, db)
+
     fun close() = db.close()
 
     companion object {
@@ -158,15 +164,31 @@ data class Persisted(val phase: TimerPhase?) : PortCall
  */
 class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPortLog) : ActiveBrewStore {
     private var failures = 0
+    private var readFailures = 0
     private var gate: Gate? = null
+
+    /** Changes what the next reads return, e.g. into a snapshot `restore` refuses; null reads unchanged. */
+    var readAs: ((TimerSnapshot?) -> TimerSnapshot?)? = null
 
     fun failNext(times: Int) {
         failures = times
     }
 
+    /** Makes the next [times] reads throw like a database that cannot be opened. */
+    fun failNextReads(times: Int) {
+        readFailures = times
+    }
+
     fun hold(): Gate = Gate().also { gate = it }
 
-    override suspend fun read(): TimerSnapshot? = real.read()
+    override suspend fun read(): TimerSnapshot? {
+        if (readFailures > 0) {
+            readFailures--
+            throw android.database.sqlite.SQLiteCantOpenDatabaseException("unable to open database file (test)")
+        }
+        val snapshot = real.read()
+        return readAs?.invoke(snapshot) ?: snapshot
+    }
 
     override suspend fun persist(snapshot: TimerSnapshot?) {
         gate?.let {

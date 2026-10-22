@@ -17,4 +17,13 @@
     <!-- Alert (04 §8.2, full-screen alert) -->
     <string name="timer_alert_title">Jetzt abgießen!</string>
     <string name="timer_alert_done">Abgegossen</string>
+    <string name="timer_alert_close">Schließen</string>
+
+    <!-- Timer notification of the real timer (#42; minimal until the content of 04 §8.2 in M1-11) -->
+    <string name="timer_quick_title">Schnelltimer</string>
+    <string name="timer_state_ready">Bereit</string>
+    <string name="timer_state_running">Zieht …</string>
+    <string name="timer_state_pre_alert">Gleich fertig …</string>
+    <string name="timer_state_paused">Pausiert</string>
+    <string name="timer_state_finished">Alle Aufgüsse fertig</string>
 </resources>

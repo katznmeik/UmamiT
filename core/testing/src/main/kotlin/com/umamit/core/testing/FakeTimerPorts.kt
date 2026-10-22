@@ -42,6 +42,9 @@ data class AlarmsReconciled(val due: DueTimes) : PortCall
 
 data class ServiceStarted(val phase: TimerPhase) : PortCall
 
+/** A `startForeground` of the [FakeTimerService]: the state's phase and whether its alert was full screen. */
+data class ForegroundStart(val phase: TimerPhase, val fullScreen: Boolean)
+
 data object ServiceStopped : PortCall
 
 data class NotificationShown(val phase: TimerPhase, val fullScreen: Boolean) : PortCall
@@ -67,20 +70,28 @@ class FakeTimerAlarms(private val log: TimerPortLog = TimerPortLog()) : TimerAla
     }
 }
 
-/** Fake [TimerServicePort]: [running] while started and not stopped; [foreground] is its notification's state. */
+/**
+ * Fake [TimerServicePort]: [running] while started and not stopped; [foreground] is its notification's state,
+ * [fullScreen] whether that notification's alert was full screen; [starts] every start in order.
+ */
 class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerServicePort {
     var running = false
         private set
     var foreground: TimerUiState.Active? = null
         private set
+    var fullScreen = false
+        private set
+    val starts = mutableListOf<ForegroundStart>()
 
     /** Makes every port call throw, like an adapter bug, to check that nothing after it is skipped. */
     var failing = false
 
-    override fun startForeground(state: TimerUiState.Active) {
+    override fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) {
         check(!failing) { "service start failed (test)" }
         running = true
         foreground = state
+        this.fullScreen = fullScreen
+        starts += ForegroundStart(state.phase, fullScreen)
         log.record(ServiceStarted(state.phase))
     }
 
@@ -88,6 +99,7 @@ class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerSe
         check(!failing) { "service stop failed (test)" }
         running = false
         foreground = null
+        fullScreen = false
         log.record(ServiceStopped)
     }
 }

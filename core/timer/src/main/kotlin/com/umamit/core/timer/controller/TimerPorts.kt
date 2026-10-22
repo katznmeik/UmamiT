@@ -39,11 +39,13 @@ interface TimerServicePort {
     /**
      * Ensures the service runs (idempotent), with the notification of [state]
      * as its foreground notification: the alert (ID 2) while alerting, else
-     * notification 1 (D-044). A start from the background may be refused; the
-     * adapter logs it and the regular notification stays until the next
-     * interaction or alarm (04 §6.3).
+     * notification 1 (D-044). The alert carries its full-screen intent only
+     * when [fullScreen]: the alert starts in the same transition, as for
+     * `UpdateNotification` (D-057). A start from the background may be
+     * refused; the adapter logs it and posts the notification without the
+     * service until the next interaction or alarm (04 §6.3).
      */
-    fun startForeground(state: TimerUiState.Active)
+    fun startForeground(state: TimerUiState.Active, fullScreen: Boolean)
 
     /** Stops the service if it runs and removes notifications 1 and 2, also when posted without it (04 §8). */
     fun stopForeground()

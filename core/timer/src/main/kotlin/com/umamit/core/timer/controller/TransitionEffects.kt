@@ -7,6 +7,7 @@ import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.timer.engine.BrewTimerEngine
+import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerState
 import com.umamit.core.timer.engine.TimerTransition
@@ -72,6 +73,16 @@ internal class TransitionEffects(
         return true
     }
 
+    /**
+     * The persisted state could not be restored (04 §7.2): its row is cleared and its alarms
+     * cancelled, so nothing runs a wrong timer; each step is logged if it fails.
+     */
+    suspend fun discardUnreadable(now: ClockReading) {
+        attempt { activeBrew.clear() }?.let { record(TimerDiagnostic.PersistFailed(now, retry = false, error = it)) }
+        attempt { ports.alarms.reconcile(DueTimes.NONE) }
+            ?.let { record(TimerDiagnostic.EffectFailed(now, TimerEffect.ScheduleAlarms(DueTimes.NONE), it)) }
+    }
+
     /** Writes [entry] to the diagnostics log; a log that fails never stops the timer. */
     fun record(entry: TimerDiagnostic) {
         attempt { ports.diagnostics.record(entry) }?.let { Log.w(TAG, "diagnostics entry lost: $entry", it) }
@@ -131,7 +142,7 @@ internal class TransitionEffects(
                 ports.alert.stopAlert()
             }
 
-            TimerEffect.StartForeground -> ports.service.startForeground(ui as TimerUiState.Active)
+            TimerEffect.StartForeground -> ports.service.startForeground(ui as TimerUiState.Active, fullScreen)
 
             TimerEffect.StopForeground -> ports.service.stopForeground()
 
