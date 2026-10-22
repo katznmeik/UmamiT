@@ -90,16 +90,9 @@ private fun replacePending(
             if (it is TimerState.Ready) it.copy(readySinceWallMs = now.wallMs) else it
         }
 
-        // The running step's pre-alert follows the new effective N, unless it already played.
         is TimerState.Running -> state.copy(
             session = session,
-            preAlertAtElapsedMs = preAlertAt(
-                session,
-                state.stepIndex,
-                state.deadlineElapsedMs,
-                state.preAlertPlayed,
-                now,
-            ),
+            preAlertAtElapsedMs = editedPreAlertAt(state, session, now),
         )
 
         is TimerState.Paused -> state.copy(session = session)
@@ -111,6 +104,23 @@ private fun replacePending(
         data = listOf(ReplacePendingSteps(sessionId, fromIndex, pending)),
         side = listOf(UpdateNotification),
     )
+}
+
+/**
+ * The running step's pre-alert after an edit to [session]: it follows the new
+ * effective N, unless it already played. An edit never consumes a pre-alert
+ * that is already due but whose `preAlertReached` is still queued (D-054): it
+ * stays due while the step still has a pre-alert, and `preAlertReached`
+ * decides (1-s rule). Only *Aus* or a step without a pre-alert removes it.
+ */
+private fun editedPreAlertAt(state: TimerState.Running, session: TimerSession, now: ClockReading): Long? {
+    val stillHasOne = session.preAlertLeadMs(state.stepIndex) != null
+    val dueAlready = isDue(state.preAlertAtElapsedMs, now)
+    return if (dueAlready && stillHasOne && !state.preAlertPlayed) {
+        state.preAlertAtElapsedMs
+    } else {
+        preAlertAt(session, state.stepIndex, state.deadlineElapsedMs, state.preAlertPlayed, now)
+    }
 }
 
 /** Ready for the first pending step of [session], or Finished when none is left. */

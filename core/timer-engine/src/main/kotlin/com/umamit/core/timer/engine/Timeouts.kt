@@ -25,7 +25,7 @@ internal fun isOvertimeTimedOut(deadlineElapsedMs: Long, now: ClockReading) =
  * flag, and the session waits for the next step. Not an interaction, and
  * silent: no alert, no saved sheet. The quick timer just ends.
  */
-internal fun overtimeTimedOut(state: TimerState.StepStarted, now: ClockReading): TimerTransition =
+internal fun overtimeTimedOut(state: TimerState.WithDeadline, now: ClockReading): TimerTransition =
     if (state.session.kind == SessionKind.Quick) {
         endQuickTimer(state)
     } else {

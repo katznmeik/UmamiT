@@ -31,7 +31,7 @@ class SessionEndTest {
 
         assertThat(driver.state).isEqualTo(TimerState.Idle)
         assertThat(effects).containsExactly(
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = false),
             Persist,
             NO_ALARMS,
             StopForeground,
@@ -47,7 +47,7 @@ class SessionEndTest {
         val effects = driver.send(TimerEvent.FinishSession)
 
         assertThat(driver.state).isEqualTo(TimerState.Idle)
-        assertThat(effects).contains(CompleteSession(SESSION_ID))
+        assertThat(effects).contains(CompleteSession(SESSION_ID, autoFinished = false))
     }
 
     @Test
@@ -71,7 +71,7 @@ class SessionEndTest {
         )
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, expectedRecord),
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = false),
             Persist,
             NO_ALARMS,
             StopForeground,
@@ -92,7 +92,7 @@ class SessionEndTest {
         val record = (effects.first() as RecordStep).record
         assertThat(record.actualSeconds).isEqualTo(20)
         assertThat(record.pausedSeconds).isEqualTo(30)
-        assertThat(effects).contains(CompleteSession(SESSION_ID))
+        assertThat(effects).contains(CompleteSession(SESSION_ID, autoFinished = false))
     }
 
     @Test
@@ -110,7 +110,7 @@ class SessionEndTest {
         assertThat(record.overtimeSeconds).isEqualTo(7)
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, record),
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = false),
             Persist,
             NO_ALARMS,
             StopAlert,
@@ -128,7 +128,7 @@ class SessionEndTest {
         driver.send(TimerEvent.Poured)
 
         assertThat(BrewTimerEngine.finishWouldDiscard(driver.state)).isFalse()
-        assertThat(driver.send(TimerEvent.FinishSession)).contains(CompleteSession(SESSION_ID))
+        assertThat(driver.send(TimerEvent.FinishSession)).contains(CompleteSession(SESSION_ID, autoFinished = false))
     }
 
     @Test
@@ -144,7 +144,7 @@ class SessionEndTest {
         assertThat(BrewTimerEngine.finishWouldDiscard(driver.state)).isFalse()
         val effects = driver.send(TimerEvent.FinishSession)
 
-        assertThat(effects).contains(CompleteSession(SESSION_ID))
+        assertThat(effects).contains(CompleteSession(SESSION_ID, autoFinished = false))
         assertThat((effects.first() as RecordStep).stepIndex).isEqualTo(1)
     }
 

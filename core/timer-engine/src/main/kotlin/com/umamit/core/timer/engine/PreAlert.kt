@@ -3,6 +3,7 @@ package com.umamit.core.timer.engine
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.TimerEffect.PlayPreAlert
+import com.umamit.core.timer.engine.TimerEffect.StartForeground
 import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 /*
@@ -57,12 +58,13 @@ internal fun preAlertAt(
 /**
  * `preAlertReached` (04 §3.2): plays the tick while at least 1 s is left,
  * otherwise only consumes the due time, so no tick sounds at or after the
- * deadline (D-048). Either way the pre-alert counts as played.
+ * deadline (D-048). Either way the pre-alert counts as played. The tick plays
+ * in the service (04 §9), so a tick ensures it first, as the deadline does
+ * before the alert: after a refused restart at recovery the exact pre-alert
+ * alarm may start it (D-054).
  */
 internal fun preAlertReached(state: TimerState.Running, now: ClockReading): TimerTransition {
     val plays = state.deadlineElapsedMs - now.elapsedMs >= PRE_ALERT_MIN_LEFT_MS
-    return accepted(
-        state.copy(preAlertAtElapsedMs = null, preAlertPlayed = true),
-        side = listOfNotNull(PlayPreAlert.takeIf { plays }, UpdateNotification),
-    )
+    val tick = if (plays) listOf(StartForeground, PlayPreAlert) else emptyList()
+    return accepted(state.copy(preAlertAtElapsedMs = null, preAlertPlayed = true), side = tick + UpdateNotification)
 }

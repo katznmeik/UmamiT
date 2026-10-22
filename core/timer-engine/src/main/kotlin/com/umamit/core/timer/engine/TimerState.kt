@@ -50,9 +50,20 @@ sealed interface TimerState {
     }
 
     /**
+     * A started step with a deadline that counts (Running, Alerting): the
+     * overtime timeout and a late end are measured from it.
+     */
+    sealed interface WithDeadline : StepStarted {
+        /** The step's deadline on the monotonic clock. */
+        val deadlineElapsedMs: Long
+
+        /** The same deadline on the wall clock, for „Fertig um 14:30" and reboot recovery. */
+        val deadlineWallMs: Long
+    }
+
+    /**
      * Counting down to [deadlineElapsedMs] (04 §2: remaining = deadline − now).
      *
-     * @property deadlineWallMs the same deadline on the wall clock, for „Fertig um 14:30" and reboot recovery.
      * @property preAlertAtElapsedMs when the pre-alert tick is due; null when this step has none (TMR-23, #31).
      * @property preAlertPlayed the tick already played for this step: it plays at most once (E6).
      */
@@ -61,11 +72,11 @@ sealed interface TimerState {
         override val stepIndex: Int,
         override val stepStartedWallMs: Long,
         override val pausedTotalMs: Long,
-        val deadlineElapsedMs: Long,
-        val deadlineWallMs: Long,
+        override val deadlineElapsedMs: Long,
+        override val deadlineWallMs: Long,
         val preAlertAtElapsedMs: Long?,
         val preAlertPlayed: Boolean,
-    ) : StepStarted {
+    ) : WithDeadline {
         override val phase: TimerPhase get() = TimerPhase.RUNNING
     }
 
@@ -96,10 +107,10 @@ sealed interface TimerState {
         override val stepIndex: Int,
         override val stepStartedWallMs: Long,
         override val pausedTotalMs: Long,
-        val deadlineElapsedMs: Long,
-        val deadlineWallMs: Long,
+        override val deadlineElapsedMs: Long,
+        override val deadlineWallMs: Long,
         val alertPlayed: Boolean,
-    ) : StepStarted {
+    ) : WithDeadline {
         override val phase: TimerPhase get() = TimerPhase.ALERTING
     }
 

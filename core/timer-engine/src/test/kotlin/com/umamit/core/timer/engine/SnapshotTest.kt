@@ -25,13 +25,12 @@ class SnapshotTest {
         put("Ready, first step", sessionWith(rinse(10), infusion(60), infusion(20)).state)
         put("Ready after a skip and a pour", afterSkipAndPour().state)
         put("Running", running().state)
-        put("Running with the pre-alert played", withPreAlert(running().state as TimerState.Running, played = true))
-        put("Running with the pre-alert due", withPreAlert(running().state as TimerState.Running, played = false))
+        put("Running with the pre-alert played", preAlertPlayed().state)
+        put("Running with the pre-alert due", running().apply { clocks.advanceSeconds(51) }.state)
         put(
             "Paused mid-pause after the pre-alert",
-            running().apply {
-                state = withPreAlert(state as TimerState.Running, played = true)
-                clocks.advanceSeconds(52)
+            preAlertPlayed().apply {
+                clocks.advanceSeconds(2)
                 send(TimerEvent.Pause)
                 clocks.advanceSeconds(30)
             }.state,
@@ -50,9 +49,9 @@ class SnapshotTest {
 
     /** Demoted, edited, recovered and quick-timer states. */
     private fun sessionStates(): Map<String, TimerState> = buildMap {
-        put("Ready, demoted", demoted(sessionWith(infusion(60), infusion(20)).state))
-        put("Paused, demoted", demoted(running().apply { send(TimerEvent.Pause) }.state))
-        put("Finished, demoted", demoted(sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.state))
+        put("Ready, demoted", sessionWith(infusion(60), infusion(20)).demoted().state)
+        put("Paused, demoted", running().apply { send(TimerEvent.Pause) }.demoted().state)
+        put("Finished, demoted", sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.demoted().state)
         put(
             "Running with a session pre-alert override",
             sessionWith(infusion(60), infusion(20)).apply {
@@ -209,6 +208,8 @@ class SnapshotTest {
         val alerting = BrewTimerEngine.snapshot(alerting().state)!!
         val finished = BrewTimerEngine.snapshot(sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.state)!!
         val quick = BrewTimerEngine.snapshot(quick().state)!!
+        val running = BrewTimerEngine.snapshot(running().state)!!
+        val longRunning = BrewTimerEngine.snapshot(sessionWith(infusion(600)).apply { send(TimerEvent.Start) }.state)!!
         fun TimerSnapshot.row(transform: ActiveBrewSnapshot.() -> ActiveBrewSnapshot) =
             copy(activeBrew = activeBrew.transform())
         fun TimerSnapshot.step(index: Int, transform: SessionStepRow.() -> SessionStepRow) =
@@ -234,6 +235,11 @@ class SnapshotTest {
             "Alerting with a remaining time" to alerting.row { copy(remainingMs = 1) },
             "a negative pre-alert" to ready.row { copy(preAlertInheritedSeconds = -1) },
             "an unknown time zone" to ready.row { copy(zoneId = "Mars/Olympus") },
+            // States the engine never produces (O2 of the #27 slice review).
+            "a demoted running step" to running.row { copy(demoted = true) },
+            "a demoted alert" to alerting.row { copy(demoted = true) },
+            "a played pre-alert that is still due" to running.row { copy(preAlertPlayed = true) },
+            "a pre-alert on a long step" to longRunning.row { copy(preAlertElapsedMs = deadlineElapsedMs!! - 10_000) },
         )
         broken.forEach { (name, snapshot) ->
             assertThrows(name, IllegalArgumentException::class.java) { BrewTimerEngine.restore(snapshot) }
@@ -262,14 +268,16 @@ class SnapshotTest {
 
     private fun quick() = EngineDriver().apply { send(TimerEvent.StartQuickTimer(90, globalPreAlertSeconds = 15)) }
 
-    /** #31 sets these values; the snapshot must already carry them. */
-    private fun withPreAlert(state: TimerState.Running, played: Boolean) =
-        state.copy(preAlertAtElapsedMs = state.deadlineElapsedMs - 10_000, preAlertPlayed = played)
+    /** A running 60 s step whose pre-alert played, through the reducer. */
+    private fun preAlertPlayed() = running().apply {
+        clocks.advanceSeconds(50)
+        send(TimerEvent.PreAlertReached)
+    }
 
-    private fun demoted(state: TimerState): TimerState = when (state) {
-        is TimerState.Ready -> state.copy(session = state.session.copy(demoted = true))
-        is TimerState.Paused -> state.copy(session = state.session.copy(demoted = true))
-        is TimerState.Finished -> state.copy(session = state.session.copy(demoted = true))
-        else -> error("only waiting states are demoted")
+    /** This waiting session after 30 min without an interaction: demoted by the reducer. */
+    private fun EngineDriver.demoted() = apply {
+        clocks.advance(30 * 60_000L)
+        send(TimerEvent.IdleDemote)
+        check(outcome == TransitionOutcome.Accepted) { "only a waiting brew session is demoted" }
     }
 }
