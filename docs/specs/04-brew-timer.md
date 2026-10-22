@@ -532,9 +532,9 @@ away, including the FGS restart attempt.
 Actions → non-exported receiver → controller (source NOTIFICATION).
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 4 the quiet
 notification without the service (a long running step, a demoted session;
-D-NNN), 10+ reminders/catalog. Content intent → SCR-05 through the app's
+D-064), 10+ reminders/catalog. Content intent → SCR-05 through the app's
 activity (`com.umamit.action.OPEN_TIMER`), which opens the timer route; the
-same intent is the alert's full-screen intent (D-NNN). Actions: *Start*,
+same intent is the alert's full-screen intent (D-064). Actions: *Start*,
 *Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the
 quick timer), *Sitzung beenden* (FINISHED, demoted; not where it would
 discard the session, TMR-12 AC1), *Abbrechen* (quick timer).
@@ -548,7 +548,7 @@ foreground-service notification, and a Live Update posted without the
 service (notification 1 after a refused start, notification 4) is cancelled
 first; the Live Update returns with the next state. While the service runs,
 every change of the timer notification goes through the service, never
-`notify` next to it (D-057, D-NNN).
+`notify` next to it (D-057, D-064).
 Reason: Android 16 force-groups two ungrouped notifications of an app in the
 same importance section (`config_autoGroupAtCount` = 2) and marks them
 `FLAG_SILENT`; System UI then suppresses the full-screen intent and the
@@ -575,7 +575,7 @@ ongoing notification** (Live Update):
   **point** at the pre-alert of the current step; progress = elapsed active
   time of the session's planned total. Progress is updated on every state
   transition and **every 15 s** while RUNNING (not per second), in order with
-  the controller's commands (D-NNN).
+  the controller's commands (D-064).
 - Ongoing, with content title, `NotificationCompat.Builder.setRequestPromotedOngoing(true)`
   (AndroidX core; the platform `Notification.Builder` of SDK 36 has no such
   method, it sets the extra `android.requestPromotedOngoing`, D-043) and a
@@ -598,7 +598,7 @@ ongoing notification** (Live Update):
   appear in the Now Bar on the PO's Galaxy (2026-10-22).
 - **User dismissal is respected:** `setDeleteIntent` records the dismissal;
   the notification is not re-posted until the next state change (a new phase,
-  step, the pre-alert or the demotion; D-NNN).
+  step, the pre-alert or the demotion; D-064).
 - A demoted session (TMR-14) is a regular ongoing notification without the
   promotion request; a long running step keeps it (TMR-18, „Fertig um
   14:30").
@@ -762,7 +762,7 @@ Uses the global pre-alert, the same alert and the Live Update
 </service>
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
 <!-- The app's activity declares com.umamit.action.OPEN_TIMER: the notifications'
-     content intent and the alert's full-screen intent open the timer route (D-NNN). -->
+     content intent and the alert's full-screen intent open the timer route (D-064). -->
 <receiver android:name=".timer.alarm.TimerAlarmReceiver" android:exported="false" />
 <receiver android:name=".timer.BootReceiver" android:exported="true">
     <intent-filter>

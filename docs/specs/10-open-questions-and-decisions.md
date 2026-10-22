@@ -302,8 +302,8 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
-<a id="d-nnn"></a>
-### D-NNN — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
+<a id="d-064"></a>
+### D-064 — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
 
 #47 replaced the interim notification content and `TimerAlertActivity` of #42
 with the real ones ([04 §8](04-brew-timer.md#8-notifications); TMR-06,
@@ -361,8 +361,8 @@ Decided while building them:
   record dies with the process.
 - **Full-screen target: the app's timer route; `TimerAlertActivity` is removed.**
   - The content intent of every timer notification and the alert's full-screen
-    intent open `MainActivity` with `com.umamit.action.OPEN_TIMER`, explicit
-    where it resolves. A thin launcher activity was rejected: it would add a
+    intent open `MainActivity` with `com.umamit.action.OPEN_TIMER`, limited
+    to this package. A thin launcher activity was rejected: it would add a
     hop and a second activity over the lock screen.
   - `MainActivity` sets `showWhenLocked` (and `turnScreenOn` while alerting)
     at once, in `onCreate` or `onNewIntent`, while a session is active. Behind
@@ -746,7 +746,7 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     point.
   - Alert: „Jetzt abgießen!" on `steep_finished`, `CATEGORY_ALARM`.
   - Channels and IDs as verified (D-043, D-044).
-- **Full-screen target until SCR-05 (#47; replaced by the timer route, D-NNN):** `TimerAlertActivity`. It shows
+- **Full-screen target until SCR-05 (#47; replaced by the timer route, D-064):** `TimerAlertActivity`. It shows
   over the lock screen and turns the screen on, set from code only while it is
   shown (04 §13). *Abgegossen* sends `poured` to the controller and closes it;
   a later alert updates its tea (`onNewIntent`).
@@ -1732,7 +1732,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
-| 2026-10-22 | D-NNN: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
+| 2026-10-22 | D-064: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |
 | 2026-10-22 | D-060: diagnostics log and *Diagnose* (#43): two-file rolling log ≤ 200 KB in the no-backup storage, written in order on the IO dispatcher and never blocking or throwing into the timer; technical English entries with scheduled vs actual times on both clocks and the delta; service starts and stops, ringer mode at each alert and test, permission states at each process start; *Diagnose* newest first with *Kopieren* (header + entries). 06 §5.6, 03 SCR-27 updated. |
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
