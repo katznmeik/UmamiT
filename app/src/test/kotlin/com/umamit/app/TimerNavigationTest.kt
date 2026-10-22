@@ -56,7 +56,7 @@ class TimerNavigationTest {
                     activeBrewSource = source,
                     alertKey = alertKey,
                     onTimerVisibleChange = { visible += it },
-                    timerScreen = { _, openSettings ->
+                    timerScreen = { _, openSettings, _ ->
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }

@@ -16,8 +16,10 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerSnapshot
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.time.Instant
 import java.time.ZoneId
@@ -151,6 +153,10 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
     }
 
     override suspend fun getSession(id: String): BrewSession? = s.sessionRows.value[id]
+
+    override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = s.sessionRows.map { map ->
+        map.values.filter { it.status != SessionStatus.IN_PROGRESS }.sortedByDescending { it.startedAtMs }.take(limit)
+    }
 
     private fun PlannedStep.row(position: Int) = SessionStepRow(
         position = position,

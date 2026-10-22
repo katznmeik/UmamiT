@@ -24,6 +24,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.settings.SettingsScreen
 import kotlinx.coroutines.flow.StateFlow
+import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 
 /**
  * The app's top-level navigation: the shell with its tabs, and the full-screen
@@ -37,17 +38,23 @@ import kotlinx.coroutines.flow.StateFlow
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
+ *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
+ * @param startScreen the Start tab's content; the app passes [StartTabContent].
  */
 @Composable
-fun UmamitRoot(
+internal fun UmamitRoot(
     activeBrewSource: ActiveBrewSource,
     alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
     onTimerVisibleChange: (Boolean) -> Unit = {},
-    timerScreen: @Composable (onClose: () -> Unit, onOpenTimerSettings: () -> Unit) -> Unit = { onClose, onSettings ->
-        // M1-13 opens the setup (SCR-04) for the waiting session from *Brühen anpassen*.
-        BrewTimerRoute(onClose = onClose, onAdjustBrew = onClose, onOpenTimerSettings = onSettings)
+    timerScreen: @Composable (
+        onClose: () -> Unit,
+        onOpenTimerSettings: () -> Unit,
+        onAdjustBrew: (sessionId: String) -> Unit,
+    ) -> Unit = { onClose, onSettings, onAdjust ->
+        BrewTimerRoute(onClose = onClose, onAdjustBrew = onAdjust, onOpenTimerSettings = onSettings)
     },
+    startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
 ) {
     val navController = rememberNavController()
     val motion = UmamiTheme.motion
@@ -84,6 +91,13 @@ fun UmamitRoot(
     // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
     fun AnimatedTimer.instant(): Boolean = currentAlerting && (initial.isTimer() || target.isTimer())
     val closeTimer: () -> Unit = { navController.popBackStack(TimerRoute, inclusive = true) }
+    val openTimer: () -> Unit = { navController.navigate(TimerRoute) { launchSingleTop = true } }
+    val startNavigation = StartNavigation(
+        openSetup = { teaId -> navController.navigate(BrewSetupRoute(teaId = teaId)) { launchSingleTop = true } },
+        openTimer = openTimer,
+        // M1-14 (#49) opens the quick timer (SCR-07) here.
+        openQuickTimer = {},
+    )
     NavHost(
         navController = navController,
         startDestination = ShellRoute,
@@ -110,14 +124,38 @@ fun UmamitRoot(
         composable<ShellRoute> {
             UmamitApp(
                 activeBrewSource = activeBrewSource,
-                onOpenTimer = { navController.navigate(TimerRoute) { launchSingleTop = true } },
+                onOpenTimer = openTimer,
+                startNavigation = startNavigation,
+                alertKey = alert,
+                startScreen = startScreen,
             )
         }
         composable<TimerRoute> {
-            timerScreen(closeTimer) {
-                settingsAlert = currentAlert
-                navController.navigate(TimerSettingsRoute)
-            }
+            timerScreen(
+                closeTimer,
+                {
+                    settingsAlert = currentAlert
+                    navController.navigate(TimerSettingsRoute)
+                },
+                { sessionId ->
+                    // The setup replaces the timer; *Brühen starten* there opens it again (BRW-11).
+                    navController.navigate(BrewSetupRoute(sessionId = sessionId)) {
+                        popUpTo<TimerRoute> { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable<BrewSetupRoute> {
+            BrewSetupScreenRoute(
+                onBack = { navController.popBackStack() },
+                // The timer replaces the setup, so back from the timer returns to where the brew began.
+                onOpenTimer = {
+                    navController.navigate(TimerRoute) {
+                        popUpTo<BrewSetupRoute> { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
         composable<TimerSettingsRoute> { SettingsScreen(onBack = { navController.popBackStack() }) }
     }

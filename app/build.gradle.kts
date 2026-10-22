@@ -41,6 +41,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.navigation.testing)
     testImplementation(libs.truth)
+    // Start and setup flows (M1-13) with fake repositories and a fake controller.
+    testImplementation(project(":core:testing"))
 
     debugImplementation(libs.leakcanary.android)
 

@@ -13,6 +13,13 @@ internal data object ShellRoute
 @Serializable
 internal data object TimerRoute
 
+/**
+ * The setup (SCR-04): of the tea [teaId] (from the tea picker or a favourite), or of the waiting
+ * session [sessionId] (*Brühen anpassen* on the timer, BRW-11). Full-screen like the timer.
+ */
+@Serializable
+internal data class BrewSetupRoute(val teaId: String? = null, val sessionId: String? = null)
+
 /** *Timer-Einstellungen* from the timer's overflow; on the timer's stack, so back returns to the timer. */
 @Serializable
 internal data object TimerSettingsRoute
