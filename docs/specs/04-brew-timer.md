@@ -335,6 +335,13 @@ ongoing notification** (Live Update):
   (default); Lang = until acknowledged, max 2 min.
 - Vibration pattern `[0, 400, 200, 400, 200, 800]` ms with
   `VibrationAttributes.USAGE_NOTIFICATION` semantics.
+- Details (#16): the alert repeats in cycles of the tone length (tone +
+  vibration pattern together; Normal = 4 × 3.5 s for the Klangschale), and
+  each cycle reads the ringer mode and call state again. A ringing or active
+  call (incl. VoIP) counts as „in a call". If the audio focus is refused or
+  lost, the rest of that alert has no sound. Do Not Disturb set to *total
+  silence* or *alarms only* keeps the alert visual; in *priority only* mode
+  the platform decides.
 - Test via SET-31 (*Alarm testen*).
 
 ### 9.2 Sounds
