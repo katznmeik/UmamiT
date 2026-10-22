@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.umamit.android.application)
     alias(libs.plugins.umamit.android.compose)
     alias(libs.plugins.umamit.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -30,6 +31,15 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.material3.navigation.suite)
+    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.navigation.testing)
 
     debugImplementation(libs.leakcanary.android)
 

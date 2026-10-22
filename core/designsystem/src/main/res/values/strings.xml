@@ -48,6 +48,11 @@
     <string name="ds_reliability_fix">Beheben</string>
     <string name="ds_reliability_description">Warnung: %1$s</string>
 
+    <!-- Top-level screen actions -->
+    <string name="ds_settings">Einstellungen</string>
+    <string name="ds_more_options">Weitere Optionen</string>
+    <string name="ds_back">Zurück</string>
+
     <!-- TimerRing -->
     <string name="ds_timer_remaining_description">noch %1$s</string>
 

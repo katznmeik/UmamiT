@@ -76,7 +76,7 @@ interface StockRepository {
     suspend fun deleteEvent(id: String)
 }
 
-/** The settings of 05 §6 (M1 subset) and the seed marker. */
+/** The settings of 05 §6 (M1 subset) and the seed markers. */
 interface SettingsRepository {
     val settings: Flow<UserSettings>
 
@@ -87,4 +87,9 @@ interface SettingsRepository {
     val seedDataCreated: Flow<Boolean>
 
     suspend fun markSeedDataCreated()
+
+    /** Whether the one-time seed photo download (ONB-06) has run, whatever its outcome; never reset. */
+    val seedPhotosAttempted: Flow<Boolean>
+
+    suspend fun markSeedPhotosAttempted()
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_empty_title">Bald stellst du hier alles ein</string>
+    <string name="settings_empty_body">Teegeschirr, Sicherung und mehr folgen in Kürze.</string>
+</resources>

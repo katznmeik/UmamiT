@@ -79,7 +79,7 @@ internal object ProbeNotifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_STEEP_FINISHED)
-            .setSmallIcon(R.drawable.ic_timer_notification)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
             .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
             .setContentTitle(context.getString(R.string.timer_alert_title))
             .setContentText(context.getString(R.string.timer_probe_step_title))

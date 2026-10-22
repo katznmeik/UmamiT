@@ -360,6 +360,8 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
+| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07) |
+| `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
 
 ## 7. Units & rounding
 
