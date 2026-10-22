@@ -321,7 +321,12 @@ reviews them with the screenshots and motion recordings.
 - **Icons:** the Material Symbols (Apache 2.0) are the only third-party assets
   besides the font; their licence is committed next to the OFL.
 - **Motion tokens:** 03 §3.6 „Motion tokens", with the reasons. Press feedback
-  (scale 0.97) is added to pills and cards; reduce motion keeps short fades.
+  (scale 0.97, faster spring release) is added to pills and cards, not list
+  rows; reduce motion keeps short fades.
+- **Alert motion (motion review):** entering ALERTING is always instant
+  (`alertEnter`); the pulse starts at full matcha; the pulse and the pre-alert
+  glow ignore developer animator scales (`UnscaledMotion`), while scale 0 still
+  means reduce motion.
 
 <a id="d-045"></a>
 ### D-045 — Default alert sound and pre-alert tick (Q-15) · *Accepted* (PO, 2026-10-22)

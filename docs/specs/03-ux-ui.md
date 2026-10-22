@@ -292,17 +292,19 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 
 | Token | Compose spec | Use | Why |
 |---|---|---|---|
-| `press` | `tween(120, CalmEaseOut)`, scale 0.97 | Press feedback on pills and cards | Felt at touch-down, so the press reads as heard; a subtle scale, nothing pops. |
+| `press` | `tween(120, CalmEaseOut)`, scale 0.97 | Press feedback on pills and cards (not list rows, which keep only the ripple) | Felt at touch-down, so the press reads as heard; a subtle scale, nothing pops. |
+| `pressRelease` | `spring(dampingRatio = 1, stiffness = 1500)` | Back to scale 1 after a press | Asymmetric: the user presses, the system answers faster. A spring keeps its velocity when a quick tap retargets it mid-press. |
 | `exit` | `tween(200, CalmEaseOut)` | Elements leaving | Exits are faster than entries: the user decided, the system answers. |
-| `standard` | `tween(300, CalmEaseOut)` | State and content transitions | A little slower than Material's 200–250 ms: ritual, not hurried. Still short enough to never block the next tap. |
-| `emphasized` | `tween(450, CalmEaseOut)` | Step changes, a whole surface changing state | Bigger change, more time to follow it. |
-| `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` | Opacity and colour | Fades help comprehension, so they stay under reduce motion, very short. |
+| `standard` | `tween(300, CalmEaseOut)` | State and content transitions (never into ALERTING) | A little slower than Material's 200–250 ms: ritual, not hurried. Still short enough to never block the next tap. |
+| `emphasized` | `tween(450, CalmEaseOut)` | Step changes, a whole surface changing state (never into ALERTING) | Bigger change, more time to follow it. |
+| `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` | Opacity and colour (never into ALERTING) | Fades help comprehension, so they stay under reduce motion, very short. |
 | `sheet` | `spring(dampingRatio = 1, stiffness = 320)` (response ≈ 0.35 s) | Schritte-Sheet and other sheets | Critically damped: no overshoot. A spring starts from the current value and keeps velocity, so a sheet grabbed mid-motion follows the finger. |
 | `activeBrewBar` | `spring(dampingRatio = 1, stiffness = 250)` (response ≈ 0.4 s) | Active brew bar arriving and leaving | Same physics as sheets, a touch slower: it is ambient, not asked for. |
 | short-step ring | none, per frame | Ring and liquor fill while a step under 10 min runs | Progress follows the remaining time exactly; any easing would lie about it. |
 | `longStepGlide` | `tween(600, CalmEaseInOut)` every `10 000` ms | Ring and liquor fill of long steps (≥ 10 min) | One redraw burst every 10 s saves battery; the 600 ms glide keeps the jump from looking like a glitch. |
 | `preAlertGlow` | `keyframes(800 ms)`: 0 → 1 at 200 ms (`CalmEaseOut`), → 0 at 800 ms (`SineInOut`) | Pre-alert marker on the ring | One swell exactly as long as the 0.8 s tick (D-045), peaking early like the strike of the bowl and decaying with its sound, so eye and ear get one event. |
-| `alertPulse` | `infiniteRepeatable(tween(750, SineInOut), Reverse)`: one washi → matcha → washi cycle per 1.5 s | Alert surface | Slow and strong: visible across the room even in silent mode. 0.67 cycles/s is far below the 3 flashes/s limit (WCAG 2.3.1), and a sine has no hard edges, so it never flashes. |
+| `alertEnter` | `snap()`, also without reduce motion | Entering ALERTING | The alert is the biggest state change and must never be delayed or softened by a transition (rule 8). |
+| `alertPulse` | `infiniteRepeatable(tween(750, SineInOut), Reverse, initialStartOffset = 750 ms FastForward)`, animated 0 (washi) → 1 (matcha): frame 1 is full matcha, then matcha → washi → matcha, one cycle per 1.5 s | Alert surface | Slow and strong: visible across the room even in silent mode. It starts at its strongest phase, the same matcha as the static reduce-motion surface, so the onset is never soft. 0.67 cycles/s is far below the 3 flashes/s limit (WCAG 2.3.1), and a sine has no hard edges, so it never flashes. |
 
 **Rules**
 
@@ -311,16 +313,24 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 - **No bounce:** every spring is critically damped (`dampingRatio = 1`).
   UmamiT has no flicked or thrown elements that would earn an overshoot.
 - **Interruptible:** state changes use `animate*AsState` / `Animatable`, which
-  continue from the current value when retargeted; nothing restarts from zero.
-- **Alerts first:** an alert's start is never delayed by a transition; the
-  pulse begins on the first frame of ALERTING.
+  continue from the current value when retargeted; nothing restarts from zero,
+  except the one-shot pre-alert glow, which restarts with each tick.
+- **Alerts first:** an alert's start is never delayed by a transition
+  (`alertEnter`); the pulse begins on the first frame of ALERTING at full
+  matcha.
+- **Unscaled alert and glow:** Compose multiplies every duration by the system
+  animator duration scale. The alert pulse and the pre-alert glow run with a
+  fixed scale of 1 (`UnscaledMotion`, as an `Animatable` inside
+  `withContext(UnscaledMotion)`), so a developer scale cannot slow the alert or
+  pull the glow away from the 0.8 s tick.
 
 **Reduce motion** (`LocalReduceMotion`): `true` when the system animator
-duration scale is 0 („Animationen entfernen"); other scales are developer
-options and do not count. `UmamiTheme` reads it from the system and follows
+duration scale is 0 („Animationen entfernen"). Other scales are developer
+options: they do not switch reduce motion on; the alert pulse and the glow
+ignore them, and all other motion follows them. `UmamiTheme` reads it from the system and follows
 changes while the app runs; tests force it with `UmamiTheme(reduceMotion = …)`.
 Under reduce motion every spatial spec above becomes `snap()`, fades shrink to
-100 ms, press feedback has no scale (the ripple remains), `preAlertGlow` and
+100 ms, `alertEnter` stays `snap()`, press feedback has no scale (the ripple remains), `preAlertGlow` and
 `alertPulse` are `null` (glow off; the alert is a static high-contrast matcha
 surface), and the long-step ring still updates every 10 s, without the glide.
 

@@ -12,16 +12,19 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 private const val PRESSED_SCALE = 0.97f
 
 /**
- * Scale for press feedback, following [interactionSource]. It animates with the
- * press token and stays at 1 under reduce motion (the ripple still shows the press).
+ * Scale for press feedback, following [interactionSource]: press token on touch-down,
+ * press-release spring on release, and 1 under reduce motion (the ripple still shows
+ * the press). For pills and cards only; list rows keep just the ripple.
  */
 @Composable
 internal fun rememberPressScale(interactionSource: InteractionSource): State<Float> {
     val pressed by interactionSource.collectIsPressedAsState()
     val target = if (pressed && !UmamiTheme.reduceMotion) PRESSED_SCALE else 1f
+    val motion = UmamiTheme.motion
     return animateFloatAsState(
         targetValue = target,
-        animationSpec = UmamiTheme.motion.press(),
+        // Asymmetric: the press eases in over 120 ms, the release springs back faster.
+        animationSpec = if (pressed) motion.press() else motion.pressRelease(),
         label = "pressScale",
     )
 }

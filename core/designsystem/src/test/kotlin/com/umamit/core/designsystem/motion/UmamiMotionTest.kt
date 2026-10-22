@@ -19,11 +19,11 @@ class UmamiMotionTest {
     private val calm = UmamiMotion(reduceMotion = false)
     private val reduced = UmamiMotion(reduceMotion = true)
 
-    private fun FiniteAnimationSpec<Float>.millis(): Long {
+    private fun FiniteAnimationSpec<Float>.millis(from: Float = 0f, to: Float = 1f): Long {
         val vectorized: VectorizedAnimationSpec<AnimationVector1D> = vectorize(Float.VectorConverter)
-        val start = AnimationVector1D(0f)
-        val end = AnimationVector1D(1f)
-        return vectorized.getDurationNanos(start, end, start) / 1_000_000
+        val start = AnimationVector1D(from)
+        val end = AnimationVector1D(to)
+        return vectorized.getDurationNanos(start, end, AnimationVector1D(0f)) / 1_000_000
     }
 
     @Test
@@ -79,12 +79,39 @@ class UmamiMotionTest {
     }
 
     @Test
+    fun `alert pulse starts at full matcha on the first frame of alerting`() {
+        val pulse = checkNotNull(calm.alertPulse).vectorize(Float.VectorConverter)
+        val washi = AnimationVector1D(0f)
+        val matcha = AnimationVector1D(1f)
+
+        assertThat(pulse.getValueFromNanos(0L, washi, matcha, washi).value).isEqualTo(1f)
+        // Half a cycle later it has breathed out to washi, then back to matcha.
+        assertThat(pulse.getValueFromNanos(750_000_000L, washi, matcha, washi).value).isWithin(1e-3f).of(0f)
+        assertThat(pulse.getValueFromNanos(1_500_000_000L, washi, matcha, washi).value).isWithin(1e-3f).of(1f)
+    }
+
+    @Test
+    fun `entering alerting is instant in both motion modes`() {
+        assertThat(calm.alertEnter<Float>()).isInstanceOf(SnapSpec::class.java)
+        assertThat(reduced.alertEnter<Float>()).isInstanceOf(SnapSpec::class.java)
+    }
+
+    @Test
+    fun `release after a press is faster than the press`() {
+        val release = calm.pressRelease<Float>()
+        assertThat((release as SpringSpec).dampingRatio).isEqualTo(1f)
+        // Over the real press distance: scale 0.97 back to 1.
+        assertThat(release.millis(from = 0.97f, to = 1f)).isLessThan(calm.press<Float>().millis(from = 1f, to = 0.97f))
+    }
+
+    @Test
     fun `reduce motion makes functional motion instant`() {
         listOf(
             reduced.standard<Float>(),
             reduced.emphasized<Float>(),
             reduced.exit<Float>(),
             reduced.press<Float>(),
+            reduced.pressRelease<Float>(),
             reduced.sheet<Float>(),
             reduced.activeBrewBar<Float>(),
             reduced.longStepGlide<Float>(),
