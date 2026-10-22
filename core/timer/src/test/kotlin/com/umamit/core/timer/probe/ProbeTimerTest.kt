@@ -5,12 +5,17 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.os.SystemClock
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.timer.ExactAlarmReceiver
 import com.umamit.core.timer.TimerAlarm
 import com.umamit.core.timer.TimerNotifications
+import com.umamit.core.timer.alert.Haptic
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -29,6 +34,8 @@ class ProbeTimerTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
+    private val audioManager = context.getSystemService(AudioManager::class.java)
+    private val vibrator: Vibrator = context.getSystemService(VibratorManager::class.java).defaultVibrator
 
     @Before
     fun setUp() {
@@ -110,6 +117,67 @@ class ProbeTimerTest {
         assertThat(alert.channelId).isEqualTo(TimerNotifications.CHANNEL_STEEP_FINISHED)
         val liveUpdate = shadowOf(controller.get()).lastForegroundNotification
         assertThat(liveUpdate.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Jetzt abgießen!")
+    }
+
+    @Test
+    fun deadlineInVibrateModeVibratesTheAlertPatternUntilTheServiceStops() {
+        audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_PRE_ALERT, step))
+            .startCommand(0, 2)
+        assertThat(shadowOf(vibrator).pattern.toList()).isEqualTo(Haptic.PRE_ALERT.timings)
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
+            .startCommand(0, 3)
+
+        assertThat(shadowOf(vibrator).isVibrating).isTrue()
+        assertThat(shadowOf(vibrator).pattern.toList()).isEqualTo(Haptic.ALERT.timings)
+        assertThat(shadowOf(audioManager).lastAudioFocusRequest).isNull()
+
+        controller.destroy()
+        assertThat(shadowOf(vibrator).isVibrating).isFalse()
+    }
+
+    @Test
+    fun deadlineInSilentModeIsVisualOnly() {
+        audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
+            .startCommand(0, 2)
+
+        assertThat(shadowOf(notificationManager).getNotification(TimerNotifications.ID_ALERT)).isNotNull()
+        assertThat(shadowOf(vibrator).isVibrating).isFalse()
+        assertThat(shadowOf(audioManager).lastAudioFocusRequest).isNull()
+    }
+
+    @Test
+    fun deadlineInNormalModeTakesTheFocusAndVibrates() {
+        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
+            .startCommand(0, 2)
+
+        val focus = shadowOf(audioManager).lastAudioFocusRequest.audioFocusRequest
+        assertThat(focus.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+        assertThat(shadowOf(vibrator).pattern.toList()).isEqualTo(Haptic.ALERT.timings)
+
+        controller.destroy()
+        assertThat(shadowOf(audioManager).lastAbandonedAudioFocusRequest).isSameInstanceAs(focus)
+        assertThat(shadowOf(vibrator).isVibrating).isFalse()
     }
 
     @Test

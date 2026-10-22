@@ -4,6 +4,8 @@ plugins {
 }
 
 dependencies {
+    // Bundled alert sounds in res/raw (04 §9.2, 06 §3: core:content holds the sounds).
+    implementation(project(":core:content"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

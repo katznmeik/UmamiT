@@ -68,3 +68,37 @@ variant is enough.
 - Robolectric's SDK 36 sandbox on JDK 21 needs
   `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` and
   `--add-opens=java.base/java.io=ALL-UNNAMED`.
+
+## Alert player (#16) and what M1-10 extends
+
+The probe plays the alert through `RingerModeAlertPlayer`
+(`core:timer`, package `com.umamit.core.timer.alert`), built by
+`AlertPlayers.ringerMode(context)` in `ProbeTimerService.createAlertPlayer()`.
+
+- **Pure logic, injected seams:** `AlertEnvironment` (ringer mode, call state,
+  DND), `AlertSoundOutput` (play/stop, audio focus), `AlertHaptics` and
+  `AlertScheduler`; the settings come from a `() -> AlertSettings` lambda.
+  The Android adapters in `AndroidAlertOutputs.kt` hold no decisions:
+  `AudioManager.ringerMode` / `.mode`, `NotificationManager.currentInterruptionFilter`,
+  `MediaPlayer.create(context, resId, attributes, sessionId)` with
+  `USAGE_NOTIFICATION_EVENT` + `CONTENT_TYPE_SONIFICATION`,
+  `AudioFocusRequest(AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)`,
+  `VibratorManager.defaultVibrator.vibrate(createWaveform(…, -1), VibrationAttributes.createForUsage(USAGE_NOTIFICATION))`.
+- **Matrix and rhythm:** `AlertMatrix` (04 §9.1). The alert runs in cycles of
+  the tone length (Klangschale 3.5 s; at least pattern + 1 s); every cycle
+  re-reads the conditions, plays the tone and starts the vibration pattern.
+  Normal = 4 cycles (0–14 s).
+- **Sounds:** `scripts/sounds/generate.sh` writes `core:content`
+  `res/raw/klangschale.ogg` and `tick.ogg`; `AlertSound.lengthMs` must match
+  the file (`BundledSoundsTest`).
+
+M1-10 extends this rather than replacing it:
+
+1. Add the four other tones to `AlertSound` and `AlertSound.rawRes`, and their
+   synthesis to `generate.sh` (same loudness rules); the test covers every
+   entry.
+2. Feed `AlertSettings` from DataStore (SET-11 vibration, SET-14 length, tone
+   picker) through the `settings` lambda; `BrewTimerService` builds the player
+   the same way.
+3. Wire *Alarm testen* (SET-31) to `startAlert()` / `stopAlert()`.
+4. Keep the Robolectric matrix tests; add any new seam as a fake.
