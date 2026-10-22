@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -18,6 +19,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.umamit.app.R
@@ -33,8 +37,12 @@ import java.util.concurrent.CopyOnWriteArrayList
 /**
  * The probe's status list on a real system (M1-03a, #14; runs in the CI
  * emulator job on API 35 and 36). States the emulator lets a test toggle
- * without killing the app are switched through shell commands, then the screen
- * is paused and resumed: the list must show the new state after the refresh.
+ * without killing the app are switched through shell commands, then the list's
+ * lifecycle is paused and resumed: it must show the new state after the refresh.
+ * The list runs under its own [LifecycleOwner] so the test does not push the
+ * activity through STARTED: on the API 35 emulator that overlay activity could
+ * fail to start within Espresso's 45 s timeout and leave the scenario without a
+ * state (CI run 39787128455).
  *
  * - Full-screen intent: `appops set … USE_FULL_SCREEN_INTENT deny|allow`.
  * - Battery optimisation: `cmd deviceidle whitelist -|+…`.
@@ -52,11 +60,15 @@ class PermissionStatusListTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val packageName = context.packageName
+    private lateinit var listLifecycle: ListLifecycleOwner
 
     @Before
     fun setUp() {
         shell("pm grant $packageName android.permission.POST_NOTIFICATIONS")
-        composeRule.setContent { PermissionStatusList() }
+        composeRule.runOnUiThread { listLifecycle = ListLifecycleOwner() }
+        composeRule.setContent {
+            CompositionLocalProvider(LocalLifecycleOwner provides listLifecycle) { PermissionStatusList() }
+        }
     }
 
     @After
@@ -141,15 +153,17 @@ class PermissionStatusListTest {
         }
     }
 
-    /** Pauses and resumes the screen until the row shows [stateRes]; each resume re-reads the states. */
+    /** Pauses and resumes the list until the row shows [stateRes]; each resume re-reads the states. */
     private fun refreshUntilRowShows(item: PermissionStatusItem, @StringRes stateRes: Int) {
         val expected = context.getString(stateRes)
         val matcher = hasTestTag(permissionStatusRowTag(item)) and
             SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, expected)
         val deadline = SystemClock.uptimeMillis() + REFRESH_TIMEOUT_MS
         while (true) {
-            composeRule.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
-            composeRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+            composeRule.runOnUiThread {
+                listLifecycle.registry.currentState = Lifecycle.State.STARTED
+                listLifecycle.registry.currentState = Lifecycle.State.RESUMED
+            }
             composeRule.waitForIdle()
             if (composeRule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()) return
             check(SystemClock.uptimeMillis() < deadline) { "$item did not show \"$expected\" after refresh" }
@@ -168,6 +182,12 @@ class PermissionStatusListTest {
             instrumentation.removeMonitor(monitor)
         }
         return monitor.intents
+    }
+
+    /** A lifecycle the test controls; created and driven on the main thread. */
+    private class ListLifecycleOwner : LifecycleOwner {
+        val registry = LifecycleRegistry(this).apply { currentState = Lifecycle.State.RESUMED }
+        override val lifecycle: Lifecycle get() = registry
     }
 
     private class RecordingMonitor : Instrumentation.ActivityMonitor() {
