@@ -41,7 +41,10 @@ data class AlertColors(val washi: Color, val matcha: Color, val content: Color)
  */
 @Immutable
 data class UmamiExtendedColors(
-    /** Warm accent for prominent overtime. */
+    /**
+     * Warm accent for prominent overtime, as a non-text mark only: as text it is
+     * 1.97:1 on the alert's washi and 1.51:1 on its matcha (D-055).
+     */
     val warmAccent: Color,
     val liquor: LiquorColors,
     val teaTypes: TeaTypeColors,

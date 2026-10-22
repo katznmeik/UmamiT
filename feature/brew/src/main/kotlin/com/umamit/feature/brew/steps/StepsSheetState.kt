@@ -92,6 +92,22 @@ enum class StepEdit {
 @Stable
 class StepsSheetState(input: StepsSheetInput) {
 
+    /** What the session runs now: the plan and option the edits are compared with (GEN-08). */
+    internal var appliedSteps: List<PlannedStep> = input.steps.map { it.planned }
+        private set
+    internal var appliedPreAlert: PreAlertChoice = input.preAlert
+        private set
+
+    /** A restored state: [input] as edited, compared with the [appliedSteps] and [appliedPreAlert] it had. */
+    internal constructor(
+        input: StepsSheetInput,
+        appliedSteps: List<PlannedStep>,
+        appliedPreAlert: PreAlertChoice,
+    ) : this(input) {
+        this.appliedSteps = appliedSteps
+        this.appliedPreAlert = appliedPreAlert
+    }
+
     /** Whether *Im Rezept speichern* is offered. */
     val hasRecipe: Boolean = input.hasRecipe
 
@@ -108,6 +124,20 @@ class StepsSheetState(input: StepsSheetInput) {
     /** *Im Rezept speichern* was tapped and its confirmation has not been shown yet (a one-shot event). */
     var confirmationPending: Boolean by mutableStateOf(false)
         private set
+
+    /**
+     * The plan or the pre-alert option differs from what the session runs (GEN-08):
+     * closing the sheet other than with *Fertig* then asks „Änderungen verwerfen?".
+     * Edits undone by hand count as no edits.
+     */
+    val isDirty: Boolean
+        get() = steps.map { it.planned } != appliedSteps || preAlert != appliedPreAlert
+
+    /** *Verwerfen*: back to what the session runs, so a reopened sheet shows no stale edits. */
+    fun discard() {
+        steps = steps.withPlanned(appliedSteps)
+        preAlert = appliedPreAlert
+    }
 
     /** Done, running and skipped steps are read-only (SCR-31). */
     fun isEditable(index: Int): Boolean = steps[index].status == StepStatus.PENDING
@@ -146,8 +176,15 @@ class StepsSheetState(input: StepsSheetInput) {
         confirmationPending = false
     }
 
-    /** *Fertig*: the whole plan and the pre-alert option for the engine's `editSteps` (04 §3.2). */
-    fun editRequest(): TimerEvent.EditSteps = TimerEvent.EditSteps(steps.map { it.planned }, preAlert)
+    /**
+     * *Fertig*: the whole plan and the pre-alert option for the engine's `editSteps` (04 §3.2).
+     * The host applies it, so the sheet counts it as applied: it is no longer [isDirty].
+     */
+    fun editRequest(): TimerEvent.EditSteps {
+        appliedSteps = steps.map { it.planned }
+        appliedPreAlert = preAlert
+        return TimerEvent.EditSteps(appliedSteps, preAlert)
+    }
 
     /** *Im Rezept speichern*: the request, and the confirmation snackbar. */
     fun saveRequest(): SaveToRecipeRequest {
@@ -157,12 +194,15 @@ class StepsSheetState(input: StepsSheetInput) {
 
     companion object {
         /** Keeps the edits across configuration changes and process death. */
-        val Saver: Saver<StepsSheetState, Any> = Saver(
-            save = { state -> encode(state) },
-            restore = { value -> decode(value) },
-        )
+        val Saver: Saver<StepsSheetState, Any> = StepsSheetStateSaver
     }
 }
+
+/** These steps with the planned values of [planned], keeping each step's status by position. */
+private fun List<StepsSheetStep>.withPlanned(planned: List<PlannedStep>): List<StepsSheetStep> =
+    planned.mapIndexed { i, step ->
+        StepsSheetStep(step.kind, step.plannedSeconds, step.tempC, getOrNull(i)?.status ?: StepStatus.PENDING)
+    }
 
 /** A [StepsSheetState] for [input] that survives configuration changes; a new input starts over. */
 @Composable
@@ -224,46 +264,3 @@ internal fun cooler(tempC: Int): Int =
 private fun nextMultiple(value: Int, unit: Int): Int = Math.floorDiv(value, unit) * unit + unit
 
 private fun previousMultiple(value: Int, unit: Int): Int = Math.floorDiv(value - 1, unit) * unit
-
-// Saver encoding: [hasRecipe, baseTempC?, preAlert, (kind, seconds, tempC?, status)*]. A pending
-// confirmation is not kept, so a configuration change never shows it again.
-private const val INHERIT_CODE = -1
-private const val HEADER_SIZE = 3
-private const val STEP_SIZE = 4
-
-private fun encode(state: StepsSheetState): List<Int?> = buildList {
-    add(if (state.hasRecipe) 1 else 0)
-    add(state.baseTempC)
-    add(
-        when (val choice = state.preAlert) {
-            PreAlertChoice.Inherit -> INHERIT_CODE
-            PreAlertChoice.Off -> 0
-            is PreAlertChoice.Seconds -> choice.seconds
-        },
-    )
-    state.steps.forEach { step ->
-        add(step.kind.ordinal)
-        add(step.plannedSeconds)
-        add(step.tempC)
-        add(step.status.ordinal)
-    }
-}
-
-private fun decode(value: Any): StepsSheetState {
-    @Suppress("UNCHECKED_CAST")
-    val codes = value as List<Int?>
-    val preAlert = when (val code = requireNotNull(codes[2])) {
-        INHERIT_CODE -> PreAlertChoice.Inherit
-        0 -> PreAlertChoice.Off
-        else -> PreAlertChoice.Seconds(code)
-    }
-    val steps = codes.drop(HEADER_SIZE).chunked(STEP_SIZE).map { step ->
-        StepsSheetStep(
-            kind = StepKind.entries[requireNotNull(step[0])],
-            plannedSeconds = requireNotNull(step[1]),
-            tempC = step[2],
-            status = StepStatus.entries[requireNotNull(step[3])],
-        )
-    }
-    return StepsSheetState(StepsSheetInput(steps, preAlert, hasRecipe = codes[0] == 1, baseTempC = codes[1]))
-}

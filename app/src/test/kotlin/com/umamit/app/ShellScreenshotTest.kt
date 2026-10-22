@@ -10,17 +10,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -39,7 +42,8 @@ import com.umamit.core.timer.R as TimerR
 
 /**
  * The shell with the bottom bar (phone) and the rail (wide window), light and
- * dark, with and without the active brew bar (M1-05). Goldens: `src/test/screenshots/`.
+ * dark, with the active brew bar running and alerting, and at font scale 2.0
+ * (M1-05, 03 §6). Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -60,21 +64,43 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
     private val variant get() = "${if (dark) "dark" else "light"}_${if (wide) "rail" else "bar"}"
 
     @Test
-    fun shell() {
+    fun shell() = captureShell(fontScale = 1f, name = "Shell_$variant")
+
+    /** 03 §6: 200 % font scale without loss of essential content (bar labels, top bar title, brew bar). */
+    @Test
+    fun shellAtFontScale2() = captureShell(fontScale = 2f, name = "Shell_${variant}_font2_0")
+
+    /** The brew bar while the step alerts (03 §3.8): static matcha, „Jetzt abgießen!", overtime. */
+    @Test
+    fun shellWhileAlerting() = captureShell(
+        fontScale = 1f,
+        name = "Shell_${variant}_alerting",
+        brew = ActiveBrew("Gyokuro", "Aufguss 2/3", 0, Color(0xFF8DA36B), alerting = true, overtimeSeconds = 7),
+    )
+
+    private fun captureShell(
+        fontScale: Float,
+        name: String,
+        brew: ActiveBrew = ActiveBrew("Gyokuro", "Aufguss 2/3", 45, Color(0xFF8DA36B)),
+    ) {
         RuntimeEnvironment.setQualifiers(if (wide) "w900dp-h500dp-xhdpi" else "w411dp-h891dp-xhdpi")
-        val brew = MutableStateFlow<ActiveBrew?>(ActiveBrew("Gyokuro", "Aufguss 2/3", 45, Color(0xFF8DA36B)))
+        val source = MutableStateFlow<ActiveBrew?>(brew)
+        val layout = if (wide) NavigationSuiteType.NavigationRail else NavigationSuiteType.NavigationBar
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
-                UmamitApp(
-                    activeBrewSource = object : ActiveBrewSource {
-                        override val activeBrew: StateFlow<ActiveBrew?> = brew
-                        override val progress: () -> Float = { 0.4f }
-                    },
-                    layoutType = if (wide) NavigationSuiteType.NavigationRail else NavigationSuiteType.NavigationBar,
-                )
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                    UmamitApp(
+                        activeBrewSource = object : ActiveBrewSource {
+                            override val activeBrew: StateFlow<ActiveBrew?> = source
+                            override val progress: () -> Float = { 0.4f }
+                        },
+                        layoutType = layout,
+                    )
+                }
             }
         }
-        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/Shell_$variant.png")
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
     }
 
     @Test

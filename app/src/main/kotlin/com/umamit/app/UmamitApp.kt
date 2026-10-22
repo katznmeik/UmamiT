@@ -14,6 +14,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -77,9 +78,7 @@ fun UmamitApp(
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
     var segment by rememberSaveable { mutableStateOf(CollectionSegment.MyTeas) }
-    val scrollRequests = remember { mutableStateMapOf<Tab, Int>() }
-    // Tabs whose top screen was scrolled by a re-select; the next re-select pops them to the root (D-049).
-    val scrolledTabs = remember { mutableSetOf<Tab>() }
+    val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
         ?: NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
@@ -112,20 +111,7 @@ fun UmamitApp(
                 item(
                     selected = tab == selected,
                     onClick = {
-                        if (tab != selected) {
-                            selected = tab
-                            return@item
-                        }
-                        // Re-select (03 §2.2, D-049): scroll to the top first, then pop to the root.
-                        val controller = controllers.getValue(tab)
-                        val deeper = controller.previousBackStackEntry != null
-                        if (deeper && tab in scrolledTabs) {
-                            scrolledTabs.remove(tab)
-                            controller.popBackStack(tab.root, inclusive = false)
-                        } else {
-                            scrollRequests[tab] = (scrollRequests[tab] ?: 0) + 1
-                            if (deeper) scrolledTabs.add(tab)
-                        }
+                        if (tab != selected) selected = tab else reselection.reselect(tab, controllers.getValue(tab))
                     },
                     icon = { Icon(painterResource(tab.icon), contentDescription = null) },
                     label = { Text(stringResource(tab.label)) },
@@ -136,9 +122,18 @@ fun UmamitApp(
         modifier = modifier,
         layoutType = resolvedLayout,
     ) {
+        val rail = resolvedLayout != NavigationSuiteType.NavigationBar
+        // In the rail layout the brew bar applies the bottom inset below the content, so the content must not.
+        val insetBelowContent = if (rail && activeBrew != null) {
+            WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
+        } else {
+            WindowInsets(0)
+        }
         Column(modifier = Modifier.fillMaxSize()) {
             transition.AnimatedContent(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .consumeWindowInsets(insetBelowContent),
                 transitionSpec = {
                     // Fade-through: the old tab leaves, then the new one arrives (03 §3.6 `tabSwitch`).
                     fadeIn(motion.tabSwitchIn()) togetherWith fadeOut(motion.tabSwitchOut())
@@ -148,7 +143,7 @@ fun UmamitApp(
                     TabHost(
                         tab = tab,
                         navController = controllers.getValue(tab),
-                        scrollToTopRequest = scrollRequests[tab] ?: 0,
+                        scrollToTopRequest = reselection.scrollRequest(tab),
                         segment = segment,
                         onSegmentChange = { segment = it },
                     )
@@ -160,12 +155,39 @@ fun UmamitApp(
                 brew = activeBrew,
                 progress = activeBrewSource.progress,
                 onClick = {},
-                windowInsets = if (resolvedLayout == NavigationSuiteType.NavigationBar) {
+                windowInsets = if (!rail) {
                     WindowInsets(0)
                 } else {
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
                 },
             )
+        }
+    }
+}
+
+/**
+ * Re-selecting a tab (03 §2.2, D-049): the first tap scrolls the screen on top to
+ * the top, the next tap on that same screen pops a deeper stack to the root.
+ */
+private class TabReselection {
+    private val scrollRequests = mutableStateMapOf<Tab, Int>()
+
+    // Per tab, the back stack entry a re-select scrolled. Keyed by the entry, so a screen
+    // pushed again later scrolls first instead of popping.
+    private val scrolledEntries = mutableMapOf<Tab, String>()
+
+    /** A counter per tab; every increase scrolls the screen on top (a one-shot, never replayed). */
+    fun scrollRequest(tab: Tab): Int = scrollRequests[tab] ?: 0
+
+    fun reselect(tab: Tab, controller: NavHostController) {
+        val top = controller.currentBackStackEntry?.id
+        val deeper = controller.previousBackStackEntry != null
+        if (deeper && top != null && scrolledEntries[tab] == top) {
+            scrolledEntries.remove(tab)
+            controller.popBackStack(tab.root, inclusive = false)
+        } else {
+            scrollRequests[tab] = scrollRequest(tab) + 1
+            if (deeper && top != null) scrolledEntries[tab] = top else scrolledEntries.remove(tab)
         }
     }
 }

@@ -26,7 +26,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,8 +36,8 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 
 /**
  * A top-level screen (03 §2): top bar with [title], a vertically scrolling body
- * and edge-to-edge insets. The bottom inset is left to the navigation bar that
- * hosts the screen.
+ * and edge-to-edge insets. The bottom inset applies only where the host has not
+ * consumed it (the navigation bar and the active brew bar do).
  *
  * @param scrollToTopRequest a counter; every increase scrolls the body to the top
  *   (re-selecting the tab, 03 §2.2).
@@ -54,8 +53,10 @@ fun ScreenScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState = rememberScrollState()
-    // The request is a counter; only an increase seen by this screen scrolls, so it never replays on return.
-    var handled by rememberSaveable { mutableIntStateOf(scrollToTopRequest) }
+    // The request is a counter; only an increase while this screen is composed scrolls. Not saveable on
+    // purpose: a screen composed again (return from a pushed screen, tab switch, rotation) adopts the
+    // current count, so a request is never replayed and a reset counter never swallows the next ones (D-049).
+    var handled by remember { mutableIntStateOf(scrollToTopRequest) }
     LaunchedEffect(scrollToTopRequest) {
         if (scrollToTopRequest > handled) {
             handled = scrollToTopRequest
@@ -67,7 +68,11 @@ fun ScreenScaffold(
         topBar = {
             TopAppBar(title = { Text(title) }, navigationIcon = navigationIcon, actions = actions)
         },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.End),
+        // Bottom too: the bar layout has consumed it already (phones are unchanged), but the rail
+        // layout has not, so the last item of a list stays clear of the gesture handle.
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom,
+        ),
     ) { padding ->
         Column(
             modifier = Modifier

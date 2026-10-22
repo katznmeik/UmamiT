@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.lerp
@@ -32,6 +33,11 @@ import kotlinx.coroutines.withContext
  * - under reduce motion it is a static matcha surface;
  * - the content is never faded, moved or hidden: it sits on top in
  *   `AlertColors.content`, readable on both washi and matcha.
+ *
+ * The surface makes the design-system components on it alert-safe by itself
+ * ([LocalOnAlertSurface]): with their default parameters, `TimerRing` draws in
+ * ink without liquor and `PillButton` becomes an ink pill with washi text, so
+ * every element keeps ≥ 4.5:1 (text) and ≥ 3:1 (controls) in both pulse phases.
  *
  * Compose it only while ALERTING; it starts pulsing at full matcha when it enters
  * the composition and again each time the app returns to the foreground.
@@ -65,8 +71,15 @@ fun AlertSurface(
             drawRect(lerp(colors.washi, colors.matcha, matchaFraction))
         },
     ) {
-        CompositionLocalProvider(LocalContentColor provides colors.content) {
+        CompositionLocalProvider(LocalContentColor provides colors.content, LocalOnAlertSurface provides true) {
             content()
         }
     }
 }
+
+/**
+ * `true` inside an [AlertSurface]. Components read it to pick their alert colours
+ * (`TimerRingDefaults.colors()`, `PillButtonDefaults.colors()`), so a host cannot
+ * forget them and make an element vanish in one pulse phase (rule 8).
+ */
+val LocalOnAlertSurface = staticCompositionLocalOf { false }
