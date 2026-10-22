@@ -1,7 +1,5 @@
 package com.umamit.feature.brew.timer
 
-import android.view.WindowManager
-import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.Image
@@ -28,62 +26,47 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.umamit.core.designsystem.component.AlertSurface
 import com.umamit.core.designsystem.component.KettleHint
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ReliabilityBanner
 import com.umamit.core.designsystem.component.TimerRing
+import com.umamit.core.designsystem.component.TimerRingColors
+import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
@@ -93,11 +76,6 @@ import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.steps.StepsSheet
-import com.umamit.feature.brew.steps.StepsSheetInput
-import com.umamit.feature.brew.steps.StepsSheetStep
-import com.umamit.feature.brew.steps.rememberStepsSheetState
-import kotlinx.coroutines.delay
 
 private val PhotoHeight = 280.dp
 private val PhotoOverlap = 150.dp
@@ -119,7 +97,8 @@ internal fun TimerBody(
     teaPhoto: Painter?,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        if (teaPhoto != null) TeaPhoto(teaPhoto)
+        // No photo on the alert surface, but its space stays, so nothing moves when the alert starts.
+        if (teaPhoto != null && !state.alerting) TeaPhoto(teaPhoto)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -129,23 +108,39 @@ internal fun TimerBody(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TimerTopBar(state, overlays, actions)
-            if (reliabilityProblem && !state.alerting) {
-                ReliabilityBanner(
-                    message = stringResource(R.string.brew_timer_reliability),
-                    onFix = onFixReliability,
-                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
-                )
-            }
             if (teaPhoto != null) Spacer(Modifier.height(PhotoOverlap))
             TimerHeader(state)
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerRingArea(state, now, nowElapsedMs, actions)
             Spacer(Modifier.height(UmamiSpacing.Medium))
-            TimerBelowRing(state, now)
+            // One fixed slot for the kettle hint and the overtime: the pill below never moves under the
+            // finger, not at *Start*, not when the alert starts, not when the overtime turns large.
+            Box(modifier = Modifier.heightIn(min = belowRingMinHeight()), contentAlignment = Alignment.Center) {
+                TimerBelowRing(state, now)
+            }
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerControls(state, actions)
+            // Below the controls, so it never moves them; hidden during the alert.
+            if (reliabilityProblem && !state.alerting) {
+                ReliabilityBanner(
+                    message = stringResource(R.string.brew_timer_reliability),
+                    onFix = onFixReliability,
+                    modifier = Modifier.padding(
+                        top = UmamiSpacing.Large,
+                        start = UmamiSpacing.SideMargin,
+                        end = UmamiSpacing.SideMargin,
+                    ),
+                )
+            }
         }
     }
+}
+
+/** The height of the slot below the ring: two lines of the kettle hint or one line of the large overtime. */
+@Composable
+private fun belowRingMinHeight(): Dp = with(LocalDensity.current) {
+    val typography = MaterialTheme.typography
+    maxOf(typography.headlineMedium.lineHeight.toDp(), (typography.bodyLarge.lineHeight * 2).toDp())
 }
 
 /** The tea photo at the top, fading into the background (SCR-05). Decorative: the title names the tea. */
@@ -185,9 +180,13 @@ private fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, act
                     contentDescription = stringResource(R.string.brew_timer_more),
                 )
             }
-            DropdownMenu(expanded = overlays.menuShown, onDismissRequest = { overlays.menuOpen = false }) {
-                state.menuItems().forEach { item ->
-                    DropdownMenuItem(text = { Text(stringResource(item.label)) }, onClick = { actions.menu(item) })
+            // Not composed once the alert hides it: Material's menu would otherwise keep its popup for the
+            // exit animation over the first frames of the alert (rule 8). A normal close still animates.
+            if (overlays.menuShown || !overlays.alerting) {
+                DropdownMenu(expanded = overlays.menuShown, onDismissRequest = { overlays.menuOpen = false }) {
+                    state.menuItems().forEach { item ->
+                        DropdownMenuItem(text = { Text(stringResource(item.label)) }, onClick = { actions.menu(item) })
+                    }
                 }
             }
         }
@@ -285,7 +284,8 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
     } else {
         remember(coarse) { { coarse } }
     }
-    val ringAlpha by animateFloatAsState(
+    // PAUSED dims only the ring, the liquor and the marker; digits and caption keep ≥ 4.5:1 (03 §6, D-058).
+    val dim by animateFloatAsState(
         targetValue = if (state.phase == TimerPhase.PAUSED) PAUSED_RING_ALPHA else 1f,
         animationSpec = UmamiTheme.motion.fade(),
         label = "pausedRing",
@@ -299,11 +299,12 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
         liquorColor = UmamiTheme.extendedColors.liquor.green,
         stepDescription = step?.let { stepLabel(it.kind, state.stepIndex, state.steps.size) },
         preAlertPosition = state.preAlertPosition(),
-        preAlertGlowTick = state.deadlineElapsedMs.takeIf { state.preAlertPlayed },
+        // One identity per step: a resume after the pre-alert must not replay the glow (D-046).
+        preAlertGlowTick = (state.stepIndex + 1L).takeIf { state.preAlertPlayed },
         longStep = state.longStep,
+        colors = TimerRingDefaults.colors().dimmed(dim),
         modifier = Modifier
             .testTag(TIMER_RING_TAG)
-            .alpha(ringAlpha)
             .then(
                 if (ready) {
                     Modifier.clickable(onClickLabel = startLabel) { actions.event(TimerEvent.Start) }
@@ -311,6 +312,19 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
                     Modifier
                 },
             ),
+    )
+}
+
+/** These colours with the ring, the liquor and the marker at [factor]; the digits and the caption unchanged. */
+internal fun TimerRingColors.dimmed(factor: Float): TimerRingColors = if (factor >= 1f) {
+    this
+} else {
+    copy(
+        track = track.copy(alpha = track.alpha * factor),
+        progress = progress.copy(alpha = progress.alpha * factor),
+        marker = marker.copy(alpha = marker.alpha * factor),
+        glow = glow.copy(alpha = glow.alpha * factor),
+        liquorAlpha = liquorAlpha * factor,
     )
 }
 

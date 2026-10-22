@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -324,6 +327,26 @@ class TimerScreenTest {
         compose.onNodeWithText("Abgegossen").assertExists()
     }
 
+    private fun advanceTwoFrames() = repeat(2) {
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `a menu left open is gone, without its exit animation, when the alert starts`() {
+        show(TimerStates.running(stepIndex = 1))
+        openMenu()
+        compose.onNodeWithText("Aufguss jetzt beenden").assertIsDisplayed()
+
+        compose.mainClock.autoAdvance = false
+        state = TimerStates.alerting()
+        advanceTwoFrames()
+
+        compose.onNode(isPopup()).assertDoesNotExist()
+        compose.onNodeWithText("Aufguss jetzt beenden").assertDoesNotExist()
+        compose.onNodeWithText("Abgegossen").assertExists()
+    }
+
     @Test
     fun `a menu or a question opened before the alert is gone when it starts`() {
         show(TimerStates.running(stepIndex = 1))
@@ -403,6 +426,47 @@ class TimerScreenTest {
         }
         compose.waitForIdle()
         assertThat(brightness()).isEqualTo(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
+    }
+
+    @Test
+    fun `the alert is bright in its first frame`() {
+        show(TimerStates.running(remainingMs = 48_000))
+        compose.mainClock.advanceTimeBy(11_000)
+        assertThat(brightness()).isEqualTo(DIMMED_BRIGHTNESS)
+        compose.mainClock.autoAdvance = false
+
+        Snapshot.withMutableSnapshot { state = TimerStates.alerting() }
+        compose.mainClock.advanceTimeByFrame()
+
+        assertThat(brightness()).isEqualTo(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
+    }
+
+    @Test
+    fun `closing the menu counts as a touch, so the screen does not dim right after it`() {
+        show(TimerStates.running(remainingMs = 48_000))
+        openMenu()
+        compose.mainClock.advanceTimeBy(12_000)
+        assertThat(brightness()).isEqualTo(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
+
+        Espresso.pressBack()
+        compose.waitForIdle()
+        assertThat(brightness()).isEqualTo(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
+        compose.mainClock.advanceTimeBy(10_100)
+
+        assertThat(brightness()).isEqualTo(DIMMED_BRIGHTNESS)
+    }
+
+    @Test
+    fun `the first frame after Start reads the clock fresh, not the time of READY`() {
+        show(TimerStates.ready())
+        compose.mainClock.advanceTimeBy(60_000)
+        compose.mainClock.autoAdvance = false
+
+        // Started now: 20 s left. A stale clock from READY would show 1:20.
+        Snapshot.withMutableSnapshot { state = TimerStates.running(remainingMs = 80_000) }
+        compose.mainClock.advanceTimeByFrame()
+
+        ring().assert(hasDescriptionContaining("noch 20 Sekunden"))
     }
 
     @Test

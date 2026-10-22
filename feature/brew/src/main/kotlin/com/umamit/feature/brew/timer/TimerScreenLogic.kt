@@ -176,6 +176,8 @@ internal fun TimerUiState.Active.caption(now: Long): Int = when (phase) {
 internal fun TimerUiState.Active.preAlertPosition(): Float? {
     val planned = currentStep?.plannedSeconds
     val lead = preAlertLeadSeconds
-    val shown = planned != null && lead != null && !longStep && phase != TimerPhase.FINISHED && planned > lead
+    // Not on the alert surface either: nothing but the alert there (D-058).
+    val shown = planned != null && lead != null && !longStep && planned > lead &&
+        phase != TimerPhase.FINISHED && phase != TimerPhase.ALERTING
     return if (shown) 1f - checkNotNull(lead).toFloat() / checkNotNull(planned) else null
 }

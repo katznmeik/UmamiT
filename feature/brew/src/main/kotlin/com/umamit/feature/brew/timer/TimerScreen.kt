@@ -1,102 +1,29 @@
 package com.umamit.feature.brew.timer
 
-import android.view.WindowManager
-import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.AlertSurface
-import com.umamit.core.designsystem.component.KettleHint
-import com.umamit.core.designsystem.component.PillButton
-import com.umamit.core.designsystem.component.ReliabilityBanner
-import com.umamit.core.designsystem.component.TimerRing
-import com.umamit.core.designsystem.icon.UmamiIcons
-import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.SteepingTheme
-import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
-import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
-import com.umamit.feature.brew.R
-import com.umamit.feature.brew.steps.StepsSheet
-import com.umamit.feature.brew.steps.StepsSheetInput
-import com.umamit.feature.brew.steps.StepsSheetStep
-import com.umamit.feature.brew.steps.rememberStepsSheetState
 import kotlinx.coroutines.delay
 
 /** Test tag of the TalkBack announcement node (a polite, while alerting assertive, live region). */
@@ -150,17 +77,22 @@ fun TimerScreen(
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
         val now by rememberTimerNow(state, nowElapsedMs)
-        val overlays = remember { TimerOverlays() }
+        val overlays = rememberTimerOverlays()
         // Alerts first (rule 8): whatever was opened before the alert is gone in the same frame.
         overlays.alerting = alerting
         LaunchedEffect(alerting) { if (alerting) overlays.closeAllOpenedBeforeAlert() }
 
         val dimming = rememberScreenDimming(
             state = state,
-            enabled = settings.dimWhileSteeping && !overlays.anyOpen,
+            enabled = settings.dimWhileSteeping,
+            interacting = overlays.anyOpen,
             nowElapsedMs = nowElapsedMs,
         )
-        TimerWindowEffects(keepScreenOn = settings.keepScreenOn, dimmed = dimming.dimmed)
+        // Decided in this composition, so the alert and the pre-alert are bright in their first frame (rule 8).
+        TimerWindowEffects(
+            keepScreenOn = settings.keepScreenOn,
+            dimmed = dimming.dimmed && state.phase == TimerPhase.RUNNING && !state.preAlertReached(now),
+        )
 
         val actions = rememberTimerActions(state, overlays, onEvent, onBack, onAdjustBrew, onOpenTimerSettings)
 
@@ -170,8 +102,10 @@ fun TimerScreen(
                 .pointerInput(dimming) {
                     awaitPointerEventScope {
                         while (true) {
-                            awaitPointerEvent(PointerEventPass.Initial)
-                            dimming.touched()
+                            // A touch is a press; moves and releases do not restart the 10 s again.
+                            if (awaitPointerEvent(PointerEventPass.Initial).type == PointerEventType.Press) {
+                                dimming.touched()
+                            }
                         }
                     }
                 },
@@ -179,7 +113,16 @@ fun TimerScreen(
             if (alerting) {
                 // `alertEnter`: no transition into the alert, the pulse starts at full matcha.
                 AlertSurface(modifier = Modifier.fillMaxSize()) {
-                    TimerBody(state, now, nowElapsedMs, overlays, actions, reliabilityProblem, onFixReliability, null)
+                    TimerBody(
+                        state,
+                        now,
+                        nowElapsedMs,
+                        overlays,
+                        actions,
+                        reliabilityProblem,
+                        onFixReliability,
+                        teaPhoto,
+                    )
                 }
             } else {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -219,17 +162,23 @@ fun TimerScreen(
     }
 }
 
-/** The clock as the screen shows it: read again at every second boundary of the display (and the pre-alert). */
+/**
+ * The clock as the screen shows it: read again at every second boundary of the
+ * display (and the pre-alert). A new state reads the clock in its first
+ * composition, so the first frame after *Start* or *Weiter* is never stale.
+ */
 @Composable
-private fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long) =
-    produceState(initialValue = nowElapsedMs(), state, nowElapsedMs) {
-        value = nowElapsedMs()
+private fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long): State<Long> {
+    val now = remember(state, nowElapsedMs) { mutableLongStateOf(nowElapsedMs()) }
+    LaunchedEffect(now) {
         while (true) {
-            val delayMs = state.nextTickDelayMs(value) ?: break
+            val delayMs = state.nextTickDelayMs(now.longValue) ?: break
             delay(delayMs)
-            value = nowElapsedMs()
+            now.longValue = nowElapsedMs()
         }
     }
+    return now
+}
 
 /** What a tap does: haptics (03 §3.6) and the controller event, or the menu item's screen or overlay. */
 @Composable

@@ -1,103 +1,33 @@
 package com.umamit.feature.brew.timer
 
-import android.view.WindowManager
-import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.umamit.core.designsystem.component.AlertSurface
-import com.umamit.core.designsystem.component.KettleHint
-import com.umamit.core.designsystem.component.PillButton
-import com.umamit.core.designsystem.component.ReliabilityBanner
-import com.umamit.core.designsystem.component.TimerRing
-import com.umamit.core.designsystem.icon.UmamiIcons
-import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.theme.SteepingTheme
-import com.umamit.core.designsystem.theme.UmamiSpacing
-import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
-import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
-import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
 import com.umamit.feature.brew.steps.StepsSheetStep
 import com.umamit.feature.brew.steps.rememberStepsSheetState
-import kotlinx.coroutines.delay
 
 /** What a tap on the screen does. */
 internal class TimerActions(val event: (TimerEvent) -> Unit, val back: () -> Unit, val menu: (TimerMenuItem) -> Unit)
@@ -115,7 +45,7 @@ internal enum class TimerConfirmation {
  * The menu, the question and the Schritte-Sheet of the timer. A menu or a
  * question opened before the alert is hidden at once when the alert starts
  * (rule 8); one opened during the alert stays. The sheet never shows while
- * alerting (D-051).
+ * alerting (D-051). All of it survives a configuration change (GEN-07).
  */
 internal class TimerOverlays {
     var alerting by mutableStateOf(false)
@@ -148,7 +78,35 @@ internal class TimerOverlays {
         if (!confirmationOpenedAlerting) confirmation = null
         stepsOpen = false
     }
+
+    companion object {
+        val Saver: Saver<TimerOverlays, Any> = Saver(
+            save = {
+                listOf(
+                    it.menuOpen,
+                    it.menuOpenedAlerting,
+                    it.confirmation?.name,
+                    it.confirmationOpenedAlerting,
+                    it.stepsOpen,
+                )
+            },
+            restore = { saved ->
+                val values = saved as List<*>
+                TimerOverlays().apply {
+                    menuOpen = values[0] as Boolean
+                    menuOpenedAlerting = values[1] as Boolean
+                    confirmation = (values[2] as String?)?.let(TimerConfirmation::valueOf)
+                    confirmationOpenedAlerting = values[3] as Boolean
+                    stepsOpen = values[4] as Boolean
+                }
+            },
+        )
+    }
 }
+
+/** The overlays of the timer, kept across configuration changes (GEN-07). */
+@Composable
+internal fun rememberTimerOverlays(): TimerOverlays = rememberSaveable(saver = TimerOverlays.Saver) { TimerOverlays() }
 
 /** The Schritte-Sheet (SCR-31) for this session, never over the alert (D-051). */
 @Composable
