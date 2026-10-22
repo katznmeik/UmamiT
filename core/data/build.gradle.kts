@@ -7,6 +7,9 @@ dependencies {
     api(project(":core:model"))
     // WallClock (repository constructors) and snap5 (GEN-12).
     api(project(":core:common"))
+    // The session repositories and the active brew store take the timer engine's
+    // planned steps, step records and snapshot (04 §4, §7.1; D-052).
+    api(project(":core:timer-engine"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     // The allow-listed shop client for the seed photo download (ONB-06, GEN-01).

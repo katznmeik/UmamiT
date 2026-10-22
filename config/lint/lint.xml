@@ -15,9 +15,4 @@
 
     <!-- D-023: compileSdk and targetSdk are deliberately pinned to 36. -->
     <issue id="OldTargetApi" severity="ignore" />
-
-    <!-- TODO(M1-06): data_extraction_rules.xml (05 §8) arrives with M1-06; remove this entry then. -->
-    <issue id="DataExtractionRules">
-        <ignore path="**/app/src/main/AndroidManifest.xml" />
-    </issue>
 </lint>

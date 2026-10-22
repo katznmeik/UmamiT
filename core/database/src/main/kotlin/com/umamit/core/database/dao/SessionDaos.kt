@@ -1,14 +1,19 @@
 package com.umamit.core.database.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.Upsert
 import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import kotlinx.coroutines.flow.Flow
 
-/** Row access to `brew_session` and `session_step` (05 §3.6, §3.7); the lifecycle comes with #36. */
+/**
+ * Row access to `brew_session` and `session_step` (05 §3.6, §3.7). The lifecycle and its
+ * transactions are in core:data (`RoomSessionRepository`).
+ */
 @Dao
 interface SessionDao {
     @Query("SELECT * FROM brew_session WHERE id = :id")
@@ -17,23 +22,35 @@ interface SessionDao {
     @Query("SELECT * FROM brew_session WHERE status != 'IN_PROGRESS' ORDER BY started_at DESC")
     fun observeFinished(): Flow<List<BrewSessionEntity>>
 
-    @Upsert
-    suspend fun upsert(session: BrewSessionEntity)
+    @Insert
+    suspend fun insert(session: BrewSessionEntity)
 
+    @Update
+    suspend fun update(session: BrewSessionEntity)
+
+    /** Deletes the session; its steps, its stock event and the active brew go with it (FK CASCADE). */
     @Query("DELETE FROM brew_session WHERE id = :id")
     suspend fun delete(id: String)
 
     @Query("SELECT * FROM session_step WHERE session_id = :sessionId ORDER BY position")
     suspend fun steps(sessionId: String): List<SessionStepEntity>
 
-    @Query("SELECT * FROM session_step WHERE session_id = :sessionId ORDER BY position")
-    fun observeSteps(sessionId: String): Flow<List<SessionStepEntity>>
+    @Insert
+    suspend fun insertSteps(steps: List<SessionStepEntity>)
 
-    @Upsert
-    suspend fun upsertSteps(steps: List<SessionStepEntity>)
+    @Update
+    suspend fun updateSteps(steps: List<SessionStepEntity>)
 
-    @Query("DELETE FROM session_step WHERE id IN (:ids)")
-    suspend fun deleteSteps(ids: List<String>)
+    /** Deletes the rows of [sessionId] from [position] on: the pending suffix (05 §3.7). */
+    @Query("DELETE FROM session_step WHERE session_id = :sessionId AND position >= :position")
+    suspend fun deleteStepsFrom(sessionId: String, position: Int)
+
+    /** Deletes the rows that were never started, i.e. carry no recorded values (05 §3.7, TMR-12). */
+    @Query("DELETE FROM session_step WHERE session_id = :sessionId AND actual_seconds IS NULL")
+    suspend fun deleteUnrecordedSteps(sessionId: String)
+
+    @Query("UPDATE brew_session SET pre_alert_seconds = :preAlertSeconds, updated_at = :now WHERE id = :id")
+    suspend fun setPreAlert(id: String, preAlertSeconds: Int, now: Long)
 }
 
 /** The single `active_brew` row (05 §3.12). */
@@ -41,9 +58,6 @@ interface SessionDao {
 interface ActiveBrewDao {
     @Query("SELECT * FROM active_brew WHERE id = ${ActiveBrewEntity.SINGLE_ROW_ID}")
     suspend fun get(): ActiveBrewEntity?
-
-    @Query("SELECT * FROM active_brew WHERE id = ${ActiveBrewEntity.SINGLE_ROW_ID}")
-    fun observe(): Flow<ActiveBrewEntity?>
 
     @Upsert
     suspend fun upsert(activeBrew: ActiveBrewEntity)

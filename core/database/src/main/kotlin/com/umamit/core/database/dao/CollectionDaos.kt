@@ -14,6 +14,7 @@ import com.umamit.core.database.entity.PhotoEntity
 import com.umamit.core.database.entity.TeaEntity
 import com.umamit.core.database.entity.VesselEntity
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 
 // Writes use @Upsert (insert or update), never REPLACE: a REPLACE deletes the row
 // first and would cascade into its recipes, steps, photos and stock events.
@@ -61,6 +62,10 @@ interface TeaDao {
 
     @Query("UPDATE tea SET cover_photo_id = :photoId, updated_at = :now WHERE id = :teaId")
     suspend fun setCoverPhoto(teaId: String, photoId: String?, now: Long)
+
+    /** *Geöffnet am* (INV-06). */
+    @Query("UPDATE tea SET opened_date = :openedDate, updated_at = :now WHERE id = :teaId")
+    suspend fun setOpenedDate(teaId: String, openedDate: LocalDate, now: Long)
 
     @Upsert
     suspend fun upsertPhoto(photo: PhotoEntity)
@@ -142,6 +147,9 @@ interface VesselDao {
 interface InventoryDao {
     @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
     fun observeForTea(teaId: String): Flow<List<InventoryEventEntity>>
+
+    @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
+    suspend fun eventsForTea(teaId: String): List<InventoryEventEntity>
 
     @Query("SELECT * FROM inventory_event WHERE id = :id")
     suspend fun get(id: String): InventoryEventEntity?
