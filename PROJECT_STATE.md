@@ -41,9 +41,12 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. Start `/implement-spec` on spec #27 (tickets #28–#39); later the design
-   and motion check #39.
-3. At the M1 PR: test the release candidate and listen to all alert sounds
+2. Design and motion check [#39](https://github.com/katznmeik/UmamiT/issues/39):
+   judge the GIFs and screenshots (pre-alert glow strength, alert pulse,
+   light-green *Aufguss starten* card in dark mode) and reply in the session.
+3. Start the next spec (M1 waves 4–7: M1-09 … M1-18, M1-20) with `/to-spec`
+   (working agreement: the PO starts each spec).
+4. At the M1 PR: test the release candidate and listen to all alert sounds
    via *Alarm testen* (the default was chosen in D-045).
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
@@ -68,12 +71,31 @@ job, signing, release workflow, probe screen, exact-alarm/FGS/Live Update/
 full-screen probe and synthesised sounds; `v0.0.2-probe` passed on the
 Galaxy (D-040 gate open for M1-09/M1-11).
 
-1. Spec [#27](https://github.com/katznmeik/UmamiT/issues/27) for M1 waves
-   2–3 (M1-04 … M1-08, M1-19, M1-21, motion section in 03 §3.6) is written
-   (`ready-for-agent`) and broken into tickets #28–#39 (sub-issues of #27;
-   frontier #28 engine lifecycle, #29 design system foundation, #30 data
-   layer; #39 is the PO's design and motion check). Next: `/implement-spec`
-   on #27, on the same branch and PR #25.
+Spec [#27](https://github.com/katznmeik/UmamiT/issues/27) (M1 waves 2–3,
+tickets #28–#38) is implemented and merged on the M1 branch (PR #25):
+`BrewTimerEngine` (all of 04 §3–§5, §7.2, §10; 196 tests, 100 % line
+coverage), Room schema v1 (frozen from `v0.1.0-rc.1`), repositories,
+settings, session lifecycle, active-brew store, backup rules and restore
+detection, seed teas/vessels/stock, allow-listed shop client and one-time
+seed photo download, design system with motion tokens, TimerRing/alert
+surface/active brew bar, navigation shell, icons, Schritte-Sheet, motion
+GIFs. Per-ticket reviews (T4 design review of the engine, T3 recovery
+review, T4 security review of the network client, motion reviews of every UI
+ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
+
+1. The PO's design and motion check #39 (`ready-for-human`); feedback is
+   folded into 03 §3.6 and the components before the timer screen is built.
+2. The PO starts the next spec (waves 4–7: M1-09 background integration,
+   M1-10 alerts, M1-11 Live Update, M1-12 timer screen, M1-13 Start and
+   setup, M1-14 quick timer, M1-15 Einrichtung and settings, M1-16 journal,
+   M1-17 renders, M1-18 review and releases, M1-20 diagnostics) with
+   `/to-spec`. Notes for it: hosts pass `alerting` to the Schritte-Sheet
+   (D-051); the controller follows 04 §4/§7.1 (read `now` in the event lock,
+   one `Recover` per process, idempotent `StartAlert`, `ShowSavedSheet` as
+   `NotifySessionSaved` on *Beenden & neu starten*); after a device restore an
+   `IN_PROGRESS` session row must be finished or discarded (#36);
+   `SeedDataSeeder` and `SeedPhotoDownloader` are called from first start
+   (M1-15); rail-layout insets go on the on-device checklist.
 2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
    something on the device needs re-checking).
 
@@ -98,6 +120,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-22 | Spec #27 implemented via `/implement-spec`: tickets #28–#38 merged on PR #25 with per-ticket reviews; T4 slice review (engine, data/network/backup, UI) fixed (D-054, D-055); CI hardened (emulator/system-image cache with retries, schema freshness and frozen-schema checks); flaky probe and network tests fixed. #39 (PO design and motion check) open. |
 | 2026-10-22 | Spec #27 broken into 12 tickets #28–#39 via `/to-tickets` (granularity, blockers and the PO ticket #39 approved by the PO). Spec #27 for M1 waves 2–3 written via `/to-spec` (4 test seams agreed with the PO: engine reducer, data layer with MockWebServer, Compose rendering incl. record-only motion GIFs, CI pipeline). |
 | 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent; the PO chose C + C (D-045, committed). The countdown also appeared in the Now Bar. Run stopped after #17 as agreed. |
 | 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
