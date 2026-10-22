@@ -163,8 +163,12 @@ class HomeViewModel @Inject constructor(
 
             is TransitionOutcome.Rejected -> if (outcome.reason is RejectionReason.ActiveTimerExists) {
                 val timer = starter.state.value
-                pending.value =
-                    Pending(request, HomeQuestion((timer as? TimerUiState.Active)?.teaName), timer.alertKey())
+                if (timer.alertKey() != null) {
+                    // No question over an alert (rule 8): the alerting timer is where to go now.
+                    navigation.send(HomeEvent.OpenTimer)
+                } else {
+                    pending.value = Pending(request, HomeQuestion((timer as? TimerUiState.Active)?.teaName), null)
+                }
             }
 
             TransitionOutcome.Ignored -> Unit

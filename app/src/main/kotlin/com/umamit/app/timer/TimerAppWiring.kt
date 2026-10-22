@@ -56,9 +56,13 @@ object TimerAppModule {
     @Provides
     fun brewTimer(): BrewTimer = NoBrewTimer
 
-    /** Start and the setup (M1-13); with #42 `@Binds fun brewStarter(impl: ControllerBrewStarter): BrewStarter`. */
+    /**
+     * Start and the setup (M1-13) start brews through the same object as the timer, so this follows the
+     * `brewTimer` binding: [NoBrewTimer] now, `ControllerBrewTimer` once the controller is bound (#47).
+     */
     @Provides
-    fun brewStarter(): BrewStarter = NoBrewTimer
+    fun brewStarter(timer: BrewTimer): BrewStarter =
+        checkNotNull(timer as? BrewStarter) { "the bound BrewTimer must also start brews (BrewStarter)" }
 
     @Provides
     fun timerReliability(@ApplicationContext context: Context): TimerReliability = PermissionTimerReliability(

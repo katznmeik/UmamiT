@@ -1,7 +1,12 @@
 package com.umamit.feature.brew.setup
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -57,7 +62,7 @@ class BrewSetupScreenTest {
         SeedData.recipes.forEach { collection.recipes.saveRecipe(it) }
     }
 
-    private fun show() {
+    private fun show(reduceMotion: Boolean = true) {
         val viewModel = BrewSetupViewModel(
             SavedStateHandle(mapOf(BrewSetupViewModel.TEA_ID to SeedData.HISUI_TEA_ID)),
             collection.teas,
@@ -69,7 +74,7 @@ class BrewSetupScreenTest {
             starter,
         )
         compose.setContent {
-            UmamiTheme(reduceMotion = true) {
+            UmamiTheme(reduceMotion = reduceMotion) {
                 BrewSetupRoute(onBack = {}, onOpenTimer = { timerOpened++ }, viewModel = viewModel)
             }
         }
@@ -93,19 +98,66 @@ class BrewSetupScreenTest {
     }
 
     @Test
-    fun `Im Rezept speichern shows only after a change, and leaves once saved (BRW-02)`() {
+    fun `Im Rezept speichern shows only after a change, then confirms in place (BRW-02)`() {
         show()
         compose.onNodeWithTag(SETUP_SAVE_TAG).assertDoesNotExist()
 
         compose.onNodeWithContentDescription("Mehr Wasser").performClick()
-        compose.onNodeWithText("255 ml").assertIsDisplayed()
-        compose.onNodeWithText("5,1 g").assertIsDisplayed()
+        compose.onNodeWithText("255\u00A0ml").assertIsDisplayed()
+        compose.onNodeWithText("5,1\u00A0g").assertIsDisplayed()
         compose.onNodeWithTag(SETUP_SAVE_TAG).performScrollTo().assertIsDisplayed().performClick()
         compose.waitForIdle()
 
         compose.onNodeWithTag(SETUP_SAVE_TAG).assertDoesNotExist()
+        compose.onNodeWithText("Im Rezept gespeichert").assertIsDisplayed()
         val saved = runBlocking { collection.recipes.getRecipe(SeedData.recipes[2].id)!! }
         assertThat(saved.waterMl).isEqualTo(255)
+    }
+
+    @Test
+    fun `Bruehen starten does not move under the finger after Im Rezept speichern (D-058)`() {
+        show(reduceMotion = false)
+        compose.onNodeWithContentDescription("Mehr Wasser").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(SETUP_SAVE_TAG).performScrollTo()
+        compose.waitForIdle()
+        val before = compose.onNodeWithTag(SETUP_START_TAG).fetchSemanticsNode().boundsInRoot
+
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithTag(SETUP_SAVE_TAG).performClick()
+        // Every frame of the swap to „Im Rezept gespeichert": the start button stays where it was.
+        repeat(30) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+            assertThat(compose.onNodeWithTag(SETUP_START_TAG).fetchSemanticsNode().boundsInRoot).isEqualTo(before)
+        }
+    }
+
+    @Test
+    fun `the ratio lock is one switch node with its state and the ratio (03 §6)`() {
+        show()
+
+        compose.onNode(hasText("Verhältnis halten") and isToggleable())
+            .assertIsOn()
+            .assert(hasText("2,0\u00A0g / 100\u00A0ml"))
+            .performClick()
+            .assertIsOff()
+        // Label and value of a stepper row are one node.
+        compose.onNode(hasText("Wasser") and hasText("250\u00A0ml")).assertExists()
+    }
+
+    @Test
+    fun `a start refused during an alert opens the timer instead of asking (rule 8)`() {
+        starter.state.value = FakeBrewStarter.readyState(tanabata(), "other")
+            .copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        show()
+
+        tapStart()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Erst die Bio Sencha Tanabata-Sitzung beenden?").assertDoesNotExist()
+        assertThat(timerOpened).isEqualTo(1)
+        assertThat(starter.starts).isEmpty()
     }
 
     @Test
@@ -138,10 +190,11 @@ class BrewSetupScreenTest {
     }
 
     @Test
-    fun `Bearb opens the Schritte-Sheet, and an alert removes it in the same frame (rule 8)`() {
+    fun `Bearb opens the Schritte-Sheet, and an alert removes it at once, without the close animation (rule 8)`() {
         val waiting = FakeBrewStarter.readyState(tanabata(), "other")
         starter.state.value = waiting.copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 1, deadlineWallMs = 1)
-        show()
+        // With motion on, a normal close would still be sliding after two frames; only the alert gate is instant.
+        show(reduceMotion = false)
 
         compose.onNodeWithTag(SETUP_STEPS_EDIT_TAG).performScrollTo().performClick()
         compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()

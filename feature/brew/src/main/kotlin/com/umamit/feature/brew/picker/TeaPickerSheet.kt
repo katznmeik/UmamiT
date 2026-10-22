@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -44,7 +43,6 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.brew.R
-import kotlinx.coroutines.launch
 
 const val TEA_PICKER_TAG = "tea_picker"
 
@@ -107,8 +105,10 @@ internal fun AlertGate(
  * The stateless tea picker sheet (SCR-03): search, *Zuletzt*, *Favoriten*,
  * *Alle* and the footer *Ohne Tee (Schnelltimer)*. It opens expanded with
  * Material's calm sheet motion, like the Schritte-Sheet (D-051); under reduce
- * motion it appears and leaves without the slide. A pick lets the sheet leave
- * first, then calls back.
+ * motion it appears without the slide. A pick calls back in the tap's frame:
+ * the host closes the sheet and opens the next route, whose fade is the only
+ * transition (no sheet exit before it), and nothing can navigate after an
+ * alert has started (rule 8, D-062).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,15 +121,6 @@ fun TeaPickerSheet(
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
     val sheetState = rememberPickerSheetState(reduceMotion)
-    val scope = rememberCoroutineScope()
-    // The sheet leaves, then the host navigates: the pick never jumps under a sliding sheet.
-    val leaveThen: (() -> Unit) -> Unit = { action ->
-        if (reduceMotion) {
-            action()
-        } else {
-            scope.launch { sheetState.hide() }.invokeOnCompletion { action() }
-        }
-    }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -160,14 +151,14 @@ fun TeaPickerSheet(
                     .fillMaxWidth()
                     .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
             )
-            PickerLists(state) { id -> leaveThen { onPickTea(id) } }
+            PickerLists(state, onPickTea)
             HorizontalDivider(
                 modifier = Modifier.padding(top = UmamiSpacing.Small),
                 thickness = UmamiSpacing.Hairline,
                 color = MaterialTheme.colorScheme.outline,
             )
             OutlinedButton(
-                onClick = { leaveThen(onQuickTimer) },
+                onClick = onQuickTimer,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),

@@ -1,6 +1,8 @@
 package com.umamit.feature.brew.timer
 
 import com.umamit.core.timer.controller.BrewSessionController
+import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -20,8 +22,10 @@ interface BrewTimer {
     suspend fun send(event: TimerEvent): TransitionOutcome
 }
 
-/** The [BrewTimer] of the app: the controller itself. */
-class ControllerBrewTimer @Inject constructor(private val controller: BrewSessionController) : BrewTimer {
+/** The [BrewTimer] of the app: the controller itself, which also starts brews ([BrewStarter], M1-13). */
+class ControllerBrewTimer @Inject constructor(private val controller: BrewSessionController) :
+    BrewTimer,
+    BrewStarter by ControllerBrewStarter(controller) {
     override val state: StateFlow<TimerUiState> get() = controller.state
 
     override suspend fun send(event: TimerEvent): TransitionOutcome = controller.send(event)

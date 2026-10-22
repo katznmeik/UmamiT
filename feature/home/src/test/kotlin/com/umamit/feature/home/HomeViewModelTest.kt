@@ -197,6 +197,23 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `brewing again while the active step alerts opens the timer instead of asking (rule 8)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+        val active = starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active
+        starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.state.value.question).isNull()
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+        assertThat(starter.starts).hasSize(1)
+    }
+
+    @Test
     fun `an alert closes the question (rule 8)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)

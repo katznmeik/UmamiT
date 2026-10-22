@@ -114,7 +114,8 @@ fun HomeScreen(
                 Lists(state, actions)
             }
         }
-        val question = state.question
+        // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
+        val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
             FinishActiveSessionDialog(
                 teaName = question.teaName,

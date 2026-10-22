@@ -312,7 +312,9 @@ personal data or shop content).
   (06 §3), so Start (`feature:home`) and the setup (`feature:brew`) start a
   brew through `BrewStarter` (`state`, `startSession`,
   `finishActiveAndStart`); `ControllerBrewStarter` is the controller behind
-  it. Until #42 the app binds `NoBrewTimer` for it too: starts are ignored and
+  it, and `ControllerBrewTimer` implements both seams. The app binds
+  `BrewStarter` to whatever `BrewTimer` is bound to, so it follows the
+  controller when #47 binds it; until then `NoBrewTimer` ignores starts and
   the screen stays. *Beenden & neu starten* runs as two controller turns
   (finish, or cancel a quick timer, then start); #46 replaces it with the
   one-turn operation of D-054 behind the same seam. `alertKey()` moved to
@@ -339,8 +341,10 @@ personal data or shop content).
   (`core:ui`); without one, the leaf placeholder.
 - **Tea picker.** Material 3's modal sheet, fully expanded, like the
   Schritte-Sheet (D-051), not the `sheet` token; under reduce motion it
-  appears without the slide. A pick lets the sheet leave, then opens the
-  setup. The search is GEN-10's: word prefixes of name and type, case- and
+  appears without the slide. A pick opens the setup in the tap's frame and
+  closes the sheet; the setup's fade is the only transition (no sheet exit
+  first, so no 600 ms of motion in a row), and no navigation can follow an
+  alert that started after the tap. The search is GEN-10's: word prefixes of name and type, case- and
   diacritics-insensitive („kor" finds „Kōridashi"), debounced 150 ms, and
   forgotten when the sheet closes. *Aus dem Katalog* is hidden until M2.
 - **Setup scaling (BRW-03).** The lock keeps the recipe's ratio; every
@@ -354,7 +358,9 @@ personal data or shop content).
 - ***Im Rezept speichern* (BRW-02).** Shown only while vessel, water, leaf,
   steps or pre-alert differ from the selected recipe; it writes all of them
   (a step at the base temperature keeps none of its own) and the session then
-  inherits the recipe's pre-alert. The Schritte-Sheet's own button writes
+  inherits the recipe's pre-alert. After the save its slot keeps its height
+  and shows „Im Rezept gespeichert" (a polite live region), so *Brühen
+  starten* never moves under a second tap (D-058). The Schritte-Sheet's own button writes
   only steps and pre-alert (SCR-31). The setup's values survive process
   death in the `SavedStateHandle` (GEN-07).
 - **Kettle hint (BRW-10).** At ≤ 10 °C the setup reads „Kaltes Wasser", or
@@ -365,13 +371,27 @@ personal data or shop content).
   session in place of the timer, filled with that session's values.
   *Brühen starten* there replaces the session without asking (no step has
   started, so finishing it discards it); the timer then replaces the setup.
-- **Alerts first (rule 8).** The picker and the Schritte-Sheet remember the
-  alert they were opened in and are removed in the frame another alert
-  starts (`AlertGate`, D-051), without animation; the second-session question
-  is closed by the view model. Nothing on these screens is animated into or
-  over an alert. The only own motion is *Im Rezept speichern* growing from
-  its top edge (`standard`/`fade`, leaving with `exit`/`exitFade`) and the
-  press scale of the cards and pills.
+- **Alerts first (rule 8).**
+  - **Routes give way.** Every full-screen route above the shell or the timer
+    (the setup, *Timer-Einstellungen*, *Diagnose* and any later one)
+    remembers the alert it was opened in. When another alert starts, it gives
+    way to the **timer** in that frame, without a transition: popped back to
+    the timer when the timer is under it, else replaced by it (back then
+    returns to the shell). The timer, not the shell's alerting bar, because
+    it is the alert's full surface with *Abgegossen* (SCR-05), as the
+    full-screen intent opens it (D-058). Unsaved setup values are dropped.
+  - **Overlays.** The picker and the Schritte-Sheet are removed in the frame
+    another alert starts (`AlertGate`, D-051), without animation.
+  - **The second-session question** is never composed while an alert plays
+    (gated in the UI, and closed by the view model). A start refused while
+    the active step alerts opens the timer instead of asking.
+  - **Motion.** Nothing on these screens is animated into or over an alert.
+    The only own motion is *Im Rezept speichern* growing from its top edge
+    (`standard`/`fade`, leaving with `exit`/`exitFade`), its crossfade to the
+    confirmation, and the press scale of the cards and pills.
+- **TalkBack.** The ratio lock is one switch node („Verhältnis halten,
+  2,0 g / 100 ml", on or off). Each stepper row's label and value are one
+  node that announces its new value.
 
 ### D-061 — Minimal journal and the „Gespeichert" sheet (M1-16, #51) · *Accepted* (Claude, 2026-10-22)
 
@@ -1703,6 +1723,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-062: Start, tea picker and setup (#48): `BrewStarter` seam following the `BrewTimer` binding, *Nochmal brühen* from the last session, *Zuletzt gebrüht* row format, picker as Material sheet with GEN-10 search and an immediate pick, scaling from the locked ratio (0,1 g / 5 ml steppers), *Im Rezept speichern* only when changed with an in-place confirmation, cold/ice kettle hint, *Brühen anpassen* through the setup; every route above the shell or timer gives way to the timer on a new alert, overlays and the TMR-21 question never over an alert. 03 SCR-02, SCR-03, SCR-04 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |
 | 2026-10-22 | D-060: diagnostics log and *Diagnose* (#43): two-file rolling log ≤ 200 KB in the no-backup storage, written in order on the IO dispatcher and never blocking or throwing into the timer; technical English entries with scheduled vs actual times on both clocks and the delta; service starts and stops, ringer mode at each alert and test, permission states at each process start; *Diagnose* newest first with *Kopieren* (header + entries). 06 §5.6, 03 SCR-27 updated. |
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |

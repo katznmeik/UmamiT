@@ -58,6 +58,7 @@ internal fun StartTabContent(tab: StartTab) {
         open = pickerOpen,
         openedIn = pickerOpenedIn,
         alertKey = tab.alertKey,
+        // The setup opens in the tap's frame and its fade covers the closing sheet (D-062).
         onPickTea = {
             pickerOpen = false
             navigation.openSetup(it)

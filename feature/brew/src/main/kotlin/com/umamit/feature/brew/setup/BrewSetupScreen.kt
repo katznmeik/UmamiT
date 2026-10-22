@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -40,10 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
@@ -68,6 +70,7 @@ import com.umamit.feature.brew.timer.label
 import java.util.Locale
 
 const val SETUP_START_TAG = "setup_start"
+const val SETUP_SAVED_TAG = "setup_saved_to_recipe"
 const val SETUP_SAVE_TAG = "setup_save_to_recipe"
 const val SETUP_STEPS_EDIT_TAG = "setup_steps_edit"
 const val SETUP_PRE_ALERT_TAG = "setup_pre_alert"
@@ -165,7 +168,8 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
     )
     // A new alert closes the sheet for good; it was already removed in the frame the alert started.
     LaunchedEffect(stepsCovered) { if (stepsCovered) stepsOpen = false }
-    val question = state.question
+    // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
+    val question = state.question?.takeIf { state.alertKey == null }
     if (question != null) {
         FinishActiveSessionDialog(
             teaName = question.teaName,
@@ -299,15 +303,20 @@ private fun AmountRow(label: String, value: String, less: String, more: String, 
             .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RowLabel(label)
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+        // Label and value are one node, and a stepper's new value is announced (03 §6).
+        Row(
             modifier = Modifier
                 .weight(1f)
-                .semantics { contentDescription = "$label $value" },
-        )
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RowLabel(label)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         IconButton(onClick = { onStep(false) }) {
             Icon(painterResource(UmamiIcons.Remove), contentDescription = less)
         }
@@ -321,9 +330,11 @@ private fun AmountRow(label: String, value: String, less: String, more: String, 
 private fun RatioRow(state: BrewSetupUiState.Ready, onLock: (Boolean) -> Unit) {
     val lock = stringResource(R.string.brew_setup_ratio_lock)
     val ratio = stringResource(R.string.brew_setup_ratio, grams(state.ratioPer100Ml))
+    // One switch node: TalkBack reads the label and the ratio, then „ein" or „aus" (03 §6).
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .toggleable(value = state.ratioLocked, role = Role.Switch, onValueChange = onLock)
             .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
             .padding(horizontal = UmamiSpacing.SideMargin),
         verticalAlignment = Alignment.CenterVertically,
@@ -332,14 +343,7 @@ private fun RatioRow(state: BrewSetupUiState.Ready, onLock: (Boolean) -> Unit) {
             Text(lock, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(ratio, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(
-            checked = state.ratioLocked,
-            onCheckedChange = onLock,
-            modifier = Modifier.semantics {
-                contentDescription = lock
-                stateDescription = ratio
-            },
-        )
+        Switch(checked = state.ratioLocked, onCheckedChange = null)
     }
 }
 

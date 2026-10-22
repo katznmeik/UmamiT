@@ -179,9 +179,14 @@ class BrewSetupViewModel @Inject constructor(
             TransitionOutcome.Accepted -> navigation.send(BrewSetupEvent.OpenTimer)
 
             is TransitionOutcome.Rejected -> if (outcome.reason is RejectionReason.ActiveTimerExists) {
-                val active = starter.state.value as? TimerUiState.Active
-                pending.value =
-                    PendingStart(request, ActiveSessionQuestion(active?.teaName), starter.state.value.alertKey())
+                val timer = starter.state.value
+                if (timer.alertKey() != null) {
+                    // No question over an alert (rule 8): the alerting timer is where to go now.
+                    navigation.send(BrewSetupEvent.OpenTimer)
+                } else {
+                    val active = timer as? TimerUiState.Active
+                    pending.value = PendingStart(request, ActiveSessionQuestion(active?.teaName), null)
+                }
             }
 
             TransitionOutcome.Ignored -> Unit

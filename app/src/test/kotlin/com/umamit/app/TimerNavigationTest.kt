@@ -64,6 +64,10 @@ class TimerNavigationTest {
                         }
                     },
                     diagnosticsScreen = { Text("DIAGNOSE-LOG") },
+                    startScreen = { tab ->
+                        Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
+                    },
+                    setupScreen = { _, _ -> Text("SETUP") },
                 )
             }
         }
@@ -145,6 +149,54 @@ class TimerNavigationTest {
 
         compose.onNodeWithText("DIAGNOSE-LOG").assertDoesNotExist()
         assertTimerOnTop()
+    }
+
+    private fun openSetupFromStart() {
+        compose.onNodeWithText("Tee brühen").performClick()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the alert replaces the setup with the timer at once (rule 8)`() {
+        show()
+        openSetupFromStart()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a setup opened during an alert stays for that alert, and the next alert replaces it`() {
+        alert("A")
+        show()
+        openSetupFromStart()
+
+        alert(null)
+        compose.waitForIdle()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+        compose.mainClock.autoAdvance = false
+        alert("B")
+        advanceFrames()
+
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `back from the timer that replaced the setup returns to the shell`() {
+        show()
+        openSetupFromStart()
+        alert("A")
+        compose.waitForIdle()
+
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Tee brühen").assertIsDisplayed()
     }
 
     @Test
