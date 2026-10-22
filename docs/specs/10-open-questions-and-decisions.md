@@ -358,6 +358,94 @@ personal data or shop content).
   #44) and may pick another default or replace a tone (Q-15 procedure). The
   German tone names for the picker come with the settings screen (#50).
 
+<a id="d-058"></a>
+### D-058 — Timer screen SCR-05 (M1-12, #45) · *Accepted* (Claude, 2026-10-22)
+
+#45 built the timer screen in `feature:brew` on the controller's state
+([03 SCR-05](03-ux-ui.md#scr-05-timer)). Decided while building it:
+
+- **One seam to the controller.** `BrewTimer` (`state`, `send`) is all the
+  screen, its view model and the active brew bar use; `ControllerBrewTimer`
+  is the controller behind it. Until #42 binds the remaining ports the
+  controller cannot be injected (D-056), so the app binds `NoBrewTimer`
+  (always idle, events ignored): nothing runs, the bar stays hidden and the
+  timer route closes at once. Switching is one `@Binds` line in
+  `TimerAppModule`. `TimerUiState.Active` gains `preAlert` (the session's
+  own option) for the Schritte-Sheet.
+- **Step label.** „Aufguss 2 von 4" numbers the position in the whole plan;
+  the word follows the step kind („Spülaufguss 1 von 4", „Aufschlagen 1 von
+  1"). Dots: done and current filled, pending outlined, a rinse a small square.
+- **READY** keeps the digits in the ring with the caption „Bereit"; *Start* is
+  the cream pill below and the ring is tappable too. The kettle hint carries
+  „Aufguss 2 · 0:20" as its second line. **ALERTING** shows 0:00 in the ring
+  with „Jetzt abgießen!" and the overtime below it, without the pre-alert
+  marker. **PAUSED** dims only the ring, the liquor and the marker; the digits
+  and the caption keep full contrast (≥ 4.5:1, tested). The dim never reaches
+  the alert: PAUSED → ALERTING (the step resumed from the Live Update while the
+  app was stopped) draws the ring at full strength in its first frame (tested).
+- **The pill never moves under the finger.** The kettle hint and the overtime
+  share one slot, sized by invisible copies of its tallest contents (a two-line
+  kettle hint, the large overtime), so it holds under non-linear font scaling;
+  the photo's space stays on the alert surface (the photo is not drawn there),
+  and the reliability banner sits below the controls (hidden while the alert
+  plays). Tested at *Start*, at the alert and at 15 s overtime, at font scale
+  1.0 and 2.0.
+- **First frame of a new state.** The screen reads the clock in the first
+  composition of every new state, so *Start* or *Weiter* after a long wait
+  never shows the stale time for a frame. The pre-alert glow is keyed by the
+  step, so *Weiter* after the pre-alert does not replay it (D-046).
+- **Overlays survive a configuration change** (the menu, the question and the
+  sheet; GEN-07).
+- **Finishing without a completed step** asks with the same „Sitzung
+  verwerfen? Nichts wird gespeichert." (*Verwerfen* / *Weiter brühen*), because
+  that is what it does; *Verwerfen* sends `finishSession`, which discards
+  (TMR-12 AC1).
+- **Alerts first for every overlay and route (motion reviews of #45).** Each
+  alert has an identity (`alertKey`: session, step and deadline). A menu, a
+  question or *Timer-Einstellungen* remembers the alert it was opened in, and
+  only that alert may play under it: whatever was opened before an alert, or
+  during an earlier one, is removed when a new alert starts. The menu is then
+  not composed at all, so Material's exit animation cannot show over the alert.
+  The settings route is popped back to the timer for every new alert, checked
+  on each new alert and on resume, so an alert that started while the app was
+  in the background is caught too. No route transition runs into, out of or
+  onto an alerting timer (`EnterTransition.None`/`ExitTransition.None`);
+  Navigation settles that swap within about five frames. The timer's body has
+  one movable call site, so it keeps its state when the surface changes.
+- **No *Im Rezept speichern* on SCR-05.** The screen calls only the
+  controller, so the sheet opens without a recipe (`hasRecipe = false`); the
+  recipe save stays on the setup (SCR-04). Steps without their own temperature
+  show the plan's first temperature.
+- **Dimming (TMR-17, SET-25).** The window brightness drops to 0.2 after 10 s
+  untouched while RUNNING, but never brighter than the phone's own brightness
+  setting (`min(0.2, system level)`; on the on-device checklist). The
+  pre-alert brightens it until the step ends; the alert and the pre-alert are
+  bright in their first frame. A new phase or step, a press, and closing the
+  menu, a question or the sheet count as a touch, and it never dims while one
+  of them is open. The rule is the pure `ScreenDimming`, tested with a moved
+  clock; the screen re-checks only when the result can change.
+- **Photo and liquor.** The tea photo sits at the top and fades into the
+  background (mockup v2). The screen takes it as a parameter: the session's
+  photo reaches the timer with M1-13, so the route passes none until then.
+  The liquor fill is the green liquor until the tea's style is in the state.
+- **TalkBack.** One live region announces the state („Aufguss 2 von 3
+  läuft", „Pausiert" …), the pre-alert („Gleich fertig"), „Noch 10 Sekunden"
+  (only for steps longer than 10 s) and the alert (assertive). A 10 s pre-alert
+  and the 10 s mark are one announcement („Gleich fertig, noch 10 Sekunden").
+- **Lock screen.** Only the timer shows over the lock screen: `MainActivity`
+  sets `showWhenLocked` while the timer is the current route with an active
+  session, and `turnScreenOn` while it alerts there (`lockScreenFlags`). The
+  route is read from the back stack, so the flags change when navigation
+  starts, not after its fade. #47's full-screen intent opens the timer first,
+  so an alert under the keyguard never shows the shell.
+- **Navigation.** The timer is a top-level route above the shell; a tap on the
+  active brew bar opens it, back keeps the session. *Timer-Einstellungen*
+  opens the settings on the timer's stack; *Brühen anpassen* closes the timer
+  until the setup exists (M1-13).
+- **Active brew bar.** Fed by the controller's state; it ticks at each second
+  of the countdown or the overtime while collected (not in the background),
+  and a long step's progress moves only every 10 s (D-055 S9, tested).
+
 <a id="d-056"></a>
 ### D-056 — BrewSessionController core (M1-09 part 1, #41) · *Accepted* (Claude, 2026-10-22)
 
@@ -1311,6 +1399,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
+| 2026-10-22 | D-058: timer screen SCR-05 (#45), amended by its motion review (no route transitions or menu exit around the alert, settings popped on alert, paused ring contrast, stable pill, fresh first frame, glow per step, saveable overlays, timer-only lock screen, dim never brighter than the phone): `BrewTimer` seam with `NoBrewTimer` until #42, `TimerUiState.Active.preAlert`, step label and dots, READY/ALERTING layout, finish-would-discard question, every overlay removed on ALERTING, no recipe save on SCR-05, dimming rule, photo slot, TalkBack live region, lock-screen flags, top-level timer route, bar fed by the controller. 04 §4 updated. |
 | 2026-10-22 | D-056: BrewSessionController core (#41): suspend inputs and seven ports, alarm-kind table, in-process wake-up port, non-cancellable lock turns, persist retry and guarded side effects, one alert per deadline with stale end reports ignored, `TimerUiState`, pre-alert frozen at the start, Hilt bindings without stand-ins. 04 §4 updated. |
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
 | 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |

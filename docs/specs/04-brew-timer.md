@@ -272,6 +272,10 @@ flowchart LR
   - **A turn that holds the lock runs to its end,** even when its caller is
     cancelled, so a transition is never half applied.
   - **A port that throws is logged,** and the next effect still runs.
+  - **The screens see only state and user events:** SCR-05 and the active
+    brew bar reach the controller through the `BrewTimer` seam of
+    `feature:brew` (D-058); `TimerUiState.Active.preAlert` carries the
+    session's own pre-alert option for the Schritte-Sheet.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
   `AlertPlayer`; no timer logic.
 - UI renders remaining time per frame from the deadline while visible.

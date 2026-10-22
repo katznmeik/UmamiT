@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.BrewTimerEngine
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.TimerDisplay
 import com.umamit.core.timer.engine.TimerEvent
@@ -31,6 +32,15 @@ class TimerUiStateTest {
     )
 
     private fun ui(state: TimerState) = uiStateOf(state, "Gyokuro", now) as TimerUiState.Active
+
+    @Test
+    fun `the session's own pre-alert option is published for the Schritte-Sheet (SCR-31)`() {
+        assertThat(ui(ready).preAlert).isEqualTo(PreAlertChoice.Inherit)
+
+        val edited = ready.on(TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(20)))
+
+        assertThat(ui(edited).preAlert).isEqualTo(PreAlertChoice.Seconds(20))
+    }
 
     @Test
     fun `remaining time rounds up and overtime rounds down, as in 04 §5`() {

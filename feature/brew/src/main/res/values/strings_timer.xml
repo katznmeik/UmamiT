@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Timer (SCR-05) -->
+    <string name="brew_timer_quick_title">Schnelltimer</string>
+    <!-- „Aufguss 2 von 4": a position, not a count, so no plural (TMR-02). -->
+    <string name="brew_timer_step_label" tools:ignore="PluralsCandidate">%1$s %2$d von %3$d</string>
+    <string name="brew_timer_step_short">%1$s %2$d/%3$d</string>
+    <string name="brew_timer_meta">%1$d °C · %2$s</string>
+    <string name="brew_timer_ready_detail">%1$s %2$d · %3$s</string>
+    <string name="brew_timer_caption_ready">Bereit</string>
+    <string name="brew_timer_caption_running">Zieht …</string>
+    <string name="brew_timer_caption_pre_alert">Gleich fertig …</string>
+    <string name="brew_timer_caption_paused">Pausiert</string>
+    <string name="brew_timer_caption_alert">Jetzt abgießen!</string>
+    <string name="brew_timer_caption_finished">Alle Aufgüsse fertig</string>
+    <string name="brew_timer_overtime">+%1$s</string>
+    <string name="brew_timer_overtime_prominent">+%1$s überzogen</string>
+
+    <string name="brew_timer_start">Start</string>
+    <string name="brew_timer_pause">Pause</string>
+    <string name="brew_timer_resume">Weiter</string>
+    <string name="brew_timer_poured">Abgegossen</string>
+    <string name="brew_timer_poured_rinse">Weggegossen</string>
+    <string name="brew_timer_finish">Sitzung beenden</string>
+    <string name="brew_timer_add_step">Weiterer Aufguss</string>
+
+    <!-- Overflow ⋮ (SCR-05) -->
+    <string name="brew_timer_menu_adjust">Brühen anpassen</string>
+    <string name="brew_timer_menu_end_step">Aufguss jetzt beenden</string>
+    <string name="brew_timer_menu_skip">Schritt überspringen</string>
+    <string name="brew_timer_menu_edit_steps">Schritte bearbeiten</string>
+    <string name="brew_timer_menu_add_step">Weiterer Aufguss</string>
+    <string name="brew_timer_menu_finish">Sitzung beenden</string>
+    <string name="brew_timer_menu_discard">Sitzung verwerfen</string>
+    <string name="brew_timer_menu_settings">Timer-Einstellungen</string>
+
+    <!-- Confirmation (03 §5, TMR-12 AC1, TMR-13) -->
+    <string name="brew_timer_discard_title">Sitzung verwerfen?</string>
+    <string name="brew_timer_discard_text">Nichts wird gespeichert.</string>
+    <string name="brew_timer_discard_confirm">Verwerfen</string>
+    <string name="brew_timer_discard_cancel">Weiter brühen</string>
+
+    <!-- Reliability banner (TMR-31) -->
+    <string name="brew_timer_reliability">Der Timer ist eventuell unzuverlässig</string>
+
+    <!-- TalkBack (03 §6, SCR-05) -->
+    <string name="brew_timer_back">Zurück</string>
+    <string name="brew_timer_more">Weitere Optionen</string>
+    <string name="brew_timer_ring_start">Aufguss starten</string>
+    <string name="brew_timer_overtime_description">%1$s überzogen</string>
+    <string name="brew_timer_announce_ready">Bereit für %1$s</string>
+    <string name="brew_timer_announce_running">%1$s läuft</string>
+    <string name="brew_timer_announce_pre_alert">Gleich fertig</string>
+    <string name="brew_timer_announce_ten_seconds">Noch 10 Sekunden</string>
+    <string name="brew_timer_announce_pre_alert_ten_seconds">Gleich fertig, noch 10 Sekunden</string>
+    <string name="brew_timer_announce_paused">Pausiert</string>
+    <string name="brew_timer_announce_alert">Jetzt abgießen!</string>
+    <string name="brew_timer_announce_finished">Alle Aufgüsse fertig</string>
+</resources>

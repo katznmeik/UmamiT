@@ -6,6 +6,9 @@ dependencies {
     // The Schritte-Sheet (SCR-31) emits the engine's EditSteps request and uses its
     // TMR-10 default for *Aufguss hinzufügen* (D-048).
     implementation(project(":core:timer-engine"))
+    // The timer screen (SCR-05) reads the BrewSessionController's state and sends its inputs (D-056);
+    // core:timer carries core:data (settings) and the monotonic clock binding.
+    implementation(project(":core:timer"))
     // BackHandler: back with unsaved edits asks „Änderungen verwerfen?" (GEN-08).
     implementation(libs.androidx.activity.compose)
 
