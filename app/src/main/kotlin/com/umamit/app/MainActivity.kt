@@ -9,8 +9,8 @@ import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.controller.alertKey
 import com.umamit.feature.brew.timer.BrewTimer
-import com.umamit.feature.brew.timer.alertKey
 import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     journalSources = journalSources,
                     alertKey = alertKey,
                     onTimerVisibleChange = { timerVisible.value = it },
+                    startScreen = { StartTabContent(it) },
                 )
             }
         }

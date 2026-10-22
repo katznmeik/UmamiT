@@ -53,7 +53,6 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
-import com.umamit.feature.home.HomeScreen
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.settings.SettingsScreen
@@ -79,15 +78,21 @@ private const val SLIDE_FRACTION = 12
  * @param alerting whether an alert plays now.
  * @param layoutType forces the bar or the rail; `null` follows the window size.
  * @param onOpenTimer a tap on the active brew bar, or on the running session in the journal, opens the timer (GEN-06).
+ * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
+ * @param alertKey the alert playing now, or null (rule 8).
+ * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
  */
 @Composable
-fun UmamitApp(
+internal fun UmamitApp(
     activeBrewSource: ActiveBrewSource,
     journalSources: JournalSources,
     modifier: Modifier = Modifier,
     alerting: Boolean = false,
     layoutType: NavigationSuiteType? = null,
     onOpenTimer: () -> Unit = {},
+    startNavigation: StartNavigation = StartNavigation(),
+    alertKey: String? = null,
+    startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
@@ -165,6 +170,21 @@ fun UmamitApp(
                             onSegmentChange = { segment = it },
                             journalSources = journalSources,
                             onOpenTimer = onOpenTimer,
+                            start = { openSettings, scrollToTop ->
+                                startScreen(
+                                    StartTab(
+                                        openSettings = openSettings,
+                                        scrollToTopRequest = scrollToTop,
+                                        showJournal = { selected = Tab.Journal },
+                                        openCatalog = {
+                                            segment = CollectionSegment.Catalog
+                                            selected = Tab.Collection
+                                        },
+                                        alertKey = alertKey,
+                                        navigation = startNavigation,
+                                    ),
+                                )
+                            },
                         )
                     }
                 }
@@ -233,6 +253,7 @@ private fun TabHost(
     onSegmentChange: (CollectionSegment) -> Unit,
     journalSources: JournalSources,
     onOpenTimer: () -> Unit,
+    start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
     val openSettings = { navController.navigate(SettingsRoute) }
@@ -250,7 +271,7 @@ private fun TabHost(
             fadeOut(motion.exitFade()) + slideOutHorizontally(motion.exit()) { it / SLIDE_FRACTION }
         },
     ) {
-        composable<StartRoute> { HomeScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
+        composable<StartRoute> { start(openSettings, scrollToTopRequest) }
         composable<JournalRoute> {
             JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
         }

@@ -6,6 +6,7 @@ import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerSnapshot
+import kotlinx.coroutines.flow.Flow
 
 /**
  * What the controller holds when the engine accepts a start ([TimerEffect.CreateSession]):
@@ -58,6 +59,12 @@ interface SessionRepository {
      * `active_brew` row is gone, e.g. after a device restore (E11, 04 §7.2).
      */
     suspend fun inProgressSessionIds(): List<String>
+
+    /**
+     * The [limit] most recent sessions that are no longer in progress, newest first, each with
+     * its steps: *Zuletzt gebrüht* and *Nochmal brühen* on Start (SCR-02, BRW-11).
+     */
+    fun observeRecentSessions(limit: Int): Flow<List<BrewSession>>
 }
 
 /**

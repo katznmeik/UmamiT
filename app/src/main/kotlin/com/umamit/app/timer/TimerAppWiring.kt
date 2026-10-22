@@ -14,6 +14,8 @@ import com.umamit.app.probe.startFirstPermissionStatusIntent
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -54,6 +56,14 @@ object TimerAppModule {
     @Provides
     fun brewTimer(): BrewTimer = NoBrewTimer
 
+    /**
+     * Start and the setup (M1-13) start brews through the same object as the timer, so this follows the
+     * `brewTimer` binding: [NoBrewTimer] now, `ControllerBrewTimer` once the controller is bound (#47).
+     */
+    @Provides
+    fun brewStarter(timer: BrewTimer): BrewStarter =
+        checkNotNull(timer as? BrewStarter) { "the bound BrewTimer must also start brews (BrewStarter)" }
+
     @Provides
     fun timerReliability(@ApplicationContext context: Context): TimerReliability = PermissionTimerReliability(
         checks = AndroidPermissionStatusChecks(context),
@@ -62,11 +72,18 @@ object TimerAppModule {
     )
 }
 
-/** No controller yet (#42): always idle, and every event is ignored. Not a stand-in timer: nothing ever runs. */
-object NoBrewTimer : BrewTimer {
+/**
+ * No controller yet (#42): always idle, and every event and start is ignored. Not a stand-in timer:
+ * nothing ever runs, so *Brühen starten* and *Nochmal brühen* stay on their screen until then.
+ */
+object NoBrewTimer : BrewTimer, BrewStarter {
     override val state: StateFlow<TimerUiState> = MutableStateFlow<TimerUiState>(TimerUiState.Idle).asStateFlow()
 
     override suspend fun send(event: TimerEvent): TransitionOutcome = TransitionOutcome.Ignored
+
+    override suspend fun startSession(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
+
+    override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
 }
 
 /**

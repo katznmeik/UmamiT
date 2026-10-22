@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="home_title">Start</string>
-    <string name="home_empty_title">Zeit für eine Tasse</string>
-    <string name="home_empty_body">Hier startest du bald deinen nächsten Aufguss.</string>
+    <!-- Start (SCR-02) -->
+    <string name="home_title">UmamiT</string>
+    <string name="home_start_brew">Aufguss starten</string>
+    <string name="home_start_brew_subtitle">Tee wählen und los</string>
+    <string name="home_continue_brew">Aufguss fortsetzen</string>
+    <string name="home_quick_timer">Schnelltimer</string>
+    <string name="home_brew_again">Nochmal brühen</string>
+    <string name="home_brew_again_description">Nochmal brühen: %1$s</string>
+    <string name="home_recent">Zuletzt gebrüht</string>
+    <string name="home_favorites">Favoriten</string>
+    <string name="home_recent_meta">%1$s · %2$s · %3$d\u00A0°C</string>
+    <string name="home_recent_meta_no_temperature">%1$s · %2$s</string>
+    <string name="home_minutes_short">%1$d\u00A0Min</string>
+    <string name="home_hours_short">%1$d\u00A0Std</string>
+
+    <!-- *Aufguss fortsetzen*: the live line of the active session (GEN-06) -->
+    <string name="home_active_ready">%1$s · bereit für Aufguss %2$d</string>
+    <string name="home_active_running">%1$s · noch %2$s</string>
+    <string name="home_active_paused">%1$s · pausiert, noch %2$s</string>
+    <string name="home_active_alerting">%1$s · Jetzt abgießen!</string>
+    <string name="home_active_finished">%1$s · alle Aufgüsse fertig</string>
+    <string name="home_active_quick">Schnelltimer</string>
+
+    <!-- Empty state (SCR-02, GEN-09) -->
+    <string name="home_empty_title">Deine Sammlung ist leer</string>
+    <string name="home_empty_body">Hol dir Tees aus dem Katalog – oder starte einfach den Schnelltimer.</string>
+    <string name="home_empty_action">Katalog öffnen</string>
 </resources>

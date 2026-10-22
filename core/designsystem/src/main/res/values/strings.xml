@@ -6,6 +6,8 @@
 
     <!-- KettleHint -->
     <string name="ds_kettle_hint">Wasserkocher auf %1$d\u00A0°C</string>
+    <string name="ds_kettle_hint_cold">Kaltes Wasser</string>
+    <string name="ds_kettle_hint_ice">Eiswürfel</string>
     <plurals name="ds_kettle_hint_description">
         <item quantity="one">Wasserkocher auf %1$d Grad</item>
         <item quantity="other">Wasserkocher auf %1$d Grad</item>
@@ -70,4 +72,10 @@
     <string name="ds_discard_changes_title">Änderungen verwerfen?</string>
     <string name="ds_discard_changes_keep">Weiter bearbeiten</string>
     <string name="ds_discard_changes_discard">Verwerfen</string>
+
+    <!-- Second session (TMR-21, 03 §5): „Erst die *Sencha*-Sitzung beenden?" -->
+    <string name="ds_finish_active_title">Erst die %1$s-Sitzung beenden?</string>
+    <string name="ds_finish_active_quick_title">Erst den Schnelltimer beenden?</string>
+    <string name="ds_finish_active_restart">Beenden &amp; neu starten</string>
+    <string name="ds_finish_active_cancel">Abbrechen</string>
 </resources>

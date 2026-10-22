@@ -87,6 +87,15 @@ sealed interface TimerUiState {
     }
 }
 
+/**
+ * The identity of the alert playing now (the step and its deadline), or null
+ * when none plays. Each alert has its own: an overlay or a route opened during
+ * one alert never stays over the next (rule 8, D-058).
+ */
+fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { it.alerting }?.let {
+    "${it.sessionId ?: "quick"}:${it.stepIndex}:${it.deadlineWallMs}"
+}
+
 private const val MS_PER_SECOND = 1_000L
 
 private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
