@@ -1,0 +1,237 @@
+# Release workflow (06 §6, §6.1; M1-03, D-035, D-039; docs/release.md).
+# Builds a signed release APK from `ref`, verifies it against the committed
+# certificate fingerprint and publishes tag `v<version>` + GitHub Release.
+# Dispatched by Claude only; GitHub dispatches it only while it is on `main`.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or commit SHA to build (e.g. claude/umamit-m1-start-k0jg3n or main)"
+        required: true
+        type: string
+      version:
+        description: "Version to release; must equal umamit.version in gradle.properties at ref (e.g. 0.0.1-probe, 0.1.0-rc.1, 0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# One release at a time; never cancel a running release half-way.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, sign, verify and publish ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      # Inputs reach shell steps only through the environment (no ${{ }} in scripts).
+      INPUT_REF: ${{ inputs.ref }}
+      VERSION: ${{ inputs.version }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check out ref
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Check version against gradle.properties
+        id: meta
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-probe|-rc\.[1-9][0-9]*)?$ ]]; then
+            echo "::error::Input version '$VERSION' is not X.Y.Z, X.Y.Z-rc.N or X.Y.Z-probe (06 §6)."
+            exit 1
+          fi
+          props_version="$(sed -n 's/^umamit\.version=//p' gradle.properties | tr -d '[:space:]')"
+          if [[ "$props_version" != "$VERSION" ]]; then
+            echo "::error::Version mismatch: input version is '$VERSION' but gradle.properties at '$INPUT_REF' has umamit.version='$props_version'. Bump gradle.properties on that ref or dispatch with the matching version."
+            exit 1
+          fi
+          sha="$(git rev-parse HEAD)"
+          if [[ "$VERSION" == *-* ]]; then prerelease=true; else prerelease=false; fi
+          {
+            echo "sha=$sha"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION from $INPUT_REF at $sha (pre-release: $prerelease)."
+
+      - name: Check that tag and release do not exist yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          existing="$(gh api "repos/$GH_REPO/git/matching-refs/tags/$tag" --jq ".[] | select(.ref == \"refs/tags/$tag\") | .ref")"
+          if [[ -n "$existing" ]]; then
+            echo "::error::Tag $tag already exists. Releases are immutable; bump umamit.version (e.g. next -rc.N or 0.0.N-probe) and dispatch again."
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::A GitHub Release named $tag already exists (possibly a draft). Delete it or bump the version."
+            exit 1
+          fi
+          echo "Tag $tag is free."
+
+      - name: Check signing secrets
+        env:
+          UMAMIT_KEYSTORE_B64: ${{ secrets.UMAMIT_KEYSTORE_B64 }}
+          UMAMIT_KEYSTORE_PASSWORD: ${{ secrets.UMAMIT_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          if [[ -z "${UMAMIT_KEYSTORE_B64:-}" ]]; then
+            echo "::error::Repository secret UMAMIT_KEYSTORE_B64 is missing or empty (06 §6.1 step 4)."
+            missing=1
+          fi
+          if [[ -z "${UMAMIT_KEYSTORE_PASSWORD:-}" ]]; then
+            echo "::error::Repository secret UMAMIT_KEYSTORE_PASSWORD is missing or empty (06 §6.1 step 4)."
+            missing=1
+          fi
+          if [[ "$missing" -ne 0 ]]; then exit 1; fi
+          echo "Both signing secrets are set."
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Ensure Android SDK platform 36 and build-tools 36.1.0
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:?ANDROID_HOME is not set on this runner}"
+          if [[ ! -x "$sdk/build-tools/36.1.0/apksigner" || ! -d "$sdk/platforms/android-36" ]]; then
+            sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+            (yes || true) | "$sdkmanager" --licenses >/dev/null
+            "$sdkmanager" --install "platforms;android-36" "build-tools;36.1.0" >/dev/null
+          fi
+          echo "BUILD_TOOLS_DIR=$sdk/build-tools/36.1.0" >> "$GITHUB_ENV"
+          "$sdk/build-tools/36.1.0/apksigner" --version
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          # Releases read the caches CI wrote but never write their own.
+          cache-read-only: true
+
+      - name: Read versionCode from the build
+        run: |
+          set -euo pipefail
+          output="$(./gradlew -q :app:printReleaseVersion)"
+          echo "$output"
+          name="$(sed -n 's/^versionName=//p' <<< "$output")"
+          code="$(sed -n 's/^versionCode=//p' <<< "$output")"
+          if [[ "$name" != "$VERSION" || ! "$code" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::The build reports versionName='$name' versionCode='$code'; expected versionName '$VERSION'."
+            exit 1
+          fi
+          echo "VERSION_CODE=$code" >> "$GITHUB_ENV"
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Decode keystore into the runner temp directory
+        env:
+          UMAMIT_KEYSTORE_B64: ${{ secrets.UMAMIT_KEYSTORE_B64 }}
+          UMAMIT_KEYSTORE_PASSWORD: ${{ secrets.UMAMIT_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          keystore="$RUNNER_TEMP/umamit-release.p12"
+          if ! printf '%s' "$UMAMIT_KEYSTORE_B64" | tr -d '[:space:]' | base64 --decode > "$keystore" 2>/dev/null; then
+            echo "::error::UMAMIT_KEYSTORE_B64 is not valid base64."
+            exit 1
+          fi
+          chmod 600 "$keystore"
+          if ! keytool -list -keystore "$keystore" -storetype PKCS12 \
+              -storepass:env UMAMIT_KEYSTORE_PASSWORD -alias umamit >/dev/null 2>&1; then
+            echo "::error::The keystore from UMAMIT_KEYSTORE_B64 cannot be opened with UMAMIT_KEYSTORE_PASSWORD, or it has no alias 'umamit'."
+            exit 1
+          fi
+          echo "Keystore decoded (PKCS12, alias umamit)."
+
+      - name: Build signed release APK
+        env:
+          UMAMIT_KEYSTORE_FILE: ${{ runner.temp }}/umamit-release.p12
+          UMAMIT_KEYSTORE_PASSWORD: ${{ secrets.UMAMIT_KEYSTORE_PASSWORD }}
+        run: ./gradlew --no-build-cache assembleRelease
+
+      - name: Delete keystore
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/umamit-release.p12"
+          # The Gradle daemon received the password in its environment.
+          ./gradlew --stop >/dev/null 2>&1 || true
+
+      - name: Verify signature, certificate fingerprint and version
+        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/release/app-release.apk
+          if [[ ! -f "$apk" && -f app/build/outputs/apk/release/app-release-unsigned.apk ]]; then
+            echo "::error::The release APK was built unsigned; the signing configuration did not apply."
+            exit 1
+          fi
+          scripts/verify-release-apk.sh "$apk" "$VERSION" "$VERSION_CODE" signing/release-cert-sha256.txt
+
+      - name: Create tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.meta.outputs.sha }}
+          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          dist="$RUNNER_TEMP/dist"
+          mkdir -p "$dist"
+          apk="$dist/umamit-$VERSION.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          apk_sha256="$(sha256sum "$apk" | cut -d' ' -f1)"
+          cert_sha256="$(tr -d ':[:space:]' < signing/release-cert-sha256.txt | tr '[:upper:]' '[:lower:]')"
+          if [[ "$PRERELEASE" == "true" ]]; then
+            kind="Pre-release for on-device testing (probe or release candidate)."
+            flags=(--prerelease)
+          else
+            kind="Final release."
+            flags=(--latest)
+          fi
+          notes="$dist/notes.md"
+          cat > "$notes" <<EOF
+          UmamiT $VERSION. $kind
+
+          | | |
+          |---|---|
+          | versionName | \`$VERSION\` |
+          | versionCode | \`$VERSION_CODE\` |
+          | Commit | $SHA (built from \`$INPUT_REF\`) |
+          | Signing certificate SHA-256 | \`$cert_sha256\` |
+          | APK SHA-256 | \`$apk_sha256\` |
+
+          The signing certificate was verified against \`signing/release-cert-sha256.txt\` before publishing. Workflow run: $RUN_URL
+          EOF
+          # Re-check right before publishing: gh would attach to an existing tag.
+          existing="$(gh api "repos/$GH_REPO/git/matching-refs/tags/$tag" --jq ".[] | select(.ref == \"refs/tags/$tag\") | .ref")"
+          if [[ -n "$existing" ]]; then
+            echo "::error::Tag $tag appeared while this run was building; not publishing."
+            exit 1
+          fi
+          gh release create "$tag" "$apk" \
+            --target "$SHA" \
+            --title "UmamiT $VERSION" \
+            --notes-file "$notes" \
+            "${flags[@]}"
+          echo "Published $tag at $SHA."
+          {
+            echo "### UmamiT $VERSION"
+            echo "- Tag: \`$tag\` at \`$SHA\`"
+            echo "- versionCode: \`$VERSION_CODE\`"
+            echo "- Pre-release: $PRERELEASE"
+            echo "- APK: \`umamit-$VERSION.apk\` (SHA-256 \`$apk_sha256\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
