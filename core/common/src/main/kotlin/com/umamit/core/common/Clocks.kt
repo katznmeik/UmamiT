@@ -9,9 +9,16 @@ import java.time.ZoneId
  *
  * Injected into callers so tests can drive virtual time (04 §2.6).
  */
-fun interface MonotonicClock {
+interface MonotonicClock {
     /** Milliseconds since an arbitrary fixed point (boot on Android). */
     fun elapsedMs(): Long
+
+    /**
+     * The boot the [elapsedMs] values belong to (`Settings.Global.BOOT_COUNT`
+     * on Android). Elapsed values from different boots cannot be compared;
+     * the timer engine rebases them from the wall clock (04 §7.2).
+     */
+    fun bootCount(): Int
 }
 
 /**
@@ -37,10 +44,14 @@ object SystemWallClock : WallClock {
 /**
  * Both clocks read at one moment: the `now` of the timer engine's reducer
  * (04 §4). [elapsedMs] drives all durations; [wallMs] and [zone] only label
- * them.
+ * them. [bootCount] says which boot [elapsedMs] belongs to.
  */
-data class ClockReading(val elapsedMs: Long, val wallMs: Long, val zone: ZoneId)
+data class ClockReading(val elapsedMs: Long, val wallMs: Long, val zone: ZoneId, val bootCount: Int)
 
 /** Reads [monotonic] and [wall] into one [ClockReading]. */
-fun readClocks(monotonic: MonotonicClock, wall: WallClock): ClockReading =
-    ClockReading(elapsedMs = monotonic.elapsedMs(), wallMs = wall.nowMs(), zone = wall.zone())
+fun readClocks(monotonic: MonotonicClock, wall: WallClock): ClockReading = ClockReading(
+    elapsedMs = monotonic.elapsedMs(),
+    wallMs = wall.nowMs(),
+    zone = wall.zone(),
+    bootCount = monotonic.bootCount(),
+)

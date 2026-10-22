@@ -63,20 +63,75 @@ data class SessionStep(
     val tempC: Int?,
     val status: StepStatus,
     val record: StepRecord?,
-)
+) {
+    init {
+        require(plannedSeconds > 0) { "plannedSeconds must be positive, was $plannedSeconds" }
+    }
+
+    /** The planned values of this step. */
+    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC)
+}
 
 /**
- * The pre-alert values a session was started with (TMR-23): the session's
- * own override from the Schritte-Sheet, the recipe's value and the global
- * setting, so the effective lead time is computable without I/O.
- * In each, 0 means off and null means "not set".
+ * The pre-alert lead time of a session (TMR-23, 04 §5): the session's own
+ * [sessionOverrideSeconds] from the Schritte-Sheet (null: *Wie Einstellung*),
+ * else [inheritedSeconds], which is the recipe value or else the global
+ * setting, frozen at the start. The effective value is thus computable without
+ * I/O, and a later change of the recipe or the settings never changes an
+ * active session. 0 means off.
  */
-data class PreAlertSettings(val sessionOverrideSeconds: Int?, val recipeSeconds: Int?, val globalSeconds: Int) {
+data class PreAlertSettings(val sessionOverrideSeconds: Int?, val inheritedSeconds: Int) {
+    init {
+        require(inheritedSeconds >= 0 && (sessionOverrideSeconds ?: 0) >= 0) { "pre-alert seconds are never negative" }
+    }
+
+    /** N of 04 §5: session override ?: recipe ?: global. */
+    val effectiveSeconds: Int get() = sessionOverrideSeconds ?: inheritedSeconds
+
     companion object {
         /** `preAlertSeconds` default (05 §6). */
         const val DEFAULT_GLOBAL_SECONDS = 10
+
+        /** The settings at the start of a session: the recipe's [recipeSeconds] (null: not set) ?: [globalSeconds]. */
+        fun inherited(recipeSeconds: Int?, globalSeconds: Int) =
+            PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = recipeSeconds ?: globalSeconds)
     }
 }
+
+/** The pre-alert selector of the Schritte-Sheet (SCR-31), for this session only. */
+sealed interface PreAlertChoice {
+
+    /** *Wie Einstellung*: no session override; the recipe or global value applies. */
+    data object Inherit : PreAlertChoice
+
+    /** *Aus*: no pre-alert in this session. */
+    data object Off : PreAlertChoice
+
+    /** A lead time of [seconds] (5–30 s in the sheet). */
+    data class Seconds(val seconds: Int) : PreAlertChoice {
+        init {
+            require(seconds > 0) { "a pre-alert lead time is positive, was $seconds; use Off" }
+        }
+    }
+
+    companion object {
+        /** The choice the sheet shows for a session with [settings]. */
+        fun of(settings: PreAlertSettings): PreAlertChoice = when (val override = settings.sessionOverrideSeconds) {
+            null -> Inherit
+            0 -> Off
+            else -> Seconds(override)
+        }
+    }
+}
+
+/** These settings with the session override that [choice] stands for. */
+internal fun PreAlertSettings.with(choice: PreAlertChoice): PreAlertSettings = copy(
+    sessionOverrideSeconds = when (choice) {
+        PreAlertChoice.Inherit -> null
+        PreAlertChoice.Off -> 0
+        is PreAlertChoice.Seconds -> choice.seconds
+    },
+)
 
 /** What the active timer is: a brew session with a journal row, or the quick timer (04 §10). */
 sealed interface SessionKind {
@@ -96,6 +151,9 @@ sealed interface SessionKind {
  * @property steps the session plan in order, with each step's status.
  * @property zone the session's time zone (`brew_session.zone_id`), for local-date rules.
  * @property lastInteractionWallMs last user event (`last_interaction_wall_ms`), for the waiting timeouts (TMR-14).
+ * @property bootCount the boot that every `…ElapsedMs` value of the state belongs to (`boot_count`, 04 §7.2).
+ * @property demoted the foreground service was stopped by `idleDemote` and a regular notification shown
+ *   (`demoted`, 04 §3.2); set and cleared by the idle rules of #31.
  */
 data class TimerSession(
     val kind: SessionKind,
@@ -103,6 +161,8 @@ data class TimerSession(
     val preAlert: PreAlertSettings,
     val zone: ZoneId,
     val lastInteractionWallMs: Long,
+    val bootCount: Int,
+    val demoted: Boolean,
 ) {
     /** The `brew_session` row to record into; null for the quick timer, which records nothing. */
     internal val brewSessionId: String?
@@ -111,6 +171,10 @@ data class TimerSession(
     /** At least one step other than a rinse is DONE (TMR-12 AC1). */
     internal val hasCompletedBrewStep: Boolean
         get() = steps.any { it.status == StepStatus.DONE && it.kind != StepKind.RINSE }
+
+    /** Number of started or ended steps: the prefix that `editSteps` and `addStep` never change. */
+    internal val startedPrefixSize: Int
+        get() = steps.indexOfFirst { it.status == StepStatus.PENDING }.let { if (it < 0) steps.size else it }
 
     /** This session after a user event at [now]. */
     internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs)

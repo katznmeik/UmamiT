@@ -13,6 +13,7 @@ val BERLIN: ZoneId = ZoneId.of("Europe/Berlin")
 /** 2026-10-22 10:00 in Berlin; the elapsed clock starts at an arbitrary boot offset. */
 val START_WALL_MS: Long = ZonedDateTime.of(2026, 10, 22, 10, 0, 0, 0, BERLIN).toInstant().toEpochMilli()
 const val START_ELAPSED_MS: Long = 5_000_000L
+const val START_BOOT_COUNT: Int = 42
 
 /**
  * Virtual monotonic and wall clocks (04 §2.6). [advance] moves both; the wall
@@ -22,9 +23,12 @@ class VirtualClocks(
     var elapsed: Long = START_ELAPSED_MS,
     var wall: Long = START_WALL_MS,
     var zoneId: ZoneId = BERLIN,
+    var boot: Int = START_BOOT_COUNT,
 ) : MonotonicClock,
     WallClock {
     override fun elapsedMs(): Long = elapsed
+
+    override fun bootCount(): Int = boot
 
     override fun nowMs(): Long = wall
 
@@ -33,6 +37,19 @@ class VirtualClocks(
     fun advance(ms: Long) {
         elapsed += ms
         wall += ms
+    }
+
+    /** The phone was off for [offMs] and has been up for [upMs]: a new boot whose elapsed clock restarted. */
+    fun reboot(offMs: Long, upMs: Long) {
+        boot += 1
+        wall += offMs + upMs
+        elapsed = upMs
+    }
+
+    /** A reboot whose boot count could not be read: the elapsed clock restarted, the boot count did not change. */
+    fun rebootUnnoticed(offMs: Long, upMs: Long) {
+        wall += offMs + upMs
+        elapsed = upMs
     }
 
     fun advanceSeconds(seconds: Long) = advance(seconds * 1000)
@@ -65,7 +82,7 @@ class EngineDriver(val clocks: VirtualClocks = VirtualClocks(), var state: Timer
 
 const val SESSION_ID = "session-1"
 val BREW = SessionKind.Brew(SESSION_ID)
-val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, recipeSeconds = null, globalSeconds = 10)
+val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 10)
 
 /** `ScheduleAlarms` with nothing due: every alarm cancelled. */
 val NO_ALARMS = TimerEffect.ScheduleAlarms(DueTimes.NONE)

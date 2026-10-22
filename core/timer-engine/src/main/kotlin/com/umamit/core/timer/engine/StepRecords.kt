@@ -27,14 +27,14 @@ internal fun endedRecord(state: TimerState.StepStarted, now: ClockReading): Step
     is TimerState.Running -> if (now.elapsedMs >= state.deadlineElapsedMs) {
         pouredRecord(state, state.deadlineElapsedMs, now)
     } else {
-        state.record(state.plannedMs - (state.deadlineElapsedMs - now.elapsedMs), state.pausedTotalMs, 0, now)
+        state.record(state.plannedMs - (state.deadlineElapsedMs - now.elapsedMs), state.pausedTotalMs, 0, now.wallMs)
     }
 
     is TimerState.Paused -> state.record(
         activeMs = state.plannedMs - state.remainingMs,
         pausedMs = state.pausedTotalMs + (now.elapsedMs - state.pausedSinceElapsedMs),
         overtimeMs = 0,
-        now = now,
+        endedAtWallMs = now.wallMs,
     )
 }
 
@@ -50,19 +50,32 @@ internal fun skippedRecord(state: TimerState.Ready): StepRecord = StepRecord(
     overtimeAutoAck = false,
 )
 
-private fun pouredRecord(state: TimerState.StepStarted, deadlineElapsedMs: Long, now: ClockReading): StepRecord {
-    val overtimeMs = now.elapsedMs - deadlineElapsedMs
-    return state.record(state.plannedMs + overtimeMs, state.pausedTotalMs, overtimeMs, now)
+/**
+ * The overtime timeout's record (04 §5.1): poured on time at the deadline,
+ * so actual = planned and overtime 0, flagged as auto-acknowledged.
+ */
+internal fun autoAckRecord(state: TimerState.StepStarted): StepRecord {
+    val deadlineWallMs = when (state) {
+        is TimerState.Running -> state.deadlineWallMs
+        is TimerState.Alerting -> state.deadlineWallMs
+        is TimerState.Paused -> error("a paused step has no overtime")
+    }
+    return state.record(state.plannedMs, state.pausedTotalMs, 0, deadlineWallMs).copy(overtimeAutoAck = true)
 }
 
-private fun TimerState.StepStarted.record(activeMs: Long, pausedMs: Long, overtimeMs: Long, now: ClockReading) =
+private fun pouredRecord(state: TimerState.StepStarted, deadlineElapsedMs: Long, now: ClockReading): StepRecord {
+    val overtimeMs = now.elapsedMs - deadlineElapsedMs
+    return state.record(state.plannedMs + overtimeMs, state.pausedTotalMs, overtimeMs, now.wallMs)
+}
+
+private fun TimerState.StepStarted.record(activeMs: Long, pausedMs: Long, overtimeMs: Long, endedAtWallMs: Long) =
     StepRecord(
         plannedSeconds = session.steps[stepIndex].plannedSeconds,
         actualSeconds = roundToSeconds(activeMs),
         pausedSeconds = roundToSeconds(pausedMs),
         overtimeSeconds = roundToSeconds(overtimeMs),
         startedAtWallMs = stepStartedWallMs,
-        endedAtWallMs = now.wallMs,
+        endedAtWallMs = endedAtWallMs,
         skipped = false,
         overtimeAutoAck = false,
     )
