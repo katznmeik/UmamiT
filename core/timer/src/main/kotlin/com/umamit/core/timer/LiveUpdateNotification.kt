@@ -17,8 +17,6 @@ import androidx.core.content.ContextCompat
  * @property segments ProgressStyle segments (lengths in any common unit).
  * @property points ProgressStyle points, positions in the unit of [segments].
  * @property progress progress in the unit of [segments].
- * @property promote request a promoted ongoing notification; pass
- *   [TimerNotifications.canPromote], so it falls back to a normal ongoing one.
  */
 data class LiveUpdateContent(
     val title: String,
@@ -28,7 +26,6 @@ data class LiveUpdateContent(
     val segments: List<Segment>,
     val points: List<Point>,
     val progress: Int,
-    val promote: Boolean,
     val contentIntent: PendingIntent? = null,
     val actions: List<NotificationCompat.Action> = emptyList(),
 ) {
@@ -44,26 +41,29 @@ data class LiveUpdateContent(
  *   `Notification.ProgressStyle` on API 36; a plain progress bar below);
  * - chronometer countdown chip (`setUsesChronometer`, `setChronometerCountDown`,
  *   `setWhen(deadlineWall)`) or a short critical text;
- * - `setRequestPromotedOngoing(true)` when promotion is allowed; on Android 16
- *   the variant (colorized or not) that `Notification.hasPromotableCharacteristics()`
- *   accepts on this build.
+ * - on Android 16 (API 36) always `setRequestPromotedOngoing(true)`, whether or
+ *   not the user allows promotion right now
+ *   ([TimerNotifications.canPromote]): the system decides when the notification
+ *   is posted, and when the user allows promotion later it re-checks the posted
+ *   notification at once. Of the two variants (colorized or not) it posts the one
+ *   that `Notification.hasPromotableCharacteristics()` accepts on this build.
  *
- * API names: `docs/plans/M1-probe-api-notes.md`.
+ * API names and the two Android 16 rule sets: `docs/plans/M1-probe-api-notes.md`.
  */
 object LiveUpdateNotification {
     private const val TAG = "UmamiTLiveUpdate"
 
     fun build(context: Context, content: LiveUpdateContent): Notification {
-        val plain = builder(context, content, colorized = false).build()
-        if (!content.promote || Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA ||
-            plain.hasPromotableCharacteristics()
-        ) {
+        val requestPromotion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
+        val plain = builder(context, content, requestPromotion, colorized = false).build()
+        if (!requestPromotion || plain.hasPromotableCharacteristics()) {
             return plain
         }
-        // Early Android 16 builds only promote colorized notifications (seen in the
-        // Android 16 framework that Robolectric 4.17 ships); later builds promote
-        // only non-colorized ones. Use the variant this device considers promotable.
-        val colorized = builder(context, content, colorized = true).build()
+        // Android 16 without the Live Update UI (flag android.app.ui_rich_ongoing off,
+        // e.g. the first API 36 release and the framework Robolectric 4.17 ships) only
+        // promotes colorized notifications; with it (Android 16 QPR1 and later) only
+        // non-colorized ones that carry the request. Use the variant this device accepts.
+        val colorized = builder(context, content, requestPromotion, colorized = true).build()
         val promotable = colorized.hasPromotableCharacteristics()
         if (promotable) {
             Log.i(TAG, "Promotable only when colorized on this build; using the colorized Live Update")
@@ -73,7 +73,12 @@ object LiveUpdateNotification {
         return if (promotable) colorized else plain
     }
 
-    private fun builder(context: Context, content: LiveUpdateContent, colorized: Boolean): NotificationCompat.Builder {
+    private fun builder(
+        context: Context,
+        content: LiveUpdateContent,
+        requestPromotion: Boolean,
+        colorized: Boolean,
+    ): NotificationCompat.Builder {
         val style = NotificationCompat.ProgressStyle()
             .setStyledByProgress(true)
             .setProgressSegments(
@@ -96,7 +101,7 @@ object LiveUpdateNotification {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .setStyle(style)
-            .setRequestPromotedOngoing(content.promote)
+            .setRequestPromotedOngoing(requestPromotion)
 
         val countdownTo = content.countdownToWallMs
         if (countdownTo != null) {

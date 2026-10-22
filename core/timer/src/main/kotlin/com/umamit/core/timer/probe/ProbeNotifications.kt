@@ -23,13 +23,7 @@ internal object ProbeNotifications {
      * time and the pre-alert tail as two segments with a point at the
      * pre-alert; the progress is the elapsed time in milliseconds.
      */
-    fun liveUpdate(
-        context: Context,
-        step: ProbeStep,
-        phase: ProbePhase,
-        nowElapsedMs: Long,
-        promote: Boolean,
-    ): Notification {
+    fun liveUpdate(context: Context, step: ProbeStep, phase: ProbePhase, nowElapsedMs: Long): Notification {
         val matcha = ContextCompat.getColor(context, R.color.timer_matcha)
         val accent = ContextCompat.getColor(context, R.color.timer_warm_accent)
         val duration = step.durationMs.toInt()
@@ -58,7 +52,6 @@ internal object ProbeNotifications {
                 segments = segments,
                 points = listOfNotNull(preAlertAt?.let { LiveUpdateContent.Point(it, accent) }),
                 progress = if (finished) duration else step.elapsedAt(nowElapsedMs).toInt(),
-                promote = promote,
                 contentIntent = launchAppIntent(context),
                 actions = listOf(
                     NotificationCompat.Action.Builder(
@@ -74,7 +67,9 @@ internal object ProbeNotifications {
     /**
      * „Jetzt abgießen!" on `steep_finished` with the full-screen intent to
      * [ProbeAlertActivity] (04 §8.2). Visual only; the AlertPlayer plays sound
-     * and vibration (#16).
+     * and vibration (#16). [ProbeTimerService] posts it as its foreground
+     * notification in place of the Live Update (see [TimerNotifications.ID_ALERT]),
+     * so it is shown at once rather than after the FGS display delay.
      */
     fun alert(context: Context): Notification {
         val fullScreen = PendingIntent.getActivity(
@@ -94,6 +89,7 @@ internal object ProbeNotifications {
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
             .setAutoCancel(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(
                 NotificationCompat.Action.Builder(
                     null,

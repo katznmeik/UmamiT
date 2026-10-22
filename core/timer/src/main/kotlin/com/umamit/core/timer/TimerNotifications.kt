@@ -17,10 +17,17 @@ object TimerNotifications {
     /** Alert with the full-screen intent: importance HIGH, no sound (the AlertPlayer plays it, 04 §9). */
     const val CHANNEL_STEEP_FINISHED = "steep_finished"
 
-    /** Live Update and foreground service notification. */
+    /** Live Update; the foreground service notification except while alerting. */
     const val ID_LIVE_UPDATE = 1
 
-    /** „Jetzt abgießen!" alert. */
+    /**
+     * „Jetzt abgießen!" alert. While alerting it replaces the Live Update as the
+     * foreground service notification, so it is the app's only notification of
+     * importance DEFAULT or higher. Android 16 force-groups two such ungrouped
+     * notifications of an app and marks them `FLAG_SILENT`, and System UI then
+     * suppresses the full-screen intent and the heads-up
+     * (`docs/plans/M1-probe-api-notes.md`).
+     */
     const val ID_ALERT = 2
 
     private const val TAG = "UmamiTTimer"
@@ -49,8 +56,10 @@ object TimerNotifications {
     }
 
     /**
-     * Whether the Live Update may be requested as a promoted ongoing
-     * notification (04 §8.3). Always false below Android 16 (API 36), where
+     * Whether the user currently allows promoted ongoing notifications (Live
+     * Updates, 04 §8.3); for the status row and the reliability banner. The Live
+     * Update requests promotion on Android 16 regardless, so it is promoted as
+     * soon as the user allows it. Always false below Android 16 (API 36), where
      * the notification stays a normal ongoing one.
      */
     fun canPromote(context: Context): Boolean = NotificationManagerCompat.from(context).canPostPromotedNotifications()

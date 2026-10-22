@@ -21,7 +21,7 @@ class ProbeNotificationsTest {
     @Test
     @Config(sdk = [36])
     fun runningLiveUpdateIsAPromotableChronometerCountdownWithProgressStyle() {
-        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.RUNNING, 16_000L, promote = true)
+        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.RUNNING, 16_000L)
 
         assertThat(notification.channelId).isEqualTo(TimerNotifications.CHANNEL_BREW_TIMER)
         assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
@@ -45,17 +45,26 @@ class ProbeNotificationsTest {
 
     @Test
     @Config(sdk = [36])
-    fun liveUpdateIsNotPromotedWhenPromotionIsNotAllowed() {
-        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.RUNNING, 16_000L, promote = false)
+    fun everyPhaseRequestsPromotionWhetherOrNotTheUserAllowsIt() {
+        // The request does not depend on canPostPromotedNotifications(): the system
+        // promotes the posted notification as soon as the user allows it (04 §8.3).
+        val phases = mapOf(
+            ProbePhase.RUNNING to 16_000L,
+            ProbePhase.PRE_ALERTED to 52_000L,
+            ProbePhase.FINISHED to 61_000L,
+        )
+        phases.forEach { (phase, now) ->
+            val notification = ProbeNotifications.liveUpdate(context, step, phase, now)
 
-        assertThat(NotificationCompat.isRequestPromotedOngoing(notification)).isFalse()
-        assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
+            assertThat(NotificationCompat.isRequestPromotedOngoing(notification)).isTrue()
+            assertThat(notification.hasPromotableCharacteristics()).isTrue()
+        }
     }
 
     @Test
     @Config(sdk = [36])
     fun preAlertedLiveUpdateSaysAlmostDone() {
-        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.PRE_ALERTED, 52_000L, promote = true)
+        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.PRE_ALERTED, 52_000L)
 
         assertThat(notification.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Gleich fertig …")
         assertThat(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
@@ -64,7 +73,7 @@ class ProbeNotificationsTest {
     @Test
     @Config(sdk = [36])
     fun finishedLiveUpdateUsesAShortCriticalTextInsteadOfTheChronometer() {
-        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.FINISHED, 61_000L, promote = true)
+        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.FINISHED, 61_000L)
 
         assertThat(notification.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Jetzt abgießen!")
         assertThat(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)).isFalse()
@@ -74,11 +83,11 @@ class ProbeNotificationsTest {
     @Test
     @Config(sdk = [35])
     fun onAndroid15TheLiveUpdateIsANormalOngoingNotification() {
-        val promote = TimerNotifications.canPromote(context)
-        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.RUNNING, 16_000L, promote)
+        val notification = ProbeNotifications.liveUpdate(context, step, ProbePhase.RUNNING, 16_000L)
 
-        assertThat(promote).isFalse()
+        assertThat(TimerNotifications.canPromote(context)).isFalse()
         assertThat(NotificationCompat.isRequestPromotedOngoing(notification)).isFalse()
+        assertThat(notification.extras.getBoolean(Notification.EXTRA_COLORIZED)).isFalse()
         assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
         assertThat(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()
         // ProgressStyle falls back to a plain progress bar.

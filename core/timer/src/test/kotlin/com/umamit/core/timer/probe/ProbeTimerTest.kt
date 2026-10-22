@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioManager
+import android.os.Looper
 import android.os.SystemClock
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -25,6 +26,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAlarmManager
+import java.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /** Probe controller and service (M1-03a): alarms, foreground service, alert (04 §12 Robolectric). */
@@ -101,7 +103,7 @@ class ProbeTimerTest {
     }
 
     @Test
-    fun deadlinePostsTheFullScreenAlert() {
+    fun deadlineReplacesTheLiveUpdateWithTheFullScreenAlert() {
         val step = testStep()
         val controller = Robolectric.buildService(
             ProbeTimerService::class.java,
@@ -111,12 +113,54 @@ class ProbeTimerTest {
         controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
             .startCommand(0, 2)
 
+        // The alert is the foreground notification and the only notification left, so
+        // Android 16 cannot force-group it with the Live Update and mark it silent.
+        val service = shadowOf(controller.get())
+        assertThat(service.lastForegroundNotificationId).isEqualTo(TimerNotifications.ID_ALERT)
         val alert = shadowOf(notificationManager).getNotification(TimerNotifications.ID_ALERT)
         assertThat(alert).isNotNull()
         assertThat(alert.fullScreenIntent).isNotNull()
         assertThat(alert.channelId).isEqualTo(TimerNotifications.CHANNEL_STEEP_FINISHED)
-        val liveUpdate = shadowOf(controller.get()).lastForegroundNotification
-        assertThat(liveUpdate.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Jetzt abgießen!")
+        assertThat(service.lastForegroundNotification.channelId).isEqualTo(TimerNotifications.CHANNEL_STEEP_FINISHED)
+        assertThat(shadowOf(notificationManager).getNotification(TimerNotifications.ID_LIVE_UPDATE)).isNull()
+        assertThat(shadowOf(notificationManager).allNotifications).hasSize(1)
+    }
+
+    @Test
+    fun aRepeatedDeadlineKeepsTheAlertAsTheOnlyNotification() {
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+        val deadline = ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step)
+
+        controller.withIntent(deadline).startCommand(0, 2)
+        controller.withIntent(deadline).startCommand(0, 3)
+        // The 15 s refresh no longer posts the Live Update once the alert replaced it.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(20))
+
+        assertThat(shadowOf(controller.get()).lastForegroundNotificationId).isEqualTo(TimerNotifications.ID_ALERT)
+        assertThat(shadowOf(notificationManager).getNotification(TimerNotifications.ID_LIVE_UPDATE)).isNull()
+    }
+
+    @Test
+    fun aNewStepAfterTheAlertMakesTheLiveUpdateTheForegroundNotificationAgain() {
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
+            .startCommand(0, 2)
+
+        val next = testStep().copy(startElapsedMs = step.startElapsedMs + 1)
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, next))
+            .startCommand(0, 3)
+
+        val service = shadowOf(controller.get())
+        assertThat(service.lastForegroundNotificationId).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
+        assertThat(service.lastForegroundNotification.channelId).isEqualTo(TimerNotifications.CHANNEL_BREW_TIMER)
     }
 
     @Test
