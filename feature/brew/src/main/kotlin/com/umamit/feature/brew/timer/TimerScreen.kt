@@ -1,0 +1,280 @@
+package com.umamit.feature.brew.timer
+
+import android.view.WindowManager
+import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.component.AlertSurface
+import com.umamit.core.designsystem.component.KettleHint
+import com.umamit.core.designsystem.component.PillButton
+import com.umamit.core.designsystem.component.ReliabilityBanner
+import com.umamit.core.designsystem.component.TimerRing
+import com.umamit.core.designsystem.icon.UmamiIcons
+import com.umamit.core.designsystem.text.clockText
+import com.umamit.core.designsystem.text.spokenDuration
+import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerPhase
+import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.controller.TimerUiStep
+import com.umamit.core.timer.engine.StepStatus
+import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.feature.brew.R
+import com.umamit.feature.brew.steps.StepsSheet
+import com.umamit.feature.brew.steps.StepsSheetInput
+import com.umamit.feature.brew.steps.StepsSheetStep
+import com.umamit.feature.brew.steps.rememberStepsSheetState
+import kotlinx.coroutines.delay
+
+/** Test tag of the TalkBack announcement node (a polite, while alerting assertive, live region). */
+const val TIMER_ANNOUNCEMENT_TAG = "timer_announcement"
+
+/** Test tag of the ring; tappable in READY (TMR-08). */
+const val TIMER_RING_TAG = "timer_ring"
+
+/**
+ * The timer (SCR-05; TMR-02…13, TMR-17, TMR-31): always in the dark
+ * „Steeping" scheme, edge-to-edge, in one of five states. It draws [state]
+ * and turns every tap into a controller event ([onEvent]); it calls nothing
+ * else.
+ *
+ * - **READY:** kettle hint and the next step; *Start* (the ring too).
+ * - **RUNNING / PAUSED:** the cream *Pause* / *Weiter* pill; „Zieht …",
+ *   „Gleich fertig …" from the pre-alert on, with the glow.
+ * - **ALERTING:** the pulsing [AlertSurface], entered without any transition
+ *   (`alertEnter`), „Jetzt abgießen!", the overtime, from 15 s on large and
+ *   marked with a warm-accent dot; *Abgegossen* (*Weggegossen* for a rinse).
+ * - **FINISHED:** *Sitzung beenden* and *Weiterer Aufguss*.
+ *
+ * The overflow ⋮ follows the SCR-05 table ([menuItems]). *Sitzung verwerfen*
+ * and a finish that would discard the session ask first (TMR-12 AC1, TMR-13).
+ * The Schritte-Sheet is hosted with `alerting` bound to the phase: on ALERTING
+ * it is removed in the same frame (D-051, rule 8), and so are a menu or a
+ * question opened before the alert.
+ *
+ * The screen stays on ([TimerScreenSettings.keepScreenOn], SET-17) and dims a
+ * running step after 10 s untouched ([ScreenDimming], TMR-17). TalkBack
+ * announces state changes, the pre-alert, „noch 10 Sekunden" and the alert.
+ *
+ * @param nowElapsedMs the monotonic clock (`elapsedRealtime`), as the
+ *   controller's deadlines use it.
+ * @param teaPhoto the tea's photo, fading into the background; none for the quick timer.
+ */
+@Composable
+fun TimerScreen(
+    state: TimerUiState.Active,
+    nowElapsedMs: () -> Long,
+    onEvent: (TimerEvent) -> Unit,
+    onBack: () -> Unit,
+    onAdjustBrew: () -> Unit,
+    onOpenTimerSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    settings: TimerScreenSettings = TimerScreenSettings(),
+    reliabilityProblem: Boolean = false,
+    onFixReliability: () -> Unit = {},
+    teaPhoto: Painter? = null,
+) {
+    SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
+        val alerting = state.alerting
+        val now by rememberTimerNow(state, nowElapsedMs)
+        val overlays = remember { TimerOverlays() }
+        // Alerts first (rule 8): whatever was opened before the alert is gone in the same frame.
+        overlays.alerting = alerting
+        LaunchedEffect(alerting) { if (alerting) overlays.closeAllOpenedBeforeAlert() }
+
+        val dimming = rememberScreenDimming(
+            state = state,
+            enabled = settings.dimWhileSteeping && !overlays.anyOpen,
+            nowElapsedMs = nowElapsedMs,
+        )
+        TimerWindowEffects(keepScreenOn = settings.keepScreenOn, dimmed = dimming.dimmed)
+
+        val actions = rememberTimerActions(state, overlays, onEvent, onBack, onAdjustBrew, onOpenTimerSettings)
+
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .pointerInput(dimming) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitPointerEvent(PointerEventPass.Initial)
+                            dimming.touched()
+                        }
+                    }
+                },
+        ) {
+            if (alerting) {
+                // `alertEnter`: no transition into the alert, the pulse starts at full matcha.
+                AlertSurface(modifier = Modifier.fillMaxSize()) {
+                    TimerBody(state, now, nowElapsedMs, overlays, actions, reliabilityProblem, onFixReliability, null)
+                }
+            } else {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    TimerBody(
+                        state,
+                        now,
+                        nowElapsedMs,
+                        overlays,
+                        actions,
+                        reliabilityProblem,
+                        onFixReliability,
+                        teaPhoto,
+                    )
+                }
+            }
+            TimerAnnouncer(state, now)
+        }
+
+        TimerStepsSheet(state, overlays, onEvent)
+        overlays.confirmation?.takeIf { overlays.confirmationShown }?.let { confirmation ->
+            DiscardSessionDialog(
+                onConfirm = {
+                    overlays.confirmation = null
+                    onEvent(
+                        if (confirmation ==
+                            TimerConfirmation.Discard
+                        ) {
+                            TimerEvent.Discard
+                        } else {
+                            TimerEvent.FinishSession
+                        },
+                    )
+                },
+                onDismiss = { overlays.confirmation = null },
+            )
+        }
+    }
+}
+
+/** The clock as the screen shows it: read again at every second boundary of the display (and the pre-alert). */
+@Composable
+private fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long) =
+    produceState(initialValue = nowElapsedMs(), state, nowElapsedMs) {
+        value = nowElapsedMs()
+        while (true) {
+            val delayMs = state.nextTickDelayMs(value) ?: break
+            delay(delayMs)
+            value = nowElapsedMs()
+        }
+    }
+
+/** What a tap does: haptics (03 §3.6) and the controller event, or the menu item's screen or overlay. */
+@Composable
+private fun rememberTimerActions(
+    state: TimerUiState.Active,
+    overlays: TimerOverlays,
+    onEvent: (TimerEvent) -> Unit,
+    onBack: () -> Unit,
+    onAdjustBrew: () -> Unit,
+    onOpenTimerSettings: () -> Unit,
+): TimerActions {
+    val haptics = LocalHapticFeedback.current
+    val currentState by rememberUpdatedState(state)
+    return remember(overlays, onEvent, onBack, onAdjustBrew, onOpenTimerSettings) {
+        TimerActions(
+            event = { event ->
+                haptics.performHapticFeedback(
+                    if (event == TimerEvent.Poured) HapticFeedbackType.Confirm else HapticFeedbackType.ContextClick,
+                )
+                onEvent(event)
+            },
+            back = onBack,
+            menu = { item ->
+                overlays.menuOpen = false
+                when (item) {
+                    TimerMenuItem.AdjustBrew -> onAdjustBrew()
+
+                    TimerMenuItem.EndStepNow -> onEvent(TimerEvent.EndStepNow)
+
+                    TimerMenuItem.SkipStep -> onEvent(TimerEvent.SkipStep)
+
+                    TimerMenuItem.EditSteps -> overlays.stepsOpen = true
+
+                    TimerMenuItem.AddStep -> {
+                        onEvent(TimerEvent.AddStep)
+                        overlays.stepsOpen = true
+                    }
+
+                    TimerMenuItem.FinishSession -> overlays.finish(currentState, onEvent)
+
+                    TimerMenuItem.DiscardSession -> overlays.ask(TimerConfirmation.Discard)
+
+                    TimerMenuItem.TimerSettings -> onOpenTimerSettings()
+                }
+            },
+        )
+    }
+}
