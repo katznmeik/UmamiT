@@ -165,9 +165,12 @@ class ShopClientTest {
         val client = testClient()
 
         withContext(Dispatchers.Default) {
+            // Start the second call only once the first is on the wire, so it is
+            // the one waiting in the single-request queue when it is cancelled.
             val first = async { client.get(server.url("/first")) }
-            val queued = async { client.get(server.url("/queued")) }
             runInterruptible { firstArrived.await(5, TimeUnit.SECONDS) }
+            val queued = async { client.get(server.url("/queued")) }
+            Thread.sleep(QUEUE_SETTLE_MS)
             queued.cancel()
             assertThat(first.await()).isInstanceOf(ShopResponse.Success::class.java)
             // Long enough for the queued call to have gone out after the rate-limit gap.
@@ -356,6 +359,7 @@ class ShopClientTest {
         const val MIN_GAP_MS = 480L
         const val CONNECT_DELAY_MS = 400L
         const val SLOW_RESPONSE_MS = 300L
+        const val QUEUE_SETTLE_MS = 100L
         const val CHUNK_BYTES = 64 * 1024
     }
 }
