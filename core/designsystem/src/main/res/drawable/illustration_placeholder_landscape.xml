@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder ink-wash landscape (own work) until the PO's illustrations exist (03 §3.5, Q-04).
+     Single-colour layers with alpha; the component tints it from the theme, so one file
+     serves light and dark. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="100dp"
+    android:viewportWidth="240"
+    android:viewportHeight="120">
+    <path
+        android:fillAlpha="0.18"
+        android:fillColor="@android:color/black"
+        android:pathData="M0,78L34,48L58,62L96,22L132,58L160,40L204,70L240,52V120H0Z" />
+    <path
+        android:fillAlpha="0.32"
+        android:fillColor="@android:color/black"
+        android:pathData="M0,96L40,74L72,86L112,62L150,88L188,72L240,92V120H0Z" />
+    <path
+        android:fillAlpha="0.5"
+        android:fillColor="@android:color/black"
+        android:pathData="M0,112C40,104 80,108 120,110C160,112 200,104 240,108V120H0Z" />
+</vector>
