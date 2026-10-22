@@ -18,6 +18,7 @@ import com.umamit.core.timer.alarm.TimerAlarmReceiver
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.service.BrewTimerService
 import org.junit.After
@@ -139,7 +140,7 @@ class ProcessDeathTest {
         timerPid()?.let(Process::killProcess)
         eventually("timer process gone", START_TIMEOUT) { Unit.takeIf { timerPid() == null } }
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
-        AndroidTimerAlarms(context, clocks, LogcatTimerPorts()).reconcile(DueTimes.NONE)
+        AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {}).reconcile(DueTimes.NONE)
         context.deleteDatabase(UmamiDatabase.NAME)
         TimerTestActivity.outcomeFile(context).delete()
         notificationManager.cancelAll()
