@@ -930,6 +930,9 @@ reviews them with the screenshots and motion recordings.
   The active brew bar grows from its bottom edge, so the content above does not
   jump. Motion review findings for #33: M1 and S1–S5 applied, plus O3 and O5. The motion GIFs come from Roborazzi's
   experimental `recordRoboVideo` (record mode only), shrunk with ffmpeg.
+- **PO check (#39, 2026-10-22):** the pre-alert glow, the alert pulse
+  (matcha ↔ washi, 1.5 s, ink content) and the light-green
+  `PrimaryActionCard` in the dark theme are approved unchanged.
 
 <a id="d-045"></a>
 ### D-045 — Default alert sound and pre-alert tick (Q-15) · *Accepted* (PO, 2026-10-22)
