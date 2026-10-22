@@ -147,6 +147,7 @@ sealed interface SessionKind {
  * @property steps the session plan in order, with each step's status.
  * @property zone the session's time zone (`brew_session.zone_id`), for local-date rules.
  * @property lastInteractionWallMs last user event (`last_interaction_wall_ms`), for the waiting timeouts (TMR-14).
+ * @property bootCount the boot that every `…ElapsedMs` value of the state belongs to (`boot_count`, 04 §7.2).
  */
 data class TimerSession(
     val kind: SessionKind,
@@ -154,6 +155,7 @@ data class TimerSession(
     val preAlert: PreAlertSettings,
     val zone: ZoneId,
     val lastInteractionWallMs: Long,
+    val bootCount: Int,
 ) {
     /** The `brew_session` row to record into; null for the quick timer, which records nothing. */
     internal val brewSessionId: String?

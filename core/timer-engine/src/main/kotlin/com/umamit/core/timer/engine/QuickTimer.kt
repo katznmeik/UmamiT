@@ -21,6 +21,7 @@ internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReadin
         preAlert = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = event.globalPreAlertSeconds),
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,
+        bootCount = now.bootCount,
     )
     return accepted(
         TimerState.Ready(session, stepIndex = 0, readySinceWallMs = now.wallMs),
@@ -45,7 +46,7 @@ internal fun onQuickEvent(state: TimerState.Active, event: TimerEvent, now: Cloc
     }
 
 /** The quick timer ends: nothing is recorded; the alert and the service stop. */
-private fun endQuickTimer(state: TimerState.Active): TimerTransition = accepted(
+internal fun endQuickTimer(state: TimerState.Active): TimerTransition = accepted(
     TimerState.Idle,
     side = listOfNotNull(StopAlert.takeIf { state is TimerState.Alerting }, StopForeground),
 )

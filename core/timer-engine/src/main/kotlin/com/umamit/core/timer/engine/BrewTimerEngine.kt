@@ -33,6 +33,12 @@ sealed interface RejectionReason {
 
     /** `editSteps` would leave the session without a non-rinse step (PRF-04). */
     data object NoBrewStepLeft : RejectionReason
+
+    /**
+     * The clock reading comes from another boot than the state's elapsed
+     * values; the controller has to send [TimerEvent.Recover] first (04 §7.2).
+     */
+    data object BootChanged : RejectionReason
 }
 
 /**
@@ -58,13 +64,19 @@ object BrewTimerEngine {
      * duplicates are harmless (04 §2.4, E5). In Running, [TimerEvent.Pause] is
      * allowed only before the deadline and [TimerEvent.DeadlineReached] only
      * when it is due, so a late or early deadline event never ends the wrong
-     * step.
+     * step. In an active state, a reading from another boot than the state's
+     * is rejected until [TimerEvent.Recover] has rebased the state (04 §7.2).
      */
     fun reduce(state: TimerState, event: TimerEvent, now: ClockReading): TimerTransition {
-        val transition = when (state) {
-            TimerState.Idle -> onIdle(event, now)
+        val transition = when {
+            state !is TimerState.Active -> onIdle(event, now)
 
-            is TimerState.Active -> onStepEvent(state, event, now) ?: when (state.session.kind) {
+            event == TimerEvent.Recover -> recover(state, now)
+
+            state.session.bootCount != now.bootCount ->
+                TimerTransition(state, emptyList(), TransitionOutcome.Rejected(RejectionReason.BootChanged))
+
+            else -> onStepEvent(state, event, now) ?: when (state.session.kind) {
                 is SessionKind.Brew -> onBrewEvent(state, event, now)
                 SessionKind.Quick -> onQuickEvent(state, event, now)
             }

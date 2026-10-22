@@ -37,6 +37,7 @@ internal fun startSession(event: TimerEvent.StartSession, now: ClockReading): Ti
         preAlert = event.preAlert,
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,
+        bootCount = now.bootCount,
     )
     return accepted(
         TimerState.Ready(session, stepIndex = 0, readySinceWallMs = now.wallMs),
@@ -114,16 +115,19 @@ internal fun skipStep(state: TimerState.Ready, now: ClockReading): TimerTransiti
 
 /**
  * Ends the current step of [state] with [status] and [record], then waits in
- * Ready for the next pending step, or in Finished when none is left.
+ * Ready for the next pending step, or in Finished when none is left. A user
+ * event is an [interaction]; a timeout is not.
  */
-private fun moveOn(
+internal fun moveOn(
     state: TimerState.OnStep,
     status: StepStatus,
     record: StepRecord,
     now: ClockReading,
     leaveEffects: List<TimerEffect>,
+    interaction: Boolean = true,
 ): TimerTransition {
-    val session = state.session.touched(now).withStep(state.stepIndex) { it.copy(status = status, record = record) }
+    val touched = if (interaction) state.session.touched(now) else state.session
+    val session = touched.withStep(state.stepIndex) { it.copy(status = status, record = record) }
     return accepted(
         waitingFor(session, readySinceWallMs = now.wallMs),
         data = listOfNotNull(session.brewSessionId?.let { RecordStep(it, state.stepIndex, record) }),

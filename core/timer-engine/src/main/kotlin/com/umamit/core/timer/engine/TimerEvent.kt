@@ -33,6 +33,16 @@ sealed interface TimerEvent {
      */
     data class StartQuickTimer(val durationSeconds: Int, val globalPreAlertSeconds: Int) : TimerEvent
 
+    /**
+     * The process started with a persisted active state (any active state;
+     * 04 §7.2, §7.3, §7.5): after a reboot the elapsed values are first
+     * rebased from the wall values, then the recovery table applies. Not a
+     * user interaction. Until it is processed, every other event whose clock
+     * reading comes from another boot is rejected with
+     * [RejectionReason.BootChanged].
+     */
+    data object Recover : TimerEvent
+
     /** *Start*: the water is in; the countdown begins (Ready). */
     data object Start : TimerEvent
 
