@@ -170,7 +170,7 @@ fun TimerScreen(
 @Composable
 private fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long): State<Long> {
     val now = remember(state, nowElapsedMs) { mutableLongStateOf(nowElapsedMs()) }
-    LaunchedEffect(now) {
+    LaunchedEffect(now, nowElapsedMs) {
         while (true) {
             val delayMs = state.nextTickDelayMs(now.longValue) ?: break
             delay(delayMs)
