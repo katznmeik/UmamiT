@@ -9,6 +9,7 @@ import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StockSummary
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerSnapshot
@@ -159,7 +160,9 @@ class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, pri
     override suspend fun read(): TimerSnapshot? = db.withTransaction {
         val row = activeBrew.get() ?: return@withTransaction null
         val steps = row.sessionId?.let { sessions.steps(it).map { step -> step.toRow() } }.orEmpty()
-        TimerSnapshot(row.toSnapshot(), steps)
+        // A cold or ice brew has long steps only; that follows from the session's method (D-053).
+        val method = row.sessionId?.let { sessions.get(it)?.method }
+        TimerSnapshot(row.toSnapshot(), steps, longStepsOnly = method?.let(BrewTimerEngine::longStepsOnly) ?: false)
     }
 
     override suspend fun persist(snapshot: TimerSnapshot?) {

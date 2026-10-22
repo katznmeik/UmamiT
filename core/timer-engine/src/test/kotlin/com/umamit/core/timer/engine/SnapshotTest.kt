@@ -127,7 +127,7 @@ class SnapshotTest {
                 phase = TimerPhase.RUNNING,
                 deadlineElapsedMs = running.deadlineElapsedMs,
                 deadlineWallMs = running.deadlineWallMs,
-                preAlertElapsedMs = null,
+                preAlertElapsedMs = running.deadlineElapsedMs - 10_000,
                 preAlertPlayed = false,
                 remainingMs = null,
                 pausedTotalMs = 0,
@@ -184,6 +184,7 @@ class SnapshotTest {
             "a quick timer without a duration" to
                 quick.copy(activeBrew = quick.activeBrew.copy(quickDurationSeconds = null)),
             "a quick timer with step rows" to quick.copy(steps = brew.steps),
+            "a quick timer as a cold brew" to quick.copy(longStepsOnly = true),
             "a brew session without step rows" to brew.copy(steps = emptyList()),
             "a running step without a deadline" to
                 brew.copy(activeBrew = brew.activeBrew.copy(deadlineElapsedMs = null)),

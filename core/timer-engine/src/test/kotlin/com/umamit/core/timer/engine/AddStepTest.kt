@@ -84,7 +84,7 @@ class AddStepTest {
         assertThat(effects).containsExactly(
             TimerEffect.ReplacePendingSteps(SESSION_ID, fromIndex = 2, listOf(infusion(30))),
             TimerEffect.Persist,
-            NO_ALARMS,
+            waitingAlarms(START_WALL_MS + 120_000),
             TimerEffect.UpdateNotification,
         ).inOrder()
     }

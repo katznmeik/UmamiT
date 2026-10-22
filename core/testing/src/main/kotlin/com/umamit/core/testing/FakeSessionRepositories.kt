@@ -12,6 +12,7 @@ import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StockSummary
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerSnapshot
@@ -169,8 +170,16 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
 /** Fake [ActiveBrewStore]; create it through [FakeSessions]. */
 class FakeActiveBrewStore internal constructor(private val s: FakeSessions) : ActiveBrewStore {
     override suspend fun read(): TimerSnapshot? = s.activeRow.value?.let { snapshot ->
-        val rows = snapshot.activeBrew.sessionId?.let { s.sessionRows.value[it]?.steps }
-        if (rows == null) snapshot else snapshot.copy(steps = rows)
+        val session = snapshot.activeBrew.sessionId?.let { s.sessionRows.value[it] }
+        if (session == null) {
+            snapshot
+        } else {
+            // As on Room: a cold or ice brew has long steps only (D-053).
+            snapshot.copy(
+                steps = session.steps,
+                longStepsOnly = BrewTimerEngine.longStepsOnly(session.snapshot.method),
+            )
+        }
     }
 
     override suspend fun persist(snapshot: TimerSnapshot?) {

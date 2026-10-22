@@ -302,6 +302,82 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-053"></a>
+### D-053 — Timer time rules and the foreground-service contract (M1-08 part 2, #31) · *Accepted* (Claude, 2026-10-22)
+
+#31 added the time-based rules to the pure engine, with S5 of the #28 review
+and the notes of the #32 review (O6, O7, the consume rule of D-048)
+([04 §3.2](04-brew-timer.md#32-events-and-transitions), §4, §5, §6.1, §7.2,
+§8.2, §10; [05 §3.12](05-data-model.md#312-activebrew)):
+
+- **Due set.** `DueTimes` has six fields: pre-alert, deadline and overtime
+  timeout on the elapsed clock; idle demote, midnight and the quick-timer
+  cancel on the wall clock. Each time-based event (`preAlertReached`,
+  `deadlineReached`, `overtimeTimeout`, `idleDemote`, `midnightTimeout`,
+  `quickTimerTimeout`) is accepted only when due, and a due one is always
+  accepted. The seeded invariant test checks this after every accepted
+  event: each due event is accepted by the new state.
+- **Pre-alert.** N = session override ?: inherited (recipe ?: global). A
+  step has none when N = 0, it is shorter than N + 5 s, it is a rinse
+  shorter than 15 s, or it is a long step. `start` schedules it at
+  deadline − N. `resume` and `editSteps` recompute an unplayed one from the
+  deadline and the current N, and skip it when that time is not after now
+  (exactly N left counts as past). A played one never comes back (E6).
+  `preAlertReached` plays the tick while **≥ 1 s** is left before the
+  deadline (the tick is 0.8 s, D-045), and later only marks it played. Both
+  clear the due time and update the notification.
+- **Overtime timeout.** It is due at deadline + 10 min in Alerting and uses
+  the shared transition: actual = planned, overtime 0, ended at the
+  deadline's wall time, auto-ack; a quick timer ends. A live
+  `deadlineReached` that late applies the timeout instead of alerting, and
+  `poured`, `endStepNow` or `finishSession` that late record the same
+  auto-ack (O6), so live and recovered sessions agree.
+- **Idle time.** A waiting state is idle since its last interaction or since
+  it started waiting (`readySince`, `pausedSince`), whichever is later. The
+  overtime timeout is not an interaction. A cold brew started at 18:00 that
+  times out at 01:10 would otherwise be demoted, and finished at midnight,
+  the moment it starts waiting. The wall clock stays the measure (D-048).
+- **Idle demote.** For brew sessions only; the quick timer's 30-min cancel
+  comes at the same time. It is due 30 min after the idle start while the
+  session is not demoted. It sets `demoted` and emits `StopForeground` and
+  `UpdateNotification` (the regular ongoing notification). Any user event
+  clears `demoted`.
+- **Foreground-service contract (S5).** Every active state runs with the
+  service except a demoted session and a long running step.
+  - `start` and `resume` emit `StartForeground` for a short step and
+    `StopForeground` for a long one.
+  - `deadlineReached` ensures the service before `StartAlert`.
+  - `idleDemote` and every way to Idle emit `StopForeground`.
+    `StopForeground` removes notifications 1 and 2 also when they were
+    posted without the service, so Idle never emits `UpdateNotification`.
+  - Any other accepted transition from a state without the service to one
+    with it adds `StartForeground`: a user event on a demoted session, a
+    pause or early end of a long step.
+  - `recover` restores the service only where the state needs it (O7).
+- **Midnight timeout.** For brew sessions in Ready, Paused or Finished,
+  demoted or not. It is due at the first start of a local day in the
+  session's zone at or after idle start + 6 h. The 6 h are real hours, and
+  `LocalDate.atStartOfDay` handles a day whose midnight a DST change skips.
+  It reuses the finish rules without confirmation. If a non-rinse step was
+  completed (a paused step counts), the session is completed with the new
+  side effect `NotifySessionSaved` (notification 3, „Sitzung gespeichert")
+  and no saved sheet. Otherwise it is discarded silently. A paused step ends
+  where its pause began; the open pause is not recorded (#28 review,
+  decision 9).
+- **Recovery.** A waiting session applies the timeouts that came while the
+  process was dead, in this order: quick-timer cancel, midnight, idle
+  demote. A demoted session and a long running step are restored without
+  `StartForeground`.
+- **Long steps.** A step is long when it is planned for ≥ 10 min, or when
+  the session is a cold or ice brew (`StartSession.longStepsOnly`, from
+  `BrewTimerEngine.longStepsOnly(method)`). The flag is not an `active_brew`
+  column: `TimerSnapshot.longStepsOnly` is filled from
+  `brew_session.method`. It is false for the quick timer, and `restore`
+  refuses a quick timer that has it. `isLongStep(state)` and
+  `longStepEndWallMs(state, now)` (now + the remaining time on the
+  monotonic clock, so it follows a wall-clock change, E1) feed
+  „Fertig um 14:30".
+
 <a id="d-052"></a>
 ### D-052 — Session lifecycle, active brew store, device backup and restore detection (M1-06, #36) · *Accepted* (Claude, 2026-10-22)
 
@@ -907,6 +983,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-053: timer time rules from #31: pre-alert source order, skip rules, E6/E7 and the 1-s late rule; overtime timeout event and live auto-ack; idle time from the later of last interaction and waiting start; idle demote with `demoted`; the foreground-service contract (S5); midnight timeout in the session zone with `NotifySessionSaved`; recovery order; long steps incl. cold/ice brew; six-field due set. 04 §3.2, §4, §5, §6.1, §7.2, §8.2, §10, §12 and 05 §3.12 updated. |
 | 2026-10-22 | D-052: session lifecycle per engine effect, authoritative active brew store, `active_brew` columns of D-048 in schema v1, completion details (end time, cost, BREW event, full INV-06), include-only device backup rules with `fullBackupContent`, restore detection in Room's callbacks, CI schema-staleness check (#36); 05 §3, §6, §8, §9 updated with the #30 decisions. |
 | 2026-10-22 | D-051: Schritte-Sheet details (#38): Material 3 modal sheet with its own motion instead of the `sheet` token, closed at once on ALERTING, closing applies nothing, stepper and temperature rules, recipe save mapping; 03 SCR-31 updated. |
 | 2026-10-22 | D-050: shop client (allow-list, direct single connection, one request per call, rate limit on the wire, stop signals incl. Cloudflare block pages, hardened robots.txt) and the run-once seed photo download (marker before the first request, stop rules, re-encoded covers) from #37 and its T4 review; 05 §6 and 08 §2.5a updated. |

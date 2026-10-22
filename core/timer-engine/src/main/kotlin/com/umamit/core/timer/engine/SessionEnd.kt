@@ -3,6 +3,7 @@ package com.umamit.core.timer.engine
 import com.umamit.core.common.ClockReading
 import com.umamit.core.timer.engine.TimerEffect.CompleteSession
 import com.umamit.core.timer.engine.TimerEffect.DiscardSession
+import com.umamit.core.timer.engine.TimerEffect.NotifySessionSaved
 import com.umamit.core.timer.engine.TimerEffect.RecordStep
 import com.umamit.core.timer.engine.TimerEffect.ShowSavedSheet
 import com.umamit.core.timer.engine.TimerEffect.StopAlert
@@ -43,6 +44,23 @@ internal fun finishCompletes(state: TimerState.Active): Boolean {
         state.session
     }
     return session.hasCompletedBrewStep
+}
+
+/**
+ * The midnight timeout (TMR-14): completes the session with the notification
+ * „Sitzung gespeichert" if a non-rinse step was completed, a paused step
+ * counting as completed, else discards it silently. A paused step ends where
+ * its pause began, so the open pause is not recorded. No saved sheet.
+ */
+internal fun midnightTimeout(state: TimerState.Waiting): TimerTransition {
+    val sessionId = state.session.brewSessionId
+    if (sessionId == null || !finishCompletes(state)) return discard(state)
+    val recordEffect = (state as? TimerState.Paused)?.let { RecordStep(sessionId, it.stepIndex, pauseEndedRecord(it)) }
+    return accepted(
+        TimerState.Idle,
+        data = listOfNotNull(recordEffect, CompleteSession(sessionId)),
+        side = listOf(StopForeground, NotifySessionSaved(sessionId)),
+    )
 }
 
 /** Leaving an active state for Idle: stop the alert and the service (which removes the timer notifications). */

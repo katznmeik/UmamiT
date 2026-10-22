@@ -19,7 +19,8 @@ internal val TimerState.OnStep.plannedMs: Long
  * The current step ended now. Before the deadline (Running, Paused) it ends
  * early, without overtime. At or after the deadline (Alerting, or Running
  * before the deadline event was processed) it counts as poured: overtime =
- * now − deadline, and the actual time includes it.
+ * now − deadline, and the actual time includes it. From 10 min of overtime on
+ * it is the overtime timeout's auto-ack record, as on recovery.
  */
 internal fun endedRecord(state: TimerState.StepStarted, now: ClockReading): StepRecord = when (state) {
     is TimerState.Alerting -> pouredRecord(state, state.deadlineElapsedMs, now)
@@ -37,6 +38,10 @@ internal fun endedRecord(state: TimerState.StepStarted, now: ClockReading): Step
         endedAtWallMs = now.wallMs,
     )
 }
+
+/** A paused step ended where its pause began: the open pause is not counted (midnight timeout, D-053). */
+internal fun pauseEndedRecord(state: TimerState.Paused): StepRecord =
+    state.record(state.plannedMs - state.remainingMs, state.pausedTotalMs, 0, state.pausedSinceWallMs)
 
 /** A step skipped in Ready: never started, so no times. */
 internal fun skippedRecord(state: TimerState.Ready): StepRecord = StepRecord(
@@ -63,7 +68,9 @@ internal fun autoAckRecord(state: TimerState.StepStarted): StepRecord {
     return state.record(state.plannedMs, state.pausedTotalMs, 0, deadlineWallMs).copy(overtimeAutoAck = true)
 }
 
+/** Poured at [now], after the deadline; from 10 min of overtime on, the overtime timeout's record (D-053). */
 private fun pouredRecord(state: TimerState.StepStarted, deadlineElapsedMs: Long, now: ClockReading): StepRecord {
+    if (isOvertimeTimedOut(deadlineElapsedMs, now)) return autoAckRecord(state)
     val overtimeMs = now.elapsedMs - deadlineElapsedMs
     return state.record(state.plannedMs + overtimeMs, state.pausedTotalMs, overtimeMs, now.wallMs)
 }

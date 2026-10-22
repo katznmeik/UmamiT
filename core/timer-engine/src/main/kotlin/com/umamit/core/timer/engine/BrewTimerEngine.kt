@@ -1,6 +1,7 @@
 package com.umamit.core.timer.engine
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.BrewMethod
 
 /**
  * The result of one [BrewTimerEngine.reduce]: the new [state], the [effects]
@@ -111,6 +112,34 @@ object BrewTimerEngine {
      * The Schritte-Sheet uses it for *Aufguss hinzufügen*.
      */
     fun defaultAddedStep(plan: List<PlannedStep>): PlannedStep = defaultAddedStepOf(plan)
+
+    /**
+     * True for a brew [method] whose steps are all long steps however short
+     * (cold and ice brew, TMR-18): the value of [TimerEvent.StartSession.longStepsOnly]
+     * and [TimerSnapshot.longStepsOnly].
+     */
+    fun longStepsOnly(method: BrewMethod): Boolean = method == BrewMethod.COLD_BREW || method == BrewMethod.ICE_BREW
+
+    /**
+     * True when the current step of [state] is a long step (≥ 10 min, or any
+     * step of a cold or ice brew; TMR-18): it runs without the foreground
+     * service and without a pre-alert, and the notification shows its end
+     * („Fertig um 14:30"). False in Idle and Finished.
+     */
+    fun isLongStep(state: TimerState): Boolean = state is TimerState.OnStep && state.session.isLongStep(state.stepIndex)
+
+    /**
+     * The wall-clock time at which the running long step of [state] ends, for
+     * „Fertig um 14:30" (TMR-18): now plus the remaining time on the monotonic
+     * clock, so it follows a change of the wall clock (E1). Null unless a long
+     * step is running.
+     */
+    fun longStepEndWallMs(state: TimerState, now: ClockReading): Long? =
+        if (state is TimerState.Running && isLongStep(state)) {
+            now.wallMs + (state.deadlineElapsedMs - now.elapsedMs)
+        } else {
+            null
+        }
 
     /**
      * The display values of [state] at [now]; null in Idle. Remaining time is

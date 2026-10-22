@@ -3,8 +3,10 @@ package com.umamit.core.data
 import android.database.sqlite.SQLiteConstraintException
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.test.runTest
@@ -79,6 +81,28 @@ class ActiveBrewStoreTest {
         driver.send(TimerEvent.FinishSession)
 
         assertThat(data.activeBrew.read()).isNull()
+    }
+
+    @Test
+    fun `a cold brew reads back with long steps only, from the session's method (D-053)`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val coldBrew = snapshotOf().copy(method = BrewMethod.COLD_BREW)
+        val driver = TimerDriver(data, start = { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks(), snapshot = coldBrew)
+        })
+        driver.send(
+            TimerEvent.StartSession(
+                SESSION_ID,
+                listOf(infusion(60)),
+                PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 10),
+                longStepsOnly = true,
+            ),
+        )
+
+        val running = driver.send(TimerEvent.Start)
+
+        assertThat(data.activeBrew.read()!!.longStepsOnly).isTrue()
+        assertStored("Running cold brew", running)
     }
 
     @Test

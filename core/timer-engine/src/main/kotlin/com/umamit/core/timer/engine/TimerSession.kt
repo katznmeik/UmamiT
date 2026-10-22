@@ -153,7 +153,8 @@ sealed interface SessionKind {
  * @property lastInteractionWallMs last user event (`last_interaction_wall_ms`), for the waiting timeouts (TMR-14).
  * @property bootCount the boot that every `…ElapsedMs` value of the state belongs to (`boot_count`, 04 §7.2).
  * @property demoted the foreground service was stopped by `idleDemote` and a regular notification shown
- *   (`demoted`, 04 §3.2); set and cleared by the idle rules of #31.
+ *   (`demoted`, 04 §3.2); any user event clears it (D-053).
+ * @property longStepsOnly a cold or ice brew: every step is a long step (TMR-18); from `brew_session.method`.
  */
 data class TimerSession(
     val kind: SessionKind,
@@ -163,6 +164,7 @@ data class TimerSession(
     val lastInteractionWallMs: Long,
     val bootCount: Int,
     val demoted: Boolean,
+    val longStepsOnly: Boolean,
 ) {
     /** The `brew_session` row to record into; null for the quick timer, which records nothing. */
     internal val brewSessionId: String?
@@ -176,8 +178,11 @@ data class TimerSession(
     internal val startedPrefixSize: Int
         get() = steps.indexOfFirst { it.status == StepStatus.PENDING }.let { if (it < 0) steps.size else it }
 
-    /** This session after a user event at [now]. */
-    internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs)
+    /** This session after a user event at [now]: the idle timeouts restart and a demoted session is active again. */
+    internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs, demoted = false)
+
+    /** Step [index] is a long step (≥ 10 min, or any step of a cold or ice brew; TMR-18, 04 §1). */
+    internal fun isLongStep(index: Int): Boolean = longStepsOnly || steps[index].plannedSeconds >= LONG_STEP_SECONDS
 
     /** This session with step [index] replaced by [transform] of it. */
     internal fun withStep(index: Int, transform: (SessionStep) -> SessionStep): TimerSession =

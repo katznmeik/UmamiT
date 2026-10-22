@@ -72,7 +72,7 @@ class FakeSessionsTest {
     @Test
     fun `the store reads the session's current step rows and clears with the session`() = runTest {
         fakes.sessions.startSession(start)
-        val ready = TimerSnapshot(readyRow(), fakes.sessions.getSession("s1")!!.steps)
+        val ready = TimerSnapshot(readyRow(), fakes.sessions.getSession("s1")!!.steps, longStepsOnly = false)
         // A snapshot the engine accepts.
         BrewTimerEngine.restore(ready)
         fakes.activeBrew.persist(ready)

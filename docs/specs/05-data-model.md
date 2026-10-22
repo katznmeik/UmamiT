@@ -275,7 +275,7 @@ are nullable (#30). A device restore clears the row (§8).
 | `step_started_wall_ms` | INTEGER | RUNNING/PAUSED/ALERTING |
 | `alert_played` | INTEGER | ALERTING; recovery replays the alert while 0 |
 | `boot_count` | INTEGER | boot of the `…_elapsed_ms` values |
-| `last_interaction_wall_ms` | INTEGER | `idleDemote` after 30 min; `midnightTimeout` at the first local midnight ≥ 6 h after it; quick-timer cancel after 30 min |
+| `last_interaction_wall_ms` | INTEGER | last user event. `idleDemote` 30 min and `midnightTimeout` at the first local midnight ≥ 6 h after the later of it and `ready_since_wall_ms` / `paused_since_wall_ms` (D-053); quick-timer cancel 30 min after it |
 | `demoted` | INTEGER | FGS stopped, regular notification shown |
 | `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus* |
 | `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off) |
@@ -283,7 +283,9 @@ are nullable (#30). A device restore clears the row (§8).
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
-the state (D-048).
+the state (D-048). Whether every step is a long step (cold or ice brew) is not
+a column either: the active brew store reads it from
+`brew_session.method` into `TimerSnapshot.longStepsOnly` (D-053).
 
 ## 4. Catalog tables (rebuilt by each refresh)
 

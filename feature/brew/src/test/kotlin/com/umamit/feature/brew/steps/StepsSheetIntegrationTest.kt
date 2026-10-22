@@ -111,6 +111,7 @@ class StepsSheetIntegrationTest {
                     PlannedStep(StepKind.INFUSION, 45, null),
                 ),
                 preAlert = PreAlertSettings.inherited(recipeSeconds = 10, globalSeconds = 10),
+                longStepsOnly = false,
             ),
         )
         state = state.send(TimerEvent.Start)

@@ -101,6 +101,7 @@ fun startEvent(vararg steps: PlannedStep, id: String = SESSION_ID, preAlert: Int
     id,
     steps.toList(),
     PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = preAlert),
+    longStepsOnly = false,
 )
 
 /** The snapshot of tea „t1" with 4 g in the „Kyusu" recipe. */

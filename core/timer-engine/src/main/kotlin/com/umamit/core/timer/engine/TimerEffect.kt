@@ -42,7 +42,7 @@ sealed interface TimerEffect {
      */
     data class ScheduleAlarms(val due: DueTimes) : TimerEffect
 
-    /** Play the pre-alert tick once (#31). */
+    /** Play the pre-alert tick (TMR-23); at most once per step, at least 1 s before the deadline. */
     data object PlayPreAlert : TimerEffect
 
     /**
@@ -55,15 +55,33 @@ sealed interface TimerEffect {
     /** Stop the step alert. */
     data object StopAlert : TimerEffect
 
-    /** Ensure the foreground service with the Live Update runs (idempotent; 04 §6.3). */
+    /**
+     * Ensure the foreground service with the Live Update runs (idempotent; 04 §6.3).
+     * A start from the background may be refused; the controller then keeps
+     * the regular ongoing notification until the next interaction or alarm.
+     */
     data object StartForeground : TimerEffect
 
-    /** Stop the foreground service and remove the timer's notifications. */
+    /**
+     * Stop the foreground service if it runs and remove notifications 1 and 2
+     * (Live Update or regular ongoing notification, alert), also when they
+     * were posted without the service (04 §8, D-053).
+     */
     data object StopForeground : TimerEffect
 
-    /** Refresh the Live Update / notification from the new state. */
+    /**
+     * Post notification 1 from the new state: the Live Update while the
+     * service runs; a regular, silent ongoing notification while the session
+     * is demoted or a long step runs (04 §8.2). Never emitted for Idle.
+     */
     data object UpdateNotification : TimerEffect
 
     /** Show the „Gespeichert im Journal" sheet (SCR-06) for the session. */
     data class ShowSavedSheet(val sessionId: String) : TimerEffect
+
+    /**
+     * Post the notification „Sitzung gespeichert" (ID 3, channel `sessions`,
+     * 04 §8) for a session the midnight timeout completed (TMR-14).
+     */
+    data class NotifySessionSaved(val sessionId: String) : TimerEffect
 }
