@@ -7,10 +7,11 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
-import com.umamit.core.timer.alert.AlertLength
+import com.umamit.core.timer.alert.limitMs
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort

@@ -43,6 +43,10 @@ object AlertPlayers {
 val AlertSound.rawRes: Int
     get() = when (this) {
         AlertSound.KLANGSCHALE -> ContentR.raw.klangschale
+        AlertSound.GLOCKE -> ContentR.raw.glocke
+        AlertSound.HOLZBLOCK -> ContentR.raw.holzblock
+        AlertSound.GLOCKENSPIEL -> ContentR.raw.glockenspiel
+        AlertSound.SANFT -> ContentR.raw.sanft
         AlertSound.TICK -> ContentR.raw.tick
     }
 

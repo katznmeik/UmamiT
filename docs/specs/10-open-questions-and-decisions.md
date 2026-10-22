@@ -302,6 +302,62 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-059"></a>
+### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted* (Claude, 2026-10-22)
+
+#44 turned the ringer-mode player of #16 into the controller's alert port
+([04 §9](04-brew-timer.md#9-alerts)). Decided while building it:
+
+- **Two classes, one player.** `AlertPlayback` (singleton) owns the one
+  `RingerModeAlertPlayer` with the device outputs. `ControllerAlertPort` is
+  the controller's `TimerAlertPort` on top of it, and `AlertPlayback` itself
+  is the `AlertTester` (*Alarm testen*) for the settings screen. The tester
+  does not depend on the controller, so #50 can inject it before every
+  controller port is bound (D-056). Hilt binds both in `TimerModule`.
+- **Calls never block.** Every port call only queues a command; the
+  commands run in order on the main thread, which the player and its
+  Android outputs need. So a stop can never overtake its start.
+- **Settings per alert.** Tone (SET-09), vibration (SET-11) and alert length
+  (SET-14) are read at the start of every alert, tick and test from a cache
+  of the settings file. Right after the process starts, a command waits at
+  most 300 ms for the first value. An unreadable or late file plays the
+  defaults (Klangschale, Normal, vibration on): a late alert is worse than a
+  default tone (rule 8). The stored `alertSound` key is the file name; an
+  unknown key plays the Klangschale. The timer's own `AlertLength` was
+  replaced by the `core:model` enum of the setting.
+- **End report.** When an alert has run its full length (Kurz one cycle,
+  Normal up to 15 s, Lang up to 2 min; also when it was visual only), the
+  port calls `alertCompleted` with that `StepAlert` once, from its own
+  coroutine and never inside the controller's turn. The controller is
+  reached through a `Provider`, which breaks the dependency cycle. An alert
+  stopped (*Abgegossen*) or replaced first is not reported. If the report
+  never arrives (process death), recovery replays the alert (at least once,
+  D-047). A command that throws is logged, and the next alert still plays.
+- **Tick at most once.** The engine plays the pre-alert once per step; the
+  player also ignores a pre-alert while an alert plays, so a tick can never
+  cut an alert. A controller test delivers the pre-alert alarm repeatedly
+  and hears one tick.
+- ***Alarm testen*** plays the tick, then the alert 1.5 s later (0.8 s tick,
+  0.7 s pause), with the current settings including the alert length, through
+  the same player and matrix. It is ignored while a real alert or tick plays;
+  a real alert or tick replaces a running test. `stopTestAlert` stops only a
+  test, e.g. when the settings screen closes.
+- **Four tones** from `scripts/sounds/generate.sh`, each with its own
+  character (04 §9.2): Glocke (small bell struck twice, 660 Hz bell
+  partials, 3.0 s), Holzblock (two wood blocks, „tok-tok … tok-tok", noise
+  burst plus short modes, band-passed, 1.2 s), Glockenspiel (rising arpeggio
+  C6–E6–G6–C7, 2.2 s), Sanft (two soft tones rising a fourth, 3.0 s). Like
+  the Klangschale: mono, 48 kHz, Ogg Vorbis q6, -16 LUFS, true peak ≤ -1.5
+  dBTP, 9–16 KB. The wood block's noise comes from ffmpeg's seeded
+  `random()`, so the file is reproducible. The generator gained an optional
+  filter chain per sound, which leaves the Klangschale's and the tick's
+  commands unchanged: both stay byte-identical (D-045), and `--check`
+  compares all six files. A tone shorter than 3 s still repeats every 3 s
+  (the vibration pattern plus 1 s), so Normal is 5 × 3 s.
+- **The PO listens** to the four tones before the M1 checklist (samples on
+  #44) and may pick another default or replace a tone (Q-15 procedure). The
+  German tone names for the picker come with the settings screen (#50).
+
 <a id="d-057"></a>
 ### D-057 — Exact alarms, BrewTimerService and recovery in the first turn (M1-09 part 2, #42) · *Accepted* (Claude, 2026-10-22)
 
@@ -396,9 +452,9 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
   verified patterns, channels and notification IDs.
 - **Instrumented test** (`core:timer` androidTest, CI emulator job, API 35/36):
   - The main process of the test APK runs the real controller, alarm adapter,
-    receiver, service and Room database, wired by hand in the test app. The
-    ports of later tickets are logcat doubles; each ticket swaps in its
-    adapter.
+    receiver, service, alert player (#44) and Room database, wired by hand in
+    the test app. The ports of later tickets are logcat doubles; each ticket
+    swaps in its adapter.
   - The test runner runs in its own process (`android:targetProcesses`).
   - A 25 s step without a pre-alert starts from an activity in the main
     process, like a tap. The test kills that process with SIGKILL from the same
@@ -1361,6 +1417,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
 | 2026-10-22 | D-057: exact alarms, BrewTimerService and recovery in the first turn (#42): alarm adapter per kind with request codes 101–106 and the inexact fallback logged; recovery once per process in the first controller turn (moved from #46, amends D-056); receiver via the app's `TimerAlarmSinkHost`; service port with the full-screen flag, `startService` while in the foreground, deferred stop, wake lock up to the longest alert, refusals logged; minimal notification content and `TimerAlertActivity` until #47; process-death test with its runner in its own process. 04 §4, §6.2, §6.3, §7.2, §12, §13 updated. |
 | 2026-10-22 | D-056: BrewSessionController core (#41): suspend inputs and seven ports, alarm-kind table, in-process wake-up port, non-cancellable lock turns, persist retry and guarded side effects, one alert per deadline with stale end reports ignored, `TimerUiState`, pre-alert frozen at the start, Hilt bindings without stand-ins. 04 §4 updated. |
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |

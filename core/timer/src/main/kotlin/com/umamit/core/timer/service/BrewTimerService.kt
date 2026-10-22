@@ -18,7 +18,8 @@ import com.umamit.core.timer.TimerNotifications
  * steps, waiting states, the alert), shows the notification it is sent as
  * its foreground notification and holds the partial wake lock for the time it
  * is sent. It has no timer logic: [BrewTimerServicePort] decides what to show
- * from the controller's state. The AlertPlayer it hosts comes with M1-10.
+ * from the controller's state. The alert player (`AlertPlayback`, D-059)
+ * plays while it keeps the process in the foreground and holds the wake lock.
  *
  * - The alert (ID 2) replaces the Live Update (ID 1) as the foreground
  *   notification, and a Live Update posted without the service is cancelled,
