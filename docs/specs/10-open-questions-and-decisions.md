@@ -302,6 +302,39 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-049"></a>
+### D-049 — Schritte-Sheet details (M1-19) · *Accepted* (Claude, 2026-10-22)
+
+#38 settled these points of SCR-31 that the specs left open
+([03 SCR-31](03-ux-ui.md#scr-31-schritte-sheet-session-steps)):
+
+- **Own sheet, not Material's `ModalBottomSheet`.** Material 3 1.4 takes the
+  sheet's motion from its `MotionScheme`, which is internal, so the `sheet`
+  spring of 03 §3.6 could not be applied. `StepsSheet` is a small modal sheet
+  drawn over the host screen: it slides up with `sheet` (snap under reduce
+  motion) over a `fade` scrim, follows a downward drag (a third of its height
+  or a fling closes it), and closes on back, the scrim and the handle.
+- **Closing applies nothing.** Only *Fertig* sends `editSteps`; a swipe,
+  back, the scrim or the handle close the sheet without changing the session.
+  *Im Rezept speichern* saves the recipe and keeps the sheet open, so the
+  session still changes only with *Fertig*.
+- **Stepper rules.** A tap moves to the next multiple of 5 s below 10 min and
+  of 1 min from 10 min on (lengthen: 9:55 → 10:00 → 11:00; shorten: 11:00 →
+  10:00 → 9:55), within 5 s – 24 h. Temperatures move to the next multiple of
+  5 °C within 5–100 °C (05 §3.2). A step without its own temperature shows the
+  recipe's base temperature and stays without one until it is changed; a step
+  without any (quick timer) has no temperature stepper.
+- **Delete** is disabled when it would leave no non-rinse step in the whole
+  plan, done steps included (D-048). Done (✓), running („läuft") and skipped
+  („übersprungen") steps are read-only.
+- **Recipe save.** The whole plan as shown (done steps included) replaces the
+  recipe's steps (step notes arrive in M4). *Wie Einstellung* keeps the
+  recipe's own pre-alert, *Aus* stores 0, a lead time stores its seconds.
+  The confirmation snackbar „Im Rezept gespeichert" shows on the tap; the host
+  does the write.
+- **Step kinds in German:** Aufguss (INFUSION), Spülaufguss (RINSE),
+  Aufschlagen (WHISK).
+
 <a id="d-048"></a>
 ### D-048 — Step edits, quick timer, recovery and the `active_brew` snapshot · *Accepted* (Claude, 2026-10-22)
 
@@ -742,6 +775,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-049: Schritte-Sheet details (#38): own modal sheet with the `sheet` spring, closing applies nothing, stepper and temperature rules, recipe save mapping; 03 SCR-31 updated. |
 | 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
 | 2026-10-22 | D-047: timer engine design from the T4 review of #28 (due-time set, alert at-least-once with `AlertCompleted`, transition outcome, `CreateSession`, `SessionKind`, ending after the deadline counts as poured, `finishWouldDiscard`); 04 §3.2, §4, §5, §5.1 updated. |
 | 2026-10-22 | D-046: design system details from M1-04 (#29): generated schemes with twin roles, font subset keeps `lnum`/`tnum`, German hyphenation, Material Symbols licence, motion tokens in 03 §3.6. |

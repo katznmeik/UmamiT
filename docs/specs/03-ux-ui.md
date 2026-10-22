@@ -676,7 +676,13 @@ editable before *Start*).
 - Pre-alert selector overrides the effective pre-alert for this session.
 - *Im Rezept speichern* writes the steps and pre-alert into the recipe used
   (with a confirmation snackbar). Notes per step arrive in M4.
-- Changes apply via the `editSteps` event (04 §3.2).
+- Changes apply via the `editSteps` event (04 §3.2) on *Fertig*; closing the
+  sheet any other way (swipe down, back, scrim, handle) applies nothing.
+- Built in `feature:brew` as the stateless `StepsSheet` plus the state holder
+  `StepsSheetState` (#38): it emits the `editSteps` request and a
+  save-to-recipe request and calls neither the engine nor the database, so
+  SCR-04 and SCR-05 host it unchanged. It opens and closes with the `sheet`
+  spring (§3.6). Details: [D-049](10-open-questions-and-decisions.md#d-049).
 
 ## 5. Dialogs & messages (German)
 
