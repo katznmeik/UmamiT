@@ -329,8 +329,9 @@ ongoing notification** (Live Update):
   `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` (D-043). The banner is based
   only on this check, not on Now Bar presence.
 - API names follow the Android 16 SDK and are verified in the **probe
-  release** `v0.0.1-probe` (M1 plan) on the PO's Galaxy before the full timer
-  is built.
+  release** (M1 plan) on the PO's Galaxy before the full timer is built.
+  `v0.0.2-probe` passed all four probe items on 2026-10-22 (09 §4, D-040,
+  #17).
 
 ## 9. Alerts
 

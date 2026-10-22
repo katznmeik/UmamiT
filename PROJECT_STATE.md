@@ -14,10 +14,10 @@
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n` (M1 milestone PR) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs); docs/housekeeping #2–#5, #7, #18–#24 |
-| Open PR | M1 milestone PR (draft) |
+| Merged PRs | #1 (M0 specs); docs/housekeeping #2–#5, #7, #18–#24, #26 |
+| Open PR | #25 M1 milestone PR (draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | none |
+| Latest APK | [`v0.0.2-probe`](https://github.com/katznmeik/UmamiT/releases/tag/v0.0.2-probe) (pre-release, versionCode 201): probe **passed** on 2026-10-22 |
 
 ## Done (M0)
 
@@ -41,12 +41,13 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. During M1: save the two signing files Claude delivers in the session and
-   add 2 GitHub secrets (06 §6.1).
-3. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
-   report the results in the session; re-test any `v0.0.N-probe` until all
-   four items pass (D-040).
-4. At the M1 PR: test the release candidate, listen to the alert sounds and
+2. Q-15: pick one of the brighter Klangschale and singing-bowl tick variants
+   sent in the session on 2026-10-22 (A/B/C), or ask for another round.
+3. Say whether the Live Update also appeared in the Now Bar during the probe
+   (best effort, recorded only).
+4. Start the next spec (M1 waves 2–3) with `/to-spec` (working agreement
+   below).
+5. At the M1 PR: test the release candidate, listen to all alert sounds and
    approve the default (Q-15).
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
@@ -63,12 +64,21 @@
 | Next spec (waves 2–3) | Started by the PO; include the design/motion skills per `docs/plans/M1-timer.md` §3.2 (motion section in 03, `/review-animations` on UI tickets, worst-case renders in M1-17) |
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
-## Next steps (from 2026-10-22 09:05 Europe/Berlin)
+## Next steps
 
-Follow `docs/plans/M1-timer.md`, starting with M1-00 (session-start hook
-that installs the Android SDK), M1-01 (Gradle skeleton with all module
-stubs), M1-02/03 (CI incl. emulator job, signing, release workflow) and the
-probe release M1-03a (spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6); tickets #8–#17 in dependency order, start with #8 and #9).
+Spec [#6](https://github.com/katznmeik/UmamiT/issues/6) (M1-00 … M1-03a,
+tickets #8–#17) is done: SDK hook, Gradle skeleton, CI gate with emulator
+job, signing, release workflow, probe screen, exact-alarm/FGS/Live Update/
+full-screen probe and synthesised sounds; `v0.0.2-probe` passed on the
+Galaxy (D-040 gate open for M1-09/M1-11).
+
+1. The PO starts the next spec (M1 waves 2–3, `docs/plans/M1-timer.md`) with
+   `/to-spec`, including the design/motion skills (§3.2, D-041). Then
+   `/to-tickets` and `/implement-spec` on the same branch and PR #25.
+2. Commit the PO's Q-15 sound choice (generator `scripts/sounds/generate.sh`,
+   04 §9.2) with the next implementation run.
+3. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
+   the sounds need a listening build).
 
 ## Open questions
 
@@ -77,9 +87,11 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 ## Known caveats
 
 - Mockup images still show the old name „UmamiTea".
-- Live Update / ProgressStyle and full-screen intent behaviour must be
-  verified with the probe release on the Galaxy (`docs/specs/04-brew-timer.md`
-  §8.3). Now Bar presence is best effort.
+- Live Update / ProgressStyle and the full-screen alert were verified on the
+  Galaxy with `v0.0.2-probe`; the full timer must keep the probe's patterns
+  (D-043, D-044, `docs/plans/M1-probe-api-notes.md`). Now Bar presence is best
+  effort.
+- `v0.0.1-probe` (published before the D-044 fix) is superseded; don't use it.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping
   without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2);
@@ -89,6 +101,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent. Run stopped after #17 as agreed. |
 | 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
 | 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
 | 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |

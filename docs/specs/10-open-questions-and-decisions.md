@@ -6,7 +6,7 @@
 
 | ID | Question | Proposed default | Needed by |
 |---|---|---|---|
-| Q-15 | Default **alert sound** „Klangschale" (singing bowl): PO agrees in principle but wants to **hear it** before final approval → listen via *Alarm testen* in the M1 APK. | Klangschale | M1 acceptance |
+| Q-15 | Default **alert sound** „Klangschale" (singing bowl): PO agrees in principle but wants to **hear it** before final approval → listen via *Alarm testen* in the M1 APK. *2026-10-22, probe `v0.0.2-probe`:* the Klangschale is not bright enough, and the pre-alert tick should sound more like a singing bowl → brighter variants were synthesised for the PO to choose from. | Klangschale | M1 acceptance |
 
 ### Notes on Q-04 — illustration and imagery options
 
