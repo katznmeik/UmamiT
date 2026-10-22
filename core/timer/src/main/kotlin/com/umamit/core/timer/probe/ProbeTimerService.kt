@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.core.app.ServiceCompat
 import com.umamit.core.timer.AlertPlayer
 import com.umamit.core.timer.TimerNotifications
+import com.umamit.core.timer.alert.AlertPlayers
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -69,11 +70,12 @@ class ProbeTimerService : Service() {
     }
 
     /**
-     * Hook for #16: return the ringer-mode `AlertPlayer` here. It is called at
-     * the pre-alert ([AlertPlayer.playPreAlert]), at the deadline
-     * ([AlertPlayer.startAlert]) and when the step stops ([AlertPlayer.stopAlert]).
+     * The ringer-mode alert (04 §9.1, #16) with the default settings (Klangschale,
+     * Normal = up to 15 s, vibration on). It is called at the pre-alert
+     * ([AlertPlayer.playPreAlert]), at the deadline ([AlertPlayer.startAlert])
+     * and when the step stops ([AlertPlayer.stopAlert]).
      */
-    private fun createAlertPlayer(): AlertPlayer = AlertPlayer.Silent
+    private fun createAlertPlayer(): AlertPlayer = AlertPlayers.ringerMode(this)
 
     private fun onStepStarted(newStep: ProbeStep) {
         alertPlayer.stopAlert()
