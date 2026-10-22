@@ -29,14 +29,20 @@ class StepLifecycleTest {
             .containsExactly(StepStatus.PENDING, StepStatus.PENDING, StepStatus.PENDING).inOrder()
         assertThat(ready.session.steps.map { it.plannedSeconds }).containsExactly(10, 60, 20).inOrder()
         assertThat(effects)
-            .containsExactly(CreateSession(SESSION_ID), Persist, NO_ALARMS, StartForeground, UpdateNotification)
+            .containsExactly(
+                CreateSession(SESSION_ID),
+                Persist,
+                waitingAlarms(START_WALL_MS),
+                StartForeground,
+                UpdateNotification,
+            )
             .inOrder()
     }
 
     @Test
     fun `a session needs at least one step and every step a positive duration`() {
         assertThrows(IllegalArgumentException::class.java) {
-            TimerEvent.StartSession(SESSION_ID, emptyList(), PRE_ALERT)
+            TimerEvent.StartSession(SESSION_ID, emptyList(), PRE_ALERT, longStepsOnly = false)
         }
         assertThrows(IllegalArgumentException::class.java) { infusion(0) }
     }
@@ -56,7 +62,8 @@ class StepLifecycleTest {
         assertThat(running.pausedTotalMs).isEqualTo(0)
         assertThat(running.session.steps[0].status).isEqualTo(StepStatus.STARTED)
         assertThat(effects)
-            .containsExactly(Persist, deadlineAlarm(running.deadlineElapsedMs), UpdateNotification).inOrder()
+            .containsExactly(Persist, runningAlarms(running.deadlineElapsedMs), StartForeground, UpdateNotification)
+            .inOrder()
     }
 
     @Test
@@ -71,7 +78,9 @@ class StepLifecycleTest {
         assertThat(paused.remainingMs).isEqualTo(34_600)
         assertThat(paused.pausedSinceElapsedMs).isEqualTo(START_ELAPSED_MS + 25_400)
         assertThat(paused.pausedSinceWallMs).isEqualTo(START_WALL_MS + 25_400)
-        assertThat(effects).containsExactly(Persist, NO_ALARMS, UpdateNotification).inOrder()
+        assertThat(
+            effects,
+        ).containsExactly(Persist, waitingAlarms(START_WALL_MS + 25_400), UpdateNotification).inOrder()
 
         driver.clocks.advanceSeconds(600)
         assertThat((driver.state as TimerState.Paused).remainingMs).isEqualTo(34_600)
@@ -93,7 +102,8 @@ class StepLifecycleTest {
         assertThat(running.deadlineWallMs).isEqualTo(START_WALL_MS + 25_400 + 90_000 + 34_600)
         assertThat(running.pausedTotalMs).isEqualTo(90_000)
         assertThat(running.stepStartedWallMs).isEqualTo(START_WALL_MS)
-        assertThat(effects).containsExactly(Persist, deadlineAlarm(now + 34_600), UpdateNotification).inOrder()
+        assertThat(effects)
+            .containsExactly(Persist, runningAlarms(now + 34_600), StartForeground, UpdateNotification).inOrder()
     }
 
     @Test
@@ -110,7 +120,13 @@ class StepLifecycleTest {
         assertThat(alerting.alertPlayed).isFalse()
         assertThat(alerting.session.steps[0].status).isEqualTo(StepStatus.STARTED)
         assertThat(effects)
-            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+            .containsExactly(
+                Persist,
+                alertingAlarms(START_ELAPSED_MS + 60_000),
+                StartForeground,
+                StartAlert,
+                UpdateNotification,
+            ).inOrder()
     }
 
     @Test
@@ -126,7 +142,7 @@ class StepLifecycleTest {
         val alerting = driver.state as TimerState.Alerting
         assertThat(alerting.alertPlayed).isTrue()
         assertThat(alerting.session.lastInteractionWallMs).isEqualTo(START_WALL_MS)
-        assertThat(effects).containsExactly(Persist, NO_ALARMS).inOrder()
+        assertThat(effects).containsExactly(Persist, alertingAlarms(START_ELAPSED_MS + 60_000)).inOrder()
         assertThat(driver.send(TimerEvent.AlertCompleted)).isEmpty()
         assertThat(driver.outcome).isEqualTo(TransitionOutcome.Ignored)
     }
@@ -148,7 +164,7 @@ class StepLifecycleTest {
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, driver.recordOf(0)),
             Persist,
-            NO_ALARMS,
+            waitingAlarms(START_WALL_MS + 63_000),
             StopAlert,
             UpdateNotification,
         ).inOrder()
@@ -182,7 +198,7 @@ class StepLifecycleTest {
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, driver.recordOf(0)),
             Persist,
-            NO_ALARMS,
+            waitingAlarms(START_WALL_MS + 40_000),
             UpdateNotification,
         ).inOrder()
     }
@@ -199,7 +215,12 @@ class StepLifecycleTest {
 
         assertThat(driver.state).isInstanceOf(TimerState.Finished::class.java)
         assertThat(effects)
-            .containsExactly(RecordStep(SESSION_ID, 0, driver.recordOf(0)), Persist, NO_ALARMS, UpdateNotification)
+            .containsExactly(
+                RecordStep(SESSION_ID, 0, driver.recordOf(0)),
+                Persist,
+                waitingAlarms(START_WALL_MS + 20_000),
+                UpdateNotification,
+            )
             .inOrder()
     }
 
@@ -213,7 +234,12 @@ class StepLifecycleTest {
         assertThat(ready.stepIndex).isEqualTo(1)
         assertThat(ready.session.steps[0].status).isEqualTo(StepStatus.SKIPPED)
         assertThat(effects)
-            .containsExactly(RecordStep(SESSION_ID, 0, driver.recordOf(0)), Persist, NO_ALARMS, UpdateNotification)
+            .containsExactly(
+                RecordStep(SESSION_ID, 0, driver.recordOf(0)),
+                Persist,
+                waitingAlarms(START_WALL_MS),
+                UpdateNotification,
+            )
             .inOrder()
     }
 

@@ -15,7 +15,6 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 private const val SHORT_ROUNDING_SECONDS = 5L
 private const val LONG_ROUNDING_SECONDS = 60L
-private const val LONG_STEP_SECONDS = 600L
 internal const val MIN_STEP_SECONDS = 5
 internal const val MAX_STEP_SECONDS = 86_400
 
@@ -35,7 +34,7 @@ internal fun defaultAddedStepOf(plan: List<PlannedStep>): PlannedStep {
 /** 1.5 × [seconds], rounded per PRF-04 and clamped to the step bounds. */
 private fun extendedDuration(seconds: Int): Int {
     val halfSeconds = seconds * 3L // 1.5 × seconds, in half seconds
-    val unit = if (halfSeconds < LONG_STEP_SECONDS * 2) SHORT_ROUNDING_SECONDS else LONG_ROUNDING_SECONDS
+    val unit = if (halfSeconds < LONG_STEP_SECONDS * 2L) SHORT_ROUNDING_SECONDS else LONG_ROUNDING_SECONDS
     val rounded = (halfSeconds + unit) / (unit * 2) * unit
     return rounded.coerceIn(MIN_STEP_SECONDS.toLong(), MAX_STEP_SECONDS.toLong()).toInt()
 }
@@ -62,7 +61,6 @@ internal fun editSteps(state: TimerState.Active, event: TimerEvent.EditSteps, no
         else -> null
     }
     if (reason != null) return TimerTransition(state, emptyList(), TransitionOutcome.Rejected(reason))
-    // #31: a running step's pre-alert time follows the new effective pre-alert.
     return replacePending(state, event.steps.drop(prefixSize), now, state.session.preAlert.with(event.preAlert))
 }
 
@@ -92,7 +90,17 @@ private fun replacePending(
             if (it is TimerState.Ready) it.copy(readySinceWallMs = now.wallMs) else it
         }
 
-        is TimerState.Running -> state.copy(session = session)
+        // The running step's pre-alert follows the new effective N, unless it already played.
+        is TimerState.Running -> state.copy(
+            session = session,
+            preAlertAtElapsedMs = preAlertAt(
+                session,
+                state.stepIndex,
+                state.deadlineElapsedMs,
+                state.preAlertPlayed,
+                now,
+            ),
+        )
 
         is TimerState.Paused -> state.copy(session = session)
 

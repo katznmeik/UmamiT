@@ -27,6 +27,10 @@ class IgnoredEventsTest {
         TimerEvent.EditSteps(listOf(infusion(60), infusion(25)), PreAlertChoice.Inherit),
         TimerEvent.Cancel,
         TimerEvent.QuickTimerTimeout,
+        TimerEvent.PreAlertReached,
+        TimerEvent.OvertimeTimeout,
+        TimerEvent.IdleDemote,
+        TimerEvent.MidnightTimeout,
     )
 
     /** What every active state of a brew session allows (`recover` is covered in RecoveryTest). */
@@ -39,7 +43,10 @@ class IgnoredEventsTest {
 
     private class Case(val name: String, val driver: () -> EngineDriver, val allowed: Set<Class<out TimerEvent>>)
 
-    /** Every state of 04 §3.1, plus Running past its deadline before the deadline event. */
+    /**
+     * Every state of 04 §3.1, plus Running past its deadline before the
+     * deadline event, and states at the due time of each timeout.
+     */
     private val cases = listOf(
         Case(
             "Idle",
@@ -57,9 +64,35 @@ class IgnoredEventsTest {
             allowed(TimerEvent.Pause, TimerEvent.EndStepNow, *sessionEvents),
         ),
         Case(
-            "Running past the deadline",
+            "Running at the pre-alert",
+            { running().apply { clocks.advance(50_000) } },
+            allowed(TimerEvent.Pause, TimerEvent.EndStepNow, TimerEvent.PreAlertReached, *sessionEvents),
+        ),
+        Case(
+            "Running past the deadline, pre-alert not processed",
             { running().apply { clocks.advance(60_300) } },
-            allowed(TimerEvent.DeadlineReached, TimerEvent.EndStepNow, *sessionEvents),
+            allowed(TimerEvent.DeadlineReached, TimerEvent.EndStepNow, TimerEvent.PreAlertReached, *sessionEvents),
+        ),
+        Case(
+            "Ready idle for 30 min",
+            { sessionWith(infusion(60), infusion(20)).apply { clocks.advance(30 * 60_000L) } },
+            allowed(TimerEvent.Start, TimerEvent.SkipStep, TimerEvent.IdleDemote, *sessionEvents),
+        ),
+        Case(
+            "Paused past midnight",
+            { running().apply { send(TimerEvent.Pause) }.apply { clocks.advance(14 * 3_600_000L) } },
+            allowed(
+                TimerEvent.Resume,
+                TimerEvent.EndStepNow,
+                TimerEvent.IdleDemote,
+                TimerEvent.MidnightTimeout,
+                *sessionEvents,
+            ),
+        ),
+        Case(
+            "Alerting at the overtime timeout",
+            { alerting().apply { clocks.advance(10 * 60_000L) } },
+            allowed(TimerEvent.AlertCompleted, TimerEvent.Poured, TimerEvent.OvertimeTimeout, *sessionEvents),
         ),
         Case(
             "Paused",
@@ -232,7 +265,9 @@ class IgnoredEventsTest {
         val driver = running()
         val before = driver.state
 
-        val effects = driver.send(TimerEvent.StartSession("session-2", listOf(infusion(90)), PRE_ALERT))
+        val effects = driver.send(
+            TimerEvent.StartSession("session-2", listOf(infusion(90)), PRE_ALERT, longStepsOnly = false),
+        )
 
         assertThat(driver.state).isSameInstanceAs(before)
         assertThat(effects).isEmpty()

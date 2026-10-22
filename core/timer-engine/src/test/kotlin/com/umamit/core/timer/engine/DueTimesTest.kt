@@ -10,19 +10,24 @@ class DueTimesTest {
     fun `only a running step has its deadline due`() {
         val driver = sessionWith(infusion(60), infusion(20))
         assertThat(BrewTimerEngine.dueTimes(TimerState.Idle)).isEqualTo(DueTimes.NONE)
-        assertThat(BrewTimerEngine.dueTimes(driver.state)).isEqualTo(DueTimes.NONE)
+        assertThat(BrewTimerEngine.dueTimes(driver.state).deadlineElapsedMs).isNull()
 
         driver.send(TimerEvent.Start)
         assertThat(BrewTimerEngine.dueTimes(driver.state))
-            .isEqualTo(DueTimes(preAlertAtElapsedMs = null, deadlineElapsedMs = START_ELAPSED_MS + 60_000))
+            .isEqualTo(
+                DueTimes(
+                    preAlertAtElapsedMs = START_ELAPSED_MS + 50_000,
+                    deadlineElapsedMs = START_ELAPSED_MS + 60_000,
+                ),
+            )
 
         driver.send(TimerEvent.Pause)
-        assertThat(BrewTimerEngine.dueTimes(driver.state)).isEqualTo(DueTimes.NONE)
+        assertThat(BrewTimerEngine.dueTimes(driver.state).deadlineElapsedMs).isNull()
 
         driver.send(TimerEvent.Resume)
         driver.clocks.advanceSeconds(60)
         driver.send(TimerEvent.DeadlineReached)
-        assertThat(BrewTimerEngine.dueTimes(driver.state)).isEqualTo(DueTimes.NONE)
+        assertThat(BrewTimerEngine.dueTimes(driver.state).deadlineElapsedMs).isNull()
     }
 
     @Test

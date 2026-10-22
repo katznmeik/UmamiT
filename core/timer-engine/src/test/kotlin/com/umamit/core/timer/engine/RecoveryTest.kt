@@ -64,7 +64,7 @@ class RecoveryTest {
         assertThat(driver.state).isEqualTo(before)
         assertThat(effects).containsExactly(
             Persist,
-            deadlineAlarm(before.deadlineElapsedMs),
+            runningAlarms(before.deadlineElapsedMs),
             StartForeground,
             UpdateNotification,
         ).inOrder()
@@ -83,7 +83,13 @@ class RecoveryTest {
         assertThat(alerting.deadlineElapsedMs).isEqualTo(deadline)
         assertThat(alerting.alertPlayed).isFalse()
         assertThat(effects)
-            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+            .containsExactly(
+                Persist,
+                alertingAlarms(deadline),
+                StartForeground,
+                StartAlert,
+                UpdateNotification,
+            ).inOrder()
         assertThat(driver.display()!!.overtimeSeconds).isEqualTo(599)
     }
 
@@ -96,7 +102,13 @@ class RecoveryTest {
 
         assertThat(driver.state).isInstanceOf(TimerState.Alerting::class.java)
         assertThat(effects)
-            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+            .containsExactly(
+                Persist,
+                alertingAlarms(START_ELAPSED_MS + 60_000),
+                StartForeground,
+                StartAlert,
+                UpdateNotification,
+            ).inOrder()
     }
 
     @Test
@@ -107,7 +119,14 @@ class RecoveryTest {
         val effects = driver.send(TimerEvent.Recover)
 
         assertThat((driver.state as TimerState.Alerting).alertPlayed).isTrue()
-        assertThat(effects).containsExactly(Persist, NO_ALARMS, StartForeground, UpdateNotification).inOrder()
+        assertThat(
+            effects,
+        ).containsExactly(
+            Persist,
+            alertingAlarms(START_ELAPSED_MS + 60_000),
+            StartForeground,
+            UpdateNotification,
+        ).inOrder()
     }
 
     @Test
@@ -140,7 +159,7 @@ class RecoveryTest {
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, record),
             Persist,
-            NO_ALARMS,
+            waitingAlarms(driver.clocks.wall),
             StartForeground,
             UpdateNotification,
         ).inOrder()
@@ -158,7 +177,7 @@ class RecoveryTest {
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, driver.recordOf(0)),
             Persist,
-            NO_ALARMS,
+            waitingAlarms(driver.clocks.wall),
             StopAlert,
             StartForeground,
             UpdateNotification,
@@ -424,9 +443,21 @@ class RecoveryTest {
 
         assertThat(driver.send(TimerEvent.DeadlineReached)).contains(StartAlert)
         assertThat(driver.send(TimerEvent.Recover))
-            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+            .containsExactly(
+                Persist,
+                alertingAlarms(START_ELAPSED_MS + 60_000),
+                StartForeground,
+                StartAlert,
+                UpdateNotification,
+            ).inOrder()
         assertThat(driver.send(TimerEvent.Recover))
-            .containsExactly(Persist, NO_ALARMS, StartForeground, StartAlert, UpdateNotification).inOrder()
+            .containsExactly(
+                Persist,
+                alertingAlarms(START_ELAPSED_MS + 60_000),
+                StartForeground,
+                StartAlert,
+                UpdateNotification,
+            ).inOrder()
         driver.send(TimerEvent.AlertCompleted)
         assertThat(driver.send(TimerEvent.Recover)).doesNotContain(StartAlert)
     }

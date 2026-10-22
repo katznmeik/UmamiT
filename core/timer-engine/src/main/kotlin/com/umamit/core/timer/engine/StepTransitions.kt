@@ -39,6 +39,7 @@ internal fun startSession(event: TimerEvent.StartSession, now: ClockReading): Ti
         lastInteractionWallMs = now.wallMs,
         bootCount = now.bootCount,
         demoted = false,
+        longStepsOnly = event.longStepsOnly,
     )
     return accepted(
         TimerState.Ready(session, stepIndex = 0, readySinceWallMs = now.wallMs),
@@ -47,19 +48,23 @@ internal fun startSession(event: TimerEvent.StartSession, now: ClockReading): Ti
     )
 }
 
-internal fun start(state: TimerState.Ready, now: ClockReading): TimerTransition = accepted(
-    TimerState.Running(
-        session = state.session.touched(now).withStep(state.stepIndex) { it.copy(status = StepStatus.STARTED) },
-        stepIndex = state.stepIndex,
-        stepStartedWallMs = now.wallMs,
-        pausedTotalMs = 0,
-        deadlineElapsedMs = now.elapsedMs + state.plannedMs,
-        deadlineWallMs = now.wallMs + state.plannedMs,
-        preAlertAtElapsedMs = null,
-        preAlertPlayed = false,
-    ),
-    side = listOf(UpdateNotification),
-)
+internal fun start(state: TimerState.Ready, now: ClockReading): TimerTransition {
+    val session = state.session.touched(now).withStep(state.stepIndex) { it.copy(status = StepStatus.STARTED) }
+    val deadline = now.elapsedMs + state.plannedMs
+    return accepted(
+        TimerState.Running(
+            session = session,
+            stepIndex = state.stepIndex,
+            stepStartedWallMs = now.wallMs,
+            pausedTotalMs = 0,
+            deadlineElapsedMs = deadline,
+            deadlineWallMs = now.wallMs + state.plannedMs,
+            preAlertAtElapsedMs = preAlertAt(session, state.stepIndex, deadline, played = false, now),
+            preAlertPlayed = false,
+        ),
+        side = listOf(serviceFor(session, state.stepIndex), UpdateNotification),
+    )
+}
 
 internal fun pause(state: TimerState.Running, now: ClockReading): TimerTransition = accepted(
     TimerState.Paused(
@@ -75,19 +80,24 @@ internal fun pause(state: TimerState.Running, now: ClockReading): TimerTransitio
     side = listOf(UpdateNotification),
 )
 
-internal fun resume(state: TimerState.Paused, now: ClockReading): TimerTransition = accepted(
-    TimerState.Running(
-        session = state.session.touched(now),
-        stepIndex = state.stepIndex,
-        stepStartedWallMs = state.stepStartedWallMs,
-        pausedTotalMs = state.pausedTotalMs + (now.elapsedMs - state.pausedSinceElapsedMs),
-        deadlineElapsedMs = now.elapsedMs + state.remainingMs,
-        deadlineWallMs = now.wallMs + state.remainingMs,
-        preAlertAtElapsedMs = null,
-        preAlertPlayed = state.preAlertPlayed,
-    ),
-    side = listOf(UpdateNotification),
-)
+/** A played pre-alert is not repeated; an unplayed one is rescheduled from the new deadline, or skipped if past. */
+internal fun resume(state: TimerState.Paused, now: ClockReading): TimerTransition {
+    val session = state.session.touched(now)
+    val deadline = now.elapsedMs + state.remainingMs
+    return accepted(
+        TimerState.Running(
+            session = session,
+            stepIndex = state.stepIndex,
+            stepStartedWallMs = state.stepStartedWallMs,
+            pausedTotalMs = state.pausedTotalMs + (now.elapsedMs - state.pausedSinceElapsedMs),
+            deadlineElapsedMs = deadline,
+            deadlineWallMs = now.wallMs + state.remainingMs,
+            preAlertAtElapsedMs = preAlertAt(session, state.stepIndex, deadline, state.preAlertPlayed, now),
+            preAlertPlayed = state.preAlertPlayed,
+        ),
+        side = listOf(serviceFor(session, state.stepIndex), UpdateNotification),
+    )
+}
 
 /** The alert needs the service (the AlertPlayer lives there), so it is ensured first. */
 internal fun deadlineReached(state: TimerState.Running): TimerTransition = accepted(

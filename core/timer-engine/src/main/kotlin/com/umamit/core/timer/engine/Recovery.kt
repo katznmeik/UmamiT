@@ -11,15 +11,15 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
  * the elapsed clock restarted, so the elapsed values are first rebased from
  * the wall values; on the same boot the monotonic values still hold. Then the
  * recovery table applies. Its timeout rows are silent: no alert, no saved
- * sheet. Every row tries to restart the foreground service ("ensure").
+ * sheet. Every restored state tries to restart the foreground service
+ * ("ensure"), except a demoted session and a long running step, which run
+ * without it (D-053).
  */
 
 internal fun recover(state: TimerState.Active, now: ClockReading): TimerTransition {
     val rebased = state.rebasedTo(now)
     return when (rebased) {
-        // #31 adds the midnight row (a waiting session past its midnight threshold) here.
-        is TimerState.Ready, is TimerState.Paused, is TimerState.Finished ->
-            if (isDueWall(dueTimesOf(rebased).quickCancelAtWallMs, now)) endQuickTimer(rebased) else restored(rebased)
+        is TimerState.Waiting -> recoverWaiting(rebased, now)
 
         is TimerState.Running -> when {
             now.elapsedMs < rebased.deadlineElapsedMs -> restored(rebased)
@@ -35,9 +35,27 @@ internal fun recover(state: TimerState.Active, now: ClockReading): TimerTransiti
     }
 }
 
-/** The state as it was: alarms re-armed from its due times, the service and the notification restored. */
+/**
+ * A waiting state applies the waiting timeouts that came while the process
+ * was dead, the one that ends the session first: the quick-timer cancel, the
+ * midnight timeout (TMR-14), then idle demote.
+ */
+private fun recoverWaiting(state: TimerState.Waiting, now: ClockReading): TimerTransition {
+    val due = dueTimesOf(state)
+    return when {
+        isDueWall(due.quickCancelAtWallMs, now) -> endQuickTimer(state)
+        isDueWall(due.midnightAtWallMs, now) -> midnightTimeout(state)
+        isDueWall(due.idleDemoteAtWallMs, now) -> idleDemote(state)
+        else -> restored(state)
+    }
+}
+
+/**
+ * The state as it was: alarms re-armed from its due times, the notification
+ * restored, and the service where the state needs it.
+ */
 private fun restored(state: TimerState.Active): TimerTransition =
-    accepted(state, side = listOf(StartForeground, UpdateNotification))
+    accepted(state, side = listOfNotNull(StartForeground.takeIf { state.needsService }, UpdateNotification))
 
 /**
  * This state on the boot of [now]. Unchanged on the same boot while it is

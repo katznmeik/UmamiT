@@ -10,9 +10,16 @@ import java.time.ZoneId
 /**
  * What the controller persists for an active state (04 §7.1): the
  * `active_brew` row and, for a brew session, its `session_step` rows in
- * position order. The quick timer has no step rows.
+ * position order. The quick timer has no step rows. [longStepsOnly] is not
+ * an `active_brew` column: the controller sets it from `brew_session.method`
+ * with [BrewTimerEngine.longStepsOnly] (a cold or ice brew); it is false for
+ * the quick timer (D-053).
  */
-data class TimerSnapshot(val activeBrew: ActiveBrewSnapshot, val steps: List<SessionStepRow>)
+data class TimerSnapshot(
+    val activeBrew: ActiveBrewSnapshot,
+    val steps: List<SessionStepRow>,
+    val longStepsOnly: Boolean,
+)
 
 /*
  * The lossless mapping between the engine state and its snapshot (05 §3.12).
@@ -75,7 +82,7 @@ internal fun snapshotOf(state: TimerState): TimerSnapshot? {
         )
     }
     val rows = if (quick) emptyList() else session.steps.mapIndexed(::rowOf)
-    return TimerSnapshot(activeBrew, rows)
+    return TimerSnapshot(activeBrew, rows, session.longStepsOnly)
 }
 
 /**
@@ -164,6 +171,7 @@ private fun requirePhaseFields(row: ActiveBrewSnapshot) {
 private fun sessionOf(snapshot: TimerSnapshot): TimerSession {
     val row = snapshot.activeBrew
     require(row.isQuickTimer == (row.sessionId == null)) { "a brew session has an id, the quick timer none" }
+    require(!(row.isQuickTimer && snapshot.longStepsOnly)) { "the quick timer is no cold or ice brew" }
     val started = row.phase in STARTED_PHASES
     val steps = if (row.isQuickTimer) {
         require(snapshot.steps.isEmpty()) { "the quick timer has no step rows" }
@@ -184,6 +192,7 @@ private fun sessionOf(snapshot: TimerSnapshot): TimerSession {
         lastInteractionWallMs = row.lastInteractionWallMs,
         bootCount = row.bootCount,
         demoted = row.demoted,
+        longStepsOnly = snapshot.longStepsOnly,
     )
 }
 

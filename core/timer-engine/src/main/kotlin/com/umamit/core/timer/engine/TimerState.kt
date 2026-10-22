@@ -32,10 +32,21 @@ sealed interface TimerState {
         val pausedTotalMs: Long
     }
 
+    /**
+     * A state that waits for the user (Ready, Paused, Finished): idle demote
+     * and the midnight timeout apply (TMR-14). [waitingSinceWallMs] is when it
+     * started waiting.
+     */
+    sealed interface Waiting : Active {
+        val waitingSinceWallMs: Long
+    }
+
     /** Waiting for *Start*; never starts by itself (TMR-08). */
     data class Ready(override val session: TimerSession, override val stepIndex: Int, val readySinceWallMs: Long) :
-        OnStep {
+        OnStep,
+        Waiting {
         override val phase: TimerPhase get() = TimerPhase.READY
+        override val waitingSinceWallMs: Long get() = readySinceWallMs
     }
 
     /**
@@ -68,8 +79,10 @@ sealed interface TimerState {
         val pausedSinceElapsedMs: Long,
         val pausedSinceWallMs: Long,
         val preAlertPlayed: Boolean,
-    ) : StepStarted {
+    ) : StepStarted,
+        Waiting {
         override val phase: TimerPhase get() = TimerPhase.PAUSED
+        override val waitingSinceWallMs: Long get() = pausedSinceWallMs
     }
 
     /**
@@ -91,7 +104,8 @@ sealed interface TimerState {
     }
 
     /** No pending step left; waiting for *Sitzung beenden* or *Weiterer Aufguss*. */
-    data class Finished(override val session: TimerSession, val readySinceWallMs: Long) : Active {
+    data class Finished(override val session: TimerSession, val readySinceWallMs: Long) : Waiting {
         override val phase: TimerPhase get() = TimerPhase.FINISHED
+        override val waitingSinceWallMs: Long get() = readySinceWallMs
     }
 }

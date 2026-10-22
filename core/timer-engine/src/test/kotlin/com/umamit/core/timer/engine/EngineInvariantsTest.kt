@@ -1,6 +1,7 @@
 package com.umamit.core.timer.engine
 
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.common.ClockReading
 import com.umamit.core.model.StepKind
 import org.junit.Test
 import kotlin.random.Random
@@ -30,7 +31,8 @@ class EngineInvariantsTest {
             .containsAtLeast(
                 "StartSession", "StartQuickTimer", "Recover", "Start", "Pause", "Resume", "DeadlineReached",
                 "AlertCompleted", "Poured", "EndStepNow", "SkipStep", "FinishSession", "Discard", "AddStep",
-                "EditSteps", "Cancel", "QuickTimerTimeout",
+                "EditSteps", "Cancel", "QuickTimerTimeout", "PreAlertReached", "OvertimeTimeout", "IdleDemote",
+                "MidnightTimeout",
             )
         assertWithMessage("rejections").that(rejections).containsAtLeast(
             RejectionReason.BootChanged,
@@ -65,6 +67,7 @@ class EngineInvariantsTest {
             if (transition.effects.any { it is TimerEffect.CreateSession }) recorded.clear()
             checkEffectOrder(label, transition)
             checkAlertEdges(label, before, event, transition)
+            checkService(label, before, event, transition)
             checkStepRecords(label, transition, recorded)
             checkPlanShape(label, transition.state)
             checkPendingRows(label, transition)
@@ -108,6 +111,54 @@ class EngineInvariantsTest {
                 .that(transition.effects.none { it is TimerEffect.ShowSavedSheet }).isTrue()
         }
     }
+
+    /**
+     * The foreground-service contract (S5, D-053): Idle stops the service; a
+     * demoted state or a starting long step never starts it; a user event on a
+     * demoted session ends the demotion and decides the service; the service
+     * is ensured before every alert.
+     */
+    private fun checkService(label: String, before: TimerState, event: TimerEvent, transition: TimerTransition) {
+        val after = transition.state
+        val effects = transition.effects
+        val starts = TimerEffect.StartForeground in effects
+        val stops = TimerEffect.StopForeground in effects
+        assertWithMessage("$label: never both StartForeground and StopForeground").that(starts && stops).isFalse()
+        if (TimerEffect.StartAlert in effects) {
+            assertWithMessage("$label: the service is ensured before the alert")
+                .that(effects.indexOf(TimerEffect.StartForeground))
+                .isIn(0 until effects.indexOf(TimerEffect.StartAlert))
+        }
+        if (after == TimerState.Idle) {
+            assertWithMessage("$label: Idle stops the service").that(stops).isTrue()
+            assertWithMessage("$label: Idle posts no timer notification")
+                .that(TimerEffect.UpdateNotification in effects).isFalse()
+        }
+        if (after is TimerState.Active && after.session.demoted) {
+            assertWithMessage("$label: a demoted session never starts the service").that(starts).isFalse()
+        }
+        val countingDown = event == TimerEvent.Start || event == TimerEvent.Resume
+        if (countingDown && BrewTimerEngine.isLongStep(after)) {
+            assertWithMessage("$label: a long step counts down without the service").that(stops).isTrue()
+        }
+        checkDemotionEnds(label, before, event, transition)
+    }
+
+    /** A user event on a demoted session that stays active ends the demotion and decides the service. */
+    private fun checkDemotionEnds(label: String, before: TimerState, event: TimerEvent, transition: TimerTransition) {
+        val after = transition.state
+        val demotedBefore = before is TimerState.Active && before.session.demoted
+        if (!demotedBefore || event !in userEvents || after !is TimerState.Active) return
+        assertWithMessage("$label: a user event ends the demotion").that(after.session.demoted).isFalse()
+        assertWithMessage("$label: a user event on a demoted session decides the service")
+            .that(transition.effects.any { it == TimerEffect.StartForeground || it == TimerEffect.StopForeground })
+            .isTrue()
+    }
+
+    private val userEvents = setOf(
+        TimerEvent.Start, TimerEvent.Pause, TimerEvent.Resume, TimerEvent.Poured, TimerEvent.EndStepNow,
+        TimerEvent.SkipStep, TimerEvent.AddStep, TimerEvent.FinishSession, TimerEvent.Discard, TimerEvent.Cancel,
+    )
 
     private fun checkStepRecords(label: String, transition: TimerTransition, recorded: MutableSet<Int>) {
         transition.effects.filterIsInstance<TimerEffect.RecordStep>().forEach { effect ->
@@ -196,16 +247,17 @@ class EngineInvariantsTest {
 
     /**
      * A due time-based event is never ignored, it is applied or consumed
-     * (D-048): after an accepted transition nothing is overdue, except the
-     * deadline of a running step, whose event is always accepted.
+     * (D-048): after an accepted transition, the event of every time in the
+     * due set that has come is accepted in the new state, so the controller's
+     * wake-up never spins.
      */
     private fun checkNothingOverdue(label: String, state: TimerState, driver: EngineDriver) {
         val due = BrewTimerEngine.dueTimes(state)
         val now = driver.clocks.now()
-        assertWithMessage("$label: pre-alert not overdue").that(due.preAlertAtElapsedMs?.let { it <= now.elapsedMs })
-            .isNotEqualTo(true)
-        assertWithMessage("$label: quick-timer cancel not overdue")
-            .that(due.quickCancelAtWallMs?.let { it <= now.wallMs }).isNotEqualTo(true)
+        dueEvents(due, now).forEach { event ->
+            assertWithMessage("$label: the due $event is accepted")
+                .that(BrewTimerEngine.reduce(state, event, now).outcome).isEqualTo(TransitionOutcome.Accepted)
+        }
         if (state !is TimerState.Running) {
             assertWithMessage("$label: only a running step has a deadline").that(due.deadlineElapsedMs).isNull()
         }
@@ -224,10 +276,42 @@ class EngineInvariantsTest {
         }
     }
 
+    /** The time-based events whose time in [due] has come at [now]. */
+    private fun dueEvents(due: DueTimes, now: ClockReading): List<TimerEvent> = listOfNotNull(
+        TimerEvent.PreAlertReached.takeIf { due.preAlertAtElapsedMs?.let { it <= now.elapsedMs } == true },
+        TimerEvent.DeadlineReached.takeIf { due.deadlineElapsedMs?.let { it <= now.elapsedMs } == true },
+        TimerEvent.OvertimeTimeout.takeIf { due.overtimeTimeoutAtElapsedMs?.let { it <= now.elapsedMs } == true },
+        TimerEvent.QuickTimerTimeout.takeIf { due.quickCancelAtWallMs?.let { it <= now.wallMs } == true },
+        TimerEvent.IdleDemote.takeIf { due.idleDemoteAtWallMs?.let { it <= now.wallMs } == true },
+        TimerEvent.MidnightTimeout.takeIf { due.midnightAtWallMs?.let { it <= now.wallMs } == true },
+    )
+
+    /** Now and then moves both clocks to 1 ms around the pre-alert, the idle demote or the midnight timeout. */
+    private fun advancedToTimeout(random: Random, driver: EngineDriver): Boolean {
+        val due = BrewTimerEngine.dueTimes(driver.state)
+        val jitter = random.nextLong(-1, 2)
+        val by = when {
+            due.preAlertAtElapsedMs != null && random.nextInt(4) == 0 ->
+                due.preAlertAtElapsedMs + jitter - driver.clocks.elapsed
+
+            due.idleDemoteAtWallMs != null && random.nextInt(8) == 0 ->
+                due.idleDemoteAtWallMs + jitter - driver.clocks.wall
+
+            due.midnightAtWallMs != null && random.nextInt(12) == 0 ->
+                due.midnightAtWallMs + jitter - driver.clocks.wall
+
+            else -> null
+        }
+        by?.let { driver.clocks.advance(it.coerceAtLeast(0)) }
+        return by != null
+    }
+
     private fun advanceClock(random: Random, driver: EngineDriver) {
         val running = driver.state as? TimerState.Running
         val alerting = driver.state as? TimerState.Alerting
         when {
+            advancedToTimeout(random, driver) -> Unit
+
             running != null && random.nextInt(3) == 0 ->
                 driver.advanceTo(
                     (running.deadlineElapsedMs + random.nextLong(-1, 2)).coerceAtLeast(driver.clocks.elapsed),
@@ -260,15 +344,27 @@ class EngineInvariantsTest {
 
     /** Event generators, repeated by weight. */
     private val generators: List<(Random, TimerState) -> TimerEvent> = listOf<(Random, TimerState) -> TimerEvent>(
-        { random, _ -> TimerEvent.StartSession("session-${random.nextInt()}", randomPlan(random), PRE_ALERT) },
+        { random, _ ->
+            TimerEvent.StartSession(
+                "session-${random.nextInt()}",
+                randomPlan(random),
+                PRE_ALERT,
+                random.nextInt(8) == 0,
+            )
+        },
         { random, _ -> TimerEvent.StartQuickTimer(random.nextInt(5, 120), globalPreAlertSeconds = 10) },
         { _, _ -> TimerEvent.Start },
         { _, _ -> TimerEvent.Start },
         { _, _ -> TimerEvent.Pause },
         { _, _ -> TimerEvent.Resume },
         { _, _ -> TimerEvent.DeadlineReached },
+        { _, _ -> TimerEvent.PreAlertReached },
         { _, _ -> TimerEvent.DeadlineReached },
+        { _, _ -> TimerEvent.PreAlertReached },
         { _, _ -> TimerEvent.AlertCompleted },
+        { _, _ -> TimerEvent.OvertimeTimeout },
+        { _, _ -> TimerEvent.IdleDemote },
+        { _, _ -> TimerEvent.MidnightTimeout },
         { _, _ -> TimerEvent.Poured },
         { _, _ -> TimerEvent.EndStepNow },
         { _, _ -> TimerEvent.SkipStep },
@@ -282,8 +378,10 @@ class EngineInvariantsTest {
 
     private fun randomEvent(random: Random, state: TimerState): TimerEvent = generators.random(random)(random, state)
 
+    /** Short steps, and now and then a long one (TMR-18). */
     private fun randomPlan(random: Random): List<PlannedStep> = List(random.nextInt(1, 5)) {
-        PlannedStep(StepKind.entries.random(random), random.nextInt(5, 120), tempC = null)
+        val seconds = if (random.nextInt(6) == 0) random.nextInt(600, 3600) else random.nextInt(5, 120)
+        PlannedStep(StepKind.entries.random(random), seconds, tempC = null)
     }
 
     /** Mostly a valid edit (the current prefix plus new pending steps), sometimes a random plan. */

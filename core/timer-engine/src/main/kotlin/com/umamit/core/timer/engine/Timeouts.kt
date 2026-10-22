@@ -3,11 +3,13 @@ package com.umamit.core.timer.engine
 import com.umamit.core.common.ClockReading
 import com.umamit.core.timer.engine.TimerEffect.StartForeground
 import com.umamit.core.timer.engine.TimerEffect.StopAlert
+import com.umamit.core.timer.engine.TimerEffect.StopForeground
+import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 /*
- * The timeouts of 04 §3.2 that end or change a step without a user event.
- * Recovery (04 §7.2) applies them silently; #31 adds the timeout events, their
- * due times in DueTimes, idle demote and the midnight timeout.
+ * The timeouts of 04 §3.2 that end or change a session without a user event,
+ * each accepted only when DueTimes says it is due. Recovery (04 §7.2) applies
+ * them silently. None of them is an interaction.
  */
 
 /** Unacknowledged time after the deadline after which the step counts as poured on time (04 §3.2). */
@@ -36,3 +38,18 @@ internal fun overtimeTimedOut(state: TimerState.StepStarted, now: ClockReading):
             interaction = false,
         )
     }
+
+/**
+ * `idleDemote` (TMR-14, 04 §3.2): the state stays, the session is marked
+ * demoted, the foreground service stops (which removes notifications 1 and 2)
+ * and the notification is posted again as a regular ongoing one.
+ */
+internal fun idleDemote(state: TimerState.Waiting): TimerTransition =
+    accepted(state.withSession(state.session.copy(demoted = true)), side = listOf(StopForeground, UpdateNotification))
+
+/** This waiting state with [session]. */
+internal fun TimerState.Waiting.withSession(session: TimerSession): TimerState.Waiting = when (this) {
+    is TimerState.Ready -> copy(session = session)
+    is TimerState.Paused -> copy(session = session)
+    is TimerState.Finished -> copy(session = session)
+}

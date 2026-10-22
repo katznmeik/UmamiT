@@ -5,6 +5,7 @@ import com.umamit.core.common.MonotonicClock
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.readClocks
 import com.umamit.core.model.StepKind
+import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -87,8 +88,25 @@ val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds
 /** `ScheduleAlarms` with nothing due: every alarm cancelled. */
 val NO_ALARMS = TimerEffect.ScheduleAlarms(DueTimes.NONE)
 
-/** `ScheduleAlarms` with only the deadline due (no pre-alert in #28). */
+/** `ScheduleAlarms` with only the deadline due: the pre-alert played or the step has none. */
 fun deadlineAlarm(deadlineElapsedMs: Long) = TimerEffect.ScheduleAlarms(DueTimes(deadlineElapsedMs = deadlineElapsedMs))
+
+/** The midnight timeout of a session idle from 10:00 to 18:00 on 22 Oct 2026 in Berlin: 23 Oct, 00:00 CEST. */
+val MIDNIGHT_AFTER_START: Long = Instant.parse("2026-10-22T22:00:00Z").toEpochMilli()
+
+/** `ScheduleAlarms` of a waiting brew session idle since [idleSinceWallMs] (before 18:00 on the start day). */
+fun waitingAlarms(idleSinceWallMs: Long) = TimerEffect.ScheduleAlarms(
+    DueTimes(idleDemoteAtWallMs = idleSinceWallMs + 30 * 60_000L, midnightAtWallMs = MIDNIGHT_AFTER_START),
+)
+
+/** `ScheduleAlarms` of an alerting step: its overtime timeout 10 min after the deadline. */
+fun alertingAlarms(deadlineElapsedMs: Long) =
+    TimerEffect.ScheduleAlarms(DueTimes(overtimeTimeoutAtElapsedMs = deadlineElapsedMs + 10 * 60_000L))
+
+/** `ScheduleAlarms` of a running step with the default 10 s pre-alert still to play. */
+fun runningAlarms(deadlineElapsedMs: Long) = TimerEffect.ScheduleAlarms(
+    DueTimes(preAlertAtElapsedMs = deadlineElapsedMs - 10_000, deadlineElapsedMs = deadlineElapsedMs),
+)
 
 fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
@@ -96,7 +114,8 @@ fun infusion(seconds: Int, tempC: Int? = 60) = PlannedStep(StepKind.INFUSION, se
 
 fun whisk(seconds: Int) = PlannedStep(StepKind.WHISK, seconds, tempC = 80)
 
-fun startSession(vararg steps: PlannedStep) = TimerEvent.StartSession(SESSION_ID, steps.toList(), PRE_ALERT)
+fun startSession(vararg steps: PlannedStep) =
+    TimerEvent.StartSession(SESSION_ID, steps.toList(), PRE_ALERT, longStepsOnly = false)
 
 /** A driver whose session with [steps] has just started (Ready(0)). */
 fun sessionWith(vararg steps: PlannedStep): EngineDriver = EngineDriver().apply { send(startSession(*steps)) }
