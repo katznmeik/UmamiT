@@ -54,4 +54,11 @@ internal fun Project.configureKotlinJvm() {
     extensions.configure<KotlinJvmProjectExtension> {
         compilerOptions.jvmTarget.set(JVM_TARGET)
     }
+    // `./gradlew testDebugUnitTest` (CI, CLAUDE.md) selects tasks by name, so the
+    // pure modules need it too; otherwise their tests would silently not run.
+    tasks.register("testDebugUnitTest") {
+        group = "verification"
+        description = "Runs this pure module's unit tests (alias of `test`)."
+        dependsOn("test")
+    }
 }
