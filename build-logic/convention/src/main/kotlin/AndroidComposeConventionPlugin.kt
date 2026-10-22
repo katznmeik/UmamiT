@@ -13,7 +13,8 @@ import org.gradle.kotlin.dsl.dependencies
  * Roborazzi screenshot tests (Robolectric, 06 §7). Golden images live in
  * `src/test/screenshots/` and are committed; `verifyRoborazziDebug` compares
  * against them (it passes trivially while a module has no screenshot tests).
- * Apply after the Android plugin.
+ * Instrumented Compose UI tests (`src/androidTest/`) get `ui-test-junit4`; they
+ * run only in the CI emulator job. Apply after the Android plugin.
  */
 class AndroidComposeConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
@@ -43,6 +44,9 @@ class AndroidComposeConventionPlugin : Plugin<Project> {
             add("testImplementation", libs.lib("roborazzi-compose"))
             add("testImplementation", libs.lib("roborazzi-junit-rule"))
             add("debugImplementation", libs.lib("androidx-compose-ui-test-manifest"))
+
+            // Compose UI tests on a device (CI emulator job, 06 §7).
+            add("androidTestImplementation", libs.lib("androidx-compose-ui-test-junit4"))
         }
 
         pluginManager.apply("io.github.takahirom.roborazzi")

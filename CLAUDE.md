@@ -127,6 +127,7 @@ Central answers HTTP 429, rerun.
 ./gradlew checkManifestPermissions                      # merged debug + release manifests vs 06 §5.7
 ./gradlew assembleDebug                                 # debug APK
 ./gradlew assembleRelease                               # R8 release; signed only with UMAMIT_KEYSTORE_FILE/_PASSWORD
+./gradlew connectedDebugAndroidTest                     # instrumented tests: CI emulator job only (no KVM here); build them with assembleDebugAndroidTest
 ./gradlew spotlessApply                                 # fix formatting
 ```
 
