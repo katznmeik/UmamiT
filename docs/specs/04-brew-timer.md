@@ -583,21 +583,41 @@ ongoing notification** (Live Update):
   (default); Lang = until acknowledged, max 2 min.
 - Vibration pattern `[0, 400, 200, 400, 200, 800]` ms with
   `VibrationAttributes.USAGE_NOTIFICATION` semantics.
-- Details (#16): the alert repeats in cycles of the tone length (tone +
-  vibration pattern together; Normal = 4 × 3.5 s for the Klangschale), and
-  each cycle reads the ringer mode and call state again. A ringing or active
+- Details (#16): the alert repeats in cycles of the tone length, at least
+  the vibration pattern plus 1 s (tone + vibration pattern together; Normal
+  = 4 × 3.5 s for the Klangschale, 5 × 3 s for the other tones), and each
+  cycle reads the ringer mode and call state again. A ringing or active
   call (incl. VoIP) counts as „in a call". If the audio focus is refused or
   lost, the rest of that alert has no sound. Do Not Disturb set to *total
   silence* or *alarms only* keeps the alert visual; in *priority only* mode
   the platform decides.
-- Test via SET-31 (*Alarm testen*).
+- Settings and reporting (#44, D-059): tone (SET-09), vibration (SET-11) and
+  alert length (SET-14) are read at the start of every alert and tick; an
+  unreadable settings file plays the defaults. When the alert has run its
+  full length (also when it was visual only), the player reports
+  `alertCompleted` for that alert once; an alert stopped or replaced first
+  is not reported, and recovery replays an unreported alert (at least once,
+  D-047). A pre-alert never cuts a playing alert.
+- Test via SET-31 (*Alarm testen*): the tick, then 1.5 s later the alert,
+  with the current settings, through the same player and matrix. It is
+  ignored while a real alert or tick plays; a real one replaces a running
+  test.
 
 ### 9.2 Sounds
 
-Bundled OGG, mono, ≤ 60 KB each, loudness-normalised: Klangschale (default
-alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a short, soft
+Bundled OGG, mono, 48 kHz, ≤ 60 KB each, loudness-normalised: Klangschale
+(default alert), Glocke, Holzblock, Glockenspiel, Sanft; plus a short, soft
 **tick** for the pre-alert: a small singing-bowl „ting" of about 0.8 s, 8 LU
-below the alert (D-045).
+below the alert (D-045). The five alert tones are normalised to -16 LUFS
+with a true-peak ceiling of -1.5 dBTP (D-045, D-059):
+
+| Tone | Character | Length |
+|---|---|---|
+| Klangschale | bright singing bowl, 880 Hz, slow shimmer (D-045) | 3.5 s |
+| Glocke | small bell struck twice, 660 Hz, minor-third bell partials | 3.0 s |
+| Holzblock | two wood blocks, „tok-tok … tok-tok" | 1.2 s |
+| Glockenspiel | rising arpeggio C6–E6–G6–C7 on steel bars | 2.2 s |
+| Sanft | two soft, round tones rising a fourth (D5 → G5) | 3.0 s |
 
 Sourcing (D-036): all tones are **synthesised** first with ffmpeg in the
 cloud container (e.g. additive partials with exponential decay for the bowl,
