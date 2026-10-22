@@ -9,6 +9,12 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.hilt) apply false
     alias(libs.plugins.room) apply false
+    alias(libs.plugins.spotless) apply false
+    alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.kover) apply false
+    alias(libs.plugins.roborazzi) apply false
+    // Quality gates for the root build scripts and build-logic itself (06 §7).
+    id("umamit.root")
 }
 
 // Unit tests of the build logic itself (e.g. the versionCode function, 06 §6).

@@ -19,18 +19,18 @@ fun versionCodeOf(version: String): Int {
         ?: throw IllegalArgumentException(
             "Invalid umamit.version '$version': expected X.Y.Z, X.Y.Z-rc.N (N 1–98) or X.Y.Z-probe",
         )
-    val (majorText, minorText, patchText, suffix, rcText) = match.destructured
-    val major = majorText.toLong()
-    val minor = minorText.toLong()
-    val patch = patchText.toLong()
+    val (major, minor, patch) = match.groupValues.subList(1, SUFFIX_GROUP).map(String::toLong)
+    val suffix = match.groupValues[SUFFIX_GROUP]
     require(minor <= MAX_MINOR_OR_PATCH) { "Invalid umamit.version '$version': MINOR must be 0–99" }
     require(patch <= MAX_MINOR_OR_PATCH) { "Invalid umamit.version '$version': PATCH must be 0–99" }
 
     val n = when {
         suffix.isEmpty() -> FINAL_RELEASE
+
         suffix == "probe" -> PROBE
+
         else -> {
-            val rc = rcText.toLong()
+            val rc = match.groupValues[RC_GROUP].toLong()
             require(rc in RC_RANGE) { "Invalid umamit.version '$version': rc number must be 1–98" }
             rc
         }
@@ -46,6 +46,8 @@ fun versionCodeOf(version: String): Int {
 private val VERSION_PATTERN =
     Regex("""(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})(?:-(probe|rc\.(0|[1-9]\d{0,8})))?""")
 
+private const val SUFFIX_GROUP = 4
+private const val RC_GROUP = 5
 private const val MAX_MINOR_OR_PATCH = 99L
 private const val FINAL_RELEASE = 99L
 private const val PROBE = 1L

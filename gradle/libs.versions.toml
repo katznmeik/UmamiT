@@ -68,7 +68,10 @@ uiautomator = "2.4.0"
 # Quality tooling (configured in M1-02)
 spotless = "8.10.4"
 ktlint = "1.8.0"
-detekt = "1.23.8"
+# Detekt 2 (still alpha) because it is built with Kotlin 2.4 like this build, and
+# compose-rules 0.5+ target the Detekt 2 API. Detekt 1.23.x embeds Kotlin 2.0 and
+# cannot run compose-rules 0.4.x (built with Kotlin 2.2) either (M1-02).
+detekt = "2.0.0-alpha.6"
 composeRulesDetekt = "0.6.8"
 kover = "0.9.11"
 
@@ -179,7 +182,7 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "room" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutLibraries" }

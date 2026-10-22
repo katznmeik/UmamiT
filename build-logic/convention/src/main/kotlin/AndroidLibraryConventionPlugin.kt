@@ -4,7 +4,6 @@ import com.umamit.buildlogic.configureKotlinAndroid
 import com.umamit.buildlogic.derivedNamespace
 import com.umamit.buildlogic.lib
 import com.umamit.buildlogic.libs
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -14,7 +13,7 @@ import org.gradle.kotlin.dsl.dependencies
 class AndroidLibraryConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         if (path in ModuleRules.PURE_MODULES) {
-            throw GradleException("Module rule violated: pure module $path must not be an Android library (06 §3).")
+            ModuleRules.violation("pure module $path must not be an Android library")
         }
         if (path.startsWith(":feature:")) ModuleRules.enforceFeature(this)
 
@@ -22,7 +21,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         extensions.configure<LibraryExtension> {
             namespace = derivedNamespace
             configureKotlinAndroid(this)
-            testOptions.unitTests.isIncludeAndroidResources = true
         }
         dependencies {
             add("testImplementation", libs.lib("junit4"))
