@@ -5,6 +5,8 @@
     <string name="timer_channel_brew_timer_description">Der laufende Aufguss als Live-Update</string>
     <string name="timer_channel_steep_finished_name">Aufguss fertig</string>
     <string name="timer_channel_steep_finished_description">Alarm am Ende eines Aufgusses</string>
+    <string name="timer_channel_sessions_name">Sitzungen</string>
+    <string name="timer_channel_sessions_description">Automatisch gespeicherte Sitzungen</string>
 
     <!-- Probe test step (M1-03a): Live Update (04 §8.2, §8.3) -->
     <string name="timer_probe_step_title">Probe · Testaufguss</string>
@@ -14,15 +16,51 @@
     <string name="timer_probe_chip_finished">Fertig</string>
     <string name="timer_probe_action_cancel">Abbrechen</string>
 
+    <!-- Timer notifications and Live Update (04 §8.2, §8.3; M1-11). The step word follows
+         the step kind, as on the timer screen (D-058). -->
+    <string name="timer_quick_title">Schnelltimer</string>
+    <string name="timer_step_infusion">Aufguss</string>
+    <string name="timer_step_rinse">Spülaufguss</string>
+    <string name="timer_step_whisk">Aufschlagen</string>
+    <!-- Gyokuro · Aufguss 2 von 3 -->
+    <string name="timer_title_step">%1$s · %2$s %3$d von %4$d</string>
+    <string name="timer_title_finished">%1$s · Alle Aufgüsse fertig</string>
+    <!-- Bereit · 0:20 -->
+    <string name="timer_text_ready">Bereit · %1$s</string>
+    <!-- Bereit · 0:20 · Wasserkocher auf 60 °C -->
+    <string name="timer_text_ready_kettle">Bereit · %1$s · Wasserkocher auf %2$d °C</string>
+    <string name="timer_text_running">Zieht …</string>
+    <string name="timer_text_running_temp">Zieht bei %1$d °C</string>
+    <string name="timer_text_pre_alert">Gleich fertig …</string>
+    <!-- Long step (TMR-18): Fertig um 14:30 -->
+    <string name="timer_text_long_step">Fertig um %1$s</string>
+    <string name="timer_text_paused">Pausiert · noch %1$s</string>
+    <string name="timer_text_finished">Tippen zum Beenden</string>
+    <!-- Short critical text of the status-bar chip outside RUNNING (04 §8.3) -->
+    <string name="timer_chip_ready">Bereit</string>
+    <string name="timer_chip_temp">%1$d °C</string>
+    <string name="timer_chip_paused">Pause</string>
+    <string name="timer_chip_finished">Fertig</string>
+
     <!-- Alert (04 §8.2, full-screen alert) -->
     <string name="timer_alert_title">Jetzt abgießen!</string>
+    <!-- The probe's alert button (M1-03a) -->
     <string name="timer_alert_done">Abgegossen</string>
+    <!-- Gyokuro · Aufguss 2 -->
+    <string name="timer_alert_text">%1$s · %2$s %3$d</string>
 
-    <!-- Timer notification of the real timer (#42; minimal until the content of 04 §8.2 in M1-11) -->
-    <string name="timer_quick_title">Schnelltimer</string>
-    <string name="timer_state_ready">Bereit</string>
-    <string name="timer_state_running">Zieht …</string>
-    <string name="timer_state_pre_alert">Gleich fertig …</string>
-    <string name="timer_state_paused">Pausiert</string>
-    <string name="timer_state_finished">Alle Aufgüsse fertig</string>
+    <!-- Notification actions (04 §8.2, §10; TMR-41) -->
+    <string name="timer_action_start">Start</string>
+    <string name="timer_action_pause">Pause</string>
+    <string name="timer_action_resume">Weiter</string>
+    <string name="timer_action_poured">Abgegossen</string>
+    <string name="timer_action_poured_rinse">Weggegossen</string>
+    <string name="timer_action_quick_done">Fertig</string>
+    <string name="timer_action_finish_session">Sitzung beenden</string>
+    <string name="timer_action_cancel">Abbrechen</string>
+
+    <!-- „Sitzung gespeichert" (TMR-14, NotifySessionSaved) -->
+    <string name="timer_session_saved_title">Sitzung gespeichert</string>
+    <string name="timer_session_saved_text">%1$s · im Journal</string>
+    <string name="timer_session_saved_text_no_tea">Im Journal</string>
 </resources>

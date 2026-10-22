@@ -41,6 +41,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- The timer screen from the timer's notifications: content intent and the
+                 alert's full-screen intent (04 §8.2, #47). Over the lock screen only while a
+                 session is active (set from code, 04 §13). -->
+            <intent-filter>
+                <action android:name="com.umamit.action.OPEN_TIMER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
     </application>
 

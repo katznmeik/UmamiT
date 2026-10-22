@@ -14,13 +14,13 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeTimerDiagnostics
-import com.umamit.core.timer.TimerAlertActivity
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
+import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
@@ -121,8 +121,7 @@ class BrewTimerServiceTest {
         val alert = shadow.lastForegroundNotification
         assertThat(alert.channelId).isEqualTo(TimerNotifications.CHANNEL_STEEP_FINISHED)
         assertThat(alert.category).isEqualTo(Notification.CATEGORY_ALARM)
-        assertThat(shadowOf(alert.fullScreenIntent).savedIntent.component)
-            .isEqualTo(ComponentName(app, TimerAlertActivity::class.java))
+        assertThat(shadowOf(alert.fullScreenIntent).savedIntent.action).isEqualTo(TimerScreenIntents.ACTION_OPEN_TIMER)
         // D-044: the alert is the app's only notification of importance DEFAULT or higher.
         assertThat(shadowOf(notificationManager).getNotification(TimerNotifications.ID_LIVE_UPDATE)).isNull()
         assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isTrue()
@@ -149,7 +148,7 @@ class BrewTimerServiceTest {
         assertThat(BrewTimerService.wakeLockMsOf(command)).isEqualTo(0L)
         assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isFalse()
         val shown = shadowOf(notificationManager).getNotification(TimerNotifications.ID_LIVE_UPDATE)
-        assertThat(shown.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Bereit")
+        assertThat(shown.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Bereit · 1:00 · Wasserkocher auf 60 °C")
         assertThat(shadowOf(service.get()).isStoppedBySelf).isFalse()
     }
 

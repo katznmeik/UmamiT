@@ -2,7 +2,7 @@
 <!--
   Timer components and the permissions they need (04 §13, 06 §5.7). The app
   manifest declares the same permissions; duplicates merge. The real timer's
-  alarm receiver, foreground service and full-screen alert (M1-09, #42) sit
+  alarm receiver, foreground service (M1-09, #42) and notification actions (M1-11) sit
   next to the probe's components (M1-03a, #15), which go with the probe
   screen (#54).
 -->
@@ -34,15 +34,11 @@
                 android:value="Tea steeping countdown timer started by the user" />
         </service>
 
-        <!-- The real timer's full-screen alert until SCR-05 takes it over (M1-11).
-             setShowWhenLocked / setTurnScreenOn are set from code (04 §13). -->
-        <activity
-            android:name=".TimerAlertActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:taskAffinity=""
-            android:theme="@style/Theme.UmamiT.TimerAlert" />
+        <!-- Notification and Live Update actions and the Live Update's delete intent
+             (04 §8.2, §8.3; M1-11): every action to the controller. -->
+        <receiver
+            android:name=".notification.TimerActionReceiver"
+            android:exported="false" />
 
         <service
             android:name=".probe.ProbeTimerService"

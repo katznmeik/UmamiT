@@ -17,6 +17,9 @@ import androidx.core.content.ContextCompat
  * @property segments ProgressStyle segments (lengths in any common unit).
  * @property points ProgressStyle points, positions in the unit of [segments].
  * @property progress progress in the unit of [segments].
+ * @property requestPromotion request promotion on Android 16 (a Live Update); false for a
+ *   regular ongoing notification, such as a demoted session (TMR-14).
+ * @property deleteIntent sent when the user dismisses it (04 §8.3).
  */
 data class LiveUpdateContent(
     val title: String,
@@ -28,6 +31,8 @@ data class LiveUpdateContent(
     val progress: Int,
     val contentIntent: PendingIntent? = null,
     val actions: List<NotificationCompat.Action> = emptyList(),
+    val requestPromotion: Boolean = true,
+    val deleteIntent: PendingIntent? = null,
 ) {
     data class Segment(val length: Int, @param:ColorInt val color: Int)
 
@@ -54,7 +59,7 @@ object LiveUpdateNotification {
     private const val TAG = "UmamiTLiveUpdate"
 
     fun build(context: Context, content: LiveUpdateContent): Notification {
-        val requestPromotion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
+        val requestPromotion = content.requestPromotion && Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
         val plain = builder(context, content, requestPromotion, colorized = false).build()
         if (!requestPromotion || plain.hasPromotableCharacteristics()) {
             return plain
@@ -115,6 +120,7 @@ object LiveUpdateNotification {
             content.shortCriticalText?.let(builder::setShortCriticalText)
         }
         content.contentIntent?.let(builder::setContentIntent)
+        content.deleteIntent?.let(builder::setDeleteIntent)
         content.actions.forEach(builder::addAction)
         return builder
     }

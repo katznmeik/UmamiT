@@ -37,6 +37,7 @@ class TimerNavigationTest {
         ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
     private val brew = MutableStateFlow<ActiveBrew?>(running)
     private val alertKey = MutableStateFlow<String?>(null)
+    private val timerRequest = MutableStateFlow(0L)
     private val visible = mutableListOf<Boolean>()
 
     private val source = object : ActiveBrewSource {
@@ -55,6 +56,7 @@ class TimerNavigationTest {
                 UmamitRoot(
                     activeBrewSource = source,
                     alertKey = alertKey,
+                    timerRequest = timerRequest,
                     onTimerVisibleChange = { visible += it },
                     timerScreen = { _, openSettings ->
                         Column {
@@ -190,5 +192,49 @@ class TimerNavigationTest {
         compose.waitForIdle()
 
         assertTimerOnTop()
+    }
+
+    @Test
+    fun `the alert's full-screen intent opens the timer, which counts as visible from the first frame`() {
+        // MainActivity got the full-screen intent before its content was set (#47, D-058).
+        alert("A")
+        timerRequest.value = 1L
+        compose.mainClock.autoAdvance = false
+        show()
+
+        // The shell is never reported as what shows over the lock screen.
+        assertThat(visible).doesNotContain(false)
+        advanceFrames()
+        bar().assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+        assertThat(visible).doesNotContain(false)
+    }
+
+    @Test
+    fun `a notification opened while Timer-Einstellungen are on top goes back to the timer`() {
+        show()
+        openSettingsFromTimer()
+
+        timerRequest.value = 2L
+        compose.waitForIdle()
+
+        assertTimerOnTop()
+        // Back from the timer still returns to the shell, not to the settings.
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        bar().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a request already handled does not open the timer again after the timer was closed`() {
+        timerRequest.value = 3L
+        show()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        bar().assertIsDisplayed()
+        compose.onNodeWithText("TIMER").assertDoesNotExist()
     }
 }

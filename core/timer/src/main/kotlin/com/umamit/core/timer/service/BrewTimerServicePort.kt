@@ -12,20 +12,29 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.alert.limitMs
+import com.umamit.core.timer.controller.CoroutineTimerWakeUp
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import com.umamit.core.timer.controller.TimerServicePort
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.controller.TimerWakeUpPort
+import com.umamit.core.timer.notification.LiveUpdateDismissal
+import com.umamit.core.timer.runsWithService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The controller's service port (04 §4, §6.3; D-053, D-057): starts, updates
- * and stops [BrewTimerService] with the notification of the state and the
- * wake lock it needs. Runs inside the controller's event lock and never
- * blocks: the service handles each command later on the main thread.
+ * The controller's service port (04 §4, §6.3; D-053, D-057) and the one place that shows the
+ * timer's notifications 1 (Live Update), 2 (alert) and the quiet one (04 §8.2; D-NNN): it
+ * starts, updates and stops [BrewTimerService] with the notification of the state and the
+ * wake lock it needs, and shows `UpdateNotification` for the notifier ([show]). Runs inside the
+ * controller's event lock and never blocks: the service handles each command later on the
+ * main thread.
  *
  * - While the service is not in the foreground, a command goes with
  *   `startForegroundService`, which Android allows from the user's tap, a
@@ -36,17 +45,49 @@ import javax.inject.Singleton
  *   alarm (04 §6.3).
  * - While it runs in the foreground, a command goes with `startService`, which
  *   the running foreground service allows from the background, so the
- *   in-process wake-up can switch it to the alert at the deadline.
+ *   in-process wake-up can switch it to the alert at the deadline. Every change
+ *   of the notification goes through the service then, so notification 2 is never
+ *   posted next to the service's notification 1 (D-044, D-057).
  * - The wake lock covers a running step and the longest alert (Lang, 2 min)
  *   plus 30 s (04 §6.3); a waiting state releases it.
+ * - A running step's Live Update is refreshed every 15 s (04 §8.3), in order with the
+ *   controller's commands; a refresh never follows a newer state.
  */
 @Singleton
-class BrewTimerServicePort @Inject constructor(
-    @ApplicationContext private val context: Context,
+class BrewTimerServicePort internal constructor(
+    private val context: Context,
     private val clocks: TimerClocks,
     private val diagnostics: TimerDiagnosticsPort,
     private val notifications: TimerStateNotifications,
+    private val refresh: TimerWakeUpPort,
 ) : TimerServicePort {
+    @Inject
+    constructor(
+        @ApplicationContext context: Context,
+        clocks: TimerClocks,
+        diagnostics: TimerDiagnosticsPort,
+        notifications: TimerStateNotifications,
+    ) : this(
+        context,
+        clocks,
+        diagnostics,
+        notifications,
+        CoroutineTimerWakeUp(CoroutineScope(SupervisorJob() + Dispatchers.Default)),
+    )
+
+    /**
+     * Orders everything that shows notifications 1, 2 and the quiet one: the controller's
+     * commands and the refresh. A command is sent while it is held, so the service receives
+     * the commands in this order.
+     */
+    private val lock = Any()
+
+    /** Counts the controller's commands; a refresh armed for an older one is dropped. Guarded by [lock]. */
+    private var generation = 0L
+
+    /** The state and full-screen flag last sent or posted, so the same update is not sent twice. Guarded by [lock]. */
+    private var lastShown: Pair<TimerUiState.Active, Boolean>? = null
+
     init {
         ForegroundServiceState.reporter = { report ->
             val now = clocks.read()
@@ -66,10 +107,81 @@ class BrewTimerServicePort @Inject constructor(
         }
     }
 
-    override fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) {
-        val now = clocks.read()
+    override fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) = synchronized(lock) {
+        generation++
+        // The quiet notification goes before the service shows its own (D-044): it was posted
+        // directly, so the cancel takes effect before the service's notification arrives.
+        TimerNotifications.cancel(context, TimerNotifications.ID_QUIET)
+        send(state, fullScreen, clocks.read())
+        armRefresh(state, generation)
+    }
+
+    override fun stopForeground() = synchronized(lock) {
+        generation++
+        lastShown = null
+        refresh.cancel()
+        if (ForegroundServiceState.stopRequested()) {
+            // The next start goes with startForegroundService, even before onDestroy has run.
+            ForegroundServiceState.foregroundId = 0
+            context.stopService(Intent(context, BrewTimerService::class.java))
+        }
+        // Notifications 1 and 2 also go when they were posted without the service (04 §4, D-053).
+        TIMER_IDS.forEach { TimerNotifications.cancel(context, it) }
+    }
+
+    /**
+     * `UpdateNotification` (the notifier, 04 §8.2): shows the notification of [state]. While the
+     * service runs or starts, it goes through the service, which shows it as its foreground
+     * notification, so the ID changes only there (D-057). Otherwise it is posted directly: the
+     * quiet notification of a long step or a demoted session, or notification 1 or 2 when the
+     * start of the service was refused. A Live Update the user dismissed is not posted again
+     * for the same state (04 §8.3).
+     */
+    fun show(state: TimerUiState.Active, fullScreen: Boolean) = synchronized(lock) {
+        generation++
+        if (lastShown != state to fullScreen) show(state, fullScreen, clocks.read())
+        armRefresh(state, generation)
+    }
+
+    private fun show(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
+        if (!state.alerting && LiveUpdateDismissal.isDismissed(state)) return
+        val serviceShows = ForegroundServiceState.isForeground || ForegroundServiceState.hasPendingCommands
+        if (state.runsWithService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
+    }
+
+    /** Posts the notification of [state] without the service; the other timer notifications go first (D-044). */
+    private fun post(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
+        lastShown = state to fullScreen
+        postAlone(notifications.idFor(state), notifications.build(state, fullScreen, now))
+    }
+
+    private fun postAlone(id: Int, notification: Notification) {
+        TimerNotifications.ensureChannels(context)
+        TIMER_IDS.filter { it != id }.forEach { TimerNotifications.cancel(context, it) }
+        TimerNotifications.post(context, id, notification)
+    }
+
+    /** The 15 s refresh of a running step's Live Update (04 §8.3), while no newer command came. */
+    private fun armRefresh(state: TimerUiState.Active, sent: Long) {
+        if (state.phase != TimerPhase.RUNNING) {
+            refresh.cancel()
+            return
+        }
+        refresh.arm(REFRESH_MS) {
+            synchronized(lock) {
+                if (sent == generation) {
+                    show(state, fullScreen = false, now = clocks.read())
+                    armRefresh(state, sent)
+                }
+            }
+        }
+    }
+
+    /** Sends [state] to the service: to the running one, else with a foreground start (04 §6.3). */
+    private fun send(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
+        lastShown = state to fullScreen
         val id = notifications.idFor(state)
-        val notification = notifications.build(state, fullScreen, now.elapsedMs)
+        val notification = notifications.build(state, fullScreen, now)
         val wakeLockMs = wakeLockMs(state, now)
         ForegroundServiceState.holdHandover(context)
         if (ForegroundServiceState.isForeground && sendToRunning(id, notification, wakeLockMs)) return
@@ -81,22 +193,9 @@ class BrewTimerServicePort @Inject constructor(
             ForegroundServiceState.commandNotSent()
             ForegroundServiceState.refused(command)
             Log.w(TAG, "Foreground service start refused; posting notification $id without it", e)
-            TimerNotifications.ensureChannels(context)
-            TimerNotifications.cancel(context, BrewTimerService.otherIdThan(id))
-            TimerNotifications.post(context, id, notification)
+            postAlone(id, notification)
             refused(now, id, e)
         }
-    }
-
-    override fun stopForeground() {
-        if (ForegroundServiceState.stopRequested()) {
-            // The next start goes with startForegroundService, even before onDestroy has run.
-            ForegroundServiceState.foregroundId = 0
-            context.stopService(Intent(context, BrewTimerService::class.java))
-        }
-        // Notifications 1 and 2 also go when they were posted without the service (04 §4, D-053).
-        TimerNotifications.cancel(context, TimerNotifications.ID_LIVE_UPDATE)
-        TimerNotifications.cancel(context, TimerNotifications.ID_ALERT)
     }
 
     /** A command to the running foreground service; false when Android refused it (the service died meanwhile). */
@@ -123,6 +222,16 @@ class BrewTimerServicePort @Inject constructor(
         val ALERT_MAX_MS: Long = checkNotNull(AlertLength.LONG.limitMs)
         const val WAKE_LOCK_MARGIN_MS = 30_000L
 
+        /** 04 §8.3: the Live Update of a running step is refreshed every 15 s, not every second. */
+        const val REFRESH_MS = 15_000L
+
+        /** The timer's notifications of importance DEFAULT or higher: only one is ever shown (D-044). */
+        val TIMER_IDS = listOf(
+            TimerNotifications.ID_LIVE_UPDATE,
+            TimerNotifications.ID_ALERT,
+            TimerNotifications.ID_QUIET,
+        )
+
         /** 04 §6.3: running: remaining + the longest alert + 30 s; alerting: the alert + 30 s; else none. */
         fun wakeLockMs(state: TimerUiState.Active, now: ClockReading): Long = when (state.phase) {
             TimerPhase.RUNNING -> (checkNotNull(state.deadlineElapsedMs) - now.elapsedMs).coerceAtLeast(0) +
@@ -137,11 +246,11 @@ class BrewTimerServicePort @Inject constructor(
 
 /**
  * Sends the service start Android refused last once more (D-057), from the turn
- * of an exact alarm, which may start a foreground service from the background
- * (04 §6.2): when the in-process wake-up handled the deadline first, its start
- * was refused, and the alarm right after finds nothing due. Shown again, the
- * notification does not alert a second time. Refused again, it waits for the
- * next alarm.
+ * of an exact alarm or a notification action, which may start a foreground service
+ * from the background (04 §6.2): when the in-process wake-up handled the deadline
+ * first, its start was refused, and the alarm right after finds nothing due. Shown
+ * again, the notification does not alert a second time. Refused again, it waits for
+ * the next alarm.
  */
 internal fun resendRefusedStart(context: Context) {
     val command = ForegroundServiceState.takeRefused() ?: return
