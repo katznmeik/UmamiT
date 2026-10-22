@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Probe full-screen alert (M1-03a). Visual only; sound and vibration follow in #16. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/probe_alert_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/timer_alert_title"
+        android:textSize="40sp" />
+
+    <TextView
+        android:id="@+id/probe_alert_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/timer_probe_step_title"
+        android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/probe_alert_done"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:minHeight="72dp"
+        android:minWidth="200dp"
+        android:text="@string/timer_alert_done"
+        android:textSize="20sp" />
+</LinearLayout>

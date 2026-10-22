@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification channels (04 §8.1) -->
+    <string name="timer_channel_brew_timer_name">Brühtimer</string>
+    <string name="timer_channel_brew_timer_description">Der laufende Aufguss als Live-Update</string>
+    <string name="timer_channel_steep_finished_name">Aufguss fertig</string>
+    <string name="timer_channel_steep_finished_description">Alarm am Ende eines Aufgusses</string>
+
+    <!-- Probe test step (M1-03a): Live Update (04 §8.2, §8.3) -->
+    <string name="timer_probe_step_title">Probe · Testaufguss</string>
+    <string name="timer_probe_text_running">Zieht …</string>
+    <string name="timer_probe_text_pre_alert">Gleich fertig …</string>
+    <string name="timer_probe_text_finished">Jetzt abgießen!</string>
+    <string name="timer_probe_chip_finished">Fertig</string>
+    <string name="timer_probe_action_cancel">Abbrechen</string>
+
+    <!-- Alert (04 §8.2, full-screen alert) -->
+    <string name="timer_alert_title">Jetzt abgießen!</string>
+    <string name="timer_alert_done">Abgegossen</string>
+</resources>
