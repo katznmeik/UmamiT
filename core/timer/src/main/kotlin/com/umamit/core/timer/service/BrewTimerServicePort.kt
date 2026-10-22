@@ -48,7 +48,22 @@ class BrewTimerServicePort @Inject constructor(
     private val notifications: TimerStateNotifications,
 ) : TimerServicePort {
     init {
-        ForegroundServiceState.reporter = { id, error -> refused(clocks.read(), id, error) }
+        ForegroundServiceState.reporter = { report ->
+            val now = clocks.read()
+            diagnostics.record(
+                when (report) {
+                    is ServiceReport.InForeground -> TimerDiagnostic.ServiceInForeground(now, report.notificationId)
+
+                    is ServiceReport.Refused -> TimerDiagnostic.ServiceStartRefused(
+                        now,
+                        report.notificationId,
+                        report.error,
+                    )
+
+                    ServiceReport.Stopped -> TimerDiagnostic.ServiceStopped(now)
+                },
+            )
+        }
     }
 
     override fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) {

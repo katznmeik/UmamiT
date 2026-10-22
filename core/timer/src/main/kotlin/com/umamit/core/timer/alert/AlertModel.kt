@@ -21,6 +21,9 @@ data class AlertConditions(
     val dndBlocksAlerts: Boolean = false,
 )
 
+/** What the player starts, for the diagnostics log (06 §5.6): the pre-alert tick, a step's alert, *Alarm testen*. */
+enum class AlertCue { PRE_ALERT, ALERT, TEST }
+
 /** Which outputs an alert (or pre-alert) uses; the visual alert always shows. */
 data class AlertOutputs(val sound: Boolean, val vibration: Boolean) {
     companion object {

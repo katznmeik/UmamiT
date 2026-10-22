@@ -1,5 +1,7 @@
 package com.umamit.core.timer.service
 
+import android.util.Log
+
 /**
  * What [BrewTimerServicePort] and [BrewTimerService] share inside the process
  * (D-057): whether the service runs in the foreground and with which
@@ -21,9 +23,9 @@ internal object ForegroundServiceState {
     @Volatile
     var foregroundId: Int = 0
 
-    /** Logs a start refused inside the service (notification ID, error); set by the port. */
+    /** Logs what the service did (06 §5.6); set by the port, which owns the clocks and the log. */
     @Volatile
-    var reporter: ((notificationId: Int, error: Exception) -> Unit)? = null
+    var reporter: ((ServiceReport) -> Unit)? = null
 
     val isForeground: Boolean get() = foregroundId != 0
 
@@ -50,8 +52,14 @@ internal object ForegroundServiceState {
         stopWanted && pendingCommands == 0
     }
 
-    fun report(notificationId: Int, error: Exception) {
-        reporter?.invoke(notificationId, error)
+    /** Hands [report] to the log; a log that fails never stops the service (rule 8). */
+    @Suppress("TooGenericExceptionCaught")
+    fun report(report: ServiceReport) {
+        try {
+            reporter?.invoke(report)
+        } catch (e: Exception) {
+            Log.w("UmamiTService", "Diagnostics of $report lost", e)
+        }
     }
 
     /** For tests: a process without the service. */
@@ -60,4 +68,16 @@ internal object ForegroundServiceState {
         stopWanted = false
         foregroundId = 0
     }
+}
+
+/** What [BrewTimerService] reports for the diagnostics log (06 §5.6: FGS start/stop and refusals). */
+internal sealed interface ServiceReport {
+    /** `startForeground` succeeded with notification [notificationId]. */
+    data class InForeground(val notificationId: Int) : ServiceReport
+
+    /** `startForeground` with notification [notificationId] was refused ([error]). */
+    data class Refused(val notificationId: Int, val error: Exception) : ServiceReport
+
+    /** The service was destroyed. */
+    data object Stopped : ServiceReport
 }

@@ -1,7 +1,12 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.timer.alert.AlertConditions
+import com.umamit.core.timer.alert.AlertCue
+import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.diagnostics.PermissionStates
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -109,4 +114,27 @@ sealed interface TimerDiagnostic {
      */
     data class ServiceStartRefused(override val at: ClockReading, val notificationId: Int, val error: Exception) :
         TimerDiagnostic
+
+    /** The foreground service runs in the foreground with notification [notificationId] (04 §6.3). */
+    data class ServiceInForeground(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
+
+    /** The foreground service ended (stopped by the port or by itself). */
+    data class ServiceStopped(override val at: ClockReading) : TimerDiagnostic
+
+    /**
+     * The alert player started [cue] with the [conditions] it read (ringer mode, call, Do Not
+     * Disturb) and the [outputs] the ringer-mode matrix allowed then (04 §9.1, 06 §5.6), playing
+     * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14).
+     */
+    data class AlertPlayed(
+        override val at: ClockReading,
+        val cue: AlertCue,
+        val conditions: AlertConditions,
+        val outputs: AlertOutputs,
+        val tone: String,
+        val length: AlertLength,
+    ) : TimerDiagnostic
+
+    /** The process started with these permission [states] (06 §5.6, TMR-31). */
+    data class PermissionsAtStart(override val at: ClockReading, val states: PermissionStates) : TimerDiagnostic
 }
