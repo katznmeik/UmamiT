@@ -59,4 +59,15 @@
     <!-- ActiveBrewBar -->
     <string name="ds_active_brew_description">Laufender Aufguss: %1$s, %2$s, noch %3$s. Zum Timer</string>
     <string name="ds_active_brew_description_no_step">Laufender Timer: %1$s, noch %2$s. Zum Timer</string>
+    <string name="ds_active_brew_alerting">Jetzt abgießen!</string>
+    <string name="ds_overtime">+%1$s</string>
+    <string name="ds_active_brew_alerting_description">Jetzt abgießen: %1$s, %2$s, %3$s überzogen. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_overtime">Jetzt abgießen: %1$s, %2$s. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_step">Jetzt abgießen: %1$s, %2$s überzogen. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_step_no_overtime">Jetzt abgießen: %1$s. Zum Timer</string>
+
+    <!-- Unsaved changes guard (GEN-08, 03 §5) -->
+    <string name="ds_discard_changes_title">Änderungen verwerfen?</string>
+    <string name="ds_discard_changes_keep">Weiter bearbeiten</string>
+    <string name="ds_discard_changes_discard">Verwerfen</string>
 </resources>

@@ -36,10 +36,12 @@ style:
 Compose:
   CompositionLocalAllowlist:
     # The design system's theme locals (03 §3.1, §3.6; M1-04): tokens Material 3
-    # has no slot for, plus reduce motion, which tests must be able to force.
+    # has no slot for, plus reduce motion, which tests must be able to force, and
+    # the alert surface's marker that makes the components on it alert-safe (D-055).
     allowedCompositionLocals:
       - LocalUmamiExtendedColors
       - LocalUmamiTextStyles
       - LocalUmamiDarkTheme
       - LocalUmamiMotion
       - LocalReduceMotion
+      - LocalOnAlertSurface

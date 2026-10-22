@@ -125,7 +125,8 @@ class TimerRingTest {
     @Test
     fun `under reduce motion long steps jump without a glide`() {
         show(initial = 0f, longStep = true, reduceMotion = true)
-        updateProgress(1f)
+        // Not 1: the update to 1 snaps in both modes, so it would not prove the missing glide.
+        updateProgress(NEARLY_DONE)
         assertThat(colorAtHeight(TOP).isTintedByLiquor()).isTrue()
     }
 
