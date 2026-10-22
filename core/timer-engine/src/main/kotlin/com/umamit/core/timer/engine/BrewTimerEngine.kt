@@ -60,6 +60,7 @@ data class TimerDisplay(val remainingSeconds: Long, val overtimeSeconds: Long)
  * Countdown arithmetic uses only [ClockReading.elapsedMs], so a change of the
  * wall clock or the time zone never changes a running step (E1).
  */
+@Suppress("TooManyFunctions") // the engine's one public facade; each function is a thin delegate
 object BrewTimerEngine {
 
     /**
@@ -80,6 +81,16 @@ object BrewTimerEngine {
      * event, and recovery recomputes it from a persisted state.
      */
     fun dueTimes(state: TimerState): DueTimes = dueTimesOf(state)
+
+    /**
+     * The time-based events of [state] that are due at [now], in the order
+     * the controller sends them: the deadline before the pre-alert, then the
+     * overtime timeout; the quick-timer cancel, the midnight timeout, then
+     * idle demote. The in-process wake-up and the alarm receivers use this one
+     * mapping from [DueTimes] to events (04 §6.2); each event is sent through
+     * [reduce], and one made obsolete by an earlier one is ignored.
+     */
+    fun dueEvents(state: TimerState, now: ClockReading): List<TimerEvent> = dueEventsOf(state, now)
 
     /**
      * True when [TimerEvent.FinishSession] in [state] would discard the session
@@ -127,6 +138,18 @@ object BrewTimerEngine {
      * („Fertig um 14:30"). False in Idle and Finished.
      */
     fun isLongStep(state: TimerState): Boolean = state is TimerState.OnStep && state.session.isLongStep(state.stepIndex)
+
+    /**
+     * The pre-alert lead time N of the current step of [state] in seconds,
+     * whether its tick played or not, for the TimerRing glow and the
+     * ProgressStyle point (04 §8.3). Null when the step has none (N = 0, a
+     * step shorter than N + 5 s, a rinse shorter than 15 s, a long step;
+     * TMR-23) and in Idle and Finished, so the UI never re-implements the
+     * skip rules.
+     */
+    fun preAlertLeadSeconds(state: TimerState): Int? = (state as? TimerState.OnStep)
+        ?.let { it.session.preAlertLeadMs(it.stepIndex) }
+        ?.let { (it / MS_PER_SECOND).toInt() }
 
     /**
      * The wall-clock time at which the running long step of [state] ends, for

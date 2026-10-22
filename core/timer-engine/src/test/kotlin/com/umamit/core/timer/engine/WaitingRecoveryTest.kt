@@ -37,7 +37,7 @@ class WaitingRecoveryTest {
 
         assertThat(driver.state).isEqualTo(TimerState.Idle)
         assertThat(effects).containsExactly(
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = true),
             Persist,
             NO_ALARMS,
             StopForeground,

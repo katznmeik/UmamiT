@@ -114,8 +114,7 @@ class ActiveBrewStoreTest {
         val running = driver.send(TimerEvent.Start) as TimerState.Running
         val handMade = mapOf(
             "Running with the pre-alert due" to running.copy(preAlertAtElapsedMs = running.deadlineElapsedMs - 10_000),
-            "Running with the pre-alert played" to
-                running.copy(preAlertAtElapsedMs = running.deadlineElapsedMs - 10_000, preAlertPlayed = true),
+            "Running with the pre-alert played" to running.copy(preAlertAtElapsedMs = null, preAlertPlayed = true),
             "Ready, demoted" to ready.copy(session = ready.session.copy(demoted = true)),
             "Ready with a 0 s override" to
                 ready.copy(

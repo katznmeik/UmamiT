@@ -25,8 +25,12 @@ sealed interface TimerEffect {
     /** Store the ended step [stepIndex] of session [sessionId] (`session_step`, 04 §5.1). */
     data class RecordStep(val sessionId: String, val stepIndex: Int, val record: StepRecord) : TimerEffect
 
-    /** Mark the session COMPLETED (05 §3.7: delete unstarted rows, stock, cost, opened date). */
-    data class CompleteSession(val sessionId: String) : TimerEffect
+    /**
+     * Mark the session COMPLETED (05 §3.7: delete unstarted rows, stock, cost, opened date).
+     * [autoFinished] is true when the midnight timeout completed it rather than the user
+     * (`brew_session.auto_finished`, TMR-14, D-054).
+     */
+    data class CompleteSession(val sessionId: String, val autoFinished: Boolean) : TimerEffect
 
     /** Delete the session and its stock deduction (TMR-13). */
     data class DiscardSession(val sessionId: String) : TimerEffect
@@ -56,9 +60,11 @@ sealed interface TimerEffect {
     data object StopAlert : TimerEffect
 
     /**
-     * Ensure the foreground service with the Live Update runs (idempotent; 04 §6.3).
-     * A start from the background may be refused; the controller then keeps
-     * the regular ongoing notification until the next interaction or alarm.
+     * Ensure the foreground service runs (idempotent; 04 §6.3), with the
+     * notification of the new state as its foreground notification: the alert
+     * (ID 2) while Alerting, else notification 1 (D-044, D-054). A start from
+     * the background may be refused; the controller then keeps the regular
+     * ongoing notification until the next interaction or alarm.
      */
     data object StartForeground : TimerEffect
 
@@ -70,9 +76,15 @@ sealed interface TimerEffect {
     data object StopForeground : TimerEffect
 
     /**
-     * Post notification 1 from the new state: the Live Update while the
-     * service runs; a regular, silent ongoing notification while the session
-     * is demoted or a long step runs (04 §8.2). Never emitted for Idle.
+     * Post the notification of the new state (04 §4, §8.2; D-044, D-054).
+     * Never emitted for Idle.
+     * - **Alerting:** refresh the alert (ID 2, `steep_finished`), with the
+     *   full-screen intent only when [StartAlert] is in the same transition,
+     *   and cancel notification 1. Notification 1 is never posted while
+     *   alerting: Android 16 would group the two and silence the alert.
+     * - **Every other active state:** notification 1, the Live Update while
+     *   the service runs; a regular, silent ongoing notification while the
+     *   session is demoted or a long step runs.
      */
     data object UpdateNotification : TimerEffect
 

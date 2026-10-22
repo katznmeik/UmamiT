@@ -66,13 +66,17 @@ internal fun start(state: TimerState.Ready, now: ClockReading): TimerTransition 
     )
 }
 
+/**
+ * Freezes the step with its remaining time, within 1 ms and the planned time:
+ * a reading older than the start (04 §4 forbids it) never stores more (D-054).
+ */
 internal fun pause(state: TimerState.Running, now: ClockReading): TimerTransition = accepted(
     TimerState.Paused(
         session = state.session.touched(now),
         stepIndex = state.stepIndex,
         stepStartedWallMs = state.stepStartedWallMs,
         pausedTotalMs = state.pausedTotalMs,
-        remainingMs = state.deadlineElapsedMs - now.elapsedMs,
+        remainingMs = (state.deadlineElapsedMs - now.elapsedMs).coerceIn(1, state.plannedMs),
         pausedSinceElapsedMs = now.elapsedMs,
         pausedSinceWallMs = now.wallMs,
         preAlertPlayed = state.preAlertPlayed,
@@ -89,7 +93,7 @@ internal fun resume(state: TimerState.Paused, now: ClockReading): TimerTransitio
             session = session,
             stepIndex = state.stepIndex,
             stepStartedWallMs = state.stepStartedWallMs,
-            pausedTotalMs = state.pausedTotalMs + (now.elapsedMs - state.pausedSinceElapsedMs),
+            pausedTotalMs = state.pausedTotalMs + state.openPauseMs(now),
             deadlineElapsedMs = deadline,
             deadlineWallMs = now.wallMs + state.remainingMs,
             preAlertAtElapsedMs = preAlertAt(session, state.stepIndex, deadline, state.preAlertPlayed, now),

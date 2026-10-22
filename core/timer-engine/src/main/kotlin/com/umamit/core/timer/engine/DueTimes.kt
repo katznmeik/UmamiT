@@ -84,6 +84,25 @@ internal fun dueTimesOf(state: TimerState): DueTimes = when (state) {
 }
 
 /**
+ * The time-based events of [state] whose time has come at [now], in apply
+ * order: the deadline before the pre-alert (so no tick sounds at the
+ * deadline), then the overtime timeout; for a waiting state the quick-timer
+ * cancel, the midnight timeout, then idle demote, as recovery orders them
+ * (D-053). An event that an earlier one made obsolete is ignored harmlessly.
+ */
+internal fun dueEventsOf(state: TimerState, now: ClockReading): List<TimerEvent> {
+    val due = dueTimesOf(state)
+    return listOfNotNull(
+        TimerEvent.DeadlineReached.takeIf { isDue(due.deadlineElapsedMs, now) },
+        TimerEvent.PreAlertReached.takeIf { isDue(due.preAlertAtElapsedMs, now) },
+        TimerEvent.OvertimeTimeout.takeIf { isDue(due.overtimeTimeoutAtElapsedMs, now) },
+        TimerEvent.QuickTimerTimeout.takeIf { isDueWall(due.quickCancelAtWallMs, now) },
+        TimerEvent.MidnightTimeout.takeIf { isDueWall(due.midnightAtWallMs, now) },
+        TimerEvent.IdleDemote.takeIf { isDueWall(due.idleDemoteAtWallMs, now) },
+    )
+}
+
+/**
  * Since when a waiting state is idle: the last interaction, or the moment it
  * started waiting if that is later (a step ended by the overtime timeout, not
  * by the user). The waiting timeouts count from here, on the wall clock (D-048, D-053).

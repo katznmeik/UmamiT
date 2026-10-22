@@ -1,7 +1,8 @@
 # 04 · Brew Timer Specification
 
 > Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
-> recovery and snapshot, D-048; time rules and service contract, D-053)
+> recovery and snapshot, D-048; time rules and service contract, D-053;
+> slice review: controller rules, alarm kinds, notification per state, D-054)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -50,6 +51,8 @@ stateDiagram-v2
     PAUSED --> RUNNING: resume
     RUNNING --> RUNNING: preAlertReached (tick only)
     RUNNING --> ALERTING: deadlineReached
+    RUNNING --> READY: deadlineReached ≥ 10 min late (overtime timeout, more steps)
+    RUNNING --> FINISHED: deadlineReached ≥ 10 min late (overtime timeout, last step)
     RUNNING --> READY: endStepNow (more steps)
     RUNNING --> FINISHED: endStepNow (last step)
     PAUSED --> READY: endStepNow (more steps)
@@ -58,7 +61,9 @@ stateDiagram-v2
     ALERTING --> FINISHED: poured / overtimeTimeout (last step)
     READY --> READY: skipStep (more steps)
     READY --> FINISHED: skipStep (last step)
-    FINISHED --> READY: addStep
+    FINISHED --> READY: addStep / editSteps (steps added)
+    READY --> READY: editSteps (re-point)
+    READY --> FINISHED: editSteps (no pending step left)
     READY --> [*]: finishSession / discard / midnightTimeout
     PAUSED --> [*]: finishSession / discard / midnightTimeout
     FINISHED --> [*]: finishSession / discard / midnightTimeout
@@ -72,10 +77,14 @@ stateDiagram-v2
 |---|---|---|
 | `Idle` | — | No active session. |
 | `Ready(i)` | step index, `readySince` | Waiting for the user to pour water and tap *Start*. Never auto-starts (TMR-08). |
-| `Running(i)` | deadline (monotonic + wall), pre-alert time, active elapsed before | Counting down. |
-| `Paused(i)` | remaining ms, active elapsed, `pausedSince` | Frozen. |
-| `Alerting(i)` | deadline | Step done; alert playing; waiting for *Abgegossen*. |
-| `Finished` | — | All planned steps done; waiting for *Sitzung beenden* or *Weiterer Aufguss*. |
+| `Running(i)` | deadline (monotonic + wall), pre-alert time, `preAlertPlayed`, step start, paused total | Counting down. |
+| `Paused(i)` | remaining ms, `pausedSince` (monotonic + wall), `preAlertPlayed`, step start, paused total | Frozen. |
+| `Alerting(i)` | deadline (monotonic + wall), `alertPlayed`, step start, paused total | Step done; alert playing; waiting for *Abgegossen*. |
+| `Finished` | `readySince` | All planned steps done; waiting for *Sitzung beenden* or *Weiterer Aufguss*. |
+
+Every active state also carries the session: plan, pre-alert settings, zone,
+last interaction, boot count, `demoted` and `longStepsOnly` (05 §3.12). Active
+time is derived from the deadline, not stored (D-048).
 
 ### 3.2 Events and transitions
 
@@ -85,18 +94,18 @@ stateDiagram-v2
 | `start` | Ready | `deadline = now + planned`; `preAlertAt = deadline − N` if applicable (TMR-23) → Running. Schedule exact alarms (§6.2). A short step ensures the FGS, a long step stops it (§6.1, D-053). |
 | `pause` | Running | `remaining = deadline − now` → Paused; cancel alarms; release wake lock. A paused long step gets the FGS back. |
 | `resume` | Paused | `deadline = now + remaining`; recompute `preAlertAt`: a played one is not repeated, an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` (E6) → Running; reschedule alarms. FGS as for `start`. |
-| `preAlertReached` | Running, when the pre-alert is due | Play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. A due pre-alert is never ignored: too close to or past the deadline it sets `preAlertPlayed` without `PlayPreAlert`, so its due time is consumed and no tick sounds at or after the deadline (D-048). |
+| `preAlertReached` | Running, when the pre-alert is due | Ensure the FGS (the tick plays in it, §9), then play tick once (idempotent: flag `preAlertPlayed`); caption „Gleich fertig …"; update Live Update. A due pre-alert is never ignored: too close to or past the deadline it sets `preAlertPlayed` without `PlayPreAlert`, so its due time is consumed and no tick sounds at or after the deadline (D-048). |
 | `deadlineReached` | Running | → Alerting; ensure the FGS, then start the alert. At or after deadline + 10 min it applies `overtimeTimeout` instead, without an alert, as recovery does (D-053). Ignored in other states. |
 | `endStepNow` | Running, Paused | Record actual = active elapsed; → next Ready or Finished. No alert. |
 | `poured` | Alerting | Stop alert; record actual incl. overtime; → next Ready or Finished. |
 | `overtimeTimeout` | Alerting, 10 min after deadline (`dueTimes.overtimeTimeoutAt`) | As `poured`, but actual = planned, overtime = 0 and `endedAt` = the deadline's wall time (assume poured on time); flag `overtimeAutoAck`. Not an interaction; silent. A quick timer ends. A `poured`, `endStepNow` or `finishSession` at or after deadline + 10 min records the same auto-ack (D-053). |
 | `skipStep` | Ready | Mark skipped → next Ready or Finished. |
-| `addStep` | any except Idle | *Weiterer Aufguss* (TMR-10): append `defaultAddedStep(plan)` — the last non-rinse step's kind and temperature, 1.5 × its duration rounded half up to 5 s below 10 min and to whole minutes from 10 min on, within 5 s – 24 h; if Finished → `Ready(new)`. |
-| `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. Session-only unless *Im Rezept speichern*. |
+| `addStep` | any except Idle | *Weiterer Aufguss* (TMR-10): append `defaultAddedStep(plan)` — the last non-rinse step's kind and temperature, 1.5 × its duration rounded half up to 5 s below 10 min and to whole minutes from 10 min on, within 5 s – 24 h; if Finished → `Ready(new)`. A due pre-alert of the running step stays due (§5, D-054). |
+| `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. The running step's pre-alert follows the new N, but one that is already due stays due unless the edit leaves the step without a pre-alert (*Aus*, §5, D-054). Session-only unless *Im Rezept speichern*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
 | `idleDemote` | Ready, Paused, Finished of a brew session, not yet demoted; 30 min after it became idle (`dueTimes.idleDemoteAt`) | Sets `demoted`, no other change: `StopForeground`, then the Live Update is posted again as a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any user event clears `demoted` and ensures the FGS (notification action exemption; D-053). |
-| `midnightTimeout` | Ready, Paused, Finished of a brew session, demoted or not; the first local midnight in the session's zone at least 6 h after it became idle (`dueTimes.midnightAt`; inexact alarm, also checked on recovery §7.2) | As `finishSession` without confirmation: if ≥ 1 non-rinse step completed (a paused step counts), COMPLETED with the notification „Sitzung gespeichert" (`NotifySessionSaved`, no saved sheet); otherwise discarded silently. A paused step ends where its pause began; the open pause is not recorded. Not an interaction. |
+| `midnightTimeout` | Ready, Paused, Finished of a brew session, demoted or not; the first local midnight in the session's zone at least 6 h after it became idle (`dueTimes.midnightAt`; inexact alarm, also checked on recovery §7.2) | As `finishSession` without confirmation: if ≥ 1 non-rinse step completed (a paused step counts), COMPLETED with `auto_finished` (`CompleteSession(autoFinished = true)`, D-054) and the notification „Sitzung gespeichert" (`NotifySessionSaved`, no saved sheet); otherwise discarded silently. A paused step ends where its pause began; the open pause is not recorded. Not an interaction. |
 | `recover` | any except Idle | Sent once on every process start with the persisted state (§7.2). Not an interaction. |
 
 There are **no** ±10 s adjust events in v0.2 (TMR-04 dropped).
@@ -134,6 +143,23 @@ Engine rules (D-047):
 - **Time-based events** (`preAlertReached`, `deadlineReached`,
   `overtimeTimeout`, `idleDemote`, `midnightTimeout`, `quickTimerTimeout`) are
   not interactions. Every user event updates `last_interaction_wall_ms`.
+- **A stale reading (D-054).** A clock reading older than the state breaks
+  the controller rule of §4, but never a persisted state: `pause` keeps
+  1 ms – planned remaining, and a pause that would be negative counts as 0 in
+  `resume` and in the recorded paused time. So `restore` accepts every state
+  the engine produces, and the session and its alert survive the next
+  process start.
+- **Beenden & neu starten (TMR-21, D-054).** No engine event of its own: the
+  controller sends, in one event-lock turn, the event that ends the active
+  timer, then the new start. A brew session ends with `finishSession` (the
+  TMR-21 dialog is the confirmation, so a session without a completed
+  non-rinse step is discarded without a second question); the controller
+  shows no saved sheet for it and posts „Sitzung gespeichert"
+  (notification 3) instead, i.e. it executes `ShowSavedSheet(id)` of this
+  finish as `NotifySessionSaved(id)` (TMR-14). The session is not
+  `auto_finished`: the user chose to end it. A quick timer ends with `cancel`
+  (Ready, Running, Paused) or `poured` (Alerting). Then `startSession` or
+  `startQuickTimer` meets Idle. The effects of both transitions run in order.
 
 ## 4. Components
 
@@ -154,8 +180,9 @@ flowchart LR
 
 - `BrewTimerEngine.reduce(state, event, now) → (state, effects, outcome)`.
   The effects are:
-  - data: `CreateSession`, `ReplacePendingSteps`, `RecordStep`, `CompleteSession`,
-    `DiscardSession`;
+  - data: `CreateSession`, `ReplacePendingSteps`, `RecordStep`,
+    `CompleteSession(sessionId, autoFinished)` (true only for the midnight
+    timeout, D-054), `DiscardSession`;
   - `Persist`, `ScheduleAlarms`;
   - side effects: `PlayPreAlert`, `StartAlert`, `StopAlert`, `StartForeground`,
     `StopForeground`, `UpdateNotification`, `ShowSavedSheet`, `NotifySessionSaved`.
@@ -167,13 +194,34 @@ flowchart LR
 - **Session rows.** The controller creates the session rows only for the
   `CreateSession` of an accepted start, so a refused start leaves no orphaned
   rows.
+- **Controller rules (D-054).** These keep every engine guarantee true on
+  the device:
+  - The controller reads the clocks (`readClocks`) **after** it has taken the
+    event lock, once per `reduce`; never when it creates or enqueues an event
+    (a click handler, a notification action, an alarm's `onReceive`). Within
+    a boot `elapsedMs` is then non-decreasing from event to event. The engine
+    also survives a stale reading (§3.2 engine rules).
+  - A failed Room transaction (data effects + `Persist`) is logged (06 §5.6)
+    and then `Persist` alone is retried once; the side effects still run from
+    the in-memory transition either way. `StartAlert`, `StopAlert` and
+    `PlayPreAlert` are never skipped because of a storage error.
+  - The data effects are total on predictable input, so they do not roll
+    back the transaction: a `RecordStep` without its row changes nothing
+    (`Persist` re-syncs the rows), an unreadable settings file counts as the
+    defaults, and a session zone this device does not know counts as the
+    device's zone (D-054).
 - **Alarms.** `ScheduleAlarms` carries the full due set. The controller
-  reconciles it per alarm type: it schedules a type whose time is present and
-  cancels one whose time is absent. There is no separate `CancelAlarms`.
-  After every `reduce`, accepted or not, the controller re-arms its
-  in-process wake-up from `dueTimes(state)`, but only from a state of the
-  current boot (after `recover`). A time-based event that is due is never
-  `Ignored`: it is applied or consumed, so the wake-up cannot spin (D-048).
+  reconciles it per alarm type (§6.2): it schedules a type whose time is
+  present and cancels one whose time is absent. There is no separate
+  `CancelAlarms`. After every `reduce`, accepted or not, the controller
+  re-arms its in-process wake-up from `dueTimes(state)`, but only from a
+  state of the current boot (after `recover`). A time-based event that is due
+  is never `Ignored`: it is applied or consumed, so the wake-up cannot spin
+  (D-048). `dueEvents(state, now)` maps the due set to the events in apply
+  order (deadline before pre-alert, then overtime; quick-timer cancel,
+  midnight, then idle demote); the wake-up and the alarm receivers share it,
+  and send each through `reduce`; an event an earlier one made obsolete is
+  ignored.
 - **Recovery.** The controller sends `recover` exactly once per process, as
   the first event, inside the same lock as the restore of `active_brew`.
   `restore` throws only `IllegalArgumentException`; the controller then logs
@@ -195,9 +243,23 @@ flowchart LR
   - any other transition from a state without the service to one with it
     (a user event on a demoted session, pausing or ending a long step) adds
     `StartForeground`;
-  - `recover` emits `StartForeground` only where the state needs it.
-  `UpdateNotification` posts the Live Update while the service runs and a
-  regular ongoing notification while demoted or during a long step.
+  - `recover` emits `StartForeground` only where the state needs it;
+  - a `preAlertReached` that plays the tick emits `StartForeground` before
+    `PlayPreAlert`, as the deadline does before the alert (D-054).
+- **Which notification (D-044, D-054).** `StartForeground` and
+  `UpdateNotification` use the notification of the **new** state (§8.2):
+  - in Alerting, the alert (ID 2, `steep_finished`) is the foreground
+    notification. `UpdateNotification` refreshes ID 2 — with the full-screen
+    intent only when `StartAlert` is in the same transition — and cancels
+    ID 1 if it is posted. ID 1 is never posted while alerting
+    (`deadlineReached`, `addStep`/`editSteps` while alerting, `recover` of an
+    alerting state);
+  - in every other active state, ID 1: the Live Update while the service
+    runs, a regular, silent ongoing notification while the session is
+    demoted or a long step runs. ID 2 is cancelled when the alert ends.
+  The M1-09/M1-11 Robolectric tests assert that no ID 1 is posted after
+  `deadlineReached`, after `addStep` while alerting and after `recover` of an
+  alerting state.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
   executes effects, exposes `StateFlow<TimerUiState>`.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
@@ -225,7 +287,11 @@ flowchart LR
   session; *Wie Einstellung* clears the session override (D-048). `resume`
   and `editSteps` recompute an unplayed pre-alert of the running step from its
   deadline and the current N, and skip it when that time is not after now; a
-  played one never comes back. A due `preAlertReached` plays the tick while at
+  played one never comes back. An edit never consumes a pre-alert that is
+  already due but whose `preAlertReached` is still queued: it stays due while
+  the step still has a pre-alert, and `preAlertReached` decides by the 1-s
+  rule (D-054). `preAlertLeadSeconds(state)` gives the current step's N, or
+  none, for the ring and the progress point (§8.3). A due `preAlertReached` plays the tick while at
   least **1 s** is left before the deadline and only marks it played after
   that (D-053).
 
@@ -265,15 +331,36 @@ rules (D-047):
 - The app declares **`USE_EXACT_ALARM`**, which is granted automatically.
   This is acceptable because the app is sideloaded and never goes through
   Play review (D-013). `SCHEDULE_EXACT_ALARM` is not needed.
-- On `start`/`resume`: `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP, …)`
-  for `preAlertAt` (short steps) and `deadline`; cancelled on pause, end,
-  discard. Request codes are fixed per alarm type, so rescheduling replaces
-  them.
-- `ExactAlarmReceiver` forwards `preAlertReached` / `deadlineReached`
-  (idempotent). If the service is not running (process was killed), it
-  starts `BrewTimerService` in the foreground (exact-alarm delivery is an
-  allowed exemption for starting an FGS from the background) so the
-  `AlertPlayer` can play.
+- One alarm per `DueTimes` field, reconciled from `ScheduleAlarms` after
+  every accepted transition (§4): scheduled when the field has a time,
+  cancelled when it has none. Request codes are fixed per field, so
+  rescheduling replaces the alarm (D-054):
+
+  | `DueTimes` field | Alarm | Request code | Receiver sends |
+  |---|---|---|---|
+  | `preAlertAtElapsedMs` | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` | 101 | `preAlertReached` |
+  | `deadlineElapsedMs` | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` | 102 | `deadlineReached` |
+  | `overtimeTimeoutAtElapsedMs` | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` | 103 | `overtimeTimeout` |
+  | `idleDemoteAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 104 | `idleDemote` |
+  | `quickCancelAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 105 | `quickTimerTimeout` |
+  | `midnightAtWallMs` | inexact, `set(RTC)` (no wake-up) | 106 | `midnightTimeout` |
+
+  The elapsed fields use `ELAPSED_REALTIME` so a wall-clock change never
+  moves them (E1); the overtime timeout is exact because it may start the
+  FGS (`StartForeground` of the next Ready), and only exact-alarm delivery
+  allows that from the background. The wall fields use `RTC` so they follow
+  a wall-clock or zone change; idle demote and the quick-timer cancel stop
+  the service, so a late one would keep it running; the midnight timeout
+  may wait until the phone next wakes (recovery applies it too, §7.2), so it
+  neither wakes the phone nor needs to be exact. Each receiver sends the event of its
+  row; the event is accepted only when due (§3.2 guards), so a late, early
+  or stale alarm is harmless. After a reboot the alarms are gone and
+  `recover` schedules them again (§7.3).
+- `ExactAlarmReceiver` forwards the events of the elapsed rows (idempotent).
+  If the service is not running (process was killed), it starts
+  `BrewTimerService` in the foreground (exact-alarm delivery is an allowed
+  exemption for starting an FGS from the background) so the `AlertPlayer`
+  can play.
 - `AlarmManager.canScheduleExactAlarms()` is still checked; if false (should
   not happen), the reliability banner is shown (TMR-31).
 
@@ -313,6 +400,11 @@ plus the session's step rows and back without loss (`snapshot(state)`,
 recorded values are ended, the current step of Running, Paused or Alerting is
 started, all others are pending). The quick timer has no step rows; its one
 step is `quick_duration_seconds`.
+
+If that transaction fails, the controller logs it, retries `Persist` alone
+once and runs the side effects anyway (§4 controller rules, D-054). A
+`Persist` that still fails leaves the previous row; the next transition's
+`Persist` writes the current state again.
 
 ### 7.2 Recovery on process start
 
@@ -542,11 +634,11 @@ Uses the global pre-alert, the same alert and the Live Update
 | # | Case | Expected behaviour |
 |---|---|---|
 | E1 | Clock or time zone changed during a step | No effect (monotonic). |
-| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime. Accepted for a personal app; a direct-boot path is `Could` (§7.3). |
+| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime, if that is less than 10 min after the deadline. From 10 min on, recovery applies the overtime timeout silently (§7.2): no alert, the step is recorded as poured on time (e.g. a night restart during a cold brew, unlocked in the morning). Accepted for a personal app; a direct-boot path is `Could` (§7.3). |
 | E3 | Process killed during a short step | Exact alarm fires → FGS started → alert plays. |
 | E4 | App swiped from recents | Session continues. |
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
-| E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; otherwise rescheduled. |
+| E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
 | E7 | Planned step < N + 5 s | No pre-alert for that step. |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
@@ -560,7 +652,7 @@ Uses the global pre-alert, the same alert and the Live Update
 
 | Level | Tests |
 |---|---|
-| Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; the foreground-service contract (seeded invariant test). |
+| Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
 | Instrumented (CI emulator job, API 35 and 36) | Process death (`am kill`) during a step; alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |

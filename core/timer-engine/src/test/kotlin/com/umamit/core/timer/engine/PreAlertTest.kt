@@ -5,6 +5,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.timer.engine.TimerEffect.Persist
 import com.umamit.core.timer.engine.TimerEffect.PlayPreAlert
 import com.umamit.core.timer.engine.TimerEffect.ScheduleAlarms
+import com.umamit.core.timer.engine.TimerEffect.StartForeground
 import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 import org.junit.Test
 
@@ -104,9 +105,11 @@ class PreAlertTest {
         val running = driver.state as TimerState.Running
         assertThat(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
         assertThat(running.preAlertPlayed).isTrue()
+        // The tick plays in the service (04 §9), so it is ensured first, as before the alert.
         assertThat(effects).containsExactly(
             Persist,
             deadlineAlarm(running.deadlineElapsedMs),
+            StartForeground,
             PlayPreAlert,
             UpdateNotification,
         ).inOrder()
@@ -135,6 +138,7 @@ class PreAlertTest {
             val label = "$lateMs ms late"
             assertWithMessage(label).that(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
             assertWithMessage(label).that(PlayPreAlert in effects).isEqualTo(plays)
+            assertWithMessage(label).that(StartForeground in effects).isEqualTo(plays)
             assertWithMessage(label).that((driver.state as TimerState.Running).preAlertPlayed).isTrue()
             assertWithMessage(label).that(BrewTimerEngine.dueTimes(driver.state).preAlertAtElapsedMs).isNull()
         }
@@ -227,6 +231,64 @@ class PreAlertTest {
 
         assertThat((driver.state as TimerState.Running).preAlertAtElapsedMs).isNull()
         assertThat(BrewTimerEngine.dueTimes(driver.state).preAlertAtElapsedMs).isNull()
+    }
+
+    /**
+     * B1 of the #27 slice review: the pre-alert came due a few ms before the
+     * edit, but its `preAlertReached` is still queued behind it. The edit must
+     * not consume it; only *Aus* (or a step without a pre-alert) removes it.
+     */
+    @Test
+    fun `an edit right after the pre-alert came due keeps it due, so the queued tick still plays`() {
+        // (edit, the queued tick plays)
+        val cases = listOf(
+            TimerEvent.AddStep to true,
+            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Inherit) to true,
+            TimerEvent.EditSteps(listOf(infusion(60), infusion(30)), PreAlertChoice.Seconds(10)) to true,
+            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(20)) to true,
+            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Off) to false,
+            // N = 60 leaves the 60 s step without a pre-alert (E7).
+            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(60)) to false,
+        )
+        cases.forEach { (edit, plays) ->
+            val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
+            val preAlertAt = driver.deadline - 10_000
+            driver.advanceTo(preAlertAt + 5)
+
+            driver.send(edit)
+
+            val label = "$edit"
+            assertWithMessage("$label: accepted").that(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
+            assertWithMessage("$label: still due").that(BrewTimerEngine.dueTimes(driver.state).preAlertAtElapsedMs)
+                .isEqualTo(preAlertAt.takeIf { plays })
+            driver.clocks.advance(5)
+            val effects = driver.send(TimerEvent.PreAlertReached)
+            assertWithMessage("$label: the queued tick").that(PlayPreAlert in effects).isEqualTo(plays)
+        }
+    }
+
+    @Test
+    fun `preAlertLeadSeconds is the current step's lead time, played or not, for the ring and the progress point`() {
+        val driver = sessionWith(infusion(60), infusion(14), infusion(600))
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(TimerState.Idle)).isNull()
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(10)
+
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(50)
+        driver.send(TimerEvent.PreAlertReached)
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(10)
+
+        driver.send(TimerEvent.EditSteps(listOf(infusion(60), infusion(14), infusion(600)), PreAlertChoice.Seconds(20)))
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(20)
+
+        // A step shorter than N + 5 s and a long step have none (E7, TMR-18); Finished has no step.
+        driver.send(TimerEvent.EndStepNow)
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isNull()
+        driver.send(TimerEvent.SkipStep)
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isNull()
+        driver.send(TimerEvent.SkipStep)
+        assertThat(driver.state).isInstanceOf(TimerState.Finished::class.java)
+        assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isNull()
     }
 
     @Test

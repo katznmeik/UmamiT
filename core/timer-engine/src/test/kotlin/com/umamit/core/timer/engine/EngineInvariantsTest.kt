@@ -48,26 +48,38 @@ class EngineInvariantsTest {
     private fun run(random: Random, seed: Int) {
         val driver = EngineDriver()
         val recorded = mutableSetOf<Int>()
+        val preAlertsPlayed = mutableSetOf<Int>()
+        var lastReading: ClockReading? = null
         repeat(EVENTS_PER_RUN) { n ->
             advanceClock(random, driver)
             val before = driver.state
             val event = randomEvent(random, before)
-            val transition = BrewTimerEngine.reduce(before, event, driver.clocks.now())
+            val now = reading(random, driver, event, lastReading)
+            val transition = BrewTimerEngine.reduce(before, event, now)
             driver.state = transition.state
-            val label = "seed $seed, event $n: $event in ${before::class.simpleName}"
+            val early = driver.clocks.elapsed - now.elapsedMs
+            val label = "seed $seed, event $n: $event in ${before::class.simpleName}" +
+                if (early > 0) " (read $early ms early)" else ""
 
             if (transition.outcome != TransitionOutcome.Accepted) {
                 assertWithMessage("$label: not accepted keeps the instance").that(transition.state)
                     .isSameInstanceAs(before)
                 assertWithMessage("$label: not accepted has no effects").that(transition.effects).isEmpty()
                 (transition.outcome as? TransitionOutcome.Rejected)?.let { rejections += it.reason }
+                // The controller re-arms its wake-up after an ignored event too (04 §4).
+                if (isOfCurrentBoot(before, driver)) checkNothingOverdue(label, before, driver)
                 return@repeat
             }
             accepted += event.javaClass
-            if (transition.effects.any { it is TimerEffect.CreateSession }) recorded.clear()
+            lastReading = now
+            if (before == TimerState.Idle) {
+                recorded.clear()
+                preAlertsPlayed.clear()
+            }
             checkEffectOrder(label, transition)
             checkAlertEdges(label, before, event, transition)
             checkService(label, before, event, transition)
+            checkPreAlert(label, before, event, transition, now, preAlertsPlayed)
             checkStepRecords(label, transition, recorded)
             checkPlanShape(label, transition.state)
             checkPendingRows(label, transition)
@@ -76,6 +88,24 @@ class EngineInvariantsTest {
             checkNothingOverdue(label, transition.state, driver)
         }
     }
+
+    /**
+     * The reading the controller passes: now, and now and then one up to 30 s
+     * older than the reading of the last accepted event, so older than the
+     * state (a controller that read the clocks before it took the event lock,
+     * S1 of the #27 slice review). Recover is always read fresh, as the first
+     * event of a process.
+     */
+    private fun reading(random: Random, driver: EngineDriver, event: TimerEvent, last: ClockReading?): ClockReading {
+        val now = driver.clocks.now()
+        val stale = event != TimerEvent.Recover && random.nextInt(STALE_ONE_IN) == 0
+        if (!stale || last == null || last.bootCount != now.bootCount) return now
+        val elapsed = (last.elapsedMs - random.nextLong(1, 30_000)).coerceAtLeast(1)
+        return now.copy(elapsedMs = elapsed, wallMs = now.wallMs - (now.elapsedMs - elapsed))
+    }
+
+    private fun isOfCurrentBoot(state: TimerState, driver: EngineDriver) =
+        state !is TimerState.Active || state.session.bootCount == driver.clocks.boot
 
     private fun checkEffectOrder(label: String, transition: TimerTransition) {
         val effects = transition.effects
@@ -116,7 +146,8 @@ class EngineInvariantsTest {
      * The foreground-service contract (S5, D-053): Idle stops the service; a
      * demoted state or a starting long step never starts it; a user event on a
      * demoted session ends the demotion and decides the service; the service
-     * is ensured before every alert.
+     * is ensured before every alert. Then the core rule against an independent
+     * oracle ([needsService]).
      */
     private fun checkService(label: String, before: TimerState, event: TimerEvent, transition: TimerTransition) {
         val after = transition.state
@@ -142,6 +173,87 @@ class EngineInvariantsTest {
             assertWithMessage("$label: a long step counts down without the service").that(stops).isTrue()
         }
         checkDemotionEnds(label, before, event, transition)
+        checkServiceOracle(label, before, event, transition)
+    }
+
+    /**
+     * The D-053 core rule (S6 of the #27 slice review): a transition into a
+     * state that needs the service ensures it (recovery: exactly when the
+     * state needs it), a transition from such a state into an active state
+     * without it stops it, both before the notification is posted. A state
+     * that needs the service is never entered with `StopForeground`, one that
+     * does not never with `StartForeground`.
+     */
+    private fun checkServiceOracle(label: String, before: TimerState, event: TimerEvent, transition: TimerTransition) {
+        val after = transition.state as? TimerState.Active ?: return
+        val effects = transition.effects
+        if (needsService(after)) {
+            assertWithMessage("$label: a state that needs the service never stops it")
+                .that(TimerEffect.StopForeground in effects).isFalse()
+            if (event == TimerEvent.Recover || !needsService(before)) {
+                assertWithMessage("$label: entering a state that needs the service ensures it")
+                    .that(TimerEffect.StartForeground in effects).isTrue()
+                assertBefore(label, effects, TimerEffect.StartForeground, TimerEffect.UpdateNotification)
+            }
+        } else {
+            assertWithMessage("$label: a state without the service never starts it")
+                .that(TimerEffect.StartForeground in effects).isFalse()
+            if (needsService(before) && event != TimerEvent.Recover) {
+                assertWithMessage("$label: leaving the service for an active state stops it")
+                    .that(TimerEffect.StopForeground in effects).isTrue()
+                assertBefore(label, effects, TimerEffect.StopForeground, TimerEffect.UpdateNotification)
+            }
+        }
+    }
+
+    /**
+     * The oracle of 04 §4, written from the spec: every active state needs the
+     * service except a demoted session and a running long step (≥ 10 min, or
+     * any step of a cold or ice brew).
+     */
+    private fun needsService(state: TimerState): Boolean = when {
+        state !is TimerState.Active || state.session.demoted -> false
+        state !is TimerState.Running -> true
+        else -> !state.session.longStepsOnly && state.session.steps[state.stepIndex].plannedSeconds < LONG_SECONDS
+    }
+
+    private fun assertBefore(label: String, effects: List<TimerEffect>, first: TimerEffect, then: TimerEffect) {
+        if (then !in effects) return
+        assertWithMessage("$label: $first before $then").that(effects.indexOf(first))
+            .isLessThan(effects.indexOf(then))
+    }
+
+    /**
+     * The pre-alert tick (TMR-23, D-053): at most once per step, only on a
+     * running short step with at least 1 s to the deadline. B1 of the #27
+     * slice review: an edit that leaves the step a pre-alert never consumes
+     * one that is already due.
+     */
+    private fun checkPreAlert(
+        label: String,
+        before: TimerState,
+        event: TimerEvent,
+        transition: TimerTransition,
+        now: ClockReading,
+        played: MutableSet<Int>,
+    ) {
+        if (TimerEffect.PlayPreAlert in transition.effects) {
+            val running = before as? TimerState.Running
+            assertWithMessage("$label: only a running step ticks").that(running).isNotNull()
+            checkNotNull(running)
+            assertWithMessage("$label: never on a long step").that(BrewTimerEngine.isLongStep(running)).isFalse()
+            assertWithMessage("$label: at least 1 s before the deadline")
+                .that(running.deadlineElapsedMs - now.elapsedMs).isAtLeast(1_000)
+            assertWithMessage("$label: once per step").that(played.add(running.stepIndex)).isTrue()
+        }
+        val after = transition.state as? TimerState.Running ?: return
+        val edit = event == TimerEvent.AddStep || event is TimerEvent.EditSteps
+        val dueBefore = (before as? TimerState.Running)?.let { BrewTimerEngine.dueTimes(it).preAlertAtElapsedMs }
+            ?.takeIf { it <= now.elapsedMs }
+        if (edit && dueBefore != null && after.session.preAlertLeadMs(after.stepIndex) != null) {
+            assertWithMessage("$label: an edit keeps a due pre-alert due")
+                .that(BrewTimerEngine.dueTimes(after).preAlertAtElapsedMs).isEqualTo(dueBefore)
+        }
     }
 
     /** A user event on a demoted session that stays active ends the demotion and decides the service. */
@@ -241,8 +353,12 @@ class EngineInvariantsTest {
 
     /** Every accepted state survives the persistence round trip (05 §3.12). */
     private fun checkSnapshot(label: String, state: TimerState) {
-        assertWithMessage("$label: snapshot round trip")
-            .that(BrewTimerEngine.restore(BrewTimerEngine.snapshot(state))).isEqualTo(state)
+        val restored = try {
+            BrewTimerEngine.restore(BrewTimerEngine.snapshot(state))
+        } catch (e: IllegalArgumentException) {
+            throw AssertionError("$label: restore refuses the persisted state: ${e.message}", e)
+        }
+        assertWithMessage("$label: snapshot round trip").that(restored).isEqualTo(state)
     }
 
     /**
@@ -254,7 +370,7 @@ class EngineInvariantsTest {
     private fun checkNothingOverdue(label: String, state: TimerState, driver: EngineDriver) {
         val due = BrewTimerEngine.dueTimes(state)
         val now = driver.clocks.now()
-        dueEvents(due, now).forEach { event ->
+        BrewTimerEngine.dueEvents(state, now).forEach { event ->
             assertWithMessage("$label: the due $event is accepted")
                 .that(BrewTimerEngine.reduce(state, event, now).outcome).isEqualTo(TransitionOutcome.Accepted)
         }
@@ -275,16 +391,6 @@ class EngineInvariantsTest {
             else -> Unit
         }
     }
-
-    /** The time-based events whose time in [due] has come at [now]. */
-    private fun dueEvents(due: DueTimes, now: ClockReading): List<TimerEvent> = listOfNotNull(
-        TimerEvent.PreAlertReached.takeIf { due.preAlertAtElapsedMs?.let { it <= now.elapsedMs } == true },
-        TimerEvent.DeadlineReached.takeIf { due.deadlineElapsedMs?.let { it <= now.elapsedMs } == true },
-        TimerEvent.OvertimeTimeout.takeIf { due.overtimeTimeoutAtElapsedMs?.let { it <= now.elapsedMs } == true },
-        TimerEvent.QuickTimerTimeout.takeIf { due.quickCancelAtWallMs?.let { it <= now.wallMs } == true },
-        TimerEvent.IdleDemote.takeIf { due.idleDemoteAtWallMs?.let { it <= now.wallMs } == true },
-        TimerEvent.MidnightTimeout.takeIf { due.midnightAtWallMs?.let { it <= now.wallMs } == true },
-    )
 
     /** Now and then moves both clocks to 1 ms around the pre-alert, the idle demote or the midnight timeout. */
     private fun advancedToTimeout(random: Random, driver: EngineDriver): Boolean {
@@ -405,5 +511,7 @@ class EngineInvariantsTest {
     private companion object {
         const val RUNS = 300
         const val EVENTS_PER_RUN = 80
+        const val STALE_ONE_IN = 10
+        const val LONG_SECONDS = 600
     }
 }

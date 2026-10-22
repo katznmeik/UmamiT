@@ -23,21 +23,28 @@ internal val TimerState.OnStep.plannedMs: Long
  * it is the overtime timeout's auto-ack record, as on recovery.
  */
 internal fun endedRecord(state: TimerState.StepStarted, now: ClockReading): StepRecord = when (state) {
-    is TimerState.Alerting -> pouredRecord(state, state.deadlineElapsedMs, now)
+    is TimerState.Alerting -> pouredRecord(state, now)
 
     is TimerState.Running -> if (now.elapsedMs >= state.deadlineElapsedMs) {
-        pouredRecord(state, state.deadlineElapsedMs, now)
+        pouredRecord(state, now)
     } else {
         state.record(state.plannedMs - (state.deadlineElapsedMs - now.elapsedMs), state.pausedTotalMs, 0, now.wallMs)
     }
 
     is TimerState.Paused -> state.record(
         activeMs = state.plannedMs - state.remainingMs,
-        pausedMs = state.pausedTotalMs + (now.elapsedMs - state.pausedSinceElapsedMs),
+        pausedMs = state.pausedTotalMs + state.openPauseMs(now),
         overtimeMs = 0,
         endedAtWallMs = now.wallMs,
     )
 }
+
+/**
+ * The current pause of this step until [now]; never negative, so a reading
+ * older than the pause (04 §4 forbids it) adds nothing (D-054).
+ */
+internal fun TimerState.Paused.openPauseMs(now: ClockReading): Long =
+    (now.elapsedMs - pausedSinceElapsedMs).coerceAtLeast(0)
 
 /** A paused step ended where its pause began: the open pause is not counted (midnight timeout, D-053). */
 internal fun pauseEndedRecord(state: TimerState.Paused): StepRecord =
@@ -59,19 +66,13 @@ internal fun skippedRecord(state: TimerState.Ready): StepRecord = StepRecord(
  * The overtime timeout's record (04 §5.1): poured on time at the deadline,
  * so actual = planned and overtime 0, flagged as auto-acknowledged.
  */
-internal fun autoAckRecord(state: TimerState.StepStarted): StepRecord {
-    val deadlineWallMs = when (state) {
-        is TimerState.Running -> state.deadlineWallMs
-        is TimerState.Alerting -> state.deadlineWallMs
-        is TimerState.Paused -> error("a paused step has no overtime")
-    }
-    return state.record(state.plannedMs, state.pausedTotalMs, 0, deadlineWallMs).copy(overtimeAutoAck = true)
-}
+internal fun autoAckRecord(state: TimerState.WithDeadline): StepRecord =
+    state.record(state.plannedMs, state.pausedTotalMs, 0, state.deadlineWallMs).copy(overtimeAutoAck = true)
 
 /** Poured at [now], after the deadline; from 10 min of overtime on, the overtime timeout's record (D-053). */
-private fun pouredRecord(state: TimerState.StepStarted, deadlineElapsedMs: Long, now: ClockReading): StepRecord {
-    if (isOvertimeTimedOut(deadlineElapsedMs, now)) return autoAckRecord(state)
-    val overtimeMs = now.elapsedMs - deadlineElapsedMs
+private fun pouredRecord(state: TimerState.WithDeadline, now: ClockReading): StepRecord {
+    if (isOvertimeTimedOut(state.deadlineElapsedMs, now)) return autoAckRecord(state)
+    val overtimeMs = now.elapsedMs - state.deadlineElapsedMs
     return state.record(state.plannedMs + overtimeMs, state.pausedTotalMs, overtimeMs, now.wallMs)
 }
 

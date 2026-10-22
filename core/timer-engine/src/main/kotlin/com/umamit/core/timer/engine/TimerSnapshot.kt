@@ -137,10 +137,32 @@ internal fun stateOf(snapshot: TimerSnapshot?): TimerState {
         )
     }
     requirePlanShape(state)
-    if (state is TimerState.Paused) {
-        require(state.remainingMs in 1..state.plannedMs) { "a pause keeps 1 ms up to the planned time" }
-    }
+    requireReachable(state)
     return state
+}
+
+/**
+ * Values the engine never produces (D-054): a pause outside 1 ms – planned, a
+ * demoted step that runs or alerts (any user event ends the demotion), a
+ * pre-alert on a long step, and a played pre-alert that is still due.
+ */
+private fun requireReachable(state: TimerState.Active) {
+    when (state) {
+        is TimerState.Paused ->
+            require(state.remainingMs in 1..state.plannedMs) { "a pause keeps 1 ms up to the planned time" }
+
+        is TimerState.Running -> {
+            require(!state.session.demoted) { "a running step is never demoted" }
+            require(state.preAlertAtElapsedMs == null || !state.preAlertPlayed) { "a played pre-alert is not due" }
+            require(state.preAlertAtElapsedMs == null || !state.session.isLongStep(state.stepIndex)) {
+                "a long step has no pre-alert"
+            }
+        }
+
+        is TimerState.Alerting -> require(!state.session.demoted) { "an alert is never demoted" }
+
+        is TimerState.Ready, is TimerState.Finished -> Unit
+    }
 }
 
 /** The fields each phase may set (05 §3.12); every other phase field must be null, false or 0. */

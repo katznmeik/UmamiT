@@ -222,8 +222,9 @@ via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 | Photo URL (downloaded at runtime) | `/media/ab/15/63/1727307323/gtbiosenchatanabataaiya.jpg` | `/media/7c/c3/7c/1727308250/gtbiosenchahisui.jpg` |
 
 The photo download (D-050) reads robots.txt first, runs at most once
-(marker set before the first request), stops on every stop signal of §2.8
-and on a 401/403/5xx, and stores each photo re-encoded as a JPEG cover
+(marker set before the first request, and not before a seed tea exists,
+D-054), stops on every stop signal of §2.8 and on a 401/403/5xx, and stores
+each photo re-encoded as a JPEG cover
 (≤ 2048 px, no metadata, origin `CATALOG_COPY`). A photo the shop doesn't
 have, that robots.txt disallows or that doesn't decode keeps the placeholder.
 

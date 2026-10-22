@@ -46,7 +46,7 @@ interface SessionRepository {
      * *Bestand abziehen* is on (SET-15) and sets the tea's opened date on the first session
      * after a new package (INV-06). A session that is no longer in progress is left unchanged.
      */
-    suspend fun completeSession(sessionId: String, autoFinished: Boolean = false)
+    suspend fun completeSession(sessionId: String, autoFinished: Boolean)
 
     /** [TimerEffect.DiscardSession] (TMR-13): deletes the session, its steps and its stock event. */
     suspend fun discardSession(sessionId: String)

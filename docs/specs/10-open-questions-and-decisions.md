@@ -372,6 +372,123 @@ blocking issue and eleven should-fix items. Decided and done:
 Optional items: only `exitFade` in the 03 §3.6 table and the 03 date were taken;
 the others stay open for the milestone's design pass.
 
+<a id="d-054"></a>
+### D-054 — Spec #27 slice review — engine and data · *Accepted* (Claude, 2026-10-22)
+
+The T4 slice review of the timer engine (#28, #31, #32) and of the data layer
+(#30, #35, #36, #37) for spec #27, with the orchestrator's decisions on it
+([04 §3, §4, §5, §6.2, §7.1, §11, §12](04-brew-timer.md#4-components);
+[05 §3.6, §8, §9](05-data-model.md#9-migrations); 02 TMR-14, TMR-23;
+08 §2.5a). The UI part of the review is recorded separately.
+
+**Engine**
+
+- **An edit never consumes a due pre-alert (B1).** `addStep` and
+  `editSteps` recomputed the running step's pre-alert from now, which erased
+  one that had come due but whose `preAlertReached` was still queued (ms, up
+  to 1 s, longer after a process restart), so its tick was lost. Now an
+  unplayed, already due pre-alert stays due while the step still has one,
+  and `preAlertReached` decides by the 1-s rule. Only *Aus* (or N that leaves
+  the step without a pre-alert, E7) removes it. The seeded test checks "due
+  before an edit ⇒ due after".
+- **Stale readings (S1).** A reading older than the state produced states
+  that `restore` refuses (a negative paused total, more remaining than
+  planned), so the next process start would have cleared `active_brew` and
+  lost the alert. The engine clamps: `pause` keeps 1 ms – planned, and a
+  negative open pause counts as 0 in `resume` and in the recorded paused
+  time. Clamping was chosen over rejecting: a rejected *Pause* or *Weiter*
+  would drop a user action, a clamped one keeps it at most a few ms off. The
+  controller rules are now in 04 §4: read the clocks inside the event lock,
+  one reading per `reduce`; a failed transaction is logged, `Persist` is
+  retried alone once, and the side effects (`StartAlert`, `StopAlert`,
+  `PlayPreAlert`) run anyway. The seeded test feeds readings older than the
+  last accepted one.
+- **`restore` refuses what the engine never produces (O2):** a demoted
+  Running or Alerting state, a pre-alert on a long step, a played pre-alert
+  that is still due. Tests that built such states by hand now drive the
+  reducer (O7).
+- **Notification per state (S2, D-044).** `StartForeground` and
+  `UpdateNotification` use the new state's notification: the alert (ID 2) is
+  the foreground notification while alerting and ID 1 is never posted then;
+  ID 1 in every other active state (04 §4, `TimerEffect` KDoc).
+- **`CompleteSession(sessionId, autoFinished)` (S3, data S5).** True only for
+  the midnight timeout; `SessionRepository.completeSession` takes it without
+  a default, so `brew_session.auto_finished` is set (05 §3.6).
+- **Alarm kinds (S4).** 04 §6.2 has one row per `DueTimes` field: pre-alert,
+  deadline and overtime timeout exact `ELAPSED_REALTIME_WAKEUP`; idle demote
+  and the quick-timer cancel exact `RTC_WAKEUP`; midnight inexact `RTC`
+  without wake-up; fixed request codes 101–106 (101 and 102 as in
+  `ExactAlarmScheduler`). `BrewTimerEngine.dueEvents(state,
+  now)` maps the due set to events in apply order, for the wake-up and the
+  receivers alike.
+- **Beenden & neu starten (S5, TMR-21).** No new engine event: the
+  controller sends the ending event (`finishSession` for a brew session,
+  `cancel` or `poured` for the quick timer) and then the start in one
+  event-lock turn, and executes the finish's `ShowSavedSheet(id)` as
+  `NotifySessionSaved(id)` („Sitzung gespeichert", TMR-14). The TMR-21
+  dialog is the confirmation, so a session without a completed non-rinse
+  step is discarded without a second question; it is not auto-finished.
+- **Seeded service oracle (S6).** The invariant test now checks the D-053
+  core rule against an oracle written from the spec (every active state
+  needs the service except a demoted session and a running long step):
+  entering such a state ensures it before the notification, leaving it for
+  another active state stops it, recovery ensures it exactly when needed. It
+  also checks the pre-alert tick (once per step, ≥ 1 s before the deadline,
+  never on a long step) and that no due event is ignored after an ignored
+  event too.
+- **Smaller points.** A tick that plays ensures the service first (O3), so
+  after a refused restart the exact pre-alert alarm can start it.
+  `preAlertLeadSeconds(state)` gives the ring and the progress point the
+  current step's N without re-implementing the skip rules (O6). The overtime
+  auto-ack takes only states with a deadline (`TimerState.WithDeadline`), so
+  `reduce` has no `error(...)` branch left (O1). Spec drift fixed: E2 (no
+  alert after 10 min of overtime at recovery), E6 (skipped inside the window),
+  TMR-14 idle time, TMR-23 session override, the §3 diagram and §3.1 table,
+  §6.2 reconciliation.
+- **Not done:** O4 (validating `PlannedStep` and `editSteps` input ranges),
+  O5 (an engine signal for the reboot notice) and the optional
+  `notificationSlot(state)`; the controller and the UI validate their input
+  in M1-09/M1-11.
+
+**Data**
+
+- **Seed photo download waits for the seed teas (S1).** Before a seed tea
+  exists it sends nothing, leaves its once-only marker unset and returns the
+  current progress, so a call that races the seeder does not use up the run.
+  A settings or database read failure no longer escapes as an exception
+  (O3 of the data review).
+- **Schema v1 freezes with the first rc (S2).** From `v0.1.0-rc.1` on, every
+  schema change bumps the version and ships a tested migration (05 §9); this
+  replaces D-052's "changed in place until the first release". CI runs
+  `scripts/check-frozen-schemas.sh`: every schema JSON a `v*` tag contains
+  must stay byte-identical (the probe tags contain none).
+- **No new tables before the freeze (S3, declined).** `tag`, `tea_tag`,
+  `custom_descriptor`, `session_descriptor`, `tea_fts` and `session_fts`
+  arrive with M3 and M4 through tested migrations, as 05 §9 plans. Adding
+  unused tables now would freeze their design before the features that need
+  them are specified in detail, and M3 needs the migration machinery anyway.
+- **Data effects are total (S4).** Inside the controller's transition
+  transaction, a `RecordStep` without its row changes nothing (logged; the
+  `Persist` re-syncs the rows), an unreadable settings file counts as the
+  defaults for *Bestand abziehen*, and a session zone this device does not
+  know counts as the device's zone. A throw there would roll back `Persist`
+  and leave a zombie `active_brew`.
+- **Restore sweeps photo rows (S6).** In the restore branch of the open
+  callback, `photo` rows whose file is missing are deleted and dangling
+  covers cleared, in the same transaction as the `active_brew` clear, so
+  CAT-15 can refill the seed covers in M2. Rows whose file exists stay (a
+  false-positive restore loses nothing).
+- **Exact session cost (O1).** Leaf × Σ price ÷ Σ grams in `BigDecimal`,
+  rounded half up once: 25 g Hisui is 448 ct, not 447.
+- **Tests (S7):** re-saving a tea, vessel, recipe or photo keeps everything
+  that hangs off it (fails with REPLACE); half-up costs through
+  `completeSession`; download before seeding; the real DataStore read inside
+  the transaction.
+- **One HTTP client (#37 O6).** Detekt `ForbiddenImport` forbids
+  `okhttp3.OkHttpClient`, `okhttp3.Request`, `java.net.URL`,
+  `URLConnection`, `HttpURLConnection` and `HttpsURLConnection` outside
+  `core/network`, so GEN-01 AC1 is structural.
+
 <a id="d-053"></a>
 ### D-053 — Timer time rules and the foreground-service contract (M1-08 part 2, #31) · *Accepted* (Claude, 2026-10-22)
 
@@ -468,7 +585,8 @@ and the notes of the #32 review (O6, O7, the consume rule of D-048)
   Temperatures are snapped to 5 °C at every write (GEN-12), so the round trip
   is lossless for every state whose temperatures are multiples of 5, which
   the recipes and the Schritte-Sheet guarantee.
-- **Schema v1 changed in place** (unreleased): `active_brew` gains
+- **Schema v1 changed in place** (unreleased; frozen from `v0.1.0-rc.1`,
+  D-054): `active_brew` gains
   `pre_alert_override_seconds`, `pre_alert_inherited_seconds` and `zone_id`
   and loses `active_elapsed_ms` (D-048); `(session_id, position)` in
   `session_step` becomes unique.
@@ -1058,6 +1176,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
+| 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |
 | 2026-10-22 | D-053: timer time rules from #31: pre-alert source order, skip rules, E6/E7 and the 1-s late rule; overtime timeout event and live auto-ack; idle time from the later of last interaction and waiting start; idle demote with `demoted`; the foreground-service contract (S5); midnight timeout in the session zone with `NotifySessionSaved`; recovery order; long steps incl. cold/ice brew; six-field due set. 04 §3.2, §4, §5, §6.1, §7.2, §8.2, §10, §12 and 05 §3.12 updated. |
 | 2026-10-22 | D-052: session lifecycle per engine effect, authoritative active brew store, `active_brew` columns of D-048 in schema v1, completion details (end time, cost, BREW event, full INV-06), include-only device backup rules with `fullBackupContent`, restore detection in Room's callbacks, CI schema-staleness check (#36); 05 §3, §6, §8, §9 updated with the #30 decisions. |
 | 2026-10-22 | D-051: Schritte-Sheet details (#38): Material 3 modal sheet with its own motion instead of the `sheet` token, closed at once on ALERTING, closing applies nothing, stepper and temperature rules, recipe save mapping; 03 SCR-31 updated. |

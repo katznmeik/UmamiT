@@ -155,7 +155,7 @@ class MidnightTimeoutTest {
 
         assertThat(driver.state).isEqualTo(TimerState.Idle)
         assertThat(effects).containsExactly(
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = true),
             Persist,
             NO_ALARMS,
             StopForeground,
@@ -209,7 +209,7 @@ class MidnightTimeoutTest {
         )
         assertThat(effects).containsExactly(
             RecordStep(SESSION_ID, 0, record),
-            CompleteSession(SESSION_ID),
+            CompleteSession(SESSION_ID, autoFinished = true),
             Persist,
             NO_ALARMS,
             StopForeground,

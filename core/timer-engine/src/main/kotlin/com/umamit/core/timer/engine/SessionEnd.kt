@@ -24,7 +24,7 @@ internal fun finishSession(state: TimerState.Active, now: ClockReading): TimerTr
     }
     return accepted(
         TimerState.Idle,
-        data = listOfNotNull(recordEffect, sessionId?.let(::CompleteSession)),
+        data = listOfNotNull(recordEffect, sessionId?.let { CompleteSession(it, autoFinished = false) }),
         side = sessionEndEffects(state) + listOfNotNull(sessionId?.let(::ShowSavedSheet)),
     )
 }
@@ -58,7 +58,7 @@ internal fun midnightTimeout(state: TimerState.Waiting): TimerTransition {
     val recordEffect = (state as? TimerState.Paused)?.let { RecordStep(sessionId, it.stepIndex, pauseEndedRecord(it)) }
     return accepted(
         TimerState.Idle,
-        data = listOfNotNull(recordEffect, CompleteSession(sessionId)),
+        data = listOfNotNull(recordEffect, CompleteSession(sessionId, autoFinished = true)),
         side = listOf(StopForeground, NotifySessionSaved(sessionId)),
     )
 }

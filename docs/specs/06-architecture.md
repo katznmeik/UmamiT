@@ -90,7 +90,7 @@ UmamiT/
 │   ├── timer-engine/          BrewTimerEngine (pure)
 │   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
 │   ├── catalog-parser/        TeeKontorParser, VariantMerger, StyleMapper, RecipeDeriver (pure JVM)
-│   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M2)
+│   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
 │   ├── database/              Room, DAOs, migrations, schemas/
 │   ├── datastore/             Settings
 │   ├── content/               Bundled styles, descriptors, sounds, illustrations

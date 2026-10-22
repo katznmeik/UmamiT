@@ -239,16 +239,13 @@ class RecoveryTest {
 
     @Test
     fun `after a reboot a pre-alert keeps its lead time before the rebased deadline`() {
-        val driver = sessionWith(infusion(3_600)).apply { send(TimerEvent.Start) }
-        val withPreAlert = (driver.state as TimerState.Running).let {
-            it.copy(preAlertAtElapsedMs = it.deadlineElapsedMs - 10_000)
-        }
-        driver.state = withPreAlert
+        val driver = sessionWith(infusion(300)).apply { send(TimerEvent.Start) }
         driver.clocks.reboot(offMs = 60_000, upMs = 20_000)
 
         driver.send(TimerEvent.Recover)
 
         val running = driver.state as TimerState.Running
+        assertThat(running.deadlineElapsedMs).isEqualTo(20_000 + 300_000 - 80_000)
         assertThat(running.preAlertAtElapsedMs).isEqualTo(running.deadlineElapsedMs - 10_000)
     }
 
