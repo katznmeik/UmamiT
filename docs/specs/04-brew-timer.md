@@ -250,7 +250,7 @@ away, including the FGS restart attempt.
 
 | Channel ID | Name | Importance | Sound / vibration | Purpose |
 |---|---|---|---|---|
-| `brew_timer` | Brühtimer | DEFAULT, silent (promotion only needs importance above MIN) | none | Live Update / ongoing |
+| `brew_timer` | Brühtimer | DEFAULT, silent (promotion only needs importance above MIN) | none | Live Update / ongoing (not while ALERTING, §8.2) |
 | `steep_finished` | Aufguss fertig | HIGH | none (played by `AlertPlayer`) | Full-screen intent / heads-up „Jetzt abgießen!" |
 | `sessions` | Sitzungen | LOW | none | Auto-finished session, reboot notice |
 | `reminders` | Erinnerungen | LOW | none | Backup, stock reminders |
@@ -270,6 +270,15 @@ away, including the FGS restart attempt.
 
 Content intent → SCR-05; actions → non-exported receiver → controller.
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 10+ reminders/catalog.
+
+**While ALERTING the alert (ID 2) is the app's only notification of
+importance DEFAULT or higher (D-044):** it replaces the Live Update as the
+foreground-service notification, and a Live Update posted without the
+service is cancelled first; the Live Update returns with the next state.
+Reason: Android 16 force-groups two ungrouped notifications of an app in the
+same importance section (`config_autoGroupAtCount` = 2) and marks them
+`FLAG_SILENT`; System UI then suppresses the full-screen intent and the
+heads-up (`docs/plans/M1-probe-api-notes.md`).
 
 **Full-screen alert (D-036):** the alert notification (ID 2) carries a
 full-screen intent to SCR-05 for short **and** long steps. With the screen
@@ -295,9 +304,13 @@ ongoing notification** (Live Update):
 - Ongoing, with content title, `NotificationCompat.Builder.setRequestPromotedOngoing(true)`
   (AndroidX core; the platform `Notification.Builder` of SDK 36 has no such
   method, it sets the extra `android.requestPromotedOngoing`, D-043) and a
-  monochrome small icon (M1 app icon task). The system promotes it only if it
-  has promotable characteristics (`hasPromotableCharacteristics()`) and the
-  user allows it; the resulting flag is `FLAG_PROMOTED_ONGOING` (0x40000).
+  monochrome small icon (M1 app icon task). On Android 16 the request is
+  **always** set, also while the user does not allow promotion, so the system
+  promotes the posted notification as soon as the user allows it (D-044). The
+  system promotes it only if it has promotable characteristics
+  (`hasPromotableCharacteristics()`, whose rules differ between Android 16
+  builds: colorized before QPR1, not colorized from QPR1) and the user allows
+  it; the resulting flag is `FLAG_PROMOTED_ONGOING` (0x40000).
 - **Status-bar chip:** in RUNNING it is driven by the chronometer countdown
   (`setUsesChronometer(true)`, `setChronometerCountDown(true)`,
   `setWhen(deadlineWall)`); no static short critical text with a time. In
@@ -310,7 +323,8 @@ ongoing notification** (Live Update):
 - **User dismissal is respected:** `setDeleteIntent` records the dismissal;
   the notification is not re-posted until the next state change.
 - If promotion is not allowed (`NotificationManager.canPostPromotedNotifications()`
-  false), it falls back to a normal ongoing notification and the
+  false), the system shows it as a normal ongoing notification (the request
+  stays set) and the
   reliability banner deep-links to
   `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` (D-043). The banner is based
   only on this check, not on Now Bar presence.
@@ -409,7 +423,7 @@ Uses the global pre-alert, the same alert and the Live Update
 
 ```xml
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-<uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" /> <!-- not a public SDK 36 permission; harmless, kept for forward compatibility (D-043) -->
+<uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" /> <!-- not in the SDK 36 stubs; from Android 16 QPR1 a normal|appop permission that promotion requires; must stay declared (D-044) -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 <uses-permission android:name="android.permission.WAKE_LOCK" />

@@ -301,6 +301,32 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-044"></a>
+### D-044 — Alert replaces the Live Update while ALERTING; promotion always requested · *Accepted* (Claude, 2026-10-22)
+
+Root-caused at T4 from the CI emulator (API 36) and the AOSP Android 16
+sources (details and source references: `docs/plans/M1-probe-api-notes.md`):
+
+- **Full-screen alert:** Android 16 force-groups an app's ungrouped
+  notifications once two share an importance section and marks them
+  `FLAG_SILENT`; System UI then suppresses the full-screen intent and the
+  heads-up. The Live Update (DEFAULT) and the alert (HIGH) were grouped, so
+  the alert never turned the screen on (also on a real phone). **While
+  ALERTING, the alert becomes the foreground notification and the Live Update
+  is removed** (04 §8.1, §8.2). Android 15 groups too but has no silencing.
+- **Promotion:** the probe requested promotion only while
+  `canPostPromotedNotifications()` was true. The request is now **always**
+  set on Android 16, so the system promotes as soon as the user allows it
+  (04 §8.3). The promotability rules differ between Android 16 builds (flag
+  `android.app.ui_rich_ongoing`): before QPR1 a per-app preference that is
+  off by default and needs a colorized notification; from QPR1 the
+  `POST_PROMOTED_NOTIFICATIONS` permission plus appop (allowed by default)
+  and a non-colorized notification. The probe posts whichever variant the
+  platform accepts. `POST_PROMOTED_NOTIFICATIONS` must stay declared
+  (amends D-043).
+- **Fix loop (D-040):** `v0.0.1-probe` was published before this fix and is
+  superseded by `v0.0.2-probe`; the PO tests only the latter.
+
 <a id="d-043"></a>
 ### D-043 — Android 16 Live Update API names corrected · *Accepted* (Claude, 2026-10-22)
 
@@ -315,7 +341,8 @@ M1-03a (#14, #15); 04 §8.3, §13, 02 ONB-02, 03 and 06 §5.7 corrected:
   `NotificationCompat.Builder.setRequestPromotedOngoing(true)`; the platform
   builder has no such method;
 - `android.permission.POST_PROMOTED_NOTIFICATIONS` is not a public SDK 36
-  permission. It stays declared (harmless, forward compatible); what counts is
+  permission. It stays declared (*amended by D-044:* required from Android 16
+  QPR1, see there); what counts is
   `NotificationManager.canPostPromotedNotifications()`, which the user
   controls.
 
@@ -502,6 +529,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-044: alert replaces the Live Update while ALERTING (Android 16 auto-group silencing); promotion always requested; D-043 amended; probe → v0.0.2-probe. |
 | 2026-10-22 | D-043: Android 16 Live Update API names corrected (promotion settings action, NotificationCompat request, POST_PROMOTED_NOTIFICATIONS not public). |
 | 2026-10-22 | D-042: build tooling choices (Detekt 2 alpha, compileSdk-36 library limits, configuration cache off, lint exceptions, action versions). |
 | 2026-10-21 | D-041: motion guardrails (calm style, liquor fill + pre-alert glow, strong non-flashing alert, reduce motion, GIF recordings for review); 03 §3.6 rewritten. |
