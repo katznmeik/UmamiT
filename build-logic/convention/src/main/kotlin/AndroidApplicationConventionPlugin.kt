@@ -1,5 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.umamit.buildlogic.configureKotlinAndroid
+import com.umamit.buildlogic.configureManifestPermissionCheck
 import com.umamit.buildlogic.int
 import com.umamit.buildlogic.libs
 import com.umamit.buildlogic.versionCodeOf
@@ -20,6 +21,7 @@ import org.gradle.kotlin.dsl.configure
 class AndroidApplicationConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         pluginManager.apply("com.android.application")
+        configureManifestPermissionCheck()
 
         val appVersion = providers.gradleProperty("umamit.version").orNull
             ?: error("gradle.properties must define umamit.version (06 §6)")
@@ -53,7 +55,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     keyPassword = keystorePassword
                 }
             } else if (keystoreFile != null || keystorePassword != null) {
-                logger.warn("UmamiT: only one of $ENV_KEYSTORE_FILE / $ENV_KEYSTORE_PASSWORD is set; release stays unsigned.")
+                logger.warn(
+                    "UmamiT: only one of $ENV_KEYSTORE_FILE / $ENV_KEYSTORE_PASSWORD is set; release stays unsigned.",
+                )
             }
 
             buildTypes {

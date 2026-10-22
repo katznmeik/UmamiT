@@ -1,0 +1,34 @@
+# Detekt configuration (06 §7, M1-02): only the deviations from Detekt's
+# default configuration (buildUponDefaultConfig = true). No baseline: fix the
+# code, or add a deviation here with its reason.
+
+naming:
+  FunctionNaming:
+    # Composable functions are named like types (Compose API guidelines).
+    ignoreAnnotated:
+      - 'Composable'
+  TopLevelPropertyNaming:
+    # Compose-style constants such as `val WashiPaper = Color(...)`.
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+complexity:
+  LongParameterList:
+    # Composables take many optional parameters by convention.
+    ignoreDefaultParameters: true
+    ignoreAnnotated:
+      - 'Composable'
+  LongMethod:
+    ignoreAnnotated:
+      - 'Composable'
+
+style:
+  MagicNumber:
+    # Previews and design tokens are full of literal dimensions and colours.
+    ignoreAnnotated:
+      - 'Preview'
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  UnusedPrivateFunction:
+    # Private @Preview functions are used by the IDE and screenshot tests.
+    ignoreAnnotated:
+      - 'Preview'

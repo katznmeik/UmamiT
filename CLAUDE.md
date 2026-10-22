@@ -116,13 +116,23 @@ commit and push.
 
 ## Commands
 
-Filled in once the project skeleton exists (M1-01):
+The CI quality gate (`.github/workflows/ci.yml`) runs exactly these. In a
+cloud session, `ANDROID_HOME` comes from the session-start hook; if Maven
+Central answers HTTP 429, rerun.
 
 ```bash
-./gradlew spotlessCheck detekt lint testDebugUnitTest   # quality + unit tests
-./gradlew verifyRoborazziDebug                          # screenshot tests
+./gradlew spotlessCheck detekt lint testDebugUnitTest   # format, Detekt, Lint, unit tests (incl. build-logic)
+./gradlew verifyRoborazziDebug                          # screenshot tests against committed goldens
+./gradlew recordRoborazziDebug                          # re-record screenshot goldens
+./gradlew checkManifestPermissions                      # merged debug + release manifests vs 06 §5.7
 ./gradlew assembleDebug                                 # debug APK
+./gradlew assembleRelease                               # R8 release; signed only with UMAMIT_KEYSTORE_FILE/_PASSWORD
+./gradlew spotlessApply                                 # fix formatting
 ```
+
+Module rules (06 §3) fail every Gradle invocation at configuration time.
+Configs: `.editorconfig` (ktlint), `config/detekt/detekt.yml`,
+`config/lint/lint.xml`.
 
 ## Conventions
 

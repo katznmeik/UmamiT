@@ -12,9 +12,12 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 private val JAVA_VERSION = JavaVersion.VERSION_17
-private val JVM_TARGET = JvmTarget.JVM_17
+internal val JVM_TARGET = JvmTarget.JVM_17
 
-/** Shared Android settings (06 §1, D-023): compile/target 36, min 35, build-tools pinned. */
+/**
+ * Shared Android settings (06 §1, D-023): compile/target 36, min 35, build-tools
+ * pinned; plus the quality gates of 06 §7 (Spotless, Detekt, Lint).
+ */
 internal fun Project.configureKotlinAndroid(android: CommonExtension) {
     android.apply {
         compileSdk = libs.int("compileSdk")
@@ -22,7 +25,11 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
         defaultConfig.minSdk = libs.int("minSdk")
         compileOptions.sourceCompatibility = JAVA_VERSION
         compileOptions.targetCompatibility = JAVA_VERSION
+        testOptions.unitTests.isIncludeAndroidResources = true
+        configureLint(lint)
     }
+    configureSpotless()
+    configureDetekt()
     // AGP 9 has built-in Kotlin support; it registers the `kotlin` extension.
     extensions.configure<KotlinAndroidProjectExtension> {
         compilerOptions.jvmTarget.set(JVM_TARGET)
@@ -34,13 +41,24 @@ internal fun Project.configureKotlinAndroid(android: CommonExtension) {
     }
 }
 
-/** Shared settings for the pure Kotlin/JVM modules. */
+/** Shared settings for the pure Kotlin/JVM modules, including the quality gates of 06 §7. */
 internal fun Project.configureKotlinJvm() {
+    configureSpotless()
+    configureDetekt()
+    configureJvmLint()
+    configureKover()
     extensions.configure<JavaPluginExtension> {
         sourceCompatibility = JAVA_VERSION
         targetCompatibility = JAVA_VERSION
     }
     extensions.configure<KotlinJvmProjectExtension> {
         compilerOptions.jvmTarget.set(JVM_TARGET)
+    }
+    // `./gradlew testDebugUnitTest` (CI, CLAUDE.md) selects tasks by name, so the
+    // pure modules need it too; otherwise their tests would silently not run.
+    tasks.register("testDebugUnitTest") {
+        group = "verification"
+        description = "Runs this pure module's unit tests (alias of `test`)."
+        dependsOn("test")
     }
 }

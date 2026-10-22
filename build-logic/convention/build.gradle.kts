@@ -1,3 +1,4 @@
+import org.gradle.plugin.use.PluginDependency
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -24,9 +25,19 @@ dependencies {
     compileOnly(libs.compose.compiler.gradle.plugin)
     compileOnly(libs.ksp.gradle.plugin)
     compileOnly(libs.room.gradle.plugin)
+    // Quality tooling (M1-02): resolved through the plugin marker of the catalog's
+    // plugin alias, so the version stays single-sourced in libs.versions.toml.
+    compileOnly(libs.plugins.spotless.marker())
+    compileOnly(libs.plugins.detekt.marker())
+    compileOnly(libs.plugins.kover.marker())
+    compileOnly(libs.plugins.roborazzi.marker())
 
     testImplementation(libs.junit4)
 }
+
+/** Maven coordinates of a plugin's marker artifact; it depends on the plugin implementation. */
+fun Provider<PluginDependency>.marker(): Provider<String> =
+    map { "${it.pluginId}:${it.pluginId}.gradle.plugin:${it.version.requiredVersion}" }
 
 tasks.withType<Test>().configureEach {
     testLogging {
@@ -63,6 +74,10 @@ gradlePlugin {
         register("androidRoom") {
             id = "umamit.android.room"
             implementationClass = "AndroidRoomConventionPlugin"
+        }
+        register("root") {
+            id = "umamit.root"
+            implementationClass = "RootConventionPlugin"
         }
     }
 }

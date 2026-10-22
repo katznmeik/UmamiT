@@ -213,6 +213,19 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 No storage, camera, location or contacts permissions.
 
+The build enforces this list (`./gradlew checkManifestPermissions`, in CI,
+M1-02): the merged **release** manifest may request only the permissions
+above. Two deliberate exceptions, both in `ManifestPermissions.kt` in
+build-logic:
+
+- the app's own `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  which `androidx.core` declares at signature level to protect non-exported
+  runtime receivers; it is accepted only when declared that way and grants
+  nothing outside the app;
+- **debug builds only:** `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE`,
+  added by LeakCanary for its heap dumps. The release check proves they never
+  reach a release build.
+
 ### 5.6 Error handling & logging
 
 Typed errors for validation, I/O, network and parsing; release builds keep a

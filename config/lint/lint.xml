@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Android Lint configuration for every module (06 §7, M1-02).
+  There is no baseline and every warning is an error (build-logic Quality.kt).
+  Only checks listed here are relaxed, each with its reason. Prefer fixing the
+  code; when an entry's TODO is done, delete the entry.
+-->
+<lint>
+    <!-- Network- and date-dependent: they report newer library or AGP versions,
+         so the result changes without any change in the repository. Version
+         updates are a deliberate decision (libs.versions.toml header, D-023). -->
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+
+    <!-- D-023: compileSdk and targetSdk are deliberately pinned to 36. -->
+    <issue id="OldTargetApi" severity="ignore" />
+
+    <!-- TODO(M1-21): the adaptive launcher icon arrives with M1-21; remove this entry then. -->
+    <issue id="MissingApplicationIcon">
+        <ignore path="**/app/src/main/AndroidManifest.xml" />
+    </issue>
+
+    <!-- TODO(M1-06): data_extraction_rules.xml (05 §8) arrives with M1-06; remove this entry then. -->
+    <issue id="DataExtractionRules">
+        <ignore path="**/app/src/main/AndroidManifest.xml" />
+    </issue>
+</lint>
