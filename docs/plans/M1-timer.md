@@ -4,7 +4,8 @@
 > Release target: `v0.1.0` (probe `v0.0.1-probe`, candidates `v0.1.0-rc.N`) · PR into `main` · Tiers per [12 · Subagent Distribution Plan](../specs/12-agent-plan.md)
 > Spec issues (user stories, implementation and testing decisions; the specs in `docs/specs/` win on conflict):
 > - M1-00 … M1-03a: [katznmeik/UmamiT#6](https://github.com/katznmeik/UmamiT/issues/6) (done; probe passed)
-> - Waves 2–3 (M1-04 … M1-08, M1-19, M1-21, motion in 03 §3.6): [katznmeik/UmamiT#27](https://github.com/katznmeik/UmamiT/issues/27)
+> - Waves 2–3 (M1-04 … M1-08, M1-19, M1-21, motion in 03 §3.6): [katznmeik/UmamiT#27](https://github.com/katznmeik/UmamiT/issues/27) (done; PO check #39 approved)
+> - Waves 4–7 (M1-09 … M1-18, M1-20; release): [katznmeik/UmamiT#40](https://github.com/katznmeik/UmamiT/issues/40)
 
 ## 1. Goal
 

@@ -41,8 +41,8 @@
 
 1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
    until then.
-2. Start the next spec (M1 waves 4–7: M1-09 … M1-18, M1-20) with `/to-spec`
-   (working agreement: the PO starts each spec).
+2. Spec [#40](https://github.com/katznmeik/UmamiT/issues/40) (M1 waves 4–7) is
+   written; break it into tickets (`/to-tickets`), then `/implement-spec`.
 3. At the M1 PR: test the release candidate and listen to all alert sounds
    via *Alarm testen* (the default was chosen in D-045).
 
@@ -82,11 +82,13 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 1. Design and motion check #39: **approved by the PO** on 2026-10-22 (glow,
    pulse and the light-green dark-mode card unchanged).
-2. The PO starts the next spec (waves 4–7: M1-09 background integration,
+2. Spec [#40](https://github.com/katznmeik/UmamiT/issues/40) for waves 4–7 is
+   written (six test seams agreed with the PO; accuracy run as a manual CI
+   workflow before each rc). Next: `/to-tickets`. Scope: M1-09 background integration,
    M1-10 alerts, M1-11 Live Update, M1-12 timer screen, M1-13 Start and
    setup, M1-14 quick timer, M1-15 Einrichtung and settings, M1-16 journal,
-   M1-17 renders, M1-18 review and releases, M1-20 diagnostics) with
-   `/to-spec`. Notes for it: hosts pass `alerting` to the Schritte-Sheet
+   M1-17 renders, M1-18 review and releases, M1-20 diagnostics. Notes carried
+   into it: hosts pass `alerting` to the Schritte-Sheet
    (D-051); the controller follows 04 §4/§7.1 (read `now` in the event lock,
    one `Recover` per process, idempotent `StartAlert`, `ShowSavedSheet` as
    `NotifySessionSaved` on *Beenden & neu starten*); after a device restore an
