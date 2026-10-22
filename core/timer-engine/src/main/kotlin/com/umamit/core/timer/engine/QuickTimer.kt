@@ -22,6 +22,7 @@ internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReadin
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,
         bootCount = now.bootCount,
+        demoted = false,
     )
     return accepted(
         TimerState.Ready(session, stepIndex = 0, readySinceWallMs = now.wallMs),

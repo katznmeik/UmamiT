@@ -38,6 +38,7 @@ internal fun startSession(event: TimerEvent.StartSession, now: ClockReading): Ti
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,
         bootCount = now.bootCount,
+        demoted = false,
     )
     return accepted(
         TimerState.Ready(session, stepIndex = 0, readySinceWallMs = now.wallMs),
