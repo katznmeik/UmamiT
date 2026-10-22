@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Material Symbols Outlined "pause", weight 300 (Apache 2.0, google/material-design-icons). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:autoMirrored="false"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <group android:translateY="960">
+        <path
+            android:fillColor="@android:color/black"
+            android:pathData="M530-220v-520h210v520H530Zm-310 0v-520h210v520H220Zm370-60h90v-400h-90v400Zm-310 0h90v-400h-90v400Zm0-400v400-400Zm310 0v400-400Z" />
+    </group>
+</vector>
