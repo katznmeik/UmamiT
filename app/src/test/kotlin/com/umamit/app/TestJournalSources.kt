@@ -7,4 +7,4 @@ import com.umamit.feature.journal.JournalSources
 
 /** An empty journal and no saved sheet, on the fakes of core:testing. */
 fun testJournalSources(sessions: FakeSessions = FakeSessions()): JournalSources =
-    JournalSources(sessions.journal, sessions.sessions, SavedSheetRequests(), FakeClock())
+    JournalSources(sessions.journal, sessions.sessions, SavedSheetRequests(FakeClock()), FakeClock())

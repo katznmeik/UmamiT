@@ -55,6 +55,13 @@ class JournalScreenTest {
     }
 
     @Test
+    fun `TalkBack hears the first infusion as a duration, not a clock time`() {
+        show(journalList(listOf(session("s1", at(TODAY, 9, 12), steps = listOf(step(0, 90)))), TODAY))
+
+        compose.onNodeWithContentDescription("55 °C, 1 Minute 30 Sekunden, 1 Aufguss").assertExists()
+    }
+
+    @Test
     fun `an early finish reads „2 von 3 Aufgüssen"`() {
         show(
             journalList(

@@ -13,6 +13,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSessions.TODAY
@@ -86,7 +87,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     private fun capture(name: String, list: JournalList, sheetFor: String? = null) {
         RuntimeEnvironment.setFontScale(fontScale)
         val data = FakeSessions()
-        val requests = SavedSheetRequests()
+        val requests = SavedSheetRequests(FakeClock())
         if (sheetFor != null) {
             FakeBrewController(data.sessions, requests).brew(sheetFor, 80, 20, 40)
         }

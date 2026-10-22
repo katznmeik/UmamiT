@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import org.junit.Rule
@@ -31,16 +32,28 @@ class SavedSheetTest {
     val compose = createComposeRule()
 
     private val data = FakeSessions()
-    private val requests = SavedSheetRequests()
+    private val clock = FakeClock()
+    private val requests = SavedSheetRequests(clock)
     private val controller = FakeBrewController(data.sessions, requests)
     private var alerting by mutableStateOf(false)
+
+    /** Whether the shell, and with it the sheet's host, is composed (the timer route covers it otherwise). */
+    private var hostComposed by mutableStateOf(true)
 
     private fun show(reduceMotion: Boolean = false) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
-                SavedSheetHost(requests = requests, sessions = data.sessions, alerting = alerting)
+                if (hostComposed) {
+                    SavedSheetHost(requests = requests, sessions = data.sessions, alerting = alerting)
+                }
             }
         }
+    }
+
+    private fun composeHost(composed: Boolean) {
+        hostComposed = composed
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
     }
 
     @Test
@@ -82,7 +95,29 @@ class SavedSheetTest {
     }
 
     @Test
-    fun `a finger on the sheet holds it past 10 s, and the 10 s start again on release`() {
+    fun `a finger resting on the sheet holds it past 10 s, and the 10 s start again on release`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+        val sheet = compose.onNodeWithText("Gespeichert im Journal")
+
+        // A still finger: no movement, so no drag ever starts.
+        sheet.performTouchInput { down(center) }
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeBy(12_000)
+        sheet.assertIsDisplayed()
+
+        sheet.performTouchInput { up() }
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeBy(9_000)
+        sheet.assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a dragging finger holds it too`() {
         show()
         compose.mainClock.autoAdvance = false
         controller.brew("s1", 60)
@@ -91,17 +126,48 @@ class SavedSheetTest {
 
         sheet.performTouchInput {
             down(center)
-            // Past the touch slop, so the drag has started.
             moveBy(Offset(0f, 30f))
             moveBy(Offset(0f, 30f))
         }
         compose.mainClock.advanceTimeBy(12_000)
-        sheet.assertIsDisplayed()
 
-        sheet.performTouchInput { up() }
-        compose.mainClock.advanceTimeBy(9_000)
         sheet.assertIsDisplayed()
-        compose.mainClock.advanceTimeBy(2_000)
+    }
+
+    @Test
+    fun `a sheet whose 10 s ran out while the shell was covered does not come back`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+
+        // The next brew's timer covers the shell for a minute, then the user returns.
+        composeHost(false)
+        clock.advanceBy(60_000)
+        composeHost(true)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
+        assertThat(requests.pending.value).isNull()
+    }
+
+    @Test
+    fun `a sheet covered briefly comes back only for the rest of its 10 s`() {
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60)
+        compose.mainClock.advanceTimeBy(1_000)
+
+        composeHost(false)
+        clock.advanceBy(4_000)
+        composeHost(true)
+        compose.mainClock.advanceTimeBy(1_000)
+        clock.advanceBy(1_000)
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+
+        // 4 s covered and 1 s shown: 5 s are left, not a fresh 10.
+        compose.mainClock.advanceTimeBy(6_000)
         compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
     }
 

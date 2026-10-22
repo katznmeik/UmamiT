@@ -67,7 +67,7 @@ class TimerTestApplication :
             notifier = logcat,
             alert = ControllerAlertPort(AlertPlayback(this, settings, diagnostics, clocks), Provider { controller }),
             diagnostics = diagnostics,
-            savedSheet = SavedSheetRequests(),
+            savedSheet = SavedSheetRequests(AndroidMonotonicClock(this)),
             wakeUp = CoroutineTimerWakeUp(),
         )
         return BrewSessionController(

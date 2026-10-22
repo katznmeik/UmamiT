@@ -554,8 +554,10 @@ Small bottom sheet after *Sitzung beenden*, auto-dismisses after 10 s:
 PRF-07 applies) *Zeiten ins Rezept übernehmen*.
 
 No scrim: it rises over the bottom of the tab content with the `sheet`
-spring. A swipe down or TalkBack's *Schließen* dismisses it; a finger on it
-holds it. It is never shown while an alert plays, and an alert removes it in
+spring, on `surface`. A swipe down or TalkBack's *Schließen* dismisses it; a
+finger on it holds it, also a resting one. Its 10 s run from *Sitzung
+beenden*, also while the shell is covered, so it never returns stale. It is
+never shown while an alert plays, and an alert removes it in
 the same frame (rule 8). M1 shows only the text; the two actions come with
 M4 (D-061).
 

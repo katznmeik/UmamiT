@@ -27,8 +27,8 @@ class JournalIntegrationTest {
     val compose = createComposeRule()
 
     private val data = FakeSessions()
-    private val requests = SavedSheetRequests()
     private val clock = FakeClock(wall = JournalSessions.ms(LocalDateTime.of(2026, 10, 22, 9, 30)))
+    private val requests = SavedSheetRequests(clock)
     private val sources = JournalSources(data.journal, data.sessions, requests, clock)
     private val controller = FakeBrewController(data.sessions, requests)
 
