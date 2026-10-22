@@ -50,6 +50,12 @@ interface TeaDao {
     @Upsert
     suspend fun upsert(tea: TeaEntity)
 
+    /** Whether the database holds any tea, vessel or session, e.g. after a device restore (M1-07). */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM tea) OR EXISTS(SELECT 1 FROM vessel) OR EXISTS(SELECT 1 FROM brew_session)",
+    )
+    suspend fun hasPersonalData(): Boolean
+
     @Query("DELETE FROM tea WHERE id = :id")
     suspend fun delete(id: String)
 

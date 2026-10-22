@@ -15,4 +15,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.datastore)
+    // FakeSettingsRepository for the seeder tests (M1-07).
+    testImplementation(project(":core:testing"))
 }
