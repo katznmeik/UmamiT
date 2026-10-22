@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaThumbnail
 import com.umamit.core.designsystem.text.clockText
+import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.TeaTypeColors
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -144,8 +146,10 @@ private fun JournalRow(entry: JournalEntry, thumbnail: Painter?, onClick: (() ->
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                val spokenMeta = spokenMetaLine(entry)
                 Text(
                     text = metaLine(entry),
+                    modifier = Modifier.semantics { contentDescription = spokenMeta },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -167,9 +171,20 @@ private fun JournalRow(entry: JournalEntry, thumbnail: Painter?, onClick: (() ->
 /** „55 °C · 1:00 · 3 Aufgüsse", or „… · 2 von 3 Aufgüssen" for an early finish (JRN-08, TMR-12). */
 @Composable
 @ReadOnlyComposable
-internal fun metaLine(entry: JournalEntry): String = listOfNotNull(
+internal fun metaLine(entry: JournalEntry): String =
+    metaParts(entry, entry.firstInfusionSeconds?.let(::clockText)).joinToString(META_SEPARATOR)
+
+/** The meta line for TalkBack: „55 °C, 1 Minute, 3 Aufgüsse", so „1:00" is not read as a time of day. */
+@Composable
+@ReadOnlyComposable
+private fun spokenMetaLine(entry: JournalEntry): String =
+    metaParts(entry, entry.firstInfusionSeconds?.let { spokenDuration(it) }).joinToString(SPOKEN_SEPARATOR)
+
+@Composable
+@ReadOnlyComposable
+private fun metaParts(entry: JournalEntry, firstInfusion: String?): List<String> = listOfNotNull(
     entry.temperatureC?.let { stringResource(R.string.journal_temperature, it) },
-    entry.firstInfusionSeconds?.let(::clockText),
+    firstInfusion,
     if (entry.finishedEarly) {
         pluralStringResource(
             R.plurals.journal_infusions_of,
@@ -180,9 +195,10 @@ internal fun metaLine(entry: JournalEntry): String = listOfNotNull(
     } else {
         pluralStringResource(R.plurals.journal_infusions, entry.infusions, entry.infusions)
     },
-).joinToString(META_SEPARATOR)
+)
 
 private const val META_SEPARATOR = " · "
+private const val SPOKEN_SEPARATOR = ", "
 
 @Composable
 @ReadOnlyComposable
