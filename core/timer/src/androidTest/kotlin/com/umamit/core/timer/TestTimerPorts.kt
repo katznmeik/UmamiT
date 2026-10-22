@@ -3,31 +3,25 @@ package com.umamit.core.timer
 import android.util.Log
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.UserSettings
-import com.umamit.core.timer.controller.SavedSheetPort
 import com.umamit.core.timer.controller.TimerNotifierPort
 import com.umamit.core.timer.controller.TimerUiState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * The ports whose Android adapters come with later tickets (D-057): the notifier (#47)
- * and the saved sheet (M1-16). In the test
+ * The port whose Android adapter comes with a later ticket (D-057): the notifier (#47). In the test
  * APK they only write to logcat, so the alert notification the test sees is the service's
  * own foreground notification. A notifier must not post notification 2 itself while the
  * service shows notification 1, or Android 16 would group the two and silence the alert
  * (D-044). A ticket that brings its adapter uses it in [TimerTestApplication].
  */
-class LogcatTimerPorts :
-    TimerNotifierPort,
-    SavedSheetPort {
+class LogcatTimerPorts : TimerNotifierPort {
     override fun update(state: TimerUiState.Active, fullScreen: Boolean) =
         log("notification ${state.phase} $fullScreen")
 
     override fun notifySessionSaved(sessionId: String) = log("session saved $sessionId")
 
     override fun notifyTimerResumed(state: TimerUiState.Active) = log("timer resumed ${state.phase}")
-
-    override fun showSavedSheet(sessionId: String) = log("saved sheet $sessionId")
 
     private fun log(message: String) {
         Log.i(TAG, message)

@@ -1,14 +1,26 @@
 package com.umamit.core.database.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import kotlinx.coroutines.flow.Flow
+
+/** A session row with its step rows (in any order; sort by `position`) and its tea's cover photo id. */
+data class JournalSessionRow(
+    @Embedded val session: BrewSessionEntity,
+    @Relation(parentColumn = "id", entityColumn = "session_id")
+    val steps: List<SessionStepEntity>,
+    @ColumnInfo(name = "tea_cover_photo_id") val teaCoverPhotoId: String?,
+)
 
 /**
  * Row access to `brew_session` and `session_step` (05 §3.6, §3.7). The lifecycle and its
@@ -56,6 +68,21 @@ interface SessionDao {
 
     @Query("UPDATE brew_session SET pre_alert_seconds = :preAlertSeconds, updated_at = :now WHERE id = :id")
     suspend fun setPreAlert(id: String, preAlertSeconds: Int, now: Long)
+}
+
+/** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */
+@Dao
+interface JournalDao {
+    /**
+     * Every session, newest first, with its steps and its tea's cover photo. Emits again on
+     * every write to the sessions, their steps or the teas.
+     */
+    @Transaction
+    @Query(
+        "SELECT brew_session.*, tea.cover_photo_id AS tea_cover_photo_id FROM brew_session " +
+            "LEFT JOIN tea ON tea.id = brew_session.tea_id ORDER BY brew_session.started_at DESC",
+    )
+    fun observeSessions(): Flow<List<JournalSessionRow>>
 }
 
 /** The single `active_brew` row (05 §3.12). */

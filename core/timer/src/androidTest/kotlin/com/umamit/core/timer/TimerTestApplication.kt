@@ -14,6 +14,7 @@ import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.CoroutineTimerWakeUp
 import com.umamit.core.timer.controller.RecoveryTrigger
+import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerInputs
@@ -28,7 +29,7 @@ import javax.inject.Provider
 
 /**
  * The app of the timer's instrumented test APK (#42, D-057): the real controller with the
- * real alarm adapter, service port, alert player (#44), diagnostics log (#43), database and
+ * real alarm adapter, service port, alert player (#44), diagnostics log (#43), saved sheet (M1-16), database and
  * clocks, wired by hand as the app's Hilt graph will be once every port has its adapter. The ports of later
  * tickets are [LogcatTimerPorts]; the settings are the defaults ([DefaultSettings]).
  *
@@ -66,7 +67,7 @@ class TimerTestApplication :
             notifier = logcat,
             alert = ControllerAlertPort(AlertPlayback(this, settings, diagnostics, clocks), Provider { controller }),
             diagnostics = diagnostics,
-            savedSheet = logcat,
+            savedSheet = SavedSheetRequests(),
             wakeUp = CoroutineTimerWakeUp(),
         )
         return BrewSessionController(

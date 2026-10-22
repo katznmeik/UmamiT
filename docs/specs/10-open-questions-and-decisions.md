@@ -413,12 +413,65 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   - On Robolectric: the receiver, the alarm adapter and the service port.
   - In the CI emulator job, `ProcessDeathTest` also kills a step, reopens the
     app, checks the restored state and the alert within 2 s of the deadline.
-- **Hand-off.** The notifier port (#47) and the saved-sheet port (#51, M1-16)
-  are still unbound, so `TimerAppModule` keeps `NoBrewTimer`. The ticket that
-  binds the last one also:
+- **Hand-off.** The notifier port (#47) is still unbound (the saved sheet
+  came with #51), so `TimerAppModule` keeps `NoBrewTimer`. The ticket that
+  binds it also:
   - makes `UmamitApplication` the `TimerHost` and calls `recover(APP_START)`
     from its `onCreate`;
   - lets #47's notifier implement `notifyTimerResumed`.
+
+<a id="d-061"></a>
+### D-061 — Minimal journal and the „Gespeichert" sheet (M1-16, #51) · *Accepted* (Claude, 2026-10-22)
+
+#51 built the read-only journal (SCR-15 minimal, JRN-01, JRN-08) and the
+saved sheet (SCR-06, TMR-12). Decided while building them:
+
+- **Read side.** `JournalRepository.observeSessions()` (core:data) emits every
+  session, in progress or finished, newest start first, with its steps and
+  its tea's cover photo file. One Room query with a join on `tea`; no schema
+  change. It never writes: stock deduction and the opened date stay with
+  `SessionRepository` (#36). The list follows the database, so a finished
+  brew appears at once.
+- **Day groups (E13).** A session belongs to the local date of its start in
+  its own time zone, also when it ran past midnight, and shows its time of
+  day in that zone. „Heute"/„Gestern" are relative to the phone's date now
+  (re-read on resume and at midnight); older days read „Montag, 12. Oktober",
+  with the year only outside the current year.
+- **Meta line.** „55 °C · 1:00 · 3 Aufgüsse" is the base temperature (or the
+  first infusion's, without one), the *planned* time of the first infusion
+  and the count of poured infusions: ended steps that are neither a rinse nor
+  skipped. When fewer were poured than the plan's non-rinse steps, the count
+  reads „2 von 3 Aufgüssen" (a skipped step counts as not poured). Rating and
+  the no-notes dot of JRN-08 come with M4, since M1 has neither.
+- **Pinned session.** Every `IN_PROGRESS` session sits under „Läuft gerade"
+  above the days, with its count so far („1 von 3 Aufgüssen"); a tap opens
+  the timer. Finished rows are not tappable until the session detail (M4).
+- **Saved sheet port.** `SavedSheetRequests` (core:timer, singleton) is the
+  controller's `SavedSheetPort`: it only stores the session id, so the call in
+  the controller's lock never blocks. The shell shows the sheet over the
+  bottom of the tab content (above the brew bar and the navigation), without
+  a scrim; *Sitzung beenden* closes the timer route, so it appears over Start
+  or wherever the user returns. Its text: „Gespeichert im Journal" and „3
+  Aufgüsse · 2:20" (poured infusions and their actual steeping time). A
+  request made while the app is in the background shows on return.
+- **Leaving.** After 10 s (TalkBack's recommended timeout if longer), on a
+  swipe down past 48 dp or a fling, or with TalkBack's *Schließen* action. A
+  finger on the sheet holds it; the 10 s start again on release. A newer
+  session replaces the sheet.
+- **Rule 8.** While an alert plays, the sheet is not composed at all, so no
+  exit animation runs over it, and a sheet due then is dropped, never shown
+  afterwards.
+- **Motion.** In and out with the `sheet` spring (critically damped,
+  interruptible; a short drag springs back with its velocity), fading in with
+  `fade` and out with `exitFade`; under reduce motion the slide is instant and
+  the fades are short.
+- **Plumbing.** The app injects `JournalSources` (journal, sessions, saved
+  sheet requests, wall clock) and passes it to the shell, like the active
+  brew source, so the shell tests run on the fakes of core:testing
+  (`FakeJournalRepository`). The tab keeps its last read, so a returning tab
+  keeps its list height and scroll position. `ScreenScaffold` gained a
+  `verticalArrangement`; `TeaThumbnail` is public for rows that are not a
+  `TeaListItem`.
 
 <a id="d-060"></a>
 ### D-060 — Diagnostics log and the *Diagnose* screen (M1-20, #43) · *Accepted* (Claude, 2026-10-22)
@@ -1701,6 +1754,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |
 | 2026-10-22 | D-060: diagnostics log and *Diagnose* (#43): two-file rolling log ≤ 200 KB in the no-backup storage, written in order on the IO dispatcher and never blocking or throwing into the timer; technical English entries with scheduled vs actual times on both clocks and the delta; service starts and stops, ringer mode at each alert and test, permission states at each process start; *Diagnose* newest first with *Kopieren* (header + entries). 06 §5.6, 03 SCR-27 updated. |
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
 | 2026-10-22 | D-058: timer screen SCR-05 (#45), amended by its motion review (no route transitions or menu exit around the alert, settings popped on alert, paused ring contrast, stable pill, fresh first frame, glow per step, saveable overlays, timer-only lock screen, dim never brighter than the phone): `BrewTimer` seam with `NoBrewTimer` until #42, `TimerUiState.Active.preAlert`, step label and dots, READY/ALERTING layout, finish-would-discard question, every overlay removed on ALERTING, no recipe save on SCR-05, dimming rule, photo slot, TalkBack live region, lock-screen flags, top-level timer route, bar fed by the controller. 04 §4 updated. |
