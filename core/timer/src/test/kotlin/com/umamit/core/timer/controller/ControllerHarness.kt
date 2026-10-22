@@ -34,14 +34,19 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerSnapshot
 import kotlinx.coroutines.CompletableDeferred
+import javax.inject.Provider
 
 /**
  * The controller as spec #40 seam 2 tests it: the real engine and the real
  * repositories on an in-memory Room database, a fake clock with a boot count,
  * and fake ports that share one [log], so the order of the controller's calls
- * across ports (and the store's persist) is observable.
+ * across ports (and the store's persist) is observable. A test can put the
+ * production alert port in place of the fake one.
  */
-class ControllerHarness {
+class ControllerHarness(
+    /** The alert port; the default is [alert]. A real one reaches the controller through [controllerProvider]. */
+    alertPort: (ControllerHarness.() -> TimerAlertPort)? = null,
+) {
     val clock = FakeClock()
     val log = TimerPortLog()
     val settings = FakeSettingsRepository()
@@ -65,6 +70,9 @@ class ControllerHarness {
     val savedSheet = FakeSavedSheet(log)
     val wakeUp = FakeTimerWakeUp(clock)
 
+    /** The controller for a port that reports back to it (Hilt gives the alert port a provider, too). */
+    val controllerProvider: Provider<BrewSessionController> = Provider { controller }
+
     val controller = BrewSessionController(
         clocks = TimerClocks(monotonic = clock, wall = clock),
         sessions = sessions,
@@ -75,7 +83,7 @@ class ControllerHarness {
             alarms = alarms,
             service = service,
             notifier = notifier,
-            alert = alert,
+            alert = alertPort?.invoke(this) ?: alert,
             diagnostics = diagnostics,
             savedSheet = savedSheet,
             wakeUp = wakeUp,
