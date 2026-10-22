@@ -10,10 +10,14 @@ import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimer
+import com.umamit.feature.brew.timer.alertKey
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -36,6 +40,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
                 setShowWhenLocked(it.showWhenLocked)
@@ -44,7 +49,11 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             UmamiTheme {
-                UmamitRoot(activeBrewSource = activeBrewSource, onTimerVisibleChange = { timerVisible.value = it })
+                UmamitRoot(
+                    activeBrewSource = activeBrewSource,
+                    alertKey = alertKey,
+                    onTimerVisibleChange = { timerVisible.value = it },
+                )
             }
         }
     }

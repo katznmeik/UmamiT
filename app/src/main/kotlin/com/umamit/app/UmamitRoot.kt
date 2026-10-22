@@ -12,6 +12,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -22,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.settings.SettingsScreen
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * The app's top-level navigation: the shell with its tabs, and the full-screen
@@ -33,11 +35,13 @@ import com.umamit.feature.settings.SettingsScreen
  * alert is popped back to the timer in the frame the alert starts.
  *
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
+ * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
  */
 @Composable
 fun UmamitRoot(
     activeBrewSource: ActiveBrewSource,
+    alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
     onTimerVisibleChange: (Boolean) -> Unit = {},
     timerScreen: @Composable (onClose: () -> Unit, onOpenTimerSettings: () -> Unit) -> Unit = { onClose, onSettings ->
@@ -47,11 +51,12 @@ fun UmamitRoot(
 ) {
     val navController = rememberNavController()
     val motion = UmamiTheme.motion
-    val brew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
-    val alerting = brew?.alerting == true
-    val currentAlerting by rememberUpdatedState(alerting)
-    // Whether *Timer-Einstellungen* was opened while the alert already played; then it may stay.
-    var settingsOpenedAlerting by rememberSaveable { mutableStateOf(false) }
+    // Only the alert's identity is read here, so the root recomposes per alert, not per second.
+    val alert by alertKey.collectAsStateWithLifecycle()
+    val currentAlert by rememberUpdatedState(alert)
+    val currentAlerting by rememberUpdatedState(alert != null)
+    // The alert *Timer-Einstellungen* was opened in (null: none played). Only that alert may stay under it.
+    var settingsAlert by rememberSaveable { mutableStateOf<String?>(null) }
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
@@ -59,11 +64,19 @@ fun UmamitRoot(
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
     LaunchedEffect(timerOnTop) { currentOnTimerVisibleChange(timerOnTop) }
 
-    LaunchedEffect(alerting) {
+    // Each new alert pops *Timer-Einstellungen* opened before it, once (rule 8). Checked on every new alert
+    // and on resume, so an alert that started while the app was in the background is caught too.
+    val popSettingsForNewAlert = {
         val settingsOnTop = navController.currentDestination?.hasRoute<TimerSettingsRoute>() == true
-        if (alerting && settingsOnTop && !settingsOpenedAlerting) {
+        val playing = currentAlert
+        if (playing != null && settingsOnTop && playing != settingsAlert) {
             navController.popBackStack(TimerRoute, inclusive = false)
         }
+    }
+    LaunchedEffect(alert) { popSettingsForNewAlert() }
+    LifecycleResumeEffect(Unit) {
+        popSettingsForNewAlert()
+        onPauseOrDispose {}
     }
 
     // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
@@ -100,7 +113,7 @@ fun UmamitRoot(
         }
         composable<TimerRoute> {
             timerScreen(closeTimer) {
-                settingsOpenedAlerting = currentAlerting
+                settingsAlert = currentAlert
                 navController.navigate(TimerSettingsRoute)
             }
         }
