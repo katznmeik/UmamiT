@@ -239,11 +239,13 @@ jobs:
                       print("\n".join((failure.text or "").strip().splitlines()[:60]))
                       print("::endgroup::")
           PY
-          for log in $(find . -path "*androidTest-results*" -name "logcat-*.txt"); do
-            echo "::group::$log (UmamiT/Probe lines, last 200)"
-            grep -E "UmamiT|ProbeStepTest|PermissionStatus|AndroidRuntime" "$log" | tail -n 200 || true
-            echo "::endgroup::"
-          done
+          # File names contain spaces ("test(AVD) - 15"), hence -print0.
+          find . -path "*androidTest-results*" -name "logcat-*.txt" -print0 |
+            while IFS= read -r -d '' log; do
+              echo "::group::$log (UmamiT/Probe lines, last 200)"
+              grep -E "UmamiT|ProbeStepTest|PermissionStatus|AndroidRuntime" "$log" | tail -n 200 || true
+              echo "::endgroup::"
+            done
 
       # Test reports plus the logcat that AGP records per test.
       - name: Upload reports

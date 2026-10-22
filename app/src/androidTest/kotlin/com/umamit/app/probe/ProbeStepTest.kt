@@ -12,6 +12,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
@@ -160,7 +161,9 @@ class ProbeStepTest {
 
     private fun tapStartOnProbeScreen() {
         composeRule.onNodeWithText(context.getString(R.string.probe_entry)).performClick()
-        composeRule.onNodeWithText(context.getString(R.string.probe_step_start)).performClick()
+        // The probe screen scrolls (status list above the step section); performClick
+        // taps the node centre even off-screen, so bring it into view first.
+        composeRule.onNodeWithText(context.getString(R.string.probe_step_start)).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
