@@ -302,6 +302,77 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-061"></a>
+### D-061 — Start, tea picker and brew setup (M1-13, #48) · *Accepted* (Claude, 2026-10-22)
+
+#48 built Start (SCR-02), the tea picker (SCR-03) and the setup (SCR-04)
+([03 §4](03-ux-ui.md#scr-02-start-home)). Decided while building them:
+
+- **One start seam in `core:timer`.** Features depend only on `core:*`
+  (06 §3), so Start (`feature:home`) and the setup (`feature:brew`) start a
+  brew through `BrewStarter` (`state`, `startSession`,
+  `finishActiveAndStart`); `ControllerBrewStarter` is the controller behind
+  it. Until #42 the app binds `NoBrewTimer` for it too: starts are ignored and
+  the screen stays. *Beenden & neu starten* runs as two controller turns
+  (finish, or cancel a quick timer, then start); #46 replaces it with the
+  one-turn operation of D-054 behind the same seam. `alertKey()` moved to
+  `core:timer` so every screen can give way to the alert.
+- ***Nochmal brühen* (BRW-11).** The three most recently brewed distinct
+  teas of the last 50 finished sessions; archived or deleted teas are left
+  out. One tap starts the tea's last session again: its snapshot (recipe,
+  vessel, leaf, water, method, base temperature), its step rows as planned,
+  and its effective pre-alert frozen like a recipe value. A session finished
+  early keeps only its started steps (TMR-12), so those are brewed again.
+  The recent sessions come from `SessionRepository.observeRecentSessions`
+  on the existing `observeFinished` query (no schema change).
+- ***Zuletzt gebrüht*.** The last three sessions as `TeaListItem` rows:
+  „21. Oktober · 1 Min · 65 °C" (the first brewed step's planned duration:
+  whole hours „4 Std", whole minutes „1 Min", else „0:45"; its temperature).
+  The rating comes with M4. *Alle anzeigen* opens the Journal tab.
+- **Start layout.** Title „UmamiT", the placeholder landscape as the header
+  (A1 later), *Aufguss starten* (or *Aufguss fortsetzen* with the tea and a
+  countdown that ticks at each whole second while Start is visible), the
+  *Schnelltimer* entry, then the three lists. With an empty collection the
+  empty state replaces the header and the card; *Katalog öffnen* switches to
+  *Sammlung › Katalog*. *Schnelltimer* and *Ohne Tee (Schnelltimer)* are wired
+  to SCR-07 by #49. Photos are app-private files loaded with Coil
+  (`core:ui`); without one, the leaf placeholder.
+- **Tea picker.** Material 3's modal sheet, fully expanded, like the
+  Schritte-Sheet (D-051), not the `sheet` token; under reduce motion it
+  appears without the slide. A pick lets the sheet leave, then opens the
+  setup. The search is GEN-10's: word prefixes of name and type, case- and
+  diacritics-insensitive („kor" finds „Kōridashi"), debounced 150 ms, and
+  forgotten when the sheet closes. *Aus dem Katalog* is hidden until M2.
+- **Setup scaling (BRW-03).** The lock keeps the recipe's ratio; every
+  rescale starts from that ratio, so steps never compound rounding errors
+  and undoing a change by hand gives the recipe's values back. Re-locking
+  takes the current values as the ratio. The steppers move the leaf by
+  0,1 g and the water to the next multiple of 5 ml (the rounding units of
+  05 §7). A vessel sets the water to its usable volume, else its capacity.
+  Times and temperatures never scale. A tea without a recipe starts with
+  5,0 g / 250 ml, one minute at 70 °C, and has no *Im Rezept speichern*.
+- ***Im Rezept speichern* (BRW-02).** Shown only while vessel, water, leaf,
+  steps or pre-alert differ from the selected recipe; it writes all of them
+  (a step at the base temperature keeps none of its own) and the session then
+  inherits the recipe's pre-alert. The Schritte-Sheet's own button writes
+  only steps and pre-alert (SCR-31). The setup's values survive process
+  death in the `SavedStateHandle` (GEN-07).
+- **Kettle hint (BRW-10).** At ≤ 10 °C the setup reads „Kaltes Wasser", or
+  „Eiswürfel" for an ice brew (`KettleWater`). The timer's READY still reads
+  „Wasserkocher auf 5 °C" for a cold step, because `TimerUiState` carries no
+  method; a follow-up for the timer.
+- ***Brühen anpassen*.** The timer's menu item opens the setup of the waiting
+  session in place of the timer, filled with that session's values.
+  *Brühen starten* there replaces the session without asking (no step has
+  started, so finishing it discards it); the timer then replaces the setup.
+- **Alerts first (rule 8).** The picker and the Schritte-Sheet remember the
+  alert they were opened in and are removed in the frame another alert
+  starts (`AlertGate`, D-051), without animation; the second-session question
+  is closed by the view model. Nothing on these screens is animated into or
+  over an alert. The only own motion is *Im Rezept speichern* growing from
+  its top edge (`standard`/`fade`, leaving with `exit`/`exitFade`) and the
+  press scale of the cards and pills.
+
 <a id="d-059"></a>
 ### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted* (Claude, 2026-10-22)
 
