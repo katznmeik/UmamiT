@@ -1,16 +1,19 @@
 package com.umamit.app
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.umamit.feature.home.R as HomeR
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * Launch smoke test (M1-02, #12; plan M1-timer.md §3.1 seam 2): the app starts
- * its launcher activity and shows the German placeholder screen. Runs only in
+ * its launcher activity and opens on Start, the first of the four tabs (M1-05). Runs only in
  * the CI emulator job (API 35 and 36); the cloud container has no KVM.
  */
 @RunWith(AndroidJUnit4::class)
@@ -20,10 +23,11 @@ class LaunchSmokeTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun launchShowsGermanPlaceholder() {
-        // Read the text from the app's resources, so the test follows strings.xml.
-        val welcome = composeRule.activity.getString(R.string.placeholder_welcome)
+    fun launchOpensOnStart() {
+        // Read the texts from the resources, so the test follows strings.xml.
+        val startBody = composeRule.activity.getString(HomeR.string.home_empty_title)
 
-        composeRule.onNodeWithText(welcome).assertIsDisplayed()
+        composeRule.onNodeWithText(startBody).assertIsDisplayed()
+        composeRule.onNodeWithTag(tabTag(Tab.Start)).assertIsSelected()
     }
 }

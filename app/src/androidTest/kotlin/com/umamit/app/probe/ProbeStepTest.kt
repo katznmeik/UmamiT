@@ -11,6 +11,7 @@ import android.util.Log
 import android.widget.Button
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -23,6 +24,7 @@ import com.umamit.app.MainActivity
 import com.umamit.app.R
 import com.umamit.core.timer.TimerAlarm
 import com.umamit.core.timer.TimerNotifications
+import com.umamit.core.designsystem.R as DesignSystemR
 import com.umamit.core.timer.probe.ProbeAlertActivity
 import com.umamit.core.timer.probe.ProbeTimer
 import com.umamit.core.timer.probe.ProbeTimerService
@@ -192,6 +194,8 @@ class ProbeStepTest {
     }
 
     private fun tapStartOnProbeScreen() {
+        // The probe entry lives in the settings, behind the gear on Start (M1-05).
+        composeRule.onNodeWithContentDescription(context.getString(DesignSystemR.string.ds_settings)).performClick()
         composeRule.onNodeWithText(context.getString(R.string.probe_entry)).performClick()
         // The probe screen scrolls (status list above the step section); performClick
         // taps the node centre even off-screen, so bring it into view first.

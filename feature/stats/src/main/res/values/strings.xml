@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">Statistik</string>
+    <string name="stats_empty_title">Noch nichts zu zählen</string>
+    <string name="stats_empty_body">Sobald du Tee gebrüht hast, siehst du hier deine Gewohnheiten.</string>
+</resources>
