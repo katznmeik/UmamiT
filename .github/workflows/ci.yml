@@ -222,6 +222,29 @@ jobs:
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest
 
+      # Failure details straight into the log (the artifact below is not
+      # reachable from every environment): each failed test with its message
+      # and stack trace, plus the app's own diagnostic logcat lines.
+      - name: Print failed instrumented tests
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = glob.glob("**/build/outputs/androidTest-results/connected/**/TEST-*.xml", recursive=True)
+          for path in files:
+              for case in ET.parse(path).getroot().iter("testcase"):
+                  for failure in list(case.findall("failure")) + list(case.findall("error")):
+                      print(f"::group::FAILED {case.get('classname')}.{case.get('name')}")
+                      print((failure.get("message") or "").strip())
+                      print("\n".join((failure.text or "").strip().splitlines()[:60]))
+                      print("::endgroup::")
+          PY
+          for log in $(find . -path "*androidTest-results*" -name "logcat-*.txt"); do
+            echo "::group::$log (UmamiT/Probe lines, last 200)"
+            grep -E "UmamiT|ProbeStepTest|PermissionStatus|AndroidRuntime" "$log" | tail -n 200 || true
+            echo "::endgroup::"
+          done
+
       # Test reports plus the logcat that AGP records per test.
       - name: Upload reports
         if: failure()
