@@ -3,6 +3,7 @@ package com.umamit.core.timer.alert
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,11 +28,31 @@ class BundledSoundsTest {
             val bytes = context.resources.openRawResource(sound.rawRes).use { it.readBytes() }
             val info = OggVorbis.parse(bytes)
 
-            assertThat(bytes.size).isAtMost(MAX_BYTES)
-            assertThat(info.channels).isEqualTo(1)
-            assertThat(info.sampleRate).isEqualTo(SAMPLE_RATE)
-            assertThat(info.durationMs).isWithin(DURATION_TOLERANCE_MS).of(sound.lengthMs)
+            assertWithMessage("$sound size").that(bytes.size).isAtMost(MAX_BYTES)
+            assertWithMessage("$sound channels").that(info.channels).isEqualTo(1)
+            assertWithMessage("$sound sample rate").that(info.sampleRate).isEqualTo(SAMPLE_RATE)
+            assertWithMessage("$sound length").that(info.durationMs)
+                .isWithin(DURATION_TOLERANCE_MS).of(sound.lengthMs)
         }
+    }
+
+    @Test
+    fun theSixGeneratedFilesAreBundled() {
+        // scripts/sounds/generate.sh: five alert tones (SET-09) and the pre-alert tick (D-045, D-059).
+        assertThat(AlertSound.entries.associate { it.key to it.lengthMs }).containsExactly(
+            "klangschale", 3_500L,
+            "glocke", 3_000L,
+            "holzblock", 1_200L,
+            "glockenspiel", 2_200L,
+            "sanft", 3_000L,
+            "tick", 800L,
+        )
+    }
+
+    @Test
+    fun theToneChoicesAreTheFiveAlertTonesWithTheKlangschaleFirst() {
+        assertThat(AlertSound.TONES.map { it.key })
+            .containsExactly("klangschale", "glocke", "holzblock", "glockenspiel", "sanft").inOrder()
     }
 
     @Test
