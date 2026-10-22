@@ -11,8 +11,14 @@ import android.os.Process
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.alarm.TimerAlarmReceiver
+import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.TimerAlarmKind
+import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.service.BrewTimerService
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -57,25 +63,34 @@ class ProcessDeathTest {
         )
         instrumentation.uiAutomation.grantRuntimePermission(packageName, Manifest.permission.POST_NOTIFICATIONS)
         shell("appops set $packageName USE_FULL_SCREEN_INTENT allow")
+        resetTimer()
         wakeAndUnlock()
     }
 
     @After
     fun tearDown() {
-        timerPid()?.let(Process::killProcess)
-        notificationManager.cancelAll()
+        resetTimer()
         wakeAndUnlock()
     }
 
     @Test
     fun aStepWhoseProcessIsKilledStillAlertsFullScreenAtItsDeadline() {
+        val started = TimeSource.Monotonic.markNow()
         context.startActivity(TimerTestActivity.intent(context, STEP.inWholeSeconds.toInt()))
+        val outcome = eventually("the step's start in the timer process", START_TIMEOUT) {
+            TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
+        }
+        assertEquals("test setup: start and Start of the step", TimerTestActivity.STARTED, outcome)
         eventually("foreground BrewTimerService", START_TIMEOUT) {
             serviceBlock()?.takeIf { it.contains("isForeground=true") }
         }
         eventually("the deadline alarm in dumpsys alarm", START_TIMEOUT) { deadlineAlarm() }
 
         val killed = checkNotNull(timerPid()) { "no timer process" }
+        assertTrue(
+            "test setup: too slow, ${started.elapsedNow()} of the $STEP step passed before the kill",
+            started.elapsedNow() < STEP - KILL_MARGIN,
+        )
         Process.killProcess(killed)
         eventually("timer process $killed gone", START_TIMEOUT) { Unit.takeIf { timerPid() != killed } }
         assertNotNull("the deadline alarm must survive the process", deadlineAlarm())
@@ -108,6 +123,26 @@ class ProcessDeathTest {
             alert.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
         )
         assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
+        // Evidence of the AlertPlayer (the emulator runs without audio): its vibration, if the image has a vibrator.
+        Log.i(
+            TAG,
+            "vibrations:\n" +
+                shell("dumpsys vibrator_manager").lines().filter { it.contains(packageName) }.joinToString("\n"),
+        )
+    }
+
+    /**
+     * No timer from an earlier run: its process killed, its alarms cancelled (same uid), its
+     * database deleted, its notifications removed. A leftover session would refuse the start.
+     */
+    private fun resetTimer() {
+        timerPid()?.let(Process::killProcess)
+        eventually("timer process gone", START_TIMEOUT) { Unit.takeIf { timerPid() == null } }
+        val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
+        AndroidTimerAlarms(context, clocks, LogcatTimerPorts()).reconcile(DueTimes.NONE)
+        context.deleteDatabase(UmamiDatabase.NAME)
+        TimerTestActivity.outcomeFile(context).delete()
+        notificationManager.cancelAll()
     }
 
     /** The PID of the test APK's main process, where the timer runs; null while it is dead. */
@@ -182,7 +217,10 @@ class ProcessDeathTest {
 
         /** Long enough for the start, the kill and the screen to go off on a slow CI emulator. */
         val STEP = 25.seconds
-        val START_TIMEOUT = 15.seconds
+        val START_TIMEOUT = 10.seconds
+
+        /** The kill must leave this much of the step, so the alert cannot fire in the old process. */
+        val KILL_MARGIN = 5.seconds
 
         /** Margin for the alarm, the process start, the recovery, the service and the activity launch. */
         val ALERT_TIMEOUT = 45.seconds

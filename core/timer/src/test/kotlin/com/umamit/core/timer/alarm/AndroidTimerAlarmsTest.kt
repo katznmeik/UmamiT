@@ -114,6 +114,20 @@ class AndroidTimerAlarmsTest {
     }
 
     @Test
+    fun anAlarmSetAgainMovesOnlyItsKind() {
+        alarms.reconcile(DueTimes(preAlertAtElapsedMs = 50_000L, deadlineElapsedMs = 60_000L))
+
+        // A turn that could not read the timer has its alarm come again (D-057).
+        alarms.retry(TimerAlarmKind.DEADLINE, 65_000L)
+
+        val byCode = scheduled().associate { shadowOf(it.operation).requestCode to it.triggerAtMs }
+        assertThat(byCode).containsExactly(101, 50_000L, 102, 65_000L)
+        val deadline = scheduled().single { shadowOf(it.operation).requestCode == 102 }
+        assertThat(deadline.type).isEqualTo(AlarmManager.ELAPSED_REALTIME_WAKEUP)
+        assertThat(deadline.windowLengthMs).isEqualTo(ShadowAlarmManager.WINDOW_EXACT)
+    }
+
+    @Test
     fun anEmptyDueSetCancelsEveryAlarm() {
         alarms.reconcile(ALL_DUE)
 

@@ -3,6 +3,7 @@ package com.umamit.core.testing
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.SavedSheetPort
 import com.umamit.core.timer.controller.StepAlert
+import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerAlarmPort
 import com.umamit.core.timer.controller.TimerAlertPort
 import com.umamit.core.timer.controller.TimerDiagnostic
@@ -40,6 +41,9 @@ class TimerPortLog {
 /** `ScheduleAlarms` with the full due set. */
 data class AlarmsReconciled(val due: DueTimes) : PortCall
 
+/** The alarm of [kind] set again at [atMs] on its clock (a turn that could not read the timer). */
+data class AlarmRetried(val kind: TimerAlarmKind, val atMs: Long) : PortCall
+
 data class ServiceStarted(val phase: TimerPhase) : PortCall
 
 /** A `startForeground` of the [FakeTimerService]: the state's phase and whether its alert was full screen. */
@@ -59,14 +63,23 @@ data object AlertStopped : PortCall
 
 data class SavedSheetShown(val sessionId: String) : PortCall
 
-/** Fake [TimerAlarmPort]: [armed] is the due set of the last reconcile, as the alarm manager would hold it. */
+/**
+ * Fake [TimerAlarmPort]: [armed] is the due set of the last reconcile, as the alarm manager would hold it;
+ * [retries] the alarms set again.
+ */
 class FakeTimerAlarms(private val log: TimerPortLog = TimerPortLog()) : TimerAlarmPort {
     var armed: DueTimes = DueTimes.NONE
         private set
+    val retries = mutableListOf<AlarmRetried>()
 
     override fun reconcile(due: DueTimes) {
         armed = due
         log.record(AlarmsReconciled(due))
+    }
+
+    override fun retry(kind: TimerAlarmKind, atMs: Long) {
+        retries += AlarmRetried(kind, atMs)
+        log.record(AlarmRetried(kind, atMs))
     }
 }
 

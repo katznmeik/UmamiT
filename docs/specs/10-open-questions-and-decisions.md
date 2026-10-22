@@ -383,9 +383,13 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     own input (`EventSource.RECOVERY`). So a start in a new process is still
     refused while the persisted session is active (TMR-21).
   - A snapshot that `restore` refuses is cleared, its alarms are cancelled,
-    and it is logged (`SnapshotUnreadable`). A failed read is logged
-    (`RecoveryFailed`) and retried by the next turn, so a passing database
-    error never loses the session.
+    and it is logged (`SnapshotUnreadable`).
+  - A failed read is logged (`RecoveryFailed`) and tried twice more in the
+    same turn (after 250 ms and 1 s; an alarm's turn stays awake). If every
+    try fails, the alarm of the turn is set again 5 s out
+    (`TimerAlarmPort.retry`, which leaves the other kinds alone) and the
+    in-process wake-up comes back in 5 s, so the step's only alarm can never
+    be used up by a passing database error.
   - The recovered session's tea name comes from its session row.
   - An alarm that started the process is logged with its scheduled time in
     the recovered state, so the log still shows scheduled vs actual (06 §5.6).
@@ -393,21 +397,28 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     `MY_PACKAGE_REPLACED`, the device-restore `IN_PROGRESS` row,
     *Beenden & neu starten*, and the tests of the whole 04 §7.2 table.
 - **Receiver** (`TimerAlarmReceiver`, non-exported). It hands each alarm to
-  `onAlarm(kind)` in one turn, kept alive with `goAsync`. It starts nothing
-  itself: the `StartForeground` of recovery or of the transition starts the
-  service, within the exemption of the exact alarm.
+  `onAlarm(kind)` in one turn, kept alive with `goAsync`. The `StartForeground`
+  of recovery or of the transition starts the service, within the exemption
+  of the exact alarm.
   - An extra "ensure the service" after every alarm was rejected. The deadline
     alarm usually arrives just after the in-process wake-up handled the
     deadline; showing the alert again then would drop its full-screen intent.
-- **The receiver finds the controller through the app**
-  (`TimerAlarmSinkHost`), not through Hilt, for two reasons:
+  - Instead, the start Android refused last (kept until a newer command or a
+    stop replaces it) is sent once more after the alarm's turn, with the same
+    notification, full-screen intent included, and `FLAG_ONLY_ALERT_ONCE`. This
+    covers the in-process wake-up winning the deadline race without the
+    battery-optimisation exemption.
+- **The receiver and the full-screen alert find the controller through the
+  app** (`TimerHost` with `TimerInputs`: `onAlarm` and `send`), not through
+  Hilt, for two reasons:
   - the controller cannot be injected until every port has its adapter
     (D-056);
   - the app of the instrumented test cannot be a Hilt root: `@HiltAndroidApp`
     must sit in an application module.
   The ticket that binds the last port makes `UmamitApplication` the host with
   the injected controller. Until then the receiver drops an alarm; there is
-  none, since nothing can start the controller.
+  none, since nothing can start the controller. A debuggable build that gets
+  an alarm without a host fails at once; a release build logs an error.
 - **Service port** (`BrewTimerServicePort`) **and `BrewTimerService`**
   (`specialUse`, no timer logic):
   - Each command carries the notification of the state, its ID (2 while
@@ -430,8 +441,16 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     alert alone (D-044) and logs it.
   - A stop never reaches the service before a pending start has called
     `startForeground`, which would crash the app; the service stops itself
-    after the last pending command instead. The port and the service share
-    this in a process-wide state, like the service itself.
+    after the last pending command instead, with `stopSelfResult(startId)`,
+    so Android ignores the stop when a newer start is already queued. The
+    port and the service share this in a process-wide state, like the service
+    itself.
+  - The service creates the notification channels in `onCreate`, and the
+    port before posting without the service: a foreground notification on a
+    missing channel crashes the app (fresh install, cleared data).
+  - A command takes a 10 s partial wake lock that the service releases once
+    it holds its own, so the CPU stays awake between the alarm's broadcast
+    and the service.
 - **Notification content** (`TimerStateNotifications`) is minimal until #47.
   - Live Update: the tea or „Schnelltimer", the phase, the countdown chip
     while running, one ProgressStyle segment for the step with the pre-alert
@@ -440,7 +459,8 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
   - Channels and IDs as verified (D-043, D-044).
 - **Full-screen target until SCR-05 (#47):** `TimerAlertActivity`. It shows
   over the lock screen and turns the screen on, set from code only while it is
-  shown (04 §13), and closes with *Schließen*.
+  shown (04 §13). *Abgegossen* sends `poured` to the controller and closes it;
+  a later alert updates its tea (`onNewIntent`).
 - **For #47:** while the service runs, notification 1 or 2 is its foreground
   notification.
   - When the ID changes, the notifier changes it through the service, not
@@ -464,6 +484,12 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     alert activity is resumed over the lock screen; the alert notification is
     the foreground notification, not `FLAG_SILENT`, and names the recovered
     tea; notification 1 is gone.
+  - It starts from a clean state (process, alarms, database), fails fast when
+    the start is refused, and checks that at least 5 s of the step are left
+    at the kill.
+- **Open for #46:** a kill during ALERTING after the in-process wake-up
+  handled the deadline leaves only the overtime alarm (04 §7.2 note); an
+  „alert watchdog" alarm needs an engine due time and is decided there.
 
 <a id="d-056"></a>
 ### D-056 — BrewSessionController core (M1-09 part 1, #41) · *Accepted* (Claude, 2026-10-22)
@@ -1418,7 +1444,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-22 | D-059: production alert player (#44): `AlertPlayback` with a main-thread command queue and settings per alert (300 ms wait, defaults on failure), `ControllerAlertPort` reporting `AlertCompleted` once after the full alert length, `AlertTester` for *Alarm testen* (tick, alert 1.5 s later), a tick never cuts an alert; four synthesised tones Glocke, Holzblock, Glockenspiel, Sanft at -16 LUFS with Klangschale and tick byte-identical. 04 §9.1, §9.2 updated. |
-| 2026-10-22 | D-057: exact alarms, BrewTimerService and recovery in the first turn (#42): alarm adapter per kind with request codes 101–106 and the inexact fallback logged; recovery once per process in the first controller turn (moved from #46, amends D-056); receiver via the app's `TimerAlarmSinkHost`; service port with the full-screen flag, `startService` while in the foreground, deferred stop, wake lock up to the longest alert, refusals logged; minimal notification content and `TimerAlertActivity` until #47; process-death test with its runner in its own process. 04 §4, §6.2, §6.3, §7.2, §12, §13 updated. |
+| 2026-10-22 | D-057: exact alarms, BrewTimerService and recovery in the first turn (#42): alarm adapter per kind with request codes 101–106 and the inexact fallback logged; recovery once per process in the first controller turn (moved from #46, amends D-056); receiver and full-screen alert via the app's `TimerHost`; failed recovery reads retried and the alarm set again; service port with the full-screen flag, channels created, `startService` while in the foreground, deferred stop with `stopSelfResult`, handover wake lock, wake lock up to the longest alert, refusals logged and resent by the next alarm; minimal notification content and `TimerAlertActivity` until #47; process-death test with its runner in its own process. 04 §4, §6.2, §6.3, §7.2, §12, §13 updated. |
 | 2026-10-22 | D-056: BrewSessionController core (#41): suspend inputs and seven ports, alarm-kind table, in-process wake-up port, non-cancellable lock turns, persist retry and guarded side effects, one alert per deadline with stale end reports ignored, `TimerUiState`, pre-alert frozen at the start, Hilt bindings without stand-ins. 04 §4 updated. |
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
 | 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |

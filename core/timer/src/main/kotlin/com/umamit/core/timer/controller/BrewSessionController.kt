@@ -70,7 +70,7 @@ class BrewSessionController @Inject constructor(
     transactions: DatabaseTransactions,
     private val settings: SettingsRepository,
     private val ports: TimerPorts,
-) : TimerAlarmSink {
+) : TimerInputs {
     private val lock = Mutex()
     private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
     private val persistedTimer = PersistedTimer(activeBrew, sessions, effects)
@@ -134,7 +134,7 @@ class BrewSessionController @Inject constructor(
      * the time-based events), which throw [IllegalArgumentException]. Returns
      * the engine's outcome; a rejected or ignored event changes nothing (E5).
      */
-    suspend fun send(event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome {
+    override suspend fun send(event: TimerEvent, source: EventSource): TransitionOutcome {
         require(event in USER_EVENTS || event is TimerEvent.EditSteps) { "not a user event: $event" }
         return inTurn { handle(event, clocks.read(), source) }
     }
@@ -146,9 +146,11 @@ class BrewSessionController @Inject constructor(
      */
     override suspend fun onAlarm(kind: TimerAlarmKind) {
         inTurn { recoveredFrom ->
+            val now = clocks.read()
             // An alarm that started the process was due in the state it recovered (06 §5.6).
-            val due = scheduled(recoveredFrom ?: timer, kind)
-            effects.record(TimerDiagnostic.AlarmReceived(clocks.read(), kind, due))
+            effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled(recoveredFrom ?: timer, kind)))
+            // The persisted timer could not be read: the alarm comes again, in case it was the only one.
+            if (!recovered) effects.retryAlarm(kind, now)
             handleDue(EventSource.ALARM)
         }
     }
@@ -243,12 +245,17 @@ class BrewSessionController @Inject constructor(
     /**
      * Arms the wake-up for the earliest due time of the current state, or
      * disarms it when nothing is due; only from a state of the current boot
-     * (04 §4: after `recover`).
+     * (04 §4: after `recover`). While the persisted state could not be read,
+     * it comes back to read it again (D-057).
      */
     private fun rearmWakeUp() {
         val now = clocks.read()
         val active = (timer as? TimerState.Active)?.takeIf { it.session.bootCount == now.bootCount }
-        val delay = nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+        val delay = if (recovered) {
+            nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+        } else {
+            TransitionEffects.RETRY_DELAY_MS
+        }
         if (delay == null) ports.wakeUp.cancel() else ports.wakeUp.arm(delay) { wakeUp() }
     }
 

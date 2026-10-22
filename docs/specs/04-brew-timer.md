@@ -169,14 +169,14 @@ Engine rules (D-047):
 flowchart LR
     UI[Timer screen, ActiveBrewBar] -- events --> C[BrewSessionController]
     N[Notification / Live Update actions] -- events --> C
-    A[ExactAlarmReceiver\npre-alert & deadline] -- events --> C
+    A[TimerAlarmReceiver\nexact alarms] -- onAlarm --> C
     B[BootReceiver / PackageReplacedReceiver] -- recover --> C
     C --> E[BrewTimerEngine\npure Kotlin]
     C -- persist --> DB[(Room: active_brew, brew_session, session_step)]
     C -- StateFlow --> UI
-    C -- start/stop --> S[BrewTimerService\nforeground]
-    S --> NB[Live Update notification]
-    S --> AP[AlertPlayer]
+    C -- start/stop --> S[BrewTimerService\nforeground, wake lock]
+    S --> NB[Live Update / alert notification]
+    C -- play/stop --> AP[AlertPlayer]
     C -- schedule/cancel --> AM[AlarmManager exact]
 ```
 
@@ -275,9 +275,11 @@ flowchart LR
   - **A turn that holds the lock runs to its end,** even when its caller is
     cancelled, so a transition is never half applied.
   - **A port that throws is logged,** and the next effect still runs.
-- `BrewTimerService` hosts the Live Update notification, the wake lock and the
-  `AlertPlayer`; no timer logic. Its port sends it the notification of the
-  state and the wake-lock time (§6.3, D-057).
+- `BrewTimerService` shows the Live Update or the alert as its foreground
+  notification and holds the wake lock; no timer logic. Its port sends it the
+  notification of the state and the wake-lock time (§6.3, D-057). The
+  `AlertPlayer` is a process singleton the controller drives (D-059); the
+  service keeps the process in the foreground while it plays.
 - UI renders remaining time per frame from the deadline while visible.
 
 ## 5. Time computation
@@ -338,7 +340,7 @@ rules (D-047):
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
 | Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick) · regular ongoing notification „Fertig um 14:30" (`longStepEndWallMs`) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
 | READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart, recovery tries to restart the FGS immediately (§6.3); if Android refuses, a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
-| ALERTING | Foreground service plays the alert; wake lock held until the alert ends |
+| ALERTING | Foreground service keeps the process in the foreground while the `AlertPlayer` plays; wake lock for the longest alert + 30 s (2 min 30 s) from the start of the alert, released by the next state (D-057) |
 
 ### 6.2 Exact alarms
 
@@ -391,7 +393,8 @@ rules (D-047):
   optimisation (ONB-02), and `specialUse` is not among the FGS types
   restricted after boot. Every start from the background catches
   `ForegroundServiceStartNotAllowedException`, logs it (06 §5.6) and falls
-  back to the plain ongoing notification.
+  back to the plain ongoing notification; the next exact alarm sends the
+  refused start once more (D-057).
 - Partial wake lock during short RUNNING steps and ALERTING, with timeout
   `remaining + alert length + 30 s`; the alert length is the longest one
   (Lang, 2 min). Waiting states release it.
@@ -461,6 +464,14 @@ idle demote (D-053).
 | RUNNING/ALERTING, deadline passed < 10 min ago | → ALERTING with overtime; `StartAlert` while `alertPlayed` is false (at-least-once). |
 | RUNNING/ALERTING, deadline passed ≥ 10 min ago | `overtimeTimeout` applied silently: poured on time with `overtimeAutoAck`, ended at the deadline's wall time. A quick timer just ends. |
 | Quick timer READY / PAUSED, 30 min after the last interaction | Ended silently (`StopForeground`), as by `quickTimerTimeout`. |
+
+**Open for #46 (D-057 review):** a process killed during ALERTING whose
+deadline alarm was already handled (the in-process wake-up came first) has
+only the overtime alarm left; the alert is replayed only if something starts
+the process before then (app start recovery, #46), otherwise the overtime
+timeout acknowledges it silently. An exact „alert watchdog" alarm (e.g.
+deadline + 30 s while `alertPlayed` is false) would close this; it needs an
+engine due time and is decided with #46.
 
 ### 7.3 Reboot
 

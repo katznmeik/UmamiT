@@ -56,6 +56,7 @@ class BrewTimerServicePort @Inject constructor(
         val id = notifications.idFor(state)
         val notification = notifications.build(state, fullScreen, now.elapsedMs)
         val wakeLockMs = wakeLockMs(state, now)
+        ForegroundServiceState.holdHandover(context)
         if (ForegroundServiceState.isForeground && sendToRunning(id, notification, wakeLockMs)) return
         val command = BrewTimerService.command(context, id, notification, wakeLockMs, foregroundRequired = true)
         ForegroundServiceState.commandSent()
@@ -63,7 +64,9 @@ class BrewTimerServicePort @Inject constructor(
             ContextCompat.startForegroundService(context, command)
         } catch (e: ForegroundServiceStartNotAllowedException) {
             ForegroundServiceState.commandNotSent()
+            ForegroundServiceState.refused(command)
             Log.w(TAG, "Foreground service start refused; posting notification $id without it", e)
+            TimerNotifications.ensureChannels(context)
             TimerNotifications.cancel(context, BrewTimerService.otherIdThan(id))
             TimerNotifications.post(context, id, notification)
             refused(now, id, e)
@@ -114,5 +117,30 @@ class BrewTimerServicePort @Inject constructor(
 
             TimerPhase.READY, TimerPhase.PAUSED, TimerPhase.FINISHED -> 0L
         }
+    }
+}
+
+/**
+ * Sends the service start Android refused last once more (D-057), from the turn
+ * of an exact alarm, which may start a foreground service from the background
+ * (04 §6.2): when the in-process wake-up handled the deadline first, its start
+ * was refused, and the alarm right after finds nothing due. Shown again, the
+ * notification does not alert a second time. Refused again, it waits for the
+ * next alarm.
+ */
+internal fun resendRefusedStart(context: Context) {
+    val command = ForegroundServiceState.takeRefused() ?: return
+    BrewTimerService.notificationOf(command)?.let { notification ->
+        notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
+        BrewTimerService.withNotification(command, notification)
+    }
+    ForegroundServiceState.holdHandover(context)
+    ForegroundServiceState.commandSent()
+    try {
+        ContextCompat.startForegroundService(context, command)
+    } catch (e: ForegroundServiceStartNotAllowedException) {
+        ForegroundServiceState.commandNotSent()
+        ForegroundServiceState.refused(command)
+        Log.w("UmamiTService", "Foreground service start refused again", e)
     }
 }
