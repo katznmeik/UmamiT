@@ -419,24 +419,32 @@ saved sheet (SCR-06, TMR-12). Decided while building them:
   above the days, with its count so far („1 von 3 Aufgüssen"); a tap opens
   the timer. Finished rows are not tappable until the session detail (M4).
 - **Saved sheet port.** `SavedSheetRequests` (core:timer, singleton) is the
-  controller's `SavedSheetPort`: it only stores the session id, so the call in
-  the controller's lock never blocks. The shell shows the sheet over the
-  bottom of the tab content (above the brew bar and the navigation), without
-  a scrim; *Sitzung beenden* closes the timer route, so it appears over Start
-  or wherever the user returns. Its text: „Gespeichert im Journal" and „3
-  Aufgüsse · 2:20" (poured infusions and their actual steeping time). A
-  request made while the app is in the background shows on return.
+  controller's `SavedSheetPort`: it only stores the session id and the
+  monotonic time of the request, so the call in the controller's lock never
+  blocks. The shell shows the sheet over the bottom of the tab content (above
+  the brew bar and the navigation), without a scrim, on the `surface` token
+  of sheets (03 §3.1) with a hairline; *Sitzung beenden* closes the timer
+  route, so it appears over Start or wherever the user returns. Its text:
+  „Gespeichert im Journal" and „3 Aufgüsse · 2:20" (poured infusions and
+  their actual steeping time).
 - **Leaving.** After 10 s (TalkBack's recommended timeout if longer), on a
-  swipe down past 48 dp or a fling, or with TalkBack's *Schließen* action. A
-  finger on the sheet holds it; the 10 s start again on release. A newer
-  session replaces the sheet.
+  swipe down past 48 dp or a fling, or with TalkBack's *Schließen* action. The
+  10 s count from the request, also while no shell shows the sheet (the app in
+  the background, the next brew's timer covering the shell): a sheet comes
+  back only for the rest of its time and never once it has run out (review of
+  #51). A finger on the sheet holds it from the press on, also when it rests
+  without moving; the full 10 s start again on release. A newer session
+  replaces the sheet.
 - **Rule 8.** While an alert plays, the sheet is not composed at all, so no
   exit animation runs over it, and a sheet due then is dropped, never shown
   afterwards.
 - **Motion.** In and out with the `sheet` spring (critically damped,
-  interruptible; a short drag springs back with its velocity), fading in with
-  `fade` and out with `exitFade`; under reduce motion the slide is instant and
-  the fades are short.
+  interruptible; a short drag springs back with its velocity, a fling carries
+  its velocity out, and an upward drag meets friction instead of a wall),
+  fading in with `fade` and out with `exitFade`; under reduce motion the slide
+  is instant and the fades are short.
+- **TalkBack.** The meta line is spoken with the duration in words („55 °C, 1
+  Minute, 3 Aufgüsse"), so „1:00" is never read as a time of day.
 - **Plumbing.** The app injects `JournalSources` (journal, sessions, saved
   sheet requests, wall clock) and passes it to the shell, like the active
   brew source, so the shell tests run on the fakes of core:testing
