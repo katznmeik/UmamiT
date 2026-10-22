@@ -3,19 +3,19 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-22
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M0 — Specification** |
-| Development go from PO | ✅ **Given on 2026-10-21, effective 2026-10-22 09:05 Europe/Berlin** (after the PO's weekly usage limit resets), unless the PO says otherwise before then. **No app code before that time.** |
+| Current milestone | **M1 — Timer first: in progress** (started 2026-10-22 09:08 Europe/Berlin) |
+| Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/sweet-brown-e16crp` |
+| Working branch | `claude/umamit-m1-start-k0jg3n` (M1 milestone PR) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | [katznmeik/UmamiT#1](https://github.com/katznmeik/UmamiT/pull/1): M0 specification (merged 2026-10-21) |
-| Open PR | none |
+| Merged PRs | #1 (M0 specs); docs/housekeeping #2–#5, #7, #18–#24 |
+| Open PR | M1 milestone PR (draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | none |
 
@@ -89,6 +89,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
 | 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |
 | 2026-10-21 | Removed 7 web/iOS-only Emil Kowalski skills; noted how the remaining design/motion skills enter the waves 2–3 spec (M1 plan §3.2). |
 | 2026-10-21 | Grilled the M1 start with the PO: working agreements recorded above; D-040 (probe gate, fix loop); 09:05 start re-created as a scheduled task in this session (the earlier one had disappeared). |
