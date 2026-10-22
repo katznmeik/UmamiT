@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Timer permissions (04 §13; complete app list: 06 §5.7, enforced by
+         `checkManifestPermissions`). The probe's status list (M1-03a, #14)
+         shows their state. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Not in the public SDK 36 stubs; on Android 16 promotion is governed by
+         NotificationManager.canPostPromotedNotifications() (user setting).
+         Declared as listed in 04 §13 / 06 §5.7; unknown names are ignored. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Sideloaded app, never reviewed by Play (D-013, 04 §6.4): the exemption
+         from battery optimisation keeps the timer reliable on One UI. -->
+    <uses-permission
+        android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+        tools:ignore="BatteryLife" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
         android:name=".UmamitApplication"

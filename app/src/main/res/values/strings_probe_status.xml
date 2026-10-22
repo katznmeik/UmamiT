@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Probe status list (M1-03a, #14; 09 §4). Throwaway: removed or hidden with
+     the probe screen before v0.1.0. Wording follows 03 (ONB-02, SCR-25). -->
+<resources>
+    <string name="probe_status_hint">Tippe auf eine Zeile, um die passende Einstellung zu öffnen. Die Liste aktualisiert sich, wenn du zurückkommst.</string>
+
+    <string name="probe_status_notifications_label">Benachrichtigungen</string>
+    <string name="probe_status_notifications_explanation">Für den laufenden Timer und den Alarm am Ende eines Aufgusses.</string>
+
+    <string name="probe_status_promoted_label">Live-Benachrichtigungen</string>
+    <string name="probe_status_promoted_explanation">Countdown als Chip in der Statusleiste und auf dem Sperrbildschirm.</string>
+
+    <string name="probe_status_full_screen_label">Vollbild-Alarm</string>
+    <string name="probe_status_full_screen_explanation">Schaltet am Ende eines Aufgusses den Bildschirm ein, auch wenn das Handy gesperrt ist.</string>
+
+    <string name="probe_status_exact_alarms_label">Exakte Alarme</string>
+    <string name="probe_status_exact_alarms_explanation">Damit der Alarm auf die Sekunde genau kommt.</string>
+
+    <string name="probe_status_battery_label">Akku: Uneingeschränkt</string>
+    <string name="probe_status_battery_explanation">Ohne Akku-Optimierung hält Android den Timer im Hintergrund nicht an.</string>
+
+    <string name="probe_status_state_granted">Erlaubt</string>
+    <string name="probe_status_state_denied">Nicht erlaubt</string>
+    <string name="probe_status_state_unavailable">Nicht verfügbar (ab Android 16)</string>
+
+    <string name="probe_status_symbol_granted" translatable="false">✓</string>
+    <string name="probe_status_symbol_denied" translatable="false">✗</string>
+    <string name="probe_status_symbol_unavailable" translatable="false">–</string>
+</resources>
