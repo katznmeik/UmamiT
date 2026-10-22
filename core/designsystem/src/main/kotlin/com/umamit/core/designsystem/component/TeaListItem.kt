@@ -65,7 +65,7 @@ fun TeaListItem(
                 .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Thumbnail(thumbnail = thumbnail, placeholderColor = placeholderColor)
+            TeaThumbnail(thumbnail = thumbnail, placeholderColor = placeholderColor)
             Spacer(Modifier.width(UmamiSpacing.Medium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -107,20 +107,24 @@ fun TeaListItem(
     }
 }
 
+/**
+ * The 48 dp round tea thumbnail of a row (03 §3.8): the photo, or a leaf in the
+ * tea type's [placeholderColor] without one (03 §3.5). Decorative for TalkBack.
+ */
 @Composable
-private fun Thumbnail(thumbnail: Painter?, placeholderColor: Color) {
+fun TeaThumbnail(thumbnail: Painter?, placeholderColor: Color, modifier: Modifier = Modifier) {
     if (thumbnail != null) {
         Image(
             painter = thumbnail,
             contentDescription = null,
-            modifier = Modifier
+            modifier = modifier
                 .size(ThumbnailSize)
                 .clip(UmamiShape.Thumbnail),
             contentScale = ContentScale.Crop,
         )
     } else {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .size(ThumbnailSize)
                 .clip(UmamiShape.Thumbnail)
                 .background(placeholderColor.copy(alpha = PLACEHOLDER_FILL_ALPHA)),

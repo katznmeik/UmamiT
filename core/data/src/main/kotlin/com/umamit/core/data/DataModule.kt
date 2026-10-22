@@ -37,6 +37,9 @@ abstract class DataModule {
     abstract fun sessionRepository(impl: RoomSessionRepository): SessionRepository
 
     @Binds
+    abstract fun journalRepository(impl: RoomJournalRepository): JournalRepository
+
+    @Binds
     abstract fun activeBrewStore(impl: RoomActiveBrewStore): ActiveBrewStore
 
     @Binds
