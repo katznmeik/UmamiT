@@ -302,6 +302,82 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-056"></a>
+### D-056 — BrewSessionController core (M1-09 part 1, #41) · *Accepted* (Claude, 2026-10-22)
+
+#41 built the app-scoped controller in `core:timer` on the unchanged engine
+([04 §4](04-brew-timer.md#4-components), §7.1). Decided while building it:
+
+- **Inputs are suspend functions, outputs are ports.** Inputs:
+  `startSession(BrewStart)`, `startQuickTimer(seconds)`, `send(event, source)`,
+  `onAlarm(kind)` and `alertCompleted(alert)`. `send` takes only user events;
+  the starts, `recover`, `AlertCompleted` and the time-based events are
+  refused with `IllegalArgumentException`. Outputs are seven ports: alarms
+  (`reconcile(DueTimes)`), service, notifier (also notification 3), alert
+  player, saved sheet, diagnostics, and the in-process wake-up. A port never
+  calls back into the controller synchronously. An adapter that reports back
+  calls a suspend input instead (the alert player calls `alertCompleted`), so
+  there are no callbacks and no dependency cycles.
+- **Alarm kinds.** `TimerAlarmKind` holds the 04 §6.2 table: request code,
+  clock, exactness, wake-up and event. The alarm port gets the full due set
+  and reconciles it per kind (#42). `onAlarm(kind)` sends every event due at
+  that moment (`dueEvents`), not only the kind's own. It logs the alarm with
+  its scheduled time.
+- **The in-process wake-up is a port.** The controller re-arms it after every
+  handled event, accepted or not, for the earliest due time of a state of the
+  current boot. Elapsed fields count on the elapsed clock and wall fields on
+  the wall clock. In production, `CoroutineTimerWakeUp` detaches a fired
+  wake-up before its callback runs. So the controller can re-arm from inside
+  that turn without cancelling it. A port was chosen because Room's
+  compatibility-mode `withTransaction` cannot run on a virtual-time
+  dispatcher: the controller tests drive the wake-up with the fake clock
+  instead.
+- **A started turn runs to its end.** Once a turn holds the event lock, it is
+  non-cancellable. Before this, a caller cancelled mid-turn (a screen closing
+  right after *Abgegossen*) rolled back the transaction and skipped
+  `StopAlert`, so the alert kept playing (rule 8). A caller cancelled while
+  it waits for the lock still drops its event; the state is then unchanged.
+- **Failures never block the alert (04 §4, D-054).**
+  - A failed transaction (data effects + `Persist`) is logged (`PersistFailed`,
+    no retry) and `Persist` alone is retried once; a failed retry is logged
+    too.
+  - The retried store write still records the step, because the store's
+    write is authoritative (D-052).
+  - Each side effect runs on its own: a port that throws is logged
+    (`EffectFailed`) and the next effect still runs.
+  - A diagnostics port that throws only logs to logcat.
+  - An ignored event does not retry a failed persist; the next accepted
+    transition persists again (04 §7.1).
+- **One alert per deadline.** `StepAlert(kind, stepIndex, deadlineWallMs)`
+  names an alert. `StartAlert` is skipped while the same alert plays;
+  `StopAlert` and the player's end report clear it. An end report for any
+  other alert is ignored and logged (`StaleAlertCompletion`). Otherwise it
+  could mark a later step's alert as played, and recovery would not replay
+  it. `UpdateNotification` is full-screen exactly when `StartAlert` is in the
+  same transition.
+- **UI state.** `TimerUiState` is `Idle` or `Active`. `Active` holds the kind,
+  the tea name, the phase, the step, the plan with each step's status, the
+  deadline on both clocks (a long step's end follows the wall clock), the
+  paused remaining time, the pre-alert lead, due time and played flag, the
+  long step, the kettle temperature, `demoted` and `finishWouldDiscard`. The
+  screens compute the remaining time and the overtime with
+  `display(nowElapsedMs)`, which rounds as in 04 §5; a test checks it against
+  the engine. The state is published after the persist and before the side
+  effects.
+- **Pre-alert at the start.** The recipe's value, or else the global setting
+  (an unreadable settings file counts as the defaults), is frozen as the
+  inherited value. The Schritte-Sheet's choice from the setup
+  (`BrewStart.preAlert`) becomes the session override.
+- **Hilt.** The controller is a `@Singleton` that takes `TimerClocks` and
+  `TimerPorts`. `TimerModule` binds `AndroidMonotonicClock`
+  (`elapsedRealtime` and `BOOT_COUNT`, read once per process) and
+  `CoroutineTimerWakeUp`. The other ports stay unbound until their adapters
+  land (#42, #43, #44, #47, M1-16). Until then nothing can inject the
+  controller, so no build ships a silent stand-in.
+- **Left to #46:** `recover` at process start, the restored `IN_PROGRESS`
+  row and *Beenden & neu starten*. A turn can already send several events.
+  The engine was not changed.
+
 <a id="d-055"></a>
 ### D-055 — Spec #27 slice review — UI · *Accepted* (Claude, 2026-10-22)
 
@@ -1178,6 +1254,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-056: BrewSessionController core (#41): suspend inputs and seven ports, alarm-kind table, in-process wake-up port, non-cancellable lock turns, persist retry and guarded side effects, one alert per deadline with stale end reports ignored, `TimerUiState`, pre-alert frozen at the start, Hilt bindings without stand-ins. 04 §4 updated. |
 | 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
 | 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |
 | 2026-10-22 | D-053: timer time rules from #31: pre-alert source order, skip rules, E6/E7 and the 1-s late rule; overtime timeout event and live auto-ack; idle time from the later of last interaction and waiting start; idle demote with `demoted`; the foreground-service contract (S5); midnight timeout in the session zone with `NotifySessionSaved`; recovery order; long steps incl. cold/ice brew; six-field due set. 04 §3.2, §4, §5, §6.1, §7.2, §8.2, §10, §12 and 05 §3.12 updated. |

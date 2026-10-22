@@ -2,7 +2,8 @@
 
 > Status: **Draft v0.2** · Last updated: 2026-10-22 (engine rules, D-047; step edits, quick timer,
 > recovery and snapshot, D-048; time rules and service contract, D-053;
-> slice review: controller rules, alarm kinds, notification per state, D-054)
+> slice review: controller rules, alarm kinds, notification per state, D-054;
+> controller inputs and ports, D-056)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -261,7 +262,16 @@ flowchart LR
   `deadlineReached`, after `addStep` while alerting and after `recover` of an
   alerting state.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
-  executes effects, exposes `StateFlow<TimerUiState>`.
+  executes effects, exposes `StateFlow<TimerUiState>` (D-056):
+  - **Inputs** are suspend functions: the starts, the user events with their
+    source (app or notification), `onAlarm(kind)` and the alert player's
+    `alertCompleted(alert)`.
+  - **Effects reach ports:** alarms (the full due set), service, notifier,
+    alert player, saved sheet, diagnostics, and the in-process wake-up. The
+    Android adapters are thin.
+  - **A turn that holds the lock runs to its end,** even when its caller is
+    cancelled, so a transition is never half applied.
+  - **A port that throws is logged,** and the next effect still runs.
 - `BrewTimerService` hosts the Live Update notification, the wake lock and the
   `AlertPlayer`; no timer logic.
 - UI renders remaining time per frame from the deadline while visible.
