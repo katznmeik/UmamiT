@@ -302,6 +302,76 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-055"></a>
+### D-055 — Spec #27 slice review — UI · *Accepted* (Claude, 2026-10-22)
+
+The T4 review of the UI slice of spec #27 (#29, #33, #34, #38) found no
+blocking issue and eleven should-fix items. Decided and done:
+
+- **Alert-safe children (S1, rule 8).** `AlertSurface` provides
+  `LocalOnAlertSurface`; under it `TimerRingDefaults.colors()` returns the
+  alert colours (ink, no liquor) and `PillButtonDefaults.colors()` an ink pill
+  with washi text. A host that forgets them no longer makes the digits (1.08:1)
+  or the cream pill (1.17:1) vanish in the washi phase. Contrast at both ends of
+  the pulse: text 13.5:1 (washi) and 4.55:1 (matcha); the pill 13.5:1 / 4.55:1
+  against the surface and 13.5:1 for its label. A test computes them from the
+  colours the components resolve, in both themes, and a render test checks ink
+  at the washi phase.
+- **Overtime on the alert surface (S2a).** „+2:30 überzogen" is ink; the warm
+  accent `#D9A35F` is only a non-text mark (a small dot), because as text it is
+  1.97:1 on washi and 1.51:1 on matcha (03 §3.1, SCR-05, TMR-06).
+- **No Schritte-Sheet in ALERTING (S2b).** *Schritte bearbeiten* and *Weiterer
+  Aufguss* are not offered in ALERTING (D-051 keeps the sheet hidden there, and
+  rule 8); they return after *Abgegossen* (03 SCR-05, SCR-31; 02 TMR-10, TMR-11).
+- **Active brew bar in ALERTING (S3).** `ActiveBrew.alerting` and
+  `overtimeSeconds`: the bar snaps to static matcha `#6B9845` with ink content
+  (4.55:1), „Jetzt abgießen!" in place of the step and „+0:07" counting up; the
+  mini ring is full, in ink, without liquor. It does not pulse: the full alert
+  is SCR-05, which a tap opens. It never navigates by itself (03 §3.8, GEN-06).
+- **Unsaved edits in the Schritte-Sheet (S4, GEN-08).** Swipe, fling, scrim,
+  handle and back with unsaved edits keep the sheet and ask „Änderungen
+  verwerfen?" (*Weiter bearbeiten* / *Verwerfen*, the new
+  `DiscardChangesDialog`); without edits, or with edits undone by hand, the
+  sheet closes at once. *Fertig* counts its edits as applied. *Verwerfen*
+  resets the edits after the sheet has left. Back with edits is handled before
+  Material's predictive close, so a veto never leaves the sheet half-shrunk.
+  The alert path is unchanged: `alerting = true` removes the sheet and the
+  question in the same frame, without asking. Amends D-051 „Closing applies
+  nothing".
+- **Scroll-to-top one-shot (S5, GEN-07, D-049).** A screen's handled count is
+  no longer saveable: a screen composed again (rotation, return from a pushed
+  screen, tab switch) adopts the current count, so a reset counter never
+  swallows re-selects and a pop never replays a scroll. The shell remembers
+  the back stack entry a re-select scrolled, so a screen pushed again later
+  scrolls first instead of popping.
+- **Bar text contrast (S6).** The bar's step line uses `onSurface`
+  (10.8:1 light, 10.1:1 dark) instead of `onSurfaceVariant` (4.21:1 light on
+  `surfaceContainerHigh`). A unit test checks every text/background token pair
+  the components use in both schemes.
+- **Reduce motion on the device (S7).** Reduce motion is animator scale 0, and
+  Compose then ends every scaled animation on its first frame: on the phone
+  every transition is instant, the 100 ms fades included. Only the alert and
+  glow rules depend on the flag there; the in-app `reduceMotion` path stays as
+  it is (tests, previews). Corrects D-046 „reduce motion keeps short fades" and
+  03 §3.6. The bar leaves with `exitFade` like the routes.
+- **Drawing without per-frame allocations (S8).** Ring and mini ring build
+  strokes, the glow's gradient and the marker's place once per size
+  (`drawWithCache`); the liquor is an arc closed by its chord (no path, no
+  clip), still linear in height.
+- **Mini ring long-step mode (S9).** `ActiveBrew.longStep`: the mini ring glides
+  like `TimerRing`, and `ActiveBrewSource.progress` must hold still between the
+  coarse updates of a long step (M1-09 tests the bound source).
+- **Rail insets (S10).** `ScreenScaffold` also takes the bottom safe-drawing
+  inset; the bar layout has consumed it already, and in the rail layout the
+  shell consumes it above the content while the brew bar applies it.
+- **Tests (S11).** The reduce-motion long-step test uses a level below 1; the
+  shell tests observe real scrolls in a short window, rotation, return without
+  replay, a re-pushed screen and per-tab scroll positions; the shell has
+  screenshots at font scale 2.0 and with the alerting bar.
+
+Optional items: only `exitFade` in the 03 §3.6 table and the 03 date were taken;
+the others stay open for the milestone's design pass.
+
 <a id="d-054"></a>
 ### D-054 — Spec #27 slice review — engine and data · *Accepted* (Claude, 2026-10-22)
 
@@ -580,6 +650,8 @@ and the notes of the #32 review (O6, O7, the consume rule of D-048)
   hidden.
 - **Closing applies nothing.** Only *Fertig* sends `editSteps`; a swipe,
   back, the scrim or the handle close the sheet without changing the session.
+  With unsaved edits they first ask „Änderungen verwerfen?" (GEN-08,
+  amended by [D-055](#d-055)).
   *Im Rezept speichern* saves the recipe and keeps the sheet open, so the
   session still changes only with *Fertig*.
 - **Stepper rules.** A tap moves to the next multiple of 5 s below 10 min and
@@ -656,7 +728,8 @@ and the notes of the #32 review (O6, O7, the consume rule of D-048)
   of the tab they were opened from.
 - Re-selecting a tab (03 §2.2): the first tap scrolls the screen on top to the
   top; a second tap pops a deeper stack to the tab root. On a root screen every
-  tap scrolls. The scroll is a one-shot event, never replayed on return.
+  tap scrolls. The scroll is a one-shot event, never replayed on return
+  (how, after the slice review: [D-055](#d-055)).
 - Tab switches use a fade-through (`tabSwitch`, 03 §3.6); back from another
   tab returns to Start with a predictive-back preview.
 - The active brew bar applies the system bar insets itself in the rail layout.
@@ -838,7 +911,8 @@ reviews them with the screenshots and motion recordings.
   besides the font; their licence is committed next to the OFL.
 - **Motion tokens:** 03 §3.6 „Motion tokens", with the reasons. Press feedback
   (scale 0.97, faster spring release) is added to pills and cards, not list
-  rows; reduce motion keeps short fades.
+  rows; reduce motion keeps short fades (on the device they are instant:
+  corrected by [D-055](#d-055)).
 - **Alert motion (motion review):** entering ALERTING is always instant
   (`alertEnter`); the pulse starts at full matcha; the pulse and the pre-alert
   glow ignore developer animator scales (`UnscaledMotion`), while scale 0 still
@@ -1101,6 +1175,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-055: spec #27 slice review, UI: alert-safe children on the alert surface (ink ring and pill), overtime in ink with a warm-accent mark, no Schritte-Sheet entries in ALERTING, alerting active brew bar, GEN-08 guard in the Schritte-Sheet, scroll-to-top one-shot keyed by entry, bar step text contrast, reduce motion instant on the device, allocation-free ring drawing, mini ring long-step mode, rail bottom inset; 02 GEN-06, TMR-06, TMR-10, TMR-11 and 03 §2.3, §3.1, §3.6, §3.8, SCR-05, SCR-31 updated. |
 | 2026-10-22 | D-054: spec #27 slice review, engine and data: edits keep a due pre-alert; stale readings clamped and controller rules (clocks inside the lock, failed persist never blocks an alert); `restore` refuses unreachable states; notification per state while alerting; `CompleteSession.autoFinished`; alarm kind per due field and `dueEvents`; *Beenden & neu starten* sequence; seeded service oracle; seed photo download waits for the seed teas; schema v1 frozen from rc.1 with a CI guard; S3 tables declined; total data effects; restore photo sweep; exact cost; one HTTP client (Detekt). 02 TMR-14, TMR-23; 04 §3, §4, §5, §6.2, §7.1, §11, §12; 05 §3.6, §8, §9; 06 §3; 08 §2.5a updated. |
 | 2026-10-22 | D-053: timer time rules from #31: pre-alert source order, skip rules, E6/E7 and the 1-s late rule; overtime timeout event and live auto-ack; idle time from the later of last interaction and waiting start; idle demote with `demoted`; the foreground-service contract (S5); midnight timeout in the session zone with `NotifySessionSaved`; recovery order; long steps incl. cold/ice brew; six-field due set. 04 §3.2, §4, §5, §6.1, §7.2, §8.2, §10, §12 and 05 §3.12 updated. |
 | 2026-10-22 | D-052: session lifecycle per engine effect, authoritative active brew store, `active_brew` columns of D-048 in schema v1, completion details (end time, cost, BREW event, full INV-06), include-only device backup rules with `fullBackupContent`, restore detection in Room's callbacks, CI schema-staleness check (#36); 05 §3, §6, §8, §9 updated with the #30 decisions. |

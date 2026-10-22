@@ -23,8 +23,9 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 
 /**
- * Fully rounded pill (03 §3.8): cream on dark, green on light. The label is the
- * TalkBack text, so the optional [icon] is decorative.
+ * Fully rounded pill (03 §3.8): cream on dark, green on light, ink on the
+ * [AlertSurface] ([PillButtonDefaults.colors]). The label is the TalkBack text,
+ * so the optional [icon] is decorative.
  */
 @Composable
 fun PillButton(
@@ -36,17 +37,7 @@ fun PillButton(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val scale = rememberPressScale(interactionSource)
-    val colors = if (UmamiTheme.isDark) {
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
-    } else {
-        ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        )
-    }
+    val colors = PillButtonDefaults.colors()
     Button(
         onClick = onClick,
         modifier = modifier

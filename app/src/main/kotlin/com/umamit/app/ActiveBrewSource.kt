@@ -10,7 +10,12 @@ interface ActiveBrewSource {
     /** The running brew, or `null` when none runs (the bar is then not shown). */
     val activeBrew: StateFlow<ActiveBrew?>
 
-    /** Progress 0..1 of the current step; read only while drawing, so a per-frame value does not recompose. */
+    /**
+     * Progress 0..1 of the current step; read only while drawing, so a per-frame value does not recompose.
+     * Short steps may change it per frame. For a long step (≥ 10 min, `ActiveBrew.longStep`) it changes
+     * only about every `UmamiMotion.longStepUpdateIntervalMillis` (03 §3.6 battery rule): the bar is on
+     * every tab for the whole step. M1-09 tests that the bound source holds still between those updates.
+     */
     val progress: () -> Float
 }
 

@@ -256,6 +256,108 @@ class StepsSheetHostTest {
         compose.onNodeWithText(title).assertDoesNotExist()
     }
 
+    private val discardTitle = "Änderungen verwerfen?"
+
+    private fun lengthenStep2() {
+        compose.onNodeWithContentDescription("Ziehzeit verlängern, Schritt 2").performScrollTo().performClick()
+    }
+
+    @Test
+    fun `a swipe with unsaved edits asks before discarding them`() {
+        showHost()
+        lengthenStep2()
+
+        compose.onNode(sheet).performTouchInput { swipeDown(startY = top + 10f, endY = bottom, durationMillis = 120) }
+        compose.waitForIdle()
+
+        compose.onNodeWithText(discardTitle).assertIsDisplayed()
+        compose.onNodeWithText(title).assertExists()
+        assertThat(dismissals).isEqualTo(0)
+    }
+
+    @Test
+    fun `back with unsaved edits asks, and Weiter bearbeiten keeps the edits`() {
+        showHost()
+        lengthenStep2()
+
+        Espresso.pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithText(discardTitle).assertIsDisplayed()
+        assertThat(dismissals).isEqualTo(0)
+
+        compose.onNodeWithText("Weiter bearbeiten").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(discardTitle).assertDoesNotExist()
+        compose.onNodeWithText("Fertig").performClick()
+        assertThat(done.single().steps.last().plannedSeconds).isEqualTo(35)
+    }
+
+    @Test
+    fun `the scrim with unsaved edits asks, and Verwerfen closes without applying`() {
+        showHost()
+        lengthenStep2()
+
+        compose.onNodeWithContentDescription("Close sheet").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(discardTitle).assertIsDisplayed()
+
+        compose.onNodeWithText("Verwerfen").performClick()
+        compose.waitForIdle()
+        assertThat(dismissals).isEqualTo(1)
+        assertThat(done).isEmpty()
+        compose.onNodeWithText(title).assertDoesNotExist()
+
+        // Reopened, the discarded edit is gone.
+        visible = true
+        compose.waitForIdle()
+        compose.onNodeWithText("Fertig").performClick()
+        assertThat(done.single().steps.last().plannedSeconds).isEqualTo(30)
+    }
+
+    @Test
+    fun `edits undone by hand count as no edits`() {
+        showHost()
+        lengthenStep2()
+        compose.onNodeWithContentDescription("Ziehzeit verkürzen, Schritt 2").performScrollTo().performClick()
+
+        Espresso.pressBack()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(discardTitle).assertDoesNotExist()
+        assertThat(dismissals).isEqualTo(1)
+    }
+
+    @Test
+    fun `Fertig with edits closes without asking`() {
+        showHost()
+        lengthenStep2()
+
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(discardTitle).assertDoesNotExist()
+        compose.onNodeWithText(title).assertDoesNotExist()
+        assertThat(done).hasSize(1)
+    }
+
+    @Test
+    fun `entering ALERTING removes the sheet and the discard question at once`() {
+        showHost()
+        lengthenStep2()
+        Espresso.pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithText(discardTitle).assertIsDisplayed()
+        compose.mainClock.autoAdvance = false
+
+        visible = false
+        alerting = true
+        advanceTwoFrames()
+
+        compose.onNodeWithText(discardTitle).assertDoesNotExist()
+        compose.onNodeWithText(title).assertDoesNotExist()
+        compose.onNode(isDialog()).assertDoesNotExist()
+    }
+
     @Test
     fun `the edits survive a configuration change`() {
         val restoration = StateRestorationTester(compose)

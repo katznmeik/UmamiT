@@ -205,17 +205,23 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
         }
     }
 
+    /** Default parameters on purpose: the alert surface makes the ring and the pill alert-safe itself. */
     @Composable
     private fun AlertingRing(modifier: Modifier = Modifier) {
-        TimerRing(
-            progress = { 1f },
-            remainingSeconds = 0,
-            caption = "Jetzt abgießen! +0:07",
-            liquorColor = liquor().green,
-            preAlertPosition = 0.875f,
-            colors = TimerRingDefaults.alertColors(),
+        Column(
             modifier = modifier.padding(vertical = UmamiSpacing.Large),
-        )
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium),
+        ) {
+            TimerRing(
+                progress = { 1f },
+                remainingSeconds = 0,
+                caption = "Jetzt abgießen! +0:07",
+                liquorColor = liquor().green,
+                preAlertPosition = 0.875f,
+            )
+            PillButton(text = "Abgegossen", onClick = {})
+        }
     }
 
     @Test
@@ -251,6 +257,18 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
                     liquorColor = liquor().gyokuro,
                 ),
                 progress = { 0.4f },
+                onClick = {},
+            )
+            ActiveBrewBar(
+                brew = ActiveBrew(
+                    title = "Bio Sencha Hisui",
+                    step = "Aufguss 2/4",
+                    remainingSeconds = 0,
+                    liquorColor = liquor().green,
+                    alerting = true,
+                    overtimeSeconds = 7,
+                ),
+                progress = { 1f },
                 onClick = {},
             )
             ActiveBrewBar(
