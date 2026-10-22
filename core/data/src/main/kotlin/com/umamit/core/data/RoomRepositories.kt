@@ -1,5 +1,6 @@
 package com.umamit.core.data
 
+import com.umamit.core.common.WallClock
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.TeaDao
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /** [TeaRepository] on Room (05 §3.1, §3.9). */
-class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val time: TimeSource) : TeaRepository {
+class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val time: WallClock) : TeaRepository {
     override fun observeTeas(): Flow<List<TeaOverview>> = dao.observeAll().map { rows -> rows.map { it.toOverview() } }
 
     override fun observeTea(id: String): Flow<TeaOverview?> = dao.observe(id).map { it?.toOverview() }
@@ -25,23 +26,23 @@ class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val
     override suspend fun getTea(id: String): Tea? = dao.get(id)?.toModel()
 
     override suspend fun saveTea(tea: Tea) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         dao.upsert(tea.toEntity(createdAt = dao.get(tea.id)?.createdAt ?: now, updatedAt = now))
     }
 
     override suspend fun deleteTea(id: String) = dao.delete(id)
 
     override suspend fun savePhoto(photo: Photo) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         dao.upsertPhoto(photo.toEntity(createdAt = dao.photo(photo.id)?.createdAt ?: now, updatedAt = now))
     }
 
     override suspend fun setCoverPhoto(teaId: String, photoId: String?) =
-        dao.setCoverPhoto(teaId, photoId, time.nowMillis())
+        dao.setCoverPhoto(teaId, photoId, time.nowMs())
 }
 
 /** [RecipeRepository] on Room (05 §3.2, §3.3); temperatures snapped to 5 °C (GEN-12). */
-class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, private val time: TimeSource) :
+class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, private val time: WallClock) :
     RecipeRepository {
     override fun observeRecipes(teaId: String): Flow<List<Recipe>> =
         dao.observeForTea(teaId).map { rows -> rows.map { it.toModel() } }
@@ -49,13 +50,13 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
     override suspend fun getRecipe(id: String): Recipe? = dao.get(id)?.toModel()
 
     override suspend fun saveRecipe(recipe: Recipe) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         val createdAt = dao.get(recipe.id)?.profile?.createdAt ?: now
         dao.save(recipe.toEntity(createdAt, now), recipe.steps.toEntities(recipe.id, now))
     }
 
     override suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         dao.replaceStepsAndPreAlert(recipeId, steps.toEntities(recipeId, now), preAlertSeconds, now)
     }
 
@@ -63,14 +64,14 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
 }
 
 /** [VesselRepository] on Room (05 §3.4). */
-class RoomVesselRepository @Inject constructor(private val dao: VesselDao, private val time: TimeSource) :
+class RoomVesselRepository @Inject constructor(private val dao: VesselDao, private val time: WallClock) :
     VesselRepository {
     override fun observeVessels(): Flow<List<Vessel>> = dao.observeAll().map { rows -> rows.map { it.toModel() } }
 
     override suspend fun getVessel(id: String): Vessel? = dao.get(id)?.toModel()
 
     override suspend fun saveVessel(vessel: Vessel) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         dao.upsert(vessel.toEntity(createdAt = dao.get(vessel.id)?.createdAt ?: now, updatedAt = now))
     }
 
@@ -78,7 +79,7 @@ class RoomVesselRepository @Inject constructor(private val dao: VesselDao, priva
 }
 
 /** [StockRepository] on Room (05 §3.10). */
-class RoomStockRepository @Inject constructor(private val dao: InventoryDao, private val time: TimeSource) :
+class RoomStockRepository @Inject constructor(private val dao: InventoryDao, private val time: WallClock) :
     StockRepository {
     override fun observeEvents(teaId: String): Flow<List<InventoryEvent>> =
         dao.observeForTea(teaId).map { rows -> rows.map { it.toModel() } }
@@ -86,7 +87,7 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
     override fun observeStock(teaId: String): Flow<StockSummary> = observeEvents(teaId).map(StockSummary::of)
 
     override suspend fun addEvent(event: InventoryEvent) {
-        val now = time.nowMillis()
+        val now = time.nowMs()
         dao.upsert(event.toEntity(createdAt = dao.get(event.id)?.createdAt ?: now, updatedAt = now))
     }
 

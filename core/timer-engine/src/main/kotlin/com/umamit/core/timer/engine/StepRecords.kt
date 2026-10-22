@@ -67,5 +67,11 @@ private fun TimerState.StepStarted.record(activeMs: Long, pausedMs: Long, overti
         overtimeAutoAck = false,
     )
 
+/** Display rounding of a remaining time: up, so „0:01" never means done (04 §5). */
+internal fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
+
+/** Display rounding of overtime: down (04 §5). */
+internal fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
+
 /** Rounds a duration to whole seconds, half up (04 §5.1: „rounded to 1 s"); negative values count as 0. */
 private fun roundToSeconds(ms: Long): Int = ((ms.coerceAtLeast(0) + HALF_SECOND_MS) / MS_PER_SECOND).toInt()

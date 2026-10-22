@@ -148,11 +148,4 @@ object BrewTimerEngine {
         }
         return TimerTransition(state, emptyList(), outcome)
     }
-
-    private fun isDue(dueAtElapsedMs: Long?, now: ClockReading) =
-        dueAtElapsedMs != null && now.elapsedMs >= dueAtElapsedMs
-
-    private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
-
-    private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 }

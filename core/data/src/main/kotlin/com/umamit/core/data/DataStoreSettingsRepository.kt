@@ -1,5 +1,6 @@
 package com.umamit.core.data
 
+import com.umamit.core.common.snap5
 import com.umamit.core.datastore.SettingsDataSource
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.flow.Flow
@@ -21,4 +22,4 @@ private const val MAX_PRE_ALERT_SECONDS = 30
 
 /** Keeps the pre-alert in 0, 5…30 (SET-10). */
 internal fun UserSettings.normalized(): UserSettings =
-    copy(preAlertSeconds = snapTo5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS))
+    copy(preAlertSeconds = snap5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS))

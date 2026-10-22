@@ -1,5 +1,7 @@
 package com.umamit.core.data
 
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.common.WallClock
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -25,7 +27,8 @@ abstract class DataModule {
     abstract fun settingsRepository(impl: DataStoreSettingsRepository): SettingsRepository
 
     companion object {
+        /** Wall clock for `created_at` / `updated_at` (epoch ms UTC, 05 §1.4). */
         @Provides
-        fun timeSource(): TimeSource = TimeSource(System::currentTimeMillis)
+        fun wallClock(): WallClock = SystemWallClock
     }
 }

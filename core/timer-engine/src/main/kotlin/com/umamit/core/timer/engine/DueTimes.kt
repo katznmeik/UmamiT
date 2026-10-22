@@ -1,5 +1,7 @@
 package com.umamit.core.timer.engine
 
+import com.umamit.core.common.ClockReading
+
 /**
  * When the time-based events of a state are due (04 §6.2). Each field is one
  * alarm type with a fixed request code; null means "not due in this state"
@@ -19,6 +21,9 @@ data class DueTimes(val preAlertAtElapsedMs: Long? = null, val deadlineElapsedMs
         val NONE = DueTimes()
     }
 }
+
+/** True when a time-based event due at [dueAtElapsedMs] (null: not due in this state) is due at [now]. */
+internal fun isDue(dueAtElapsedMs: Long?, now: ClockReading) = dueAtElapsedMs != null && now.elapsedMs >= dueAtElapsedMs
 
 internal fun dueTimesOf(state: TimerState): DueTimes = when (state) {
     is TimerState.Running -> DueTimes(

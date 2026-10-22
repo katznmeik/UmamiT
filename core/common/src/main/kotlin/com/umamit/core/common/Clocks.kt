@@ -27,6 +27,13 @@ interface WallClock {
     fun zone(): ZoneId
 }
 
+/** The device's wall clock and time zone (`System.currentTimeMillis()`, the default zone). */
+object SystemWallClock : WallClock {
+    override fun nowMs(): Long = System.currentTimeMillis()
+
+    override fun zone(): ZoneId = ZoneId.systemDefault()
+}
+
 /**
  * Both clocks read at one moment: the `now` of the timer engine's reducer
  * (04 §4). [elapsedMs] drives all durations; [wallMs] and [zone] only label

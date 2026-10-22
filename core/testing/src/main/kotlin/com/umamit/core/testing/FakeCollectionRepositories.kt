@@ -1,5 +1,6 @@
 package com.umamit.core.testing
 
+import com.umamit.core.common.snap5
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
@@ -130,9 +131,5 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
     override suspend fun deleteEvent(id: String) = c.eventRows.update { it - id }
 }
 
-private const val SNAP_STEP = 5
-
-private fun List<RecipeStep>.snapped() = map { step -> step.copy(tempC = step.tempC?.let(::snap5)) }
-
-/** Half-up snap to 5 °C (GEN-12). TODO(#28): use core:common's `snap5`. */
-private fun snap5(celsius: Int): Int = SNAP_STEP * Math.floorDiv(2 * celsius + SNAP_STEP, 2 * SNAP_STEP)
+/** Half-up snap to 5 °C (GEN-12), as the Room repositories do. */
+private fun List<RecipeStep>.snapped() = map { step -> step.copy(tempC = step.tempC?.let { snap5(it) }) }

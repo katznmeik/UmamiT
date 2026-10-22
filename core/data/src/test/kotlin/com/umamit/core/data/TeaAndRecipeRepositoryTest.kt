@@ -139,14 +139,6 @@ class TeaAndRecipeRepositoryTest {
     }
 
     @Test
-    fun snapFiveRoundsHalfUp() {
-        assertThat(snapTo5(52.5)).isEqualTo(55)
-        assertThat(snapTo5(52.4)).isEqualTo(50)
-        assertThat(snapTo5(57.5)).isEqualTo(60)
-        assertThat(snapTo5(60.0)).isEqualTo(60)
-    }
-
-    @Test
     fun deletingATeaCascadesToItsRecipesStepsPhotosAndStock() = runTest {
         data.teas.saveTea(tea("t1"))
         data.teas.saveTea(tea("t2"))

@@ -5,6 +5,8 @@ plugins {
 
 dependencies {
     api(project(":core:model"))
+    // WallClock (repository constructors) and snap5 (GEN-12).
+    api(project(":core:common"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     implementation(libs.kotlinx.coroutines.core)

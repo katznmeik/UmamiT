@@ -1,5 +1,6 @@
 package com.umamit.core.data
 
+import com.umamit.core.common.snap5
 import com.umamit.core.database.dao.ProfileWithSteps
 import com.umamit.core.database.dao.TeaWithDetails
 import com.umamit.core.database.entity.BrewProfileEntity
@@ -120,7 +121,7 @@ internal fun Recipe.toEntity(createdAt: Long, updatedAt: Long) = BrewProfileEnti
     method = method,
     leafGrams = leafGrams,
     waterMl = waterMl,
-    baseTempC = snapTo5(baseTempC),
+    baseTempC = snap5(baseTempC),
     vesselId = vesselId,
     preAlertSeconds = preAlertSeconds,
     isDefault = isDefault,
@@ -139,7 +140,7 @@ internal fun List<RecipeStep>.toEntities(profileId: String, now: Long) = mapInde
         position = index,
         kind = step.kind,
         durationSeconds = step.durationSeconds,
-        tempC = step.tempC?.let(::snapTo5),
+        tempC = step.tempC?.let(::snap5),
         note = step.note,
         createdAt = now,
         updatedAt = now,
