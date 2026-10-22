@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Timer components and the permissions they need (04 §13, 06 §5.7). The app
+  manifest declares the same permissions; duplicates merge. Today these are
+  the probe's components (M1-03a, #15); M1-09/M1-11 grow them into the real
+  timer.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Live Update (04 §8.3). Not a public permission in the SDK 36 stubs; harmless to declare. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- D-013: sideloaded, never reviewed by a store; granted at install (04 §6.2). -->
+    <uses-permission
+        android:name="android.permission.USE_EXACT_ALARM"
+        tools:ignore="ExactAlarm" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+        <service
+            android:name=".probe.ProbeTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Tea steeping countdown timer started by the user" />
+        </service>
+
+        <receiver
+            android:name=".ExactAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".probe.ProbeActionReceiver"
+            android:exported="false" />
+
+        <!-- Shown over the lock screen only while it is on screen:
+             setShowWhenLocked / setTurnScreenOn are set from code (04 §13). -->
+        <activity
+            android:name=".probe.ProbeAlertActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.UmamiT.TimerAlert" />
+    </application>
+
+</manifest>

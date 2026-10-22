@@ -1,0 +1,147 @@
+package com.umamit.core.timer.probe
+
+import android.app.AlarmManager
+import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
+import android.content.Intent
+import android.os.SystemClock
+import androidx.test.core.app.ApplicationProvider
+import com.google.common.truth.Truth.assertThat
+import com.umamit.core.timer.ExactAlarmReceiver
+import com.umamit.core.timer.TimerAlarm
+import com.umamit.core.timer.TimerNotifications
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowAlarmManager
+import kotlin.time.Duration.Companion.seconds
+
+/** Probe controller and service (M1-03a): alarms, foreground service, alert (04 §12 Robolectric). */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class ProbeTimerTest {
+    private val context: Application = ApplicationProvider.getApplicationContext()
+    private val alarmManager = context.getSystemService(AlarmManager::class.java)
+    private val notificationManager = context.getSystemService(NotificationManager::class.java)
+
+    @Before
+    fun setUp() {
+        shadowOf(context).grantPermissions(android.Manifest.permission.POST_NOTIFICATIONS)
+        // USE_EXACT_ALARM is granted at install on a device; Robolectric defaults to false.
+        ShadowAlarmManager.setCanScheduleExactAlarms(true)
+    }
+
+    @After
+    fun tearDown() {
+        ProbeTimer.stepDurationOverride = null
+        ProbeTimer.stop(context)
+    }
+
+    @Test
+    fun startSchedulesPreAlertAndDeadlineAndStartsTheForegroundService() {
+        ProbeTimer.stepDurationOverride = 15.seconds
+        val now = SystemClock.elapsedRealtime()
+
+        val active = ProbeTimer.start(context)
+
+        assertThat(active.exactAlarms).isTrue()
+        assertThat(active.step.durationMs).isEqualTo(15_000L)
+        assertThat(ProbeTimer.status.value).isEqualTo(active)
+        val alarms = shadowOf(alarmManager).scheduledAlarms.sortedBy { it.triggerAtMs }
+        assertThat(alarms.map { it.triggerAtMs }).containsExactly(now + 5_000L, now + 15_000L).inOrder()
+        assertThat(alarms.map { it.type }).containsExactly(
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+        )
+        val started = shadowOf(context).nextStartedService
+        assertThat(started.component?.className).isEqualTo(ProbeTimerService::class.java.name)
+        assertThat(started.action).isEqualTo(ProbeTimerService.ACTION_START)
+        assertThat(ProbeStep.readFrom(started)).isEqualTo(active.step)
+    }
+
+    @Test
+    fun defaultStepIsOneMinuteWithPreAlertTenSecondsBeforeTheEnd() {
+        val active = ProbeTimer.start(context)
+
+        assertThat(active.step.durationMs).isEqualTo(60_000L)
+        assertThat(active.step.preAlertOffsetMs).isEqualTo(50_000L)
+    }
+
+    @Test
+    fun serviceRunsInTheForegroundWithTheLiveUpdate() {
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+
+        val service = shadowOf(controller.get())
+        assertThat(service.isLastForegroundNotificationAttached).isTrue()
+        assertThat(service.lastForegroundNotificationId).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
+        val notification = service.lastForegroundNotification
+        assertThat(notification.channelId).isEqualTo(TimerNotifications.CHANNEL_BREW_TIMER)
+        assertThat(notification.flags and Notification.FLAG_ONGOING_EVENT).isNotEqualTo(0)
+        assertThat(notificationManager.getNotificationChannel(TimerNotifications.CHANNEL_BREW_TIMER).importance)
+            .isEqualTo(NotificationManager.IMPORTANCE_DEFAULT)
+        assertThat(notificationManager.getNotificationChannel(TimerNotifications.CHANNEL_STEEP_FINISHED).importance)
+            .isEqualTo(NotificationManager.IMPORTANCE_HIGH)
+    }
+
+    @Test
+    fun deadlinePostsTheFullScreenAlert() {
+        val step = testStep()
+        val controller = Robolectric.buildService(
+            ProbeTimerService::class.java,
+            ProbeTimerService.intent(context, ProbeTimerService.ACTION_START, step),
+        ).create().startCommand(0, 1)
+
+        controller.withIntent(ProbeTimerService.intent(context, ProbeTimerService.ACTION_DEADLINE, step))
+            .startCommand(0, 2)
+
+        val alert = shadowOf(notificationManager).getNotification(TimerNotifications.ID_ALERT)
+        assertThat(alert).isNotNull()
+        assertThat(alert.fullScreenIntent).isNotNull()
+        assertThat(alert.channelId).isEqualTo(TimerNotifications.CHANNEL_STEEP_FINISHED)
+        val liveUpdate = shadowOf(controller.get()).lastForegroundNotification
+        assertThat(liveUpdate.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Jetzt abgießen!")
+    }
+
+    @Test
+    fun alarmsAdvanceThePhaseOnlyForwardAndStartTheService() {
+        val active = ProbeTimer.start(context)
+        shadowOf(context).clearStartedServices()
+
+        ProbeTimer.onAlarm(context, TimerAlarm.DEADLINE, alarmIntent(TimerAlarm.DEADLINE, active.step))
+        ProbeTimer.onAlarm(context, TimerAlarm.PRE_ALERT, alarmIntent(TimerAlarm.PRE_ALERT, active.step))
+
+        assertThat((ProbeTimer.status.value as ProbeStatus.Active).phase).isEqualTo(ProbePhase.FINISHED)
+        assertThat(shadowOf(context).nextStartedService.action).isEqualTo(ProbeTimerService.ACTION_DEADLINE)
+        assertThat(shadowOf(context).nextStartedService.action).isEqualTo(ProbeTimerService.ACTION_PRE_ALERT)
+    }
+
+    @Test
+    fun stopCancelsAlarmsAndReturnsToIdle() {
+        ProbeTimer.start(context)
+
+        ProbeTimer.stop(context)
+
+        assertThat(shadowOf(alarmManager).scheduledAlarms).isEmpty()
+        assertThat(ProbeTimer.status.value).isEqualTo(ProbeStatus.Idle)
+    }
+
+    private fun testStep() = ProbeStep(
+        startElapsedMs = SystemClock.elapsedRealtime(),
+        startWallMs = System.currentTimeMillis(),
+        durationMs = 15_000L,
+        preAlertLeadMs = 10_000L,
+    )
+
+    private fun alarmIntent(alarm: TimerAlarm, step: ProbeStep): Intent =
+        step.writeTo(Intent(context, ExactAlarmReceiver::class.java).setAction(alarm.action))
+}
