@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Full backup content (android:fullBackupContent): the same set as
+  data_extraction_rules.xml (05 §8, D-052), which Android 12+ uses for cloud
+  backup and device transfer. Declared too, so no backup path of the system
+  falls back to backing up every file.
+-->
+<full-backup-content>
+    <include domain="database" path="umamit.db" />
+    <include domain="database" path="umamit.db-wal" />
+    <include domain="database" path="umamit.db-shm" />
+    <include domain="file" path="datastore/" />
+</full-backup-content>

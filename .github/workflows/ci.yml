@@ -64,6 +64,21 @@ jobs:
           verifyRoborazziDebug
           checkManifestPermissions
 
+      # The quality gate compiles core:database, and Room then rewrites the
+      # exported schema JSON (05 §9). ExportedSchemaTest cannot see a stale
+      # committed copy, so any difference here means the entities changed
+      # without committing the regenerated schema (#36). An uncommitted new
+      # version's file (e.g. 2.json) counts too.
+      - name: Committed database schema is up to date
+        if: ${{ !cancelled() }}
+        run: |
+          git diff --exit-code core/database/schemas
+          untracked="$(git ls-files --others --exclude-standard core/database/schemas)"
+          if [ -n "$untracked" ]; then
+            echo "::error::schema files not committed: $untracked"
+            exit 1
+          fi
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7

@@ -302,6 +302,64 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-052"></a>
+### D-052 — Session lifecycle, active brew store, device backup and restore detection (M1-06, #36) · *Accepted* (Claude, 2026-10-22)
+
+[05 §3.6, §3.7, §3.12, §8, §9](05-data-model.md#37-sessionstep):
+
+- **API follows the engine's effects.** `SessionRepository` has one operation
+  per data effect (`startSession`, `replacePendingSteps`, `recordStep`,
+  `completeSession`, `discardSession`) and takes the engine's `PlannedStep`,
+  `StepRecord` and `TimerSnapshot`, so `core:data` depends on
+  `core:timer-engine` (pure). `ActiveBrewStore.persist(snapshot?)` is
+  `Persist` (null clears). `DatabaseTransactions` lets the controller run a
+  transition's data effects and `Persist` in one Room transaction; the
+  repositories' own transactions join it.
+- **The store's write is authoritative.** Persisting a snapshot also brings
+  the session's step rows to its plan (rows keep their id, note and
+  `created_at`; missing rows are inserted, extra positions deleted). A
+  persisted state restores equal even if a data effect was missed.
+  Temperatures are snapped to 5 °C at every write (GEN-12), so the round trip
+  is lossless for every state whose temperatures are multiples of 5, which
+  the recipes and the Schritte-Sheet guarantee.
+- **Schema v1 changed in place** (unreleased): `active_brew` gains
+  `pre_alert_override_seconds`, `pre_alert_inherited_seconds` and `zone_id`
+  and loses `active_elapsed_ms` (D-048); `(session_id, position)` in
+  `session_step` becomes unique.
+- **Completion details.**
+  - `ended_at` is the end of the last ended step (the completion time if no
+    step has one), so a late *Sitzung beenden* or a recovery does not stretch
+    the session.
+  - Cost = leaf × cost per gram, rounded half up, null without a tea, leaf
+    amount or priced stock.
+  - The BREW event is dated `ended_at`, needs a tea and a leaf amount > 0, and
+    is skipped with *Bestand abziehen* off.
+  - INV-06 is implemented in full: the opened date is set when it is empty,
+    and also when the latest INITIAL/PURCHASE is on a later local day than
+    `opened_date` and the stock before it was ≤ 0.001 g. The session's local
+    date (of `started_at`, E13) is used.
+  - A session that is no longer `IN_PROGRESS` is not completed again, so a
+    repeated `CompleteSession` adds no second deduction.
+- **Device backup: includes only.** The rules include exactly `umamit.db`,
+  `-wal`, `-shm` and `datastore/` instead of "the whole database domain
+  except `catalog.db*`" (05 §8 v0.2). With includes, everything else is out
+  by construction, including databases that libraries put there (LeakCanary's
+  `leaks.db` in debug builds). `fullBackupContent` carries the same set, so
+  no backup path falls back to "everything".
+- **Restore detection in Room's callbacks.** `onCreate` writes the marker;
+  `onOpen` without the marker clears `active_brew`, then writes the marker.
+  Room runs `onOpen` before serving any query, so nothing reads the restored
+  row. A marker that cannot be written (disk full) is logged and retried on
+  the next start, which then clears `active_brew` once more; failing the
+  database open would stop the whole app. A restored `IN_PROGRESS` session
+  row is left for M1-09 to finish or discard.
+- **CI schema check.** After the quality gate, CI fails on
+  `git diff --exit-code core/database/schemas` and on an uncommitted schema
+  file, since `ExportedSchemaTest` compares with the freshly generated copy.
+- **Fakes.** `FakeSessions` (session repository, store, transactions) shares
+  rows like the database; it has no rollback and implements only the
+  "empty opened date" part of INV-06.
+
 <a id="d-050"></a>
 ### D-050 — Shop client and seed photo download (M1-07, #37 and its T4 review) · *Accepted* (Claude, 2026-10-22)
 
@@ -803,6 +861,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | D-052: session lifecycle per engine effect, authoritative active brew store, `active_brew` columns of D-048 in schema v1, completion details (end time, cost, BREW event, full INV-06), include-only device backup rules with `fullBackupContent`, restore detection in Room's callbacks, CI schema-staleness check (#36); 05 §3, §6, §8, §9 updated with the #30 decisions. |
 | 2026-10-22 | D-050: shop client (allow-list, direct single connection, one request per call, rate limit on the wire, stop signals incl. Cloudflare block pages, hardened robots.txt) and the run-once seed photo download (marker before the first request, stop rules, re-encoded covers) from #37 and its T4 review; 05 §6 and 08 §2.5a updated. |
 | 2026-10-22 | D-049: navigation shell details (re-select order, tab fade-through, insets of the active brew bar); 03 §3.6 `tabSwitch` token. |
 | 2026-10-22 | D-048: `addStep` default, `editSteps` with `PreAlertChoice` and its rejections, quick timer, boot-aware `recover` in the engine with physical bounds for the reboot rebase, the consume rule for due events, idempotent `StartAlert`, idle time on the wall clock, and the lossless, validated `active_brew` snapshot (#32 and its T3 review); 04 §3.2, §4, §5, §7.1, §7.2, §10 and 05 §3.12 updated. |
