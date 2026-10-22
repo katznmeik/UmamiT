@@ -76,7 +76,9 @@ irreversible actions (e.g. delete all) use a confirmation dialog.
 **GEN-06 — Active brew bar** `Must`
 While a session or quick timer is active, top-level screens show a compact bar
 above the navigation bar with tea name, step („Aufguss 2/4") and live remaining
-time; tapping it opens the timer (SCR-05).
+time; tapping it opens the timer (SCR-05). While the step alerts, the bar turns
+static matcha with „Jetzt abgießen!" and the overtime counting up (03 §3.8,
+D-055).
 
 **GEN-07 — State survives everything** `Must`
 No input or timer state is lost on rotation, theme change, multi-window, or
@@ -494,7 +496,8 @@ screen; when the phone is in use it appears as a heads-up „Jetzt
 abgießen!". Requires `USE_FULL_SCREEN_INTENT` (checked in ONB-02/TMR-31;
 without it: heads-up only). Screen shows overtime („+0:07") and a
 large *Abgegossen* button. From 15 s of overtime on, the overtime is shown
-prominently (large „+2:30 überzogen" in a warm accent colour) so a missed
+prominently (large „+2:30 überzogen" in the alert's ink, marked with a warm
+accent; never warm-accent text on the alert surface, D-055) so a missed
 alert is obvious when returning to the app.
 
 **TMR-07 — Acknowledge** `Must`
@@ -510,13 +513,13 @@ ring is also tappable.
 **TMR-09 — Skip step** `Should` (overflow).
 
 **TMR-10 — Add infusion** `Must`
-In FINISHED and via overflow: *Weiterer Aufguss* appends a step (last
+In FINISHED and via overflow (not in ALERTING, D-055): *Weiterer Aufguss* appends a step (last
 temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
 1 min above), editable before start in the Schritte-Sheet (SCR-31).
 
 **TMR-11 — Edit remaining steps** `Should` (overflow ⋮ *Schritte
-bearbeiten* → Schritte-Sheet SCR-31; this session only unless *Im Rezept
-speichern*).
+bearbeiten* → Schritte-Sheet SCR-31, not in ALERTING (D-055); this session
+only unless *Im Rezept speichern*).
 
 **TMR-12 — Finish & auto-log** `Must`
 Finishing early (e.g. after infusion 2 of 3) is a normal session; the

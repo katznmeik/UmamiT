@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-22
 
 Information architecture, navigation, visual design system and screens.
 Functional rules: [02](02-functional-requirements.md). The UI language is
@@ -117,7 +117,7 @@ Bottom navigation bar (navigation rail on wide screens):
 ### 2.3 Back behaviour
 
 Predictive back; back from the timer keeps the session running; editors with
-unsaved changes trigger GEN-08.
+unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 
 ### 2.4 Internal deep links
 
@@ -149,7 +149,9 @@ First-pass values approximated from the mockup, to be finalized with the PO.
 - The timer always uses the dark ("Steeping") scheme.
 - **Extended tokens** that M3 has no role for are provided through a
   `CompositionLocal` (`UmamiExtendedColors`): warm accent `#D9A35F`
-  (prominent overtime), the liquor colours and the type colours below.
+  (prominent overtime, as a non-text mark only: as text it is 1.97:1 on
+  washi and 1.51:1 on matcha, D-055), the liquor colours and the type colours
+  below.
 
 **Light ("Washi")**
 
@@ -194,9 +196,14 @@ Shincha `#9DB86E`, Matcha `#5F8C3E`, Kukicha/Karigane `#A6B07A`, Hōjicha
 green `#C9D58F`, gyokuro `#D7DF9F`, hōjicha `#B07A45`.
 
 **Alert surface** (extended tokens `alert`, the same in both schemes; M1-04,
-D-046): washi `#F3F0E9`, matcha `#6B9845`, content (ring, digits, caption)
-`#1F271B`. The content stays readable through the whole pulse: 13.5:1 on
-washi, 4.55:1 on matcha (AA for body text). The surface itself swings 2.97:1
+D-046): washi `#F3F0E9`, matcha `#6B9845`, content (ring, digits, caption,
+overtime) `#1F271B`. The content stays readable through the whole pulse: 13.5:1 on
+washi, 4.55:1 on matcha (AA for body text). The only control, the
+*Abgegossen* pill, is ink with washi text there (13.5:1 for its label; the pill
+itself is 13.5:1 against washi and 4.55:1 against matcha). The surface applies
+these itself (`LocalOnAlertSurface`), so `TimerRing` and `PillButton` with
+default parameters are alert-safe; a test computes every element's contrast in
+both pulse phases (D-055). The warm accent is never text on the alert surface. The surface itself swings 2.97:1
 in luminance (washi ↔ matcha), so the pulse is strong without changing hue.
 The darker type colour Matcha `#5F8C3E` was not used: ink on it is only 3.9:1.
 
@@ -275,7 +282,8 @@ below.
 - **Reduce motion:** follows only the system setting „Animationen
   entfernen" (no in-app switch). The pre-alert glow is off; the liquor
   fill still shows the level but updates without gliding; functional motion
-  becomes instant or very short; the alert becomes a **static**
+  becomes instant (at animator scale 0 Compose ends every animation on its
+  first frame, D-055); the alert becomes a **static**
   high-contrast matcha surface without pulse.
 - No motion may delay, hide or soften an alert (CLAUDE.md rule 8).
 
@@ -304,7 +312,8 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 | `exit` | `tween(200, CalmEaseOut)` | Elements leaving | Exits are faster than entries: the user decided, the system answers. |
 | `standard` | `tween(300, CalmEaseOut)` | State and content transitions (never into ALERTING) | A little slower than Material's 200–250 ms: ritual, not hurried. Still short enough to never block the next tap. |
 | `emphasized` | `tween(450, CalmEaseOut)` | Step changes, a whole surface changing state (never into ALERTING) | Bigger change, more time to follow it. |
-| `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` | Opacity and colour (never into ALERTING) | Fades help comprehension, so they stay under reduce motion, very short. |
+| `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` (on the device instant, see „Reduce motion" below) | Opacity and colour (never into ALERTING) | Fades help comprehension, so the token keeps a short one for the in-app reduce-motion path. |
+| `exitFade` | `exit` (200 ms); reduce motion: `fade` (100 ms) | Fade of a leaving element: popped routes, the active brew bar | Same as `exit`, but never a snap where only opacity changes. |
 | `tabSwitch` | out `tween(90, CalmEaseOut)`, in `tween(210, delay 90, CalmEaseOut)` (fade-through); reduce motion: `fade` (100 ms, no delay) | Switching between the four tabs | Tab switches happen tens of times a day, so they are short, and the old screen is gone before the new one arrives: no double exposure of two top bars. |
 | `sheet` | `spring(dampingRatio = 1, stiffness = 320)` (response ≈ 0.35 s) | Own sheets (not the Schritte-Sheet, which uses Material 3's modal sheet and its motion, D-051) | Critically damped: no overshoot. A spring starts from the current value and keeps velocity, so a sheet grabbed mid-motion follows the finger. |
 | `activeBrewBar` | `spring(dampingRatio = 1, stiffness = 250)` (response ≈ 0.4 s) | Active brew bar arriving and leaving | Same physics as sheets, a touch slower: it is ambient, not asked for. |
@@ -345,10 +354,15 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
   (`preAlertGlowTick`). A glow is never cut short, and a ring that comes back
   (rotation, navigation) never replays a tick it already showed.
   `AlertSurface` runs `alertPulse` and restarts it at full matcha whenever the
-  app returns to the foreground during ALERTING. `ActiveBrewBar` grows from its
+  app returns to the foreground during ALERTING; it makes the ring and the pill
+  on it alert-safe (§3.1). `ActiveBrewBar` grows from its
   bottom edge (`expandVertically`/`shrinkVertically` with the `activeBrewBar`
-  spring, clipped, plus `fade`/`exit`), so the content above glides instead of
-  jumping 72 dp. The liquor tints the ring at
+  spring, clipped, plus `fade`/`exitFade`), so the content above glides instead of
+  jumping 72 dp; its mini ring follows the long-step mode like `TimerRing`, and
+  in ALERTING the bar snaps to static matcha (§3.8). Ring and mini ring build
+  their strokes, the glow's gradient and the marker's place once per size
+  (`drawWithCache`) and draw the liquor as an arc closed by its chord, so a
+  per-frame redraw allocates nothing. The liquor tints the ring at
   32 % opacity, so the digits and caption (`onSurface`) stay ≥ 4.5:1 on it;
   timer digits keep their size at any font scale (80 sp is already large text)
   and shrink to 56 sp for h:mm:ss; the ring caption grows up to 1.5× (24 sp,
@@ -365,6 +379,11 @@ Under reduce motion every spatial spec above becomes `snap()`, fades shrink to
 100 ms, `alertEnter` stays `snap()`, press feedback has no scale (the ripple remains), `preAlertGlow` and
 `alertPulse` are `null` (glow off; the alert is a static high-contrast matcha
 surface), and the long-step ring still updates every 10 s, without the glide.
+**On the device** reduce motion means animator scale 0, and Compose then ends
+every scaled animation on its first frame: every transition, fades included, is
+instant. The 100 ms fades exist only on the in-app path (`reduceMotion = true`
+at scale 1, which tests force). What depends on the flag on the device is the
+alert and glow rules: no glow, a static alert surface (D-055).
 
 **TalkBack:** motion never carries information on its own. Every animated
 state has a text or semantics equivalent (remaining time, „Gleich fertig …",
@@ -391,15 +410,16 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `StatTriplet` | Temperatur · Ziehzeit · Aufgüsse with line icons |
 | `SectionHeader` | Overline + optional „Alle anzeigen" |
 | `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
-| `PillButton` | Cream on dark / green on light |
+| `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
-| `ActiveBrewBar` | 56 dp mini ring, tea name, step, remaining time |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`) and never pulses (the full alert is SCR-05); a tap opens the timer (D-055) |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
 | `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
+| `DiscardChangesDialog` | „Änderungen verwerfen?" · *Weiter bearbeiten* / *Verwerfen* (GEN-08) |
 
 ## 4. Screens
 
@@ -503,7 +523,7 @@ is only needed to leave the timer.
 | READY | empty | KettleHint „Wasserkocher auf 60 °C" + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
-| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in warm accent `#D9A35F` | **Abgegossen** (*Weggegossen* for rinse) |
+| ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055) | **Abgegossen** (*Weggegossen* for rinse) |
 | FINISHED | full | „Alle Aufgüsse fertig" | **Sitzung beenden**, secondary *Weiterer Aufguss* |
 
 Overflow ⋮ items by state:
@@ -513,11 +533,15 @@ Overflow ⋮ items by state:
 | Brühen anpassen (only before the first step started) | ✓ | – | – | – | – |
 | Aufguss jetzt beenden | – | ✓ | ✓ | – | – |
 | Schritt überspringen | ✓ | – | – | – | – |
-| Schritte bearbeiten (→ SCR-31) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Weiterer Aufguss | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
+| Schritte bearbeiten (→ SCR-31) | ✓ | ✓ | ✓ | – | ✓ |
+| Weiterer Aufguss | ✓ | ✓ | ✓ | – | ✓ (also as button) |
 | Sitzung beenden | ✓ | ✓ | ✓ | ✓ | ✓ (also as button) |
 | Sitzung verwerfen | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Timer-Einstellungen | ✓ | ✓ | ✓ | ✓ | ✓ |
+*Schritte bearbeiten* and *Weiterer Aufguss* are not offered in ALERTING: both
+open the Schritte-Sheet, which never covers the alert (D-051, rule 8). They are
+back after *Abgegossen* (D-055).
+
 TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
 
 ### SCR-06 „Gespeichert" sheet
@@ -655,7 +679,8 @@ groups, custom).
 Bottom sheet that edits the steps of **this session only** (D-036). Opened
 from SCR-04 *Bearb.* / *Vorwarnung*, from the timer overflow ⋮ *Schritte
 bearbeiten* (TMR-11) and after *Weiterer Aufguss* (TMR-10, the new step is
-editable before *Start*).
+editable before *Start*). Never from ALERTING: both entries appear after
+*Abgegossen* (D-055).
 
 ```
 ┌──────────────────────────────┐
@@ -679,6 +704,10 @@ editable before *Start*).
   (with a confirmation snackbar). Notes per step arrive in M4.
 - Changes apply via the `editSteps` event (04 §3.2) on *Fertig*; closing the
   sheet any other way (swipe down, back, scrim, handle) applies nothing.
+  Without unsaved edits it closes at once; with unsaved edits it stays and asks
+  „Änderungen verwerfen?" (GEN-08): *Weiter bearbeiten* keeps editing,
+  *Verwerfen* closes and drops the edits. Edits undone by hand count as none.
+  The alert never asks (below, D-055).
 - Built in `feature:brew` as the stateless `StepsSheet` plus the state holder
   `StepsSheetState` (#38): it emits the `editSteps` request and a
   save-to-recipe request and calls neither the engine nor the database, so
@@ -688,7 +717,8 @@ editable before *Start*).
   token (§3.6); under reduce motion it appears and leaves without the slide.
 - **Alerts first (rule 8):** the sheet never covers the alert. On entering
   ALERTING the host passes `alerting = true` and `visible = false`; the sheet
-  is removed at once, without animation, and unapplied edits are dropped.
+  and an open „Änderungen verwerfen?" are removed at once, without animation
+  and without asking, and unapplied edits are dropped.
   Details: [D-051](10-open-questions-and-decisions.md#d-051).
 
 ## 5. Dialogs & messages (German)
