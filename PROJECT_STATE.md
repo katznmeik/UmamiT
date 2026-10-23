@@ -102,37 +102,39 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 2. The next APK for the PO is `v0.1.0-rc.1`. The probe screen, its classes
    and tests were removed in #54 (D-040).
 
-### `/implement-spec` on #40 — progress (2026-10-23, 03:30 Europe/Berlin)
+### `/implement-spec` on #40 — progress (2026-10-23, 09:15 Europe/Berlin)
 
 A scheduled task ("Resume M1 after usage reset", `trig_01DxzSTk1mTMXZ7CkBoqUUGC`,
 daily at 23:55, 04:55, 09:55, 14:55, 19:55 Europe/Berlin) resumes this session
 after a usage-limit reset; delete it once M1 reaches #55.
 
-- **Merged on the M1 branch, CI green (3cb7650):** #41 controller, #42 alarms
-  and service, #43 diagnostics, #44 alert player and tones (the PO still
-  listens to the four new tones), #45 timer screen, #47 notifications / Live
-  Update / full-screen alert (the app runs the real controller; emulator tests
-  green after test fixes), #48 Start and setup, #51 journal (+ fix round).
-- **Stopped at the usage limit (2026-10-23 ~03:20), work saved in worktrees;
-  resume each with SendMessage to its agent, or re-verify the worktree:**
-  - #46 recovery, `.claude/worktrees/agent-a49690ee59c47fb67`: merge round
-    (review-46 conditions S1 give-up keeps the session, `recover(APP_START)`
-    with an `:app` test, #47 hand-off) — gates were green when it stopped;
-    verify, review the round briefly, merge, push, watch CI.
-  - #49 quick timer, `.claude/worktrees/agent-a7e358bec6c07e944`: fix round
-    for the review Block (*Schnelltimer* during an alert must open the timer,
-    `UmamitRoot.kt:134`), D-065 anchor, Abbrechen test — was running its gate.
-- **Queued:** #50 fix round (`.claude/worktrees/agent-acd6e1c6ca6237777`,
-  review-50 should-fix 1–7, S4 settings write crash first); then #52 accuracy
-  workflow, #53 renders, #54 milestone review and rc.
-- **Hand-offs still open:** #48 gaps (tea photo not passed to the timer); the
-  #50 Samsung auto-restart link is a guessed One UI page (on the checklist).
-- **Decision numbers:** D-061 #51, D-062 #48, D-063 #46, D-064 #47, D-065 #49,
-  D-066 #50; the next free number is **D-067**.
+- **Merged on the M1 branch, CI green (0057b8d):** #41–#53, the probe removal
+  (#54), the M1 milestone review's timer fixes (D-068), release and data
+  hardening (D-070), the pre-rc motion fixes and two test-infrastructure fixes.
+- **On `main`:** `accuracy.yml` and the hardened `release.yml` (PR #57,
+  approved by the PO). The accuracy gate check (`inject-delay-ms` 1500) failed
+  as it must (run 39914068842).
+- **Stopped at the usage limit (07:20 UTC), work saved in worktrees; resume with
+  SendMessage to the agent, then verify, merge, push:**
+  - UI fix round, `.claude/worktrees/agent-a8e5a41157a48e620`: review-M1-ui.md
+    round 2 Block S1 (status-bar appearance needs one owner; quick timer →
+    timer crossfade race) — was re-running its gate. B1, S2, S3, S6, S7 approved.
+  - Timer follow-up, `.claude/worktrees/agent-aa13671fa2768984f`: R2-1 (a
+    corrupt settings file shows the first-start setup forever; fall back to
+    onboarding done, `:app` test) and the `SeedPhotoDownloaderTest` timing
+    flake — was restoring its fix after the red check.
+- **Then for #54:** version `0.1.0-rc.1` (drop the `-probe` suffix handling in
+  `VersionCode`, `release.yml`, `docs/release.md`, 06 §6), this file, green CI
+  on that commit, the real accuracy run (`steps` 50, API 36), `release.yml`
+  for `v0.1.0-rc.1`, the 09 §4 checklist on #55, push notification to the PO.
+- **For the PO's design review:** the Start *Nochmal brühen* tile cuts a long
+  name after three lines at font scale 2.0; renders in `docs/design/review/M1/`.
+- **After v0.1.0 (from the animation pass):** Schritte-Sheet row animation,
+  status mark „!" → „✓", kettle hint fade.
+- **Decision numbers:** up to D-070 used; the next free is **D-071**.
 - **Process:** at most 2 implementers; verify every result with the full gate
-  (`--max-workers=2`, in parts: memory in the container is tight and daemons
-  get OOM-killed); after each merge run the gate on the combined tree before
-  pushing. UI tickets get a review-animations reviewer, timer code a T4 review.
+  (`--max-workers=2`, in parts); gate the combined tree after each merge before
+  pushing.
 
 ## Open questions
 
