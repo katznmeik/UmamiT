@@ -65,6 +65,9 @@ class BrewStarterTest {
         assertThat(harness.sessions.getSession(first)!!.status).isEqualTo(SessionStatus.COMPLETED)
         assertThat(harness.active.phase).isEqualTo(TimerPhase.READY)
         assertThat(harness.active.steps.map { it.plannedSeconds }).containsExactly(30, 20).inOrder()
+        // One controller turn (D-054, #46): the new timer is in front, so „Sitzung gespeichert" instead of the sheet.
+        assertThat(harness.notifier.sessionsSaved).containsExactly(first)
+        assertThat(harness.savedSheet.shown).isEmpty()
     }
 
     @Test
@@ -173,6 +176,59 @@ class BrewStarterTest {
         val after = harness.processRestarted()
         after.controller.onAlarm(TimerAlarmKind.IDLE_DEMOTE)
         assertThat(after.active.iceBrew).isTrue()
+    }
+
+    @Test
+    fun `an ice brew stays one through every recovery of 04 sec 7 (app start, reboot, update)`() = runTest {
+        harness.teaWithStock()
+        starter.startSession(brewStart(PlannedStep(StepKind.INFUSION, 7_200, 5), method = BrewMethod.ICE_BREW))
+        harness.controller.send(TimerEvent.Start)
+
+        val appStart = harness.processRestarted()
+        appStart.controller.recover(RecoveryTrigger.APP_START)
+        assertThat(appStart.active.iceBrew).isTrue()
+
+        appStart.clock.reboot(offMs = 20_000, upMs = 15_000)
+        val rebooted = appStart.processRestarted()
+        rebooted.controller.recover(RecoveryTrigger.BOOT_COMPLETED)
+        assertThat(rebooted.active.phase).isEqualTo(TimerPhase.RUNNING)
+        assertThat(rebooted.active.iceBrew).isTrue()
+
+        val updated = rebooted.processRestarted()
+        updated.controller.recover(RecoveryTrigger.PACKAGE_REPLACED)
+        assertThat(updated.active.iceBrew).isTrue()
+    }
+
+    @Test
+    fun `Beenden und neu starten into the quick timer is one turn (TMR-21, D-054)`() = runTest {
+        harness.teaWithStock()
+        starter.startSession(brewStart(infusion(60)))
+        harness.controller.send(TimerEvent.Start)
+        harness.advanceSeconds(60)
+        harness.controller.send(TimerEvent.Poured)
+        val before = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().size
+        val gate = harness.store.hold()
+
+        // A notification's tap arrives while the finish is being saved.
+        val restart = async { starter.finishActiveAndStartQuickTimer(90) }
+        gate.reached.await()
+        val tap = async { harness.controller.send(TimerEvent.Pause, EventSource.NOTIFICATION) }
+        runCurrent()
+        gate.open.complete(Unit)
+        assertThat(restart.await()).isEqualTo(TransitionOutcome.Accepted)
+        tap.await()
+
+        // Finish, quick start and its step's start ran back to back; the tap came after them.
+        val events = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().drop(before).map { it.event }
+        assertThat(events.map { it::class }).containsExactly(
+            TimerEvent.FinishSession::class,
+            TimerEvent.StartQuickTimer::class,
+            TimerEvent.Start::class,
+            TimerEvent.Pause::class,
+        ).inOrder()
+        // The finish's „Gespeichert" sheet became the notification: the quick timer is in front (D-054).
+        assertThat(harness.notifier.sessionsSaved).hasSize(1)
+        assertThat(harness.savedSheet.shown).isEmpty()
     }
 
     @Test

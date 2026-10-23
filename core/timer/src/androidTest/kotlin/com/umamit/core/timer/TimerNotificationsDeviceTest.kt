@@ -271,20 +271,33 @@ class TimerNotificationsDeviceTest {
         }
     }
 
-    /** No timer from an earlier test: alarms cancelled, screens closed, process killed, database deleted. */
+    /**
+     * No timer from an earlier test: alarms cancelled (the alert watchdog too, D-063), screens
+     * closed, process killed, database deleted. A process that started meanwhile recovered the
+     * old session at its start (04 §7.2), so it is killed once more after the database is gone.
+     */
     private fun resetTimer() {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
-        alarms.reconcile(DueTimes.NONE)
-        activityManager.appTasks.forEach { it.finishAndRemoveTask() }
-        eventually("timer process gone", TIMEOUT) {
-            timerPid()?.let(Process::killProcess)
-            Unit.takeIf { timerPid() == null }
+        val cancelAlarms = {
+            alarms.reconcile(DueTimes.NONE)
+            alarms.watchAlert(null)
         }
-        alarms.reconcile(DueTimes.NONE)
+        cancelAlarms()
+        activityManager.appTasks.forEach { it.finishAndRemoveTask() }
+        killTimerProcess()
+        cancelAlarms()
         context.deleteDatabase(UmamiDatabase.NAME)
+        killTimerProcess()
+        cancelAlarms()
         TimerTestActivity.outcomeFile(context).delete()
+        TimerTestActivity.deadlineFile(context).delete()
         notificationManager.cancelAll()
+    }
+
+    private fun killTimerProcess() = eventually("timer process gone", TIMEOUT) {
+        timerPid()?.let(Process::killProcess)
+        Unit.takeIf { timerPid() == null }
     }
 
     private fun timerPid(): Int? = activityManager.runningAppProcesses
@@ -305,20 +318,10 @@ class TimerNotificationsDeviceTest {
 
     private fun Notification.title() = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
 
-    private fun wakeAndUnlock() {
-        shell("input keyevent KEYCODE_WAKEUP")
-        shell("wm dismiss-keyguard")
-    }
+    private fun wakeAndUnlock() = UnlockedDevice.unlock()
 
-    /**
-     * Leaves the device awake and unlocked for the next test class: `wm dismiss-keyguard` is
-     * asynchronous, and a keyguard still showing keeps every later activity from resuming.
-     */
-    private fun leaveUnlocked() {
-        wakeAndUnlock()
-        val unlocked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { !keyguard.isKeyguardLocked } } != null
-        check("test teardown: the keyguard must be gone for the next test", unlocked)
-    }
+    /** Leaves the device awake and unlocked for the next test class (the keyguard may linger). */
+    private fun leaveUnlocked() = UnlockedDevice.unlock()
 
     private fun <T : Any> eventuallyOrNull(timeout: Duration, probe: () -> T?): T? {
         val start = TimeSource.Monotonic.markNow()

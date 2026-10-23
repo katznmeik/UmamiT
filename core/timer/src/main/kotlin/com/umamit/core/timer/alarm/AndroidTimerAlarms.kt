@@ -40,13 +40,18 @@ class AndroidTimerAlarms @Inject constructor(
     private val alarmManager = checkNotNull(appContext.getSystemService(AlarmManager::class.java))
 
     override fun reconcile(due: DueTimes) {
-        TimerAlarmKind.entries.forEach { kind ->
+        TimerAlarmKind.DUE.forEach { kind ->
             val at = kind.timeIn(due)
             if (at == null) cancel(kind) else schedule(kind, at)
         }
     }
 
     override fun retry(kind: TimerAlarmKind, atMs: Long) = schedule(kind, atMs)
+
+    override fun watchAlert(atElapsedMs: Long?) {
+        val kind = TimerAlarmKind.ALERT_WATCHDOG
+        if (atElapsedMs == null) cancel(kind) else schedule(kind, atElapsedMs)
+    }
 
     /**
      * Sets the alarm of [kind] at [atMs] on its clock, replacing the earlier one

@@ -2,6 +2,7 @@ package com.umamit.core.timer
 
 import android.app.Application
 import com.umamit.core.timer.controller.EventSource
+import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerInputs
@@ -18,6 +19,7 @@ class TestTimerHost :
     TimerHost {
     val alarms = LinkedBlockingQueue<TimerAlarmKind>()
     val events = LinkedBlockingQueue<Pair<TimerEvent, EventSource>>()
+    val recoveries = LinkedBlockingQueue<RecoveryTrigger>()
 
     override val timerInputs: TimerInputs = object : TimerInputs {
         override suspend fun onAlarm(kind: TimerAlarmKind) = alarms.put(kind)
@@ -26,5 +28,7 @@ class TestTimerHost :
             events.put(event to source)
             return TransitionOutcome.Accepted
         }
+
+        override suspend fun recover(trigger: RecoveryTrigger) = recoveries.put(trigger)
     }
 }

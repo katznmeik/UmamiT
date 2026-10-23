@@ -7,7 +7,6 @@ import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.timer.engine.BrewTimerEngine
-import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerState
 import com.umamit.core.timer.engine.TimerTransition
@@ -43,9 +42,41 @@ internal class TransitionEffects(
     /** The alert the player plays, between `StartAlert` and its end or `StopAlert`. */
     private var playingAlert: StepAlert? = null
 
+    /** The current turn sent the service a command (`StartForeground`, `StopForeground`). */
+    private var serviceCommanded = false
+
+    /** An alert plays: `StartAlert` started it and nothing ended it yet (the alert watchdog follows it). */
+    val alertPlaying: Boolean get() = playingAlert != null
+
+    /** True while the alert of the alerting [state] plays. */
+    fun isPlaying(state: TimerState.Alerting): Boolean = playingAlert == stepAlertOf(state)
+
+    /** A new turn of the controller's event lock begins. */
+    fun beginTurn() {
+        serviceCommanded = false
+    }
+
+    /**
+     * At the end of a turn that may start the service from the background (an exact alarm, a
+     * notification action, a tap; 04 §6.2, §6.3): a start Android refused earlier goes again,
+     * with the notification of [timer], the state now (D-057, D-063). Not after a turn that
+     * sent the service a command itself: that command replaced the refused one, or was refused
+     * just now. A state that needs no service drops it. The alert keeps its full-screen intent
+     * while it plays.
+     */
+    fun retryRefusedStart(timer: TimerState, now: ClockReading) {
+        if (serviceCommanded) return
+        val ui = (state.value as? TimerUiState.Active)?.takeIf { BrewTimerEngine.needsService(timer) }
+        val fullScreen = timer is TimerState.Alerting && isPlaying(timer)
+        attempt { ports.service.retryRefusedStart(ui, fullScreen) }
+            ?.let { record(TimerDiagnostic.EffectFailed(now, TimerEffect.StartForeground, it)) }
+    }
+
     /**
      * Runs the effects of the accepted [transition] at [now]. [start] is the
      * request of a `CreateSession`; [teaName] the session's tea for the UI, [iceBrew] whether it is an ice brew.
+     * [savedSheetAsNotification]: a `ShowSavedSheet` is executed as
+     * `NotifySessionSaved` (*Beenden & neu starten*, D-054).
      */
     suspend fun run(
         transition: TimerTransition,
@@ -53,16 +84,19 @@ internal class TransitionEffects(
         start: SessionStart?,
         teaName: String?,
         iceBrew: Boolean = false,
+        savedSheetAsNotification: Boolean = false,
     ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
         persist(transition.effects.take(persistAt), transition.state, start, now)
         val ui = uiStateOf(transition.state, teaName, now, iceBrew)
         mutableState.value = ui
         val fullScreen = TimerEffect.StartAlert in transition.effects
-        transition.effects.drop(persistAt + 1).forEach { effect ->
-            attempt { executeSide(effect, transition.state, ui, fullScreen) }
-                ?.let { record(TimerDiagnostic.EffectFailed(now, effect, it)) }
-        }
+        transition.effects.drop(persistAt + 1)
+            .map { if (savedSheetAsNotification && it is TimerEffect.ShowSavedSheet) it.asNotification() else it }
+            .forEach { effect ->
+                attempt { executeSide(effect, transition.state, ui, fullScreen) }
+                    ?.let { record(TimerDiagnostic.EffectFailed(now, effect, it)) }
+            }
     }
 
     /**
@@ -80,25 +114,12 @@ internal class TransitionEffects(
     }
 
     /**
-     * The persisted state could not be restored (04 §7.2): its row is cleared and its alarms
-     * cancelled, so nothing runs a wrong timer; each step is logged if it fails.
+     * „Dein …-Timer läuft weiter" (04 §7.3) for the session that survived a reboot, after its
+     * recovery; not while alerting, where the alert is the notice (D-044).
      */
-    suspend fun discardUnreadable(now: ClockReading) {
-        attempt { activeBrew.clear() }?.let { record(TimerDiagnostic.PersistFailed(now, retry = false, error = it)) }
-        attempt { ports.alarms.reconcile(DueTimes.NONE) }
-            ?.let { record(TimerDiagnostic.EffectFailed(now, TimerEffect.ScheduleAlarms(DueTimes.NONE), it)) }
-    }
-
-    /**
-     * Sets the alarm of [kind] again [RETRY_DELAY_MS] after [now]: its turn could not read the
-     * persisted timer, and it may have been the step's only alarm (04 §7.2, D-057).
-     */
-    fun retryAlarm(kind: TimerAlarmKind, now: ClockReading) {
-        val at = RETRY_DELAY_MS + when (kind.clock) {
-            AlarmClock.ELAPSED -> now.elapsedMs
-            AlarmClock.WALL -> now.wallMs
-        }
-        attempt { ports.alarms.retry(kind, at) }?.let { Log.e(TAG, "alarm $kind could not be set again", it) }
+    fun notifyResumedAfterReboot() {
+        val active = (state.value as? TimerUiState.Active)?.takeUnless { it.alerting } ?: return
+        attempt { ports.notifier.notifyTimerResumed(active) }?.let { Log.w(TAG, "reboot notice not posted", it) }
     }
 
     /** Writes [entry] to the diagnostics log; a log that fails never stops the timer. */
@@ -160,9 +181,15 @@ internal class TransitionEffects(
                 ports.alert.stopAlert()
             }
 
-            TimerEffect.StartForeground -> ports.service.startForeground(ui as TimerUiState.Active, fullScreen)
+            TimerEffect.StartForeground -> {
+                serviceCommanded = true
+                ports.service.startForeground(ui as TimerUiState.Active, fullScreen)
+            }
 
-            TimerEffect.StopForeground -> ports.service.stopForeground()
+            TimerEffect.StopForeground -> {
+                serviceCommanded = true
+                ports.service.stopForeground()
+            }
 
             TimerEffect.UpdateNotification -> ports.notifier.update(ui as TimerUiState.Active, fullScreen)
 
@@ -174,18 +201,12 @@ internal class TransitionEffects(
         }
     }
 
-    companion object {
-        /** How soon a turn that could not read the persisted timer comes again (alarm and wake-up). */
-        const val RETRY_DELAY_MS = 5_000L
-    }
-
     /**
      * `StartAlert` (04 §4, D-048): ensures the alert of the alerting step
      * plays; an alert already playing for the same deadline is not restarted.
      */
     private fun startAlert(state: TimerState) {
-        val alerting = state as TimerState.Alerting
-        val alert = StepAlert(alerting.session.kind, alerting.stepIndex, alerting.deadlineWallMs)
+        val alert = stepAlertOf(state as TimerState.Alerting)
         if (alert == playingAlert) return
         ports.alert.startAlert(alert)
         playingAlert = alert
@@ -194,13 +215,20 @@ internal class TransitionEffects(
 
 private const val TAG = "UmamiTTimer"
 
+/** The alert of the alerting step of [state]: one per deadline (D-048). */
+private fun stepAlertOf(state: TimerState.Alerting) =
+    StepAlert(state.session.kind, state.stepIndex, state.deadlineWallMs)
+
+/** The saved sheet of a finish as the notification „Sitzung gespeichert" (D-054). */
+private fun TimerEffect.ShowSavedSheet.asNotification() = TimerEffect.NotifySessionSaved(sessionId)
+
 /**
  * Runs [block] and returns what it threw, or null. A storage or adapter error
  * of any kind must not stop the alert (rule 8, 04 §4), so every exception is
  * caught here and logged by the caller; cancellation still propagates.
  */
 @Suppress("TooGenericExceptionCaught") // any failure of a port or of storage is logged, never fatal (rule 8)
-private inline fun attempt(block: () -> Unit): Exception? = try {
+internal inline fun attempt(block: () -> Unit): Exception? = try {
     block()
     null
 } catch (e: CancellationException) {

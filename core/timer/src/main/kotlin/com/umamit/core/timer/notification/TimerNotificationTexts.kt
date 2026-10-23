@@ -92,8 +92,8 @@ internal class TimerNotificationTexts(private val context: Context) {
         },
     )
 
-    private fun teaOf(state: TimerUiState.Active): String =
-        state.teaName ?: context.getString(R.string.timer_quick_title)
+    /** The tea of [state], or „Schnelltimer". */
+    fun teaOf(state: TimerUiState.Active): String = state.teaName ?: context.getString(R.string.timer_quick_title)
 
     /** „14:30": the wall-clock end of a long step in the zone of [now] (TMR-18). */
     private fun timeOfDay(state: TimerUiState.Active, now: ClockReading): String {

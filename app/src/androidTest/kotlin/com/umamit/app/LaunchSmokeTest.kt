@@ -19,7 +19,10 @@ import com.umamit.feature.home.R as HomeR
 @RunWith(AndroidJUnit4::class)
 class LaunchSmokeTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val unlocked = UnlockedDeviceRule()
+
+    @get:Rule(order = 1)
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test

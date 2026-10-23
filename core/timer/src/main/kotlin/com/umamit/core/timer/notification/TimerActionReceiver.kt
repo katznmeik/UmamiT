@@ -7,7 +7,6 @@ import android.util.Log
 import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.engine.TimerEvent
-import com.umamit.core.timer.service.resendRefusedStart
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,9 +42,9 @@ class TimerActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         scope.launch {
             try {
+                // Within the tap's exemption the controller's turn also sends a start Android
+                // refused earlier once more, built from the state of now (D-063).
                 inputs.send(event, EventSource.NOTIFICATION)
-                // Within the tap's exemption: a start Android refused earlier goes once more (D-057).
-                resendRefusedStart(context.applicationContext)
             } finally {
                 pending.finish()
             }

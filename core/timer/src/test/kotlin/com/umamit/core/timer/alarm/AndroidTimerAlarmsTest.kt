@@ -88,7 +88,32 @@ class AndroidTimerAlarmsTest {
             assertThat(intent.component?.className).isEqualTo(TimerAlarmReceiver::class.java.name)
             shadowOf(alarm.operation).requestCode to TimerAlarmReceiver.kindOf(intent)
         }
-        assertThat(delivered).isEqualTo(TimerAlarmKind.entries.associateBy { it.requestCode })
+        assertThat(delivered).isEqualTo(TimerAlarmKind.DUE.associateBy { it.requestCode })
+    }
+
+    @Test
+    fun theAlertWatchdogIsAnExactElapsedWakeUpAlarmWithRequestCode107() {
+        alarms.watchAlert(90_000L)
+
+        val alarm = scheduled().single()
+        assertThat(alarm.type).isEqualTo(AlarmManager.ELAPSED_REALTIME_WAKEUP)
+        assertThat(alarm.triggerAtMs).isEqualTo(90_000L)
+        assertThat(alarm.isAllowWhileIdle).isTrue()
+        assertThat(alarm.windowLengthMs).isEqualTo(ShadowAlarmManager.WINDOW_EXACT)
+        assertThat(shadowOf(alarm.operation).requestCode).isEqualTo(107)
+        assertThat(TimerAlarmReceiver.kindOf(shadowOf(alarm.operation).savedIntent))
+            .isEqualTo(TimerAlarmKind.ALERT_WATCHDOG)
+    }
+
+    @Test
+    fun theDueSetLeavesTheWatchdogAloneAndOnlyItsOwnCallCancelsIt() {
+        alarms.watchAlert(90_000L)
+
+        alarms.reconcile(DueTimes.NONE)
+        assertThat(scheduled().map { shadowOf(it.operation).requestCode }).containsExactly(107)
+
+        alarms.watchAlert(null)
+        assertThat(scheduled()).isEmpty()
     }
 
     @Test

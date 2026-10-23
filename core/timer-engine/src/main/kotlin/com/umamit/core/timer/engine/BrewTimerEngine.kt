@@ -140,6 +140,14 @@ object BrewTimerEngine {
     fun isLongStep(state: TimerState): Boolean = state is TimerState.OnStep && state.session.isLongStep(state.stepIndex)
 
     /**
+     * True when [state] runs with the foreground service (04 §4, D-053): every
+     * active state except a demoted session and a running long step. False in
+     * Idle. The controller sends a start Android refused again only while the
+     * state still needs the service (D-063).
+     */
+    fun needsService(state: TimerState): Boolean = state is TimerState.Active && state.needsService
+
+    /**
      * The pre-alert lead time N of the current step of [state] in seconds,
      * whether its tick played or not, for the TimerRing glow and the
      * ProgressStyle point (04 §8.3). Null when the step has none (N = 0, a
