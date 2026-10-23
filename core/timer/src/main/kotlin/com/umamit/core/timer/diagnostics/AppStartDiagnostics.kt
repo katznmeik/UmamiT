@@ -36,7 +36,7 @@ fun interface PermissionStatesReader {
     fun read(): PermissionStates
 }
 
-/** The platform queries of [PermissionStatesReader] (the probe's status rows, #14). */
+/** The platform queries of [PermissionStatesReader] (verified on the Galaxy, #14). */
 class AndroidPermissionStatesReader @Inject constructor(@ApplicationContext context: Context) :
     PermissionStatesReader {
     private val appContext = context.applicationContext

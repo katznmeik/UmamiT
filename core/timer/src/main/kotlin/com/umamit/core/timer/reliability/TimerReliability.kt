@@ -61,7 +61,7 @@ data class ReliabilityStatus(private val states: Map<ReliabilityCheck, CheckStat
     }
 }
 
-/** The [ReliabilityStatus] of these permission states (the probe's proven checks, #14). */
+/** The [ReliabilityStatus] of these permission states (verified on the Galaxy, #14). */
 fun PermissionStates.toReliabilityStatus(): ReliabilityStatus = ReliabilityStatus(
     mapOf(
         ReliabilityCheck.Notifications to notifications.toCheckState(),
@@ -85,7 +85,7 @@ interface TimerReliability {
 
     /**
      * *Beheben* / the row's action: the system pages of [check] (03 §2.4), most specific first.
-     * The screen starts them from its Activity ([startFirstIntent]), as the probe did, so the
+     * The screen starts them from its Activity ([startFirstIntent]), so the
      * page opens in the app's task and back returns to the app.
      */
     fun settingsIntents(check: ReliabilityCheck): List<Intent>
@@ -114,8 +114,8 @@ class AndroidTimerReliability(private val reader: PermissionStatesReader, privat
 }
 
 /**
- * The settings pages of [check], most specific first (04 §6.2, §6.4, §8.2, §8.3; the probe's
- * proven pages, #14). The last one is always the app's details page, so a tap opens something
+ * The settings pages of [check], most specific first (04 §6.2, §6.4, §8.2, §8.3; verified
+ * on the Galaxy, #14). The last one is always the app's details page, so a tap opens something
  * where a page is missing (One UI, emulators). The battery asks for the exemption while the app
  * is restricted, and once it is exempt opens the app's details, where One UI keeps *Akku ›
  * Uneingeschränkt*.

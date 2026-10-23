@@ -258,14 +258,14 @@ class ProcessDeathTest {
 
     private fun wakeAndUnlock() = UnlockedDevice.unlock()
 
-    /** Polls [probe] until it returns non-null or [timeout] passes; then fails with [what] and the device state. */
-    private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
+    /** Polls [poll] until it returns non-null or [timeout] passes; then fails with [what] and the device state. */
+    private fun <T : Any> eventually(what: String, timeout: Duration, poll: () -> T?): T {
         val start = TimeSource.Monotonic.markNow()
         while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
+            poll()?.let { return it }
             Thread.sleep(POLL_INTERVAL_MS)
         }
-        probe()?.let { return it }
+        poll()?.let { return it }
         throw AssertionError("Timed out after $timeout waiting for: $what\n${deviceState()}")
     }
 

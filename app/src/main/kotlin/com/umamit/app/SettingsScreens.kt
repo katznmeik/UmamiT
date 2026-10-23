@@ -28,18 +28,15 @@ internal class AboutHost(val onBack: () -> Unit, val onRerunSetup: () -> Unit, v
  * The settings screens of M1 (SCR-25, SCR-27 with *Diagnose*) and the root's [onRerunSetup]
  * (*Einrichtung erneut zeigen*, ONB-04). The app uses the feature routes; tests replace them,
  * since those take their view models from Hilt.
- *
- * @property screen the settings; its second argument is the slot of the probe entry (M1-03a).
  */
 internal class SettingsScreens(
     val onRerunSetup: () -> Unit = {},
-    val screen: @Composable (SettingsHost, extraContent: @Composable () -> Unit) -> Unit = { host, extra ->
+    val screen: @Composable (SettingsHost) -> Unit = { host ->
         SettingsRoute(
             onBack = host.onBack,
             onOpenAbout = host.onOpenAbout,
             alertKey = host.alertKey,
             scrollToTopRequest = host.scrollToTopRequest,
-            extraContent = extra,
         )
     },
     val about: @Composable (AboutHost) -> Unit = { host ->

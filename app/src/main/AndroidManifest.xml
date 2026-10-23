@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Timer permissions (04 §13; complete app list: 06 §5.7, enforced by
-         `checkManifestPermissions`). The probe's status list (M1-03a, #14)
-         shows their state. -->
+         `checkManifestPermissions`). The reliability card in the settings
+         (TMR-31) shows the state of the user-controlled ones. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Not in the public SDK 36 stubs; on Android 16 promotion is governed by
          NotificationManager.canPostPromotedNotifications() (user setting).

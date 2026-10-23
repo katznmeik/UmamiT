@@ -12,7 +12,7 @@ import com.umamit.feature.settings.SettingsScreen
  * passing, the real *Über*, and a stand-in log for *Diagnose*.
  */
 internal fun testSettingsScreens(): SettingsScreens = SettingsScreens(
-    screen = { host, extra ->
+    screen = { host ->
         SettingsScreen(
             settings = UserSettings(),
             status = ReliabilityStatus.AllOk,
@@ -20,7 +20,6 @@ internal fun testSettingsScreens(): SettingsScreens = SettingsScreens(
             onBack = host.onBack,
             actions = SettingsActions(openAbout = host.onOpenAbout),
             scrollToTopRequest = host.scrollToTopRequest,
-            extraContent = extra,
         )
     },
     about = { host ->

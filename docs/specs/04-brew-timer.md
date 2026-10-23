@@ -594,7 +594,7 @@ every change of the timer notification goes through the service, never
 Reason: Android 16 force-groups two ungrouped notifications of an app in the
 same importance section (`config_autoGroupAtCount` = 2) and marks them
 `FLAG_SILENT`; System UI then suppresses the full-screen intent and the
-heads-up (`docs/plans/M1-probe-api-notes.md`).
+heads-up (`docs/plans/M1-android16-api-notes.md`).
 
 **Full-screen alert (D-036):** the alert notification (ID 2) carries a
 full-screen intent to SCR-05 for short **and** long steps. With the screen

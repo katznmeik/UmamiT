@@ -1961,7 +1961,7 @@ with SET-31 in M1.
 ### D-044 — Alert replaces the Live Update while ALERTING; promotion always requested · *Accepted* (Claude, 2026-10-22)
 
 Root-caused at T4 from the CI emulator (API 36) and the AOSP Android 16
-sources (details and source references: `docs/plans/M1-probe-api-notes.md`):
+sources (details and source references: `docs/plans/M1-android16-api-notes.md`):
 
 - **Full-screen alert:** Android 16 force-groups an app's ungrouped
   notifications once two share an importance section and marks them
@@ -2072,6 +2072,9 @@ Grilled with the PO before the M1 start:
   notification, heads-up instead of full-screen) stay in the real timer
   (M1-11) even if the probe passes, because permissions can be revoked and
   One UI can change later.
+- **Removed (#54):** the probe screen, its classes and its tests were removed
+  in M1-18 (#54); the real timer's emulator tests (#42, #46, #47) and
+  `PermissionStatesDeviceTest` cover what the probe tests checked.
 
 <a id="d-039"></a>
 ### D-039 — `release.yml` on `main` before the first dispatch · *Accepted* (PO, 2026-10-21)

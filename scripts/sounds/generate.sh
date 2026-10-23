@@ -10,7 +10,7 @@
 #   - glockenspiel.ogg  "Glockenspiel": a rising four-note steel-bar arpeggio;
 #   - sanft.ogg         "Sanft": two soft, round tones rising a fourth.
 # Klangschale and tick are variant C of the Q-15 listening round (2026-10-22,
-# chosen by the PO after the probe: the first draft was not bright enough);
+# chosen by the PO after the first on-device test: the first draft was not bright enough);
 # they must stay byte-identical (D-045). The other four came with SET-09 (D-059).
 # Own work, no third-party audio (docs/design/assets/source/CREDITS.md).
 #

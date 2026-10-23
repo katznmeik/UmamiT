@@ -86,8 +86,7 @@ class SettingsActions(
 /**
  * Settings (SCR-25) with their view model: the checks are read again on every resume; a test
  * alert stops when the screen leaves. [alertKey] is the alert playing now: no dialog is composed
- * over it (rule 8). [extraContent] is the app's slot for the throwaway probe entry (M1-03a) until
- * M1-18 removes it.
+ * over it (rule 8).
  */
 @Composable
 fun SettingsRoute(
@@ -97,7 +96,6 @@ fun SettingsRoute(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
-    extraContent: @Composable () -> Unit = {},
 ) {
     val context = LocalContext.current
     val settings by viewModel.current.collectAsStateWithLifecycle()
@@ -145,7 +143,6 @@ fun SettingsRoute(
         ),
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
-        extraContent = extraContent,
     )
 }
 
@@ -160,7 +157,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
     scrollToTopRequest: Int = 0,
-    extraContent: @Composable () -> Unit = {},
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
     // Rule 8: an alert removes an open dialog in its first frame, without animation.
@@ -193,7 +189,6 @@ fun SettingsScreen(
             modifier = Modifier.testTag(SettingsTags.ABOUT),
             chevron = true,
         )
-        extraContent()
     }
     if (!alerting) {
         when (dialog) {

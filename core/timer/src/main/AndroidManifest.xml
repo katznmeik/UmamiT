@@ -2,9 +2,8 @@
 <!--
   Timer components and the permissions they need (04 §13, 06 §5.7). The app
   manifest declares the same permissions; duplicates merge. The real timer's
-  alarm receiver, foreground service (M1-09, #42) and notification actions (M1-11) sit
-  next to the probe's components (M1-03a, #15), which go with the probe
-  screen (#54).
+  alarm receiver, foreground service (M1-09, #42), notification actions (M1-11)
+  and recovery receiver (#46).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
@@ -42,19 +41,6 @@
             android:name=".notification.TimerActionReceiver"
             android:exported="false" />
 
-        <service
-            android:name=".probe.ProbeTimerService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Tea steeping countdown timer started by the user" />
-        </service>
-
-        <receiver
-            android:name=".ExactAlarmReceiver"
-            android:exported="false" />
-
         <!-- The timer's alarms (04 §6.2, #42): every kind to the controller's onAlarm. -->
         <receiver
             android:name=".alarm.TimerAlarmReceiver"
@@ -70,20 +56,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-
-        <receiver
-            android:name=".probe.ProbeActionReceiver"
-            android:exported="false" />
-
-        <!-- Shown over the lock screen only while it is on screen:
-             setShowWhenLocked / setTurnScreenOn are set from code (04 §13). -->
-        <activity
-            android:name=".probe.ProbeAlertActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:launchMode="singleTask"
-            android:taskAffinity=""
-            android:theme="@style/Theme.UmamiT.TimerAlert" />
     </application>
 
 </manifest>

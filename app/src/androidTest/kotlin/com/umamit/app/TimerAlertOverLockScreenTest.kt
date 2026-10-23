@@ -19,7 +19,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
-import com.umamit.app.probe.Dumpsys
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
@@ -191,22 +190,22 @@ class TimerAlertOverLockScreenTest {
             "interactive=${power.isInteractive}\n--- notifications ---\n$notifications\n--- activities ---\n$activities"
     }
 
-    private fun <T : Any> eventuallyOrNull(timeout: Duration, probe: () -> T?): T? {
+    private fun <T : Any> eventuallyOrNull(timeout: Duration, poll: () -> T?): T? {
         val start = TimeSource.Monotonic.markNow()
         while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
+            poll()?.let { return it }
             Thread.sleep(POLL_INTERVAL_MS)
         }
-        return probe()
+        return poll()
     }
 
-    private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
+    private fun <T : Any> eventually(what: String, timeout: Duration, poll: () -> T?): T {
         val start = TimeSource.Monotonic.markNow()
         while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
+            poll()?.let { return it }
             Thread.sleep(POLL_INTERVAL_MS)
         }
-        probe()?.let { return it }
+        poll()?.let { return it }
         throw AssertionError("Timed out after $timeout waiting for: $what\n${deviceState()}")
     }
 
