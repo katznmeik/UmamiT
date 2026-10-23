@@ -123,6 +123,21 @@ class TimerRingTest {
     }
 
     @Test
+    fun `a long step's level that goes down snaps, so the liquor never sinks`() {
+        // After Abgegossen the next long step starts at 0 (A1 of the M1 motion pass).
+        show(initial = 1f, longStep = true)
+        updateProgress(0f)
+        assertThat(colorAtHeight(BOTTOM).isTintedByLiquor()).isFalse()
+    }
+
+    @Test
+    fun `a long step's level that goes down mid-step snaps too`() {
+        show(initial = NEARLY_DONE, longStep = true)
+        updateProgress(0f)
+        assertThat(colorAtHeight(BOTTOM).isTintedByLiquor()).isFalse()
+    }
+
+    @Test
     fun `under reduce motion long steps jump without a glide`() {
         show(initial = 0f, longStep = true, reduceMotion = true)
         // Not 1: the update to 1 snaps in both modes, so it would not prove the missing glide.

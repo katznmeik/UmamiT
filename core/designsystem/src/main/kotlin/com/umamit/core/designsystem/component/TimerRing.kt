@@ -1,8 +1,6 @@
 package com.umamit.core.designsystem.component
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -154,7 +153,8 @@ private const val GLOW_MIN_RADIUS = 0.4f
  *   recomposing it; only [remainingSeconds] (1 Hz) recomposes.
  * - **Long steps** ([longStep]): the caller updates [progress] about every
  *   `UmamiMotion.longStepUpdateIntervalMillis`; ring and fill glide there with
- *   `longStepGlide`. The last update to 1 snaps, so no glide runs into the alert.
+ *   `longStepGlide`. The last update to 1 snaps, so no glide runs into the alert,
+ *   and so does a level that goes down: only forward progress glides.
  * - **Pre-alert glow:** each new [preAlertGlowTick] (the caller passes one per
  *   pre-alert tick, e.g. the tick's time) makes the marker swell once with
  *   `preAlertGlow`, unscaled so it stays in sync with the 0.8 s tick. A glow is
@@ -209,20 +209,26 @@ fun TimerRing(
 
 /**
  * The level to draw, read in the draw phase. Short steps (and long steps under
- * reduce motion) draw [progress] as given. Long steps glide to each coarse
- * update; reading [progress] in composition is fine there, it changes every 10 s.
+ * reduce motion) draw [progress] as given. Long steps glide forward to each
+ * coarse update; reading [progress] in composition is fine there, it changes every 10 s.
+ *
+ * Only forward progress glides. A level that goes down (the next long step after
+ * *Abgegossen* starts at 0) is drawn at once: the liquor never sinks.
  */
 @Composable
 internal fun rememberRingLevel(progress: () -> Float, longStep: Boolean, motion: UmamiMotion): () -> Float {
     if (!longStep || motion.reduceMotion) {
         return remember(progress) { { progress().coerceIn(0f, 1f) } }
     }
-    val target = progress().coerceIn(0f, 1f)
-    // The step's end is drawn at once: nothing may still be moving when the alert starts (rule 8).
-    val done = target >= 1f
-    val spec = if (done) snap() else motion.longStepGlide<Float>()
-    val glided = animateFloatAsState(target, spec, label = "longStepProgress")
-    return remember(glided, done) { { if (done) 1f else glided.value } }
+    val target = rememberUpdatedState(progress().coerceIn(0f, 1f))
+    val glide = remember { Animatable(target.value) }
+    LaunchedEffect(target.value) {
+        val next = target.value
+        // The step's end is drawn at once: nothing may still be moving when the alert starts (rule 8).
+        if (next >= 1f || next < glide.value) glide.snapTo(next) else glide.animateTo(next, motion.longStepGlide())
+    }
+    // Capped by the target, so a decrease shows in its first frame, before the effect has snapped.
+    return remember(glide) { { if (target.value >= 1f) 1f else minOf(glide.value, target.value) } }
 }
 
 @Composable

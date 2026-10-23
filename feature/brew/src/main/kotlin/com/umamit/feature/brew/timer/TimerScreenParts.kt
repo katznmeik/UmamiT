@@ -35,6 +35,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -346,7 +347,12 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
             .semantics { this[RingDimKey] = dim }
             .then(
                 if (ready) {
-                    Modifier.clickable(onClickLabel = startLabel) { actions.event(TimerEvent.Start) }
+                    Modifier.clickable(
+                        interactionSource = null,
+                        // Round like the ring: the bounded default flashes a square around it (A2).
+                        indication = ripple(bounded = false, radius = TimerRingDefaults.Size / 2),
+                        onClickLabel = startLabel,
+                    ) { actions.event(TimerEvent.Start) }
                 } else {
                     Modifier
                 },
