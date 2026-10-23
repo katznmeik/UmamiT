@@ -2,10 +2,23 @@ package com.umamit.feature.brew.timer
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SeedData
+import com.umamit.core.data.SessionStart
+import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Photo
+import com.umamit.core.model.PhotoOrigin
+import com.umamit.core.model.PhotoOwner
+import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
@@ -16,10 +29,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /** The timer's view model over a fake [BrewTimer]: it forwards events and reads the settings and checks. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,7 +66,54 @@ class TimerViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = TimerViewModel(timer, clock, settings, reliability)
+    @get:Rule
+    val folder = TemporaryFolder()
+
+    private val collection = FakeCollection()
+    private val sessions = FakeSessions(collection)
+    private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }
+
+    private fun viewModel() =
+        TimerViewModel(timer, clock, settings, reliability, sessions.sessions, collection.teas, photos)
+
+    private suspend fun startHisuiSession(id: String) {
+        val snapshot = SessionSnapshot(
+            teaId = SeedData.HISUI_TEA_ID,
+            teaName = "Bio Sencha Hisui",
+            teaSecondaryName = null,
+            teaType = "Sencha",
+            styleKey = "sencha",
+            category = null,
+            profileId = null,
+            profileName = "Kyusu",
+            method = BrewMethod.KYUSU,
+            vesselId = SeedData.KYUSU_VESSEL_ID,
+            vesselName = "Kyusu",
+            leafGrams = 5.0,
+            waterMl = 250,
+            baseTempC = 65,
+        )
+        sessions.sessions.startSession(
+            SessionStart(id, snapshot, listOf(PlannedStep(StepKind.INFUSION, 60, 65)), 15, 1_000, "UTC"),
+        )
+    }
+
+    @Test
+    fun `the brew's tea photo reaches the timer, none without a cover photo or for the quick timer (S3, D-058)`() =
+        runTest {
+            collection.teas.saveTea(SeedData.hisui)
+            startHisuiSession("s1")
+            val vm = viewModel()
+            assertThat(vm.teaPhotoPath.value).isNull()
+
+            collection.teas.savePhoto(Photo("p1", PhotoOwner.OfTea(SeedData.HISUI_TEA_ID), PhotoOrigin.OWN, 10, 10, 3))
+            photos.write("p1", byteArrayOf(1, 2, 3))
+            collection.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "p1")
+            assertThat(vm.teaPhotoPath.value).isEqualTo(photos.file("p1").path)
+
+            timer.state.value = TimerStates.quick(TimerPhase.RUNNING)
+            assertThat(vm.teaPhotoPath.value).isNull()
+        }
 
     @Test
     fun `the state is the controller's state and events go to the controller`() {
