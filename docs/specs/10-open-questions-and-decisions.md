@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-22
+> Status: **Living document** · Last updated: 2026-10-23
 
 ## Open questions
 
@@ -301,6 +301,61 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-067"></a>
+### D-067 — Accuracy workflow before each release candidate (TMR-30, #52) · *Accepted* (Claude, 2026-10-23)
+
+#52 built the accuracy run of [04 §12](04-brew-timer.md#12-testing)
+as the manually dispatched workflow the PO chose in spec #40 (seam 6). How to
+run and read it: [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate).
+Decided while building it:
+
+- **Own workflow, own test.** `.github/workflows/accuracy.yml`
+  (`workflow_dispatch`: `ref`, `api-level` 36 / 35 / both, `steps`,
+  `inject-delay-ms`) runs `AccuracyRunTest` in `core:timer`'s instrumented
+  tests. The regular emulator job skips that test (it runs only with the
+  instrumentation argument `umamitAccuracy=true`), so CI stays fast. The
+  emulator setup is copied from `ci.yml` with a keep-in-sync comment rather
+  than moved into a composite action, so the green CI job stays untouched; both
+  use the same cache keys. Like `release.yml` it must be on `main` before
+  the first dispatch (D-039).
+- **Run with `am instrument`, not Gradle** (`scripts/accuracy-run.sh`): a
+  Gradle connected run uninstalls the test APK at the end, and the report is
+  in the test app's private files, which the script copies out with `run-as`.
+- **The run:** 50 steps of 60 s with a 10 s pre-alert in five sessions of
+  ten, through the test APK's real controller, alarms, service and
+  notifications (#42, #47). Between steps the test taps *Abgegossen* in the
+  alert and *Start* in the Live Update, and ends each session with
+  *Sitzung beenden*, as the PO does on the lock screen. The screen is
+  switched off (`KEYCODE_SLEEP`, checked) from each *Start* until the alert
+  turns it on.
+- **What is measured:** the accepted `PreAlertReached` and
+  `DeadlineReached` entries of the diagnostics log (D-060). Their delay is the
+  time from the scheduled to the actual time on the monotonic clock: the
+  moment the controller handled the event and started the tick or the alert,
+  from either the exact alarm or the in-process wake-up (the CSV says which).
+  It does not include the audio output (the CI emulator has no audio).
+  `FireTime.parse` is the inverse of `TimerDiagnosticFormat`, and a round-trip
+  unit test keeps the two together. Parser and report (`AccuracyReport`) live
+  in `core:timer` next to the format; nothing in the app calls them, so R8
+  removes them from the release.
+- **Verdict:** the absolute delays, nearest-rank p50 / p95 and the max per
+  event. The run passes only when every planned step completed and both
+  events have p95 ≤ 250 ms and max ≤ 1 s. A step that times out still writes
+  the report of the steps before it.
+- **Gate check:** `inject-delay-ms` makes the test app set the pre-alert and
+  deadline alarms, and arm the wake-up, that many ms late (`InjectedDelay`,
+  test APK only). A run with, say, 1500 ms must fail, which proves the gate
+  bites without changing and reverting app code.
+- **Result:** `accuracy.md` goes into the job summary together with the ref
+  and the commit. The artifact `accuracy-api-<level>` (30 days) holds
+  `accuracy.md`, `accuracy.csv` (one row per fire time: step, event, source,
+  scheduled and actual wall and monotonic time, delta), the diagnostics log
+  lines, the instrumentation output and logcat.
+- **Scope:** the emulator proves the timer's own path (controller, alarms,
+  wake-up, service) with the screen off. It does not doze within a 60 s step,
+  and it is not a Samsung phone. The device numbers still come from
+  *Diagnose* in the 09 §4 checklist.
 
 <a id="d-064"></a>
 ### D-064 — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
@@ -1851,6 +1906,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
 | 2026-10-22 | D-064: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
 | 2026-10-22 | D-062: Start, tea picker and setup (#48): `BrewStarter` seam following the `BrewTimer` binding, *Nochmal brühen* from the last session, *Zuletzt gebrüht* row format, picker as Material sheet with GEN-10 search and an immediate pick, scaling from the locked ratio (0,1 g / 5 ml steppers), *Im Rezept speichern* only when changed with an in-place confirmation, cold/ice kettle hint, *Brühen anpassen* through the setup; every route above the shell or timer gives way to the timer on a new alert, overlays and the TMR-21 question never over an alert. 03 SCR-02, SCR-03, SCR-04 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |

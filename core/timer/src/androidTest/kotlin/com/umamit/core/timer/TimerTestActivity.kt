@@ -19,18 +19,21 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * Starts a brew session of one step through the real controller, in the main process of the
- * test APK and while it is in the foreground, as *Brühen starten* and *Start* do in the app;
- * then closes. The step has no pre-alert, so its deadline alarm is its only alarm.
+ * Starts a brew session through the real controller, in the main process of the test APK and
+ * while it is in the foreground, as *Brühen starten* and *Start* do in the app; then closes.
+ * By default the session has one step without a pre-alert, so its deadline alarm is its only
+ * alarm; the accuracy run (#52) starts sessions of several steps with a pre-alert.
  */
 class TimerTestActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val seconds = intent.getIntExtra(EXTRA_SECONDS, 0)
         val coldBrew = intent.getBooleanExtra(EXTRA_COLD_BREW, false)
+        val steps = intent.getIntExtra(EXTRA_STEPS, 1)
+        val preAlertSeconds = intent.getIntExtra(EXTRA_PRE_ALERT, 0)
         val controller = (application as TimerTestApplication).controller
         CoroutineScope(Dispatchers.Main).launch {
-            val started = controller.startSession(brew(seconds, coldBrew))
+            val started = controller.startSession(brew(seconds, coldBrew, steps, preAlertSeconds))
             val running = controller.send(TimerEvent.Start)
             Log.i(TAG, "Step of $seconds s: start $started, Start $running")
             // The test runs in another process: it reads the outcome here and fails fast on a refusal.
@@ -49,6 +52,8 @@ class TimerTestActivity : Activity() {
         private const val TAG = "UmamiTTimerTest"
         private const val EXTRA_SECONDS = "seconds"
         private const val EXTRA_COLD_BREW = "coldBrew"
+        private const val EXTRA_STEPS = "steps"
+        private const val EXTRA_PRE_ALERT = "preAlertSeconds"
 
         /** The tea of the test session; the alert notification shows it after the restart. */
         const val TEA = "Testtee"
@@ -59,14 +64,24 @@ class TimerTestActivity : Activity() {
         /** Where the activity writes the outcome of the start (app-private, shared by both processes). */
         fun outcomeFile(context: Context): File = File(context.filesDir, "timer-test-start.txt")
 
-        /** A step of [seconds]; with [coldBrew] every step is a long step without the service (TMR-18). */
-        fun intent(context: Context, seconds: Int, coldBrew: Boolean = false): Intent =
-            Intent(context, TimerTestActivity::class.java)
-                .putExtra(EXTRA_SECONDS, seconds)
-                .putExtra(EXTRA_COLD_BREW, coldBrew)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        /**
+         * A session of [steps] infusions of [seconds] each, with a pre-alert of [preAlertSeconds]
+         * (0: none); with [coldBrew] every step is a long step without the service (TMR-18).
+         */
+        fun intent(
+            context: Context,
+            seconds: Int,
+            coldBrew: Boolean = false,
+            steps: Int = 1,
+            preAlertSeconds: Int = 0,
+        ): Intent = Intent(context, TimerTestActivity::class.java)
+            .putExtra(EXTRA_SECONDS, seconds)
+            .putExtra(EXTRA_COLD_BREW, coldBrew)
+            .putExtra(EXTRA_STEPS, steps)
+            .putExtra(EXTRA_PRE_ALERT, preAlertSeconds)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-        private fun brew(seconds: Int, coldBrew: Boolean) = BrewStart(
+        private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int) = BrewStart(
             snapshot = SessionSnapshot(
                 teaId = null,
                 teaName = TEA,
@@ -83,9 +98,9 @@ class TimerTestActivity : Activity() {
                 waterMl = null,
                 baseTempC = 60,
             ),
-            steps = listOf(PlannedStep(StepKind.INFUSION, seconds, tempC = 60)),
+            steps = List(steps) { PlannedStep(StepKind.INFUSION, seconds, tempC = 60) },
             recipePreAlertSeconds = 0,
-            preAlert = PreAlertChoice.Off,
+            preAlert = if (preAlertSeconds > 0) PreAlertChoice.Seconds(preAlertSeconds) else PreAlertChoice.Off,
         )
     }
 }

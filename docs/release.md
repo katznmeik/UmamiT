@@ -2,7 +2,7 @@
 
 How Claude publishes a signed APK. The spec is
 [06 §6 and §6.1](specs/06-architecture.md#6-build--distribution); decisions
-D-035, D-039 and D-040.
+D-035, D-039, D-040 and D-067 (accuracy run).
 
 ## Dispatching a release
 
@@ -56,6 +56,27 @@ file (4th argument or `UMAMIT_EXPECTED_CERT_FILE`):
 ```bash
 scripts/verify-release-apk.sh app/build/outputs/apk/release/app-release.apk 0.0.1-probe 101
 ```
+
+## Before each release candidate: the accuracy run
+
+Every `X.Y.Z-rc.N` needs a passing timer accuracy run on the commit it is
+built from (TMR-30, D-067). How to dispatch `.github/workflows/accuracy.yml`
+and how to read its summary is in
+[09 §4a](specs/09-release-plan.md#4a-accuracy-run-before-each-release-candidate).
+In short:
+
+1. Push the rc commit, then dispatch `accuracy.yml` with `ref` = that branch
+   or SHA (default `api-level` 36, `steps` 50, `inject-delay-ms` 0). A run
+   takes about an hour.
+2. The job summary must say **Result: PASS** (p95 ≤ 250 ms and max ≤ 1 s for
+   the pre-alert and the alert, all 50 steps). Link the run in the rc's
+   announcement.
+3. Then bump the version and dispatch `release.yml`. If the bump is the only
+   change since the run, the run still counts.
+
+Locally, with a device or emulator attached, the same test runs with
+`./gradlew :core:timer:assembleDebugAndroidTest && scripts/accuracy-run.sh`
+(report in `build/accuracy/`).
 
 ## Checking the fingerprint on the phone
 

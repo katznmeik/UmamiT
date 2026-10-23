@@ -1,0 +1,181 @@
+# Timer accuracy run (04 §12, TMR-30; #52, D-067): 50 × 60 s steps with the
+# screen off through the real controller, alarms and service on the CI
+# emulator, read from the diagnostics log (D-060). It must pass before each
+# release candidate (09 §4a); Claude dispatches it, like release.yml. It is not
+# run on push: it takes about an hour per API level.
+#
+# - GitHub dispatches only workflows that exist on the default branch (D-039),
+#   so this file must be on `main` before the first dispatch.
+# - The emulator setup is copied from the `emulator` job of ci.yml (KVM, cached
+#   emulator and system image installed with retries, cached AVD snapshot);
+#   keep the two in sync. The cache keys are the same, so both reuse one cache.
+# - Result: `accuracy.md` in the job summary, and an artifact per API level
+#   with accuracy.md, accuracy.csv, the diagnostics log lines, the
+#   instrumentation output and logcat.
+name: Timer accuracy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit SHA to test (the commit of the next rc)
+        required: true
+        default: claude/umamit-m1-start-k0jg3n
+      api-level:
+        description: Emulator API level
+        type: choice
+        options: ['36', '35', both]
+        default: '36'
+      steps:
+        description: Steps of 60 s (50 for the rc gate; fewer only to try the workflow)
+        required: true
+        default: '50'
+      inject-delay-ms:
+        description: Gate check only, must fail - delay every pre-alert and alert by this many ms (0 = a real run)
+        required: true
+        default: '0'
+
+concurrency:
+  group: accuracy-${{ inputs.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.console=plain
+
+jobs:
+  accuracy:
+    name: Accuracy (API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    # About 55 min of steps (50 × 60 s plus taps), 10–15 min of build and
+    # emulator boot, and margin.
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ${{ fromJSON(inputs.api-level == 'both' && '[35, 36]' || format('[{0}]', inputs.api-level)) }}
+    env:
+      AVD_TARGET: google_apis
+      AVD_ARCH: x86_64
+      AVD_PROFILE: pixel_6
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+          cache-read-only: false
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build the timer's test APK
+        run: ./gradlew :core:timer:assembleDebugAndroidTest
+
+      # Copied from ci.yml (emulator job): dl.google.com sometimes serves a
+      # truncated archive or index, so the packages are cached and installed up
+      # front with retries.
+      - name: Locate the Android SDK
+        run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Emulator and system image cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ env.SDK_DIR }}/emulator
+            ${{ env.SDK_DIR }}/system-images/android-${{ matrix.api-level }}/${{ env.AVD_TARGET }}/${{ env.AVD_ARCH }}
+          key: sdk-emulator-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-v1
+
+      - name: Install emulator and system image (with retries)
+        run: |
+          sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          image="system-images;android-${{ matrix.api-level }};$AVD_TARGET;$AVD_ARCH"
+          for attempt in 1 2 3; do
+            if yes | "$sdkmanager" --install emulator "$image" > /dev/null; then
+              exit 0
+            fi
+            echo "sdkmanager attempt $attempt failed; retrying in 30 s."
+            sleep 30
+          done
+          echo "::error::Could not install the emulator or $image after 3 attempts (dl.google.com)."
+          exit 1
+
+      - name: AVD cache
+        id: avd-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}-v1
+
+      - name: Create AVD and snapshot for the cache
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD snapshot created for the cache."
+
+      # The inputs reach the script as environment variables only (never
+      # expanded into the command line); the script validates them.
+      - name: Accuracy run
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          ACCURACY_STEPS: ${{ inputs.steps }}
+          ACCURACY_INJECT_DELAY_MS: ${{ inputs.inject-delay-ms }}
+          ACCURACY_OUT: build/accuracy
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash scripts/accuracy-run.sh
+
+      - name: Job summary
+        if: always()
+        env:
+          REF: ${{ inputs.ref }}
+          API_LEVEL: ${{ matrix.api-level }}
+        run: |
+          {
+            if [ -s build/accuracy/accuracy.md ]; then
+              cat build/accuracy/accuracy.md
+            else
+              echo "### Timer accuracy · API $API_LEVEL"
+              echo
+              echo "**Result: no report**: the run stopped before the test wrote one; see the job log."
+            fi
+            echo
+            echo "Ref \`$REF\`, commit \`$(git rev-parse HEAD)\`. Details: artifact \`accuracy-api-$API_LEVEL\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: accuracy-api-${{ matrix.api-level }}
+          path: build/accuracy/
+          retention-days: 30
+          if-no-files-found: ignore

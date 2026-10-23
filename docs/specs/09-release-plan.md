@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -17,7 +17,9 @@
    During the milestone the PO tests **release candidates** `v0.x.0-rc.N`
    (pre-releases built from the PR branch); after the merge the final
    `v0.x.0` is built from `main`. The version lives only in
-   `gradle.properties`.
+   `gradle.properties`. Before each release candidate the accuracy
+   workflow must pass ([§4a](#4a-accuracy-run-before-each-release-candidate),
+   D-067).
 4. Specs are updated in the same PR when behaviour changes.
 5. **Definition of done per milestone:** the on-device checklist passes on
    the PO's Galaxy **and** a design review round passes. For the review,
@@ -122,6 +124,72 @@ only.
 - [ ] Device backup restore check: `adb shell bmgr backupnow com.umamit.app` then uninstall/reinstall restores teas, journal and settings (or a new-device transfer when available); no session is resumed after the restore.
 - [ ] *Sicherung erstellen* writes a `.umamit` file that opens as a ZIP and contains `data.json` with the teas and sessions and the own photos.
 - [ ] 200 % font, dark theme, TalkBack spot checks pass.
+
+## 4a. Accuracy run before each release candidate
+
+From M1 on, the timer's accuracy (TMR-30,
+[04 §12](04-brew-timer.md#12-testing)) is measured on the CI emulator before
+every `vX.Y.Z-rc.N` (PO decision in spec #40; D-067). Claude dispatches the
+run and reads its result. The PO is involved only through the summary linked
+in the rc's announcement. The rc is dispatched only after the run passes on
+the commit it is built from. A later commit that touches the timer (`core:timer`,
+`core:timer-engine`, the app's timer wiring) needs a new run.
+
+**What it does.** `.github/workflows/accuracy.yml` builds `core:timer`'s
+instrumented test APK and boots the CI emulator (same setup and caches as the
+CI emulator job). Then `scripts/accuracy-run.sh` runs `AccuracyRunTest`. The
+test runs 50 steps of 60 s with a 10 s pre-alert through the real controller,
+alarms, foreground service and notifications. The screen is off during every
+step, and *Abgegossen* / *Start* / *Sitzung beenden* are tapped in the
+notifications between steps. It takes about an hour per API level. The
+regular CI emulator job skips this test.
+
+**Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
+`accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
+
+| Input | Default | Meaning |
+|---|---|---|
+| `ref` | the M1 branch | Branch, tag or SHA to test: the commit of the next rc |
+| `api-level` | `36` | `36`, `35` or `both` (one job per level, in parallel) |
+| `steps` | `50` | `50` for the rc gate; fewer only to try the workflow |
+| `inject-delay-ms` | `0` | Gate check only: every pre-alert and alert this many ms late; such a run must **fail** |
+
+With the `gh` CLI the same dispatch is
+`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.
+GitHub dispatches only workflows that exist on `main` (D-039).
+
+**Reading the result.** The run page's summary shows a table per API level:
+
+| Event | Steps | p50 | p95 | max | Fired by | On target |
+|---|---:|---:|---:|---:|---|---|
+| Pre-alert | 50 / 50 | 4 ms | 12 ms | 31 ms | WAKE_UP 50 | yes |
+| Alert | 50 / 50 | 5 ms | 14 ms | 40 ms | WAKE_UP 50 | yes |
+
+*(Illustrative numbers.)*
+
+- **Delay** is the actual minus the scheduled time of the pre-alert and the
+  alert, as the diagnostics log records them (06 §5.6, D-060), on the
+  monotonic clock. *Fired by* says whether the in-process wake-up or the exact
+  alarm delivered the event.
+- **Pass** („**Result: PASS**", job green): all 50 steps completed, and both
+  events have p95 ≤ 250 ms and max ≤ 1 s. Anything else fails the job:
+  a slow distribution, or a step that never alerted. In that case the test
+  failure in the log names the step and shows the device state.
+- **Details:** the artifact `accuracy-api-<level>` has `accuracy.csv` (one row
+  per fire time: step, event, source, scheduled and actual wall and monotonic
+  time, delta), `diagnostics.txt` (the log lines it read), the
+  instrumentation output and logcat.
+- A failed run blocks the rc. Find the cause from the CSV and the log lines,
+  fix it (rule 8), and run again. A flaky emulator start (no report at all)
+  may simply be re-run once.
+
+**Proving the gate.** Once per workflow change, Claude dispatches a run with
+`inject-delay-ms: 1500` and a few `steps`. It must fail with the delays
+around 1.5 s; the gate check changes nothing in the app.
+
+On the phone, the same numbers come from *Einstellungen › Über › Diagnose*
+(the M1 checklist above): the emulator neither dozes within a 60 s step nor
+behaves like a Samsung phone.
 
 ## 5. Post-1.0 backlog
 

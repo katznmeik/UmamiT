@@ -4,7 +4,7 @@
 > recovery and snapshot, D-048; time rules and service contract, D-053;
 > slice review: controller rules, alarm kinds, notification per state, D-054;
 > controller inputs and ports, D-056; alarms, service and recovery in the
-> first turn, D-057)
+> first turn, D-057; accuracy workflow, D-067, 2026-10-23)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -737,7 +737,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
 | Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057); alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
-| Accuracy | 50 × 60 s steps screen off in the CI emulator job; on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
+| Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 
 ## 13. Manifest declarations (timer-related)
 
