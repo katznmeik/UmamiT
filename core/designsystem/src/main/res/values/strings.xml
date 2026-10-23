@@ -49,6 +49,10 @@
     <!-- ReliabilityBanner -->
     <string name="ds_reliability_fix">Beheben</string>
     <string name="ds_reliability_description">Warnung: %1$s</string>
+    <!-- StatusCheckRow (ONB-02, SET-24): the state TalkBack reads after the label. -->
+    <string name="ds_status_ok">erledigt</string>
+    <string name="ds_status_missing">fehlt</string>
+    <string name="ds_status_unavailable">auf diesem Gerät nicht nötig</string>
 
     <!-- Top-level screen actions -->
     <string name="ds_settings">Einstellungen</string>

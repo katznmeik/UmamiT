@@ -4,9 +4,12 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.timer.reliability.CheckState
+import com.umamit.core.timer.reliability.ReliabilityCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,23 +35,13 @@ class TimerViewModelTest {
         }
     }
 
-    private class FakeReliability(var problem: Boolean) : TimerReliability {
-        var fixes = 0
-
-        override fun hasProblem() = problem
-
-        override fun fix() {
-            fixes++
-        }
-    }
-
     private val clock = object : MonotonicClock {
         override fun elapsedMs() = 42L
 
         override fun bootCount() = 1
     }
     private val timer = FakeBrewTimer(TimerStates.running())
-    private val reliability = FakeReliability(problem = false)
+    private val reliability = FakeTimerReliability()
     private val settings = FakeSettingsRepository(UserSettings(keepScreenOn = false, dimWhileSteeping = false))
 
     @Before
@@ -84,11 +77,11 @@ class TimerViewModelTest {
         val vm = viewModel()
         assertThat(vm.reliabilityProblem.value).isFalse()
 
-        reliability.problem = true
+        reliability.set(ReliabilityCheck.FullScreenAlert, CheckState.Missing)
         vm.refreshReliability()
         vm.fixReliability()
 
         assertThat(vm.reliabilityProblem.value).isTrue()
-        assertThat(reliability.fixes).isEqualTo(1)
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.FullScreenAlert)
     }
 }

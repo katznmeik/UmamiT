@@ -1,5 +1,6 @@
 package com.umamit.feature.home
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.MonotonicClock
@@ -16,6 +17,9 @@ import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.controller.brewAgainStart
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.timer.reliability.TimerReliability
+import com.umamit.core.timer.reliability.firstMissingIntents
+import com.umamit.core.timer.reliability.hasProblem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +62,7 @@ data class HomeQuestion(val teaName: String?)
  * @property active the active session or quick timer: *Aufguss fortsetzen* with a live countdown (GEN-06).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
+ * @property reliabilityProblem a reliability check is missing: the banner (TMR-31).
  */
 data class HomeUiState(
     val loading: Boolean = true,
@@ -68,6 +73,7 @@ data class HomeUiState(
     val favorites: List<HomeTea> = emptyList(),
     val question: HomeQuestion? = null,
     val alertKey: String? = null,
+    val reliabilityProblem: Boolean = false,
 )
 
 /** What Start asks its host to do once. */
@@ -89,8 +95,10 @@ class HomeViewModel @Inject constructor(
     private val starter: BrewStarter,
     private val clock: MonotonicClock,
     private val photos: PhotoFiles,
+    private val reliability: TimerReliability,
 ) : ViewModel() {
     private val pending = MutableStateFlow<Pending?>(null)
+    private val reliabilityProblem = MutableStateFlow(reliability.hasProblem())
     private val navigation = Channel<HomeEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host. */
@@ -101,7 +109,8 @@ class HomeViewModel @Inject constructor(
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
         starter.state,
         pending,
-    ) { overviews, recentSessions, timer, question ->
+        reliabilityProblem,
+    ) { overviews, recentSessions, timer, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
         val byId = owned.associateBy { it.tea.id }
         val photoOf = { id: String -> byId[id]?.coverPhoto?.path() }
@@ -119,6 +128,7 @@ class HomeViewModel @Inject constructor(
             }.map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
             question = question?.question,
             alertKey = timer.alertKey(),
+            reliabilityProblem = problem,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 
@@ -131,6 +141,14 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    /** Reads the reliability checks again; Start calls it on every resume (TMR-31). */
+    fun refreshReliability() {
+        reliabilityProblem.value = reliability.hasProblem()
+    }
+
+    /** The banner's *Beheben*: the pages of the first missing check, for Start to start. */
+    fun fixReliability(): List<Intent> = reliability.firstMissingIntents()
 
     /** The monotonic clock of the deadlines, for the live countdown of *Aufguss fortsetzen*. */
     fun nowElapsedMs(): Long = clock.elapsedMs()

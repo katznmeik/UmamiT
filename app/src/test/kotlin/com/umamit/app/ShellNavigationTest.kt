@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
@@ -61,7 +62,11 @@ class ShellNavigationTest {
     private fun start(reduceMotion: Boolean = true) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
-                UmamitApp(activeBrewSource = source, journalSources = testJournalSources())
+                UmamitApp(
+                    activeBrewSource = source,
+                    journalSources = testJournalSources(),
+                    settings = testSettingsScreens(),
+                )
             }
         }
     }
@@ -100,8 +105,8 @@ class ShellNavigationTest {
     fun settingsOpensFromStartGear() {
         start()
         openSettingsFromStart()
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.probe_entry)).assertIsDisplayed()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.probe_entry)).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -111,7 +116,7 @@ class ShellNavigationTest {
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
         compose.onNodeWithText(str(DesignSystemR.string.ds_settings)).performClick()
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
     }
 
     @Test
@@ -121,7 +126,7 @@ class ShellNavigationTest {
         tab(Tab.Journal).performClick()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
         tab(Tab.Start).performClick()
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
     }
 
     @Test
@@ -133,12 +138,12 @@ class ShellNavigationTest {
 
         tab(Tab.Start).performClick()
         assertThat(scrollPosition()).isEqualTo(0f)
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertExists()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertExists()
 
         tab(Tab.Start).performClick()
         // Start's empty state sits below the quick timer, under the fold of the short window.
         compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertExists()
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertDoesNotExist()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertDoesNotExist()
     }
 
     @Test
@@ -183,7 +188,7 @@ class ShellNavigationTest {
         scrollDown()
         tab(Tab.Start).performClick()
 
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertExists()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertExists()
         assertThat(scrollPosition()).isEqualTo(0f)
     }
 
@@ -193,7 +198,11 @@ class ShellNavigationTest {
         val restoration = StateRestorationTester(compose)
         restoration.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
-                UmamitApp(activeBrewSource = source, journalSources = testJournalSources())
+                UmamitApp(
+                    activeBrewSource = source,
+                    journalSources = testJournalSources(),
+                    settings = testSettingsScreens(),
+                )
             }
         }
         repeat(3) { tab(Tab.Start).performClick() }
@@ -227,7 +236,7 @@ class ShellNavigationTest {
         tab(Tab.Journal).performClick()
         compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
         compose.onNodeWithText(str(DesignSystemR.string.ds_settings)).performClick()
-        compose.onNodeWithText(str(SettingsR.string.settings_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
 
         pressBack()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()

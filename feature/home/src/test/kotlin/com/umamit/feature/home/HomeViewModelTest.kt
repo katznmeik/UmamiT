@@ -12,8 +12,11 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
+import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.reliability.CheckState
+import com.umamit.core.timer.reliability.ReliabilityCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -36,6 +39,7 @@ class HomeViewModelTest {
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
     private val starter = FakeBrewStarter()
+    private val reliability = FakeTimerReliability()
     private val clock = object : MonotonicClock {
         override fun elapsedMs() = 5_000L
 
@@ -97,6 +101,7 @@ class HomeViewModelTest {
         starter,
         clock,
         PhotoFiles(folder.newFolder("photos")),
+        reliability,
     )
 
     @Test
@@ -226,5 +231,18 @@ class HomeViewModelTest {
 
         assertThat(vm.state.value.question).isNull()
         assertThat(vm.state.value.alertKey).isNotNull()
+    }
+
+    @Test
+    fun `the banner follows the checks when read again, and Beheben asks for the missing one (TMR-31)`() {
+        val vm = viewModel()
+        assertThat(vm.state.value.reliabilityProblem).isFalse()
+
+        reliability.set(ReliabilityCheck.Notifications, CheckState.Missing)
+        vm.refreshReliability()
+        vm.fixReliability()
+
+        assertThat(vm.state.value.reliabilityProblem).isTrue()
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.Notifications)
     }
 }

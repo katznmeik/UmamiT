@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
@@ -68,7 +69,7 @@ class TimerNavigationTest {
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
                         }
                     },
-                    diagnosticsScreen = { Text("DIAGNOSE-LOG") },
+                    settings = testSettingsScreens(),
                     startScreen = { tab ->
                         Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
                     },
@@ -145,7 +146,8 @@ class TimerNavigationTest {
     fun `the alert pops Diagnose opened from Timer-Einstellungen back to the timer at once`() {
         show()
         openSettingsFromTimer()
-        compose.onNodeWithText("Diagnose").performClick()
+        compose.onNodeWithText("Über UmamiT").performScrollTo().performClick()
+        compose.onNodeWithText("Diagnose").performScrollTo().performClick()
         compose.onNodeWithText("DIAGNOSE-LOG").assertIsDisplayed()
         compose.mainClock.autoAdvance = false
 

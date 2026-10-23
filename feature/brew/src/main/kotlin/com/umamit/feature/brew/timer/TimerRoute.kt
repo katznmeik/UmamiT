@@ -6,10 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.reliability.startFirstIntent
 
 /**
  * The timer route (SCR-05). Back keeps the session running (03 §2.3); the
@@ -26,6 +28,7 @@ fun BrewTimerRoute(
     modifier: Modifier = Modifier,
     viewModel: TimerViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
     val problem by viewModel.reliabilityProblem.collectAsStateWithLifecycle()
@@ -45,7 +48,7 @@ fun BrewTimerRoute(
             modifier = modifier,
             settings = settings,
             reliabilityProblem = problem,
-            onFixReliability = viewModel::fixReliability,
+            onFixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
         )
 
         TimerUiState.Idle -> LaunchedEffect(Unit) { currentOnClose() }
