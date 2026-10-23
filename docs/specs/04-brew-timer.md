@@ -5,7 +5,8 @@
 > slice review: controller rules, alarm kinds, notification per state, D-054;
 > controller inputs and ports, D-056; alarms, service and recovery in the
 > first turn, D-057; recovery triggers, device restore, alert watchdog, D-063;
-> accuracy workflow, D-067, 2026-10-23)
+> accuracy workflow, D-067, 2026-10-23; deadline guard, accuracy up to the
+> sound, D-068, 2026-10-23)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -242,7 +243,7 @@ flowchart LR
   `deadlineReached` and a `recover` (or two `recover`s) that both ask for it
   give one alert (D-048).
 - **Foreground service (D-053).** `StartForeground` means "ensure it runs";
-  `StopForeground` stops it and removes notifications 1 and 2, also when they
+  `StopForeground` stops it and removes notifications 1, 2 and 4, also when they
   were posted without the service. Every active state runs with the service
   except a demoted session and a long running step. So:
   - `startSession`, `startQuickTimer`, and `start`/`resume` of a short step
@@ -354,7 +355,7 @@ rules (D-047):
 | Situation | Mechanisms (all active together) |
 |---|---|
 | Short step RUNNING | Controller coroutine until pre-alert/deadline · exact alarms for pre-alert and deadline · foreground service with Live Update · partial wake lock |
-| Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick) · Live Update „Fertig um 14:30" (`longStepEndWallMs`, the quiet notification ID 4, promotion requested; D-064) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
+| Long step RUNNING (≥ 10 min, or any step of a cold or ice brew) | Exact alarm for deadline only (no pre-alert tick), with the deadline guard 90 s later (§6.2, D-068) · Live Update „Fertig um 14:30" (`longStepEndWallMs`, the quiet notification ID 4, promotion requested; D-064) without foreground service · no wake lock. Pausing it brings the FGS back like any waiting state. |
 | READY / PAUSED / FINISHED | Foreground service keeps the Live Update (no wake lock) for up to 30 min, then `idleDemote` stops it; midnight alarm (inexact) for `midnightTimeout`. After a process restart, recovery tries to restart the FGS immediately (§6.3); if Android refuses, a plain ongoing notification is shown until the next user interaction or exact alarm restarts the FGS (§7.2). |
 | ALERTING | Foreground service keeps the process in the foreground while the `AlertPlayer` plays; wake lock for the longest alert + 30 s (2 min 30 s) from the start of the alert, released by the next state (D-057) |
 
@@ -376,12 +377,17 @@ rules (D-047):
   | `idleDemoteAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 104 | `idleDemote` |
   | `quickCancelAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 105 | `quickTimerTimeout` |
   | `midnightAtWallMs` | inexact, `set(RTC)` (no wake-up) | 106 | `midnightTimeout` |
-  | — (alert watchdog, while the alert plays) | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)`, every 30 s | 107 | nothing of its own |
+  | — (alert watchdog: deadline + 90 s while a step runs, every 30 s while the alert plays) | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)` | 107 | nothing of its own |
 
   The alert watchdog is no `DueTimes` field and `ScheduleAlarms` leaves it
-  alone: the controller sets it while the alert plays and cancels it when
-  the alert ends. Its only job is to start a process after a kill, whose
-  recovery replays the alert (§7.2, D-063).
+  alone: the controller sets it at the end of every turn. While a step runs
+  it is the **deadline guard**, 90 s after the deadline (D-068); the deadline
+  turn replaces it by the alert's 30 s cadence (the first one 30 s after the
+  alert started); when the alert ends, the step pauses or ends, it is
+  cancelled. Its only job is to start a process after a kill, whose recovery
+  replays the alert (§7.2, D-063, D-068). In a live process it finds nothing
+  due, and `StartAlert` never restarts the playing alert, so an alert never
+  plays twice.
 
   The elapsed fields use `ELAPSED_REALTIME` so a wall-clock change never
   moves them (E1); the overtime timeout is exact because it may start the
@@ -500,6 +506,18 @@ would acknowledge the step silently. So while the alert plays, the alert
 watchdog alarm (§6.2) comes every 30 s: a new process it starts replays the
 alert that had not run its cycle (at least once, D-047).
 
+**A lost deadline alarm (D-068).** A long step runs without the service, so
+its deadline alarm is its only wake-up. Android skips every broadcast to a
+process while Auto Backup runs the app's full backup, then kills the
+process: the alarm counts as delivered and nothing else comes, and the
+recovery in the morning would acknowledge the step silently (night, idle
+and charging are the conditions of both an overnight cold brew and the
+backup). So while a step runs, the alert watchdog alarm is set 90 s after
+the deadline as a deadline guard: a process it starts finds the deadline
+passed less than 10 min ago and alerts, at most 90 s late. The same guard
+covers a kill between the deadline turn and the first watchdog of its
+alert, and any other lost deadline broadcast.
+
 **Device restore (E11, D-063).** Restore detection clears `active_brew`
 (05 §8). Recovery then ends every `IN_PROGRESS` session other than the active
 one: saved with `auto_finished` when it has a completed infusion, else
@@ -561,7 +579,7 @@ away, including the FGS restart attempt (D-063).
 
 | Phase | Title | Text | Actions |
 |---|---|---|---|
-| READY | Gyokuro · Aufguss 2 von 3 | Bereit · 0:20 · Wasserkocher auf 60 °C | *Start* |
+| READY | Gyokuro · Aufguss 2 von 3 | Bereit · 0:20 · Wasserkocher auf 60 °C (≤ 10 °C: „Kaltes Wasser", an ice brew „Eiswürfel", as SCR-05; BRW-10, D-068) | *Start* |
 | RUNNING | Gyokuro · Aufguss 2 von 3 | Zieht bei 60 °C (chronometer countdown) | *Pause* |
 | RUNNING after pre-alert | Gyokuro · Aufguss 2 von 3 | Gleich fertig … | *Pause* |
 | PAUSED | Gyokuro · Aufguss 2 von 3 | Pausiert · noch 0:12 | *Weiter* |
@@ -632,7 +650,7 @@ ongoing notification** (Live Update):
   (`setUsesChronometer(true)`, `setChronometerCountDown(true)`,
   `setWhen(deadlineWall)`); no static short critical text with a time. In
   READY / PAUSED / FINISHED a short critical text is used (e.g. „60 °C",
-  „Pause").
+  „Pause"; at most 10 °C „Kaltes Wasser" or „Eiswürfel", D-068).
 - Shown as a status-bar chip and on the lock screen. On One UI 8 it may also
   appear in the Samsung **Now Bar**; this is **best effort** (One UI may
   require the user to enable live notifications per app or a developer
@@ -753,8 +771,8 @@ Uses the global pre-alert, the same alert and the Live Update
 | # | Case | Expected behaviour |
 |---|---|---|
 | E1 | Clock or time zone changed during a step | No effect (monotonic). |
-| E2 | Reboot during a step | §7.3: alarms rescheduled at boot. `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime, if that is less than 10 min after the deadline. From 10 min on, recovery applies the overtime timeout silently (§7.2): no alert, the step is recorded as poured on time (e.g. a night restart during a cold brew, unlocked in the morning). Accepted for a personal app; a direct-boot path is `Could` (§7.3). |
-| E3 | Process killed during a short step | Exact alarm fires → FGS started → alert plays. |
+| E2 | Reboot during a step | §7.3: alarms rescheduled at boot (the deadline guard too, D-068). `BOOT_COMPLETED` arrives only after the first unlock (the database is credential-encrypted), so the alert fires on time only if the phone is unlocked before the deadline; otherwise it fires right after the first unlock, with overtime, if that is less than 10 min after the deadline. From 10 min on, recovery applies the overtime timeout silently (§7.2): no alert, the step is recorded as poured on time (e.g. a night restart during a cold brew, unlocked in the morning). Accepted for a personal app; a direct-boot path is `Could` (§7.3). |
+| E3 | Process killed during a step | Exact alarm fires → FGS started → alert plays. If the deadline broadcast is lost (an Auto Backup full backup skips it), the deadline guard 90 s later starts the process and recovery alerts (§7.2, D-068). |
 | E4 | App swiped from recents | Session continues. |
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
@@ -775,7 +793,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
 | Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
-| Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
+| Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert, measured up to the moment the player started the sound (the „alert" entry), not the handling of the event (D-068). |
 
 ## 13. Manifest declarations (timer-related)
 
