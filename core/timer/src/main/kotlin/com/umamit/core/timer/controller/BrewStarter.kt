@@ -2,7 +2,6 @@ package com.umamit.core.timer.controller
 
 import com.umamit.core.model.BrewSession
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -34,25 +33,17 @@ interface BrewStarter {
 }
 
 /**
- * The [BrewStarter] of the app: the controller itself.
- *
- * *Beenden & neu starten* runs as two controller turns for now (finish or
- * cancel, then start). #46 replaces it with the controller's one-turn
- * operation that sends the finish's saved sheet as `NotifySessionSaved`
- * (D-054); the seam stays the same (D-062).
+ * The [BrewStarter] of the app: the controller itself. *Beenden & neu
+ * starten* is the controller's one-turn operation, which posts the finish's
+ * saved sheet as `NotifySessionSaved` (D-054, D-063).
  */
 class ControllerBrewStarter @Inject constructor(private val controller: BrewSessionController) : BrewStarter {
     override val state: StateFlow<TimerUiState> get() = controller.state
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome = controller.startSession(request)
 
-    override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome {
-        when ((controller.state.value as? TimerUiState.Active)?.sessionId) {
-            null -> controller.send(TimerEvent.Cancel)
-            else -> controller.send(TimerEvent.FinishSession)
-        }
-        return controller.startSession(request)
-    }
+    override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome =
+        controller.finishActiveAndStart(request)
 }
 
 /**

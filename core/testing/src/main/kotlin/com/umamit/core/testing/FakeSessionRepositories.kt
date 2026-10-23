@@ -157,6 +157,9 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
 
     override suspend fun getSession(id: String): BrewSession? = s.sessionRows.value[id]
 
+    override suspend fun inProgressSessionIds(): List<String> =
+        s.sessionRows.value.values.filter { it.status == SessionStatus.IN_PROGRESS }.map { it.id }
+
     override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = s.sessionRows.map { map ->
         map.values.filter { it.status != SessionStatus.IN_PROGRESS }.sortedByDescending { it.startedAtMs }.take(limit)
     }

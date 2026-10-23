@@ -271,20 +271,33 @@ class TimerNotificationsDeviceTest {
         }
     }
 
-    /** No timer from an earlier test: alarms cancelled, screens closed, process killed, database deleted. */
+    /**
+     * No timer from an earlier test: alarms cancelled (the alert watchdog too, D-063), screens
+     * closed, process killed, database deleted. A process that started meanwhile recovered the
+     * old session at its start (04 §7.2), so it is killed once more after the database is gone.
+     */
     private fun resetTimer() {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
-        alarms.reconcile(DueTimes.NONE)
-        activityManager.appTasks.forEach { it.finishAndRemoveTask() }
-        eventually("timer process gone", TIMEOUT) {
-            timerPid()?.let(Process::killProcess)
-            Unit.takeIf { timerPid() == null }
+        val cancelAlarms = {
+            alarms.reconcile(DueTimes.NONE)
+            alarms.watchAlert(null)
         }
-        alarms.reconcile(DueTimes.NONE)
+        cancelAlarms()
+        activityManager.appTasks.forEach { it.finishAndRemoveTask() }
+        killTimerProcess()
+        cancelAlarms()
         context.deleteDatabase(UmamiDatabase.NAME)
+        killTimerProcess()
+        cancelAlarms()
         TimerTestActivity.outcomeFile(context).delete()
+        TimerTestActivity.deadlineFile(context).delete()
         notificationManager.cancelAll()
+    }
+
+    private fun killTimerProcess() = eventually("timer process gone", TIMEOUT) {
+        timerPid()?.let(Process::killProcess)
+        Unit.takeIf { timerPid() == null }
     }
 
     private fun timerPid(): Int? = activityManager.runningAppProcesses

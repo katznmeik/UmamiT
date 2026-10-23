@@ -228,24 +228,57 @@ class BrewTimerServiceTest {
     }
 
     @Test
-    fun `a refused start is sent again only once, and a newer command drops it`() {
-        val refusing = portOn(
-            object : ContextWrapper(app) {
-                override fun startForegroundService(service: Intent): ComponentName =
-                    throw ForegroundServiceStartNotAllowedException("app is in the background (test)")
-            },
-        )
+    fun `a refused start is sent again once, with the state given now, and a newer command drops it`() {
+        val refusing = refusingPort()
         refusing.startForeground(alerting(), fullScreen = true)
 
-        resendRefusedStart(app)
-        assertThat(BrewTimerService.notificationIdOf(startedCommand())).isEqualTo(TimerNotifications.ID_ALERT)
-        resendRefusedStart(app)
+        // *Abgegossen* came meanwhile: the start goes again for READY, not for the refused alert (D-063).
+        port.retryRefusedStart(ready(), fullScreen = false)
+        val command = startedCommand()
+        assertThat(BrewTimerService.notificationIdOf(command)).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
+        assertThat(BrewTimerService.isForegroundRequired(command)).isTrue()
+        port.retryRefusedStart(ready(), fullScreen = false)
         assertThat(shadowOf(app).nextStartedService).isNull()
 
         refusing.startForeground(alerting(), fullScreen = true)
         port.startForeground(ready(), fullScreen = false)
         startedCommand()
-        resendRefusedStart(app)
+        port.retryRefusedStart(ready(), fullScreen = false)
+        assertThat(shadowOf(app).nextStartedService).isNull()
+    }
+
+    @Test
+    fun `an alert sent again keeps its full-screen intent and does not alert twice`() {
+        refusingPort().startForeground(alerting(), fullScreen = true)
+
+        port.retryRefusedStart(alerting(), fullScreen = true)
+
+        val alert = checkNotNull(BrewTimerService.notificationOf(startedCommand()))
+        assertThat(alert.fullScreenIntent).isNotNull()
+        assertThat(alert.flags and Notification.FLAG_ONLY_ALERT_ONCE).isNotEqualTo(0)
+    }
+
+    @Test
+    fun `a start refused again is logged as such and waits for the next try`() {
+        val refusing = refusingPort()
+        refusing.startForeground(running(remainingMs = 60_000), fullScreen = false)
+
+        refusing.retryRefusedStart(running(remainingMs = 50_000), fullScreen = false)
+
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.ServiceStartRefused>().map { it.again })
+            .containsExactly(false, true)
+            .inOrder()
+        port.retryRefusedStart(running(remainingMs = 40_000), fullScreen = false)
+        assertThat(BrewTimerService.notificationIdOf(startedCommand())).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
+    }
+
+    @Test
+    fun `a state that needs no service drops the refused start`() {
+        refusingPort().startForeground(running(remainingMs = 60_000), fullScreen = false)
+
+        port.retryRefusedStart(null, fullScreen = false)
+        port.retryRefusedStart(running(remainingMs = 50_000), fullScreen = false)
+
         assertThat(shadowOf(app).nextStartedService).isNull()
     }
 
@@ -320,6 +353,14 @@ class BrewTimerServiceTest {
         is TimerDiagnostic.ServiceStopped -> "stopped"
         else -> toString()
     }
+
+    /** A port whose context Android refuses every `startForegroundService` (the background, no exemption). */
+    private fun refusingPort() = portOn(
+        object : ContextWrapper(app) {
+            override fun startForegroundService(service: Intent): ComponentName =
+                throw ForegroundServiceStartNotAllowedException("app is in the background (test)")
+        },
+    )
 
     private fun portOn(context: android.content.Context) = BrewTimerServicePort(
         context = context,

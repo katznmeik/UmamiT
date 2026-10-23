@@ -44,6 +44,9 @@ data class AlarmsReconciled(val due: DueTimes) : PortCall
 /** The alarm of [kind] set again at [atMs] on its clock (a turn that could not read the timer). */
 data class AlarmRetried(val kind: TimerAlarmKind, val atMs: Long) : PortCall
 
+/** The alert watchdog alarm set at [atElapsedMs], or cancelled (null). */
+data class AlertWatchdogSet(val atElapsedMs: Long?) : PortCall
+
 data class ServiceStarted(val phase: TimerPhase) : PortCall
 
 /** A `startForeground` of the [FakeTimerService]: the state's phase and whether its alert was full screen. */
@@ -51,9 +54,18 @@ data class ForegroundStart(val phase: TimerPhase, val fullScreen: Boolean)
 
 data object ServiceStopped : PortCall
 
+/** Android refused a foreground start of the service in [phase] (04 §6.3). */
+data class ServiceStartRefused(val phase: TimerPhase) : PortCall
+
+/** The start Android refused was sent again, with the notification of [phase] (D-063). */
+data class ServiceStartRetried(val phase: TimerPhase, val fullScreen: Boolean) : PortCall
+
 data class NotificationShown(val phase: TimerPhase, val fullScreen: Boolean) : PortCall
 
 data class SessionSavedNotified(val sessionId: String) : PortCall
+
+/** „Dein …-Timer läuft weiter" after a reboot (04 §7.3) for a session in [phase]. */
+data class TimerResumedNotified(val phase: TimerPhase) : PortCall
 
 data object PreAlertPlayed : PortCall
 
@@ -65,12 +77,17 @@ data class SavedSheetShown(val sessionId: String) : PortCall
 
 /**
  * Fake [TimerAlarmPort]: [armed] is the due set of the last reconcile, as the alarm manager would hold it;
- * [retries] the alarms set again.
+ * [retries] the alarms set again; [watchdogAtElapsedMs] the alert watchdog alarm, [watchdogCancelled]
+ * whether the last call cancelled it.
  */
 class FakeTimerAlarms(private val log: TimerPortLog = TimerPortLog()) : TimerAlarmPort {
     var armed: DueTimes = DueTimes.NONE
         private set
     val retries = mutableListOf<AlarmRetried>()
+    var watchdogAtElapsedMs: Long? = null
+        private set
+    var watchdogCancelled = false
+        private set
 
     override fun reconcile(due: DueTimes) {
         armed = due
@@ -81,11 +98,20 @@ class FakeTimerAlarms(private val log: TimerPortLog = TimerPortLog()) : TimerAla
         retries += AlarmRetried(kind, atMs)
         log.record(AlarmRetried(kind, atMs))
     }
+
+    override fun watchAlert(atElapsedMs: Long?) {
+        watchdogAtElapsedMs = atElapsedMs
+        watchdogCancelled = atElapsedMs == null
+        log.record(AlertWatchdogSet(atElapsedMs))
+    }
 }
 
 /**
  * Fake [TimerServicePort]: [running] while started and not stopped; [foreground] is its notification's state,
- * [fullScreen] whether that notification's alert was full screen; [starts] every start in order.
+ * [fullScreen] whether that notification's alert was full screen; [starts] every start in order. With
+ * [refusing], Android refuses a start that finds the service stopped, as from the background without an
+ * exemption; the refused start is kept until a newer command or a stop, and [retried] lists every start
+ * sent again.
  */
 class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerServicePort {
     var running = false
@@ -95,17 +121,22 @@ class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerSe
     var fullScreen = false
         private set
     val starts = mutableListOf<ForegroundStart>()
+    val retried = mutableListOf<ForegroundStart>()
 
     /** Makes every port call throw, like an adapter bug, to check that nothing after it is skipped. */
     var failing = false
 
+    /** Android refuses to start the stopped service (a background start without an exemption, 04 §6.3). */
+    var refusing = false
+
+    /** A refused start waits to be sent again. */
+    var startRefused = false
+        private set
+
     override fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) {
         check(!failing) { "service start failed (test)" }
-        running = true
-        foreground = state
-        this.fullScreen = fullScreen
         starts += ForegroundStart(state.phase, fullScreen)
-        log.record(ServiceStarted(state.phase))
+        show(state, fullScreen)
     }
 
     override fun stopForeground() {
@@ -113,15 +144,43 @@ class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerSe
         running = false
         foreground = null
         fullScreen = false
+        startRefused = false
         log.record(ServiceStopped)
+    }
+
+    override fun retryRefusedStart(state: TimerUiState.Active?, fullScreen: Boolean) {
+        check(!failing) { "service retry failed (test)" }
+        if (!startRefused) return
+        startRefused = false
+        if (state == null) return
+        retried += ForegroundStart(state.phase, fullScreen)
+        log.record(ServiceStartRetried(state.phase, fullScreen))
+        show(state, fullScreen)
+    }
+
+    private fun show(state: TimerUiState.Active, fullScreen: Boolean) {
+        if (refusing && !running) {
+            startRefused = true
+            log.record(ServiceStartRefused(state.phase))
+            return
+        }
+        startRefused = false
+        running = true
+        foreground = state
+        this.fullScreen = fullScreen
+        log.record(ServiceStarted(state.phase))
     }
 }
 
-/** Fake [TimerNotifierPort]: [shown] is the last posted timer notification's state; [sessionsSaved] notification 3. */
+/**
+ * Fake [TimerNotifierPort]: [shown] is the last posted timer notification's state; [sessionsSaved] notification 3;
+ * [timersResumed] the reboot notices.
+ */
 class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerNotifierPort {
     var shown: TimerUiState.Active? = null
         private set
     val sessionsSaved = mutableListOf<String>()
+    val timersResumed = mutableListOf<TimerUiState.Active>()
 
     override fun update(state: TimerUiState.Active, fullScreen: Boolean) {
         shown = state
@@ -131,6 +190,11 @@ class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerN
     override fun notifySessionSaved(sessionId: String) {
         sessionsSaved += sessionId
         log.record(SessionSavedNotified(sessionId))
+    }
+
+    override fun notifyTimerResumed(state: TimerUiState.Active) {
+        timersResumed += state
+        log.record(TimerResumedNotified(state.phase))
     }
 }
 
