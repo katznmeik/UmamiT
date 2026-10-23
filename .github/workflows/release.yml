@@ -106,13 +106,15 @@ jobs:
 
       # The full quality gate, the emulator job and the R8 build run in CI on
       # every push; a release is built only from a commit where they passed.
+      # Only a push run in this repository counts: a fork's pull-request run of
+      # ci.yml on the same SHA could be made to pass.
       - name: Check that CI passed on the commit
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           run_url="$(gh api -X GET "repos/$GH_REPO/actions/runs" -f head_sha="$SHA" -f status=success -f per_page=100 \
-            --jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml")] | first | .html_url // empty')"
+            --jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml" and .event == "push" and .head_repository.full_name == env.GH_REPO)] | first | .html_url // empty')"
           if [[ -z "$run_url" ]]; then
             echo "::error::No successful CI run (ci.yml) for $SHA. Wait until CI on that commit has passed (rerun a flaky job if needed), then dispatch again."
             exit 1
