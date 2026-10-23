@@ -1,5 +1,10 @@
 # M1 probe: Android 16 API notes (for M1-11)
 
+> Historical record. The probe (`ProbeTimer`, `ProbeTimerService`,
+> `ProbeStepTest` and the rest) was removed in M1-18 (#54); the patterns below
+> live on in the real timer (`LiveUpdateNotification`, `TimerStateNotifications`,
+> `TimerNotifications`) and its emulator tests (`TimerNotificationsDeviceTest`).
+
 Recorded in M1-03a (#15). These names were checked with `javap` against the
 compile SDK (`platforms/android-36/android.jar`, Platform 16 rev 2) and
 AndroidX Core 1.18.0, and against the Android 16 framework that Robolectric
@@ -273,7 +278,7 @@ API 35. `ProbeAlertActivity` calls `setShowWhenLocked(true)` and
   notifications of an app in the same importance section
   (`config_autoGroupAtCount` = 2) and marks them `FLAG_SILENT`; System UI
   then suppresses the full-screen intent and the heads-up
-  (`docs/plans/M1-probe-api-notes.md`)."
+  (`docs/plans/M1-android16-api-notes.md`)."
 - **04 §8.3, second bullet, replace „The system promotes it only if …":**
   „On Android 16 the request is always set, also while the user does not
   allow promotion, so the system promotes the posted notification as soon as
