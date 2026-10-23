@@ -96,8 +96,6 @@ fun TimerScreen(
             keepScreenOn = settings.keepScreenOn,
             dimmed = dimming.dimmed && state.phase == TimerPhase.RUNNING && !state.preAlertReached(now),
         )
-        // Light icons on the dark Steeping surface, dark ones on the washi/matcha alert (#54 S1).
-        SystemBarIcons(darkIcons = alerting)
 
         val actions = rememberTimerActions(state, overlays, onEvent, onBack, onAdjustBrew, onOpenTimerSettings)
 
@@ -155,6 +153,8 @@ fun TimerScreen(
                 onDismiss = { overlays.confirmation = null },
             )
         }
+        // Light icons on the dark Steeping surface, dark ones on the washi/matcha alert (#54 S1).
+        SystemBarIcons(darkIcons = alerting)
     }
 }
 

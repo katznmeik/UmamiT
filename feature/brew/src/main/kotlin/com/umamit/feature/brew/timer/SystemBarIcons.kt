@@ -20,21 +20,24 @@ import androidx.core.view.WindowCompat
 @Composable
 internal fun SystemBarIcons(darkIcons: Boolean) {
     val view = LocalView.current
-    val window = LocalActivity.current?.window ?: return
+    val window = LocalActivity.current?.window
     DisposableEffect(window, view) {
-        val controller = WindowCompat.getInsetsController(window, view)
-        val status = controller.isAppearanceLightStatusBars
-        val navigation = controller.isAppearanceLightNavigationBars
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val status = controller?.isAppearanceLightStatusBars
+        val navigation = controller?.isAppearanceLightNavigationBars
         onDispose {
-            controller.isAppearanceLightStatusBars = status
-            controller.isAppearanceLightNavigationBars = navigation
+            if (controller != null && status != null && navigation != null) {
+                controller.isAppearanceLightStatusBars = status
+                controller.isAppearanceLightNavigationBars = navigation
+            }
         }
     }
     // After the effect above has kept the previous appearance; decided in the alert's first frame.
     DisposableEffect(window, view, darkIcons) {
-        val controller = WindowCompat.getInsetsController(window, view)
-        controller.isAppearanceLightStatusBars = darkIcons
-        controller.isAppearanceLightNavigationBars = darkIcons
+        window?.let { WindowCompat.getInsetsController(it, view) }?.run {
+            isAppearanceLightStatusBars = darkIcons
+            isAppearanceLightNavigationBars = darkIcons
+        }
         onDispose {}
     }
 }
