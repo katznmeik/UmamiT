@@ -19,8 +19,23 @@ data class AccuracyRun(
     val injectedDelayMs: Long = 0,
 )
 
-/** The fire times of one step of the run (1-based [step]). */
-data class StepFireTimes(val step: Int, val preAlert: FireTime, val deadline: FireTime)
+/**
+ * One cue of a step, the pre-alert or the alert (D-068): when the controller [handled] its
+ * time-based event, and when the alert player started its sound ([played]), both against the
+ * same scheduled time. The gate measures [played]: the persist, the alarms, the service command
+ * and the player's queue lie between the two.
+ */
+data class CueTimes(val handled: FireTime, val played: FireTime) {
+    init {
+        require(played.source == FireTime.PLAYER) { "not a sound start: $played" }
+        require(handled.kind == played.kind && handled.scheduledMonoMs == played.scheduledMonoMs) {
+            "the sound $played is not that of $handled"
+        }
+    }
+}
+
+/** The cues of one step of the run (1-based [step]). */
+data class StepFireTimes(val step: Int, val preAlert: CueTimes, val alert: CueTimes)
 
 /**
  * The distribution of [count] delays (absolute values, ms) by the nearest-rank method: the
@@ -48,33 +63,45 @@ data class DelayStats(val count: Int, val p50Ms: Long, val p95Ms: Long, val maxM
 
 /**
  * The result of the accuracy run (04 §12, TMR-30; #52): the pre-alert and the alert (deadline)
- * of every completed step, their distributions, and the verdict. It passes only when every
- * planned step completed and both distributions are on target. [csv] and [markdown] are the
- * workflow's artifact and job summary.
+ * of every completed step, their distributions, and the verdict. The delay that counts is the
+ * one up to the start of the sound (D-068); the delay up to the handled event is shown next to
+ * it, so a slow persist or player queue shows where the time went. The run passes only when
+ * every planned step completed and both sound distributions are on target. [csv] and
+ * [markdown] are the workflow's artifact and job summary.
  */
 class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
-    val preAlert: DelayStats? = DelayStats.of(steps.map { it.preAlert.deltaMs })
-    val alert: DelayStats? = DelayStats.of(steps.map { it.deadline.deltaMs })
+    val preAlert: DelayStats? = DelayStats.of(steps.map { it.preAlert.played.deltaMs })
+    val alert: DelayStats? = DelayStats.of(steps.map { it.alert.played.deltaMs })
+
+    /** The delays up to the handled event, for comparison only (D-067). */
+    val preAlertHandled: DelayStats? = DelayStats.of(steps.map { it.preAlert.handled.deltaMs })
+    val alertHandled: DelayStats? = DelayStats.of(steps.map { it.alert.handled.deltaMs })
 
     val complete: Boolean get() = steps.size == run.plannedSteps
 
     val passed: Boolean get() = complete && preAlert?.onTarget == true && alert?.onTarget == true
 
-    /** One row per fire time, in the order they happened. */
+    /** One row per cue, in the order they happened: the handled event, then the sound start. */
     fun csv(): String = buildString {
-        appendLine("step,event,source,scheduled_wall,scheduled_mono_ms,actual_wall,actual_mono_ms,delta_ms")
+        appendLine(
+            "step,event,source,scheduled_wall,scheduled_mono_ms," +
+                "handled_wall,handled_mono_ms,handled_delta_ms,played_wall,played_mono_ms,played_delta_ms",
+        )
         steps.forEach { step ->
-            listOf(step.preAlert, step.deadline).forEach { fire ->
+            listOf(step.preAlert, step.alert).forEach { (handled, played) ->
                 appendLine(
                     listOf(
                         step.step,
-                        fire.kind.name,
-                        fire.source,
-                        fire.scheduledWall,
-                        fire.scheduledMonoMs,
-                        fire.actualWall,
-                        fire.actualMonoMs,
-                        fire.deltaMs,
+                        handled.kind.name,
+                        handled.source,
+                        handled.scheduledWall,
+                        handled.scheduledMonoMs,
+                        handled.actualWall,
+                        handled.actualMonoMs,
+                        handled.deltaMs,
+                        played.actualWall,
+                        played.actualMonoMs,
+                        played.deltaMs,
                     ).joinToString(","),
                 )
             }
@@ -88,7 +115,8 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         appendLine(
             "${run.plannedSteps} × ${run.stepSeconds} s steps with the screen off, " +
                 "pre-alert ${run.preAlertSeconds} s (04 §12, TMR-30). " +
-                "Delay = actual − scheduled time of the event, from the diagnostics log (D-060).",
+                "Delay = when the sound started − scheduled time, from the diagnostics log (D-060, D-068); " +
+                "the controller's handling of the event is shown for comparison.",
         )
         if (run.injectedDelayMs != 0L) {
             appendLine()
@@ -100,10 +128,10 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
                 "target p95 ≤ ${AccuracyTarget.P95_MS} ms, max ≤ ${AccuracyTarget.MAX_MS} ms",
         )
         appendLine()
-        appendLine("| Event | Steps | p50 | p95 | max | Fired by | On target |")
-        appendLine("|---|---:|---:|---:|---:|---|---|")
-        appendLine(row("Pre-alert", preAlert, steps.map { it.preAlert }))
-        appendLine(row("Alert", alert, steps.map { it.deadline }))
+        appendLine("| Event | Steps | p50 | p95 | max | Handled p95 / max | Fired by | On target |")
+        appendLine("|---|---:|---:|---:|---:|---:|---|---|")
+        appendLine(row("Pre-alert", preAlert, preAlertHandled, steps.map { it.preAlert.handled }))
+        appendLine(row("Alert", alert, alertHandled, steps.map { it.alert.handled }))
         if (!complete) {
             appendLine()
             appendLine(
@@ -113,17 +141,19 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         }
     }
 
-    private fun row(label: String, stats: DelayStats?, fires: List<FireTime>): String {
+    private fun row(label: String, stats: DelayStats?, handled: DelayStats?, fires: List<FireTime>): String {
         val sources = fires.groupingBy { it.source }.eachCount().toSortedMap().entries
             .joinToString(", ") { (source, count) -> "$source $count" }
             .ifEmpty { "–" }
         val values =
             stats?.let { listOf("${it.p50Ms} ms", "${it.p95Ms} ms", "${it.maxMs} ms") } ?: listOf("–", "–", "–")
+        val handledValues = handled?.let { "${it.p95Ms} ms / ${it.maxMs} ms" } ?: "–"
         val onTarget = when {
             stats == null -> "no"
             stats.onTarget -> "yes"
             else -> "**no**"
         }
-        return "| $label | ${fires.size} / ${run.plannedSteps} | ${values.joinToString(" | ")} | $sources | $onTarget |"
+        return "| $label | ${fires.size} / ${run.plannedSteps} | ${values.joinToString(" | ")} | $handledValues | " +
+            "$sources | $onTarget |"
     }
 }

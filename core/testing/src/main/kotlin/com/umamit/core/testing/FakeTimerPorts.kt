@@ -2,6 +2,7 @@ package com.umamit.core.testing
 
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.SavedSheetPort
+import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.StepAlert
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerAlarmPort
@@ -201,7 +202,7 @@ class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerN
 /**
  * Fake [TimerAlertPort]: [playing] is the alert that plays until it is stopped or the test
  * reports its end through the controller; [started] every alert ever started, [ticks] the
- * pre-alert ticks.
+ * pre-alert ticks, [scheduled] when each of them was due.
  */
 class FakeTimerAlertPlayer(private val log: TimerPortLog = TimerPortLog()) : TimerAlertPort {
     var playing: StepAlert? = null
@@ -210,14 +211,19 @@ class FakeTimerAlertPlayer(private val log: TimerPortLog = TimerPortLog()) : Tim
     var ticks = 0
         private set
 
-    override fun playPreAlert() {
+    /** When each tick and alert was due, as the controller passed it, in the order they started. */
+    val scheduled = mutableListOf<ScheduledTime?>()
+
+    override fun playPreAlert(scheduled: ScheduledTime?) {
         ticks++
+        this.scheduled += scheduled
         log.record(PreAlertPlayed)
     }
 
-    override fun startAlert(alert: StepAlert) {
+    override fun startAlert(alert: StepAlert, scheduled: ScheduledTime?) {
         playing = alert
         started += alert
+        this.scheduled += scheduled
         log.record(AlertStarted(alert))
     }
 

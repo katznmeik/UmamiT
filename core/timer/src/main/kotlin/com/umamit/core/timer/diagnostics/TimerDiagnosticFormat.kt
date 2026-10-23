@@ -67,7 +67,8 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.AlertPlayed ->
             "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
                 "DND blocks ${yesNo(entry.conditions.dndBlocksAlerts)} -> ${outputs(entry.outputs)} | " +
-                "tone ${entry.tone}, length ${entry.length} | ${clocks(entry.at)}"
+                "tone ${entry.tone}, length ${entry.length} | " +
+                (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
         is TimerDiagnostic.PermissionsAtStart -> with(entry.states) {
             "process start: notifications ${yesNo(notifications)}, " +

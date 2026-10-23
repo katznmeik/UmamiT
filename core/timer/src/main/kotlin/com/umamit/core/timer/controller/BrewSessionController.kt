@@ -20,7 +20,9 @@ import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -58,8 +60,8 @@ data class BrewStart(
  * `ScheduleAlarms`, then the side effects through the [TimerPorts]. After
  * every event and at the end of every turn the in-process wake-up is re-armed
  * for the next due time, and the alert watchdog follows the playing alert
- * (D-063). [state] is the UI state of the screens, the active brew bar and
- * the notifications.
+ * (D-063) or guards the running step's deadline (D-068). [state] is the UI
+ * state of the screens, the active brew bar and the notifications.
  *
  * The first turn of every process recovers the persisted state before its
  * own input (04 §7.2, D-057): a process an alarm started after the old one was
@@ -92,6 +94,17 @@ class BrewSessionController @Inject constructor(
 
     /** The timer as the UI shows it; updated on every accepted transition, after it is persisted. */
     val state: StateFlow<TimerUiState> = effects.state
+
+    private val mutableRecovered = MutableStateFlow(false)
+
+    /**
+     * The first recovery of this process has run (04 §7.2; GEN-07, D-068): until then [state] is
+     * `Idle` only because nothing was read yet, so a screen must not take it for "no session"
+     * (the timer route restored after process death waits for it). Set after the recovered state
+     * is published in [state]; also when the stored timer could not be read, so no screen waits
+     * for a broken database.
+     */
+    val recovered: StateFlow<Boolean> = mutableRecovered.asStateFlow()
 
     /**
      * *Brühen starten* (TMR-01): starts a brew session waiting in READY. The
@@ -267,7 +280,10 @@ class BrewSessionController @Inject constructor(
                 if (serviceStartAllowed) effects.retryRefusedStart(timer, clocks.read())
                 rearmWakeUp()
                 // Until the stored timer is read, nothing is known to play: a watchdog set again stays.
-                if (recovery.done) watchdog.follow(effects.alertPlaying, clocks.read())
+                if (recovery.done) {
+                    val now = clocks.read()
+                    watchdog.follow(effects.alertPlaying, deadlineGuardAt(timer, now), now)
+                }
             }
         }
     }
@@ -312,6 +328,8 @@ class BrewSessionController @Inject constructor(
             val persisted = persistedTimer.read(clocks.read())
             if (persisted == null) {
                 failed()
+                // The screens do not wait for a database that cannot be read: Idle counts as known.
+                mutableRecovered.value = true
                 return
             }
             done = true
@@ -340,6 +358,8 @@ class BrewSessionController @Inject constructor(
                 )
                 if (rebooted) effects.notifyResumedAfterReboot()
             }
+            // After the recovered state is published: the screens may now trust Idle.
+            mutableRecovered.value = true
             // After the timer and its alert: the sessions a device restore (E11) left in progress.
             persistedTimer.endOrphans((restored?.session?.kind as? SessionKind.Brew)?.sessionId, now)
         }
@@ -405,6 +425,7 @@ class BrewSessionController @Inject constructor(
     ): TransitionOutcome {
         val before = timer
         val transition = BrewTimerEngine.reduce(before, event, now)
+        val due = TimerAlarmKind.of(event)?.let { scheduled(before, it) }
         effects.record(
             TimerDiagnostic.EventHandled(
                 at = now,
@@ -413,7 +434,7 @@ class BrewSessionController @Inject constructor(
                 outcome = transition.outcome,
                 from = (before as? TimerState.Active)?.phase,
                 to = (transition.state as? TimerState.Active)?.phase,
-                scheduled = TimerAlarmKind.of(event)?.let { scheduled(before, it) },
+                scheduled = due,
             ),
         )
         if (transition.outcome == TransitionOutcome.Accepted) {
@@ -422,7 +443,7 @@ class BrewSessionController @Inject constructor(
             val active = transition.state is TimerState.Active
             teaName = if (active) startTeaName ?: teaName else null
             iceBrew = active && (startIceBrew ?: iceBrew)
-            effects.run(transition, now, start, teaName, iceBrew, savedSheetAsNotification)
+            effects.run(transition, now, start, teaName, iceBrew, savedSheetAsNotification, scheduled = due)
         }
         rearmWakeUp()
         return transition.outcome
@@ -502,6 +523,14 @@ private fun nextDueDelayMs(due: DueTimes, now: ClockReading): Long? = TimerAlarm
         }
     }
 }.minOrNull()?.coerceAtLeast(0)
+
+/**
+ * The deadline guard of the step running in [state] (D-068): [AlertWatchdog.GUARD_MS] after its
+ * deadline, from a state of the boot of [now]; null when no step runs.
+ */
+private fun deadlineGuardAt(state: TimerState, now: ClockReading): Long? = (state as? TimerState.Running)
+    ?.takeIf { it.session.bootCount == now.bootCount }
+    ?.let { it.deadlineElapsedMs + AlertWatchdog.GUARD_MS }
 
 /** When the alarm of [kind] is due in [state]; null when it is not due there. */
 private fun scheduled(state: TimerState, kind: TimerAlarmKind): ScheduledTime? =

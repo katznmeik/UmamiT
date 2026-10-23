@@ -23,6 +23,7 @@ import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import com.umamit.core.timer.diagnostics.AccuracyReport
 import com.umamit.core.timer.diagnostics.AccuracyRun
+import com.umamit.core.timer.diagnostics.CueTimes
 import com.umamit.core.timer.diagnostics.FireTime
 import com.umamit.core.timer.diagnostics.StepFireTimes
 import com.umamit.core.timer.engine.DueTimes
@@ -50,10 +51,12 @@ import kotlin.time.TimeSource
  * in sessions of [SESSION_STEPS]; between steps the test taps *Abgegossen* in the alert and
  * *Start* in the Live Update, as the PO does on the lock screen.
  *
- * For each step it reads the pre-alert's and the alert's scheduled and actual time (wall and
- * monotonic, delta in ms) from the diagnostics log (D-060) and writes the report
+ * For each step it reads the pre-alert's and the alert's scheduled time, the time the controller
+ * handled the event and the time the player started the sound (wall and monotonic, delta in ms)
+ * from the diagnostics log (D-060, D-068) and writes the report
  * ([AccuracyReport]: CSV, Markdown, the log lines) to `files/accuracy/` of this APK, also when
- * a step fails. It fails unless p95 ≤ 250 ms and max ≤ 1 s for both, over every step.
+ * a step fails. It fails unless the sound started with p95 ≤ 250 ms and max ≤ 1 s for both, over
+ * every step.
  *
  * It takes about 55 minutes, so the regular emulator job skips it: it runs only with the
  * instrumentation argument `umamitAccuracy=true`, which `scripts/accuracy-run.sh` passes for
@@ -174,12 +177,14 @@ class AccuracyRunTest {
             activeNotification(TimerNotifications.ID_ALERT)
         }
         val (preAlert, deadline) = eventually("step $number's pre-alert and alert in the diagnostics log", TIMEOUT) {
-            newFireTimes(number)
+            newCues(number)
         }
         Log.i(
             TAG,
-            "step $number/$plannedSteps: pre-alert ${preAlert.deltaMs} ms (${preAlert.source}), " +
-                "alert ${deadline.deltaMs} ms (${deadline.source})",
+            "step $number/$plannedSteps: pre-alert ${preAlert.played.deltaMs} ms " +
+                "(handled ${preAlert.handled.deltaMs} ms, ${preAlert.handled.source}), " +
+                "alert ${deadline.played.deltaMs} ms " +
+                "(handled ${deadline.handled.deltaMs} ms, ${deadline.handled.source})",
         )
         tap(alert, poured)
         eventually("the alert of step $number gone after $poured", TIMEOUT) {
@@ -189,21 +194,35 @@ class AccuracyRunTest {
     }
 
     /**
-     * The pre-alert and the alert of step [number]: the accepted fire times among the log
-     * entries not read before; null until both are written (the log writes in the background).
+     * The pre-alert and the alert of step [number] among the log entries not read before: each
+     * as the accepted event and the start of its sound (D-068); null until all four are written
+     * (the log writes in the background).
      */
-    private fun newFireTimes(number: Int): Pair<FireTime, FireTime>? {
+    private fun newCues(number: Int): Pair<CueTimes, CueTimes>? {
         val fresh = unreadEntries()
-        val fires = fresh.mapNotNull { FireTime.parse(it.message) }
-        val preAlerts = fires.filter { it.kind == TimerAlarmKind.PRE_ALERT }
-        val deadlines = fires.filter { it.kind == TimerAlarmKind.DEADLINE }
-        if (preAlerts.isEmpty() || deadlines.isEmpty()) return null
-        check(
-            "step $number: one pre-alert and one alert expected, got $preAlerts and $deadlines",
-            preAlerts.size == 1 && deadlines.size == 1,
-        )
+        val handled = fresh.mapNotNull { FireTime.parse(it.message) }
+        val played = fresh.mapNotNull { FireTime.parsePlayed(it.message) }
+        val preAlert = cue(number, TimerAlarmKind.PRE_ALERT, handled, played)
+        val alert = cue(number, TimerAlarmKind.DEADLINE, handled, played)
+        if (preAlert == null || alert == null) return null
         consume(fresh)
-        return preAlerts.single() to deadlines.single()
+        return preAlert to alert
+    }
+
+    /** The cue of [kind] in step [number]: its one accepted event and its one sound start; null until both are in. */
+    private fun cue(number: Int, kind: TimerAlarmKind, handled: List<FireTime>, played: List<FireTime>): CueTimes? {
+        val events = handled.filter { it.kind == kind }
+        val sounds = played.filter { it.kind == kind }
+        if (events.isEmpty() || sounds.isEmpty()) return null
+        check(
+            "step $number: one $kind event and one sound expected, got $events and $sounds",
+            events.size == 1 && sounds.size == 1,
+        )
+        check(
+            "step $number: the $kind sound ${sounds.single()} is not that of ${events.single()}",
+            sounds.single().scheduledMonoMs == events.single().scheduledMonoMs,
+        )
+        return CueTimes(events.single(), sounds.single())
     }
 
     /** The log entries not read before, oldest first. */
@@ -240,20 +259,31 @@ class AccuracyRunTest {
         action!!.actionIntent.send()
     }
 
-    /** No timer from an earlier run: alarms cancelled, screens closed, process killed, database deleted. */
+    /**
+     * No timer from an earlier run, as in [ProcessDeathTest]: alarms and the alert watchdog
+     * cancelled, screens closed, process killed, database deleted. A process an alarm started
+     * meanwhile recovered the old session, so it is killed once more after the database is gone.
+     */
     private fun resetTimer() {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
         alarms.reconcile(DueTimes.NONE)
+        alarms.watchAlert(null)
         activityManager.appTasks.forEach { it.finishAndRemoveTask() }
-        eventually("timer process gone", TIMEOUT) {
-            timerPid()?.let(Process::killProcess)
-            Unit.takeIf { timerPid() == null }
-        }
+        killTimerProcess()
         alarms.reconcile(DueTimes.NONE)
+        alarms.watchAlert(null)
         context.deleteDatabase(UmamiDatabase.NAME)
+        killTimerProcess()
+        alarms.reconcile(DueTimes.NONE)
+        alarms.watchAlert(null)
         TimerTestActivity.outcomeFile(context).delete()
         notificationManager.cancelAll()
+    }
+
+    private fun killTimerProcess() = eventually("timer process gone", TIMEOUT) {
+        timerPid()?.let(Process::killProcess)
+        Unit.takeIf { timerPid() == null }
     }
 
     private fun timerPid(): Int? = activityManager.runningAppProcesses
