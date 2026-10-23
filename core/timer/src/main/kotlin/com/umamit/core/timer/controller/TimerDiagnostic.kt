@@ -119,10 +119,11 @@ sealed interface TimerDiagnostic {
     data class RecoveryFailed(override val at: ClockReading, val error: Throwable) : TimerDiagnostic
 
     /**
-     * The persisted state could not be read for [failingForMs] (04 §7.2, D-063): recovery stops
-     * trying, clears it as unreadable and cancels its alarms; logged once.
+     * The persisted state could not be read for [failingForMs] (04 §7.2, D-063): this process
+     * stops its retries; the stored timer, its alarms and its session stay, and a later input
+     * reads again. Logged once per process.
      */
-    data class RecoveryAbandoned(override val at: ClockReading, val failingForMs: Long) : TimerDiagnostic
+    data class RecoveryRetriesStopped(override val at: ClockReading, val failingForMs: Long) : TimerDiagnostic
 
     /**
      * The alarm of [kind] could not be exact (`canScheduleExactAlarms()` false or a

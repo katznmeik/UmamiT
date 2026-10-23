@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 internal class PersistedTimer(
     private val activeBrew: ActiveBrewStore,
     private val sessions: SessionRepository,
-    private val alarms: TimerAlarmPort,
+    private val ports: TimerPorts,
     private val effects: TransitionEffects,
 ) {
     /** The restored state ([TimerState.Idle] for none) and the tea of its brew session. */
@@ -57,14 +57,19 @@ internal class PersistedTimer(
     }
 
     /**
-     * The persisted state cannot be restored (04 §7.2): its row is cleared and its alarms
-     * cancelled, so nothing runs a wrong timer; each step is logged if it fails.
+     * The persisted state cannot be restored (04 §7.2): its row is cleared, its alarms
+     * cancelled and its notifications removed, so nothing runs or shows a wrong timer. A
+     * notification the old process posted without the service (a long step, a demoted session,
+     * a refused start) outlives it, so it goes too (`StopForeground` removes it). Each step is
+     * logged if it fails.
      */
-    suspend fun discardUnreadable(now: ClockReading) {
+    private suspend fun discardUnreadable(now: ClockReading) {
         attempt { activeBrew.clear() }
             ?.let { effects.record(TimerDiagnostic.PersistFailed(now, retry = false, error = it)) }
-        attempt { alarms.reconcile(DueTimes.NONE) }
+        attempt { ports.alarms.reconcile(DueTimes.NONE) }
             ?.let { effects.record(TimerDiagnostic.EffectFailed(now, TimerEffect.ScheduleAlarms(DueTimes.NONE), it)) }
+        attempt { ports.service.stopForeground() }
+            ?.let { effects.record(TimerDiagnostic.EffectFailed(now, TimerEffect.StopForeground, it)) }
     }
 
     /**

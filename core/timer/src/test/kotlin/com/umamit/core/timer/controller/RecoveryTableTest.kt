@@ -311,6 +311,21 @@ class RecoveryTableTest {
     }
 
     @Test
+    fun `device restore - a session whose only infusion was skipped is discarded`() = runTest {
+        before.controller.startSession(brewStart(infusion(60), infusion(30)))
+        val id = before.sessionId
+        // Skipped steps record 0 s, not nothing (04 §5.1); still no infusion was brewed.
+        before.controller.send(TimerEvent.SkipStep)
+
+        val after = before.restoredOnAnotherPhone()
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(after.sessions.getSession(id)).isNull()
+        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.OrphanSessionEnded>().map { it.saved })
+            .containsExactly(false)
+    }
+
+    @Test
     fun `the active session is never taken for a restored one`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
         val id = before.sessionId

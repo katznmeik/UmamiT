@@ -508,9 +508,13 @@ is ended the same way.
 **A stored timer that cannot be read (D-057, D-063).** Each turn tries three
 times; a turn that fails comes again (its alarm and the in-process wake-up)
 after 5 s during the first 30 s of failures, every 30 s up to 5 min, then
-every 2 min. After 11 min, when the overtime window has surely passed,
-recovery gives up once: the stored timer is cleared as unreadable, its alarms
-cancelled and its session ended.
+every 2 min. After 11 min the process stops retrying, so a database that
+stays broken does not wake the phone forever. Only the retries stop: the
+stored timer may well be valid (a cold brew hours from its deadline), so its
+row, its alarms and its session stay. Its own alarms, a tap or the next
+process start read again, each with its three tries. A snapshot that
+`restore` refuses is different: it is cleared at once, with its alarms and
+any notification the old process left (D-057, D-063).
 
 ### 7.3 Reboot
 
@@ -757,7 +761,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |
-| E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. |
+| E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. The first recovery ends every session left `IN_PROGRESS`: saved with `auto_finished` when it has a completed infusion, else discarded (§7.2, D-063). |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
 | E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. |
@@ -768,7 +772,7 @@ Uses the global pre-alert, the same alert and the Live Update
 |---|---|
 | Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
-| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
+| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps screen off in the CI emulator job; on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 

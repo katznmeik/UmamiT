@@ -95,4 +95,19 @@ class RefusedServiceStartTest {
         assertThat(after.service.retried).isEmpty()
         assertThat(after.service.startRefused).isTrue()
     }
+
+    @Test
+    fun `the alert player's report never sends a refused start again, it may not start the service`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        h.controller.send(TimerEvent.Start)
+        h.service.stopForeground()
+        h.service.refusing = true
+        h.advanceSeconds(60)
+        h.service.refusing = false
+
+        h.controller.alertCompleted(checkNotNull(h.alert.playing))
+
+        assertThat(h.service.retried).isEmpty()
+        assertThat(h.service.startRefused).isTrue()
+    }
 }

@@ -446,7 +446,8 @@ over (R2-1, R2-2, R2-3). Decided while building it:
     alarm's log entry then takes its scheduled time from the restored state
     (06 §5.6).
 - **Reboot notice (04 §7.3).** A session that survives a reboot (the boot
-  count changed) gets „Dein …-Timer läuft weiter" through the notifier port
+  count changed) gets „Dein Timer läuft weiter", with the tea below it,
+  through the notifier port
   (`notifyTimerResumed`; its content comes with #47). While alerting there is
   no notice: the alert is the notice (D-044).
 - **Device restore (E11).** Restore detection clears `active_brew` (D-052).
@@ -473,11 +474,20 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   the read three times (D-057). A turn whose reads all fail comes again after
   5 s during the first 30 s of failures, every 30 s up to 5 min, then every
   2 min; the alarm retry and the in-process wake-up use the same delay.
-  - After 11 min of failed reads, recovery gives up once
-    (`RecoveryAbandoned`). By then the 10-min overtime window has surely
-    passed, so a recovered step would only be acknowledged silently.
-  - Giving up clears the stored timer as unreadable (04 §7.2), cancels its
-    alarms, ends its session (above), and the process goes on idle.
+  - After 11 min of failed reads the process stops retrying, once
+    (`RecoveryRetriesStopped`), so a database that stays broken does not
+    wake the phone forever.
+  - Only the retries stop (#46 review S1). The stored timer may well be
+    valid: a cold brew can be hours from its deadline when the reads begin to
+    fail. So its row, its alarms and its session stay. Its own alarms, a tap
+    or the next process start read again, each with its three tries.
+  - A snapshot that `restore` refuses is truly unreadable and is still
+    cleared at once (D-057). Its alarms are cancelled, and any notification
+    the old process posted without the service (a long step, a demoted
+    session, a refused start) goes too, because it outlives that process.
+  - Not done (#46 review O2): the 11 min count per process. A process that
+    keeps dying between its retries starts again at 5 s; only the retry
+    wake-ups continue, nothing is lost.
   - Every turn now re-arms the wake-up at its end, so a turn that only
     recovers retries too.
 - **The refused start goes again from the current state (R2-2, amends
@@ -522,7 +532,7 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   - `Recovered`: the stored and the resulting phase, a reboot, the row of the
     table that applied (restored, alert replayed, overtime acknowledged,
     demoted, session ended), and whether the state runs with the service;
-  - `OrphanSessionEnded`, `OrphanSessionsFailed` and `RecoveryAbandoned`;
+  - `OrphanSessionEnded`, `OrphanSessionsFailed` and `RecoveryRetriesStopped`;
   - *again* on `ServiceStartRefused`;
   - the watchdog alarm logs its scheduled time.
 - **Tests.**
@@ -533,6 +543,9 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   - On Robolectric: the receiver, the alarm adapter and the service port.
   - In the CI emulator job, `ProcessDeathTest` also kills a step, reopens the
     app, checks the restored state and the alert within 2 s of the deadline.
+    The runner's instrumentation lets Android allow every foreground start of
+    the app's uid, so the emulator cannot show a refused start; those paths
+    rest on Robolectric and the PO's device (#46 review O3).
 - **Hand-off, done at the merge with #47 (D-064).** #47 bound the notifier,
   the last port, and made `UmamitApplication` the `TimerHost`. The merge
   adds:

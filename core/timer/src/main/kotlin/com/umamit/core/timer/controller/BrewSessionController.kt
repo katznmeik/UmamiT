@@ -76,7 +76,7 @@ class BrewSessionController @Inject constructor(
 ) : TimerInputs {
     private val lock = Mutex()
     private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
-    private val persistedTimer = PersistedTimer(activeBrew, sessions, ports.alarms, effects)
+    private val persistedTimer = PersistedTimer(activeBrew, sessions, ports, effects)
     private val recovery = ProcessRecovery()
     private val watchdog = AlertWatchdog(ports.alarms)
 
@@ -184,7 +184,7 @@ class BrewSessionController @Inject constructor(
             recovery.restoredForAlarmLog = null
             effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled))
             // The persisted timer could not be read: the alarm comes again, in case it was the only one.
-            if (!recovery.done) recovery.retryAlarm(kind, now)
+            if (recovery.retrying) recovery.retryAlarm(kind, now)
             handleDue(EventSource.ALARM)
         }
     }
@@ -267,6 +267,12 @@ class BrewSessionController @Inject constructor(
         var retryDelayMs = 0L
             private set
 
+        /** The reads failed for so long that this process stopped its retries; a later input reads again. */
+        private var retriesStopped = false
+
+        /** The persisted state is unread and a retry comes: an alarm set again, the in-process wake-up. */
+        val retrying: Boolean get() = !done && !retriesStopped
+
         /** Since when (elapsed) the reads of the persisted state have failed; null while none failed. */
         private var failingSinceMs: Long? = null
 
@@ -321,12 +327,14 @@ class BrewSessionController @Inject constructor(
 
         /**
          * No read of this turn succeeded (D-057): the next try comes after the
-         * [RecoveryBackoff] delay for how long the reads have failed. Once the 10-min
-         * overtime window has surely passed, recovery would only acknowledge an alert
-         * silently, so it gives up (D-063): the stored timer is cleared as unreadable
-         * (04 §7.2), its alarms cancelled and its session ended; the process goes on idle.
+         * [RecoveryBackoff] delay for how long the reads have failed. After 11 min the retries
+         * stop, so a database that stays broken does not wake the phone forever (D-063). Only
+         * the retries: the stored timer may well be valid (a cold brew hours from its
+         * deadline), so its row, its alarms and its session stay. Its own alarms, a tap or the
+         * next process start read again, each with its three tries.
          */
-        private suspend fun failed() {
+        private fun failed() {
+            if (retriesStopped) return
             val now = clocks.read()
             val failingFor = now.elapsedMs - (failingSinceMs ?: now.elapsedMs.also { failingSinceMs = it })
             val delay = RecoveryBackoff.nextDelayMs(failingFor)
@@ -334,10 +342,8 @@ class BrewSessionController @Inject constructor(
                 retryDelayMs = delay
                 return
             }
-            effects.record(TimerDiagnostic.RecoveryAbandoned(now, failingFor))
-            persistedTimer.discardUnreadable(now)
-            done = true
-            persistedTimer.endOrphans(activeSessionId = null, now)
+            retriesStopped = true
+            effects.record(TimerDiagnostic.RecoveryRetriesStopped(now, failingFor))
         }
     }
 
@@ -397,10 +403,10 @@ class BrewSessionController @Inject constructor(
     private fun rearmWakeUp() {
         val now = clocks.read()
         val active = (timer as? TimerState.Active)?.takeIf { it.session.bootCount == now.bootCount }
-        val delay = if (recovery.done) {
-            nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
-        } else {
-            recovery.retryDelayMs
+        val delay = when {
+            recovery.done -> nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+            recovery.retrying -> recovery.retryDelayMs
+            else -> null
         }
         if (delay == null) {
             ports.wakeUp.cancel()

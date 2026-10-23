@@ -51,7 +51,7 @@ class TimerDiagnosticFormatTest {
                 service = false,
             ),
             TimerDiagnostic.OrphanSessionEnded(now, saved = true),
-            TimerDiagnostic.RecoveryAbandoned(now, failingForMs = 660_500),
+            TimerDiagnostic.RecoveryRetriesStopped(now, failingForMs = 660_500),
         ).map(TimerDiagnosticFormat::message)
 
         assertThat(lines).containsExactly(
@@ -61,7 +61,8 @@ class TimerDiagnosticFormatTest {
                 "mono 5000000 boot 1",
             "recovery: stored PAUSED -> IDLE: session ended, without the service | mono 5000000 boot 1",
             "recovery: a session left in progress without its timer was saved | mono 5000000 boot 1",
-            "recovery: given up after 660 s of failed reads; stored timer cleared | mono 5000000 boot 1",
+            "recovery: retries stopped after 660 s of failed reads; the next input reads again | " +
+                "mono 5000000 boot 1",
         ).inOrder()
     }
 

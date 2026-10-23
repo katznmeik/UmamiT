@@ -1,9 +1,11 @@
 package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.AlarmRetried
 import com.umamit.core.testing.AlarmsReconciled
+import com.umamit.core.testing.ServiceStopped
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
@@ -162,6 +164,8 @@ class ProcessRestartTest {
         assertThat(after.log.calls).contains(AlarmsReconciled(DueTimes.NONE))
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.SnapshotUnreadable>()).hasSize(1)
         assertThat(after.service.running).isFalse()
+        // A notification the old process posted without the service outlives it: it goes too (#46 review O1).
+        assertThat(after.log.calls).contains(ServiceStopped)
     }
 
     @Test
@@ -204,7 +208,7 @@ class ProcessRestartTest {
     }
 
     @Test
-    fun `a stored timer that stays unreadable is retried less and less often, then given up and cleared`() = runTest {
+    fun `a stored timer that stays unreadable is retried less and less often, then the retries stop`() = runTest {
         before.controller.startSession(brewStart(infusion(60), recipePreAlertSeconds = 0))
         val id = before.sessionId
         before.controller.send(TimerEvent.Start)
@@ -229,20 +233,22 @@ class ProcessRestartTest {
         assertThat(gaps).isInOrder()
         assertThat(gaps.last()).isEqualTo(120_000L)
         assertThat(after.alarms.retries.size).isLessThan(MAX_RETRIES)
-        // Given up only once the 10-min overtime window has passed: recovery would acknowledge silently by then.
-        val abandoned = after.diagnostics.entriesOf<TimerDiagnostic.RecoveryAbandoned>().single()
-        assertThat(abandoned.failingForMs).isAtLeast(10 * 60_000L)
-        assertThat(abandoned.at.elapsedMs - firstFailure).isEqualTo(abandoned.failingForMs)
-        // Cleared as unreadable (04 §7.2): no row, no alarms, no wake-up, the session row ended.
-        assertThat(after.store.storedPhase()).isNull()
-        assertThat(after.alarms.armed).isEqualTo(DueTimes.NONE)
+        val stopped = after.diagnostics.entriesOf<TimerDiagnostic.RecoveryRetriesStopped>().single()
+        assertThat(stopped.failingForMs).isAtLeast(10 * 60_000L)
+        assertThat(stopped.at.elapsedMs - firstFailure).isEqualTo(stopped.failingForMs)
+        // Only the retries stop (D-063): the row, its alarms and its session stay for a later read.
         assertThat(after.wakeUp.dueAtElapsedMs).isNull()
-        assertThat(after.sessions.getSession(id)).isNull()
-        assertThat(after.ui).isEqualTo(TimerUiState.Idle)
+        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(DueTimes.NONE))
+        assertThat(after.store.storedPhase()).isEqualTo(TimerPhase.RUNNING)
+        assertThat(after.sessions.getSession(id)).isNotNull()
+        // A later input reads again, and the step comes back.
+        after.store.failNextReads(0)
+        after.controller.onAlarm(TimerAlarmKind.OVERTIME_TIMEOUT)
+        assertThat(after.active.sessionId).isEqualTo(id)
     }
 
     @Test
-    fun `the in-process retries back off too and stop when recovery is given up`() = runTest {
+    fun `the in-process retries back off too and stop`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
 
         val after = before.processRestarted()
@@ -254,8 +260,34 @@ class ProcessRestartTest {
             it.at.elapsedMs
         }.distinct()
         assertThat(failedTurns.size).isLessThan(MAX_RETRIES)
-        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryAbandoned>()).hasSize(1)
+        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryRetriesStopped>()).hasSize(1)
         assertThat(after.wakeUp.dueAtElapsedMs).isNull()
+    }
+
+    @Test
+    fun `reads failing for 12 min from the app start never lose a 3-hour cold brew`() = runTest {
+        // #46 review S1: the retries stop after 11 min, but the step is still hours from its deadline.
+        before.controller.startSession(brewStart(infusion(3 * 3_600, tempC = 20), method = BrewMethod.COLD_BREW))
+        val id = before.sessionId
+        before.controller.send(TimerEvent.Start)
+        val deadline = checkNotNull(before.active.deadlineElapsedMs)
+
+        val after = before.processRestarted()
+        after.clock.advanceBy(5 * 60_000)
+        after.store.failNextReads(Int.MAX_VALUE)
+        after.controller.recover(RecoveryTrigger.APP_START)
+        after.advanceSeconds(12 * 60)
+        assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryRetriesStopped>()).hasSize(1)
+
+        // The database comes back; the step's own deadline alarm arrives.
+        after.store.failNextReads(0)
+        after.clock.advanceBy(deadline - after.clock.elapsed)
+        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+
+        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(DueTimes.NONE))
+        assertThat(after.active.sessionId).isEqualTo(id)
+        assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(after.alert.started).hasSize(1)
     }
 
     @Test

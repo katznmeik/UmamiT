@@ -52,9 +52,9 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.RecoveryFailed ->
             "recovery: reading the stored timer failed: ${error(entry.error)} | ${clocks(entry.at)}"
 
-        is TimerDiagnostic.RecoveryAbandoned ->
-            "recovery: given up after ${entry.failingForMs / MS_PER_SECOND} s of failed reads; " +
-                "stored timer cleared | ${clocks(entry.at)}"
+        is TimerDiagnostic.RecoveryRetriesStopped ->
+            "recovery: retries stopped after ${entry.failingForMs / MS_PER_SECOND} s of failed reads; " +
+                "the next input reads again | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlarmNotExact ->
             "alarm ${entry.kind} set inexact: exact alarms refused | ${clocks(entry.at)}"
