@@ -3,8 +3,9 @@
     <string name="collection_title">Sammlung</string>
     <string name="collection_segment_my_teas">Meine Tees</string>
     <string name="collection_segment_catalog">Katalog</string>
-    <string name="collection_my_teas_empty_title">Dein Regal ist noch leer</string>
-    <string name="collection_my_teas_empty_body">Nimm einen Tee aus dem Katalog auf oder lege einen eigenen an.</string>
+    <!-- M1 placeholder (#54 S2, GEN-09): the seed teas exist, so it never claims an empty shelf. -->
+    <string name="collection_my_teas_later_title">Deine Sammlung folgt bald</string>
+    <string name="collection_my_teas_later_body">Deine Tees findest du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem späteren Update.</string>
     <string name="collection_catalog_empty_title">Der Katalog ruht noch</string>
     <string name="collection_catalog_empty_body">Hier stöberst du bald durch die grünen Tees von Tee-Kontor Kiel.</string>
 </resources>

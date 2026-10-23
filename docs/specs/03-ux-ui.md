@@ -58,7 +58,7 @@ added by the PO on 2026-10-21. They are the **current visual reference** (they s
 | Timer running | Top-right shows an ⓘ icon | Spec wins: ⋮ overflow menu (SCR-05) |
 | Timer running | Ring with a small marker near the end | Adopted: marker = pre-alert point on the ring |
 | Timer READY | Step dots highlight step 1 while the label says „Aufguss 2 von 3" | Spec wins: dots show completed steps and the current step |
-| Timer READY | Big „Start" inside the empty ring; kettle icon with „Wasserkocher auf 60 °C" and „Aufguss 2 · 0:20" below | Adopted as designed |
+| Timer READY | Big „Start" inside the empty ring; kettle icon with „Wasserkocher auf 60 °C" and „Aufguss 2 · 0:20" below | Adapted (D-058): the ring keeps the digits with „Bereit", *Start* is the cream pill below (the ring is tappable too); the kettle hint and „Aufguss 2 · 0:20" are adopted |
 | Lock screen | Now Bar pill: thumbnail, „Gyokuro · Aufguss 2", progress bar, „0:14", pause button | Adopted as the Live Update target look |
 | Katalog | Segmented „Meine Tees / Katalog", source line, search, chips Sorte / Herkunft / Bio, rows with origin · type, price per 100 g, chips „im Besitz" / „Rezept prüfen" | Adopted (count in the header is the real number, ≈ 270) |
 | Tea detail | No *Brühen* button visible, only the pencil FAB | Spec wins: sticky primary *Brühen* button plus the pencil FAB |
@@ -417,7 +417,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
-| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`) and never pulses (the full alert is SCR-05); a tap opens the timer (D-055) |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055) |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
 | `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
@@ -509,6 +509,14 @@ step it is brought up by the full-screen intent (TMR-06) and shown **over the
 lock screen** (`setShowWhenLocked(true)`, `setTurnScreenOn(true)`); unlocking
 is only needed to leave the timer.
 
+The status-bar icons and the gesture handle follow the surface, not the phone's
+theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
+alert; the app theme's own on every other screen. The root sets them from the
+route on top, never the screens themselves
+([D-069](10-open-questions-and-decisions.md#d-069)). A brew always shows the
+tea photo at the top, the landscape placeholder until it is read or when the tea
+has none; the quick timer has no photo (D-058, D-069).
+
 ```
 ┌──────────────────────────────┐
 │ ←                         ⋮  │
@@ -587,6 +595,9 @@ Segmented control [ **Meine Tees** | Katalog ] at the top; search
 „Deine Tees durchsuchen …"; filter chips; sort; rows per TEA-08; FAB *Tee
 hinzufügen* (→ choice: *Aus dem Katalog* / *Ohne Katalog*).
 Empty: „Noch keine Tees · Im Katalog stöbern".
+**M1 placeholder** (until M3): „Deine Sammlung folgt bald · Deine Tees findest
+du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem
+späteren Update." It never claims an empty shelf: the seed teas exist (D-069).
 
 ### SCR-09 Tee (my tea detail)
 
@@ -645,6 +656,9 @@ selector. Überblick: teas total („24 · +3 diesen Monat"), sessions this
 week/month, streak, sessions per week, tea-type donut. Bewertungen: average,
 distribution bars, top teas, taste radar. Verbrauch: grams per month, money
 spent per month, cost per session, running-out list.
+**M1 placeholder** (until M4): „Deine Statistik folgt bald · Sie kommt mit
+einem späteren Update. Deine Aufgüsse stehen schon im Journal.", true before
+and after the first brew (D-069).
 
 ### SCR-19 Sammlung › Katalog
 

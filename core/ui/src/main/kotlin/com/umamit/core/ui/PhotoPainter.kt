@@ -12,3 +12,15 @@ import java.io.File
  */
 @Composable
 fun rememberPhotoPainter(path: String?): Painter? = path?.let { rememberAsyncImagePainter(model = File(it)) }
+
+/**
+ * The painter of a tea photo stored at [path], showing [fallback] without one, while it
+ * loads and when it cannot be read, so a layout that reserves the photo's space never
+ * depends on whether or when the file arrives (SCR-05, D-058).
+ */
+@Composable
+fun rememberPhotoPainter(path: String?, fallback: Painter): Painter = if (path == null) {
+    fallback
+} else {
+    rememberAsyncImagePainter(model = File(path), placeholder = fallback, error = fallback, fallback = fallback)
+}
