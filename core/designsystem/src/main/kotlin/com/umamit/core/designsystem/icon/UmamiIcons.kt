@@ -75,6 +75,12 @@ object UmamiIcons {
     /** A2: the welcome landscape in the dark theme. */
     @DrawableRes val WelcomeDark = R.drawable.illustration_welcome_dark
 
+    /** A5: the reliability page's vignette in the light theme (SCR-01). */
+    @DrawableRes val ReliabilityLight = R.drawable.illustration_reliability_light
+
+    /** A5: the reliability vignette in the dark theme. */
+    @DrawableRes val ReliabilityDark = R.drawable.illustration_reliability_dark
+
     // Photos (03 §3.5, docs/design/assets.md)
 
     /** A4: the timer's photo for a tea without one of its own (SCR-05). */

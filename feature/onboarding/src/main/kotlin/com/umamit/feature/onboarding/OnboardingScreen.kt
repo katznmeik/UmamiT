@@ -224,6 +224,9 @@ private fun WelcomeContent(onStart: () -> Unit) {
 /** Where the welcome content starts: on the empty paper, above the landscape (A2). */
 private const val WELCOME_TOP_DP = 96
 
+/** The reliability vignette's share of the page width (A5). */
+private const val RELIABILITY_ART_WIDTH = 0.7f
+
 @Composable
 private fun ReliabilityPage(
     status: ReliabilityStatus,
@@ -238,6 +241,18 @@ private fun ReliabilityPage(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Large),
     ) {
+        // The vignette A5 (kyusu and a ringing phone); its paper is the theme's background.
+        Image(
+            painter = painterResource(
+                if (UmamiTheme.isDark) UmamiIcons.ReliabilityDark else UmamiIcons.ReliabilityLight,
+            ),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth(RELIABILITY_ART_WIDTH),
+            contentScale = ContentScale.FillWidth,
+        )
+        Spacer(Modifier.height(UmamiSpacing.Medium))
         Text(
             text = stringResource(R.string.onboarding_reliability_title),
             modifier = Modifier.semantics { heading() },
