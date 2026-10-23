@@ -18,7 +18,7 @@ worst-case set. Each state exists in light and dark.
 | `stats/` | SCR-18 *Statistik* placeholder until M4 (D-069) |
 | `settings/` | SCR-15 settings (all ready, missing check), SCR-25 about, SCR-27 diagnostics (empty, with entries) |
 | `shell/` | navigation bar and rail, alerting state |
-| `components/` | active brew bar, reliability banner, timer ring states, alert surface, empty state, tea list item (overlong name), others |
+| `components/` | app icons (`AppIcons_*`: launcher on washi, themed monochrome, status-bar icon; from A1), active brew bar, reliability banner, timer ring states, alert surface, empty state, tea list item (overlong name), others |
 | `motion/` | GIFs re-recorded with `scripts/motion/record-gifs.sh` |
 
 Long-name worst cases (`TeaPicker_longName`, `BrewSetup_longName`, `Home_longNames`, 'Bio Gyokuro Asahi Premium aus Yame, Frühjahrsernte'): no overlap or clipping; names ellipsize by design (picker and Start list: 2 lines, `TeaListItem.kt:75`; the Nochmal-brühen tile at font 2.0 shows only "Asahi P…" after 3 lines, `HomeScreen.kt:286`); the setup title wraps fully.

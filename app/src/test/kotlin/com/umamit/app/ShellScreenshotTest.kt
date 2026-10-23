@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -118,18 +119,28 @@ class ShellScreenshotTest(private val dark: Boolean, private val wide: Boolean) 
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Launcher icon: the adaptive layers on a circular mask.
+                    // Launcher icon: the adaptive layers on a circular mask. The mask shows the inner
+                    // 72 dp of the 108 dp canvas, so a 96 dp icon draws the canvas at 144 dp.
                     val washi = colorResource(R.color.ic_launcher_background)
-                    Box(Modifier.size(96.dp).clip(CircleShape).background(washi)) {
-                        Image(painterResource(R.drawable.ic_launcher_foreground), contentDescription = null)
+                    Box(
+                        Modifier.size(96.dp).clip(CircleShape).background(washi),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painterResource(R.drawable.ic_launcher_foreground),
+                            contentDescription = null,
+                            modifier = Modifier.requiredSize(144.dp),
+                        )
                     }
                     // Themed (monochrome) launcher icon.
                     Box(
                         Modifier.size(96.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Image(
                             painterResource(R.drawable.ic_launcher_monochrome),
                             contentDescription = null,
+                            modifier = Modifier.requiredSize(144.dp),
                             colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onPrimaryContainer),
                         )
                     }
