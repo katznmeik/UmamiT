@@ -6,8 +6,9 @@ import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
@@ -69,7 +70,8 @@ class FirstStartTest {
 
     @After
     fun tearDown() {
-        scope.cancel()
+        // The first start's work ends before the database closes (#50).
+        runBlocking { scope.coroutineContext.job.cancelAndJoin() }
         server.close()
         data.close()
     }

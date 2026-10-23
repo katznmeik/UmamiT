@@ -2,6 +2,11 @@ package com.umamit.app
 
 import android.content.Context
 import android.os.Looper
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -36,8 +41,10 @@ import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.timer.ControllerBrewTimer
 import com.umamit.feature.home.HomeEvent
 import com.umamit.feature.home.HomeViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -81,22 +88,35 @@ class BrewAgainOnControllerTest {
         ),
     )
 
+    /** Start's view model lives in this store, so the test ends its scope before the database closes. */
+    private val viewModels = ViewModelStore()
+    private var viewModelJob: Job? = null
+
+    /**
+     * Start's view model is cleared first, and its work ends before the database closes (#50): its
+     * scope reads the database on every change (the recent sessions in a transaction), so a scope
+     * left running reads a closed database, and the failure surfaces in a later test's `runTest`.
+     */
     @After
-    fun tearDown() = db.close()
+    fun tearDown() {
+        viewModels.clear()
+        viewModelJob?.let { job ->
+            val deadline = System.currentTimeMillis() + TIMEOUT_MS
+            while (!job.isCompleted && System.currentTimeMillis() < deadline) {
+                shadowOf(Looper.getMainLooper()).idle()
+                Thread.sleep(POLL_MS)
+            }
+            check(job.isCompleted) { "Start's view model still runs" }
+        }
+        db.close()
+    }
 
     @Test
     fun `Nochmal bruehen on Start starts the last session again in READY on the real controller`() = runBlocking<Unit> {
         val hisui = SeedData.teas.first { it.id == SeedData.HISUI_TEA_ID }
         teas.saveTea(hisui)
         brewOnce(hisui.id, hisui.name)
-        val start = HomeViewModel(
-            teas,
-            sessions,
-            ControllerBrewTimer(controller),
-            clock,
-            PhotoFiles(File(context.cacheDir, "photos")),
-            FakeTimerReliability(),
-        )
+        val start = startViewModel()
         assertThat(settled(start).brewAgain.map { it.id }).containsExactly(hisui.id)
 
         start.brewAgain(hisui.id)
@@ -115,6 +135,24 @@ class BrewAgainOnControllerTest {
         assertThat(active.teaName).isEqualTo(hisui.name)
         assertThat(active.steps.map { it.plannedSeconds }).containsExactly(40, 20).inOrder()
         assertThat(active.sessionId).isNotNull()
+    }
+
+    private fun startViewModel(): HomeViewModel {
+        val factory = viewModelFactory {
+            initializer {
+                HomeViewModel(
+                    teas,
+                    sessions,
+                    ControllerBrewTimer(controller),
+                    clock,
+                    PhotoFiles(File(context.cacheDir, "photos")),
+                    FakeTimerReliability(),
+                )
+            }
+        }
+        return ViewModelProvider.create(viewModels, factory)[HomeViewModel::class].also {
+            viewModelJob = it.viewModelScope.coroutineContext.job
+        }
     }
 
     /** A whole session of two steps through the controller, so Start has a last session to brew again. */
