@@ -43,8 +43,9 @@ interface TimerAlarmPort {
     /**
      * Sets the alert watchdog ([TimerAlarmKind.ALERT_WATCHDOG], exact, elapsed clock) at
      * [atElapsedMs], replacing the earlier one, or cancels it (null); [reconcile] leaves it alone.
-     * It comes while the alert plays, so a process killed meanwhile is started again and its
-     * recovery replays the alert (04 §7.2, D-063).
+     * It comes while the alert plays, and after the deadline of a running step (D-068), so a
+     * process killed meanwhile is started again and its recovery replays the alert (04 §7.2,
+     * D-063).
      */
     fun watchAlert(atElapsedMs: Long?)
 }
@@ -62,7 +63,7 @@ interface TimerServicePort {
      */
     fun startForeground(state: TimerUiState.Active, fullScreen: Boolean)
 
-    /** Stops the service if it runs and removes notifications 1 and 2, also when posted without it (04 §8). */
+    /** Stops the service if it runs and removes notifications 1, 2 and 4, also when posted without it (04 §8). */
     fun stopForeground()
 
     /**
@@ -113,15 +114,20 @@ data class StepAlert(val kind: SessionKind, val stepIndex: Int, val deadlineWall
 
 /** `PlayPreAlert`, `StartAlert`, `StopAlert`: the AlertPlayer that follows the ringer mode (04 §9). */
 interface TimerAlertPort {
-    /** The pre-alert tick (TMR-23); the engine plays it at most once per step. */
-    fun playPreAlert()
+    /**
+     * The pre-alert tick (TMR-23); the engine plays it at most once per step. [scheduled] is
+     * when it was due, so the log shows how late the tick actually started (06 §5.6, D-068).
+     */
+    fun playPreAlert(scheduled: ScheduledTime?)
 
     /**
      * Starts [alert] (SET-14). When its cycle has run, the player calls
      * [BrewSessionController.alertCompleted] with [alert] (at least once per
      * alert, D-047). The controller never starts the same alert twice.
+     * [scheduled] is the step's deadline, so the log shows how late the sound actually
+     * started (06 §5.6, TMR-30, D-068).
      */
-    fun startAlert(alert: StepAlert)
+    fun startAlert(alert: StepAlert, scheduled: ScheduledTime?)
 
     /** Stops the playing alert; idempotent. */
     fun stopAlert()

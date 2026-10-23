@@ -4,6 +4,8 @@ plugins {
 }
 
 dependencies {
+    // KettleWater (BRW-10), shared with the notifications of core:timer (D-068).
+    api(project(":core:model"))
     testImplementation(libs.androidx.test.core)
 }
 

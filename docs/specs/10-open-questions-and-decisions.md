@@ -366,6 +366,90 @@ and that nothing forced a schema version bump to ship its migration. Decided:
   best-effort refused background start whose result is read in *Diagnose*
   (the emulator cannot refuse a start, 04 §12; otherwise the Robolectric
   tests cover it). The reboot item now names the real notice text.
+<a id="d-068"></a>
+### D-068 — M1 review fixes in the timer area: deadline guard, accuracy up to the sound, recovery-aware timer route (#54) · *Accepted* (Claude, 2026-10-23)
+
+The M1 milestone review (#54) found these in the timer area; all are fixed
+on the M1 branch. Amends D-059, D-063, D-064 and D-067.
+
+- **Deadline guard (amends D-063).** A long step has its deadline alarm as
+  the only wake-up. Android skips every broadcast to a process while Auto
+  Backup runs the app's full backup (`BroadcastQueueModernImpl`,
+  "isInFullBackup"), counts it as delivered, and then kills the process; the
+  backup runs when the phone is idle and charging, the conditions of an
+  overnight cold brew. Recovery the next morning would acknowledge the step
+  silently and record it as poured on time. So the alert watchdog alarm
+  (request code 107, exact, `ELAPSED_REALTIME_WAKEUP`) is also set **while a
+  step runs, 90 s after its deadline**. In a live process the deadline turn
+  replaces it by the alert's 30 s cadence (the first one 30 s after the alert
+  started), and `StartAlert` never restarts the playing alert, so an alert
+  never plays twice. A process the guard starts recovers the step with the
+  deadline passed less than 10 min ago and alerts, at most 90 s late (the
+  exact-alarm delivery allows the FGS start). Pausing or ending the step
+  cancels it. 90 s lies in the review's 60–120 s window: late enough that a
+  backup that swallowed the deadline has ended and killed the process,
+  early enough for the alert. Declaring `PROPERTY_USE_RESTRICTED_BACKUP_MODE`
+  instead was rejected: backing up `umamit.db` and its WAL while the app
+  writes risks an inconsistent copy. Cost: one alarm set and cancelled per
+  step. Tests: the guard is set while RUNNING and goes with the step; a long
+  step whose deadline alarm never came alerts when only the guard starts a
+  new process; the deadline and the guard in a live process give one alert,
+  in either order.
+- **Accuracy up to the sound (corrects D-067).** The accuracy gate and
+  *Diagnose* measured up to the controller's handling of the event, before
+  the persist, the alarms, the service command and the player's main-thread
+  queue, so a late sound could pass. The alert port now hands the player the
+  scheduled time of the tick (the event's due time) and of the alert (the
+  step's deadline); the player's „alert" log entry, written after the sound
+  started, carries scheduled vs actual time and the delta like an event
+  entry. `AccuracyReport` pairs each step's accepted event with that entry
+  (`CueTimes`, same kind and scheduled time) and **gates on the sound
+  start**; the handled delay stays as a second column (CSV, summary), so a
+  slow persist or queue shows where the time went. *Diagnose* shows both
+  lines; the „alert" line is the one the PO checks (09 §4).
+- **Accuracy run reset.** `AccuracyRunTest` resets like `ProcessDeathTest`:
+  alarms and the alert watchdog cancelled, process killed, database deleted,
+  killed again, so a run that fails mid-alert leaves nothing to replay.
+- **Alert settings after a failed read (amends D-059).** One failed read of
+  the settings file ended the player's settings cache, which then kept the
+  defaults until the process restarted (SET-09, SET-11, SET-14 ignored).
+  The cache now keeps the last settings read (or the defaults before the
+  first), logs the failure and reads the file again after 1 s, doubling up to
+  a minute, so a later alert follows the stored tone, length and vibration.
+  The alert still never waits for the file longer than 300 ms (rule 8).
+- **An unreadable settings file never crashes a screen.**
+  `DataStoreSettingsRepository.settings` turns an `IOException` of the file
+  (DataStore corruption, a disk error) into the defaults before the first
+  value, logs it and reads again with the same backoff; any other error
+  still fails. So the timer, setup and settings screens read the defaults
+  instead of crashing; `MainActivity`'s own read for the onboarding decision
+  stays.
+- **The timer route waits for recovery (GEN-07, 03 §2.4).** The controller
+  publishes `recovered` (`BrewTimer.recovered`, true by default for fakes)
+  after the first recovery of the process has published its state, or when
+  the stored timer could not be read (no screen waits for a broken
+  database). The timer route closes on `Idle` only once recovered, checking
+  the current state, so the route restored from recents or opened from the
+  quiet READY notification after process death lands on the recovered timer
+  instead of closing itself.
+- **Cold and ice brew in the notification (BRW-10).** In READY the Live
+  Update's text and chip name the water at most 10 °C as SCR-05 does:
+  „Bereit · 4:00:00 · Kaltes Wasser" and the chip „Kaltes Wasser", or
+  „Eiswürfel" for an ice brew (#49's `iceBrew`). The chip may be shortened
+  by the system; it stays the same word as the screen. `KettleWater` (the
+  ≤ 10 °C rule) moved from `core:designsystem` to `core:model`, so the setup,
+  the timer screen and the notifications share it.
+- **The full-screen check reads the app op.** On the CI emulator (API 35
+  and 36), `canUseFullScreenIntent()` still answered true after
+  `appops set … USE_FULL_SCREEN_INTENT deny`, so a revoked full-screen alert
+  would never reach the reliability card or *Beheben* (TMR-31). The reader
+  now also reads the op's mode (`unsafeCheckOpNoThrow("android:use_full_screen_intent")`):
+  denied or ignored counts as missing, „default" leaves the answer to the
+  permission check. `PermissionStatesDeviceTest` proves it on both levels.
+- **Wording (rule 2).** 04 §4 and `TimerServicePort.stopForeground` now say
+  that `StopForeground` removes notifications 1, 2 and 4; D-064's notes on
+  two-turn *Beenden & neu starten* and on resending a stale refused start are
+  marked as amended by D-063.
 
 <a id="d-067"></a>
 ### D-067 — Accuracy workflow before each release candidate (TMR-30, #52) · *Accepted* (Claude, 2026-10-23)
@@ -394,12 +478,17 @@ Decided while building it:
   *Sitzung beenden*, as the PO does on the lock screen. The screen is
   switched off (`KEYCODE_SLEEP`, checked) from each *Start* until the alert
   turns it on.
-- **What is measured:** the accepted `PreAlertReached` and
-  `DeadlineReached` entries of the diagnostics log (D-060). Their delay is the
-  time from the scheduled to the actual time on the monotonic clock: the
-  moment the controller handled the event and started the tick or the alert,
-  from either the exact alarm or the in-process wake-up (the CSV says which).
-  It does not include the audio output (the CI emulator has no audio).
+- **What is measured** (*corrected by D-068*): the time from the scheduled
+  time to the moment the alert player **started the sound** of the tick or the
+  alert, on the monotonic clock: the player's „alert" entry of the diagnostics
+  log (D-060), paired with the accepted `PreAlertReached` or `DeadlineReached`
+  entry, which says whether the exact alarm or the in-process wake-up
+  delivered it (the CSV says which) and whose own delay, the moment the
+  controller handled the event, is shown next to it. ~~The moment the
+  controller handled the event and started the tick or the alert~~ came
+  before the persist and the player's queue, so it could not show a late
+  sound. It does not include the audio output itself (the CI emulator has no
+  audio).
   `FireTime.parse` is the inverse of `TimerDiagnosticFormat`, and a round-trip
   unit test keeps the two together. Parser and report (`AccuracyReport`) live
   in `core:timer` next to the format; nothing in the app calls them, so R8
@@ -646,6 +735,7 @@ Decided while building them:
   `BrewStarter` (D-062), so Start, *Nochmal brühen* and the setup start real
   brews. *Beenden & neu starten* still runs as two turns (`finishSession`,
   then `startSession`); the one-turn form of 04 §7.2 (D-054) is #46's.
+  *Amended by D-063:* it is one turn since #46.
 - **One place puts the timer on top** (`UmamitRoot.rememberTimerFirst`, with
   D-062): a new alert makes a route above the shell or the timer give way, and
   a notification's request brings the timer up. Both pop back to the timer when
@@ -673,7 +763,9 @@ Decided while building them:
     - the app's own timer route over the lock screen through the app's
       controller, found by the ring's description and *Abgegossen* (`app`).
   - Not done (review of #47, open): a notification action can resend a stale
-    refused start (needs refused exact alarms and no battery exemption); *Sitzung
+    refused start (needs refused exact alarms and no battery exemption;
+    *amended by D-063:* closed, a refused start is resent from the current
+    state); *Sitzung
     beenden* from the notification shows the „Gespeichert" sheet when the app
     is next opened (03 SCR-06 to decide); „Sitzung gespeichert" after recovery
     straight into the midnight timeout names no tea (the port would need the
@@ -2261,6 +2353,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |
+| 2026-10-23 | D-068: M1 review fixes in the timer area (#54): deadline guard (alarm 107 at deadline + 90 s while a step runs), accuracy gate and *Diagnose* measured up to the start of the sound (D-067 corrected), accuracy run reset with the watchdog, alert settings read again after a failed read, settings flow total on an unreadable file, timer route waits for recovery, cold and ice READY text and chip, full-screen check reads the app op, wording of `StopForeground` and D-064. 04 §4, §6.1, §6.2, §7.2, §8.2, §8.3, §11, §12, 06 §5.6, 09 §4, §4a updated. |
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
 | 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |
 | 2026-10-23 | D-065: quick timer SCR-07 (#49): chips 0:30–5:00 and „Dauer wählen" (5 s – 24 h, PRF-04 steps), *Start* as one controller turn, *Beenden & neu starten* into a quick timer as one turn, *Fertig* and *Abbrechen* (no session, step or stock record), every entry opens the alerting timer during an alert; `iceBrew` in the timer state for the cold and ice READY hint, carried through recovery. 03 SCR-07, SCR-05 updated. |

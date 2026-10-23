@@ -5,6 +5,7 @@ import android.util.Log
 import com.umamit.core.common.ClockReading
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.UserSettings
+import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
@@ -14,13 +15,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -88,9 +93,9 @@ class AlertPlayback internal constructor(
     )
 
     private sealed interface Command {
-        data object PreAlert : Command
+        class PreAlert(val scheduled: ScheduledTime?) : Command
 
-        class Alert(val onFinished: () -> Unit) : Command
+        class Alert(val scheduled: ScheduledTime?, val onFinished: () -> Unit) : Command
 
         data object Stop : Command
 
@@ -99,14 +104,28 @@ class AlertPlayback internal constructor(
         data object StopTest : Command
     }
 
-    private val latest: StateFlow<AlertSettings?> = settings
-        .map { AlertSettings.of(it) }
-        .catch { e ->
-            // Whatever goes wrong with the settings file, the alert plays (rule 8).
-            Log.w(TAG, "Settings unreadable; the alert uses the defaults", e)
-            emit(AlertSettings())
-        }
-        .stateIn(scope, SharingStarted.Eagerly, initialValue = null)
+    /**
+     * The settings as the file holds them now. A failed read never ends it (D-068): the alert
+     * plays the last settings read, or the defaults before the first one (rule 8), and the file
+     * is read again after [retryDelayMs], so a later alert follows tone, length and vibration
+     * again (SET-09, SET-11, SET-14).
+     */
+    private val latest: StateFlow<AlertSettings?> = flow {
+        var read = false
+        emitAll(
+            settings
+                .map { AlertSettings.of(it) }
+                .onEach { read = true }
+                .retryWhen { e, attempt ->
+                    if (e is CancellationException) return@retryWhen false
+                    // Whatever goes wrong with the settings file, the alert plays (rule 8).
+                    Log.w(TAG, "Settings unreadable; the alert uses the ${if (read) "last" else "default"} ones", e)
+                    if (!read) emit(AlertSettings())
+                    delay(retryDelayMs(attempt))
+                    true
+                },
+        )
+    }.stateIn(scope, SharingStarted.Eagerly, initialValue = null)
 
     /** The settings of the command that runs; read only on [scope]'s thread. */
     private var current = AlertSettings()
@@ -117,11 +136,19 @@ class AlertPlayback internal constructor(
         scope.launch { for (command in commands) runGuarded(command) }
     }
 
-    /** The pre-alert tick (TMR-23); a playing alert is never cut by it. */
-    fun playPreAlert() = send(Command.PreAlert)
+    /**
+     * The pre-alert tick (TMR-23); a playing alert is never cut by it. [scheduled]: when it was
+     * due, for the log's delay up to the moment it started (D-068).
+     */
+    fun playPreAlert(scheduled: ScheduledTime? = null) = send(Command.PreAlert(scheduled))
 
-    /** Starts the alert, replacing anything playing; [onFinished] runs once when its last cycle has run. */
-    fun startAlert(onFinished: () -> Unit) = send(Command.Alert(onFinished))
+    /**
+     * Starts the alert, replacing anything playing; [onFinished] runs once when its last cycle
+     * has run. [scheduled]: the step's deadline, for the log's delay up to the moment the sound
+     * started (D-068).
+     */
+    fun startAlert(scheduled: ScheduledTime? = null, onFinished: () -> Unit) =
+        send(Command.Alert(scheduled, onFinished))
 
     /** Stops the playing alert, tick or test at once; idempotent. */
     fun stopAlert() = send(Command.Stop)
@@ -149,16 +176,16 @@ class AlertPlayback internal constructor(
 
     private suspend fun run(command: Command) {
         when (command) {
-            Command.PreAlert -> {
+            is Command.PreAlert -> {
                 current = settings()
                 player.playPreAlert()
-                logPlayed(AlertCue.PRE_ALERT)
+                logPlayed(AlertCue.PRE_ALERT, command.scheduled)
             }
 
             is Command.Alert -> {
                 current = settings()
                 player.startAlert(onFinished = command.onFinished)
-                logPlayed(AlertCue.ALERT)
+                logPlayed(AlertCue.ALERT, command.scheduled)
             }
 
             Command.Stop -> player.stopAlert()
@@ -175,10 +202,12 @@ class AlertPlayback internal constructor(
 
     /**
      * Logs the ringer mode and the outputs of [cue] (06 §5.6), after the player has started
-     * it: the log never delays or stops an alert (rule 8).
+     * it: the log never delays or stops an alert (rule 8). With its [scheduled] time, the entry
+     * shows how late the cue actually started, which *Diagnose* and the accuracy run read
+     * (TMR-30, D-068).
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun logPlayed(cue: AlertCue) {
+    private fun logPlayed(cue: AlertCue, scheduled: ScheduledTime? = null) {
         try {
             val conditions = environment.conditions()
             diagnostics.record(
@@ -189,6 +218,7 @@ class AlertPlayback internal constructor(
                     outputs = AlertMatrix.outputs(conditions, current.vibration),
                     tone = if (cue == AlertCue.PRE_ALERT) AlertSound.TICK.key else current.tone.key,
                     length = current.length,
+                    scheduled = scheduled,
                 ),
             )
         } catch (e: CancellationException) {
@@ -205,6 +235,15 @@ class AlertPlayback internal constructor(
     companion object {
         /** How long a command waits for the settings file's first value after the process starts. */
         const val SETTINGS_WAIT_MS = 300L
+
+        /** The wait before the settings file is read again after a failed read; it doubles up to [MAX_RETRY_MS]. */
+        const val FIRST_RETRY_MS = 1_000L
+        const val MAX_RETRY_MS = 60_000L
+        private const val MAX_DOUBLINGS = 6
+
+        /** The wait after failed read number [attempt] + 1: 1 s, 2 s, 4 s, … up to [MAX_RETRY_MS]. */
+        internal fun retryDelayMs(attempt: Long): Long =
+            (FIRST_RETRY_MS shl attempt.coerceIn(0, MAX_DOUBLINGS.toLong()).toInt()).coerceAtMost(MAX_RETRY_MS)
     }
 }
 

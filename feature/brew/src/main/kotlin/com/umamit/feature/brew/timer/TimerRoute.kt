@@ -16,7 +16,8 @@ import com.umamit.core.timer.reliability.startFirstIntent
 /**
  * The timer route (SCR-05). Back keeps the session running (03 §2.3); the
  * route closes itself ([onClose]) once no session is active any more, e.g.
- * after *Sitzung beenden* or *Sitzung verwerfen*.
+ * after *Sitzung beenden* or *Sitzung verwerfen*; not before the controller has
+ * recovered the timer of a new process (D-068).
  *
  * @param onAdjustBrew *Brühen anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
  */
@@ -30,6 +31,7 @@ fun BrewTimerRoute(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val recovered by viewModel.recovered.collectAsStateWithLifecycle()
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
     val problem by viewModel.reliabilityProblem.collectAsStateWithLifecycle()
     val currentOnClose by rememberUpdatedState(onClose)
@@ -51,6 +53,12 @@ fun BrewTimerRoute(
             onFixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
         )
 
-        TimerUiState.Idle -> LaunchedEffect(Unit) { currentOnClose() }
+        // Restored after process death (from recents, or a notification of a session the new
+        // process has not read yet), the route sees Idle before recovery: it waits for it and
+        // closes only on a known Idle (GEN-07, D-068). The current value decides, not the
+        // collected one, which may lag the recovered state by a frame.
+        TimerUiState.Idle -> if (recovered) {
+            LaunchedEffect(Unit) { if (viewModel.state.value == TimerUiState.Idle) currentOnClose() }
+        }
     }
 }

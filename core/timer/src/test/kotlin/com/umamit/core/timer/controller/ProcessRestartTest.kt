@@ -36,6 +36,31 @@ class ProcessRestartTest {
     fun tearDown() = before.close()
 
     @Test
+    fun `a new process says it has recovered only after the recovered state is published (D-068)`() = runTest {
+        before.controller.startSession(brewStart(infusion(60)))
+
+        val after = before.processRestarted()
+        // Idle here means "not read yet": the restored timer route waits (GEN-07).
+        assertThat(after.ui).isEqualTo(TimerUiState.Idle)
+        assertThat(after.controller.recovered.value).isFalse()
+
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(after.controller.recovered.value).isTrue()
+        assertThat(after.active.phase).isEqualTo(TimerPhase.READY)
+    }
+
+    @Test
+    fun `a new process whose stored timer cannot be read does not keep the screens waiting`() = runTest {
+        val after = before.processRestarted()
+        after.store.failNextReads(3)
+
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(after.controller.recovered.value).isTrue()
+    }
+
+    @Test
     fun `the deadline alarm in a new process recovers the step and starts the alert full screen`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
         before.controller.send(TimerEvent.Start)
