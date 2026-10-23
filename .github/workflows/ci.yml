@@ -159,9 +159,9 @@ jobs:
 
   # Instrumented tests on emulators (06 §7, M1-02 part 2, #12). The cloud
   # container has no KVM, so this job is the only place they run. It runs every
-  # module's `src/androidTest/` (the app's launch smoke and probe tests,
-  # core:timer's process-death test of #42; later the alarm and notification
-  # tests of 04 §12), so new instrumented tests need no change here. The
+  # module's `src/androidTest/` (the app's launch smoke and lock-screen alert
+  # tests, core:timer's process-death, recovery and notification tests of
+  # #42, #46 and #47), so new instrumented tests need no change here. The
   # hour-long AccuracyRunTest is skipped here; accuracy.yml runs it before each
   # rc (#52, D-067) with a copy of this job's emulator setup: keep both in sync.
   #
@@ -296,8 +296,8 @@ jobs:
           # File names contain spaces ("test(AVD) - 15"), hence -print0.
           find . -path "*androidTest-results*" -name "logcat-*.txt" -print0 |
             while IFS= read -r -d '' log; do
-              echo "::group::$log (UmamiT/Probe lines, last 200)"
-              grep -E "UmamiT|ProbeStepTest|ProcessDeathTest|PermissionStatus|AndroidRuntime" "$log" | tail -n 200 || true
+              echo "::group::$log (UmamiT/test lines, last 200)"
+              grep -E "UmamiT|ProcessDeathTest|TimerNotificationsDeviceTest|TimerAlertOverLockScreenTest|AndroidRuntime" "$log" | tail -n 200 || true
               echo "::endgroup::"
             done
 

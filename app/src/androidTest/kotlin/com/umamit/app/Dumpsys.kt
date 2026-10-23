@@ -1,7 +1,7 @@
-package com.umamit.app.probe
+package com.umamit.app
 
 /**
- * Tolerant parsers for `dumpsys` output in the probe tests. The formats differ
+ * Tolerant parsers for `dumpsys` output in the instrumented tests. The formats differ
  * between Android versions, so each parser looks for stable markers and
  * returns the raw section it used, for the failure message.
  */

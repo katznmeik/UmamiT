@@ -50,7 +50,7 @@ import kotlin.time.TimeSource
  *   the notification ends the step;
  * - a long step's quiet notification (ID 4, D-064) gives way to the alert alone.
  *
- * Background for the API 36 checks: `docs/plans/M1-probe-api-notes.md`.
+ * Background for the API 36 checks: `docs/plans/M1-android16-api-notes.md`.
  */
 @RunWith(AndroidJUnit4::class)
 class TimerNotificationsDeviceTest {
@@ -237,8 +237,12 @@ class TimerNotificationsDeviceTest {
     }
 
     /**
-     * Turns the app's Live Update toggle on, as the PO does on the phone (the probe's
-     * `ProbeStepTest` explains why the API 36 image has it off, and the test API it uses).
+     * Turns the app's Live Update toggle on, as the PO does on the phone
+     * (Settings › Apps › UmamiT › Benachrichtigungen). On the API 36 emulator image it is off
+     * by default: Android 16 keeps it in NotificationManagerService
+     * (`PreferencesHelper.canHavePromotedNotifs`, default = the flag `android.app.ui_rich_ongoing`;
+     * with the flag on, the appop `POST_PROMOTED_NOTIFICATIONS`). No `cmd notification` command
+     * sets it, so this uses the test API that the Settings page uses.
      */
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun allowPromotion() {
@@ -251,6 +255,11 @@ class TimerNotificationsDeviceTest {
         )
     }
 
+    /**
+     * `NotificationManager.setCanPostPromotedNotifications(pkg, uid, allowed)` is a `@TestApi`
+     * (instrumented processes may call test APIs). The service accepts it from the shell or with
+     * `STATUS_BAR_SERVICE`, which the shell holds and lends to this test for the call.
+     */
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun setPromotionAllowed(allowed: Boolean) {
         val uiAutomation = instrumentation.uiAutomation
@@ -323,22 +332,22 @@ class TimerNotificationsDeviceTest {
     /** Leaves the device awake and unlocked for the next test class (the keyguard may linger). */
     private fun leaveUnlocked() = UnlockedDevice.unlock()
 
-    private fun <T : Any> eventuallyOrNull(timeout: Duration, probe: () -> T?): T? {
+    private fun <T : Any> eventuallyOrNull(timeout: Duration, poll: () -> T?): T? {
         val start = TimeSource.Monotonic.markNow()
         while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
+            poll()?.let { return it }
             Thread.sleep(POLL_INTERVAL_MS)
         }
-        return probe()
+        return poll()
     }
 
-    private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
+    private fun <T : Any> eventually(what: String, timeout: Duration, poll: () -> T?): T {
         val start = TimeSource.Monotonic.markNow()
         while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
+            poll()?.let { return it }
             Thread.sleep(POLL_INTERVAL_MS)
         }
-        probe()?.let { return it }
+        poll()?.let { return it }
         throw AssertionError("Timed out after $timeout waiting for: $what\n${deviceState()}")
     }
 

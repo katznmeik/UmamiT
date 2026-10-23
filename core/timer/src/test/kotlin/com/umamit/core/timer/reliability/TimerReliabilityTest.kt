@@ -11,7 +11,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The reliability checks behind the setup page (ONB-02), the settings card (SET-24) and the banner
- * (TMR-31): the probe's permission states (#14) as ✓/! per check, and *Beheben* opening the
+ * (TMR-31): the permission states (#14) as ✓/! per check, and *Beheben* opening the
  * failing check's own system page (03 §2.4).
  */
 @RunWith(RobolectricTestRunner::class)

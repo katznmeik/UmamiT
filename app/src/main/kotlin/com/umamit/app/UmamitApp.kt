@@ -47,7 +47,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.umamit.app.probe.ProbeScreen
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -291,15 +290,7 @@ private fun TabHost(
                     alertKey = alertKey,
                     scrollToTopRequest = scrollToTopRequest,
                 ),
-            ) {
-                // Throwaway probe entry (M1-03a); removed with the probe in M1-18 (#54).
-                OutlinedButton(
-                    onClick = { navController.navigate(ProbeRoute) },
-                    modifier = Modifier.padding(UmamiSpacing.Large),
-                ) {
-                    Text(stringResource(R.string.probe_entry))
-                }
-            }
+            )
         }
         composable<AboutRoute> {
             settings.about(
@@ -311,6 +302,5 @@ private fun TabHost(
             )
         }
         composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
-        composable<ProbeRoute> { ProbeScreen(onBack = { navController.popBackStack() }) }
     }
 }

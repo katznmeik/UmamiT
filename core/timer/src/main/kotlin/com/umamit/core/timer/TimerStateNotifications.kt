@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 /**
  * The notification of a timer state (04 §8.2, §8.3; TMR-06, TMR-14, TMR-18, TMR-41), on the
- * channels and IDs the probe verified on the Galaxy (D-043, D-044):
+ * channels and IDs verified on the Galaxy (D-043, D-044):
  *
  * - **Alerting:** the alert „Jetzt abgießen!" (ID 2, `steep_finished`, `CATEGORY_ALARM`) with
  *   *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the quick timer); its full-screen
