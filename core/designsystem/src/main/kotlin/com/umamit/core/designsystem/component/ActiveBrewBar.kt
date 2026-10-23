@@ -1,6 +1,7 @@
 package com.umamit.core.designsystem.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -53,7 +54,8 @@ private val RemainingLineHeight = 32.sp
  * It arrives and leaves with the `activeBrewBar` spring and a fade (03 §3.6):
  * it grows from the bottom edge (the navigation bar), clipped, so the content
  * above glides with the same spring instead of jumping 72 dp. While it leaves
- * it keeps showing the last brew. Under reduce motion it appears at once.
+ * it keeps showing the last brew. Under reduce motion it appears at once, and so
+ * does a bar that arrives already alerting (rule 8).
  *
  * **ALERTING** ([ActiveBrew.alerting]): the bar turns static matcha on the next
  * frame (`alertEnter`, no transition) with ink content, „Jetzt abgießen!" in
@@ -90,7 +92,13 @@ fun ActiveBrewBar(
     AnimatedVisibility(
         visible = brew != null,
         modifier = modifier.clipToBounds(),
-        enter = expandVertically(motion.activeBrewBar(), expandFrom = Alignment.Bottom) + fadeIn(motion.fade()),
+        // A bar that arrives already alerting (a recreated activity while the alert plays) snaps in
+        // like the RUNNING→ALERTING switch: no growth, no fade (`alertEnter`, rule 8).
+        enter = if (brew?.alerting == true) {
+            EnterTransition.None
+        } else {
+            expandVertically(motion.activeBrewBar(), expandFrom = Alignment.Bottom) + fadeIn(motion.fade())
+        },
         exit = shrinkVertically(motion.activeBrewBar(), shrinkTowards = Alignment.Bottom) + fadeOut(motion.exitFade()),
     ) {
         shown?.let { ActiveBrewBarContent(it, progress, onClick, windowInsets) }

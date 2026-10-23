@@ -38,10 +38,10 @@ class TimerTestActivity : Activity() {
             val running = controller.send(TimerEvent.Start)
             Log.i(TAG, "Step of $seconds s: start $started, Start $running")
             (controller.state.value as? TimerUiState.Active)?.deadlineWallMs?.let {
-                deadlineFile(this@TimerTestActivity).writeText(it.toString())
+                deadlineFile(this@TimerTestActivity).writeTextAtomically(it.toString())
             }
             // The test runs in another process: it reads the outcome here and fails fast on a refusal.
-            outcomeFile(this@TimerTestActivity).writeText(
+            outcomeFile(this@TimerTestActivity).writeTextAtomically(
                 if (started == TransitionOutcome.Accepted && running == TransitionOutcome.Accepted) {
                     STARTED
                 } else {

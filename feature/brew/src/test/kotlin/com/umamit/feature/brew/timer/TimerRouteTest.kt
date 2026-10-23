@@ -5,7 +5,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
@@ -14,6 +17,7 @@ import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -29,6 +33,9 @@ class TimerRouteTest {
 
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @get:Rule
+    val folder = TemporaryFolder()
 
     private class FakeBrewTimer(initial: TimerUiState, recovered: Boolean) : BrewTimer {
         override val state = MutableStateFlow(initial)
@@ -46,7 +53,16 @@ class TimerRouteTest {
     private var closed = 0
 
     private fun show(timer: FakeBrewTimer) {
-        val viewModel = TimerViewModel(timer, clock, FakeSettingsRepository(), FakeTimerReliability())
+        val collection = FakeCollection()
+        val viewModel = TimerViewModel(
+            timer,
+            clock,
+            FakeSettingsRepository(),
+            FakeTimerReliability(),
+            FakeSessions(collection).sessions,
+            collection.teas,
+            PhotoFiles(folder.newFolder()),
+        )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 BrewTimerRoute(

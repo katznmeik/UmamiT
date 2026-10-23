@@ -264,6 +264,16 @@ internal fun UmamitRoot(
         }
         ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }
+    // The bars' one owner (D-069), from the back stack: it changes when navigation starts, so screens
+    // overlapping in a crossfade never fight over it. Last, so it shifts no saveable key above.
+    SystemBarIcons(
+        systemBarDarkIcons(
+            timerOnTop = timerShown,
+            quickTimerOnTop = entry?.destination?.hasRoute<QuickTimerRoute>() == true,
+            alerting = alert != null,
+            darkTheme = UmamiTheme.isDark,
+        ),
+    )
 }
 
 /** What [rememberTimerFirst] gives the root. */

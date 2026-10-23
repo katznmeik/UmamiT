@@ -26,7 +26,7 @@ class TimerStateActivity : Activity() {
             val state = withTimeoutOrNull(STATE_TIMEOUT_MS) {
                 controller.state.first { it is TimerUiState.Active }
             } as? TimerUiState.Active
-            stateFile(this@TimerStateActivity).writeText(
+            stateFile(this@TimerStateActivity).writeTextAtomically(
                 state?.let { "${it.phase}|${it.deadlineWallMs}|${it.teaName}" } ?: IDLE,
             )
             finish()

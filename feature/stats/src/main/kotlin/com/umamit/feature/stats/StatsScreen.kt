@@ -7,7 +7,7 @@ import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 
-/** Statistik (SCR-18), a calm placeholder until M4. */
+/** Statistik (SCR-18), a calm placeholder until M4 that stays true after the first brew (#54 S2). */
 @Composable
 fun StatsScreen(onOpenSettings: () -> Unit, modifier: Modifier = Modifier, scrollToTopRequest: Int = 0) {
     ScreenScaffold(
@@ -17,8 +17,8 @@ fun StatsScreen(onOpenSettings: () -> Unit, modifier: Modifier = Modifier, scrol
         scrollToTopRequest = scrollToTopRequest,
     ) {
         EmptyState(
-            title = stringResource(R.string.stats_empty_title),
-            body = stringResource(R.string.stats_empty_body),
+            title = stringResource(R.string.stats_later_title),
+            body = stringResource(R.string.stats_later_body),
         )
     }
 }

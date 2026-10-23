@@ -100,6 +100,19 @@ class TimerAppWiringTest {
     }
 
     @Test
+    fun `a source built while a step alerts has the alerting bar before any collection (B1, rule 8)`() = runTest {
+        advanceTimeBy(67_000)
+        val timer = FakeTimer(active(TimerPhase.ALERTING, deadline = 60_000))
+        val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope)
+
+        val first = source.activeBrew.value
+        assertThat(first?.alerting).isTrue()
+        assertThat(first?.overtimeSeconds).isEqualTo(7)
+        assertThat(source.progress()).isEqualTo(1f)
+    }
+
+    @Test
     fun `a long step's bar progress holds still between its 10 s updates (D-055 S9)`() = runTest {
         val timer = FakeTimer(active(TimerPhase.RUNNING, deadline = 3_600_000, plannedSeconds = 3_600, longStep = true))
         val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources

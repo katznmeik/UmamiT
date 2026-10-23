@@ -366,6 +366,48 @@ and that nothing forced a schema version bump to ship its migration. Decided:
   best-effort refused background start whose result is read in *Diagnose*
   (the emulator cannot refuse a start, 04 §12; otherwise the Robolectric
   tests cover it). The reboot item now names the real notice text.
+
+<a id="d-069"></a>
+### D-069 — M1 review fixes for the app and the UI (#54) · *Accepted* (Claude, 2026-10-23)
+
+The M1 milestone review (#54) found these in the app; decided while fixing:
+
+- **A bar that arrives alerting snaps in (rule 8, 03 §3.8).** A new activity
+  (rotation, a light/dark switch, reopening from the launcher) built the active
+  brew bar's source with `null`, so the matcha bar grew and faded in over about
+  0.4 s while the step already alerted. `TimerActiveBrewSource` now starts
+  with a synchronous value from the controller's current state, and
+  `ActiveBrewBar` enters with `EnterTransition.None` when the brew it arrives
+  with is alerting. Both are tested against the old behaviour.
+- **System bars with one owner.** `enableEdgeToEdge` picks the bar icons from
+  the phone's theme, which made the clock, the battery and the gesture handle
+  invisible on the always-dark timer in the light theme. The root
+  (`UmamitRoot`) is the only place that sets the appearance, derived from the
+  destination on top of the back stack (as the lock-screen flags): the timer
+  gets light icons on the Steeping surface and dark ones on the washi/matcha
+  alert, the quick timer (SCR-07) light ones, everything else the app theme's
+  own. A first version let each screen set and restore it; SCR-07 and the
+  timer overlap during the crossfade and SCR-07 restored last, leaving the
+  running quick timer and then the shell with the wrong icons (re-review of
+  #54). Renders have no system bars, so this is a Robolectric test of
+  quick timer → timer → alert → back, plus a 09 §4 checklist item.
+- **Honest placeholders (GEN-09).** *Meine Tees* no longer says the shelf is
+  empty (the seed teas exist) and *Statistik* no longer waits for a first
+  brew: both say the area follows with a later update and where to go now
+  (Start, the journal). The segments of *Sammlung* stay at the top. Renders in
+  light, dark and font 2.0 are in `docs/design/review/M1/`.
+- **The tea photo reaches the timer (amends D-058).** `TimerViewModel` reads
+  the session's tea and its cover photo file. A brew always reserves the
+  photo's space and draws the landscape placeholder until the file is read,
+  when the tea has none, or when it cannot be loaded; so nothing moves when the
+  photo arrives, and the renders show what the phone shows. The quick timer has
+  no photo.
+- **No stale question after a double tap on *Nochmal brühen* (TMR-21).**
+  `HomeViewModel` ignores taps while a start is in flight (as D-065 does for
+  the quick timer) and treats a refusal within 1 s by the session it has just
+  started as the same gesture: no „Erst die …-Sitzung beenden?" is left on
+  Start. A deliberate tap later still asks.
+
 <a id="d-068"></a>
 ### D-068 — M1 review fixes in the timer area: deadline guard, accuracy up to the sound, recovery-aware timer route (#54) · *Accepted* (Claude, 2026-10-23)
 
@@ -1240,8 +1282,9 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   of them is open. The rule is the pure `ScreenDimming`, tested with a moved
   clock; the screen re-checks only when the result can change.
 - **Photo and liquor.** The tea photo sits at the top and fades into the
-  background (mockup v2). The screen takes it as a parameter: the session's
-  photo reaches the timer with M1-13, so the route passes none until then.
+  background (mockup v2). The screen takes it as a parameter; since #54 the
+  route passes the session tea's cover photo, or the placeholder, for every
+  brew ([D-069](#d-069)).
   The liquor fill is the green liquor until the tea's style is in the state.
 - **TalkBack.** One live region announces the state („Aufguss 2 von 3
   läuft", „Pausiert" …), the pre-alert („Gleich fertig"), „Noch 10 Sekunden"
@@ -2360,6 +2403,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |
+| 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface with the root as their one owner; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
 | 2026-10-23 | D-068: M1 review fixes in the timer area (#54): deadline guard (alarm 107 at deadline + 90 s while a step runs), accuracy gate and *Diagnose* measured up to the start of the sound (D-067 corrected), accuracy run reset with the watchdog, alert settings read again after a failed read, settings flow total on an unreadable file, timer route waits for recovery, cold and ice READY text and chip, full-screen check reads the app op, wording of `StopForeground` and D-064. 04 §4, §6.1, §6.2, §7.2, §8.2, §8.3, §11, §12, 06 §5.6, 09 §4, §4a updated. |
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
 | 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |

@@ -155,13 +155,26 @@ class HomeViewModel @Inject constructor(
 
     /** *Nochmal brühen* (BRW-11): the tea's last session again, waiting in READY. */
     fun brewAgain(teaId: String) {
+        // A second tap (on this or another tile) while the first start is in flight would only be
+        // refused and leave a stale TMR-21 question on Start (#54 S6, as D-065 for the quick timer).
+        if (starting) return
+        starting = true
         viewModelScope.launch {
-            val last = sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW).first()
-                .firstOrNull { it.snapshot.teaId == teaId } ?: return@launch
-            val request = brewAgainStart(last)
-            handle(starter.startSession(request), request)
+            try {
+                val last = sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW).first()
+                    .firstOrNull { it.snapshot.teaId == teaId } ?: return@launch
+                val request = brewAgainStart(last)
+                handle(starter.startSession(request), request)
+            } finally {
+                starting = false
+            }
         }
     }
+
+    private var starting = false
+
+    /** The session this view model started last, and when: a refusal by it right after is a double tap. */
+    private var started: Started? = null
 
     /** *Beenden & neu starten* (TMR-21). */
     fun confirmRestart() {
@@ -177,11 +190,18 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun handle(outcome: TransitionOutcome, request: BrewStart) {
         when (outcome) {
-            TransitionOutcome.Accepted -> navigation.send(HomeEvent.OpenTimer)
+            TransitionOutcome.Accepted -> {
+                started =
+                    (starter.state.value as? TimerUiState.Active)?.sessionId?.let { Started(it, clock.elapsedMs()) }
+                navigation.send(HomeEvent.OpenTimer)
+            }
 
             is TransitionOutcome.Rejected -> if (outcome.reason is RejectionReason.ActiveTimerExists) {
                 val timer = starter.state.value
-                if (timer.alertKey() != null) {
+                if (isDoubleTap(timer)) {
+                    // The brew this screen has just started: the timer is opening already, nothing to ask.
+                    Unit
+                } else if (timer.alertKey() != null) {
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(HomeEvent.OpenTimer)
                 } else {
@@ -191,6 +211,12 @@ class HomeViewModel @Inject constructor(
 
             TransitionOutcome.Ignored -> Unit
         }
+    }
+
+    private fun isDoubleTap(timer: TimerUiState): Boolean {
+        val last = started ?: return false
+        val active = (timer as? TimerUiState.Active)?.sessionId
+        return active == last.sessionId && clock.elapsedMs() - last.atElapsedMs < DOUBLE_TAP_WINDOW_MS
     }
 
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
@@ -212,11 +238,16 @@ class HomeViewModel @Inject constructor(
 
     private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
 
+    private class Started(val sessionId: String, val atElapsedMs: Long)
+
     private companion object {
         /** *Nochmal brühen* and *Zuletzt gebrüht* show three each (SCR-02, BRW-11). */
         const val SHOWN = 3
 
         /** Enough recent sessions to find three distinct teas. */
         const val RECENT_SESSIONS_WINDOW = 50
+
+        /** A second tile tap this soon after a start is the same gesture, not a new brew (#54 S6). */
+        const val DOUBLE_TAP_WINDOW_MS = 1_000L
     }
 }
