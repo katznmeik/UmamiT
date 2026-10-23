@@ -525,7 +525,7 @@ is only needed to leave the timer.
 
 | State | Ring | Caption | Primary control |
 |---|---|---|---|
-| READY | empty | KettleHint „Wasserkocher auf 60 °C" + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
+| READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
 | ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055) | **Abgegossen** (*Weggegossen* for rinse) |
@@ -568,6 +568,16 @@ M4 (D-061).
 Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
+
+Before *Start* it is its own screen: the ring with the chosen duration (1:00
+at first; caption „Zum Ändern antippen"), the chips and *Start*. A tap on the
+ring opens „Dauer wählen" (hours, minutes, seconds with − / +; 5 s – 24 h in
+PRF-04's increments). Once it runs, the timer screen shows it with the title
+„Schnelltimer" and no step label or kettle hint; its overflow holds
+*Abbrechen* (not on the alert) and *Timer-Einstellungen*. A session already
+active asks first (TMR-21). Never over an alert: the screen gives way to the
+timer, the picker and the question close (rule 8,
+[D-065](10-open-questions-and-decisions.md#d-065)).
 
 ### SCR-08 Sammlung › Meine Tees
 

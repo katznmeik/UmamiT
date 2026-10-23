@@ -74,6 +74,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
@@ -235,6 +236,7 @@ private val TimerMenuItem.label: Int
         TimerMenuItem.FinishSession -> R.string.brew_timer_menu_finish
         TimerMenuItem.DiscardSession -> R.string.brew_timer_menu_discard
         TimerMenuItem.TimerSettings -> R.string.brew_timer_menu_settings
+        TimerMenuItem.CancelQuickTimer -> R.string.brew_quick_cancel
     }
 
 /** Tea name, „55 °C · Aufguss 1 von 3" and the step dots (TMR-02). */
@@ -249,7 +251,8 @@ private fun ColumnScope.TimerHeader(state: TimerUiState.Active) {
             .semantics { heading() },
     )
     val step = state.currentStep
-    if (step != null) {
+    // The quick timer has one step and no temperature: its title is all (SCR-07).
+    if (step != null && !state.isQuick) {
         val label = stepLabel(step.kind, state.stepIndex, state.steps.size)
         Text(
             text = step.tempC?.let { stringResource(R.string.brew_timer_meta, it, label) } ?: label,
@@ -332,7 +335,7 @@ private fun TimerRingArea(state: TimerUiState.Active, now: Long, nowElapsedMs: (
         remainingSeconds = state.display(now).remainingSeconds.toInt(),
         caption = stringResource(state.caption(now)),
         liquorColor = UmamiTheme.extendedColors.liquor.green,
-        stepDescription = step?.let { stepLabel(it.kind, state.stepIndex, state.steps.size) },
+        stepDescription = timerStepDescription(state),
         preAlertPosition = state.preAlertPosition(),
         // One identity per step: a resume after the pre-alert must not replay the glow (D-046).
         preAlertGlowTick = (state.stepIndex + 1L).takeIf { state.preAlertPlayed },
@@ -380,10 +383,18 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long) {
                 clockText(step.plannedSeconds),
             )
             val kettle = state.kettleTempC
-            if (kettle != null) {
-                KettleHint(temperatureCelsius = kettle, detail = detail)
-            } else {
-                Text(detail, style = MaterialTheme.typography.bodyLarge)
+            val water = state.kettleWater()
+            when {
+                // The quick timer has no tea and no water to prepare: the ring and *Start* say it all.
+                state.kind == SessionKind.Quick -> Unit
+
+                kettle != null && water != null -> KettleHint(
+                    temperatureCelsius = kettle,
+                    detail = detail,
+                    water = water,
+                )
+
+                else -> Text(detail, style = MaterialTheme.typography.bodyLarge)
             }
         }
 
@@ -455,12 +466,13 @@ private fun TimerControls(state: TimerUiState.Active, actions: TimerActions) {
 
         TimerPhase.ALERTING -> PillButton(
             text = stringResource(
-                if (state.currentStep?.kind ==
-                    StepKind.RINSE
-                ) {
-                    R.string.brew_timer_poured_rinse
-                } else {
-                    R.string.brew_timer_poured
+                when {
+                    // *Fertig* ends the quick timer (SCR-07, 04 §10).
+                    state.isQuick -> R.string.brew_quick_done
+
+                    state.currentStep?.kind == StepKind.RINSE -> R.string.brew_timer_poured_rinse
+
+                    else -> R.string.brew_timer_poured
                 },
             ),
             onClick = { actions.event(TimerEvent.Poured) },

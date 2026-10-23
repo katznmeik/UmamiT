@@ -34,6 +34,7 @@ import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.journal.JournalSources
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.umamit.feature.brew.quick.QuickTimerRoute as QuickTimerScreenRoute
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
 import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
 
@@ -47,7 +48,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * shell or the timer (the setup, *Timer-Einstellungen*, *Über*, *Diagnose*,
  * the first-start setup and any later one) that was opened before the alert gives way to the timer in the
  * frame the alert starts: popped back to the timer when it is on the stack,
- * else replaced by it, without a transition.
+ * else replaced by it, without a transition. The quick timer (SCR-07) is such a
+ * route until it runs; then the timer shows it.
  *
  * A notification opens the timer the same way (03 §2.4; D-064): each new [timerRequest] token
  * (its content or full-screen intent) brings the timer to the top. Until it is there, the root
@@ -70,6 +72,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param onboardingScreen the setup's content; tests replace it, the app uses [OnboardingScreenRoute].
  * @param settings the settings, *Über* and *Diagnose* (SCR-25, SCR-27), in the tabs and above the timer;
  *   tests replace them.
+ * @param quickTimerScreen the quick timer route's content (SCR-07); tests replace it. Its second argument
+ *   opens the timer once the quick timer runs.
  */
 @Composable
 internal fun UmamitRoot(
@@ -96,6 +100,9 @@ internal fun UmamitRoot(
         OnboardingScreenRoute(onFinish = onFinish)
     },
     settings: SettingsScreens = SettingsScreens(),
+    quickTimerScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
+        QuickTimerScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
+    },
 ) {
     val navController = rememberNavController()
     // The start destination, chosen once from the first value read: the setup until it is completed. Nothing
@@ -144,8 +151,15 @@ internal fun UmamitRoot(
             }
         },
         openTimer = openTimer,
-        // M1-14 (#49) opens the quick timer (SCR-07) here.
-        openQuickTimer = {},
+        // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
+        // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
+        openQuickTimer = {
+            if (currentAlerting) {
+                openTimer()
+            } else {
+                navigateAbove(QuickTimerRoute) { launchSingleTop = true }
+            }
+        },
     )
     Box(modifier) {
         NavHost(
@@ -211,6 +225,18 @@ internal fun UmamitRoot(
                     {
                         navController.navigate(TimerRoute) {
                             popUpTo<BrewSetupRoute> { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+            composable<QuickTimerRoute> {
+                quickTimerScreen(
+                    { navController.popBackStack() },
+                    // The timer replaces it, so back from the running quick timer returns to Start.
+                    {
+                        navController.navigate(TimerRoute) {
+                            popUpTo<QuickTimerRoute> { inclusive = true }
                             launchSingleTop = true
                         }
                     },

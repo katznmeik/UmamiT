@@ -216,6 +216,8 @@ private fun rememberTimerActions(
                     TimerMenuItem.DiscardSession -> overlays.ask(TimerConfirmation.Discard)
 
                     TimerMenuItem.TimerSettings -> onOpenTimerSettings()
+
+                    TimerMenuItem.CancelQuickTimer -> onEvent(TimerEvent.Cancel)
                 }
             },
         )

@@ -43,6 +43,8 @@ sealed interface TimerUiState {
      * @property kettleTempC the current step's temperature for the kettle hint (BRW-10); null in FINISHED.
      * @property demoted the session went quiet after 30 min (TMR-14): no service, regular notification.
      * @property finishWouldDiscard *Sitzung beenden* would discard the session; the UI asks first (TMR-12).
+     * @property iceBrew the session is an ice brew (`ICE_BREW`): a cold step's kettle hint reads „Eiswürfel",
+     *   not „Kaltes Wasser" (BRW-10).
      */
     data class Active(
         val kind: SessionKind,
@@ -61,6 +63,7 @@ sealed interface TimerUiState {
         val demoted: Boolean,
         val finishWouldDiscard: Boolean,
         val preAlert: PreAlertChoice,
+        val iceBrew: Boolean = false,
     ) : TimerUiState {
         /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051). */
         val alerting: Boolean get() = phase == TimerPhase.ALERTING
@@ -102,8 +105,11 @@ private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND -
 
 private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 
-/** The UI state of engine [state] for a session of [teaName], at [now] (the reading of its transition). */
-internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading): TimerUiState {
+/**
+ * The UI state of engine [state] for a session of [teaName] ([iceBrew]: an ice brew), at [now] (the reading of
+ * its transition).
+ */
+internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, iceBrew: Boolean = false): TimerUiState {
     if (state !is TimerState.Active) return TimerUiState.Idle
     val stepIndex = (state as? TimerState.OnStep)?.stepIndex ?: state.session.steps.size
     val steps = state.session.steps.map { TimerUiStep(it.kind, it.plannedSeconds, it.tempC, it.status) }
@@ -131,5 +137,6 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading): 
         demoted = state.session.demoted,
         finishWouldDiscard = BrewTimerEngine.finishWouldDiscard(state),
         preAlert = PreAlertChoice.of(state.session.preAlert),
+        iceBrew = iceBrew,
     )
 }

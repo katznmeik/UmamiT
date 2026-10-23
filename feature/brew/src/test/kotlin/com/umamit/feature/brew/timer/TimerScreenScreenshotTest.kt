@@ -7,6 +7,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -108,11 +109,20 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
     fun finished() = capture("Finished", TimerStates.finished())
 
     @Test
-    fun quickTimerWithoutPhoto() = capture(
-        "QuickTimer",
-        TimerStates.running().copy(kind = com.umamit.core.timer.engine.SessionKind.Quick, teaName = null).let {
-            it.copy(steps = it.steps.take(1))
-        },
-        photo = false,
-    )
+    fun quickRunning() = capture("Quick_running", TimerStates.quick(TimerPhase.RUNNING), photo = false)
+
+    @Test
+    fun quickPaused() = capture("Quick_paused", TimerStates.quick(TimerPhase.PAUSED), photo = false)
+
+    @Test
+    fun quickAlerting() = capture("Quick_alerting", TimerStates.quick(TimerPhase.ALERTING), photo = false)
+
+    @Test
+    fun quickReady() = capture("Quick_ready", TimerStates.quick(TimerPhase.READY), photo = false)
+
+    @Test
+    fun readyColdBrew() = capture("Ready_coldBrew", TimerStates.coldReady(iceBrew = false))
+
+    @Test
+    fun readyIceBrew() = capture("Ready_iceBrew", TimerStates.coldReady(iceBrew = true))
 }

@@ -1,8 +1,10 @@
 package com.umamit.feature.brew.timer
 
 import androidx.compose.runtime.Immutable
+import com.umamit.core.designsystem.component.KettleWater
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.feature.brew.R
 
@@ -33,23 +35,46 @@ enum class TimerMenuItem {
     /** *Sitzung verwerfen* (TMR-13). */
     DiscardSession,
 
+    /** *Abbrechen*: ends the quick timer, nothing recorded (SCR-07, 04 §10). */
+    CancelQuickTimer,
+
     /** *Timer-Einstellungen*. */
     TimerSettings,
 }
 
 /**
  * The overflow items of this state, exactly as the SCR-05 table lists them.
- * In ALERTING nothing opens the Schritte-Sheet (D-051, D-055, rule 8).
+ * In ALERTING nothing opens the Schritte-Sheet (D-051, D-055, rule 8). The
+ * quick timer offers *Abbrechen* until its alert and the timer settings
+ * (SCR-07, 04 §10; D-065).
  */
 fun TimerUiState.Active.menuItems(): List<TimerMenuItem> = TimerMenuItem.entries.filter { item ->
+    if (isQuick) {
+        return@filter when (item) {
+            TimerMenuItem.CancelQuickTimer -> phase != TimerPhase.ALERTING && phase != TimerPhase.FINISHED
+            TimerMenuItem.TimerSettings -> true
+            else -> false
+        }
+    }
     when (item) {
         TimerMenuItem.AdjustBrew -> phase == TimerPhase.READY && steps.all { it.status == StepStatus.PENDING }
         TimerMenuItem.EndStepNow -> phase == TimerPhase.RUNNING || phase == TimerPhase.PAUSED
         TimerMenuItem.SkipStep -> phase == TimerPhase.READY
         TimerMenuItem.EditSteps, TimerMenuItem.AddStep -> phase != TimerPhase.ALERTING
         TimerMenuItem.FinishSession, TimerMenuItem.DiscardSession, TimerMenuItem.TimerSettings -> true
+        TimerMenuItem.CancelQuickTimer -> false
     }
 }
+
+/** The quick timer (SCR-07, 04 §10): no tea, nothing recorded. */
+val TimerUiState.Active.isQuick: Boolean get() = kind == SessionKind.Quick
+
+/**
+ * The water of the kettle hint for the current step (BRW-10): the kettle, cold
+ * water at ≤ 10 °C, ice for an ice brew; null without a temperature (the quick
+ * timer, FINISHED).
+ */
+fun TimerUiState.Active.kettleWater(): KettleWater? = kettleTempC?.let { KettleWater.of(it, iceBrew) }
 
 /** What TalkBack announces on the timer screen (03 SCR-05, §6). */
 enum class TimerAnnouncement {

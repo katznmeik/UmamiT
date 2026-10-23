@@ -384,6 +384,62 @@ them:
   banner and the photo line change without animation: they change on resume,
   not while the user looks. Dialogs are Material's.
 
+<a id="d-065"></a>
+### D-065 — Quick timer SCR-07 (M1-14, #49) · *Accepted* (Claude, 2026-10-23)
+
+#49 built the quick timer (SCR-07, TMR-22, 04 §10) and its two entries, Start's
+*Schnelltimer* and the tea picker's *Ohne Tee (Schnelltimer)*. Decided while
+building it:
+
+- **Two surfaces, one timer.** SCR-07 is its own route only before *Start*:
+  the ring with the chosen duration, the chips and *Start*. Once the quick
+  timer runs, the timer (SCR-05) replaces the route and shows it, because
+  the notification, the active brew bar and the full-screen intent open the
+  timer (D-058). Back from the running quick timer returns to Start. The
+  ring sits at the same place on both, so the route's `fade` only crossfades
+  the chips into the pill.
+- ***Start* runs at once.** The start seam gains `startQuickTimer` and
+  `finishActiveAndStartQuickTimer` (`BrewStarter`, D-062): the controller's
+  `startQuickTimer` reduces `startQuickTimer` and `start` in one lock turn,
+  so no other input lands between them and a cancelled caller never leaves
+  a waiting quick timer behind. A second tap on *Start* while one is in
+  flight is ignored. *Beenden & neu starten* into the quick timer is one
+  turn too (`finishActiveAndStartQuickTimer`, through the controller's
+  `startQuickTimer(finishActive = true)`, the quick-timer variant of D-063's
+  operation): the active timer ends, the finish's sheet becomes
+  „Sitzung gespeichert" (D-054), and the quick timer starts and runs. Opening SCR-07
+  starts nothing, so it never blocks another session (TMR-21).
+- **On the timer.** The quick timer has its title and no step label, dots or
+  kettle hint; *Fertig* (`poured`) on the alert; the overflow holds
+  *Abbrechen* (`cancel`, READY/RUNNING/PAUSED only, as 04 §10 allows) and
+  *Timer-Einstellungen* (for the global pre-alert it uses). TalkBack says
+  „Schnelltimer läuft".
+- **Chips and picker.** SCR-07 opens with 1:00; the chosen duration survives
+  process death (GEN-07), not app restarts. The selected chip has no check
+  mark, so no chip widens under the finger; unselected chips have a border
+  of ≥ 3:1 (WCAG 1.4.11). A tap on the ring opens „Dauer
+  wählen": hours, minutes and seconds with − and +, each move kept within
+  5 s – 24 h and rounded to PRF-04's increments (5 s below 10 min, whole
+  minutes from 10 min on; the seconds do not move there). A move that would
+  leave the bounds is disabled. *Übernehmen* applies, *Abbrechen* keeps the
+  duration.
+- **Second timer (TMR-21).** *Start* while a session is active asks
+  „Erst die … -Sitzung beenden?" like the setup; while it alerts, the
+  alerting timer opens instead.
+- **Alerts first (rule 8).** SCR-07 is a route above the shell, so a new
+  alert replaces it with the timer at once (D-062). During an alert,
+  *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer
+  instead of SCR-07, like a tea tap (D-062). The picker and the
+  question remember the alert they were opened in and are removed when
+  another one starts, without animation. The only motion of its own is
+  Material's chip colour and the pill's press scale.
+- **Kettle hint of the timer (BRW-10).** `TimerUiState.Active.iceBrew`
+  carries an ice brew from the start, and from the session row after
+  recovery, so a cold step's READY reads „Kaltes Wasser" or „Eiswürfel"
+  like the setup, not „Wasserkocher auf 5 °C" (the follow-up of D-062).
+  It goes through every recovery of D-063 (app start, reboot, update): the
+  restored state takes it from the session row like the tea's name.
+
 <a id="d-064"></a>
 ### D-064 — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
 
@@ -704,9 +760,8 @@ over (R2-1, R2-2, R2-3). Decided while building it:
   only steps and pre-alert (SCR-31). The setup's values survive process
   death in the `SavedStateHandle` (GEN-07).
 - **Kettle hint (BRW-10).** At ≤ 10 °C the setup reads „Kaltes Wasser", or
-  „Eiswürfel" for an ice brew (`KettleWater`). The timer's READY still reads
-  „Wasserkocher auf 5 °C" for a cold step, because `TimerUiState` carries no
-  method; a follow-up for the timer.
+  „Eiswürfel" for an ice brew (`KettleWater`); the timer's READY does the
+  same since #49 (D-065).
 - ***Brühen anpassen*.** The timer's menu item opens the setup of the waiting
   session in place of the timer, filled with that session's values.
   *Brühen starten* there replaces the session without asking (no step has
@@ -2076,6 +2131,8 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |
+| 2026-10-23 | D-065: quick timer SCR-07 (#49): chips 0:30–5:00 and „Dauer wählen" (5 s – 24 h, PRF-04 steps), *Start* as one controller turn, *Beenden & neu starten* into a quick timer as one turn, *Fertig* and *Abbrechen* (no session, step or stock record), every entry opens the alerting timer during an alert; `iceBrew` in the timer state for the cold and ice READY hint, carried through recovery. 03 SCR-07, SCR-05 updated. |
+| 2026-10-22 | D-063: recovery after process death, reboot, app update and device restore (#46): recovery triggers through one non-exported receiver, reboot notice, device restore finishes or discards `IN_PROGRESS` rows, one-turn *Beenden & neu starten*, recovery retries back off and only stop (never clear a valid session), refused starts resent from the current state, alert watchdog alarm 107 while ALERTING. 04 §7.2, §11, §12 updated. |
 | 2026-10-22 | D-064: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
 | 2026-10-22 | D-062: Start, tea picker and setup (#48): `BrewStarter` seam following the `BrewTimer` binding, *Nochmal brühen* from the last session, *Zuletzt gebrüht* row format, picker as Material sheet with GEN-10 search and an immediate pick, scaling from the locked ratio (0,1 g / 5 ml steppers), *Im Rezept speichern* only when changed with an in-place confirmation, cold/ice kettle hint, *Brühen anpassen* through the setup; every route above the shell or timer gives way to the timer on a new alert, overlays and the TMR-21 question never over an alert. 03 SCR-02, SCR-03, SCR-04 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |

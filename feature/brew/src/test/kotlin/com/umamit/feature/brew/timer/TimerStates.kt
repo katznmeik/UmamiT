@@ -95,4 +95,48 @@ internal object TimerStates {
     )
 
     fun finished() = base(TimerPhase.FINISHED, 3, StepStatus.DONE).copy(kettleTempC = null, finishWouldDiscard = false)
+
+    /** The quick timer (SCR-07, 04 §10) of [seconds] in [phase]: no tea, no temperature, one infusion. */
+    fun quick(phase: TimerPhase, seconds: Int = 90, remainingMs: Long = 48_000, overtimeMs: Long = 7_000) =
+        TimerUiState.Active(
+            kind = SessionKind.Quick,
+            teaName = null,
+            phase = phase,
+            stepIndex = 0,
+            steps = listOf(
+                TimerUiStep(
+                    StepKind.INFUSION,
+                    seconds,
+                    null,
+                    if (phase == TimerPhase.READY) StepStatus.PENDING else StepStatus.STARTED,
+                ),
+            ),
+            deadlineElapsedMs = when (phase) {
+                TimerPhase.RUNNING -> NOW + remainingMs
+                TimerPhase.ALERTING -> NOW - overtimeMs
+                else -> null
+            },
+            deadlineWallMs = when (phase) {
+                TimerPhase.RUNNING -> 1_700_000_000_000 + remainingMs
+                TimerPhase.ALERTING -> 1_700_000_000_000 - overtimeMs
+                else -> null
+            },
+            pausedRemainingMs = if (phase == TimerPhase.PAUSED) remainingMs else null,
+            preAlertLeadSeconds = 10,
+            preAlertAtElapsedMs = if (phase == TimerPhase.RUNNING) NOW + remainingMs - 10_000 else null,
+            preAlertPlayed = false,
+            longStep = false,
+            kettleTempC = null,
+            demoted = false,
+            finishWouldDiscard = false,
+            preAlert = PreAlertChoice.Inherit,
+        )
+
+    /** A cold step (5 °C) waiting in READY: a cold brew, or an ice brew with [iceBrew]. */
+    fun coldReady(iceBrew: Boolean) = base(
+        TimerPhase.READY,
+        0,
+        StepStatus.PENDING,
+        plan = listOf(TimerUiStep(StepKind.INFUSION, 2 * 3_600, 5, StepStatus.PENDING)),
+    ).copy(longStep = true, iceBrew = iceBrew)
 }

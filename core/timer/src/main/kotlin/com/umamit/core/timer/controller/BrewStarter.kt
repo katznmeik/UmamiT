@@ -30,6 +30,18 @@ interface BrewStarter {
      * step), an active quick timer is cancelled, then [request] starts.
      */
     suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome
+
+    /**
+     * *Start* on the quick timer (SCR-07, TMR-22, 04 §10): one infusion of
+     * [durationSeconds] with the global pre-alert, running at once (SCR-07's
+     * *Start* is the start of its one step). Nothing is recorded. Returns
+     * `Rejected(ActiveTimerExists)` while another timer is active (TMR-21) and
+     * `Rejected(InvalidQuickTimer)` outside 5 s – 24 h.
+     */
+    suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome
+
+    /** *Beenden & neu starten* (TMR-21) for the quick timer: the active timer ends as above, then it runs. */
+    suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome
 }
 
 /**
@@ -44,6 +56,12 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
 
     override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome =
         controller.finishActiveAndStart(request)
+
+    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome =
+        controller.startQuickTimer(durationSeconds, run = true)
+
+    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome =
+        controller.startQuickTimer(durationSeconds, run = true, finishActive = true)
 }
 
 /**
