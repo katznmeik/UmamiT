@@ -12,7 +12,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.diagnostics.DiagnosticsEntry
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.feature.settings.SettingsScreen
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,7 +21,7 @@ import org.robolectric.annotation.Config
 /**
  * *Einstellungen › Diagnose* (SCR-27, 06 §5.6, M1-20): the log newest first,
  * *Kopieren* puts the whole text on the clipboard, an empty log says so, and
- * the settings placeholder leads there until M1-15 wires *Über*.
+ * *Über* leads there (AboutTest).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -72,20 +71,6 @@ class DiagnosticsScreenTest {
 
         compose.onNodeWithText("Noch keine Einträge").assertIsDisplayed()
         compose.onNodeWithText("Kopieren").assertIsNotEnabled()
-    }
-
-    @Test
-    fun `the settings placeholder opens Diagnose`() {
-        var opened = 0
-        compose.setContent {
-            UmamiTheme(darkTheme = false, reduceMotion = true) {
-                SettingsScreen(onBack = {}, onOpenDiagnostics = { opened++ })
-            }
-        }
-
-        compose.onNodeWithText("Diagnose").performClick()
-
-        assertThat(opened).isEqualTo(1)
     }
 
     private companion object {

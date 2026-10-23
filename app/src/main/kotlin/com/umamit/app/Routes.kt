@@ -40,7 +40,18 @@ internal data object StatsRoute
 @Serializable
 internal data object SettingsRoute
 
-/** *Diagnose* (SCR-27, M1-20), reached from the settings placeholder until M1-15 moves it under *Über*. */
+/** *Über* (SCR-27): from the settings, in a tab's stack or above the timer (*Timer-Einstellungen*). */
+@Serializable
+internal data object AboutRoute
+
+/**
+ * The first-start setup (SCR-01): the start destination until it is completed (ONB-04), and
+ * reached again from *Über › Einrichtung erneut zeigen* above the shell.
+ */
+@Serializable
+internal data object OnboardingRoute
+
+/** *Diagnose* (SCR-27, M1-20), under *Über*. */
 @Serializable
 internal data object DiagnosticsRoute
 

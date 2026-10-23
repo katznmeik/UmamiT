@@ -6,8 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.timer.reliability.startFirstIntent
 
 /**
  * Start (SCR-02) with its view model. *Nochmal brühen* opens the timer once
@@ -23,8 +26,14 @@ fun HomeRoute(
     scrollToTopRequest: Int = 0,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentOnOpenTimer by rememberUpdatedState(onOpenTimer)
+    // The user may come back from the system settings (TMR-31).
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshReliability()
+        onPauseOrDispose {}
+    }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -44,6 +53,7 @@ fun HomeRoute(
             openCatalog = actions.openCatalog,
             confirmRestart = viewModel::confirmRestart,
             dismissQuestion = viewModel::dismissQuestion,
+            fixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
         )
     }
     HomeScreen(

@@ -22,6 +22,8 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.umamit.app.MainActivity
 import com.umamit.app.R
+import com.umamit.app.SetupDoneRule
+import com.umamit.app.UnlockedDeviceRule
 import com.umamit.core.timer.TimerAlarm
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.probe.ProbeAlertActivity
@@ -61,7 +63,13 @@ import com.umamit.core.timer.R as TimerR
 @RunWith(AndroidJUnit4::class)
 class ProbeStepTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val unlocked = UnlockedDeviceRule()
+
+    @get:Rule(order = 1)
+    val setupDone = SetupDoneRule()
+
+    @get:Rule(order = 2)
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.FinishActiveSessionDialog
 import com.umamit.core.designsystem.component.PrimaryActionCard
+import com.umamit.core.designsystem.component.ReliabilityBanner
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.SettingsGearAction
@@ -87,6 +88,13 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
+            if (state.reliabilityProblem) {
+                ReliabilityBanner(
+                    message = stringResource(R.string.home_reliability),
+                    onFix = actions.fixReliability,
+                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+                )
+            }
             // The empty state brings its own landscape; one is enough.
             val empty = state.collectionEmpty && state.brewAgain.isEmpty() && state.recent.isEmpty()
             if (!empty) Header()

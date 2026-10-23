@@ -21,6 +21,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
+import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -86,6 +87,7 @@ class BrewAgainFlowTest {
             starter,
             clock,
             PhotoFiles(folder.newFolder("photos")),
+            FakeTimerReliability(),
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {

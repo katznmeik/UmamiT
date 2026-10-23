@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Einrichtung (SCR-01): welcome (ONB-01). -->
+    <string name="onboarding_app_name">UmamiT</string>
+    <string name="onboarding_welcome">Aus Liebe zum Tee</string>
+    <string name="onboarding_welcome_japanese">お茶で、いい時間を。</string>
+    <string name="onboarding_start">Los geht\'s</string>
+
+    <!-- Reliability page (ONB-02, ONB-06). -->
+    <string name="onboarding_reliability_title">Damit der Timer zuverlässig klingelt</string>
+    <string name="onboarding_reliability_intro">Ein paar Einstellungen, damit dich der Alarm auch bei gesperrtem Bildschirm erreicht. Was fehlt, kannst du später in den Einstellungen nachholen.</string>
+    <string name="onboarding_check_notifications">Benachrichtigungen erlauben</string>
+    <string name="onboarding_check_notifications_explanation">Für den Alarm und den laufenden Aufguss.</string>
+    <string name="onboarding_check_notifications_action">Erlauben</string>
+    <string name="onboarding_check_battery">Akku: Uneingeschränkt</string>
+    <string name="onboarding_check_battery_explanation">Damit Android den Timer nicht schlafen legt. Auf Samsung-Geräten zusätzlich UmamiT bei „Nie schlafende Apps“ eintragen.</string>
+    <string name="onboarding_check_battery_action">Freigeben</string>
+    <string name="onboarding_check_live">Live-Benachrichtigungen</string>
+    <string name="onboarding_check_live_explanation">Zeigt den Aufguss in der Statusleiste und auf dem Sperrbildschirm.</string>
+    <string name="onboarding_check_live_action">Einschalten</string>
+    <string name="onboarding_check_full_screen">Vollbild-Alarm</string>
+    <string name="onboarding_check_full_screen_explanation">Zeigt den Alarm über dem Sperrbildschirm.</string>
+    <string name="onboarding_check_full_screen_action">Erlauben</string>
+    <string name="onboarding_restart_title">Automatischer Neustart</string>
+    <string name="onboarding_restart_body">Samsung startet das Handy nachts manchmal neu. Danach klingelt ein laufender Timer erst, wenn du das Handy entsperrt hast. Schalte unter Akku und Gerätewartung › Automatische Optimierung „Automatisch neu starten“ aus.</string>
+    <string name="onboarding_restart_link">Gerätewartung öffnen</string>
+    <string name="onboarding_photos_loading">Teefotos werden geladen …</string>
+    <string name="onboarding_photos_skip">Überspringen</string>
+    <string name="onboarding_next">Weiter</string>
+    <string name="onboarding_save_failed">Konnte nicht gespeichert werden. Tippe noch einmal auf „Weiter“; ist der Speicher voll?</string>
+</resources>

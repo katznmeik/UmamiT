@@ -23,6 +23,7 @@ import com.umamit.core.testing.FakeTimerAlarms
 import com.umamit.core.testing.FakeTimerAlertPlayer
 import com.umamit.core.testing.FakeTimerDiagnostics
 import com.umamit.core.testing.FakeTimerNotifier
+import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.FakeTimerService
 import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.controller.BrewSessionController
@@ -94,6 +95,7 @@ class BrewAgainOnControllerTest {
             ControllerBrewTimer(controller),
             clock,
             PhotoFiles(File(context.cacheDir, "photos")),
+            FakeTimerReliability(),
         )
         assertThat(settled(start).brewAgain.map { it.id }).containsExactly(hisui.id)
 

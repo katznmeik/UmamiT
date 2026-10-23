@@ -256,10 +256,7 @@ class ProcessDeathTest {
     private fun activeNotification(id: Int): Notification? =
         notificationManager.activeNotifications.firstOrNull { it.id == id }?.notification
 
-    private fun wakeAndUnlock() {
-        shell("input keyevent KEYCODE_WAKEUP")
-        shell("wm dismiss-keyguard")
-    }
+    private fun wakeAndUnlock() = UnlockedDevice.unlock()
 
     /** Polls [probe] until it returns non-null or [timeout] passes; then fails with [what] and the device state. */
     private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {

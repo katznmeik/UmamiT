@@ -357,6 +357,88 @@ Decided while building it:
   and it is not a Samsung phone. The device numbers still come from
   *Diagnose* in the 09 §4 checklist.
 
+<a id="d-066"></a>
+### D-066 — First-start setup, timer settings, the reliability card and the banner (M1-15, #50) · *Accepted* (Claude, 2026-10-23)
+
+#50 built the first-start setup (SCR-01), the timer settings (SCR-25), *Über*
+(SCR-27) and the reliability banner (TMR-31)
+([03 §4](03-ux-ui.md#scr-01-einrichtung-first-start)). Decided while building
+them:
+
+- **One reliability seam in `core:timer`.** `TimerReliability` (`status()`,
+  `settingsIntents(check)`) replaces the timer screen's own interface and the probe-backed
+  `PermissionTimerReliability`. It maps the permission states #43 already reads
+  for *Diagnose* (`PermissionStatesReader`, the probe's proven checks of #14) to
+  five `ReliabilityCheck`s: notifications, Live Updates, the full-screen alert,
+  the battery and exact alarms, each ✓, ! or not on this platform (Live Updates
+  before API 36, never a problem). *Beheben* opens the check's own page, the
+  probe's proven intents, with the app's details page last; the banner opens
+  the first missing check in the card's order. The screen starts the pages
+  from its Activity, as the probe did, so they open in the app's task and
+  back returns to the app. The probe keeps its own copy
+  until #54 removes it. The setup, the settings card, Start and the timer read
+  the checks again on every resume.
+- **The notifications row** asks for `POST_NOTIFICATIONS` while it is not
+  granted, and opens the app's notification settings once Android shows no
+  dialog any more or the permission is granted but notifications are off
+  (`rememberNotificationPermissionAction` in `core:ui`, the probe's flow).
+- **The setup is a root route.** While `onboardingCompleted` is false it is
+  the start destination, so back on the welcome leaves the app and it shows
+  again on the next start (ONB-04); *Weiter* writes the marker, then Start
+  replaces the setup. Nothing is drawn until the marker is read, and no
+  navigation (alert, notification request) runs before the graph exists. *Über
+  › Einrichtung erneut zeigen* opens it above the shell like the other routes,
+  so it gives way to a new alert (D-062, D-064); *Weiter* there returns to
+  *Über*. An unreadable settings file opens on Start. Instrumented tests mark
+  the setup done first through the app's settings store (`SettingsEntryPoint`),
+  so the emulator never runs the first start or sends the seed photo requests.
+- **First start in the background.** `FirstStart` (app scope, IO) runs
+  `SeedDataSeeder.seedIfNeeded`, then `SeedPhotoDownloader.downloadIfNeeded`,
+  once per process, as soon as the setup opens; it goes on after *Weiter*.
+  A failed seed is logged and leaves the download due (D-054). The page shows
+  „Teefotos werden geladen …" with *Überspringen* only while photos are
+  fetched, **below** *Weiter*, so *Weiter* never moves under a finger when the
+  line goes. No error is shown (ONB-06).
+- **Setup pages.** Welcome: placeholder ink wash (A1 later), leaf, „UmamiT",
+  „Aus Liebe zum Tee", お茶で、いい時間を。, *Los geht's*. Reliability: the four
+  rows of ONB-02 with their action while missing (*Erlauben*, *Freigeben*,
+  *Einschalten*), the Samsung hint with *Gerätewartung öffnen* (Device care,
+  else the settings; checked on the Galaxy, 09 §4), *Weiter* always enabled.
+  The pages change with the tab fade-through (`tabSwitch`); back on the second
+  page returns to the welcome.
+- **Settings (SCR-25), M1 rows only.** The *Timer-Zuverlässigkeit* card first
+  (all five checks, *Beheben* on a missing one, a summary line), then *Timer &
+  Alarm*: Alarmton (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft),
+  Vorwarnung (Aus, 5 … 30 s), Vibration, Alarmdauer (Kurz einmal, Normal bis
+  15 s, Lang bis zur Bestätigung, höchstens 2 Min), Bildschirm beim Brühen
+  anlassen, Beim Ziehen abdunkeln, *Alarm testen*; then *Über*. Every row
+  writes the settings at once. A failed write (disk full) never throws into
+  the app, whose process may carry a running timer: it is logged and the
+  screen says „Konnte nicht gespeichert werden"; on the setup *Weiter* then
+  tries again. The tone picker stores a pick at once; *Anhören* plays that
+  tone once (`TonePreview`: the alert's sound output and ringer rule, no tick,
+  no vibration, no alert length) and stops when the picker closes, when
+  another tone is picked, or when an alert removes the picker. *Alarm testen*
+  (#44's `AlertTester`) plays tick and alert with the settings; *Stopp* next to
+  it ends it, and so does leaving the screen. The other sections of SET-30
+  come with their milestones.
+- **Alerts first (rule 8).** No settings dialog is composed while an alert
+  plays, and an alert removes an open one in its first frame without
+  animation. Leaving the settings stops a running test (`stopTestAlert`); a
+  real alert plays on (D-059). The banner on the timer stays hidden while it
+  alerts.
+- **Über (SCR-27).** Leaf, „UmamiT", the version, the Tee-Kontor source note,
+  *Einrichtung erneut zeigen*, *Diagnose* (moved here from the settings
+  placeholder of #43), and a short licence text (Cormorant Garamond OFL 1.1,
+  Material Symbols Apache 2.0, the synthesised tones, the libraries).
+  AboutLibraries (06 §4) comes with 1.0 (M5).
+- **Accessibility.** The switch rows are `toggleable` (TalkBack says „an" or
+  „aus"); a status row reads its label, explanation and state as one node.
+  From font scale 1.5 a row's action moves below its text, so no word breaks.
+- **Motion.** The only new motion is the page fade-through. Status rows, the
+  banner and the photo line change without animation: they change on resume,
+  not while the user looks. Dialogs are Material's.
+
 <a id="d-064"></a>
 ### D-064 — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
 
@@ -2049,6 +2131,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
+| 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |
 | 2026-10-22 | D-064: notifications, the promoted Live Update and the full-screen alert (#47): `AndroidTimerNotifier` through `BrewTimerServicePort`, the one ordered place for notifications 1, 2 and the quiet ID 4 (long step, demoted session); content and actions per phase, ProgressStyle segments with the pre-alert point, 15 s refresh, dismissal kept until the next state; actions to the controller with source NOTIFICATION; the full-screen and content intents open the app's timer route over the lock screen (`TimerAlertActivity` removed); „Sitzung gespeichert"; the app runs the real controller (`TimerHost`). 04 §8.2, §8.3, §13 updated. |
 | 2026-10-22 | D-062: Start, tea picker and setup (#48): `BrewStarter` seam following the `BrewTimer` binding, *Nochmal brühen* from the last session, *Zuletzt gebrüht* row format, picker as Material sheet with GEN-10 search and an immediate pick, scaling from the locked ratio (0,1 g / 5 ml steppers), *Im Rezept speichern* only when changed with an in-place confirmation, cold/ice kettle hint, *Brühen anpassen* through the setup; every route above the shell or timer gives way to the timer on a new alert, overlays and the TMR-21 question never over an alert. 03 SCR-02, SCR-03, SCR-04 updated. |
 | 2026-10-22 | D-061: minimal journal and the „Gespeichert" sheet (#51): `JournalRepository` read side with cover photos, day groups by the start's local date in the session's zone (E13), meta line with planned first infusion and poured count („2 von 3 Aufgüssen"), pinned in-progress session opening the timer, `SavedSheetRequests` as the saved sheet port, sheet without scrim over the tab content, 10 s / swipe / hold / TalkBack action, never composed during an alert, `sheet` spring motion. 03 SCR-06, SCR-15 updated. |

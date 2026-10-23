@@ -263,10 +263,7 @@ class AccuracyRunTest {
     private fun activeNotification(id: Int): Notification? =
         notificationManager.activeNotifications.firstOrNull { it.id == id }?.notification
 
-    private fun wakeAndUnlock() {
-        shell("input keyevent KEYCODE_WAKEUP")
-        shell("wm dismiss-keyguard")
-    }
+    private fun wakeAndUnlock() = UnlockedDevice.unlock()
 
     /** Fails with [message] and the device's state unless [condition]. */
     private fun check(message: String, condition: Boolean) {

@@ -10,7 +10,9 @@ import com.umamit.app.timer.TimerActiveBrewSource
 import com.umamit.app.timer.TimerScreenRequests
 import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.SettingsRepository
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.feature.brew.timer.BrewTimer
@@ -18,6 +20,7 @@ import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -47,6 +50,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var journalSources: JournalSources
 
+    @Inject
+    lateinit var settings: SettingsRepository
+
     private val timerVisible = MutableStateFlow(false)
 
     /** The notifications' requests to open the timer; a pending one survives a recreation. */
@@ -62,6 +68,10 @@ class MainActivity : ComponentActivity() {
             showTimerOverLockScreen()
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        // An unreadable settings file never keeps the app on a blank screen: it opens on Start.
+        val onboardingCompleted = settings.settings.map<UserSettings, Boolean?> { it.onboardingCompleted }
+            .catch { emit(true) }
+            .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
             combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
@@ -75,6 +85,7 @@ class MainActivity : ComponentActivity() {
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
                     alertKey = alertKey,
+                    onboardingCompleted = onboardingCompleted,
                     timerRequest = timerRequests.token,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
