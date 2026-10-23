@@ -32,7 +32,8 @@ import javax.inject.Provider
  * The app of the timer's instrumented test APK (#42, D-057): the real controller with the
  * real alarm adapter, service port, notifier (#47), alert player (#44), diagnostics log (#43),
  * saved sheet (M1-16), database and clocks, wired by hand as the app's Hilt graph does it.
- * The settings are the defaults ([DefaultSettings]).
+ * The settings are the defaults ([DefaultSettings]). The accuracy run's gate check can make the
+ * alarms and the wake-up late ([InjectedDelay]); every other test runs the ports unchanged.
  *
  * Hilt is not used here: `@HiltAndroidApp` must sit in an application module. The test
  * runner's own process creates this app too, but never builds the controller.
@@ -62,14 +63,17 @@ class TimerTestApplication :
             DiagnosticsLog(File(noBackupFilesDir, DiagnosticsLog.DIRECTORY), DiagnosticsLog.MAX_BYTES, Dispatchers.IO),
         )
         val service = BrewTimerServicePort(this, clocks, diagnostics, TimerStateNotifications(this))
+        val delayMs = InjectedDelay.read(this)
+        val alarms = AndroidTimerAlarms(this, clocks, diagnostics)
+        val wakeUp = CoroutineTimerWakeUp()
         val ports = TimerPorts(
-            alarms = AndroidTimerAlarms(this, clocks, diagnostics),
+            alarms = if (delayMs > 0) DelayedAlarms(alarms, delayMs) else alarms,
             service = service,
             notifier = AndroidTimerNotifier(this, service, TimerStateNotifications(this)),
             alert = ControllerAlertPort(AlertPlayback(this, settings, diagnostics, clocks), Provider { controller }),
             diagnostics = diagnostics,
             savedSheet = SavedSheetRequests(AndroidMonotonicClock(this)),
-            wakeUp = CoroutineTimerWakeUp(),
+            wakeUp = if (delayMs > 0) DelayedWakeUp(wakeUp, delayMs) else wakeUp,
         )
         return BrewSessionController(
             clocks = clocks,
