@@ -311,7 +311,7 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 | `pressRelease` | `spring(dampingRatio = 1, stiffness = 1500)` | Back to scale 1 after a press | Asymmetric: the user presses, the system answers faster. A spring keeps its velocity when a quick tap retargets it mid-press. |
 | `exit` | `tween(200, CalmEaseOut)` | Elements leaving | Exits are faster than entries: the user decided, the system answers. |
 | `standard` | `tween(300, CalmEaseOut)` | State and content transitions (never into ALERTING) | A little slower than Material's 200–250 ms: ritual, not hurried. Still short enough to never block the next tap. |
-| `emphasized` | `tween(450, CalmEaseOut)` | Step changes, a whole surface changing state (never into ALERTING) | Bigger change, more time to follow it. |
+| `emphasized` | `tween(450, CalmEaseOut)` | **Reserved, unused in M1.** Meant for a whole surface changing state (never into ALERTING). The one step change users see in M1 leaves the alert, and that stays a snap, so no M1 screen uses it | Bigger change, more time to follow it. |
 | `fade` | `tween(300, CalmEaseOut)`; reduce motion: `tween(100, linear)` (on the device instant, see „Reduce motion" below) | Opacity and colour (never into ALERTING) | Fades help comprehension, so the token keeps a short one for the in-app reduce-motion path. |
 | `exitFade` | `exit` (200 ms); reduce motion: `fade` (100 ms) | Fade of a leaving element: popped routes, the active brew bar | Same as `exit`, but never a snap where only opacity changes. |
 | `tabSwitch` | out `tween(90, CalmEaseOut)`, in `tween(210, delay 90, CalmEaseOut)` (fade-through); reduce motion: `fade` (100 ms, no delay) | Switching between the four tabs | Tab switches happen tens of times a day, so they are short, and the old screen is gone before the new one arrives: no double exposure of two top bars. |
@@ -349,7 +349,9 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
   the progress as a lambda read only while drawing, so short steps redraw per
   frame without recomposing. Long steps glide (`longStepGlide`; the caller
   updates the progress every `longStepUpdateIntervalMillis`), but the update to
-  1 is drawn at once, so no glide runs into the alert. The pre-alert marker
+  1 is drawn at once, so no glide runs into the alert. Only forward progress
+  glides: a level that goes down (the next long step after *Abgegossen* starts
+  at 0) is drawn at once, so the liquor never sinks. The pre-alert marker
   swells once with `preAlertGlow` for each new tick identity the caller passes
   (`preAlertGlowTick`). A glow is never cut short, and a ring that comes back
   (rotation, navigation) never replays a tick it already showed.
