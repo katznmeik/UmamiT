@@ -302,6 +302,46 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-071"></a>
+### D-071 — A Live Update overtaken by the foreground start's late post is posted again (TMR-41, #54) · *Accepted* (Claude, 2026-10-23)
+
+CI on API 35 showed notification 1 still with READY's text more than 10 s
+after *Start* (`TimerNotificationsDeviceTest`, intermittent). `BrewTimerService`
+shows a notification in two ways: the first command calls `startForeground`,
+a later one with the same ID calls `notify`. In AOSP the notification of
+`startForeground` is not posted synchronously: `ServiceRecord.postNotification`
+queues it on the ActivityManager's handler, which later hands it to the
+NotificationManager, while the app's `notify` is a direct binder call. An
+update within milliseconds of the start can therefore reach the
+NotificationManager first and be overwritten by the start's older content:
+for up to 15 s while RUNNING (the refresh, 04 §8.3, repairs it) and for good
+in READY, PAUSED or FINISHED. On the phone the likely trigger is a
+notification action that cold-starts the process (the recovery's
+`startForeground`, then the action's update). Decided:
+
+- The service remembers when its last `startForeground` succeeded
+  (`SystemClock.uptimeMillis`). A same-ID update posted with `notify` within
+  `REPOST_WINDOW_MS` (1 s) of it is posted once more after `REPOST_DELAY_MS`
+  (0.5 s) on the main looper, with `FLAG_ONLY_ALERT_ONCE` added, so the copy
+  never rings or vibrates again.
+- At most one re-post is pending; any newer command replaces it. It is
+  dropped on `stopForeground` and in `onDestroy`, and it posts only while
+  that ID is still the foreground notification.
+- Same-ID updates do not switch to `startForeground`: every later call is
+  checked again against the background-start rules and could be refused.
+- The port and the controller do not change. The service logs which path
+  each notification took (`startForeground`, `notify`, re-post); the device
+  test's failure dump adds `dumpsys activity services`, and CI's logcat
+  filter adds `NotificationService`, `Shedding`, `enqueue rate` and
+  `ActiveServices`.
+
+Consequences: a phase change is no longer left stale behind the start's
+late post, as long as that post lands within 0.5 s of the update; a later
+one is still repaired by the 15 s refresh while RUNNING. The device test
+keeps its 10 s timeout: 04 §8.3 tolerates 15 s only for progress within a
+state. Unit test: `LateForegroundPostTest` (Robolectric). 04 §6.3 and §8.3
+updated.
+
 <a id="d-070"></a>
 ### D-070 — Release gate and workflow hardening (M1 milestone review, #54) · *Accepted* (Claude, 2026-10-23)
 
@@ -2402,6 +2442,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-23 | D-071: `BrewTimerService` posts a same-ID update made within 1 s of `startForeground` once more after 0.5 s (only-alert-once, only while still the foreground ID, newest wins), because AOSP posts the start's notification asynchronously and it can overwrite the update; service path logging, `dumpsys activity services` in the device test dump, wider CI logcat filter. 04 §6.3 and §8.3 updated. |
 | 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |
 | 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface with the root as their one owner; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
 | 2026-10-23 | D-068: M1 review fixes in the timer area (#54): deadline guard (alarm 107 at deadline + 90 s while a step runs), accuracy gate and *Diagnose* measured up to the start of the sound (D-067 corrected), accuracy run reset with the watchdog, alert settings read again after a failed read, settings flow total on an unreadable file, timer route waits for recovery, cold and ice READY text and chip, full-screen check reads the app op, wording of `StopForeground` and D-064. 04 §4, §6.1, §6.2, §7.2, §8.2, §8.3, §11, §12, 06 §5.6, 09 §4, §4a updated. |

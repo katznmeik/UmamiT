@@ -299,7 +299,7 @@ jobs:
           find . -path "*androidTest-results*" -name "logcat-*.txt" -print0 |
             while IFS= read -r -d '' log; do
               echo "::group::$log (UmamiT/test lines, last 200)"
-              grep -E "UmamiT|ProcessDeathTest|TimerNotificationsDeviceTest|TimerAlertOverLockScreenTest|AndroidRuntime" "$log" | tail -n 200 || true
+              grep -E "UmamiT|ProcessDeathTest|TimerNotificationsDeviceTest|TimerAlertOverLockScreenTest|AndroidRuntime|NotificationService|Shedding|enqueue rate|ActiveServices" "$log" | tail -n 200 || true
               echo "::endgroup::"
             done
 

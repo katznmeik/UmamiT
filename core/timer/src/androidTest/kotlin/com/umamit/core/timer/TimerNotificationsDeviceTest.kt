@@ -371,6 +371,13 @@ class TimerNotificationsDeviceTest {
                 .filter { line -> ACTIVITY_MARKERS.any(line::contains) }
                 .joinToString("\n") { it.trim() },
         )
+        // The foreground service as ActivityManager sees it: its foreground ID and notification (D-071).
+        appendLine("--- services ---")
+        appendLine(
+            shell("dumpsys activity services $packageName").lines()
+                .filter { line -> SERVICE_MARKERS.any(line::contains) }
+                .joinToString("\n") { it.trim() },
+        )
     }.also { Log.e(TAG, it) }
 
     private fun shell(command: String): String =
@@ -397,5 +404,14 @@ class TimerNotificationsDeviceTest {
         const val STATUS_BAR_SERVICE = "android.permission.STATUS_BAR_SERVICE"
 
         val ACTIVITY_MARKERS = listOf("ResumedActivity", "TimerScreenStandIn", "mKeyguardShowing", "mOccluded")
+        val SERVICE_MARKERS = listOf(
+            "ServiceRecord",
+            "isForeground",
+            "foregroundNoti",
+            "fgRequired",
+            "startRequested",
+            "lastStartId",
+            "createTime",
+        )
     }
 }
