@@ -2,6 +2,7 @@ package com.umamit.core.timer.alert
 
 import android.util.Log
 import com.umamit.core.timer.controller.BrewSessionController
+import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.StepAlert
 import com.umamit.core.timer.controller.TimerAlertPort
 import kotlinx.coroutines.CancellationException
@@ -37,9 +38,10 @@ class ControllerAlertPort internal constructor(
     constructor(playback: AlertPlayback, controller: Provider<BrewSessionController>) :
         this(playback, controller, CoroutineScope(SupervisorJob() + Dispatchers.Default))
 
-    override fun playPreAlert() = playback.playPreAlert()
+    override fun playPreAlert(scheduled: ScheduledTime?) = playback.playPreAlert(scheduled)
 
-    override fun startAlert(alert: StepAlert) = playback.startAlert(onFinished = { report(alert) })
+    override fun startAlert(alert: StepAlert, scheduled: ScheduledTime?) =
+        playback.startAlert(scheduled, onFinished = { report(alert) })
 
     override fun stopAlert() = playback.stopAlert()
 

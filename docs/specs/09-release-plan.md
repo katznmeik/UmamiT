@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067)
+> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067; measured up to the sound, D-068)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -97,10 +97,15 @@ only.
 - [ ] (Best effort, not blocking) Live Update appears in the Now Bar.
 - [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → „Dein Timer läuft weiter · <Tee>" and the alert fires on time.
 - [ ] Update during a session: install the next rc while a 3-min step runs → the Live Update comes back right after the install and the alert fires on time (04 §7.5).
+<<<<<<< HEAD
 - [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows pre-alert and alert fire times within 1 s of the scheduled time; *Kopieren* works.
 - [ ] Session appears in the minimal journal list with its planned first infusion and the poured count („2 von 3 Aufgüssen" when finished early); the „Gespeichert" sheet after *Sitzung beenden* shows the actual total (D-061).
 - [ ] Light phone theme: status-bar icons and the gesture handle are visible (light) on the timer and the quick timer; dark on the alert surface; dark again on the tabs after leaving the timer (D-069).
 - [ ] Rotate the phone, or switch light/dark, while a step alerts and the tabs are on screen: the matcha brew bar is there at once, without growing or fading in (03 §3.8, D-069).
+=======
+- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows each step's „alert PRE_ALERT" and „alert ALERT" lines (the moment the sound started) within 1 s of the scheduled time (their `delta`); the „event … accepted" line above each is only the controller's handling (D-068); *Kopieren* works.
+- [ ] Session appears in the minimal journal list with actual times („2 von 3 Aufgüssen" when finished early).
+>>>>>>> origin/claude/umamit-m1-start-k0jg3n
 
 ### M2 — Catalog
 
@@ -164,24 +169,28 @@ GitHub dispatches only workflows that exist on `main` (D-039).
 
 **Reading the result.** The run page's summary shows a table per API level:
 
-| Event | Steps | p50 | p95 | max | Fired by | On target |
-|---|---:|---:|---:|---:|---|---|
-| Pre-alert | 50 / 50 | 4 ms | 12 ms | 31 ms | WAKE_UP 50 | yes |
-| Alert | 50 / 50 | 5 ms | 14 ms | 40 ms | WAKE_UP 50 | yes |
+| Event | Steps | p50 | p95 | max | Handled p95 / max | Fired by | On target |
+|---|---:|---:|---:|---:|---:|---|---|
+| Pre-alert | 50 / 50 | 9 ms | 25 ms | 48 ms | 12 ms / 31 ms | WAKE_UP 50 | yes |
+| Alert | 50 / 50 | 30 ms | 70 ms | 120 ms | 14 ms / 40 ms | WAKE_UP 50 | yes |
 
 *(Illustrative numbers.)*
 
-- **Delay** is the actual minus the scheduled time of the pre-alert and the
-  alert, as the diagnostics log records them (06 §5.6, D-060), on the
-  monotonic clock. *Fired by* says whether the in-process wake-up or the exact
-  alarm delivered the event.
+- **Delay** is the moment the player started the sound of the pre-alert and
+  the alert minus their scheduled time, as the diagnostics log records them
+  (06 §5.6, D-060, D-068), on the monotonic clock; the gate uses it.
+  *Handled* is the delay up to the controller's handling of the event, for
+  comparison: the difference is the persist, the alarms and the player's
+  queue. *Fired by* says whether the in-process wake-up or the exact alarm
+  delivered the event.
 - **Pass** („**Result: PASS**", job green): all 50 steps completed, and both
   events have p95 ≤ 250 ms and max ≤ 1 s. Anything else fails the job:
   a slow distribution, or a step that never alerted. In that case the test
   failure in the log names the step and shows the device state.
 - **Details:** the artifact `accuracy-api-<level>` has `accuracy.csv` (one row
-  per fire time: step, event, source, scheduled and actual wall and monotonic
-  time, delta), `diagnostics.txt` (the log lines it read), the
+  per pre-alert and alert: step, event, source, scheduled wall and monotonic
+  time, then the handled and the sound-start wall and monotonic time with
+  their deltas), `diagnostics.txt` (the log lines it read), the
   instrumentation output and logcat.
 - A failed run blocks the rc. Find the cause from the CSV and the log lines,
   fix it (rule 8), and run again. A flaky emulator start (no report at all)

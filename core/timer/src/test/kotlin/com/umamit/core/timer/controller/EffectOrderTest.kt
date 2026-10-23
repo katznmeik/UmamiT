@@ -62,6 +62,8 @@ class EffectOrderTest {
                 ),
                 ServiceStarted(TimerPhase.RUNNING),
                 NotificationShown(TimerPhase.RUNNING, fullScreen = false),
+                // After the turn: the deadline guard, 90 s after the deadline (D-068).
+                AlertWatchdogSet(startElapsed + 60_000 + 90_000),
             ).inOrder()
         }
 
@@ -119,6 +121,8 @@ class EffectOrderTest {
             Persisted(TimerPhase.PAUSED),
             AlarmsReconciled(DueTimes(idleDemoteAtWallMs = h.clock.wall + 30 * 60_000, midnightAtWallMs = midnight)),
             NotificationShown(TimerPhase.PAUSED, fullScreen = false),
+            // No step runs: the deadline guard goes (D-068).
+            AlertWatchdogSet(null),
         ).inOrder()
     }
 

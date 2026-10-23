@@ -154,7 +154,9 @@ sealed interface TimerDiagnostic {
     /**
      * The alert player started [cue] with the [conditions] it read (ringer mode, call, Do Not
      * Disturb) and the [outputs] the ringer-mode matrix allowed then (04 §9.1, 06 §5.6), playing
-     * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14).
+     * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14). [scheduled] is when
+     * a step's tick or alert was due (null for *Alarm testen*): with [at], the moment the sound
+     * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068).
      */
     data class AlertPlayed(
         override val at: ClockReading,
@@ -163,6 +165,7 @@ sealed interface TimerDiagnostic {
         val outputs: AlertOutputs,
         val tone: String,
         val length: AlertLength,
+        val scheduled: ScheduledTime? = null,
     ) : TimerDiagnostic
 
     /**

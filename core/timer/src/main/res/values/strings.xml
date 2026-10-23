@@ -21,6 +21,9 @@
     <string name="timer_text_ready">Bereit · %1$s</string>
     <!-- Bereit · 0:20 · Wasserkocher auf 60 °C -->
     <string name="timer_text_ready_kettle">Bereit · %1$s · Wasserkocher auf %2$d °C</string>
+    <!-- At most 10 °C (BRW-10, as SCR-05): Bereit · 4:00:00 · Kaltes Wasser / Eiswürfel for an ice brew -->
+    <string name="timer_text_ready_cold">Bereit · %1$s · Kaltes Wasser</string>
+    <string name="timer_text_ready_ice">Bereit · %1$s · Eiswürfel</string>
     <string name="timer_text_running">Zieht …</string>
     <string name="timer_text_running_temp">Zieht bei %1$d °C</string>
     <string name="timer_text_pre_alert">Gleich fertig …</string>
@@ -31,6 +34,8 @@
     <!-- Short critical text of the status-bar chip outside RUNNING (04 §8.3) -->
     <string name="timer_chip_ready">Bereit</string>
     <string name="timer_chip_temp">%1$d °C</string>
+    <string name="timer_chip_cold">Kaltes Wasser</string>
+    <string name="timer_chip_ice">Eiswürfel</string>
     <string name="timer_chip_paused">Pause</string>
     <string name="timer_chip_finished">Fertig</string>
 

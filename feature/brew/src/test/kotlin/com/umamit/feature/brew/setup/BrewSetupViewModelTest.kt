@@ -4,8 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
-import com.umamit.core.designsystem.component.KettleWater
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeBrewStarter

@@ -1,6 +1,7 @@
 package com.umamit.core.timer.diagnostics
 
 import android.Manifest
+import android.app.AppOpsManager
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -56,5 +57,30 @@ class AppStartDiagnosticsTest {
 
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         assertThat(reader.read().notifications).isTrue()
+    }
+
+    @Test
+    fun `the device reader reports a denied full-screen app op as missing (D-068)`() {
+        val reader = AndroidPermissionStatesReader(app)
+
+        setFullScreenMode(AppOpsManager.MODE_ERRORED)
+        assertThat(reader.fullScreenOpMode()).isEqualTo(AppOpsManager.MODE_ERRORED)
+        setFullScreenMode(AppOpsManager.MODE_ALLOWED)
+        assertThat(reader.fullScreenOpMode()).isEqualTo(AppOpsManager.MODE_ALLOWED)
+
+        // The permission check alone still said yes after `appops … deny` on API 35 and 36.
+        assertThat(fullScreenAlertAllowed(permission = true, AppOpsManager.MODE_ERRORED)).isFalse()
+        assertThat(fullScreenAlertAllowed(permission = true, AppOpsManager.MODE_IGNORED)).isFalse()
+        assertThat(fullScreenAlertAllowed(permission = true, AppOpsManager.MODE_ALLOWED)).isTrue()
+        assertThat(fullScreenAlertAllowed(permission = true, AppOpsManager.MODE_DEFAULT)).isTrue()
+        assertThat(fullScreenAlertAllowed(permission = false, AppOpsManager.MODE_ALLOWED)).isFalse()
+    }
+
+    /** `appops set <package> USE_FULL_SCREEN_INTENT <mode>`, through the hidden `setMode(String, …)`. */
+    private fun setFullScreenMode(mode: Int) {
+        val appOps = app.getSystemService(AppOpsManager::class.java)
+        AppOpsManager::class.java
+            .getMethod("setMode", String::class.java, Int::class.java, String::class.java, Int::class.java)
+            .invoke(appOps, "android:use_full_screen_intent", app.applicationInfo.uid, app.packageName, mode)
     }
 }
