@@ -41,10 +41,19 @@ internal const val MAX_SETTINGS_RETRY_MS = 60_000L
 private const val MAX_DOUBLINGS = 6
 
 /**
+ * What an unreadable settings file reads as (D-066, D-068): the defaults, with the first-start
+ * setup counted as done, so the app opens on Start and the timer stays reachable instead of
+ * showing the setup on every launch. A genuine first start has no file and reads the stored
+ * defaults without an error, so it still gets the setup.
+ */
+val UNREADABLE_SETTINGS: UserSettings = UserSettings(onboardingCompleted = true)
+
+/**
  * These settings, total (D-068): an [IOException] of the settings file (DataStore corruption, a
- * disk error) is reported to [onFailure] and, before the first value, reads as the defaults, so
- * no screen and no timer crashes on it; then the file is read again after 1 s, 2 s, 4 s … up to
- * a minute, so a file that reads again is followed. Any other error still fails the flow.
+ * disk error) is reported to [onFailure] and, before the first value, reads as
+ * [UNREADABLE_SETTINGS], so no screen and no timer crashes on it; then the file is read again
+ * after 1 s, 2 s, 4 s … up to a minute, so a file that reads again is followed. Any other error
+ * still fails the flow.
  */
 internal fun Flow<UserSettings>.readable(onFailure: (IOException) -> Unit): Flow<UserSettings> = flow {
     var read = false
@@ -54,7 +63,7 @@ internal fun Flow<UserSettings>.readable(onFailure: (IOException) -> Unit): Flow
             onFailure(e)
             if (!read) {
                 read = true
-                emit(UserSettings())
+                emit(UNREADABLE_SETTINGS)
             }
             delay(settingsRetryDelayMs(attempt))
             true

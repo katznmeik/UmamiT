@@ -45,6 +45,8 @@ dependencies {
     testImplementation(project(":core:testing"))
     // Start on the real controller with an in-memory database (#47, BRW-11).
     testImplementation(project(":core:database"))
+    // The real settings file, for the start destination with an unreadable file (D-066, D-068).
+    testImplementation(project(":core:datastore"))
 
     debugImplementation(libs.leakcanary.android)
 

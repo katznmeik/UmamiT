@@ -36,14 +36,15 @@ class UnreadableSettingsTest {
     val folder = TemporaryFolder()
 
     @Test
-    fun aFileThatCannotBeReadReadsAsTheDefaults() = runTest {
+    fun aFileThatCannotBeReadReadsAsTheDefaultsWithTheSetupDone() = runTest {
         // A directory where the file should be: DataStore's read throws an IOException.
         val path = File(folder.root, "s.json").apply { mkdirs() }
         val repository = DataStoreSettingsRepository(
             SettingsDataSource(DataStoreFactory.create(SettingsSerializer, scope = backgroundScope) { path }),
         )
 
-        assertThat(repository.settings.first()).isEqualTo(UserSettings())
+        assertThat(repository.settings.first()).isEqualTo(UNREADABLE_SETTINGS)
+        assertThat(UNREADABLE_SETTINGS).isEqualTo(UserSettings(onboardingCompleted = true))
     }
 
     @Test
@@ -59,13 +60,13 @@ class UnreadableSettingsTest {
         backgroundScope.launch { source.readable { failures += it }.toList(seen) }
 
         runCurrent()
-        assertThat(seen).containsExactly(UserSettings())
+        assertThat(seen).containsExactly(UNREADABLE_SETTINGS)
 
         advanceTimeBy(FIRST_SETTINGS_RETRY_MS + 1)
-        assertThat(seen).containsExactly(UserSettings())
+        assertThat(seen).containsExactly(UNREADABLE_SETTINGS)
         advanceTimeBy(2 * FIRST_SETTINGS_RETRY_MS + 1)
 
-        assertThat(seen).containsExactly(UserSettings(), stored).inOrder()
+        assertThat(seen).containsExactly(UNREADABLE_SETTINGS, stored).inOrder()
         assertThat(failures).hasSize(2)
     }
 
