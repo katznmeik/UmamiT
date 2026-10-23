@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.FinishActiveSessionDialog
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.TimerRing
+import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
@@ -160,7 +162,13 @@ private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions,
             stepDescription = title,
             modifier = Modifier
                 .testTag(QUICK_RING_TAG)
-                .clickable(onClickLabel = stringResource(R.string.brew_quick_ring_label), onClick = openPicker),
+                .clickable(
+                    interactionSource = null,
+                    // Round like the ring: the bounded default flashes a square around it (A2).
+                    indication = ripple(bounded = false, radius = TimerRingDefaults.Size / 2),
+                    onClickLabel = stringResource(R.string.brew_quick_ring_label),
+                    onClick = openPicker,
+                ),
         )
         Spacer(Modifier.height(UmamiSpacing.Medium))
         DurationChips(selected = state.durationSeconds, onSelect = actions.select)
