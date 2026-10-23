@@ -71,11 +71,16 @@ fun lockScreenFlags(state: TimerUiState, timerVisible: Boolean): LockScreenFlags
  * The active brew bar fed by the controller's state (GEN-06, D-055): it ticks
  * at each second of the countdown or the overtime while collected, so it stops
  * with the app in the background. A long step's progress changes only every
- * 10 s (03 §3.6), so the mini ring holds still in between.
+ * 10 s (03 §3.6), so the mini ring holds still in between. Its first value is
+ * read synchronously from the controller, so a new activity starts with the bar.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class TimerActiveBrewSource(timer: BrewTimer, clock: MonotonicClock, resources: Resources, scope: CoroutineScope) :
-    ActiveBrewSource {
+class TimerActiveBrewSource(
+    timer: BrewTimer,
+    clock: MonotonicClock,
+    private val resources: Resources,
+    scope: CoroutineScope,
+) : ActiveBrewSource {
     // Snapshot state: the mini ring reads it while drawing and redraws when it changes.
     private val level = mutableFloatStateOf(0f)
 
@@ -84,15 +89,26 @@ class TimerActiveBrewSource(timer: BrewTimer, clock: MonotonicClock, resources: 
     override val activeBrew: StateFlow<ActiveBrew?> = timer.state
         .flatMapLatest { state ->
             if (state is TimerUiState.Active) {
-                state.displayTicks(clock::elapsedMs).map { now ->
-                    level.floatValue = state.progressAt(now)
-                    activeBrewOf(state, now, resources, DefaultExtendedColors.liquor.green)
-                }
+                state.displayTicks(clock::elapsedMs).map { now -> brewAt(state, now) }
             } else {
                 flowOf(null)
             }
         }
-        .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+        // Synchronous first value from the controller's current state: a shell recreated while a
+        // step alerts (rotation, theme switch, reopening) draws the matcha bar in its first frame
+        // instead of letting it arrive a frame later with its enter motion (03 §3.8, rule 8).
+        .stateIn(
+            scope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            timer.state.value.let { state ->
+                (state as? TimerUiState.Active)?.let { brewAt(it, clock.elapsedMs()) }
+            },
+        )
+
+    private fun brewAt(state: TimerUiState.Active, now: Long): ActiveBrew {
+        level.floatValue = state.progressAt(now)
+        return activeBrewOf(state, now, resources, DefaultExtendedColors.liquor.green)
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -80,6 +81,26 @@ class ActiveBrewBarAlertingTest {
     }
 
     @Test
+    fun `a bar that arrives already alerting is full height and matcha on the next frame (B1, rule 8)`() {
+        var arriving by mutableStateOf<ActiveBrew?>(null)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = false) {
+                ActiveBrewBar(brew = arriving, progress = { 1f }, onClick = {})
+            }
+        }
+        compose.mainClock.advanceTimeBy(BAR_SETTLED_MILLIS)
+
+        arriving = alerting
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeByFrame()
+
+        val bounds = compose.onNodeWithContentDescription(alertingDescription).fetchSemanticsNode().boundsInWindow
+        assertThat(bounds.height).isAtLeast(with(compose.density) { BAR_MIN_HEIGHT.toPx() })
+        assertThat(barBackground().distanceTo(alert.matcha)).isLessThan(SAME)
+    }
+
+    @Test
     fun `the alerting bar does not pulse`() {
         brew = alerting
         show()
@@ -102,5 +123,6 @@ class ActiveBrewBarAlertingTest {
         const val EDGE_PX = 4f
         const val BAR_SETTLED_MILLIS = 1_000L
         const val HALF_PULSE_MILLIS = 750L
+        val BAR_MIN_HEIGHT = 72.dp
     }
 }
