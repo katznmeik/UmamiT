@@ -1,8 +1,11 @@
 package com.umamit.feature.brew.timer
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.designsystem.component.KettleWater
+import com.umamit.core.model.TimerPhase
 import com.umamit.feature.brew.timer.TimerMenuItem.AddStep
 import com.umamit.feature.brew.timer.TimerMenuItem.AdjustBrew
+import com.umamit.feature.brew.timer.TimerMenuItem.CancelQuickTimer
 import com.umamit.feature.brew.timer.TimerMenuItem.DiscardSession
 import com.umamit.feature.brew.timer.TimerMenuItem.EditSteps
 import com.umamit.feature.brew.timer.TimerMenuItem.EndStepNow
@@ -14,6 +17,23 @@ import org.junit.Test
 
 /** The pure rules of SCR-05: overflow per state, announcements, ticks and progress. */
 class TimerScreenLogicTest {
+
+    @Test
+    fun `the quick timer's overflow offers Abbrechen until the alert, and the timer settings (SCR-07)`() {
+        for (phase in listOf(TimerPhase.READY, TimerPhase.RUNNING, TimerPhase.PAUSED)) {
+            assertThat(TimerStates.quick(phase).menuItems()).containsExactly(CancelQuickTimer, TimerSettings).inOrder()
+        }
+        // On the alert *Fertig* ends it; the engine has no cancel there (04 sec 10).
+        assertThat(TimerStates.quick(TimerPhase.ALERTING).menuItems()).containsExactly(TimerSettings)
+    }
+
+    @Test
+    fun `a cold step reads Kaltes Wasser, an ice brew Eiswuerfel, a hot one the kettle (BRW-10)`() {
+        assertThat(TimerStates.coldReady(iceBrew = false).kettleWater()).isEqualTo(KettleWater.COLD)
+        assertThat(TimerStates.coldReady(iceBrew = true).kettleWater()).isEqualTo(KettleWater.ICE)
+        assertThat(TimerStates.ready().kettleWater()).isEqualTo(KettleWater.HOT)
+        assertThat(TimerStates.quick(TimerPhase.READY).kettleWater()).isNull()
+    }
 
     @Test
     fun `the overflow offers exactly the items of the SCR-05 table per state`() {

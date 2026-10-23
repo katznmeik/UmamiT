@@ -45,12 +45,18 @@ internal class TransitionEffects(
 
     /**
      * Runs the effects of the accepted [transition] at [now]. [start] is the
-     * request of a `CreateSession`; [teaName] the session's tea for the UI.
+     * request of a `CreateSession`; [teaName] the session's tea for the UI, [iceBrew] whether it is an ice brew.
      */
-    suspend fun run(transition: TimerTransition, now: ClockReading, start: SessionStart?, teaName: String?) {
+    suspend fun run(
+        transition: TimerTransition,
+        now: ClockReading,
+        start: SessionStart?,
+        teaName: String?,
+        iceBrew: Boolean = false,
+    ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
         persist(transition.effects.take(persistAt), transition.state, start, now)
-        val ui = uiStateOf(transition.state, teaName, now)
+        val ui = uiStateOf(transition.state, teaName, now, iceBrew)
         mutableState.value = ui
         val fullScreen = TimerEffect.StartAlert in transition.effects
         transition.effects.drop(persistAt + 1).forEach { effect ->

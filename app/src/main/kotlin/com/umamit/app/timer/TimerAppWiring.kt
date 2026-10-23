@@ -84,6 +84,11 @@ object NoBrewTimer : BrewTimer, BrewStarter {
     override suspend fun startSession(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
 
     override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
+
+    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome = TransitionOutcome.Ignored
+
+    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome =
+        TransitionOutcome.Ignored
 }
 
 /**

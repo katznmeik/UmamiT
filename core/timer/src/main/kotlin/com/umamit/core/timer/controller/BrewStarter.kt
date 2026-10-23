@@ -31,6 +31,18 @@ interface BrewStarter {
      * step), an active quick timer is cancelled, then [request] starts.
      */
     suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome
+
+    /**
+     * *Start* on the quick timer (SCR-07, TMR-22, 04 §10): one infusion of
+     * [durationSeconds] with the global pre-alert, running at once (SCR-07's
+     * *Start* is the start of its one step). Nothing is recorded. Returns
+     * `Rejected(ActiveTimerExists)` while another timer is active (TMR-21) and
+     * `Rejected(InvalidQuickTimer)` outside 5 s – 24 h.
+     */
+    suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome
+
+    /** *Beenden & neu starten* (TMR-21) for the quick timer: the active timer ends as above, then it runs. */
+    suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome
 }
 
 /**
@@ -47,11 +59,26 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
     override suspend fun startSession(request: BrewStart): TransitionOutcome = controller.startSession(request)
 
     override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome {
+        finishActive()
+        return controller.startSession(request)
+    }
+
+    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome {
+        val outcome = controller.startQuickTimer(durationSeconds)
+        // Two turns: READY, then running. A turn in between (an alarm) cannot touch a waiting quick timer.
+        return if (outcome == TransitionOutcome.Accepted) controller.send(TimerEvent.Start) else outcome
+    }
+
+    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome {
+        finishActive()
+        return startQuickTimer(durationSeconds)
+    }
+
+    private suspend fun finishActive() {
         when ((controller.state.value as? TimerUiState.Active)?.sessionId) {
             null -> controller.send(TimerEvent.Cancel)
             else -> controller.send(TimerEvent.FinishSession)
         }
-        return controller.startSession(request)
     }
 }
 

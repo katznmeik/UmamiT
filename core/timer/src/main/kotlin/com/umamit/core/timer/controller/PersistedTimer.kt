@@ -3,6 +3,8 @@ package com.umamit.core.timer.controller
 import com.umamit.core.common.ClockReading
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerSnapshot
@@ -20,8 +22,8 @@ internal class PersistedTimer(
     private val sessions: SessionRepository,
     private val effects: TransitionEffects,
 ) {
-    /** The restored state ([TimerState.Idle] for none) and the tea of its brew session. */
-    data class Restored(val state: TimerState, val teaName: String?)
+    /** The restored state ([TimerState.Idle] for none), the tea of its brew session and whether it is an ice brew. */
+    data class Restored(val state: TimerState, val teaName: String?, val iceBrew: Boolean = false)
 
     /**
      * The persisted state at [now]. A snapshot `restore` refuses is cleared
@@ -39,7 +41,8 @@ internal class PersistedTimer(
             effects.discardUnreadable(now)
             TimerState.Idle
         }
-        return Restored(state, teaNameOf(state, now))
+        val session = snapshotOf(state, now)
+        return Restored(state, session?.teaName, session?.method == BrewMethod.ICE_BREW)
     }
 
     private suspend fun readWithRetries(now: ClockReading): Read<TimerSnapshot?>? {
@@ -52,10 +55,10 @@ internal class PersistedTimer(
         return read
     }
 
-    /** The tea of a brew session, from its session row; null for the quick timer, idle or an unreadable row. */
-    private suspend fun teaNameOf(state: TimerState, now: ClockReading): String? {
+    /** The snapshot of a brew session, from its session row; null for the quick timer, idle or an unreadable row. */
+    private suspend fun snapshotOf(state: TimerState, now: ClockReading): SessionSnapshot? {
         val sessionId = ((state as? TimerState.Active)?.session?.kind as? SessionKind.Brew)?.sessionId
-        return sessionId?.let { id -> guarded(now) { sessions.getSession(id)?.snapshot?.teaName }?.value }
+        return sessionId?.let { id -> guarded(now) { sessions.getSession(id)?.snapshot }?.value }
     }
 
     /** Runs [read]; a failure of any kind is logged as [TimerDiagnostic.RecoveryFailed] and gives null. */

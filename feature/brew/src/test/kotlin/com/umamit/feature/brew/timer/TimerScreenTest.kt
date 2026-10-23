@@ -27,6 +27,7 @@ import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.timer.TimerStates.NOW
@@ -181,6 +182,7 @@ class TimerScreenTest {
         "Sitzung beenden",
         "Sitzung verwerfen",
         "Timer-Einstellungen",
+        "Abbrechen",
     )
 
     private fun count(text: String) = compose.onAllNodes(hasText(text)).fetchSemanticsNodes().size
@@ -246,6 +248,57 @@ class TimerScreenTest {
         "Sitzung verwerfen",
         "Timer-Einstellungen",
     )
+
+    // --- Quick timer (SCR-07, 04 sec 10) ------------------------------------------------------
+
+    @Test
+    fun `the quick timer pauses and resumes, and shows no step label (SCR-07)`() {
+        show(TimerStates.quick(TimerPhase.RUNNING))
+
+        compose.onNodeWithText("Schnelltimer").assertIsDisplayed()
+        compose.onNodeWithText("Aufguss 1 von 1", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Pause").performClick()
+        state = TimerStates.quick(TimerPhase.PAUSED)
+        compose.onNodeWithText("Weiter").performClick()
+
+        assertThat(events).containsExactly(TimerEvent.Pause, TimerEvent.Resume).inOrder()
+    }
+
+    @Test
+    fun `Fertig ends the quick timer on its alert (SCR-07)`() {
+        show(TimerStates.quick(TimerPhase.ALERTING))
+
+        compose.onNodeWithText("Abgegossen").assertDoesNotExist()
+        compose.onNodeWithText("Fertig").performClick()
+
+        assertThat(events).containsExactly(TimerEvent.Poured)
+    }
+
+    @Test
+    fun `Abbrechen in the overflow cancels the quick timer (SCR-07)`() {
+        show(TimerStates.quick(TimerPhase.RUNNING))
+        openMenu()
+        compose.onNodeWithText("Sitzung beenden").assertDoesNotExist()
+        compose.onNodeWithText("Abbrechen").performClick()
+
+        assertThat(events).containsExactly(TimerEvent.Cancel)
+    }
+
+    @Test
+    fun `the quick timer's alert has no Abbrechen`() = assertMenu(
+        TimerStates.quick(TimerPhase.ALERTING),
+        "Timer-Einstellungen",
+    )
+
+    @Test
+    fun `a cold brew waits with Kaltes Wasser, an ice brew with Eiswuerfel (BRW-10)`() {
+        show(TimerStates.coldReady(iceBrew = false))
+        compose.onNodeWithText("Kaltes Wasser", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Wasserkocher auf 5 °C", useUnmergedTree = true).assertDoesNotExist()
+
+        state = TimerStates.coldReady(iceBrew = true)
+        compose.onNodeWithText("Eiswürfel", useUnmergedTree = true).assertIsDisplayed()
+    }
 
     @Test
     fun `overflow items send their events or open their screens`() {

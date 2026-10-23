@@ -65,9 +65,15 @@ class TimerNavigationTest {
                     },
                     diagnosticsScreen = { Text("DIAGNOSE-LOG") },
                     startScreen = { tab ->
-                        Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
+                        Column {
+                            Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
+                            Button(onClick = tab.navigation.openQuickTimer) { Text("Schnell") }
+                        }
                     },
                     setupScreen = { _, _ -> Text("SETUP") },
+                    quickTimerScreen = { _, openTimer ->
+                        Button(onClick = openTimer) { Text("QUICK-START") }
+                    },
                 )
             }
         }
@@ -243,5 +249,40 @@ class TimerNavigationTest {
         compose.waitForIdle()
 
         assertTimerOnTop()
+    }
+
+    // --- Quick timer (SCR-07, M1-14) ---------------------------------------------------------
+
+    private fun openQuickTimer() {
+        compose.onNodeWithText("Schnell").performClick()
+        compose.onNodeWithText("QUICK-START").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Schnelltimer opens the quick timer, and its Start replaces it with the timer`() {
+        show()
+        openQuickTimer()
+
+        compose.onNodeWithText("QUICK-START").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+
+        // Back from the running quick timer returns to Start, not to the chips.
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithText("Schnell").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the alert replaces the quick timer with the timer at once (rule 8)`() {
+        show()
+        openQuickTimer()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("QUICK-START").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
     }
 }

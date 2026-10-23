@@ -20,6 +20,13 @@ internal data object TimerRoute
 @Serializable
 internal data class BrewSetupRoute(val teaId: String? = null, val sessionId: String? = null)
 
+/**
+ * The quick timer before its *Start* (SCR-07), from Start and the tea picker. Full-screen like the setup;
+ * once it runs, the timer replaces it.
+ */
+@Serializable
+internal data object QuickTimerRoute
+
 /** *Timer-Einstellungen* from the timer's overflow; on the timer's stack, so back returns to the timer. */
 @Serializable
 internal data object TimerSettingsRoute

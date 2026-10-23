@@ -157,8 +157,7 @@ internal fun DiscardSessionDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) 
  */
 @Composable
 internal fun TimerAnnouncer(state: TimerUiState.Active, now: Long) {
-    val step = state.currentStep
-    val label = step?.let { stepLabel(it.kind, state.stepIndex, state.steps.size) }.orEmpty()
+    val label = timerStepDescription(state).orEmpty()
     val text = when (state.announcement(now)) {
         TimerAnnouncement.Ready -> stringResource(R.string.brew_timer_announce_ready, label)
         TimerAnnouncement.Running -> stringResource(R.string.brew_timer_announce_running, label)
@@ -179,6 +178,13 @@ internal fun TimerAnnouncer(state: TimerUiState.Active, now: Long) {
                 contentDescription = text
             },
     )
+}
+
+/** „Aufguss 2 von 4" for TalkBack, „Schnelltimer" for the quick timer; null in FINISHED. */
+@Composable
+internal fun timerStepDescription(state: TimerUiState.Active): String? = when {
+    state.isQuick -> stringResource(R.string.brew_quick_title)
+    else -> state.currentStep?.let { stepLabel(it.kind, state.stepIndex, state.steps.size) }
 }
 
 @Composable

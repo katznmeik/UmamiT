@@ -6,6 +6,7 @@ import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -83,6 +84,9 @@ class BrewSessionController @Inject constructor(
 
     /** The tea of the active session, for the UI and the notifications; read and written inside [lock]. */
     private var teaName: String? = null
+
+    /** The active session is an ice brew, for the kettle hint (BRW-10); read and written inside [lock]. */
+    private var iceBrew = false
 
     /** The timer as the UI shows it; updated on every accepted transition, after it is persisted. */
     val state: StateFlow<TimerUiState> = effects.state
@@ -197,7 +201,13 @@ class BrewSessionController @Inject constructor(
         if (persisted != null) recovered = true
         return (persisted?.state as? TimerState.Active)?.also { restored ->
             timer = restored
-            handle(TimerEvent.Recover, clocks.read(), EventSource.RECOVERY, startTeaName = persisted.teaName)
+            handle(
+                TimerEvent.Recover,
+                clocks.read(),
+                EventSource.RECOVERY,
+                startTeaName = persisted.teaName,
+                startIceBrew = persisted.iceBrew,
+            )
         }
     }
 
@@ -219,6 +229,7 @@ class BrewSessionController @Inject constructor(
         source: EventSource,
         start: SessionStart? = null,
         startTeaName: String? = null,
+        startIceBrew: Boolean? = start?.snapshot?.method?.let { it == BrewMethod.ICE_BREW },
     ): TransitionOutcome {
         val before = timer
         val transition = BrewTimerEngine.reduce(before, event, now)
@@ -235,8 +246,10 @@ class BrewSessionController @Inject constructor(
         )
         if (transition.outcome == TransitionOutcome.Accepted) {
             timer = transition.state
-            teaName = if (transition.state is TimerState.Active) startTeaName ?: teaName else null
-            effects.run(transition, now, start, teaName)
+            val active = transition.state is TimerState.Active
+            teaName = if (active) startTeaName ?: teaName else null
+            iceBrew = active && (startIceBrew ?: iceBrew)
+            effects.run(transition, now, start, teaName, iceBrew)
         }
         rearmWakeUp()
         return transition.outcome
