@@ -94,8 +94,8 @@ class TimerAlertOverLockScreenTest {
                 Stage.entries.flatMap { monitor.getActivitiesInStage(it) }
             }.filterIsInstance<MainActivity>().forEach { it.finish() }
         }
-        wakeAndUnlock()
         if (lockScreenWasDisabled) shell("locksettings set-disabled true")
+        leaveUnlocked()
     }
 
     @Test
@@ -169,6 +169,16 @@ class TimerAlertOverLockScreenTest {
     private fun wakeAndUnlock() {
         shell("input keyevent KEYCODE_WAKEUP")
         shell("wm dismiss-keyguard")
+    }
+
+    /**
+     * Leaves the device awake and unlocked for the next test class: `wm dismiss-keyguard` is
+     * asynchronous, and a keyguard still showing keeps every later activity from resuming.
+     */
+    private fun leaveUnlocked() {
+        wakeAndUnlock()
+        val unlocked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { !keyguard.isKeyguardLocked } } != null
+        check("test teardown: the keyguard must be gone for the next test", unlocked)
     }
 
     /** Fails with [message] and the device's state unless [condition]. */
