@@ -102,7 +102,7 @@ class ProcessDeathTest {
         // With the screen off the full-screen intent launches the activity (on and
         // unlocked it would be a heads-up, 04 §8.2).
         shell("input keyevent KEYCODE_SLEEP")
-        eventually("TimerAlertActivity shown at the deadline", STEP + ALERT_TIMEOUT) { resumedAlertActivity() }
+        eventually("the timer screen shown at the deadline", STEP + ALERT_TIMEOUT) { resumedAlertActivity() }
 
         val restarted = timerPid()
         assertNotNull("the alarm did not start a new timer process", restarted)
@@ -123,7 +123,7 @@ class ProcessDeathTest {
         )
         assertEquals(
             "the recovered session's tea",
-            TimerTestActivity.TEA,
+            "${TimerTestActivity.TEA} · Aufguss 1",
             alert.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
         )
         assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
@@ -150,6 +150,10 @@ class ProcessDeathTest {
         val killed = checkNotNull(timerPid()) { "no timer process" }
         Process.killProcess(killed)
         eventually("timer process $killed gone", START_TIMEOUT) { Unit.takeIf { timerPid() != killed } }
+        // The service's notification went with its process, so its return below is the reopening's.
+        eventually("notification 1 gone with the killed process", START_TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
+        }
 
         // The user opens the app again: its process start recovers the step (04 §7.2).
         context.startActivity(TimerStateActivity.intent(context))
@@ -161,14 +165,17 @@ class ProcessDeathTest {
             started.elapsedNow() < RELAUNCH_STEP - KILL_MARGIN,
         )
         assertEquals("the reopened timer", "RUNNING|$deadlineWallMs|${TimerTestActivity.TEA}", shown)
-        assertNotNull(
-            "notification 1 is back after the reopening",
-            eventually("notification 1", START_TIMEOUT) { activeNotification(TimerNotifications.ID_LIVE_UPDATE) },
-        )
-        Log.i(TAG, "service after the reopening:\n${serviceBlock() ?: "(none)"}")
+        eventually("notification 1 back after the reopening", START_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_LIVE_UPDATE)
+        }
+        // The app start's recovery started the service again. (The test runner's instrumentation
+        // allows any start of this uid, so a refused start cannot show here; 04 §12.)
+        eventually("foreground BrewTimerService after the reopening", START_TIMEOUT) {
+            serviceBlock()?.takeIf { it.contains("isForeground=true") }
+        }
 
         shell("input keyevent KEYCODE_SLEEP")
-        eventually("TimerAlertActivity shown at the deadline", RELAUNCH_STEP + ALERT_TIMEOUT) {
+        eventually("the timer screen shown at the deadline", RELAUNCH_STEP + ALERT_TIMEOUT) {
             resumedAlertActivity()
         }
         val alert = notificationManager.activeNotifications.firstOrNull { it.id == TimerNotifications.ID_ALERT }
@@ -189,7 +196,7 @@ class ProcessDeathTest {
      * process killed, its database deleted, its notifications removed. A leftover session would
      * refuse the start.
      *
-     * Alarms and screens go first: a resumed [TimerAlertActivity] (or an alarm) would start the
+     * Alarms and screens go first: a resumed [TimerScreenStandIn] (or an alarm) would start the
      * killed process again at once, so it is killed until it stays dead. A process that started
      * meanwhile recovered the old session at its start (04 §7.2), so it is killed once more
      * after the database is gone.
@@ -315,7 +322,7 @@ class ProcessDeathTest {
         const val FLAG_SILENT = 0x00020000
 
         val SERVICE: String = BrewTimerService::class.java.simpleName
-        val ALERT_ACTIVITY: String = TimerAlertActivity::class.java.simpleName
-        val ACTIVITY_MARKERS = listOf("ResumedActivity", "TimerAlertActivity", "mKeyguardShowing", "mOccluded")
+        val ALERT_ACTIVITY: String = TimerScreenStandIn::class.java.simpleName
+        val ACTIVITY_MARKERS = listOf("ResumedActivity", "TimerScreenStandIn", "mKeyguardShowing", "mOccluded")
     }
 }

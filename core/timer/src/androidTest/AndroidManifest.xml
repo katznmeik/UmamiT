@@ -22,5 +22,15 @@
             android:name="com.umamit.core.timer.TimerStateActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- The timer screen the alert's full-screen intent opens (the app: MainActivity). -->
+        <activity
+            android:name="com.umamit.core.timer.TimerScreenStandIn"
+            android:exported="false"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="com.umamit.action.OPEN_TIMER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

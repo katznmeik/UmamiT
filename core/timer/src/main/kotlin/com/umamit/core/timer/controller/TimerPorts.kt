@@ -18,8 +18,8 @@ import javax.inject.Inject
  * skipped; the next effect still runs (rule 8: nothing blocks `StartAlert`).
  *
  * The Android adapters come with M1-09 part 2 (#42: alarms, service), M1-10
- * (#44: alert player), M1-20 (#43: diagnostics), M1-11 (#47: notifier) and
- * M1-16 (saved sheet). Until a ticket binds its adapter, the controller cannot
+ * (#44: alert player), M1-20 (#43: diagnostics), M1-11 (#47: notifier,
+ * `AndroidTimerNotifier`) and M1-16 (saved sheet). Until a ticket binds its adapter, the controller cannot
  * be injected, so no build ships a silent stand-in.
  */
 
@@ -83,8 +83,10 @@ interface TimerNotifierPort {
      * Posts the notification of [state]. While alerting: the alert (ID 2), with
      * its full-screen intent only when [fullScreen] (the alert starts in the
      * same transition), and notification 1 is cancelled. Otherwise
-     * notification 1: the Live Update while the service runs, a regular silent
-     * ongoing notification while the session is demoted or a long step runs.
+     * notification 1, the Live Update, while the service runs, and the quiet
+     * notification (ID 4) while the session is demoted or a long step runs
+     * (D-064). While the service runs, the notification changes only through
+     * the service (D-057).
      */
     fun update(state: TimerUiState.Active, fullScreen: Boolean)
 

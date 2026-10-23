@@ -13,6 +13,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isPopup
@@ -137,6 +138,17 @@ class TimerScreenTest {
         compose.onNodeWithText("Abgegossen").performClick()
 
         assertThat(events).containsExactly(TimerEvent.Poured)
+    }
+
+    @Test
+    fun `the alert is found as the app's emulator test looks for it over the lock screen (#47)`() {
+        show(TimerStates.alerting())
+
+        // The same matchers as TimerAlertOverLockScreenTest (app androidTest).
+        compose.onNodeWithTag(TIMER_RING_TAG)
+            .assert(hasContentDescription("Jetzt abgießen!", substring = true))
+            .assertIsDisplayed()
+        compose.onNodeWithText("Abgegossen").assertIsDisplayed()
     }
 
     @Test

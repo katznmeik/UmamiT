@@ -5,114 +5,155 @@ import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.notification.LiveUpdateProgress
+import com.umamit.core.timer.notification.TimerActionReceiver
+import com.umamit.core.timer.notification.TimerNotificationActions
+import com.umamit.core.timer.notification.TimerNotificationKey
+import com.umamit.core.timer.notification.TimerNotificationTexts
+import com.umamit.core.timer.notification.TimerScreenIntents
+import com.umamit.core.timer.notification.runsWithService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /**
- * The notification of a timer state (04 §8.2), on the channels and IDs the
- * probe verified on the Galaxy (D-043, D-044): the alert „Jetzt abgießen!"
- * (ID 2, `steep_finished`) while alerting, otherwise the Live Update (ID 1,
- * `brew_timer`, promotion always requested).
+ * The notification of a timer state (04 §8.2, §8.3; TMR-06, TMR-14, TMR-18, TMR-41), on the
+ * channels and IDs the probe verified on the Galaxy (D-043, D-044):
  *
- * The content is minimal for now (#42, D-057): the tea or „Schnelltimer", the
- * phase, the countdown chip while running and one progress segment for the
- * step. The content per phase of 04 §8.2, §8.3 with its actions and the
- * full-screen intent to SCR-05 come with M1-11 (#47).
+ * - **Alerting:** the alert „Jetzt abgießen!" (ID 2, `steep_finished`, `CATEGORY_ALARM`) with
+ *   *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the quick timer); its full-screen
+ *   intent opens the timer screen only when the alert starts in the same transition.
+ * - **With the service:** the Live Update (ID 1, `brew_timer`, promotion always requested):
+ *   title, text and actions per phase, the chronometer chip while running, a short critical
+ *   text otherwise, and one ProgressStyle segment per step with the pre-alert point.
+ * - **Without the service** ([ID_QUIET][TimerNotifications.ID_QUIET]): a long running step as
+ *   a Live Update „Fertig um 14:30", and a demoted session as a regular ongoing notification
+ *   with *Start* or *Weiter* and *Sitzung beenden* (D-064).
+ *
+ * Every one opens the timer screen (SCR-05) when tapped; a Live Update the user dismisses
+ * reports it through its delete intent (04 §8.3).
  */
 class TimerStateNotifications @Inject constructor(@ApplicationContext private val context: Context) {
+    private val texts = TimerNotificationTexts(context)
+    private val actions = TimerNotificationActions(context)
 
-    /** The notification ID of [state]: the alert while alerting, else the Live Update (D-044). */
-    fun idFor(state: TimerUiState.Active): Int =
-        if (state.alerting) TimerNotifications.ID_ALERT else TimerNotifications.ID_LIVE_UPDATE
+    /** The ID of [state]'s notification: the alert while alerting, the Live Update with the service, else quiet. */
+    fun idFor(state: TimerUiState.Active): Int = when {
+        state.alerting -> TimerNotifications.ID_ALERT
+        state.runsWithService -> TimerNotifications.ID_LIVE_UPDATE
+        else -> TimerNotifications.ID_QUIET
+    }
 
     /**
-     * The notification of [state] at [nowElapsedMs]. The alert carries its
-     * full-screen intent only when [fullScreen] (its alert starts now, 04 §4).
+     * The notification of [state] at [now]. The alert carries its full-screen intent only when
+     * [fullScreen] (its alert starts now, 04 §4); shown again, it does not alert once more.
      */
-    fun build(state: TimerUiState.Active, fullScreen: Boolean, nowElapsedMs: Long): Notification =
-        if (state.alerting) alert(state, fullScreen) else liveUpdate(state, nowElapsedMs)
+    fun build(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading): Notification =
+        if (state.alerting) alert(state, fullScreen) else liveUpdate(state, now)
 
-    private fun liveUpdate(state: TimerUiState.Active, nowElapsedMs: Long): Notification {
+    /** „Sitzung gespeichert" (ID 3, `sessions`, TMR-14) for the session of [teaName]. */
+    fun sessionSaved(teaName: String?): Notification =
+        NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
+            .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
+            .setContentTitle(context.getString(R.string.timer_session_saved_title))
+            .setContentText(
+                teaName?.let { context.getString(R.string.timer_session_saved_text, it) }
+                    ?: context.getString(R.string.timer_session_saved_text_no_tea),
+            )
+            .setAutoCancel(true)
+            .setContentIntent(launchAppIntent())
+            .build()
+
+    /**
+     * „Dein Timer läuft weiter" after a reboot (04 §7.3, D-063), on `sessions` (LOW) with ID 3 like
+     * „Sitzung gespeichert", so it never sits next to the alert (D-044). It opens the timer.
+     */
+    fun timerResumed(state: TimerUiState.Active): Notification =
+        NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
+            .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
+            .setContentTitle(context.getString(R.string.timer_resumed_title))
+            .setContentText(context.getString(R.string.timer_resumed_text, texts.teaOf(state)))
+            .setAutoCancel(true)
+            .setContentIntent(openTimerIntent(RC_RESUMED))
+            .build()
+
+    private fun liveUpdate(state: TimerUiState.Active, now: ClockReading): Notification {
+        val progress = LiveUpdateProgress.of(state, now.elapsedMs)
         val matcha = ContextCompat.getColor(context, R.color.timer_matcha)
+        val rinse = ContextCompat.getColor(context, R.color.timer_rinse)
         val accent = ContextCompat.getColor(context, R.color.timer_warm_accent)
-        val stepMs = state.currentStep?.plannedSeconds?.times(MS_PER_SECOND)?.toInt() ?: 1
-        val leadMs = state.preAlertLeadSeconds?.times(MS_PER_SECOND)?.toInt()
-        val preAlertAt = leadMs?.let { stepMs - it }?.takeIf { it > 0 }
         val running = state.phase == TimerPhase.RUNNING
         return LiveUpdateNotification.build(
             context,
             LiveUpdateContent(
-                title = title(state),
-                text = context.getString(phaseText(state)),
+                title = texts.title(state),
+                text = texts.text(state, now),
                 countdownToWallMs = if (running) state.deadlineWallMs else null,
-                shortCriticalText = null,
-                segments = listOf(LiveUpdateContent.Segment(stepMs, matcha)),
-                points = listOfNotNull(preAlertAt?.let { LiveUpdateContent.Point(it, accent) }),
-                progress = progressMs(state, stepMs, nowElapsedMs),
-                contentIntent = launchAppIntent(),
+                shortCriticalText = if (running) null else texts.chip(state),
+                segments = progress.segments.map {
+                    LiveUpdateContent.Segment(it.length, if (it.rinse) rinse else matcha)
+                },
+                points = listOfNotNull(progress.preAlertAt?.let { LiveUpdateContent.Point(it, accent) }),
+                progress = progress.progress,
+                contentIntent = openTimerIntent(RC_CONTENT),
+                actions = actions.of(state),
+                // A demoted session is a regular, quiet notification (TMR-14).
+                requestPromotion = !state.demoted,
+                deleteIntent = PendingIntent.getBroadcast(
+                    context,
+                    RC_DISMISS,
+                    TimerActionReceiver.dismissIntent(context, TimerNotificationKey.of(state)),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
             ),
         )
     }
 
-    private fun alert(state: TimerUiState.Active, fullScreen: Boolean): Notification {
-        val subtitle = title(state)
-        val open = PendingIntent.getActivity(
-            context,
-            RC_ALERT,
-            TimerAlertActivity.intent(context, subtitle),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_STEEP_FINISHED)
+    private fun alert(state: TimerUiState.Active, fullScreen: Boolean): Notification =
+        NotificationCompat.Builder(context, TimerNotifications.CHANNEL_STEEP_FINISHED)
             .setSmallIcon(R.drawable.ic_stat_umamit)
             .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
             .setContentTitle(context.getString(R.string.timer_alert_title))
-            .setContentText(subtitle)
+            .setContentText(texts.alertText(state))
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(open)
+            .setContentIntent(openTimerIntent(RC_CONTENT))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .apply { if (fullScreen) setFullScreenIntent(open, true) }
+            .apply { actions.of(state).forEach(::addAction) }
+            .apply {
+                // The alert takes over the screen once, when it starts; shown again (an update in
+                // the same alert, a re-sent start) it must not alert a second time (D-057).
+                if (fullScreen) setFullScreenIntent(openTimerIntent(RC_FULL_SCREEN), true) else setOnlyAlertOnce(true)
+            }
             .build()
-    }
 
-    private fun title(state: TimerUiState.Active): String =
-        state.teaName ?: context.getString(R.string.timer_quick_title)
+    private fun openTimerIntent(requestCode: Int): PendingIntent = PendingIntent.getActivity(
+        context,
+        requestCode,
+        TimerScreenIntents.openTimer(context),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
-    private fun phaseText(state: TimerUiState.Active): Int = when (state.phase) {
-        TimerPhase.READY -> R.string.timer_state_ready
-        TimerPhase.RUNNING -> if (state.preAlertPlayed) R.string.timer_state_pre_alert else R.string.timer_state_running
-        TimerPhase.PAUSED -> R.string.timer_state_paused
-        TimerPhase.ALERTING -> R.string.timer_alert_title
-        TimerPhase.FINISHED -> R.string.timer_state_finished
-    }
-
-    /** The elapsed time of the step in ms, within its segment. */
-    private fun progressMs(state: TimerUiState.Active, stepMs: Int, nowElapsedMs: Long): Int {
-        val remaining = when (state.phase) {
-            TimerPhase.RUNNING -> state.deadlineElapsedMs?.let { it - nowElapsedMs }
-            TimerPhase.PAUSED -> state.pausedRemainingMs
-            TimerPhase.FINISHED -> 0L
-            TimerPhase.READY, TimerPhase.ALERTING -> null
-        } ?: stepMs.toLong()
-        return (stepMs - remaining).coerceIn(0, stepMs.toLong()).toInt()
-    }
-
-    private fun launchAppIntent(): PendingIntent? {
-        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return null
-        return PendingIntent.getActivity(
-            context,
-            RC_CONTENT,
-            launch,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-    }
+    private fun launchAppIntent(): PendingIntent? =
+        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
+            PendingIntent.getActivity(
+                context,
+                RC_SESSION_SAVED,
+                it,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        }
 
     private companion object {
-        const val MS_PER_SECOND = 1_000
         const val RC_CONTENT = 301
-        const val RC_ALERT = 302
+        const val RC_FULL_SCREEN = 302
+        const val RC_DISMISS = 303
+        const val RC_SESSION_SAVED = 304
+        const val RC_RESUMED = 305
     }
 }

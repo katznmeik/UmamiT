@@ -38,6 +38,9 @@ internal object ForegroundServiceState {
 
     val isForeground: Boolean get() = foregroundId != 0
 
+    /** Commands are on their way to the service (a start it must answer with `startForeground`). */
+    val hasPendingCommands: Boolean get() = synchronized(lock) { pendingCommands > 0 }
+
     /** A command is about to be sent to the service: it is wanted, not stopped. */
     fun commandSent() = synchronized(lock) {
         pendingCommands++
