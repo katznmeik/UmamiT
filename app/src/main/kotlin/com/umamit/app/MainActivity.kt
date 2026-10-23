@@ -12,12 +12,12 @@ import com.umamit.app.timer.lockScreenFlags
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.notification.TimerScreenIntents
 import com.umamit.feature.brew.timer.BrewTimer
 import com.umamit.feature.journal.JournalSources
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
@@ -68,9 +68,7 @@ class MainActivity : ComponentActivity() {
             showTimerOverLockScreen()
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
-        // An unreadable settings file never keeps the app on a blank screen: it opens on Start.
-        val onboardingCompleted = settings.settings.map<UserSettings, Boolean?> { it.onboardingCompleted }
-            .catch { emit(true) }
+        val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         lifecycleScope.launch {
@@ -120,3 +118,11 @@ class MainActivity : ComponentActivity() {
         setTurnScreenOn(flags.turnScreenOn)
     }
 }
+
+/**
+ * Whether the first-start setup is done, for the start destination (SCR-01, D-066); null until
+ * read. An unreadable settings file never keeps the app on the setup or a blank screen: the
+ * repository reads it as the setup done (D-068), and any other error opens on Start too.
+ */
+internal fun SettingsRepository.onboardingCompleted(): Flow<Boolean?> =
+    settings.map<_, Boolean?> { it.onboardingCompleted }.catch { emit(true) }

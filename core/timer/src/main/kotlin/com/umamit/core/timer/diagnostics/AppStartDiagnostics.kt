@@ -66,19 +66,21 @@ class AndroidPermissionStatesReader @Inject constructor(@ApplicationContext cont
     private fun fullScreenIntent(notifications: NotificationManager): Boolean =
         fullScreenAlertAllowed(notifications.canUseFullScreenIntent(), fullScreenOpMode())
 
-    /** The mode of the full-screen app op for this app; `MODE_DEFAULT` where the platform cannot say. */
-    internal fun fullScreenOpMode(): Int {
-        val appOps = appContext.getSystemService(AppOpsManager::class.java) ?: return AppOpsManager.MODE_DEFAULT
-        return try {
-            appOps.unsafeCheckOpNoThrow(
-                OP_USE_FULL_SCREEN_INTENT,
-                appContext.applicationInfo.uid,
-                appContext.packageName,
-            )
-        } catch (_: IllegalArgumentException) {
-            // A platform without this op name: the permission check is all there is.
-            AppOpsManager.MODE_DEFAULT
-        }
+    /**
+     * The mode of the full-screen app op for this app; `MODE_DEFAULT` where the platform cannot
+     * say. The timer screen reads it in its view model's constructor, so nothing it throws may
+     * escape: an unknown op name (`IllegalArgumentException`), a `SecurityException` or a dead
+     * binder leave the answer to the permission check.
+     */
+    @Suppress("TooGenericExceptionCaught") // any platform failure falls back to the permission check
+    internal fun fullScreenOpMode(): Int = try {
+        appContext.getSystemService(AppOpsManager::class.java)?.unsafeCheckOpNoThrow(
+            OP_USE_FULL_SCREEN_INTENT,
+            appContext.applicationInfo.uid,
+            appContext.packageName,
+        ) ?: AppOpsManager.MODE_DEFAULT
+    } catch (_: RuntimeException) {
+        AppOpsManager.MODE_DEFAULT
     }
 
     private fun promoted(notifications: NotificationManager): Boolean? =

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.data.SeedPhotoProgress.Failed
 import com.umamit.core.data.SeedPhotoProgress.FailureCause
 import com.umamit.core.model.PhotoOrigin
@@ -35,9 +36,14 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FilterOutputStream
+import java.io.OutputStream
+import java.net.InetAddress
+import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import javax.net.SocketFactory
 
 /**
  * The one-time seed photo download (ONB-06, GEN-01 (b), CLAUDE.md rule 7) against MockWebServer.
@@ -89,8 +95,11 @@ class SeedPhotoDownloaderTest {
         data.teas.saveTea(SeedData.hisui)
     }
 
+    /** When the client wrote each request onto its socket (System.nanoTime), in order. */
+    private val sent = CopyOnWriteArrayList<Long>()
+
     private fun downloader(settings: FakeSettingsRepository = this.settings) = SeedPhotoDownloader(
-        client = ShopClient.forTesting(baseUrl = server.url("/")),
+        client = ShopClient.forTesting(baseUrl = server.url("/"), socketFactory = SendTimes(sent)),
         db = data.db,
         teas = data.teas,
         settings = settings,
@@ -251,15 +260,31 @@ class SeedPhotoDownloaderTest {
         ).inOrder()
     }
 
+    /**
+     * Rule 7 through the downloader: one connection, and its requests spaced by the shop client's
+     * limiter (500 ms; the exact spacing is `RequestRateLimiterTest`'s, on a fake clock).
+     *
+     * The spacing is measured where the limiter acts: when the client writes each request onto
+     * its socket, right after the limiter let it go, on the same thread. The server's arrival
+     * times are no measure of it: MockWebServer takes them on its own thread, after a wake-up that
+     * a loaded runner delays by tens of ms for one request, which shortened the next gap to
+     * 417–465 ms in 5 of 20 runs under CPU load (#54). The run's whole length is checked too,
+     * which no scheduling can shorten: the first request is let go after `start`, every later one
+     * at least 500 ms after the one before, and the run ends after the last.
+     */
     @Test
     fun requestsUseOneConnectionAtMostTwicePerSecondWithTheHonestUserAgent() = runTest {
         seedTeas()
 
+        val start = System.nanoTime()
         downloader().downloadIfNeeded()
+        val end = System.nanoTime()
 
         assertThat(requests.map { it.first.connectionIndex }).containsExactly(0, 0, 0)
-        requests.map { it.second }.zipWithNext { a, b -> TimeUnit.NANOSECONDS.toMillis(b - a) }
-            .forEach { gapMs -> assertThat(gapMs).isAtLeast(MIN_GAP_MS) }
+        assertThat(sent).hasSize(requests.size)
+        val gapsMs = sent.zipWithNext { a, b -> TimeUnit.NANOSECONDS.toMillis(b - a) }
+        gapsMs.forEach { gapMs -> assertWithMessage("send gaps $gapsMs ms").that(gapMs).isAtLeast(MIN_GAP_MS) }
+        assertThat(TimeUnit.NANOSECONDS.toMillis(end - start)).isAtLeast(LIMITER_INTERVAL_MS * (sent.size - 1))
         requests.forEach { assertThat(it.first.headers["User-Agent"]).isEqualTo("UmamiT/test (private app)") }
     }
 
@@ -531,7 +556,10 @@ class SeedPhotoDownloaderTest {
 
     private companion object {
         const val ROBOTS = "/robots.txt"
+
+        /** The limiter's interval less the few ms between its clock read and the socket write. */
         const val MIN_GAP_MS = 480L
+        const val LIMITER_INTERVAL_MS = 500L
         const val BLOCK_SECONDS = 10L
         const val AFTER_SKIP_MS = 700L
         const val GARBAGE_BYTES = 200
@@ -559,4 +587,41 @@ internal fun decodedSize(bytes: ByteArray): Pair<Int, Int> {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     return bounds.outWidth to bounds.outHeight
+}
+
+/**
+ * Plain sockets that note in [sent] the moment each HTTP request starts going onto the wire: the
+ * first write of a request line. OkHttp creates its sockets unconnected with [createSocket].
+ */
+private class SendTimes(private val sent: MutableList<Long>) : SocketFactory() {
+    override fun createSocket(): Socket = object : Socket() {
+        private val output by lazy { RequestStarts(super.getOutputStream(), sent) }
+
+        override fun getOutputStream(): OutputStream = output
+    }
+
+    override fun createSocket(host: String?, port: Int): Socket = unsupported()
+
+    override fun createSocket(host: String?, port: Int, localHost: InetAddress?, localPort: Int): Socket = unsupported()
+
+    override fun createSocket(host: InetAddress?, port: Int): Socket = unsupported()
+
+    override fun createSocket(address: InetAddress?, port: Int, localAddress: InetAddress?, localPort: Int): Socket =
+        unsupported()
+
+    private fun unsupported(): Nothing = throw UnsupportedOperationException("OkHttp uses createSocket()")
+}
+
+/** Notes the time of every write that starts a request line (`GET `) before passing it on. */
+private class RequestStarts(out: OutputStream, private val sent: MutableList<Long>) : FilterOutputStream(out) {
+    override fun write(b: ByteArray, off: Int, len: Int) {
+        if (len >= REQUEST_START.size && (REQUEST_START.indices).all { b[off + it] == REQUEST_START[it] }) {
+            sent += System.nanoTime()
+        }
+        out.write(b, off, len)
+    }
+
+    private companion object {
+        val REQUEST_START = "GET ".toByteArray()
+    }
 }

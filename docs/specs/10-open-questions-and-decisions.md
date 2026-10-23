@@ -465,7 +465,14 @@ on the M1 branch. Amends D-059, D-063, D-064 and D-067.
   value, logs it and reads again with the same backoff; any other error
   still fails. So the timer, setup and settings screens read the defaults
   instead of crashing; `MainActivity`'s own read for the onboarding decision
-  stays.
+  stays. *Amended by the re-review (R2-1):* the fallback is the defaults
+  with the first-start setup counted as done (`UNREADABLE_SETTINGS`), since
+  the total flow no longer reaches `MainActivity`'s catch: otherwise a
+  corrupt file showed the setup on every launch and kept Start and the timer
+  out of reach (D-066: an unreadable file opens on Start). A fresh install
+  has no file and still gets the setup. The full-screen op read also falls
+  back to the permission check on any `RuntimeException`, since the timer
+  screen's view model reads it unguarded.
 - **The timer route waits for recovery (GEN-07, 03 §2.4).** The controller
   publishes `recovered` (`BrewTimer.recovered`, true by default for fakes)
   after the first recovery of the process has published its state, or when
