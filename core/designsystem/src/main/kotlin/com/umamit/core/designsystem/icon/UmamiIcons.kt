@@ -62,4 +62,9 @@ object UmamiIcons {
 
     // Illustrations (placeholders, 03 §3.5)
     @DrawableRes val LandscapePlaceholder = R.drawable.illustration_placeholder_landscape
+
+    // Photos (03 §3.5, docs/design/assets.md)
+
+    /** A4: the timer's photo for a tea without one of its own (SCR-05). */
+    @DrawableRes val TimerFallbackPhoto = R.drawable.photo_timer_fallback
 }

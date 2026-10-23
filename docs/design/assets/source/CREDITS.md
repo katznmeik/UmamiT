@@ -36,3 +36,4 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 | File | Asset | Source | Licence |
 |---|---|---|---|
 | `core/designsystem/src/main/res/drawable/illustration_placeholder_landscape.xml` | Placeholder landscape for empty states until A1–A5 exist (`docs/design/assets.md`) | Own work | Own work |
+| `core/designsystem/src/main/res/drawable-nodpi/photo_timer_fallback.webp` | A4 timer fallback photo (SCR-05), from `docs/design/assets/source/A4-timer-fallback.png` | AI-generated for the PO (D-029, option C) | Own work |

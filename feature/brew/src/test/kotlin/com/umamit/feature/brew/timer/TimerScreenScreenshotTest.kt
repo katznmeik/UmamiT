@@ -63,7 +63,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    teaPhoto = if (photo) painterResource(UmamiIcons.LandscapePlaceholder) else null,
+                    teaPhoto = if (photo) painterResource(UmamiIcons.TimerFallbackPhoto) else null,
                 )
             }
         }

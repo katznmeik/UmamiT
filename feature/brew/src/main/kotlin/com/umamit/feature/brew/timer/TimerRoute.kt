@@ -55,10 +55,10 @@ fun BrewTimerRoute(
             settings = settings,
             reliabilityProblem = problem,
             onFixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
-            // A brew always has its photo's space: the tea's cover photo, the placeholder until it is read
-            // or without one, so nothing moves when it arrives (D-058). The quick timer has none.
+            // A brew always has its photo's space: the tea's cover photo, the fallback photo (A4) until it
+            // is read or without one, so nothing moves when it arrives (D-058). The quick timer has none.
             teaPhoto = if (active.sessionId != null) {
-                rememberPhotoPainter(photoPath, painterResource(UmamiIcons.LandscapePlaceholder))
+                rememberPhotoPainter(photoPath, painterResource(UmamiIcons.TimerFallbackPhoto))
             } else {
                 null
             },

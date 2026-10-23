@@ -514,8 +514,8 @@ theme: light on the dark Steeping surface (also SCR-07), dark on the washi/match
 alert; the app theme's own on every other screen. The root sets them from the
 route on top, never the screens themselves
 ([D-069](10-open-questions-and-decisions.md#d-069)). A brew always shows the
-tea photo at the top, the landscape placeholder until it is read or when the tea
-has none; the quick timer has no photo (D-058, D-069).
+tea photo at the top, the fallback photo A4 (`docs/design/assets.md`) until it is
+read or when the tea has none; the quick timer has no photo (D-058, D-069).
 
 ```
 ┌──────────────────────────────┐

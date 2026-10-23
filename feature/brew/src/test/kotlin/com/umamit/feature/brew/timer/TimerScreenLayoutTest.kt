@@ -59,7 +59,7 @@ class TimerScreenLayoutTest {
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
                     reliabilityProblem = true,
-                    teaPhoto = painterResource(UmamiIcons.LandscapePlaceholder),
+                    teaPhoto = painterResource(UmamiIcons.TimerFallbackPhoto),
                 )
             }
         }

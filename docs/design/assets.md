@@ -15,7 +15,7 @@
 | A1 | **Logo sprig** (two tea leaves) | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
 | A2 | **Welcome landscape** | SCR-01 welcome (full screen, portrait) | PNG ≥ 1440 × 3120 (9:19.5) | light |
 | A3 | **Home header landscape** | SCR-02 header (no text on it) | PNG ≥ 2400 × 1000 (≈ 2.4:1) | light **and** dark |
-| A4 | **Timer fallback photo** | SCR-05 top area when a tea has no photo, quick timer | PNG ≥ 1440 × 1440, dark and moody, subject in the centre-top | dark only (timer is always dark) |
+| A4 | **Timer fallback photo** ✓ delivered | SCR-05 top area when a tea has no photo (the quick timer has none, D-069) | PNG, landscape 3:2 (≥ 1536 × 1024): the photo band is full width × 280 dp, centre-cropped, its lower part fading into the background; dark and moody, subject in the upper middle | dark only (timer is always dark) |
 | A5 | **Reliability illustration** | SCR-01 page „Damit der Timer zuverlässig klingelt" | PNG ≥ 1200 × 900, transparent or washi background | light |
 
 ### 1.2 Needed later (M2–M5)
@@ -105,9 +105,10 @@ Photorealistic, moody still life: a handmade matte grey-green ceramic tea
 cup filled with pale jade green Japanese tea, seen from slightly above,
 standing on dark weathered wood, a few fresh tea leaves beside it, soft
 window light from the upper right, deep forest green-black shadows
-(#1C231D), shallow depth of field, calm and premium. Square 1:1, the cup in
-the upper-middle part of the frame, darker empty space at the bottom.
-No text.
+(#1C231D), shallow depth of field, calm and premium. Landscape 3:2, the cup
+in the upper-middle part of the frame (the top 40 % holds its rim), the lower
+half falling off into dark, empty shadow. No text, no people, no steam, no
+extra props.
 ```
 
 **A5 — Reliability illustration**
