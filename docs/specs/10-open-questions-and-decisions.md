@@ -314,13 +314,18 @@ The M1 milestone review (#54) found these in the app; decided while fixing:
   with a synchronous value from the controller's current state, and
   `ActiveBrewBar` enters with `EnterTransition.None` when the brew it arrives
   with is alerting. Both are tested against the old behaviour.
-- **System bars per screen.** `enableEdgeToEdge` picks the bar icons from the
-  phone's theme, which made the clock, the battery and the gesture handle
-  invisible on the always-dark timer in the light theme. The timer sets light
-  icons on the Steeping surface and dark ones on the washi/matcha alert, in
-  the alert's first composition; the quick timer (SCR-07) sets light icons.
-  The previous appearance is restored when the screen leaves. Renders have no
-  system bars, so this is a unit test plus a 09 §4 checklist item.
+- **System bars with one owner.** `enableEdgeToEdge` picks the bar icons from
+  the phone's theme, which made the clock, the battery and the gesture handle
+  invisible on the always-dark timer in the light theme. The root
+  (`UmamitRoot`) is the only place that sets the appearance, derived from the
+  destination on top of the back stack (as the lock-screen flags): the timer
+  gets light icons on the Steeping surface and dark ones on the washi/matcha
+  alert, the quick timer (SCR-07) light ones, everything else the app theme's
+  own. A first version let each screen set and restore it; SCR-07 and the
+  timer overlap during the crossfade and SCR-07 restored last, leaving the
+  running quick timer and then the shell with the wrong icons (re-review of
+  #54). Renders have no system bars, so this is a Robolectric test of
+  quick timer → timer → alert → back, plus a 09 §4 checklist item.
 - **Honest placeholders (GEN-09).** *Meine Tees* no longer says the shelf is
   empty (the seed teas exist) and *Statistik* no longer waits for a first
   brew: both say the area follows with a later update and where to go now
@@ -2225,7 +2230,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
-| 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
+| 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface with the root as their one owner; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
 | 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |
 | 2026-10-23 | D-065: quick timer SCR-07 (#49): chips 0:30–5:00 and „Dauer wählen" (5 s – 24 h, PRF-04 steps), *Start* as one controller turn, *Beenden & neu starten* into a quick timer as one turn, *Fertig* and *Abbrechen* (no session, step or stock record), every entry opens the alerting timer during an alert; `iceBrew` in the timer state for the cold and ice READY hint, carried through recovery. 03 SCR-07, SCR-05 updated. |

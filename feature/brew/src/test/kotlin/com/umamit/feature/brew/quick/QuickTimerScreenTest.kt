@@ -17,7 +17,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.core.view.WindowCompat
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.setup.ActiveSessionQuestion
@@ -175,20 +174,5 @@ class QuickTimerScreenTest {
         show(QuickTimerUiState(question = ActiveSessionQuestion(null), alertKey = "s1:0:1"))
 
         compose.onNode(isDialog()).assertDoesNotExist()
-    }
-
-    @Test
-    fun `the quick timer has light bar icons on its dark surface in the light theme (S1)`() {
-        val window = compose.activity.window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        compose.runOnUiThread {
-            controller.isAppearanceLightStatusBars = true
-            controller.isAppearanceLightNavigationBars = true
-        }
-        show()
-        compose.waitForIdle()
-
-        assertThat(controller.isAppearanceLightStatusBars).isFalse()
-        assertThat(controller.isAppearanceLightNavigationBars).isFalse()
     }
 }

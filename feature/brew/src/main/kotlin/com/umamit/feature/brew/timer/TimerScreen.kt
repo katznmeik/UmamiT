@@ -153,8 +153,6 @@ fun TimerScreen(
                 onDismiss = { overlays.confirmation = null },
             )
         }
-        // Light icons on the dark Steeping surface, dark ones on the washi/matcha alert (#54 S1).
-        SystemBarIcons(darkIcons = alerting)
     }
 }
 

@@ -53,7 +53,6 @@ import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.timer.SystemBarIcons
 
 /** Test tag of SCR-07's ring: a tap opens the duration picker. */
 const val QUICK_RING_TAG = "quick_ring"
@@ -94,8 +93,6 @@ fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modif
     // A new alert closes the picker for good; it is already gone in the frame the alert started.
     LaunchedEffect(pickerCovered) { if (pickerCovered) pickerOpen = false }
 
-    // Light status-bar icons and gesture handle on the dark surface, in either phone theme (#54 S1).
-    SystemBarIcons(darkIcons = false)
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             QuickTimerBody(

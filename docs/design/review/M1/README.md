@@ -29,4 +29,4 @@ empty collection, empty journal.
 
 Not visible in renders: the status-bar icons and the gesture handle (Roborazzi draws no
 system bars). They are light on the timer and the quick timer and dark on the alert surface;
-covered by `TimerScreenTest`/`QuickTimerScreenTest` and the 09 §4 checklist (D-069).
+covered by the app's `SystemBarIconsTest` and the 09 §4 checklist (D-069).

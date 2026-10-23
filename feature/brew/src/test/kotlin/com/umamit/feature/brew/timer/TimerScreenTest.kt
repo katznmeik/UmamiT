@@ -24,7 +24,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import androidx.core.view.WindowCompat
 import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -600,44 +599,5 @@ class TimerScreenTest {
         compose.mainClock.advanceTimeBy(20_000)
 
         assertThat(brightness()).isEqualTo(WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE)
-    }
-
-    @Test
-    fun `light bar icons on the dark timer, dark ones on the alert, and the shell's back on leaving (S1)`() {
-        val window = compose.activity.window
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        // The shell in the light theme: dark icons.
-        compose.runOnUiThread {
-            controller.isAppearanceLightStatusBars = true
-            controller.isAppearanceLightNavigationBars = true
-        }
-        var timerShown by mutableStateOf(true)
-        state = TimerStates.running()
-        start = compose.mainClock.currentTime
-        compose.setContent {
-            UmamiTheme(reduceMotion = true) {
-                if (timerShown) {
-                    TimerScreen(state = state, nowElapsedMs = clock, onEvent = {
-                    }, onBack = {}, onAdjustBrew = {}, onOpenTimerSettings = {})
-                }
-            }
-        }
-        compose.waitForIdle()
-        assertThat(controller.isAppearanceLightStatusBars).isFalse()
-        assertThat(controller.isAppearanceLightNavigationBars).isFalse()
-
-        state = TimerStates.alerting()
-        compose.waitForIdle()
-        assertThat(controller.isAppearanceLightStatusBars).isTrue()
-        assertThat(controller.isAppearanceLightNavigationBars).isTrue()
-
-        state = TimerStates.finished()
-        compose.waitForIdle()
-        assertThat(controller.isAppearanceLightStatusBars).isFalse()
-
-        timerShown = false
-        compose.waitForIdle()
-        assertThat(controller.isAppearanceLightStatusBars).isTrue()
-        assertThat(controller.isAppearanceLightNavigationBars).isTrue()
     }
 }
