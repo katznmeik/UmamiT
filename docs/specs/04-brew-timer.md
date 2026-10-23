@@ -435,6 +435,12 @@ rules (D-047):
   leaves the foreground and posts the alert alone (§8.2). A stop never
   reaches the service before a pending start has called `startForeground`
   (D-057).
+- Android posts the notification of `startForeground` asynchronously, so a
+  same-ID update the service posts within 1 s of a `startForeground` can be
+  overtaken by the start's late post. The service posts such an update once
+  more 0.5 s later (only-alert-once, only while that ID is still the
+  foreground notification; a newer update replaces it). Same-ID updates never
+  call `startForeground` again (D-071).
 
 ### 6.4 Samsung battery management
 
@@ -635,7 +641,8 @@ ongoing notification** (Live Update):
   **point** at the pre-alert of the current step; progress = elapsed active
   time of the session's planned total. Progress is updated on every state
   transition and **every 15 s** while RUNNING (not per second), in order with
-  the controller's commands (D-064).
+  the controller's commands (D-064). A phase change is never left stale behind
+  the foreground start's late post (§6.3, D-071).
 - Ongoing, with content title, `NotificationCompat.Builder.setRequestPromotedOngoing(true)`
   (AndroidX core; the platform `Notification.Builder` of SDK 36 has no such
   method, it sets the extra `android.requestPromotedOngoing`, D-043) and a

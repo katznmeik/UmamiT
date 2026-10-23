@@ -6,8 +6,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import com.umamit.core.timer.TimerNotifications
@@ -30,10 +33,20 @@ import com.umamit.core.timer.TimerNotifications
  *   the notification is posted without the service (04 §6.3): the service
  *   leaves the foreground first, so an alert is still the only notification,
  *   and the refusal is logged.
+ * - An update of the same ID right after `startForeground` is posted once
+ *   more shortly after ([REPOST_DELAY_MS]), so the start's queued post cannot
+ *   outlive it (D-071).
  * - Each foreground start and the end of the service are logged too (06 §5.6).
  */
 class BrewTimerService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** [SystemClock.uptimeMillis] of the last successful `startForeground`; null before the first. */
+    private var lastForegroundStartAt: Long? = null
+
+    /** The pending re-post of a same-ID update ([scheduleRepost]); at most one. Main thread only. */
+    private var pendingRepost: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -57,6 +70,7 @@ class BrewTimerService : Service() {
         // The stop names this start: Android ignores it when a newer start is already queued
         // (stopSelf() would stop anyway and crash a pending startForegroundService).
         if (ForegroundServiceState.commandHandled() && stopSelfResult(startId)) {
+            cancelRepost()
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             ForegroundServiceState.foregroundId = 0
         }
@@ -64,6 +78,7 @@ class BrewTimerService : Service() {
     }
 
     override fun onDestroy() {
+        cancelRepost()
         releaseWakeLock()
         ForegroundServiceState.foregroundId = 0
         ForegroundServiceState.report(ServiceReport.Stopped)
@@ -74,12 +89,19 @@ class BrewTimerService : Service() {
         // Only one of notifications 1 and 2 at a time (D-044, 04 §8.2). The system ignores
         // the cancel of the current foreground notification; startForeground replaces it.
         TimerNotifications.cancel(this, otherIdThan(id))
+        // A pending re-post holds older content; this command is newer.
+        cancelRepost()
         if (!foregroundRequired && ForegroundServiceState.foregroundId == id) {
+            Log.i(TAG, "show($id): notify, foregroundRequired=false")
             TimerNotifications.post(this, id, notification)
+            val sinceStart = lastForegroundStartAt?.let { SystemClock.uptimeMillis() - it }
+            if (sinceStart != null && sinceStart < REPOST_WINDOW_MS) scheduleRepost(id, notification)
             return
         }
         try {
+            Log.i(TAG, "show($id): startForeground, foregroundRequired=$foregroundRequired")
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            lastForegroundStartAt = SystemClock.uptimeMillis()
             ForegroundServiceState.foregroundId = id
             ForegroundServiceState.report(ServiceReport.InForeground(id))
         } catch (e: ForegroundServiceStartNotAllowedException) {
@@ -90,6 +112,29 @@ class BrewTimerService : Service() {
             TimerNotifications.post(this, id, notification)
             ForegroundServiceState.report(ServiceReport.Refused(id, e))
         }
+    }
+
+    /**
+     * Posts [notification] as [id] once more after [REPOST_DELAY_MS], if [id] is then still the
+     * foreground notification (D-071). The copy has [Notification.FLAG_ONLY_ALERT_ONCE], so it
+     * never rings or vibrates again.
+     */
+    private fun scheduleRepost(id: Int, notification: Notification) {
+        val copy = notification.clone().apply { flags = flags or Notification.FLAG_ONLY_ALERT_ONCE }
+        val repost = Runnable {
+            pendingRepost = null
+            if (ForegroundServiceState.foregroundId == id) {
+                Log.i(TAG, "show($id): re-post")
+                TimerNotifications.post(this, id, copy)
+            }
+        }
+        pendingRepost = repost
+        mainHandler.postDelayed(repost, REPOST_DELAY_MS)
+    }
+
+    private fun cancelRepost() {
+        pendingRepost?.let(mainHandler::removeCallbacks)
+        pendingRepost = null
     }
 
     /** Holds the partial wake lock for [timeoutMs] from now (04 §6.3), or releases it for 0. */
@@ -117,6 +162,19 @@ class BrewTimerService : Service() {
         private const val EXTRA_NOTIFICATION = "com.umamit.core.timer.extra.NOTIFICATION"
         private const val EXTRA_WAKE_LOCK_MS = "com.umamit.core.timer.extra.WAKE_LOCK_MS"
         private const val EXTRA_FOREGROUND_REQUIRED = "com.umamit.core.timer.extra.FOREGROUND_REQUIRED"
+
+        /**
+         * How long after a `startForeground` a same-ID update is posted once more (D-071).
+         * AOSP posts the notification of `startForeground` asynchronously
+         * (`ServiceRecord.postNotification` queues it on the ActivityManager's handler), while
+         * the service's own `notify` is a direct call into the NotificationManager. An update
+         * right after the start can arrive first, and the start's late post then overwrites it:
+         * up to 15 s while running (the refresh repairs it), for good in a waiting state.
+         */
+        const val REPOST_WINDOW_MS = 1_000L
+
+        /** How long after such an update its re-post follows: long enough for the queued post to land. */
+        const val REPOST_DELAY_MS = 500L
 
         /**
          * The command to show [notification] as notification [id] and hold the wake
