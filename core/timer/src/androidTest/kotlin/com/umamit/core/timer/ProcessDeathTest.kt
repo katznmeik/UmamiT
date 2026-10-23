@@ -102,7 +102,12 @@ class ProcessDeathTest {
         // With the screen off the full-screen intent launches the activity (on and
         // unlocked it would be a heads-up, 04 §8.2).
         shell("input keyevent KEYCODE_SLEEP")
-        eventually("the timer screen shown at the deadline", STEP + ALERT_TIMEOUT) { resumedAlertActivity() }
+        // The alert first, then the screen it opens: a stand-in closed by an earlier test can
+        // still be dumpsys' LastResumedActivity before the deadline.
+        eventually("the alert notification (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
+        }
+        eventually("the timer screen shown at the deadline", ALERT_TIMEOUT) { resumedAlertActivity() }
 
         val restarted = timerPid()
         assertNotNull("the alarm did not start a new timer process", restarted)
@@ -175,9 +180,10 @@ class ProcessDeathTest {
         }
 
         shell("input keyevent KEYCODE_SLEEP")
-        eventually("the timer screen shown at the deadline", RELAUNCH_STEP + ALERT_TIMEOUT) {
-            resumedAlertActivity()
+        eventually("the alert notification (ID 2) at the deadline", RELAUNCH_STEP + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
         }
+        eventually("the timer screen shown at the deadline", ALERT_TIMEOUT) { resumedAlertActivity() }
         val alert = notificationManager.activeNotifications.firstOrNull { it.id == TimerNotifications.ID_ALERT }
         assertNotNull("alert notification (ID 2) missing", alert)
         alert!!
@@ -243,8 +249,9 @@ class ProcessDeathTest {
         return shell("dumpsys alarm").lines().firstOrNull { it.contains("tag=") && it.contains(action) }
     }
 
+    /** The alert's screen as the resumed activity now (not `mLastResumedActivity` of a closed one). */
     private fun resumedAlertActivity(): String? = shell("dumpsys activity activities").lines()
-        .firstOrNull { it.contains("ResumedActivity") && it.contains(ALERT_ACTIVITY) }
+        .firstOrNull { it.contains("ResumedActivity") && !it.contains("LastResumed") && it.contains(ALERT_ACTIVITY) }
 
     private fun activeNotification(id: Int): Notification? =
         notificationManager.activeNotifications.firstOrNull { it.id == id }?.notification

@@ -92,7 +92,7 @@ only.
 - [ ] App swiped from recents during a step: alert still fires.
 - [ ] Live Update visible as status chip and on the lock screen; *Pause*/*Weiter*/*Abgegossen* work from it.
 - [ ] (Best effort, not blocking) Live Update appears in the Now Bar.
-- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → „Dein …-Timer läuft weiter" and the alert fires on time.
+- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → „Dein Timer läuft weiter · <Tee>" and the alert fires on time.
 - [ ] Update during a session: install the next rc while a 3-min step runs → the Live Update comes back right after the install and the alert fires on time (04 §7.5).
 - [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows pre-alert and alert fire times within 1 s of the scheduled time; *Kopieren* works.
 - [ ] Session appears in the minimal journal list with actual times („2 von 3 Aufgüssen" when finished early).
