@@ -9,9 +9,9 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
-import com.umamit.core.designsystem.component.KettleWater
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.TeaOverview

@@ -37,6 +37,9 @@ class TimerViewModel @Inject constructor(
     /** The controller's state. */
     val state: StateFlow<TimerUiState> get() = timer.state
 
+    /** The controller has recovered: an `Idle` [state] now means no session (GEN-07, D-068). */
+    val recovered: StateFlow<Boolean> get() = timer.recovered
+
     val screenSettings: StateFlow<TimerScreenSettings> = settings.settings
         .map { TimerScreenSettings(keepScreenOn = it.keepScreenOn, dimWhileSteeping = it.dimWhileSteeping) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, TimerScreenSettings())

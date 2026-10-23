@@ -1,20 +1,27 @@
 package com.umamit.core.timer.diagnostics
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.timer.alert.AlertConditions
+import com.umamit.core.timer.alert.AlertCue
+import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.alert.RingerMode
 import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 /**
  * The accuracy workflow's reading of the diagnostics log and its verdict (04 §12, TMR-30, #52):
- * the log lines of the pre-alert and the alert parse back into fire times, and the report's
- * nearest-rank distribution, verdict, CSV and Markdown.
+ * the log lines of the pre-alert and the alert, handled and started (D-068), parse back into
+ * fire times, and the report's nearest-rank distribution of the sound starts, verdict, CSV and
+ * Markdown.
  */
 class AccuracyReportTest {
     private val clock = FakeClock()
@@ -83,6 +90,43 @@ class AccuracyReportTest {
         assertThat(FireTime.parse(pause)).isNull()
         assertThat(FireTime.parse(alarm)).isNull()
         assertThat(FireTime.parse("")).isNull()
+        assertThat(FireTime.parse(TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 5)))).isNull()
+    }
+
+    @Test
+    fun `the start of the alert's sound parses back with its delay from the deadline`() {
+        clock.advanceBy(140)
+        val line = TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 140))
+
+        val fire = FireTime.parsePlayed(line)
+
+        assertThat(fire).isEqualTo(
+            FireTime(
+                kind = TimerAlarmKind.DEADLINE,
+                source = FireTime.PLAYER,
+                scheduledWall = "10:00:00.000",
+                scheduledMonoMs = 5_000_000,
+                actualWall = "10:00:00.140",
+                actualMonoMs = 5_000_140,
+                deltaMs = 140,
+            ),
+        )
+    }
+
+    @Test
+    fun `the tick's start parses as the pre-alert, a test or an event line does not`() {
+        clock.advanceBy(9)
+        val tick = TimerDiagnosticFormat.message(played(AlertCue.PRE_ALERT, lateMs = 9))
+        val test = TimerDiagnosticFormat.message(played(AlertCue.TEST, lateMs = null))
+        val event = TimerDiagnosticFormat.message(
+            handled(TimerEvent.DeadlineReached, EventSource.ALARM, TransitionOutcome.Accepted, lateMs = 0),
+        )
+
+        assertThat(FireTime.parsePlayed(tick)?.kind).isEqualTo(TimerAlarmKind.PRE_ALERT)
+        assertThat(FireTime.parsePlayed(tick)?.deltaMs).isEqualTo(9)
+        assertThat(FireTime.parsePlayed(test)).isNull()
+        assertThat(FireTime.parsePlayed(event)).isNull()
+        assertThat(FireTime.parsePlayed("")).isNull()
     }
 
     @Test
@@ -116,6 +160,30 @@ class AccuracyReportTest {
     }
 
     @Test
+    fun `the gate measures the start of the sound, not the handled event (D-068)`() {
+        // Handled within 5 ms, but the sound started 1.5 s late (a slow persist or player queue).
+        val steps = (1..50).map { step(it, preAlertMs = 5, alertMs = 5, alertPlayedMs = 1_500) }
+
+        val report = AccuracyReport(RUN, steps)
+
+        assertThat(report.alertHandled).isEqualTo(DelayStats(50, 5, 5, 5))
+        assertThat(report.alert).isEqualTo(DelayStats(50, 1_500, 1_500, 1_500))
+        assertThat(report.passed).isFalse()
+        assertThat(report.markdown()).contains("| Alert | 50 / 50 | 1500 ms | 1500 ms | 1500 ms | 5 ms / 5 ms |")
+    }
+
+    @Test
+    fun `a sound start is paired only with its own cue`() {
+        val handled = fire(TimerAlarmKind.DEADLINE, "ALARM", "10:01:00", 60_000, 3)
+        val otherStep = fire(TimerAlarmKind.DEADLINE, FireTime.PLAYER, "10:02:10", 130_000, 3)
+        val tick = fire(TimerAlarmKind.PRE_ALERT, FireTime.PLAYER, "10:01:00", 60_000, 3)
+
+        assertThrows(IllegalArgumentException::class.java) { CueTimes(handled, otherStep) }
+        assertThrows(IllegalArgumentException::class.java) { CueTimes(handled, tick) }
+        assertThrows(IllegalArgumentException::class.java) { CueTimes(handled, handled) }
+    }
+
+    @Test
     fun `one alert over a second fails the run`() {
         val steps = (1..50).map { step(it, preAlertMs = 5, alertMs = if (it == 17) 1_200L else 5L) }
 
@@ -143,13 +211,15 @@ class AccuracyReportTest {
     }
 
     @Test
-    fun `the CSV has one row per fire time in order`() {
-        val csv = AccuracyReport(RUN, listOf(step(1, preAlertMs = 12, alertMs = 34))).csv().lines()
+    fun `the CSV has one row per cue in order, with the handled event and the sound start`() {
+        val csv = AccuracyReport(RUN, listOf(step(1, preAlertMs = 12, alertMs = 34, alertPlayedMs = 56)))
+            .csv().lines()
 
         assertThat(csv).containsExactly(
-            "step,event,source,scheduled_wall,scheduled_mono_ms,actual_wall,actual_mono_ms,delta_ms",
-            "1,PRE_ALERT,WAKE_UP,10:00:50.000,50000,10:00:50.012,50012,12",
-            "1,DEADLINE,ALARM,10:01:00.000,60000,10:01:00.034,60034,34",
+            "step,event,source,scheduled_wall,scheduled_mono_ms," +
+                "handled_wall,handled_mono_ms,handled_delta_ms,played_wall,played_mono_ms,played_delta_ms",
+            "1,PRE_ALERT,WAKE_UP,10:00:50.000,50000,10:00:50.012,50012,12,10:00:50.012,50012,12",
+            "1,DEADLINE,ALARM,10:01:00.000,60000,10:01:00.034,60034,34,10:01:00.056,60056,56",
             "",
         ).inOrder()
     }
@@ -161,8 +231,11 @@ class AccuracyReportTest {
         assertThat(markdown).contains("### Timer accuracy · API 36")
         assertThat(markdown).contains("50 × 60 s steps with the screen off, pre-alert 10 s")
         assertThat(markdown).contains("**Result: PASS** · target p95 ≤ 250 ms, max ≤ 1000 ms")
-        assertThat(markdown).contains("| Pre-alert | 50 / 50 | 10 ms | 10 ms | 10 ms | WAKE_UP 50 | yes |")
-        assertThat(markdown).contains("| Alert | 50 / 50 | 20 ms | 20 ms | 20 ms | ALARM 50 | yes |")
+        assertThat(
+            markdown,
+        ).contains("| Pre-alert | 50 / 50 | 10 ms | 10 ms | 10 ms | 10 ms / 10 ms | WAKE_UP 50 | yes |")
+        assertThat(markdown).contains("| Alert | 50 / 50 | 20 ms | 20 ms | 20 ms | 20 ms / 20 ms | ALARM 50 | yes |")
+        assertThat(markdown).contains("Delay = when the sound started − scheduled time")
         assertThat(markdown).doesNotContain("Gate check")
     }
 
@@ -188,10 +261,44 @@ class AccuracyReportTest {
             scheduled = ScheduledTime(TimerAlarmKind.of(event)!!, clock.elapsed - lateMs),
         )
 
-    private fun step(step: Int, preAlertMs: Long, alertMs: Long) = StepFireTimes(
+    private fun played(cue: AlertCue, lateMs: Long?) = TimerDiagnostic.AlertPlayed(
+        at = clock.reading(),
+        cue = cue,
+        conditions = AlertConditions(RingerMode.NORMAL, inCall = false, dndBlocksAlerts = false),
+        outputs = AlertOutputs(sound = true, vibration = true),
+        tone = "klangschale",
+        length = AlertLength.NORMAL,
+        scheduled = lateMs?.let {
+            ScheduledTime(
+                if (cue ==
+                    AlertCue.PRE_ALERT
+                ) {
+                    TimerAlarmKind.PRE_ALERT
+                } else {
+                    TimerAlarmKind.DEADLINE
+                },
+                clock.elapsed - it,
+            )
+        },
+    )
+
+    /** A step whose events were handled [preAlertMs] and [alertMs] late, the sounds started then or as given. */
+    private fun step(
+        step: Int,
+        preAlertMs: Long,
+        alertMs: Long,
+        preAlertPlayedMs: Long = preAlertMs,
+        alertPlayedMs: Long = alertMs,
+    ) = StepFireTimes(
         step = step,
-        preAlert = fire(TimerAlarmKind.PRE_ALERT, "WAKE_UP", "10:00:50", 50_000, preAlertMs),
-        deadline = fire(TimerAlarmKind.DEADLINE, "ALARM", "10:01:00", 60_000, alertMs),
+        preAlert = CueTimes(
+            handled = fire(TimerAlarmKind.PRE_ALERT, "WAKE_UP", "10:00:50", 50_000, preAlertMs),
+            played = fire(TimerAlarmKind.PRE_ALERT, FireTime.PLAYER, "10:00:50", 50_000, preAlertPlayedMs),
+        ),
+        alert = CueTimes(
+            handled = fire(TimerAlarmKind.DEADLINE, "ALARM", "10:01:00", 60_000, alertMs),
+            played = fire(TimerAlarmKind.DEADLINE, FireTime.PLAYER, "10:01:00", 60_000, alertPlayedMs),
+        ),
     )
 
     private fun fire(kind: TimerAlarmKind, source: String, wall: String, mono: Long, deltaMs: Long) = FireTime(

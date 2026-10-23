@@ -1,7 +1,7 @@
 package com.umamit.feature.brew.timer
 
 import com.google.common.truth.Truth.assertThat
-import com.umamit.core.designsystem.component.KettleWater
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.TimerPhase
 import com.umamit.feature.brew.timer.TimerMenuItem.AddStep
 import com.umamit.feature.brew.timer.TimerMenuItem.AdjustBrew

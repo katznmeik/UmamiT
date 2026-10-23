@@ -36,8 +36,9 @@ enum class TimerAlarmKind(
     MIDNIGHT(requestCode = 106, AlarmClock.WALL, exact = false, wakeUp = false, TimerEvent.MidnightTimeout),
 
     /**
-     * Every 30 s while the alert plays (D-063): no event and no due time of its own. Its only
-     * job is to start a new process after a kill, whose recovery replays the alert (04 §7.2).
+     * Every 30 s while the alert plays (D-063), and 90 s after the deadline while a step runs
+     * (the deadline guard, D-068): no event and no due time of its own. Its only job is to start
+     * a new process after a kill, whose recovery replays the alert (04 §7.2).
      */
     ALERT_WATCHDOG(requestCode = 107, AlarmClock.ELAPSED, exact = true, wakeUp = true, event = null),
     ;

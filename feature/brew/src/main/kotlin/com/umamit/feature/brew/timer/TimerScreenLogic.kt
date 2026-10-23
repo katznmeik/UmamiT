@@ -1,7 +1,7 @@
 package com.umamit.feature.brew.timer
 
 import androidx.compose.runtime.Immutable
-import com.umamit.core.designsystem.component.KettleWater
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.SessionKind

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.R
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.model.KettleWater
 
 /**
  * Kettle icon with „Wasserkocher auf 60 °C" (03 §3.8) and an optional detail

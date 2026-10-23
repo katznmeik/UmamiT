@@ -6,11 +6,14 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerDiagnostics
+import com.umamit.core.timer.controller.ScheduledTime
+import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -156,6 +159,48 @@ class AlertPlaybackTest {
         assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L, 3_500L, 7_000L, 10_500L).inOrder()
         assertThat(haptics.plays(Haptic.ALERT)).hasSize(4)
         assertThat(reported).containsExactly(14_000L)
+    }
+
+    @Test
+    fun oneFailedSettingsReadDoesNotFreezeTheSettingsOfLaterAlerts() = runTest {
+        var reads = 0
+        val flaky: Flow<UserSettings> = flow {
+            if (reads++ == 0) throw IOException("settings file unreadable once (test)")
+            emitAll(settings.settings)
+        }
+        val playback = playback(flaky)
+        playback.startAlert(onFinished = {})
+        scheduler.advanceBy(300_000L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).hasSize(4)
+
+        // The file is read again after the retry delay and then followed (D-068, SET-09, SET-11, SET-14).
+        testScheduler.advanceTimeBy(AlertPlayback.FIRST_RETRY_MS + 1)
+        settings.update { it.copy(alertSound = "glockenspiel", alertLength = AlertLength.SHORT, vibration = false) }
+        val hapticsBefore = haptics.plays(Haptic.ALERT).size
+        playback.startAlert(onFinished = {})
+        scheduler.advanceBy(300_000L)
+
+        assertThat(sound.plays(AlertSound.GLOCKENSPIEL)).containsExactly(300_000L)
+        assertThat(haptics.plays(Haptic.ALERT)).hasSize(hapticsBefore)
+    }
+
+    @Test
+    fun theSettingsRetryBacksOffUpToAMinute() {
+        assertThat((0L..7L).map { AlertPlayback.retryDelayMs(it) })
+            .containsExactly(1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 32_000L, 60_000L, 60_000L).inOrder()
+    }
+
+    @Test
+    fun aStepsAlertAndTickLogTheirScheduledTimeForTheDelayToTheSound() = runTest {
+        val playback = playback(settings.settings)
+        val due = ScheduledTime(TimerAlarmKind.DEADLINE, clock.elapsed - 140)
+
+        playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed - 9))
+        playback.startAlert(due, onFinished = {})
+        playback.testAlert()
+
+        val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>()
+        assertThat(played.map { it.scheduled?.lateMs(it.at) }).containsExactly(9L, 140L, null).inOrder()
     }
 
     @Test

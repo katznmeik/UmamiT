@@ -51,6 +51,22 @@ class TimerStateNotificationsTest {
     }
 
     @Test
+    fun `a cold or ice step in ready names the water as SCR-05 does, not the kettle (BRW-10)`() {
+        val cold = states.ready().copy(kettleTempC = 5)
+        val ice = cold.copy(iceBrew = true)
+        val cool = states.ready().copy(kettleTempC = 10)
+        val warm = states.ready().copy(kettleTempC = 15, iceBrew = true)
+
+        assertThat(build(cold).text()).isEqualTo("Bereit · 1:00 · Kaltes Wasser")
+        assertThat(build(cold).shortCriticalText).isEqualTo("Kaltes Wasser")
+        assertThat(build(ice).text()).isEqualTo("Bereit · 1:00 · Eiswürfel")
+        assertThat(build(ice).shortCriticalText).isEqualTo("Eiswürfel")
+        assertThat(build(cool).text()).isEqualTo("Bereit · 1:00 · Kaltes Wasser")
+        assertThat(build(warm).text()).isEqualTo("Bereit · 1:00 · Wasserkocher auf 15 °C")
+        assertThat(build(warm).shortCriticalText).isEqualTo("15 °C")
+    }
+
+    @Test
     fun `running counts down in the chip towards the deadline, with Pause`() {
         val state = states.running(remainingMs = 45_000)
         val notification = build(state)

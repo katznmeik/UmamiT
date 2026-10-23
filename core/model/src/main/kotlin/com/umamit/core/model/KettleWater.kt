@@ -1,6 +1,9 @@
-package com.umamit.core.designsystem.component
+package com.umamit.core.model
 
-/** What the water of a step is (BRW-10): heated, or cold for a cold or ice brew (≤ 10 °C). */
+/**
+ * What the water of a step is (BRW-10): heated, or cold for a cold or ice brew (≤ 10 °C). In
+ * `core:model` so the setup, the timer screen and the notifications share one rule (D-068).
+ */
 enum class KettleWater {
     /** „Wasserkocher auf 65 °C". */
     HOT,

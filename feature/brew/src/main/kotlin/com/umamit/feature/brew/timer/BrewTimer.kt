@@ -6,7 +6,9 @@ import com.umamit.core.timer.controller.ControllerBrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 /**
@@ -18,15 +20,25 @@ interface BrewTimer {
     /** The controller's [BrewSessionController.state]. */
     val state: StateFlow<TimerUiState>
 
+    /**
+     * The controller's [BrewSessionController.recovered]: until it is true, an `Idle` [state] may
+     * be a session not read yet after process death (GEN-07, D-068). Always true by default.
+     */
+    val recovered: StateFlow<Boolean> get() = ALWAYS_RECOVERED
+
     /** A user event from the app ([BrewSessionController.send]). */
     suspend fun send(event: TimerEvent): TransitionOutcome
 }
+
+private val ALWAYS_RECOVERED: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
 
 /** The [BrewTimer] of the app: the controller itself, which also starts brews ([BrewStarter], M1-13). */
 class ControllerBrewTimer @Inject constructor(private val controller: BrewSessionController) :
     BrewTimer,
     BrewStarter by ControllerBrewStarter(controller) {
     override val state: StateFlow<TimerUiState> get() = controller.state
+
+    override val recovered: StateFlow<Boolean> get() = controller.recovered
 
     override suspend fun send(event: TimerEvent): TransitionOutcome = controller.send(event)
 }

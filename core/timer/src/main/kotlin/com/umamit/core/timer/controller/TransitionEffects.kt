@@ -76,7 +76,8 @@ internal class TransitionEffects(
      * Runs the effects of the accepted [transition] at [now]. [start] is the
      * request of a `CreateSession`; [teaName] the session's tea for the UI, [iceBrew] whether it is an ice brew.
      * [savedSheetAsNotification]: a `ShowSavedSheet` is executed as
-     * `NotifySessionSaved` (*Beenden & neu starten*, D-054).
+     * `NotifySessionSaved` (*Beenden & neu starten*, D-054). [scheduled]: when the time-based
+     * event of the transition was due, which the pre-alert tick passes to the player's log (D-068).
      */
     suspend fun run(
         transition: TimerTransition,
@@ -85,16 +86,18 @@ internal class TransitionEffects(
         teaName: String?,
         iceBrew: Boolean = false,
         savedSheetAsNotification: Boolean = false,
+        scheduled: ScheduledTime? = null,
     ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
         persist(transition.effects.take(persistAt), transition.state, start, now)
         val ui = uiStateOf(transition.state, teaName, now, iceBrew)
         mutableState.value = ui
         val fullScreen = TimerEffect.StartAlert in transition.effects
+        val preAlertDue = scheduled?.takeIf { it.kind == TimerAlarmKind.PRE_ALERT }
         transition.effects.drop(persistAt + 1)
             .map { if (savedSheetAsNotification && it is TimerEffect.ShowSavedSheet) it.asNotification() else it }
             .forEach { effect ->
-                attempt { executeSide(effect, transition.state, ui, fullScreen) }
+                attempt { executeSide(effect, transition.state, ui, fullScreen, preAlertDue) }
                     ?.let { record(TimerDiagnostic.EffectFailed(now, effect, it)) }
             }
     }
@@ -168,11 +171,17 @@ internal class TransitionEffects(
         }
     }
 
-    private fun executeSide(effect: TimerEffect, newState: TimerState, ui: TimerUiState, fullScreen: Boolean) {
+    private fun executeSide(
+        effect: TimerEffect,
+        newState: TimerState,
+        ui: TimerUiState,
+        fullScreen: Boolean,
+        preAlertDue: ScheduledTime?,
+    ) {
         when (effect) {
             is TimerEffect.ScheduleAlarms -> ports.alarms.reconcile(effect.due)
 
-            TimerEffect.PlayPreAlert -> ports.alert.playPreAlert()
+            TimerEffect.PlayPreAlert -> ports.alert.playPreAlert(preAlertDue)
 
             TimerEffect.StartAlert -> startAlert(newState)
 
@@ -206,9 +215,10 @@ internal class TransitionEffects(
      * plays; an alert already playing for the same deadline is not restarted.
      */
     private fun startAlert(state: TimerState) {
-        val alert = stepAlertOf(state as TimerState.Alerting)
+        val alerting = state as TimerState.Alerting
+        val alert = stepAlertOf(alerting)
         if (alert == playingAlert) return
-        ports.alert.startAlert(alert)
+        ports.alert.startAlert(alert, ScheduledTime(TimerAlarmKind.DEADLINE, alerting.deadlineElapsedMs))
         playingAlert = alert
     }
 }
