@@ -116,6 +116,14 @@ class BrewTimerServicePort internal constructor(
         armRefresh(state, generation)
     }
 
+    override fun retryRefusedStart(state: TimerUiState.Active?, fullScreen: Boolean) = synchronized(lock) {
+        if (!ForegroundServiceState.takeRefused() || state == null) return@synchronized
+        generation++
+        TimerNotifications.cancel(context, TimerNotifications.ID_QUIET)
+        send(state, fullScreen, clocks.read(), again = true)
+        armRefresh(state, generation)
+    }
+
     override fun stopForeground() = synchronized(lock) {
         generation++
         lastShown = null
@@ -177,11 +185,16 @@ class BrewTimerServicePort internal constructor(
         }
     }
 
-    /** Sends [state] to the service: to the running one, else with a foreground start (04 §6.3). */
-    private fun send(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
+    /**
+     * Sends [state] to the service: to the running one, else with a foreground start (04 §6.3).
+     * [again]: a refused start sent once more (D-063), whose notification must not alert a
+     * second time; refused again, it is logged as such.
+     */
+    private fun send(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading, again: Boolean = false) {
         lastShown = state to fullScreen
         val id = notifications.idFor(state)
         val notification = notifications.build(state, fullScreen, now)
+        if (again) notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
         val wakeLockMs = wakeLockMs(state, now)
         ForegroundServiceState.holdHandover(context)
         if (ForegroundServiceState.isForeground && sendToRunning(id, notification, wakeLockMs)) return
@@ -191,10 +204,10 @@ class BrewTimerServicePort internal constructor(
             ContextCompat.startForegroundService(context, command)
         } catch (e: ForegroundServiceStartNotAllowedException) {
             ForegroundServiceState.commandNotSent()
-            ForegroundServiceState.refused(command)
+            ForegroundServiceState.startRefused()
             Log.w(TAG, "Foreground service start refused; posting notification $id without it", e)
             postAlone(id, notification)
-            refused(now, id, e)
+            diagnostics.record(TimerDiagnostic.ServiceStartRefused(now, id, e, again))
         }
     }
 
@@ -211,10 +224,6 @@ class BrewTimerServicePort internal constructor(
             Log.w(TAG, "Command to the running service refused; starting it again", e)
             false
         }
-    }
-
-    private fun refused(at: ClockReading, id: Int, error: Exception) {
-        diagnostics.record(TimerDiagnostic.ServiceStartRefused(at, id, error))
     }
 
     private companion object {
@@ -241,30 +250,5 @@ class BrewTimerServicePort internal constructor(
 
             TimerPhase.READY, TimerPhase.PAUSED, TimerPhase.FINISHED -> 0L
         }
-    }
-}
-
-/**
- * Sends the service start Android refused last once more (D-057), from the turn
- * of an exact alarm or a notification action, which may start a foreground service
- * from the background (04 §6.2): when the in-process wake-up handled the deadline
- * first, its start was refused, and the alarm right after finds nothing due. Shown
- * again, the notification does not alert a second time. Refused again, it waits for
- * the next alarm.
- */
-internal fun resendRefusedStart(context: Context) {
-    val command = ForegroundServiceState.takeRefused() ?: return
-    BrewTimerService.notificationOf(command)?.let { notification ->
-        notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
-        BrewTimerService.withNotification(command, notification)
-    }
-    ForegroundServiceState.holdHandover(context)
-    ForegroundServiceState.commandSent()
-    try {
-        ContextCompat.startForegroundService(context, command)
-    } catch (e: ForegroundServiceStartNotAllowedException) {
-        ForegroundServiceState.commandNotSent()
-        ForegroundServiceState.refused(command)
-        Log.w("UmamiTService", "Foreground service start refused again", e)
     }
 }

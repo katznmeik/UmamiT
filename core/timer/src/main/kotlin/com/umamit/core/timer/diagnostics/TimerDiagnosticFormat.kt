@@ -52,6 +52,10 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.RecoveryFailed ->
             "recovery: reading the stored timer failed: ${error(entry.error)} | ${clocks(entry.at)}"
 
+        is TimerDiagnostic.RecoveryRetriesStopped ->
+            "recovery: retries stopped after ${entry.failingForMs / MS_PER_SECOND} s of failed reads; " +
+                "the next input reads again | ${clocks(entry.at)}"
+
         is TimerDiagnostic.AlarmNotExact ->
             "alarm ${entry.kind} set inexact: exact alarms refused | ${clocks(entry.at)}"
 
@@ -72,8 +76,25 @@ object TimerDiagnosticFormat {
                 "battery unrestricted ${yesNo(batteryUnrestricted)} | ${clocks(entry.at)}"
         }
 
+        is TimerDiagnostic.RecoveryRequested ->
+            "recovery requested by ${entry.trigger}" +
+                (if (entry.alreadyRecovered) ": already done in this process" else "") + " | ${clocks(entry.at)}"
+
+        is TimerDiagnostic.Recovered ->
+            "recovery: stored ${entry.from}" + (if (entry.rebooted) " from before a reboot" else "") +
+                " -> ${phase(entry.to)}: ${entry.decision.name.lowercase().replace('_', ' ')}, " +
+                (if (entry.service) "with" else "without") + " the service | ${clocks(entry.at)}"
+
+        is TimerDiagnostic.OrphanSessionEnded ->
+            "recovery: a session left in progress without its timer was " +
+                (if (entry.saved) "saved" else "discarded") + " | ${clocks(entry.at)}"
+
+        is TimerDiagnostic.OrphanSessionsFailed ->
+            "recovery: ending the sessions left in progress failed: ${error(entry.error)} | ${clocks(entry.at)}"
+
         is TimerDiagnostic.ServiceStartRefused ->
-            "service: foreground start with notification ${entry.notificationId} refused: " +
+            "service: foreground start with notification ${entry.notificationId} refused" +
+                (if (entry.again) " again" else "") + ": " +
                 "${error(entry.error)} | ${clocks(entry.at)}"
     }
 
@@ -125,4 +146,5 @@ object TimerDiagnosticFormat {
         listOfNotNull(error::class.simpleName, error.message?.take(MAX_ERROR_CHARS)).joinToString(": ")
 
     private const val MAX_ERROR_CHARS = 200
+    private const val MS_PER_SECOND = 1_000L
 }

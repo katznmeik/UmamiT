@@ -67,6 +67,20 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
             .setContentIntent(launchAppIntent())
             .build()
 
+    /**
+     * „Dein Timer läuft weiter" after a reboot (04 §7.3, D-063), on `sessions` (LOW) with ID 3 like
+     * „Sitzung gespeichert", so it never sits next to the alert (D-044). It opens the timer.
+     */
+    fun timerResumed(state: TimerUiState.Active): Notification =
+        NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
+            .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
+            .setContentTitle(context.getString(R.string.timer_resumed_title))
+            .setContentText(context.getString(R.string.timer_resumed_text, texts.teaOf(state)))
+            .setAutoCancel(true)
+            .setContentIntent(openTimerIntent(RC_RESUMED))
+            .build()
+
     private fun liveUpdate(state: TimerUiState.Active, now: ClockReading): Notification {
         val progress = LiveUpdateProgress.of(state, now.elapsedMs)
         val matcha = ContextCompat.getColor(context, R.color.timer_matcha)
@@ -140,5 +154,6 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         const val RC_FULL_SCREEN = 302
         const val RC_DISMISS = 303
         const val RC_SESSION_SAVED = 304
+        const val RC_RESUMED = 305
     }
 }

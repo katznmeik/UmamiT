@@ -5,6 +5,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.AlarmsReconciled
 import com.umamit.core.testing.AlertStarted
 import com.umamit.core.testing.AlertStopped
+import com.umamit.core.testing.AlertWatchdogSet
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.NotificationShown
 import com.umamit.core.testing.PreAlertPlayed
@@ -81,6 +82,8 @@ class EffectOrderTest {
                 ServiceStarted(TimerPhase.ALERTING),
                 AlertStarted(alert),
                 NotificationShown(TimerPhase.ALERTING, fullScreen = true),
+                // After the turn: the alert is watched while it plays (D-063).
+                AlertWatchdogSet(h.clock.elapsed + 30_000),
             ).inOrder()
         }
 
@@ -132,6 +135,7 @@ class EffectOrderTest {
         assertThat(h.log.calls.drop(2)).containsExactly(
             AlertStopped,
             NotificationShown(TimerPhase.READY, fullScreen = false),
+            AlertWatchdogSet(null),
         ).inOrder()
         assertThat(h.sessions.getSession(h.sessionId)!!.steps[0].overtimeSeconds).isEqualTo(2)
     }

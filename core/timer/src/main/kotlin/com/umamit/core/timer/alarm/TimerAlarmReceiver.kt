@@ -7,7 +7,6 @@ import android.content.pm.ApplicationInfo
 import android.util.Log
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerHost
-import com.umamit.core.timer.service.resendRefusedStart
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,8 +20,9 @@ import kotlinx.coroutines.launch
  * In a process the alarm just started (E3), the controller's first turn
  * recovers the persisted state (04 §7.2), and the state's own effects start
  * the foreground service, within the exemption that exact-alarm delivery
- * grants for it. After the turn, a service start Android refused earlier is
- * sent again under the same exemption (D-057).
+ * grants for it. In the same turn, the controller sends a service start
+ * Android refused earlier again, built from the state of that moment
+ * (D-057, D-063).
  */
 class TimerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -36,7 +36,6 @@ class TimerAlarmReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 inputs.onAlarm(kind)
-                resendRefusedStart(context.applicationContext)
             } finally {
                 pending.finish()
             }

@@ -1,7 +1,6 @@
 package com.umamit.core.timer.service
 
 import android.content.Context
-import android.content.Intent
 import android.os.PowerManager
 import android.util.Log
 
@@ -17,15 +16,16 @@ import android.util.Log
  * called `startForeground` crashes the app. The service then stops itself once
  * it has shown the last of them.
  *
- * It also keeps the start Android refused last, until a newer command or a
- * stop replaces it, so the next alarm sends it again; and a short wake lock
- * that bridges from a command to the service's own wake lock.
+ * It also keeps whether Android refused the last start, until a newer command
+ * or a stop replaces it, so the controller's next turn that may start the
+ * service sends one again (D-063); and a short wake lock that bridges from a
+ * command to the service's own wake lock.
  */
 internal object ForegroundServiceState {
     private val lock = Any()
     private var pendingCommands = 0
     private var stopWanted = false
-    private var refused: Intent? = null
+    private var refused = false
     private var handover: PowerManager.WakeLock? = null
 
     /** The ID of the service's foreground notification; 0 while it is not in the foreground. */
@@ -45,16 +45,16 @@ internal object ForegroundServiceState {
     fun commandSent() = synchronized(lock) {
         pendingCommands++
         stopWanted = false
-        refused = null
+        refused = false
     }
 
-    /** Android refused [command] (`startForegroundService`); the next alarm sends it again. */
-    fun refused(command: Intent) = synchronized(lock) {
-        refused = command
+    /** Android refused a start (`startForegroundService`); the next turn that may start it sends one again. */
+    fun startRefused() = synchronized(lock) {
+        refused = true
     }
 
-    /** The start Android refused last and nothing replaced since; null when there is none. */
-    fun takeRefused(): Intent? = synchronized(lock) { refused.also { refused = null } }
+    /** True when a start was refused and no command or stop replaced it since; it is taken. */
+    fun takeRefused(): Boolean = synchronized(lock) { refused.also { refused = false } }
 
     /** Sending the command failed; it never reaches the service. */
     fun commandNotSent() = synchronized(lock) {
@@ -64,7 +64,7 @@ internal object ForegroundServiceState {
     /** The port wants the service stopped; true when it may stop it now, false when the service will itself. */
     fun stopRequested(): Boolean = synchronized(lock) {
         stopWanted = true
-        refused = null
+        refused = false
         pendingCommands == 0
     }
 
@@ -107,7 +107,7 @@ internal object ForegroundServiceState {
         pendingCommands = 0
         stopWanted = false
         foregroundId = 0
-        refused = null
+        refused = false
         handover?.takeIf { it.isHeld }?.release()
         handover = null
     }

@@ -9,6 +9,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
@@ -36,6 +37,9 @@ class TimerTestActivity : Activity() {
             val started = controller.startSession(brew(seconds, coldBrew, steps, preAlertSeconds))
             val running = controller.send(TimerEvent.Start)
             Log.i(TAG, "Step of $seconds s: start $started, Start $running")
+            (controller.state.value as? TimerUiState.Active)?.deadlineWallMs?.let {
+                deadlineFile(this@TimerTestActivity).writeText(it.toString())
+            }
             // The test runs in another process: it reads the outcome here and fails fast on a refusal.
             outcomeFile(this@TimerTestActivity).writeText(
                 if (started == TransitionOutcome.Accepted && running == TransitionOutcome.Accepted) {
@@ -64,6 +68,7 @@ class TimerTestActivity : Activity() {
         /** Where the activity writes the outcome of the start (app-private, shared by both processes). */
         fun outcomeFile(context: Context): File = File(context.filesDir, "timer-test-start.txt")
 
+<<<<<<< HEAD
         /**
          * A session of [steps] infusions of [seconds] each, with a pre-alert of [preAlertSeconds]
          * (0: none); with [coldBrew] every step is a long step without the service (TMR-18).
@@ -80,6 +85,17 @@ class TimerTestActivity : Activity() {
             .putExtra(EXTRA_STEPS, steps)
             .putExtra(EXTRA_PRE_ALERT, preAlertSeconds)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+=======
+        /** Where the activity writes the running step's deadline on the wall clock. */
+        fun deadlineFile(context: Context): File = File(context.filesDir, "timer-test-deadline.txt")
+
+        /** A step of [seconds]; with [coldBrew] every step is a long step without the service (TMR-18). */
+        fun intent(context: Context, seconds: Int, coldBrew: Boolean = false): Intent =
+            Intent(context, TimerTestActivity::class.java)
+                .putExtra(EXTRA_SECONDS, seconds)
+                .putExtra(EXTRA_COLD_BREW, coldBrew)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+>>>>>>> origin/claude/umamit-m1-start-k0jg3n
 
         private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int) = BrewStart(
             snapshot = SessionSnapshot(

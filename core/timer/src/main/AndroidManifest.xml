@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Alert vibration (04 §9.1, #16). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Recovery after a reboot (04 §7.3, #46). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application>
         <!-- The timer's foreground service (04 §6.3, §13; #42). -->
@@ -57,6 +59,17 @@
         <receiver
             android:name=".alarm.TimerAlarmReceiver"
             android:exported="false" />
+
+        <!-- Recovery after a reboot and an update (04 §7.3, §7.5; #46). The system sends
+             both broadcasts, which reach a receiver that is not exported. -->
+        <receiver
+            android:name=".TimerRecoveryReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".probe.ProbeActionReceiver"

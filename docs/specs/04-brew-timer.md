@@ -4,7 +4,8 @@
 > recovery and snapshot, D-048; time rules and service contract, D-053;
 > slice review: controller rules, alarm kinds, notification per state, D-054;
 > controller inputs and ports, D-056; alarms, service and recovery in the
-> first turn, D-057; accuracy workflow, D-067, 2026-10-23)
+> first turn, D-057; recovery triggers, device restore, alert watchdog, D-063;
+> accuracy workflow, D-067, 2026-10-23)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -170,7 +171,7 @@ flowchart LR
     UI[Timer screen, ActiveBrewBar] -- events --> C[BrewSessionController]
     N[Notification / Live Update actions] -- events --> C
     A[TimerAlarmReceiver\nexact alarms] -- onAlarm --> C
-    B[BootReceiver / PackageReplacedReceiver] -- recover --> C
+    B[TimerRecoveryReceiver\nboot, app update] -- recover --> C
     C --> E[BrewTimerEngine\npure Kotlin]
     C -- persist --> DB[(Room: active_brew, brew_session, session_step)]
     C -- StateFlow --> UI
@@ -227,9 +228,15 @@ flowchart LR
 - **Recovery.** The controller sends `recover` exactly once per process, as
   the first event, inside the same lock as the restore of `active_brew`: the
   first turn of the process restores it before its own input, whatever that
-  input is (an alarm, a tap; D-057).
+  input is (an alarm, a tap; D-057). The app's process start, `BOOT_COMPLETED`
+  and `MY_PACKAGE_REPLACED` ask for that turn without an input of their own
+  (`recover(trigger)`, D-063).
   `restore` throws only `IllegalArgumentException`; the controller then logs
   it (06 §5.6) and clears `active_brew` instead of running a wrong timer.
+- ***Beenden & neu starten* (TMR-21).** One turn ends the active timer
+  (*Sitzung beenden*; the quick timer *Abgegossen* or *Abbrechen*) and starts
+  the new session; the finish's `ShowSavedSheet` is posted as
+  `NotifySessionSaved` (D-054, D-063).
 - **Alert.** `StartAlert` means "ensure the alert of the alerting step is
   playing": if it already plays for that step, nothing restarts. So a
   `deadlineReached` and a `recover` (or two `recover`s) that both ask for it
@@ -270,8 +277,9 @@ flowchart LR
   `recover` of an alerting state and at a long step's deadline.
 - `BrewSessionController` serialises events (single coroutine/Mutex),
   executes effects, exposes `StateFlow<TimerUiState>` (D-056):
-  - **Inputs** are suspend functions: the starts, the user events with their
-    source (app or notification), `onAlarm(kind)` and the alert player's
+  - **Inputs** are suspend functions: the starts and *Beenden & neu
+    starten*, the user events with their source (app or notification),
+    `onAlarm(kind)`, `recover(trigger)` and the alert player's
     `alertCompleted(alert)`.
   - **Effects reach ports:** alarms (the full due set), service, notifier,
     alert player, saved sheet, diagnostics, and the in-process wake-up. The
@@ -368,6 +376,12 @@ rules (D-047):
   | `idleDemoteAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 104 | `idleDemote` |
   | `quickCancelAtWallMs` | exact, `setExactAndAllowWhileIdle(RTC_WAKEUP)` | 105 | `quickTimerTimeout` |
   | `midnightAtWallMs` | inexact, `set(RTC)` (no wake-up) | 106 | `midnightTimeout` |
+  | — (alert watchdog, while the alert plays) | exact, `setExactAndAllowWhileIdle(ELAPSED_REALTIME_WAKEUP)`, every 30 s | 107 | nothing of its own |
+
+  The alert watchdog is no `DueTimes` field and `ScheduleAlarms` leaves it
+  alone: the controller sets it while the alert plays and cancels it when
+  the alert ends. Its only job is to start a process after a kill, whose
+  recovery replays the alert (§7.2, D-063).
 
   The elapsed fields use `ELAPSED_REALTIME` so a wall-clock change never
   moves them (E1); the overtime timeout is exact because it may start the
@@ -401,8 +415,10 @@ rules (D-047):
   optimisation (ONB-02), and `specialUse` is not among the FGS types
   restricted after boot. Every start from the background catches
   `ForegroundServiceStartNotAllowedException`, logs it (06 §5.6) and falls
-  back to the plain ongoing notification; the next exact alarm sends the
-  refused start once more (D-057).
+  back to the plain ongoing notification. The next turn that may start the
+  service from the background (an exact alarm, a notification action, a tap)
+  and sent it no command itself starts it again, with the notification of
+  the state of that moment; a start refused again is logged (D-057, D-063).
 - Partial wake lock during short RUNNING steps and ALERTING, with timeout
   `remaining + alert length + 30 s`; the alert length is the longest one
   (Lang, 2 min). Waiting states release it.
@@ -473,21 +489,43 @@ idle demote (D-053).
 | RUNNING/ALERTING, deadline passed ≥ 10 min ago | `overtimeTimeout` applied silently: poured on time with `overtimeAutoAck`, ended at the deadline's wall time. A quick timer just ends. |
 | Quick timer READY / PAUSED, 30 min after the last interaction | Ended silently (`StopForeground`), as by `quickTimerTimeout`. |
 
-**Open for #46 (D-057 review):** a process killed during ALERTING whose
-deadline alarm was already handled (the in-process wake-up came first) has
-only the overtime alarm left; the alert is replayed only if something starts
-the process before then (app start recovery, #46), otherwise the overtime
-timeout acknowledges it silently. An exact „alert watchdog" alarm (e.g.
-deadline + 30 s while `alertPlayed` is false) would close this; it needs an
-engine due time and is decided with #46.
+**Triggers (D-063).** Any input of a new process recovers first (an alarm,
+a tap, a notification action). The app's process start (`Application.onCreate`),
+`BOOT_COMPLETED` (§7.3) and `MY_PACKAGE_REPLACED` (§7.5) ask for a recovery
+turn of their own; in a process that already recovered they change nothing.
+
+**A kill during ALERTING (D-063).** A process killed during ALERTING has only
+the overtime alarm left, however its deadline was handled; its recovery
+would acknowledge the step silently. So while the alert plays, the alert
+watchdog alarm (§6.2) comes every 30 s: a new process it starts replays the
+alert that had not run its cycle (at least once, D-047).
+
+**Device restore (E11, D-063).** Restore detection clears `active_brew`
+(05 §8). Recovery then ends every `IN_PROGRESS` session other than the active
+one: saved with `auto_finished` when it has a completed infusion, else
+discarded; nothing resumes. The session of a snapshot cleared as unreadable
+is ended the same way.
+
+**A stored timer that cannot be read (D-057, D-063).** Each turn tries three
+times; a turn that fails comes again (its alarm and the in-process wake-up)
+after 5 s during the first 30 s of failures, every 30 s up to 5 min, then
+every 2 min. After 11 min the process stops retrying, so a database that
+stays broken does not wake the phone forever. Only the retries stop: the
+stored timer may well be valid (a cold brew hours from its deadline), so its
+row, its alarms and its session stay. Its own alarms, a tap or the next
+process start read again, each with its three tries. A snapshot that
+`restore` refuses is different: it is cleared at once, with its alarms and
+any notification the old process left (D-057, D-063).
 
 ### 7.3 Reboot
 
-`BootReceiver` (`BOOT_COMPLETED`, delivered after the first unlock) restores the state from wall-clock data,
-reschedules the exact alarms (or applies §7.2 if the deadline already passed),
-tries to restart the FGS (§6.3) and posts a notification „Dein
-Gyokuro-Timer läuft weiter". If the FGS start was refused, the deadline
-alarm starts it when it fires (§6.2).
+`TimerRecoveryReceiver` (`BOOT_COMPLETED`, delivered after the first unlock)
+asks the controller to recover (D-063): it restores the state from
+wall-clock data, reschedules the exact alarms (or applies §7.2 if the
+deadline already passed), tries to restart the FGS (§6.3) and posts a
+notification „Dein Timer läuft weiter" (the tea below it) through the notifier port,
+except while alerting (the alert is the notice then). If the FGS start was
+refused, the deadline alarm starts it when it fires (§6.2).
 
 Samsung's *Automatische Optimierung* may restart the phone at night; the
 first-start setup shows a hint to disable *Automatisch neu starten* (ONB-02).
@@ -504,8 +542,8 @@ Alarms are cleared by the system; on next launch §7.2 applies and the UI says
 ### 7.5 App update
 
 Installing an update kills the process and a running FGS (alarms survive).
-`PackageReplacedReceiver` (`MY_PACKAGE_REPLACED`) runs §7.2 recovery right
-away, including the FGS restart attempt.
+`TimerRecoveryReceiver` (`MY_PACKAGE_REPLACED`) runs §7.2 recovery right
+away, including the FGS restart attempt (D-063).
 
 ## 8. Notifications
 
@@ -724,7 +762,7 @@ Uses the global pre-alert, the same alert and the Live Update
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |
-| E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. |
+| E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. The first recovery ends every session left `IN_PROGRESS`: saved with `auto_finished` when it has a completed infusion, else discarded (§7.2, D-063). |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
 | E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. |
@@ -735,7 +773,7 @@ Uses the global pre-alert, the same alert and the Live Update
 |---|---|
 | Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
 | Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
-| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057); alarm delivery; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
+| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual fire times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert. |
 
@@ -771,13 +809,11 @@ Uses the global pre-alert, the same alert and the Live Update
 </service>
 <receiver android:name=".timer.TimerActionReceiver" android:exported="false" />
 <receiver android:name=".timer.alarm.TimerAlarmReceiver" android:exported="false" />
-<receiver android:name=".timer.BootReceiver" android:exported="true">
+<!-- Both broadcasts come from the system, which reaches a receiver that is
+     not exported (D-063). -->
+<receiver android:name=".timer.TimerRecoveryReceiver" android:exported="false">
     <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />
-    </intent-filter>
-</receiver>
-<receiver android:name=".timer.PackageReplacedReceiver" android:exported="false">
-    <intent-filter>
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
     </intent-filter>
 </receiver>

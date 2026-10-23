@@ -63,4 +63,8 @@
     <string name="timer_session_saved_title">Sitzung gespeichert</string>
     <string name="timer_session_saved_text">%1$s · im Journal</string>
     <string name="timer_session_saved_text_no_tea">Im Journal</string>
+
+    <!-- After a reboot the session goes on (04 §7.3, D-063) -->
+    <string name="timer_resumed_title">Dein Timer läuft weiter</string>
+    <string name="timer_resumed_text">%1$s · nach dem Neustart</string>
 </resources>

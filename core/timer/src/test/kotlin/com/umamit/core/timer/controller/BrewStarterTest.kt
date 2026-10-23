@@ -61,6 +61,9 @@ class BrewStarterTest {
         assertThat(harness.sessions.getSession(first)!!.status).isEqualTo(SessionStatus.COMPLETED)
         assertThat(harness.active.phase).isEqualTo(TimerPhase.READY)
         assertThat(harness.active.steps.map { it.plannedSeconds }).containsExactly(30, 20).inOrder()
+        // One controller turn (D-054, #46): the new timer is in front, so „Sitzung gespeichert" instead of the sheet.
+        assertThat(harness.notifier.sessionsSaved).containsExactly(first)
+        assertThat(harness.savedSheet.shown).isEmpty()
     }
 
     @Test

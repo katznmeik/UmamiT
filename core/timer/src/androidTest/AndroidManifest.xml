@@ -17,6 +17,11 @@
             android:name="com.umamit.core.timer.TimerTestActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- The user opens the app again after a kill; stands for the timer screen (#46). -->
+        <activity
+            android:name="com.umamit.core.timer.TimerStateActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <!-- The timer screen the alert's full-screen intent opens (the app: MainActivity). -->
         <activity
             android:name="com.umamit.core.timer.TimerScreenStandIn"

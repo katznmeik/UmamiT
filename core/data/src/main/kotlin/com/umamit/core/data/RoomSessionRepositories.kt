@@ -132,6 +132,8 @@ class RoomSessionRepository @Inject constructor(
         sessions.get(id)?.toModel(sessions.steps(id))
     }
 
+    override suspend fun inProgressSessionIds(): List<String> = sessions.inProgressIds()
+
     override fun observeRecentSessions(limit: Int): Flow<List<BrewSession>> = sessions.observeFinished().map { rows ->
         // The rows are small; only the shown ones load their steps.
         db.withTransaction { rows.take(limit).map { it.toModel(sessions.steps(it.id)) } }
@@ -163,8 +165,6 @@ class RoomSessionRepository @Inject constructor(
         if (opened == null || newPackage) db.teaDao().setOpenedDate(teaId, session.startedAt.localDate(zone), now)
     }
 
-    private fun Long.localDate(zone: ZoneId): LocalDate = Instant.ofEpochMilli(this).atZone(zone).toLocalDate()
-
     private companion object {
         /** Stock at or below this counts as run out (05 §7: grams are stored to 0.1 g). */
         const val EMPTY_GRAMS = 0.001
@@ -172,6 +172,9 @@ class RoomSessionRepository @Inject constructor(
 }
 
 private const val TAG = "SessionRepository"
+
+/** The local date of this wall time in [zone]. */
+private fun Long.localDate(zone: ZoneId): LocalDate = Instant.ofEpochMilli(this).atZone(zone).toLocalDate()
 
 private val PACKAGE_TYPES = setOf(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
 

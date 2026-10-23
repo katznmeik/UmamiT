@@ -476,6 +476,144 @@ Decided while building them:
     straight into the midnight timeout names no tea (the port would need the
     tea name).
 
+<a id="d-063"></a>
+### D-063 — Recovery after process death, reboot, app update and device restore (M1-09 part 3, #46) · *Accepted* (Claude, 2026-10-22)
+
+#46 completed recovery ([04 §7.2–§7.5](04-brew-timer.md#72-recovery-on-process-start);
+E2, E11; TMR-14, TMR-16, TMR-21) with the scope the #42 review handed
+over (R2-1, R2-2, R2-3). Decided while building it:
+
+- **Triggers.** `TimerInputs.recover(trigger)` is one controller turn. The
+  first turn of a process recovers the persisted timer (D-057); in a process
+  that already did, nothing changes. The triggers:
+  - `APP_START`: the app's process start. The app calls it from
+    `Application.onCreate`, off the main thread, once it hosts the controller
+    (hand-off below).
+  - `BOOT_COMPLETED` and `PACKAGE_REPLACED` come from `TimerRecoveryReceiver`.
+    One receiver takes both broadcasts. It is not exported: the system sends
+    both, and system broadcasts reach a receiver that is not exported (04 §13
+    had an exported `BootReceiver`). `RECEIVE_BOOT_COMPLETED` is already in
+    06 §5.7.
+  - An app without a `TimerHost` runs no timer, so the receiver only logs to
+    logcat. Unlike the alarm receiver, it never fails a debuggable build,
+    because every boot reaches it.
+  - A process that an alarm started may recover in the app start's turn. The
+    alarm's log entry then takes its scheduled time from the restored state
+    (06 §5.6).
+- **Reboot notice (04 §7.3).** A session that survives a reboot (the boot
+  count changed) gets „Dein Timer läuft weiter", with the tea below it,
+  through the notifier port
+  (`notifyTimerResumed`; its content comes with #47). While alerting there is
+  no notice: the alert is the notice (D-044).
+- **Device restore (E11).** Restore detection clears `active_brew` (D-052).
+  Recovery then ends every `IN_PROGRESS` session other than the active one:
+  - it is saved (`completeSession`, `auto_finished` = 1, as the app's own
+    finish, 05 §3.6) when it has a completed infusion, i.e. a non-rinse step
+    with recorded values that was not skipped;
+  - otherwise it is discarded;
+  - the same covers the session of a stored timer cleared as unreadable;
+  - each one is logged (`OrphanSessionEnded`). A failure is logged and tried
+    again at the next process start. `SessionRepository.inProgressSessionIds()`
+    is new.
+- ***Beenden & neu starten* (TMR-21, D-054).**
+  `BrewSessionController.finishActiveAndStart(request)` is one turn:
+  - it ends the active timer: *Sitzung beenden* for a brew session; for the
+    quick timer *Abgegossen* while alerting, else *Abbrechen*;
+  - then it starts the request;
+  - the finish's `ShowSavedSheet` runs as `NotifySessionSaved`;
+  - a start from elsewhere waits for the whole turn.
+
+  `ControllerBrewStarter.finishActiveAndStart` (#48) calls it, in place of
+  #48's two turns (D-062).
+- **The recovery retries back off and stop (R2-1).** Each turn still tries
+  the read three times (D-057). A turn whose reads all fail comes again after
+  5 s during the first 30 s of failures, every 30 s up to 5 min, then every
+  2 min; the alarm retry and the in-process wake-up use the same delay.
+  - After 11 min of failed reads the process stops retrying, once
+    (`RecoveryRetriesStopped`), so a database that stays broken does not
+    wake the phone forever.
+  - Only the retries stop (#46 review S1). The stored timer may well be
+    valid: a cold brew can be hours from its deadline when the reads begin to
+    fail. So its row, its alarms and its session stay. Its own alarms, a tap
+    or the next process start read again, each with its three tries.
+  - A snapshot that `restore` refuses is truly unreadable and is still
+    cleared at once (D-057). Its alarms are cancelled, and any notification
+    the old process posted without the service (a long step, a demoted
+    session, a refused start) goes too, because it outlives that process.
+  - Not done (#46 review O2): the 11 min count per process. A process that
+    keeps dying between its retries starts again at 5 s; only the retry
+    wake-ups continue, nothing is lost.
+  - Every turn now re-arms the wake-up at its end, so a turn that only
+    recovers retries too.
+- **The refused start goes again from the current state (R2-2, amends
+  D-057).** The controller sends it inside its turn:
+  - at the end of a turn that may start the service from the background (an
+    exact alarm, a notification action, a tap) and that sent the service no
+    command itself; never after the in-process wake-up or the alert player's
+    report;
+  - with the notification of the state of that moment, which does not alert
+    again (`FLAG_ONLY_ALERT_ONCE`). The alert keeps its full-screen intent
+    while it plays;
+  - a state that needs no service drops the refused start
+    (`BrewTimerEngine.needsService`, new);
+  - a start that is refused again is logged (`ServiceStartRefused`, *again*);
+  - so the next interaction also restarts a service that recovery could not
+    start (04 §7.2).
+
+  The alarm receiver no longer resends on its own, and `ForegroundServiceState`
+  only keeps whether a start was refused.
+- **The alert watchdog for a kill during ALERTING (R2-3).**
+  - *The gap:* any kill during ALERTING leaves only the overtime alarm
+    (deadline + 10 min), however the deadline was handled. Its recovery then
+    acknowledges the step silently.
+  - *Decided:* while the alert plays, an exact `ELAPSED_REALTIME_WAKEUP` alarm
+    (`TimerAlarmKind.ALERT_WATCHDOG`, request code 107) comes every 30 s. It
+    ends with the alert: its cycle, *Abgegossen* or any other end.
+  - In a new process, its turn recovers the state and replays the alert that
+    had not run its cycle (at least once, D-047). In a live process it finds
+    nothing due and is set again.
+  - It is not an engine due time. That would need the alert's start in
+    `active_brew`, a schema change right before the v1 freeze (D-054), and a
+    due time must be consumed by an event that changes the state. The
+    watchdog's only job is to start a process; recovery decides the rest.
+  - `ScheduleAlarms` reconciles only the six due kinds
+    (`TimerAlarmKind.DUE`); the watchdog has its own port call (`watchAlert`).
+    A new process cancels a watchdog the old one left set when nothing plays.
+  - Cost: at most four extra wake-ups per alert (Lang, 2 min), while the
+    screen is on for the alert anyway.
+- **Diagnostics (D-060).** New entries:
+  - `RecoveryRequested`: the trigger, and whether the process had recovered
+    already;
+  - `Recovered`: the stored and the resulting phase, a reboot, the row of the
+    table that applied (restored, alert replayed, overtime acknowledged,
+    demoted, session ended), and whether the state runs with the service;
+  - `OrphanSessionEnded`, `OrphanSessionsFailed` and `RecoveryRetriesStopped`;
+  - *again* on `ServiceStartRefused`;
+  - the watchdog alarm logs its scheduled time.
+- **Tests.**
+  - At the controller seam: the 04 §7.2 table (`RecoveryTableTest`), the
+    retries and the backoff (`ProcessRestartTest`), *Beenden & neu starten*
+    (`FinishAndRestartTest`), the refused start (`RefusedServiceStartTest`) and
+    the watchdog (`AlertWatchdogTest`).
+  - On Robolectric: the receiver, the alarm adapter and the service port.
+  - In the CI emulator job, `ProcessDeathTest` also kills a step, reopens the
+    app, checks the restored state and the alert within 2 s of the deadline.
+    The runner's instrumentation lets Android allow every foreground start of
+    the app's uid, so the emulator cannot show a refused start; those paths
+    rest on Robolectric and the PO's device (#46 review O3).
+- **Hand-off, done at the merge with #47 (D-064).** #47 bound the notifier,
+  the last port, and made `UmamitApplication` the `TimerHost`. The merge
+  adds:
+  - `UmamitApplication.onCreate` calls `recover(APP_START)` off the main
+    thread; an `:app` test fails without the call (the compiler cannot see
+    it);
+  - `AndroidTimerNotifier.notifyTimerResumed` posts the reboot notice on the
+    `sessions` channel (LOW), so it never sits next to the alert (D-044);
+  - the notification action no longer resends a refused start itself: the
+    controller's turn does it from the current state (closes D-064's open
+    point on a stale resend);
+  - the device tests' resets cancel the watchdog alarm too.
+
 <a id="d-062"></a>
 ### D-062 — Start, tea picker and brew setup (M1-13, #48) · *Accepted* (Claude, 2026-10-22)
 
@@ -491,7 +629,8 @@ Decided while building them:
   controller when #47 binds it; until then `NoBrewTimer` ignores starts and
   the screen stays. *Beenden & neu starten* runs as two controller turns
   (finish, or cancel a quick timer, then start); #46 replaces it with the
-  one-turn operation of D-054 behind the same seam. `alertKey()` moved to
+  one-turn operation of D-054 behind the same seam (*done in D-063*:
+  `BrewSessionController.finishActiveAndStart`). `alertKey()` moved to
   `core:timer` so every screen can give way to the alert.
 - ***Nochmal brühen* (BRW-11).** The three most recently brewed distinct
   teas of the last 50 finished sessions; archived or deleted teas are left
@@ -667,8 +806,8 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   tone at each pre-alert, alert and *Alarm testen*, and the permission
   states (notifications, Live Updates, full-screen alert, exact alarms,
   battery) at every process start, read off the main thread.
-  `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` are logged by their receivers
-  when #46 adds them.
+  `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` are logged by the controller when
+  their receiver asks it to recover, with each recovery decision (D-063).
 - ***Diagnose***: newest first, the time in monospace above the message (also
   monospace), *Kopieren* in the top bar. It copies a header line (app version
   and versionCode, Android version and API level, device maker and model)
@@ -870,7 +1009,9 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
     stop replaces it) is sent once more after the alarm's turn, with the same
     notification, full-screen intent included, and `FLAG_ONLY_ALERT_ONCE`. This
     covers the in-process wake-up winning the deadline race without the
-    battery-optimisation exemption.
+    battery-optimisation exemption. *Amended by D-063:* the controller sends it
+    inside its turn, with the notification of the state of that moment, also
+    after a notification action or a tap.
 - **The receiver and the full-screen alert find the controller through the
   app** (`TimerHost` with `TimerInputs`: `onAlarm` and `send`), not through
   Hilt, for two reasons:
@@ -950,9 +1091,10 @@ receiver and the foreground service ([04 §4](04-brew-timer.md#4-components),
   - It starts from a clean state (process, alarms, database), fails fast when
     the start is refused, and checks that at least 5 s of the step are left
     at the kill.
-- **Open for #46:** a kill during ALERTING after the in-process wake-up
-  handled the deadline leaves only the overtime alarm (04 §7.2 note); an
-  „alert watchdog" alarm needs an engine due time and is decided there.
+- **Open for #46:** a process killed during ALERTING has only the overtime
+  alarm left, however its deadline was handled (the alarm or the in-process
+  wake-up; 04 §7.2). *Decided in D-063:* an alert watchdog alarm while the
+  alert plays, not an engine due time.
 
 <a id="d-056"></a>
 ### D-056 — BrewSessionController core (M1-09 part 1, #41) · *Accepted* (Claude, 2026-10-22)

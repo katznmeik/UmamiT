@@ -10,6 +10,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeTimerDiagnostics
 import com.umamit.core.testing.FakeTimerWakeUp
@@ -220,6 +221,24 @@ class AndroidTimerNotifierTest {
             .isEqualTo(NotificationManager.IMPORTANCE_LOW)
     }
 
+    @Test
+    fun `after a reboot the session's notice names its tea, on the quiet sessions channel`() {
+        notifier.notifyTimerResumed(states.running())
+
+        val notice = checkNotNull(posted(TimerNotifications.ID_SESSION_SAVED))
+        assertThat(notice.channelId).isEqualTo(TimerNotifications.CHANNEL_SESSIONS)
+        assertThat(notice.title()).isEqualTo("Dein Timer läuft weiter")
+        assertThat(notice.text()).isEqualTo("Gyokuro · nach dem Neustart")
+        assertThat(notice.contentIntent).isNotNull()
+    }
+
+    @Test
+    fun `after a reboot a quick timer's notice says Schnelltimer`() {
+        notifier.notifyTimerResumed(states.quick(TimerPhase.PAUSED))
+
+        assertThat(posted(TimerNotifications.ID_SESSION_SAVED)?.text()).isEqualTo("Schnelltimer · nach dem Neustart")
+    }
+
     private fun dismiss(notification: Notification) {
         TimerActionReceiver().onReceive(app, shadowOf(notification.deleteIntent).savedIntent)
     }
@@ -227,6 +246,8 @@ class AndroidTimerNotifierTest {
     private fun posted(id: Int): Notification? = shadowOf(notificationManager).getNotification(id)
 
     private fun Notification.text() = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+
+    private fun Notification.title() = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
 
     private fun progressOf(notification: Notification): Int =
         (Notification.Builder.recoverBuilder(app, notification).style as Notification.ProgressStyle).progress

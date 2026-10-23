@@ -138,10 +138,6 @@ class BrewTimerService : Service() {
 
         fun notificationIdOf(command: Intent): Int = command.getIntExtra(EXTRA_ID, 0)
 
-        /** [command] with [notification] in place of its own. */
-        fun withNotification(command: Intent, notification: Notification): Intent =
-            command.putExtra(EXTRA_NOTIFICATION, notification)
-
         fun notificationOf(command: Intent): Notification? =
             command.getParcelableExtra(EXTRA_NOTIFICATION, Notification::class.java)
 
