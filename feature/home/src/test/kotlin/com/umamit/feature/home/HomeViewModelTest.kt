@@ -13,10 +13,14 @@ import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTimerReliability
+import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -40,8 +44,9 @@ class HomeViewModelTest {
     private val sessions = FakeSessions(collection)
     private val starter = FakeBrewStarter()
     private val reliability = FakeTimerReliability()
+    private var now = 5_000L
     private val clock = object : MonotonicClock {
-        override fun elapsedMs() = 5_000L
+        override fun elapsedMs() = now
 
         override fun bootCount() = 1
     }
@@ -95,10 +100,10 @@ class HomeViewModelTest {
         sessions.sessions.completeSession(id, autoFinished = false)
     }
 
-    private fun viewModel() = HomeViewModel(
+    private fun viewModel(brewStarter: BrewStarter = starter) = HomeViewModel(
         collection.teas,
         sessions.sessions,
-        starter,
+        brewStarter,
         clock,
         PhotoFiles(folder.newFolder("photos")),
         reliability,
@@ -171,12 +176,52 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `a double tap on a tile starts once and leaves no question on Start (S6)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        val vm = viewModel()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += 200
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += 200
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+
+        assertThat(starter.starts).hasSize(1)
+        assertThat(vm.state.value.question).isNull()
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+    }
+
+    @Test
+    fun `a second tap while the first start is in flight is ignored (S6)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val gate = CompletableDeferred<Unit>()
+        val gated = object : BrewStarter by starter {
+            override suspend fun startSession(request: BrewStart): TransitionOutcome {
+                gate.await()
+                return starter.startSession(request)
+            }
+        }
+        val vm = viewModel(gated)
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        gate.complete(Unit)
+
+        assertThat(starter.starts).hasSize(1)
+        assertThat(vm.state.value.question).isNull()
+    }
+
+    @Test
     fun `brewing again while a session is active asks first (TMR-21)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        now += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         assertThat(vm.state.value.question).isEqualTo(HomeQuestion("Bio Sencha Tanabata"))
@@ -193,6 +238,7 @@ class HomeViewModelTest {
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += LATER_MS
         vm.brewAgain(SeedData.HISUI_TEA_ID)
 
         vm.dismissQuestion()
@@ -210,6 +256,7 @@ class HomeViewModelTest {
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
         val active = starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active
         starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        now += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
 
@@ -224,6 +271,7 @@ class HomeViewModelTest {
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += LATER_MS
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         val active = starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active
 
@@ -244,5 +292,10 @@ class HomeViewModelTest {
 
         assertThat(vm.state.value.reliabilityProblem).isTrue()
         assertThat(reliability.opened).containsExactly(ReliabilityCheck.Notifications)
+    }
+
+    private companion object {
+        /** A deliberate later tap, past the double-tap window. */
+        const val LATER_MS = 5_000L
     }
 }
