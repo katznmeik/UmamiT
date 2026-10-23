@@ -8,6 +8,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.PowerManager
 import android.os.Process
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -60,8 +61,13 @@ class TimerNotificationsDeviceTest {
     private val activityManager = context.getSystemService(ActivityManager::class.java)
     private val keyguard = context.getSystemService(KeyguardManager::class.java)
 
+    private val power = context.getSystemService(PowerManager::class.java)
+
     /** The promotion toggle as it was before the test changed it; restored in [tearDown]. */
     private var promotionToRestore: Boolean? = null
+
+    /** Whether the AVD had its lock screen disabled before the test enabled it; restored in [tearDown]. */
+    private var lockScreenWasDisabled = false
 
     @Before
     fun setUp() {
@@ -72,6 +78,10 @@ class TimerNotificationsDeviceTest {
         )
         instrumentation.uiAutomation.grantRuntimePermission(packageName, Manifest.permission.POST_NOTIFICATIONS)
         shell("appops set $packageName USE_FULL_SCREEN_INTENT allow")
+        // The CI AVD boots with the lock screen disabled, so the keyguard never shows after sleep.
+        // „Over the lock screen" needs one: enable the (insecure, swipe) keyguard for this test.
+        lockScreenWasDisabled = shell("locksettings get-disabled").trim() == "true"
+        shell("locksettings set-disabled false")
         resetTimer()
         wakeAndUnlock()
     }
@@ -81,6 +91,7 @@ class TimerNotificationsDeviceTest {
         resetTimer()
         promotionToRestore?.let { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) setPromotionAllowed(it) }
         wakeAndUnlock()
+        if (lockScreenWasDisabled) shell("locksettings set-disabled true")
     }
 
     @Test
@@ -88,13 +99,13 @@ class TimerNotificationsDeviceTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) allowPromotion()
         startStep(RUNNING_STEP)
 
-        val liveUpdate = eventually("the Live Update (ID 1) as the foreground notification", TIMEOUT) {
+        // The service starts with READY's Live Update (*Brühen starten*, D-053); *Start* updates it.
+        val liveUpdate = eventually("the running step's Live Update (ID 1) as the foreground notification", TIMEOUT) {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)
-                ?.takeIf { it.flags and Notification.FLAG_FOREGROUND_SERVICE != 0 }
+                ?.takeIf { it.flags and Notification.FLAG_FOREGROUND_SERVICE != 0 && it.text() == "Zieht bei 60 °C" }
         }
         assertEquals(TimerNotifications.CHANNEL_BREW_TIMER, liveUpdate.channelId)
-        assertTrue("the Live Update is not ongoing", liveUpdate.flags and Notification.FLAG_ONGOING_EVENT != 0)
-        assertEquals("Zieht bei 60 °C", liveUpdate.text())
+        check("the Live Update is not ongoing", liveUpdate.flags and Notification.FLAG_ONGOING_EVENT != 0)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
             assertTrue(
                 "API 36: the Live Update must request promotion",
@@ -129,28 +140,19 @@ class TimerNotificationsDeviceTest {
 
         // With the screen off the full-screen intent opens the timer screen (on and unlocked it
         // would be a heads-up, 04 §8.2).
-        shell("input keyevent KEYCODE_SLEEP")
-        eventually("the timer screen over the lock screen at the deadline", SHORT_STEP + ALERT_TIMEOUT) {
-            resumedTimerScreen()
-        }
+        val locked = sleepAndLock()
+        val alert = awaitAlertOverLockScreen(SHORT_STEP, locked)
 
-        val alert = activeNotification(TimerNotifications.ID_ALERT)
-        assertNotNull("alert notification (ID 2) missing", alert)
-        alert!!
-        assertEquals(TimerNotifications.CHANNEL_STEEP_FINISHED, alert.channelId)
-        assertEquals(Notification.CATEGORY_ALARM, alert.category)
-        assertNotNull("the alert has no full-screen intent", alert.fullScreenIntent)
-        assertTrue(
-            "the alert is marked FLAG_SILENT (force-grouped), flags=0x${Integer.toHexString(alert.flags)}",
-            alert.flags and FLAG_SILENT == 0,
-        )
-        assertTrue(
+        check("alert channel ${alert.channelId}", alert.channelId == TimerNotifications.CHANNEL_STEEP_FINISHED)
+        check("alert category ${alert.category}", alert.category == Notification.CATEGORY_ALARM)
+        check(
             "the alert is not the foreground notification",
             alert.flags and Notification.FLAG_FOREGROUND_SERVICE != 0,
         )
-        assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
-        assertNull("the quiet notification must be gone too", activeNotification(TimerNotifications.ID_QUIET))
-        assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
+        check(
+            "the alert must be the app's only notification (no Live Update, no quiet one)",
+            notificationManager.activeNotifications.map { it.id } == listOf(TimerNotifications.ID_ALERT),
+        )
 
         tap(alert, "Abgegossen")
         val finished = eventually("the session finished after Abgegossen in the notification", TIMEOUT) {
@@ -172,25 +174,51 @@ class TimerNotificationsDeviceTest {
         assertEquals(TimerNotifications.CHANNEL_BREW_TIMER, quiet.channelId)
         assertTrue("the long step must say when it is done", quiet.text()?.startsWith("Fertig um") == true)
 
-        shell("input keyevent KEYCODE_SLEEP")
-        eventually("the timer screen over the lock screen at the deadline", COLD_BREW_STEP + ALERT_TIMEOUT) {
-            resumedTimerScreen()
-        }
+        val locked = sleepAndLock()
+        awaitAlertOverLockScreen(COLD_BREW_STEP, locked)
 
-        val alert = activeNotification(TimerNotifications.ID_ALERT)
-        assertNotNull("alert notification (ID 2) missing", alert)
-        alert!!
-        assertNotNull("the alert has no full-screen intent", alert.fullScreenIntent)
-        assertTrue(
+        check(
+            "the alert must be the app's only notification (no quiet one, no autogroup summary)",
+            notificationManager.activeNotifications.map { it.id } == listOf(TimerNotifications.ID_ALERT),
+        )
+    }
+
+    /**
+     * Turns the screen off and waits for the keyguard; true when it shows. The setup enables the
+     * lock screen; should an image still not show it, the alert is checked over a screen it had
+     * to turn on instead (see [awaitAlertOverLockScreen]).
+     */
+    private fun sleepAndLock(): Boolean {
+        shell("input keyevent KEYCODE_SLEEP")
+        val locked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { keyguard.isKeyguardLocked } } != null
+        if (!locked) Log.w(TAG, "No keyguard after sleep on this image; checking the screen turned on instead")
+        return locked
+    }
+
+    /**
+     * Waits for the alert (ID 2) of a step of [step], then for the timer screen its full-screen
+     * intent opens, resumed now (never a stale record of an earlier test), and checks the alert:
+     * full-screen intent, not `FLAG_SILENT` (D-044), the screen turned on, and the timer over the
+     * keyguard when [locked].
+     */
+    private fun awaitAlertOverLockScreen(step: Duration, locked: Boolean): Notification {
+        val alert = eventually("the alert (ID 2) at the deadline", step + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
+        }
+        eventually("the timer screen resumed by the full-screen intent", ALERT_TIMEOUT) { resumedTimerScreen() }
+        check("the alert has no full-screen intent", alert.fullScreenIntent != null)
+        check(
             "the alert is marked FLAG_SILENT (force-grouped), flags=0x${Integer.toHexString(alert.flags)}",
             alert.flags and FLAG_SILENT == 0,
         )
-        assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
-        assertEquals(
-            "the alert must be the app's only notification (no quiet one, no autogroup summary)",
-            listOf(TimerNotifications.ID_ALERT),
-            notificationManager.activeNotifications.map { it.id },
-        )
+        check("the alert must turn the screen on", power.isInteractive)
+        if (locked) check("the timer must show over the lock screen", keyguard.isKeyguardLocked)
+        return alert
+    }
+
+    /** Fails with [message] and the device's state (notifications, activities, keyguard) unless [condition]. */
+    private fun check(message: String, condition: Boolean) {
+        if (!condition) throw AssertionError("$message\n${deviceState()}")
     }
 
     private fun startStep(step: Duration, coldBrew: Boolean = false) {
@@ -276,8 +304,12 @@ class TimerNotificationsDeviceTest {
         ?.firstOrNull { it.processName == packageName }
         ?.pid
 
+    /** The resumed timer screen; `mLastResumedActivity` may still name one an earlier test closed. */
     private fun resumedTimerScreen(): String? = shell("dumpsys activity activities").lines()
-        .firstOrNull { it.contains("ResumedActivity") && it.contains(TimerScreenStandIn::class.java.simpleName) }
+        .firstOrNull {
+            it.contains("ResumedActivity") && !it.contains("LastResumed") &&
+                it.contains(TimerScreenStandIn::class.java.simpleName)
+        }
 
     private fun activeNotification(id: Int): Notification? =
         notificationManager.activeNotifications.firstOrNull { it.id == id }?.notification
@@ -289,6 +321,15 @@ class TimerNotificationsDeviceTest {
     private fun wakeAndUnlock() {
         shell("input keyevent KEYCODE_WAKEUP")
         shell("wm dismiss-keyguard")
+    }
+
+    private fun <T : Any> eventuallyOrNull(timeout: Duration, probe: () -> T?): T? {
+        val start = TimeSource.Monotonic.markNow()
+        while (start.elapsedNow() < timeout) {
+            probe()?.let { return it }
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+        return probe()
     }
 
     private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
@@ -304,6 +345,7 @@ class TimerNotificationsDeviceTest {
     private fun deviceState(): String = buildString {
         appendLine("SDK=${Build.VERSION.SDK_INT} timerPid=${timerPid()}")
         appendLine("canUseFullScreenIntent=${notificationManager.canUseFullScreenIntent()}")
+        appendLine("keyguardLocked=${keyguard.isKeyguardLocked} interactive=${power.isInteractive}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
             appendLine("canPostPromotedNotifications=${notificationManager.canPostPromotedNotifications()}")
         }
@@ -333,6 +375,7 @@ class TimerNotificationsDeviceTest {
         val SHORT_STEP = 15.seconds
         val TIMEOUT = 10.seconds
         val ALERT_TIMEOUT = 45.seconds
+        val LOCK_TIMEOUT = 5.seconds
         const val POLL_INTERVAL_MS = 250L
 
         /** `Notification.FLAG_PROMOTED_ONGOING` (API 36) as a plain bit, so it can be checked on API 35 too. */
