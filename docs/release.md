@@ -2,7 +2,8 @@
 
 How Claude publishes a signed APK. The spec is
 [06 §6 and §6.1](specs/06-architecture.md#6-build--distribution); decisions
-D-035, D-039, D-040 and D-067 (accuracy run).
+D-035, D-039, D-040, D-067 (accuracy run) and D-070 (release gate and
+workflow hardening).
 
 ## Dispatching a release
 
@@ -18,37 +19,57 @@ through the GitHub Actions API/tool. The PO never dispatches or tags.
   GitHub pre-releases, built from the PR branch for the PO's on-device tests.
 - **Final releases:** `X.Y.Z` is built from `main` after the milestone PR is
   merged and marked as the latest release.
-- **Bump first:** set `umamit.version` in `gradle.properties` on `ref` and
-  push before dispatching. Tags are never reused; a failed or wrong release is
-  fixed with the next version (`-rc.N+1`, `0.0.N+1-probe`).
-- **Workflow on `main` (D-039):** GitHub dispatches only workflows that exist
-  on the default branch. Changes to `release.yml` take effect for dispatches
-  only once they are on `main`.
+- **Bump first, then wait for CI:** set `umamit.version` in
+  `gradle.properties` on `ref`, push, and dispatch only after CI (`ci.yml`)
+  has passed on that commit; the workflow refuses a commit without a
+  successful CI run (D-070). Tags are never reused; a failed or wrong release
+  is fixed with the next version (`-rc.N+1`, `0.0.N+1-probe`).
+- **Workflows on `main` (D-039, D-070):** GitHub dispatches a
+  `workflow_dispatch` workflow only while a file of that name exists on the
+  default branch; this holds for `release.yml` and `accuracy.yml`. The file
+  only has to *exist* there: the version at the workflow ref of the dispatch
+  runs. So dispatch with the PR branch as the workflow ref
+  (`gh workflow run release.yml --ref <branch> -f ref=<branch> -f version=…`),
+  and the branch's `release.yml` runs; a dispatch on `main` runs `main`'s.
 
 ## What the workflow checks
 
-In this order; any failure stops the run before a tag or release exists:
+Two jobs (D-070). The `build` job holds the keystore and has a read-only
+token; it runs only GitHub's own actions, pinned to commit SHAs, and no Gradle
+setup action. The `publish` job has the write token and runs no action at
+all. In this order; any failure stops the run before a tag or release exists:
 
 1. `version` has the form `X.Y.Z`, `X.Y.Z-rc.N` or `X.Y.Z-probe` and equals
    `umamit.version` at `ref` (checked before anything is built).
 2. Neither tag `v<version>` nor a release of that name exists.
-3. Both secrets `UMAMIT_KEYSTORE_B64` and `UMAMIT_KEYSTORE_PASSWORD` are set.
-4. The build reports the same versionName; its versionCode (from
+3. CI (`ci.yml`) has a successful run on the exact commit (GitHub API with
+   the job's `actions: read` token). CI runs the full quality gate, the
+   emulator job and the R8 build on every push.
+4. Both secrets `UMAMIT_KEYSTORE_B64` and `UMAMIT_KEYSTORE_PASSWORD` are set.
+5. The build reports the same versionName; its versionCode (from
    `./gradlew :app:printReleaseVersion`, the 06 §6 rule) is the expected one.
-5. `./gradlew testDebugUnitTest` passes.
-6. The keystore decodes into the runner temp directory (mode 600) and opens
+6. `./gradlew testDebugUnitTest` passes.
+7. The schema checks of CI pass again (05 §9): the committed schema JSON
+   equals the one the build regenerated, no schema file is uncommitted, and
+   `scripts/check-frozen-schemas.sh` finds every schema a `v*` tag contains
+   with the same version and identity hash.
+8. The keystore decodes into the runner temp directory (mode 600) and opens
    with the password and alias `umamit`. It is deleted right after the build
    (also on failure); it is never logged or uploaded.
-7. `assembleRelease` produces a signed APK.
-8. `scripts/verify-release-apk.sh` checks with build-tools 36.1.0:
-   - `apksigner verify`: valid signature, exactly one signer;
-   - the signer's SHA-256 equals `signing/release-cert-sha256.txt`;
-   - package `com.umamit.app`, versionName and versionCode match;
-   - the APK is not debuggable.
+9. `assembleRelease` produces a signed APK.
+10. `scripts/verify-release-apk.sh` checks with build-tools 36.1.0:
+    - `apksigner verify`: valid signature, exactly one signer;
+    - the signer's SHA-256 equals `signing/release-cert-sha256.txt`;
+    - package `com.umamit.app`, versionName and versionCode match;
+    - the APK is not debuggable.
+11. The `build` job uploads the APK as the artifact `release-apk`. The
+    `publish` job downloads it with `gh`, checks its SHA-256 against the
+    build job's, and runs `verify-release-apk.sh` again with the script and
+    fingerprint file of the built commit.
 
-Then the workflow creates tag `v<version>` on the built commit and a GitHub
-Release with `umamit-<version>.apk` and short notes: version, versionCode,
-commit, certificate and APK SHA-256.
+Then the `publish` job creates tag `v<version>` on the built commit and a
+GitHub Release with `umamit-<version>.apk` and short notes: version,
+versionCode, commit, certificate and APK SHA-256.
 
 The verify script also runs locally, with an optional expected-fingerprint
 file (4th argument or `UMAMIT_EXPECTED_CERT_FILE`):

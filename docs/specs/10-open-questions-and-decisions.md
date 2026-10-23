@@ -302,6 +302,71 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-070"></a>
+### D-070 — Release gate and workflow hardening (M1 milestone review, #54) · *Accepted* (Claude, 2026-10-23)
+
+The M1 milestone review (data S1–S3 and O2, timer S3) found that a release
+could be built from a commit whose CI or schema checks were red, that the job
+holding the signing key gave a tag-pinned third-party action a write token,
+and that nothing forced a schema version bump to ship its migration. Decided:
+
+- **Release only a green commit.** `release.yml` requires a successful
+  `ci.yml` run on the exact commit it builds (GitHub API, `actions: read`;
+  runs are matched by the workflow path, not by job names, so renaming a CI
+  job does not break it). It also repeats CI's schema freshness check and
+  `scripts/check-frozen-schemas.sh` after its unit tests. The rc flow is
+  therefore: push the bump, wait for CI, dispatch.
+- **Signing and publishing are separate jobs.** The `build` job holds the
+  keystore with `contents: read` (plus `actions: read`). It runs only
+  GitHub's own actions (`checkout`, `setup-java`, `upload-artifact`) and no
+  longer `gradle/actions/setup-gradle`, which injects init scripts into every
+  Gradle build of its job, the signing build included; a read-only cache
+  saved little for a handful of releases. It verifies the APK
+  (`verify-release-apk.sh`, fingerprint against
+  `signing/release-cert-sha256.txt`) and uploads it as an artifact. The
+  `publish` job has `contents: write` and `actions: read` and contains no
+  `uses:` at all: it downloads the artifact with `gh run download`, checks its
+  SHA-256 against the build job's output, runs the verify script again with
+  the script and fingerprint file of the built commit, and creates tag and
+  release with `gh release create`. The workflow-level permissions are `{}`.
+- **Actions pinned to commit SHAs** in `release.yml`, `ci.yml` and
+  `accuracy.yml`, with the version in a comment (replaces D-042's major-tag
+  pinning). The SHAs were resolved from the action repositories' tags on
+  2026-10-23 and equal what the major tags pointed to, so nothing changed in
+  behaviour: `actions/checkout` v7.0.1, `actions/setup-java` v6.1.0,
+  `gradle/actions/setup-gradle` v6.4.0, `actions/upload-artifact` v7.0.2,
+  `actions/cache` v6.1.0, `reactivecircus/android-emulator-runner` v2.38.0.
+  Updates are made by hand: resolve the new tag to its commit, replace SHA
+  and comment in all three files.
+- **The freeze compares what Room compares.** `check-frozen-schemas.sh`
+  passes a frozen schema file that is byte-identical or that keeps its
+  `database.version` and `database.identityHash`; a formatting-only
+  difference (a Room upgrade writing the JSON differently) passes with a
+  warning. A byte comparison would make every such Room upgrade impossible,
+  because the freshness check requires the regenerated file to be committed.
+  A changed version or identity hash, a deleted file or an unreadable one
+  fails (replaces D-054's "byte-identical").
+- **Every committed schema version opens with the production builder.**
+  `core:database` keeps its migrations in one list, `UMAMI_MIGRATIONS`, which
+  `umamiDatabaseBuilder` registers. `SchemaVersionsTest` (Robolectric)
+  creates a database of every committed `N.json` with `MigrationTestHelper`,
+  opens it with `umamiDatabaseBuilder` and expects `UmamiDatabase.VERSION`,
+  runs `runMigrationsAndValidate` with the same list, and checks that the
+  committed files are exactly versions 1 to `VERSION`. At version 1 it only
+  reopens v1; a bump to 2 without a `Migration(1, 2)` in the list fails it
+  (tried locally).
+- **Dispatch-only workflows on `main`.** D-039's exception covers both
+  `release.yml` and `accuracy.yml`. The file only has to exist on `main`;
+  the version at the dispatch's workflow ref runs, so both are dispatched
+  with the PR branch as the ref, and the M1 branch's versions are copied to
+  `main` unchanged by a housekeeping PR.
+- **M1 checklist (09 §4) gains the missing rule-8 cases:** a long step in
+  Doze (30-min quick timer, not charging), the quick timer (1 min and a
+  12-min long step), *Beenden & neu starten* during a running step, and a
+  best-effort refused background start whose result is read in *Diagnose*
+  (the emulator cannot refuse a start, 04 §12; otherwise the Robolectric
+  tests cover it). The reboot item now names the real notice text.
+
 <a id="d-069"></a>
 ### D-069 — M1 review fixes for the app and the UI (#54) · *Accepted* (Claude, 2026-10-23)
 
@@ -1603,7 +1668,9 @@ The T4 slice review of the timer engine (#28, #31, #32) and of the data layer
   schema change bumps the version and ships a tested migration (05 §9); this
   replaces D-052's "changed in place until the first release". CI runs
   `scripts/check-frozen-schemas.sh`: every schema JSON a `v*` tag contains
-  must stay byte-identical (the probe tags contain none).
+  must stay byte-identical (the probe tags contain none). *D-070 compares the
+  version and identity hash instead and also runs it in the release
+  workflow.*
 - **No new tables before the freeze (S3, declined).** `tag`, `tea_tag`,
   `custom_descriptor`, `session_descriptor`, `tea_fts` and `session_fts`
   arrive with M3 and M4 through tested migrations, as 05 §9 plans. Adding
@@ -2160,7 +2227,8 @@ Technical decisions made while building the skeleton and the CI gate
   Network- and date-dependent checks are off. No baseline.
 - **GitHub Actions:** both workflows use the same major versions
   (`checkout@v7`, `setup-java@v6`, `setup-gradle@v6` with the open-source
-  `basic` cache provider).
+  `basic` cache provider). *Since D-070 pinned to the commit SHAs of these
+  versions.*
 
 <a id="d-041"></a>
 ### D-041 — Motion guardrails · *Accepted* (PO, 2026-10-21)
@@ -2219,7 +2287,11 @@ default branch. So `release.yml` (M1-03) reaches `main` through a small
 housekeeping PR before the probe release `v0.0.1-probe` is dispatched from
 the M1 PR branch; release candidates are dispatched the same way. This is an
 exception to „one PR per milestone" limited to the release workflow; later
-changes to `release.yml` within M1 travel with the milestone PR. Agreed with
+changes to `release.yml` within M1 travel with the milestone PR.
+*Extended by D-070:* the exception covers the dispatch-only workflows
+`release.yml` and `accuracy.yml`. Only the file's existence on `main` is
+required; a dispatch runs the version at its workflow ref, so both are
+dispatched with the PR branch as the ref. Agreed with
 the PO as part of the spec issue
 [katznmeik/UmamiT#6](https://github.com/katznmeik/UmamiT/issues/6), which
 also fixes the M1-00 … M1-03a test seams (M1 plan §3.1).
@@ -2323,6 +2395,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |
 | 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface with the root as their one owner; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
 | 2026-10-23 | D-068: M1 review fixes in the timer area (#54): deadline guard (alarm 107 at deadline + 90 s while a step runs), accuracy gate and *Diagnose* measured up to the start of the sound (D-067 corrected), accuracy run reset with the watchdog, alert settings read again after a failed read, settings flow total on an unreadable file, timer route waits for recovery, cold and ice READY text and chip, full-screen check reads the app op, wording of `StopForeground` and D-064. 04 §4, §6.1, §6.2, §7.2, §8.2, §8.3, §11, §12, 06 §5.6, 09 §4, §4a updated. |
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |

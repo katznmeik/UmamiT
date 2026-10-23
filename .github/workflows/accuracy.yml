@@ -4,8 +4,12 @@
 # release candidate (09 §4a); Claude dispatches it, like release.yml. It is not
 # run on push: it takes about an hour per API level.
 #
-# - GitHub dispatches only workflows that exist on the default branch (D-039),
-#   so this file must be on `main` before the first dispatch.
+# - GitHub dispatches only workflows whose file exists on the default branch
+#   (D-039, D-070), so this file must be on `main` before the first dispatch.
+#   The version at the workflow ref of the dispatch is the one that runs
+#   (`gh workflow run accuracy.yml --ref <branch>`).
+# - Actions are pinned to full commit SHAs, with the version in a comment
+#   (D-070), the same as in ci.yml.
 # - The emulator setup is copied from the `emulator` job of ci.yml (KVM, cached
 #   emulator and system image installed with retries, cached AVD snapshot);
 #   keep the two in sync. The cache keys are the same, so both reuse one cache.
@@ -61,16 +65,16 @@ jobs:
       AVD_ARCH: x86_64
       AVD_PROFILE: pixel_6
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-provider: basic
           cache-read-only: false
@@ -92,7 +96,7 @@ jobs:
         run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Emulator and system image cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ env.SDK_DIR }}/emulator
@@ -115,7 +119,7 @@ jobs:
 
       - name: AVD cache
         id: avd-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.android/avd/*
@@ -124,7 +128,7 @@ jobs:
 
       - name: Create AVD and snapshot for the cache
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ env.AVD_TARGET }}
@@ -138,7 +142,7 @@ jobs:
       # The inputs reach the script as environment variables only (never
       # expanded into the command line); the script validates them.
       - name: Accuracy run
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           ACCURACY_STEPS: ${{ inputs.steps }}
           ACCURACY_INJECT_DELAY_MS: ${{ inputs.inject-delay-ms }}
@@ -173,7 +177,7 @@ jobs:
 
       - name: Upload the report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: accuracy-api-${{ matrix.api-level }}
           path: build/accuracy/

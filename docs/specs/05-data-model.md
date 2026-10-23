@@ -481,10 +481,15 @@ used it (D-052). From the first APK that can reach the PO's phone,
 `v0.1.0-rc.1`, on, every schema change bumps the version and ships a tested
 migration; a release candidate counts like a release, because Room refuses to
 open a database whose schema changed under the same version and the app would
-not start until its data is cleared. CI enforces it
-(`scripts/check-frozen-schemas.sh`): every schema JSON that a `v*` tag
-contains must stay byte-identical. The tags, tea descriptors and FTS tables of
-§3 (`tag`, `tea_tag`, `custom_descriptor`, `session_descriptor`, `tea_fts`,
+not start until its data is cleared. CI and the release workflow enforce
+it (`scripts/check-frozen-schemas.sh`, D-070): every schema JSON that a `v*`
+tag contains must keep its `version` and `identityHash`, which is what Room
+compares when it opens the database; a formatting-only difference (e.g. after
+a Room upgrade) passes with a warning. `SchemaVersionsTest` opens a database
+of every committed schema version with the production `umamiDatabaseBuilder`,
+whose migrations are the list `UMAMI_MIGRATIONS`, so a version bump without
+its migration in that list fails the unit tests. The tags, tea descriptors
+and FTS tables of §3 (`tag`, `tea_tag`, `custom_descriptor`, `session_descriptor`, `tea_fts`,
 `session_fts`) arrive with M3 and M4 through such migrations. The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.

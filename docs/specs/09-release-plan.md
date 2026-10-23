@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067; measured up to the sound, D-068)
+> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -17,7 +17,8 @@
    During the milestone the PO tests **release candidates** `v0.x.0-rc.N`
    (pre-releases built from the PR branch); after the merge the final
    `v0.x.0` is built from `main`. The version lives only in
-   `gradle.properties`. Before each release candidate the accuracy
+   `gradle.properties`. `release.yml` builds only a commit on which CI
+   passed (D-070). Before each release candidate the accuracy
    workflow must pass ([§4a](#4a-accuracy-run-before-each-release-candidate),
    D-067).
 4. Specs are updated in the same PR when behaviour changes.
@@ -93,14 +94,18 @@ only.
 - [ ] Alert with ringer normal (sound + vibration), vibrate (vibration only), silent (visual only); stops on *Abgegossen* or after ~15 s.
 - [ ] Phone locked, screen off during a 2-min step: pre-alert and alert on time; the screen turns on and the timer shows over the lock screen.
 - [ ] App swiped from recents during a step: alert still fires.
+- [ ] Long step in Doze (TMR-18: the exact alarm alone, no service during the step): start a 30-min quick timer (or a cold brew), lock the phone and leave it lying still with the screen off and **not** charging until the end → the alert comes on time, full screen, with sound.
+- [ ] Quick timer (TMR-22, SCR-07): a 1-min quick timer from Start, phone locked with the screen off → tick, alert on time, *Fertig* on the lock screen ends it and nothing appears in the journal. Then a 12-min quick timer with the app in the background (a long step) → „Fertig um …" in the Live Update and the alert on time.
+- [ ] *Beenden & neu starten* during a running step (TMR-21): while a session's step runs, start another tea from Start (e.g. *Nochmal brühen*) and confirm *Beenden & neu starten* → the first session is in the journal, „Sitzung gespeichert" is posted instead of the sheet, and the new session's step alerts on time.
+- [ ] Refused background start (04 §6.3, best effort, not blocking): set *Akku* to *Optimiert*, start a 12-min quick timer, switch to another app and lock the phone → the alert still comes on time and full screen. Afterwards *Diagnose* shows whether Android refused a foreground start („refused", then „refused again" or a later start); report what it shows, then set *Akku* back to *Uneingeschränkt*. If no start was refused, the paths rest on the Robolectric tests (`RefusedServiceStartTest`, `BrewTimerServiceTest`), because the emulator allows every start (04 §12).
 - [ ] Live Update visible as status chip and on the lock screen; *Pause*/*Weiter*/*Abgegossen* work from it.
 - [ ] (Best effort, not blocking) Live Update appears in the Now Bar.
-- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → „Dein Timer läuft weiter · <Tee>" and the alert fires on time.
+- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → the notice „Dein Timer läuft weiter" with the text „<Tee> · nach dem Neustart" appears, and the alert fires on time.
 - [ ] Update during a session: install the next rc while a 3-min step runs → the Live Update comes back right after the install and the alert fires on time (04 §7.5).
 <<<<<<< HEAD
 - [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows pre-alert and alert fire times within 1 s of the scheduled time; *Kopieren* works.
 - [ ] Session appears in the minimal journal list with its planned first infusion and the poured count („2 von 3 Aufgüssen" when finished early); the „Gespeichert" sheet after *Sitzung beenden* shows the actual total (D-061).
-- [ ] Light phone theme: status-bar icons and the gesture handle are visible (light) on the timer and the quick timer; dark on the alert surface; dark again on the tabs after leaving the timer (D-069).
+- [ ] Light phone theme: status-bar icons and the gesture handle are visible (light) on the timer and the quick timer, also right after starting a quick timer; dark on the alert surface; dark again on the tabs after leaving the timer (D-069).
 - [ ] Rotate the phone, or switch light/dark, while a step alerts and the tabs are on screen: the matcha brew bar is there at once, without growing or fading in (03 §3.8, D-069).
 =======
 - [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows each step's „alert PRE_ALERT" and „alert ALERT" lines (the moment the sound started) within 1 s of the scheduled time (their `delta`); the „event … accepted" line above each is only the controller's handling (D-068); *Kopieren* works.
@@ -165,7 +170,8 @@ regular CI emulator job skips this test.
 
 With the `gh` CLI the same dispatch is
 `gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.
-GitHub dispatches only workflows that exist on `main` (D-039).
+GitHub dispatches only workflows whose file exists on `main`; the
+version at `--ref` runs (D-039, D-070).
 
 **Reading the result.** The run page's summary shows a table per API level:
 

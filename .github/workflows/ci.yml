@@ -3,7 +3,9 @@
 # releases (06 §6).
 #
 # Design notes:
-# - Actions are pinned to major versions (moving tags maintained by their owners).
+# - Actions are pinned to full commit SHAs, with the version in a comment
+#   (D-070): a moved or compromised tag cannot change what runs. To update
+#   one, resolve the new release tag to its commit and replace both.
 # - Gradle: one invocation per job, so the configuration cache would have
 #   nothing to reuse; it stays off as in gradle.properties (a dependency
 #   resolution failure, e.g. HTTP 429, must not be stored in a cache entry).
@@ -38,14 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-provider: basic
           cache-read-only: false
@@ -88,7 +90,7 @@ jobs:
 
       - name: Upload reports
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: check-reports
           path: |
@@ -103,14 +105,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-provider: basic
           cache-read-only: false
@@ -150,7 +152,7 @@ jobs:
 
       # For Claude/CI only; never installed on the PO's phone (06 §6).
       - name: Upload debug APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: umamit-debug-apk
           path: app/build/outputs/apk/debug/*.apk
@@ -188,14 +190,14 @@ jobs:
       AVD_ARCH: x86_64
       AVD_PROFILE: pixel_6
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v6
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           cache-provider: basic
           cache-read-only: false
@@ -219,7 +221,7 @@ jobs:
         run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
 
       - name: Emulator and system image cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ${{ env.SDK_DIR }}/emulator
@@ -242,7 +244,7 @@ jobs:
 
       - name: AVD cache
         id: avd-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.android/avd/*
@@ -251,7 +253,7 @@ jobs:
 
       - name: Create AVD and snapshot for the cache
         if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ env.AVD_TARGET }}
@@ -265,7 +267,7 @@ jobs:
       # connectedDebugAndroidTest runs every module that has instrumented tests
       # (library modules without `src/androidTest/` build no test APK).
       - name: Instrumented tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ env.AVD_TARGET }}
@@ -304,7 +306,7 @@ jobs:
       # Test reports plus the logcat that AGP records per test.
       - name: Upload reports
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: emulator-reports-api-${{ matrix.api-level }}
           path: |

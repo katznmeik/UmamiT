@@ -1,4 +1,4 @@
-package com.umamit.core.timer
+package com.umamit.app
 
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -24,7 +24,9 @@ import org.junit.runner.RunWith
  * and 36): [AndroidPermissionStatesReader] follows the states a test can switch from the shell
  * without killing the app. Robolectric covers the mapping and the settings pages
  * (`TimerReliabilityTest`); this covers the platform queries, which the M1-03a status list
- * verified on device before #54 removed it.
+ * verified on device before #54 removed it. It runs in the app's test APK, against the app's own
+ * package and merged manifest, like that status list did; in core:timer's library test APK the
+ * full-screen app op did not change what the reader saw (CI on 58a3e17 and 96edeef).
  *
  * - Full-screen intent: `appops set … USE_FULL_SCREEN_INTENT deny|allow`.
  * - Battery optimisation: `cmd deviceidle whitelist -|+…`.
