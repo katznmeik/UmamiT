@@ -302,6 +302,42 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-069"></a>
+### D-069 — M1 review fixes for the app and the UI (#54) · *Accepted* (Claude, 2026-10-23)
+
+The M1 milestone review (#54) found these in the app; decided while fixing:
+
+- **A bar that arrives alerting snaps in (rule 8, 03 §3.8).** A new activity
+  (rotation, a light/dark switch, reopening from the launcher) built the active
+  brew bar's source with `null`, so the matcha bar grew and faded in over about
+  0.4 s while the step already alerted. `TimerActiveBrewSource` now starts
+  with a synchronous value from the controller's current state, and
+  `ActiveBrewBar` enters with `EnterTransition.None` when the brew it arrives
+  with is alerting. Both are tested against the old behaviour.
+- **System bars per screen.** `enableEdgeToEdge` picks the bar icons from the
+  phone's theme, which made the clock, the battery and the gesture handle
+  invisible on the always-dark timer in the light theme. The timer sets light
+  icons on the Steeping surface and dark ones on the washi/matcha alert, in
+  the alert's first composition; the quick timer (SCR-07) sets light icons.
+  The previous appearance is restored when the screen leaves. Renders have no
+  system bars, so this is a unit test plus a 09 §4 checklist item.
+- **Honest placeholders (GEN-09).** *Meine Tees* no longer says the shelf is
+  empty (the seed teas exist) and *Statistik* no longer waits for a first
+  brew: both say the area follows with a later update and where to go now
+  (Start, the journal). The segments of *Sammlung* stay at the top. Renders in
+  light, dark and font 2.0 are in `docs/design/review/M1/`.
+- **The tea photo reaches the timer (amends D-058).** `TimerViewModel` reads
+  the session's tea and its cover photo file. A brew always reserves the
+  photo's space and draws the landscape placeholder until the file is read,
+  when the tea has none, or when it cannot be loaded; so nothing moves when the
+  photo arrives, and the renders show what the phone shows. The quick timer has
+  no photo.
+- **No stale question after a double tap on *Nochmal brühen* (TMR-21).**
+  `HomeViewModel` ignores taps while a start is in flight (as D-065 does for
+  the quick timer) and treats a refusal within 1 s by the session it has just
+  started as the same gesture: no „Erst die …-Sitzung beenden?" is left on
+  Start. A deliberate tap later still asks.
+
 <a id="d-067"></a>
 ### D-067 — Accuracy workflow before each release candidate (TMR-30, #52) · *Accepted* (Claude, 2026-10-23)
 
@@ -1076,8 +1112,9 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   of them is open. The rule is the pure `ScreenDimming`, tested with a moved
   clock; the screen re-checks only when the result can change.
 - **Photo and liquor.** The tea photo sits at the top and fades into the
-  background (mockup v2). The screen takes it as a parameter: the session's
-  photo reaches the timer with M1-13, so the route passes none until then.
+  background (mockup v2). The screen takes it as a parameter; since #54 the
+  route passes the session tea's cover photo, or the placeholder, for every
+  brew ([D-069](#d-069)).
   The liquor fill is the green liquor until the tea's style is in the state.
 - **TalkBack.** One live region announces the state („Aufguss 2 von 3
   läuft", „Pausiert" …), the pre-alert („Gleich fertig"), „Noch 10 Sekunden"
@@ -2185,6 +2222,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
 | 2026-10-23 | D-067: accuracy workflow (#52): `accuracy.yml` (`workflow_dispatch`, on `main` per D-039) runs `AccuracyRunTest` (skipped in the regular emulator job) with `am instrument`; 50 × 60 s steps with the screen off in sessions of ten, driven through the notification actions; delays from the diagnostics log's accepted pre-alert and deadline events (parser round-trip tested against the format); nearest-rank p95 ≤ 250 ms and max ≤ 1 s for both, every step required; injected-delay gate check in the test APK; summary in the job summary, CSV and log lines as an artifact. 04 §12, 09 §1 and §4a updated. |
 | 2026-10-23 | D-066: first-start setup, timer settings, reliability card and banner (#50): `TimerReliability` in `core:timer` over the probe-proven permission states, *Beheben* to the check's own page, the setup as the root start destination until completed and above the shell when shown again, `FirstStart` seeding then downloading the seed photos in the background, the photo line below *Weiter*, the M1 settings rows with the German tone names and *Anhören* through `AlertTester`, no settings dialog over an alert, *Über* with *Diagnose*. 03 SCR-01, SCR-25, SCR-27 updated. |
 | 2026-10-23 | D-065: quick timer SCR-07 (#49): chips 0:30–5:00 and „Dauer wählen" (5 s – 24 h, PRF-04 steps), *Start* as one controller turn, *Beenden & neu starten* into a quick timer as one turn, *Fertig* and *Abbrechen* (no session, step or stock record), every entry opens the alerting timer during an alert; `iceBrew` in the timer state for the cold and ice READY hint, carried through recovery. 03 SCR-07, SCR-05 updated. |
