@@ -1,7 +1,7 @@
 package com.umamit.feature.brew.setup
 
-import com.umamit.core.designsystem.component.KettleWater
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice

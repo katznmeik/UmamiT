@@ -2,6 +2,7 @@ package com.umamit.core.timer.notification
 
 import android.content.Context
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.KettleWater
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.R
@@ -35,16 +36,15 @@ internal class TimerNotificationTexts(private val context: Context) {
         }
     }
 
-    /** The text of a phase other than ALERTING at [now]. */
+    /**
+     * The text of a phase other than ALERTING at [now]; READY names the kettle, or at most 10 °C
+     * the cold water or the ice as SCR-05 does (BRW-10, D-068).
+     */
     fun text(state: TimerUiState.Active, now: ClockReading): String {
         val temp = state.kettleTempC
         val planned = state.currentStep?.plannedSeconds?.toLong() ?: 0L
         return when (state.phase) {
-            TimerPhase.READY -> if (temp != null) {
-                context.getString(R.string.timer_text_ready_kettle, clock(planned), temp)
-            } else {
-                context.getString(R.string.timer_text_ready, clock(planned))
-            }
+            TimerPhase.READY -> readyText(clock(planned), temp, state.iceBrew)
 
             TimerPhase.RUNNING -> when {
                 state.longStep -> context.getString(R.string.timer_text_long_step, timeOfDay(state, now))
@@ -64,6 +64,17 @@ internal class TimerNotificationTexts(private val context: Context) {
         }
     }
 
+    /** READY: „Bereit · 0:20" with the kettle at [temp], or the cold water or ice at most 10 °C. */
+    private fun readyText(planned: String, temp: Int?, iceBrew: Boolean): String = when {
+        temp == null -> context.getString(R.string.timer_text_ready, planned)
+
+        else -> when (KettleWater.of(temp, iceBrew)) {
+            KettleWater.HOT -> context.getString(R.string.timer_text_ready_kettle, planned, temp)
+            KettleWater.COLD -> context.getString(R.string.timer_text_ready_cold, planned)
+            KettleWater.ICE -> context.getString(R.string.timer_text_ready_ice, planned)
+        }
+    }
+
     /** The alert's text: „Gyokuro · Aufguss 2", or „Schnelltimer". */
     fun alertText(state: TimerUiState.Active): String {
         val step = state.currentStep
@@ -74,14 +85,22 @@ internal class TimerNotificationTexts(private val context: Context) {
         }
     }
 
-    /** The short critical text of the chip outside RUNNING (04 §8.3): „60 °C", „Pause", „Fertig". */
+    /**
+     * The short critical text of the chip outside RUNNING (04 §8.3): „60 °C", „Pause", „Fertig";
+     * at most 10 °C the water as on SCR-05, „Kaltes Wasser" or „Eiswürfel" (BRW-10, D-068).
+     */
     fun chip(state: TimerUiState.Active): String = when (state.phase) {
         TimerPhase.PAUSED -> context.getString(R.string.timer_chip_paused)
 
         TimerPhase.FINISHED -> context.getString(R.string.timer_chip_finished)
 
-        else -> state.kettleTempC?.let { context.getString(R.string.timer_chip_temp, it) }
-            ?: context.getString(R.string.timer_chip_ready)
+        else -> state.kettleTempC?.let { temp ->
+            when (KettleWater.of(temp, state.iceBrew)) {
+                KettleWater.HOT -> context.getString(R.string.timer_chip_temp, temp)
+                KettleWater.COLD -> context.getString(R.string.timer_chip_cold)
+                KettleWater.ICE -> context.getString(R.string.timer_chip_ice)
+            }
+        } ?: context.getString(R.string.timer_chip_ready)
     }
 
     private fun stepWord(kind: StepKind): String = context.getString(
