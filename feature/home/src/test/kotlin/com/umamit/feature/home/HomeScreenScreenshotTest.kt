@@ -104,6 +104,19 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
     fun seeded() = capture("seeded", seeded)
 
     @Test
+    fun longNames() {
+        val long = "Bio Gyokuro Asahi Premium aus Yame, Frühjahrsernte"
+        capture(
+            "longNames",
+            seeded.copy(
+                brewAgain = listOf(HomeTea("l", long, null)),
+                recent = listOf(RecentBrew("s3", long, null, OCT_21, "Europe/Berlin", 60, 65, 3)),
+                favorites = listOf(HomeTea("l", long, null)),
+            ),
+        )
+    }
+
+    @Test
     fun empty() = capture("empty", HomeUiState(loading = false, collectionEmpty = true))
 
     @Test
