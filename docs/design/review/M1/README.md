@@ -19,5 +19,7 @@ worst-case set. Each state exists in light and dark.
 | `components/` | active brew bar, reliability banner, timer ring states, alert surface, empty state, tea list item (overlong name), others |
 | `motion/` | GIFs re-recorded with `scripts/motion/record-gifs.sh` |
 
+Long-name worst cases (`TeaPicker_longName`, `BrewSetup_longName`, `Home_longNames`, 'Bio Gyokuro Asahi Premium aus Yame, Frühjahrsernte'): no overlap or clipping; names ellipsize by design (picker and Start list: 2 lines, `TeaListItem.kt:75`; the Nochmal-brühen tile at font 2.0 shows only "Asahi P…" after 3 lines, `HomeScreen.kt:286`); the setup title wraps fully.
+
 Worst cases covered: font scale 2.0 everywhere, overlong German names (journal, tea list
 item), missing photo (quick timer), 30 steps, empty collection, empty journal.

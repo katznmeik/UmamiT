@@ -48,6 +48,8 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         }
 
         private val hisui = PickerTea("h", "Bio Sencha Hisui", "Sencha", null)
+        private const val LONG_NAME = "Bio Gyokuro Asahi Premium aus Yame, Frühjahrsernte"
+        private val longTea = PickerTea("l", LONG_NAME, "Gyokuro", null)
         private val tanabata = PickerTea("t", "Bio Sencha Tanabata", "Sencha", null)
 
         val kyusu = BrewSetupUiState.Ready(
@@ -142,6 +144,23 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 loading = false,
             ),
         )
+    }
+
+    @Test
+    fun pickerLongName() = capture("TeaPicker_longName") {
+        PickerHost(
+            TeaPickerUiState(
+                recent = listOf(longTea),
+                favorites = listOf(longTea),
+                all = listOf(longTea, hisui),
+                loading = false,
+            ),
+        )
+    }
+
+    @Test
+    fun setupLongName() = capture("BrewSetup_longName") {
+        BrewSetupScreen(kyusu.copy(teaName = LONG_NAME, secondaryName = "Gyokuro Asahi, Frühjahrsernte aus Yame"))
     }
 
     @Test
