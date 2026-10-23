@@ -18,8 +18,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -51,7 +53,8 @@ class ProductionAlertPortTest {
 
     @After
     fun tearDown() {
-        reports.cancel()
+        // A report's turn runs to its end even when cancelled; it ends before the database closes (#50).
+        runBlocking { reports.coroutineContext.job.cancelAndJoin() }
         if (::h.isInitialized) h.close()
     }
 
