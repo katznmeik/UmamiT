@@ -14,6 +14,8 @@ import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.feature.brew.picker.TeaPickerSheet
+import com.umamit.feature.brew.picker.TeaPickerUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
@@ -74,6 +76,16 @@ class TimerNavigationTest {
                             Button(onClick = { tab.navigation.openSetup("t") }) { Text("Tee brühen") }
                             Button(onClick = tab.navigation.openQuickTimer) { Text("Schnell") }
                         }
+                        // The real picker sheet with its footer, opened in the alert playing at show().
+                        if (pickerShown) {
+                            TeaPickerSheet(
+                                state = TeaPickerUiState(loading = false),
+                                onQueryChange = {},
+                                onPickTea = tab.navigation.openSetup,
+                                onQuickTimer = tab.navigation.openQuickTimer,
+                                onDismissRequest = {},
+                            )
+                        }
                     },
                     setupScreen = { _, _ -> Text("SETUP") },
                     quickTimerScreen = { _, openTimer ->
@@ -83,6 +95,8 @@ class TimerNavigationTest {
             }
         }
     }
+
+    private var pickerShown = false
 
     private fun bar() = compose.onNodeWithText("Hisui", useUnmergedTree = true)
 
@@ -336,6 +350,31 @@ class TimerNavigationTest {
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitForIdle()
         compose.onNodeWithText("Schnell").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Schnelltimer on Start during an alert opens the timer, not the quick timer (rule 8)`() {
+        alert("A")
+        show()
+
+        compose.onNodeWithText("Schnell").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("QUICK-START").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the picker's Ohne Tee during an alert opens the timer, not the quick timer (rule 8)`() {
+        alert("A")
+        pickerShown = true
+        show()
+
+        compose.onNodeWithText("Ohne Tee (Schnelltimer)").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("QUICK-START").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
     }
 
     @Test

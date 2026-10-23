@@ -83,9 +83,20 @@ class QuickTimerViewModel @Inject constructor(
 
     /** *Start*: the quick timer runs and the timer opens. */
     fun start() {
+        // A second tap while the first start is in flight would only be refused and ask (D-065).
+        if (starting) return
+        starting = true
         val seconds = duration.value
-        viewModelScope.launch { handle(starter.startQuickTimer(seconds)) }
+        viewModelScope.launch {
+            try {
+                handle(starter.startQuickTimer(seconds))
+            } finally {
+                starting = false
+            }
+        }
     }
+
+    private var starting = false
 
     /** *Beenden & neu starten* (TMR-21). */
     fun confirmRestart() {

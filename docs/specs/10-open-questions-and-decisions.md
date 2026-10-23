@@ -302,7 +302,7 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
-<a id="d-064"></a>
+<a id="d-065"></a>
 ### D-065 — Quick timer SCR-07 (M1-14, #49) · *Accepted* (Claude, 2026-10-23)
 
 #49 built the quick timer (SCR-07, TMR-22, 04 §10) and its two entries, Start's
@@ -318,7 +318,10 @@ building it:
   the chips into the pill.
 - ***Start* runs at once.** The start seam gains `startQuickTimer` and
   `finishActiveAndStartQuickTimer` (`BrewStarter`, D-062): the controller's
-  `startQuickTimer` (READY), then `start`, in two turns. Opening SCR-07
+  `startQuickTimer` reduces `startQuickTimer` and `start` in one lock turn,
+  so no other input lands between them and a cancelled caller never leaves
+  a waiting quick timer behind. A second tap on *Start* while one is in
+  flight is ignored. Opening SCR-07
   starts nothing, so it never blocks another session (TMR-21).
 - **On the timer.** The quick timer has its title and no step label, dots or
   kettle hint; *Fertig* (`poured`) on the alert; the overflow holds
@@ -327,7 +330,8 @@ building it:
   „Schnelltimer läuft".
 - **Chips and picker.** SCR-07 opens with 1:00; the chosen duration survives
   process death (GEN-07), not app restarts. The selected chip has no check
-  mark, so no chip widens under the finger. A tap on the ring opens „Dauer
+  mark, so no chip widens under the finger; unselected chips have a border
+  of ≥ 3:1 (WCAG 1.4.11). A tap on the ring opens „Dauer
   wählen": hours, minutes and seconds with − and +, each move kept within
   5 s – 24 h and rounded to PRF-04's increments (5 s below 10 min, whole
   minutes from 10 min on; the seconds do not move there). A move that would
@@ -337,7 +341,9 @@ building it:
   „Erst die … -Sitzung beenden?" like the setup; while it alerts, the
   alerting timer opens instead.
 - **Alerts first (rule 8).** SCR-07 is a route above the shell, so a new
-  alert replaces it with the timer at once (D-062). The picker and the
+  alert replaces it with the timer at once (D-062). During an alert,
+  *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer
+  instead of SCR-07, like a tea tap (D-062). The picker and the
   question remember the alert they were opened in and are removed when
   another one starts, without animation. The only motion of its own is
   Material's chip colour and the pill's press scale.
@@ -346,6 +352,7 @@ building it:
   recovery, so a cold step's READY reads „Kaltes Wasser" or „Eiswürfel"
   like the setup, not „Wasserkocher auf 5 °C" (the follow-up of D-062).
 
+<a id="d-064"></a>
 ### D-064 — Notifications, the promoted Live Update and the full-screen alert on the real timer (M1-11, #47) · *Accepted* (Claude, 2026-10-22)
 
 #47 replaced the interim notification content and `TimerAlertActivity` of #42

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +57,9 @@ const val QUICK_RING_TAG = "quick_ring"
 
 private val PillMinHeight = 72.dp
 private val PillMinWidth = 200.dp
+
+/** onSurfaceVariant at 60 % on the steeping background: 3.3:1. */
+private const val CHIP_BORDER_ALPHA = 0.6f
 
 /** What a tap on SCR-07 does. */
 class QuickTimerActions(
@@ -185,10 +189,18 @@ private fun DurationChips(selected: Int, onSelect: (Int) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall, Alignment.CenterHorizontally),
         verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
     ) {
+        // Unselected chips are outlined at ≥ 3:1 against the steeping background (WCAG 1.4.11, D-065).
+        val borderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = CHIP_BORDER_ALPHA)
         QuickDuration.CHIPS.forEach { seconds ->
             val spoken = spokenDuration(seconds)
+            val isSelected = seconds == selected
             FilterChip(
-                selected = seconds == selected,
+                selected = isSelected,
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = isSelected,
+                    borderColor = borderColor,
+                ),
                 onClick = { onSelect(seconds) },
                 label = { Text(clockText(seconds), style = MaterialTheme.typography.labelLarge) },
                 modifier = Modifier.semantics { contentDescription = spoken },

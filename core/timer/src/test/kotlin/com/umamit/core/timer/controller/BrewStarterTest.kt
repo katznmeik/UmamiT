@@ -13,7 +13,10 @@ import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -93,6 +96,7 @@ class BrewStarterTest {
 
     @Test
     fun `Abbrechen ends a running quick timer and records nothing (04 sec 10)`() = runTest {
+        harness.teaWithStock()
         starter.startQuickTimer(60)
         harness.advanceSeconds(20)
 
@@ -100,7 +104,33 @@ class BrewStarterTest {
 
         assertThat(harness.ui).isEqualTo(TimerUiState.Idle)
         assertThat(sessionRows()).isEqualTo(0)
+        assertThat(stepRows()).isEqualTo(0)
+        assertThat(harness.stock.observeEvents(ControllerHarness.TEA_ID).first().map { it.id }).containsExactly("buy")
+        assertThat(harness.savedSheet.shown).isEmpty()
         assertThat(harness.alert.started).isEmpty()
+    }
+
+    @Test
+    fun `Start is one turn, nothing lands between READY and running, and a cancelled caller still runs it`() = runTest {
+        val gate = harness.store.hold()
+
+        // The screen closes while the quick timer's READY is being saved.
+        val first = launch { starter.startQuickTimer(60) }
+        gate.reached.await()
+        val second = async { harness.controller.startQuickTimer(30) }
+        runCurrent()
+        first.cancel()
+        gate.open.complete(Unit)
+        second.await()
+
+        // No READY quick timer is left behind, and no other input landed between READY and RUNNING.
+        assertThat(harness.active.phase).isEqualTo(TimerPhase.RUNNING)
+        assertThat(harness.active.currentStep?.plannedSeconds).isEqualTo(60)
+        val events = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().map { it.event }
+        assertThat(events.take(2).map { it::class }).containsExactly(
+            TimerEvent.StartQuickTimer::class,
+            TimerEvent.Start::class,
+        ).inOrder()
     }
 
     @Test

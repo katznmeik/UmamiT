@@ -130,8 +130,15 @@ internal fun UmamitRoot(
             }
         },
         openTimer = openTimer,
-        // A route above the shell like the setup: it gives way to a new alert (rule 8).
-        openQuickTimer = { navigateAbove(QuickTimerRoute) { launchSingleTop = true } },
+        // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
+        // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
+        openQuickTimer = {
+            if (currentAlerting) {
+                openTimer()
+            } else {
+                navigateAbove(QuickTimerRoute) { launchSingleTop = true }
+            }
+        },
     )
     Box(modifier) {
         NavHost(

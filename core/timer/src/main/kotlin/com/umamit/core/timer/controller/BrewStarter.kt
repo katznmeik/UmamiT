@@ -63,11 +63,8 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
         return controller.startSession(request)
     }
 
-    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome {
-        val outcome = controller.startQuickTimer(durationSeconds)
-        // Two turns: READY, then running. A turn in between (an alarm) cannot touch a waiting quick timer.
-        return if (outcome == TransitionOutcome.Accepted) controller.send(TimerEvent.Start) else outcome
-    }
+    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome =
+        controller.startQuickTimer(durationSeconds, run = true)
 
     override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome {
         finishActive()
