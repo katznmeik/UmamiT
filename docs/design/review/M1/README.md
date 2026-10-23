@@ -10,7 +10,7 @@ worst-case set. Each state exists in light and dark.
 
 | Folder | Content |
 |---|---|
-| `home/` | SCR-01 Start: seeded, empty collection, active session, question state |
+| `home/` | SCR-01 Start: seeded, empty collection, active session, question state (header: A3, light and dark) |
 | `onboarding/` | SCR-02 welcome and reliability page |
 | `brew/` | SCR-03 tea picker (incl. empty), SCR-04 setup (kyusu, cold, changed, question), SCR-05 timer in all states (ready, running, pre-alert, paused, alerting incl. rinse, overtime, wash phases, finished, cold and ice; with the fallback photo A4 in the photo slot, which a brew without a readable cover photo also shows on the phone, D-069), SCR-07 quick timer (chips, custom, picker; no photo), Schritte-Sheet (without recipe, with done steps, 30 steps) |
 | `journal/` | SCR-06 journal: with sessions (long German name, photo and placeholder), empty, saved sheet |

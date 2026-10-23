@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -170,22 +169,22 @@ private fun Lists(state: HomeUiState, actions: HomeActions) = Column(modifier = 
     Spacer(Modifier.height(UmamiSpacing.Large))
 }
 
-/** The header illustration, no text (D-035); the placeholder landscape until the PO's art (A1) arrives. */
+/**
+ * The header illustration A3, no text (D-035): edge to edge, its paper matched to the theme's
+ * background so it has no visible border; cropped to the band, keeping the mountains centred.
+ */
 @Composable
 private fun Header() {
     Image(
-        painter = painterResource(UmamiIcons.LandscapePlaceholder),
+        painter = painterResource(if (UmamiTheme.isDark) UmamiIcons.HomeHeaderDark else UmamiIcons.HomeHeaderLight),
         contentDescription = null,
         modifier = Modifier
             .fillMaxWidth()
             .height(HOME_HEADER_HEIGHT_DP.dp)
-            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
-        contentScale = ContentScale.Fit,
-        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HEADER_ALPHA)),
+            .padding(vertical = UmamiSpacing.Small),
+        contentScale = ContentScale.Crop,
     )
 }
-
-private const val HEADER_ALPHA = 0.5f
 
 /** *Aufguss fortsetzen* with the tea, the step and a countdown that ticks once a second (GEN-06). */
 @Composable

@@ -63,6 +63,12 @@ object UmamiIcons {
     // Illustrations (placeholders, 03 §3.5)
     @DrawableRes val LandscapePlaceholder = R.drawable.illustration_placeholder_landscape
 
+    /** A3: the Start header landscape in the light theme (SCR-02, no text, D-035). */
+    @DrawableRes val HomeHeaderLight = R.drawable.illustration_home_header_light
+
+    /** A3: the Start header landscape in the dark theme. */
+    @DrawableRes val HomeHeaderDark = R.drawable.illustration_home_header_dark
+
     // Photos (03 §3.5, docs/design/assets.md)
 
     /** A4: the timer's photo for a tea without one of its own (SCR-05). */

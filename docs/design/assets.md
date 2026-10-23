@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | A1 | **Logo sprig** (two tea leaves) ✓ delivered | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
 | A2 | **Welcome landscape** | SCR-01 welcome (full screen, portrait) | PNG ≥ 1440 × 3120 (9:19.5) | light |
-| A3 | **Home header landscape** | SCR-02 header (no text on it) | PNG ≥ 2400 × 1000 (≈ 2.4:1) | light **and** dark |
+| A3 | **Home header landscape** ✓ delivered | SCR-02 header (no text on it) | PNG, landscape 3:2 (≥ 1536 × 1024) with everything in the middle third of the height: the app crops a ≈ 3.4:1 band (edge to edge, 120 dp) and matches the paper to the theme background | light **and** dark |
 | A4 | **Timer fallback photo** ✓ delivered | SCR-05 top area when a tea has no photo (the quick timer has none, D-069) | PNG, landscape 3:2 (≥ 1536 × 1024): the photo band is full width × 280 dp, centre-cropped, its lower part fading into the background; dark and moody, subject in the upper middle | dark only (timer is always dark) |
 | A5 | **Reliability illustration** | SCR-01 page „Damit der Timer zuverlässig klingelt" | PNG ≥ 1200 × 900, transparent or washi background | light |
 
@@ -93,7 +93,8 @@ mist, leaving room for a logo and title.
 
 **A3 — Home header (wide)**
 ```text
-<style block> Wide panoramic composition about 2.4:1. Soft layered mountain
+<style block> Landscape 3:2 treated as a long strip: every mountain and tea
+terrace within the middle third of the height, only mist above and below. Soft layered mountain
 ridges in mist, a distant tea plantation on rolling hills, delicate
 gradients of grey. Very subtle warm morning light.
 ```
