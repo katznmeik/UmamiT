@@ -102,41 +102,37 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
    something on the device needs re-checking).
 
-### `/implement-spec` on #40 — progress (2026-10-22, 23:30 Europe/Berlin)
+### `/implement-spec` on #40 — progress (2026-10-23, 03:30 Europe/Berlin)
 
 A scheduled task ("Resume M1 after usage reset", `trig_01DxzSTk1mTMXZ7CkBoqUUGC`,
 daily at 23:55, 04:55, 09:55, 14:55, 19:55 Europe/Berlin) resumes this session
 after a usage-limit reset; delete it once M1 reaches #55.
 
-- **Merged on the M1 branch, CI green (474c906):** #41 controller, #42 alarms
-  and service (T4 review, `ProcessDeathTest` green on API 35/36), #43
-  diagnostics, #44 alert player and tones (the PO still listens to the four
-  new tones), #45 timer screen (three motion review rounds).
-- **In progress (subagent worktrees, uncommitted work is lost if cut off):**
-  #48 Start and setup, #51 journal. Both started from b9c3071 and merge the
-  M1 tip before reporting.
-- **Frontier next:** #46 recovery (T4), #47 notifications/Live Update (T3),
-  #52 accuracy workflow (T3); then #49 quick timer, #50 settings, #53
-  renders, #54 milestone review and rc.
-- **Hand-offs:**
-  - The ticket that binds the last controller port switches `TimerAppModule`
-    from `NoBrewTimer` to the controller and makes `UmamitApplication`
-    implement `TimerHost` (D-057).
-  - #46 also takes (see its issue comment): cap and back off the recovery
-    retry alarm (#42 review R2-1), build the refused-start resend from the
-    current state inside the turn and log a repeated refusal (R2-2), the
-    kill-during-ALERTING watchdog (fix the 04 §7.2/D-057 wording), and
-    diagnostics entries for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and
-    recovery decisions.
-  - #47: the full-screen intent opens `TimerRoute` (#45 S7), and the
-    notifier changes the notification ID through the service, never posting
-    ID 2 next to ID 1 (D-044, D-057).
-  - #50: inject #44's `AlertTester`; German tone names.
-- **Decision numbers:** D-060 is #43's; the next free number is **D-061**.
-- **Process:** verify every result with the full gate before merging, and
-  after each merge run the gate on the combined tree before pushing.
-  Branches touching shared types (`TimerUiState`, root navigation, the
-  timer ports) broke the build twice when combined.
+- **Merged on the M1 branch, CI green (3cb7650):** #41 controller, #42 alarms
+  and service, #43 diagnostics, #44 alert player and tones (the PO still
+  listens to the four new tones), #45 timer screen, #47 notifications / Live
+  Update / full-screen alert (the app runs the real controller; emulator tests
+  green after test fixes), #48 Start and setup, #51 journal (+ fix round).
+- **Stopped at the usage limit (2026-10-23 ~03:20), work saved in worktrees;
+  resume each with SendMessage to its agent, or re-verify the worktree:**
+  - #46 recovery, `.claude/worktrees/agent-a49690ee59c47fb67`: merge round
+    (review-46 conditions S1 give-up keeps the session, `recover(APP_START)`
+    with an `:app` test, #47 hand-off) — gates were green when it stopped;
+    verify, review the round briefly, merge, push, watch CI.
+  - #49 quick timer, `.claude/worktrees/agent-a7e358bec6c07e944`: fix round
+    for the review Block (*Schnelltimer* during an alert must open the timer,
+    `UmamitRoot.kt:134`), D-065 anchor, Abbrechen test — was running its gate.
+- **Queued:** #50 fix round (`.claude/worktrees/agent-acd6e1c6ca6237777`,
+  review-50 should-fix 1–7, S4 settings write crash first); then #52 accuracy
+  workflow, #53 renders, #54 milestone review and rc.
+- **Hand-offs still open:** #48 gaps (tea photo not passed to the timer); the
+  #50 Samsung auto-restart link is a guessed One UI page (on the checklist).
+- **Decision numbers:** D-061 #51, D-062 #48, D-063 #46, D-064 #47, D-065 #49,
+  D-066 #50; the next free number is **D-067**.
+- **Process:** at most 2 implementers; verify every result with the full gate
+  (`--max-workers=2`, in parts: memory in the container is tight and daemons
+  get OOM-killed); after each merge run the gate on the combined tree before
+  pushing. UI tickets get a review-animations reviewer, timer code a T4 review.
 
 ## Open questions
 
