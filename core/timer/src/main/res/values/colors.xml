@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Live Update colours from the washi/matcha palette (03 §3.1). -->
+    <color name="timer_matcha">#FF4A5643</color>
+    <color name="timer_warm_accent">#FFD9A35F</color>
+    <!-- Rinse segments of the Live Update, muted (04 §8.3). -->
+    <color name="timer_rinse">#FFA3AB97</color>
+</resources>

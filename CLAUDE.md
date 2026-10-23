@@ -98,7 +98,10 @@ commit and push.
 ## Environment (cloud sessions)
 
 - JDK 21 and Gradle 8.14 are preinstalled. **The Android SDK is not**: it is
-  installed by the session-start hook created in task M1-00.
+  installed by the SessionStart hook `.claude/hooks/session-start.sh`
+  (registered in `.claude/settings.json`, runs only when
+  `CLAUDE_CODE_REMOTE=true`) into `/opt/android-sdk` (fallback
+  `$HOME/android-sdk`), which it exports as `ANDROID_HOME`.
 - These hosts are reachable:
   - `dl.google.com`, `maven.google.com`, `repo.maven.apache.org`,
     `plugins.gradle.org`, `services.gradle.org` (build);
@@ -113,13 +116,24 @@ commit and push.
 
 ## Commands
 
-Filled in once the project skeleton exists (M1-01):
+The CI quality gate (`.github/workflows/ci.yml`) runs exactly these. In a
+cloud session, `ANDROID_HOME` comes from the session-start hook; if Maven
+Central answers HTTP 429, rerun.
 
 ```bash
-./gradlew spotlessCheck detekt lint testDebugUnitTest   # quality + unit tests
-./gradlew verifyRoborazziDebug                          # screenshot tests
+./gradlew spotlessCheck detekt lint testDebugUnitTest   # format, Detekt, Lint, unit tests (incl. build-logic)
+./gradlew verifyRoborazziDebug                          # screenshot tests against committed goldens
+./gradlew recordRoborazziDebug                          # re-record screenshot goldens
+./gradlew checkManifestPermissions                      # merged debug + release manifests vs 06 §5.7
 ./gradlew assembleDebug                                 # debug APK
+./gradlew assembleRelease                               # R8 release; signed only with UMAMIT_KEYSTORE_FILE/_PASSWORD
+./gradlew connectedDebugAndroidTest                     # instrumented tests: CI emulator job only (no KVM here); build them with assembleDebugAndroidTest
+./gradlew spotlessApply                                 # fix formatting
 ```
+
+Module rules (06 §3) fail every Gradle invocation at configuration time.
+Configs: `.editorconfig` (ktlint), `config/detekt/detekt.yml`,
+`config/lint/lint.xml`.
 
 ## Conventions
 

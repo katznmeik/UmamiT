@@ -23,8 +23,22 @@ any store.
 
 ## Status
 
-📝 **Specification phase:** no code yet. Development starts only after an
-explicit go. See [`docs/specs/`](docs/specs/README.md).
+🛠️ **Milestone M1 (timer first) in progress.** Specs:
+[`docs/specs/`](docs/specs/README.md), plan:
+[`docs/plans/M1-timer.md`](docs/plans/M1-timer.md).
+
+## Release signing
+
+Release APKs are signed with UmamiT's own key (alias `umamit`). The public
+certificate SHA-256 fingerprint is:
+
+```
+A5:00:E2:C6:7C:73:C2:1F:4F:FA:39:61:ED:DE:17:34:D3:75:2D:FC:F2:E4:23:36:82:35:95:66:E2:D8:2F:67
+```
+
+The same value (lowercase, without colons) is in
+[`signing/release-cert-sha256.txt`](signing/release-cert-sha256.txt); the
+release workflow refuses to publish an APK signed with any other key.
 
 ## Planned tech stack
 

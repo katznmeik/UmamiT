@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -17,7 +17,10 @@
    During the milestone the PO tests **release candidates** `v0.x.0-rc.N`
    (pre-releases built from the PR branch); after the merge the final
    `v0.x.0` is built from `main`. The version lives only in
-   `gradle.properties`.
+   `gradle.properties`. `release.yml` builds only a commit on which CI
+   passed (D-070). Before each release candidate the accuracy
+   workflow must pass ([§4a](#4a-accuracy-run-before-each-release-candidate),
+   D-067).
 4. Specs are updated in the same PR when behaviour changes.
 5. **Definition of done per milestone:** the on-device checklist passes on
    the PO's Galaxy **and** a design review round passes. For the review,
@@ -60,7 +63,10 @@ PO's review and testing turnaround.
 
 ## 4. Acceptance checklists (on the PO's Galaxy)
 
-### M1 — Probe release (`v0.0.1-probe`, early in M1)
+### M1 — Probe release (`v0.0.N-probe`, early in M1)
+
+_Passed with `v0.0.2-probe` on 2026-10-22 (#17). The probe screen was removed
+in M1-18 (#54); this checklist is kept as a record._
 
 All four items must pass before M1-09/M1-11 are finished; a failing item is
 fixed and re-tested with `v0.0.N-probe` (D-040). Now Bar presence is recorded
@@ -76,11 +82,11 @@ only.
 
 - [ ] APK installs from the GitHub Release; the next rc installs over it.
 - [ ] Einrichtung: notifications, battery „Uneingeschränkt", Live notifications and Vollbild-Alarm all show ✓ after setup; Samsung auto-restart hint shown.
-- [ ] Seed teas Tanabata and Hisui present with photos (downloaded during the first-start setup online), recipes and 100 g stock; seed vessels Kyusu (250 ml) and Becher mit Sieb (400 ml).
+- [ ] Seed teas Tanabata and Hisui present in the tea picker (*Sammlung* is a placeholder until M3) with photos (downloaded during the first-start setup online), recipes and 100 g stock; seed vessels Kyusu (250 ml) and Becher mit Sieb (400 ml).
 - [ ] Waiting 30 min in READY demotes the Live Update to a quiet notification; *Start* from it works. Next morning: the session left waiting the evening before is in the journal („Sitzung gespeichert").
 - [ ] *Nochmal brühen* tea → timer READY in one tap; *Start* = second tap.
 - [ ] 3-step kyusu session: READY waits for *Start*; kettle hint shows the step temperature.
-- [ ] Screen dims ~10 s into a steep and brightens at the pre-alert.
+- [ ] Screen dims ~10 s into a steep and brightens at the pre-alert; at night with a low brightness setting, „dimming" never makes the screen brighter, also with adaptive brightness on (D-058).
 - [ ] Pre-alert tick 10 s before the end (global default) on the 1:00 Hisui infusion; none on the 0:10 infusions (shorter than 15 s).
 - [ ] Pre-alert override: in SCR-04 open the Schritte-Sheet, set *Vorwarnung* to 20 s → tick 20 s before the end of the first infusion.
 - [ ] Schritte-Sheet: change a step's time and temperature, add and delete a step; the timer uses the changes; *Weiterer Aufguss* in FINISHED opens an editable step.
@@ -88,11 +94,18 @@ only.
 - [ ] Alert with ringer normal (sound + vibration), vibrate (vibration only), silent (visual only); stops on *Abgegossen* or after ~15 s.
 - [ ] Phone locked, screen off during a 2-min step: pre-alert and alert on time; the screen turns on and the timer shows over the lock screen.
 - [ ] App swiped from recents during a step: alert still fires.
+- [ ] Long step in Doze (TMR-18: the exact alarm alone, no service during the step): start a 30-min quick timer (or a cold brew), lock the phone and leave it lying still with the screen off and **not** charging until the end → the alert comes on time, full screen, with sound.
+- [ ] Quick timer (TMR-22, SCR-07): a 1-min quick timer from Start, phone locked with the screen off → tick, alert on time, *Fertig* on the lock screen ends it and nothing appears in the journal. Then a 12-min quick timer with the app in the background (a long step) → „Fertig um …" in the Live Update and the alert on time.
+- [ ] *Beenden & neu starten* during a running step (TMR-21): while a session's step runs, start another tea from Start (e.g. *Nochmal brühen*) and confirm *Beenden & neu starten* → the first session is in the journal, „Sitzung gespeichert" is posted instead of the sheet, and the new session's step alerts on time.
+- [ ] Refused background start (04 §6.3, best effort, not blocking): set *Akku* to *Optimiert*, start a 12-min quick timer, switch to another app and lock the phone → the alert still comes on time and full screen. Afterwards *Diagnose* shows whether Android refused a foreground start („refused", then „refused again" or a later start); report what it shows, then set *Akku* back to *Uneingeschränkt*. If no start was refused, the paths rest on the Robolectric tests (`RefusedServiceStartTest`, `BrewTimerServiceTest`), because the emulator allows every start (04 §12).
 - [ ] Live Update visible as status chip and on the lock screen; *Pause*/*Weiter*/*Abgegossen* work from it.
 - [ ] (Best effort, not blocking) Live Update appears in the Now Bar.
-- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → the alert fires on time.
-- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows pre-alert and alert fire times within 1 s of the scheduled time; *Kopieren* works.
-- [ ] Session appears in the minimal journal list with actual times („2 von 3 Aufgüssen" when finished early).
+- [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → the notice „Dein Timer läuft weiter" with the text „<Tee> · nach dem Neustart" appears, and the alert fires on time.
+- [ ] Update during a session: install the next rc while a 3-min step runs → the Live Update comes back right after the install and the alert fires on time (04 §7.5).
+- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows each step's „alert PRE_ALERT" and „alert ALERT" lines (the moment the sound started) within 1 s of the scheduled time (their `delta`); the „event … accepted" line above each is only the controller's handling (D-068); *Kopieren* works.
+- [ ] Session appears in the minimal journal list with its planned first infusion and the poured count („2 von 3 Aufgüssen" when finished early); the „Gespeichert" sheet after *Sitzung beenden* shows the actual total (D-061).
+- [ ] Light phone theme: status-bar icons and the gesture handle are visible (light) on the timer and the quick timer, also right after starting a quick timer; dark on the alert surface; dark again on the tabs after leaving the timer (D-069).
+- [ ] Rotate the phone, or switch light/dark, while a step alerts and the tabs are on screen: the matcha brew bar is there at once, without growing or fading in (03 §3.8, D-069).
 
 ### M2 — Catalog
 
@@ -120,6 +133,77 @@ only.
 - [ ] Device backup restore check: `adb shell bmgr backupnow com.umamit.app` then uninstall/reinstall restores teas, journal and settings (or a new-device transfer when available); no session is resumed after the restore.
 - [ ] *Sicherung erstellen* writes a `.umamit` file that opens as a ZIP and contains `data.json` with the teas and sessions and the own photos.
 - [ ] 200 % font, dark theme, TalkBack spot checks pass.
+
+## 4a. Accuracy run before each release candidate
+
+From M1 on, the timer's accuracy (TMR-30,
+[04 §12](04-brew-timer.md#12-testing)) is measured on the CI emulator before
+every `vX.Y.Z-rc.N` (PO decision in spec #40; D-067). Claude dispatches the
+run and reads its result. The PO is involved only through the summary linked
+in the rc's announcement. The rc is dispatched only after the run passes on
+the commit it is built from. A later commit that touches the timer (`core:timer`,
+`core:timer-engine`, the app's timer wiring) needs a new run.
+
+**What it does.** `.github/workflows/accuracy.yml` builds `core:timer`'s
+instrumented test APK and boots the CI emulator (same setup and caches as the
+CI emulator job). Then `scripts/accuracy-run.sh` runs `AccuracyRunTest`. The
+test runs 50 steps of 60 s with a 10 s pre-alert through the real controller,
+alarms, foreground service and notifications. The screen is off during every
+step, and *Abgegossen* / *Start* / *Sitzung beenden* are tapped in the
+notifications between steps. It takes about an hour per API level. The
+regular CI emulator job skips this test.
+
+**Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
+`accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
+
+| Input | Default | Meaning |
+|---|---|---|
+| `ref` | the M1 branch | Branch, tag or SHA to test: the commit of the next rc |
+| `api-level` | `36` | `36`, `35` or `both` (one job per level, in parallel) |
+| `steps` | `50` | `50` for the rc gate; fewer only to try the workflow |
+| `inject-delay-ms` | `0` | Gate check only: every pre-alert and alert this many ms late; such a run must **fail** |
+
+With the `gh` CLI the same dispatch is
+`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.
+GitHub dispatches only workflows whose file exists on `main`; the
+version at `--ref` runs (D-039, D-070).
+
+**Reading the result.** The run page's summary shows a table per API level:
+
+| Event | Steps | p50 | p95 | max | Handled p95 / max | Fired by | On target |
+|---|---:|---:|---:|---:|---:|---|---|
+| Pre-alert | 50 / 50 | 9 ms | 25 ms | 48 ms | 12 ms / 31 ms | WAKE_UP 50 | yes |
+| Alert | 50 / 50 | 30 ms | 70 ms | 120 ms | 14 ms / 40 ms | WAKE_UP 50 | yes |
+
+*(Illustrative numbers.)*
+
+- **Delay** is the moment the player started the sound of the pre-alert and
+  the alert minus their scheduled time, as the diagnostics log records them
+  (06 §5.6, D-060, D-068), on the monotonic clock; the gate uses it.
+  *Handled* is the delay up to the controller's handling of the event, for
+  comparison: the difference is the persist, the alarms and the player's
+  queue. *Fired by* says whether the in-process wake-up or the exact alarm
+  delivered the event.
+- **Pass** („**Result: PASS**", job green): all 50 steps completed, and both
+  events have p95 ≤ 250 ms and max ≤ 1 s. Anything else fails the job:
+  a slow distribution, or a step that never alerted. In that case the test
+  failure in the log names the step and shows the device state.
+- **Details:** the artifact `accuracy-api-<level>` has `accuracy.csv` (one row
+  per pre-alert and alert: step, event, source, scheduled wall and monotonic
+  time, then the handled and the sound-start wall and monotonic time with
+  their deltas), `diagnostics.txt` (the log lines it read), the
+  instrumentation output and logcat.
+- A failed run blocks the rc. Find the cause from the CSV and the log lines,
+  fix it (rule 8), and run again. A flaky emulator start (no report at all)
+  may simply be re-run once.
+
+**Proving the gate.** Once per workflow change, Claude dispatches a run with
+`inject-delay-ms: 1500` and a few `steps`. It must fail with the delays
+around 1.5 s; the gate check changes nothing in the app.
+
+On the phone, the same numbers come from *Einstellungen › Über › Diagnose*
+(the M1 checklist above): the emulator neither dozes within a 60 s step nor
+behaves like a Samsung phone.
 
 ## 5. Post-1.0 backlog
 

@@ -37,7 +37,8 @@ Image assets to create, with prompts: [`docs/design/assets.md`](../design/assets
 Working documents: [`CLAUDE.md`](../../CLAUDE.md) (rules for every Claude
 session), [`PROJECT_STATE.md`](../../PROJECT_STATE.md) (current status and
 handover), [`docs/plans/`](../plans/) (milestone implementation plans, e.g.
-[M1](../plans/M1-timer.md)).
+[M1](../plans/M1-timer.md)), [`docs/release.md`](../release.md) (how
+releases are dispatched and verified).
 
 ## Key decisions at a glance
 

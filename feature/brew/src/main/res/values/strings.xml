@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Schritte-Sheet (SCR-31) -->
+    <string name="brew_steps_title">Schritte für diese Sitzung</string>
+    <string name="brew_steps_kind_infusion">Aufguss</string>
+    <string name="brew_steps_kind_rinse">Spülaufguss</string>
+    <string name="brew_steps_kind_whisk">Aufschlagen</string>
+    <string name="brew_steps_status_done">erledigt</string>
+    <string name="brew_steps_status_running">läuft</string>
+    <string name="brew_steps_status_skipped">übersprungen</string>
+    <string name="brew_steps_temperature">%1$d °C</string>
+    <string name="brew_steps_add">Aufguss hinzufügen</string>
+    <string name="brew_steps_pre_alert">Vorwarnung</string>
+    <string name="brew_steps_pre_alert_inherit">Wie Einstellung</string>
+    <string name="brew_steps_pre_alert_off">Aus</string>
+    <string name="brew_steps_pre_alert_seconds">%1$d s</string>
+    <string name="brew_steps_save_to_recipe">Im Rezept speichern</string>
+    <string name="brew_steps_saved_to_recipe">Im Rezept gespeichert</string>
+    <string name="brew_steps_done">Fertig</string>
+
+    <!-- TalkBack (03 §6) -->
+    <string name="brew_steps_step_label">%1$d %2$s</string>
+    <string name="brew_steps_step_description">Schritt %1$d, %2$s, %3$s, %4$s, %5$s</string>
+    <string name="brew_steps_step_description_no_temperature">Schritt %1$d, %2$s, %3$s, %4$s</string>
+    <plurals name="brew_steps_temperature_description">
+        <item quantity="one">%1$d Grad</item>
+        <item quantity="other">%1$d Grad</item>
+    </plurals>
+    <string name="brew_steps_duration_value_description">Ziehzeit %1$s</string>
+    <string name="brew_steps_temperature_value_description">Temperatur %1$s</string>
+    <string name="brew_steps_longer">Ziehzeit verlängern, Schritt %1$d</string>
+    <string name="brew_steps_shorter">Ziehzeit verkürzen, Schritt %1$d</string>
+    <string name="brew_steps_warmer">Temperatur erhöhen, Schritt %1$d</string>
+    <string name="brew_steps_cooler">Temperatur senken, Schritt %1$d</string>
+    <string name="brew_steps_delete">Löschen, Schritt %1$d</string>
+    <string name="brew_steps_pre_alert_description">Vorwarnung: %1$s. Ändern</string>
+    <plurals name="brew_steps_pre_alert_seconds_description">
+        <item quantity="one">%1$d Sekunde vorher</item>
+        <item quantity="other">%1$d Sekunden vorher</item>
+    </plurals>
+</resources>

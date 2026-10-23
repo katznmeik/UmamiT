@@ -23,9 +23,9 @@
 
 <!-- Anything that differs from docs/specs (with the reason) and known open issues, or "none" -->
 
-## Test releases (rc/probe)
+## Test releases (rc)
 
-<!-- Pre-releases built from this branch for the PO, e.g. v0.0.1-probe, v0.1.0-rc.1, v0.1.0-rc.2, with what changed between them -->
+<!-- Pre-releases built from this branch for the PO, e.g. v0.1.0-rc.1, v0.1.0-rc.2, with what changed between them -->
 
 ## Subagent tiers used
 
