@@ -69,6 +69,12 @@ object UmamiIcons {
     /** A3: the Start header landscape in the dark theme. */
     @DrawableRes val HomeHeaderDark = R.drawable.illustration_home_header_dark
 
+    /** A2: the welcome page's full-bleed landscape in the light theme (SCR-01). */
+    @DrawableRes val WelcomeLight = R.drawable.illustration_welcome_light
+
+    /** A2: the welcome landscape in the dark theme. */
+    @DrawableRes val WelcomeDark = R.drawable.illustration_welcome_dark
+
     // Photos (03 §3.5, docs/design/assets.md)
 
     /** A4: the timer's photo for a tea without one of its own (SCR-05). */

@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,7 +34,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -162,26 +161,33 @@ fun OnboardingScreen(
 
 @Composable
 private fun WelcomePage(onStart: () -> Unit) {
+    Box(Modifier.fillMaxSize()) {
+        // The full-bleed ink wash A2 (SCR-01): mountains in its lower half, the tea branches at its
+        // right edge, so a narrow screen crops its left side; its paper is the theme's background.
+        Image(
+            painter = painterResource(if (UmamiTheme.isDark) UmamiIcons.WelcomeDark else UmamiIcons.WelcomeLight),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.BottomEnd,
+        )
+        WelcomeContent(onStart)
+    }
+}
+
+/** Logo, name, welcome and *Los geht's* on the empty paper above the landscape. */
+@Composable
+private fun WelcomeContent(onStart: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XLarge),
+            .padding(horizontal = UmamiSpacing.SideMargin)
+            .padding(top = WELCOME_TOP_DP.dp, bottom = UmamiSpacing.XLarge),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
     ) {
-        // Placeholder ink wash until the PO's artwork arrives (A1, docs/design/assets.md).
-        Image(
-            painter = painterResource(UmamiIcons.LandscapePlaceholder),
-            contentDescription = null,
-            modifier = Modifier
-                .widthIn(max = 360.dp)
-                .fillMaxWidth(),
-            contentScale = ContentScale.FillWidth,
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
-        )
-        Spacer(Modifier.height(UmamiSpacing.XLarge))
         Icon(
             painter = painterResource(UmamiIcons.Leaf),
             contentDescription = null,
@@ -214,6 +220,9 @@ private fun WelcomePage(onStart: () -> Unit) {
         PillButton(text = stringResource(R.string.onboarding_start), onClick = onStart)
     }
 }
+
+/** Where the welcome content starts: on the empty paper, above the landscape (A2). */
+private const val WELCOME_TOP_DP = 96
 
 @Composable
 private fun ReliabilityPage(
