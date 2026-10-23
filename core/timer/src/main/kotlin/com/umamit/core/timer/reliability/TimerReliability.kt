@@ -30,7 +30,7 @@ enum class ReliabilityCheck {
     /** Live Update promotion, `canPostPromotedNotifications()` (04 §8.3). */
     LiveUpdates,
 
-    /** The full-screen alert, `canUseFullScreenIntent()` (04 §8.2, TMR-06). */
+    /** The full-screen alert, `canUseFullScreenIntent()` and its app op (04 §8.2, TMR-06, D-068). */
     FullScreenAlert,
 
     /** Exempt from battery optimisation, One UI's *Akku › Uneingeschränkt* (04 §6.4). */
