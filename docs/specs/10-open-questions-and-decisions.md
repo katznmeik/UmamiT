@@ -303,6 +303,49 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-062"></a>
+### D-065 — Quick timer SCR-07 (M1-14, #49) · *Accepted* (Claude, 2026-10-23)
+
+#49 built the quick timer (SCR-07, TMR-22, 04 §10) and its two entries, Start's
+*Schnelltimer* and the tea picker's *Ohne Tee (Schnelltimer)*. Decided while
+building it:
+
+- **Two surfaces, one timer.** SCR-07 is its own route only before *Start*:
+  the ring with the chosen duration, the chips and *Start*. Once the quick
+  timer runs, the timer (SCR-05) replaces the route and shows it, because
+  the notification, the active brew bar and the full-screen intent open the
+  timer (D-058). Back from the running quick timer returns to Start. The
+  ring sits at the same place on both, so the route's `fade` only crossfades
+  the chips into the pill.
+- ***Start* runs at once.** The start seam gains `startQuickTimer` and
+  `finishActiveAndStartQuickTimer` (`BrewStarter`, D-062): the controller's
+  `startQuickTimer` (READY), then `start`, in two turns. Opening SCR-07
+  starts nothing, so it never blocks another session (TMR-21).
+- **On the timer.** The quick timer has its title and no step label, dots or
+  kettle hint; *Fertig* (`poured`) on the alert; the overflow holds
+  *Abbrechen* (`cancel`, READY/RUNNING/PAUSED only, as 04 §10 allows) and
+  *Timer-Einstellungen* (for the global pre-alert it uses). TalkBack says
+  „Schnelltimer läuft".
+- **Chips and picker.** SCR-07 opens with 1:00; the chosen duration survives
+  process death (GEN-07), not app restarts. The selected chip has no check
+  mark, so no chip widens under the finger. A tap on the ring opens „Dauer
+  wählen": hours, minutes and seconds with − and +, each move kept within
+  5 s – 24 h and rounded to PRF-04's increments (5 s below 10 min, whole
+  minutes from 10 min on; the seconds do not move there). A move that would
+  leave the bounds is disabled. *Übernehmen* applies, *Abbrechen* keeps the
+  duration.
+- **Second timer (TMR-21).** *Start* while a session is active asks
+  „Erst die … -Sitzung beenden?" like the setup; while it alerts, the
+  alerting timer opens instead.
+- **Alerts first (rule 8).** SCR-07 is a route above the shell, so a new
+  alert replaces it with the timer at once (D-062). The picker and the
+  question remember the alert they were opened in and are removed when
+  another one starts, without animation. The only motion of its own is
+  Material's chip colour and the pill's press scale.
+- **Kettle hint of the timer (BRW-10).** `TimerUiState.Active.iceBrew`
+  carries an ice brew from the start, and from the session row after
+  recovery, so a cold step's READY reads „Kaltes Wasser" or „Eiswürfel"
+  like the setup, not „Wasserkocher auf 5 °C" (the follow-up of D-062).
+
 ### D-062 — Start, tea picker and brew setup (M1-13, #48) · *Accepted* (Claude, 2026-10-22)
 
 #48 built Start (SCR-02), the tea picker (SCR-03) and the setup (SCR-04)
@@ -364,9 +407,8 @@ personal data or shop content).
   only steps and pre-alert (SCR-31). The setup's values survive process
   death in the `SavedStateHandle` (GEN-07).
 - **Kettle hint (BRW-10).** At ≤ 10 °C the setup reads „Kaltes Wasser", or
-  „Eiswürfel" for an ice brew (`KettleWater`). The timer's READY still reads
-  „Wasserkocher auf 5 °C" for a cold step, because `TimerUiState` carries no
-  method; a follow-up for the timer.
+  „Eiswürfel" for an ice brew (`KettleWater`); the timer's READY does the
+  same since #49 (D-065).
 - ***Brühen anpassen*.** The timer's menu item opens the setup of the waiting
   session in place of the timer, filled with that session's values.
   *Brühen starten* there replaces the session without asking (no step has
