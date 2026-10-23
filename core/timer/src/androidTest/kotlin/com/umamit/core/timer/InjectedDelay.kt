@@ -32,6 +32,8 @@ class DelayedAlarms(private val alarms: TimerAlarmPort, private val delayMs: Lon
     override fun retry(kind: TimerAlarmKind, atMs: Long) =
         alarms.retry(kind, if (kind in DELAYED) atMs + delayMs else atMs)
 
+    override fun watchAlert(atElapsedMs: Long?) = alarms.watchAlert(atElapsedMs)
+
     private companion object {
         val DELAYED = setOf(TimerAlarmKind.PRE_ALERT, TimerAlarmKind.DEADLINE)
     }

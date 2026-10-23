@@ -38,20 +38,29 @@ data class FireTime(
          * other entry (an ignored or rejected event, an alarm that found its event handled).
          */
         fun parse(message: String): FireTime? {
-            val match = ACCEPTED.matchEntire(message.trim()) ?: return null
-            val (event, source, kindName, scheduledWall, scheduledMono, actualWall, actualMono, delta) =
-                match.destructured
-            val kind = TimerAlarmKind.entries.firstOrNull { it.name == kindName } ?: return null
-            if (kind.event::class.simpleName != event) return null
-            return FireTime(
-                kind = kind,
-                source = source,
-                scheduledWall = scheduledWall,
-                scheduledMonoMs = scheduledMono.toLong(),
-                actualWall = actualWall,
-                actualMonoMs = actualMono.toLong(),
-                deltaMs = delta.toLong(),
-            )
+            val values = ACCEPTED.matchEntire(message.trim())?.groupValues ?: return null
+            val kind = TimerAlarmKind.entries.firstOrNull { it.name == values[KIND] }
+            return kind?.takeIf { it.event != null && it.event::class.simpleName == values[EVENT] }?.let {
+                FireTime(
+                    kind = it,
+                    source = values[SOURCE],
+                    scheduledWall = values[SCHEDULED_WALL],
+                    scheduledMonoMs = values[SCHEDULED_MONO].toLong(),
+                    actualWall = values[ACTUAL_WALL],
+                    actualMonoMs = values[ACTUAL_MONO].toLong(),
+                    deltaMs = values[DELTA].toLong(),
+                )
+            }
         }
+
+        // The groups of ACCEPTED.
+        private const val EVENT = 1
+        private const val SOURCE = 2
+        private const val KIND = 3
+        private const val SCHEDULED_WALL = 4
+        private const val SCHEDULED_MONO = 5
+        private const val ACTUAL_WALL = 6
+        private const val ACTUAL_MONO = 7
+        private const val DELTA = 8
     }
 }

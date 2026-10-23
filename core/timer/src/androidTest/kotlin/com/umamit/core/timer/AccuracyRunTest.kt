@@ -144,7 +144,12 @@ class AccuracyRunTest {
         wakeAndUnlock()
         TimerTestActivity.outcomeFile(context).delete()
         context.startActivity(
-            TimerTestActivity.intent(context, STEP.inWholeSeconds.toInt(), steps = count, preAlertSeconds = PRE_ALERT_SECONDS),
+            TimerTestActivity.intent(
+                context,
+                STEP.inWholeSeconds.toInt(),
+                steps = count,
+                preAlertSeconds = PRE_ALERT_SECONDS,
+            ),
         )
         val outcome = eventually("the session's start in the timer process", TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()

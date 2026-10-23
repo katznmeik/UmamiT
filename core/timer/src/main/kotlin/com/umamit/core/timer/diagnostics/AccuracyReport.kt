@@ -41,7 +41,8 @@ data class DelayStats(val count: Int, val p50Ms: Long, val p95Ms: Long, val maxM
             return DelayStats(sorted.size, sorted.rank(P50), sorted.rank(P95), sorted.last())
         }
 
-        private fun List<Long>.rank(quantile: Double): Long = this[(ceil(quantile * size).toInt() - 1).coerceIn(indices)]
+        private fun List<Long>.rank(quantile: Double): Long =
+            this[(ceil(quantile * size).toInt() - 1).coerceIn(indices)]
     }
 }
 
@@ -85,15 +86,19 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         appendLine("### Timer accuracy · API ${run.apiLevel}")
         appendLine()
         appendLine(
-            "${run.plannedSteps} × ${run.stepSeconds} s steps with the screen off, pre-alert ${run.preAlertSeconds} s " +
-                "(04 §12, TMR-30). Delay = actual − scheduled time of the event, from the diagnostics log (D-060).",
+            "${run.plannedSteps} × ${run.stepSeconds} s steps with the screen off, " +
+                "pre-alert ${run.preAlertSeconds} s (04 §12, TMR-30). " +
+                "Delay = actual − scheduled time of the event, from the diagnostics log (D-060).",
         )
         if (run.injectedDelayMs != 0L) {
             appendLine()
             appendLine("**Gate check:** every pre-alert and alert was delayed by ${run.injectedDelayMs} ms on purpose.")
         }
         appendLine()
-        appendLine("**Result: ${if (passed) "PASS" else "FAIL"}** · target p95 ≤ ${AccuracyTarget.P95_MS} ms, max ≤ ${AccuracyTarget.MAX_MS} ms")
+        appendLine(
+            "**Result: ${if (passed) "PASS" else "FAIL"}** · " +
+                "target p95 ≤ ${AccuracyTarget.P95_MS} ms, max ≤ ${AccuracyTarget.MAX_MS} ms",
+        )
         appendLine()
         appendLine("| Event | Steps | p50 | p95 | max | Fired by | On target |")
         appendLine("|---|---:|---:|---:|---:|---|---|")
@@ -101,7 +106,10 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         appendLine(row("Alert", alert, steps.map { it.deadline }))
         if (!complete) {
             appendLine()
-            appendLine("Only ${steps.size} of ${run.plannedSteps} steps completed; see the test failure for the step that did not.")
+            appendLine(
+                "Only ${steps.size} of ${run.plannedSteps} steps completed; " +
+                    "see the test failure for the step that did not.",
+            )
         }
     }
 
@@ -109,7 +117,8 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         val sources = fires.groupingBy { it.source }.eachCount().toSortedMap().entries
             .joinToString(", ") { (source, count) -> "$source $count" }
             .ifEmpty { "–" }
-        val values = stats?.let { listOf("${it.p50Ms} ms", "${it.p95Ms} ms", "${it.maxMs} ms") } ?: listOf("–", "–", "–")
+        val values =
+            stats?.let { listOf("${it.p50Ms} ms", "${it.p95Ms} ms", "${it.maxMs} ms") } ?: listOf("–", "–", "–")
         val onTarget = when {
             stats == null -> "no"
             stats.onTarget -> "yes"

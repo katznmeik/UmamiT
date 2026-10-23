@@ -68,7 +68,9 @@ class TimerTestActivity : Activity() {
         /** Where the activity writes the outcome of the start (app-private, shared by both processes). */
         fun outcomeFile(context: Context): File = File(context.filesDir, "timer-test-start.txt")
 
-<<<<<<< HEAD
+        /** Where the activity writes the running step's deadline on the wall clock. */
+        fun deadlineFile(context: Context): File = File(context.filesDir, "timer-test-deadline.txt")
+
         /**
          * A session of [steps] infusions of [seconds] each, with a pre-alert of [preAlertSeconds]
          * (0: none); with [coldBrew] every step is a long step without the service (TMR-18).
@@ -85,17 +87,6 @@ class TimerTestActivity : Activity() {
             .putExtra(EXTRA_STEPS, steps)
             .putExtra(EXTRA_PRE_ALERT, preAlertSeconds)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-=======
-        /** Where the activity writes the running step's deadline on the wall clock. */
-        fun deadlineFile(context: Context): File = File(context.filesDir, "timer-test-deadline.txt")
-
-        /** A step of [seconds]; with [coldBrew] every step is a long step without the service (TMR-18). */
-        fun intent(context: Context, seconds: Int, coldBrew: Boolean = false): Intent =
-            Intent(context, TimerTestActivity::class.java)
-                .putExtra(EXTRA_SECONDS, seconds)
-                .putExtra(EXTRA_COLD_BREW, coldBrew)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
->>>>>>> origin/claude/umamit-m1-start-k0jg3n
 
         private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int) = BrewStart(
             snapshot = SessionSnapshot(
