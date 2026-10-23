@@ -249,7 +249,7 @@ internal fun UmamitRoot(
                         onOpenAbout = { navigateAbove(AboutRoute) {} },
                         alertKey = alert,
                     ),
-                ) {}
+                )
             }
             composable<AboutRoute> {
                 settings.about(

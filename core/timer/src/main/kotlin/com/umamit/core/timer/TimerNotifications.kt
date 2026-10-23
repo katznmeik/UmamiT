@@ -29,7 +29,7 @@ object TimerNotifications {
      * importance DEFAULT or higher. Android 16 force-groups two such ungrouped
      * notifications of an app and marks them `FLAG_SILENT`, and System UI then
      * suppresses the full-screen intent and the heads-up
-     * (`docs/plans/M1-probe-api-notes.md`).
+     * (`docs/plans/M1-android16-api-notes.md`).
      */
     const val ID_ALERT = 2
 
@@ -77,19 +77,6 @@ object TimerNotifications {
             ),
         )
     }
-
-    /**
-     * Whether the user currently allows promoted ongoing notifications (Live
-     * Updates, 04 §8.3); for the status row and the reliability banner. The Live
-     * Update requests promotion on Android 16 regardless, so it is promoted as
-     * soon as the user allows it. Always false below Android 16 (API 36), where
-     * the notification stays a normal ongoing one.
-     */
-    fun canPromote(context: Context): Boolean = NotificationManagerCompat.from(context).canPostPromotedNotifications()
-
-    /** Whether full-screen intents are allowed (04 §8.2); otherwise the alert is a heads-up only. */
-    fun canUseFullScreenIntent(context: Context): Boolean =
-        NotificationManagerCompat.from(context).canUseFullScreenIntent()
 
     /** Posts [notification] when notifications are allowed; returns whether it was posted. */
     fun post(context: Context, id: Int, notification: Notification): Boolean {

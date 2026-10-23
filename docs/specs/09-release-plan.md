@@ -64,7 +64,8 @@ PO's review and testing turnaround.
 
 ### M1 — Probe release (`v0.0.N-probe`, early in M1)
 
-_Passed with `v0.0.2-probe` on 2026-10-22 (#17)._
+_Passed with `v0.0.2-probe` on 2026-10-22 (#17). The probe screen was removed
+in M1-18 (#54); this checklist is kept as a record._
 
 All four items must pass before M1-09/M1-11 are finished; a failing item is
 fixed and re-tested with `v0.0.N-probe` (D-040). Now Bar presence is recorded

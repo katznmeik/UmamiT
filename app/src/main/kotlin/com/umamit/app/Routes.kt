@@ -62,10 +62,6 @@ internal data object OnboardingRoute
 @Serializable
 internal data object DiagnosticsRoute
 
-/** Throwaway probe screen (M1-03a), reached from the settings until it is removed before v0.1.0. */
-@Serializable
-internal data object ProbeRoute
-
 /** The four areas of 03 §2.2, in navigation order. */
 internal enum class Tab(val root: Any, @StringRes val label: Int, @DrawableRes val icon: Int) {
     Start(StartRoute, R.string.tab_start, UmamiIcons.Start),

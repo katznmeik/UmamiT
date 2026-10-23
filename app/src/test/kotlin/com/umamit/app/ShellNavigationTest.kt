@@ -106,7 +106,6 @@ class ShellNavigationTest {
         start()
         openSettingsFromStart()
         compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
-        compose.onNodeWithText(str(R.string.probe_entry)).performScrollTo().assertIsDisplayed()
     }
 
     @Test

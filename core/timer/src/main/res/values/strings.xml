@@ -8,14 +8,6 @@
     <string name="timer_channel_sessions_name">Sitzungen</string>
     <string name="timer_channel_sessions_description">Automatisch gespeicherte Sitzungen</string>
 
-    <!-- Probe test step (M1-03a): Live Update (04 §8.2, §8.3) -->
-    <string name="timer_probe_step_title">Probe · Testaufguss</string>
-    <string name="timer_probe_text_running">Zieht …</string>
-    <string name="timer_probe_text_pre_alert">Gleich fertig …</string>
-    <string name="timer_probe_text_finished">Jetzt abgießen!</string>
-    <string name="timer_probe_chip_finished">Fertig</string>
-    <string name="timer_probe_action_cancel">Abbrechen</string>
-
     <!-- Timer notifications and Live Update (04 §8.2, §8.3; M1-11). The step word follows
          the step kind, as on the timer screen (D-058). -->
     <string name="timer_quick_title">Schnelltimer</string>
@@ -44,8 +36,6 @@
 
     <!-- Alert (04 §8.2, full-screen alert) -->
     <string name="timer_alert_title">Jetzt abgießen!</string>
-    <!-- The probe's alert button (M1-03a) -->
-    <string name="timer_alert_done">Abgegossen</string>
     <!-- Gyokuro · Aufguss 2 -->
     <string name="timer_alert_text">%1$s · %2$s %3$d</string>
 

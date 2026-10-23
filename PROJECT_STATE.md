@@ -99,8 +99,8 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
    `IN_PROGRESS` session row must be finished or discarded (#36);
    `SeedDataSeeder` and `SeedPhotoDownloader` are called from first start
    (M1-15); rail-layout insets go on the on-device checklist.
-2. The next APK for the PO is `v0.1.0-rc.1` (no further probe needed unless
-   something on the device needs re-checking).
+2. The next APK for the PO is `v0.1.0-rc.1`. The probe screen, its classes
+   and tests were removed in #54 (D-040).
 
 ### `/implement-spec` on #40 — progress (2026-10-23, 03:30 Europe/Berlin)
 
@@ -142,8 +142,8 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 - Mockup images still show the old name „UmamiTea".
 - Live Update / ProgressStyle and the full-screen alert were verified on the
-  Galaxy with `v0.0.2-probe`; the full timer must keep the probe's patterns
-  (D-043, D-044, `docs/plans/M1-probe-api-notes.md`). Now Bar presence is best
+  Galaxy with `v0.0.2-probe`; the full timer keeps those patterns
+  (D-043, D-044, `docs/plans/M1-android16-api-notes.md`). Now Bar presence is best
   effort.
 - `v0.0.1-probe` (published before the D-044 fix) is superseded; don't use it.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping

@@ -49,12 +49,12 @@ data class LiveUpdateContent(
  *   `setWhen(deadlineWall)`) or a short critical text;
  * - on Android 16 (API 36) always `setRequestPromotedOngoing(true)`, whether or
  *   not the user allows promotion right now
- *   ([TimerNotifications.canPromote]): the system decides when the notification
+ *   (`canPostPromotedNotifications()`): the system decides when the notification
  *   is posted, and when the user allows promotion later it re-checks the posted
  *   notification at once. Of the two variants (colorized or not) it posts the one
  *   that `Notification.hasPromotableCharacteristics()` accepts on this build.
  *
- * API names and the two Android 16 rule sets: `docs/plans/M1-probe-api-notes.md`.
+ * API names and the two Android 16 rule sets: `docs/plans/M1-android16-api-notes.md`.
  */
 object LiveUpdateNotification {
     private const val TAG = "UmamiTLiveUpdate"
