@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
@@ -37,7 +38,9 @@ class TimerNavigationTest {
         ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
     private val brew = MutableStateFlow<ActiveBrew?>(running)
     private val alertKey = MutableStateFlow<String?>(null)
+    private val timerRequest = MutableStateFlow(0L)
     private val visible = mutableListOf<Boolean>()
+    private val handled = mutableListOf<Long>()
 
     private val source = object : ActiveBrewSource {
         override val activeBrew: StateFlow<ActiveBrew?> = brew
@@ -56,6 +59,8 @@ class TimerNavigationTest {
                     activeBrewSource = source,
                     journalSources = testJournalSources(),
                     alertKey = alertKey,
+                    timerRequest = timerRequest,
+                    onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
                     timerScreen = { _, openSettings, _ ->
                         Column {
@@ -176,20 +181,31 @@ class TimerNavigationTest {
     }
 
     @Test
-    fun `a setup opened during an alert stays for that alert, and the next alert replaces it`() {
+    fun `a tea tap on Start during an alert opens the timer, not the setup (rule 8)`() {
+        // Like a refused start during ALERTING (D-062 S3): the alerting timer is where to go now.
         alert("A")
         show()
-        openSetupFromStart()
 
-        alert(null)
+        compose.onNodeWithText("Tee brühen").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("SETUP").assertIsDisplayed()
-        compose.mainClock.autoAdvance = false
-        alert("B")
-        advanceFrames()
 
         compose.onNodeWithText("SETUP").assertDoesNotExist()
         compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a route opened during an alert stays after a resume during the same alert`() {
+        // The route remembers the alert it was opened in (navigateAbove); only a new alert moves it.
+        alert("A")
+        show()
+        openSettingsFromTimer()
+
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Einstellungen").assertIsDisplayed()
+        compose.onNodeWithText("TIMER").assertDoesNotExist()
     }
 
     @Test
@@ -249,6 +265,55 @@ class TimerNavigationTest {
         compose.waitForIdle()
 
         assertTimerOnTop()
+    }
+
+    @Test
+    fun `the alert's full-screen intent opens the timer, which counts as visible from the first frame`() {
+        // MainActivity got the full-screen intent before its content was set (#47, D-058).
+        alert("A")
+        timerRequest.value = 1L
+        compose.mainClock.autoAdvance = false
+        show()
+
+        // The shell is never reported as what shows over the lock screen, and never drawn: the timer's dark
+        // background covers it until the timer is on top.
+        assertThat(visible).doesNotContain(false)
+        compose.onNodeWithTag(SHELL_COVER_TAG).assertIsDisplayed()
+        advanceFrames()
+        bar().assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+        compose.onNodeWithTag(SHELL_COVER_TAG).assertDoesNotExist()
+        assertThat(visible).doesNotContain(false)
+        // The activity forgets the request only now, so a recreation before it reopens the timer.
+        assertThat(handled).containsExactly(1L)
+    }
+
+    @Test
+    fun `a notification opened while Timer-Einstellungen are on top goes back to the timer`() {
+        show()
+        openSettingsFromTimer()
+
+        timerRequest.value = 2L
+        compose.waitForIdle()
+
+        assertTimerOnTop()
+        // Back from the timer still returns to the shell, not to the settings.
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        bar().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a request already handled does not open the timer again after the timer was closed`() {
+        timerRequest.value = 3L
+        show()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+
+        bar().assertIsDisplayed()
+        compose.onNodeWithText("TIMER").assertDoesNotExist()
     }
 
     // --- Quick timer (SCR-07, M1-14) ---------------------------------------------------------

@@ -20,6 +20,7 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.feature.brew.timer.BrewTimer
+import com.umamit.feature.brew.timer.ControllerBrewTimer
 import com.umamit.feature.brew.timer.TimerReliability
 import com.umamit.feature.brew.timer.activeBrewOf
 import com.umamit.feature.brew.timer.displayTicks
@@ -41,24 +42,20 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * The timer screen's seams in the app (SCR-05, #45).
- *
- * **Until #42** binds the controller's remaining ports (alarms, service;
- * then #43, #44, #47 and M1-16), `BrewSessionController` cannot be injected
- * (D-056), so [BrewTimer] is [NoBrewTimer]: no session is ever active, the
- * timer route closes at once and the active brew bar stays hidden, exactly as
- * before. When the ports are bound, replace the `brewTimer` provider with
- * `@Binds fun brewTimer(impl: ControllerBrewTimer): BrewTimer` (feature:brew).
+ * The timer screen's seams in the app (SCR-05, #45): [BrewTimer] is the
+ * `BrewSessionController` itself ([ControllerBrewTimer]). Every port of the
+ * controller has its Android adapter since #47 bound the notifier (D-056,
+ * D-057), so the app runs the real timer.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object TimerAppModule {
     @Provides
-    fun brewTimer(): BrewTimer = NoBrewTimer
+    fun brewTimer(impl: ControllerBrewTimer): BrewTimer = impl
 
     /**
      * Start and the setup (M1-13) start brews through the same object as the timer, so this follows the
-     * `brewTimer` binding: [NoBrewTimer] now, `ControllerBrewTimer` once the controller is bound (#47).
+     * `brewTimer` binding: the controller ([ControllerBrewTimer]) since #47.
      */
     @Provides
     fun brewStarter(timer: BrewTimer): BrewStarter =
@@ -70,25 +67,6 @@ object TimerAppModule {
         packageName = context.packageName,
         open = { context.startFirstPermissionStatusIntent(it) },
     )
-}
-
-/**
- * No controller yet (#42): always idle, and every event and start is ignored. Not a stand-in timer:
- * nothing ever runs, so *Brühen starten* and *Nochmal brühen* stay on their screen until then.
- */
-object NoBrewTimer : BrewTimer, BrewStarter {
-    override val state: StateFlow<TimerUiState> = MutableStateFlow<TimerUiState>(TimerUiState.Idle).asStateFlow()
-
-    override suspend fun send(event: TimerEvent): TransitionOutcome = TransitionOutcome.Ignored
-
-    override suspend fun startSession(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
-
-    override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome = TransitionOutcome.Ignored
-
-    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome = TransitionOutcome.Ignored
-
-    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome =
-        TransitionOutcome.Ignored
 }
 
 /**
