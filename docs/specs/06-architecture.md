@@ -273,14 +273,20 @@ again.
   The probe release `0.0.1-probe` uses 101; further probes (D-040) are
   `0.0.2-probe` → 201, `0.0.3-probe` → 301, and so on.
 - **Release workflow** (`release.yml`): triggered by `workflow_dispatch`
-  with inputs `ref` (branch or commit) and `version`; permissions
-  `contents: write`. It checks that `version` matches `gradle.properties`,
-  builds, tests, signs the APK, verifies the certificate fingerprint (§6.1),
-  **creates the tag** `v<version>` and the **GitHub Release** with the APK
-  and release notes. Claude triggers it through the GitHub Actions API / tool
-  (no local tag push needed). GitHub only dispatches workflows that exist on
-  the default branch, so `release.yml` reaches `main` through a small
-  housekeeping PR before the first dispatch (D-039).
+  with inputs `ref` (branch or commit) and `version`. It checks that
+  `version` matches `gradle.properties` and that CI passed on the exact
+  commit, runs the unit tests and the schema checks (05 §9), builds, signs
+  the APK and verifies the certificate fingerprint (§6.1); then it **creates
+  the tag** `v<version>` and the **GitHub Release** with the APK and release
+  notes. Signing and publishing are separate jobs (D-070): the job that holds
+  the keystore has a read-only token and runs only GitHub's own actions,
+  pinned to commit SHAs; the publish job has `contents: write`, runs no
+  action, and verifies the APK again before it publishes. Claude triggers it
+  through the GitHub Actions API / tool (no local tag push needed). GitHub
+  only dispatches workflows whose file exists on the default branch, so
+  `release.yml` and `accuracy.yml` reach `main` through small housekeeping
+  PRs before their first dispatch; the version at the dispatch's workflow
+  ref runs (D-039, D-070). How to dispatch: `docs/release.md`.
 - **Release candidates:** `vX.Y.Z-rc.N` are built from the milestone's PR
   branch and published as **pre-releases** for the PO's on-device testing.
   After the PR is merged, the final `vX.Y.Z` is built from `main`.

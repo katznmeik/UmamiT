@@ -1,7 +1,17 @@
-# Release workflow (06 §6, §6.1; M1-03, D-035, D-039; docs/release.md).
+# Release workflow (06 §6, §6.1; M1-03, D-035, D-039, D-070; docs/release.md).
 # Builds a signed release APK from `ref`, verifies it against the committed
 # certificate fingerprint and publishes tag `v<version>` + GitHub Release.
-# Dispatched by Claude only; GitHub dispatches it only while it is on `main`.
+# Dispatched by Claude only. GitHub dispatches it only while a file of this
+# name is on `main`; the version at the dispatched workflow ref runs (D-039).
+#
+# Two jobs, so the signing key and the write token never meet (D-070):
+# - `build` holds the keystore with a read-only token. It releases only a
+#   commit whose CI (ci.yml) passed, repeats the schema checks, builds, signs
+#   and verifies the APK, and hands it on as an artifact. It runs only
+#   GitHub's own actions, pinned to commit SHAs, and no Gradle setup action
+#   (one would inject init scripts into the signing build).
+# - `publish` has `contents: write` and runs no action at all: it downloads
+#   the artifact with `gh`, verifies it again and creates tag and release.
 name: Release
 
 on:
@@ -16,19 +26,33 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
+# Every job declares what it needs.
+permissions: {}
 
 # One release at a time; never cancel a running release half-way.
 concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  # Plain console output keeps the logs readable for Claude.
+  GRADLE_OPTS: -Dorg.gradle.console=plain
+
 jobs:
-  release:
-    name: Build, sign, verify and publish ${{ inputs.version }}
+  build:
+    name: Check, build, sign and verify ${{ inputs.version }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
+    permissions:
+      contents: read
+      # Reads the CI runs of the commit.
+      actions: read
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      version-code: ${{ steps.apk.outputs.version-code }}
+      apk-sha256: ${{ steps.apk.outputs.apk-sha256 }}
+      cert-sha256: ${{ steps.apk.outputs.cert-sha256 }}
     env:
       # Inputs reach shell steps only through the environment (no ${{ }} in scripts).
       INPUT_REF: ${{ inputs.ref }}
@@ -36,7 +60,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Check out ref
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           persist-credentials: false
@@ -60,6 +84,7 @@ jobs:
             echo "sha=$sha"
             echo "prerelease=$prerelease"
           } >> "$GITHUB_OUTPUT"
+          echo "SHA=$sha" >> "$GITHUB_ENV"
           echo "Building $VERSION from $INPUT_REF at $sha (pre-release: $prerelease)."
 
       - name: Check that tag and release do not exist yet
@@ -78,6 +103,21 @@ jobs:
             exit 1
           fi
           echo "Tag $tag is free."
+
+      # The full quality gate, the emulator job and the R8 build run in CI on
+      # every push; a release is built only from a commit where they passed.
+      - name: Check that CI passed on the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_url="$(gh api -X GET "repos/$GH_REPO/actions/runs" -f head_sha="$SHA" -f status=success -f per_page=100 \
+            --jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml")] | first | .html_url // empty')"
+          if [[ -z "$run_url" ]]; then
+            echo "::error::No successful CI run (ci.yml) for $SHA. Wait until CI on that commit has passed (rerun a flaky job if needed), then dispatch again."
+            exit 1
+          fi
+          echo "CI passed on $SHA: $run_url"
 
       - name: Check signing secrets
         env:
@@ -98,7 +138,7 @@ jobs:
           echo "Both signing secrets are set."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "21"
@@ -115,14 +155,6 @@ jobs:
           echo "BUILD_TOOLS_DIR=$sdk/build-tools/36.1.0" >> "$GITHUB_ENV"
           "$sdk/build-tools/36.1.0/apksigner" --version
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          # Same open-source cache provider as ci.yml; releases read the
-          # caches CI wrote but never write their own.
-          cache-provider: basic
-          cache-read-only: true
-
       - name: Read versionCode from the build
         run: |
           set -euo pipefail
@@ -138,6 +170,22 @@ jobs:
 
       - name: Unit tests
         run: ./gradlew testDebugUnitTest
+
+      # The same schema checks as ci.yml (05 §9, D-054). The build above
+      # rewrote the exported schema JSON, so a difference means the commit
+      # carries a stale schema, which a release tag would then freeze.
+      - name: Committed database schema is up to date
+        run: |
+          set -euo pipefail
+          git diff --exit-code core/database/schemas
+          untracked="$(git ls-files --others --exclude-standard core/database/schemas)"
+          if [[ -n "$untracked" ]]; then
+            echo "::error::schema files not committed: $untracked"
+            exit 1
+          fi
+
+      - name: Released database schemas are unchanged
+        run: scripts/check-frozen-schemas.sh
 
       - name: Decode keystore into the runner temp directory
         env:
@@ -182,21 +230,95 @@ jobs:
           fi
           scripts/verify-release-apk.sh "$apk" "$VERSION" "$VERSION_CODE" signing/release-cert-sha256.txt
 
-      - name: Create tag and GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.meta.outputs.sha }}
-          PRERELEASE: ${{ steps.meta.outputs.prerelease }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: Stage the APK for publishing
+        id: apk
         run: |
           set -euo pipefail
-          tag="v$VERSION"
           dist="$RUNNER_TEMP/dist"
           mkdir -p "$dist"
           apk="$dist/umamit-$VERSION.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
-          apk_sha256="$(sha256sum "$apk" | cut -d' ' -f1)"
-          cert_sha256="$(tr -d ':[:space:]' < signing/release-cert-sha256.txt | tr '[:upper:]' '[:lower:]')"
+          {
+            echo "version-code=$VERSION_CODE"
+            echo "apk-sha256=$(sha256sum "$apk" | cut -d' ' -f1)"
+            echo "cert-sha256=$(tr -d ':[:space:]' < signing/release-cert-sha256.txt | tr '[:upper:]' '[:lower:]')"
+          } >> "$GITHUB_OUTPUT"
+
+      # The APK is public once released, so the artifact holds nothing secret.
+      - name: Hand the APK to the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-apk
+          path: ${{ runner.temp }}/dist/umamit-${{ inputs.version }}.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Publish v${{ inputs.version }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Creates the tag and the release.
+      contents: write
+      # Downloads the build job's artifact.
+      actions: read
+    env:
+      INPUT_REF: ${{ inputs.ref }}
+      VERSION: ${{ inputs.version }}
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      SHA: ${{ needs.build.outputs.sha }}
+      PRERELEASE: ${{ needs.build.outputs.prerelease }}
+      VERSION_CODE: ${{ needs.build.outputs.version-code }}
+      APK_SHA256: ${{ needs.build.outputs.apk-sha256 }}
+    # No `uses:` in this job: it holds the write token.
+    steps:
+      - name: Download the APK
+        run: |
+          set -euo pipefail
+          dist="$RUNNER_TEMP/dist"
+          gh run download "$GITHUB_RUN_ID" --name release-apk --dir "$dist"
+          apk="$dist/umamit-$VERSION.apk"
+          if [[ ! -f "$apk" ]]; then
+            echo "::error::The artifact release-apk has no umamit-$VERSION.apk."
+            exit 1
+          fi
+          actual="$(sha256sum "$apk" | cut -d' ' -f1)"
+          if [[ "$actual" != "$APK_SHA256" ]]; then
+            echo "::error::The downloaded APK has SHA-256 $actual, but the build job verified $APK_SHA256."
+            exit 1
+          fi
+          echo "APK=$apk" >> "$GITHUB_ENV"
+
+      # Again, outside the job that held the key: the signer must be the
+      # committed release certificate, read from the built commit.
+      - name: Verify signature, certificate fingerprint and version again
+        run: |
+          set -euo pipefail
+          check="$RUNNER_TEMP/check"
+          mkdir -p "$check"
+          for file in scripts/verify-release-apk.sh signing/release-cert-sha256.txt; do
+            gh api -H "Accept: application/vnd.github.raw+json" "repos/$GH_REPO/contents/$file?ref=$SHA" \
+              > "$check/$(basename "$file")"
+          done
+          sdk="${ANDROID_HOME:?ANDROID_HOME is not set on this runner}"
+          if [[ ! -x "$sdk/build-tools/36.1.0/apksigner" ]]; then
+            sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+            (yes || true) | "$sdkmanager" --licenses >/dev/null
+            "$sdkmanager" --install "build-tools;36.1.0" >/dev/null
+          fi
+          BUILD_TOOLS_DIR="$sdk/build-tools/36.1.0" bash "$check/verify-release-apk.sh" \
+            "$APK" "$VERSION" "$VERSION_CODE" "$check/release-cert-sha256.txt"
+          echo "CERT_SHA256=$(tr -d ':[:space:]' < "$check/release-cert-sha256.txt" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Create tag and GitHub Release
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
           if [[ "$PRERELEASE" == "true" ]]; then
             kind="Pre-release for on-device testing (probe or release candidate)."
             flags=(--prerelease)
@@ -204,7 +326,7 @@ jobs:
             kind="Final release."
             flags=(--latest)
           fi
-          notes="$dist/notes.md"
+          notes="$RUNNER_TEMP/notes.md"
           cat > "$notes" <<EOF
           UmamiT $VERSION. $kind
 
@@ -213,10 +335,10 @@ jobs:
           | versionName | \`$VERSION\` |
           | versionCode | \`$VERSION_CODE\` |
           | Commit | $SHA (built from \`$INPUT_REF\`) |
-          | Signing certificate SHA-256 | \`$cert_sha256\` |
-          | APK SHA-256 | \`$apk_sha256\` |
+          | Signing certificate SHA-256 | \`$CERT_SHA256\` |
+          | APK SHA-256 | \`$APK_SHA256\` |
 
-          The signing certificate was verified against \`signing/release-cert-sha256.txt\` before publishing. Workflow run: $RUN_URL
+          CI passed on this commit, and the signing certificate was verified against \`signing/release-cert-sha256.txt\` before publishing. Workflow run: $RUN_URL
           EOF
           # Re-check right before publishing: gh would attach to an existing tag.
           existing="$(gh api "repos/$GH_REPO/git/matching-refs/tags/$tag" --jq ".[] | select(.ref == \"refs/tags/$tag\") | .ref")"
@@ -224,7 +346,7 @@ jobs:
             echo "::error::Tag $tag appeared while this run was building; not publishing."
             exit 1
           fi
-          gh release create "$tag" "$apk" \
+          gh release create "$tag" "$APK" \
             --target "$SHA" \
             --title "UmamiT $VERSION" \
             --notes-file "$notes" \
@@ -235,5 +357,5 @@ jobs:
             echo "- Tag: \`$tag\` at \`$SHA\`"
             echo "- versionCode: \`$VERSION_CODE\`"
             echo "- Pre-release: $PRERELEASE"
-            echo "- APK: \`umamit-$VERSION.apk\` (SHA-256 \`$apk_sha256\`)"
+            echo "- APK: \`umamit-$VERSION.apk\` (SHA-256 \`$APK_SHA256\`)"
           } >> "$GITHUB_STEP_SUMMARY"
