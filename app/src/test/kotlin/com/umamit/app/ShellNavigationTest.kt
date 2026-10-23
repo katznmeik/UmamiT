@@ -223,7 +223,7 @@ class ShellNavigationTest {
         val journalPosition = scrollPosition()
 
         tab(Tab.Stats).performClick()
-        compose.onNodeWithText(str(StatsR.string.stats_empty_title)).assertExists()
+        compose.onNodeWithText(str(StatsR.string.stats_later_title)).assertExists()
         tab(Tab.Journal).performClick()
 
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertExists()
@@ -259,7 +259,7 @@ class ShellNavigationTest {
     fun collectionRemembersLastSegment() {
         start()
         tab(Tab.Collection).performClick()
-        compose.onNodeWithText(str(CollectionR.string.collection_my_teas_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(CollectionR.string.collection_my_teas_later_title)).assertIsDisplayed()
         compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).performClick()
         tab(Tab.Stats).performClick()
         tab(Tab.Collection).performClick()
