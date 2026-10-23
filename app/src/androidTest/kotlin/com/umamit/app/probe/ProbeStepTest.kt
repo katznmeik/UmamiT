@@ -204,7 +204,8 @@ class ProbeStepTest {
     private fun tapStartOnProbeScreen() {
         // The probe entry lives in the settings, behind the gear on Start (M1-05).
         composeRule.onNodeWithContentDescription(context.getString(DesignSystemR.string.ds_settings)).performClick()
-        composeRule.onNodeWithText(context.getString(R.string.probe_entry)).performClick()
+        // The settings list (M1-15) puts the probe entry below the fold: scroll to it, or the tap misses.
+        composeRule.onNodeWithText(context.getString(R.string.probe_entry)).performScrollTo().performClick()
         // The probe screen scrolls (status list above the step section); performClick
         // taps the node centre even off-screen, so bring it into view first.
         composeRule.onNodeWithText(context.getString(R.string.probe_step_start)).performScrollTo().performClick()
