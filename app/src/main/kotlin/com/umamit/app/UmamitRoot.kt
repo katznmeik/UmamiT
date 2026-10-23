@@ -32,11 +32,10 @@ import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.journal.JournalSources
-import com.umamit.feature.settings.SettingsScreen
-import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
+import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
 
 /**
  * The app's top-level navigation: the shell with its tabs, and the full-screen
@@ -45,8 +44,8 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
  *
  * Alerts first (rule 8, D-058, D-062): no route transition runs into or out
  * of the timer while the alert plays, and every full-screen route above the
- * shell or the timer (the setup, *Timer-Einstellungen*, *Diagnose* and any
- * later one) that was opened before the alert gives way to the timer in the
+ * shell or the timer (the setup, *Timer-Einstellungen*, *Über*, *Diagnose*,
+ * the first-start setup and any later one) that was opened before the alert gives way to the timer in the
  * frame the alert starts: popped back to the timer when it is on the stack,
  * else replaced by it, without a transition.
  *
@@ -66,8 +65,11 @@ import com.umamit.feature.brew.setup.BrewSetupRoute as BrewSetupScreenRoute
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param setupScreen the setup route's content (SCR-04); tests replace it.
- * @param diagnosticsScreen *Diagnose* opened from *Timer-Einstellungen*; tests replace it, the app uses
- *   [DiagnosticsRoute].
+ * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
+ *   read, and nothing is shown until then. Not done: the setup (SCR-01) is the start destination.
+ * @param onboardingScreen the setup's content; tests replace it, the app uses [OnboardingScreenRoute].
+ * @param settings the settings, *Über* and *Diagnose* (SCR-25, SCR-27), in the tabs and above the timer;
+ *   tests replace them.
  */
 @Composable
 internal fun UmamitRoot(
@@ -89,9 +91,19 @@ internal fun UmamitRoot(
     setupScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
         BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
     },
-    diagnosticsScreen: @Composable (onBack: () -> Unit) -> Unit = { onBack -> DiagnosticsRoute(onBack = onBack) },
+    onboardingCompleted: StateFlow<Boolean?> = MutableStateFlow(true),
+    onboardingScreen: @Composable (onFinish: () -> Unit) -> Unit = { onFinish ->
+        OnboardingScreenRoute(onFinish = onFinish)
+    },
+    settings: SettingsScreens = SettingsScreens(),
 ) {
     val navController = rememberNavController()
+    // The start destination, chosen once from the first value read: the setup until it is completed. Nothing
+    // below runs before it is known, so no navigation can reach a NavHost without its graph.
+    val completed by onboardingCompleted.collectAsStateWithLifecycle()
+    var setupFirst by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    if (setupFirst == null) setupFirst = completed?.not()
+    val startWithSetup = setupFirst ?: return
     val motion = UmamiTheme.motion
     // Only the alert's identity is read here, so the root recomposes per alert, not per second.
     val alert by alertKey.collectAsStateWithLifecycle()
@@ -105,6 +117,15 @@ internal fun UmamitRoot(
     // From the back stack, not the route's composition: it changes when navigation starts, not after the fade.
     LaunchedEffect(timerShown) { currentOnTimerVisibleChange(timerShown) }
     val navigateAbove = timerFirst.navigateAbove
+    // *Einrichtung erneut zeigen* (ONB-04): above the shell or the timer, so it gives way to an alert too.
+    val rerunSetup: () -> Unit = { navigateAbove(OnboardingRoute) { launchSingleTop = true } }
+    val finishSetup: () -> Unit = {
+        if (navController.previousBackStackEntry != null) {
+            navController.popBackStack()
+        } else {
+            navController.navigate(ShellRoute) { popUpTo<OnboardingRoute> { inclusive = true } }
+        }
+    }
 
     // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
     fun AnimatedTimer.instant(): Boolean = currentAlerting && (initial.isTimer() || target.isTimer())
@@ -129,7 +150,7 @@ internal fun UmamitRoot(
     Box(modifier) {
         NavHost(
             navController = navController,
-            startDestination = ShellRoute,
+            startDestination = if (startWithSetup) OnboardingRoute else ShellRoute,
             modifier = Modifier.fillMaxSize(),
             enterTransition = {
                 if (AnimatedTimer(initialState, targetState).instant()) EnterTransition.None else fadeIn(motion.fade())
@@ -167,8 +188,10 @@ internal fun UmamitRoot(
                     startNavigation = startNavigation,
                     alertKey = alert,
                     startScreen = startScreen,
+                    settings = settings.withRerunSetup(rerunSetup),
                 )
             }
+            composable<OnboardingRoute> { onboardingScreen(finishSetup) }
             composable<TimerRoute> {
                 timerScreen(
                     closeTimer,
@@ -194,12 +217,24 @@ internal fun UmamitRoot(
                 )
             }
             composable<TimerSettingsRoute> {
-                SettingsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
+                settings.screen(
+                    SettingsHost(
+                        onBack = { navController.popBackStack() },
+                        onOpenAbout = { navigateAbove(AboutRoute) {} },
+                        alertKey = alert,
+                    ),
+                ) {}
+            }
+            composable<AboutRoute> {
+                settings.about(
+                    AboutHost(
+                        onBack = { navController.popBackStack() },
+                        onRerunSetup = rerunSetup,
+                        onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
+                    ),
                 )
             }
-            composable<DiagnosticsRoute> { diagnosticsScreen { navController.popBackStack() } }
+            composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
         }
         ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }
@@ -216,9 +251,9 @@ private class TimerFirst(
 /**
  * The one place that puts the timer on top now (rule 8; D-058, D-062, D-064):
  * - **a new alert:** a route above the shell or the timer (the setup, *Timer-Einstellungen*,
- *   *Diagnose* and any later one) opened before it gives way to the timer, once; one opened in
- *   this alert stays. Checked on every new alert and on resume, so an alert that started while
- *   the app was in the background is caught too;
+ *   *Über*, *Diagnose*, the first-start setup and any later one) opened before it gives way to
+ *   the timer, once; one opened in this alert stays. Checked on every new alert and on resume,
+ *   so an alert that started while the app was in the background is caught too;
  * - **a notification's request** (a new [timerRequest] token): the timer comes to the top, and
  *   the activity forgets the token ([onConsume]) only then, so a recreation before keeps it.
  *

@@ -1,11 +1,15 @@
 package com.umamit.feature.brew.timer
 
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.reliability.TimerReliability
+import com.umamit.core.timer.reliability.firstMissingIntents
+import com.umamit.core.timer.reliability.hasProblem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -59,5 +63,6 @@ class TimerViewModel @Inject constructor(
         problem.value = reliability.hasProblem()
     }
 
-    fun fixReliability() = reliability.fix()
+    /** The banner's *Beheben*: the pages of the first missing check, for the screen to start. */
+    fun fixReliability(): List<Intent> = reliability.firstMissingIntents()
 }

@@ -58,7 +58,10 @@ import com.umamit.feature.brew.R as BrewR
  */
 @RunWith(AndroidJUnit4::class)
 class TimerAlertOverLockScreenTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val setupDone = SetupDoneRule()
+
+    @get:Rule(order = 1)
     val compose = createEmptyComposeRule()
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()

@@ -435,7 +435,9 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    setting.
    Meanwhile the two seed photos download once in the background with a
    small progress line „Teefotos werden geladen …" and *Überspringen*
-   (ONB-06).
+   (ONB-06), below *Weiter*.
+   The setup is the start destination until completed; details:
+   [D-066](10-open-questions-and-decisions.md#d-066).
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
    machen" · *Katalog jetzt laden* (progress inline) / *Später*.
 
@@ -669,7 +671,11 @@ replaced by the exact price when fetched; Kaufdatum; *Aufnehmen*.
 
 Sections per SET-30; *Timer-Zuverlässigkeit* card at the top with status rows
 (Benachrichtigungen, Live-Benachrichtigungen, Vollbild-Alarm, Akku, exakte
-Alarme) and *Beheben* buttons; *Alarm testen*.
+Alarme) and *Beheben* buttons; *Alarm testen*. In M1: the card, *Timer &
+Alarm* (Alarmton with *Anhören*, Vorwarnung, Vibration, Alarmdauer,
+Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
+*Über*; no dialog over an alert
+([D-066](10-open-questions-and-decisions.md#d-066)).
 
 ### SCR-26 Daten & Sicherung
 
@@ -685,7 +691,8 @@ Kiel, nur für den privaten Gebrauch"), licences, *Einrichtung erneut zeigen*,
 [06 §5.6](06-architecture.md#56-error-handling--logging)): entries newest
 first, the time in monospace above each message; *Kopieren* in the top bar
 copies a header (app and Android version, device) and every entry; an empty
-log shows an empty state (D-060).
+log shows an empty state (D-060). In M1 the licences are a short text;
+AboutLibraries follows with 1.0 (D-066).
 
 ### SCR-28 Fotos, SCR-29 Vorrat, SCR-30 Beschreibungen
 

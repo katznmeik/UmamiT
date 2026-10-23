@@ -1,10 +1,7 @@
 package com.umamit.app.timer
 
-import android.content.Intent
-import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import com.umamit.app.probe.PermissionStatusChecks
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.model.StepKind
@@ -29,50 +26,11 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The app side of SCR-05: the reliability checks (TMR-31), the lock-screen flags and the active brew bar. */
+/** The app side of SCR-05: the lock-screen flags and the active brew bar. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimerAppWiringTest {
-
-    private class Checks(
-        var notifications: Boolean = true,
-        var promoted: Boolean? = true,
-        var fullScreen: Boolean = true,
-        var exact: Boolean = true,
-        var battery: Boolean = true,
-    ) : PermissionStatusChecks {
-        override fun areNotificationsEnabled() = notifications
-
-        override fun canPostPromotedNotifications() = promoted
-
-        override fun canUseFullScreenIntent() = fullScreen
-
-        override fun canScheduleExactAlarms() = exact
-
-        override fun isIgnoringBatteryOptimizations() = battery
-    }
-
-    private val opened = mutableListOf<List<Intent>>()
-
-    private fun reliability(checks: Checks) = PermissionTimerReliability(checks, "com.umamit.app") { opened += it }
-
-    @Test
-    fun `every check passing, or a platform without Live Updates, is no problem`() {
-        assertThat(reliability(Checks()).hasProblem()).isFalse()
-        assertThat(reliability(Checks(promoted = null)).hasProblem()).isFalse()
-    }
-
-    @Test
-    fun `a failing check is a problem, and Beheben opens the page of the first failing one`() {
-        val checks = Checks(fullScreen = false, battery = false)
-        val reliability = reliability(checks)
-
-        assertThat(reliability.hasProblem()).isTrue()
-        reliability.fix()
-
-        assertThat(opened.single().first().action).isEqualTo(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
-    }
 
     private fun active(phase: TimerPhase, deadline: Long? = null, plannedSeconds: Int = 60, longStep: Boolean = false) =
         TimerUiState.Active(

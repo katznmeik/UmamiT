@@ -21,4 +21,6 @@ class HomeActions(
     val confirmRestart: () -> Unit = {},
     /** *Abbrechen* of the question. */
     val dismissQuestion: () -> Unit = {},
+    /** The reliability banner's *Beheben* (TMR-31). */
+    val fixReliability: () -> Unit = {},
 )

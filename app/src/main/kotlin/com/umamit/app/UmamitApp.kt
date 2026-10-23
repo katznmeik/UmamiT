@@ -55,8 +55,6 @@ import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
-import com.umamit.feature.settings.SettingsScreen
-import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
 import com.umamit.feature.journal.JournalRoute as JournalTab
@@ -81,6 +79,7 @@ private const val SLIDE_FRACTION = 12
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
+ * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  */
 @Composable
 internal fun UmamitApp(
@@ -93,6 +92,7 @@ internal fun UmamitApp(
     startNavigation: StartNavigation = StartNavigation(),
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    settings: SettingsScreens = SettingsScreens(),
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
@@ -170,6 +170,8 @@ internal fun UmamitApp(
                             onSegmentChange = { segment = it },
                             journalSources = journalSources,
                             onOpenTimer = onOpenTimer,
+                            settings = settings,
+                            alertKey = alertKey,
                             start = { openSettings, scrollToTop ->
                                 startScreen(
                                     StartTab(
@@ -253,6 +255,8 @@ private fun TabHost(
     onSegmentChange: (CollectionSegment) -> Unit,
     journalSources: JournalSources,
     onOpenTimer: () -> Unit,
+    settings: SettingsScreens,
+    alertKey: String?,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -280,21 +284,33 @@ private fun TabHost(
         }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
-            SettingsScreen(
-                onBack = { navController.popBackStack() },
-                onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
-                scrollToTopRequest = scrollToTopRequest,
+            settings.screen(
+                SettingsHost(
+                    onBack = { navController.popBackStack() },
+                    onOpenAbout = { navController.navigate(AboutRoute) },
+                    alertKey = alertKey,
+                    scrollToTopRequest = scrollToTopRequest,
+                ),
             ) {
-                // Throwaway probe entry (M1-03a); removed or hidden before v0.1.0.
+                // Throwaway probe entry (M1-03a); removed with the probe in M1-18 (#54).
                 OutlinedButton(
                     onClick = { navController.navigate(ProbeRoute) },
-                    modifier = Modifier.padding(top = UmamiSpacing.Large),
+                    modifier = Modifier.padding(UmamiSpacing.Large),
                 ) {
                     Text(stringResource(R.string.probe_entry))
                 }
             }
         }
-        composable<DiagnosticsRoute> { DiagnosticsRoute(onBack = { navController.popBackStack() }) }
+        composable<AboutRoute> {
+            settings.about(
+                AboutHost(
+                    onBack = { navController.popBackStack() },
+                    onRerunSetup = settings.onRerunSetup,
+                    onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
+                ),
+            )
+        }
+        composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
         composable<ProbeRoute> { ProbeScreen(onBack = { navController.popBackStack() }) }
     }
 }

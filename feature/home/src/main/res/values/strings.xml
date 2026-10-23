@@ -2,6 +2,8 @@
 <resources>
     <!-- Start (SCR-02) -->
     <string name="home_title">UmamiT</string>
+    <!-- Reliability banner (TMR-31). -->
+    <string name="home_reliability">Der Timer ist eventuell unzuverlässig</string>
     <string name="home_start_brew">Aufguss starten</string>
     <string name="home_start_brew_subtitle">Tee wählen und los</string>
     <string name="home_continue_brew">Aufguss fortsetzen</string>
