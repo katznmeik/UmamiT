@@ -102,15 +102,10 @@ only.
 - [ ] (Best effort, not blocking) Live Update appears in the Now Bar.
 - [ ] Reboot test: set a step to 15 min via the Schritte-Sheet, start it, reboot, unlock the phone before the deadline → the notice „Dein Timer läuft weiter" with the text „<Tee> · nach dem Neustart" appears, and the alert fires on time.
 - [ ] Update during a session: install the next rc while a 3-min step runs → the Live Update comes back right after the install and the alert fires on time (04 §7.5).
-<<<<<<< HEAD
-- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows pre-alert and alert fire times within 1 s of the scheduled time; *Kopieren* works.
+- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows each step's „alert PRE_ALERT" and „alert ALERT" lines (the moment the sound started) within 1 s of the scheduled time (their `delta`); the „event … accepted" line above each is only the controller's handling (D-068); *Kopieren* works.
 - [ ] Session appears in the minimal journal list with its planned first infusion and the poured count („2 von 3 Aufgüssen" when finished early); the „Gespeichert" sheet after *Sitzung beenden* shows the actual total (D-061).
 - [ ] Light phone theme: status-bar icons and the gesture handle are visible (light) on the timer and the quick timer, also right after starting a quick timer; dark on the alert surface; dark again on the tabs after leaving the timer (D-069).
 - [ ] Rotate the phone, or switch light/dark, while a step alerts and the tabs are on screen: the matcha brew bar is there at once, without growing or fading in (03 §3.8, D-069).
-=======
-- [ ] Accuracy: after a few sessions, *Einstellungen › Über › Diagnose* shows each step's „alert PRE_ALERT" and „alert ALERT" lines (the moment the sound started) within 1 s of the scheduled time (their `delta`); the „event … accepted" line above each is only the controller's handling (D-068); *Kopieren* works.
-- [ ] Session appears in the minimal journal list with actual times („2 von 3 Aufgüssen" when finished early).
->>>>>>> origin/claude/umamit-m1-start-k0jg3n
 
 ### M2 — Catalog
 
