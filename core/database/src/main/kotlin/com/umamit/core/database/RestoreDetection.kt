@@ -17,7 +17,8 @@ const val PHOTOS_DIR = "photos"
 /**
  * The builder of `umamit.db` as the app opens it (05 §1, §8): with restore detection, so a
  * database restored from a device backup or transfer never resumes the old phone's timer
- * (04 §11 E11). [installMarker] and [photosDir] are replaceable for tests only.
+ * (04 §11 E11), and with every migration in [UMAMI_MIGRATIONS] (05 §9). [installMarker] and
+ * [photosDir] are replaceable for tests only.
  */
 fun umamiDatabaseBuilder(
     context: Context,
@@ -25,6 +26,7 @@ fun umamiDatabaseBuilder(
     installMarker: File = File(context.noBackupFilesDir, INSTALL_MARKER_FILE),
     photosDir: File = File(context.filesDir, PHOTOS_DIR),
 ): RoomDatabase.Builder<UmamiDatabase> = Room.databaseBuilder(context, UmamiDatabase::class.java, name)
+    .addMigrations(*UMAMI_MIGRATIONS.toTypedArray())
     .addCallback(RestoreDetection(installMarker, photosDir))
 
 /**
