@@ -5,6 +5,8 @@ import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationManager
 import android.os.ParcelFileDescriptor
+import android.os.PowerManager
+import android.util.Log
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
@@ -63,6 +65,12 @@ class TimerAlertOverLockScreenTest {
     private val context = instrumentation.targetContext
     private val packageName = context.packageName
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
+    private val keyguard = context.getSystemService(KeyguardManager::class.java)
+    private val power = context.getSystemService(PowerManager::class.java)
+
+    /** Whether the AVD had its lock screen disabled before the test enabled it; restored in [tearDown]. */
+    private var lockScreenWasDisabled = false
+
     private val controller =
         (context.applicationContext as TimerHost).timerInputs as BrewSessionController
 
@@ -70,6 +78,10 @@ class TimerAlertOverLockScreenTest {
     fun setUp() {
         instrumentation.uiAutomation.grantRuntimePermission(packageName, Manifest.permission.POST_NOTIFICATIONS)
         shell("appops set $packageName USE_FULL_SCREEN_INTENT allow")
+        // The CI AVD boots with the lock screen disabled, so the keyguard never shows after sleep.
+        // „Over the lock screen" needs one: enable the (insecure, swipe) keyguard for this test.
+        lockScreenWasDisabled = shell("locksettings get-disabled").trim() == "true"
+        shell("locksettings set-disabled false")
         wakeAndUnlock()
         endTimer()
     }
@@ -83,6 +95,7 @@ class TimerAlertOverLockScreenTest {
             }.filterIsInstance<MainActivity>().forEach { it.finish() }
         }
         wakeAndUnlock()
+        if (lockScreenWasDisabled) shell("locksettings set-disabled true")
     }
 
     @Test
@@ -96,32 +109,37 @@ class TimerAlertOverLockScreenTest {
         }
         eventually("the Live Update", TIMEOUT) { activeNotification(TimerNotifications.ID_LIVE_UPDATE) }
 
-        // With the screen off the full-screen intent opens the timer (on and unlocked: a heads-up).
+        // With the screen off and locked the full-screen intent opens the timer (on and unlocked: a heads-up).
         shell("input keyevent KEYCODE_SLEEP")
-        eventually("MainActivity over the lock screen at the deadline", STEP + ALERT_TIMEOUT) {
-            resumedMainActivity()
+        val locked = eventuallyOrNull(LOCK_TIMEOUT) { Unit.takeIf { keyguard.isKeyguardLocked } } != null
+        if (!locked) Log.w(TAG, "No keyguard after sleep on this image; checking the screen turned on instead")
+        eventually("the alert (ID 2) at the deadline", STEP + ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_ALERT)
         }
+        eventually("MainActivity resumed by the full-screen intent", ALERT_TIMEOUT) { resumedMainActivity() }
 
-        val keyguard = context.getSystemService(KeyguardManager::class.java)
-        assertTrue("the timer must show over the lock screen", keyguard.isKeyguardLocked)
+        check("the alert must turn the screen on", power.isInteractive)
+        if (locked) check("the timer must show over the lock screen", keyguard.isKeyguardLocked)
         // The caption sits in the ring's description (TimerRing clears its semantics); the pill is a text.
         compose.onNodeWithTag(TIMER_RING_TAG)
             .assert(hasContentDescription(context.getString(BrewR.string.brew_timer_caption_alert), substring = true))
             .assertIsDisplayed()
         compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).assertIsDisplayed()
         val alert = activeNotification(TimerNotifications.ID_ALERT)
-        assertNotNull("alert notification (ID 2) missing", alert)
+        check("alert notification (ID 2) missing", alert != null)
         alert!!
-        assertNotNull("the alert has no full-screen intent", alert.fullScreenIntent)
-        assertTrue(
+        check("the alert has no full-screen intent", alert.fullScreenIntent != null)
+        check(
             "the alert is marked FLAG_SILENT (force-grouped), flags=0x${Integer.toHexString(alert.flags)}",
             alert.flags and Dumpsys.FLAG_SILENT == 0,
         )
-        assertTrue(
-            "the alert is not the foreground notification",
-            alert.flags and Notification.FLAG_FOREGROUND_SERVICE != 0,
+        check("the alert is not the foreground notification", alert.flags and Notification.FLAG_FOREGROUND_SERVICE != 0)
+        check(
+            "the alert must be the app's only timer notification",
+            notificationManager.activeNotifications.none {
+                it.id == TimerNotifications.ID_LIVE_UPDATE || it.id == TimerNotifications.ID_QUIET
+            },
         )
-        assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
 
         compose.onNodeWithText(context.getString(BrewR.string.brew_timer_poured)).performClick()
         eventually("FINISHED after Abgegossen", TIMEOUT) {
@@ -153,13 +171,12 @@ class TimerAlertOverLockScreenTest {
         shell("wm dismiss-keyguard")
     }
 
-    private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
-        val start = TimeSource.Monotonic.markNow()
-        while (start.elapsedNow() < timeout) {
-            probe()?.let { return it }
-            Thread.sleep(POLL_INTERVAL_MS)
-        }
-        probe()?.let { return it }
+    /** Fails with [message] and the device's state unless [condition]. */
+    private fun check(message: String, condition: Boolean) {
+        if (!condition) throw AssertionError("$message\n${deviceState()}")
+    }
+
+    private fun deviceState(): String {
         val notifications = notificationManager.activeNotifications.joinToString("\n") {
             "id=${it.id} channel=${it.notification.channelId} flags=0x${Integer.toHexString(it.notification.flags)}"
         }
@@ -167,10 +184,27 @@ class TimerAlertOverLockScreenTest {
             shell("dumpsys activity activities"),
             listOf("ResumedActivity", "mKeyguardShowing", "mOccluded"),
         )
-        throw AssertionError(
-            "Timed out after $timeout waiting for: $what\nstate=${controller.state.value}\n" +
-                "--- notifications ---\n$notifications\n--- activities ---\n$activities",
-        )
+        return "state=${controller.state.value}\nkeyguardLocked=${keyguard.isKeyguardLocked} " +
+            "interactive=${power.isInteractive}\n--- notifications ---\n$notifications\n--- activities ---\n$activities"
+    }
+
+    private fun <T : Any> eventuallyOrNull(timeout: Duration, probe: () -> T?): T? {
+        val start = TimeSource.Monotonic.markNow()
+        while (start.elapsedNow() < timeout) {
+            probe()?.let { return it }
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+        return probe()
+    }
+
+    private fun <T : Any> eventually(what: String, timeout: Duration, probe: () -> T?): T {
+        val start = TimeSource.Monotonic.markNow()
+        while (start.elapsedNow() < timeout) {
+            probe()?.let { return it }
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+        probe()?.let { return it }
+        throw AssertionError("Timed out after $timeout waiting for: $what\n${deviceState()}")
     }
 
     private fun shell(command: String): String =
@@ -181,6 +215,8 @@ class TimerAlertOverLockScreenTest {
         val STEP = 15.seconds
         val TIMEOUT = 10.seconds
         val ALERT_TIMEOUT = 45.seconds
+        val LOCK_TIMEOUT = 5.seconds
+        const val TAG = "TimerAlertTest"
         const val POLL_INTERVAL_MS = 250L
 
         fun brew() = BrewStart(

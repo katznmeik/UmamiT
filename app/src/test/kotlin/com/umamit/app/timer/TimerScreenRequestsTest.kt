@@ -36,11 +36,11 @@ class TimerScreenRequestsTest {
     @Test
     fun `a request not handled yet survives the recreation`() {
         val before = requests()
-        before.request()
+        before.request(openTimer())
         val saved = Bundle().also(before::save)
 
         val after = requests()
-        assertThat(after.restore(saved)).isTrue()
+        assertThat(after.restore(saved, null)).isTrue()
 
         assertThat(after.token.value).isEqualTo(before.token.value)
         assertThat(after.pending).isEqualTo(before.token.value)
@@ -49,25 +49,54 @@ class TimerScreenRequestsTest {
     @Test
     fun `a handled request is not opened again after the recreation`() {
         val before = requests()
-        before.request()
+        before.request(openTimer())
         before.handled(before.token.value)
         val saved = Bundle().also(before::save)
 
         val after = requests()
 
-        assertThat(after.restore(saved)).isFalse()
+        assertThat(after.restore(saved, null)).isFalse()
         assertThat(after.token.value).isEqualTo(0L)
     }
 
     @Test
     fun `handling an older request leaves a newer one pending`() {
         val requests = requests()
-        requests.request()
+        requests.request(openTimer())
         val older = requests.token.value
-        requests.request()
+        requests.request(openTimer())
 
         requests.handled(older)
 
         assertThat(requests.pending).isEqualTo(requests.token.value)
     }
+
+    @Test
+    fun `a stopped activity relaunched with its older state still opens the timer (R2-1)`() {
+        // Saved at the stop behind the keyguard, before any request.
+        val before = requests()
+        val savedAtStop = Bundle().also(before::save)
+        // The full-screen intent reaches the stopped activity; Android relaunches it for a
+        // configuration change with the state of the stop and this intent, without saving again.
+        val intent = openTimer()
+        before.request(intent)
+
+        val after = requests()
+
+        assertThat(after.restore(savedAtStop, intent)).isTrue()
+        assertThat(after.token.value).isEqualTo(before.token.value)
+    }
+
+    @Test
+    fun `the intent's request is not opened again once it was handled`() {
+        val before = requests()
+        val intent = openTimer()
+        before.request(intent)
+        before.handled(before.token.value)
+        val saved = Bundle().also(before::save)
+
+        assertThat(requests().restore(saved, intent)).isFalse()
+    }
+
+    private fun openTimer() = TimerScreenIntents.openTimer(ApplicationProvider.getApplicationContext<Application>())
 }

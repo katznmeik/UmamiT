@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
         // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
-        } else if (timerRequests.restore(savedInstanceState)) {
+        } else if (timerRequests.restore(savedInstanceState, intent)) {
             showTimerOverLockScreen()
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
@@ -96,9 +96,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openTimerIfAsked(intent: Intent?) {
-        if (!TimerScreenIntents.isOpenTimer(intent)) return
+        if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
         showTimerOverLockScreen()
-        timerRequests.request()
+        timerRequests.request(intent)
     }
 
     /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
