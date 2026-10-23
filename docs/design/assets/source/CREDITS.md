@@ -30,6 +30,9 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 |---|---|---|---|
 | `core/designsystem/src/main/res/drawable/ic_*.xml` (except `ic_custom_*`) | Material Symbols Outlined, weight 300, as vector drawables (03 §3.4) | [google/material-design-icons `symbols/web`](https://github.com/google/material-design-icons/tree/master/symbols/web) | Apache License 2.0 (`core/designsystem/licenses/MaterialSymbols-Apache-2.0.txt`) |
 | `core/designsystem/src/main/res/drawable/ic_custom_*.xml` | Placeholder line icons (leaf, kettle, thermometer, infusions) until the PO's icons exist | Own work | Own work |
+| `app/src/main/res/drawable/ic_launcher_foreground.xml` | Launcher icon foreground: the A1 logo sprig (M1-21), traced to a vector from `docs/design/assets/source/A1-logo-sprig.png` | AI-generated for the PO (D-029, option C) | Own work |
+| `app/src/main/res/drawable/ic_launcher_monochrome.xml` | Themed-icon (monochrome) layer: the same A1 sprig silhouette | AI-generated for the PO (D-029, option C) | Own work |
+| `core/timer/src/main/res/drawable/ic_stat_umamit.xml` | Status-bar small icon: the A1 sprig as a solid 24 dp silhouette | AI-generated for the PO (D-029, option C) | Own work |
 
 ## Images
 

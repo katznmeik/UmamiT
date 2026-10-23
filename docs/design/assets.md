@@ -12,7 +12,7 @@
 
 | # | Asset | Where it appears | Format to deliver | Variants |
 |---|---|---|---|---|
-| A1 | **Logo sprig** (two tea leaves) | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
+| A1 | **Logo sprig** (two tea leaves) ✓ delivered | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
 | A2 | **Welcome landscape** | SCR-01 welcome (full screen, portrait) | PNG ≥ 1440 × 3120 (9:19.5) | light |
 | A3 | **Home header landscape** | SCR-02 header (no text on it) | PNG ≥ 2400 × 1000 (≈ 2.4:1) | light **and** dark |
 | A4 | **Timer fallback photo** ✓ delivered | SCR-05 top area when a tea has no photo (the quick timer has none, D-069) | PNG, landscape 3:2 (≥ 1536 × 1024): the photo band is full width × 280 dp, centre-cropped, its lower part fading into the background; dark and moody, subject in the upper middle | dark only (timer is always dark) |
