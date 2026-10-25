@@ -185,7 +185,7 @@ private fun TeaHeader(state: BrewSetupUiState.Ready) {
         val meta = listOfNotNull(
             state.secondaryName,
             state.stockGrams?.let { stringResource(R.string.brew_setup_stock, grams(it)) },
-        ).joinToString(" · ")
+        ).joinToString(stringResource(R.string.brew_setup_meta_separator))
         if (meta.isNotEmpty()) {
             Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -407,7 +407,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 | Component | Description |
 |---|---|
-| `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min · 80 °C"), trailing „★ 4,5", hairline divider |
+| `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider |
 | `PrimaryActionCard` | Dark-green card, leaf icon, title + subtitle, chevron |
 | `StatTriplet` | Temperatur · Ziehzeit · Aufgüsse with line icons |
 | `SectionHeader` | Overline + optional „Alle anzeigen" |
@@ -458,7 +458,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 │ (○ Gyokuro) (○ Sencha) (○ …) │
 │ ZULETZT GEBRÜHT  Alle anzeigen│  last 3 sessions
 │ (○) Sencha Asamushi    ★ 4,5 │
-│     8. Juni · 3 Min · 80 °C  │
+│     8. Juni · 3 Min. · 80 °C │
 │ FAVORITEN                    │
 └──────────────────────────────┘
 │ Start · Journal · Sammlung · Statistik │
@@ -801,4 +801,5 @@ editable before *Start*). Never from ALERTING: both entries appear after
 Touch targets ≥ 48 dp (timer pill ≥ 72 dp high); contrast ≥ 4.5:1 for body
 text in all schemes; content descriptions in German; chart table
 alternatives; correct semantics for rating, sliders, ring; 200 % font scale
-without loss of essential content.
+without loss of essential content. Navigation labels stay on one line and
+shrink to fit their item instead of wrapping („Sammlung" at 200 %, D-075).

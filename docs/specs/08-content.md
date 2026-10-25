@@ -228,6 +228,10 @@ each photo re-encoded as a JPEG cover
 (≤ 2048 px, no metadata, origin `CATALOG_COPY`). A photo the shop doesn't
 have, that robots.txt disallows or that doesn't decode keeps the placeholder.
 
+A seed that fails on the first start is retried at every later app start
+until it succeeds (D-075); that retry never sends the photo download, so
+those covers come with the first catalog refresh (CAT-15).
+
 Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
 seed vessels (WARE-06). Purchase date of the seed stock = first app start;
 `opened_date` is set by the first session (INV-06).

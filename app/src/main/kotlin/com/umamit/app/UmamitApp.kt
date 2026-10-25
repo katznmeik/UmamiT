@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
@@ -42,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -132,7 +136,7 @@ internal fun UmamitApp(
                         if (tab != selected) selected = tab else reselection.reselect(tab, controllers.getValue(tab))
                     },
                     icon = { Icon(painterResource(tab.icon), contentDescription = null) },
-                    label = { Text(stringResource(tab.label)) },
+                    label = { TabLabel(stringResource(tab.label)) },
                     modifier = Modifier.testTag(tabTag(tab)),
                 )
             }
@@ -304,3 +308,21 @@ private fun TabHost(
         composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
     }
 }
+
+/**
+ * A tab's label on one line: at a large font scale („Sammlung" at 2.0) it shrinks to fit the item
+ * instead of wrapping and lifting its icon (03 §6, #58 U-O1). It never grows past the bar's style.
+ */
+@Composable
+private fun TabLabel(text: String) {
+    val size = LocalTextStyle.current.fontSize.takeIf { it.isSpecified } ?: TAB_LABEL_FALLBACK_SIZE
+    Text(
+        text = text,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = TAB_LABEL_MIN_SIZE, maxFontSize = size),
+    )
+}
+
+private val TAB_LABEL_FALLBACK_SIZE = 12.sp
+private val TAB_LABEL_MIN_SIZE = 8.sp

@@ -39,7 +39,7 @@ data class HomeTea(val id: String, val name: String, val photoPath: String?)
 
 /**
  * A row of *Zuletzt gebrüht* (SCR-02): the `TeaListItem` meta line
- * „8. Juni · 1 Min · 65 °C" from the start, the first brewed step's planned
+ * „8. Juni · 1 Min. · 65 °C" from the start, the first brewed step's planned
  * duration and its temperature.
  */
 data class RecentBrew(

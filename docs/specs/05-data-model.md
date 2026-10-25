@@ -400,7 +400,7 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
-| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again |
+| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
 
 The settings are one JSON file, `files/datastore/settings.json`. A missing
@@ -414,9 +414,14 @@ and an unreadable file reads as all defaults (#30).
 | Temperature | °C, integer, multiple of 5 | „55 °C" |
 | Leaf | g, REAL (0.1) | „4,0 g" (German decimal comma) |
 | Water | ml, INTEGER | „100 ml" |
-| Duration | s | „1:30", „1 Min 30 s" in prose, „3 Min" in lists |
+| Duration | s | „1:30", „1 Min. 30 s" in prose, „3 Min." / „4 Std." in lists |
 | Ratio | derived | „4,0 g / 100 ml" |
 | Money | cents + currency (EUR) | „15,90 €" |
+
+A number and its unit are joined by a no-break space (U+00A0, „55 °C",
+„3 Min."), so a line never breaks between them; the abbreviations are always
+„Std.", „Min.", „Sek." with a full stop (#58 U-O7, D-073). Separators such as
+„ · " come from `strings.xml`, never from code.
 
 Snap rule: `snap5(x) = 5 × floor(x / 5 + 0.5)` (half up: 52,5 → 55).
 Time rounding for derived recipes: nearest 5 s (half up).
