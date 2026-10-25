@@ -33,6 +33,15 @@ object SyntheticShop {
     /** How the buy box shows the stock (08 §2.3). */
     enum class Stock { IN_STOCK, OUT_OF_STOCK, UNKNOWN }
 
+    /**
+     * A size option of the buy box's configurator (08 §2.3): its [label] („250g"), the
+     * [savings] note after it („3% gespart¹") and whether it is the page's own size ([checked]).
+     */
+    data class Size(val label: String, val savings: String? = null, val checked: Boolean = false)
+
+    /** The configurator of a page sold in one size only: its own 100 g. */
+    val ONE_SIZE = listOf(Size("100g", checked = true))
+
     /** The brewing grid's header, as the shop labels its columns (08 §2.3). */
     val BREW_HEADER = listOf("Menge", "Temperatur", "1. Aufguss", "2. Aufguss", "3. Aufguss")
 
@@ -104,6 +113,7 @@ object SyntheticShop {
         invertedBadges: List<String> = emptyList(),
         scales: List<Pair<String, Int>> = emptyList(),
         brewRows: List<Pair<String, List<String>>> = emptyList(),
+        sizes: List<Size> = ONE_SIZE,
     ): String = buildString {
         append("<!DOCTYPE html><html lang=\"de-DE\"><head><meta charset=\"utf-8\">")
         append("<title>Synthetic shop</title>")
@@ -140,7 +150,7 @@ object SyntheticShop {
             append("</div>")
         }
         append(stockHtml(stock))
-        append(configuratorHtml())
+        if (sizes.isNotEmpty()) append(configuratorHtml(sizes))
         if (sku != null) {
             append("<div class=\"product-detail-ordernumber-container\">")
             append("<span class=\"product-detail-ordernumber-label\">Produktnummer:</span>")
@@ -268,14 +278,26 @@ object SyntheticShop {
         Stock.UNKNOWN -> ""
     }
 
-    private fun configuratorHtml(): String =
-        "<div class=\"product-detail-configurator-container\"><div class=\"product-detail-configurator\">" +
-            "<form data-variant-switch=\"true\"><fieldset class=\"product-detail-configurator-group\">" +
-            "<legend class=\"product-detail-configurator-group-title\">Größe</legend>" +
-            "<div class=\"product-detail-configurator-options\">" +
-            "<div class=\"product-detail-configurator-option\"><input type=\"radio\" checked id=\"o1\">" +
-            "<label class=\"product-detail-configurator-option-label\" for=\"o1\">100g</label></div>" +
-            "</div></fieldset></form></div></div>"
+    private fun configuratorHtml(sizes: List<Size>): String = buildString {
+        append("<div class=\"product-detail-configurator-container\"><div class=\"product-detail-configurator\">")
+        append("<form data-variant-switch=\"true\"><fieldset class=\"product-detail-configurator-group\">")
+        append("<legend class=\"product-detail-configurator-group-title\">Größe</legend>")
+        append("<div class=\"product-detail-configurator-options\">")
+        sizes.forEachIndexed { index, size ->
+            val checked = if (size.checked) " checked" else ""
+            append("<div class=\"product-detail-configurator-option\">")
+            append("<input type=\"radio\" class=\"product-detail-configurator-option-input\"$checked id=\"o$index\">")
+            append("<label class=\"product-detail-configurator-option-label\" for=\"o$index\">")
+            append(size.label.htmlEscaped())
+            size.savings?.let { append(" <span class=\"st-configurator-rabatt\">${it.htmlEscaped()}</span>") }
+            append("</label></div>")
+        }
+        append("</div></fieldset>")
+        if (sizes.any { it.savings != null }) {
+            append("<div class=\"st-configurator-rabatt-info\">¹ Ersparnis gegenüber der kleineren Packung</div>")
+        }
+        append("</form></div></div>")
+    }
 
     private fun crossSellingBox(baseUrl: String, index: Int): String =
         "<div class=\"card product-box box-standard\" itemscope itemtype=\"https://schema.org/Product\">" +

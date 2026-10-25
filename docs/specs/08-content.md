@@ -107,11 +107,21 @@ comes from titles („2026 Shincha …").
    280 €/kg vs. 179 €/kg) — shown as „Preis beim Hinzufügen". The exact price
    of any size is fetched from its variant URL when the user adds that package
    (CAT-12, network use (c) of GEN-01, online only; offline the estimate or
-   an empty price is used and editable).
+   an empty price is used and editable). The refresh never fetches a size's
+   page (D-076): the sizes are the union of the configurator's options and
+   the sitemap's `<base>-<grams>` URLs; the fetched page's own size carries
+   its price and stock, the other sizes no stock (unknown). Each size keeps
+   its own page as `variant_url` (the sitemap URL; the product page for the
+   page's own size; empty for a size only the configurator names) (D-081).
 7. Teas split into separate base numbers per size but with the same name are
-   merged by normalised name. The merged entry's `key` is deterministic: the
-   **lowest** base number (string order, e.g. `AT0868` for
-   `AT0868`/`AT0869`).
+   merged by normalised name (lower case, without sizes such as „30g" or
+   „-100g" in the name or slug, without punctuation). The merged entry's `key`
+   is deterministic: the **lowest** base number (string order, e.g. `AT0868`
+   for `AT0868`/`AT0869`); its page gives the details. Each page's own size
+   becomes a package at that page's price, which wins over another page's
+   estimate for the same size; the tea is in stock when any of its pages is.
+   Two pages with the same name **and** the same own size are two teas (e.g.
+   two harvests) and are not merged (D-081).
 8. New harvests usually get new article numbers; the old one becomes
    discontinued.
 

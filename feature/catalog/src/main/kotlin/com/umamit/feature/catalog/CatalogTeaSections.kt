@@ -161,7 +161,7 @@ private fun BrewTableRow.methodLabel(): String = when (kind) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(top = UmamiSpacing.Large)) {
         SectionHeader(title = title, modifier = Modifier.fillMaxWidth())
         Column(modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin), content = content)
@@ -170,7 +170,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 
 /** A label and its value side by side; one node for TalkBack. */
 @Composable
-private fun Fact(label: String, value: String) {
+internal fun Fact(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

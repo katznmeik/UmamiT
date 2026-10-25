@@ -75,4 +75,19 @@
     <string name="catalog_tea_brew_kyusu">Kyusu</string>
     <string name="catalog_tea_brew_western">Westlich</string>
     <string name="catalog_tea_brewing_source">Angaben des Shops, unverändert übernommen.</string>
+
+    <!-- SCR-21 PACKUNGEN (CAT-11, 08 §2.4 item 6; #67): one row per size, smallest first. -->
+    <string name="catalog_tea_section_packages">Packungen</string>
+    <!-- Non-breaking spaces ( ) keep a number with its unit at large font sizes. -->
+    <!-- A size: „250 g", „37,5 g". -->
+    <string name="catalog_package_grams">%1$s g</string>
+    <!-- The shop's price of a size: „12,40 €". -->
+    <string name="catalog_package_price">%1$s €</string>
+    <!-- An estimated price (08 §2.4): „≈ 30,07 €". -->
+    <string name="catalog_package_estimate">≈ %1$s €</string>
+    <!-- The savings the shop notes for a size: „3 % gespart". -->
+    <string name="catalog_package_savings">%1$d %% gespart</string>
+    <!-- A smaller size (a sample) is never estimated: its price is fetched when it is added (CAT-12). -->
+    <string name="catalog_package_price_on_add">Preis beim Hinzufügen</string>
+    <string name="catalog_package_estimate_note">≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst.</string>
 </resources>

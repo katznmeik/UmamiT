@@ -18,6 +18,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import java.math.BigDecimal
 
 /**
  * The JSON columns of `catalog_tea` (05 §4.1): `taste_scales_json` (`{"Umami":4,"Bitterstoffe":1}`)
@@ -50,6 +51,15 @@ internal object CatalogColumns {
                 }
             }
         }.toString()
+    }
+
+    /**
+     * A package's `label` (05 §4.2): „50 g", „250 g · 3 % gespart"; grams with a German decimal
+     * comma when not whole („0,5 g").
+     */
+    fun packageLabel(grams: Double, savingsPercent: Int?): String {
+        val size = BigDecimal.valueOf(grams).stripTrailingZeros().toPlainString().replace('.', ',')
+        return if (savingsPercent != null && savingsPercent > 0) "$size g · $savingsPercent % gespart" else "$size g"
     }
 
     fun tasteScales(json: String?): List<TasteScale> =
