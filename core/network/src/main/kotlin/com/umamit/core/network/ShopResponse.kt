@@ -87,11 +87,26 @@ private fun Response.isFromCloudflare() =
 
 private fun readLimited(response: Response): ByteArray {
     val declared = response.body.contentLength()
-    if (declared > MAX_BODY_BYTES) throw IOException("response body of $declared bytes is over the limit")
+    if (declared > MAX_BODY_BYTES) throw ResponseTooLargeException("response body of $declared bytes is over the limit")
     val source = response.body.source()
-    if (source.request(MAX_BODY_BYTES + 1)) throw IOException("response body larger than $MAX_BODY_BYTES bytes")
+    if (source.request(
+            MAX_BODY_BYTES + 1,
+        )
+    ) {
+        throw ResponseTooLargeException("response body larger than $MAX_BODY_BYTES bytes")
+    }
     return source.buffer.readByteArray()
 }
+
+/** An answer over [MAX_BODY_BYTES]; the same request would get it again, so it is never retried. */
+internal class ResponseTooLargeException(message: String) : IOException(message)
+
+/**
+ * Whether this network error is a timeout or a connection error that a new request may get past
+ * (D-076): not an oversized answer and not a refused second attempt.
+ */
+internal val ShopResponse.NetworkError.isTransient: Boolean
+    get() = cause !is ResponseTooLargeException && cause !is SecondAttemptRefusedException
 
 private fun ByteArray.hasChallengeMarker(): Boolean {
     val text = decodeToString()

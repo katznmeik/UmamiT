@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-23
+> Status: **Living document** · Last updated: 2026-10-25
 
 ## Open questions
 
@@ -365,6 +365,48 @@ was never retried after *Weiter*, so Start and the tea picker stayed empty.
   come with the first catalog refresh (CAT-15).
 - Instrumented tests mark the seed done before the setup (`SetupDoneRule`),
   so the retry never seeds in the emulator.
+
+<a id="d-074"></a>
+### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted* (Claude, 2026-10-25)
+
+**Shop session (`core:network`, rule 7):** the robots.txt handling and the
+stop mapping move out of the seed photo download into `ShopSession`, which
+the catalog refresh (CAT-07) and the exact price fetch (CAT-12) reuse. One
+session = one job; every request still goes through the one `ShopClient`.
+- `ShopSession.open` reads robots.txt once with D-050's status rules: 2xx
+  parsed; 404/410 → everything allowed; a stop answer → the session starts
+  stopped; any other answer → everything disallowed.
+- `fetch` returns `Fetched`, `Disallowed` (robots; nothing sent),
+  `Unavailable(code)` (3xx, 404, other 4xx: only this URL is left out) or
+  `Stopped(cause)`. The causes: network, challenge, Cloudflare block page,
+  429, `Retry-After`, 401/403/5xx.
+- Retries per D-076 are the session's `NetworkRetry`: `REFRESH` retries a
+  timeout or connection error after 2, 4 and 8 s (robots.txt included), each
+  a new call; `NONE` (seed photos, exact price) never retries. An oversized
+  answer or a refused second attempt is not retried; when the retries fail,
+  the session stops with `NETWORK`.
+- A stop is **sticky**: every later `fetch` returns the same stop without a
+  request. Fetches of one session are serialised, so a fetch queued behind
+  the stopping one is never sent. A cancellation is no stop.
+- A foreign host still fails with `HostNotAllowedException` (a programming
+  error). The seed photo download behaves exactly as before (D-050); its
+  `FailureCause` maps one-to-one from the session's `StopCause` plus
+  `STORAGE`.
+- Not in this step: `Crawl-delay` (the shop sets none, 08 §2.2) and a stop
+  shared across concurrent sessions.
+
+**Image targets (`PhotoTranscoder`, CAT-08):** re-encoding takes a target
+(long-side cap, optional short-side cap, format, quality) and never
+upscales or changes the aspect ratio. The source is decoded once, sampled for
+the largest target, and re-encoded without metadata.
+- Collection photos and covers: ≤ 2048 px JPEG 85 (05 §3.9, unchanged).
+- Catalog photo: ≤ 1200 px WebP (lossy, quality 80, D-073).
+- Catalog list thumbnail: WebP quality 80, short side 256 px (a round list
+  thumbnail up to 64 dp at 4× density), never larger than the photo. The
+  thumbnail size was not fixed before; it adds roughly 10 KB per tea to
+  CAT-08's 25–35 MB.
+- Sources stay JPEG only, as the shop's images are (08 §2.2); truncated,
+  oversized (> 8192 px per side or 40 MP) or undecodable images give no photo.
 
 <a id="d-073"></a>
 ### D-073 — M2 cut, behaviour and process (grilling with the PO) · *Accepted* (PO, 2026-10-25)
@@ -2589,6 +2631,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
 | 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |
+| 2026-10-25 | D-074: shared shop session (`ShopSession`: robots.txt once per job with the RFC 9309 status rules, typed fetch results, sticky stop, serialised fetches, D-076 retries for the refresh only) and image targets for re-encoding (catalog photo ≤ 1200 px WebP 80, list thumbnail 256 px short side, covers unchanged) from #63; 02 CAT-08, 06 §4 and §5.2, 08 §2.8 updated. |
 | 2026-10-25 | D-073: M2 grilled with the PO: CAT-12 add and repurchase in M2 with the picker flow, *Rezept passt*, guides last, small #58 items; catalog first loaded from the Katalog tab; refresh allowed during a brew (CAT-07 AC8); „Neu" badge; list grouped by Sorte, available only, „Pur" on; photos 1200 px plus thumbnails; live-shop tests by Claude; accuracy run only for rcs that touch timer code (09 §4a); early design check; A8/A11 now. |
 | 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |
 | 2026-10-23 | D-071: `BrewTimerService` posts a same-ID update made within 1 s of `startForeground` once more after 0.5 s (only-alert-once, only while still the foreground ID, newest wins), because AOSP posts the start's notification asynchronously and it can overwrite the update; service path logging, `dumpsys activity services` in the device test dump, wider CI logcat filter. 04 §6.3 and §8.3 updated. |

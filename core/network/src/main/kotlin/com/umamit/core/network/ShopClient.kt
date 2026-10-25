@@ -39,8 +39,9 @@ import kotlin.coroutines.resumeWithException
  *   challenge or block page, HTTP 429 or any `Retry-After` is a [ShopResponse.Blocked].
  *
  * The base URL (and with it the allowed host) is fixed in production ([create]); only
- * [forTesting] can point the client at a MockWebServer. M2 (catalog refresh, CAT-07; exact
- * prices, CAT-12) extends this client with the sitemap and its own retry policy.
+ * [forTesting] can point the client at a MockWebServer. A whole job (the seed photos, a catalog
+ * refresh, an exact price fetch) uses it through a [ShopSession], which adds robots.txt and
+ * the stop of the whole job (D-074).
  */
 class ShopClient private constructor(
     /** The shop's root; [get] accepts only URLs with its scheme, host and port. */

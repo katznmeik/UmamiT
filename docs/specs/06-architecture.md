@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-23 (diagnostics: start of the sound, D-068)
+> Status: **Draft v0.2** · Last updated: 2026-10-25 (shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -144,7 +144,11 @@ download at first start, and the on-demand exact price fetch when adding a
 package. An OkHttp interceptor rejects any host other than
 `www.tee-kontor-kiel.de` (images are served from the same host, 08 §2.2).
 The client uses a **single connection** (`maxRequestsPerHost = 1`, one
-dispatcher thread for the shop).
+dispatcher thread for the shop). Each job (the seed photos, one refresh, one
+exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
+reads robots.txt once with RFC 9309's status rules, never fetches a
+disallowed URL, retries connection errors only for the refresh (D-076), and
+after the first stop signal sends nothing more.
 
 ## 5. Key technical designs
 
@@ -156,7 +160,9 @@ Photo picker (`PickVisualMedia`) and camera (`TakePicture` into a
 `FileProvider` URI; no `CAMERA` permission); decode with sampling, rotate per
 EXIF, resize to 2048 px, JPEG 85, strip EXIF; store in `filesDir/photos/`.
 Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
-plus a list thumbnail, re-downloaded only if URL/ETag changed (CAT-08, D-073).
+(quality 80) plus a WebP list thumbnail with a 256 px short side (never
+larger than the photo), both from one decode; re-downloaded only if URL/ETag
+changed (CAT-08, D-073, D-074).
 
 ### 5.3 Catalog refresh
 
