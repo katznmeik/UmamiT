@@ -40,12 +40,13 @@ parser (NFR-MAINT-04).
 
 | Data | Selector / source | Catalog field ([05 §4.1](05-data-model.md#41-catalogtea)) |
 |---|---|---|
-| Title | `h1.product-detail-name` (strip size suffix „– 30g") | `name` |
+| Title | `h1.product-detail-name` (strip size suffix „– 30g"); microdata name as fallback | `name` |
+| Secondary name | Japanese or Chinese text in the title (kana, kanji, 「」), if any; the name keeps the rest (D-077) | `secondary_name` |
 | Article number | `span.product-detail-ordernumber[itemprop=sku]` (label „Produktnummer:") | `key` (base number: strip `-<grams>` and `M`; keep lower-case letters) |
 | Canonical URL | `link[rel=canonical]` | `product_url` |
 | Price | `.product-detail-price` („17,90 €") | default package price |
-| Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)") | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
-| Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock | `available` |
+| Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)"); without the reference: price ÷ content (D-077) | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
+| Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock; neither → unknown (null) | `available` |
 | Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
 | Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
 | Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
@@ -56,8 +57,12 @@ parser (NFR-MAINT-04).
 | Brewing prose | Description paragraphs mentioning Zubereitung, Aufguss, g/ml, °C, Kaltaufguss | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
 | Photo | `img.gallery-slider-image[data-full-image]` (original); thumbnails via `data-srcset` | `photo_url` |
-| Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`) | `breadcrumb`, `tea_type`, section membership |
+| Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
 | Structured data | Microdata `schema.org/Product` (name, sku, gtin13, image, offers, aggregateRating) — **no JSON-LD**; used only as a fallback for name/price/image | — |
+
+Buy-box fields (name, order number, price, unit price, stock) are read from
+the product's own buy box (`.product-detail-buy`) only, never from the
+cross-selling boxes of other products on the page (D-076).
 
 Region is not a property; it is taken from the title or prose where
 recognisable (e.g. „Uji", „Kirishima", „Yame"), else left empty. Harvest year
@@ -76,13 +81,18 @@ comes from titles („2026 Shincha …").
 ### 2.4 Discovery, variants and request budget
 
 1. Fetch `robots.txt` and respect it; fetch `sitemap.xml` and its `.xml.gz`.
-2. From product URLs, derive base numbers; group variant URLs per base
-   number. Skip `…SET`.
+2. From product URLs (`/<slug>/<article number>`), derive base numbers;
+   group variant URLs per base number. Skip `…SET`. Per base number the
+   parent's own page is fetched, else its `M` page, else the smallest size
+   (D-077). A sitemap that is missing, disallowed, broken or lists no product
+   is a structural failure.
 3. **First refresh:** fetch the parent page of every base number not yet
    classified, read the breadcrumb, and keep products under
    `/tee/gruener-tee/`, `/tee/japantee/` (green types only) or
    `/matcha/matcha-teepulver/`. Store non-green base numbers in a skip list
-   (`catalog_skip`) so later refreshes don't fetch them again.
+   (`catalog_skip`) so later refreshes don't fetch them again; the skip list
+   changes only with a successful refresh (D-077). A page without a
+   breadcrumb is neither kept nor skipped.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
@@ -315,7 +325,9 @@ Abort without changes if: fewer than 50 % of the previous green product count
 (or < 150 on first import) are parsed; or > 30 % of products lack name, price
 or article number; or > 50 % lack a brewing grid **and** brewing prose
 (selector broke). Out-of-stock products have a price but no availability and
-count as valid.
+count as valid. Pages that gave no product or no breadcrumb count among the
+products and as lacking name, price and article number; the brewing
+threshold applies once the parser reads the brewing information (D-077).
 
 ## 3. Built-in tea styles
 

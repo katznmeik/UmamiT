@@ -82,6 +82,7 @@ private const val SLIDE_FRACTION = 12
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
+ * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  */
 @Composable
@@ -95,6 +96,7 @@ internal fun UmamitApp(
     startNavigation: StartNavigation = StartNavigation(),
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     settings: SettingsScreens = SettingsScreens(),
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
@@ -175,6 +177,9 @@ internal fun UmamitApp(
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
+                            catalog = { catalogModifier, scrollToTop ->
+                                catalogScreen(CatalogTab(catalogModifier, scrollToTop, alerting))
+                            },
                             start = { openSettings, scrollToTop ->
                                 startScreen(
                                     StartTab(
@@ -260,6 +265,7 @@ private fun TabHost(
     onOpenTimer: () -> Unit,
     settings: SettingsScreens,
     alertKey: String?,
+    catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -283,7 +289,7 @@ private fun TabHost(
             JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
         }
         composable<CollectionRoute> {
-            CollectionScreen(segment, onSegmentChange, openSettings, scrollToTopRequest = scrollToTopRequest)
+            CollectionScreen(segment, onSegmentChange, openSettings, catalog, scrollToTopRequest = scrollToTopRequest)
         }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {

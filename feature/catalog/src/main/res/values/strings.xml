@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- SCR-19 empty state (never loaded, 08 §7; D-073): the entry point when the first-start setup is done. -->
+    <string name="catalog_empty_title">Der Katalog ist noch leer.</string>
+    <string name="catalog_empty_body">Lade alle Grüntees von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
+    <string name="catalog_load">Katalog laden</string>
+    <!-- While a first load runs and its sheet is closed. -->
+    <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>
+    <string name="catalog_show_progress">Fortschritt anzeigen</string>
+    <!-- SCR-19 header (CAT-07 AC6): „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." -->
+    <string name="catalog_header">Tee-Kontor Kiel · %1$s · aktualisiert am %2$s</string>
+    <string name="catalog_header_undated">Tee-Kontor Kiel · %1$s</string>
+    <plurals name="catalog_tea_count">
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
+    </plurals>
+    <!-- A row's price (CAT-10): „15,90 €/100 g". -->
+    <string name="catalog_price_per_100g">%1$s €/100 g</string>
+    <!-- Between the parts of a row's meta line; quoted to keep the spaces. -->
+    <string name="catalog_meta_separator">" · "</string>
+    <string name="catalog_refreshing">Der Katalog wird aktualisiert …</string>
+
+    <!-- SCR-22 refresh sheet (CAT-07 AC1, AC3, AC5; 08 §2.8; 03 §5). -->
+    <string name="catalog_refresh_running_title">Katalog wird geladen</string>
+    <string name="catalog_refresh_starting">Sitemap wird gelesen …</string>
+    <!-- „von" and „neu" are no nouns: nothing to pluralise. -->
+    <string name="catalog_refresh_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
+    <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen: Der Katalog lädt weiter, solange die App geöffnet ist.</string>
+    <string name="catalog_refresh_cancel">Abbrechen</string>
+    <string name="catalog_refresh_success_title">Katalog geladen</string>
+    <!-- „274 Grüntees · 12 neu" (the full CAT-07 AC3 summary follows with #70). -->
+    <string name="catalog_refresh_success_summary" tools:ignore="PluralsCandidate">%1$s · %2$d neu</string>
+    <string name="catalog_refresh_cancelled_title">Laden abgebrochen</string>
+    <string name="catalog_refresh_failed_title">Katalog nicht geladen</string>
+    <string name="catalog_refresh_kept">Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="catalog_refresh_blocked">Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_offline">Keine Verbindung zum Shop – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_unavailable">Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_shop_changed">Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="catalog_refresh_storage">Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?</string>
+    <string name="catalog_refresh_copy_details">Details kopieren</string>
+    <string name="catalog_refresh_details_label">UmamiT Katalog-Details</string>
+    <string name="catalog_refresh_done">Fertig</string>
+    <string name="catalog_refresh_close">Schließen</string>
+</resources>

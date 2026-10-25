@@ -2,6 +2,7 @@ package com.umamit.app
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.database.CatalogDatabase
 import org.junit.Test
 import org.w3c.dom.Element
 import java.io.File
@@ -80,9 +81,10 @@ class BackupRulesTest {
     @Test
     fun `catalog, photos, caches and other databases are not backed up`() {
         val notBackedUp = listOf(
-            "database" to "catalog.db",
-            "database" to "catalog.db-wal",
-            "database" to "catalog.db-shm",
+            // The catalog database by the name the app opens it with (05 §1.6, #64).
+            "database" to CatalogDatabase.NAME,
+            "database" to "${CatalogDatabase.NAME}-wal",
+            "database" to "${CatalogDatabase.NAME}-shm",
             // e.g. LeakCanary's database in debug builds: not personal data.
             "database" to "leaks.db",
             "file" to "photos/0b7c.jpg",

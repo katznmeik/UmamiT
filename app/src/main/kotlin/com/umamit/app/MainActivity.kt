@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
                     startScreen = { StartTabContent(it) },
+                    catalogScreen = { CatalogTabContent(it) },
                 )
             }
         }

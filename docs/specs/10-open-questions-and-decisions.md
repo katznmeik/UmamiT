@@ -302,6 +302,60 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-077"></a>
+### D-077 — Catalog refresh tracer bullet: staging, skip list, parser rules, sheet (#64) · *Accepted* (Claude, 2026-10-25)
+
+The first M2 slice (spec #62, #64) runs *Katalog laden* from the empty
+Katalog tab to a filled list. Decided while building it:
+
+- **Staging tables** (05 §4.5): `catalog_tea_staging` and
+  `catalog_package_staging` are real tables of `catalog.db` (part of its
+  frozen schema from `v0.2.0-rc.1`) with exactly the columns of `catalog_tea`
+  and `catalog_package` in the same order (the staging entities embed the
+  live ones; a test holds them equal), so the swap is `INSERT … SELECT *` in
+  one transaction. Each refresh empties them first and after any end without
+  a swap. `catalog_package` is keyed by (`catalog_key`, `grams`).
+- **The skip list changes only with a successful swap**, in the same
+  transaction. A refresh that stops, is cancelled or fails the sanity check
+  keeps no classification, so a broken parser or a renamed shop section can
+  never hide teas for 90 days; the price is that an interrupted first
+  refresh classifies again next time. A product page without a breadcrumb is
+  neither kept nor skipped and counts as defective for 08 §2.9.
+- **Sanity check** (08 §2.9): defective pages count among the products and
+  as lacking name, price and article number; the brewing threshold is judged
+  only once the parser reads the brewing grid and prose (#68).
+- **Parser rules** (08 §2.3): the secondary name is the Japanese or Chinese
+  text in the title (kana, kanji, CJK brackets), the name the rest without the
+  size suffix; *Sorte* is the title of the breadcrumb's green type level
+  (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else
+  empty; the price per 100 g comes from the unit price, else from price and
+  content; stock is unknown (null) when the buy box shows neither a buy
+  button with delivery information nor a stock notification. Only the
+  product's own buy box is read. The live sample run checks these rules.
+- **Discovery** (08 §2.4): a product URL is `/<slug>/<article number>`; per
+  base number the parent's page is fetched, else its `M` page, else the
+  smallest size. A sitemap that is missing, disallowed, broken or lists no
+  product is a structural failure.
+- **Outcomes:** success; cancelled; blocked (challenge, Cloudflare block,
+  429, `Retry-After`); offline; shop unavailable (401/403/5xx without
+  Cloudflare); shop changed (structural, also for an unexpected error, so a
+  refresh bug never crashes the process the timer runs in); storage failed.
+  Each failure carries technical details for *Details kopieren* (counts and
+  article numbers, no shop content) and is logged (`catalog_refresh_log`,
+  diagnostics log).
+- **Hosting until #65:** an app-scoped job (`AppCatalogRefreshRunner`) runs
+  the Android-independent `CatalogRefresher` while the app's process lives;
+  #65 moves it into the `dataSync` foreground service behind the same
+  `CatalogRefreshRunner`. Closing the sheet never stops the refresh; the empty
+  state then offers *Fortschritt anzeigen*. An alert removes the sheet in the
+  same frame (rule 8).
+- **Sammlung › Katalog** is a slot of `CollectionScreen` that the app fills
+  with `feature:catalog` (no feature-to-feature dependency, 06 §3); the
+  catalog's lazy list scrolls itself below the segmented control. Until #69
+  the list shows every tea of the current range by name, with *Sorte* and
+  price per 100 g; until the PO's A8 arrives, the empty state shows the
+  placeholder landscape.
+
 <a id="d-076"></a>
 ### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
 
@@ -2629,6 +2683,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-077: catalog refresh tracer bullet (#64) — staging tables with the live columns, skip list written only with a successful swap, sanity-check counting, parser rules for secondary name, *Sorte*, unit price and stock, product page choice, typed outcomes with details, app-scoped job until #65, catalog as a slot of Sammlung; 03, 05 and 08 updated. |
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
 | 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |
 | 2026-10-25 | D-074: shared shop session (`ShopSession`: robots.txt once per job with the RFC 9309 status rules, typed fetch results, sticky stop, serialised fetches, D-076 retries for the refresh only) and image targets for re-encoding (catalog photo ≤ 1200 px WebP 80, list thumbnail 256 px short side, covers unchanged) from #63; 02 CAT-08, 06 §4 and §5.2, 08 §2.8 updated. |
