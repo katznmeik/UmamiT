@@ -184,6 +184,34 @@ the **default recipe**:
 Additional recipes (cold brew, western) show their source as a small note in
 the recipe instead of flagging the tea.
 
+**Details fixed while building it (D-082):**
+- A recipe's `source` is its least certain field: style default before text
+  before table. The PO's second western infusion and the matcha whisk time
+  don't count (they are rules, not data).
+- Grid columns are read by their header label (Menge, Temperatur, n. Aufguss),
+  else by position. A matcha's rows become one *Usucha* recipe.
+- The prose is split into paragraphs: those describing a Kaltaufguss
+  (Kaltaufguss, kaltes Wasser, Cold Brew, Kühlschrank) give only the cold
+  brew's values; the others the hot recipes' (the first amount per volume,
+  temperature and time; a time in hours is no hot infusion). Teaspoons use the
+  style's g/TL. Without a grid, the style's default recipe is derived with the
+  prose's values and the style's other hot recipes follow unchanged.
+- When the first infusion comes from the style, all steps do; follow-ups from
+  the style keep the style's rise over its base temperature (sencha +5 / +10 °C).
+  Temperatures above 100 °C are capped.
+- A per-litre amount („10 g auf 1 Liter") in the cold-brew prose brews 1000 ml.
+  Cold-brew times outside 1 min – 24 h fall back to the style's.
+- Times snap to 5 s below 10 min and to whole minutes above (PRF-04); water to
+  5 ml (10–3000 ml); leaf to 0,1 g, half up.
+- A conflict needs the prose to differ from the default's grid value **and**
+  from every other row's (prose matching the western row contradicts nothing).
+  The amount is compared as g per 100 ml.
+- One reason per tea, the first that applies: `IMPLAUSIBLE_VALUE`,
+  `TABLE_TEXT_CONFLICT`, `FROM_STYLE_DEFAULT`, `FROM_TEXT`, `UNMAPPED_STYLE`.
+- *Japanese* (Kyusu default): a Japanese style, a style named by a Japanese
+  keyword in the name (a flavoured sencha), the Japan section, or *Anbaugebiete*
+  Japan.
+
 **Worked examples (live data, 2026-10-21):**
 
 | Tea | Grid / prose | Derived recipes | Tea flag |
@@ -250,7 +278,7 @@ seed vessels (WARE-06). Purchase date of the seed stock = first app start;
 
 ### 2.6 Style mapping and umami level
 
-Style from the breadcrumb's last segment, else name keywords:
+Style from the breadcrumb's last segment, else name keywords (the name and the *Sorte*; the more specific first, e.g. „Gyokuro Karigane" → `karigane`, „Genmaicha mit Matcha" → `genmaicha`; D-082):
 
 | Breadcrumb / keyword | Style key |
 |---|---|
@@ -266,9 +294,10 @@ Style from the breadcrumb's last segment, else name keywords:
 | `genmaicha` | `genmaicha` |
 | `kamairicha` | `kamairicha` |
 | `tamaryokucha` | `tamaryokucha` |
-| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic`; form TEA_BAG; default recipe = cold brew |
+| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | `aromatisierter-gruentee` | `flavored_green` |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun" / „Anji" / „Sejak" | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` |
+| a flavoured tea no keyword names | `flavored_green` (not flagged, D-082) |
 | anything else | `green_generic` + flag `UNMAPPED_STYLE` |
 
 **Umami level** from the shop's Umami scale when present: 0 → `NONE`, 1 →
@@ -332,7 +361,8 @@ or article number; or > 50 % lack a brewing grid **and** brewing prose
 (selector broke). Out-of-stock products have a price but no availability and
 count as valid. Pages that gave no product or no breadcrumb count among the
 products and as lacking name, price and article number; the brewing
-threshold applies once the parser reads the brewing information (D-077).
+threshold applies since the parser reads the brewing information: a green
+tea lacks it when it has neither a grid row nor brewing prose (D-077, D-082).
 
 ## 3. Built-in tea styles
 
@@ -364,7 +394,9 @@ days after opening.
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
 These values are well-known starting points; imported Tee-Kontor recipes
-take precedence for catalog teas.
+take precedence for catalog teas. The green rows are code in `core:domain`
+(`BuiltInStyles`, D-076, D-082); the rows of other categories follow with the
+collection editor (M3).
 
 ## 4. Tasting descriptor vocabulary
 

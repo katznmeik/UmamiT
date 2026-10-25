@@ -12,6 +12,7 @@ import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
+import com.umamit.core.model.RecipeCheckReason
 import kotlinx.coroutines.flow.Flow
 
 /** A catalog list row (SCR-19): what the list shows of a tea. */
@@ -23,6 +24,7 @@ data class CatalogListRow(
     @ColumnInfo(name = "base_price_cents_per_100g") val basePriceCentsPer100g: Long?,
     @ColumnInfo(name = "available") val available: Boolean?,
     @ColumnInfo(name = "photo_file") val photoFile: String?,
+    @ColumnInfo(name = "recipe_check_reason") val recipeCheckReason: RecipeCheckReason? = null,
 )
 
 /**
@@ -35,7 +37,8 @@ data class CatalogListRow(
 abstract class CatalogDao {
     /** The teas in the shop's current range (not discontinued), by name. */
     @Query(
-        "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file " +
+        "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
+            "recipe_check_reason " +
             "FROM catalog_tea " +
             "WHERE discontinued = 0 ORDER BY name, key",
     )

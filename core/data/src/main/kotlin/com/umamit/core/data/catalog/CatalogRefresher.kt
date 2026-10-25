@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.database.SQLException
+import com.umamit.core.catalog.parser.CatalogRecipes
 import com.umamit.core.catalog.parser.CatalogScope
 import com.umamit.core.catalog.parser.ProductGroup
 import com.umamit.core.catalog.parser.ProductPage
@@ -51,7 +52,8 @@ import javax.inject.Inject
  * 2. Candidates: one page per base number, sets left out, base numbers on the skip list for
  *    less than 90 days left out; so a first refresh classifies every parent (D-076).
  * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas go into the staging
- *    tables, other products onto the new skip entries.
+ *    tables with their style and derived recipes ([CatalogRecipes], CAT-04 – CAT-06), other
+ *    products onto the new skip entries.
  * 4. The sanity check (08 §2.9).
  * 5. The green teas' photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is off: each through
  *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
@@ -164,6 +166,8 @@ class CatalogRefresher(
         var pagesDone = 0
         var green = 0
         var lackingRequired = 0
+        var lackingBrewing = 0
+        var flagged = 0
         var unavailable = 0
         var sitemapUrls = 0
         var sets = 0
@@ -230,7 +234,8 @@ class CatalogRefresher(
                 newCount = newCount,
                 changedCount = 0,
                 discontinuedCount = discontinuedCount,
-                flaggedCount = 0,
+                // „Rezept prüfen" teas of a swapped-in catalog (CAT-07 AC3).
+                flaggedCount = if (status == CatalogRefreshStatus.SUCCESS) flagged else 0,
                 photosCount = photosStored,
                 parserVersion = TeeKontorParser.PARSER_VERSION,
                 errorSummary = errorSummary,
@@ -327,6 +332,8 @@ class CatalogRefresher(
                     tea.photoUrl?.let { run.photoUrls += tea.key to it }
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
+                    if (page.brewTable.isEmpty() && page.brewText == null) run.lackingBrewing++
+                    if (tea.recipeCheckReason != null) run.flagged++
                 }
 
                 CatalogScope.NOT_GREEN ->
@@ -345,14 +352,14 @@ class CatalogRefresher(
                 green = staged,
                 defective = run.defective.size,
                 lackingRequired = run.lackingRequired,
-                lackingBrewing = null, // the brewing grid and prose are parsed from #68 on
+                lackingBrewing = run.lackingBrewing,
             )
             val problems = sanity.problems(counts)
             if (problems.isNotEmpty()) {
                 run.shopChanged(
                     "sanity check failed: ${problems.joinToString()} (green $staged, " +
                         "previous ${counts.previousGreen}, defective ${run.defective.size}, " +
-                        "lacking name/price/number ${run.lackingRequired})",
+                        "lacking name/price/number ${run.lackingRequired}, lacking brewing ${run.lackingBrewing})",
                 )
             }
         }
@@ -431,14 +438,22 @@ class CatalogRefresher(
 /** Ends a refresh early with [outcome] (a stop or a structural failure); caught in [CatalogRefresher.refresh]. */
 private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception(outcome.details)
 
-/** A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), without its photo file yet. */
-private fun ProductPage.toEntity(base: String, seenAt: Long) = CatalogTeaEntity(
+/**
+ * A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), with its style
+ * and derived recipes (CAT-04 – CAT-06), without its photo file yet.
+ */
+private fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
+
+private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRecipes) = CatalogTeaEntity(
     key = key ?: base,
     name = name,
     secondaryName = secondaryName,
     productUrl = productUrl,
     shopCategory = shopCategory,
     teaType = teaType,
+    styleKey = recipes.styleKey,
+    derivedRecipesJson = DerivedRecipesColumn.json(recipes.recipes),
+    recipeCheckReason = recipes.checkReason,
     originCountry = originCountry,
     originRegion = originRegion,
     cultivar = cultivar,

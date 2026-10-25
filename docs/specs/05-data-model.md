@@ -311,7 +311,7 @@ Table `catalog_tea`
 | `description_text` | TEXT | plain text of the description, for search (D-076) |
 | `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cells with their header labels, `{"kind":"japan","cells":[{"label":"Menge","text":"~4g/100ml"},…]}`, D-078) |
 | `brew_text_raw` | TEXT | brewing prose as found |
-| `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
+| `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps), the default first: `[{"name","method","leaf_grams","water_ml","base_temp_c","source","is_default","steps":[{"kind","duration_seconds","temp_c"}]}]` (D-082) |
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |

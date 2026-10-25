@@ -137,6 +137,7 @@ private fun Detail(
             Taste(tea)
             Description(tea)
             Brewing(tea)
+            Recipes(tea)
             Spacer(Modifier.height(UmamiSpacing.Large))
         }
         // Over the photo, it stays put while the page scrolls; its own surface keeps it legible on any photo.

@@ -9,6 +9,8 @@ package com.umamit.core.model
  * @property basePriceCentsPer100g the price of 100 g in euro cents, if the shop showed one.
  * @property available in stock at the refresh; null when the page didn't say.
  * @property thumbnailPath the list thumbnail's file (CAT-08), if the tea has a photo.
+ * @property recipeCheckReason why its derived recipe should be checked (CAT-05): the list's
+ *   „Rezept prüfen" chip; null when it came straight from the shop's grid.
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -18,6 +20,7 @@ data class CatalogTeaSummary(
     val basePriceCentsPer100g: Long?,
     val available: Boolean?,
     val thumbnailPath: String? = null,
+    val recipeCheckReason: RecipeCheckReason? = null,
 )
 
 /** The catalog list's content: the teas by name and when the last successful refresh finished (CAT-07 AC6). */
@@ -37,6 +40,9 @@ data class CatalogOverview(val teas: List<CatalogTeaSummary>, val lastRefreshAtM
  * @property descriptionHtml the description, sanitised to basic formatting and links (08 §2.8).
  * @property brewTable the shop's brewing grid, verbatim.
  * @property brewText the description's paragraphs about brewing, verbatim.
+ * @property recipes the timer recipes derived from the grid and text (CAT-04), the default first.
+ * @property recipeCheckReason why the default recipe should be checked (CAT-05); null when it
+ *   came straight from the shop's grid.
  * @property packages the package sizes (05 §4.2), from #67 on.
  */
 data class CatalogTeaDetail(
@@ -65,6 +71,8 @@ data class CatalogTeaDetail(
     val descriptionHtml: String? = null,
     val brewTable: List<BrewTableRow> = emptyList(),
     val brewText: String? = null,
+    val recipes: List<RecipeTemplate> = emptyList(),
+    val recipeCheckReason: RecipeCheckReason? = null,
     val basePriceCentsPer100g: Long? = null,
     val available: Boolean? = null,
     val discontinued: Boolean = false,

@@ -15,12 +15,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeSource
+import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.RecipeTemplate
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
@@ -34,6 +40,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import com.umamit.core.designsystem.R as DesignR
 
 /**
  * A catalog tea's detail (SCR-21, CAT-11; #66) on fake data: the shop's fields as found, and
@@ -112,6 +119,71 @@ class CatalogTeaScreenTest {
             R.string.catalog_tea_section_description,
             R.string.catalog_tea_section_brewing,
         ).forEach { compose.onNodeWithContentDescription(str(it)).assertDoesNotExist() }
+        val resources = ApplicationProvider.getApplicationContext<Context>().resources
+        listOf(1, 2).forEach {
+            compose.onNodeWithContentDescription(resources.getQuantityString(R.plurals.catalog_tea_section_recipes, it))
+                .assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun theDerivedRecipesFollowTheShopsTableWithTheReasonToCheckThem() {
+        catalog.details.value = mapOf(
+            SENCHA.key to SENCHA.copy(recipes = RECIPES, recipeCheckReason = RecipeCheckReason.FROM_TEXT),
+        )
+        show()
+
+        val resources = ApplicationProvider.getApplicationContext<Context>().resources
+        compose.onNodeWithContentDescription(resources.getQuantityString(R.plurals.catalog_tea_section_recipes, 3))
+            .performScrollTo()
+            .assertIsDisplayed()
+        // „Rezept prüfen" with the reason (CAT-05).
+        shown(str(DesignR.string.ds_check_recipe))
+        shown(str(R.string.catalog_tea_recipe_reason_from_text))
+        // The default recipe, its values and steps.
+        shown(str(R.string.catalog_tea_recipe_default))
+        shown(str(R.string.catalog_tea_recipe_values, "4,0", 200, 65))
+        shown("1:00 · 0:10 · 0:10")
+        // The western recipe's second infusion is hotter.
+        shown("1:00 · " + str(R.string.catalog_tea_recipe_step_temperature, "0:15", 70))
+        // The cold brew, „kalt", with the source of its values as a note.
+        shown("Kaltaufguss")
+        shown(str(R.string.catalog_tea_recipe_values_cold, "8,0", 200))
+        shown("25:00")
+        shown(str(R.string.catalog_tea_recipe_source_text))
+    }
+
+    @Test
+    fun aRecipeStraightFromTheTableNamesNoReason() {
+        catalog.details.value = mapOf(SENCHA.key to SENCHA.copy(recipes = RECIPES.take(1)))
+        show()
+
+        val resources = ApplicationProvider.getApplicationContext<Context>().resources
+        compose.onNodeWithContentDescription(resources.getQuantityString(R.plurals.catalog_tea_section_recipes, 1))
+            .performScrollTo()
+            .assertIsDisplayed()
+        shown(str(R.string.catalog_tea_recipe_values, "4,0", 200, 65))
+        compose.onNodeWithText(str(DesignR.string.ds_check_recipe)).assertDoesNotExist()
+        compose.onNodeWithText(str(R.string.catalog_tea_recipe_source_text)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aMatchaRecipeIsWhisked() {
+        val usucha = RecipeTemplate(
+            "Usucha",
+            BrewMethod.MATCHA_USUCHA,
+            1.0,
+            100,
+            70,
+            listOf(RecipeStep(StepKind.WHISK, 20)),
+            RecipeSource.CATALOG_TABLE,
+            isDefault = true,
+        )
+        catalog.details.value = mapOf(SENCHA.key to SENCHA.copy(recipes = listOf(usucha)))
+        show()
+
+        shown(str(R.string.catalog_tea_recipe_values, "1,0", 100, 70))
+        shown(str(R.string.catalog_tea_recipe_whisk, "0:20"))
     }
 
     @Test
@@ -160,6 +232,38 @@ class CatalogTeaScreenTest {
 
     private companion object {
         const val PRODUCT = "https://shop.example/morgennebel-sencha/XY0100"
+
+        /** Kyusu (default), Westlich and a cold brew from the prose, as 08 §2.5's examples derive them. */
+        val RECIPES = listOf(
+            RecipeTemplate(
+                "Kyusu",
+                BrewMethod.KYUSU,
+                4.0,
+                200,
+                65,
+                listOf(60, 10, 10).map { RecipeStep(StepKind.INFUSION, it) },
+                RecipeSource.CATALOG_TEXT,
+                isDefault = true,
+            ),
+            RecipeTemplate(
+                "Westlich",
+                BrewMethod.WESTERN,
+                2.5,
+                250,
+                65,
+                listOf(RecipeStep(StepKind.INFUSION, 60), RecipeStep(StepKind.INFUSION, 15, tempC = 70)),
+                RecipeSource.CATALOG_TABLE,
+            ),
+            RecipeTemplate(
+                "Kaltaufguss",
+                BrewMethod.COLD_BREW,
+                8.0,
+                200,
+                5,
+                listOf(RecipeStep(StepKind.INFUSION, 1500)),
+                RecipeSource.CATALOG_TEXT,
+            ),
+        )
 
         val SENCHA = CatalogTeaDetail(
             key = "XY0100",

@@ -36,6 +36,9 @@ object SyntheticShop {
     /** The brewing grid's header, as the shop labels its columns (08 §2.3). */
     val BREW_HEADER = listOf("Menge", "Temperatur", "1. Aufguss", "2. Aufguss", "3. Aufguss")
 
+    /** A grid as most green teas have it (one Kyusu row): a page has brewing information by default. */
+    val BREW_ROWS = listOf("japan" to listOf("~4g/200ml", "~60°C", "60 Sek", "10 Sek", "10 Sek"))
+
     /** The path of a gallery photo on the shop (`/media/…`, with the shop's `?ts=` query). */
     fun photoPath(name: String = "synthetic") = "/media/aa/bb/cc/1700000000/$name.jpg?ts=1700000000"
 
@@ -103,7 +106,7 @@ object SyntheticShop {
         badges: List<String> = emptyList(),
         invertedBadges: List<String> = emptyList(),
         scales: List<Pair<String, Int>> = emptyList(),
-        brewRows: List<Pair<String, List<String>>> = emptyList(),
+        brewRows: List<Pair<String, List<String>>> = BREW_ROWS,
     ): String = buildString {
         append("<!DOCTYPE html><html lang=\"de-DE\"><head><meta charset=\"utf-8\">")
         append("<title>Synthetic shop</title>")
