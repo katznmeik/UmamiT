@@ -114,6 +114,7 @@ only.
 - [ ] Second refresh reports „0 neu · 0 geändert" when nothing changed.
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
 - [ ] Guides readable offline.
+- [ ] *Im Shop öffnen* on a catalog tea opens its Tee-Kontor page in the browser (CAT-11).
 
 ### M3 — Collection
 
@@ -121,6 +122,7 @@ only.
 - [ ] Brew → stock reduced by leaf; cost per cup shown.
 - [ ] Choosing a vessel rescales leaf; recipe pre-alert override works.
 - [ ] Catalog refresh does not change the collection tea; *Aus Katalog zurücksetzen* does.
+- [ ] „Beim Tee-Kontor nachbestellen" on a collection tea opens the shop page of the size bought last (e.g. 100 g); it is a filled button once the stock is *Knapp* (INV-09, D-072).
 
 ### M4 — Journal & statistics
 

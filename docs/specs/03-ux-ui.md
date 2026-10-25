@@ -605,8 +605,11 @@ As in the mockup's tea detail: collapsing hero photo, serif name, subtitle,
 „★ 4,5 (12)", type chip, umami meter, `StatTriplet`, sticky *Brühen*, pencil
 FAB. Sections: REZEPTE, VORRAT & KOSTEN („38 g übrig · 0,42 € pro Tasse"),
 FRISCHE, GESCHMACK (radar, top descriptors), LETZTE SITZUNGEN, NOTIZEN,
-DETAILS. Overflow: Favorit, Aus Katalog zurücksetzen, Im Shop öffnen,
-Archivieren, Löschen.
+DETAILS. VORRAT & KOSTEN ends with „Beim Tee-Kontor nachbestellen" for catalog
+teas (INV-09): a filled button when the stock is *Knapp* or *Leer*, otherwise
+a text link with an external-link icon; it opens the shop page of the size
+bought last. Overflow: Favorit, Aus Katalog zurücksetzen, Archivieren,
+Löschen.
 
 ### SCR-10 Tee bearbeiten
 
@@ -680,7 +683,9 @@ Photo, name, subtitle, type, origin/cultivar/harvest/shading/steaming, Bio /
 aromatisiert / Coldbrew geeignet, the shop's taste scales (Umami,
 Bitterstoffe, … as leaf rows 0–5), aroma and taste notes, description, ZUBEREITUNG (shop table and text, verbatim),
 ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
-*In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*.
+*In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*
+(the size bought last when the tea is in the collection, else the product
+page; CAT-11, D-072).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 

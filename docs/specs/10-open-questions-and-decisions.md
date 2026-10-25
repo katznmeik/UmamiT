@@ -302,6 +302,29 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-072"></a>
+### D-072 — One-tap reorder from the tea detail (CAT-11, INV-09) · *Accepted* (PO, 2026-10-25)
+
+The PO wants ordering a particular tea to be as easy as possible. The specs
+had *Im Shop öffnen* on the catalog tea (SCR-21) but hid it in the overflow
+menu of the collection tea (SCR-09), where reordering starts. Decided:
+
+- SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN for every
+  catalog-linked tea (new INV-09); it leaves the overflow menu. It is a filled
+  button when the stock is *Knapp* or *Leer* (INV-05), otherwise a text link.
+- The link opens the shop page of the **package size bought last**: every size
+  has its own URL (08 §2, `catalog_package.variant_url`). The size comes from
+  the grams of the tea's latest INITIAL or PURCHASE event; without a match, or
+  when the size is gone, the product page (`product_url`) opens. SCR-21's
+  *Im Shop öffnen* follows the same rule for teas already in the collection.
+- No schema change: v1 is frozen (D-054), and the existing columns
+  (`inventory_event.delta_grams`, `catalog_package.grams`/`variant_url`,
+  `tea.product_url`) are enough.
+- Opening the browser is the user's own navigation, not one of the app's
+  three network uses (GEN-01, D-036): the app sends no request.
+- Teas without a `catalog_key` and discontinued catalog teas show no link.
+  It ships with M3 (SCR-09); SCR-21's rule ships with M2.
+
 <a id="d-071"></a>
 ### D-071 — A Live Update overtaken by the foreground start's late post is posted again (TMR-41, #54) · *Accepted* (Claude, 2026-10-23)
 
@@ -2442,6 +2465,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |
 | 2026-10-23 | D-071: `BrewTimerService` posts a same-ID update made within 1 s of `startForeground` once more after 0.5 s (only-alert-once, only while still the foreground ID, newest wins), because AOSP posts the start's notification asynchronously and it can overwrite the update; service path logging, `dumpsys activity services` in the device test dump, wider CI logcat filter. 04 §6.3 and §8.3 updated. |
 | 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |
 | 2026-10-23 | D-069: M1 review fixes (#54): the active brew bar snaps in when it arrives alerting (synchronous first value, no enter motion); system-bar icons per timer surface with the root as their one owner; honest *Sammlung*/*Statistik* placeholders with renders; the tea photo (or placeholder) on every brew timer, D-058 amended; double-tap guard on *Nochmal brühen*. 03 SCR-05, SCR-08, SCR-18, §1.1, §3.8 and 09 §4 updated. |
