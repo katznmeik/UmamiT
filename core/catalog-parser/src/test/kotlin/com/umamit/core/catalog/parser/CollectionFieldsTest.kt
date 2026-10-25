@@ -11,15 +11,25 @@ import org.junit.Test
  */
 class CollectionFieldsTest {
     @Test
-    fun theHarvestYearIsTheFirstPlausibleYearOfBadgeTitleAndProse() {
-        assertThat(CollectionFields.harvestYear(2026, "Mai 2025", "2026 Shincha Morgennebel", null)).isEqualTo(2025)
-        assertThat(CollectionFields.harvestYear(2026, "Frühling", "2026 Shincha Morgennebel", null)).isEqualTo(2026)
-        assertThat(CollectionFields.harvestYear(2026, null, "Morgennebel", "Geerntet im Mai 2024.")).isEqualTo(2024)
+    fun theHarvestYearIsTheFirstPlausibleYearOfBadgeAndTitle() {
+        assertThat(CollectionFields.harvestYear(2026, "Mai 2025", "2026 Shincha Morgennebel")).isEqualTo(2025)
+        assertThat(CollectionFields.harvestYear(2026, "Frühling", "2026 Shincha Morgennebel")).isEqualTo(2026)
+        assertThat(CollectionFields.harvestYear(2026, null, "Morgennebel")).isNull()
         // Next year's harvest is announced at the end of a year; anything beyond, or before 2000, is no harvest year.
-        assertThat(CollectionFields.harvestYear(2026, "2027")).isEqualTo(2027)
-        assertThat(CollectionFields.harvestYear(2026, "2028", "1999", "Seit 1886 im Familienbesitz")).isNull()
-        assertThat(CollectionFields.harvestYear(2026, "Artikel 12026")).isNull()
-        assertThat(CollectionFields.harvestYear(2026)).isNull()
+        assertThat(CollectionFields.harvestYear(2026, "2027", null)).isEqualTo(2027)
+        assertThat(CollectionFields.harvestYear(2026, "2028", "1999")).isNull()
+        assertThat(CollectionFields.harvestYear(2026, "Artikel 12026", null)).isNull()
+        assertThat(CollectionFields.harvestYear(2026, null, null)).isNull()
+    }
+
+    /**
+     * Live sample 2 (D-089): the prose names travel reports' years („Reisebericht 2015") and a
+     * garden's founding („gründete 2009"); the harvest year is only the tea's own badge and title.
+     */
+    @Test
+    fun theProsesYearsAreNeverTheHarvestYear() {
+        assertThat(CollectionFields.harvestYear(2026, badge = null, title = "Bergdorf Gyokuro")).isNull()
+        assertThat(CollectionFields.harvestYear(2026, badge = "Frühling", title = "Bergdorf Sencha")).isNull()
     }
 
     @Test

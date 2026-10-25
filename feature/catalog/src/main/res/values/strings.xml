@@ -151,6 +151,7 @@
     <string name="catalog_tea_section_brewing">Zubereitung</string>
     <string name="catalog_tea_brew_kyusu">Kyusu</string>
     <string name="catalog_tea_brew_western">Westlich</string>
+    <string name="catalog_tea_brew_gongfu">Gongfu</string>
     <string name="catalog_tea_brewing_source">Angaben des Shops, unverändert übernommen.</string>
 
     <!-- SCR-21 PACKUNGEN (CAT-11, 08 §2.4 item 6; #67): one row per size, smallest first. -->

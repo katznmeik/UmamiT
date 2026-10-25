@@ -157,6 +157,7 @@ internal fun Brewing(tea: CatalogTeaDetail) {
 private fun BrewTableRow.methodLabel(): String = when (kind) {
     BrewTableRow.KIND_JAPAN -> stringResource(R.string.catalog_tea_brew_kyusu)
     BrewTableRow.KIND_WESTERN -> stringResource(R.string.catalog_tea_brew_western)
+    BrewTableRow.KIND_CHINA -> stringResource(R.string.catalog_tea_brew_gongfu)
     else -> kind.replaceFirstChar { it.uppercase() }
 }
 

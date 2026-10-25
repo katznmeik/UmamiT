@@ -9,6 +9,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TeaForm
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.abs
@@ -17,9 +18,15 @@ import kotlin.math.roundToInt
 
 /**
  * A tea's brewing information as the shop shows it (08 §2.3): the grid's rows, the description's
- * brewing prose and the „Coldbrew geeignet" badge.
+ * brewing prose and the „Coldbrew geeignet" badge; [gramsPerBag] weighs a tea bag („1Stk./500ml")
+ * when the package says it (D-089), else null.
  */
-data class BrewInfo(val grid: List<BrewGridRow>, val prose: String?, val coldBrewBadge: Boolean)
+data class BrewInfo(
+    val grid: List<BrewGridRow>,
+    val prose: String?,
+    val coldBrewBadge: Boolean,
+    val gramsPerBag: Double? = null,
+)
 
 /**
  * A tea's derived recipes (CAT-04), the default first, and why the tea's recipe should be
@@ -47,24 +54,32 @@ object RecipeDeriver {
 
     fun derive(info: BrewInfo, match: StyleMatch): DerivedRecipes {
         val style = match.style
-        val prose = Prose.read(info.prose, style.gramsPerTeaspoon)
+        val prose = Prose.read(info.prose, style.gramsPerTeaspoon, info.gramsPerBag)
         val matcha = style.defaultRecipe.method == BrewMethod.MATCHA_USUCHA
-        val rows = info.grid.mapNotNull { GridRow.read(it, matcha, style.gramsPerTeaspoon) }
-            .let { if (matcha) it.take(1) else it }
+        // A row at „kalt" is the cold brew's (D-089), never a hot recipe.
+        val (coldRows, hotRows) = info.grid.mapNotNull {
+            GridRow.read(it, matcha, style.gramsPerTeaspoon, info.gramsPerBag)
+        }
+            .partition { it.cold }
+        val rows = if (matcha) hotRows.take(1) else hotRows
         val hot: List<Derived> = if (rows.isEmpty()) {
             listOf(HotRecipe(style.defaultRecipe.method, style.defaultRecipe.name, null, rows, prose, style).derive()) +
                 style.hotRecipes.drop(1).map { Derived(it, emptySet()) }
         } else {
             rows.map { HotRecipe(it.method, it.name, it, rows, prose, style).derive() }
         }
+        // A Japanese tea's Kyusu row, else the row of the style's default method (Gongfu for the
+        // Chinese styles, D-089), else the first.
         val hotDefault = if (match.japanese) {
             hot.indexOfFirst { it.recipe.method == BrewMethod.KYUSU || it.recipe.method == BrewMethod.MATCHA_USUCHA }
-                .coerceAtLeast(0)
         } else {
-            0
-        }
-        val cold = if (info.coldBrewBadge || prose.cold != null || match.coldBrewDefault) {
-            coldBrew(prose.cold, style, hot[hotDefault].recipe)
+            hot.indexOfFirst { it.recipe.method == style.defaultRecipe.method }
+        }.coerceAtLeast(0)
+        // A powder is shaken cold, never steeped for hours: no cold brew (08 §3's matcha, D-089).
+        val coldRow = coldRows.firstOrNull()
+        val wantsCold = info.coldBrewBadge || prose.cold != null || match.coldBrewDefault || coldRow != null
+        val cold = if (wantsCold && match.form != TeaForm.POWDER) {
+            coldBrew(coldRow, prose.cold, style, hot[hotDefault].recipe)
         } else {
             null
         }
@@ -79,35 +94,21 @@ object RecipeDeriver {
         )
     }
 
-    /** The cold brew (08 §2.5 step 6): the prose's values, else the style's cold brew (sencha's for styles without). */
-    private fun coldBrew(prose: ColdProse?, style: TeaStyle, hotDefault: RecipeTemplate): Derived {
+    /**
+     * The cold brew (08 §2.5 step 6): the grid's row at „kalt", else the prose's values, else the
+     * style's cold brew (sencha's for styles without). Bags of unknown weight brew the style's
+     * ratio at their stated water (D-089).
+     */
+    private fun coldBrew(row: GridRow?, prose: ColdProse?, style: TeaStyle, hotDefault: RecipeTemplate): Derived {
         val template = style.coldBrewOrFallback
         val fields = Fields()
-        var seconds =
-            prose?.seconds?.let { fields.text(it) } ?: fields.style(template.steps.first().durationSeconds.toDouble())
-        if (seconds !in COLD_SECONDS) seconds = fields.implausible(template.steps.first().durationSeconds.toDouble())
-        var leaf: Double
-        var water: Double
-        val amount = prose?.amount
-        when {
-            amount != null -> {
-                fields.text(Unit)
-                leaf = amount.leafGrams
-                water = amount.waterMl ?: LITRE_ML
-            }
-
-            prose?.doubleDose == true -> {
-                fields.text(Unit)
-                leaf = 2 * hotDefault.leafGrams
-                water = hotDefault.waterMl.toDouble()
-            }
-
-            else -> {
-                fields.style(Unit)
-                leaf = template.leafGrams
-                water = template.waterMl.toDouble()
-            }
-        }
+        val styleSeconds = template.steps.first().durationSeconds.toDouble()
+        val given = row?.infusions.orEmpty()
+        var seconds = given.firstOrNull()?.let { fields.table(it) }
+            ?: prose?.seconds?.let { fields.text(it) }
+            ?: fields.style(styleSeconds)
+        if (seconds !in COLD_SECONDS) seconds = fields.implausible(styleSeconds)
+        var (leaf, water) = coldAmount(row, prose, template, hotDefault, fields)
         if (leaf / water * PER_100 !in RATIO) {
             fields.implausible(Unit)
             leaf = template.leafGrams
@@ -119,45 +120,89 @@ object RecipeDeriver {
             leafGrams = leaf(leaf),
             waterMl = water(water),
             baseTempC = COLD_C,
-            steps = listOf(RecipeStep(StepKind.INFUSION, duration(seconds))),
+            steps = (listOf(seconds) + given.drop(1)).map { RecipeStep(StepKind.INFUSION, duration(it)) },
             source = fields.source,
         )
         return Derived(recipe, fields.reasons)
     }
 
+    /** The cold brew's leaf and water: the „kalt" row's, else the prose's, else the style's (step 6). */
+    private fun coldAmount(
+        row: GridRow?,
+        prose: ColdProse?,
+        template: RecipeTemplate,
+        hotDefault: RecipeTemplate,
+        fields: Fields,
+    ): Pair<Double, Double> {
+        val tableAmount = row?.amount
+        val proseAmount = prose?.amount
+        val bagWater = row?.bagWaterMl ?: prose?.bagWaterMl?.takeIf { tableAmount == null }?.also { fields.text(Unit) }
+        return when {
+            tableAmount != null -> tableAmount.leafGrams to (tableAmount.waterMl ?: LITRE_ML)
+
+            // Bags of unknown weight: the style's ratio at their water (D-089).
+            bagWater != null -> fields.style(template.leafGrams / template.waterMl * bagWater to bagWater)
+
+            proseAmount != null -> fields.text(proseAmount.leafGrams to (proseAmount.waterMl ?: LITRE_ML))
+
+            prose?.doubleDose == true -> fields.text(2 * hotDefault.leafGrams to hotDefault.waterMl.toDouble())
+
+            else -> fields.style(template.leafGrams to template.waterMl.toDouble())
+        }
+    }
+
     /** One grid row's values (08 §2.5 step 2), columns by their header label, else by position. */
+    @Suppress("LongParameterList")
     private class GridRow(
         val method: BrewMethod,
         val name: String,
         val amount: Amount?,
         val temperature: Double?,
         val infusions: List<Double>,
+        /** The row's temperature is „kalt": the cold brew's row (D-089). */
+        val cold: Boolean,
+        /** The water of bags of unknown weight („1Stk./500ml" without grams per bag). */
+        val bagWaterMl: Double?,
     ) {
         companion object {
             private val INFUSION_LABEL = Regex("""(\d)\.\s*aufguss""", RegexOption.IGNORE_CASE)
+            private val COLD_CELL = Regex("""kalt|cold""", RegexOption.IGNORE_CASE)
             private const val AMOUNT_COLUMN = 0
             private const val TEMPERATURE_COLUMN = 1
 
-            /** The row as a recipe: Kyusu or Westlich, for matcha Usucha; null for another kind. */
-            fun read(row: BrewGridRow, matcha: Boolean, gramsPerTeaspoon: Double): GridRow? {
+            /** The row as a recipe: Kyusu, Westlich or Gongfu, for matcha Usucha; null for another kind. */
+            fun read(row: BrewGridRow, matcha: Boolean, gramsPerTeaspoon: Double, gramsPerBag: Double?): GridRow? {
                 val (method, name) = when {
                     row.kind !in KINDS -> return null
                     matcha -> BrewMethod.MATCHA_USUCHA to USUCHA
                     row.kind == BrewTableRow.KIND_JAPAN -> BrewMethod.KYUSU to KYUSU
+                    row.kind == BrewTableRow.KIND_CHINA -> BrewMethod.GONGFU to GONGFU
                     else -> BrewMethod.WESTERN to WESTERN
                 }
                 var amount: Amount? = null
+                var bags: Bags? = null
                 var temperature: Double? = null
+                var cold = false
                 val infusions = sortedMapOf<Int, Double>()
                 row.cells.forEachIndexed { index, cell ->
                     when (val column = column(cell.label.orEmpty().lowercase(), index)) {
-                        AMOUNT_COLUMN -> amount = BrewValues.amount(cell.text, gramsPerTeaspoon)
-                        TEMPERATURE_COLUMN -> temperature = BrewValues.temperature(cell.text)
+                        AMOUNT_COLUMN -> {
+                            bags = BrewValues.bags(cell.text)
+                            amount = BrewValues.amount(cell.text, gramsPerTeaspoon) ?: bags?.weighed(gramsPerBag)
+                        }
+
+                        TEMPERATURE_COLUMN -> {
+                            temperature = BrewValues.temperature(cell.text)
+                            cold = temperature == null && COLD_CELL.containsMatchIn(cell.text)
+                        }
+
                         null -> Unit
+
                         else -> BrewValues.seconds(cell.text)?.let { infusions[column] = it }
                     }
                 }
-                return GridRow(method, name, amount, temperature, infusions.values.filter { it > 0 })
+                val bagWater = bags?.waterMl?.takeIf { amount == null }
+                return GridRow(method, name, amount, temperature, infusions.values.filter { it > 0 }, cold, bagWater)
             }
 
             /** A cell's column by its header label (the n-th infusion is column n + 1), else by its [index]. */
@@ -168,7 +213,7 @@ object RecipeDeriver {
                 else -> INFUSION_LABEL.find(label)?.groupValues?.get(1)?.toInt()?.plus(1)
             }
 
-            private val KINDS = setOf(BrewTableRow.KIND_JAPAN, BrewTableRow.KIND_WESTERN)
+            private val KINDS = setOf(BrewTableRow.KIND_JAPAN, BrewTableRow.KIND_WESTERN, BrewTableRow.KIND_CHINA)
         }
     }
 
@@ -298,18 +343,25 @@ object RecipeDeriver {
         companion object {
             private val DOUBLE_DOSE = Regex("""verdoppel|doppelte\s+(?:menge|dosierung)""", RegexOption.IGNORE_CASE)
 
-            fun read(text: String?, gramsPerTeaspoon: Double): Prose {
+            fun read(text: String?, gramsPerTeaspoon: Double, gramsPerBag: Double?): Prose {
                 val paragraphs = text.orEmpty().split(Regex("""\n\s*\n""")).filter { it.isNotBlank() }
                 val (cold, hot) = paragraphs.partition { BrewProse.COLD.containsMatchIn(it) }
                 val hotText = hot.joinToString("\n")
                 val coldText = cold.joinToString("\n")
+                fun amount(paragraph: String) = BrewValues.amount(paragraph, gramsPerTeaspoon)
+                    ?: BrewValues.bags(paragraph)?.weighed(gramsPerBag)
                 return Prose(
-                    amount = hot.firstNotNullOfOrNull { BrewValues.amount(it, gramsPerTeaspoon) },
+                    amount = hot.firstNotNullOfOrNull(::amount),
                     temperature = hot.firstNotNullOfOrNull { BrewValues.temperature(it) },
                     seconds = BrewValues.seconds(hotText, hours = false),
                     cold = coldText.takeIf { it.isNotEmpty() }?.let {
+                        val coldAmount = cold.firstNotNullOfOrNull(::amount)
                         ColdProse(
-                            amount = cold.firstNotNullOfOrNull { p -> BrewValues.amount(p, gramsPerTeaspoon) },
+                            amount = coldAmount,
+                            bagWaterMl = cold.firstNotNullOfOrNull(BrewValues::bags)?.waterMl?.takeIf {
+                                coldAmount ==
+                                    null
+                            },
                             seconds = BrewValues.seconds(it),
                             doubleDose = DOUBLE_DOSE.containsMatchIn(it),
                         )
@@ -319,7 +371,8 @@ object RecipeDeriver {
         }
     }
 
-    private class ColdProse(val amount: Amount?, val seconds: Double?, val doubleDose: Boolean)
+    /** The cold-brew prose's values; [bagWaterMl] the water of bags of unknown weight. */
+    private class ColdProse(val amount: Amount?, val bagWaterMl: Double?, val seconds: Double?, val doubleDose: Boolean)
 
     /** A derived recipe and why it would flag the tea if it were the default. */
     private class Derived(val recipe: RecipeTemplate, val reasons: Set<RecipeCheckReason>)
@@ -365,6 +418,7 @@ object RecipeDeriver {
 
     private const val KYUSU = "Kyusu"
     private const val WESTERN = "Westlich"
+    private const val GONGFU = "Gongfu"
     private const val USUCHA = "Usucha"
     private const val COLD_C = 5
     private const val MAX_C = 100

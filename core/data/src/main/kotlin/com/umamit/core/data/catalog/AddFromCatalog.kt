@@ -212,7 +212,7 @@ class RoomAddFromCatalog @Inject constructor(
             originCountry = CollectionFields.countryCode(originCountry),
             originRegion = originRegion?.take(NAME_MAX),
             cultivar = cultivar?.take(NAME_MAX),
-            harvestYear = CollectionFields.harvestYear(currentYear(), harvest, name, prose),
+            harvestYear = CollectionFields.harvestYear(currentYear(), harvest, name),
             harvestSeason = CollectionFields.harvestSeason(harvest, prose),
             shadingDays = CollectionFields.shadingDays(shading, prose),
             processingNotes = steaming?.take(PROCESSING_MAX),

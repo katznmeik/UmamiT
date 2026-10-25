@@ -8,14 +8,25 @@ data class GuideCandidate(val slug: String, val url: String)
 
 /**
  * Finds the green-tea guides among a sitemap's URLs (08 §2.7): the articles `/tee-info/<slug>`
- * whose slug names one of the keywords. The blog's index shows only category tiles, so the
- * sitemap is the only way to them.
+ * whose slug names one of the keywords and is no promotion, event or recipe. The blog's index
+ * shows only category tiles, so the sitemap is the only way to them.
  */
 object GuideUrls {
-    /** 08 §2.7's slug keywords. */
+    /** 08 §2.7's slug keywords; the green types after „kyusu, umami" came with live sample 2 (D-089). */
     val KEYWORDS = listOf(
         "japantee", "gruentee", "matcha", "sencha", "gyokuro", "kabuse", "shincha", "houjicha", "genmaicha",
-        "kaltaufguss", "kyusu", "umami",
+        "kaltaufguss", "kyusu", "umami", "aracha", "mizudashi", "mizucha", "fukamushi", "kultivar", "bancha",
+        "kukicha", "tamaryokucha", "kamairicha", "tencha",
+    )
+
+    /** The blog's sections of promotions, events and recipes (08 §2.7, D-089): never a guide. */
+    private val EXCLUDED_SECTIONS = listOf("sonstiges-", "teeverkostungen-", "aktionstees-", "blog-", "teerezepte-")
+
+    /** Words of a recipe, a promotion or an event starting a word of a slug outside those sections (D-089). */
+    private val EXCLUDED_WORDS = Regex(
+        "(?:^|-)(?:rezept|plaetzchen|kekse|kuchen|torte|muffin|cookie|spritz|cocktail|smoothie|delight|dessert|" +
+            "kochbuch|verkostung|tasting|event|aktion|gewinnspiel)",
+        RegexOption.IGNORE_CASE,
     )
 
     /**
@@ -35,6 +46,7 @@ object GuideUrls {
     fun select(urls: List<String>, max: Int = MAX_GUIDES): List<GuideCandidate> =
         urls.mapNotNull { url -> slugOf(url)?.let { GuideCandidate(it, url) } }
             .distinctBy { it.slug }
+            .filterNot { isExcluded(it.slug) }
             .map { it to keywordsIn(it.slug) }
             .filter { (_, keywords) -> keywords > 0 }
             .sortedWith(
@@ -45,6 +57,9 @@ object GuideUrls {
             .take(max)
             .map { it.first }
             .sortedBy { it.slug }
+
+    private fun isExcluded(slug: String): Boolean =
+        EXCLUDED_SECTIONS.any { slug.startsWith(it, ignoreCase = true) } || EXCLUDED_WORDS.containsMatchIn(slug)
 
     private fun keywordsIn(slug: String): Int = KEYWORDS.count { slug.contains(it, ignoreCase = true) }
 

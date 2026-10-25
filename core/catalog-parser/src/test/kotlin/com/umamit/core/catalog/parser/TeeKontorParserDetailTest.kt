@@ -261,6 +261,22 @@ class TeeKontorParserDetailTest {
         )
     }
 
+    /**
+     * Live sample 2 (structure only, D-089): a video pointer with a time and the cold brew is no
+     * instruction; bags per volume without temperature, time or grams are one.
+     */
+    @Test
+    fun aVideoPointerIsNoBrewingProseButBagsPerVolumeAre() {
+        val page = page(
+            description = "<p>Ein erfundener Tee für kalte Tage.</p>" +
+                "<p>In diesem Video zeigen wir, wie der Kaltaufguss in nur 1 Minute gelingt.</p>" +
+                "<p>Einen Beutel auf 0,3–0,5 Liter kaltes Wasser geben, kurz schütteln und zweimal aufgießen.</p>",
+        )
+
+        assertThat(page.brewText)
+            .isEqualTo("Einen Beutel auf 0,3–0,5 Liter kaltes Wasser geben, kurz schütteln und zweimal aufgießen.")
+    }
+
     @Test
     fun withoutABrewingInstructionThereIsNoProse() {
         val page = page(

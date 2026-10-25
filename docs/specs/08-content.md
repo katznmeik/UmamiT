@@ -53,11 +53,11 @@ parser (NFR-MAINT-04).
 | Description | `.product-detail-description-text` paragraphs, without staff tip blocks (`.st-teamtipp`, D-076), sanitised (§2.8, D-078) | `description_html`, `description_text`; also the source of brewing prose and „Zutaten: …" |
 | Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
 | Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
-| Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon) or `st-zubereitung-westlich` (western icon); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
-| Brewing prose | Description paragraphs that are brewing instructions: two of temperature (°C), time (Sek, Min, Std) and amount per volume (g or TL per ml or l), or one of them with a brewing word (Zubereitung, Aufguss, Ziehzeit, Dosierung, …); tasting notes, video pointers, package sizes and storage hints are not (D-082) | `brew_text_raw` |
+| Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon), `st-zubereitung-westlich` (western icon) or `st-zubereitung-china` (Gongfu, D-089); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
+| Brewing prose | Description paragraphs that are brewing instructions: two of temperature (°C, also „80°"), time (Sek, Min, Std) and amount per volume (g, TL or tea bags per ml or l: „1 Beutel auf 0,3–0,5 Liter"), or one of them with a brewing word (Zubereitung, Aufguss, Ziehzeit, Dosierung, …); tasting notes, package sizes and storage hints are not (D-082), nor is any paragraph naming a video, whatever values it names (D-089) | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
 | Photo | `img.gallery-slider-image[data-full-image]` of the product's own gallery (original); microdata image as fallback; thumbnails via `data-srcset` | `photo_url` |
-| Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
+| Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`); for a Japan-tree product without a type level (a tea family's or garden's page) the green type its name names („Bancha", „Houjicha"; „Fukamushi" → „Sencha"; D-089), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
 | Structured data | Microdata `schema.org/Product` (name, sku, gtin13, image, offers, aggregateRating) — **no JSON-LD**; used only as a fallback for name/price/image | — |
 
 Buy-box fields (name, order number, price, unit price, stock) are read from
@@ -67,13 +67,15 @@ cross-selling boxes of other products on the page (D-076).
 Region is not a property; it is taken from the title or prose where
 recognisable (e.g. „Uji", „Kirishima", „Yame": a fixed list of growing
 regions, whole words, the title first; D-078), else left empty. Harvest year
-comes from titles („2026 Shincha …").
+comes from the *Ernte* badge and the title („2026 Shincha …") only, never from
+the prose, whose years are travel reports, founding years and link texts
+(D-089).
 
 **Conversion into collection-tea fields** (CAT-12):
 
 | Catalog data | Collection field | Rule |
 |---|---|---|
-| Ernte badge / prose / title | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
+| Ernte badge / title | `harvest_year` | First 4-digit year 2000–(current + 1) in the badge, else in the title; never from the prose (D-089); else empty |
 | Ernte badge / prose | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Nibancha" → `SECOND_FLUSH`; „Sommerernte", „Sommer" → `SUMMER`; „Herbst" → `AUTUMN`; a badge naming none → `UNKNOWN`; without a badge only the prose's flush words count (not a bare „Sommer"/„Herbst"), else empty (D-085). Never taken from *Saison* (that is when to drink the tea). |
 | Beschattung badge / prose | `shading_days` | Number + „Tage" → n; + „Wochen" → 7n; ranges → midpoint, rounded half up (e.g. prose „für 6 Tage beschattet", only a sentence about shading); badge without number or more than 60 days → empty |
 | Dämpfung badge | `processing_notes` | Copied as text (e.g. „Chumushi") |
@@ -91,7 +93,13 @@ comes from titles („2026 Shincha …").
 3. **First refresh:** fetch the parent page of every base number not yet
    classified, read the breadcrumb, and keep products under
    `/tee/gruener-tee/`, `/tee/japantee/` (green types only) or
-   `/matcha/matcha-teepulver/`. Store non-green base numbers in a skip list
+   `/matcha/matcha-teepulver/`. A product of `/tee/japantee/` without a type
+   level (a tea family's page `/tee/japantee/teefamilien/<family>/` or a tea
+   garden's, live sample 2) is kept when its name names a green type (or
+   tencha, aracha, „Grüntee", …) or it carries a steaming or shading badge,
+   and neither its name nor its path names another tea (Koucha/Wakoucha,
+   Oolong, Schwarz-, Weiß- or Kräutertee) or teaware (Kyusu, Kanne, Chawan,
+   Set, …); otherwise it is skipped (D-089). Store non-green base numbers in a skip list
    (`catalog_skip`) so later refreshes don't fetch them again; the skip list
    changes only with a successful refresh (D-077). A page without a
    breadcrumb is neither kept nor skipped.
@@ -149,13 +157,20 @@ including images):
 **Step 1 — Rows to recipes.** Each grid row becomes one recipe:
 `st-zubereitung-japan` → „Kyusu" (`KYUSU`), or for matcha „Usucha"
 (`MATCHA_USUCHA`);
-`st-zubereitung-westlich` → „Westlich" (`WESTERN`). The **default recipe** is
-the Kyusu row for Japanese teas when present, otherwise the first row.
+`st-zubereitung-westlich` → „Westlich" (`WESTERN`);
+`st-zubereitung-china` → „Gongfu" (`GONGFU`, D-089). The **default recipe** is
+the Kyusu row for Japanese teas when present, otherwise the row of the style's
+default method (Gongfu for `longjing`, `bi_luo_chun`, `anji_bai_cha`, D-089),
+otherwise the first row. A row whose temperature is „kalt" is no hot recipe
+but the cold brew's row (step 6, D-089).
 
 **Step 2 — Parse cells.** Patterns observed: amounts `~4g/100ml`,
 `~4g/200ml`, `~10g/L`, `2-2,5g/50ml`; temperatures `50-55°C`, `~65°C`,
-`~65-75°C`; times `~90 Sek`, `60 Sek`, `~1 Min`; `-` = not given. A leading
-`~` is ignored.
+`~65-75°C`, `~80°` (the C missing); times `~90 Sek`, `60 Sek`, `~1 Min`,
+`~20(30) Sek` (the first value counts); bags `1Stk./500ml`; `-` = not given.
+A leading `~` is ignored. A bag weighs the package's grams over the bags the
+name counts („– 20 Aufgussbeutel", 100 g → 5 g); without them a bag amount
+gives only the water (D-089).
 
 **Step 3 — Fill gaps per field:** grid value → else prose value → else the
 built-in style default.
@@ -177,12 +192,16 @@ step with the style's whisk duration (the shop states none; not flagged).
 **Rinse steps are never added automatically**; they exist only when the user
 adds one to a recipe.
 
-**Step 6 — Cold brew.** If the „Coldbrew geeignet" badge is present or the
-prose describes a Kaltaufguss, add a recipe „Kaltaufguss" (`COLD_BREW`):
-values from the prose when given (e.g. „Ziehzeit … 20 - 30 Minuten …
+**Step 6 — Cold brew.** If the „Coldbrew geeignet" badge is present, the
+grid has a row at „kalt" or the prose describes a Kaltaufguss, add a recipe
+„Kaltaufguss" (`COLD_BREW`): values from the „kalt" row (amount, every given
+infusion), else from the prose when given (e.g. „Ziehzeit … 20 - 30 Minuten …
 Dosierung verdoppeln" → 25 min, double leaf), otherwise the style's
 cold-brew default; styles without one use the sencha cold-brew default
-(D-076). Temperature 5 °C („kalt"). **„Dosierung verdoppeln"**
+(D-076); bags of unknown weight brew that ratio at their stated water,
+flagged as style default. A powder (matcha, hōjicha powder) gets **no** cold
+brew, badge or not: it is shaken cold, never steeped for hours, and §3's
+matcha has none (D-089). Temperature 5 °C („kalt"). **„Dosierung verdoppeln"**
 means: double the default recipe's leaf amount at the default recipe's
 water volume (e.g. Kyusu 4,0 g / 200 ml → 8,0 g / 200 ml).
 
@@ -313,9 +332,11 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | `genmaicha` | `genmaicha` |
 | `kamairicha` | `kamairicha` |
 | `tamaryokucha` | `tamaryokucha` |
-| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
+| `mizudashi-kaltaufgussbeutel`, or „Mizudashi" / „Kaltaufgussbeutel" in the name under any breadcrumb (D-089) | style from the breadcrumb or name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | `aromatisierter-gruentee` | `flavored_green` |
-| China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun" / „Anji" / „Sejak" | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` |
+| China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
+| *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
+| tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
 | a flavoured tea no keyword names | `flavored_green` (not flagged, D-082) |
 | anything else | `green_generic` + flag `UNMAPPED_STYLE` |
 
@@ -329,20 +350,31 @@ detail page.
 The blog (`/tee-info/`, canonical `/blog`) shows only category tiles; articles
 are discovered from the sitemap (`/tee-info/<slug>`, ~300). Articles are
 selected by slug keywords (japantee, gruentee, matcha, sencha, gyokuro,
-kabuse, shincha, houjicha, genmaicha, kaltaufguss, kyusu, umami) and fetched
-individually. Article body: `.pixel-blog-detail .cms-element-text` (h1
+kabuse, shincha, houjicha, genmaicha, kaltaufguss, kyusu, umami, and since
+live sample 2 aracha, mizudashi, mizucha, fukamushi, kultivar, bancha, kukicha,
+tamaryokucha, kamairicha, tencha) and fetched individually. Promotions, events
+and recipes are no guides: slugs starting with `sonstiges-`,
+`teeverkostungen-`, `aktionstees-`, `blog-` or `teerezepte-`, and slugs with a
+word starting with rezept, plaetzchen, kekse, kuchen, torte, muffin, cookie,
+spritz, cocktail, smoothie, delight, dessert, kochbuch, verkostung, tasting,
+event, aktion or gewinnspiel, are left out (D-089). Article body: `.pixel-blog-detail .cms-element-text` (h1
 inside; gallery `.st-blog-gallery`); JSON-LD `BlogPosting` provides title,
 date and image.
 
 Confirmed relevant articles: `ein-guide-fuer-japantee`,
 `matcha-verstehen-ein-guide-fuer-teefans`, `a-guide-to-sencha`,
-`kabuse-beschattung-von-japanischem-gruentee`, `teerezepte-matcha-eistee`,
+`kabuse-beschattung-von-japanischem-gruentee`,
 `teefibel-zubereitung-der-kaltaufguss-fahrplan-wie-geht-eigentlich-die-teezubereitung-als-kaltaufguss`.
 
 Conversion (D-087): the app's own Markdown subset (headings, paragraphs
 with line breaks, bold, italics, absolute http(s) links, lists, tables as
 lists of rows, images), sanitised as in §2.8; a bold first line of a
-paragraph becomes a heading; the body doesn't repeat the hero. Title, date
+paragraph becomes a heading; the body doesn't repeat the hero. Left out
+as well (D-089): the comment section inside the article block
+(`.pixel-blog-questions…`), the blog's date list (a list of dates only), a
+paragraph introducing a video that isn't there (it names a video, ends with a
+colon, has no link and no player link follows) and a closing tag line (two to
+six plain words without punctuation). Title, date
 and hero image from the JSON-LD `BlogPosting` (else the article's `h1`, no
 date, no hero). At most 40 articles per refresh, the most relevant kept
 (most keywords in the slug, then the shorter slug). An article that is gone is
@@ -350,7 +382,9 @@ left out, one that no longer reads keeps its stored version, and without any
 selected article in the sitemap every stored guide is kept.
 
 Images (the gallery's `data-full-image`, else `data-src`/`src`; lazyload
-placeholders and tracking pixels skipped; each once) are downloaded through
+placeholders and tracking pixels skipped; each once, told apart by their
+decoded path without the query, so the gallery's raw spaces and the body's
+`%20` are one image, stored with spaces encoded, D-089) are downloaded through
 the refresh's session only while SET-22 is on, at most 4 per article (the
 hero first), and
 stored as ≤ 1200 px WebP named after their URL's hash, so an unchanged image

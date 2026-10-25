@@ -302,6 +302,57 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-089"></a>
+### D-089 — Parser fixes from live sample 2 (spec #62; CAT-03, CAT-05, CAT-06, CAT-09) · *Accepted* (Claude, 2026-10-25)
+
+A second live sample of the shop (24 product pages, 4 guides; no stop
+signal) found products the scope dropped and smaller derivation and guide
+defects. Fixed test-first with synthetic pages of the same structure (D-016);
+parser version 5. Decided:
+
+- **Japan teas without a type level (D1):** 5 of 22 sampled green teas had
+  only a tea family's page (`/tee/japantee/teefamilien/<family>/`) as
+  breadcrumb and were skipped as not green. A product of `/tee/japantee/`
+  without a type level is now green when its name names a green type (or
+  tencha, aracha, „Grüntee", …) or it carries a steaming or shading badge, and
+  neither its name nor its path names another tea (Koucha/Wakoucha, Oolong,
+  Schwarz-, Weiß-, Kräutertee) or teaware (Kyusu, Kanne, Chawan, Set, …).
+  The positive signal is required, so a Japanese black tea or a potter's
+  teaware on a family page stays skipped. Its *Sorte* is the type its name
+  names (the shop's type-page title; „Fukamushi" → „Sencha"), so the style
+  follows (08 §2.3, §2.4 item 3).
+- **Style keywords (D2):** „Bi Lo Chun", „Pi Lo Chun" → `bi_luo_chun`; the
+  Korean grades Ujeon/Woojeon, Sejak, Jungjak/Joongjak, Daejak →
+  `korean_green`, and *Anbaugebiete* Korea without a keyword too (08 §2.6).
+- **Gongfu row (D3):** the grid's `st-zubereitung-china` row is a „Gongfu"
+  recipe (`GONGFU`); a non-Japanese tea's default is the row of its style's
+  default method (Gongfu for the Chinese styles), else the first row. Cells
+  „~80°" (no C) and „~20(30) Sek" (the first value) are read. The catalog
+  detail labels the row „Gongfu" (08 §2.5 steps 1–2).
+- **Cold-brew bags (D4):** „Mizudashi"/„Kaltaufgussbeutel" in the name makes
+  the Mizudashi mapping (TEA_BAG, cold-brew default) under any breadcrumb, the
+  style from breadcrumb or name; „Aufgussbeutel"/„Teebeutel" alone make the
+  form TEA_BAG. A grid row at „kalt" is the cold brew's row (its amount and
+  every given infusion), never a hot recipe. Bags per volume („1Stk./500ml")
+  weigh the package's grams over the bags the name counts; unknown, the
+  style's cold-brew ratio brews the stated water, flagged as style default
+  (08 §2.5 steps 2, 6; §2.6).
+- **Brewing prose (D5):** a paragraph naming a video is never brewing prose;
+  bags per volume count as an amount, so „ein Beutel auf 0,3–0,5 Liter …
+  zweimal aufgießen" is (08 §2.3).
+- **Harvest year (D6):** only from the *Ernte* badge and the title, never from
+  the prose (travel reports' and founding years, link texts) (08 §2.3).
+- **Matcha cold brew (D7):** a powder gets no cold brew, badge or not; 08 §3's
+  matcha has none and the sencha fallback (10 g / 1 L, 4 h) is no powder recipe.
+- **Guides (G1–G4):** the comment section inside the article block, the
+  blog's date list, a video intro without a video and a closing tag line are
+  left out; images are told apart by their decoded path (raw spaces vs `%20`)
+  and stored encoded; promotions, events and recipes (`sonstiges-`,
+  `teeverkostungen-`, `aktionstees-`, `blog-`, `teerezepte-` and recipe or
+  event words in the slug) are no guides, so `teerezepte-matcha-eistee`
+  leaves 08 §2.7's list; ten green-type keywords join the selection, within
+  D-087's caps (08 §2.7).
+
 <a id="d-087"></a>
 ### D-087 — *Ratgeber*: Tee-Info guides offline (#76, CAT-09) · *Accepted* (Claude, 2026-10-25)
 
@@ -3151,6 +3202,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-089: parser fixes from live sample 2 — Japan teas on tea-family pages kept by name or badge (Sorte from the name), Bi Lo Chun and Korean grade keywords, the China grid row as Gongfu, Mizudashi bags by name with the „kalt" row as cold brew and bag weights, video pointers never brewing prose, harvest year only from badge and title, no cold brew for powder, guides without comments, date list, empty video intros and tag lines, images de-duplicated by decoded URL, promotions/events/recipes not selected and ten more green-type keywords; parser v5; 05 §4.1 and 08 §2.3–§2.7 updated. |
 | 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 40 guides with ≤ 4 images each, ≤ 200 requests on a first refresh, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |
 | 2026-10-25 | D-086: later catalog refreshes (#70) — merged numbers known through their packages, unread known teas kept, discontinued teas kept hidden while owned and deleted otherwise, photos fetched only when new or their URL changed, `content_hash` per parser version for „geändert", the CAT-07 AC3 summary in the sheet and the notification („Rezepte prüfen" = flagged since this refresh), SCR-21's „Nicht mehr im Sortiment", CAT-15 seed linking once with the `seedTeasLinked` marker; 02 CAT-07, CAT-15, 03 SCR-21, SCR-22, 05 §4.1, §4.4, §4.5, §6, 06 §5.2, §5.3 and 08 §2.4 updated. |
 | 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |

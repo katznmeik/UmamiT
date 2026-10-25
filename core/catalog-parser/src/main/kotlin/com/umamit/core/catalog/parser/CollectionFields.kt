@@ -59,10 +59,11 @@ object CollectionFields {
     )
 
     /**
-     * The first year from [FIRST_HARVEST_YEAR] to [currentYear] + 1 in [sources] (the *Ernte*
-     * badge, the title, the prose, in that order), or null.
+     * The first year from [FIRST_HARVEST_YEAR] to [currentYear] + 1 in the *Ernte* [badge], else
+     * in the [title] („2026 Shincha …"), or null. Never from the prose, whose years are travel
+     * reports, founding years and links (live sample 2, D-089).
      */
-    fun harvestYear(currentYear: Int, vararg sources: String?): Int? = sources.asSequence()
+    fun harvestYear(currentYear: Int, badge: String?, title: String?): Int? = sequenceOf(badge, title)
         .filterNotNull()
         .flatMap { text -> YEAR.findAll(text).map { it.value.toInt() } }
         .firstOrNull { it in FIRST_HARVEST_YEAR..currentYear + 1 }
