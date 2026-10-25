@@ -286,7 +286,11 @@ private fun SavedSheet(
                 Column {
                     Text(text = title, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = "$infusions · ${clockText(content.summary.steepSeconds)}",
+                        text = stringResource(
+                            R.string.journal_saved_summary,
+                            infusions,
+                            clockText(content.summary.steepSeconds),
+                        ),
                         modifier = Modifier.semantics { contentDescription = summaryDescription },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

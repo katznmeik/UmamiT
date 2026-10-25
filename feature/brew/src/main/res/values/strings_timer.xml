@@ -5,7 +5,7 @@
     <!-- „Aufguss 2 von 4": a position, not a count, so no plural (TMR-02). -->
     <string name="brew_timer_step_label" tools:ignore="PluralsCandidate">%1$s %2$d von %3$d</string>
     <string name="brew_timer_step_short">%1$s %2$d/%3$d</string>
-    <string name="brew_timer_meta">%1$d °C · %2$s</string>
+    <string name="brew_timer_meta">%1$d\u00A0°C · %2$s</string>
     <string name="brew_timer_ready_detail">%1$s %2$d · %3$s</string>
     <string name="brew_timer_caption_ready">Bereit</string>
     <string name="brew_timer_caption_running">Zieht …</string>

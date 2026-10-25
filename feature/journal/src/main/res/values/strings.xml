@@ -7,6 +7,10 @@
     <string name="journal_today">Heute</string>
     <string name="journal_yesterday">Gestern</string>
     <string name="journal_temperature">%1$d °C</string>
+    <!-- Between the parts of the meta line „55 °C · 1:00 · 3 Aufgüsse"; quoted to keep the spaces. -->
+    <string name="journal_meta_separator">" · "</string>
+    <!-- The same line for TalkBack: „55 °C, 1 Minute, 3 Aufgüsse". -->
+    <string name="journal_spoken_separator">", "</string>
     <plurals name="journal_infusions">
         <item quantity="one">%1$d Aufguss</item>
         <item quantity="other">%1$d Aufgüsse</item>
@@ -18,6 +22,8 @@
     </plurals>
     <string name="journal_open_timer">Zum Timer</string>
     <string name="journal_saved_title">Gespeichert im Journal</string>
+    <!-- „3 Aufgüsse · 2:20": the infusions and the total steep time. -->
+    <string name="journal_saved_summary">%1$s · %2$s</string>
     <!-- TalkBack for „3 Aufgüsse · 2:20": „3 Aufgüsse, 2 Minuten 20 Sekunden". -->
     <string name="journal_saved_summary_description">%1$s, %2$s</string>
     <string name="journal_saved_dismiss">Schließen</string>

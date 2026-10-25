@@ -7,11 +7,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -20,14 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,36 +30,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
-import com.umamit.core.designsystem.component.BackAction
-import com.umamit.core.designsystem.component.EmptyState
-import com.umamit.core.designsystem.component.FinishActiveSessionDialog
-import com.umamit.core.designsystem.component.KettleHint
 import com.umamit.core.designsystem.component.PillButton
-import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
-import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.timer.engine.StepStatus
-import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.steps.SaveToRecipeRequest
-import com.umamit.feature.brew.steps.StepsSheet
-import com.umamit.feature.brew.steps.StepsSheetInput
-import com.umamit.feature.brew.steps.StepsSheetStep
-import com.umamit.feature.brew.steps.rememberStepsSheetState
 import com.umamit.feature.brew.timer.label
-import java.util.Locale
 
 // The lower half of the setup (SCR-04): steps, pre-alert and the buttons.
 

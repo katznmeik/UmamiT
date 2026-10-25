@@ -306,7 +306,7 @@ class TimerScreenTest {
     fun `a cold brew waits with Kaltes Wasser, an ice brew with Eiswuerfel (BRW-10)`() {
         show(TimerStates.coldReady(iceBrew = false))
         compose.onNodeWithText("Kaltes Wasser", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("Wasserkocher auf 5 °C", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Wasserkocher auf 5\u00A0°C", useUnmergedTree = true).assertDoesNotExist()
 
         state = TimerStates.coldReady(iceBrew = true)
         compose.onNodeWithText("Eiswürfel", useUnmergedTree = true).assertIsDisplayed()

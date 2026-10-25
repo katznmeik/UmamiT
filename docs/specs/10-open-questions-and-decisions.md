@@ -345,6 +345,27 @@ between the specs, the tickets and the code. Resolved:
   `Content-Encoding`). Challenge markers are checked only on refusals, as
   `ShopClient` already does, because normal pages contain the marker text.
 
+<a id="d-075"></a>
+### D-075 — Seed retry at app start (#58 D-O1, M2-11) · *Accepted* (Claude, 2026-10-25)
+
+A seed that failed on the first start (D-066: logged, the download left due)
+was never retried after *Weiter*, so Start and the tea picker stayed empty.
+
+- **Every app start retries the seed** while `seedDataCreated` is false:
+  `UmamitApplication` calls `FirstStart.retrySeedAtAppStart`, once per
+  process, in the first start's IO scope. It runs only once the setup is done
+  (`onboardingCompleted`); before that the setup page's first start seeds. The
+  seeder's own rules stay: one transaction, nothing on a database that already
+  holds personal data (a restore), the marker set afterwards. A failure is
+  logged and retried at the next start; nothing is shown.
+- **Only the seed, never the photo download.** The retry sends no request,
+  so the one-time seed photo download (ONB-06, D-050) stays a first-start
+  setup thing: it is never repeated, and it is not started outside the setup
+  either (GEN-01, NFR-PRIV-02). The covers of seed teas created by a retry
+  come with the first catalog refresh (CAT-15).
+- Instrumented tests mark the seed done before the setup (`SetupDoneRule`),
+  so the retry never seeds in the emulator.
+
 <a id="d-074"></a>
 ### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted* (Claude, 2026-10-25)
 
@@ -2609,6 +2630,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
+| 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |
 | 2026-10-25 | D-074: shared shop session (`ShopSession`: robots.txt once per job with the RFC 9309 status rules, typed fetch results, sticky stop, serialised fetches, D-076 retries for the refresh only) and image targets for re-encoding (catalog photo ≤ 1200 px WebP 80, list thumbnail 256 px short side, covers unchanged) from #63; 02 CAT-08, 06 §4 and §5.2, 08 §2.8 updated. |
 | 2026-10-25 | D-073: M2 grilled with the PO: CAT-12 add and repurchase in M2 with the picker flow, *Rezept passt*, guides last, small #58 items; catalog first loaded from the Katalog tab; refresh allowed during a brew (CAT-07 AC8); „Neu" badge; list grouped by Sorte, available only, „Pur" on; photos 1200 px plus thumbnails; live-shop tests by Claude; accuracy run only for rcs that touch timer code (09 §4a); early design check; A8/A11 now. |
 | 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |

@@ -143,7 +143,7 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
         Column {
             TeaListItem(
                 title = "Bio Sencha Hisui",
-                meta = "8. Juni · 3 Min · 80 °C",
+                meta = "8. Juni · 3\u00A0Min. · 80\u00A0°C",
                 rating = 4.5f,
                 placeholderColor = types.sencha,
                 onClick = {},

@@ -2,6 +2,7 @@ package com.umamit.app
 
 import android.app.Application
 import android.os.StrictMode
+import com.umamit.core.data.FirstStart
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerHost
@@ -19,7 +20,8 @@ import kotlin.concurrent.thread
 /**
  * The app. It owns the timer: the alarm receiver and the notification actions reach
  * the [BrewSessionController] through it ([TimerHost], D-057), since the system
- * creates them. The process start recovers the persisted timer (04 §7.2, D-063).
+ * creates them. The process start recovers the persisted timer (04 §7.2, D-063) and
+ * retries a failed seed (D-075).
  */
 @HiltAndroidApp
 class UmamitApplication :
@@ -30,6 +32,9 @@ class UmamitApplication :
 
     @Inject
     lateinit var controller: Lazy<BrewSessionController>
+
+    @Inject
+    lateinit var firstStart: Lazy<FirstStart>
 
     override val timerInputs: TimerInputs get() = controller.get()
 
@@ -45,6 +50,9 @@ class UmamitApplication :
         // screens show a step that ran before a kill or a force stop at once. A process an
         // alarm started may recover in that alarm's turn instead; recovery runs once either way.
         recoveryScope.launch { controller.get().recover(RecoveryTrigger.APP_START) }
+        // A first start whose seed failed gets the seed teas now (D-075), off the main thread
+        // (the graph is built there too); the seed photo download is never sent from here.
+        recoveryScope.launch { firstStart.get().retrySeedAtAppStart() }
     }
 
     /** Debug builds only (06 §6): surface disk/network access on the main thread and leaks early. */
