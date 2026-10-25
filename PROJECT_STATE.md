@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-23
+**Last updated:** 2026-10-25
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: release candidate out, waiting on the PO** (#55: on-device checklist and design review) |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog** (not started; needs a spec via `/to-spec`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/umamit-m1-start-k0jg3n` (M1 milestone PR) |
+| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs); docs/housekeeping #2–#5, #7, #18–#24, #26, #57 |
-| Open PR | #25 M1 milestone PR (draft) |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57 |
+| Open PR | none (M2 opens its milestone PR with its first merge) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.1.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0-rc.1) (pre-release, versionCode 10001, from 3900689) |
+| Latest APK | [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) (release, versionCode 10099, from `main` 04a22a5) |
 
 ## Done (M0)
 
@@ -39,14 +39,12 @@
 
 ## Waiting on the PO
 
-1. **#55:** install [`v0.1.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0-rc.1),
-   work through the 09 §4 M1 checklist (posted on #55) and review the design
-   (renders in `docs/design/review/M1/`, light and dark, font 1.0 and 2.0,
-   motion GIFs). Report failures in the session or on #55; each fix round ships
-   as the next `v0.1.0-rc.N`.
-2. **#56:** the explicit approval of the checklist and the design review, which
-   allows the merge of #25 and the final `v0.1.0` from `main`.
-3. Later images (M2–M4): A6–A11 (`docs/design/assets.md`); A1–A5 are in the app.
+1. **Start M2 (catalog)** when you want: write its spec with `/to-spec` (scope in
+   `docs/specs/09-release-plan.md` §2 and the catalog spec), then tickets and
+   `/implement-spec`.
+2. Later images (M2–M4): A6–A11 (`docs/design/assets.md`).
+3. Optional findings from the M1 review are in #58: triage them into M2 or
+   close them.
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
 
@@ -103,30 +101,21 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 2. The next APK for the PO is `v0.1.0-rc.1`. The probe screen, its classes
    and tests were removed in #54 (D-040).
 
-### `/implement-spec` on #40 — state (2026-10-23, 14:00 Europe/Berlin)
+### M1 done (2026-10-25)
 
-- **All tickets #41–#54 merged on the M1 branch.** The M1 milestone review
-  (T4, three areas) is fixed or answered (D-068 … D-071; comment on #54).
-- **`v0.1.0-rc.1`** built by `release.yml` from 3900689 (versionCode 10001).
-  CI green on 3900689 (push and PR runs). Accuracy run on 3900689
-  ([39941721261](https://github.com/katznmeik/UmamiT/actions/runs/39941721261),
-  API 36, 50 × 60 s, screen off): **PASS**, pre-alert p50 41 / p95 113 /
-  max 910 ms, alert p50 25 / p95 34 / max 136 ms (target p95 ≤ 250, max ≤ 1000).
-  The branch head after it (9255413) differs only in a docs fix (09 §4).
-- **The PO's images A1–A5** are in the app: launcher, themed and status-bar
-  icons (A1, vector), welcome (A2), Start header (A3), timer fallback photo
-  (A4), reliability vignette (A5); sources in `docs/design/assets/source/`.
-- **D-071:** a same-ID Live Update right after `startForeground` is posted once
-  more after 500 ms (AOSP posts the start's notification asynchronously; a
-  stale „Bereit" seen once on the API 35 emulator).
-- **For the PO's design review:** the Start *Nochmal brühen* tile cuts a long
-  name after three lines at font scale 2.0.
-- **After v0.1.0 (from the animation pass):** Schritte-Sheet row animation,
-  status mark „!" → „✓", kettle hint fade.
+- The PO tested `v0.1.0-rc.1` on the Galaxy: every 09 §4 item, the rail
+  layout and the design review passed (#55). The explicit approval was given
+  in the session.
+- #25 merged into `main` with a merge commit (04a22a5); specs #6, #27, #40 and
+  their tickets closed. `v0.1.0` released from `main` (versionCode 10099,
+  certificate fingerprint verified).
+- The rc accuracy run (3900689, API 36, 50 × 60 s): pre-alert p50 41 /
+  p95 113 / max 910 ms, alert p50 25 / p95 34 / max 136 ms.
+- **Carried into M2:** #58 (optional review findings); the D-071 note (a
+  `startForeground` post later than 0.5 s is repaired only by the 15 s
+  refresh); the animation pass (Schritte-Sheet rows, status mark, kettle
+  hint fade).
 - **Decision numbers:** up to D-071 used; the next free is **D-072**.
-- **Next for Claude:** fix rounds from #55 as `v0.1.0-rc.N` (accuracy run
-  before each); after the PO's explicit approval: #56 (merge #25 with a merge
-  commit, `v0.1.0` from `main`, restart the working branch from `main`).
 
 ## Open questions
 
@@ -149,6 +138,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |
 | 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |
 | 2026-10-22 | Spec #40 (M1 waves 4–7) written via `/to-spec` and broken into 16 tickets #41–#56 via `/to-tickets` (granularity and blockers approved by the PO). CI: build-logic plugin repositories fixed (failed with an empty Gradle cache). |
 | 2026-10-22 | PO approved the design and motion check #39 (pre-alert glow, alert pulse, light-green dark-mode card) without changes. Spec #27 complete; next is the waves 4–7 spec. |
