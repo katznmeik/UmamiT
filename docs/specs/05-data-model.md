@@ -330,6 +330,10 @@ Table `catalog_package`: `catalog_key` FK CASCADE, `article_number`
 (e.g. `TG0557-50`), `label` („50 g", „250 g · 3 % gespart"), `grams` REAL,
 `price_cents`, `price_is_estimate` INTEGER, `savings_percent` INTEGER,
 `variant_url`, `available`; primary key (`catalog_key`, `grams`) (D-077).
+`price_cents` is the shop's price for the fetched page's own size, an
+estimate for a larger size (`price_is_estimate` = 1), and NULL for a smaller
+one („Preis beim Hinzufügen"); `available` is known only for a fetched page's
+own size (08 §2.4 items 6–7, D-081).
 
 ### 4.2a CatalogSkip
 

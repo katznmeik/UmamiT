@@ -170,7 +170,7 @@ internal fun Section(title: String, content: @Composable ColumnScope.() -> Unit)
 
 /** A label and its value side by side; one node for TalkBack. */
 @Composable
-private fun Fact(label: String, value: String) {
+internal fun Fact(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

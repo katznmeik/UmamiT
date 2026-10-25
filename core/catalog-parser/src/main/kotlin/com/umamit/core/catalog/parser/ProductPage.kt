@@ -30,6 +30,7 @@ enum class CatalogScope {
  * @property packageGrams the content of that package.
  * @property basePriceCentsPer100g the unit price per 100 g.
  * @property available in stock (true), out of stock (false) or not readable (null).
+ * @property sizeOptions the configurator's package sizes in page order (08 §2.4 item 6), the page's own one selected.
  * @property photoUrl the product's main photo in full size (the gallery's `data-full-image`).
  * @property originCountry *Anbaugebiete*; several values joined with „, " (as are the other properties).
  * @property originRegion a known growing region named in the title, else in the description (08 §2.3).
@@ -65,6 +66,7 @@ data class ProductPage(
     val packageGrams: Double?,
     val basePriceCentsPer100g: Long?,
     val available: Boolean?,
+    val sizeOptions: List<SizeOption> = emptyList(),
     val photoUrl: String? = null,
     val originCountry: String? = null,
     val originRegion: String? = null,

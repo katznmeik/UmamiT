@@ -77,7 +77,8 @@ fun CatalogTeaRoute(
 /**
  * The stateless detail (SCR-21): the photo (or the type-coloured leaf, 03 §3.5), names, *Sorte*,
  * badges, price per 100 g and *Im Shop öffnen*; then the facts, the shop's taste scales, aroma
- * and taste, the description and the shop's brewing grid and text, verbatim. [photo] is the
+ * and taste, the description, the shop's brewing grid and text, verbatim, and the package sizes
+ * with their prices. [photo] is the
  * tea's photo; tests pass a placeholder image.
  */
 @Composable
@@ -138,6 +139,7 @@ private fun Detail(
             Description(tea)
             Brewing(tea)
             Recipes(tea)
+            Packages(tea)
             Spacer(Modifier.height(UmamiSpacing.Large))
         }
         // Over the photo, it stays put while the page scrolls; its own surface keeps it legible on any photo.

@@ -701,7 +701,11 @@ per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
 Rezepte* follows *Zubereitung* (D-082): `CheckRecipeBadge` and the reason when
 flagged, then each recipe, the default first („Kyusu · Standard", „4,0 g ·
 200 ml · 65 °C" or „kalt", steps „1:00 · 0:15 bei 70 °C", „Aufschlagen 0:20")
-with the source of a non-default recipe not from the shop's table.
+with the source of a non-default recipe not from the shop's table. Then
+*Packungen*: one row per size, smallest first, with the shop's price
+(„12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
+Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
+of stock, and a note explaining „≈" when an estimate is shown (D-081).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
