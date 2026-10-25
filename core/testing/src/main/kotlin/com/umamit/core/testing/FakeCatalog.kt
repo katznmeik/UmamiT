@@ -7,12 +7,15 @@ import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaSummary
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /** In-memory [CatalogRepository]: tests set [catalog]. */
 class FakeCatalogRepository(initial: CatalogOverview = CatalogOverview(emptyList(), null)) : CatalogRepository {
     val catalog = MutableStateFlow(initial)
 
     override fun observeCatalog(): Flow<CatalogOverview> = catalog
+
+    override fun observeLastRefresh(): Flow<Long?> = catalog.map { it.lastRefreshAtMillis }
 }
 
 /** In-memory [CatalogRefreshRunner]: counts the calls; tests drive [state]. */

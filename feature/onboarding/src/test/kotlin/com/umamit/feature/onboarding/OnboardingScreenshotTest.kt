@@ -4,6 +4,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
+import com.umamit.core.data.catalog.CatalogRefreshProgress
+import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
@@ -17,8 +19,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Einrichtung (SCR-01) in light and dark at font scale 1.0 and 2.0 (03 §6): the welcome, and the
- * reliability page with two missing checks while the seed photos load. Placeholder art only.
+ * Einrichtung (SCR-01) in light and dark at font scale 1.0 and 2.0 (03 §6): the welcome, the
+ * reliability page with two missing checks while the seed photos load, and the catalog page
+ * (ONB-03) before and during the load. Placeholder art only.
  * Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -48,11 +51,17 @@ class OnboardingScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, page: OnboardingPage) {
+    private fun capture(name: String, page: OnboardingPage, catalogLoad: CatalogRefreshState? = null) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
-                OnboardingScreen(page = page, status = TWO_MISSING, photosLoading = true, actions = OnboardingActions())
+                OnboardingScreen(
+                    page = page,
+                    status = TWO_MISSING,
+                    photosLoading = true,
+                    actions = OnboardingActions(),
+                    catalogLoad = catalogLoad,
+                )
             }
         }
         compose.waitForIdle()
@@ -64,4 +73,14 @@ class OnboardingScreenshotTest(private val dark: Boolean, private val fontScale:
 
     @Test
     fun reliability() = capture("reliability", OnboardingPage.Reliability)
+
+    @Test
+    fun catalog() = capture("catalog", OnboardingPage.Catalog)
+
+    @Test
+    fun catalogLoading() = capture(
+        "catalogLoading",
+        OnboardingPage.Catalog,
+        CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 312, pagesTotal = 1560, products = 54)),
+    )
 }

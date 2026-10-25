@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
@@ -32,9 +33,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Sammlung › Katalog (SCR-19) and its refresh sheet (SCR-22) on fake data (#64): the empty state
- * leads through the sheet to the list, *Abbrechen*, every error message with *Details kopieren*,
- * and alerts first (rule 8).
+ * Sammlung › Katalog (SCR-19) and its refresh sheet (SCR-22) on fake data (#64, #65): the empty
+ * state leads through the sheet to the list, *Katalog aktualisieren* from the ⋮ menu, *Abbrechen*,
+ * every error message with *Details kopieren*, and alerts first (rule 8).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -45,6 +46,7 @@ class CatalogScreenTest {
     private val repository = FakeCatalogRepository()
     private val runner = FakeCatalogRefreshRunner()
     private var alerting by mutableStateOf(false)
+    private var refreshRequest by mutableIntStateOf(0)
 
     private fun str(@StringRes id: Int, vararg args: Any): String =
         ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
@@ -53,7 +55,7 @@ class CatalogScreenTest {
         val viewModel = CatalogViewModel(repository, runner)
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                CatalogRoute(alerting = alerting, viewModel = viewModel)
+                CatalogRoute(alerting = alerting, refreshRequest = refreshRequest, viewModel = viewModel)
             }
         }
         compose.waitForIdle()
@@ -174,6 +176,45 @@ class CatalogScreenTest {
 
         sheet().assertDoesNotExist()
         assertThat(runner.starts).isEqualTo(0)
+    }
+
+    @Test
+    fun katalogAktualisierenFromTheMenuStartsTheRefreshAndOpensItsSheet() {
+        repository.catalog.value =
+            CatalogOverview(listOf(catalogTea("XY0100", "Morgennebel Sencha")), FakeClock.DEFAULT_WALL_MS)
+        show()
+        sheet().assertDoesNotExist()
+
+        refreshRequest++
+        compose.waitForIdle()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+
+        assertThat(runner.starts).isEqualTo(1)
+        sheet().assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_refresh_starting)).assertIsDisplayed()
+    }
+
+    @Test
+    fun duringAnAlertTheMenuStartsTheRefreshButOpensNoSheet() {
+        alerting = true
+        show()
+
+        refreshRequest++
+        compose.waitForIdle()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+
+        assertThat(runner.starts).isEqualTo(1)
+        sheet().assertDoesNotExist()
+    }
+
+    @Test
+    fun aMenuRequestFromBeforeIsNeverReplayed() {
+        // The segment is shown again (a tab switch): the counter's count stands, nothing starts (D-049).
+        refreshRequest = 3
+        show()
+
+        assertThat(runner.starts).isEqualTo(0)
+        sheet().assertDoesNotExist()
     }
 
     private fun clipboardText(): String? = ApplicationProvider.getApplicationContext<Context>()

@@ -125,7 +125,7 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 |---|---|
 | Timer notification / Live Update / alert | SCR-05 |
 | „Sitzung gespeichert" notification | SCR-16 |
-| Catalog refresh result notification | SCR-19 |
+| Catalog refresh progress and result notifications | The app where it was, like its launcher icon (D-079) |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
 | Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
 
@@ -441,7 +441,9 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
-   machen" · *Katalog jetzt laden* (progress inline) / *Später*.
+   machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
+   *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
+   in its service with its notification (ONB-03, D-079).
 
 ### SCR-02 Start (Home)
 
@@ -698,8 +700,10 @@ page; CAT-11, D-072).
 
 Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3);
 error state with *Details kopieren* for the developer. Closing the sheet never
-stops a refresh; while one runs, the empty catalog offers *Fortschritt
-anzeigen*. The sheet never covers an alert: an alert removes it in the same
+stops a refresh, nor does locking the phone (its progress notification offers
+*Abbrechen* too, D-079); while one runs, the empty catalog offers *Fortschritt
+anzeigen*. Opened by *Katalog laden* and by *Katalog aktualisieren* in the ⋮
+menu. The sheet never covers an alert: an alert removes it in the same
 frame and it stays closed (rule 8, D-077).
 
 ### SCR-23 In Sammlung aufnehmen (sheet)
@@ -716,7 +720,9 @@ Alarme) and *Beheben* buttons; *Alarm testen*. In M1: the card, *Timer &
 Alarm* (Alarmton with *Anhören*, Vorwarnung, Vibration, Alarmdauer,
 Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 *Über*; no dialog over an alert
-([D-066](10-open-questions-and-decisions.md#d-066)).
+([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
+between them: „Letzter Abruf" with the date of the last successful refresh
+(„21. Okt. 2026", „Noch nie") and *Jetzt aktualisieren* (SET-23, D-079).
 
 ### SCR-26 Daten & Sicherung
 

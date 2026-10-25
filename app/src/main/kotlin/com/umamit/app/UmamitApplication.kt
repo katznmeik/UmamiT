@@ -3,6 +3,8 @@ package com.umamit.app
 import android.app.Application
 import android.os.StrictMode
 import com.umamit.core.data.FirstStart
+import com.umamit.core.data.catalog.CatalogRefreshHost
+import com.umamit.core.data.catalog.CatalogRefreshServicePort
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.TimerHost
@@ -20,13 +22,15 @@ import kotlin.concurrent.thread
 /**
  * The app. It owns the timer: the alarm receiver and the notification actions reach
  * the [BrewSessionController] through it ([TimerHost], D-057), since the system
- * creates them. The process start recovers the persisted timer (04 §7.2, D-063) and
- * retries a failed seed (D-075).
+ * creates them. The catalog refresh's service reaches the refresh the same way, and
+ * separately ([CatalogRefreshHost], #65). The process start recovers the persisted
+ * timer (04 §7.2, D-063) and retries a failed seed (D-075).
  */
 @HiltAndroidApp
 class UmamitApplication :
     Application(),
-    TimerHost {
+    TimerHost,
+    CatalogRefreshHost {
     @Inject
     lateinit var appStartDiagnostics: AppStartDiagnostics
 
@@ -36,7 +40,12 @@ class UmamitApplication :
     @Inject
     lateinit var firstStart: Lazy<FirstStart>
 
+    @Inject
+    lateinit var catalogRefreshPort: Lazy<CatalogRefreshServicePort>
+
     override val timerInputs: TimerInputs get() = controller.get()
+
+    override val catalogRefresh: CatalogRefreshServicePort get() = catalogRefreshPort.get()
 
     private val recoveryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
