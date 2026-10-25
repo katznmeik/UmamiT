@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3e00ed80b43f7ce46a628522249f8576",
+    "identityHash": "3dd87784ea0ebbaa353d421ec79da510",
     "entities": [
       {
         "tableName": "catalog_tea",
@@ -677,7 +677,7 @@
       },
       {
         "tableName": "catalog_guide",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `title` TEXT NOT NULL, `url` TEXT NOT NULL, `body_markdown` TEXT NOT NULL, `hero_file` TEXT, `linked_catalog_keys` TEXT, `fetched_at` INTEGER NOT NULL, PRIMARY KEY(`slug`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `title` TEXT NOT NULL, `url` TEXT NOT NULL, `body_markdown` TEXT NOT NULL, `hero_file` TEXT, `linked_catalog_keys` TEXT, `fetched_at` INTEGER NOT NULL, `published_at` INTEGER, PRIMARY KEY(`slug`))",
         "fields": [
           {
             "fieldPath": "slug",
@@ -718,6 +718,68 @@
             "columnName": "fetched_at",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "publishedAt",
+            "columnName": "published_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "slug"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_guide_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `title` TEXT NOT NULL, `url` TEXT NOT NULL, `body_markdown` TEXT NOT NULL, `hero_file` TEXT, `linked_catalog_keys` TEXT, `fetched_at` INTEGER NOT NULL, `published_at` INTEGER, PRIMARY KEY(`slug`))",
+        "fields": [
+          {
+            "fieldPath": "guide.slug",
+            "columnName": "slug",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.bodyMarkdown",
+            "columnName": "body_markdown",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.heroFile",
+            "columnName": "hero_file",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "guide.linkedCatalogKeys",
+            "columnName": "linked_catalog_keys",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "guide.fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.publishedAt",
+            "columnName": "published_at",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -819,7 +881,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e00ed80b43f7ce46a628522249f8576')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3dd87784ea0ebbaa353d421ec79da510')"
     ]
   }
 }

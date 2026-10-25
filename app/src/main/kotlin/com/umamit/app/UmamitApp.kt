@@ -85,7 +85,8 @@ private const val SLIDE_FRACTION = 12
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
  * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
- * @param catalogTeaScreen a catalog tea's detail (SCR-21) in the Sammlung tab; tests replace it.
+ * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20) in the Sammlung tab;
+ *   tests replace them.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
@@ -108,7 +109,7 @@ internal fun UmamitApp(
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
-    catalogTeaScreen: @Composable (CatalogTeaHost) -> Unit = { CatalogTeaContent(it) },
+    catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
@@ -199,16 +200,24 @@ internal fun UmamitApp(
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
+                            catalogScreens = catalogScreens,
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
-                                    CatalogTab(catalogModifier, scrollToTop, alerting, catalogRefreshRequest) { key ->
-                                        controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
-                                    },
+                                    CatalogTab(
+                                        modifier = catalogModifier,
+                                        scrollToTopRequest = scrollToTop,
+                                        alerting = alerting,
+                                        refreshRequest = catalogRefreshRequest,
+                                        openTea = { key ->
+                                            controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
+                                        },
+                                        openGuides = { controllers.getValue(Tab.Collection).navigate(GuidesRoute) },
+                                    ),
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
                             catalogTea = { onBack ->
-                                catalogTeaScreen(
+                                catalogScreens.tea(
                                     CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
                                         // Saved in the picker's flow: the setup of that tea (D-073, D-088).
                                         brewFlow.finish {
@@ -375,6 +384,7 @@ private fun TabHost(
     onOpenTimer: () -> Unit,
     settings: SettingsScreens,
     alertKey: String?,
+    catalogScreens: CatalogStackScreens,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     catalogTea: @Composable (onBack: () -> Unit) -> Unit,
@@ -412,6 +422,17 @@ private fun TabHost(
         }
         // The add sheet (SCR-23) gives way to an alert (rule 8).
         composable<CatalogTeaRoute> { catalogTea { navController.popBackStack() } }
+        composable<GuidesRoute> {
+            catalogScreens.guides({ navController.popBackStack() }, { navController.navigate(GuideRoute(it)) })
+        }
+        // A tea linked from a guide is the same detail: in the picker's flow its save opens the setup (D-088).
+        composable<GuideRoute> {
+            catalogScreens.guide(
+                { navController.popBackStack() },
+                { navController.navigate(CatalogTeaRoute(it)) },
+                { navController.navigate(GuideRoute(it)) },
+            )
+        }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
             settings.screen(

@@ -127,7 +127,12 @@ data class CatalogSkipEntity(
     @ColumnInfo(name = "checked_at") val checkedAt: Long,
 )
 
-/** Table `catalog_guide` (05 §4.3): one Tee-Info article. */
+/**
+ * Table `catalog_guide` (05 §4.3): one Tee-Info article (CAT-09). `body_markdown` is the
+ * converted article (D-087), its images file names in `filesDir/catalog/guides/`;
+ * `linked_catalog_keys` a JSON array of the catalog keys it links to; `published_at` the shop's
+ * publication date (epoch ms), if it gave one.
+ */
 @Entity(tableName = "catalog_guide")
 data class CatalogGuideEntity(
     @PrimaryKey @ColumnInfo(name = "slug") val slug: String,
@@ -137,7 +142,17 @@ data class CatalogGuideEntity(
     @ColumnInfo(name = "hero_file") val heroFile: String?,
     @ColumnInfo(name = "linked_catalog_keys") val linkedCatalogKeys: String?,
     @ColumnInfo(name = "fetched_at") val fetchedAt: Long,
+    @ColumnInfo(name = "published_at") val publishedAt: Long?,
 )
+
+/**
+ * Table `catalog_guide_staging` (05 §4.5, D-087): a refresh writes its guides here and swaps them
+ * into [CatalogGuideEntity]'s table with the teas, in the same transaction; the same columns in
+ * the same order (embedded).
+ */
+@SuppressWarnings(RoomWarnings.PRIMARY_KEY_FROM_EMBEDDED_IS_DROPPED)
+@Entity(tableName = "catalog_guide_staging", primaryKeys = ["slug"])
+data class StagedCatalogGuideEntity(@Embedded val guide: CatalogGuideEntity)
 
 /** How a refresh ended (05 §4.4). */
 enum class CatalogRefreshStatus { SUCCESS, FAILED, CANCELLED }

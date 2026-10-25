@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performFirstLinkClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,6 +22,10 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogTeaDetail
+import com.umamit.core.model.GuideBlock
+import com.umamit.core.model.GuideDetail
+import com.umamit.core.model.GuideDocument
+import com.umamit.core.model.GuideInline
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
@@ -31,6 +36,7 @@ import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeExactPrices
+import com.umamit.core.testing.FakeGuideRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
@@ -40,11 +46,16 @@ import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.brew.setup.BrewSetupViewModel
 import com.umamit.feature.catalog.CATALOG_ADD_SAVE_TAG
 import com.umamit.feature.catalog.CATALOG_ADD_SHEET_TAG
+import com.umamit.feature.catalog.CATALOG_GUIDES_ROW_TAG
 import com.umamit.feature.catalog.CATALOG_TEA_ADD_TAG
 import com.umamit.feature.catalog.CatalogRoute
 import com.umamit.feature.catalog.CatalogTeaRoute
 import com.umamit.feature.catalog.CatalogTeaViewModel
 import com.umamit.feature.catalog.CatalogViewModel
+import com.umamit.feature.catalog.GuideArticleRoute
+import com.umamit.feature.catalog.GuideListRoute
+import com.umamit.feature.catalog.GuideListViewModel
+import com.umamit.feature.catalog.GuideViewModel
 import com.umamit.feature.home.HomeViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -83,6 +94,7 @@ class CatalogBrewFlowTest {
         initial = CatalogOverview(listOf(catalogTea(KEY, NAME)), lastRefreshAtMillis = 1L),
         details = listOf(TEA),
     )
+    private val guides = FakeGuideRepository(listOf(GUIDE))
     private val add = FakeAddFromCatalog(collection)
     private val prices = FakeExactPrices()
     private val alertKey = MutableStateFlow<String?>(null)
@@ -109,7 +121,20 @@ class CatalogBrewFlowTest {
                     alertKey = alertKey,
                     startScreen = { tab -> Start(tab, photos) },
                     catalogScreen = { tab -> Catalog(tab) },
-                    catalogTeaScreen = { host -> CatalogTea(host) },
+                    catalogScreens = CatalogStackScreens(
+                        tea = { host -> CatalogTea(host) },
+                        guides = { onBack, onOpenGuide ->
+                            GuideListRoute(onBack, onOpenGuide, viewModel = viewModel { GuideListViewModel(guides) })
+                        },
+                        guide = { onBack, onOpenTea, onOpenGuide ->
+                            GuideArticleRoute(
+                                onBack,
+                                onOpenTea,
+                                onOpenGuide,
+                                viewModel = viewModel { GuideViewModel(createSavedStateHandle(), guides) },
+                            )
+                        },
+                    ),
                     setupScreen = { onBack, onOpenTimer -> Setup(onBack, onOpenTimer) },
                 )
             }
@@ -134,8 +159,9 @@ class CatalogBrewFlowTest {
         CatalogRoute(
             alerting = tab.alerting,
             onOpenTea = tab.openTea,
+            onOpenGuides = tab.openGuides,
             modifier = tab.modifier,
-            viewModel = viewModel { CatalogViewModel(catalog, FakeCatalogRefreshRunner()) },
+            viewModel = viewModel { CatalogViewModel(catalog, FakeCatalogRefreshRunner(), guides) },
         )
     }
 
@@ -229,6 +255,49 @@ class CatalogBrewFlowTest {
         compose.onNodeWithTag(tabTag(Tab.Start)).assertIsSelected()
         compose.onNodeWithText("Aufguss starten").assertIsDisplayed()
         compose.onNodeWithTag(TEA_PICKER_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a tea linked from a guide in the flow ends in the setup too`() {
+        show()
+        openPicker()
+        toCatalog()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(GUIDE.title).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Probier den", substring = true).performScrollTo().performFirstLinkClick()
+        compose.waitForIdle()
+        openAddSheet()
+        save()
+
+        assertThat(add.purchases.single().catalogKey).isEqualTo(KEY)
+        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        compose.onNodeWithText(KEY).assertIsDisplayed()
+        // Back from the setup: Start, and the flow's screens are gone from Sammlung.
+        back()
+        compose.onNodeWithTag(tabTag(Tab.Start)).assertIsSelected()
+        compose.onNodeWithTag(tabTag(Tab.Collection)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `backing out through the Ratgeber returns to the picker`() {
+        show()
+        openPicker()
+        toCatalog()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(GUIDE.title).performClick()
+        compose.waitForIdle()
+
+        back() // the article
+        back() // the guides
+        back() // the catalog: back to the picker on Start
+        compose.onNodeWithTag(tabTag(Tab.Start)).assertIsSelected()
+        compose.onNodeWithTag(TEA_PICKER_TAG).assertIsDisplayed()
+        assertThat(add.purchases).isEmpty()
     }
 
     @Test
@@ -334,6 +403,24 @@ class CatalogBrewFlowTest {
         const val KEY = "XY0100"
         const val NAME = "Morgennebel Sencha"
         const val PRODUCT = "https://shop.example/morgennebel-sencha/XY0100"
+
+        val GUIDE = GuideDetail(
+            slug = "ein-guide",
+            title = "Ein Guide für Sencha",
+            url = "https://shop.example/tee-info/ein-guide",
+            publishedAtMillis = null,
+            heroPath = null,
+            body = GuideDocument(
+                listOf(
+                    GuideBlock.Paragraph(
+                        listOf(
+                            GuideInline.Span("Probier den "),
+                            GuideInline.Span("Morgennebel", link = "umamit://catalog/$KEY"),
+                        ),
+                    ),
+                ),
+            ),
+        )
 
         val TEA = CatalogTeaDetail(
             key = KEY,

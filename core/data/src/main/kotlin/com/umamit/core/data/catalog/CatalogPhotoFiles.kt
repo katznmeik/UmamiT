@@ -9,6 +9,9 @@ import java.io.IOException
  * (05 §8). Only the catalog refresh writes them.
  */
 class CatalogPhotoFiles(val dir: File) {
+    /** The guides' images, in their own folder inside [dir] (CAT-09, D-087); [retainOnly] never touches it. */
+    val guideImages: GuideImageFiles = GuideImageFiles(File(dir, GuideImageFiles.DIRECTORY))
+
     /** The photo's file name as `catalog_tea.photo_file` stores it. */
     fun photoName(key: String): String = "${checked(key)}$PHOTO_SUFFIX"
 

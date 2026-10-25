@@ -6,10 +6,12 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.umamit.core.database.entity.CatalogGuideEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
+import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.model.RecipeCheckReason
@@ -128,12 +130,41 @@ abstract class CatalogDao {
     @Query("SELECT * FROM catalog_refresh_log ORDER BY id")
     abstract suspend fun refreshLog(): List<CatalogRefreshLogEntity>
 
+    /** The guides (*Ratgeber*, CAT-09, SCR-20). */
+    @Query("SELECT * FROM catalog_guide")
+    abstract fun observeGuides(): Flow<List<CatalogGuideEntity>>
+
+    /** One guide, or null when the catalog has none with [slug]. */
+    @Query("SELECT * FROM catalog_guide WHERE slug = :slug")
+    abstract fun observeGuide(slug: String): Flow<CatalogGuideEntity?>
+
+    @Query("SELECT * FROM catalog_guide")
+    abstract suspend fun guides(): List<CatalogGuideEntity>
+
     /** Empties the staging tables, before a refresh and after a failed one. */
     @Transaction
     open suspend fun clearStaging() {
         clearStagedPackages()
         clearStagedTeas()
+        clearStagedGuides()
     }
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun stageGuide(guide: StagedCatalogGuideEntity)
+
+    /** Carries the current guide [slug] over into the staging as it is (D-087); nothing when there is none. */
+    @Query("INSERT OR REPLACE INTO catalog_guide_staging SELECT * FROM catalog_guide WHERE slug = :slug")
+    abstract suspend fun stageCurrentGuide(slug: String)
+
+    /** Carries every guide of the current catalog over into the staging (D-087). */
+    @Query("INSERT OR REPLACE INTO catalog_guide_staging SELECT * FROM catalog_guide")
+    abstract suspend fun stageCurrentGuides()
+
+    @Query("SELECT COUNT(*) FROM catalog_guide_staging")
+    abstract suspend fun countStagedGuides(): Int
+
+    @Query("SELECT slug FROM catalog_guide_staging")
+    abstract suspend fun stagedGuideSlugs(): List<String>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun stage(tea: StagedCatalogTeaEntity)
@@ -159,9 +190,9 @@ abstract class CatalogDao {
     abstract suspend fun log(entry: CatalogRefreshLogEntity): Long
 
     /**
-     * The atomic swap (05 §4.5): the staged teas and packages replace the catalog, a tea seen
-     * before keeps its `first_seen_at` („Neu"), [skips] are added to the skip list, [entry] is
-     * logged and the staging tables are emptied, all in one transaction.
+     * The atomic swap (05 §4.5): the staged teas, packages and guides replace the catalog, a tea
+     * seen before keeps its `first_seen_at` („Neu"), [skips] are added to the skip list, [entry]
+     * is logged and the staging tables are emptied, all in one transaction.
      *
      * Teas of the old catalog that the refresh did not stage (#70): those in [unchanged] stay as
      * they were (still in the sitemap, but their page couldn't be read this time, 08 §2.4 item 5);
@@ -182,12 +213,29 @@ abstract class CatalogDao {
         deleteTeas()
         insertStagedTeas()
         insertStagedPackages()
+        replaceGuides()
         putSkips(skips)
         log(entry)
         clearStagedPackages()
         clearStagedTeas()
     }
 
+    /** The staged guides replace the guides (D-087); part of [swap]'s transaction. */
+    @Transaction
+    protected open suspend fun replaceGuides() {
+        deleteGuides()
+        insertStagedGuides()
+        clearStagedGuides()
+    }
+
+    @Query("DELETE FROM catalog_guide")
+    protected abstract suspend fun deleteGuides()
+
+    @Query("INSERT INTO catalog_guide SELECT * FROM catalog_guide_staging")
+    protected abstract suspend fun insertStagedGuides()
+
+    @Query("DELETE FROM catalog_guide_staging")
+    protected abstract suspend fun clearStagedGuides()
     private suspend fun stageCurrent(keys: List<String>) {
         if (keys.isEmpty()) return
         stageCurrentTeas(keys)

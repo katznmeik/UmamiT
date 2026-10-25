@@ -74,16 +74,18 @@ import javax.inject.Inject
  *    `<key>_thumb.webp` ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing
  *    or doesn't decode leaves only that tea without one (or with the photo it had); a stop ends
  *    the run.
- * 6. One transaction swaps the staged catalog in, adds the skip entries and logs the run with
- *    its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
+ * 6. The *Tee-Info* guides (CAT-09, D-087) through the same session, with their images unless
+ *    SET-22 is off, converted and staged ([CatalogGuides]).
+ * 7. One transaction swaps the staged catalog and guides in, adds the skip entries and logs the
+ *    run with its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
  *    read stays as it was; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
  *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
  *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
- *    photos of teas no longer in the catalog are deleted and the seed teas are linked once
- *    ([CatalogSeedLinker], CAT-15).
+ *    photos of teas and the images of guides no longer in the catalog are deleted and the
+ *    seed teas are linked once ([CatalogSeedLinker], CAT-15).
  *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
- * storage error or a cancellation leaves the catalog **and the skip list** as they were (photos
+ * storage error or a cancellation leaves the catalog, its guides **and the skip list** as they were (photos
  * of teas it doesn't hold are deleted again) and empties the staging tables; a failed run's
  * classifications are not kept, so a broken parser can never hide teas (D-077). Each run is
  * logged in `catalog_refresh_log` and its steps in the [DiagnosticsLog] (06 §5.6).
@@ -104,6 +106,7 @@ class CatalogRefresher(
     private val fileDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
+    guideLimits: GuideLimits = GuideLimits.DEFAULT,
 ) {
     @Inject
     constructor(
@@ -128,6 +131,9 @@ class CatalogRefresher(
         owned,
         seedTeas,
     )
+
+    private val guides =
+        CatalogGuides(guideLimits, client, dao, photos.guideImages, clock, parseDispatcher, fileDispatcher, ::log)
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
@@ -194,6 +200,11 @@ class CatalogRefresher(
             return
         }
         withContext(fileDispatcher) { photos.retainOnly(keys) }
+        try {
+            guides.keepImagesOfGuides()
+        } catch (e: SQLException) {
+            log("catalog refresh: guide images not tidied (${e.javaClass.simpleName})")
+        }
     }
 
     /** One refresh's counts, for the progress, the details and the log; it also names the stops. */
@@ -209,6 +220,10 @@ class CatalogRefresher(
         var skippedKnown = 0
         var photosStored = 0
         var photosMissing = 0
+        val guides = GuideCounts()
+
+        /** Each base number of the staged catalog (merged split numbers too) to its tea's key (guide links). */
+        val catalogKeys = mutableMapOf<String, String>()
         var photosKept = 0
         var known = 0
         var new = 0
@@ -247,6 +262,7 @@ class CatalogRefresher(
                 pagesTotal = pagesTotal,
                 products = green,
                 photos = photosStored,
+                guides = guides.read,
             ),
         )
 
@@ -281,6 +297,7 @@ class CatalogRefresher(
             appendLine("candidates: $known known green, $new new, $recheck to check again")
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
             appendLine("photos: $photosStored stored, $photosKept unchanged, $photosMissing without")
+            appendLine(guides.line())
             append("defective: ${defective.size}")
             if (defective.isNotEmpty()) {
                 val more = if (defective.size > MAX_LISTED) ", …" else ""
@@ -332,6 +349,7 @@ class CatalogRefresher(
             stageEntries()
             checkSanity()
             storePhotos(session)
+            storeGuides(session, urls)
             return swap()
         }
 
@@ -449,6 +467,7 @@ class CatalogRefresher(
                 dao.stage(StagedCatalogTeaEntity(tea))
                 dao.stagePackages(packages.map { StagedCatalogPackageEntity(it) })
                 tea.photoUrl?.let { run.photoUrls += tea.key to it }
+                (entry.mergedKeys + entry.key + tea.key).forEach { run.catalogKeys[it] = tea.key }
                 run.staged[tea.key] = StagedTea(tea.contentHash, flagged = tea.recipeCheckReason != null)
                 run.stagedBases += tea.key
                 run.stagedBases += entry.mergedKeys
@@ -536,6 +555,34 @@ class CatalogRefresher(
                 // Never sent (robots.txt) or gone: only this tea is left without a new photo.
                 ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
             }
+        }
+
+        /** The guides (CAT-09, D-087): staged for the swap; read after the photos, each counted in the progress. */
+        private suspend fun storeGuides(session: ShopSession, urls: List<String>) {
+            guides.stage(
+                session = session,
+                sitemapUrls = urls,
+                catalogKeys = guideCatalogKeys(),
+                downloadImages = settings.settings.first().catalogDownloadPhotos,
+                counts = run.guides,
+                onGuide = run::progress,
+                stop = run::stop,
+            )
+            log("catalog refresh: ${run.guides.line()}")
+        }
+
+        /**
+         * The teas a guide can link to in the new catalog: each staged tea's numbers, and those of
+         * a known tea the swap keeps unread (#70), each to its key.
+         */
+        private fun guideCatalogKeys(): Map<String, String> {
+            val keys = run.catalogKeys.toMutableMap()
+            for ((key, before) in run.previous) {
+                if (key !in run.staged && stillListed(key, before)) {
+                    (run.previousBases[key].orEmpty() + key).forEach { keys.putIfAbsent(it, key) }
+                }
+            }
+            return keys
         }
 
         /**

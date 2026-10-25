@@ -347,7 +347,14 @@ as out of scope, so later refreshes don't fetch them again (re-checked after
 ### 4.3 CatalogGuide
 
 Table `catalog_guide`: `slug` PK, `title`, `url`, `body_markdown`,
-`hero_file`, `linked_catalog_keys` (JSON), `fetched_at`.
+`hero_file`, `linked_catalog_keys` (JSON), `fetched_at`, `published_at`
+(the shop's publication date, epoch ms, nullable). `body_markdown` is the
+converted article in the app's own Markdown subset (`GuideMarkdown`: `##`
+headings, paragraphs with line breaks, `**`/`*`, `[text](target)`, `-`/`1.`
+lists, `![alt](file)` images); links to catalog teas and stored guides are
+`umamit://catalog/<key>` and `umamit://guide/<slug>`. Images and `hero_file`
+are file names in `filesDir/catalog/guides/` (`g_<hash>.webp`, not backed
+up). Table `catalog_guide_staging` has exactly its columns (D-087).
 
 ### 4.4 CatalogRefreshLog
 
@@ -365,8 +372,9 @@ Parsing writes into staging tables; on success, one transaction replaces
 (kept from the previous catalog with `discontinued = 1`). On failure the
 staging tables are emptied and the old catalog stays untouched (CAT-07 AC5).
 
-The staging tables `catalog_tea_staging` and `catalog_package_staging` have
-exactly the columns of `catalog_tea` and `catalog_package` in the same order,
+The staging tables `catalog_tea_staging`, `catalog_package_staging` and
+`catalog_guide_staging` have exactly the columns of `catalog_tea`,
+`catalog_package` and `catalog_guide` in the same order,
 so the swap copies them with `INSERT … SELECT *`; a tea already in the
 catalog keeps its `first_seen_at`. The skip entries of the run
 (`catalog_skip`) and its `catalog_refresh_log` row are written in the same

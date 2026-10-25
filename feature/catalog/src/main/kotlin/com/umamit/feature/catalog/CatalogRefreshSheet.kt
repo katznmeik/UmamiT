@@ -103,6 +103,8 @@ private fun ColumnScope.Running(progress: CatalogRefreshProgress, onCancel: () -
         )
         // The photos come after the pages (CAT-08); none while SET-22 is off.
         if (progress.photos > 0) Body(stringResource(R.string.catalog_refresh_photos, progress.photos))
+        // The guides come after the photos (CAT-09).
+        if (progress.guides > 0) Body(stringResource(R.string.catalog_refresh_guides, progress.guides))
     }
     Body(stringResource(R.string.catalog_refresh_running_hint))
     Spacer(Modifier.height(UmamiSpacing.XSmall))
