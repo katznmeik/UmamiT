@@ -47,14 +47,14 @@ parser (NFR-MAINT-04).
 | Price | `.product-detail-price` („17,90 €") | default package price |
 | Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)"); without the reference: price ÷ content (D-077) | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
 | Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock; neither → unknown (null) | `available` |
-| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
+| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`; each value after the first starts with its own „, ", which is dropped before joining with „, ", D-082). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
 | Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
-| Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
+| Taste scales | `.st-scales-usp .container`: label without its colon (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
 | Description | `.product-detail-description-text` paragraphs, without staff tip blocks (`.st-teamtipp`, D-076), sanitised (§2.8, D-078) | `description_html`, `description_text`; also the source of brewing prose and „Zutaten: …" |
 | Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
 | Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
 | Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon) or `st-zubereitung-westlich` (western icon); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
-| Brewing prose | Description paragraphs mentioning Zubereitung, Aufguss, g/ml, °C, Kaltaufguss | `brew_text_raw` |
+| Brewing prose | Description paragraphs that are brewing instructions: two of temperature (°C), time (Sek, Min, Std) and amount per volume (g or TL per ml or l), or one of them with a brewing word (Zubereitung, Aufguss, Ziehzeit, Dosierung, …); tasting notes, video pointers, package sizes and storage hints are not (D-082) | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
 | Photo | `img.gallery-slider-image[data-full-image]` of the product's own gallery (original); microdata image as fallback; thumbnails via `data-srcset` | `photo_url` |
 | Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
@@ -300,6 +300,8 @@ locally); links to product pages become in-app catalog links.
   (YouTube → plain link) and the staff tip blocks; keep basic formatting only:
   paragraphs, line breaks, bold, italics, lists and absolute http(s) links
   without attributes but `href`; headings become bold paragraphs (D-078).
+  Control characters (C0 and C1 but tab and line breaks) become spaces in
+  every text read from a page (D-082).
 - **Cloudflare:** a response is a challenge if it has the header
   `cf-mitigated: challenge`, or (HTTP 403/503) its body contains challenge
   markers (`cdn-cgi/challenge-platform`, `_cf_chl_opt`, „Just a moment…").

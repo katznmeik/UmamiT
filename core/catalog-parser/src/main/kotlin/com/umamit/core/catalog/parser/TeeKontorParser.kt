@@ -23,7 +23,7 @@ object TeeKontorParser {
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
      * selectors or the fields read change.
      */
-    const val PARSER_VERSION = 2
+    const val PARSER_VERSION = 3
 
     /** Parses [body] (the HTML of [pageUrl], charset from the page, else UTF-8). */
     fun parseProduct(body: ByteArray, pageUrl: String): ProductParse {

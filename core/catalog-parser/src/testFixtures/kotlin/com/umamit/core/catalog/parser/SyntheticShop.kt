@@ -183,7 +183,8 @@ object SyntheticShop {
         append("<div class=\"st-scales-usp mb-3\"><h2>Geschmacksprofil</h2>")
         scales.forEach { (label, full) ->
             append("<div class=\"container mb-1\"><div class=\"row\">")
-            append("<div class=\"col-auto st-scale-label\">${label.htmlEscaped()}</div>")
+            // As on the shop, the label ends with a colon („Umami:").
+            append("<div class=\"col-auto st-scale-label\">${label.htmlEscaped()}:</div>")
             repeat(SCALE_LEAVES) { index ->
                 val leaf = if (index < full) "scale-full-leaf.svg" else "scale-empty-leaf.svg"
                 append("<div class=\"col-auto st-scale-value\"><img src=\"/bundles/teekontorkiel/$leaf\"></div>")
@@ -200,7 +201,10 @@ object SyntheticShop {
                 append("<tr class=\"properties-row\"><th class=\"properties-label\">${label.htmlEscaped()}:</th>")
                 append("<td class=\"properties-value\"><span class=\"d-inline-block d-sm-none st-property-label\">")
                 append("<strong>${label.htmlEscaped()}:</strong></span>")
-                values.forEach { append("<span>${it.htmlEscaped()}</span>") }
+                // As on the shop, every value after the first starts with its own „, ".
+                values.forEachIndexed { index, value ->
+                    append("<span>").append(if (index > 0) ", " else "").append(value.htmlEscaped()).append("</span>")
+                }
                 append("</td></tr>")
             }
             append("</tbody></table>")
