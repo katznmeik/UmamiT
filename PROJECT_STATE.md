@@ -9,13 +9,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog** (not started; needs a spec via `/to-spec`) |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#75 written; implementation waits for the PO's start |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57 |
-| Open PR | none (M2 opens its milestone PR with its first merge) |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60 |
+| Open PR | #61 (D-073 M2 decisions, docs); M2 opens its milestone PR with its first merge |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) (release, versionCode 10099, from `main` 04a22a5) |
 
@@ -39,12 +39,14 @@
 
 ## Waiting on the PO
 
-1. **Start M2 (catalog)** when you want: write its spec with `/to-spec` (scope in
-   `docs/specs/09-release-plan.md` §2 and the catalog spec), then tickets and
-   `/implement-spec`.
-2. Later images (M2–M4): A6–A11 (`docs/design/assets.md`).
-3. Optional findings from the M1 review are in #58: triage them into M2 or
-   close them.
+1. **Start M2 implementation**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62)
+   and its tickets #63–#75 are approved; `/implement-spec` on #62 begins on the
+   PO's word (frontier: #63 `catalog.db`, #64 parser, #73 polish).
+2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
+   on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
+   Later: A6, A7, A9, A10 (`docs/design/assets.md`).
+3. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
+   stays open for later milestones.
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
 
@@ -101,6 +103,25 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 2. The next APK for the PO is `v0.1.0-rc.1`. The probe screen, its classes
    and tests were removed in #54 (D-040).
 
+### M2 planned (2026-10-25)
+
+- D-072 (reorder link, INV-09, CAT-11 *Im Shop öffnen*) merged in #60.
+- The PO grilled M2 as a whole: 16 decisions plus a lean test plan recorded as
+  D-073 (#61). Key points: add, repurchase and the picker flow ship in M2; refresh allowed during a
+  brew with the timer first; *Neu* badge; default view by Sorte, available, pure;
+  1200 px photos; accuracy run only for rcs touching timer code and before the
+  final; no emulator test of the refresh; fewer screenshots.
+- Spec #62 via `/to-spec` (4 test seams: parser/recipes, refresh vs. simulated
+  shop, add/repurchase on in-memory Room, reduced screenshots; plus Claude's
+  live-shop runs and the PO's checklist). Tickets #63–#75 approved by the PO:
+  #63 `catalog.db` · #64 parser · #65 recipes (←#64) · #66 sitemap/robots/variants
+  (←#64) · #67 refresher, T4 (←#63, #65, #66) · #68 service and refresh sheet, T4
+  (←#67) · #69 list and detail, early design check (←#63) · #70 add/repurchase
+  (←#63, #69) · #71 picker flow and *Rezept passt* (←#70) · #72 Ratgeber (←#67,
+  #69) · #73 #58 polish and seed retry · #74 rc and PO checklist · #75 merge and
+  `v0.2.0`.
+- **Decision numbers:** up to D-073 used; the next free is **D-074**.
+
 ### M1 done (2026-10-25)
 
 - The PO tested `v0.1.0-rc.1` on the Galaxy: every 09 §4 item, the rail
@@ -115,7 +136,6 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
   `startForeground` post later than 0.5 s is repaired only by the 15 s
   refresh); the animation pass (Schritte-Sheet rows, status mark, kettle
   hint fade).
-- **Decision numbers:** up to D-071 used; the next free is **D-072**.
 
 ## Open questions
 
@@ -138,6 +158,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#75 (approved by the PO). Implementation waits for the PO's start. |
 | 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |
 | 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |
 | 2026-10-22 | Spec #40 (M1 waves 4–7) written via `/to-spec` and broken into 16 tickets #41–#56 via `/to-tickets` (granularity and blockers approved by the PO). CI: build-logic plugin repositories fixed (failed with an empty Gradle cache). |
