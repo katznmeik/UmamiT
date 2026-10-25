@@ -302,6 +302,64 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-073"></a>
+### D-073 — M2 cut, behaviour and process (grilling with the PO) · *Accepted* (PO, 2026-10-25)
+
+Grilled with the PO before the M2 spec. The catalog itself stays as
+specified (CAT-01 … CAT-15, 08 §2); these answers settle what the specs left
+open or what M1 changed.
+
+**Scope of M2**
+- *In Sammlung aufnehmen* and *Nachkauf erfassen* (CAT-12, SCR-23) ship with
+  M2, not M3. A new tea is immediately in the tea picker and brewable with
+  its derived recipe and stock deduction. M3 adds the *Meine Tees* screens,
+  the tea detail (with INV-09) and the recipe editor.
+- The tea picker's *Aus dem Katalog* leads through the catalog to the add
+  sheet and back to the brew setup with that tea selected. A catalog tea is
+  never brewed without adding it (stock and journal stay correct).
+- A tea flagged „Rezept prüfen" is adjusted per brew in the Schritte-Sheet;
+  the „Gespeichert" sheet then offers *Rezept passt*, which clears the flag
+  (CAT-05, SCR-06). The full editor stays in M3.
+- The Tee-Info guides (CAT-09) are the last slice of M2; if they hold up the
+  first rc, they follow in a later rc.
+- From #58, M2 also takes: the seed retry at app start (D-O1), the °C spacing
+  and abbreviations (U-O7), the navigation label at font 2.0 (U-O1), the tea
+  picker's surface colour (U-O8) and the unused imports (U-O9).
+
+**Behaviour**
+- On a phone whose first-start setup is done, the catalog is first loaded
+  from the empty state of Sammlung › Katalog (*Katalog laden*) or Settings;
+  ONB-03 shows only on fresh installs. No extra card on Start.
+- A refresh may run during a brew session; the timer always has priority
+  (CAT-07 AC8, rule 8).
+- Teas first seen in the latest refresh get a „Neu" badge and a *Neu* filter
+  (CAT-10).
+- The catalog list opens grouped by *Sorte*, available teas only, with the
+  „Pur" filter on: flavoured teas are loaded and searchable but hidden until
+  the filter is changed (CAT-10).
+- Photos: max 1200 px WebP plus a list thumbnail, about 25–35 MB (CAT-08;
+  was 1600 px).
+
+**Process**
+- Claude tests the parser against the live shop from the cloud session:
+  samples of about 20 teas during development and one full run before each
+  rc, with the app's own limits (≤ 2 requests/s, one connection, robots.txt,
+  stop on a challenge or 429). Nothing from the shop is committed (D-016).
+- The accuracy run (09 §4a, D-067) is required from M2 on only for an rc whose
+  changes touch timer code, and always before the final release.
+- An early design check of the catalog list, tea detail and add sheet
+  follows the first UI slice (like #39); the final design review comes with
+  the release candidate.
+- Test plan (agreed with the PO for the M2 spec, kept lean): parser and
+  recipe rules on synthetic pages; the whole refresh against a simulated shop
+  (rate limit, stop signals, variant merge, atomic swap); adding and
+  repurchase on a test database; screenshots of the catalog list, tea detail,
+  add sheet and refresh sheet (light and dark, font 2.0 for list and detail);
+  Claude's live-shop runs; the PO's checklist. No emulator test of the
+  refresh: the PO checks a refresh during a brew on the phone (09 §4 M2).
+- The PO generates the illustrations A8 (empty catalog) and A11 (Ratgeber
+  header) now, for the first M2 rc.
+
 <a id="d-072"></a>
 ### D-072 — One-tap reorder from the tea detail (CAT-11, INV-09) · *Accepted* (PO, 2026-10-25)
 
@@ -2465,6 +2523,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-073: M2 grilled with the PO: CAT-12 add and repurchase in M2 with the picker flow, *Rezept passt*, guides last, small #58 items; catalog first loaded from the Katalog tab; refresh allowed during a brew (CAT-07 AC8); „Neu" badge; list grouped by Sorte, available only, „Pur" on; photos 1200 px plus thumbnails; live-shop tests by Claude; accuracy run only for rcs that touch timer code (09 §4a); early design check; A8/A11 now. |
 | 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |
 | 2026-10-23 | D-071: `BrewTimerService` posts a same-ID update made within 1 s of `startForeground` once more after 0.5 s (only-alert-once, only while still the foreground ID, newest wins), because AOSP posts the start's notification asynchronously and it can overwrite the update; service path logging, `dumpsys activity services` in the device test dump, wider CI logcat filter. 04 §6.3 and §8.3 updated. |
 | 2026-10-23 | D-070: release gate and workflow hardening (#54 milestone review): `release.yml` builds only a commit with a successful `ci.yml` run and repeats the schema checks; signing job (read-only token, only GitHub's own actions, no setup-gradle) and publish job (`contents: write`, no actions, re-verifies the APK) split; all actions in `release.yml`, `ci.yml`, `accuracy.yml` pinned to commit SHAs; the schema freeze compares version and identity hash; `SchemaVersionsTest` opens every committed schema version with the production builder and `UMAMI_MIGRATIONS`; D-039 covers `accuracy.yml`; 09 §4 gains Doze, quick timer, *Beenden & neu starten* and refused-start items. 05 §9, 06 §6, 09 §1 and §4, `docs/release.md` updated. |

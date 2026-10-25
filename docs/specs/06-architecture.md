@@ -155,8 +155,8 @@ dispatcher thread for the shop).
 Photo picker (`PickVisualMedia`) and camera (`TakePicture` into a
 `FileProvider` URI; no `CAMERA` permission); decode with sampling, rotate per
 EXIF, resize to 2048 px, JPEG 85, strip EXIF; store in `filesDir/photos/`.
-Catalog photos: downloaded to `filesDir/catalog/`, resized to 1600 px WebP,
-re-downloaded only if URL/ETag changed.
+Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
+plus a list thumbnail, re-downloaded only if URL/ETag changed (CAT-08, D-073).
 
 ### 5.3 Catalog refresh
 

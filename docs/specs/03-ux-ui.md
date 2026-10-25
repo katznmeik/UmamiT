@@ -473,7 +473,9 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 ### SCR-03 Teeauswahl (bottom sheet)
 
 Search (GEN-10); sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned teas);
-footer *Aus dem Katalog* (→ SCR-19) and *Ohne Tee (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
+footer *Aus dem Katalog* (→ SCR-19 → SCR-21 → SCR-23 *In Sammlung aufnehmen*,
+then back to SCR-04 with the new tea selected; D-073) and *Ohne Tee
+(Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
 
 ### SCR-04 Brühen (setup)
 
@@ -571,7 +573,8 @@ finger on it holds it, also a resting one. Its 10 s run from *Sitzung
 beenden*, also while the shell is covered, so it never returns stale. It is
 never shown while an alert plays, and an alert removes it in
 the same frame (rule 8). M1 shows only the text; the two actions come with
-M4 (D-061).
+M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
+*Rezept passt*, which clears the flag (CAT-05, D-073).
 
 ### SCR-07 Schnelltimer
 
@@ -669,8 +672,12 @@ Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
 274 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
 search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
 Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
-„15,90 €/100 g", flag chips. Overflow: *Katalog aktualisieren*.
-Empty (never loaded): „Der Katalog ist noch leer" · *Katalog laden*.
+„15,90 €/100 g", flag chips, a „Neu" badge for teas new in the latest
+refresh. Opens grouped by *Sorte*, available teas only, „Pur" on (flavoured
+teas one tap away; D-073). Overflow: *Katalog aktualisieren*.
+Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
+*Katalog laden*. This is the entry point on a phone whose first-start setup
+is already done (ONB-03 shows only on fresh installs).
 
 ### SCR-20 Ratgeber-Artikel
 
