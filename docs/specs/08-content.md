@@ -74,10 +74,11 @@ comes from titles („2026 Shincha …").
 | Catalog data | Collection field | Rule |
 |---|---|---|
 | Ernte badge / prose / title | `harvest_year` | First 4-digit year 2000–(current + 1), else empty |
-| Ernte badge / prose | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Nibancha" → `SECOND_FLUSH`; „Sommerernte", „Sommer" → `SUMMER`; „Herbst" → `AUTUMN`; else `UNKNOWN`. Never taken from *Saison* (that is when to drink the tea). |
-| Beschattung badge / prose | `shading_days` | Number + „Tage" → n; + „Wochen" → 7n; ranges → midpoint (e.g. prose „für 6 Tage beschattet"); badge without number → empty |
+| Ernte badge / prose | `harvest_season` | „first flush", „Frühlingsernte", „Erste Pflückung", „Ichibancha", „Shincha" → `FIRST_FLUSH`; „second flush", „Nibancha" → `SECOND_FLUSH`; „Sommerernte", „Sommer" → `SUMMER`; „Herbst" → `AUTUMN`; a badge naming none → `UNKNOWN`; without a badge only the prose's flush words count (not a bare „Sommer"/„Herbst"), else empty (D-085). Never taken from *Saison* (that is when to drink the tea). |
+| Beschattung badge / prose | `shading_days` | Number + „Tage" → n; + „Wochen" → 7n; ranges → midpoint, rounded half up (e.g. prose „für 6 Tage beschattet", only a sentence about shading); badge without number or more than 60 days → empty |
 | Dämpfung badge | `processing_notes` | Copied as text (e.g. „Chumushi") |
 | Ingredients | `ingredients` | Copied |
+| *Anbaugebiete* | `origin_country` | ISO 3166-1 code of the first country name the app knows (Japan → `JP`, China → `CN`, Taiwan → `TW`, (Süd-)Korea → `KR`, …), else empty (D-085) |
 
 ### 2.4 Discovery, variants and request budget
 
@@ -97,7 +98,14 @@ comes from titles („2026 Shincha …").
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
-   sitemap; products missing from the sitemap → discontinued.
+   sitemap; products missing from the sitemap → discontinued. The known green
+   parents are the catalog's keys and the base numbers merged into them
+   (item 7), read from their packages' article numbers; skip entries due
+   again (90 days) are fetched too. A known tea whose page can't be read this
+   time (robots.txt, 404, a page without product) but whose numbers are still
+   in the sitemap is kept as it was; one that is now out of scope or missing
+   from the sitemap is discontinued (CAT-07 AC4). Only new and changed photos
+   are fetched (D-086).
 6. **Package prices:** variant sizes come from the configurator labels and
    variant URLs. Sizes **larger** than the parent package are **estimated**
    without extra requests: `price(size) = parent price ÷ parent grams × size ×

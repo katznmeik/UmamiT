@@ -39,6 +39,8 @@ data class StoredSettings(
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
     val seedPhotosAttempted: Boolean = false,
+    /** Set once the seed teas were linked to the catalog after a successful refresh (CAT-15); never reset. */
+    val seedTeasLinked: Boolean = false,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -71,6 +73,8 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     val seedPhotosAttempted: Flow<Boolean> = dataStore.data.map { it.seedPhotosAttempted }
 
+    val seedTeasLinked: Flow<Boolean> = dataStore.data.map { it.seedTeasLinked }
+
     /** Applies [transform] atomically to the current settings. */
     suspend fun update(transform: (UserSettings) -> UserSettings) {
         dataStore.updateData { stored -> transform(stored.toModel()).toStored(markersOf = stored) }
@@ -82,6 +86,10 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     suspend fun markSeedPhotosAttempted() {
         dataStore.updateData { it.copy(seedPhotosAttempted = true) }
+    }
+
+    suspend fun markSeedTeasLinked() {
+        dataStore.updateData { it.copy(seedTeasLinked = true) }
     }
 }
 
@@ -122,4 +130,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     catalogDownloadPhotos = catalogDownloadPhotos,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
+    seedTeasLinked = markersOf.seedTeasLinked,
 )

@@ -161,8 +161,9 @@ Photo picker (`PickVisualMedia`) and camera (`TakePicture` into a
 EXIF, resize to 2048 px, JPEG 85, strip EXIF; store in `filesDir/photos/`.
 Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
 (quality 80) plus a WebP list thumbnail with a 256 px short side (never
-larger than the photo), both from one decode; re-downloaded only if URL/ETag
-changed (CAT-08, D-073, D-074).
+larger than the photo), both from one decode; downloaded again only when the
+page's photo URL is not the one the stored photo came from (CAT-08, D-073,
+D-074, D-086).
 
 ### 5.3 Catalog refresh
 
@@ -180,7 +181,9 @@ changed (CAT-08, D-073, D-074).
    alarms (rule 8; [D-079](10-open-questions-and-decisions.md#d-079)).
 2. Fetch `robots.txt` and the sitemap; derive base article numbers from
    product URLs, skip known out-of-scope numbers (`catalog_skip`) per
-   [08 §2.4](08-content.md#24-discovery-variants-and-request-budget).
+   [08 §2.4](08-content.md#24-discovery-variants-and-request-budget): a
+   later refresh fetches the known green teas (with the numbers merged into
+   them), the new base numbers and the skip entries due again (D-086).
    `robots.txt` rules use longest-match precedence with `*` and `$`
    wildcards (RFC 9309).
 3. Fetch each candidate parent page (≤ 2 req/s, one connection, 20 s
@@ -192,14 +195,16 @@ changed (CAT-08, D-073, D-074).
    any `Retry-After` header ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
 4. Merge variants, map styles, derive recipes, compute content hashes.
 5. Sanity check of the parsed pages (CAT-07 AC5), before any photo or guide
-   request; then download changed photos (if SET-22; until #70 every photo,
-   D-078).
+   request; then download new and changed photos (if SET-22; an unchanged
+   photo is never fetched again, D-086).
 6. Fetch and convert *Tee-Info* guides (CAT-09) into staging, with their
    images unless SET-22 is off (stored ones not fetched again, D-087).
 7. Atomic swap of the staging tables, guides included
-   ([05 §4.5](05-data-model.md#45-refresh-transaction)); delete the photos of
-   teas and the images of guides no longer in the catalog (also after a
-   failed run); log.
+   ([05 §4.5](05-data-model.md#45-refresh-transaction)) with the summary
+   counts (CAT-07 AC3), keeping unread known teas and owned discontinued ones
+   (CAT-07 AC4); delete the photos of teas and the images of guides no
+   longer in the catalog (also after a failed run); log; link the seed teas
+   once (CAT-15, D-086).
 
 All requests (pages and images) share the 2 req/s limit. Expected
 duration: first refresh (~1,560 classification pages + ~280 photos + guides)

@@ -36,6 +36,26 @@ data class CatalogListRow(
 )
 
 /**
+ * What a later refresh needs to know of a tea in the catalog before its swap (#70): its photo's
+ * source and file (CAT-08), its shop content's hash („geändert"), its recipe flag („Rezepte
+ * prüfen") and whether it already left the range (CAT-07 AC4).
+ */
+data class CatalogTeaState(
+    @ColumnInfo(name = "key") val key: String,
+    @ColumnInfo(name = "photo_url") val photoUrl: String?,
+    @ColumnInfo(name = "photo_file") val photoFile: String?,
+    @ColumnInfo(name = "content_hash") val contentHash: String?,
+    @ColumnInfo(name = "recipe_check_reason") val recipeCheckReason: RecipeCheckReason?,
+    @ColumnInfo(name = "discontinued") val discontinued: Boolean,
+)
+
+/** A package's article number (05 §4.2), which names the base number its own page has (D-081). */
+data class CatalogPackageNumber(
+    @ColumnInfo(name = "catalog_key") val catalogKey: String,
+    @ColumnInfo(name = "article_number") val articleNumber: String,
+)
+
+/**
  * The catalog database's queries (05 §4). A refresh stages its teas, packages and skip entries
  * and then swaps them in with [swap], one transaction (05 §4.5): the old catalog is either
  * replaced as a whole or not touched.
@@ -91,6 +111,14 @@ abstract class CatalogDao {
 
     @Query("SELECT key FROM catalog_tea")
     abstract suspend fun keys(): List<String>
+
+    /** Every tea of the catalog, discontinued ones included, as a later refresh compares it (#70). */
+    @Query("SELECT key, photo_url, photo_file, content_hash, recipe_check_reason, discontinued FROM catalog_tea")
+    abstract suspend fun teaStates(): List<CatalogTeaState>
+
+    /** Every package's article number, by tea: the base numbers merged into a tea are among them (D-081). */
+    @Query("SELECT catalog_key, article_number FROM catalog_package")
+    abstract suspend fun packageNumbers(): List<CatalogPackageNumber>
 
     /** Base numbers classified out of scope at or after [since] (05 §4.2a: re-checked after 90 days). */
     @Query("SELECT base_key FROM catalog_skip WHERE checked_at >= :since")
@@ -150,9 +178,12 @@ abstract class CatalogDao {
     @Query("SELECT key FROM catalog_tea_staging")
     abstract suspend fun stagedKeys(): List<String>
 
-    /** Sets a staged tea's photo file (05 §4.1 `photo_file`), once the refresh has its photo (CAT-08). */
-    @Query("UPDATE catalog_tea_staging SET photo_file = :file WHERE key = :key")
-    abstract suspend fun setStagedPhoto(key: String, file: String)
+    /**
+     * Sets a staged tea's photo file and the URL that photo came from (05 §4.1 `photo_file`,
+     * `photo_url`), once the refresh has its photo (CAT-08): downloaded now, or kept from before.
+     */
+    @Query("UPDATE catalog_tea_staging SET photo_file = :file, photo_url = :url WHERE key = :key")
+    abstract suspend fun setStagedPhoto(key: String, file: String, url: String?)
 
     /** Writes a refresh that ended without a swap (cancelled or failed, 05 §4.4). */
     @Insert
@@ -162,9 +193,21 @@ abstract class CatalogDao {
      * The atomic swap (05 §4.5): the staged teas, packages and guides replace the catalog, a tea
      * seen before keeps its `first_seen_at` („Neu"), [skips] are added to the skip list, [entry]
      * is logged and the staging tables are emptied, all in one transaction.
+     *
+     * Teas of the old catalog that the refresh did not stage (#70): those in [unchanged] stay as
+     * they were (still in the sitemap, but their page couldn't be read this time, 08 §2.4 item 5);
+     * those in [discontinued] stay hidden as „Nicht mehr im Sortiment" while a collection tea
+     * links to them (CAT-07 AC4); every other one is deleted with its packages.
      */
     @Transaction
-    open suspend fun swap(skips: List<CatalogSkipEntity>, entry: CatalogRefreshLogEntity) {
+    open suspend fun swap(
+        skips: List<CatalogSkipEntity>,
+        entry: CatalogRefreshLogEntity,
+        unchanged: List<String> = emptyList(),
+        discontinued: List<String> = emptyList(),
+    ) {
+        stageCurrent(unchanged + discontinued)
+        markStagedDiscontinued(discontinued)
         keepFirstSeen()
         deletePackages()
         deleteTeas()
@@ -193,6 +236,21 @@ abstract class CatalogDao {
 
     @Query("DELETE FROM catalog_guide_staging")
     protected abstract suspend fun clearStagedGuides()
+    private suspend fun stageCurrent(keys: List<String>) {
+        if (keys.isEmpty()) return
+        stageCurrentTeas(keys)
+        stageCurrentPackages(keys)
+    }
+
+    // The staged page wins over the old row (never both: the refresh stages neither twice).
+    @Query("INSERT OR IGNORE INTO catalog_tea_staging SELECT * FROM catalog_tea WHERE key IN (:keys)")
+    protected abstract suspend fun stageCurrentTeas(keys: List<String>)
+
+    @Query("INSERT OR IGNORE INTO catalog_package_staging SELECT * FROM catalog_package WHERE catalog_key IN (:keys)")
+    protected abstract suspend fun stageCurrentPackages(keys: List<String>)
+
+    @Query("UPDATE catalog_tea_staging SET discontinued = 1 WHERE key IN (:keys)")
+    protected abstract suspend fun markStagedDiscontinued(keys: List<String>)
 
     @Query(
         "UPDATE catalog_tea_staging SET first_seen_at = " +

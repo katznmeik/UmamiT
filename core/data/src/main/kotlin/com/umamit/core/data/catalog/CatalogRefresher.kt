@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.database.SQLException
+import com.umamit.core.catalog.parser.ArticleNumber
 import com.umamit.core.catalog.parser.CatalogEntries
 import com.umamit.core.catalog.parser.CatalogEntry
 import com.umamit.core.catalog.parser.CatalogRecipes
@@ -19,6 +20,7 @@ import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
+import com.umamit.core.database.dao.CatalogTeaState
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
@@ -39,6 +41,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -55,21 +58,31 @@ import javax.inject.Inject
  *    refresh's retries ([NetworkRetry.REFRESH], D-076): every request on the allow-listed
  *    [ShopClient], one connection, ≤ 2 requests/s, robots.txt honoured (CLAUDE.md rule 7).
  * 2. Candidates: one page per base number, sets left out, base numbers on the skip list for
- *    less than 90 days left out; so a first refresh classifies every parent (D-076).
+ *    less than 90 days left out; so a first refresh classifies every parent (D-076), and a later
+ *    one fetches the known green teas (with the numbers merged into them, D-081), the base
+ *    numbers new in the sitemap and the skip entries due again (08 §2.4 item 5).
  * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas are kept, other products
  *    go onto the new skip entries.
  * 4. The green teas go into the staging tables, one entry per tea with its package sizes
  *    ([CatalogEntries]: split numbers merged, sizes and prices from the page and the sitemap,
- *    no size page fetched; 08 §2.4 items 6–7, D-081) and its style and derived recipes
- *    ([CatalogRecipes], CAT-04 – CAT-06); then the sanity check (08 §2.9).
- * 5. The green teas' photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is off: each through
- *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
- *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
- *    leaves only that tea without one (or with the photo it had); a stop ends the run.
+ *    no size page fetched; 08 §2.4 items 6–7, D-081), its style and derived recipes
+ *    ([CatalogRecipes], CAT-04 – CAT-06) and its [CatalogContentHash]; then the sanity check
+ *    (08 §2.9).
+ * 5. The green teas' new and changed photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is
+ *    off: a photo whose URL is the one the stored photo came from is never fetched again (#70);
+ *    each other one through the same session (robots.txt, stops), re-encoded to `<key>.webp` and
+ *    `<key>_thumb.webp` ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing
+ *    or doesn't decode leaves only that tea without one (or with the photo it had); a stop ends
+ *    the run.
  * 6. The *Tee-Info* guides (CAT-09, D-087) through the same session, with their images unless
  *    SET-22 is off, converted and staged ([CatalogGuides]).
  * 7. One transaction swaps the staged catalog and guides in, adds the skip entries and logs the
- *    run (05 §4.5); the photos of teas and the images of guides no longer in it are deleted.
+ *    run with its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
+ *    read stays as it was; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
+ *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
+ *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
+ *    photos of teas and the images of guides no longer in the catalog are deleted and the
+ *    seed teas are linked once ([CatalogSeedLinker], CAT-15).
  *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
  * storage error or a cancellation leaves the catalog, its guides **and the skip list** as they were (photos
@@ -91,6 +104,8 @@ class CatalogRefresher(
     private val sanity: SanityCheck = SanityCheck(),
     private val parseDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val fileDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
+    private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
 ) {
     @Inject
     constructor(
@@ -100,7 +115,21 @@ class CatalogRefresher(
         diagnostics: DiagnosticsLog,
         settings: SettingsRepository,
         photos: CatalogPhotoFiles,
-    ) : this(client, dao, clock, diagnostics, settings, photos, SanityCheck(), Dispatchers.Default, Dispatchers.IO)
+        owned: OwnedCatalogKeys,
+        seedTeas: CatalogSeedLinker,
+    ) : this(
+        client,
+        dao,
+        clock,
+        diagnostics,
+        settings,
+        photos,
+        SanityCheck(),
+        Dispatchers.Default,
+        Dispatchers.IO,
+        owned,
+        seedTeas,
+    )
 
     private val guides = CatalogGuides(client, dao, photos.guideImages, clock, parseDispatcher, fileDispatcher, ::log)
 
@@ -148,7 +177,7 @@ class CatalogRefresher(
         log("catalog refresh: ${status.name.lowercase()}, $summary")
         try {
             dao.clearStaging()
-            dao.log(run.logEntry(status, newCount = 0, discontinuedCount = 0, errorSummary = summary))
+            dao.log(run.logEntry(status, Summary.NONE, errorSummary = summary))
             keepPhotosOfCatalog()
         } catch (e: SQLException) {
             log("catalog refresh: log not written (${e.javaClass.simpleName})")
@@ -183,7 +212,6 @@ class CatalogRefresher(
         var green = 0
         var lackingRequired = 0
         var lackingBrewing = 0
-        var flagged = 0
         var unavailable = 0
         var sitemapUrls = 0
         var sets = 0
@@ -194,6 +222,29 @@ class CatalogRefresher(
 
         /** Each base number of the staged catalog (merged split numbers too) to its tea's key (guide links). */
         val catalogKeys = mutableMapOf<String, String>()
+        var photosKept = 0
+        var known = 0
+        var new = 0
+        var recheck = 0
+
+        /** The catalog before this refresh, by key (#70). */
+        var previous: Map<String, CatalogTeaState> = emptyMap()
+
+        /** Each tea's base numbers in the catalog before this refresh: its key and those merged into it (D-081). */
+        var previousBases: Map<String, Set<String>> = emptyMap()
+
+        /** The base numbers the sitemap lists, and those on the skip list or onto it in this run. */
+        var listedBases: Set<String> = emptySet()
+        val skippedBases = mutableSetOf<String>()
+
+        /** The staged teas' keys and the numbers merged into them. */
+        val stagedBases = mutableSetOf<String>()
+
+        /** Each staged tea's hash and flag, for the summary. */
+        val staged = mutableMapOf<String, StagedTea>()
+
+        /** The teas whose photo this run downloaded. */
+        val photosWritten = mutableSetOf<String>()
 
         /** Each green tea's key and photo URL, in page order. */
         val photoUrls = mutableListOf<Pair<String, String>>()
@@ -241,8 +292,9 @@ class CatalogRefresher(
             appendLine("parser: v${TeeKontorParser.PARSER_VERSION}")
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
             appendLine("sitemap: $sitemapUrls URLs, $sets sets, $skippedKnown on the skip list")
+            appendLine("candidates: $known known green, $new new, $recheck to check again")
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
-            appendLine("photos: $photosStored stored, $photosMissing without")
+            appendLine("photos: $photosStored stored, $photosKept unchanged, $photosMissing without")
             appendLine(guides.line())
             append("defective: ${defective.size}")
             if (defective.isNotEmpty()) {
@@ -251,20 +303,19 @@ class CatalogRefresher(
             }
         }
 
-        fun logEntry(status: CatalogRefreshStatus, newCount: Int, discontinuedCount: Int, errorSummary: String?) =
-            CatalogRefreshLogEntity(
-                startedAt = startedAt,
-                finishedAt = clock.nowMs(),
-                status = status,
-                newCount = newCount,
-                changedCount = 0,
-                discontinuedCount = discontinuedCount,
-                // „Rezept prüfen" teas of a swapped-in catalog (CAT-07 AC3).
-                flaggedCount = if (status == CatalogRefreshStatus.SUCCESS) flagged else 0,
-                photosCount = photosStored,
-                parserVersion = TeeKontorParser.PARSER_VERSION,
-                errorSummary = errorSummary,
-            )
+        fun logEntry(status: CatalogRefreshStatus, summary: Summary, errorSummary: String?) = CatalogRefreshLogEntity(
+            startedAt = startedAt,
+            finishedAt = clock.nowMs(),
+            status = status,
+            newCount = summary.newTeas,
+            changedCount = summary.changedTeas,
+            discontinuedCount = summary.discontinuedTeas,
+            // Teas to check since this refresh (CAT-07 AC3, D-086).
+            flaggedCount = summary.recipesToCheck,
+            photosCount = photosStored,
+            parserVersion = TeeKontorParser.PARSER_VERSION,
+            errorSummary = errorSummary,
+        )
     }
 
     /** The steps of one refresh; a stop ends it by [Run.stop] or [Run.shopChanged]. */
@@ -278,10 +329,12 @@ class CatalogRefresher(
             val products = ProductUrls.group(urls)
             run.sets = products.sets
             if (products.groups.isEmpty()) run.shopChanged("no product URLs in the sitemap (${urls.size} URLs)")
+            readPrevious(products.groups)
             val candidates = candidates(session, products.groups)
             log(
                 "catalog refresh: sitemap ${urls.size} URLs, ${products.groups.size} products, " +
-                    "${products.sets} sets, ${run.skippedKnown} on the skip list, ${candidates.size} to fetch",
+                    "${products.sets} sets, ${run.skippedKnown} on the skip list, ${candidates.size} to fetch " +
+                    "(${run.known} known green, ${run.new} new, ${run.recheck} to check again)",
             )
             run.pagesTotal = candidates.size
             run.progress()
@@ -324,13 +377,40 @@ class CatalogRefresher(
                 is ShopFetch.Unavailable -> run.shopChanged("${url.encodedPath} answered HTTP ${answer.code}")
             }
 
-        /** Every product's page but those on the fresh skip list and those robots.txt disallows. */
+        /**
+         * The catalog before this refresh (#70): each tea's state and base numbers, the numbers
+         * merged into it read from its packages (each page's own size keeps its number, D-081).
+         */
+        private suspend fun readPrevious(groups: List<ProductGroup>) {
+            run.previous = dao.teaStates().associateBy { it.key }
+            val merged = dao.packageNumbers()
+                .groupBy({ it.catalogKey }) { ArticleNumber.parse(it.articleNumber)?.base }
+            run.previousBases = run.previous.keys.associateWith { key ->
+                setOf(key) + merged[key].orEmpty().filterNotNull()
+            }
+            run.listedBases = groups.map { it.base }.toSet()
+        }
+
+        /**
+         * Every product's page but those on the fresh skip list and those robots.txt disallows
+         * (08 §2.4): on a later refresh the known green teas, the new base numbers and the skip
+         * entries due again.
+         */
         private suspend fun candidates(session: ShopSession, groups: List<ProductGroup>): List<ProductGroup> {
             val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet()
+            val due = dao.skipList().map { it.baseKey }.toSet() - fresh
+            run.skippedBases += fresh
             run.skippedKnown = groups.count { it.base in fresh }
+            val knownGreen = run.previousBases.values.flatten().toSet()
             return groups.filter { it.base !in fresh }.filter { group ->
                 val url = group.pageUrl.toHttpUrlOrNull()
                 url != null && session.isAllowed(url)
+            }.onEach { group ->
+                when (group.base) {
+                    in knownGreen -> run.known++
+                    in due -> run.recheck++
+                    else -> run.new++
+                }
             }
         }
 
@@ -361,8 +441,10 @@ class CatalogRefresher(
                     if (page.brewTable.isEmpty() && page.brewText == null) run.lackingBrewing++
                 }
 
-                CatalogScope.NOT_GREEN ->
+                CatalogScope.NOT_GREEN -> {
                     run.skips += CatalogSkipEntity(group.base, CatalogSkipReason.NOT_GREEN, run.startedAt)
+                    run.skippedBases += group.base
+                }
 
                 // No breadcrumb: neither kept nor skipped; the sanity check counts it.
                 CatalogScope.UNKNOWN -> run.defective += group.base
@@ -377,12 +459,16 @@ class CatalogRefresher(
             val entries = CatalogEntries.merge(run.entries)
             run.entries.clear()
             for (entry in entries) {
-                val tea = entry.page.toEntity(entry.key, run.startedAt)
+                val packages = entry.packages.map { it.toEntity(entry.key) }
+                val page = entry.page.toEntity(entry.key, run.startedAt)
+                val tea = page.copy(contentHash = CatalogContentHash.of(page, packages))
                 dao.stage(StagedCatalogTeaEntity(tea))
-                dao.stagePackages(entry.packages.map { StagedCatalogPackageEntity(it.toEntity(entry.key)) })
+                dao.stagePackages(packages.map { StagedCatalogPackageEntity(it) })
                 tea.photoUrl?.let { run.photoUrls += tea.key to it }
                 (entry.mergedKeys + entry.key + tea.key).forEach { run.catalogKeys[it] = tea.key }
-                if (tea.recipeCheckReason != null) run.flagged++
+                run.staged[tea.key] = StagedTea(tea.contentHash, flagged = tea.recipeCheckReason != null)
+                run.stagedBases += tea.key
+                run.stagedBases += entry.mergedKeys
                 if (entry.mergedKeys.isNotEmpty()) {
                     log("catalog refresh: ${entry.mergedKeys.joinToString()} merged into ${entry.key}")
                 }
@@ -410,14 +496,22 @@ class CatalogRefresher(
         }
 
         /**
-         * The green teas' photos (CAT-08) unless SET-22 is off; then every staged tea whose photo
-         * is on disk gets its file: downloaded now, or kept from an earlier refresh.
+         * The green teas' new and changed photos (CAT-08) unless SET-22 is off; then every staged
+         * tea whose photo is on disk gets its file: downloaded now, or kept from an earlier
+         * refresh. A photo is unchanged when the stored one came from the page's photo URL (the
+         * shop's media URL changes with the image, 05 §4.1); it is never fetched again (#70). A
+         * kept photo stays marked with the URL it came from, so a changed photo that couldn't be
+         * fetched this time is asked for again next time.
          */
         private suspend fun storePhotos(session: ShopSession) {
-            if (settings.settings.first().catalogDownloadPhotos) {
-                for ((key, photoUrl) in run.photoUrls) {
+            val download = settings.settings.first().catalogDownloadPhotos
+            for ((key, photoUrl) in run.photoUrls) {
+                if (unchangedPhoto(key, photoUrl)) {
+                    run.photosKept++
+                } else if (download) {
                     currentCoroutineContext().ensureActive()
                     if (storePhoto(session, key, photoUrl)) {
+                        run.photosWritten += key
                         run.photosStored++
                         run.progress()
                     } else {
@@ -425,9 +519,20 @@ class CatalogRefresher(
                     }
                 }
             }
+            val pageUrls = run.photoUrls.toMap()
             for (key in dao.stagedKeys()) {
-                if (withContext(fileDispatcher) { photos.exists(key) }) dao.setStagedPhoto(key, photos.photoName(key))
+                if (withContext(fileDispatcher) { photos.exists(key) }) {
+                    val source = if (key in run.photosWritten) pageUrls[key] else run.previous[key]?.photoUrl
+                    dao.setStagedPhoto(key, photos.photoName(key), source)
+                }
             }
+        }
+
+        private suspend fun unchangedPhoto(key: String, photoUrl: String): Boolean {
+            val before = run.previous[key] ?: return false
+            return before.photoUrl == photoUrl &&
+                before.photoFile != null &&
+                withContext(fileDispatcher) { photos.exists(key) }
         }
 
         /** Fetches, re-encodes and writes one tea's photo; false when there is none to store. */
@@ -455,7 +560,7 @@ class CatalogRefresher(
             guides.stage(
                 session = session,
                 sitemapUrls = urls,
-                catalogKeys = run.catalogKeys,
+                catalogKeys = guideCatalogKeys(),
                 downloadImages = settings.settings.first().catalogDownloadPhotos,
                 counts = run.guides,
                 onGuide = run::progress,
@@ -464,22 +569,112 @@ class CatalogRefresher(
             log("catalog refresh: ${run.guides.line()}")
         }
 
-        /** The swap (05 §4.5), then the photos of teas no longer in the catalog are deleted. */
+        /**
+         * The teas a guide can link to in the new catalog: each staged tea's numbers, and those of
+         * a known tea the swap keeps unread (#70), each to its key.
+         */
+        private fun guideCatalogKeys(): Map<String, String> {
+            val keys = run.catalogKeys.toMutableMap()
+            for ((key, before) in run.previous) {
+                if (key !in run.staged && stillListed(key, before)) {
+                    (run.previousBases[key].orEmpty() + key).forEach { keys.putIfAbsent(it, key) }
+                }
+            }
+            return keys
+        }
+
+        /**
+         * The swap (05 §4.5) with the old catalog's teas the refresh didn't stage (#70), then the
+         * photos of teas no longer in the catalog are deleted and the seed teas linked (CAT-15).
+         * Once the swap is in, the run is a success: nothing after it cancels or fails it.
+         */
         private suspend fun swap(): CatalogRefreshOutcome.Success {
-            val staged = dao.countStaged()
-            val previous = dao.keys().toSet()
-            val stagedKeys = dao.stagedKeys().toSet()
-            val newCount = stagedKeys.count { it !in previous }
-            val gone = previous.count { it !in stagedKeys }
-            dao.swap(run.skips, run.logEntry(CatalogRefreshStatus.SUCCESS, newCount, gone, errorSummary = null))
-            keepPhotosOfCatalog()
-            log(
-                "catalog refresh: success, $staged teas ($newCount new, $gone gone), ${run.skips.size} not green, " +
-                    "${run.defective.size} defective, ${run.unavailable} unavailable, " +
-                    "${run.photosStored} photos stored, ${run.photosMissing} without, " +
-                    "${TimeUnit.MILLISECONDS.toSeconds(clock.nowMs() - run.startedAt)} s",
-            )
-            return CatalogRefreshOutcome.Success(teas = staged, newTeas = newCount)
+            // Read before the swap: umamit.db and catalog.db share no transaction (D-076).
+            val ownedKeys = owned.observe().first()
+            val unchanged = mutableListOf<String>()
+            val discontinued = mutableListOf<String>()
+            var gone = 0
+            for ((key, before) in run.previous) {
+                when {
+                    key in run.staged -> Unit
+
+                    stillListed(key, before) -> unchanged += key
+
+                    else -> {
+                        if (!before.discontinued) gone++
+                        if (key in ownedKeys) discontinued += key
+                    }
+                }
+            }
+            val summary = summary(gone)
+            val entry = run.logEntry(CatalogRefreshStatus.SUCCESS, summary, errorSummary = null)
+            dao.swap(run.skips, entry, unchanged, discontinued)
+            // The teas in the range: the staged ones and the unread ones kept (none of them discontinued).
+            val teas = run.staged.size + unchanged.size
+            return withContext(NonCancellable) {
+                keepPhotosOfCatalog()
+                log(
+                    "catalog refresh: success, $teas teas (${summary.newTeas} new, ${summary.changedTeas} changed, " +
+                        "$gone gone, ${discontinued.size} kept as discontinued, ${unchanged.size} kept unread, " +
+                        "${summary.recipesToCheck} to check), ${run.skips.size} not green, " +
+                        "${run.defective.size} defective, ${run.unavailable} unavailable, " +
+                        "${run.photosStored} photos stored, ${run.photosKept} unchanged, " +
+                        "${run.photosMissing} without, " +
+                        "${TimeUnit.MILLISECONDS.toSeconds(clock.nowMs() - run.startedAt)} s",
+                )
+                linkSeedTeas()
+                CatalogRefreshOutcome.Success(
+                    teas = teas,
+                    newTeas = summary.newTeas,
+                    changedTeas = summary.changedTeas,
+                    discontinuedTeas = summary.discontinuedTeas,
+                    recipesToCheck = summary.recipesToCheck,
+                )
+            }
+        }
+
+        /**
+         * The summary (CAT-07 AC3, D-086): staged teas not in the old catalog are new; known ones
+         * whose shop content changed, or that are back in the range, changed; flagged ones that
+         * weren't flagged before (new ones included) are recipes to check; [gone] left the range.
+         */
+        private fun summary(gone: Int) = Summary(
+            newTeas = run.staged.keys.count { it !in run.previous },
+            changedTeas = run.staged.count { (key, tea) ->
+                val before = run.previous[key]
+                before != null && (before.discontinued || CatalogContentHash.changed(before.contentHash, tea.hash))
+            },
+            discontinuedTeas = gone,
+            recipesToCheck = run.staged.count { (key, tea) ->
+                tea.flagged && run.previous[key]?.recipeCheckReason == null
+            },
+        )
+
+        /**
+         * A known tea that is still in the shop's range although this refresh staged none of it:
+         * its base numbers are in the sitemap, none of them is skipped or staged under another
+         * key, and it hadn't left the range. Its page couldn't be read this time (robots.txt, a
+         * 404, a defective page): only a tea missing from the sitemap is discontinued (08 §2.4
+         * item 5).
+         */
+        private fun stillListed(key: String, before: CatalogTeaState): Boolean {
+            val bases = run.previousBases[key].orEmpty()
+            return !before.discontinued &&
+                bases.any { it in run.listedBases } &&
+                bases.none { it in run.skippedBases || it in run.stagedBases }
+        }
+
+        /** CAT-15 after the swap; a failure is logged and tried again after the next successful refresh. */
+        private suspend fun linkSeedTeas() {
+            try {
+                val linked = seedTeas.linkSeedTeas()
+                if (linked.isNotEmpty()) log("catalog refresh: seed teas linked (${linked.joinToString()})")
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                // The catalog is in; the collection's database or files failing must not undo that.
+                log("catalog refresh: seed teas not linked (${e.javaClass.simpleName})")
+            }
         }
     }
 
@@ -491,6 +686,16 @@ class CatalogRefresher(
 
         /** Defective article numbers listed in the details. */
         const val MAX_LISTED = 10
+    }
+}
+
+/** A staged tea's shop content hash and whether its recipe is flagged, for the summary (#70). */
+private class StagedTea(val hash: String?, val flagged: Boolean)
+
+/** The counts of a refresh's summary (CAT-07 AC3), as logged (05 §4.4). */
+private data class Summary(val newTeas: Int, val changedTeas: Int, val discontinuedTeas: Int, val recipesToCheck: Int) {
+    companion object {
+        val NONE = Summary(0, 0, 0, 0)
     }
 }
 

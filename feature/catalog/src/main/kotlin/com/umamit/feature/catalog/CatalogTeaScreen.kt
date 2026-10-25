@@ -31,7 +31,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -59,24 +62,60 @@ const val CATALOG_TEA_TAG = "catalog_tea"
 /** *Im Shop öffnen* (CAT-11). */
 const val CATALOG_TEA_OPEN_SHOP_TAG = "catalog_tea_open_shop"
 
+/** *In Sammlung aufnehmen* / *Nachkauf erfassen* (CAT-12). */
+const val CATALOG_TEA_ADD_TAG = "catalog_tea_add"
+
 /**
- * A catalog tea's detail (SCR-21, CAT-11) with its view model. *Im Shop öffnen* hands the shop
- * page to the browser: the user's own navigation, the app sends no request (GEN-01, D-072).
+ * A catalog tea's detail (SCR-21, CAT-11) with its view model and its add sheet (SCR-23, CAT-12).
+ * *Im Shop öffnen* hands the shop page to the browser: the user's own navigation, the app sends
+ * no request (GEN-01, D-072). [onPurchaseSave] gets the collection tea of each saved add or
+ * repurchase.
+ *
+ * **Alerts first (rule 8):** while an alert plays ([alerting]) the add sheet is not composed, so
+ * it leaves in that frame, and it is closed for good; it cannot be opened during an alert.
  */
 @Composable
 fun CatalogTeaRoute(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    alerting: Boolean = false,
+    onPurchaseSave: (String) -> Unit = {},
     viewModel: CatalogTeaViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val sheet by viewModel.sheet.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    CatalogTeaScreen(state = state, onBack = onBack, onOpenShop = context::openInBrowser, modifier = modifier)
+    val currentOnPurchaseSave by rememberUpdatedState(onPurchaseSave)
+    LaunchedEffect(alerting) { if (alerting) viewModel.closeSheet() }
+    LaunchedEffect(viewModel) { viewModel.added.collect { currentOnPurchaseSave(it) } }
+    CatalogTeaScreen(
+        state = state,
+        onBack = onBack,
+        onOpenShop = context::openInBrowser,
+        onAdd = { if (!alerting) viewModel.openSheet() },
+        modifier = modifier,
+    )
+    val open = sheet
+    if (open != null && !alerting && state.tea != null) {
+        CatalogAddSheet(
+            state = open,
+            actions = AddSheetActions(
+                onSelectSize = viewModel::selectSize,
+                onPriceChange = viewModel::editPrice,
+                onGramsChange = viewModel::editGrams,
+                onDateChange = viewModel::pickDate,
+                onSave = viewModel::save,
+            ),
+            onDismissRequest = viewModel::closeSheet,
+        )
+    }
 }
 
 /**
  * The stateless detail (SCR-21): the photo (or the type-coloured leaf, 03 §3.5), names, *Sorte*,
- * badges, price per 100 g and *Im Shop öffnen*; then the facts, the shop's taste scales, aroma
+ * badges, price per 100 g, *In Sammlung aufnehmen* or, for a tea in the collection, *Nachkauf
+ * erfassen* ([onAdd], CAT-12) and *Im Shop öffnen* (not for a tea no longer in the range, which
+ * says „Nicht mehr im Sortiment", CAT-07 AC4); then the facts, the shop's taste scales, aroma
  * and taste, the description, the shop's brewing grid and text, verbatim, and the package sizes
  * with their prices. [photo] is the
  * tea's photo; tests pass a placeholder image.
@@ -87,6 +126,7 @@ fun CatalogTeaScreen(
     onBack: () -> Unit,
     onOpenShop: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onAdd: () -> Unit = {},
     photo: Painter? = rememberPhotoPainter(state.tea?.photoPath),
 ) {
     val tea = state.tea
@@ -100,17 +140,27 @@ fun CatalogTeaScreen(
             )
         }
 
-        else -> Detail(tea, state.shopUrl ?: tea.productUrl, photo, onBack, onOpenShop, modifier)
+        else -> Detail(
+            tea = tea,
+            shopUrl = state.shopUrl ?: tea.productUrl,
+            owned = state.ownedTeaId != null,
+            photo = photo,
+            actions = DetailActions(onBack, onOpenShop, onAdd),
+            modifier = modifier,
+        )
     }
 }
+
+/** The detail's actions: back, *Im Shop öffnen*, *In Sammlung aufnehmen* / *Nachkauf erfassen*. */
+private class DetailActions(val onBack: () -> Unit, val onOpenShop: (String) -> Unit, val onAdd: () -> Unit)
 
 @Composable
 private fun Detail(
     tea: CatalogTeaDetail,
     shopUrl: String,
+    owned: Boolean,
     photo: Painter?,
-    onBack: () -> Unit,
-    onOpenShop: (String) -> Unit,
+    actions: DetailActions,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -125,13 +175,24 @@ private fun Detail(
             Column(modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin)) {
                 Header(tea)
                 Spacer(Modifier.height(UmamiSpacing.Medium))
-                OutlinedButton(
-                    onClick = { onOpenShop(shopUrl) },
+                PillButton(
+                    text = stringResource(if (owned) R.string.catalog_tea_repurchase else R.string.catalog_tea_add),
+                    onClick = actions.onAdd,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
-                ) {
-                    Text(stringResource(R.string.catalog_tea_open_shop))
+                        .testTag(CATALOG_TEA_ADD_TAG),
+                )
+                // A tea no longer in the range has no shop page to open (CAT-07 AC4, as INV-09 AC2).
+                if (!tea.discontinued) {
+                    Spacer(Modifier.height(UmamiSpacing.XSmall))
+                    OutlinedButton(
+                        onClick = { actions.onOpenShop(shopUrl) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
+                    ) {
+                        Text(stringResource(R.string.catalog_tea_open_shop))
+                    }
                 }
             }
             Facts(tea)
@@ -150,7 +211,7 @@ private fun Detail(
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
                 .padding(UmamiSpacing.XSmall),
         ) {
-            BackAction(onBack)
+            BackAction(actions.onBack)
         }
     }
 }
@@ -185,11 +246,12 @@ private fun Header(tea: CatalogTeaDetail) = Column {
         Text(text = it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     val tags = listOfNotNull(
+        stringResource(R.string.catalog_tea_discontinued).takeIf { tea.discontinued },
         tea.teaType,
         stringResource(R.string.catalog_tea_organic).takeIf { tea.isOrganic },
         stringResource(R.string.catalog_tea_flavored).takeIf { tea.isFlavored },
         stringResource(R.string.catalog_tea_cold_brew).takeIf { tea.coldBrewSuitable },
-        stringResource(R.string.catalog_tea_out_of_stock).takeIf { tea.available == false },
+        stringResource(R.string.catalog_tea_out_of_stock).takeIf { tea.available == false && !tea.discontinued },
     )
     if (tags.isNotEmpty()) {
         Spacer(Modifier.height(UmamiSpacing.Small))

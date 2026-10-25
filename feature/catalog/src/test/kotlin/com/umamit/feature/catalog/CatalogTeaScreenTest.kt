@@ -32,8 +32,11 @@ import com.umamit.core.model.TasteScale
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.testing.FakeAddFromCatalog
 import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeExactPrices
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -65,8 +68,10 @@ class CatalogTeaScreenTest {
         val viewModel = CatalogTeaViewModel(
             SavedStateHandle(mapOf(CatalogTeaViewModel.KEY to key)),
             catalog,
-            collection.teas,
             collection.stock,
+            FakeAddFromCatalog(collection),
+            FakeExactPrices(),
+            FakeClock(),
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -249,6 +254,18 @@ class CatalogTeaScreenTest {
         show()
 
         assertThat(openShop().data.toString()).isEqualTo("$PRODUCT-250")
+    }
+
+    @Test
+    fun aTeaNoLongerInTheRangeSaysSoAndOffersNoShopPage() {
+        // Kept for a collection tea that links to it (CAT-07 AC4, #70).
+        catalog.details.value = mapOf(SENCHA.key to SENCHA.copy(discontinued = true, available = false))
+        show()
+
+        shown(str(R.string.catalog_tea_discontinued))
+        shown("Morgennebel Sencha")
+        compose.onNodeWithTag(CATALOG_TEA_OPEN_SHOP_TAG).assertDoesNotExist()
+        compose.onNodeWithText(str(R.string.catalog_tea_out_of_stock)).assertDoesNotExist()
     }
 
     @Test

@@ -111,7 +111,7 @@ only.
 
 - [ ] *Katalog laden* completes (first run ≈ 15–18 min, D-076); ~260–280 teas; no duplicates per size; no sets or accessories.
 - [ ] 10 spot-checked teas: name, type, origin, prices, photo correct; brewing table/text shown verbatim; derived recipe follows §2.5; flags plausible.
-- [ ] Second refresh reports „0 neu · 0 geändert" when nothing changed.
+- [ ] A second refresh right after the first reports „… Grüntees · keine Änderungen" (or only the changes the shop made meanwhile) and is far shorter: no photo is downloaded again (CAT-07 AC3, CAT-08, D-086).
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
 - [ ] Guides readable offline.
 - [ ] *Im Shop öffnen* on a catalog tea opens its Tee-Kontor page in the browser (CAT-11).

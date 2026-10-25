@@ -722,7 +722,8 @@ Photo, name, subtitle, type, origin/cultivar/harvest/shading/steaming, Bio /
 aromatisiert / Coldbrew geeignet, the shop's taste scales (Umami,
 Bitterstoffe, … as leaf rows 0–5), aroma and taste notes, description, ZUBEREITUNG (shop table and text, verbatim),
 ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
-*In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*
+*In Sammlung aufnehmen* or, for a tea in the collection, *Nachkauf erfassen*
+(SCR-23, D-085), secondary *Im Shop öffnen*
 (the size bought last when the tea is in the collection, else the product
 page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
 status bar with the back button over it; name, secondary name, tags, price
@@ -735,11 +736,18 @@ with the source of a non-default recipe not from the shop's table. Then
 *Packungen*: one row per size, smallest first, with the shop's price
 („12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
 Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
-of stock, and a note explaining „≈" when an estimate is shown (D-081).
+of stock, and a note explaining „≈" when an estimate is shown (D-081). A tea
+no longer in the range, kept for a collection tea (CAT-07 AC4), carries the
+tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
-Progress (Seiten, Produkte, Fotos, Ratgeber), *Abbrechen*; result summary (CAT-07 AC3);
+Progress (Seiten, Produkte, Fotos, Ratgeber), *Abbrechen*; result summary (CAT-07 AC3)
+as one line: „276 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im
+Sortiment · 3 Rezepte prüfen", each part only when above 0, „274 Grüntees ·
+keine Änderungen" for a later refresh without change, „274 Grüntees ·
+31 Rezepte prüfen" for the first load; the result notification says the same
+(D-086);
 error state with *Details kopieren* for the developer. Closing the sheet never
 stops a refresh, nor does locking the phone (its progress notification offers
 *Abbrechen* too, D-079); while one runs, the empty catalog offers *Fortschritt
@@ -750,8 +758,14 @@ frame and it stays closed (rule 8, D-077).
 ### SCR-23 In Sammlung aufnehmen (sheet)
 
 Package option radio list („50 g · 8,95 €", „100 g · 17,90 €", „250 g ·
-≈ 43,41 € · 3 % gespart", custom); estimated prices are marked „≈" and
-replaced by the exact price when fetched; Kaufdatum; *Aufnehmen*.
+≈ 43,41 € · 3 % gespart", „10 g · Preis beim Hinzufügen", *Andere Menge* with
+an amount field); estimated prices are marked „≈" and replaced by the exact
+price when fetched; the price field (editable, empty allowed) says where its
+price comes from („Preis aus dem Shop", „Der genaue Preis wird im Shop
+abgerufen …", „≈ geschätzt …", „Kein Preis bekannt …"); *Kaufdatum* („22. Okt.
+2026", today by default, never later); *Aufnehmen*. For a tea already in the
+collection the sheet is *Nachkauf erfassen* and opens on the size bought last.
+Saving never waits for a price; the sheet never covers an alert (D-085).
 
 ### SCR-25 Einstellungen
 

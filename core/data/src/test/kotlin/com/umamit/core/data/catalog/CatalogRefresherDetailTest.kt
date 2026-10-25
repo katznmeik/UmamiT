@@ -252,15 +252,21 @@ class CatalogRefresherDetailTest {
         requests.clear()
         product(NEW_TEA, "XY0150", SyntheticShop.SENCHA_PATH, photo = "neu")
         routes[photoRoute("neu")] = { jpeg(syntheticJpeg(800, 600)) }
-        routes[photoRoute("gyokuro")] = { MockResponse.Builder().code(429).build() }
+        // The Gyokuro has a new photo now; the shop refuses it.
+        listed -= GYOKURO
+        product(GYOKURO, "XY0200", GYOKURO_PATH, photo = "gyokuro-neu")
+        routes[photoRoute("gyokuro-neu")] = { MockResponse.Builder().code(429).build() }
 
         val outcome = refresher().refresh()
 
         assertThat(outcome).isInstanceOf(CatalogRefreshOutcome.Blocked::class.java)
         assertThat(dao.observeList().first()).isEqualTo(before)
-        // Nothing after the stop; the new tea's photo, fetched before it, is gone with the run.
-        assertThat(paths().takeLast(3)).containsExactly(photoRoute("sencha"), photoRoute("neu"), photoRoute("gyokuro"))
+        // The Sencha's unchanged photo is not fetched again (#70); nothing after the stop; the new
+        // tea's photo, fetched before it, is gone with the run.
+        assertThat(paths().filter { it.startsWith("/media/") })
+            .containsExactly(photoRoute("neu"), photoRoute("gyokuro-neu"))
             .inOrder()
+        assertThat(paths().last()).isEqualTo(photoRoute("gyokuro-neu"))
         assertThat(photos.exists("XY0150")).isFalse()
         assertThat(folder.root.resolve("catalog").list()?.filter { "XY0150" in it }).isEmpty()
         assertThat(photos.exists("XY0100")).isTrue()

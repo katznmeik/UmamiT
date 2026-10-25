@@ -315,10 +315,10 @@ Table `catalog_tea`
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
-| `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
+| `discontinued` | INTEGER | left the shop's range (missing from the sitemap, or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
 | `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
-| `photo_url`, `photo_etag` | TEXT | change detection |
-| `content_hash` | TEXT | to report „geändert" |
+| `photo_url`, `photo_etag` | TEXT | change detection (CAT-08, D-086): `photo_url` is the URL the stored photo came from (else the page's), so a refresh downloads a photo only when it is new or its URL changed (the shop's media URL changes with the image, `?ts=`); `photo_etag` stays empty: a conditional request would still cost a request |
+| `content_hash` | TEXT | `<parser version>:<SHA-256>` of what the shop shows of the tea (the page's fields, its photo URL, its packages; not the derived style, recipes, flag or plain text), to report „geändert"; two hashes count only under the same parser version (D-086) |
 | `first_seen_at`, `last_seen_at` | INTEGER | the start of the refresh that first / last found the tea; a tea is „Neu" when `first_seen_at` is the start of the latest successful refresh and an earlier successful refresh exists (CAT-10, D-083) |
 
 FTS4 `catalog_fts` over name, secondary_name, `description_text`, cultivar,
@@ -360,7 +360,10 @@ up). Table `catalog_guide_staging` has exactly its columns (D-087).
 
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
-flagged, photos), `parser_version`, `error_summary`.
+flagged, photos), `parser_version`, `error_summary`. The counts of a
+successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
+counts the teas flagged „Rezept prüfen" since this refresh (new ones
+included), `photos_count` the photos downloaded; a failed run logs zeros.
 
 ### 4.5 Refresh transaction
 
@@ -376,9 +379,13 @@ so the swap copies them with `INSERT … SELECT *`; a tea already in the
 catalog keeps its `first_seen_at`. The skip entries of the run
 (`catalog_skip`) and its `catalog_refresh_log` row are written in the same
 transaction, so a refresh that stops, is cancelled or fails the sanity check
-leaves the skip list unchanged too (D-077). Until #70 every tea missing from a
-successful refresh is removed; #70 keeps the owned ones as discontinued
-(CAT-07 AC4).
+leaves the skip list unchanged too (D-077). A tea of the old catalog that the
+refresh did not stage is copied into the staging tables unchanged while its
+base numbers are still in the sitemap (its page couldn't be read this time);
+otherwise it left the range and stays, with `discontinued = 1`, only while a
+collection tea links to it; the owned keys are read from `umamit.db` before
+the swap, as the two databases share no transaction (D-076). Every other
+tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 ## 5. Enumerations
 
@@ -427,6 +434,7 @@ successful refresh is removed; #70 keeps the owned ones as discontinued
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
+| `seedTeasLinked` | Boolean | false | CAT-15 (set once the seed teas were linked after a successful refresh; never reset, D-086) |
 
 The catalog list's search, filters and sort are not stored: it opens in its
 default view each time (D-073, D-083).

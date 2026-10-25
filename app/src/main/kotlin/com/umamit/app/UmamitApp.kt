@@ -183,6 +183,7 @@ internal fun UmamitApp(
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
+                            alerting = alerting,
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
                                     CatalogTab(
@@ -283,6 +284,7 @@ private fun TabHost(
     onOpenTimer: () -> Unit,
     settings: SettingsScreens,
     alertKey: String?,
+    alerting: Boolean,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
@@ -317,7 +319,10 @@ private fun TabHost(
                 onRefreshCatalog = onRefreshCatalog,
             )
         }
-        composable<CatalogTeaRoute> { CatalogTeaScreenRoute(onBack = { navController.popBackStack() }) }
+        composable<CatalogTeaRoute> {
+            // The add sheet (SCR-23) gives way to an alert (rule 8).
+            CatalogTeaScreenRoute(onBack = { navController.popBackStack() }, alerting = alerting)
+        }
         composable<GuidesRoute> {
             GuideListRoute(
                 onBack = { navController.popBackStack() },

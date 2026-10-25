@@ -44,6 +44,7 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.LocalDate
 
 /**
  * Sammlung › Katalog (SCR-19), the refresh sheet (SCR-22) and a tea's detail (SCR-21) in light
@@ -66,6 +67,8 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
         private const val ESTIMATE_NOTE =
             "≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst."
+
+        private val PURCHASE_DAY: LocalDate = LocalDate.of(2026, 10, 22)
 
         private val TEAS = listOf(
             catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha")
@@ -277,17 +280,58 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** ABGELEITETES REZEPT with „Rezept prüfen" and its reason (CAT-04, CAT-05). */
     @Test
     fun detailRecipes() = capture("detailRecipes", scrollToText = "Fehlende Werte aus den Standardwerten der Sorte") {
-        Detail(DETAIL.copy(recipeCheckReason = RecipeCheckReason.TABLE_TEXT_CONFLICT))
+        // The shop's text contradicts its table (75 °C against 60 °C), as the reason says.
+        Detail(
+            DETAIL.copy(
+                recipeCheckReason = RecipeCheckReason.TABLE_TEXT_CONFLICT,
+                brewText = "Zubereitung: 4 g auf 100 ml bei 75 °C, der erste Aufguss 90 Sekunden.",
+            ),
+        )
     }
 
     /** The detail scrolled to PACKUNGEN (#67): a sample, the page's own size and two estimates. */
     @Test
     fun detailPackages() = capture("detailPackages", scrollToText = ESTIMATE_NOTE) { Detail() }
 
+    /** SCR-23 over the detail (#71): the size whose price the shop showed, at font scale 1.0. */
+    @Test
+    fun addSheet() {
+        assumeTrue(fontScale == 1f)
+        capture("addSheet") {
+            Detail()
+            CatalogAddSheet(
+                state = AddSheetState.open(DETAIL.name, DETAIL.packages, repurchase = false, null, PURCHASE_DAY),
+                actions = AddSheetActions(),
+                onDismissRequest = {},
+            )
+        }
+    }
+
+    /** *Nachkauf erfassen* (#71): the estimate kept after the shop gave no exact price, a day picked. */
+    @Test
+    fun repurchaseSheet() {
+        assumeTrue(fontScale == 1f)
+        capture("repurchaseSheet") {
+            Detail(owned = true)
+            CatalogAddSheet(
+                state = AddSheetState.open(DETAIL.name, DETAIL.packages, repurchase = true, 250.0, PURCHASE_DAY)
+                    .fetched(2, null)
+                    .pickDate(PURCHASE_DAY.minusDays(3)),
+                actions = AddSheetActions(),
+                onDismissRequest = {},
+            )
+        }
+    }
+
     @Composable
-    private fun Detail(tea: CatalogTeaDetail = DETAIL) {
+    private fun Detail(tea: CatalogTeaDetail = DETAIL, owned: Boolean = false) {
         CatalogTeaScreen(
-            state = CatalogTeaUiState(loading = false, tea = tea, shopUrl = tea.productUrl),
+            state = CatalogTeaUiState(
+                loading = false,
+                tea = tea,
+                shopUrl = tea.productUrl,
+                ownedTeaId = "own".takeIf { owned },
+            ),
             onBack = {},
             onOpenShop = {},
             photo = remember { placeholderPhoto("detail") },
@@ -297,9 +341,27 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun refreshRunning() = sheet("refreshRunning", CatalogRefreshState.Running(CatalogRefreshProgress(412, 1560, 96)))
 
+    /** The first load: the green teas and the recipes to check (CAT-07 AC3). */
     @Test
-    fun refreshSuccess() =
-        sheet("refreshSuccess", CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(274, 274)))
+    fun refreshSuccess() = sheet(
+        "refreshSuccess",
+        CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 274, recipesToCheck = 31)),
+    )
+
+    /** A later refresh's summary (CAT-07 AC3, #70): every kind of change. */
+    @Test
+    fun refreshSummary() = sheet(
+        "refreshSummary",
+        CatalogRefreshState.Finished(
+            CatalogRefreshOutcome.Success(
+                teas = 276,
+                newTeas = 12,
+                changedTeas = 5,
+                discontinuedTeas = 2,
+                recipesToCheck = 3,
+            ),
+        ),
+    )
 
     @Test
     fun refreshShopChanged() =
