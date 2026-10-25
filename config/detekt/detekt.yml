@@ -1,0 +1,68 @@
+# Detekt configuration (06 §7, M1-02): only the deviations from Detekt's
+# default configuration (buildUponDefaultConfig = true). No baseline: fix the
+# code, or add a deviation here with its reason.
+
+naming:
+  FunctionNaming:
+    # Composable functions are named like types (Compose API guidelines).
+    ignoreAnnotated:
+      - 'Composable'
+  TopLevelPropertyNaming:
+    # Compose-style constants such as `val WashiPaper = Color(...)`.
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+complexity:
+  LongParameterList:
+    # Composables take many optional parameters by convention.
+    ignoreDefaultParameters: true
+    ignoreAnnotated:
+      - 'Composable'
+  LongMethod:
+    ignoreAnnotated:
+      - 'Composable'
+
+style:
+  MagicNumber:
+    # Previews and design tokens are full of literal dimensions and colours.
+    ignoreAnnotated:
+      - 'Preview'
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+  ForbiddenImport:
+    # GEN-01 AC1, CLAUDE.md rule 7, D-054 (#37 review O6): core:network's
+    # ShopClient is the app's only HTTP client (host allow-list, one
+    # connection, rate limit on the wire, stop rules). No other module builds
+    # its own client or opens a connection.
+    active: true
+    forbiddenImports:
+      - value: 'okhttp3.OkHttpClient'
+        reason: 'Use ShopClient from core:network, the only HTTP client (GEN-01, D-054).'
+      - value: 'okhttp3.Request'
+        reason: 'Use ShopClient from core:network, the only HTTP client (GEN-01, D-054).'
+      - value: 'java.net.URL'
+        reason: 'URL.openConnection bypasses ShopClient (GEN-01, D-054); use okhttp3.HttpUrl to parse.'
+      - value: 'java.net.URLConnection'
+        reason: 'Use ShopClient from core:network, the only HTTP client (GEN-01, D-054).'
+      - value: 'java.net.HttpURLConnection'
+        reason: 'Use ShopClient from core:network, the only HTTP client (GEN-01, D-054).'
+      - value: 'javax.net.ssl.HttpsURLConnection'
+        reason: 'Use ShopClient from core:network, the only HTTP client (GEN-01, D-054).'
+    excludes:
+      - '**/core/network/src/**'
+  UnusedPrivateFunction:
+    # Private @Preview functions are used by the IDE and screenshot tests.
+    ignoreAnnotated:
+      - 'Preview'
+
+Compose:
+  CompositionLocalAllowlist:
+    # The design system's theme locals (03 §3.1, §3.6; M1-04): tokens Material 3
+    # has no slot for, plus reduce motion, which tests must be able to force, and
+    # the alert surface's marker that makes the components on it alert-safe (D-055).
+    allowedCompositionLocals:
+      - LocalUmamiExtendedColors
+      - LocalUmamiTextStyles
+      - LocalUmamiDarkTheme
+      - LocalUmamiMotion
+      - LocalReduceMotion
+      - LocalOnAlertSurface

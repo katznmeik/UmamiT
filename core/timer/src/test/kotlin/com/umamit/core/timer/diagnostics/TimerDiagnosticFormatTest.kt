@@ -1,0 +1,167 @@
+package com.umamit.core.timer.diagnostics
+
+import android.app.ForegroundServiceStartNotAllowedException
+import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.AlertLength
+import com.umamit.core.model.TimerPhase
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.timer.alert.AlertConditions
+import com.umamit.core.timer.alert.AlertCue
+import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.alert.RingerMode
+import com.umamit.core.timer.controller.RecoveryDecision
+import com.umamit.core.timer.controller.RecoveryTrigger
+import com.umamit.core.timer.controller.ScheduledTime
+import com.umamit.core.timer.controller.TimerAlarmKind
+import com.umamit.core.timer.controller.TimerDiagnostic
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * The log lines of the adapters' entries (06 §5.6): the ringer mode at each
+ * alert, the service's starts, stops and refusals, the permission states, and
+ * an early wall-clock alarm. The clock reads monotonic 5 000 000, boot 1.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class TimerDiagnosticFormatTest {
+    private val now = FakeClock().reading()
+
+    @Test
+    fun `recovery logs what triggered it and what it decided`() {
+        val lines = listOf(
+            TimerDiagnostic.RecoveryRequested(now, RecoveryTrigger.BOOT_COMPLETED, alreadyRecovered = false),
+            TimerDiagnostic.RecoveryRequested(now, RecoveryTrigger.APP_START, alreadyRecovered = true),
+            TimerDiagnostic.Recovered(
+                now,
+                from = TimerPhase.RUNNING,
+                to = TimerPhase.ALERTING,
+                rebooted = true,
+                decision = RecoveryDecision.ALERT_REPLAYED,
+                service = true,
+            ),
+            TimerDiagnostic.Recovered(
+                now,
+                from = TimerPhase.PAUSED,
+                to = null,
+                rebooted = false,
+                decision = RecoveryDecision.SESSION_ENDED,
+                service = false,
+            ),
+            TimerDiagnostic.OrphanSessionEnded(now, saved = true),
+            TimerDiagnostic.RecoveryRetriesStopped(now, failingForMs = 660_500),
+        ).map(TimerDiagnosticFormat::message)
+
+        assertThat(lines).containsExactly(
+            "recovery requested by BOOT_COMPLETED | mono 5000000 boot 1",
+            "recovery requested by APP_START: already done in this process | mono 5000000 boot 1",
+            "recovery: stored RUNNING from before a reboot -> ALERTING: alert replayed, with the service | " +
+                "mono 5000000 boot 1",
+            "recovery: stored PAUSED -> IDLE: session ended, without the service | mono 5000000 boot 1",
+            "recovery: a session left in progress without its timer was saved | mono 5000000 boot 1",
+            "recovery: retries stopped after 660 s of failed reads; the next input reads again | " +
+                "mono 5000000 boot 1",
+        ).inOrder()
+    }
+
+    @Test
+    fun `a refused start sent again and refused once more says so`() {
+        val entry = TimerDiagnostic.ServiceStartRefused(
+            now,
+            notificationId = 1,
+            error = ForegroundServiceStartNotAllowedException("background"),
+            again = true,
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry))
+            .isEqualTo(
+                "service: foreground start with notification 1 refused again: " +
+                    "ForegroundServiceStartNotAllowedException: background | mono 5000000 boot 1",
+            )
+    }
+
+    @Test
+    fun `an alert shows the ringer mode, call, Do Not Disturb and the outputs it used`() {
+        val entry = TimerDiagnostic.AlertPlayed(
+            now,
+            AlertCue.ALERT,
+            AlertConditions(RingerMode.VIBRATE, inCall = false, dndBlocksAlerts = false),
+            AlertOutputs(sound = false, vibration = true),
+            tone = "klangschale",
+            length = AlertLength.NORMAL,
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
+            "alert ALERT: ringer VIBRATE, in call no, DND blocks no -> vibration | " +
+                "tone klangschale, length NORMAL | mono 5000000 boot 1",
+        )
+    }
+
+    @Test
+    fun `a silent pre-alert is visual only`() {
+        val entry = TimerDiagnostic.AlertPlayed(
+            now,
+            AlertCue.PRE_ALERT,
+            AlertConditions(RingerMode.SILENT, inCall = true, dndBlocksAlerts = true),
+            AlertOutputs.NONE,
+            tone = "tick",
+            length = AlertLength.SHORT,
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry)).startsWith(
+            "alert PRE_ALERT: ringer SILENT, in call yes, DND blocks yes -> visual only",
+        )
+    }
+
+    @Test
+    fun `the service's start, stop and refusal`() {
+        assertThat(TimerDiagnosticFormat.message(TimerDiagnostic.ServiceInForeground(now, 1)))
+            .isEqualTo("service: in the foreground with notification 1 | mono 5000000 boot 1")
+        assertThat(TimerDiagnosticFormat.message(TimerDiagnostic.ServiceStopped(now)))
+            .isEqualTo("service: stopped | mono 5000000 boot 1")
+        val refused = TimerDiagnostic.ServiceStartRefused(
+            now,
+            2,
+            ForegroundServiceStartNotAllowedException("app is in the background"),
+        )
+        assertThat(TimerDiagnosticFormat.message(refused)).isEqualTo(
+            "service: foreground start with notification 2 refused: " +
+                "ForegroundServiceStartNotAllowedException: app is in the background | mono 5000000 boot 1",
+        )
+    }
+
+    @Test
+    fun `the permission states at a process start`() {
+        val entry = TimerDiagnostic.PermissionsAtStart(
+            now,
+            PermissionStates(
+                notifications = true,
+                promotedNotifications = null,
+                fullScreenIntent = false,
+                exactAlarms = true,
+                batteryUnrestricted = false,
+            ),
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
+            "process start: notifications yes, live updates n/a, full-screen alert no, exact alarms yes, " +
+                "battery unrestricted no | mono 5000000 boot 1",
+        )
+    }
+
+    @Test
+    fun `an alarm on the wall clock that fires early shows a negative delta`() {
+        val entry = TimerDiagnostic.AlarmReceived(
+            now,
+            TimerAlarmKind.IDLE_DEMOTE,
+            ScheduledTime(TimerAlarmKind.IDLE_DEMOTE, now.wallMs + 250),
+        )
+
+        assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
+            "alarm IDLE_DEMOTE received | " +
+                "IDLE_DEMOTE scheduled 10:00:00.250 (mono 5000250) actual 10:00:00.000 (mono 5000000) delta -250 ms",
+        )
+    }
+}

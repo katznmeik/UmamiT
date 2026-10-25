@@ -1,0 +1,316 @@
+# CI quality gate (06 §7, M1-02, #11): every pull request and every push to a
+# branch is checked the same way. Tags are not built here; release.yml builds
+# releases (06 §6).
+#
+# Design notes:
+# - Actions are pinned to full commit SHAs, with the version in a comment
+#   (D-070): a moved or compromised tag cannot change what runs. To update
+#   one, resolve the new release tag to its commit and replace both.
+# - Gradle: one invocation per job, so the configuration cache would have
+#   nothing to reuse; it stays off as in gradle.properties (a dependency
+#   resolution failure, e.g. HTTP 429, must not be stored in a cache entry).
+#   Dependencies and wrapper are cached by setup-gradle with the open-source
+#   `basic` provider; every branch may write it (the default would make only
+#   `main` write, which is rarely built here).
+# - The module rules (06 §3) are enforced while Gradle configures the build,
+#   so every job below fails on a forbidden module dependency.
+name: CI
+
+on:
+  pull_request:
+  push:
+    # Branches only: with a branch filter, pushing a tag does not trigger CI.
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Plain console output keeps the logs readable for Claude.
+  GRADLE_OPTS: -Dorg.gradle.console=plain
+
+jobs:
+  checks:
+    name: Checks (format, Detekt, Lint, unit + screenshot tests, manifest permissions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: false
+
+      # testDebugUnitTest includes the build-logic tests (versionCode, manifest
+      # permission rule); verifyRoborazziDebug compares screenshots with the
+      # committed goldens; checkManifestPermissions checks the merged debug and
+      # release manifests against 06 §5.7.
+      - name: Quality gate
+        run: >-
+          ./gradlew --continue
+          spotlessCheck
+          detekt
+          lint
+          testDebugUnitTest
+          verifyRoborazziDebug
+          checkManifestPermissions
+
+      # The quality gate compiles core:database, and Room then rewrites the
+      # exported schema JSON (05 §9). ExportedSchemaTest cannot see a stale
+      # committed copy, so any difference here means the entities changed
+      # without committing the regenerated schema (#36). An uncommitted new
+      # version's file (e.g. 2.json) counts too.
+      - name: Committed database schema is up to date
+        if: ${{ !cancelled() }}
+        run: |
+          git diff --exit-code core/database/schemas
+          untracked="$(git ls-files --others --exclude-standard core/database/schemas)"
+          if [ -n "$untracked" ]; then
+            echo "::error::schema files not committed: $untracked"
+            exit 1
+          fi
+
+      # From v0.1.0-rc.1 on schema v1 may be on the PO's phone: every schema
+      # file a release tag (v*) contains is frozen, so a change needs a new
+      # version and a tested migration (05 §9, D-054).
+      - name: Released database schemas are unchanged
+        if: ${{ !cancelled() }}
+        run: scripts/check-frozen-schemas.sh
+
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: check-reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
+            **/build/outputs/roborazzi/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build:
+    name: Build (debug + R8 release, throwaway signing key)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: false
+
+      # A fresh throwaway key per run (06 §7): the release build is signed and
+      # shrunk with R8 exactly like a real release, but never with the real key.
+      - name: Generate throwaway signing key
+        run: |
+          password="$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          keytool -genkeypair -noprompt \
+            -keystore "$RUNNER_TEMP/ci-throwaway.p12" -storetype PKCS12 \
+            -storepass "$password" -keypass "$password" \
+            -alias umamit -keyalg RSA -keysize 2048 -validity 1 \
+            -dname "CN=UmamiT CI throwaway"
+          {
+            echo "UMAMIT_KEYSTORE_FILE=$RUNNER_TEMP/ci-throwaway.p12"
+            echo "UMAMIT_KEYSTORE_PASSWORD=$password"
+          } >> "$GITHUB_ENV"
+
+      - name: Assemble debug and release
+        run: ./gradlew assembleDebug assembleRelease
+
+      - name: Verify release is signed and shrunk
+        run: |
+          apk="app/build/outputs/apk/release/app-release.apk"
+          test -f "$apk" || { echo "::error::$apk missing (unsigned release?)"; exit 1; }
+          test -s app/build/outputs/mapping/release/mapping.txt \
+            || { echo "::error::R8 mapping file missing: release was not shrunk"; exit 1; }
+          build_tools="$(grep -E '^buildTools' gradle/libs.versions.toml | cut -d'"' -f2)"
+          "$ANDROID_HOME/build-tools/$build_tools/apksigner" verify --print-certs "$apk" \
+            | grep -F "CN=UmamiT CI throwaway"
+
+      - name: Remove throwaway signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ci-throwaway.p12"
+
+      # For Claude/CI only; never installed on the PO's phone (06 §6).
+      - name: Upload debug APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: umamit-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  # Instrumented tests on emulators (06 §7, M1-02 part 2, #12). The cloud
+  # container has no KVM, so this job is the only place they run. It runs every
+  # module's `src/androidTest/` (the app's launch smoke and lock-screen alert
+  # tests, core:timer's process-death, recovery and notification tests of
+  # #42, #46 and #47), so new instrumented tests need no change here. The
+  # hour-long AccuracyRunTest is skipped here; accuracy.yml runs it before each
+  # rc (#52, D-067) with a copy of this job's emulator setup: keep both in sync.
+  #
+  # - Runs in parallel with `checks` and `build` (no `needs`): it is the slowest
+  #   job, so the PR result arrives sooner, and its result does not depend on
+  #   theirs. Superseded runs are cancelled by the concurrency group above.
+  # - The AVD with a booted snapshot is cached per API level (first run creates
+  #   it); later runs boot from the snapshot and never save it back. Bump the
+  #   `-v1` suffix of the key to force a fresh AVD (e.g. after an emulator or
+  #   system image update makes the snapshot unusable).
+  # - The APKs are built before the emulator starts, so it runs only as long
+  #   as the tests need.
+  emulator:
+    name: Emulator tests (API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [35, 36]
+    env:
+      # One AVD configuration for both emulator steps, so the cached AVD fits.
+      AVD_TARGET: google_apis
+      AVD_ARCH: x86_64
+      AVD_PROFILE: pixel_6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: false
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build app and test APKs
+        run: ./gradlew assembleDebug assembleDebugAndroidTest
+
+      # The emulator action downloads the emulator and the system image on every
+      # run, and dl.google.com sometimes serves a truncated archive or index
+      # ("Error on ZipFile unknown archive", "Failed to find package"), which
+      # fails the job before any test runs. Cache both packages and install
+      # them up front with retries; the action then finds them installed.
+      - name: Locate the Android SDK
+        run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Emulator and system image cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ env.SDK_DIR }}/emulator
+            ${{ env.SDK_DIR }}/system-images/android-${{ matrix.api-level }}/${{ env.AVD_TARGET }}/${{ env.AVD_ARCH }}
+          key: sdk-emulator-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-v1
+
+      - name: Install emulator and system image (with retries)
+        run: |
+          sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          image="system-images;android-${{ matrix.api-level }};$AVD_TARGET;$AVD_ARCH"
+          for attempt in 1 2 3; do
+            if yes | "$sdkmanager" --install emulator "$image" > /dev/null; then
+              exit 0
+            fi
+            echo "sdkmanager attempt $attempt failed; retrying in 30 s."
+            sleep 30
+          done
+          echo "::error::Could not install the emulator or $image after 3 attempts (dl.google.com)."
+          exit 1
+
+      - name: AVD cache
+        id: avd-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}-v1
+
+      - name: Create AVD and snapshot for the cache
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD snapshot created for the cache."
+
+      # connectedDebugAndroidTest runs every module that has instrumented tests
+      # (library modules without `src/androidTest/` build no test APK).
+      - name: Instrumented tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew connectedDebugAndroidTest
+
+      # Failure details straight into the log (the artifact below is not
+      # reachable from every environment): each failed test with its message
+      # and stack trace, plus the app's own diagnostic logcat lines.
+      - name: Print failed instrumented tests
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = glob.glob("**/build/outputs/androidTest-results/connected/**/TEST-*.xml", recursive=True)
+          for path in files:
+              for case in ET.parse(path).getroot().iter("testcase"):
+                  for failure in list(case.findall("failure")) + list(case.findall("error")):
+                      print(f"::group::FAILED {case.get('classname')}.{case.get('name')}")
+                      print((failure.get("message") or "").strip())
+                      print("\n".join((failure.text or "").strip().splitlines()[:60]))
+                      print("::endgroup::")
+          PY
+          # File names contain spaces ("test(AVD) - 15"), hence -print0.
+          find . -path "*androidTest-results*" -name "logcat-*.txt" -print0 |
+            while IFS= read -r -d '' log; do
+              echo "::group::$log (UmamiT/test lines, last 200)"
+              grep -E "UmamiT|ProcessDeathTest|TimerNotificationsDeviceTest|TimerAlertOverLockScreenTest|AndroidRuntime|NotificationService|Shedding|enqueue rate|ActiveServices" "$log" | tail -n 200 || true
+              echo "::endgroup::"
+            done
+
+      # Test reports plus the logcat that AGP records per test.
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: emulator-reports-api-${{ matrix.api-level }}
+          path: |
+            **/build/reports/androidTests/
+            **/build/outputs/androidTest-results/
+          retention-days: 7
+          if-no-files-found: ignore

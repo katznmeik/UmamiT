@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tea picker (SCR-03) -->
+    <string name="brew_picker_title">Tee wählen</string>
+    <string name="brew_picker_search">Suchen</string>
+    <string name="brew_picker_recent">Zuletzt</string>
+    <string name="brew_picker_favorites">Favoriten</string>
+    <string name="brew_picker_all">Alle</string>
+    <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>
+    <string name="brew_picker_empty">Noch keine Tees in deiner Sammlung.</string>
+    <string name="brew_picker_no_results">Kein Tee zu „%1$s“ gefunden.</string>
+
+    <!-- Brew setup (SCR-04) -->
+    <string name="brew_setup_title">Brühen</string>
+    <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
+    <string name="brew_setup_recipe_check">Rezept prüfen</string>
+    <string name="brew_setup_vessel">Gefäß</string>
+    <string name="brew_setup_vessel_none">Kein Gefäß</string>
+    <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>
+    <string name="brew_setup_vessel_description">Gefäß: %1$s. Ändern</string>
+    <string name="brew_setup_water">Wasser</string>
+    <string name="brew_setup_leaf">Blätter</string>
+    <string name="brew_setup_ml">%1$d\u00A0ml</string>
+    <string name="brew_setup_grams">%1$s\u00A0g</string>
+    <string name="brew_setup_water_less">Weniger Wasser</string>
+    <string name="brew_setup_water_more">Mehr Wasser</string>
+    <string name="brew_setup_leaf_less">Weniger Blätter</string>
+    <string name="brew_setup_leaf_more">Mehr Blätter</string>
+    <string name="brew_setup_ratio">%1$s\u00A0g / 100\u00A0ml</string>
+    <string name="brew_setup_ratio_lock">Verhältnis halten</string>
+    <string name="brew_setup_steps">Aufgüsse</string>
+    <string name="brew_setup_steps_edit">Bearb.</string>
+    <string name="brew_setup_steps_edit_description">Aufgüsse bearbeiten</string>
+    <string name="brew_setup_pre_alert">Vorwarnung</string>
+    <string name="brew_setup_pre_alert_seconds">%1$d\u00A0s</string>
+    <string name="brew_setup_pre_alert_off">Aus</string>
+    <string name="brew_setup_pre_alert_default">%1$s (Standard)</string>
+    <string name="brew_setup_save_to_recipe">Im Rezept speichern</string>
+    <string name="brew_setup_saved_to_recipe">Im Rezept gespeichert</string>
+    <string name="brew_setup_start">Brühen starten</string>
+    <string name="brew_setup_not_found_title">Dieser Tee ist nicht mehr da</string>
+    <string name="brew_setup_not_found_body">Wähl einen anderen Tee aus deiner Sammlung.</string>
+</resources>

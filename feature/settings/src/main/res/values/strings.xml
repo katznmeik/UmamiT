@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Einstellungen</string>
+
+    <!-- Timer-Zuverlässigkeit (SET-24). -->
+    <string name="settings_reliability_title">Timer-Zuverlässigkeit</string>
+    <string name="settings_reliability_ok">Alles bereit: Der Alarm erreicht dich auch bei gesperrtem Bildschirm.</string>
+    <string name="settings_reliability_problem">Der Timer ist eventuell unzuverlässig. Behebe die markierten Punkte.</string>
+    <string name="settings_check_notifications">Benachrichtigungen</string>
+    <string name="settings_check_live">Live-Benachrichtigungen</string>
+    <string name="settings_check_full_screen">Vollbild-Alarm</string>
+    <string name="settings_check_battery">Akku: Uneingeschränkt</string>
+    <string name="settings_check_exact_alarms">Exakte Alarme</string>
+    <string name="settings_fix">Beheben</string>
+
+    <!-- Timer & Alarm (SET-30; SET-09, 10, 11, 14, 17, 25, 31). -->
+    <string name="settings_section_timer">Timer &amp; Alarm</string>
+    <string name="settings_tone">Alarmton</string>
+    <string name="settings_tone_klangschale">Klangschale</string>
+    <string name="settings_tone_glocke">Glocke</string>
+    <string name="settings_tone_holzblock">Holzblock</string>
+    <string name="settings_tone_glockenspiel">Glockenspiel</string>
+    <string name="settings_tone_sanft">Sanft</string>
+    <string name="settings_tone_preview">Anhören</string>
+    <string name="settings_pre_alert">Vorwarnung</string>
+    <string name="settings_pre_alert_off">Aus</string>
+    <string name="settings_pre_alert_seconds">%1$d s vorher</string>
+    <string name="settings_vibration">Vibration</string>
+    <string name="settings_alert_length">Alarmdauer</string>
+    <string name="settings_alert_length_short">Kurz</string>
+    <string name="settings_alert_length_short_detail">Einmal</string>
+    <string name="settings_alert_length_normal">Normal</string>
+    <string name="settings_alert_length_normal_detail">Bis zu 15 Sekunden</string>
+    <string name="settings_alert_length_long">Lang</string>
+    <string name="settings_alert_length_long_detail">Bis du bestätigst, höchstens 2 Minuten</string>
+    <string name="settings_keep_screen_on">Bildschirm beim Brühen anlassen</string>
+    <string name="settings_dim">Beim Ziehen abdunkeln</string>
+    <string name="settings_dim_detail">Nach 10 Sekunden ohne Berührung</string>
+    <string name="settings_test_alert">Alarm testen</string>
+    <string name="settings_test_alert_detail">Spielt die Vorwarnung und den Alarm mit deinen Einstellungen.</string>
+    <string name="settings_done">Fertig</string>
+    <string name="settings_test_stop">Stopp</string>
+    <string name="settings_save_failed">Konnte nicht gespeichert werden. Versuch es gleich noch einmal; ist der Speicher voll?</string>
+
+    <!-- Über (SCR-27). -->
+    <string name="settings_section_about">Über</string>
+    <string name="settings_about">Über UmamiT</string>
+    <string name="about_title">Über</string>
+    <string name="about_app_name">UmamiT</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_source_note">Katalogdaten und Fotos © Tee-Kontor Kiel, nur für den privaten Gebrauch.</string>
+    <string name="about_licenses_title">Lizenzen</string>
+    <string name="about_licenses_body">Schrift Cormorant Garamond: SIL Open Font License 1.1. Symbole Material Symbols: Apache License 2.0. Alarmtöne: selbst erzeugt. Bibliotheken (AndroidX, Kotlin, Dagger/Hilt, OkHttp, Coil): Apache License 2.0; Jsoup: MIT License.</string>
+    <string name="about_rerun_setup">Einrichtung erneut zeigen</string>
+    <string name="about_diagnostics">Diagnose</string>
+    <string name="about_diagnostics_detail">Was der Timer zuletzt getan hat, zum Kopieren</string>
+
+    <!-- Diagnose (SCR-27, 06 §5.6). The log entries themselves are technical English (D-060). -->
+    <string name="diagnostics_title">Diagnose</string>
+    <string name="diagnostics_copy">Kopieren</string>
+    <string name="diagnostics_intro">Was der Timer zuletzt getan hat, die neuesten Einträge zuerst. Mit „Kopieren“ kannst du das Protokoll in ein Issue einfügen. Notizen stehen nie darin.</string>
+    <string name="diagnostics_empty_title">Noch keine Einträge</string>
+    <string name="diagnostics_empty_body">Sobald du einen Aufguss startest, steht hier, was der Timer tut.</string>
+    <string name="diagnostics_clip_label">UmamiT-Diagnose</string>
+</resources>

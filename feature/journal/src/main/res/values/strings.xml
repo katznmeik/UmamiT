@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="journal_title">Journal</string>
+    <string name="journal_empty_title">Deine erste Tasse wartet.</string>
+    <string name="journal_empty_body">Jede Tasse, die du brühst, erscheint hier von selbst.</string>
+    <string name="journal_in_progress">Läuft gerade</string>
+    <string name="journal_today">Heute</string>
+    <string name="journal_yesterday">Gestern</string>
+    <string name="journal_temperature">%1$d °C</string>
+    <plurals name="journal_infusions">
+        <item quantity="one">%1$d Aufguss</item>
+        <item quantity="other">%1$d Aufgüsse</item>
+    </plurals>
+    <!-- „2 von 3 Aufgüssen": fewer infusions poured than planned (TMR-12). The quantity is the planned count. -->
+    <plurals name="journal_infusions_of">
+        <item quantity="one">%1$d von %2$d Aufguss</item>
+        <item quantity="other">%1$d von %2$d Aufgüssen</item>
+    </plurals>
+    <string name="journal_open_timer">Zum Timer</string>
+    <string name="journal_saved_title">Gespeichert im Journal</string>
+    <!-- TalkBack for „3 Aufgüsse · 2:20": „3 Aufgüsse, 2 Minuten 20 Sekunden". -->
+    <string name="journal_saved_summary_description">%1$s, %2$s</string>
+    <string name="journal_saved_dismiss">Schließen</string>
+</resources>

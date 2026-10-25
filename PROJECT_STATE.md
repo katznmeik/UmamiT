@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-21
+**Last updated:** 2026-10-23
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M0 — Specification** |
-| Development go from PO | ✅ **Given on 2026-10-21, effective 2026-10-22 09:05 Europe/Berlin** (after the PO's weekly usage limit resets), unless the PO says otherwise before then. **No app code before that time.** |
+| Current milestone | **M1 — Timer first: release candidate out, waiting on the PO** (#55: on-device checklist and design review) |
+| Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/sweet-brown-e16crp` |
+| Working branch | `claude/umamit-m1-start-k0jg3n` (M1 milestone PR) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | [katznmeik/UmamiT#1](https://github.com/katznmeik/UmamiT/pull/1): M0 specification (merged 2026-10-21) |
-| Open PR | none |
+| Merged PRs | #1 (M0 specs); docs/housekeeping #2–#5, #7, #18–#24, #26, #57 |
+| Open PR | #25 M1 milestone PR (draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | none |
+| Latest APK | [`v0.1.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0-rc.1) (pre-release, versionCode 10001, from 3900689) |
 
 ## Done (M0)
 
@@ -39,15 +39,14 @@
 
 ## Waiting on the PO
 
-1. Generate images A1–A5 (`docs/design/assets.md`); placeholders are used
-   until then.
-2. During M1: save the two signing files Claude delivers in the session and
-   add 2 GitHub secrets (06 §6.1).
-3. During M1: install and test the probe APK `v0.0.1-probe` (09 §4) and
-   report the results in the session; re-test any `v0.0.N-probe` until all
-   four items pass (D-040).
-4. At the M1 PR: test the release candidate, listen to the alert sounds and
-   approve the default (Q-15).
+1. **#55:** install [`v0.1.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0-rc.1),
+   work through the 09 §4 M1 checklist (posted on #55) and review the design
+   (renders in `docs/design/review/M1/`, light and dark, font 1.0 and 2.0,
+   motion GIFs). Report failures in the session or on #55; each fix round ships
+   as the next `v0.1.0-rc.N`.
+2. **#56:** the explicit approval of the checklist and the design review, which
+   allows the merge of #25 and the final `v0.1.0` from `main`.
+3. Later images (M2–M4): A6–A11 (`docs/design/assets.md`); A1–A5 are in the app.
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
 
@@ -63,12 +62,71 @@
 | Next spec (waves 2–3) | Started by the PO; include the design/motion skills per `docs/plans/M1-timer.md` §3.2 (motion section in 03, `/review-animations` on UI tickets, worst-case renders in M1-17) |
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
-## Next steps (from 2026-10-22 09:05 Europe/Berlin)
+## Next steps
 
-Follow `docs/plans/M1-timer.md`, starting with M1-00 (session-start hook
-that installs the Android SDK), M1-01 (Gradle skeleton with all module
-stubs), M1-02/03 (CI incl. emulator job, signing, release workflow) and the
-probe release M1-03a (spec issue [#6](https://github.com/katznmeik/UmamiT/issues/6); tickets #8–#17 in dependency order, start with #8 and #9).
+Spec [#6](https://github.com/katznmeik/UmamiT/issues/6) (M1-00 … M1-03a,
+tickets #8–#17) is done: SDK hook, Gradle skeleton, CI gate with emulator
+job, signing, release workflow, probe screen, exact-alarm/FGS/Live Update/
+full-screen probe and synthesised sounds; `v0.0.2-probe` passed on the
+Galaxy (D-040 gate open for M1-09/M1-11).
+
+Spec [#27](https://github.com/katznmeik/UmamiT/issues/27) (M1 waves 2–3,
+tickets #28–#38) is implemented and merged on the M1 branch (PR #25):
+`BrewTimerEngine` (all of 04 §3–§5, §7.2, §10; 196 tests, 100 % line
+coverage), Room schema v1 (frozen from `v0.1.0-rc.1`), repositories,
+settings, session lifecycle, active-brew store, backup rules and restore
+detection, seed teas/vessels/stock, allow-listed shop client and one-time
+seed photo download, design system with motion tokens, TimerRing/alert
+surface/active brew bar, navigation shell, icons, Schritte-Sheet, motion
+GIFs. Per-ticket reviews (T4 design review of the engine, T3 recovery
+review, T4 security review of the network client, motion reviews of every UI
+ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
+
+1. Design and motion check #39: **approved by the PO** on 2026-10-22 (glow,
+   pulse and the light-green dark-mode card unchanged).
+2. Spec [#40](https://github.com/katznmeik/UmamiT/issues/40) for waves 4–7 is
+   written (six test seams agreed with the PO; accuracy run as a manual CI
+   workflow before each rc) and broken into tickets #41–#56 (frontier: #41
+   controller core; then #42 alarms/service, #43 diagnostics, #44 alerts,
+   #45 timer screen; #55 is the PO's checklist and design review, #56 the
+   merge and `v0.1.0`). Next: `/implement-spec` on #40. Scope: M1-09 background integration,
+   M1-10 alerts, M1-11 Live Update, M1-12 timer screen, M1-13 Start and
+   setup, M1-14 quick timer, M1-15 Einrichtung and settings, M1-16 journal,
+   M1-17 renders, M1-18 review and releases, M1-20 diagnostics. Notes carried
+   into it: hosts pass `alerting` to the Schritte-Sheet
+   (D-051); the controller follows 04 §4/§7.1 (read `now` in the event lock,
+   one `Recover` per process, idempotent `StartAlert`, `ShowSavedSheet` as
+   `NotifySessionSaved` on *Beenden & neu starten*); after a device restore an
+   `IN_PROGRESS` session row must be finished or discarded (#36);
+   `SeedDataSeeder` and `SeedPhotoDownloader` are called from first start
+   (M1-15); rail-layout insets go on the on-device checklist.
+2. The next APK for the PO is `v0.1.0-rc.1`. The probe screen, its classes
+   and tests were removed in #54 (D-040).
+
+### `/implement-spec` on #40 — state (2026-10-23, 14:00 Europe/Berlin)
+
+- **All tickets #41–#54 merged on the M1 branch.** The M1 milestone review
+  (T4, three areas) is fixed or answered (D-068 … D-071; comment on #54).
+- **`v0.1.0-rc.1`** built by `release.yml` from 3900689 (versionCode 10001).
+  CI green on 3900689 (push and PR runs). Accuracy run on 3900689
+  ([39941721261](https://github.com/katznmeik/UmamiT/actions/runs/39941721261),
+  API 36, 50 × 60 s, screen off): **PASS**, pre-alert p50 41 / p95 113 /
+  max 910 ms, alert p50 25 / p95 34 / max 136 ms (target p95 ≤ 250, max ≤ 1000).
+  The branch head after it (9255413) differs only in a docs fix (09 §4).
+- **The PO's images A1–A5** are in the app: launcher, themed and status-bar
+  icons (A1, vector), welcome (A2), Start header (A3), timer fallback photo
+  (A4), reliability vignette (A5); sources in `docs/design/assets/source/`.
+- **D-071:** a same-ID Live Update right after `startForeground` is posted once
+  more after 500 ms (AOSP posts the start's notification asynchronously; a
+  stale „Bereit" seen once on the API 35 emulator).
+- **For the PO's design review:** the Start *Nochmal brühen* tile cuts a long
+  name after three lines at font scale 2.0.
+- **After v0.1.0 (from the animation pass):** Schritte-Sheet row animation,
+  status mark „!" → „✓", kettle hint fade.
+- **Decision numbers:** up to D-071 used; the next free is **D-072**.
+- **Next for Claude:** fix rounds from #55 as `v0.1.0-rc.N` (accuracy run
+  before each); after the PO's explicit approval: #56 (merge #25 with a merge
+  commit, `v0.1.0` from `main`, restart the working branch from `main`).
 
 ## Open questions
 
@@ -77,9 +135,11 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 ## Known caveats
 
 - Mockup images still show the old name „UmamiTea".
-- Live Update / ProgressStyle and full-screen intent behaviour must be
-  verified with the probe release on the Galaxy (`docs/specs/04-brew-timer.md`
-  §8.3). Now Bar presence is best effort.
+- Live Update / ProgressStyle and the full-screen alert were verified on the
+  Galaxy with `v0.0.2-probe`; the full timer keeps those patterns
+  (D-043, D-044, `docs/plans/M1-android16-api-notes.md`). Now Bar presence is best
+  effort.
+- `v0.0.1-probe` (published before the D-044 fix) is superseded; don't use it.
 - Tee-Kontor uses Cloudflare; refreshes may get blocked (handled by stopping
   without changes).
 - After a reboot, alerts fire only once the phone has been unlocked (E2);
@@ -89,6 +149,14 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |
+| 2026-10-22 | Spec #40 (M1 waves 4–7) written via `/to-spec` and broken into 16 tickets #41–#56 via `/to-tickets` (granularity and blockers approved by the PO). CI: build-logic plugin repositories fixed (failed with an empty Gradle cache). |
+| 2026-10-22 | PO approved the design and motion check #39 (pre-alert glow, alert pulse, light-green dark-mode card) without changes. Spec #27 complete; next is the waves 4–7 spec. |
+| 2026-10-22 | Spec #27 implemented via `/implement-spec`: tickets #28–#38 merged on PR #25 with per-ticket reviews; T4 slice review (engine, data/network/backup, UI) fixed (D-054, D-055); CI hardened (emulator/system-image cache with retries, schema freshness and frozen-schema checks); flaky probe and network tests fixed. #39 (PO design and motion check) open. |
+| 2026-10-22 | Spec #27 broken into 12 tickets #28–#39 via `/to-tickets` (granularity, blockers and the PO ticket #39 approved by the PO). Spec #27 for M1 waves 2–3 written via `/to-spec` (4 test seams agreed with the PO: engine reducer, data layer with MockWebServer, Compose rendering incl. record-only motion GIFs, CI pipeline). |
+| 2026-10-22 | #14–#16 merged (probe screen, Android 16 timer probe, sounds; T4 fix D-044); `v0.0.2-probe` released and **passed** all four probe items on the Galaxy (#17). Q-15 feedback: Klangschale not bright enough, tick should sound more like a bowl → variants A/B/C sent; the PO chose C + C (D-045, committed). The countdown also appeared in the Now Bar. Run stopped after #17 as agreed. |
+| 2026-10-22 | #8 (SDK hook), #9 (signing key + secrets), #10 (skeleton), #11 (CI gate) and #13 (release workflow, registered on main via #26; negative dispatch test passed) merged into the M1 branch; D-042 tooling decisions. |
+| 2026-10-22 | M1 started (go in effect); `/implement-spec` on spec #6, frontier #8 and #9. The scheduled 09:05 start had not fired by 09:08, so it was disabled and M1 started directly in the session. |
 | 2026-10-21 | Grilled motion & design with the PO: D-041 motion guardrails; 03 §3.6 rewritten; GIF motion recordings added to the design review (M1 plan §3.2, M1-17, 09 §1). |
 | 2026-10-21 | Removed 7 web/iOS-only Emil Kowalski skills; noted how the remaining design/motion skills enter the waves 2–3 spec (M1 plan §3.2). |
 | 2026-10-21 | Grilled the M1 start with the PO: working agreements recorded above; D-040 (probe gate, fix loop); 09:05 start re-created as a scheduled task in this session (the earlier one had disappeared). |

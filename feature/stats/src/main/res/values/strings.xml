@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">Statistik</string>
+    <!-- M1 placeholder (#54 S2, GEN-09): true before and after the first brew. -->
+    <string name="stats_later_title">Deine Statistik folgt bald</string>
+    <string name="stats_later_body">Sie kommt mit einem späteren Update. Deine Aufgüsse stehen schon im Journal.</string>
+</resources>

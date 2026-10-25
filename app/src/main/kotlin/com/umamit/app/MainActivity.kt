@@ -1,0 +1,128 @@
+package com.umamit.app
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
+import com.umamit.app.timer.TimerActiveBrewSource
+import com.umamit.app.timer.TimerScreenRequests
+import com.umamit.app.timer.lockScreenFlags
+import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.SettingsRepository
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.controller.alertKey
+import com.umamit.core.timer.notification.TimerScreenIntents
+import com.umamit.feature.brew.timer.BrewTimer
+import com.umamit.feature.journal.JournalSources
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/**
+ * Single activity (06 §2): edge-to-edge, hosts the navigation shell and the
+ * timer. While the timer is visible it shows over the lock screen; while the
+ * alert plays it also turns the screen on (SCR-05, TMR-06).
+ *
+ * The timer's notifications open it with [TimerScreenIntents.ACTION_OPEN_TIMER]
+ * (their content intent and the alert's full-screen intent, #47): the timer route
+ * opens, and the lock-screen flags are set at once, before the first frame. Behind
+ * the keyguard with the screen off no frame is drawn until the screen turns on, so
+ * the flags cannot wait for the navigation (D-064).
+ */
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var brewTimer: BrewTimer
+
+    @Inject
+    lateinit var clock: MonotonicClock
+
+    @Inject
+    lateinit var journalSources: JournalSources
+
+    @Inject
+    lateinit var settings: SettingsRepository
+
+    private val timerVisible = MutableStateFlow(false)
+
+    /** The notifications' requests to open the timer; a pending one survives a recreation. */
+    private val timerRequests = TimerScreenRequests()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
+        // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
+        if (savedInstanceState == null) {
+            openTimerIfAsked(intent)
+        } else if (timerRequests.restore(savedInstanceState, intent)) {
+            showTimerOverLockScreen()
+        }
+        val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        val onboardingCompleted = settings.onboardingCompleted()
+            .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
+        lifecycleScope.launch {
+            combine(brewTimer.state, timerVisible, ::lockScreenFlags).distinctUntilChanged().collect {
+                setShowWhenLocked(it.showWhenLocked)
+                setTurnScreenOn(it.turnScreenOn)
+            }
+        }
+        setContent {
+            UmamiTheme {
+                UmamitRoot(
+                    activeBrewSource = activeBrewSource,
+                    journalSources = journalSources,
+                    alertKey = alertKey,
+                    onboardingCompleted = onboardingCompleted,
+                    timerRequest = timerRequests.token,
+                    onConsumeTimerRequest = timerRequests::handled,
+                    onTimerVisibleChange = { timerVisible.value = it },
+                    startScreen = { StartTabContent(it) },
+                )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openTimerIfAsked(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        timerRequests.save(outState)
+    }
+
+    private fun openTimerIfAsked(intent: Intent?) {
+        if (intent == null || !TimerScreenIntents.isOpenTimer(intent)) return
+        showTimerOverLockScreen()
+        timerRequests.request(intent)
+    }
+
+    /** The timer is about to show: over the lock screen at once, before any frame (D-058, D-064). */
+    private fun showTimerOverLockScreen() {
+        timerVisible.value = true
+        val flags = lockScreenFlags(brewTimer.state.value, timerVisible = true)
+        setShowWhenLocked(flags.showWhenLocked)
+        setTurnScreenOn(flags.turnScreenOn)
+    }
+}
+
+/**
+ * Whether the first-start setup is done, for the start destination (SCR-01, D-066); null until
+ * read. An unreadable settings file never keeps the app on the setup or a blank screen: the
+ * repository reads it as the setup done (D-068), and any other error opens on Start too.
+ */
+internal fun SettingsRepository.onboardingCompleted(): Flow<Boolean?> =
+    settings.map<_, Boolean?> { it.onboardingCompleted }.catch { emit(true) }

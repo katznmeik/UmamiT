@@ -1,0 +1,42 @@
+# Claude Code subagent worktrees
+.claude/worktrees/
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+# Android / local machine
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+output.json
+
+# Signing material: never commit keystores or passwords (06 §6.1)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+keystore.properties
+umamit-signing.txt
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+hs_err_pid*

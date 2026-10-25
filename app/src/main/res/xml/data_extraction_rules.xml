@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android cloud backup and device transfer (05 §8, D-052). Only what is listed
+  here is backed up: the personal database umamit.db with its WAL files and the
+  DataStore settings. Nothing includes, so nothing backs up: catalog.db*
+  (re-downloadable), filesDir/photos/ and filesDir/catalog/ (05 §8), caches,
+  library databases such as LeakCanary's, and the no-backup storage with the
+  install marker whose absence marks a restore (active_brew is then cleared)
+  and the diagnostics log (06 §5.6).
+  Keep in sync with backup_rules.xml (BackupRulesTest).
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="database" path="umamit.db" />
+        <include domain="database" path="umamit.db-wal" />
+        <include domain="database" path="umamit.db-shm" />
+        <include domain="file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="umamit.db" />
+        <include domain="database" path="umamit.db-wal" />
+        <include domain="database" path="umamit.db-shm" />
+        <include domain="file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

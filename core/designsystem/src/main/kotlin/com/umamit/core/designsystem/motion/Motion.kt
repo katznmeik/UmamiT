@@ -1,0 +1,221 @@
+package com.umamit.core.designsystem.motion
+
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.KeyframesSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.StartOffsetType
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.MotionDurationScale
+
+/**
+ * Motion tokens of 03 §3.6 „Motion tokens" (D-041). The values and the reasons
+ * for them live in the spec; this object is their single source in code.
+ */
+object MotionTokens {
+    /** Press feedback (scale on touch-down). */
+    const val PRESS_MILLIS = 120
+
+    /** Leaving elements: faster than entering, the system is answering. */
+    const val EXIT_MILLIS = 200
+
+    /** Standard state and content transitions; a little slower than Material's 200–250 ms. */
+    const val STANDARD_MILLIS = 300
+
+    /** Emphasised transitions: step changes, a whole surface changing state. */
+    const val EMPHASIZED_MILLIS = 450
+
+    /** Glide of the ring and liquor fill for long steps. */
+    const val GLIDE_MILLIS = 600
+
+    /** Long steps update the ring this often instead of per frame. */
+    const val LONG_STEP_UPDATE_INTERVAL_MILLIS = 10_000L
+
+    /** Pre-alert glow: one swell as long as the 0.8 s pre-alert tick (D-045). */
+    const val PRE_ALERT_GLOW_MILLIS = 800
+
+    /** The glow peaks early, like the strike of the bowl, then decays with the sound. */
+    const val PRE_ALERT_GLOW_PEAK_MILLIS = 200
+
+    /** One full washi → matcha → washi alert pulse. */
+    const val ALERT_PULSE_CYCLE_MILLIS = 1_500
+
+    /** Tab switch fade-through: the old tab leaves quickly ... */
+    const val TAB_SWITCH_OUT_MILLIS = 90
+
+    /** ... then the new tab arrives, after the old one is gone. */
+    const val TAB_SWITCH_IN_MILLIS = 210
+
+    /** Under reduce motion, opacity and colour changes still fade, but only this long. */
+    const val REDUCED_FADE_MILLIS = 100
+
+    /** Release after a press: critically damped spring, settled faster than the 120 ms press. */
+    const val PRESS_RELEASE_STIFFNESS = 1_500f
+
+    /** Spring stiffness for sheets: critically damped, response ≈ 0.35 s. */
+    const val SHEET_STIFFNESS = 320f
+
+    /** Spring stiffness for the active brew bar: critically damped, response ≈ 0.4 s. */
+    const val ACTIVE_BREW_BAR_STIFFNESS = 250f
+
+    /** No overshoot anywhere: tea, not a game. */
+    const val CRITICAL_DAMPING = 1f
+
+    /** Soft ease-out: moves at once, then settles for a long, quiet tail. */
+    val CalmEaseOut = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+
+    /** Ease-in-out for things already on screen that move (ring glide). */
+    val CalmEaseInOut = CubicBezierEasing(0.45f, 0f, 0.2f, 1f)
+
+    /** Sine ease-in-out: the alert pulse breathes instead of blinking. */
+    val SineInOut = CubicBezierEasing(0.37f, 0f, 0.63f, 1f)
+}
+
+/**
+ * The motion specs for one reduce-motion state, read with `UmamiTheme.motion`.
+ * Under reduce motion (system „Animationen entfernen", 03 §3.6) functional
+ * motion is instant, fades stay but are very short, and the pre-alert glow and
+ * the alert pulse are off (the alert becomes a static matcha surface).
+ *
+ * Short steps need no spec: the ring follows the remaining time per frame.
+ * The liquor fill always rises from the bottom of the ring.
+ */
+@Immutable
+@Suppress("TooManyFunctions") // one function per motion token of 03 §3.6
+class UmamiMotion(val reduceMotion: Boolean) {
+
+    /** Standard transition: 300 ms soft ease-out. Never for entering ALERTING: use [alertEnter]. */
+    fun <T> standard(): FiniteAnimationSpec<T> = calm(reduceMotion, MotionTokens.STANDARD_MILLIS)
+
+    /** Emphasised transition: 450 ms soft ease-out. Never for entering ALERTING: use [alertEnter]. */
+    fun <T> emphasized(): FiniteAnimationSpec<T> = calm(reduceMotion, MotionTokens.EMPHASIZED_MILLIS)
+
+    /** Exit: 200 ms soft ease-out. */
+    fun <T> exit(): FiniteAnimationSpec<T> = calm(reduceMotion, MotionTokens.EXIT_MILLIS)
+
+    /** Press feedback on touch-down: 120 ms soft ease-out. */
+    fun <T> press(): FiniteAnimationSpec<T> = calm(reduceMotion, MotionTokens.PRESS_MILLIS)
+
+    /**
+     * Release after a press: a fast critically damped spring, so the answer is
+     * quicker than the press and a quick tap that retargets mid-press keeps its velocity.
+     */
+    fun <T> pressRelease(): FiniteAnimationSpec<T> = springOrSnap(reduceMotion, MotionTokens.PRESS_RELEASE_STIFFNESS)
+
+    /**
+     * Entering ALERTING: instant, in both motion modes. The alert is never
+     * delayed or softened by a transition (CLAUDE.md rule 8).
+     */
+    fun <T> alertEnter(): FiniteAnimationSpec<T> = snap()
+
+    /**
+     * Opacity and colour changes; kept (very short) under reduce motion.
+     * Never for entering ALERTING: use [alertEnter].
+     */
+    fun <T> fade(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        tween(MotionTokens.REDUCED_FADE_MILLIS, easing = LinearEasing)
+    } else {
+        tween(MotionTokens.STANDARD_MILLIS, easing = MotionTokens.CalmEaseOut)
+    }
+
+    /** Tab switch, outgoing tab: 90 ms; reduce motion: [fade]. */
+    fun <T> tabSwitchOut(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        fade()
+    } else {
+        tween(MotionTokens.TAB_SWITCH_OUT_MILLIS, easing = MotionTokens.CalmEaseOut)
+    }
+
+    /** Tab switch, incoming tab: 210 ms after the outgoing one has left; reduce motion: [fade]. */
+    fun <T> tabSwitchIn(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        fade()
+    } else {
+        tween(MotionTokens.TAB_SWITCH_IN_MILLIS, MotionTokens.TAB_SWITCH_OUT_MILLIS, MotionTokens.CalmEaseOut)
+    }
+
+    /** A fade of a leaving element: [exit] (200 ms), and under reduce motion a short [fade] instead of a snap. */
+    fun <T> exitFade(): FiniteAnimationSpec<T> = if (reduceMotion) fade() else exit()
+
+    /** Bottom sheets (Schritte-Sheet): critically damped spring, interruptible. */
+    fun <T> sheet(): FiniteAnimationSpec<T> = springOrSnap(reduceMotion, MotionTokens.SHEET_STIFFNESS)
+
+    /** The active brew bar arriving and leaving: critically damped spring. */
+    fun <T> activeBrewBar(): FiniteAnimationSpec<T> = springOrSnap(reduceMotion, MotionTokens.ACTIVE_BREW_BAR_STIFFNESS)
+
+    /** Ring and liquor fill of long steps: a 600 ms glide to the new value. */
+    fun <T> longStepGlide(): FiniteAnimationSpec<T> = if (reduceMotion) {
+        snap()
+    } else {
+        tween(MotionTokens.GLIDE_MILLIS, easing = MotionTokens.CalmEaseInOut)
+    }
+
+    /** How often long steps update the ring. */
+    val longStepUpdateIntervalMillis: Long = MotionTokens.LONG_STEP_UPDATE_INTERVAL_MILLIS
+
+    /**
+     * Glow intensity 0 → 1 → 0 in sync with the pre-alert tick; `null` under
+     * reduce motion. Run it with [UnscaledMotion] so a developer animator scale
+     * cannot pull it out of sync with the 0.8 s tick.
+     */
+    val preAlertGlow: KeyframesSpec<Float>? = if (reduceMotion) {
+        null
+    } else {
+        keyframes {
+            durationMillis = MotionTokens.PRE_ALERT_GLOW_MILLIS
+            0f at 0 using MotionTokens.CalmEaseOut
+            1f at MotionTokens.PRE_ALERT_GLOW_PEAK_MILLIS using MotionTokens.SineInOut
+            0f at MotionTokens.PRE_ALERT_GLOW_MILLIS
+        }
+    }
+
+    /**
+     * Alert pulse fraction 0 (washi) ↔ 1 (matcha), a slow sine with a 1.5 s
+     * cycle: unmistakable across the room, far from flashing. Animate it from 0f
+     * to 1f: the spec starts half a cycle in, so frame 1 of ALERTING is full
+     * matcha (the same as the static surface), then matcha → washi → matcha.
+     * Run it with [UnscaledMotion], so a developer animator scale cannot slow
+     * the alert. `null` under reduce motion: the alert is a static
+     * high-contrast matcha surface.
+     */
+    val alertPulse: InfiniteRepeatableSpec<Float>? = if (reduceMotion) {
+        null
+    } else {
+        infiniteRepeatable(
+            animation = tween(MotionTokens.ALERT_PULSE_CYCLE_MILLIS / 2, easing = MotionTokens.SineInOut),
+            repeatMode = RepeatMode.Reverse,
+            initialStartOffset = StartOffset(MotionTokens.ALERT_PULSE_CYCLE_MILLIS / 2, StartOffsetType.FastForward),
+        )
+    }
+}
+
+/**
+ * A fixed animation duration scale of 1 for the alert pulse and the pre-alert
+ * glow. Compose otherwise multiplies every duration by the system animator
+ * duration scale, so a developer option of 10x would stretch the pulse to a
+ * 15 s cycle and pull the glow away from the tick. Run those animations as an
+ * `Animatable` in a `LaunchedEffect`, inside `withContext(UnscaledMotion) { … }`.
+ * Reduce motion (scale 0) is handled separately: the specs are `null` then.
+ */
+object UnscaledMotion : MotionDurationScale {
+    override val scaleFactor: Float = 1f
+}
+
+/**
+ * Reduce motion follows only the system setting „Animationen entfernen", which
+ * sets the animator duration scale to 0 (03 §3.6). Slower or faster scales are
+ * developer options, not a request for less motion.
+ */
+fun isReduceMotion(animatorDurationScale: Float): Boolean = animatorDurationScale == 0f
+
+private fun <T> calm(reduceMotion: Boolean, durationMillis: Int): FiniteAnimationSpec<T> =
+    if (reduceMotion) snap() else tween(durationMillis, easing = MotionTokens.CalmEaseOut)
+
+private fun <T> springOrSnap(reduceMotion: Boolean, stiffness: Float): FiniteAnimationSpec<T> =
+    if (reduceMotion) snap() else spring(dampingRatio = MotionTokens.CRITICAL_DAMPING, stiffness = stiffness)

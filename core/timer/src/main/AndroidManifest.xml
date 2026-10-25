@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Timer components and the permissions they need (04 §13, 06 §5.7). The app
+  manifest declares the same permissions; duplicates merge. The real timer's
+  alarm receiver, foreground service (M1-09, #42), notification actions (M1-11)
+  and recovery receiver (#46).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Live Update (04 §8.3). Not a public permission in the SDK 36 stubs; harmless to declare. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- D-013: sideloaded, never reviewed by a store; granted at install (04 §6.2). -->
+    <uses-permission
+        android:name="android.permission.USE_EXACT_ALARM"
+        tools:ignore="ExactAlarm" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Alert vibration (04 §9.1, #16). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Recovery after a reboot (04 §7.3, #46). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application>
+        <!-- The timer's foreground service (04 §6.3, §13; #42). -->
+        <service
+            android:name=".service.BrewTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Tea steeping countdown timer started by the user" />
+        </service>
+
+        <!-- Notification and Live Update actions and the Live Update's delete intent
+             (04 §8.2, §8.3; M1-11): every action to the controller. -->
+        <receiver
+            android:name=".notification.TimerActionReceiver"
+            android:exported="false" />
+
+        <!-- The timer's alarms (04 §6.2, #42): every kind to the controller's onAlarm. -->
+        <receiver
+            android:name=".alarm.TimerAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Recovery after a reboot and an update (04 §7.3, §7.5; #46). The system sends
+             both broadcasts, which reach a receiver that is not exported. -->
+        <receiver
+            android:name=".TimerRecoveryReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

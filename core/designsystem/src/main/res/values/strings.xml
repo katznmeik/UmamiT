@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SectionHeader -->
+    <string name="ds_section_show_all">Alle anzeigen</string>
+    <string name="ds_section_show_all_description">Alle anzeigen: %1$s</string>
+
+    <!-- KettleHint -->
+    <string name="ds_kettle_hint">Wasserkocher auf %1$d\u00A0°C</string>
+    <string name="ds_kettle_hint_cold">Kaltes Wasser</string>
+    <string name="ds_kettle_hint_ice">Eiswürfel</string>
+    <plurals name="ds_kettle_hint_description">
+        <item quantity="one">Wasserkocher auf %1$d Grad</item>
+        <item quantity="other">Wasserkocher auf %1$d Grad</item>
+    </plurals>
+
+    <!-- StatTriplet -->
+    <string name="ds_stat_temperature">Temperatur</string>
+    <string name="ds_stat_temperature_value">%1$d\u00A0°C</string>
+    <plurals name="ds_stat_temperature_description">
+        <item quantity="one">Temperatur: %1$d Grad</item>
+        <item quantity="other">Temperatur: %1$d Grad</item>
+    </plurals>
+    <string name="ds_stat_steep_time">Ziehzeit</string>
+    <string name="ds_stat_infusions">Aufgüsse</string>
+    <string name="ds_stat_unknown">–</string>
+    <string name="ds_stat_unknown_description">%1$s: keine Angabe</string>
+    <string name="ds_stat_steep_time_description">Ziehzeit: %1$s</string>
+    <plurals name="ds_minutes">
+        <item quantity="one">%1$d Minute</item>
+        <item quantity="other">%1$d Minuten</item>
+    </plurals>
+    <plurals name="ds_seconds">
+        <item quantity="one">%1$d Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
+    </plurals>
+    <plurals name="ds_hours">
+        <item quantity="one">%1$d Stunde</item>
+        <item quantity="other">%1$d Stunden</item>
+    </plurals>
+    <plurals name="ds_stat_infusions_description">
+        <item quantity="one">%1$d Aufguss</item>
+        <item quantity="other">%1$d Aufgüsse</item>
+    </plurals>
+
+    <!-- TeaListItem -->
+    <string name="ds_rating">★ %1$s</string>
+    <string name="ds_rating_description">Bewertung %1$s von 5</string>
+
+    <!-- ReliabilityBanner -->
+    <string name="ds_reliability_fix">Beheben</string>
+    <string name="ds_reliability_description">Warnung: %1$s</string>
+    <!-- StatusCheckRow (ONB-02, SET-24): the state TalkBack reads after the label. -->
+    <string name="ds_status_ok">erledigt</string>
+    <string name="ds_status_missing">fehlt</string>
+    <string name="ds_status_unavailable">auf diesem Gerät nicht nötig</string>
+
+    <!-- Top-level screen actions -->
+    <string name="ds_settings">Einstellungen</string>
+    <string name="ds_more_options">Weitere Optionen</string>
+    <string name="ds_back">Zurück</string>
+
+    <!-- TimerRing -->
+    <string name="ds_timer_remaining_description">noch %1$s</string>
+
+    <!-- ActiveBrewBar -->
+    <string name="ds_active_brew_description">Laufender Aufguss: %1$s, %2$s, noch %3$s. Zum Timer</string>
+    <string name="ds_active_brew_description_no_step">Laufender Timer: %1$s, noch %2$s. Zum Timer</string>
+    <string name="ds_active_brew_alerting">Jetzt abgießen!</string>
+    <string name="ds_overtime">+%1$s</string>
+    <string name="ds_active_brew_alerting_description">Jetzt abgießen: %1$s, %2$s, %3$s überzogen. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_overtime">Jetzt abgießen: %1$s, %2$s. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_step">Jetzt abgießen: %1$s, %2$s überzogen. Zum Timer</string>
+    <string name="ds_active_brew_alerting_description_no_step_no_overtime">Jetzt abgießen: %1$s. Zum Timer</string>
+
+    <!-- Unsaved changes guard (GEN-08, 03 §5) -->
+    <string name="ds_discard_changes_title">Änderungen verwerfen?</string>
+    <string name="ds_discard_changes_keep">Weiter bearbeiten</string>
+    <string name="ds_discard_changes_discard">Verwerfen</string>
+
+    <!-- Second session (TMR-21, 03 §5): „Erst die *Sencha*-Sitzung beenden?" -->
+    <string name="ds_finish_active_title">Erst die %1$s-Sitzung beenden?</string>
+    <string name="ds_finish_active_quick_title">Erst den Schnelltimer beenden?</string>
+    <string name="ds_finish_active_restart">Beenden &amp; neu starten</string>
+    <string name="ds_finish_active_cancel">Abbrechen</string>
+</resources>

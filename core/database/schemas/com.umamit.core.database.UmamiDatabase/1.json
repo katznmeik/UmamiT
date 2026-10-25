@@ -1,0 +1,1436 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "98c6309b406484234434d211e3c87ff4",
+    "entities": [
+      {
+        "tableName": "tea",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL COLLATE NOCASE, `secondary_name` TEXT, `catalog_key` TEXT, `style_key` TEXT, `tea_type` TEXT, `category` TEXT NOT NULL, `form` TEXT NOT NULL, `umami_level` TEXT, `is_flavored` INTEGER NOT NULL, `is_organic` INTEGER NOT NULL, `ingredients` TEXT, `origin_country` TEXT, `origin_region` TEXT, `cultivar` TEXT, `harvest_year` INTEGER, `harvest_season` TEXT, `shading_days` INTEGER, `processing_notes` TEXT, `description` TEXT, `vendor` TEXT, `product_url` TEXT, `opened_date` TEXT, `best_before` TEXT, `freshness_days` INTEGER, `low_stock_grams` REAL, `storage_note` TEXT, `notes` TEXT, `recipe_check_reason` TEXT, `is_favorite` INTEGER NOT NULL, `is_archived` INTEGER NOT NULL, `cover_photo_id` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`cover_photo_id`) REFERENCES `photo`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryName",
+            "columnName": "secondary_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "catalogKey",
+            "columnName": "catalog_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "styleKey",
+            "columnName": "style_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "teaType",
+            "columnName": "tea_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "form",
+            "columnName": "form",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "umamiLevel",
+            "columnName": "umami_level",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFlavored",
+            "columnName": "is_flavored",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isOrganic",
+            "columnName": "is_organic",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ingredients",
+            "columnName": "ingredients",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originCountry",
+            "columnName": "origin_country",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originRegion",
+            "columnName": "origin_region",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cultivar",
+            "columnName": "cultivar",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "harvestYear",
+            "columnName": "harvest_year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "harvestSeason",
+            "columnName": "harvest_season",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "shadingDays",
+            "columnName": "shading_days",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "processingNotes",
+            "columnName": "processing_notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vendor",
+            "columnName": "vendor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "productUrl",
+            "columnName": "product_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "openedDate",
+            "columnName": "opened_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "bestBefore",
+            "columnName": "best_before",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "freshnessDays",
+            "columnName": "freshness_days",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lowStockGrams",
+            "columnName": "low_stock_grams",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "storageNote",
+            "columnName": "storage_note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recipeCheckReason",
+            "columnName": "recipe_check_reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "is_archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverPhotoId",
+            "columnName": "cover_photo_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tea_name",
+            "unique": false,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tea_name` ON `${TABLE_NAME}` (`name`)"
+          },
+          {
+            "name": "index_tea_catalog_key",
+            "unique": false,
+            "columnNames": [
+              "catalog_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tea_catalog_key` ON `${TABLE_NAME}` (`catalog_key`)"
+          },
+          {
+            "name": "index_tea_style_key",
+            "unique": false,
+            "columnNames": [
+              "style_key"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tea_style_key` ON `${TABLE_NAME}` (`style_key`)"
+          },
+          {
+            "name": "index_tea_is_archived",
+            "unique": false,
+            "columnNames": [
+              "is_archived"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tea_is_archived` ON `${TABLE_NAME}` (`is_archived`)"
+          },
+          {
+            "name": "index_tea_cover_photo_id",
+            "unique": false,
+            "columnNames": [
+              "cover_photo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tea_cover_photo_id` ON `${TABLE_NAME}` (`cover_photo_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "photo",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "cover_photo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brew_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tea_id` TEXT NOT NULL, `name` TEXT NOT NULL, `method` TEXT NOT NULL, `leaf_grams` REAL NOT NULL, `water_ml` INTEGER NOT NULL, `base_temp_c` INTEGER NOT NULL, `vessel_id` TEXT, `pre_alert_seconds` INTEGER, `is_default` INTEGER NOT NULL, `position` INTEGER NOT NULL, `source` TEXT NOT NULL, `notes` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`tea_id`) REFERENCES `tea`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`vessel_id`) REFERENCES `vessel`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teaId",
+            "columnName": "tea_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "method",
+            "columnName": "method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leafGrams",
+            "columnName": "leaf_grams",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waterMl",
+            "columnName": "water_ml",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseTempC",
+            "columnName": "base_temp_c",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vesselId",
+            "columnName": "vessel_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "preAlertSeconds",
+            "columnName": "pre_alert_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "is_default",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_brew_profile_tea_id",
+            "unique": false,
+            "columnNames": [
+              "tea_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_profile_tea_id` ON `${TABLE_NAME}` (`tea_id`)"
+          },
+          {
+            "name": "index_brew_profile_vessel_id",
+            "unique": false,
+            "columnNames": [
+              "vessel_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_profile_vessel_id` ON `${TABLE_NAME}` (`vessel_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tea",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tea_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "vessel",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vessel_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brew_step",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `profile_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `kind` TEXT NOT NULL, `duration_seconds` INTEGER NOT NULL, `temp_c` INTEGER, `note` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`profile_id`) REFERENCES `brew_profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationSeconds",
+            "columnName": "duration_seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tempC",
+            "columnName": "temp_c",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_brew_step_profile_id_position",
+            "unique": true,
+            "columnNames": [
+              "profile_id",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_brew_step_profile_id_position` ON `${TABLE_NAME}` (`profile_id`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "brew_profile",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profile_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "vessel",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `capacity_ml` INTEGER NOT NULL, `usable_ml` INTEGER, `material` TEXT, `notes` TEXT, `is_favorite` INTEGER NOT NULL, `is_archived` INTEGER NOT NULL, `cover_photo_id` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`cover_photo_id`) REFERENCES `photo`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capacityMl",
+            "columnName": "capacity_ml",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usableMl",
+            "columnName": "usable_ml",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "material",
+            "columnName": "material",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "is_favorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "is_archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coverPhotoId",
+            "columnName": "cover_photo_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_vessel_cover_photo_id",
+            "unique": false,
+            "columnNames": [
+              "cover_photo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vessel_cover_photo_id` ON `${TABLE_NAME}` (`cover_photo_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "photo",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "cover_photo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "brew_session",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `status` TEXT NOT NULL, `tea_id` TEXT, `tea_name` TEXT NOT NULL, `tea_secondary_name` TEXT, `tea_type` TEXT, `style_key` TEXT, `category` TEXT, `profile_id` TEXT, `profile_name` TEXT, `method` TEXT NOT NULL, `vessel_id` TEXT, `vessel_name` TEXT, `leaf_grams` REAL, `water_ml` INTEGER, `base_temp_c` INTEGER, `pre_alert_seconds` INTEGER, `planned_step_count` INTEGER NOT NULL, `cost_cents` INTEGER, `started_at` INTEGER NOT NULL, `ended_at` INTEGER, `zone_id` TEXT NOT NULL, `rating` REAL, `taste_umami` INTEGER, `taste_sweetness` INTEGER, `taste_bitterness` INTEGER, `taste_astringency` INTEGER, `taste_body` INTEGER, `taste_aroma` INTEGER, `notes` TEXT, `auto_finished` INTEGER NOT NULL, `times_offered` INTEGER NOT NULL, `times_applied` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`tea_id`) REFERENCES `tea`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`profile_id`) REFERENCES `brew_profile`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`vessel_id`) REFERENCES `vessel`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teaId",
+            "columnName": "tea_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "teaName",
+            "columnName": "tea_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teaSecondaryName",
+            "columnName": "tea_secondary_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "teaType",
+            "columnName": "tea_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "styleKey",
+            "columnName": "style_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "profileName",
+            "columnName": "profile_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "method",
+            "columnName": "method",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vesselId",
+            "columnName": "vessel_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vesselName",
+            "columnName": "vessel_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "leafGrams",
+            "columnName": "leaf_grams",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "waterMl",
+            "columnName": "water_ml",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "baseTempC",
+            "columnName": "base_temp_c",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "preAlertSeconds",
+            "columnName": "pre_alert_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "plannedStepCount",
+            "columnName": "planned_step_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "costCents",
+            "columnName": "cost_cents",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endedAt",
+            "columnName": "ended_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "zoneId",
+            "columnName": "zone_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rating",
+            "columnName": "rating",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "tasteUmami",
+            "columnName": "taste_umami",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tasteSweetness",
+            "columnName": "taste_sweetness",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tasteBitterness",
+            "columnName": "taste_bitterness",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tasteAstringency",
+            "columnName": "taste_astringency",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tasteBody",
+            "columnName": "taste_body",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tasteAroma",
+            "columnName": "taste_aroma",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "autoFinished",
+            "columnName": "auto_finished",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timesOffered",
+            "columnName": "times_offered",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timesApplied",
+            "columnName": "times_applied",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_brew_session_tea_id",
+            "unique": false,
+            "columnNames": [
+              "tea_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_session_tea_id` ON `${TABLE_NAME}` (`tea_id`)"
+          },
+          {
+            "name": "index_brew_session_profile_id",
+            "unique": false,
+            "columnNames": [
+              "profile_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_session_profile_id` ON `${TABLE_NAME}` (`profile_id`)"
+          },
+          {
+            "name": "index_brew_session_vessel_id",
+            "unique": false,
+            "columnNames": [
+              "vessel_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_session_vessel_id` ON `${TABLE_NAME}` (`vessel_id`)"
+          },
+          {
+            "name": "index_brew_session_started_at",
+            "unique": false,
+            "columnNames": [
+              "started_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_brew_session_started_at` ON `${TABLE_NAME}` (`started_at`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tea",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tea_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "brew_profile",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profile_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "vessel",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vessel_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "session_step",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `session_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `kind` TEXT NOT NULL, `planned_seconds` INTEGER NOT NULL, `actual_seconds` INTEGER, `paused_seconds` INTEGER, `overtime_seconds` INTEGER, `temp_c` INTEGER, `started_at` INTEGER, `ended_at` INTEGER, `skipped` INTEGER NOT NULL, `overtime_auto_ack` INTEGER NOT NULL, `note` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`session_id`) REFERENCES `brew_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plannedSeconds",
+            "columnName": "planned_seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualSeconds",
+            "columnName": "actual_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pausedSeconds",
+            "columnName": "paused_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "overtimeSeconds",
+            "columnName": "overtime_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tempC",
+            "columnName": "temp_c",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "endedAt",
+            "columnName": "ended_at",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "skipped",
+            "columnName": "skipped",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overtimeAutoAck",
+            "columnName": "overtime_auto_ack",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_session_step_session_id_position",
+            "unique": true,
+            "columnNames": [
+              "session_id",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_session_step_session_id_position` ON `${TABLE_NAME}` (`session_id`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "brew_session",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "session_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "inventory_event",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tea_id` TEXT NOT NULL, `session_id` TEXT, `type` TEXT NOT NULL, `delta_grams` REAL NOT NULL, `price_cents` INTEGER, `currency` TEXT, `package_label` TEXT, `occurred_at` INTEGER NOT NULL, `note` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`tea_id`) REFERENCES `tea`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`session_id`) REFERENCES `brew_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teaId",
+            "columnName": "tea_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deltaGrams",
+            "columnName": "delta_grams",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priceCents",
+            "columnName": "price_cents",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "packageLabel",
+            "columnName": "package_label",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "occurredAt",
+            "columnName": "occurred_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_event_tea_id",
+            "unique": false,
+            "columnNames": [
+              "tea_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_event_tea_id` ON `${TABLE_NAME}` (`tea_id`)"
+          },
+          {
+            "name": "index_inventory_event_session_id",
+            "unique": true,
+            "columnNames": [
+              "session_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_event_session_id` ON `${TABLE_NAME}` (`session_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tea",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tea_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "brew_session",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "session_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "photo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `tea_id` TEXT, `session_id` TEXT, `vessel_id` TEXT, `position` INTEGER NOT NULL, `width_px` INTEGER NOT NULL, `height_px` INTEGER NOT NULL, `byte_size` INTEGER NOT NULL, `origin` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`tea_id`) REFERENCES `tea`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`session_id`) REFERENCES `brew_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`vessel_id`) REFERENCES `vessel`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "teaId",
+            "columnName": "tea_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vesselId",
+            "columnName": "vessel_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "widthPx",
+            "columnName": "width_px",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heightPx",
+            "columnName": "height_px",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "byteSize",
+            "columnName": "byte_size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origin",
+            "columnName": "origin",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_photo_tea_id",
+            "unique": false,
+            "columnNames": [
+              "tea_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_photo_tea_id` ON `${TABLE_NAME}` (`tea_id`)"
+          },
+          {
+            "name": "index_photo_session_id",
+            "unique": false,
+            "columnNames": [
+              "session_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_photo_session_id` ON `${TABLE_NAME}` (`session_id`)"
+          },
+          {
+            "name": "index_photo_vessel_id",
+            "unique": false,
+            "columnNames": [
+              "vessel_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_photo_vessel_id` ON `${TABLE_NAME}` (`vessel_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tea",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tea_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "brew_session",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "session_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "vessel",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vessel_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "active_brew",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `session_id` TEXT, `is_quick_timer` INTEGER NOT NULL, `quick_duration_seconds` INTEGER, `step_index` INTEGER NOT NULL, `phase` TEXT NOT NULL, `deadline_elapsed_ms` INTEGER, `deadline_wall_ms` INTEGER, `pre_alert_elapsed_ms` INTEGER, `pre_alert_played` INTEGER NOT NULL, `remaining_ms` INTEGER, `paused_total_ms` INTEGER NOT NULL, `paused_since_elapsed_ms` INTEGER, `paused_since_wall_ms` INTEGER, `ready_since_wall_ms` INTEGER, `step_started_wall_ms` INTEGER, `alert_played` INTEGER NOT NULL, `boot_count` INTEGER NOT NULL, `last_interaction_wall_ms` INTEGER NOT NULL, `demoted` INTEGER NOT NULL, `pre_alert_override_seconds` INTEGER, `pre_alert_inherited_seconds` INTEGER NOT NULL, `zone_id` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`session_id`) REFERENCES `brew_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "session_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isQuickTimer",
+            "columnName": "is_quick_timer",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quickDurationSeconds",
+            "columnName": "quick_duration_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stepIndex",
+            "columnName": "step_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "phase",
+            "columnName": "phase",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deadlineElapsedMs",
+            "columnName": "deadline_elapsed_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "deadlineWallMs",
+            "columnName": "deadline_wall_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "preAlertElapsedMs",
+            "columnName": "pre_alert_elapsed_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "preAlertPlayed",
+            "columnName": "pre_alert_played",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remainingMs",
+            "columnName": "remaining_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pausedTotalMs",
+            "columnName": "paused_total_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pausedSinceElapsedMs",
+            "columnName": "paused_since_elapsed_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pausedSinceWallMs",
+            "columnName": "paused_since_wall_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "readySinceWallMs",
+            "columnName": "ready_since_wall_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stepStartedWallMs",
+            "columnName": "step_started_wall_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "alertPlayed",
+            "columnName": "alert_played",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bootCount",
+            "columnName": "boot_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastInteractionWallMs",
+            "columnName": "last_interaction_wall_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "demoted",
+            "columnName": "demoted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "preAlertOverrideSeconds",
+            "columnName": "pre_alert_override_seconds",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "preAlertInheritedSeconds",
+            "columnName": "pre_alert_inherited_seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "zoneId",
+            "columnName": "zone_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_active_brew_session_id",
+            "unique": false,
+            "columnNames": [
+              "session_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_active_brew_session_id` ON `${TABLE_NAME}` (`session_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "brew_session",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "session_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '98c6309b406484234434d211e3c87ff4')"
+    ]
+  }
+}

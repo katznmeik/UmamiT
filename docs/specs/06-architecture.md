@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-23 (diagnostics: start of the sound, D-068)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -90,7 +90,7 @@ UmamiT/
 │   ├── timer-engine/          BrewTimerEngine (pure)
 │   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
 │   ├── catalog-parser/        TeeKontorParser, VariantMerger, StyleMapper, RecipeDeriver (pure JVM)
-│   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M2)
+│   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
 │   ├── database/              Room, DAOs, migrations, schemas/
 │   ├── datastore/             Settings
 │   ├── content/               Bundled styles, descriptors, sounds, illustrations
@@ -203,7 +203,7 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | Permission | Purpose |
 |---|---|
 | `INTERNET` | The three uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch (all to `www.tee-kontor-kiel.de`) |
-| `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress |
+| `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress (`POST_PROMOTED_NOTIFICATIONS` is not in the SDK 36 stubs but from Android 16 QPR1 a normal|appop permission that promotion requires; must stay declared; the user controls it, checked via `canPostPromotedNotifications()`, D-043/D-044) |
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Catalog refresh service |
@@ -212,6 +212,19 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
 
 No storage, camera, location or contacts permissions.
+
+The build enforces this list (`./gradlew checkManifestPermissions`, in CI,
+M1-02): the merged **release** manifest may request only the permissions
+above. Two deliberate exceptions, both in `ManifestPermissions.kt` in
+build-logic:
+
+- the app's own `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  which `androidx.core` declares at signature level to protect non-exported
+  runtime receivers; it is accepted only when declared that way and grants
+  nothing outside the app;
+- **debug builds only:** `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE`,
+  added by LeakCanary for its heap dumps. The release check proves they never
+  reach a release build.
 
 ### 5.6 Error handling & logging
 
@@ -223,13 +236,25 @@ something goes wrong. It exists **from M1** (D-036) and records:
 - timer events and state transitions, each pre-alert and deadline with its
   **scheduled and actual fire time** (wall and monotonic, difference in ms);
 - FGS start/stop, refused background starts;
-- the ringer mode at each alert;
+- the ringer mode at each alert, and for a step's tick or alert the
+  scheduled time and the moment the sound started (delta in ms; D-068);
 - `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and recovery decisions;
 - permission states at app start (notifications, promoted notifications,
   full-screen intent, exact alarms, battery optimisation);
 - from M2: catalog refresh steps and errors.
 
 No personal content (tea names are allowed, notes are not).
+
+Since M1-20 (D-060): `DiagnosticsLog` in `core:data` keeps two files of
+100 KB in `noBackupFilesDir/diagnostics/`, written in order on the IO
+dispatcher; writing never blocks or throws into the timer (rule 8). Entries
+are technical English, one line each, with the local time to the
+millisecond; time-based events show the scheduled and actual time on both
+clocks and the delta in ms. Since #46 (D-063) the controller also logs each
+recovery request (app start, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`), the
+row of the 04 §7.2 table that recovery applied, sessions ended after a device
+restore, recovery retries that stopped, and a refused service start that was refused
+again.
 
 ## 6. Build & distribution
 
@@ -249,14 +274,20 @@ No personal content (tea names are allowed, notes are not).
   The probe release `0.0.1-probe` uses 101; further probes (D-040) are
   `0.0.2-probe` → 201, `0.0.3-probe` → 301, and so on.
 - **Release workflow** (`release.yml`): triggered by `workflow_dispatch`
-  with inputs `ref` (branch or commit) and `version`; permissions
-  `contents: write`. It checks that `version` matches `gradle.properties`,
-  builds, tests, signs the APK, verifies the certificate fingerprint (§6.1),
-  **creates the tag** `v<version>` and the **GitHub Release** with the APK
-  and release notes. Claude triggers it through the GitHub Actions API / tool
-  (no local tag push needed). GitHub only dispatches workflows that exist on
-  the default branch, so `release.yml` reaches `main` through a small
-  housekeeping PR before the first dispatch (D-039).
+  with inputs `ref` (branch or commit) and `version`. It checks that
+  `version` matches `gradle.properties` and that CI passed on the exact
+  commit, runs the unit tests and the schema checks (05 §9), builds, signs
+  the APK and verifies the certificate fingerprint (§6.1); then it **creates
+  the tag** `v<version>` and the **GitHub Release** with the APK and release
+  notes. Signing and publishing are separate jobs (D-070): the job that holds
+  the keystore has a read-only token and runs only GitHub's own actions,
+  pinned to commit SHAs; the publish job has `contents: write`, runs no
+  action, and verifies the APK again before it publishes. Claude triggers it
+  through the GitHub Actions API / tool (no local tag push needed). GitHub
+  only dispatches workflows whose file exists on the default branch, so
+  `release.yml` and `accuracy.yml` reach `main` through small housekeeping
+  PRs before their first dispatch; the version at the dispatch's workflow
+  ref runs (D-039, D-070). How to dispatch: `docs/release.md`.
 - **Release candidates:** `vX.Y.Z-rc.N` are built from the milestone's PR
   branch and published as **pre-releases** for the PO's on-device testing.
   After the PR is merged, the final `vX.Y.Z` is built from `main`.

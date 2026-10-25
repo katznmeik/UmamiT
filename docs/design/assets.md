@@ -12,11 +12,11 @@
 
 | # | Asset | Where it appears | Format to deliver | Variants |
 |---|---|---|---|---|
-| A1 | **Logo sprig** (two tea leaves) | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
-| A2 | **Welcome landscape** | SCR-01 welcome (full screen, portrait) | PNG ≥ 1440 × 3120 (9:19.5) | light |
-| A3 | **Home header landscape** | SCR-02 header (no text on it) | PNG ≥ 2400 × 1000 (≈ 2.4:1) | light **and** dark |
-| A4 | **Timer fallback photo** | SCR-05 top area when a tea has no photo, quick timer | PNG ≥ 1440 × 1440, dark and moody, subject in the centre-top | dark only (timer is always dark) |
-| A5 | **Reliability illustration** | SCR-01 page „Damit der Timer zuverlässig klingelt" | PNG ≥ 1200 × 900, transparent or washi background | light |
+| A1 | **Logo sprig** (two tea leaves) ✓ delivered | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
+| A2 | **Welcome landscape** ✓ delivered | SCR-01 welcome (full bleed behind the content) | PNG, portrait 2:3 (≥ 1024 × 1536): top 55 % empty paper, landscape below; the app crops from the right edge on narrow screens and matches the paper to the theme background | light **and** dark |
+| A3 | **Home header landscape** ✓ delivered | SCR-02 header (no text on it) | PNG, landscape 3:2 (≥ 1536 × 1024) with everything in the middle third of the height: the app crops a ≈ 3.4:1 band (edge to edge, 120 dp) and matches the paper to the theme background | light **and** dark |
+| A4 | **Timer fallback photo** ✓ delivered | SCR-05 top area when a tea has no photo (the quick timer has none, D-069) | PNG, landscape 3:2 (≥ 1536 × 1024): the photo band is full width × 280 dp, centre-cropped, its lower part fading into the background; dark and moody, subject in the upper middle | dark only (timer is always dark) |
+| A5 | **Reliability illustration** ✓ delivered | SCR-01 page „Damit der Timer zuverlässig klingelt" (top, 70 % of the width) | PNG, landscape 3:2 (≥ 1536 × 1024), small motif in the centre; the app crops the motif, matches the paper to the theme background and feathers the edges to transparent | light **and** dark |
 
 ### 1.2 Needed later (M2–M5)
 
@@ -28,7 +28,7 @@
 | A9 | **Empty state: Statistik** (not enough data) | SCR-18 | ≥ 1200 × 900 vignette | M4 |
 | A10 | **No search results** | lists | ≥ 1200 × 900 vignette | M3 |
 | A11 | **Ratgeber header** (guides list) | SCR-19 › Ratgeber | ≥ 2400 × 1000 | M2 |
-| A12 | **Dark variants** of A2, A6–A10 | dark theme | as above | M5 |
+| A12 | **Dark variants** of A6–A10 (A2's came with it) | dark theme | as above | M5 |
 
 Not needed as images (drawn in code or as vector icons): type colour leaf
 fallbacks for tea thumbnails, line icons (kyusu, gaiwan, kettle, …), charts,
@@ -84,7 +84,8 @@ around it, symmetrical balance, suitable as an app logo. Square 1:1.
 
 **A2 — Welcome landscape (portrait)**
 ```text
-<style block> Tall portrait composition 9:19.5. Misty layered mountains in
+<style block> Tall portrait composition 2:3 (a phone crops it from the right
+edge); the top 55 % almost empty, the bottom 15 % soft mist for a button. Misty layered mountains in
 the lower third fading into fog, a few terraced tea fields on a gentle slope
 in the foreground, two or three tea branches entering from the lower right
 corner in deep green. The upper two thirds are almost empty paper with soft
@@ -93,7 +94,8 @@ mist, leaving room for a logo and title.
 
 **A3 — Home header (wide)**
 ```text
-<style block> Wide panoramic composition about 2.4:1. Soft layered mountain
+<style block> Landscape 3:2 treated as a long strip: every mountain and tea
+terrace within the middle third of the height, only mist above and below. Soft layered mountain
 ridges in mist, a distant tea plantation on rolling hills, delicate
 gradients of grey. Very subtle warm morning light.
 ```
@@ -105,9 +107,10 @@ Photorealistic, moody still life: a handmade matte grey-green ceramic tea
 cup filled with pale jade green Japanese tea, seen from slightly above,
 standing on dark weathered wood, a few fresh tea leaves beside it, soft
 window light from the upper right, deep forest green-black shadows
-(#1C231D), shallow depth of field, calm and premium. Square 1:1, the cup in
-the upper-middle part of the frame, darker empty space at the bottom.
-No text.
+(#1C231D), shallow depth of field, calm and premium. Landscape 3:2, the cup
+in the upper-middle part of the frame (the top 40 % holds its rim), the lower
+half falling off into dark, empty shadow. No text, no people, no steam, no
+extra props.
 ```
 
 **A5 — Reliability illustration**
