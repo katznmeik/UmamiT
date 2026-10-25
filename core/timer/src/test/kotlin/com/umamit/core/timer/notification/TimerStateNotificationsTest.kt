@@ -44,9 +44,9 @@ class TimerStateNotificationsTest {
         assertThat(notifications.idFor(states.ready())).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
         assertThat(notification.channelId).isEqualTo(TimerNotifications.CHANNEL_BREW_TIMER)
         assertThat(notification.title()).isEqualTo("Gyokuro · Aufguss 2 von 3")
-        assertThat(notification.text()).isEqualTo("Bereit · 1:00 · Wasserkocher auf 60 °C")
+        assertThat(notification.text()).isEqualTo("Bereit · 1:00 · Wasserkocher auf 60\u00A0°C")
         assertThat(notification.actionTitles()).containsExactly("Start")
-        assertThat(notification.shortCriticalText).isEqualTo("60 °C")
+        assertThat(notification.shortCriticalText).isEqualTo("60\u00A0°C")
         assertThat(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)).isFalse()
     }
 
@@ -62,8 +62,8 @@ class TimerStateNotificationsTest {
         assertThat(build(ice).text()).isEqualTo("Bereit · 1:00 · Eiswürfel")
         assertThat(build(ice).shortCriticalText).isEqualTo("Eiswürfel")
         assertThat(build(cool).text()).isEqualTo("Bereit · 1:00 · Kaltes Wasser")
-        assertThat(build(warm).text()).isEqualTo("Bereit · 1:00 · Wasserkocher auf 15 °C")
-        assertThat(build(warm).shortCriticalText).isEqualTo("15 °C")
+        assertThat(build(warm).text()).isEqualTo("Bereit · 1:00 · Wasserkocher auf 15\u00A0°C")
+        assertThat(build(warm).shortCriticalText).isEqualTo("15\u00A0°C")
     }
 
     @Test
@@ -72,7 +72,7 @@ class TimerStateNotificationsTest {
         val notification = build(state)
 
         assertThat(notification.title()).isEqualTo("Gyokuro · Aufguss 2 von 3")
-        assertThat(notification.text()).isEqualTo("Zieht bei 60 °C")
+        assertThat(notification.text()).isEqualTo("Zieht bei 60\u00A0°C")
         assertThat(notification.actionTitles()).containsExactly("Pause")
         assertThat(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER)).isTrue()
         assertThat(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN)).isTrue()

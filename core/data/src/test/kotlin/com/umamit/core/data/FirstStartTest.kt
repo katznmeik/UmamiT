@@ -7,7 +7,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import mockwebserver3.Dispatcher
@@ -25,6 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -40,7 +43,7 @@ class FirstStartTest {
     val folder = TemporaryFolder()
 
     private val server = MockWebServer()
-    private val settings = FakeSettingsRepository()
+    private val settings = FlakySeedMarkerSettings()
     private val data = TestDatabase(settings = settings)
     private val requests = CopyOnWriteArrayList<String>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -85,8 +88,10 @@ class FirstStartTest {
             settings = settings,
             photoFiles = PhotoFiles(File(folder.root, "photos")),
         )
-        return FirstStart(seeder, photos, scope)
+        return FirstStart(seeder, { photos }, settings, scope)
     }
+
+    private suspend fun teaCount() = data.teas.observeTeas().first().size
 
     private suspend fun cover(teaId: String) = data.teas.observeTea(teaId).first()?.coverPhoto
 
@@ -126,5 +131,69 @@ class FirstStartTest {
         assertThat(settings.seedDataCreated.first()).isTrue()
         assertThat(cover(SeedData.TANABATA_TEA_ID)).isNull()
         assertThat(requests.filter { it != "/robots.txt" }).isEmpty()
+    }
+
+    @Test
+    fun `a failed first seed is created at the next app start, without the photo download`() = runBlocking {
+        settings.failSeedMarkerReads = true
+        firstStart().start().join()
+        assertThat(teaCount()).isEqualTo(0)
+        settings.update { it.copy(onboardingCompleted = true) } // *Weiter*
+        settings.failSeedMarkerReads = false
+
+        firstStart().retrySeedAtAppStart().join() // the next process start
+
+        assertThat(settings.seedDataCreated.first()).isTrue()
+        assertThat(teaCount()).isEqualTo(SeedData.teas.size)
+        assertThat(cover(SeedData.TANABATA_TEA_ID)).isNull()
+        assertThat(requests).isEmpty()
+    }
+
+    @Test
+    fun `the retry seeds only once, also over several app starts`() = runBlocking {
+        settings.update { it.copy(onboardingCompleted = true) }
+
+        val first = firstStart()
+        val job = first.retrySeedAtAppStart()
+        assertThat(first.retrySeedAtAppStart()).isSameInstanceAs(job)
+        job.join()
+        firstStart().retrySeedAtAppStart().join()
+
+        assertThat(teaCount()).isEqualTo(SeedData.teas.size)
+        assertThat(requests).isEmpty()
+    }
+
+    @Test
+    fun `the retry leaves the seed to the setup page while the setup is not done`() = runBlocking {
+        firstStart().retrySeedAtAppStart().join()
+
+        assertThat(settings.seedDataCreated.first()).isFalse()
+        assertThat(teaCount()).isEqualTo(0)
+    }
+
+    @Test
+    fun `a seed that fails again at app start stays due and throws nothing`() = runBlocking {
+        settings.update { it.copy(onboardingCompleted = true) }
+        settings.failSeedMarkerReads = true
+
+        val job = firstStart().retrySeedAtAppStart()
+        job.join()
+
+        assertThat(job.isCancelled).isFalse()
+        settings.failSeedMarkerReads = false
+        assertThat(settings.seedDataCreated.first()).isFalse()
+        assertThat(teaCount()).isEqualTo(0)
+    }
+}
+
+/** [FakeSettingsRepository] whose seed marker read can fail like an unreadable settings file. */
+private class FlakySeedMarkerSettings(private val fake: FakeSettingsRepository = FakeSettingsRepository()) :
+    SettingsRepository by fake {
+    @Volatile
+    var failSeedMarkerReads = false
+
+    override val seedDataCreated: Flow<Boolean> = flow {
+        if (failSeedMarkerReads) throw IOException("synthetic read failure")
+        emit(fake.seedDataCreated.first())
     }
 }

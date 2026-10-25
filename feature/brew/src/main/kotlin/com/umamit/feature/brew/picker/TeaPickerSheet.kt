@@ -125,7 +125,7 @@ fun TeaPickerSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         modifier = Modifier.testTag(TEA_PICKER_TAG),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
