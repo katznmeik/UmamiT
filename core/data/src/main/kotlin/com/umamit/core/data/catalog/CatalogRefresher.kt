@@ -3,6 +3,7 @@ package com.umamit.core.data.catalog
 import android.database.SQLException
 import com.umamit.core.catalog.parser.CatalogEntries
 import com.umamit.core.catalog.parser.CatalogEntry
+import com.umamit.core.catalog.parser.CatalogRecipes
 import com.umamit.core.catalog.parser.CatalogScope
 import com.umamit.core.catalog.parser.ProductGroup
 import com.umamit.core.catalog.parser.ProductPage
@@ -59,7 +60,8 @@ import javax.inject.Inject
  *    go onto the new skip entries.
  * 4. The green teas go into the staging tables, one entry per tea with its package sizes
  *    ([CatalogEntries]: split numbers merged, sizes and prices from the page and the sitemap,
- *    no size page fetched; 08 §2.4 items 6–7, D-081); then the sanity check (08 §2.9).
+ *    no size page fetched; 08 §2.4 items 6–7, D-081) and its style and derived recipes
+ *    ([CatalogRecipes], CAT-04 – CAT-06); then the sanity check (08 §2.9).
  * 5. The green teas' photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is off: each through
  *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
  *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
@@ -171,6 +173,8 @@ class CatalogRefresher(
         var pagesDone = 0
         var green = 0
         var lackingRequired = 0
+        var lackingBrewing = 0
+        var flagged = 0
         var unavailable = 0
         var sitemapUrls = 0
         var sets = 0
@@ -240,7 +244,8 @@ class CatalogRefresher(
                 newCount = newCount,
                 changedCount = 0,
                 discontinuedCount = discontinuedCount,
-                flaggedCount = 0,
+                // „Rezept prüfen" teas of a swapped-in catalog (CAT-07 AC3).
+                flaggedCount = if (status == CatalogRefreshStatus.SUCCESS) flagged else 0,
                 photosCount = photosStored,
                 parserVersion = TeeKontorParser.PARSER_VERSION,
                 errorSummary = errorSummary,
@@ -337,6 +342,7 @@ class CatalogRefresher(
                     run.entries += CatalogEntry.of(group, page)
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
+                    if (page.brewTable.isEmpty() && page.brewText == null) run.lackingBrewing++
                 }
 
                 CatalogScope.NOT_GREEN ->
@@ -359,6 +365,7 @@ class CatalogRefresher(
                 dao.stage(StagedCatalogTeaEntity(tea))
                 dao.stagePackages(entry.packages.map { StagedCatalogPackageEntity(it.toEntity(entry.key)) })
                 tea.photoUrl?.let { run.photoUrls += tea.key to it }
+                if (tea.recipeCheckReason != null) run.flagged++
                 if (entry.mergedKeys.isNotEmpty()) {
                     log("catalog refresh: ${entry.mergedKeys.joinToString()} merged into ${entry.key}")
                 }
@@ -373,14 +380,14 @@ class CatalogRefresher(
                 green = staged,
                 defective = run.defective.size,
                 lackingRequired = run.lackingRequired,
-                lackingBrewing = null, // the brewing grid and prose are parsed from #68 on
+                lackingBrewing = run.lackingBrewing,
             )
             val problems = sanity.problems(counts)
             if (problems.isNotEmpty()) {
                 run.shopChanged(
                     "sanity check failed: ${problems.joinToString()} (green $staged, " +
                         "previous ${counts.previousGreen}, defective ${run.defective.size}, " +
-                        "lacking name/price/number ${run.lackingRequired})",
+                        "lacking name/price/number ${run.lackingRequired}, lacking brewing ${run.lackingBrewing})",
                 )
             }
         }
@@ -459,14 +466,22 @@ class CatalogRefresher(
 /** Ends a refresh early with [outcome] (a stop or a structural failure); caught in [CatalogRefresher.refresh]. */
 private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception(outcome.details)
 
-/** A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), without its photo file yet. */
-private fun ProductPage.toEntity(base: String, seenAt: Long) = CatalogTeaEntity(
+/**
+ * A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), with its style
+ * and derived recipes (CAT-04 – CAT-06), without its photo file yet.
+ */
+private fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
+
+private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRecipes) = CatalogTeaEntity(
     key = key ?: base,
     name = name,
     secondaryName = secondaryName,
     productUrl = productUrl,
     shopCategory = shopCategory,
     teaType = teaType,
+    styleKey = recipes.styleKey,
+    derivedRecipesJson = DerivedRecipesColumn.json(recipes.recipes),
+    recipeCheckReason = recipes.checkReason,
     originCountry = originCountry,
     originRegion = originRegion,
     cultivar = cultivar,

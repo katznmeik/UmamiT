@@ -3,9 +3,11 @@ package com.umamit.core.designsystem.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -43,7 +45,8 @@ private const val TITLE_MAX_LINES = 2
  * A tea row (03 §3.8): 48 dp round thumbnail, serif title, meta line
  * („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider. Without a
  * [thumbnail], a leaf in the tea type's [placeholderColor] stands in (03 §3.5).
- * TalkBack reads the row as one item; with [onClick] it is a button with a chevron.
+ * TalkBack reads the row as one item; with [onClick] it is a button with a chevron. [badges]
+ * are chips below the meta line (e.g. [CheckRecipeBadge], CAT-10).
  */
 @Composable
 fun TeaListItem(
@@ -55,6 +58,7 @@ fun TeaListItem(
     thumbnail: Painter? = null,
     placeholderColor: Color = UmamiTheme.extendedColors.teaTypes.other,
     showDivider: Boolean = true,
+    badges: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -80,6 +84,14 @@ fun TeaListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (badges != null) {
+                    Row(
+                        modifier = Modifier.padding(top = UmamiSpacing.XXSmall),
+                        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = badges,
+                    )
+                }
             }
             if (rating != null) {
                 Spacer(Modifier.width(UmamiSpacing.Small))

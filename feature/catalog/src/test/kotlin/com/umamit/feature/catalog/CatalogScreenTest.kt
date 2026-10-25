@@ -8,8 +8,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -22,6 +25,7 @@ import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogOverview
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.testing.FakeCatalogRefreshRunner
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
@@ -31,6 +35,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import com.umamit.core.designsystem.R as DesignR
 
 /**
  * Sammlung › Katalog (SCR-19) and its refresh sheet (SCR-22) on fake data (#64, #65): the empty
@@ -110,6 +115,25 @@ class CatalogScreenTest {
         // A row opens its tea's detail (SCR-21).
         compose.onNodeWithText("Tautropfen Gyokuro").performClick()
         assertThat(opened).containsExactly("XY0200")
+    }
+
+    @Test
+    fun aTeaWhoseRecipeShouldBeCheckedCarriesTheChip() {
+        repository.catalog.value = CatalogOverview(
+            teas = listOf(
+                catalogTea("XY0100", "Morgennebel Sencha"),
+                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600)
+                    .copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+            ),
+            lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+        )
+        show()
+
+        val check = str(DesignR.string.ds_check_recipe)
+        // One chip, in the flagged tea's row (TalkBack reads it with the row).
+        compose.onAllNodesWithText(check).assertCountEquals(1)
+        compose.onNode(hasText("Tautropfen Gyokuro") and hasText(check)).assertIsDisplayed()
+        compose.onNode(hasText("Morgennebel Sencha") and hasText(check)).assertDoesNotExist()
     }
 
     @Test

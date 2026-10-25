@@ -49,6 +49,7 @@ class RoomCatalogRepository @Inject constructor(private val dao: CatalogDao, pri
                     basePriceCentsPer100g = row.basePriceCentsPer100g,
                     available = row.available,
                     thumbnailPath = row.photoFile?.let { photos.thumbnail(row.key).path },
+                    recipeCheckReason = row.recipeCheckReason,
                 )
             },
             lastRefreshAtMillis = last,
@@ -88,6 +89,8 @@ class RoomCatalogRepository @Inject constructor(private val dao: CatalogDao, pri
         descriptionHtml = descriptionHtml,
         brewTable = CatalogColumns.brewTable(brewTableRaw),
         brewText = brewTextRaw,
+        recipes = DerivedRecipesColumn.recipes(derivedRecipesJson),
+        recipeCheckReason = recipeCheckReason,
         basePriceCentsPer100g = basePriceCentsPer100g,
         available = available,
         discontinued = discontinued,

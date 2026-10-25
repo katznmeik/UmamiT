@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.designsystem.component.CheckRecipeBadge
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -196,6 +197,12 @@ private fun CatalogList(
                 thumbnail = thumbnail(tea.thumbnailPath),
                 placeholderColor = placeholderColor(tea.teaType),
                 showDivider = index < state.teas.lastIndex,
+                // „Rezept prüfen" (CAT-05, CAT-10).
+                badges = if (tea.recipeCheckReason != null) {
+                    { CheckRecipeBadge() }
+                } else {
+                    null
+                },
             )
         }
     }

@@ -138,6 +138,7 @@ class CatalogRefresherTest {
         stock: Stock = Stock.IN_STOCK,
         variants: List<String> = emptyList(),
         list: Boolean = true,
+        brewRows: List<Pair<String, List<String>>> = SyntheticShop.BREW_ROWS,
     ) {
         if (list) {
             listed += path
@@ -156,6 +157,7 @@ class CatalogRefresherTest {
                     unitContent = content,
                     unitReference = reference,
                     stock = stock,
+                    brewRows = brewRows,
                 ),
             )
         }
@@ -376,6 +378,35 @@ class CatalogRefresherTest {
         assertThat(names()).isEmpty()
         // A failed run writes no skip entry, so a broken parser can't hide teas for 90 days.
         assertThat(dao.skipList()).isEmpty()
+    }
+
+    @Test
+    fun moreThanHalfTheGreenTeasWithoutBrewingInformationIsAStructuralFailure() = runTest {
+        // 08 §2.9: the grid's selector broke; the descriptions hold no brewing prose either.
+        product(
+            SENCHA,
+            "Morgennebel Sencha – 100g",
+            "XY0100",
+            SyntheticShop.SENCHA_PATH,
+            list = false,
+            brewRows = emptyList(),
+        )
+        product(GYOKURO, "Tautropfen Gyokuro – 50g", "XY0200", GYOKURO_PATH, list = false, brewRows = emptyList())
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isInstanceOf(CatalogRefreshOutcome.ShopChanged::class.java)
+        assertThat((outcome as CatalogRefreshOutcome.ShopChanged).details).contains("BREWING_INFO_MISSING")
+        assertThat(names()).isEmpty()
+    }
+
+    @Test
+    fun halfTheGreenTeasWithoutBrewingInformationStillPass() = runTest {
+        product(GYOKURO, "Tautropfen Gyokuro – 50g", "XY0200", GYOKURO_PATH, list = false, brewRows = emptyList())
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isInstanceOf(CatalogRefreshOutcome.Success::class.java)
     }
 
     @Test

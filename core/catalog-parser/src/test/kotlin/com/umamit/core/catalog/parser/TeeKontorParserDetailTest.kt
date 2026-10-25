@@ -240,20 +240,49 @@ class TeeKontorParserDetailTest {
     }
 
     @Test
-    fun theBrewingProseIsTheDescriptionsParagraphsAboutBrewing() {
+    fun theBrewingProseIsTheDescriptionsBrewingInstructionsOnly() {
         val page = page(
             description = "<p>Ein Tee aus den Bergen.</p>" +
                 "<p>Zubereitung: 4 g auf 100 ml bei 60 °C für 90 Sekunden.</p>" +
+                "<p>Für einen Kaltaufguss beträgt die Ziehzeit 20 - 30 Minuten im Kühlschrank.</p>" +
+                // Live sample 1 (structure only): words and amounts that are no brewing instruction.
                 "<p>Auch als Kaltaufguss ein Genuss.</p>" +
-                "<p>Der zweite Aufguss darf kürzer ziehen.</p>" +
+                "<p>Der Aufguss hat eine leuchtend grüne Farbe und duftet nach Gras.</p>" +
+                "<p>In diesem Video zeigen wir die Zubereitung: <a href=\"https://video.example/v\">Video</a></p>" +
+                "<p>Auch in der 50g-Vorteilspackung erhältlich.</p>" +
+                "<p>30g in einer Dose, Höhe ca. 7 cm, Durchmesser ca. 5 cm.</p>" +
+                "<p>Kühl und trocken lagern, nach dem Öffnen in 4 Wochen verbrauchen.</p>" +
                 "<p>Zutaten: Grüner Tee</p>",
         )
 
         assertThat(page.brewText).isEqualTo(
             "Zubereitung: 4 g auf 100 ml bei 60 °C für 90 Sekunden.\n\n" +
-                "Auch als Kaltaufguss ein Genuss.\n\n" +
-                "Der zweite Aufguss darf kürzer ziehen.",
+                "Für einen Kaltaufguss beträgt die Ziehzeit 20 - 30 Minuten im Kühlschrank.",
         )
+    }
+
+    @Test
+    fun withoutABrewingInstructionThereIsNoProse() {
+        val page = page(
+            description = "<p>Der zweite Aufguss darf kürzer ziehen.</p>" +
+                "<p>Eine Dose mit 30 g, dazu 2 Löffel.</p>",
+        )
+
+        assertThat(page.brewText).isNull()
+    }
+
+    @Test
+    fun controlCharactersAreRemovedFromTexts() {
+        val page = page(
+            properties = listOf("Hersteller oder Verantwortlicher" to listOf("Erfundene Teefarm GmbH\u0007Teeweg 1")),
+            description = "<p>Ein\u0007 Tee\u0085 aus dem Tal.</p>",
+        )
+
+        assertThat(page.manufacturer).isEqualTo("Erfundene Teefarm GmbH Teeweg 1")
+        assertThat(page.descriptionText).isEqualTo("Ein Tee aus dem Tal.")
+        assertThat(
+            requireNotNull(page.descriptionHtml),
+        ).doesNotContainMatch("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F]")
     }
 
     private companion object {

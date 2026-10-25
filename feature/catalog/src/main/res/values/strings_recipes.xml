@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SCR-21 ABGELEITETES REZEPT (CAT-04, CAT-05; 08 §2.5). -->
+    <plurals name="catalog_tea_section_recipes">
+        <item quantity="one">Abgeleitetes Rezept</item>
+        <item quantity="other">Abgeleitete Rezepte</item>
+    </plurals>
+    <!-- Next to the default recipe's name. -->
+    <string name="catalog_tea_recipe_default">Standard</string>
+    <!-- „4,0 g · 200 ml · 65 °C"; no line break inside a value. -->
+    <string name="catalog_tea_recipe_values">%1$s g · %2$d ml · %3$d °C</string>
+    <!-- A cold brew (≤ 10 °C, PRF-03): „8,0 g · 200 ml · kalt". -->
+    <string name="catalog_tea_recipe_values_cold">%1$s g · %2$d ml · kalt</string>
+    <!-- A step hotter than the recipe: „0:15 bei 70 °C". -->
+    <string name="catalog_tea_recipe_step_temperature">%1$s bei %2$d °C</string>
+    <!-- Matcha (TMR-19): „Aufschlagen 0:20". -->
+    <string name="catalog_tea_recipe_whisk">Aufschlagen %1$s</string>
+    <!-- The source of a recipe other than the default, when not the shop's table (CAT-05). -->
+    <string name="catalog_tea_recipe_source_text">Werte aus dem Beschreibungstext des Shops</string>
+    <string name="catalog_tea_recipe_source_style">Fehlende Werte aus den Standardwerten der Sorte</string>
+    <!-- Why the default recipe should be checked (CAT-05, 05 §5 RecipeCheckReason). -->
+    <string name="catalog_tea_recipe_reason_from_text">Werte stammen aus dem Beschreibungstext, nicht aus der Tabelle des Shops.</string>
+    <string name="catalog_tea_recipe_reason_from_style">Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.</string>
+    <string name="catalog_tea_recipe_reason_conflict">Tabelle und Beschreibungstext des Shops widersprechen sich – das Rezept folgt der Tabelle.</string>
+    <string name="catalog_tea_recipe_reason_implausible">Ein Wert des Shops wirkt unplausibel – stattdessen gilt der Standardwert der Sorte.</string>
+    <string name="catalog_tea_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Grüntee-Werte.</string>
+</resources>

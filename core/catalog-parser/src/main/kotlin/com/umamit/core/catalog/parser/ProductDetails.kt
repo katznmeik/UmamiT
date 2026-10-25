@@ -50,7 +50,7 @@ internal class ProductDetails(document: Document, private val title: String?, pr
             descriptionHtml = description?.html()?.trim()?.ifEmpty { null },
             descriptionText = descriptionText,
             brewTable = brewGrid(),
-            brewText = paragraphs.filter { BREW_PROSE.containsMatchIn(it) && !it.isIngredients() }
+            brewText = paragraphs.filter { BrewProse.isInstruction(it) && !it.isIngredients() }
                 .joinToString("\n\n")
                 .ifEmpty { null },
         )
@@ -73,8 +73,9 @@ internal class ProductDetails(document: Document, private val title: String?, pr
             val label = row.selectFirst("th.properties-label")?.cleanText()?.removeSuffix(":")?.trim()
             val cell = row.selectFirst("td.properties-value")
             if (label.isNullOrEmpty() || cell == null) return@mapNotNull null
+            // Each value after the first starts with its own „, " on the shop (live sample 1).
             val spans = cell.children().filter { it.tagName() == "span" && !it.hasClass(PROPERTY_LABEL) }
-                .map { it.cleanText() }
+                .map { it.cleanText().trim(',', ';', ' ') }
                 .filter { it.isNotEmpty() }
             val value = spans.joinToString(", ")
                 .ifEmpty { cell.clone().also { it.select(".$PROPERTY_LABEL").remove() }.cleanText() }
@@ -98,7 +99,8 @@ internal class ProductDetails(document: Document, private val title: String?, pr
 
     /** Each scale's label and its filled leaves (`scale-full-leaf.svg`) of 5. */
     private fun scales(): List<ShopScale> = own.select(".st-scales-usp .st-scale-label").mapNotNull { label ->
-        val text = label.cleanText().ifEmpty { return@mapNotNull null }
+        // The shop's labels end with a colon („Umami:"); the label is the name alone.
+        val text = label.cleanText().removeSuffix(":").trim().ifEmpty { return@mapNotNull null }
         val row = label.closest(".container") ?: label.parent() ?: return@mapNotNull null
         ShopScale(text, row.select(".st-scale-value img[src*=scale-full-leaf]").size.coerceAtMost(SCALE_LEAVES))
     }
@@ -142,12 +144,6 @@ internal class ProductDetails(document: Document, private val title: String?, pr
         const val SCALE_LEAVES = 5
         const val GRID_PREFIX = "st-zubereitung-"
         val GRID_CLASSES = setOf("st-zubereitung-value", "st-zubereitung-header")
-
-        /** A paragraph about brewing (08 §2.3): Zubereitung, Aufguss, Kaltaufguss, amounts in g or ml, °C. */
-        val BREW_PROSE = Regex(
-            """zubereit|aufguss|aufgüss|\d\s*(?:g|ml|l)\b|°\s*C|\bml\b""",
-            RegexOption.IGNORE_CASE,
-        )
     }
 }
 
@@ -156,7 +152,12 @@ internal const val OTHER_PRODUCTS = ".product-box, .cms-element-product-slider, 
 
 internal fun Element.cleanText(): String = normalisedSpace(text())
 
-internal fun normalisedSpace(text: String): String = text.replace(' ', ' ').replace(Regex("""\s+"""), " ").trim()
+/** [text] on one line: control characters (U+0007 occurs on the shop) and runs of white space become one space. */
+internal fun normalisedSpace(text: String): String =
+    text.replace(CONTROL, " ").replace(' ', ' ').replace(Regex("""\s+"""), " ").trim()
+
+/** C0 and C1 control characters but tab, line feed and carriage return (08 §2.8). */
+private val CONTROL = Regex("""[\p{Cc}&&[^\t\n\r]]""")
 
 /**
  * The description sanitised (08 §2.8): staff tips (personal data, D-076), scripts, styles,
@@ -186,7 +187,8 @@ private fun sanitised(description: Element): Element {
     // In a shell of its own, so the HTML handed to the cleaner is not pretty-printed.
     val shell = Document.createShell(description.baseUri()).also { it.outputSettings(output) }
     shell.body().appendChild(copy)
-    val clean = Jsoup.clean(copy.html(), description.baseUri(), safelist, output)
+    // Control characters are no markup: replacing them in the cleaned HTML only touches text.
+    val clean = Jsoup.clean(copy.html(), description.baseUri(), safelist, output).replace(CONTROL, " ")
     val body = Jsoup.parseBodyFragment(clean, description.baseUri()).also { it.outputSettings(output) }.body()
     body.select("a:not([href])").forEach { it.unwrap() }
     body.select("p, li").filter { it.text().isBlank() && it.selectFirst("br") == null }.forEach { it.remove() }
