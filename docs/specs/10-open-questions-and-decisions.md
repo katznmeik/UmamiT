@@ -356,6 +356,20 @@ Katalog tab to a filled list. Decided while building it:
   price per 100 g; until the PO's A8 arrives, the empty state shows the
   placeholder landscape.
 
+<a id="d-080"></a>
+### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
+
+The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
+still posted, with its foreground flag, next to the alert of a step whose
+process had been killed. The service cancels the other notification before
+`startForeground`. After a process death, though, the system can still hold
+notification 1 as the restarted service's foreground notification, and it
+ignores a cancel of the current foreground notification. The service now
+cancels the other notification once more right after `startForeground`, when
+it is no longer the foreground one. Only one of notifications 1 and 2 is
+shown at a time again (D-044). Robolectric cannot reproduce the system's
+refusal, so the emulator test stays the check.
+
 <a id="d-076"></a>
 ### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
 
@@ -2683,6 +2697,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
 | 2026-10-25 | D-077: catalog refresh tracer bullet (#64) — staging tables with the live columns, skip list written only with a successful swap, sanity-check counting, parser rules for secondary name, *Sorte*, unit price and stock, product page choice, typed outcomes with details, app-scoped job until #65, catalog as a slot of Sammlung; 03, 05 and 08 updated. |
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
 | 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |
