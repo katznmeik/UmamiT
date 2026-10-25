@@ -186,10 +186,13 @@ changed (CAT-08, D-073, D-074).
    refresh (old catalog kept) on a Cloudflare challenge, on HTTP 429 or on
    any `Retry-After` header ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
 4. Merge variants, map styles, derive recipes, compute content hashes.
-5. Download changed photos (if SET-22).
+5. Sanity check of the parsed pages (CAT-07 AC5), before any photo or guide
+   request; then download changed photos (if SET-22; until #70 every photo,
+   D-078).
 6. Fetch and convert *Tee-Info* guides (CAT-09) into staging.
-7. Sanity check (CAT-07 AC5); atomic swap of the staging tables
-   ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
+7. Atomic swap of the staging tables
+   ([05 §4.5](05-data-model.md#45-refresh-transaction)); delete the photos of
+   teas no longer in the catalog (also after a failed run); log.
 
 All requests (pages and images) share the 2 req/s limit. Expected
 duration: first refresh (~1,560 classification pages + ~280 photos + guides)

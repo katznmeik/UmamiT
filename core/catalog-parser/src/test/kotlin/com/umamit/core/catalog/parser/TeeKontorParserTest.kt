@@ -40,6 +40,9 @@ class TeeKontorParserTest {
                 packageGrams = 100.0,
                 basePriceCentsPer100g = 1240,
                 available = true,
+                photoUrl = "$SHOP${SyntheticShop.photoPath()}",
+                descriptionHtml = "<p>Ein erfundener Beschreibungstext für den Test.</p>",
+                descriptionText = "Ein erfundener Beschreibungstext für den Test.",
             ),
         )
         assertThat(page.categoryPath).isEqualTo("/tee/gruener-tee/japan/sencha/")

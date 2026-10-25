@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -39,7 +40,7 @@ import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.core.model.CatalogTeaSummary
+import com.umamit.core.ui.rememberPhotoPainter
 import java.time.ZoneId
 
 /** The catalog list (SCR-19). */
@@ -58,6 +59,7 @@ const val CATALOG_LIST_TAG = "catalog_list"
 @Composable
 fun CatalogRoute(
     alerting: Boolean,
+    onOpenTea: (String) -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     viewModel: CatalogViewModel = hiltViewModel(),
@@ -73,6 +75,7 @@ fun CatalogRoute(
         },
         onShowProgress = { sheetOpen = true },
         modifier = modifier,
+        onOpenTea = onOpenTea,
         scrollToTopRequest = scrollToTopRequest,
     )
     val refresh = state.refresh
@@ -92,7 +95,9 @@ fun CatalogRoute(
 /**
  * The stateless catalog content (SCR-19): nothing until the catalog was read, then the empty
  * state or the list. [onLoad] is *Katalog laden*; [onShowProgress] reopens the sheet of a
- * running refresh. [scrollToTopRequest] is a counter; every increase scrolls the list to the top.
+ * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key. [scrollToTopRequest] is
+ * a counter; every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail
+ * file; tests pass placeholder images.
  */
 @Composable
 fun CatalogContent(
@@ -100,13 +105,15 @@ fun CatalogContent(
     onLoad: () -> Unit,
     onShowProgress: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTea: (String) -> Unit = {},
     scrollToTopRequest: Int = 0,
     zone: ZoneId = ZoneId.systemDefault(),
+    thumbnail: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     when {
         state.loading -> Spacer(modifier.fillMaxSize())
         state.teas.isEmpty() -> CatalogEmpty(state.isRefreshing, onLoad, onShowProgress, modifier)
-        else -> CatalogList(state, onShowProgress, scrollToTopRequest, zone, modifier)
+        else -> CatalogList(state, onShowProgress, onOpenTea, scrollToTopRequest, zone, thumbnail, modifier)
     }
 }
 
@@ -139,11 +146,14 @@ private fun CatalogEmpty(
 }
 
 @Composable
+@Suppress("LongParameterList") // the list's state, its callbacks and the thumbnail loader
 private fun CatalogList(
     state: CatalogUiState,
     onShowProgress: () -> Unit,
+    onOpenTea: (String) -> Unit,
     scrollToTopRequest: Int,
     zone: ZoneId,
+    thumbnail: @Composable (path: String?) -> Painter?,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -169,7 +179,9 @@ private fun CatalogList(
                 title = tea.name,
                 meta = listOfNotNull(tea.teaType, tea.basePriceCentsPer100g?.let { pricePer100g(it) })
                     .joinToString(separator),
-                placeholderColor = placeholderColor(tea),
+                onClick = { onOpenTea(tea.key) },
+                thumbnail = thumbnail(tea.thumbnailPath),
+                placeholderColor = placeholderColor(tea.teaType),
                 showDivider = index < state.teas.lastIndex,
             )
         }
@@ -214,11 +226,11 @@ private fun RefreshingRow(onShowProgress: () -> Unit) {
 private fun pricePer100g(cents: Long): String =
     stringResource(R.string.catalog_price_per_100g, CatalogFormat.euros(cents))
 
-/** The leaf placeholder's colour by the shop's *Sorte* (03 §3.5); photos come with #66. */
+/** The leaf placeholder's colour by the shop's *Sorte* [teaType] (03 §3.5), for a tea without a photo. */
 @Composable
-private fun placeholderColor(tea: CatalogTeaSummary): Color {
+internal fun placeholderColor(teaType: String?): Color {
     val colors = UmamiTheme.extendedColors.teaTypes
-    val type = tea.teaType.orEmpty().lowercase()
+    val type = teaType.orEmpty().lowercase()
     return when {
         "gyokuro" in type -> colors.gyokuro
         "kabuse" in type -> colors.kabusecha

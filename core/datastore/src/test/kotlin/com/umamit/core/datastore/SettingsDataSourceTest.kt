@@ -43,6 +43,7 @@ class SettingsDataSourceTest {
         assertThat(settings.keepScreenOn).isTrue()
         assertThat(settings.dimWhileSteeping).isTrue()
         assertThat(settings.dismissedHints).isEmpty()
+        assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
     }
@@ -63,6 +64,7 @@ class SettingsDataSourceTest {
             keepScreenOn = false,
             dimWhileSteeping = false,
             dismissedHints = setOf("swipe", "stock"),
+            catalogDownloadPhotos = false,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())

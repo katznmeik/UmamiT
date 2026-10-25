@@ -77,6 +77,8 @@ class SettingsActions(
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-22 *Katalog: Fotos laden*. */
+    val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
@@ -137,6 +139,7 @@ fun SettingsRoute(
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
@@ -146,7 +149,7 @@ fun SettingsRoute(
     )
 }
 
-/** SCR-25 without state: the reliability card first, then *Timer & Alarm*, then *Über* (SET-30). */
+/** SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Katalog* and *Über* (SET-30). */
 @Composable
 fun SettingsScreen(
     settings: UserSettings,
@@ -182,6 +185,13 @@ fun SettingsScreen(
         ReliabilityCard(status = status, onFix = actions.fix)
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
+        SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
+        SwitchRow(
+            title = stringResource(R.string.settings_catalog_photos),
+            checked = settings.catalogDownloadPhotos,
+            onCheckedChange = actions.setCatalogPhotos,
+            detail = stringResource(R.string.settings_catalog_photos_detail),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(
             title = stringResource(R.string.settings_about),

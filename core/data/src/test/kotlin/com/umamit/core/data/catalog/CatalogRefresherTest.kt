@@ -13,8 +13,10 @@ import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipReason
+import com.umamit.core.model.UserSettings
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -164,6 +166,9 @@ class CatalogRefresherTest {
         dao = dao,
         clock = clock,
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
+        // The photos have their own tests (CatalogRefresherDetailTest); here they would only add requests.
+        settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
+        photos = CatalogPhotoFiles(folder.newFolder()),
         sanity = sanity,
     )
 

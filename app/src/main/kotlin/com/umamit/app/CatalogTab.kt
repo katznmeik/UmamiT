@@ -12,13 +12,24 @@ import com.umamit.feature.catalog.CatalogUiState
  * @property modifier its place below the segmented control.
  * @property scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
  * @property alerting whether an alert plays now: the refresh sheet gives way (rule 8).
+ * @property openTea opens a catalog tea's detail (SCR-21) by its key, in the Sammlung tab's stack.
  */
-internal data class CatalogTab(val modifier: Modifier, val scrollToTopRequest: Int, val alerting: Boolean)
+internal data class CatalogTab(
+    val modifier: Modifier,
+    val scrollToTopRequest: Int,
+    val alerting: Boolean,
+    val openTea: (String) -> Unit = {},
+)
 
-/** The catalog segment with its view model and the refresh (#64). */
+/** The catalog segment with its view model and the refresh (#64); a row opens the tea's detail (#66). */
 @Composable
 internal fun CatalogTabContent(tab: CatalogTab) {
-    CatalogRoute(alerting = tab.alerting, modifier = tab.modifier, scrollToTopRequest = tab.scrollToTopRequest)
+    CatalogRoute(
+        alerting = tab.alerting,
+        onOpenTea = tab.openTea,
+        modifier = tab.modifier,
+        scrollToTopRequest = tab.scrollToTopRequest,
+    )
 }
 
 /** A catalog without data, for tests and previews of the shell: the empty state. */

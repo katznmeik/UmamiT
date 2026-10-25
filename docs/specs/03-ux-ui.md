@@ -692,7 +692,10 @@ Bitterstoffe, … as leaf rows 0–5), aroma and taste notes, description, ZUBER
 ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
 *In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*
 (the size bought last when the tea is in the collection, else the product
-page; CAT-11, D-072).
+page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
+status bar with the back button over it; name, secondary name, tags, price
+per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
+*Beschreibung*, *Zubereitung*, each only when the shop fills it.
 
 ### SCR-22 Katalog aktualisieren (sheet)
 

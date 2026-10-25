@@ -50,13 +50,13 @@ parser (NFR-MAINT-04).
 | Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
 | Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
 | Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
-| Description | `.product-detail-description-text` paragraphs | `description_html`; also the source of brewing prose and „Zutaten: …" |
+| Description | `.product-detail-description-text` paragraphs, without staff tip blocks (`.st-teamtipp`, D-076), sanitised (§2.8, D-078) | `description_html`, `description_text`; also the source of brewing prose and „Zutaten: …" |
 | Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
-| Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea, **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
+| Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
 | Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon) or `st-zubereitung-westlich` (western icon); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
 | Brewing prose | Description paragraphs mentioning Zubereitung, Aufguss, g/ml, °C, Kaltaufguss | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
-| Photo | `img.gallery-slider-image[data-full-image]` (original); thumbnails via `data-srcset` | `photo_url` |
+| Photo | `img.gallery-slider-image[data-full-image]` of the product's own gallery (original); microdata image as fallback; thumbnails via `data-srcset` | `photo_url` |
 | Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
 | Structured data | Microdata `schema.org/Product` (name, sku, gtin13, image, offers, aggregateRating) — **no JSON-LD**; used only as a fallback for name/price/image | — |
 
@@ -65,7 +65,8 @@ the product's own buy box (`.product-detail-buy`) only, never from the
 cross-selling boxes of other products on the page (D-076).
 
 Region is not a property; it is taken from the title or prose where
-recognisable (e.g. „Uji", „Kirishima", „Yame"), else left empty. Harvest year
+recognisable (e.g. „Uji", „Kirishima", „Yame": a fixed list of growing
+regions, whole words, the title first; D-078), else left empty. Harvest year
 comes from titles („2026 Shincha …").
 
 **Conversion into collection-tea fields** (CAT-12):
@@ -295,8 +296,10 @@ locally); links to product pages become in-app catalog links.
 
 ### 2.8 Sanitising and robustness
 
-- Strip scripts, styles, iframes, forms, tracking pixels and embeds (YouTube →
-  plain link); keep basic formatting only.
+- Strip scripts, styles, iframes, forms, tracking pixels, images and embeds
+  (YouTube → plain link) and the staff tip blocks; keep basic formatting only:
+  paragraphs, line breaks, bold, italics, lists and absolute http(s) links
+  without attributes but `href`; headings become bold paragraphs (D-078).
 - **Cloudflare:** a response is a challenge if it has the header
   `cf-mitigated: challenge`, or (HTTP 403/503) its body contains challenge
   markers (`cdn-cgi/challenge-platform`, `_cf_chl_opt`, „Just a moment…").

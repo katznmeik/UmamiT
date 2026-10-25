@@ -42,4 +42,37 @@
     <string name="catalog_refresh_details_label">UmamiT Katalog-Details</string>
     <string name="catalog_refresh_done">Fertig</string>
     <string name="catalog_refresh_close">Schließen</string>
+    <!-- Below the pages' progress once photos arrive (CAT-08); „Fotos" is a label, not a counted noun. -->
+    <string name="catalog_refresh_photos" tools:ignore="PluralsCandidate">Fotos: %1$d</string>
+
+    <!-- SCR-21 Katalog-Tee (CAT-11). -->
+    <string name="catalog_tea_open_shop">Im Shop öffnen</string>
+    <string name="catalog_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <string name="catalog_tea_gone_title">Dieser Tee ist nicht mehr im Katalog.</string>
+    <string name="catalog_tea_gone_body">Er ist bei der letzten Aktualisierung aus dem Sortiment verschwunden.</string>
+    <string name="catalog_tea_organic">Bio</string>
+    <string name="catalog_tea_flavored">aromatisiert</string>
+    <string name="catalog_tea_cold_brew">Coldbrew geeignet</string>
+    <string name="catalog_tea_out_of_stock">nicht vorrätig</string>
+    <string name="catalog_tea_section_profile">Steckbrief</string>
+    <string name="catalog_tea_origin">Anbaugebiet</string>
+    <string name="catalog_tea_region">Region</string>
+    <string name="catalog_tea_cultivar">Kultivar</string>
+    <string name="catalog_tea_harvest">Ernte</string>
+    <string name="catalog_tea_shading">Beschattung</string>
+    <string name="catalog_tea_steaming">Dämpfung</string>
+    <string name="catalog_tea_season">Saison</string>
+    <string name="catalog_tea_matcha_grade">Matcha-Qualität</string>
+    <string name="catalog_tea_manufacturer">Hersteller</string>
+    <string name="catalog_tea_section_taste">Geschmack</string>
+    <string name="catalog_tea_aroma">Aroma</string>
+    <string name="catalog_tea_taste_notes">Geschmack</string>
+    <!-- TalkBack for a taste scale's leaf row: „Umami: 4 von 5". -->
+    <string name="catalog_tea_scale_description" tools:ignore="PluralsCandidate">%1$s: %2$d von 5</string>
+    <string name="catalog_tea_section_description">Beschreibung</string>
+    <string name="catalog_tea_ingredients">Zutaten</string>
+    <string name="catalog_tea_section_brewing">Zubereitung</string>
+    <string name="catalog_tea_brew_kyusu">Kyusu</string>
+    <string name="catalog_tea_brew_western">Westlich</string>
+    <string name="catalog_tea_brewing_source">Angaben des Shops, unverändert übernommen.</string>
 </resources>

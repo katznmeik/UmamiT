@@ -1,6 +1,6 @@
 package com.umamit.core.model
 
-/** The M1 subset of the settings of 05 §6, with the spec defaults. */
+/** The settings of 05 §6 the app has so far (M1 subset, M2 catalog), with the spec defaults. */
 data class UserSettings(
     val schemaVersion: Int = 1,
     val onboardingCompleted: Boolean = false,
@@ -16,6 +16,8 @@ data class UserSettings(
     val keepScreenOn: Boolean = true,
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
+    /** SET-22 *Katalog: Fotos laden*: the catalog refresh downloads the teas' photos (CAT-08). */
+    val catalogDownloadPhotos: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

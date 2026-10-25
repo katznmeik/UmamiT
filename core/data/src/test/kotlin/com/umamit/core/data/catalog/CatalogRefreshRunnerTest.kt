@@ -8,8 +8,10 @@ import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
+import com.umamit.core.model.UserSettings
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -87,6 +89,8 @@ class CatalogRefreshRunnerTest {
             dao = db.catalogDao(),
             clock = FakeClock(),
             diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
+            settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
+            photos = CatalogPhotoFiles(folder.newFolder()),
             sanity = SanityCheck(firstImportMinimum = 1),
         )
         return AppCatalogRefreshRunner(refresher, TestScope(StandardTestDispatcher(testScheduler)))
@@ -99,7 +103,7 @@ class CatalogRefreshRunnerTest {
     @Test
     fun aRefreshReportsProgressThenItsResultAndFillsTheList() = runTest {
         val runner = runner()
-        val repository = RoomCatalogRepository(db.catalogDao())
+        val repository = RoomCatalogRepository(db.catalogDao(), CatalogPhotoFiles(folder.newFolder()))
         assertThat(repository.observeCatalog().first().isEmpty).isTrue()
 
         runner.start()
@@ -140,7 +144,12 @@ class CatalogRefreshRunnerTest {
         val finished = runner.awaitFinished()
 
         assertThat(finished.outcome).isEqualTo(CatalogRefreshOutcome.Cancelled)
-        assertThat(RoomCatalogRepository(db.catalogDao()).observeCatalog().first().isEmpty).isTrue()
+        assertThat(
+            RoomCatalogRepository(
+                db.catalogDao(),
+                CatalogPhotoFiles(folder.newFolder()),
+            ).observeCatalog().first().isEmpty,
+        ).isTrue()
     }
 
     @Test
