@@ -314,7 +314,7 @@ Table `catalog_tea`
 | `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
-| `available` | INTEGER | in stock at refresh |
+| `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
 | `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
 | `photo_file` | TEXT | `filesDir/catalog/<key>.webp` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076) |
 | `photo_url`, `photo_etag` | TEXT | change detection |
@@ -329,7 +329,7 @@ origin_region.
 Table `catalog_package`: `catalog_key` FK CASCADE, `article_number`
 (e.g. `TG0557-50`), `label` („50 g", „250 g · 3 % gespart"), `grams` REAL,
 `price_cents`, `price_is_estimate` INTEGER, `savings_percent` INTEGER,
-`variant_url`, `available`.
+`variant_url`, `available`; primary key (`catalog_key`, `grams`) (D-077).
 
 ### 4.2a CatalogSkip
 
@@ -354,7 +354,17 @@ flagged, photos), `parser_version`, `error_summary`.
 Parsing writes into staging tables; on success, one transaction replaces
 `catalog_tea`, `catalog_package`, `catalog_guide` and marks discontinued keys
 (kept from the previous catalog with `discontinued = 1`). On failure the
-staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
+staging tables are emptied and the old catalog stays untouched (CAT-07 AC5).
+
+The staging tables `catalog_tea_staging` and `catalog_package_staging` have
+exactly the columns of `catalog_tea` and `catalog_package` in the same order,
+so the swap copies them with `INSERT … SELECT *`; a tea already in the
+catalog keeps its `first_seen_at`. The skip entries of the run
+(`catalog_skip`) and its `catalog_refresh_log` row are written in the same
+transaction, so a refresh that stops, is cancelled or fails the sanity check
+leaves the skip list unchanged too (D-077). Until #70 every tea missing from a
+successful refresh is removed; #70 keeps the owned ones as discontinued
+(CAT-07 AC4).
 
 ## 5. Enumerations
 

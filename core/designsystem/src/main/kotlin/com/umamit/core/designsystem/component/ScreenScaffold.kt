@@ -42,6 +42,8 @@ import com.umamit.core.designsystem.icon.UmamiIcons
  * @param scrollToTopRequest a counter; every increase scrolls the body to the top
  *   (re-selecting the tab, 03 §2.2).
  * @param verticalArrangement the body's arrangement: centred for an empty state, [Arrangement.Top] for a list.
+ * @param scrollable whether the body scrolls; false for a body that scrolls itself (a lazy list), which
+ *   then handles [scrollToTopRequest] too.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +54,7 @@ fun ScreenScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     scrollToTopRequest: Int = 0,
     verticalArrangement: Arrangement.Vertical = Arrangement.Center,
+    scrollable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -80,7 +83,7 @@ fun ScreenScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(scrollState),
+                .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier),
             verticalArrangement = verticalArrangement,
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content,

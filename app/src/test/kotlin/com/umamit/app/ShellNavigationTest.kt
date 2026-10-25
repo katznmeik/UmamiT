@@ -29,6 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import com.umamit.core.designsystem.R as DesignSystemR
+import com.umamit.feature.catalog.R as CatalogR
 import com.umamit.feature.collection.R as CollectionR
 import com.umamit.feature.home.R as HomeR
 import com.umamit.feature.journal.R as JournalR
@@ -262,7 +263,7 @@ class ShellNavigationTest {
         compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).performClick()
         tab(Tab.Stats).performClick()
         tab(Tab.Collection).performClick()
-        compose.onNodeWithText(str(CollectionR.string.collection_catalog_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
     }
 
     @Test

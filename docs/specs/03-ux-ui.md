@@ -697,7 +697,10 @@ page; CAT-11, D-072).
 ### SCR-22 Katalog aktualisieren (sheet)
 
 Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3);
-error state with *Details kopieren* for the developer.
+error state with *Details kopieren* for the developer. Closing the sheet never
+stops a refresh; while one runs, the empty catalog offers *Fortschritt
+anzeigen*. The sheet never covers an alert: an alert removes it in the same
+frame and it stays closed (rule 8, D-077).
 
 ### SCR-23 In Sammlung aufnehmen (sheet)
 
@@ -795,6 +798,11 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
 | Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh blocked (08 §2.8) | „Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh offline | „Keine Verbindung zum Shop – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh, shop down (401/403/5xx) | „Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh, storage full | „Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?" · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh cancelled | „Laden abgebrochen" · „Dein bisheriger Katalog bleibt erhalten." |
 
 ## 6. Accessibility
 
