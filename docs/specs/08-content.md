@@ -109,7 +109,7 @@ including images):
 
 | Refresh | Requests (approx.) | Duration |
 |---|---|---|
-| First | sitemap + ~700 parent pages for classification + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, plus their images; ~10–40) | ~9–10 min |
+| First | sitemap + ~1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, plus their images; ~10–40) | ~15–18 min |
 | Later | sitemap + ~280 green pages + new items + changed photos + G guides and changed guide images | ~3–4 min |
 
 ### 2.5 Recipe derivation
@@ -152,7 +152,8 @@ adds one to a recipe.
 prose describes a Kaltaufguss, add a recipe „Kaltaufguss" (`COLD_BREW`):
 values from the prose when given (e.g. „Ziehzeit … 20 - 30 Minuten …
 Dosierung verdoppeln" → 25 min, double leaf), otherwise the style's
-cold-brew default. Temperature 5 °C („kalt"). **„Dosierung verdoppeln"**
+cold-brew default; styles without one use the sencha cold-brew default
+(D-076). Temperature 5 °C („kalt"). **„Dosierung verdoppeln"**
 means: double the default recipe's leaf amount at the default recipe's
 water volume (e.g. Kyusu 4,0 g / 200 ml → 8,0 g / 200 ml).
 
