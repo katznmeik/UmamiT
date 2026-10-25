@@ -19,21 +19,34 @@ object GuideUrls {
     )
 
     /**
-     * At most this many guides per refresh (D-087): 08 §2.4 expects 10–40; the cap keeps a shop
-     * that suddenly names hundreds of articles from stretching the refresh.
+     * At most this many guides per refresh (D-087): 08 §2.4's G ≈ 10–40, so the guides never
+     * stretch the request budget the PO accepted (D-076, NFR-PERF-11).
      */
-    const val MAX_GUIDES = 60
+    const val MAX_GUIDES = 40
 
     private const val SECTION = "tee-info"
     private val SLUG = Regex("[A-Za-z0-9-]+")
 
-    /** The selected guides among [urls], each once, by slug; at most [MAX_GUIDES]. */
-    fun select(urls: List<String>): List<GuideCandidate> =
+    /**
+     * The selected guides among [urls], each once, by slug; at most [max]. With more candidates
+     * the most relevant are kept (D-087): those whose slug names the most keywords, then the
+     * shorter slug (a general guide before a narrow recipe), then the slug.
+     */
+    fun select(urls: List<String>, max: Int = MAX_GUIDES): List<GuideCandidate> =
         urls.mapNotNull { url -> slugOf(url)?.let { GuideCandidate(it, url) } }
-            .filter { candidate -> KEYWORDS.any { candidate.slug.contains(it, ignoreCase = true) } }
             .distinctBy { it.slug }
+            .map { it to keywordsIn(it.slug) }
+            .filter { (_, keywords) -> keywords > 0 }
+            .sortedWith(
+                compareByDescending<Pair<GuideCandidate, Int>> { it.second }
+                    .thenBy { it.first.slug.length }
+                    .thenBy { it.first.slug },
+            )
+            .take(max)
+            .map { it.first }
             .sortedBy { it.slug }
-            .take(MAX_GUIDES)
+
+    private fun keywordsIn(slug: String): Int = KEYWORDS.count { slug.contains(it, ignoreCase = true) }
 
     /** The slug of an article URL `/tee-info/<slug>`, or null for any other URL. */
     fun slugOf(url: String): String? {

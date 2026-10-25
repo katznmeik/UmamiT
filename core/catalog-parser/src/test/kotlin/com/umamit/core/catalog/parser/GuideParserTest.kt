@@ -50,6 +50,21 @@ class GuideParserTest {
     }
 
     @Test
+    fun atMostFortyGuidesAreSelectedTheMostRelevantFirst() {
+        val recipes = (10..53).map { "$SHOP/tee-info/ein-langes-matcha-rezept-nr-$it" }
+        val urls = recipes + "$SHOP/tee-info/sencha-und-gyokuro-im-vergleich" + "$SHOP/tee-info/umami"
+
+        val selected = GuideUrls.select(urls).map { it.slug }
+
+        assertThat(GuideUrls.MAX_GUIDES).isEqualTo(40)
+        assertThat(selected).hasSize(40)
+        // Two keywords first, then the shorter slug; the longest recipe numbers are left out.
+        assertThat(selected).containsAtLeast("sencha-und-gyokuro-im-vergleich", "umami")
+        assertThat(selected).doesNotContain("ein-langes-matcha-rezept-nr-53")
+        assertThat(selected).isInOrder()
+    }
+
+    @Test
     fun everyKeywordOf08Section27SelectsAGuide() {
         val keywords = listOf(
             "japantee", "gruentee", "matcha", "sencha", "gyokuro", "kabuse", "shincha", "houjicha", "genmaicha",

@@ -122,7 +122,7 @@ class CatalogRefresherGuidesTest {
         bodyBlock = bodyBlock,
     )
 
-    private fun refresher() = CatalogRefresher(
+    private fun refresher(limits: GuideLimits = GuideLimits.DEFAULT) = CatalogRefresher(
         client = ShopClient.forTesting(baseUrl = server.url("/")),
         dao = dao,
         clock = clock,
@@ -130,7 +130,11 @@ class CatalogRefresherGuidesTest {
         settings = settings,
         photos = photos,
         sanity = SanityCheck(firstImportMinimum = 1),
+        guideLimits = limits,
     )
+
+    /** The guides' requests: their pages and their images. */
+    private fun guideRequests() = paths().filter { it.startsWith("/tee-info/") || it.startsWith("/media/gg/") }
 
     private fun repository() = RoomGuideRepository(dao, photos)
 
@@ -230,6 +234,63 @@ class CatalogRefresherGuidesTest {
         refresher().refresh()
 
         assertThat(dao.guides()).containsExactlyElementsIn(before)
+    }
+
+    @Test
+    fun theDefaultBudgetIsFortyGuidesWithFourImagesEach() {
+        // 08 §2.4, D-087: ≤ 200 guide requests on a first refresh (≈ 100 s at 2 requests/s).
+        assertThat(GuideLimits.DEFAULT).isEqualTo(GuideLimits(maxGuides = 40, maxImagesPerGuide = 4))
+        assertThat(GuideLimits.DEFAULT.maxRequests).isEqualTo(200)
+    }
+
+    @Test
+    fun theGuideRequestsStayWithinTheCapOnAFirstAndALaterRefresh() = runTest {
+        // Three selected guides with a hero and three gallery images each; the cap: two guides, two images.
+        listed.clear()
+        listed += SENCHA
+        listOf("gyokuro-guide", "kabuse-guide", "shincha-guide").forEach { slug ->
+            val path = "/tee-info/$slug"
+            listed += path
+            val images = (1..3).map { SyntheticGuide.imagePath("$slug-$it") }
+            routes[path] = {
+                text(
+                    SyntheticGuide.page(
+                        baseUrl = base,
+                        slug = slug,
+                        jsonLd = SyntheticGuide.blogPosting(
+                            base,
+                            slug,
+                            slug,
+                            "$base${SyntheticGuide.imagePath("$slug-hero")}",
+                        ),
+                        gallery = images,
+                    ),
+                )
+            }
+            (images + SyntheticGuide.imagePath("$slug-hero")).forEach { image ->
+                routes[image.substringBefore('?')] = { jpeg(syntheticJpeg(400, 300)) }
+            }
+        }
+        val limits = GuideLimits(maxGuides = 2, maxImagesPerGuide = 2)
+
+        refresher(limits).refresh()
+
+        assertThat(guideRequests().size).isAtMost(limits.maxRequests)
+        assertThat(guideRequests()).containsExactly(
+            "/tee-info/gyokuro-guide",
+            "/tee-info/kabuse-guide",
+            "/media/gg/hh/ii/1700000000/gyokuro-guide-hero.jpg",
+            "/media/gg/hh/ii/1700000000/gyokuro-guide-1.jpg",
+            "/media/gg/hh/ii/1700000000/kabuse-guide-hero.jpg",
+            "/media/gg/hh/ii/1700000000/kabuse-guide-1.jpg",
+        ).inOrder()
+        assertThat(dao.guides().map { it.slug }).containsExactly("gyokuro-guide", "kabuse-guide")
+
+        requests.clear()
+        refresher(limits).refresh()
+
+        // Later: the articles again, no image already stored.
+        assertThat(guideRequests()).containsExactly("/tee-info/gyokuro-guide", "/tee-info/kabuse-guide").inOrder()
     }
 
     @Test

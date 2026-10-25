@@ -54,13 +54,15 @@ internal class GuideCounts {
  *   blog never empties *Ratgeber*.
  * - An article that is gone (404, robots.txt) is left out; one that no longer reads (the blog's
  *   layout changed) keeps its current version, images included.
- * - Images only while SET-22 *Katalog: Fotos laden* is on, at most [MAX_IMAGES] per article, each
+ * - Images only while SET-22 *Katalog: Fotos laden* is on, at most [GuideLimits.maxImagesPerGuide]
+ *   per article (the hero first), each
  *   re-encoded to ≤ 1200 px WebP ([PhotoTarget.CATALOG]) and named after its URL: one already on
  *   disk is not fetched again. An image that is missing or doesn't decode is left out of the text.
  * - Links to a catalog tea or a stored guide become in-app links; others stay web links.
  * - Any stop ends the run like a stop on a product page: the old catalog and guides stay.
  */
 internal class CatalogGuides(
+    private val limits: GuideLimits,
     private val client: ShopClient,
     private val dao: CatalogDao,
     private val images: GuideImageFiles,
@@ -83,7 +85,7 @@ internal class CatalogGuides(
         onGuide: () -> Unit,
         stop: (StopCause, String) -> Nothing,
     ) {
-        val candidates = GuideUrls.select(sitemapUrls)
+        val candidates = GuideUrls.select(sitemapUrls, limits.maxGuides)
         counts.selected = candidates.size
         if (candidates.isEmpty()) {
             dao.stageCurrentGuides()
@@ -164,7 +166,7 @@ internal class CatalogGuides(
         stop: (StopCause, String) -> Nothing,
     ): Map<String, String> {
         val files = mutableMapOf<String, String>()
-        for (source in articles.flatMap { it.imageUrls.take(MAX_IMAGES) }.distinct()) {
+        for (source in articles.flatMap { it.imageUrls.take(limits.maxImagesPerGuide) }.distinct()) {
             currentCoroutineContext().ensureActive()
             val name = images.name(source)
             when {
@@ -211,9 +213,20 @@ internal class CatalogGuides(
         }.toSet()
         withContext(fileDispatcher) { images.retainOnly(names) }
     }
+}
+
+/**
+ * The guides' share of the request budget (D-087, 08 §2.4): at most [maxGuides] articles and
+ * [maxImagesPerGuide] images each (the hero first), so a first refresh sends at most
+ * [maxRequests] guide requests and a later one the articles plus their new images only.
+ */
+data class GuideLimits(val maxGuides: Int = GuideUrls.MAX_GUIDES, val maxImagesPerGuide: Int = MAX_IMAGES_PER_GUIDE) {
+    val maxRequests: Int get() = maxGuides * (1 + maxImagesPerGuide)
 
     companion object {
-        /** At most this many images per article, its hero included (D-087): bounds the request budget. */
-        const val MAX_IMAGES = 12
+        /** 08 §2.4: G ≤ 40 guides with ≤ 4 images each, ≤ 200 requests (≈ 100 s at 2 requests/s). */
+        val DEFAULT = GuideLimits()
+
+        const val MAX_IMAGES_PER_GUIDE = 4
     }
 }

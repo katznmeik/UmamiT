@@ -317,7 +317,9 @@ the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
   gets `published_at` (JSON-LD `datePublished`, epoch ms) for the list and the
   article's source line.
 - **Which guides:** the sitemap's `/tee-info/<slug>` URLs whose slug contains
-  one of 08 §2.7's keywords, at most 60 per refresh. An article that is gone
+  one of 08 §2.7's keywords, at most 40 per refresh; with more, the most
+  relevant are kept: the slugs naming the most keywords, then the shorter
+  slug (a general guide before a narrow recipe), then the slug. An article that is gone
   (404, robots.txt) is left out; one that no longer reads (no article block)
   keeps its current version; without any selected article in the sitemap
   every current guide is kept, so a renamed blog never empties *Ratgeber*.
@@ -333,7 +335,7 @@ the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
   (D-008's in-house option).
 - **Images:** through the refresh's shop session (robots.txt, the 2
   requests/s, the stops), only while SET-22 *Katalog: Fotos laden* is on, at
-  most 12 per article (hero included), JPEG sources only (D-074), re-encoded
+  most 4 per article (the hero first), JPEG sources only (D-074), re-encoded
   to ≤ 1200 px WebP in `filesDir/catalog/guides/`. Each file is named after a
   hash of its URL (the shop's `?ts=` included), so an unchanged image is never
   fetched again and a failed refresh never overwrites a file the stored guides
@@ -347,8 +349,11 @@ the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
   other link opens the browser, as does a link to a guide the catalog no
   longer holds (its shop page) and *Im Browser öffnen*; none of them is a
   request of the app (GEN-01).
-- **Request budget:** G guide pages plus their new images, inside 08 §2.4's
-  estimate; later refreshes fetch the pages again and only changed images.
+- **Request budget** (D-076, NFR-PERF-11): at most 40 guide pages and 160
+  images, so ≤ 200 requests (≈ 100 s at 2 requests/s) on a first refresh,
+  inside 08 §2.4's G; later refreshes fetch the ≤ 40 pages again and only new
+  or changed images (≈ 0–40 more). `GuideLimits` holds the caps; a refresher
+  test checks the requests stay within them on a first and a later refresh.
   The refresh sheet counts the guides read („Ratgeber: 12"), the developer
   details and the diagnostics log their counts.
 - **SCR-19 / SCR-20:** the catalog list's *Ratgeber* row (only while guides
@@ -3146,7 +3151,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
-| 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 12 per article, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |
+| 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 40 guides with ≤ 4 images each, ≤ 200 requests on a first refresh, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |
 | 2026-10-25 | D-086: later catalog refreshes (#70) — merged numbers known through their packages, unread known teas kept, discontinued teas kept hidden while owned and deleted otherwise, photos fetched only when new or their URL changed, `content_hash` per parser version for „geändert", the CAT-07 AC3 summary in the sheet and the notification („Rezepte prüfen" = flagged since this refresh), SCR-21's „Nicht mehr im Sortiment", CAT-15 seed linking once with the `seedTeasLinked` marker; 02 CAT-07, CAT-15, 03 SCR-21, SCR-22, 05 §4.1, §4.4, §4.5, §6, 06 §5.2, §5.3 and 08 §2.4 updated. |
 | 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |
 | 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |

@@ -106,6 +106,7 @@ class CatalogRefresher(
     private val fileDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
+    guideLimits: GuideLimits = GuideLimits.DEFAULT,
 ) {
     @Inject
     constructor(
@@ -131,7 +132,8 @@ class CatalogRefresher(
         seedTeas,
     )
 
-    private val guides = CatalogGuides(client, dao, photos.guideImages, clock, parseDispatcher, fileDispatcher, ::log)
+    private val guides =
+        CatalogGuides(guideLimits, client, dao, photos.guideImages, clock, parseDispatcher, fileDispatcher, ::log)
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
