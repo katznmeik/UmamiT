@@ -291,8 +291,8 @@ locally); links to product pages become in-app catalog links.
   versuchen." No attempt is made to bypass challenges.
 - **Rate signals:** HTTP 429 or any `Retry-After` header also stops the
   refresh (old catalog kept, same message); no automatic waiting and retry.
-- **Refusals and outages:** a 401/403/5xx or a network error (offline) also
-  stops the whole job; after any stop the job sends no further request. A
+- **Refusals and outages:** a 401/403/5xx or a network error (offline; for
+  the refresh after its retries, D-076) also stops the whole job; after any stop the job sends no further request. A
   3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
   D-074).
 - **One connection:** all requests go through a single HTTP connection,

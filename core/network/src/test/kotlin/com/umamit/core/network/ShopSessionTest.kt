@@ -11,7 +11,9 @@ import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
+import mockwebserver3.SocketEffect
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okio.Buffer
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -20,9 +22,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * The shared polite shop session (#63; CLAUDE.md rule 7, 08 §2.8, RFC 9309, D-050) against a
- * synthetic shop on MockWebServer: robots.txt once, its status rules, the stop causes and a
- * disallowed URL never fetched. No shop content is used (D-016).
+ * The shared polite shop session (#63; CLAUDE.md rule 7, 08 §2.8, RFC 9309, D-050, D-074,
+ * D-076) against a synthetic shop on MockWebServer: robots.txt once, its status rules, the stop
+ * causes, a disallowed URL never fetched and the refresh's retries of connection errors. No
+ * shop content is used (D-016).
  */
 class ShopSessionTest {
     private val server = MockWebServer()
@@ -222,6 +225,91 @@ class ShopSessionTest {
         assertThat(error).isInstanceOf(HostNotAllowedException::class.java)
         assertThat(session.isAllowed("https://cdn.example.com/a.jpg".toHttpUrl())).isFalse()
         assertThat(requested).containsExactly(ROBOTS)
+    }
+
+    @Test
+    fun aRefreshSessionRetriesADroppedConnectionAfter2And4Seconds() = runTest {
+        val drops = dropping(times = 2, then = { ok("page") })
+        routes[PAGE] = drops
+        val session = ShopSession.open(client(), NetworkRetry.REFRESH)
+        val start = testScheduler.currentTime
+
+        val answer = session.fetch(session.resolve(PAGE))
+
+        assertThat((answer as ShopFetch.Fetched).body.decodeToString()).isEqualTo("page")
+        assertThat(testScheduler.currentTime - start).isEqualTo(2_000L + 4_000L)
+        assertThat(session.stopCause).isNull()
+        assertThat(requested).containsExactly(ROBOTS, PAGE, PAGE, PAGE).inOrder()
+    }
+
+    @Test
+    fun aRefreshSessionStopsAfterThreeRetriesWithNoFurtherRequest() = runTest {
+        routes[PAGE] = dropping(times = Int.MAX_VALUE, then = { ok("never") })
+        val session = ShopSession.open(client(), NetworkRetry.REFRESH)
+        val start = testScheduler.currentTime
+
+        val answer = session.fetch(session.resolve(PAGE))
+
+        assertThat(answer).isEqualTo(ShopFetch.Stopped(StopCause.NETWORK))
+        assertThat(testScheduler.currentTime - start).isEqualTo(2_000L + 4_000L + 8_000L)
+        assertThat(session.fetch(session.resolve(OTHER))).isEqualTo(ShopFetch.Stopped(StopCause.NETWORK))
+        assertThat(requested).containsExactly(ROBOTS, PAGE, PAGE, PAGE, PAGE).inOrder()
+    }
+
+    @Test
+    fun aRefreshSessionRetriesRobotsTxtToo() = runTest {
+        routes[ROBOTS] = dropping(times = 1, then = { ok("User-agent: *\nDisallow: /tee/\n") })
+
+        val session = ShopSession.open(client(), NetworkRetry.REFRESH)
+
+        assertThat(session.stopCause).isNull()
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.Disallowed)
+        assertThat(requested).containsExactly(ROBOTS, ROBOTS)
+    }
+
+    @Test
+    fun stopSignalsAndHttpErrorsAreNeverRetried() = runTest {
+        val notRetried = STOPS.map { (response, cause) -> response to ShopFetch.Stopped(cause) } +
+            listOf({ MockResponse.Builder().code(404).build() } to ShopFetch.Unavailable(404))
+        notRetried.forEach { (response, expected) ->
+            requested.clear()
+            routes[PAGE] = response
+            val session = ShopSession.open(client(), NetworkRetry.REFRESH)
+
+            assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(expected)
+            assertThat(requested).containsExactly(ROBOTS, PAGE).inOrder()
+        }
+    }
+
+    @Test
+    fun anOversizedAnswerIsNeverRetried() = runTest {
+        routes[PAGE] = { MockResponse.Builder().body(Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))).build() }
+        val session = ShopSession.open(client(), NetworkRetry.REFRESH)
+
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.Stopped(StopCause.NETWORK))
+        assertThat(requested).containsExactly(ROBOTS, PAGE).inOrder()
+    }
+
+    @Test
+    fun byDefaultASessionNeverRetries() = runTest {
+        routes[PAGE] = dropping(times = 1, then = { ok("page") })
+        val session = openSession()
+
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.Stopped(StopCause.NETWORK))
+        assertThat(requested).containsExactly(ROBOTS, PAGE).inOrder()
+    }
+
+    /** Drops the connection before answering for the first [times] requests, then answers [then]. */
+    private fun dropping(times: Int, then: () -> MockResponse): () -> MockResponse {
+        var dropped = 0
+        return {
+            if (dropped < times) {
+                dropped++
+                MockResponse.Builder().onResponseStart(SocketEffect.CloseSocket()).build()
+            } else {
+                then()
+            }
+        }
     }
 
     private fun ok(body: String) = MockResponse.Builder().body(body).build()

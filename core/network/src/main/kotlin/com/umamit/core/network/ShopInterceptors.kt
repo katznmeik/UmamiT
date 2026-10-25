@@ -36,10 +36,13 @@ internal fun tagAttempts() = Interceptor { chain ->
 internal fun singleAttempt() = Interceptor { chain ->
     val counter = chain.request().tag(AttemptCounter::class.java)
     if (counter != null && counter.attempts.incrementAndGet() > 1) {
-        throw IOException("second network attempt refused: one call is one request")
+        throw SecondAttemptRefusedException()
     }
     chain.proceed(chain.request())
 }
+
+/** A second network attempt of one call, refused before it was written; never worth a retry. */
+internal class SecondAttemptRefusedException : IOException("second network attempt refused: one call is one request")
 
 /** Network interceptor: hides `Retry-After` from OkHttp's follow-up logic (see [STOP_RETRY_AFTER_HEADER]). */
 internal fun retryAfterShield() = Interceptor { chain ->

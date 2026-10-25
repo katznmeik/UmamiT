@@ -1,6 +1,7 @@
 package com.umamit.core.network
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -20,6 +21,10 @@ import okhttp3.HttpUrl
  *   or a network error (offline): the answer becomes [ShopFetch.Stopped] with its [StopCause],
  *   and from then on every [fetch] returns that stop **without a request** — no waiting, no
  *   retry, never an attempt to bypass a challenge.
+ * - **Retries** ([NetworkRetry], D-076): only a catalog refresh retries a timeout or a
+ *   connection error, after 2, 4 and 8 s, each retry a new call through the client (rate
+ *   limited, allow-listed). Stop signals and HTTP errors are never retried; the seed photos and
+ *   the exact price fetch never retry.
  * - **One fetch at a time:** fetches of one session are serialised, so a fetch queued behind
  *   the one that stops is never sent.
  *
@@ -28,6 +33,7 @@ import okhttp3.HttpUrl
  */
 class ShopSession private constructor(
     private val client: ShopClient,
+    private val retry: NetworkRetry,
     private val robots: RobotsTxt,
     initialStop: StopCause?,
 ) {
@@ -55,7 +61,7 @@ class ShopSession private constructor(
         stopCause?.let { return@withLock ShopFetch.Stopped(it) }
         if (!client.isAllowed(url)) throw HostNotAllowedException(url)
         if (!withContext(Dispatchers.Default) { robots.isAllowed(url) }) return@withLock ShopFetch.Disallowed
-        val answer = client.get(url)
+        val answer = client.getRetrying(url, retry)
         val stop = answer.stopCause()
         if (stop != null) {
             stopCause = stop
@@ -79,10 +85,10 @@ class ShopSession private constructor(
         /**
          * Opens a session: fetches robots.txt (one request) and applies RFC 9309's status
          * rules. A stop answer gives a session that is already stopped ([stopCause] set), so
-         * its first [fetch] sends nothing.
+         * its first [fetch] sends nothing. [retry] applies to robots.txt and every [fetch].
          */
-        suspend fun open(client: ShopClient): ShopSession {
-            val answer = client.get(client.resolve(RobotsTxt.ROBOTS_PATH))
+        suspend fun open(client: ShopClient, retry: NetworkRetry = NetworkRetry.NONE): ShopSession {
+            val answer = client.getRetrying(client.resolve(RobotsTxt.ROBOTS_PATH), retry)
             val stop = answer.stopCause()
             val robots = withContext(Dispatchers.Default) {
                 when {
@@ -91,7 +97,18 @@ class ShopSession private constructor(
                     else -> RobotsTxt.DISALLOW_ALL
                 }
             }
-            return ShopSession(client, robots, stop)
+            return ShopSession(client, retry, robots, stop)
+        }
+
+        /** [url] fetched, and again after each of [retry]'s pauses while the answer is a transient network error. */
+        private suspend fun ShopClient.getRetrying(url: HttpUrl, retry: NetworkRetry): ShopResponse {
+            var answer = get(url)
+            for (pause in retry.pausesMillis) {
+                if (answer !is ShopResponse.NetworkError || !answer.isTransient) break
+                delay(pause)
+                answer = get(url)
+            }
+            return answer
         }
 
         /** The cause that ends the whole job after [this] answer, or null to go on (08 §2.8, D-050). */
@@ -112,6 +129,21 @@ class ShopSession private constructor(
     }
 }
 
+/**
+ * How a [ShopSession] answers a timeout or a connection error (D-076): retried after each of
+ * [pausesMillis], each retry a new call; when the last one fails too, the session stops with
+ * [StopCause.NETWORK].
+ */
+class NetworkRetry private constructor(val pausesMillis: List<Long>) {
+    companion object {
+        /** No retry: the seed photo download (runs once) and the exact price fetch (falls back to the estimate). */
+        val NONE = NetworkRetry(emptyList())
+
+        /** The catalog refresh (CAT-07 AC2): ≤ 3 retries after 2, 4 and 8 s. */
+        val REFRESH = NetworkRetry(listOf(2_000L, 4_000L, 8_000L))
+    }
+}
+
 /** What one [ShopSession.fetch] gave the job. */
 sealed interface ShopFetch {
     /** A 2xx answer that is no stop signal, with its whole body. */
@@ -129,7 +161,7 @@ sealed interface ShopFetch {
 
 /** Why a [ShopSession] stopped (CLAUDE.md rule 7, 08 §2.8, D-050). */
 enum class StopCause {
-    /** Offline, DNS, timeout, a dropped connection or an oversized answer. */
+    /** Offline, DNS, timeout, a dropped connection (after the [NetworkRetry]) or an oversized answer. */
     NETWORK,
 
     /** A Cloudflare challenge page; never bypassed. */

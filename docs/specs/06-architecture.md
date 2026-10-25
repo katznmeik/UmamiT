@@ -147,7 +147,8 @@ The client uses a **single connection** (`maxRequestsPerHost = 1`, one
 dispatcher thread for the shop). Each job (the seed photos, one refresh, one
 exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
 reads robots.txt once with RFC 9309's status rules, never fetches a
-disallowed URL, and after the first stop signal sends nothing more.
+disallowed URL, retries connection errors only for the refresh (D-076), and
+after the first stop signal sends nothing more.
 
 ## 5. Key technical designs
 
