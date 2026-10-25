@@ -23,8 +23,8 @@ import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogFilter
-import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogPackage
+import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.UmamiLevel
