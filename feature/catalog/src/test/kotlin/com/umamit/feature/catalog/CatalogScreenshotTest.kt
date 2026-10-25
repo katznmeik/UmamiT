@@ -279,7 +279,13 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** ABGELEITETES REZEPT with „Rezept prüfen" and its reason (CAT-04, CAT-05). */
     @Test
     fun detailRecipes() = capture("detailRecipes", scrollToText = "Fehlende Werte aus den Standardwerten der Sorte") {
-        Detail(DETAIL.copy(recipeCheckReason = RecipeCheckReason.TABLE_TEXT_CONFLICT))
+        // The shop's text contradicts its table (75 °C against 60 °C), as the reason says.
+        Detail(
+            DETAIL.copy(
+                recipeCheckReason = RecipeCheckReason.TABLE_TEXT_CONFLICT,
+                brewText = "Zubereitung: 4 g auf 100 ml bei 75 °C, der erste Aufguss 90 Sekunden.",
+            ),
+        )
     }
 
     /** The detail scrolled to PACKUNGEN (#67): a sample, the page's own size and two estimates. */
