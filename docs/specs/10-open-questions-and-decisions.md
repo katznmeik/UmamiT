@@ -302,6 +302,49 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-076"></a>
+### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
+
+An exploration before the first M2 slices (spec #62) found contradictions
+between the specs, the tickets and the code. Resolved:
+
+- **Request budget (PO):** the live sitemap lists ~1,560 distinct base
+  article numbers across all shop categories, not ~700. The first refresh
+  classifies every unclassified parent once, so it takes ≈ 15–18 min
+  (background service, phone may be locked); later refreshes stay ≈ 3–4 min.
+  No prefix shortcut, so no green tea is missed. NFR-PERF-11 first refresh
+  ≤ 20 min; 06 §5.3 and 08 §2.4 updated.
+- **Retries:** CAT-07 AC2's „≤ 3 retries" applies only to timeouts and
+  connection errors of a refresh request. Each retry is a new call through
+  `ShopClient` (rate-limited, allow-listed), after 2/4/8 s. Stop signals
+  (challenge, block, 429, `Retry-After`) and HTTP errors are never retried.
+  This keeps D-050 (one network attempt per call). Seed photos (run once)
+  and the exact price fetch (falls back to the estimate) don't retry.
+- **Structural failure:** the refresh aborts by the three thresholds of
+  08 §2.9, not by a single „< 50 % parsed" rule (#64's wording).
+- **Manifest:** `FOREGROUND_SERVICE_DATA_SYNC` is already in the allowed
+  list of the manifest check (06 §5.7); M2 adds the permission and the
+  service to the manifest only.
+- **Filters:** CAT-10 is the source of truth. SCR-19 shows the frequent
+  filters as chips and the rest in a filter sheet; #69 aligns 03.
+- **catalog.db columns:** a plain-text `description_text` for search (FTS),
+  and the thumbnail as `<key>_thumb.webp` next to the photo (05 §4.1).
+- **Discontinued teas kept when owned:** the refresh reads the owned
+  `catalog_key`s from `umamit.db` before the swap (two databases, no shared
+  transaction).
+- **Built-in styles:** 08 §3's style table is code for the first time
+  (pure module). Styles without a cold-brew default use sencha's (08 §2.5
+  step 6).
+- **Photos copied into the collection** (*In Sammlung aufnehmen*, CAT-15)
+  are re-encoded to the collection's JPEG format, so restore detection
+  keeps them.
+- **Page parsing:** selectors are scoped to the product's own sections
+  (product pages embed other products); the nested brewing grid is
+  de-duplicated; staff tip blocks are stripped from the description; the
+  sitemap `.xml.gz` is decompressed by the app (the shop sends no
+  `Content-Encoding`). Challenge markers are checked only on refusals, as
+  `ShopClient` already does, because normal pages contain the marker text.
+
 <a id="d-074"></a>
 ### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted* (Claude, 2026-10-25)
 
@@ -2560,6 +2603,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
 | 2026-10-25 | D-074: shared shop session (`ShopSession`: robots.txt once per job with the RFC 9309 status rules, typed fetch results, sticky stop, serialised fetches) and image targets for re-encoding (catalog photo ≤ 1200 px WebP 80, list thumbnail 256 px short side, covers unchanged) from #63; 02 CAT-08, 06 §4 and §5.2, 08 §2.8 updated. |
 | 2026-10-25 | D-073: M2 grilled with the PO: CAT-12 add and repurchase in M2 with the picker flow, *Rezept passt*, guides last, small #58 items; catalog first loaded from the Katalog tab; refresh allowed during a brew (CAT-07 AC8); „Neu" badge; list grouped by Sorte, available only, „Pur" on; photos 1200 px plus thumbnails; live-shop tests by Claude; accuracy run only for rcs that touch timer code (09 §4a); early design check; A8/A11 now. |
 | 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |

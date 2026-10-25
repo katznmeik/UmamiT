@@ -208,7 +208,8 @@ the shop, parses all products, and replaces the catalog atomically.
 - AC2: Requests are polite: ≤ 2 requests/second (all requests, incl.
   images), one HTTP connection, identifying user agent, `robots.txt`
   respected (no paginated listings; discovery via the sitemap), timeouts and
-  ≤ 3 retries; a Cloudflare challenge, HTTP 429 or a `Retry-After` header
+  ≤ 3 retries for timeouts and connection errors only, each a new
+  rate-limited request (D-076); a Cloudflare challenge, HTTP 429 or a `Retry-After` header
   stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
   3 Rezepte prüfen".

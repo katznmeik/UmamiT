@@ -308,6 +308,7 @@ Table `catalog_tea`
 | `breadcrumb` | TEXT | category path of the product page |
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
+| `description_text` | TEXT | plain text of the description, for search (D-076) |
 | `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cell texts) |
 | `brew_text_raw` | TEXT | brewing prose as found |
 | `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
@@ -315,12 +316,12 @@ Table `catalog_tea`
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh |
 | `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
-| `photo_file` | TEXT | `filesDir/catalog/<key>.webp` |
+| `photo_file` | TEXT | `filesDir/catalog/<key>.webp` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076) |
 | `photo_url`, `photo_etag` | TEXT | change detection |
 | `content_hash` | TEXT | to report „geändert" |
 | `first_seen_at`, `last_seen_at` | INTEGER | |
 
-FTS4 `catalog_fts` over name, secondary_name, description text, cultivar,
+FTS4 `catalog_fts` over name, secondary_name, `description_text`, cultivar,
 origin_region.
 
 ### 4.2 CatalogPackage

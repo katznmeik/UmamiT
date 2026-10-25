@@ -177,8 +177,10 @@ changed (CAT-08, D-073, D-074).
    [08 §2.4](08-content.md#24-discovery-variants-and-request-budget).
    `robots.txt` rules use longest-match precedence with `*` and `$`
    wildcards (RFC 9309).
-3. Fetch each candidate parent page (≤ 2 req/s, one connection, retry ≤ 3
-   with backoff, 20 s timeout); classify by breadcrumb; parse with
+3. Fetch each candidate parent page (≤ 2 req/s, one connection, 20 s
+   timeout; a timeout or connection error is retried ≤ 3 times with 2/4/8 s
+   backoff, each retry a new call through `ShopClient`; stop signals and
+   HTTP errors are never retried, D-076); classify by breadcrumb; parse with
    `TeeKontorParser` (selectors versioned as `parserVersion`). Stop the
    refresh (old catalog kept) on a Cloudflare challenge, on HTTP 429 or on
    any `Retry-After` header ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
@@ -189,8 +191,8 @@ changed (CAT-08, D-073, D-074).
    ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
 
 All requests (pages and images) share the 2 req/s limit. Expected
-duration: first refresh (~700 classification pages + ~280 photos + guides)
-≈ 9–10 min; later refreshes (~280 pages, changed photos only) ≈ 3–4 min.
+duration: first refresh (~1,560 classification pages + ~280 photos + guides)
+≈ 15–18 min (D-076); later refreshes (~280 pages, changed photos only) ≈ 3–4 min.
 Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 ### 5.4 Background work
