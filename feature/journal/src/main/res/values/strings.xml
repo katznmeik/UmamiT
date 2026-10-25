@@ -27,4 +27,7 @@
     <!-- TalkBack for „3 Aufgüsse · 2:20": „3 Aufgüsse, 2 Minuten 20 Sekunden". -->
     <string name="journal_saved_summary_description">%1$s, %2$s</string>
     <string name="journal_saved_dismiss">Schließen</string>
+    <!-- SCR-06 for a tea flagged „Rezept prüfen" (CAT-05, D-073): the recipe fits, the flag goes. -->
+    <string name="journal_saved_recipe_ok">Rezept passt</string>
+    <string name="journal_saved_recipe_ok_done">„Rezept prüfen“ ist entfernt.</string>
 </resources>

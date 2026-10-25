@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -27,10 +28,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -63,6 +66,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.data.TeaRepository
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
@@ -89,8 +93,16 @@ private const val DISMISS_VELOCITY = 1_000f
 /** Dragged up, the sheet follows a fifth of the finger: friction instead of a hard stop. */
 private const val UPWARD_FRICTION = 0.2f
 
-/** What the sheet shows for one finished session. */
-private data class SavedSheetContent(val sessionId: String, val summary: SavedSummary)
+/**
+ * What the sheet shows for one finished session.
+ *
+ * @property recipeCheckTeaId the session's tea when it is flagged „Rezept prüfen": the sheet offers *Rezept passt*.
+ */
+private data class SavedSheetContent(
+    val sessionId: String,
+    val summary: SavedSummary,
+    val recipeCheckTeaId: String? = null,
+)
 
 /**
  * The „Gespeichert" sheet (SCR-06, TMR-12): „Gespeichert im Journal · 3
@@ -100,18 +112,26 @@ private data class SavedSheetContent(val sessionId: String, val summary: SavedSu
  * runs over the alert, and a sheet due then is dropped (rule 8, D-061).
  * *Notizen hinzufügen* and PRF-07 come with M4.
  *
+ * For a session of a tea flagged „Rezept prüfen" it offers *Rezept passt*,
+ * which clears that tea's flag and nothing else (CAT-05, D-073); it leaves
+ * with the sheet when an alert starts.
+ *
+ * @param teas the session's tea, read when the sheet is due and cleared by *Rezept passt*.
  * @param windowInsets the insets below it that nothing else has applied (the rail layout's bottom).
  */
 @Composable
 fun SavedSheetHost(
     requests: SavedSheetRequests,
     sessions: SessionRepository,
+    teas: TeaRepository,
     alerting: Boolean,
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = WindowInsets(0),
 ) {
     val pending by requests.pending.collectAsStateWithLifecycle()
     val id = pending
+    // Above the early return: a *Rezept passt* write is never cancelled by an alert starting.
+    val writes = rememberCoroutineScope()
     LaunchedEffect(alerting, id) {
         if (alerting && id != null) requests.dismiss(id)
     }
@@ -120,7 +140,7 @@ fun SavedSheetHost(
     val timeout = LocalAccessibilityManager.current
         ?.calculateRecommendedTimeoutMillis(SAVED_SHEET_MILLIS, containsText = true)
         ?: SAVED_SHEET_MILLIS
-    val content by rememberSavedSheetContent(id, requests, sessions, timeout)
+    val content by rememberSavedSheetContent(id, requests, sessions, teas, timeout)
     val visible = id != null && content?.sessionId == id
     // A finger on the sheet holds it: it never leaves under the finger. Until then the request's own
     // time runs (also while the shell was covered); after a release the full time starts again.
@@ -143,6 +163,7 @@ fun SavedSheetHost(
             content?.let { shown ->
                 SavedSheet(
                     content = shown,
+                    onRecipeOk = { teaId -> writes.launch { teas.clearRecipeCheck(teaId) } },
                     onDismiss = { requests.dismiss(shown.sessionId) },
                     onHold = { pressed ->
                         held = pressed
@@ -164,6 +185,7 @@ private fun rememberSavedSheetContent(
     id: String?,
     requests: SavedSheetRequests,
     sessions: SessionRepository,
+    teas: TeaRepository,
     timeout: Long,
 ): State<SavedSheetContent?> = produceState(null, id) {
     if (id != null) {
@@ -171,7 +193,8 @@ private fun rememberSavedSheetContent(
         if (session == null || requests.remainingMs(id, timeout) <= 0) {
             requests.dismiss(id)
         } else {
-            value = SavedSheetContent(id, savedSummary(session))
+            val flagged = session.snapshot.teaId?.takeIf { teas.getTea(it)?.recipeCheckReason != null }
+            value = SavedSheetContent(id, savedSummary(session), recipeCheckTeaId = flagged)
         }
     }
 }
@@ -179,6 +202,7 @@ private fun rememberSavedSheetContent(
 @Composable
 private fun SavedSheet(
     content: SavedSheetContent,
+    onRecipeOk: (teaId: String) -> Unit,
     onDismiss: () -> Unit,
     onHold: (Boolean) -> Unit,
     windowInsets: WindowInsets,
@@ -295,8 +319,36 @@ private fun SavedSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    content.recipeCheckTeaId?.let { teaId -> RecipeOk(content.sessionId) { onRecipeOk(teaId) } }
                 }
             }
+        }
+    }
+}
+
+/** *Rezept passt* (CAT-05, D-073), then the line that says the flag is gone. */
+@Composable
+private fun RecipeOk(sessionId: String, onClick: () -> Unit) {
+    var done by remember(sessionId) { mutableStateOf(false) }
+    if (done) {
+        Text(
+            text = stringResource(R.string.journal_saved_recipe_ok_done),
+            modifier = Modifier.padding(top = UmamiSpacing.XSmall),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        // No side padding: its label lines up with the lines above.
+        TextButton(
+            onClick = {
+                done = true
+                onClick()
+            },
+            contentPadding = PaddingValues(
+                vertical = ButtonDefaults.TextButtonContentPadding.calculateTopPadding(),
+            ),
+        ) {
+            Text(stringResource(R.string.journal_saved_recipe_ok))
         }
     }
 }

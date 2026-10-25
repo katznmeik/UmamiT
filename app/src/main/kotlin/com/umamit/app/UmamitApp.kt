@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -55,15 +56,12 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.feature.catalog.GuideArticleRoute
-import com.umamit.feature.catalog.GuideListRoute
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
-import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
 import com.umamit.feature.journal.JournalRoute as JournalTab
 
 internal fun tabTag(tab: Tab) = "tab_${tab.name}"
@@ -87,7 +85,17 @@ private const val SLIDE_FRACTION = 12
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
  * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
+ * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20) in the Sammlung tab;
+ *   tests replace them.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
+ *
+ * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
+ * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
+ * setup (SCR-04) of that tea above the shell, now back on Start. Back from the catalog, or a tap
+ * on Start, ends the flow with the picker open again; another tab ends it quietly. Either way the
+ * flow's screens leave the Sammlung stack and nothing is written. An alert keeps all of this from
+ * covering it: the add sheet and the picker give way (rule 8), and the setup is never opened
+ * during one ([StartNavigation.openSetup] opens the timer instead).
  */
 @Composable
 internal fun UmamitApp(
@@ -101,11 +109,13 @@ internal fun UmamitApp(
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
+    catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
     var segment by rememberSaveable { mutableStateOf(CollectionSegment.MyTeas) }
+    val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
     // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
     val reselection = remember { TabReselection() }
@@ -128,6 +138,8 @@ internal fun UmamitApp(
     PredictiveBackHandler(enabled = selected != Tab.Start) { progress ->
         try {
             progress.collect { transitionState.seekTo(it.progress, Tab.Start) }
+            // Back from the picker's catalog flow returns to the picker.
+            brewFlow.leaveFor(Tab.Start)
             selected = Tab.Start
         } catch (e: CancellationException) {
             transitionState.snapTo(selected)
@@ -141,7 +153,12 @@ internal fun UmamitApp(
                 item(
                     selected = tab == selected,
                     onClick = {
-                        if (tab != selected) selected = tab else reselection.reselect(tab, controllers.getValue(tab))
+                        if (tab != selected) {
+                            brewFlow.leaveFor(tab)
+                            selected = tab
+                        } else {
+                            reselection.reselect(tab, controllers.getValue(tab))
+                        }
                     },
                     icon = { Icon(painterResource(tab.icon), contentDescription = null) },
                     label = { TabLabel(stringResource(tab.label)) },
@@ -183,7 +200,7 @@ internal fun UmamitApp(
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
-                            alerting = alerting,
+                            catalogScreens = catalogScreens,
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
                                     CatalogTab(
@@ -199,6 +216,17 @@ internal fun UmamitApp(
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
+                            catalogTea = { onBack ->
+                                catalogScreens.tea(
+                                    CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
+                                        // Saved in the picker's flow: the setup of that tea (D-073, D-088).
+                                        brewFlow.finish {
+                                            selected = Tab.Start
+                                            startNavigation.openSetup(teaId)
+                                        }
+                                    },
+                                )
+                            },
                             start = { openSettings, scrollToTop ->
                                 startScreen(
                                     StartTab(
@@ -211,6 +239,13 @@ internal fun UmamitApp(
                                         },
                                         alertKey = alertKey,
                                         navigation = startNavigation,
+                                        openCatalogForBrew = {
+                                            brewFlow.start()
+                                            segment = CollectionSegment.Catalog
+                                            selected = Tab.Collection
+                                        },
+                                        pickerReturn = brewFlow.pickerReturn,
+                                        onPickerReturned = brewFlow::pickerReturned,
                                     ),
                                 )
                             },
@@ -220,6 +255,7 @@ internal fun UmamitApp(
                 SavedSheetHost(
                     requests = journalSources.savedSheets,
                     sessions = journalSources.sessions,
+                    teas = journalSources.teas,
                     alerting = alerting,
                     modifier = Modifier.align(Alignment.BottomCenter),
                     // Like the brew bar: in the rail layout nothing below the content has applied the bottom inset.
@@ -245,6 +281,70 @@ internal fun UmamitApp(
         }
     }
 }
+
+/**
+ * The tea picker's catalog flow (D-073, D-088): whether Sammlung › Katalog was opened from the
+ * picker ([active]), and whether Start owes the picker its return ([pickerReturn]). Both survive a
+ * configuration change and process death. Starting and leaving the flow pop the Sammlung stack to
+ * its root, so the catalog list shows and no screen of the flow stays behind.
+ */
+private class CatalogBrewFlow(
+    private val collection: NavHostController,
+    active: Boolean = false,
+    pickerReturn: Boolean = false,
+) {
+    var active by mutableStateOf(active)
+        private set
+    var pickerReturn by mutableStateOf(pickerReturn)
+        private set
+
+    fun start() {
+        popToRoot()
+        pickerReturn = false
+        active = true
+    }
+
+    /** A save in the flow: it ends, then [then] opens the setup. Outside the flow nothing happens. */
+    fun finish(then: () -> Unit) {
+        if (!active) return
+        end(toPicker = false)
+        then()
+    }
+
+    /**
+     * The shell turns to [tab]: Start (back, or its tab) ends the flow with the picker open again,
+     * another tab ends it quietly. The flow runs only in Sammlung, so turning there changes nothing.
+     */
+    fun leaveFor(tab: Tab) {
+        if (active && tab != Tab.Collection) end(toPicker = tab == Tab.Start)
+    }
+
+    private fun end(toPicker: Boolean) {
+        active = false
+        popToRoot()
+        pickerReturn = toPicker
+    }
+
+    fun pickerReturned() {
+        pickerReturn = false
+    }
+
+    // Only a stack deeper than its root is popped: a tab never shown has no graph yet.
+    private fun popToRoot() {
+        if (collection.previousBackStackEntry != null) collection.popBackStack(Tab.Collection.root, inclusive = false)
+    }
+
+    companion object {
+        fun saver(collection: NavHostController) = listSaver<CatalogBrewFlow, Boolean>(
+            save = { listOf(it.active, it.pickerReturn) },
+            restore = { (active, pickerReturn) -> CatalogBrewFlow(collection, active, pickerReturn) },
+        )
+    }
+}
+
+@Composable
+private fun rememberCatalogBrewFlow(collection: NavHostController): CatalogBrewFlow =
+    rememberSaveable(saver = CatalogBrewFlow.saver(collection)) { CatalogBrewFlow(collection) }
 
 /**
  * Re-selecting a tab (03 §2.2, D-049): the first tap scrolls the screen on top to
@@ -284,9 +384,10 @@ private fun TabHost(
     onOpenTimer: () -> Unit,
     settings: SettingsScreens,
     alertKey: String?,
-    alerting: Boolean,
+    catalogScreens: CatalogStackScreens,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
+    catalogTea: @Composable (onBack: () -> Unit) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -319,21 +420,17 @@ private fun TabHost(
                 onRefreshCatalog = onRefreshCatalog,
             )
         }
-        composable<CatalogTeaRoute> {
-            // The add sheet (SCR-23) gives way to an alert (rule 8).
-            CatalogTeaScreenRoute(onBack = { navController.popBackStack() }, alerting = alerting)
-        }
+        // The add sheet (SCR-23) gives way to an alert (rule 8).
+        composable<CatalogTeaRoute> { catalogTea { navController.popBackStack() } }
         composable<GuidesRoute> {
-            GuideListRoute(
-                onBack = { navController.popBackStack() },
-                onOpenGuide = { navController.navigate(GuideRoute(it)) },
-            )
+            catalogScreens.guides({ navController.popBackStack() }, { navController.navigate(GuideRoute(it)) })
         }
+        // A tea linked from a guide is the same detail: in the picker's flow its save opens the setup (D-088).
         composable<GuideRoute> {
-            GuideArticleRoute(
-                onBack = { navController.popBackStack() },
-                onOpenTea = { navController.navigate(CatalogTeaRoute(it)) },
-                onOpenGuide = { navController.navigate(GuideRoute(it)) },
+            catalogScreens.guide(
+                { navController.popBackStack() },
+                { navController.navigate(CatalogTeaRoute(it)) },
+                { navController.navigate(GuideRoute(it)) },
             )
         }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }

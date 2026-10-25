@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22
+> Status: **Draft v0.2** · Last updated: 2026-10-25
 
 Information architecture, navigation, visual design system and screens.
 Functional rules: [02](02-functional-requirements.md). The UI language is
@@ -478,6 +478,11 @@ Search (GEN-10); sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned tea
 footer *Aus dem Katalog* (→ SCR-19 → SCR-21 → SCR-23 *In Sammlung aufnehmen*,
 then back to SCR-04 with the new tea selected; D-073) and *Ohne Tee
 (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
+The catalog flow runs in the Sammlung tab (Sammlung › Katalog at its root);
+an add or a repurchase saved there opens SCR-04 of that tea above Start. Back
+from the catalog list, or a tap on Start, returns to the picker; another tab
+ends the flow; nothing is written before the save. An alert wins: the add
+sheet and the picker give way and no setup opens during it ([D-088](10-open-questions-and-decisions.md#d-088)).
 
 ### SCR-04 Brühen (setup)
 
@@ -501,7 +506,8 @@ then back to SCR-04 with the new tea selected; D-073) and *Ohne Tee
 └──────────────────────────────┘
 ```
 
-„Rezept prüfen" badge with reason above the steps if flagged. *Bearb.* and
+„Rezept prüfen" badge with reason above the steps if flagged (the same note as
+SCR-21's, D-088). *Bearb.* and
 the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
 the ratio lock is a switch with the live ratio; at ≤ 10 °C the kettle hint reads „Kaltes Wasser" /
 „Eiswürfel" ([D-062](10-open-questions-and-decisions.md#d-062)).
@@ -576,7 +582,8 @@ beenden*, also while the shell is covered, so it never returns stale. It is
 never shown while an alert plays, and an alert removes it in
 the same frame (rule 8). M1 shows only the text; the two actions come with
 M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
-*Rezept passt*, which clears the flag (CAT-05, D-073).
+*Rezept passt*, which clears the flag of that tea only and then reads
+„„Rezept prüfen“ ist entfernt.“ (CAT-05, D-073, D-088).
 
 ### SCR-07 Schnelltimer
 

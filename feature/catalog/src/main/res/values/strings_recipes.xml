@@ -18,10 +18,4 @@
     <!-- The source of a recipe other than the default, when not the shop's table (CAT-05). -->
     <string name="catalog_tea_recipe_source_text">Werte aus dem Beschreibungstext des Shops</string>
     <string name="catalog_tea_recipe_source_style">Fehlende Werte aus den Standardwerten der Sorte</string>
-    <!-- Why the default recipe should be checked (CAT-05, 05 §5 RecipeCheckReason). -->
-    <string name="catalog_tea_recipe_reason_from_text">Werte stammen aus dem Beschreibungstext, nicht aus der Tabelle des Shops.</string>
-    <string name="catalog_tea_recipe_reason_from_style">Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.</string>
-    <string name="catalog_tea_recipe_reason_conflict">Tabelle und Beschreibungstext des Shops widersprechen sich – das Rezept folgt der Tabelle.</string>
-    <string name="catalog_tea_recipe_reason_implausible">Ein Wert des Shops wirkt unplausibel – stattdessen gilt der Standardwert der Sorte.</string>
-    <string name="catalog_tea_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Grüntee-Werte.</string>
 </resources>
