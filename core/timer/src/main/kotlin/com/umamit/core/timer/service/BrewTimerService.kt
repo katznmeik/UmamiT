@@ -101,6 +101,11 @@ class BrewTimerService : Service() {
         try {
             Log.i(TAG, "show($id): startForeground, foregroundRequired=$foregroundRequired")
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            // Once more now that [id] is the foreground notification: after a process death the
+            // system can still hold the other one as the restarted service's foreground
+            // notification and ignore the cancel above, which left notification 1 next to the
+            // alert (D-080).
+            TimerNotifications.cancel(this, otherIdThan(id))
             lastForegroundStartAt = SystemClock.uptimeMillis()
             ForegroundServiceState.foregroundId = id
             ForegroundServiceState.report(ServiceReport.InForeground(id))
