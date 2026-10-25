@@ -109,7 +109,7 @@ only.
 
 ### M2 — Catalog
 
-- [ ] *Katalog laden* completes (first run ≈ 10 min); ~260–280 teas; no duplicates per size; no sets or accessories.
+- [ ] *Katalog laden* completes (first run ≈ 15–18 min, D-076); ~260–280 teas; no duplicates per size; no sets or accessories.
 - [ ] 10 spot-checked teas: name, type, origin, prices, photo correct; brewing table/text shown verbatim; derived recipe follows §2.5; flags plausible.
 - [ ] Second refresh reports „0 neu · 0 geändert" when nothing changed.
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
