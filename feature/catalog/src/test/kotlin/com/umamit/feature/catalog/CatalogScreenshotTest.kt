@@ -296,9 +296,27 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun refreshRunning() = sheet("refreshRunning", CatalogRefreshState.Running(CatalogRefreshProgress(412, 1560, 96)))
 
+    /** The first load: the green teas and the recipes to check (CAT-07 AC3). */
     @Test
-    fun refreshSuccess() =
-        sheet("refreshSuccess", CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(274, 274)))
+    fun refreshSuccess() = sheet(
+        "refreshSuccess",
+        CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 274, recipesToCheck = 31)),
+    )
+
+    /** A later refresh's summary (CAT-07 AC3, #70): every kind of change. */
+    @Test
+    fun refreshSummary() = sheet(
+        "refreshSummary",
+        CatalogRefreshState.Finished(
+            CatalogRefreshOutcome.Success(
+                teas = 276,
+                newTeas = 12,
+                changedTeas = 5,
+                discontinuedTeas = 2,
+                recipesToCheck = 3,
+            ),
+        ),
+    )
 
     @Test
     fun refreshShopChanged() =

@@ -302,6 +302,64 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-086"></a>
+### D-086 — Later catalog refreshes: summary, discontinued teas, seed teas linked (#70) · *Accepted* (Claude, 2026-10-25)
+
+The seventh M2 slice (spec #62, #70) makes a refresh of an existing catalog
+cheaper and tells what changed (CAT-07 AC3/AC4, CAT-08, CAT-15). Decided
+while building it; `umamit.db` stays at version 1, `catalog.db` needs no
+new column:
+
+- **Which pages** (08 §2.4 item 5): the known green parents are the
+  catalog's keys and the base numbers merged into them (D-081), read back
+  from their packages' article numbers (each page's own size keeps its
+  number), so a split tea's second number counts as known, not new. With the
+  base numbers new in the sitemap and the skip entries due again (90 days)
+  that is every product not freshly skipped; the diagnostics log counts the
+  three groups.
+- **Discontinued** means missing from the sitemap or now out of scope. A
+  known tea whose numbers are still in the sitemap but whose page couldn't
+  be read this time (robots.txt, 404, a page without product) is copied into
+  the new catalog unchanged, so one bad answer neither hides a tea nor makes
+  it „Neu" again later. A tea that left the range stays, hidden, with
+  `discontinued = 1` while a collection tea links to it (the owned keys read
+  from `umamit.db` before the swap, D-076); otherwise it is deleted with its
+  packages and photos. Back in the shop, it is in the range again and keeps
+  its `first_seen_at`.
+- **Photos** (CAT-08): `photo_url` holds the URL the stored photo came
+  from; a photo is downloaded only when the page's URL differs (the shop's
+  media URL carries the image's version, `?ts=`) or no photo is stored. A
+  changed photo that can't be fetched leaves the old one and its old URL,
+  so the next refresh asks again. `photo_etag` stays empty: an ETag needs a
+  conditional request, which still costs one.
+- **„geändert"**: `content_hash` is `<parser version>:<SHA-256>` of what the
+  shop shows of a tea (page fields, photo URL, packages with prices and
+  stock), not of what the app derives (style, recipes, flag, plain text).
+  Hashes count only under the same parser version, so an app update with a
+  new parser does not report every tea as changed; a tea back in the range
+  counts as changed too.
+- **Summary** (CAT-07 AC3), in the sheet and the result notification: „276
+  Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte
+  prüfen", each part only above 0 and never broken across lines
+  (non-breaking spaces). „Rezepte prüfen" counts the teas flagged
+  since this refresh (new ones, or known ones not flagged before), not every
+  flagged tea, which D-082's `flagged_count` did; the log stores the same
+  counts. The first load leaves out „neu" (every tea is, as with the badge,
+  D-083); a later refresh without change says „keine Änderungen".
+- **SCR-21:** a discontinued tea kept for the collection shows the tag
+  „Nicht mehr im Sortiment" and no *Im Shop öffnen* (as INV-09 AC2).
+- **CAT-15:** after each successful swap, until done: the seed teas
+  Tanabata and Hisui (by id, CAT-13) whose `catalog_key` the catalog holds
+  and which have no description get the catalog's plain-text description
+  and, only without a cover, its photo re-encoded as their own JPEG
+  (D-076). Each tea is one `umamit.db` transaction that checks again; the
+  marker `seedTeasLinked` (DataStore, 05 §6) is set after the first run
+  that found a seed tea, so a description emptied later is never filled in
+  again, and a run cut short before the marker changes nothing the second
+  time. Before the seed exists (D-075) nothing is marked. A failure is
+  logged and never fails the refresh, whose swap is in; the steps after the
+  swap are not cancellable.
+
 <a id="d-084"></a>
 ### D-084 — A killed process's stale foreground notification is taken over and removed (TMR-41, D-044; corrects D-080) · *Accepted* (Claude, 2026-10-25)
 
@@ -432,7 +490,7 @@ The fifth M2 slice (spec #62, #68) derives each catalog tea's timer recipes
 - **Refresh:** each green tea's `style_key`, `derived_recipes_json` (05 §4.1)
   and `recipe_check_reason` are written with its row; the log's
   `flagged_count` counts the flagged teas of a swapped-in catalog (for #70's
-  summary). The sanity check's brewing threshold (08 §2.9) is on: a green tea
+  summary; D-086 counts only those flagged since the refresh). The sanity check's brewing threshold (08 §2.9) is on: a green tea
   lacks brewing information with neither a grid row nor brewing prose.
 - **Parser fixes from live sample 1** (parser version 4, after #67's 3): the
   brewing prose is only paragraphs that are instructions (two of temperature, time and amount
@@ -589,7 +647,7 @@ photos and shows a catalog tea's detail (SCR-21). Decided while building it:
   every run, successful or not, the photo files of teas the catalog doesn't
   hold are deleted. With SET-22 off, a refresh fetches no photo and keeps the
   photos already stored. Until #70 every photo is downloaded again on each
-  refresh (no change detection yet).
+  refresh (no change detection yet; D-086 adds it).
 - ***Im Shop öffnen*** (D-072): the size of the latest INITIAL or PURCHASE
   event is matched by grams, else by its package label; without a match the
   product page opens. The page goes to the browser as a `VIEW` intent
@@ -2984,6 +3042,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-086: later catalog refreshes (#70) — merged numbers known through their packages, unread known teas kept, discontinued teas kept hidden while owned and deleted otherwise, photos fetched only when new or their URL changed, `content_hash` per parser version for „geändert", the CAT-07 AC3 summary in the sheet and the notification („Rezepte prüfen" = flagged since this refresh), SCR-21's „Nicht mehr im Sortiment", CAT-15 seed linking once with the `seedTeasLinked` marker; 02 CAT-07, CAT-15, 03 SCR-21, SCR-22, 05 §4.1, §4.4, §4.5, §6, 06 §5.2, §5.3 and 08 §2.4 updated. |
 | 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |

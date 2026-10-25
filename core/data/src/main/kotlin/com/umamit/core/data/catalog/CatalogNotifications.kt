@@ -84,15 +84,8 @@ internal object CatalogNotifications {
         val (title, text) = when (outcome) {
             CatalogRefreshOutcome.Cancelled -> return null
 
-            is CatalogRefreshOutcome.Success -> {
-                val teas = context.resources.getQuantityString(
-                    R.plurals.data_catalog_tea_count,
-                    outcome.teas,
-                    outcome.teas,
-                )
-                context.getString(R.string.data_catalog_result_success_title) to
-                    context.getString(R.string.data_catalog_result_success, teas, outcome.newTeas)
-            }
+            is CatalogRefreshOutcome.Success ->
+                context.getString(R.string.data_catalog_result_success_title) to summary(context, outcome)
 
             is CatalogRefreshOutcome.Failure -> {
                 val reason = context.getString(outcome.reason())
@@ -112,6 +105,31 @@ internal object CatalogNotifications {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .build()
+    }
+
+    /** „274 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (CAT-07 AC3). */
+    fun summary(context: Context, outcome: CatalogRefreshOutcome.Success): String {
+        val resources = context.resources
+        return outcome.summary().joinToString(context.getString(R.string.data_catalog_summary_separator)) { part ->
+            when (part) {
+                is SummaryPart.Teas -> resources.getQuantityString(
+                    R.plurals.data_catalog_tea_count,
+                    part.count,
+                    part.count,
+                )
+
+                is SummaryPart.New -> context.getString(R.string.data_catalog_summary_new, part.count)
+
+                is SummaryPart.Changed -> context.getString(R.string.data_catalog_summary_changed, part.count)
+
+                is SummaryPart.Discontinued -> context.getString(R.string.data_catalog_summary_discontinued, part.count)
+
+                is SummaryPart.RecipesToCheck ->
+                    resources.getQuantityString(R.plurals.data_catalog_summary_recipes, part.count, part.count)
+
+                SummaryPart.NoChanges -> context.getString(R.string.data_catalog_summary_unchanged)
+            }
+        }
     }
 
     fun post(context: Context, id: Int, notification: Notification) {

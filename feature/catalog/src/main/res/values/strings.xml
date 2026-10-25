@@ -72,8 +72,19 @@
     <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen und das Handy sperren: Der Katalog lädt im Hintergrund weiter.</string>
     <string name="catalog_refresh_cancel">Abbrechen</string>
     <string name="catalog_refresh_success_title">Katalog geladen</string>
-    <!-- „274 Grüntees · 12 neu" (the full CAT-07 AC3 summary follows with #70). -->
-    <string name="catalog_refresh_success_summary" tools:ignore="PluralsCandidate">%1$s · %2$d neu</string>
+    <!-- The summary line after the count of green teas (CAT-07 AC3, D-086): „274 Grüntees · 12 neu · 5 geändert ·
+         2 nicht mehr im Sortiment · 3 Rezepte prüfen", each part only with a count above 0. „neu", „geändert" and
+         „nicht mehr im Sortiment" don't change with the number. -->
+    <!-- Non-breaking spaces keep each part on one line and the dot after the part before it. -->
+    <string name="catalog_refresh_summary_separator">" · "</string>
+    <string name="catalog_refresh_summary_new" tools:ignore="PluralsCandidate">%1$d neu</string>
+    <string name="catalog_refresh_summary_changed" tools:ignore="PluralsCandidate">%1$d geändert</string>
+    <string name="catalog_refresh_summary_discontinued" tools:ignore="PluralsCandidate">%1$d nicht mehr im Sortiment</string>
+    <plurals name="catalog_refresh_summary_recipes">
+        <item quantity="one">%1$d Rezept prüfen</item>
+        <item quantity="other">%1$d Rezepte prüfen</item>
+    </plurals>
+    <string name="catalog_refresh_summary_unchanged">keine Änderungen</string>
     <string name="catalog_refresh_cancelled_title">Laden abgebrochen</string>
     <string name="catalog_refresh_failed_title">Katalog nicht geladen</string>
     <string name="catalog_refresh_kept">Dein bisheriger Katalog bleibt erhalten.</string>
@@ -98,6 +109,8 @@
     <string name="catalog_tea_flavored">aromatisiert</string>
     <string name="catalog_tea_cold_brew">Coldbrew geeignet</string>
     <string name="catalog_tea_out_of_stock">nicht vorrätig</string>
+    <!-- A tea that left the shop's range, kept while a collection tea links to it (CAT-07 AC4). -->
+    <string name="catalog_tea_discontinued">Nicht mehr im Sortiment</string>
     <string name="catalog_tea_section_profile">Steckbrief</string>
     <string name="catalog_tea_origin">Anbaugebiet</string>
     <string name="catalog_tea_region">Region</string>

@@ -194,7 +194,15 @@ class CatalogRefreshServiceTest {
         port.mutableState.value = running(done = 9, total = 10, products = 270)
         val service = service().run()
 
-        port.mutableState.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 12))
+        port.mutableState.value = CatalogRefreshState.Finished(
+            CatalogRefreshOutcome.Success(
+                teas = 276,
+                newTeas = 12,
+                changedTeas = 5,
+                discontinuedTeas = 2,
+                recipesToCheck = 3,
+            ),
+        )
         idle()
 
         val shadow = shadowOf(service.get())
@@ -204,7 +212,12 @@ class CatalogRefreshServiceTest {
         val result = checkNotNull(posted(CatalogNotifications.ID_RESULT))
         assertThat(result.channelId).isEqualTo("catalog")
         assertThat(result.title()).isEqualTo("Katalog geladen")
-        assertThat(result.text()).isEqualTo("274 Grüntees · 12 neu")
+        // The summary of CAT-07 AC3, as the refresh sheet shows it (#70).
+        assertThat(result.text())
+            .isEqualTo(
+                "276 Grüntees\u00A0· 12\u00A0neu\u00A0· 5\u00A0geändert\u00A0· " +
+                    "2\u00A0nicht\u00A0mehr\u00A0im\u00A0Sortiment\u00A0· 3\u00A0Rezepte\u00A0prüfen",
+            )
         assertThat(result.flags and Notification.FLAG_AUTO_CANCEL).isNotEqualTo(0)
         assertThat(result.contentIntent).isNotNull()
     }
@@ -237,7 +250,8 @@ class CatalogRefreshServiceTest {
         assertThat(shadow.lastForegroundNotificationId).isEqualTo(CatalogNotifications.ID_PROGRESS)
         assertThat(shadow.isForegroundStopped).isTrue()
         assertThat(shadow.isStoppedBySelf).isTrue()
-        assertThat(posted(CatalogNotifications.ID_RESULT)?.text()).isEqualTo("2 Grüntees · 2 neu")
+        // A first load: every tea is new, so the summary doesn't say so.
+        assertThat(posted(CatalogNotifications.ID_RESULT)?.text()).isEqualTo("2 Grüntees")
     }
 
     @Test

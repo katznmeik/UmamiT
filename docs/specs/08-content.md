@@ -97,7 +97,14 @@ comes from titles („2026 Shincha …").
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
-   sitemap; products missing from the sitemap → discontinued.
+   sitemap; products missing from the sitemap → discontinued. The known green
+   parents are the catalog's keys and the base numbers merged into them
+   (item 7), read from their packages' article numbers; skip entries due
+   again (90 days) are fetched too. A known tea whose page can't be read this
+   time (robots.txt, 404, a page without product) but whose numbers are still
+   in the sitemap is kept as it was; one that is now out of scope or missing
+   from the sitemap is discontinued (CAT-07 AC4). Only new and changed photos
+   are fetched (D-086).
 6. **Package prices:** variant sizes come from the configurator labels and
    variant URLs. Sizes **larger** than the parent package are **estimated**
    without extra requests: `price(size) = parent price ÷ parent grams × size ×
