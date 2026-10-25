@@ -95,6 +95,14 @@ fun GuideListScreen(
         verticalArrangement = Arrangement.Top,
     ) {
         if (state.loading) return@ScreenScaffold
+        if (state.guides.isEmpty()) {
+            // Its own illustration stands in for the header.
+            EmptyState(
+                title = stringResource(R.string.guides_empty_title),
+                body = stringResource(R.string.guides_empty_body),
+            )
+            return@ScreenScaffold
+        }
         // A11 comes from the PO (docs/design/assets.md); the placeholder landscape stands in.
         Image(
             painter = painterResource(UmamiIcons.LandscapePlaceholder),
@@ -106,13 +114,6 @@ fun GuideListScreen(
                 .aspectRatio(HEADER_RATIO)
                 .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
         )
-        if (state.guides.isEmpty()) {
-            EmptyState(
-                title = stringResource(R.string.guides_empty_title),
-                body = stringResource(R.string.guides_empty_body),
-            )
-            return@ScreenScaffold
-        }
         Text(
             text = stringResource(R.string.guides_intro),
             style = MaterialTheme.typography.bodyMedium,

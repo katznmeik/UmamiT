@@ -714,7 +714,8 @@ exist: „Ratgeber · 12 Guides von Tee-Kontor Kiel, offline lesbar"): header
 A11 (the placeholder landscape until the PO's image), „Grüntee-Wissen von
 Tee-Kontor Kiel – auch ohne Verbindung lesbar.", the guides by title with
 the hero as round thumbnail and the date (else „Tee-Kontor Kiel ·
-Tee-Info"). Empty: „Noch keine Ratgeber." (D-087).
+Tee-Info"). Empty: the empty state (its illustration instead of the header),
+„Noch keine Ratgeber." (D-087).
 
 ### SCR-21 Katalog-Tee
 
