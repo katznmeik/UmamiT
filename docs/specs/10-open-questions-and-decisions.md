@@ -351,6 +351,107 @@ it:
   primary action is *In Sammlung aufnehmen*, or *Nachkauf erfassen* for an
   owned tea. The route reports the saved tea for the picker flow (#72).
 
+<a id="d-084"></a>
+### D-084 — A killed process's stale foreground notification is taken over and removed (TMR-41, D-044; corrects D-080) · *Accepted* (Claude, 2026-10-25)
+
+`ProcessDeathTest` (CI emulator, API 35) failed again with D-080 in place:
+after the kill, notification 1 (`ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE`)
+was still posted next to the new process's alert. Root cause from the AOSP
+sources (`NotificationManagerService`, `ActiveServices`, `ServiceRecord`):
+
+- **D-080 was wrong.** A killed service does not keep its notification:
+  `killServicesLocked` brings it down (`START_NOT_STICKY`, no start pending)
+  and `cancelForegroundNotificationLocked` cancels the notification as the
+  system. The restarted service gets a new record with no foreground
+  notification. An app's cancel never removes a notification flagged
+  `FLAG_FOREGROUND_SERVICE` (`cancelNotificationWithTag` refuses it for callers
+  other than the system), before `startForeground` or after it, so D-080's
+  second cancel changed nothing. It is removed.
+- **What leaves notification 1:** the process dies while it posts an update of
+  its foreground notification. In the test this is D-071's re-post, 0.5–0.8 s
+  after the start, about when the test kills. `enqueueNotificationInternal`
+  flags the update as the foreground notification on the binder thread (the
+  service is still in the foreground) and only later queues it on the
+  NotificationManager's handler. The system's cancel for the dead service can
+  come in between. The update is then posted after the cancel, as a new
+  notification that keeps the flag but belongs to no service. The app cannot
+  cancel it, and the new process's `startForeground(2)` does not touch it, so
+  it stays next to the alert, which Android 16 would group and silence (D-044).
+  D-071's re-post stays: any update of the foreground notification can meet a
+  kill, and the re-post only makes the test's kill meet one more often.
+- **Decided:** when the service starts in the foreground while it is not
+  there yet (its first start, or one after a refusal), it first looks among
+  its active notifications for the other timer ID with
+  `FLAG_FOREGROUND_SERVICE`. If it finds one, it calls
+  `startForeground(other, copy)` with a copy of it (only-alert-once, no
+  full-screen intent) and then `startForeground(id)` as before. The switch
+  makes the system cancel the old ID (`setServiceForegroundInnerLocked` →
+  `cancelForegroundNotificationLocked`). The copy's post, that cancel and the
+  new notification's post go through the ActivityManager's handler in this
+  order, so the stale notification is gone before the new one is queued. It
+  works both ways: a stale notification 1 before the alert, a stale alert
+  before notification 1. The diagnostics log records the takeover (06 §5.6).
+- **Never at the alert's cost:** a failure of the lookup or of the extra call
+  is logged, and the normal start follows. The cost is one
+  `getActiveNotifications` call per such start, plus one `startForeground`
+  call when a stale notification exists. After a takeover, the new ID's
+  `startForeground` is the service's second one, which Android checks again
+  against the background-start rules. The exact alarm's allowance and the
+  battery exemption (ONB-02) allow it. If it is refused, the existing
+  fallback (04 §6.3) leaves the foreground, which also removes the
+  taken-over notification, and posts the alert alone.
+- **Limits:** a stale notification stays until the service next starts in the
+  foreground. The paths without the service (a long step, a demoted session,
+  the end of the session) cannot remove it. A notification whose system
+  cancel is still on its way (a stop right before the start) can be taken
+  over too; it goes all the same. So far a stale notification has been seen
+  only in the emulator test.
+- **Tests:** `StaleForegroundNotificationTest` (Robolectric) uses shadows that
+  add the AOSP rules Robolectric leaves out: an app's cancel is refused for a
+  flagged notification, an update keeps the flag, and a foreground switch or a
+  removing stop cancels as the system. They do not model the race itself.
+  `ProcessDeathTest` keeps its assertion. Its failure message now adds the
+  kill time and the device state, and it logs whether the kill left
+  notification 1. `timer-stress.yml` (dispatch only; it must be on `main`
+  before its first dispatch, D-039) repeats one instrumented test with
+  `scripts/stress-instrumented.sh`. It can sweep the kill moment across the
+  re-post (`umamitKillAfterStartMs`). 04 §6.3 and §12 and 06 §6 updated.
+
+<a id="d-083"></a>
+### D-083 — Finding teas in the catalog: search, filters, „Neu" (#69) · *Accepted* (Claude, 2026-10-25)
+
+The catalog list (SCR-19) gets CAT-10's search, filters and sort. Decided
+while building it:
+
+- **„Neu"** is a tea whose `first_seen_at` is the start of the latest
+  successful refresh, and only when an earlier successful refresh exists: the
+  first refresh finds every tea, so 274 „Neu" badges would say nothing. A
+  refresh keeps a known tea's `first_seen_at` at the swap (D-077); a refresh
+  that fails or is cancelled ends nobody's „Neu". The badge stays until the
+  next successful refresh.
+- **Filters** live in a pure `CatalogBrowser` (`core:domain`) over the
+  current range; the search runs on `catalog_fts`. Chips and sheet as in
+  03 SCR-19 (D-076). „Rezept prüfen" is a row badge, not a filter (CAT-10 has
+  none). *Umami* filters by the shop's umami scale (08 §2.6: 0 none … 4–5
+  very high); a tea without a scale passes only „Egal". Several origins of
+  one tea („Japan, Korea") count each. Stock unknown counts as available.
+- **Search:** every word of the search text is a prefix, all required, any
+  other character only separates words (so no FTS syntax reaches the
+  query). `catalog_fts` uses the `unicode61` tokenizer, so „älpler" finds
+  „Älpler" and „goko" finds „Gokō" (05 §4.1; `catalog.db` is not frozen
+  before `v0.2.0-rc.1`). The filters apply to the hits too; the hits they
+  hide are counted with *Alle zeigen*, so a flavoured tea is „searchable but
+  hidden" (D-073) without vanishing silently.
+- **„im Besitz"** is a catalog key some collection tea links to
+  (`tea.catalog_key`, archived teas included), read from `umamit.db` by a
+  new query; no schema change.
+- **Not stored:** search, filters and sort live as long as the screen; the
+  list always opens in the default view (D-073), so 05 §6's `catalogSort`
+  setting is dropped.
+- **One badge slot:** `TeaListItem`'s `badges` is a wrapping row
+  (`FlowRowScope`); the catalog rows put „Neu", „im Besitz", Bio and
+  aromatisiert there next to D-082's `CheckRecipeBadge`.
+
 <a id="d-082"></a>
 ### D-082 — Timer recipes from the catalog and „Rezept prüfen" (#68) · *Accepted* (Claude, 2026-10-25)
 
@@ -431,7 +532,7 @@ items 6–7). Decided while building it:
   font sizes. The list keeps the price per 100 g (CAT-10, #64).
 
 <a id="d-080"></a>
-### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
+### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted*, corrected by D-084 (Claude, 2026-10-25)
 
 The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
 still posted, with its foreground flag, next to the alert of a step whose
@@ -443,6 +544,12 @@ cancels the other notification once more right after `startForeground`, when
 it is no longer the foreground one. Only one of notifications 1 and 2 is
 shown at a time again (D-044). Robolectric cannot reproduce the system's
 refusal, so the emulator test stays the check.
+
+*Corrected by D-084:* the system does not keep a killed service's
+notification, and it refuses the app's cancel of a flagged notification
+after `startForeground` too, so the second cancel had no effect and is
+removed. The notification is a stale one that the kill left behind; the
+service takes it over and so removes it.
 
 <a id="d-079"></a>
 ### D-079 — Catalog refresh in the background: service, notifications, entry points (#65) · *Accepted* (Claude, 2026-10-25)
@@ -2927,6 +3034,8 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |
+| 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
+| 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |
 | 2026-10-25 | D-081: catalog package sizes and prices (#67) — sizes from the configurator and the sitemap without fetching size pages, the page's own size at its price, larger sizes estimated, smaller ones priced when added, each with its own `variant_url`; split numbers merged by normalised name only when their own sizes differ; SCR-21 *Packungen*; parser v3; 03 SCR-21, 05 §4.2, 06 §2, §3 and 08 §2.4 updated. |
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |

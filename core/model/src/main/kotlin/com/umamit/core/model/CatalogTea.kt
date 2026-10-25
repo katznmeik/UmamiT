@@ -9,8 +9,12 @@ package com.umamit.core.model
  * @property basePriceCentsPer100g the price of 100 g in euro cents, if the shop showed one.
  * @property available in stock at the refresh; null when the page didn't say.
  * @property thumbnailPath the list thumbnail's file (CAT-08), if the tea has a photo.
+ * @property originCountry the growing countries as the shop names them („Japan", „Japan, China").
+ * @property umamiLeaves the shop's umami scale, 0–5 leaves, if it shows one.
  * @property recipeCheckReason why its derived recipe should be checked (CAT-05): the list's
- *   „Rezept prüfen" chip; null when it came straight from the shop's grid.
+ *   „Rezept prüfen" badge; null when it came straight from the shop's grid.
+ * @property isNew first seen in the latest successful refresh (CAT-10 „Neu", D-083).
+ * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -20,8 +24,34 @@ data class CatalogTeaSummary(
     val basePriceCentsPer100g: Long?,
     val available: Boolean?,
     val thumbnailPath: String? = null,
+    val originCountry: String? = null,
+    val isOrganic: Boolean = false,
+    val isFlavored: Boolean = false,
+    val umamiLeaves: Int? = null,
     val recipeCheckReason: RecipeCheckReason? = null,
-)
+    val isNew: Boolean = false,
+    val owned: Boolean = false,
+) {
+    /** The growing countries one by one (the shop joins several with „, "). */
+    val originCountries: List<String>
+        get() = originCountry.orEmpty().split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** The umami level of the shop's scale (08 §2.6: 0 none, 1 low, 2 medium, 3 high, 4–5 very high). */
+    val umamiLevel: UmamiLevel?
+        get() = umamiLeaves?.let { leaves ->
+            when {
+                leaves <= 0 -> UmamiLevel.NONE
+                leaves == 1 -> UmamiLevel.LOW
+                leaves == 2 -> UmamiLevel.MEDIUM
+                leaves == UMAMI_HIGH_LEAVES -> UmamiLevel.HIGH
+                else -> UmamiLevel.VERY_HIGH
+            }
+        }
+
+    private companion object {
+        const val UMAMI_HIGH_LEAVES = 3
+    }
+}
 
 /** The catalog list's content: the teas by name and when the last successful refresh finished (CAT-07 AC6). */
 data class CatalogOverview(val teas: List<CatalogTeaSummary>, val lastRefreshAtMillis: Long?) {

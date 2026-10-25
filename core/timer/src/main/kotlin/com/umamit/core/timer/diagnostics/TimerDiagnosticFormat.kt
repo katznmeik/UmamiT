@@ -62,6 +62,10 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceInForeground ->
             "service: in the foreground with notification ${entry.notificationId} | ${clocks(entry.at)}"
 
+        is TimerDiagnostic.ServiceTookOverStale ->
+            "service: took over the stale foreground notification ${entry.notificationId} " +
+                "of a killed process to remove it | ${clocks(entry.at)}"
+
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->

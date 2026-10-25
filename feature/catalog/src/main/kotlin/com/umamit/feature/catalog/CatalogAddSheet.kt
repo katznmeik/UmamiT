@@ -81,7 +81,7 @@ data class AddSheetActions(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogAddSheet(state: AddSheetState, actions: AddSheetActions, onDismissRequest: () -> Unit) {
-    val sheetState = rememberRefreshSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,

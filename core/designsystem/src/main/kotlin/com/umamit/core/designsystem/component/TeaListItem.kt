@@ -6,8 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -46,7 +47,8 @@ private const val TITLE_MAX_LINES = 2
  * („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider. Without a
  * [thumbnail], a leaf in the tea type's [placeholderColor] stands in (03 §3.5).
  * TalkBack reads the row as one item; with [onClick] it is a button with a chevron. [badges]
- * are chips below the meta line (e.g. [CheckRecipeBadge], CAT-10).
+ * are chips below the meta line, wrapping when they don't fit (e.g. the catalog's „Neu", Bio,
+ * „im Besitz" and [CheckRecipeBadge]; SCR-19, CAT-10).
  */
 @Composable
 fun TeaListItem(
@@ -58,7 +60,7 @@ fun TeaListItem(
     thumbnail: Painter? = null,
     placeholderColor: Color = UmamiTheme.extendedColors.teaTypes.other,
     showDivider: Boolean = true,
-    badges: (@Composable RowScope.() -> Unit)? = null,
+    badges: (@Composable FlowRowScope.() -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -85,10 +87,12 @@ fun TeaListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (badges != null) {
-                    Row(
+                    // Wraps onto further lines at a large font scale (03 §6).
+                    FlowRow(
                         modifier = Modifier.padding(top = UmamiSpacing.XXSmall),
                         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
+                        itemVerticalAlignment = Alignment.CenterVertically,
                         content = badges,
                     )
                 }

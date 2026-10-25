@@ -319,10 +319,12 @@ Table `catalog_tea`
 | `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
 | `photo_url`, `photo_etag` | TEXT | change detection |
 | `content_hash` | TEXT | to report „geändert" |
-| `first_seen_at`, `last_seen_at` | INTEGER | |
+| `first_seen_at`, `last_seen_at` | INTEGER | the start of the refresh that first / last found the tea; a tea is „Neu" when `first_seen_at` is the start of the latest successful refresh and an earlier successful refresh exists (CAT-10, D-083) |
 
 FTS4 `catalog_fts` over name, secondary_name, `description_text`, cultivar,
-origin_region.
+origin_region, with the `unicode61` tokenizer (case and diacritics folded,
+D-083). The search takes every word of the search text as a prefix, all
+required.
 
 ### 4.2 CatalogPackage
 
@@ -411,12 +413,15 @@ successful refresh is removed; #70 keeps the owned ones as discontinued
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 |
-| `collectionSort`, `catalogSort` | enums | name | |
+| `collectionSort` | enum | name | |
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
+
+The catalog list's search, filters and sort are not stored: it opens in its
+default view each time (D-073, D-083).
 
 The settings are one JSON file, `files/datastore/settings.json`. A missing
 key reads as its default, an unknown enum name falls back to the default,

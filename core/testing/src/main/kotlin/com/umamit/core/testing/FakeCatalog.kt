@@ -3,6 +3,9 @@ package com.umamit.core.testing
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
+import com.umamit.core.domain.catalog.CatalogBrowser
+import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.CatalogTeaSummary
@@ -20,6 +23,15 @@ class FakeCatalogRepository(
     val details = MutableStateFlow(details.associateBy { it.key })
 
     override fun observeCatalog(): Flow<CatalogOverview> = catalog
+
+    /** The real filters on [catalog]; the search matches words of the name (the database's index is not faked). */
+    override fun observeListing(filter: CatalogFilter): Flow<CatalogListing> = catalog.map { overview ->
+        val words = filter.search.lowercase().split(' ').filter { it.isNotBlank() }
+        val hits = words.takeIf { it.isNotEmpty() }?.let {
+            overview.teas.filter { tea -> words.all { word -> word in tea.name.lowercase() } }.map { it.key }.toSet()
+        }
+        CatalogBrowser.listing(overview.teas, filter, hits, overview.lastRefreshAtMillis)
+    }
 
     override fun observeLastRefresh(): Flow<Long?> = catalog.map { it.lastRefreshAtMillis }
 

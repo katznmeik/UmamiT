@@ -350,6 +350,14 @@ class BrewTimerServiceTest {
         assertThat(diagnostics.entries.first().at).isEqualTo(clock.reading())
     }
 
+    @Test
+    fun `the takeover of a stale foreground notification is logged`() {
+        ForegroundServiceState.report(ServiceReport.TookOverStale(TimerNotifications.ID_LIVE_UPDATE))
+
+        assertThat(diagnostics.entries)
+            .containsExactly(TimerDiagnostic.ServiceTookOverStale(clock.reading(), TimerNotifications.ID_LIVE_UPDATE))
+    }
+
     private fun TimerDiagnostic.describe(): String = when (this) {
         is TimerDiagnostic.ServiceInForeground -> "foreground $notificationId"
         is TimerDiagnostic.ServiceStopped -> "stopped"

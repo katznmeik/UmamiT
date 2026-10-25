@@ -24,7 +24,13 @@ data class CatalogListRow(
     @ColumnInfo(name = "base_price_cents_per_100g") val basePriceCentsPer100g: Long?,
     @ColumnInfo(name = "available") val available: Boolean?,
     @ColumnInfo(name = "photo_file") val photoFile: String?,
+    @ColumnInfo(name = "origin_country") val originCountry: String? = null,
+    @ColumnInfo(name = "is_organic") val isOrganic: Boolean = false,
+    @ColumnInfo(name = "is_flavored") val isFlavored: Boolean = false,
+    @ColumnInfo(name = "taste_scales_json") val tasteScalesJson: String? = null,
     @ColumnInfo(name = "recipe_check_reason") val recipeCheckReason: RecipeCheckReason? = null,
+    /** First seen in the latest successful refresh, and that refresh was not the first (CAT-10 „Neu", D-083). */
+    @ColumnInfo(name = "is_new") val isNew: Boolean = false,
 )
 
 /**
@@ -35,14 +41,32 @@ data class CatalogListRow(
 @Dao
 @Suppress("TooManyFunctions") // one query per step of the refresh and its swap (05 §4.5)
 abstract class CatalogDao {
-    /** The teas in the shop's current range (not discontinued), by name. */
+    /**
+     * The teas in the shop's current range (not discontinued), by name. A tea is „Neu" (CAT-10,
+     * D-083) when its first sighting is the start of the latest successful refresh and an earlier
+     * successful refresh exists: the first refresh finds every tea, so none is new then.
+     */
     @Query(
         "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
-            "recipe_check_reason " +
+            "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, " +
+            "(first_seen_at = (SELECT l.started_at FROM catalog_refresh_log l WHERE l.status = 'SUCCESS' " +
+            "ORDER BY l.finished_at DESC, l.id DESC LIMIT 1) " +
+            "AND EXISTS (SELECT 1 FROM catalog_refresh_log e WHERE e.status = 'SUCCESS' " +
+            "AND e.started_at < catalog_tea.first_seen_at)) AS is_new " +
             "FROM catalog_tea " +
             "WHERE discontinued = 0 ORDER BY name, key",
     )
     abstract fun observeList(): Flow<List<CatalogListRow>>
+
+    /**
+     * The keys of the teas whose name, secondary name, description, cultivar or region match
+     * [match], an FTS4 query (05 §4.1 `catalog_fts`, CAT-10).
+     */
+    @Query(
+        "SELECT catalog_tea.key FROM catalog_tea JOIN catalog_fts ON catalog_tea.rowid = catalog_fts.rowid " +
+            "WHERE catalog_fts MATCH :match",
+    )
+    abstract fun observeSearch(match: String): Flow<List<String>>
 
     /** One tea of the catalog (SCR-21), or null when the catalog has none with [key]. */
     @Query("SELECT * FROM catalog_tea WHERE key = :key")

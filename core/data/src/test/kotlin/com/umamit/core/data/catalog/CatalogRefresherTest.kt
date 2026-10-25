@@ -13,6 +13,7 @@ import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipReason
+import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.UserSettings
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
@@ -216,6 +217,21 @@ class CatalogRefresherTest {
         assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA, GYOKURO, NEW_TEA).inOrder()
         assertThat(names())
             .containsExactly("Frühlingshauch Shincha", "Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
+    }
+
+    @Test
+    fun onlyTeasFirstSeenInTheLatestRefreshAreNeu() = runTest {
+        // Two refreshes: a tea of the first keeps its first sighting, so it is not „Neu" (CAT-10, D-083).
+        previousCatalog()
+        product(NEW_TEA, "Frühlingshauch Shincha – 100g", "XY0600", SHINCHA_PATH)
+
+        refresher().refresh()
+
+        val rows = dao.observeList().first()
+        assertThat(rows.filter { it.isNew }.map { it.key }).containsExactly("XY0600")
+        val listing = RoomCatalogRepository(dao, CatalogPhotoFiles(folder.newFolder()))
+            .observeListing(CatalogFilter(newOnly = true)).first()
+        assertThat(listing.teas.map { it.name }).containsExactly("Frühlingshauch Shincha")
     }
 
     @Test

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "8c87530dd907b8bb788deb9ae0b53596",
+    "identityHash": "3e00ed80b43f7ce46a628522249f8576",
     "entities": [
       {
         "tableName": "catalog_tea",
@@ -456,7 +456,7 @@
       },
       {
         "tableName": "catalog_fts",
-        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`name` TEXT, `secondary_name` TEXT, `description_text` TEXT, `cultivar` TEXT, `origin_region` TEXT, content=`catalog_tea`)",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`name` TEXT, `secondary_name` TEXT, `description_text` TEXT, `cultivar` TEXT, `origin_region` TEXT, tokenize=unicode61, content=`catalog_tea`)",
         "fields": [
           {
             "fieldPath": "name",
@@ -490,7 +490,7 @@
         },
         "ftsVersion": "FTS4",
         "ftsOptions": {
-          "tokenizer": "simple",
+          "tokenizer": "unicode61",
           "tokenizerArgs": [],
           "contentTable": "catalog_tea",
           "languageIdColumnName": "",
@@ -819,7 +819,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8c87530dd907b8bb788deb9ae0b53596')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e00ed80b43f7ce46a628522249f8576')"
     ]
   }
 }

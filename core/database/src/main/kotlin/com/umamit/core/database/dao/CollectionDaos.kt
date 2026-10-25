@@ -49,6 +49,10 @@ interface TeaDao {
     @Query("SELECT * FROM tea WHERE id = :id")
     suspend fun get(id: String): TeaEntity?
 
+    /** The catalog keys the collection's teas link to („im Besitz", CAT-10; 05 §1.6 soft link). */
+    @Query("SELECT DISTINCT catalog_key FROM tea WHERE catalog_key IS NOT NULL")
+    fun observeCatalogKeys(): Flow<List<String>>
+
     @Upsert
     suspend fun upsert(tea: TeaEntity)
 
