@@ -68,7 +68,7 @@ Use cases: `ScaleRecipe`, `Snap5`, `StartSession`, `FinishSession`
 `AddFromCatalog`, `ResetFromCatalog`, `CreateBackup` (`RestoreBackup` is
 post-1.0, BAK-02).
 
-Catalog: `TeeKontorParser` (HTML → `ParsedProduct`), `VariantMerger`,
+Catalog: `TeeKontorParser` (HTML → `ProductPage`), `CatalogEntries` (variant merge),
 `StyleMapper`, `RecipeDeriver` (rules in [08 §2.5](08-content.md#25-recipe-derivation)),
 `CatalogDiff`. All pure and unit-testable with HTML fixtures.
 
@@ -89,7 +89,7 @@ UmamiT/
 │   ├── domain/                Use cases
 │   ├── timer-engine/          BrewTimerEngine (pure)
 │   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
-│   ├── catalog-parser/        TeeKontorParser, VariantMerger, StyleMapper, RecipeDeriver (pure JVM)
+│   ├── catalog-parser/        TeeKontorParser, CatalogEntries, StyleMapper, RecipeDeriver (pure JVM)
 │   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
 │   ├── database/              Room, DAOs, migrations, schemas/
 │   ├── datastore/             Settings

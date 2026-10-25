@@ -1,12 +1,15 @@
 package com.umamit.core.data.catalog
 
 import android.database.SQLException
+import com.umamit.core.catalog.parser.CatalogEntries
+import com.umamit.core.catalog.parser.CatalogEntry
 import com.umamit.core.catalog.parser.CatalogScope
 import com.umamit.core.catalog.parser.ProductGroup
 import com.umamit.core.catalog.parser.ProductPage
 import com.umamit.core.catalog.parser.ProductParse
 import com.umamit.core.catalog.parser.ProductUrls
 import com.umamit.core.catalog.parser.SanityCheck
+import com.umamit.core.catalog.parser.ShopPackage
 import com.umamit.core.catalog.parser.Sitemap
 import com.umamit.core.catalog.parser.SitemapReader
 import com.umamit.core.catalog.parser.TeeKontorParser
@@ -15,11 +18,13 @@ import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
+import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.database.entity.CatalogTeaEntity
+import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.network.NetworkRetry
 import com.umamit.core.network.ShopClient
@@ -50,9 +55,11 @@ import javax.inject.Inject
  *    [ShopClient], one connection, ≤ 2 requests/s, robots.txt honoured (CLAUDE.md rule 7).
  * 2. Candidates: one page per base number, sets left out, base numbers on the skip list for
  *    less than 90 days left out; so a first refresh classifies every parent (D-076).
- * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas go into the staging
- *    tables, other products onto the new skip entries.
- * 4. The sanity check (08 §2.9).
+ * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas are kept, other products
+ *    go onto the new skip entries.
+ * 4. The green teas go into the staging tables, one entry per tea with its package sizes
+ *    ([CatalogEntries]: split numbers merged, sizes and prices from the page and the sitemap,
+ *    no size page fetched; 08 §2.4 items 6–7, D-081); then the sanity check (08 §2.9).
  * 5. The green teas' photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is off: each through
  *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
  *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
@@ -173,6 +180,9 @@ class CatalogRefresher(
 
         /** Each green tea's key and photo URL, in page order. */
         val photoUrls = mutableListOf<Pair<String, String>>()
+
+        /** Each green tea's page and packages, in page order, until split numbers are merged and staged. */
+        val entries = mutableListOf<CatalogEntry>()
         val skips = mutableListOf<CatalogSkipEntity>()
         val defective = mutableListOf<String>()
 
@@ -238,6 +248,7 @@ class CatalogRefresher(
     }
 
     /** The steps of one refresh; a stop ends it by [Run.stop] or [Run.shopChanged]. */
+    @Suppress("TooManyFunctions") // one function per step of 06 §5.3 / 08 §2.4
     private inner class Pipeline(private val run: Run) {
         suspend fun execute(): CatalogRefreshOutcome.Success {
             val session = ShopSession.open(client, NetworkRetry.REFRESH)
@@ -260,6 +271,7 @@ class CatalogRefresher(
                 run.pagesDone++
                 run.progress()
             }
+            stageEntries()
             checkSanity()
             storePhotos(session)
             return swap()
@@ -322,9 +334,7 @@ class CatalogRefresher(
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
                 CatalogScope.GREEN -> {
-                    val tea = page.toEntity(group.base, run.startedAt)
-                    dao.stage(StagedCatalogTeaEntity(tea))
-                    tea.photoUrl?.let { run.photoUrls += tea.key to it }
+                    run.entries += CatalogEntry.of(group, page)
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
                 }
@@ -334,6 +344,24 @@ class CatalogRefresher(
 
                 // No breadcrumb: neither kept nor skipped; the sanity check counts it.
                 CatalogScope.UNKNOWN -> run.defective += group.base
+            }
+        }
+
+        /**
+         * Stages one entry per tea with its packages (05 §4.2, 08 §2.4 items 6–7): split numbers
+         * merged under the lowest one, each size with its own page (D-081).
+         */
+        private suspend fun stageEntries() {
+            val entries = CatalogEntries.merge(run.entries)
+            run.entries.clear()
+            for (entry in entries) {
+                val tea = entry.page.toEntity(entry.key, run.startedAt)
+                dao.stage(StagedCatalogTeaEntity(tea))
+                dao.stagePackages(entry.packages.map { StagedCatalogPackageEntity(it.toEntity(entry.key)) })
+                tea.photoUrl?.let { run.photoUrls += tea.key to it }
+                if (entry.mergedKeys.isNotEmpty()) {
+                    log("catalog refresh: ${entry.mergedKeys.joinToString()} merged into ${entry.key}")
+                }
             }
         }
 
@@ -465,6 +493,19 @@ private fun ProductPage.toEntity(base: String, seenAt: Long) = CatalogTeaEntity(
     photoUrl = photoUrl,
     firstSeenAt = seenAt,
     lastSeenAt = seenAt,
+)
+
+/** A package size of the tea [key] as a catalog row (05 §4.2). */
+private fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
+    catalogKey = key,
+    articleNumber = articleNumber,
+    label = CatalogColumns.packageLabel(grams, savingsPercent),
+    grams = grams,
+    priceCents = priceCents,
+    priceIsEstimate = priceIsEstimate,
+    savingsPercent = savingsPercent,
+    variantUrl = variantUrl,
+    available = available,
 )
 
 /** The first line of a failure's details: the log's error summary. */
