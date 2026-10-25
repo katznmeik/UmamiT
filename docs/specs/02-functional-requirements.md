@@ -228,7 +228,8 @@ the shop, parses all products, and replaces the catalog atomically.
 
 **CAT-08 — Photos** `Must`
 The main product photo of each tea is downloaded, resized (max 1200 px long
-edge, WebP) and stored locally, with a small thumbnail for the lists;
+edge, WebP) and stored locally, with a small thumbnail for the lists
+(256 px short side, D-074);
 unchanged photos are not downloaded again. About 25–35 MB for the whole
 catalog (D-073).
 

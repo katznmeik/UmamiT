@@ -11,10 +11,10 @@ import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
-import com.umamit.core.network.BlockReason
-import com.umamit.core.network.RobotsTxt
 import com.umamit.core.network.ShopClient
-import com.umamit.core.network.ShopResponse
+import com.umamit.core.network.ShopFetch
+import com.umamit.core.network.ShopSession
+import com.umamit.core.network.StopCause
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,7 +42,7 @@ import javax.inject.Singleton
  * - **Runs once:** the settings marker is set **before the first request**, so neither a skip,
  *   a failure nor a crash or kill mid-run ever repeats it; CAT-15 fills in missing photos with
  *   the first catalog refresh (M2). It is not used up before a seed tea exists (D-054).
- * - **Polite:** every request goes through the allow-listed [ShopClient] (one connection,
+ * - **Polite:** one [ShopSession] on the allow-listed [ShopClient] (one connection,
  *   ≤ 2 requests/s, honest User-Agent). robots.txt is read first and a disallowed photo path
  *   is not fetched. A 404/410 robots.txt allows everything; a 401/403/5xx stops the run; any
  *   other failure disallows everything (RFC 9309 §2.3.1).
@@ -149,55 +149,37 @@ class SeedPhotoDownloader @Inject constructor(
         if (pending.isEmpty()) return Done(stored = 0)
         state.value = Running(current = 1, total = pending.size)
 
-        val robotsAnswer = client.get(client.resolve(RobotsTxt.ROBOTS_PATH))
-        var stop = robotsAnswer.stopCause()
-        val robots = withContext(Dispatchers.Default) { robotsAnswer.toRobotsTxt() }
+        val session = ShopSession.open(client)
+        var stop = session.stopCause?.let(::failureCause)
         var stored = 0
         for ((index, photo) in pending.withIndex()) {
             if (stop != null) break
             state.value = Running(current = index + 1, total = pending.size)
             val (teaId, path) = photo
-            val url = client.resolve(path)
             // A disallowed path is never fetched; a 404 or a bad image leaves only this photo out.
-            if (withContext(Dispatchers.Default) { robots.isAllowed(url) }) {
-                val answer = client.get(url)
-                stop = answer.stopCause()
-                if (answer is ShopResponse.Success) {
-                    when (store(teaId, answer.body)) {
-                        StoreResult.STORED -> stored++
-                        StoreResult.LEFT_OUT -> Unit
-                        StoreResult.FAILED -> stop = FailureCause.STORAGE
-                    }
+            when (val answer = session.fetch(session.resolve(path))) {
+                is ShopFetch.Fetched -> when (store(teaId, answer.body)) {
+                    StoreResult.STORED -> stored++
+                    StoreResult.LEFT_OUT -> Unit
+                    StoreResult.FAILED -> stop = FailureCause.STORAGE
                 }
+
+                is ShopFetch.Stopped -> stop = failureCause(answer.cause)
+
+                ShopFetch.Disallowed, is ShopFetch.Unavailable -> Unit
             }
         }
         return stop?.let(::Failed) ?: Done(stored)
     }
 
-    /** The cause that ends the whole run after [this] answer, or null to go on (08 §2.8, D-050). */
-    private fun ShopResponse.stopCause(): FailureCause? = when (this) {
-        is ShopResponse.Blocked -> when (reason) {
-            BlockReason.CHALLENGE -> FailureCause.CHALLENGE
-            BlockReason.BLOCKED -> FailureCause.BLOCKED
-            BlockReason.TOO_MANY_REQUESTS -> FailureCause.TOO_MANY_REQUESTS
-            BlockReason.RETRY_AFTER -> FailureCause.RETRY_AFTER
-        }
-
-        is ShopResponse.NetworkError -> FailureCause.NETWORK
-
-        is ShopResponse.HttpError -> FailureCause.HTTP_ERROR.takeIf { code in REFUSED || code in SERVER_ERRORS }
-
-        is ShopResponse.Success -> null
-    }
-
-    /**
-     * robots.txt from [this] answer (RFC 9309 §2.3.1): 404 and 410 mean none exists, so
-     * everything is allowed; any other failure disallows everything (the stops end the run anyway).
-     */
-    private fun ShopResponse.toRobotsTxt(): RobotsTxt = when {
-        this is ShopResponse.Success -> RobotsTxt.parse(body)
-        this is ShopResponse.HttpError && code in MISSING -> RobotsTxt.ALLOW_ALL
-        else -> RobotsTxt.DISALLOW_ALL
+    /** The setup's name for the shop session's stop (08 §2.8, D-050). */
+    private fun failureCause(cause: StopCause): FailureCause = when (cause) {
+        StopCause.NETWORK -> FailureCause.NETWORK
+        StopCause.CHALLENGE -> FailureCause.CHALLENGE
+        StopCause.BLOCKED -> FailureCause.BLOCKED
+        StopCause.TOO_MANY_REQUESTS -> FailureCause.TOO_MANY_REQUESTS
+        StopCause.RETRY_AFTER -> FailureCause.RETRY_AFTER
+        StopCause.HTTP_ERROR -> FailureCause.HTTP_ERROR
     }
 
     private enum class StoreResult { STORED, LEFT_OUT, FAILED }
@@ -239,11 +221,5 @@ class SeedPhotoDownloader @Inject constructor(
         )
         teas.setCoverPhoto(teaId, id)
         true
-    }
-
-    private companion object {
-        val MISSING = setOf(404, 410)
-        val REFUSED = setOf(401, 403)
-        val SERVER_ERRORS = 500..599
     }
 }

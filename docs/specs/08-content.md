@@ -290,10 +290,18 @@ locally); links to product pages become in-app catalog links.
   versuchen." No attempt is made to bypass challenges.
 - **Rate signals:** HTTP 429 or any `Retry-After` header also stops the
   refresh (old catalog kept, same message); no automatic waiting and retry.
+- **Refusals and outages:** a 401/403/5xx or a network error (offline) also
+  stops the whole job; after any stop the job sends no further request. A
+  3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
+  D-074).
 - **One connection:** all requests go through a single HTTP connection,
   sequentially, at ≤ 2 requests/s.
 - **robots.txt:** rules are matched with longest-match precedence and `*` /
-  `$` wildcards (RFC 9309); a disallowed URL is never fetched.
+  `$` wildcards (RFC 9309); a disallowed URL is never fetched. It is read
+  once per job (seed photos, refresh, exact price) by the shared shop session:
+  404/410 → everything allowed; 401/403/5xx or a stop signal → the job stops
+  before any other request; any other failure → everything disallowed
+  (RFC 9309 §2.3.1, D-050, D-074).
 - Identify with a clear user agent („UmamiT/<version> (private app)").
 
 ### 2.9 Sanity thresholds (CAT-07 AC5)
