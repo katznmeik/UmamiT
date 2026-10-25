@@ -9,7 +9,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77 written; implementation waits for the PO's start |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77; **in progress** since 2026-10-25 (the PO started `/implement-spec`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
@@ -39,13 +39,10 @@
 
 ## Waiting on the PO
 
-1. **Start M2 implementation**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62)
-   and its tickets #63–#77 are approved; `/implement-spec` on #62 begins on the
-   PO's word (frontier: #63 prefactor, #73 #58 fixes; then #64 tracer bullet).
-2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
+1. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
-3. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
+2. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
    stays open for later milestones.
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
@@ -164,6 +161,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-25 | **M2 started:** the PO invoked `/implement-spec` on spec #62 (frontier #63 prefactor and #73 #58 fixes). |
 | 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#77 (approved by the PO). Implementation waits for the PO's start. |
 | 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |
 | 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |
