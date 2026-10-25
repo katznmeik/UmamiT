@@ -1,5 +1,8 @@
 package com.umamit.core.data.catalog
 
+import com.umamit.core.common.WallClock
+import com.umamit.core.data.diagnostics.DiagnosticsLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -11,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.CoroutineContext
 
 /** Where the catalog refresh is, for the refresh sheet (SCR-22). */
 sealed interface CatalogRefreshState {
@@ -41,18 +45,35 @@ interface CatalogRefreshRunner {
 }
 
 /**
- * The refresh as an app-scoped job (#64): it runs while the app's process lives, independent of
- * any screen, and leaves the timer alone (CAT-07 AC8: own scope, no alarms, no shared locks).
- * #65 hosts the same [CatalogRefresher] in the `dataSync` foreground service, so it survives a
- * locked phone (06 §5.3).
+ * The refresh job (#64, #65): the Android-independent [CatalogRefresher] runs in the app's own
+ * scope, independent of any screen, and the `dataSync` foreground service ([CatalogRefreshService],
+ * through [CatalogRefreshForeground]) keeps the process running while it lasts, so the phone may
+ * be locked (CAT-07 AC1, 06 §5.3). The service follows this runner's [state] for its progress
+ * notification and cancels through it ([CatalogRefreshServicePort]); it never runs or ends the
+ * refresh itself.
+ *
+ * The timer is left alone (CAT-07 AC8, rule 8): an own scope, no alarms, no shared locks, and
+ * nothing the refresh throws escapes into the process the timer runs in: an error the refresher
+ * does not turn into an outcome itself ends the run as [CatalogRefreshOutcome.ShopChanged].
  */
 @Singleton
 class AppCatalogRefreshRunner internal constructor(
-    private val refresher: CatalogRefresher,
-    private val scope: CoroutineScope,
-) : CatalogRefreshRunner {
+    private val refresh: suspend (onProgress: (CatalogRefreshProgress) -> Unit) -> CatalogRefreshOutcome,
+    private val foreground: CatalogRefreshForeground,
+    private val diagnostics: DiagnosticsLog,
+    private val clock: WallClock,
+    context: CoroutineContext,
+) : CatalogRefreshRunner,
+    CatalogRefreshServicePort {
     @Inject
-    constructor(refresher: CatalogRefresher) : this(refresher, CoroutineScope(SupervisorJob() + Dispatchers.IO))
+    constructor(
+        refresher: CatalogRefresher,
+        foreground: CatalogRefreshForeground,
+        diagnostics: DiagnosticsLog,
+        clock: WallClock,
+    ) : this(refresher::refresh, foreground, diagnostics, clock, Dispatchers.IO)
+
+    private val scope = CoroutineScope(SupervisorJob() + context)
 
     private val mutableState = MutableStateFlow<CatalogRefreshState>(CatalogRefreshState.Idle)
     override val state: StateFlow<CatalogRefreshState> = mutableState.asStateFlow()
@@ -63,9 +84,11 @@ class AppCatalogRefreshRunner internal constructor(
     override fun start() {
         synchronized(lock) {
             if (job?.isActive == true) return
+            // A new run: an earlier result's notification goes.
+            foreground.clearResult()
             mutableState.value = CatalogRefreshState.Running(CatalogRefreshProgress.STARTING)
             job = scope.launch {
-                val outcome = refresher.refresh { mutableState.value = CatalogRefreshState.Running(it) }
+                val outcome = runGuarded()
                 mutableState.value = CatalogRefreshState.Finished(outcome)
             }.apply {
                 // Also when cancelled before it ran: the refresher has logged and cleaned up what it started.
@@ -76,6 +99,22 @@ class AppCatalogRefreshRunner internal constructor(
                 }
             }
         }
+        // The state is Running before the service's first command reads it.
+        foreground.start()
+    }
+
+    /** The refresh; an error it lets through (a stack overflow in a page, …) ends the run instead of the process. */
+    private suspend fun runGuarded(): CatalogRefreshOutcome = try {
+        refresh { mutableState.value = CatalogRefreshState.Running(it) }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (
+        // Rule 8: the timer runs in this process; nothing of the refresh may take it down.
+        @Suppress("TooGenericExceptionCaught") e: Throwable,
+    ) {
+        val name = e.javaClass.simpleName
+        log("catalog refresh: unexpected $name, ended as shop changed")
+        CatalogRefreshOutcome.ShopChanged("unexpected error: $name")
     }
 
     override fun cancel() {
@@ -84,5 +123,8 @@ class AppCatalogRefreshRunner internal constructor(
 
     override fun acknowledge() {
         mutableState.update { if (it is CatalogRefreshState.Finished) CatalogRefreshState.Idle else it }
+        foreground.clearResult()
     }
+
+    override fun log(message: String) = diagnostics.append(clock.nowMs(), clock.zone(), message)
 }

@@ -59,6 +59,7 @@ import com.umamit.core.ui.rememberNotificationPermissionAction
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
+    const val CATALOG = "SettingsCatalog"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
@@ -83,6 +84,8 @@ class SettingsActions(
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
     val openAbout: () -> Unit = {},
+    /** *Jetzt aktualisieren* (SET-23). */
+    val refreshCatalog: () -> Unit = {},
 )
 
 /**
@@ -98,9 +101,11 @@ fun SettingsRoute(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
+    catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val settings by viewModel.current.collectAsStateWithLifecycle()
+    val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
     LifecycleResumeEffect(viewModel) {
@@ -143,9 +148,11 @@ fun SettingsRoute(
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
+            refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
+        catalog = catalog,
     )
 }
 
@@ -160,6 +167,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
     scrollToTopRequest: Int = 0,
+    catalog: CatalogSettingsState = CatalogSettingsState(),
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
     // Rule 8: an alert removes an open dialog in its first frame, without animation.
@@ -186,6 +194,7 @@ fun SettingsScreen(
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
+        CatalogSection(catalog, onRefresh = actions.refreshCatalog)
         SwitchRow(
             title = stringResource(R.string.settings_catalog_photos),
             checked = settings.catalogDownloadPhotos,

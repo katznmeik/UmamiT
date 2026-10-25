@@ -21,6 +21,8 @@ class FakeCatalogRepository(
 
     override fun observeCatalog(): Flow<CatalogOverview> = catalog
 
+    override fun observeLastRefresh(): Flow<Long?> = catalog.map { it.lastRefreshAtMillis }
+
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = details.map { it[key] }
 }
 

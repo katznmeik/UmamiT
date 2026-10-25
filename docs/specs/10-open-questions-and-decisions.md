@@ -302,6 +302,76 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-080"></a>
+### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
+
+The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
+still posted, with its foreground flag, next to the alert of a step whose
+process had been killed. The service cancels the other notification before
+`startForeground`. After a process death, though, the system can still hold
+notification 1 as the restarted service's foreground notification, and it
+ignores a cancel of the current foreground notification. The service now
+cancels the other notification once more right after `startForeground`, when
+it is no longer the foreground one. Only one of notifications 1 and 2 is
+shown at a time again (D-044). Robolectric cannot reproduce the system's
+refusal, so the emulator test stays the check.
+
+<a id="d-079"></a>
+### D-079 — Catalog refresh in the background: service, notifications, entry points (#65) · *Accepted* (Claude, 2026-10-25)
+
+The refresh keeps running with the phone locked (CAT-07 AC1, 06 §5.3) and
+gets its three entry points. Decided while building it:
+
+- **Hosting:** the refresh job stays in the app's own scope
+  (`AppCatalogRefreshRunner`, D-077). `CatalogRefreshService`, the `dataSync`
+  foreground service, keeps the process running while it lasts and follows
+  the runner's state for its notification; it has no refresh logic, so the
+  screens keep observing the same `CatalogRefreshRunner`, and *Abbrechen* in
+  the sheet and in the notification cancel the same job. The system creates
+  the service; the app hands it the refresh through `CatalogRefreshHost`
+  (the timer's `TimerHost` pattern, D-057).
+- **The timer first (rule 8, CAT-07 AC8):**
+  - own service, channel `catalog` (LOW, so Android 16 sorts it into the
+    silent section and never groups it with the alert, D-044), own
+    notification IDs (10 progress, 11 result), own wake lock, no alarms;
+  - the progress notification changes at most every 2 s: Android drops an
+    app's notification updates beyond five a second, and the timer's Live
+    Update must never be one of them;
+  - every start calls `startForeground` before anything else, and only the
+    latest start stops the service (`stopSelfResult`): a service started with
+    `startForegroundService` that stops without it crashes the process;
+  - a refused foreground start (Android 15+'s six-hour daily `dataSync`
+    budget) is logged, and the refresh then runs while the app lives, as in
+    #64; at the end of the budget (`onTimeout`) the refresh is cancelled and
+    the service stops at once;
+  - an error the refresher does not turn into an outcome itself (e.g. a stack
+    overflow on a page) ends the run as „shop changed" instead of the process.
+- **Locked phone:** a foreground service alone does not keep the CPU awake.
+  The service holds a partial wake lock of its own (`UmamiT:CatalogRefresh`),
+  renewed with each progress update and expiring 10 min after the last one, so
+  a stuck refresh never drains the battery; it is released at the end
+  (`WAKE_LOCK` was declared for the timer already; 06 §5.7 updated).
+- **Notifications:** the progress „Katalog wird geladen · Seiten: 120 von 1560
+  · Produkte: 40" with *Abbrechen*; at the end a quiet result („Katalog
+  geladen · 274 Grüntees · 12 neu", or „Katalog nicht geladen" with the
+  reason), none after *Abbrechen* or when the result was seen in the app
+  already; seeing the result in the app or starting the next refresh removes
+  it. A tap opens the app where it was, like its launcher icon. A deep link
+  into SCR-19 would be a navigation of its own that must give way to alerts
+  like the timer's; it is left out for now (03 §2.4 updated).
+- **Entry points:**
+  - Sammlung › Katalog's ⋮ menu: *Katalog aktualisieren* starts the refresh
+    and opens the sheet (during an alert it starts without the sheet);
+  - Settings, section *Katalog* (SET-23): „Letzter Abruf" with the date of
+    the last successful refresh from the refresh log („21. Okt. 2026", or
+    „Noch nie") and *Jetzt aktualisieren*, which waits while a refresh runs;
+    progress and result show in the notification;
+  - the setup's third page (ONB-03): *Katalog jetzt laden* shows the progress
+    inline and *Weiter* finishes the setup while the load goes on; *Später*
+    loads nothing. The page belongs to every run of the setup (also
+    *Einrichtung erneut zeigen*); a phone set up before M2 never sees it
+    (D-073).
+
 <a id="d-078"></a>
 ### D-078 — Catalog tea detail: parser rules, photos, shop link (#66) · *Accepted* (Claude, 2026-10-25)
 
@@ -400,20 +470,6 @@ Katalog tab to a filled list. Decided while building it:
   the list shows every tea of the current range by name, with *Sorte* and
   price per 100 g; until the PO's A8 arrives, the empty state shows the
   placeholder landscape.
-
-<a id="d-080"></a>
-### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
-
-The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
-still posted, with its foreground flag, next to the alert of a step whose
-process had been killed. The service cancels the other notification before
-`startForeground`. After a process death, though, the system can still hold
-notification 1 as the restarted service's foreground notification, and it
-ignores a cancel of the current foreground notification. The service now
-cancels the other notification once more right after `startForeground`, when
-it is no longer the foreground one. Only one of notifications 1 and 2 is
-shown at a time again (D-044). Robolectric cannot reproduce the system's
-refusal, so the emulator test stays the check.
 
 <a id="d-076"></a>
 ### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
@@ -2743,6 +2799,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
+| 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |
 | 2026-10-25 | D-078: catalog tea detail (#66) — full 08 §2.3 field map (parser v2: joined properties, region list, flavoured rule, brewing prose and grid JSON), sanitised description, photos after the sanity check with orphan cleanup and SET-22, *Im Shop öffnen* by grams then label, SCR-21 layout; 02 CAT-08, 03 SCR-21, 05 §4.1, 06 §5.3 and 08 §2.3, §2.8 updated. |
 | 2026-10-25 | D-077: catalog refresh tracer bullet (#64) — staging tables with the live columns, skip list written only with a successful swap, sanity-check counting, parser rules for secondary name, *Sorte*, unit price and stock, product page choice, typed outcomes with details, app-scoped job until #65, catalog as a slot of Sammlung; 03, 05 and 08 updated. |
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |

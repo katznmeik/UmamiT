@@ -172,7 +172,12 @@ changed (CAT-08, D-073, D-074).
    the foreground. Not WorkManager: on Android 16 jobs are subject to
    runtime quotas that could stop a 10-minute refresh. Progress notification
    on the `catalog` channel; cancellable from the sheet and the
-   notification; the service stops itself when done.
+   notification; the service stops itself when done. The refresh job itself
+   runs in the app's scope (`AppCatalogRefreshRunner`); the service keeps
+   the process running, follows its state (progress at most every 2 s) and
+   holds a partial wake lock of its own while it makes progress, so the
+   phone may be locked. Separate from the timer's service, channels, IDs and
+   alarms (rule 8; [D-079](10-open-questions-and-decisions.md#d-079)).
 2. Fetch `robots.txt` and the sitemap; derive base article numbers from
    product URLs, skip known out-of-scope numbers (`catalog_skip`) per
    [08 §2.4](08-content.md#24-discovery-variants-and-request-budget).
@@ -218,7 +223,8 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Catalog refresh service |
-| `WAKE_LOCK`, `VIBRATE` | Timer |
+| `WAKE_LOCK` | Timer; catalog refresh (CPU kept running while it makes progress with the phone locked, D-079) |
+| `VIBRATE` | Timer |
 | `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED` | Timer alarms and reboot recovery |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
 

@@ -598,7 +598,7 @@ away, including the FGS restart attempt (D-063).
 Actions → non-exported receiver → controller (source NOTIFICATION).
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 4 the quiet
 notification without the service (a long running step, a demoted session;
-D-064), 10+ reminders/catalog. Content intent → SCR-05 through the app's
+D-064), 10 catalog progress and 11 catalog result (D-079), 12+ reminders. Content intent → SCR-05 through the app's
 launcher activity, named explicitly with `com.umamit.action.OPEN_TIMER`, which opens the timer route; the
 same intent is the alert's full-screen intent (D-064). Actions: *Start*,
 *Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the

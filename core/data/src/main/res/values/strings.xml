@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- The catalog refresh's notifications (CAT-07 AC1, 06 §5.3; channel `catalog`, 04 §8.1). -->
+    <string name="data_catalog_channel">Katalog</string>
+    <string name="data_catalog_channel_description">Fortschritt und Ergebnis der Katalog-Aktualisierung</string>
+    <string name="data_catalog_progress_title">Katalog wird geladen</string>
+    <string name="data_catalog_progress_starting">Sitemap wird gelesen …</string>
+    <!-- „von" is no noun: nothing to pluralise. -->
+    <string name="data_catalog_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
+    <string name="data_catalog_cancel">Abbrechen</string>
+    <string name="data_catalog_result_success_title">Katalog geladen</string>
+    <plurals name="data_catalog_tea_count">
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
+    </plurals>
+    <!-- „274 Grüntees · 12 neu" (the full CAT-07 AC3 summary follows with #70). -->
+    <string name="data_catalog_result_success" tools:ignore="PluralsCandidate">%1$s · %2$d neu</string>
+    <string name="data_catalog_result_failed_title">Katalog nicht geladen</string>
+    <string name="data_catalog_result_kept">Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="data_catalog_result_blocked">Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen.</string>
+    <string name="data_catalog_result_offline">Keine Verbindung zum Shop – bitte später erneut versuchen.</string>
+    <string name="data_catalog_result_unavailable">Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen.</string>
+    <string name="data_catalog_result_shop_changed">Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="data_catalog_result_storage">Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?</string>
+</resources>

@@ -25,7 +25,7 @@
     <string name="catalog_refresh_starting">Sitemap wird gelesen …</string>
     <!-- „von" and „neu" are no nouns: nothing to pluralise. -->
     <string name="catalog_refresh_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
-    <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen: Der Katalog lädt weiter, solange die App geöffnet ist.</string>
+    <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen und das Handy sperren: Der Katalog lädt im Hintergrund weiter.</string>
     <string name="catalog_refresh_cancel">Abbrechen</string>
     <string name="catalog_refresh_success_title">Katalog geladen</string>
     <!-- „274 Grüntees · 12 neu" (the full CAT-07 AC3 summary follows with #70). -->

@@ -33,6 +33,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +104,8 @@ internal fun UmamitApp(
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
     var segment by rememberSaveable { mutableStateOf(CollectionSegment.MyTeas) }
+    // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
+    var catalogRefreshRequest by remember { mutableIntStateOf(0) }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
@@ -180,11 +183,12 @@ internal fun UmamitApp(
                             alertKey = alertKey,
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
-                                    CatalogTab(catalogModifier, scrollToTop, alerting) { key ->
+                                    CatalogTab(catalogModifier, scrollToTop, alerting, catalogRefreshRequest) { key ->
                                         controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
                                     },
                                 )
                             },
+                            onRefreshCatalog = { catalogRefreshRequest++ },
                             start = { openSettings, scrollToTop ->
                                 startScreen(
                                     StartTab(
@@ -271,6 +275,7 @@ private fun TabHost(
     settings: SettingsScreens,
     alertKey: String?,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
+    onRefreshCatalog: () -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
     val motion = UmamiTheme.motion
@@ -294,7 +299,14 @@ private fun TabHost(
             JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
         }
         composable<CollectionRoute> {
-            CollectionScreen(segment, onSegmentChange, openSettings, catalog, scrollToTopRequest = scrollToTopRequest)
+            CollectionScreen(
+                segment = segment,
+                onSegmentChange = onSegmentChange,
+                onOpenSettings = openSettings,
+                catalogContent = catalog,
+                scrollToTopRequest = scrollToTopRequest,
+                onRefreshCatalog = onRefreshCatalog,
+            )
         }
         composable<CatalogTeaRoute> { CatalogTeaScreenRoute(onBack = { navController.popBackStack() }) }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }

@@ -25,6 +25,9 @@ interface CatalogRepository {
     /** The teas of the shop's current range by name, and the date of the last successful refresh. */
     fun observeCatalog(): Flow<CatalogOverview>
 
+    /** When the last successful refresh finished (SET-23, CAT-07 AC6); null before the first. */
+    fun observeLastRefresh(): Flow<Long?>
+
     /** One catalog tea with everything its detail shows (SCR-21), or null when the catalog has none with [key]. */
     fun observeTea(key: String): Flow<CatalogTeaDetail?>
 }
@@ -51,6 +54,8 @@ class RoomCatalogRepository @Inject constructor(private val dao: CatalogDao, pri
             lastRefreshAtMillis = last,
         )
     }.distinctUntilChanged()
+
+    override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = combine(
         dao.observeTea(key),
@@ -110,6 +115,13 @@ abstract class CatalogModule {
 
     @Binds
     abstract fun catalogRefreshRunner(impl: AppCatalogRefreshRunner): CatalogRefreshRunner
+
+    /** The same runner, as the refresh service sees it (the app hands it over, [CatalogRefreshHost]). */
+    @Binds
+    abstract fun catalogRefreshServicePort(impl: AppCatalogRefreshRunner): CatalogRefreshServicePort
+
+    @Binds
+    abstract fun catalogRefreshForeground(impl: ServiceCatalogRefreshForeground): CatalogRefreshForeground
 
     companion object {
         /** The catalog's photos in app-private `filesDir/catalog/` (05 §4.1, CAT-08); not backed up (05 §8). */

@@ -42,11 +42,17 @@
     <string name="settings_test_stop">Stopp</string>
     <string name="settings_save_failed">Konnte nicht gespeichert werden. Versuch es gleich noch einmal; ist der Speicher voll?</string>
 
-    <!-- Über (SCR-27). -->
-    <!-- SET-30 Katalog; SET-22 (CAT-08, D-073: about 25–35 MB for the whole catalog). -->
+    <!-- Katalog (SET-30; SET-23; SET-22: CAT-08, D-073, about 25–35 MB for the whole catalog). -->
     <string name="settings_section_catalog">Katalog</string>
+    <string name="settings_catalog_last_refresh">Letzter Abruf</string>
+    <string name="settings_catalog_never">Noch nie</string>
+    <string name="settings_catalog_refreshing">Wird gerade aktualisiert …</string>
+    <string name="settings_catalog_refresh_now">Jetzt aktualisieren</string>
+    <string name="settings_catalog_refresh_detail">Lädt alle Grüntees von Tee-Kontor Kiel. Das dauert einige Minuten und läuft auch bei gesperrtem Handy weiter.</string>
     <string name="settings_catalog_photos">Fotos laden</string>
     <string name="settings_catalog_photos_detail">Beim Aktualisieren ein Foto je Tee laden, zusammen etwa 30 MB</string>
+
+    <!-- Über (SCR-27). -->
     <string name="settings_section_about">Über</string>
     <string name="settings_about">Über UmamiT</string>
     <string name="about_title">Über</string>

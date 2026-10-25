@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The catalog refresh's foreground service and the permissions it needs (06 §5.3, §5.7; #65).
+  The app manifest declares the same permissions; duplicates merge.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Keeps the CPU running while a refresh makes progress with the phone locked (CAT-07 AC1). -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application>
+        <!-- Started only from the user's tap while the app is in the foreground (CAT-07 AC7);
+             its own service, apart from the timer's (CAT-07 AC8, rule 8). -->
+        <service
+            android:name=".catalog.CatalogRefreshService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+
+</manifest>
