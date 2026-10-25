@@ -334,6 +334,38 @@ while building it:
   list always opens in the default view (D-073), so 05 §6's `catalogSort`
   setting is dropped.
 
+<a id="d-081"></a>
+### D-081 — Catalog package sizes and prices, split numbers (#67) · *Accepted* (Claude, 2026-10-25)
+
+The catalog shows each tea once with all its sizes (CAT-02, CAT-11, 08 §2.4
+items 6–7). Decided while building it:
+
+- **No size page is fetched** (D-076's budget): the sizes are the union of
+  the page's configurator options („250g 3% gespart¹") and the sitemap's
+  `<base>-<grams>` URLs. The fetched page's own size (its unit content, else
+  the checked option) has the page's price and stock; a larger size is
+  estimated by 08 §2.4's formula (savings from its option, else 0 %), half up
+  to the cent; a smaller size has no price („Preis beim Hinzufügen"); the
+  other sizes' stock is unknown. Each size keeps its sitemap URL as
+  `variant_url` (the product page for the page's own size; none for a size
+  only the configurator names, whose article number is then `<base>-<grams>`).
+  `label` is „250 g · 3 % gespart" as in 05 §4.2. Parser version 3.
+- **Split numbers** are merged after all pages are read, before the staging
+  tables are filled: same normalised name (lower case, sizes such as „30g" and
+  punctuation removed; the URL slug when a page has no name), only when the
+  pages' own sizes differ. Two pages with the same name and the same size are
+  two teas (e.g. two harvests), and a size can be a package only once
+  (primary key `catalog_key`, `grams`). The lowest number is the key and its
+  page gives the details; a size's own page wins over another page's
+  estimate; the tea is in stock when any of its pages is; the price per 100 g
+  is the key page's. Merges are written to the diagnostics log (numbers only).
+- **SCR-21 *Packungen*:** after *Zubereitung*, one row per size, smallest
+  first: „12,40 €", „≈ 30,07 € · 3 % gespart", „Preis beim Hinzufügen", with
+  „nicht vorrätig" for a size known to be out of stock and a note under the
+  rows explaining „≈" when an estimate is shown. Numbers and units are joined
+  by non-breaking spaces so a row never breaks inside „3 % gespart" at large
+  font sizes. The list keeps the price per 100 g (CAT-10, #64).
+
 <a id="d-080"></a>
 ### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
 
@@ -2831,6 +2863,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
+| 2026-10-25 | D-081: catalog package sizes and prices (#67) — sizes from the configurator and the sitemap without fetching size pages, the page's own size at its price, larger sizes estimated, smaller ones priced when added, each with its own `variant_url`; split numbers merged by normalised name only when their own sizes differ; SCR-21 *Packungen*; parser v3; 03 SCR-21, 05 §4.2, 06 §2, §3 and 08 §2.4 updated. |
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
 | 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |
 | 2026-10-25 | D-078: catalog tea detail (#66) — full 08 §2.3 field map (parser v2: joined properties, region list, flavoured rule, brewing prose and grid JSON), sanitised description, photos after the sanity check with orphan cleanup and SET-22, *Im Shop öffnen* by grams then label, SCR-21 layout; 02 CAT-08, 03 SCR-21, 05 §4.1, 06 §5.3 and 08 §2.3, §2.8 updated. |

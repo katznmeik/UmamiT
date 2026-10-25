@@ -18,6 +18,12 @@ internal object CatalogFormat {
         maximumFractionDigits = CENT_DIGITS
     }.format(BigDecimal.valueOf(cents, CENT_DIGITS))
 
+    /** [grams] with German separators and no trailing zeros, e.g. „250", „37,5". */
+    fun grams(grams: Double): String = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+        minimumFractionDigits = 0
+        maximumFractionDigits = CENT_DIGITS
+    }.format(grams)
+
     /** The day of [millis] in [zone] as the catalog header shows it, e.g. „21. Okt." (CAT-07 AC6). */
     fun date(millis: Long, zone: ZoneId): String = DATE.format(Instant.ofEpochMilli(millis).atZone(zone))
 }

@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -100,6 +101,37 @@ class CatalogTeaScreenTest {
     }
 
     @Test
+    fun thePackagesShowTheirPricesEstimatesAndThePriceOnAdding() {
+        show()
+
+        compose.onNodeWithContentDescription(str(R.string.catalog_tea_section_packages))
+            .performScrollTo()
+            .assertIsDisplayed()
+        // Smallest first: a sample without a price, an out-of-stock size, the page's own size, an estimate.
+        // A number and its unit are joined by non-breaking spaces ( ).
+        listOf(
+            "10 g" to "Preis beim Hinzufügen",
+            "50 g" to "7,90 € · nicht vorrätig",
+            "100 g" to "12,40 €",
+            "250 g" to "≈ 30,07 € · 3 % gespart",
+        ).forEach { (size, price) ->
+            compose.onNode(hasText(size) and hasText(price)).performScrollTo().assertIsDisplayed()
+        }
+        shown(str(R.string.catalog_package_estimate_note))
+    }
+
+    @Test
+    fun withoutEstimatesThereIsNoEstimateNote() {
+        catalog.details.value = mapOf(
+            SENCHA.key to SENCHA.copy(packages = SENCHA.packages.filterNot { it.priceIsEstimate }),
+        )
+        show()
+
+        compose.onNodeWithText("12,40 €").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_package_estimate_note)).assertDoesNotExist()
+    }
+
+    @Test
     fun sectionsTheShopDoesntFillAreLeftOut() {
         catalog.details.value =
             mapOf("XY0300" to CatalogTeaDetail(key = "XY0300", name = "Schlichter Tee", productUrl = PRODUCT))
@@ -111,6 +143,7 @@ class CatalogTeaScreenTest {
             R.string.catalog_tea_section_taste,
             R.string.catalog_tea_section_description,
             R.string.catalog_tea_section_brewing,
+            R.string.catalog_tea_section_packages,
         ).forEach { compose.onNodeWithContentDescription(str(it)).assertDoesNotExist() }
     }
 
@@ -194,8 +227,10 @@ class CatalogTeaScreenTest {
             basePriceCentsPer100g = 1240,
             available = true,
             packages = listOf(
-                CatalogPackage("XY0100-50", "50 g", 50.0, 790, false, null, "$PRODUCT-50", true),
-                CatalogPackage("XY0100-250", "250 g", 250.0, null, true, 3, "$PRODUCT-250", true),
+                CatalogPackage("XY0100-10", "10 g", 10.0, null, false, null, "$PRODUCT-10", null),
+                CatalogPackage("XY0100-50", "50 g", 50.0, 790, false, null, "$PRODUCT-50", false),
+                CatalogPackage("XY0100", "100 g", 100.0, 1240, false, null, PRODUCT, true),
+                CatalogPackage("XY0100-250", "250 g · 3 % gespart", 250.0, 3007, true, 3, "$PRODUCT-250", null),
             ),
         )
     }

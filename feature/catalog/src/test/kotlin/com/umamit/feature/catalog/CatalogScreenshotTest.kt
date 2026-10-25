@@ -24,6 +24,7 @@ import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogSort
+import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.UmamiLevel
@@ -40,7 +41,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Sammlung › Katalog (SCR-19), the refresh sheet (SCR-22) and a tea's detail (SCR-21) in light
- * and dark: the empty state, the list with its thumbnails and the detail (top and end) also at
+ * and dark: the empty state, the list with its thumbnails and the detail (top, end and packages) also at
  * font scale 2.0 (03 §6), the sheet's progress, result and error at 1.0 (spec #62 seam 4).
  * Invented teas (D-016); the photos are placeholder gradients, never shop photos. Goldens:
  * `src/test/screenshots/`.
@@ -56,6 +57,9 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         fun parameters(): List<Array<Any>> = listOf(false, true).flatMap { dark ->
             listOf(1f, 2f).map { scale -> arrayOf<Any>(dark, scale) }
         }
+
+        private const val ESTIMATE_NOTE =
+            "≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst."
 
         private val TEAS = listOf(
             catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha")
@@ -136,6 +140,12 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             brewText = "Zubereitung: 4 g auf 100 ml bei 60 °C, der erste Aufguss 90 Sekunden.",
             basePriceCentsPer100g = 1240,
             available = true,
+            packages = listOf(
+                CatalogPackage("XY0100-10", "10 g", 10.0, null, false, null, null, null),
+                CatalogPackage("XY0100", "100 g", 100.0, 1240, false, null, null, true),
+                CatalogPackage("XY0100-250", "250 g · 3 % gespart", 250.0, 3007, true, 3, null, null),
+                CatalogPackage("XY0100-1000", "1000 g · 8 % gespart", 1000.0, 11408, true, 8, null, null),
+            ),
         )
     }
 
@@ -224,6 +234,10 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     /** The detail scrolled to its end: description and ZUBEREITUNG. */
     @Test
     fun detailEnd() = capture("detailEnd", scrollToText = "Angaben des Shops, unverändert übernommen.") { Detail() }
+
+    /** The detail scrolled to PACKUNGEN (#67): a sample, the page's own size and two estimates. */
+    @Test
+    fun detailPackages() = capture("detailPackages", scrollToText = ESTIMATE_NOTE) { Detail() }
 
     @Composable
     private fun Detail() {

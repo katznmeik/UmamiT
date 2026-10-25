@@ -716,7 +716,11 @@ ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
 page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
 status bar with the back button over it; name, secondary name, tags, price
 per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
-*Beschreibung*, *Zubereitung*, each only when the shop fills it.
+*Beschreibung*, *Zubereitung*, each only when the shop fills it; then
+*Packungen*: one row per size, smallest first, with the shop's price
+(„12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
+Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
+of stock, and a note explaining „≈" when an estimate is shown (D-081).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
