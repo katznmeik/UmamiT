@@ -9,13 +9,13 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77; **in progress** since 2026-10-25 (the PO started `/implement-spec`) |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77; **in progress** since 2026-10-25: all 12 implementation tickets merged on PR #78; parser fixes from the 2nd live sample (D-089), T4 milestone review, full live run and `v0.2.0-rc.1` next |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60 |
-| Open PR | #61 (D-073 M2 decisions, docs); M2 opens its milestone PR with its first merge |
+| Open PR | #78 (M2 milestone, draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) (release, versionCode 10099, from `main` 04a22a5) |
 
@@ -39,10 +39,12 @@
 
 ## Waiting on the PO
 
-1. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
+1. **Early design check #77** (catalog list, tea detail, add sheet; renders in
+   `docs/design/review/M2/`): approve or list changes.
+2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
-2. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
+3. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
    stays open for later milestones.
 
 ## Working agreements (M1 start, grilled with the PO on 2026-10-21)
@@ -123,7 +125,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
   passt* (←#71) · #76 Ratgeber (←#66) · #73 #58 fixes and seed retry · #77 early
   design check, PO (←#66, #69, #71) · #74 rc and checklist, PO · #75 merge and
   `v0.2.0`.
-- **Decision numbers:** up to D-073 used; the next free is **D-074**.
+- **Decision numbers:** up to D-088 used, D-089 reserved for the parser fixes; the next free is **D-090**.
 
 ### M1 done (2026-10-25)
 
@@ -161,6 +163,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-25 | M2 tickets #63–#73, #76 merged on PR #78 (D-074 … D-088), each gated by the orchestrator; timer fix D-084 (stale foreground notification after a process death, corrects D-080); two live samples of the shop (59 requests, no stops); early design check #77 sent to the PO. |
 | 2026-10-25 | **M2 started:** the PO invoked `/implement-spec` on spec #62 (frontier #63 prefactor and #73 #58 fixes). |
 | 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#77 (approved by the PO). Implementation waits for the PO's start. |
 | 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |

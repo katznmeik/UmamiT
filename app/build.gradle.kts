@@ -33,6 +33,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
+    // The Start tab's view models, which tests replace with ones on fakes (#72).
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material3.navigation.suite)
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.kotlinx.serialization.json)

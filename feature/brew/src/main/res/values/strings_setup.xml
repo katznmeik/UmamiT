@@ -6,6 +6,8 @@
     <string name="brew_picker_recent">Zuletzt</string>
     <string name="brew_picker_favorites">Favoriten</string>
     <string name="brew_picker_all">Alle</string>
+    <!-- SCR-03 footer (D-073): to the catalog, the add sheet and back to the setup of the new tea. -->
+    <string name="brew_picker_catalog">Aus dem Katalog</string>
     <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>
     <string name="brew_picker_empty">Noch keine Tees in deiner Sammlung.</string>
     <string name="brew_picker_no_results">Kein Tee zu „%1$s“ gefunden.</string>
@@ -15,7 +17,6 @@
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
-    <string name="brew_setup_recipe_check">Rezept prüfen</string>
     <string name="brew_setup_vessel">Gefäß</string>
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
     <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>

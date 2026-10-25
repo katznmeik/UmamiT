@@ -177,7 +177,7 @@ class CatalogTeaScreenTest {
             .assertIsDisplayed()
         // „Rezept prüfen" with the reason (CAT-05).
         shown(str(DesignR.string.ds_check_recipe))
-        shown(str(R.string.catalog_tea_recipe_reason_from_text))
+        shown(str(com.umamit.core.ui.R.string.ui_recipe_reason_from_text))
         // The default recipe, its values and steps.
         shown(str(R.string.catalog_tea_recipe_default))
         shown(str(R.string.catalog_tea_recipe_values, "4,0", 200, 65))

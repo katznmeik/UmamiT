@@ -12,13 +12,19 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.Tea
+import com.umamit.core.model.TeaCategory
+import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import com.umamit.feature.journal.JournalSessions.TODAY
 import com.umamit.feature.journal.JournalSessions.session
 import com.umamit.feature.journal.JournalSessions.step
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -84,12 +90,27 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         session("older", at(LocalDate.of(2026, 10, 12), 6, 48), steps = listOf(step(0, 90))),
     )
 
-    private fun capture(name: String, list: JournalList, sheetFor: String? = null) {
+    private fun capture(name: String, list: JournalList, sheetFor: String? = null, flaggedTea: Boolean = false) {
         RuntimeEnvironment.setFontScale(fontScale)
-        val data = FakeSessions()
+        val collection = FakeCollection()
+        val data = FakeSessions(collection)
         val requests = SavedSheetRequests(FakeClock())
+        val teaId = if (flaggedTea) "flagged" else null
+        if (teaId != null) {
+            runBlocking {
+                collection.teas.saveTea(
+                    Tea(
+                        teaId,
+                        "Bio Sencha Hisui",
+                        category = TeaCategory.GREEN,
+                        form = TeaForm.LOOSE_LEAF,
+                        recipeCheckReason = RecipeCheckReason.FROM_TEXT,
+                    ),
+                )
+            }
+        }
         if (sheetFor != null) {
-            FakeBrewController(data.sessions, requests).brew(sheetFor, 80, 20, 40)
+            FakeBrewController(data.sessions, requests).brew(sheetFor, 80, 20, 40, teaId = teaId)
         }
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
@@ -107,6 +128,7 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                     SavedSheetHost(
                         requests = requests,
                         sessions = data.sessions,
+                        teas = collection.teas,
                         alerting = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -127,4 +149,13 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
 
     @Test
     fun savedSheet() = capture("savedSheet", journalList(sessions.drop(1), TODAY), sheetFor = "sheet")
+
+    /** A session of a tea flagged „Rezept prüfen": the sheet offers *Rezept passt* (CAT-05, D-073). */
+    @Test
+    fun savedSheetRecipeCheck() = capture(
+        "savedSheetRecipeCheck",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        flaggedTea = true,
+    )
 }

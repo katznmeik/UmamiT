@@ -29,6 +29,7 @@ class TeaPickerSheetTest {
     private val tanabata = PickerTea("t", "Bio Sencha Tanabata", "Sencha", null)
     private val picked = mutableListOf<String>()
     private var quick = 0
+    private var catalog = 0
     private var dismissed = 0
 
     private fun show(state: TeaPickerUiState) {
@@ -40,9 +41,28 @@ class TeaPickerSheetTest {
                     onPickTea = { picked += it },
                     onQuickTimer = { quick++ },
                     onDismissRequest = { dismissed++ },
+                    onCatalog = { catalog++ },
                 )
             }
         }
+    }
+
+    @Test
+    fun `Aus dem Katalog leads to the catalog (D-073)`() {
+        show(TeaPickerUiState(all = listOf(hisui), loading = false))
+
+        compose.onNodeWithText("Aus dem Katalog").performScrollTo().assertIsDisplayed().performClick()
+
+        assertThat(catalog).isEqualTo(1)
+        assertThat(picked).isEmpty()
+        assertThat(quick).isEqualTo(0)
+    }
+
+    @Test
+    fun `an empty collection offers the catalog too`() {
+        show(TeaPickerUiState(loading = false))
+
+        compose.onNodeWithText("Aus dem Katalog").performScrollTo().assertIsDisplayed()
     }
 
     @Test

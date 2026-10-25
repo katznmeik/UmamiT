@@ -67,6 +67,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
+ * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param setupScreen the setup route's content (SCR-04); tests replace it.
  * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
  *   read, and nothing is shown until then. Not done: the setup (SCR-01) is the start destination.
@@ -94,6 +95,7 @@ internal fun UmamitRoot(
     },
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
+    catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     setupScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
         BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
     },
@@ -205,6 +207,7 @@ internal fun UmamitRoot(
                     alertKey = alert,
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
+                    catalogScreens = catalogScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                 )
             }

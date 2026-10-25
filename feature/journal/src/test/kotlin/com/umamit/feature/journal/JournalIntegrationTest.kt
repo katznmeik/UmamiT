@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
 import org.junit.Rule
@@ -29,7 +30,7 @@ class JournalIntegrationTest {
     private val data = FakeSessions()
     private val clock = FakeClock(wall = JournalSessions.ms(LocalDateTime.of(2026, 10, 22, 9, 30)))
     private val requests = SavedSheetRequests(clock)
-    private val sources = JournalSources(data.journal, data.sessions, requests, clock)
+    private val sources = JournalSources(data.journal, data.sessions, requests, clock, FakeCollection().teas)
     private val controller = FakeBrewController(data.sessions, requests)
 
     @Test
@@ -38,7 +39,7 @@ class JournalIntegrationTest {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 Box {
                     JournalRoute(sources = sources, onOpenSettings = {}, onOpenTimer = {})
-                    SavedSheetHost(requests = requests, sessions = data.sessions, alerting = false)
+                    SavedSheetHost(requests = requests, sessions = data.sessions, teas = sources.teas, alerting = false)
                 }
             }
         }

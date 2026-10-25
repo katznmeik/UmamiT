@@ -4,6 +4,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.data.TeaRepository
 import com.umamit.core.timer.controller.SavedSheetRequests
 import java.time.Duration
 import java.time.Instant
@@ -13,12 +14,15 @@ import javax.inject.Inject
 /**
  * What the journal tab and the „Gespeichert" sheet read (M1-16, D-061). The
  * app injects it; tests build it from the fakes of core:testing.
+ *
+ * @property teas the session's tea, for the sheet's *Rezept passt* (CAT-05, D-073).
  */
 class JournalSources @Inject constructor(
     val journal: JournalRepository,
     val sessions: SessionRepository,
     val savedSheets: SavedSheetRequests,
     val clock: WallClock,
+    val teas: TeaRepository,
 ) {
     /**
      * The journal's last read: a tab that comes back shows it in its first frame, so the

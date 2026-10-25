@@ -5,6 +5,7 @@ import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.UmamiLevel
@@ -56,6 +57,30 @@ class TeaAndRecipeRepositoryTest {
         val names = data.teas.observeTeas().first().map { it.tea.name }
 
         assertThat(names).containsExactly("Gyokuro", "hisui", "Tanabata").inOrder()
+    }
+
+    @Test
+    fun rezeptPasstClearsTheFlagOfThatTeaOnly() = runTest {
+        val flagged = tea("t1").copy(recipeCheckReason = RecipeCheckReason.FROM_TEXT, catalogKey = "AA0001")
+        val other = tea("t2").copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT)
+        data.teas.saveTea(flagged)
+        data.teas.saveTea(other)
+
+        data.teas.clearRecipeCheck("t1")
+
+        // Only the flag goes (CAT-05, SCR-06); everything else of the tea and the other tea stay.
+        assertThat(data.teas.getTea("t1")).isEqualTo(flagged.copy(recipeCheckReason = null))
+        assertThat(data.teas.getTea("t2")).isEqualTo(other)
+    }
+
+    @Test
+    fun rezeptPasstOnATeaThatIsGoneChangesNothing() = runTest {
+        data.teas.saveTea(tea("t2").copy(recipeCheckReason = RecipeCheckReason.FROM_TEXT))
+
+        data.teas.clearRecipeCheck("gone")
+
+        assertThat(data.teas.getTea("t2")?.recipeCheckReason).isEqualTo(RecipeCheckReason.FROM_TEXT)
+        assertThat(data.teas.getTea("gone")).isNull()
     }
 
     @Test

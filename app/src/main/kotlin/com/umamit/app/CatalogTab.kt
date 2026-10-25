@@ -5,6 +5,9 @@ import androidx.compose.ui.Modifier
 import com.umamit.feature.catalog.CatalogContent
 import com.umamit.feature.catalog.CatalogRoute
 import com.umamit.feature.catalog.CatalogUiState
+import com.umamit.feature.catalog.GuideArticleRoute
+import com.umamit.feature.catalog.GuideListRoute
+import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
 
 /**
  * What Sammlung's *Katalog* segment gets from the shell (SCR-19).
@@ -43,3 +46,41 @@ internal fun CatalogTabContent(tab: CatalogTab) {
 internal fun PlaceholderCatalog(tab: CatalogTab) {
     CatalogContent(state = CatalogUiState(loading = false), onLoad = {}, onShowProgress = {}, modifier = tab.modifier)
 }
+
+/**
+ * What a catalog tea's detail (SCR-21) gets from the shell.
+ *
+ * @property onBack back to the catalog list.
+ * @property alerting whether an alert plays now: the add sheet gives way (rule 8, D-085).
+ * @property onPurchaseSave the collection tea of each saved add or repurchase (SCR-23): in the
+ *   tea picker's flow it opens the setup of that tea (D-073, D-088).
+ */
+internal class CatalogTeaHost(
+    val onBack: () -> Unit,
+    val alerting: Boolean,
+    val onPurchaseSave: (teaId: String) -> Unit,
+)
+
+/** A catalog tea's detail with its view model and the add sheet (#66, #71). */
+@Composable
+internal fun CatalogTeaContent(host: CatalogTeaHost) {
+    CatalogTeaScreenRoute(onBack = host.onBack, alerting = host.alerting, onPurchaseSave = host.onPurchaseSave)
+}
+
+/**
+ * The catalog screens in the Sammlung stack below the list: a tea's detail (SCR-21) and the
+ * *Ratgeber* with its articles (SCR-20, CAT-09). The app uses the real routes; tests replace them.
+ */
+internal class CatalogStackScreens(
+    val tea: @Composable (CatalogTeaHost) -> Unit = { CatalogTeaContent(it) },
+    val guides: @Composable (onBack: () -> Unit, onOpenGuide: (String) -> Unit) -> Unit = { onBack, onOpenGuide ->
+        GuideListRoute(onBack = onBack, onOpenGuide = onOpenGuide)
+    },
+    val guide: @Composable (
+        onBack: () -> Unit,
+        onOpenTea: (String) -> Unit,
+        onOpenGuide: (String) -> Unit,
+    ) -> Unit = { onBack, onOpenTea, onOpenGuide ->
+        GuideArticleRoute(onBack = onBack, onOpenTea = onOpenTea, onOpenGuide = onOpenGuide)
+    },
+)
