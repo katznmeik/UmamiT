@@ -350,6 +350,13 @@ open or what M1 changed.
 - An early design check of the catalog list, tea detail and add sheet
   follows the first UI slice (like #39); the final design review comes with
   the release candidate.
+- Test plan (agreed with the PO for the M2 spec, kept lean): parser and
+  recipe rules on synthetic pages; the whole refresh against a simulated shop
+  (rate limit, stop signals, variant merge, atomic swap); adding and
+  repurchase on a test database; screenshots of the catalog list, tea detail,
+  add sheet and refresh sheet (light and dark, font 2.0 for list and detail);
+  Claude's live-shop runs; the PO's checklist. No emulator test of the
+  refresh: the PO checks a refresh during a brew on the phone (09 §4 M2).
 - The PO generates the illustrations A8 (empty catalog) and A11 (Ratgeber
   header) now, for the first M2 rc.
 

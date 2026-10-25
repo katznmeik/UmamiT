@@ -115,6 +115,8 @@ only.
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
 - [ ] Guides readable offline.
 - [ ] *Im Shop öffnen* on a catalog tea opens its Tee-Kontor page in the browser (CAT-11).
+- [ ] Refresh during a brew: start a 3-min step, then *Katalog aktualisieren* and lock the phone → the pre-alert and the alert come on time and the refresh completes (CAT-07 AC8, D-073).
+- [ ] *Aus dem Katalog* in the tea picker → add a tea (size, price, date) → the brew setup opens with that tea; after brewing a tea marked „Rezept prüfen", *Rezept passt* clears the mark (CAT-12, CAT-05).
 
 ### M3 — Collection
 
