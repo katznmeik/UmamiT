@@ -302,9 +302,10 @@ again.
   action, and verifies the APK again before it publishes. Claude triggers it
   through the GitHub Actions API / tool (no local tag push needed). GitHub
   only dispatches workflows whose file exists on the default branch, so
-  `release.yml` and `accuracy.yml` reach `main` through small housekeeping
-  PRs before their first dispatch; the version at the dispatch's workflow
-  ref runs (D-039, D-070). How to dispatch: `docs/release.md`.
+  `release.yml`, `accuracy.yml` and `timer-stress.yml` (D-084) reach `main`
+  through small housekeeping PRs before their first dispatch; the version at
+  the dispatch's workflow ref runs (D-039, D-070). How to dispatch:
+  `docs/release.md`.
 - **Release candidates:** `vX.Y.Z-rc.N` are built from the milestone's PR
   branch and published as **pre-releases** for the PO's on-device testing.
   After the PR is merged, the final `vX.Y.Z` is built from `main`.

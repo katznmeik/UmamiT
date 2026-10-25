@@ -1,0 +1,187 @@
+# Stress run of one instrumented timer test (D-084): runs it many times on the
+# CI emulator to catch a failure that comes only now and then, such as
+# ProcessDeathTest's kill during a step. Dispatched by hand; it is no gate and
+# not run on push.
+#
+# - GitHub dispatches only workflows whose file exists on the default branch
+#   (D-039, D-070), so this file must be on `main` before the first dispatch.
+#   The version at the workflow ref of the dispatch is the one that runs
+#   (`gh workflow run timer-stress.yml --ref <branch> -f ref=<branch>`).
+# - Actions are pinned to full commit SHAs, with the version in a comment
+#   (D-070), the same as in ci.yml.
+# - The emulator setup is copied from accuracy.yml (itself from the `emulator`
+#   job of ci.yml); keep the three in sync. The cache keys are the same.
+# - Result: summary.md in the job summary (one line per run with the kill time
+#   the test logged), and an artifact per API level with the instrumentation
+#   output and logcat of each failed run.
+name: Timer stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit SHA to test
+        required: true
+        default: claude/umamit-m1-start-k0jg3n
+      api-level:
+        description: Emulator API level
+        type: choice
+        options: ['35', '36', both]
+        default: '35'
+      test:
+        description: Test to repeat (class#method)
+        required: true
+        default: com.umamit.core.timer.ProcessDeathTest#aStepWhoseProcessIsKilledStillAlertsFullScreenAtItsDeadline
+      runs:
+        description: Runs (about 35 s each for ProcessDeathTest; at most 200)
+        required: true
+        default: '20'
+      kill-sweep-ms:
+        description: ProcessDeathTest only - kill at from:to:step ms after the step's start, cycled (empty = as in CI)
+        required: false
+        default: '400:1200:50'
+
+concurrency:
+  group: timer-stress-${{ inputs.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.console=plain
+
+jobs:
+  stress:
+    name: Stress (API ${{ matrix.api-level }})
+    runs-on: ubuntu-latest
+    # 200 runs of about 35 s, 10–15 min of build and emulator boot, and margin.
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: ${{ fromJSON(inputs.api-level == 'both' && '[35, 36]' || format('[{0}]', inputs.api-level)) }}
+    env:
+      AVD_TARGET: google_apis
+      AVD_ARCH: x86_64
+      AVD_PROFILE: pixel_6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: false
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Build the timer's test APK
+        run: ./gradlew :core:timer:assembleDebugAndroidTest
+
+      # Copied from accuracy.yml: dl.google.com sometimes serves a truncated
+      # archive or index, so the packages are cached and installed up front
+      # with retries.
+      - name: Locate the Android SDK
+        run: echo "SDK_DIR=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+      - name: Emulator and system image cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ${{ env.SDK_DIR }}/emulator
+            ${{ env.SDK_DIR }}/system-images/android-${{ matrix.api-level }}/${{ env.AVD_TARGET }}/${{ env.AVD_ARCH }}
+          key: sdk-emulator-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-v1
+
+      - name: Install emulator and system image (with retries)
+        run: |
+          sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          image="system-images;android-${{ matrix.api-level }};$AVD_TARGET;$AVD_ARCH"
+          for attempt in 1 2 3; do
+            if yes | "$sdkmanager" --install emulator "$image" > /dev/null; then
+              exit 0
+            fi
+            echo "sdkmanager attempt $attempt failed; retrying in 30 s."
+            sleep 30
+          done
+          echo "::error::Could not install the emulator or $image after 3 attempts (dl.google.com)."
+          exit 1
+
+      - name: AVD cache
+        id: avd-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}-v1
+
+      - name: Create AVD and snapshot for the cache
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD snapshot created for the cache."
+
+      # The inputs reach the script as environment variables only (never
+      # expanded into the command line); the script validates them.
+      - name: Stress run
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          STRESS_TEST: ${{ inputs.test }}
+          STRESS_RUNS: ${{ inputs.runs }}
+          STRESS_KILL_SWEEP: ${{ inputs.kill-sweep-ms }}
+          STRESS_OUT: build/stress
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash scripts/stress-instrumented.sh
+
+      - name: Job summary
+        if: always()
+        env:
+          REF: ${{ inputs.ref }}
+          API_LEVEL: ${{ matrix.api-level }}
+        run: |
+          {
+            if [ -s build/stress/summary.md ]; then
+              cat build/stress/summary.md
+            else
+              echo "### Stress run · API $API_LEVEL"
+              echo
+              echo "**Result: no report**: the run stopped before the script wrote one; see the job log."
+            fi
+            echo
+            echo "API $API_LEVEL, ref \`$REF\`, commit \`$(git rev-parse HEAD)\`. Details: artifact \`stress-api-$API_LEVEL\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stress-api-${{ matrix.api-level }}
+          path: build/stress/
+          retention-days: 14
+          if-no-files-found: ignore

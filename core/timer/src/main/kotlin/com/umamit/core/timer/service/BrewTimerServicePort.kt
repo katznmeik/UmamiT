@@ -95,6 +95,8 @@ class BrewTimerServicePort internal constructor(
                 when (report) {
                     is ServiceReport.InForeground -> TimerDiagnostic.ServiceInForeground(now, report.notificationId)
 
+                    is ServiceReport.TookOverStale -> TimerDiagnostic.ServiceTookOverStale(now, report.notificationId)
+
                     is ServiceReport.Refused -> TimerDiagnostic.ServiceStartRefused(
                         now,
                         report.notificationId,

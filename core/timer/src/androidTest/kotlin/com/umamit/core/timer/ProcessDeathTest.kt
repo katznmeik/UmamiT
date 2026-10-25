@@ -25,8 +25,8 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,7 +41,9 @@ import kotlin.time.TimeSource
  *
  * - The deadline alarm starts a new process, whose controller recovers the step and alerts: the
  *   full-screen alert shows over the lock screen, and the alert notification is the foreground
- *   notification, not silenced (D-044), and names the recovered session's tea.
+ *   notification, not silenced (D-044), and names the recovered session's tea. Notification 1
+ *   is gone, also when the kill met an update of it and left it flagged for the new process
+ *   (D-084); the log says when the kill came and whether it left notification 1.
  * - Or the user opens the app again before the deadline: its process start recovers the step,
  *   which shows as it was, and the alert still comes on time.
  *
@@ -85,18 +87,14 @@ class ProcessDeathTest {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
         assertEquals("test setup: start and Start of the step", TimerTestActivity.STARTED, outcome)
+        val stepStartWallMs = TimerTestActivity.deadlineFile(context).readText().toLong() - STEP.inWholeMilliseconds
         eventually("foreground BrewTimerService", START_TIMEOUT) {
             serviceBlock()?.takeIf { it.contains("isForeground=true") }
         }
         eventually("the deadline alarm in dumpsys alarm", START_TIMEOUT) { deadlineAlarm() }
 
-        val killed = checkNotNull(timerPid()) { "no timer process" }
-        assertTrue(
-            "test setup: too slow, ${started.elapsedNow()} of the $STEP step passed before the kill",
-            started.elapsedNow() < STEP - KILL_MARGIN,
-        )
-        Process.killProcess(killed)
-        eventually("timer process $killed gone", START_TIMEOUT) { Unit.takeIf { timerPid() != killed } }
+        val kill = killDuringStep(started, stepStartWallMs)
+        val killed = kill.pid
         assertNotNull("the deadline alarm must survive the process", deadlineAlarm())
 
         // With the screen off the full-screen intent launches the activity (on and
@@ -131,7 +129,9 @@ class ProcessDeathTest {
             "${TimerTestActivity.TEA} · Aufguss 1",
             alert.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
         )
-        assertNull("notification 1 must be gone while alerting", activeNotification(TimerNotifications.ID_LIVE_UPDATE))
+        activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.let {
+            fail("notification 1 must be gone while alerting, ${flagsOf(it)} ($kill)\n${deviceState()}")
+        }
         // Evidence of the AlertPlayer (the emulator runs without audio): its vibration, if the image has a vibrator.
         Log.i(
             TAG,
@@ -198,6 +198,35 @@ class ProcessDeathTest {
     }
 
     /**
+     * Kills the timer process during the step that started at [stepStartWallMs] and waits until
+     * it is gone. A stress run (`scripts/stress-instrumented.sh`) can choose the moment of the
+     * kill. Android removes the killed service's notification 1, unless the kill met an update
+     * of it on its way: then it stays, flagged, for the next process to remove (D-084). Both
+     * are logged and returned for a failure message.
+     */
+    private fun killDuringStep(started: TimeSource.Monotonic.ValueTimeMark, stepStartWallMs: Long): Kill {
+        killAfterStartMs()?.let { Thread.sleep((stepStartWallMs + it - System.currentTimeMillis()).coerceAtLeast(0)) }
+        val pid = checkNotNull(timerPid()) { "no timer process" }
+        assertTrue(
+            "test setup: too slow, ${started.elapsedNow()} of the $STEP step passed before the kill",
+            started.elapsedNow() < STEP - KILL_MARGIN,
+        )
+        Process.killProcess(pid)
+        val afterStartMs = System.currentTimeMillis() - stepStartWallMs
+        eventually("timer process $pid gone", START_TIMEOUT) { Unit.takeIf { timerPid() != pid } }
+        val liveUpdate = eventuallyOrNull(STALE_TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
+        }?.let { "gone" } ?: "still posted, ${flagsOf(activeNotification(TimerNotifications.ID_LIVE_UPDATE))}"
+        return Kill(pid, afterStartMs, liveUpdate).also { Log.i(TAG, it.toString()) }
+    }
+
+    /** A kill of the timer process: when, and what it left of notification 1. */
+    private data class Kill(val pid: Int, val afterStartMs: Long, val liveUpdateAfter: String) {
+        override fun toString() =
+            "killed pid $pid $afterStartMs ms after the step's start; notification 1 after the kill: $liveUpdateAfter"
+    }
+
+    /**
      * No timer from an earlier run: its alarms cancelled (same uid), its screens closed, its
      * process killed, its database deleted, its notifications removed. A leftover session would
      * refuse the start.
@@ -256,6 +285,28 @@ class ProcessDeathTest {
     private fun activeNotification(id: Int): Notification? =
         notificationManager.activeNotifications.firstOrNull { it.id == id }?.notification
 
+    private fun flagsOf(notification: Notification?): String =
+        notification?.let { "flags=0x${Integer.toHexString(it.flags)}" } ?: "gone meanwhile"
+
+    /**
+     * The instrumentation argument `umamitKillAfterStartMs` (stress runs only): the kill waits
+     * until this many ms after the step's start, once the setup checks passed.
+     */
+    private fun killAfterStartMs(): Long? = InstrumentationRegistry.getArguments()
+        .getString(ARG_KILL_AFTER_START_MS)
+        ?.toLongOrNull()
+        ?.also { require(it in 0..MAX_KILL_AFTER_START_MS) { "$ARG_KILL_AFTER_START_MS out of range: $it" } }
+
+    /** Polls [poll] until it returns non-null or [timeout] passes; null then, without failing. */
+    private fun <T : Any> eventuallyOrNull(timeout: Duration, poll: () -> T?): T? {
+        val start = TimeSource.Monotonic.markNow()
+        while (start.elapsedNow() < timeout) {
+            poll()?.let { return it }
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+        return poll()
+    }
+
     private fun wakeAndUnlock() = UnlockedDevice.unlock()
 
     /** Polls [poll] until it returns non-null or [timeout] passes; then fails with [what] and the device state. */
@@ -305,6 +356,12 @@ class ProcessDeathTest {
 
         /** The kill must leave this much of the step, so the alert cannot fire in the old process. */
         val KILL_MARGIN = 5.seconds
+
+        /** How long the log waits for Android to remove the killed service's notification 1. */
+        val STALE_TIMEOUT = 2.seconds
+
+        const val ARG_KILL_AFTER_START_MS = "umamitKillAfterStartMs"
+        const val MAX_KILL_AFTER_START_MS = 15_000L
 
         /** Margin for the alarm, the process start, the recovery, the service and the activity launch. */
         val ALERT_TIMEOUT = 45.seconds

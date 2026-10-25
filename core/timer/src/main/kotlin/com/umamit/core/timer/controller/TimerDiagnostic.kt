@@ -148,6 +148,13 @@ sealed interface TimerDiagnostic {
     /** The foreground service runs in the foreground with notification [notificationId] (04 §6.3). */
     data class ServiceInForeground(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
 
+    /**
+     * The service took over notification [notificationId], which a killed process had left
+     * flagged as a foreground notification that the app cannot cancel, so its foreground switch
+     * removes it (D-084).
+     */
+    data class ServiceTookOverStale(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
+
     /** The foreground service ended (stopped by the port or by itself). */
     data class ServiceStopped(override val at: ClockReading) : TimerDiagnostic
 
