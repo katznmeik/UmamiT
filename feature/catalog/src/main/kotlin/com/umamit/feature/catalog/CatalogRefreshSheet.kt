@@ -209,7 +209,10 @@ private fun Body(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
+/**
+ * The catalog's sheets (SCR-22, SCR-23): always fully expanded; under reduce motion it starts
+ * expanded, so it appears without the slide (03 §3.6).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun rememberCatalogSheetState(reduceMotion: Boolean): SheetState {

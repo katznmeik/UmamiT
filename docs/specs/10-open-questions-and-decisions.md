@@ -360,6 +360,55 @@ new column:
   logged and never fails the refresh, whose swap is in; the steps after the
   swap are not cancellable.
 
+<a id="d-085"></a>
+### D-085 — Adding and repurchasing a catalog tea (#71) · *Accepted* (Claude, 2026-10-25)
+
+The eighth M2 slice (spec #62, #71) adds a catalog tea to the collection or
+records a repurchase (CAT-12, CAT-13, TEA-01, INV-01). Decided while building
+it:
+
+- **Duplicate guard:** the collection tea linked to a catalog key is the one
+  with that `catalog_key` that is not archived, else the oldest. An owned key,
+  Tanabata's `TG0213` and Hisui's `TG0557` included, always records a
+  PURCHASE event, never a second tea; the guard is read again inside the
+  write's transaction. A repurchase of an archived tea brings it back
+  (TEA-04: archived when used up). A repurchase changes nothing else.
+- **The copy** (`AddFromCatalog`, one transaction in `umamit.db`): the derived
+  recipes in their order with the default first and exactly one default (the
+  style's recipes when the catalog has none), each keeping its source; the
+  tea's „Rezept prüfen" reason; an INITIAL event with the grams, the price in
+  cents (or none) and `package_label` „250 g"; `catalog_key`, `product_url`,
+  vendor „Tee-Kontor Kiel", *Sorte*, style, form (08 §2.6), umami level
+  (the shop's scale, else the style's), the plain-text description, and the
+  fields of 08 §2.3's conversion table. The country becomes its ISO code
+  from a list of the shop's country names (unknown: empty). A bare season
+  („Sommer") counts only in the *Ernte* badge, never in the prose; prose
+  shading counts only in a sentence about shading. Nothing links the copy to
+  the catalog but `catalog_key`, so no refresh changes it (CAT-13).
+- **Cover:** the catalog's own `<key>.webp` is re-encoded with the cover
+  target (≤ 2048 px JPEG 85) into `photos/<id>.jpg` with a `CATALOG_COPY` row
+  (D-076); only the app's own WebP is accepted there, the shop's images stay
+  JPEG only. Without a usable photo the tea has no cover.
+- **Purchase date → `occurred_at`:** today is now; an earlier day is noon of
+  that day in the phone's zone. The date can't be after today.
+- **Exact price** (GEN-01 (c), D-074): one `ShopSession` (`NetworkRetry.NONE`)
+  per open sheet, so robots.txt is read once however many sizes are priced.
+  Only the chosen size is fetched, once per sheet, and only when its price is
+  an estimate or missing and it has its own page; the page's own size from the
+  refresh is the shop's price already and sends nothing. The page must show
+  that size (its unit content), else there is no price. Offline, on any stop
+  or for another size the estimate (or no price) stays. A price typed before
+  the exact one arrives is kept; saving never waits.
+- **SCR-23:** the sizes smallest first with their prices, *Andere Menge* with
+  an amount field, the price field with a line saying where the price comes
+  from, *Kaufdatum* with Material's date picker, *Aufnehmen* / *Nachkauf
+  erfassen*. The sheet opens on the size bought last (repurchase), else the
+  size with the shop's own price, else the first priced one. A failed save
+  keeps the sheet open with a message. An alert removes the sheet in the same
+  frame and it stays closed; it can't be opened during one (rule 8). SCR-21's
+  primary action is *In Sammlung aufnehmen*, or *Nachkauf erfassen* for an
+  owned tea. The route reports the saved tea for the picker flow (#72).
+
 <a id="d-084"></a>
 ### D-084 — A killed process's stale foreground notification is taken over and removed (TMR-41, D-044; corrects D-080) · *Accepted* (Claude, 2026-10-25)
 
@@ -3043,6 +3092,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-086: later catalog refreshes (#70) — merged numbers known through their packages, unread known teas kept, discontinued teas kept hidden while owned and deleted otherwise, photos fetched only when new or their URL changed, `content_hash` per parser version for „geändert", the CAT-07 AC3 summary in the sheet and the notification („Rezepte prüfen" = flagged since this refresh), SCR-21's „Nicht mehr im Sortiment", CAT-15 seed linking once with the `seedTeasLinked` marker; 02 CAT-07, CAT-15, 03 SCR-21, SCR-22, 05 §4.1, §4.4, §4.5, §6, 06 §5.2, §5.3 and 08 §2.4 updated. |
+| 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |
 | 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |

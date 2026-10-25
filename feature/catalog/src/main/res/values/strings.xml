@@ -147,4 +147,29 @@
     <!-- A smaller size (a sample) is never estimated: its price is fetched when it is added (CAT-12). -->
     <string name="catalog_package_price_on_add">Preis beim Hinzufügen</string>
     <string name="catalog_package_estimate_note">≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst.</string>
+
+    <!-- SCR-21's primary action (CAT-12): a tea not yet in the collection, and one that is (D-073). -->
+    <string name="catalog_tea_add">In Sammlung aufnehmen</string>
+    <string name="catalog_tea_repurchase">Nachkauf erfassen</string>
+
+    <!-- SCR-23 add sheet (CAT-12, GEN-01 (c)). -->
+    <string name="catalog_add_title">In Sammlung aufnehmen</string>
+    <string name="catalog_add_title_repurchase">Nachkauf erfassen</string>
+    <string name="catalog_add_package">Packung</string>
+    <string name="catalog_add_custom">Andere Menge</string>
+    <string name="catalog_add_grams">Menge</string>
+    <string name="catalog_add_grams_unit">g</string>
+    <string name="catalog_add_price">Preis</string>
+    <string name="catalog_add_price_unit">€</string>
+    <string name="catalog_add_price_fetching">Der genaue Preis wird im Shop abgerufen …</string>
+    <string name="catalog_add_price_shop">Preis aus dem Shop. Du kannst ihn ändern.</string>
+    <string name="catalog_add_price_estimate">≈ geschätzt – der genaue Preis war nicht abrufbar. Du kannst ihn ändern.</string>
+    <string name="catalog_add_price_none">Kein Preis bekannt – trag ihn ein, wenn du magst.</string>
+    <string name="catalog_add_price_invalid">Bitte einen Preis wie 12,40 eingeben.</string>
+    <string name="catalog_add_date">Kaufdatum</string>
+    <string name="catalog_add_date_ok">OK</string>
+    <string name="catalog_add_date_cancel">Abbrechen</string>
+    <string name="catalog_add_save">Aufnehmen</string>
+    <string name="catalog_add_save_repurchase">Nachkauf erfassen</string>
+    <string name="catalog_add_failed">Das hat nicht geklappt. Bitte versuch es noch einmal.</string>
 </resources>

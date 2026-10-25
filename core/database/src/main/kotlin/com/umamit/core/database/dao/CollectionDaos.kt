@@ -36,6 +36,7 @@ data class TeaWithDetails(
 )
 
 @Dao
+@Suppress("TooManyFunctions") // one query per need of the tea, its photos and its catalog link (CAT-12)
 interface TeaDao {
     @Transaction
     @Query("SELECT * FROM tea ORDER BY name")
@@ -76,6 +77,21 @@ interface TeaDao {
 
     @Query("SELECT * FROM photo WHERE id = :id")
     suspend fun photo(id: String): PhotoEntity?
+
+    /**
+     * The collection tea linked to catalog tea [catalogKey] (05 §1.6 soft link; the duplicate
+     * guard of CAT-12): a tea not archived first, then the oldest; null when none is.
+     */
+    @Query(
+        "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
+    )
+    fun observeIdByCatalogKey(catalogKey: String): Flow<String?>
+
+    /** [observeIdByCatalogKey], read once. */
+    @Query(
+        "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
+    )
+    suspend fun idByCatalogKey(catalogKey: String): String?
 }
 
 @Dao
