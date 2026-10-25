@@ -15,15 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
-import com.umamit.core.designsystem.component.CheckRecipeBadge
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogTeaDetail
-import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.ui.RecipeCheckNote
 import java.util.Locale
 
 /**
@@ -36,15 +35,7 @@ internal fun Recipes(tea: CatalogTeaDetail) {
     if (tea.recipes.isEmpty()) return
     Section(pluralStringResource(R.plurals.catalog_tea_section_recipes, tea.recipes.size)) {
         tea.recipeCheckReason?.let { reason ->
-            Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                CheckRecipeBadge()
-                Spacer(Modifier.height(UmamiSpacing.XXSmall))
-                Text(
-                    text = stringResource(reason.text()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            RecipeCheckNote(reason)
             Spacer(Modifier.height(UmamiSpacing.Small))
         }
         tea.recipes.forEachIndexed { index, recipe ->
@@ -111,15 +102,6 @@ private fun step(step: RecipeStep, baseTempC: Int): String {
         temperature != null -> stringResource(R.string.catalog_tea_recipe_step_temperature, time, temperature)
         else -> time
     }
-}
-
-@StringRes
-private fun RecipeCheckReason.text(): Int = when (this) {
-    RecipeCheckReason.FROM_TEXT -> R.string.catalog_tea_recipe_reason_from_text
-    RecipeCheckReason.FROM_STYLE_DEFAULT -> R.string.catalog_tea_recipe_reason_from_style
-    RecipeCheckReason.TABLE_TEXT_CONFLICT -> R.string.catalog_tea_recipe_reason_conflict
-    RecipeCheckReason.IMPLAUSIBLE_VALUE -> R.string.catalog_tea_recipe_reason_implausible
-    RecipeCheckReason.UNMAPPED_STYLE -> R.string.catalog_tea_recipe_reason_unmapped
 }
 
 @StringRes

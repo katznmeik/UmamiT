@@ -1,15 +1,20 @@
 package com.umamit.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.umamit.feature.brew.picker.TeaPickerHost
+import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.home.HomeActions
 import com.umamit.feature.home.HomeRoute
 import com.umamit.feature.home.HomeScreen
 import com.umamit.feature.home.HomeUiState
+import com.umamit.feature.home.HomeViewModel
 
 /** Where Start leads outside its tab (03 §2.1): the setup, the timer and the quick timer. */
 internal class StartNavigation(
@@ -22,6 +27,10 @@ internal class StartNavigation(
  * What the shell hands the Start tab: its own actions and the root's [navigation].
  *
  * @property alertKey the alert playing now, or null: the tea picker never covers it (rule 8).
+ * @property openCatalogForBrew the tea picker's *Aus dem Katalog*: Sammlung › Katalog, whose add
+ *   or repurchase then opens the setup of that tea (D-073, D-088).
+ * @property pickerReturn the picker flow was left without a save: Start opens the picker again,
+ *   unless an alert plays ([onPickerReturned] confirms it was seen).
  */
 internal class StartTab(
     val openSettings: () -> Unit,
@@ -30,14 +39,36 @@ internal class StartTab(
     val openCatalog: () -> Unit,
     val alertKey: String?,
     val navigation: StartNavigation,
+    val openCatalogForBrew: () -> Unit = {},
+    val pickerReturn: Boolean = false,
+    val onPickerReturned: () -> Unit = {},
 )
 
-/** Start with its view model and the tea picker (SCR-02, SCR-03): the app's Start tab. */
+/**
+ * Start with its view model and the tea picker (SCR-02, SCR-03): the app's Start tab. Tests pass
+ * view models built on fakes, so the picker's catalog flow is tested through this wiring (#72).
+ */
+@Suppress("ViewModelForwarding") // the two screens' own view models, replaceable only for tests
 @Composable
-internal fun StartTabContent(tab: StartTab) {
+internal fun StartTabContent(
+    tab: StartTab,
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    pickerViewModel: TeaPickerViewModel = hiltViewModel(),
+) {
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
     var pickerOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
     val navigation = tab.navigation
+    // Back from the picker's catalog flow (D-088): the picker again, never over an alert (rule 8).
+    val currentOnPickerReturned by rememberUpdatedState(tab.onPickerReturned)
+    LaunchedEffect(tab.pickerReturn) {
+        if (tab.pickerReturn) {
+            currentOnPickerReturned()
+            if (tab.alertKey == null) {
+                pickerOpenedIn = null
+                pickerOpen = true
+            }
+        }
+    }
     HomeRoute(
         actions = HomeActions(
             openSettings = tab.openSettings,
@@ -53,6 +84,7 @@ internal fun StartTabContent(tab: StartTab) {
         ),
         onOpenTimer = navigation.openTimer,
         scrollToTopRequest = tab.scrollToTopRequest,
+        viewModel = homeViewModel,
     )
     TeaPickerHost(
         open = pickerOpen,
@@ -68,6 +100,11 @@ internal fun StartTabContent(tab: StartTab) {
             navigation.openQuickTimer()
         },
         onDismissRequest = { pickerOpen = false },
+        onCatalog = {
+            pickerOpen = false
+            tab.openCatalogForBrew()
+        },
+        viewModel = pickerViewModel,
     )
 }
 

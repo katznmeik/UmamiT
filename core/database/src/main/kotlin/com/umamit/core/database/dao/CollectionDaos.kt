@@ -68,6 +68,10 @@ interface TeaDao {
     @Query("UPDATE tea SET cover_photo_id = :photoId, updated_at = :now WHERE id = :teaId")
     suspend fun setCoverPhoto(teaId: String, photoId: String?, now: Long)
 
+    /** *Rezept passt* (CAT-05, SCR-06): the one tea's „Rezept prüfen" reason goes, nothing else. */
+    @Query("UPDATE tea SET recipe_check_reason = NULL, updated_at = :now WHERE id = :teaId")
+    suspend fun clearRecipeCheck(teaId: String, now: Long)
+
     /** *Geöffnet am* (INV-06). */
     @Query("UPDATE tea SET opened_date = :openedDate, updated_at = :now WHERE id = :teaId")
     suspend fun setOpenedDate(teaId: String, openedDate: LocalDate, now: Long)

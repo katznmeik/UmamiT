@@ -31,6 +31,12 @@ interface TeaRepository {
 
     /** Sets or clears the tea's cover photo. */
     suspend fun setCoverPhoto(teaId: String, photoId: String?)
+
+    /**
+     * *Rezept passt* (CAT-05, SCR-06): clears the tea's „Rezept prüfen" reason and nothing else;
+     * no other tea changes. A tea that is gone is ignored.
+     */
+    suspend fun clearRecipeCheck(teaId: String)
 }
 
 /** Recipes with their ordered steps (05 §3.2, §3.3). Temperatures are snapped to 5 °C (GEN-12). */

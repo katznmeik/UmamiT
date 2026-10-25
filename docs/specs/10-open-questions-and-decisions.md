@@ -302,6 +302,39 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-088"></a>
+### D-088 — Brewing a new tea from the picker, „Rezept passt" (#72) · *Accepted* (Claude, 2026-10-25)
+
+The ninth M2 slice (spec #62, #72) lets the PO brew a tea just bought
+(D-073, CAT-12, CAT-05). Decided while building it:
+
+- **Where the flow runs:** *Aus dem Katalog* in the tea picker (SCR-03)
+  closes the picker and opens Sammlung › Katalog in the Sammlung tab, at its
+  root on the *Katalog* segment: the same SCR-19 → SCR-21 → SCR-23 as from
+  Sammlung, with the navigation bar and the active brew bar where they always
+  are. No separate full-screen copy of the catalog.
+- **The save:** an add or a repurchase saved in this flow puts the shell back
+  on Start and opens the setup (SCR-04) of that tea above it, so back from
+  the setup returns to Start like any brew from the picker. An add from
+  Sammlung itself stays in Sammlung.
+- **Leaving without a save:** back from the catalog list, or a tap on Start,
+  returns to Start with the picker open again; a tap on Journal or Statistik
+  ends the flow quietly. Starting and leaving the flow pop the Sammlung stack
+  to its root, so none of its screens stays behind; nothing is written until
+  the save. The flow survives a configuration change and process death.
+- **Alerts first (rule 8):** an alert removes the add sheet (D-085) and the
+  picker (D-062); the picker does not come back while an alert plays, and the
+  setup is never opened during one (the alerting timer opens instead).
+- **SCR-04:** the flag moves from under the tea name to above the steps,
+  with its reason, as on SCR-21: one shared `RecipeCheckNote` in `core:ui`,
+  whose reason strings move there from `feature:catalog`.
+- **SCR-06:** *Rezept passt* shows for a session whose tea is flagged when
+  the sheet is due (the tea read then, not the session's snapshot). It clears
+  `recipe_check_reason` of that tea only (`TeaRepository.clearRecipeCheck`, one
+  `UPDATE`, no schema change), then reads „„Rezept prüfen“ ist entfernt.“; the
+  sheet keeps its 10 s and its alert rules (D-061). The write is never
+  cancelled by an alert starting right after the tap.
+
 <a id="d-085"></a>
 ### D-085 — Adding and repurchasing a catalog tea (#71) · *Accepted* (Claude, 2026-10-25)
 
@@ -3033,6 +3066,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-088: brewing a new tea from the picker (#72) — *Aus dem Katalog* runs through Sammlung › Katalog in the Sammlung tab, a save there opens the setup of that tea (a repurchase too), back returns to the picker, an alert wins; the setup shows „Rezept prüfen" with its reason above the steps; the „Gespeichert" sheet's *Rezept passt* clears the flag of that tea only; 03 SCR-03, SCR-04, SCR-06 updated. |
 | 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |
 | 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |

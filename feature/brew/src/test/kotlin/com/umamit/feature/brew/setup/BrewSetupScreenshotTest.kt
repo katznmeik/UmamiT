@@ -15,6 +15,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
@@ -127,6 +128,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 steps = listOf(PlannedStep(StepKind.INFUSION, 14_400, 5)),
             ),
         )
+    }
+
+    /** A tea flagged „Rezept prüfen": the flag and its reason above the steps (CAT-05, SCR-04). */
+    @Test
+    fun setupRecipeCheck() = capture("BrewSetup_recipeCheck") {
+        BrewSetupScreen(kyusu.copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT))
     }
 
     @Test
