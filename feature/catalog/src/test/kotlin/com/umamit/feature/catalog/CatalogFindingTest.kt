@@ -22,6 +22,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogOverview
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.testing.FakeCatalogRefreshRunner
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
@@ -49,7 +50,11 @@ class CatalogFindingTest {
         CatalogOverview(
             teas = listOf(
                 catalogTea("XY0100", "Morgennebel Sencha").copy(isOrganic = true, owned = true),
-                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro").copy(isNew = true, needsRecipeCheck = true),
+                catalogTea(
+                    "XY0200",
+                    "Tautropfen Gyokuro",
+                    "Gyokuro",
+                ).copy(isNew = true, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
                 catalogTea("XY0300", "Kirsch Sencha").copy(isFlavored = true),
                 catalogTea("XY0400", "Stiller See Gyokuro", "Gyokuro").copy(available = false),
             ),
@@ -129,7 +134,7 @@ class CatalogFindingTest {
         // Each row is one TalkBack item: its badges are part of it.
         compose.onNode(
             hasText("Tautropfen Gyokuro") and hasText(str(R.string.catalog_badge_new)) and
-                hasText(str(R.string.catalog_badge_recipe_check)),
+                hasText("Rezept prüfen"),
         ).assertIsDisplayed()
         compose.onNode(
             hasText("Morgennebel Sencha") and hasText(str(R.string.catalog_badge_owned)) and

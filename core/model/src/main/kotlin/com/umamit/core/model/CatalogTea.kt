@@ -11,7 +11,8 @@ package com.umamit.core.model
  * @property thumbnailPath the list thumbnail's file (CAT-08), if the tea has a photo.
  * @property originCountry the growing countries as the shop names them („Japan", „Japan, China").
  * @property umamiLeaves the shop's umami scale, 0–5 leaves, if it shows one.
- * @property needsRecipeCheck the derived recipe is flagged „Rezept prüfen" (CAT-05).
+ * @property recipeCheckReason why its derived recipe should be checked (CAT-05): the list's
+ *   „Rezept prüfen" badge; null when it came straight from the shop's grid.
  * @property isNew first seen in the latest successful refresh (CAT-10 „Neu", D-083).
  * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
  */
@@ -27,7 +28,7 @@ data class CatalogTeaSummary(
     val isOrganic: Boolean = false,
     val isFlavored: Boolean = false,
     val umamiLeaves: Int? = null,
-    val needsRecipeCheck: Boolean = false,
+    val recipeCheckReason: RecipeCheckReason? = null,
     val isNew: Boolean = false,
     val owned: Boolean = false,
 ) {
@@ -69,6 +70,9 @@ data class CatalogOverview(val teas: List<CatalogTeaSummary>, val lastRefreshAtM
  * @property descriptionHtml the description, sanitised to basic formatting and links (08 §2.8).
  * @property brewTable the shop's brewing grid, verbatim.
  * @property brewText the description's paragraphs about brewing, verbatim.
+ * @property recipes the timer recipes derived from the grid and text (CAT-04), the default first.
+ * @property recipeCheckReason why the default recipe should be checked (CAT-05); null when it
+ *   came straight from the shop's grid.
  * @property packages the package sizes (05 §4.2), from #67 on.
  */
 data class CatalogTeaDetail(
@@ -97,6 +101,8 @@ data class CatalogTeaDetail(
     val descriptionHtml: String? = null,
     val brewTable: List<BrewTableRow> = emptyList(),
     val brewText: String? = null,
+    val recipes: List<RecipeTemplate> = emptyList(),
+    val recipeCheckReason: RecipeCheckReason? = null,
     val basePriceCentsPer100g: Long? = null,
     val available: Boolean? = null,
     val discontinued: Boolean = false,

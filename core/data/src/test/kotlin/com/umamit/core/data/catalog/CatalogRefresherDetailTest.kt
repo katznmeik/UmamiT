@@ -10,6 +10,12 @@ import com.umamit.core.data.decodedSize
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
+import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeSource
+import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.RecipeTemplate
+import com.umamit.core.model.StepKind
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
@@ -274,6 +280,49 @@ class CatalogRefresherDetailTest {
         assertThat(detail.brewTable.single().cells.first().text).isEqualTo("~4g/100ml")
         assertThat(detail.productUrl).isEqualTo("$base$SENCHA")
         assertThat(repository.observeTea("XY0300").first()).isNull()
+    }
+
+    @Test
+    fun eachTeasStyleRecipesAndRecipeCheckAreStored() = runTest {
+        // The Gyokuro's prose contradicts its grid (60 °C): „Rezept prüfen" (CAT-05).
+        listed -= GYOKURO
+        product(
+            GYOKURO,
+            "XY0200",
+            GYOKURO_PATH,
+            photo = "gyokuro",
+            description = "<p>Zubereitung: 4 g auf 100 ml bei 80 °C.</p>",
+        )
+
+        refresher().refresh()
+
+        val sencha = requireNotNull(dao.tea("XY0100"))
+        assertThat(sencha.styleKey).isEqualTo("sencha")
+        assertThat(sencha.recipeCheckReason).isNull()
+        val gyokuro = requireNotNull(dao.tea("XY0200"))
+        assertThat(gyokuro.styleKey).isEqualTo("gyokuro")
+        assertThat(gyokuro.recipeCheckReason).isEqualTo(RecipeCheckReason.TABLE_TEXT_CONFLICT)
+        assertThat(dao.refreshLog().last().flaggedCount).isEqualTo(1)
+
+        val repository = RoomCatalogRepository(dao, photos)
+        val detail = requireNotNull(repository.observeTea("XY0100").first())
+        assertThat(detail.recipes).containsExactly(
+            RecipeTemplate(
+                name = "Kyusu",
+                method = BrewMethod.KYUSU,
+                leafGrams = 4.0,
+                waterMl = 100,
+                baseTempC = 60,
+                steps = listOf(RecipeStep(StepKind.INFUSION, 90), RecipeStep(StepKind.INFUSION, 20)),
+                source = RecipeSource.CATALOG_TABLE,
+                isDefault = true,
+            ),
+        )
+        assertThat(detail.recipeCheckReason).isNull()
+        assertThat(requireNotNull(repository.observeTea("XY0200").first()).recipeCheckReason)
+            .isEqualTo(RecipeCheckReason.TABLE_TEXT_CONFLICT)
+        val list = repository.observeCatalog().first().teas.associate { it.key to it.recipeCheckReason }
+        assertThat(list).containsExactly("XY0100", null, "XY0200", RecipeCheckReason.TABLE_TEXT_CONFLICT)
     }
 
     private fun photoRoute(name: String) = SyntheticShop.photoPath(name).substringBefore('?')

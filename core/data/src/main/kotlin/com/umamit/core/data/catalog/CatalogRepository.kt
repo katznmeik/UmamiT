@@ -77,7 +77,7 @@ class RoomCatalogRepository @Inject constructor(
                     isFlavored = row.isFlavored,
                     umamiLeaves = CatalogColumns.tasteScales(row.tasteScalesJson)
                         .firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
-                    needsRecipeCheck = row.recipeCheckReason != null,
+                    recipeCheckReason = row.recipeCheckReason,
                     isNew = row.isNew,
                     owned = row.key in ownedKeys,
                 )
@@ -133,6 +133,8 @@ class RoomCatalogRepository @Inject constructor(
         descriptionHtml = descriptionHtml,
         brewTable = CatalogColumns.brewTable(brewTableRaw),
         brewText = brewTextRaw,
+        recipes = DerivedRecipesColumn.recipes(derivedRecipesJson),
+        recipeCheckReason = recipeCheckReason,
         basePriceCentsPer100g = basePriceCentsPer100g,
         available = available,
         discontinued = discontinued,

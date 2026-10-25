@@ -20,12 +20,18 @@ import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.catalog.CatalogBrowser
+import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogTeaDetail
+import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeSource
+import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.RecipeTemplate
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.testing.FakeClock
@@ -67,7 +73,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600, thumbnailPath = "gyokuro")
                 .copy(originCountry = "Japan", isNew = true),
             catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190)
-                .copy(originCountry = "Japan", needsRecipeCheck = true),
+                .copy(originCountry = "Japan", recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
             catalogTea("XY0400", "Kirschblüte", teaType = null, basePriceCentsPer100g = 790)
                 .copy(originCountry = "China", isFlavored = true),
             catalogTea("XY0500", "Wolkenberg Matcha", "Matcha Teepulver", 12_995, thumbnailPath = "matcha")
@@ -138,6 +144,38 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 ),
             ),
             brewText = "Zubereitung: 4 g auf 100 ml bei 60 °C, der erste Aufguss 90 Sekunden.",
+            recipes = listOf(
+                RecipeTemplate(
+                    "Kyusu",
+                    BrewMethod.KYUSU,
+                    4.0,
+                    100,
+                    60,
+                    listOf(90, 20, 60).map {
+                        RecipeStep(StepKind.INFUSION, it)
+                    },
+                    RecipeSource.CATALOG_TABLE,
+                    isDefault = true,
+                ),
+                RecipeTemplate(
+                    "Westlich",
+                    BrewMethod.WESTERN,
+                    2.5,
+                    250,
+                    65,
+                    listOf(RecipeStep(StepKind.INFUSION, 60), RecipeStep(StepKind.INFUSION, 15, tempC = 70)),
+                    RecipeSource.CATALOG_TABLE,
+                ),
+                RecipeTemplate(
+                    "Kaltaufguss",
+                    BrewMethod.COLD_BREW,
+                    10.0,
+                    1000,
+                    5,
+                    listOf(RecipeStep(StepKind.INFUSION, 4 * 3600)),
+                    RecipeSource.STYLE_DEFAULT,
+                ),
+            ),
             basePriceCentsPer100g = 1240,
             available = true,
             packages = listOf(
@@ -235,14 +273,20 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun detailEnd() = capture("detailEnd", scrollToText = "Angaben des Shops, unverändert übernommen.") { Detail() }
 
+    /** ABGELEITETES REZEPT with „Rezept prüfen" and its reason (CAT-04, CAT-05). */
+    @Test
+    fun detailRecipes() = capture("detailRecipes", scrollToText = "Fehlende Werte aus den Standardwerten der Sorte") {
+        Detail(DETAIL.copy(recipeCheckReason = RecipeCheckReason.TABLE_TEXT_CONFLICT))
+    }
+
     /** The detail scrolled to PACKUNGEN (#67): a sample, the page's own size and two estimates. */
     @Test
     fun detailPackages() = capture("detailPackages", scrollToText = ESTIMATE_NOTE) { Detail() }
 
     @Composable
-    private fun Detail() {
+    private fun Detail(tea: CatalogTeaDetail = DETAIL) {
         CatalogTeaScreen(
-            state = CatalogTeaUiState(loading = false, tea = DETAIL, shopUrl = DETAIL.productUrl),
+            state = CatalogTeaUiState(loading = false, tea = tea, shopUrl = tea.productUrl),
             onBack = {},
             onOpenShop = {},
             photo = remember { placeholderPhoto("detail") },

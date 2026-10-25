@@ -333,6 +333,56 @@ while building it:
 - **Not stored:** search, filters and sort live as long as the screen; the
   list always opens in the default view (D-073), so 05 §6's `catalogSort`
   setting is dropped.
+- **One badge slot:** `TeaListItem`'s `badges` is a wrapping row
+  (`FlowRowScope`); the catalog rows put „Neu", „im Besitz", Bio and
+  aromatisiert there next to D-082's `CheckRecipeBadge`.
+
+<a id="d-082"></a>
+### D-082 — Timer recipes from the catalog and „Rezept prüfen" (#68) · *Accepted* (Claude, 2026-10-25)
+
+The fifth M2 slice (spec #62, #68) derives each catalog tea's timer recipes
+(CAT-04) and flags those to check (CAT-05). Decided while building it:
+
+- **Where the code lives:** 08 §3's green styles are `BuiltInStyles` in
+  `core:domain` (D-076), so the collection editor (M3) can use them too;
+  `StyleMapper`, `RecipeDeriver` and `CatalogRecipes` (page → style, recipes,
+  reason) are in `core:catalog-parser`. A recipe without a tea is a
+  `RecipeTemplate` (`core:model`) with the timer's own `RecipeStep`s; it becomes
+  a `Recipe` when the tea is added (#71). Tests check every derived recipe
+  against the engine's step model and PRF-03/04.
+- **Derivation details** (08 §2.5, listed there): a recipe's source is its
+  least certain field; grid columns by header label; the prose split into hot
+  and Kaltaufguss paragraphs; all steps from the style when the first is;
+  style follow-ups keep the style's temperature rise; 5 s / 1 min / 5 ml /
+  0,1 g grids; a conflict only against every grid row; one reason per tea by
+  priority (implausible, conflict, style default, text, unmapped style). The
+  PO's second western infusion keeps the recipe's source (the shop's grid
+  sits next to it in the detail).
+- **Style mapping** (08 §2.6): the name and the *Sorte* are searched with the
+  more specific keywords first; a flavoured tea no keyword names is
+  `flavored_green`, a Mizudashi bag without a style name `green_generic`, both
+  unflagged; a flavoured sencha stays Japanese, so its Kyusu row is the default
+  (08 example `TG0569`).
+- **Refresh:** each green tea's `style_key`, `derived_recipes_json` (05 §4.1)
+  and `recipe_check_reason` are written with its row; the log's
+  `flagged_count` counts the flagged teas of a swapped-in catalog (for #70's
+  summary). The sanity check's brewing threshold (08 §2.9) is on: a green tea
+  lacks brewing information with neither a grid row nor brewing prose.
+- **Parser fixes from live sample 1** (parser version 4, after #67's 3): the
+  brewing prose is only paragraphs that are instructions (two of temperature, time and amount
+  per volume, or one with a brewing word); tasting notes on the liquor, video
+  pointers, package sizes and storage hints are not, because a wrong value from
+  the text is worse than the style default. Each multi-value property span's
+  own leading „, " is dropped before joining; taste-scale labels lose their
+  colon („Umami:"), so the Umami level maps; control characters become spaces
+  in every text read (08 §2.3, §2.8).
+- **SCR-21:** *Abgeleitete Rezepte* follows *Zubereitung*: „Rezept prüfen"
+  with its reason when flagged, then each recipe (name, „Standard", „4,0 g ·
+  200 ml · 65 °C" or „kalt", the steps with a hotter step's temperature,
+  „Aufschlagen 0:20" for matcha) and the source of a non-default recipe not
+  from the table. **SCR-19:** a flagged tea's row carries the
+  `CheckRecipeBadge` chip (03 §3.8), a slot of `TeaListItem` that the other
+  chips (#69) can use too.
 
 <a id="d-081"></a>
 ### D-081 — Catalog package sizes and prices, split numbers (#67) · *Accepted* (Claude, 2026-10-25)
@@ -2863,6 +2913,7 @@ default but is not a requirement.
 | Date | Change |
 |---|---|
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
+| 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |
 | 2026-10-25 | D-081: catalog package sizes and prices (#67) — sizes from the configurator and the sitemap without fetching size pages, the page's own size at its price, larger sizes estimated, smaller ones priced when added, each with its own `variant_url`; split numbers merged by normalised name only when their own sizes differ; SCR-21 *Packungen*; parser v3; 03 SCR-21, 05 §4.2, 06 §2, §3 and 08 §2.4 updated. |
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
 | 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |

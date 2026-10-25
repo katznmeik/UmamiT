@@ -716,7 +716,11 @@ ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
 page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
 status bar with the back button over it; name, secondary name, tags, price
 per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
-*Beschreibung*, *Zubereitung*, each only when the shop fills it; then
+*Beschreibung*, *Zubereitung*, each only when the shop fills it. *Abgeleitete
+Rezepte* follows *Zubereitung* (D-082): `CheckRecipeBadge` and the reason when
+flagged, then each recipe, the default first („Kyusu · Standard", „4,0 g ·
+200 ml · 65 °C" or „kalt", steps „1:00 · 0:15 bei 70 °C", „Aufschlagen 0:20")
+with the source of a non-default recipe not from the shop's table. Then
 *Packungen*: one row per size, smallest first, with the shop's price
 („12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
 Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out

@@ -47,14 +47,14 @@ parser (NFR-MAINT-04).
 | Price | `.product-detail-price` („17,90 €") | default package price |
 | Base price | `.product-detail-price-unit` („Inhalt: 0.1 kg (179,00 € / 1 kg)"); without the reference: price ÷ content (D-077) | package grams; `base_price_cents_per_100g` = per-kg ÷ 10 |
 | Availability | `.delivery-information` present and `.btn-buy` present → available; `.acris-stock-notification` → out of stock; neither → unknown (null) | `available` |
-| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
+| Properties | `table.product-detail-properties-table tr.properties-row` → `th.properties-label` / `td.properties-value > span` (skip `.st-property-label`; each value after the first starts with its own „, ", which is dropped before joining with „, ", D-082). Labels: *Anbaugebiete* (country), *Aroma*, *Geschmack*, *Hersteller …*, *Kultivare*, *Saison* (when to drink — **not** the harvest), *Matcha Qualitäten* | `origin_country`, `aroma`, `taste_notes`, `manufacturer`, `cultivar`, `season`, `matcha_grade` |
 | Badges | `.st-usps .filter-active`: „Bio", „Coldbrew geeignet"; `.st-invers`: „Dämpfung: …", „Ernte: …", „Beschattung: …" | `is_organic`, `cold_brew_suitable`, `steaming`, `harvest`, `shading` |
-| Taste scales | `.st-scales-usp .container`: label (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
+| Taste scales | `.st-scales-usp .container`: label without its colon (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
 | Description | `.product-detail-description-text` paragraphs, without staff tip blocks (`.st-teamtipp`, D-076), sanitised (§2.8, D-078) | `description_html`, `description_text`; also the source of brewing prose and „Zutaten: …" |
 | Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
 | Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
 | Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon) or `st-zubereitung-westlich` (western icon); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
-| Brewing prose | Description paragraphs mentioning Zubereitung, Aufguss, g/ml, °C, Kaltaufguss | `brew_text_raw` |
+| Brewing prose | Description paragraphs that are brewing instructions: two of temperature (°C), time (Sek, Min, Std) and amount per volume (g or TL per ml or l), or one of them with a brewing word (Zubereitung, Aufguss, Ziehzeit, Dosierung, …); tasting notes, video pointers, package sizes and storage hints are not (D-082) | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
 | Photo | `img.gallery-slider-image[data-full-image]` of the product's own gallery (original); microdata image as fallback; thumbnails via `data-srcset` | `photo_url` |
 | Breadcrumb | `ol.breadcrumb` (e.g. `/tee/gruener-tee/japan/sencha/`); *Sorte* = title of the green type level (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else empty (D-077) | `breadcrumb` (deepest path), `shop_category` (titles), `tea_type`, section membership |
@@ -194,6 +194,35 @@ the **default recipe**:
 Additional recipes (cold brew, western) show their source as a small note in
 the recipe instead of flagging the tea.
 
+**Details fixed while building it (D-082):**
+- A recipe's `source` is its least certain field: style default before text
+  before table. The PO's second western infusion and the matcha whisk time
+  don't count (they are rules, not data).
+- Grid columns are read by their header label (Menge, Temperatur, n. Aufguss),
+  else by position. A matcha's rows become one *Usucha* recipe.
+- The prose is split into paragraphs: those describing a Kaltaufguss
+  (Kaltaufguss, kaltes Wasser, Cold Brew, Kühlschrank) give only the cold
+  brew's values; the others the hot recipes' (the first amount per volume,
+  temperature below boiling, else boiling, and time; a time in hours is no hot
+  infusion). Paragraphs are separated by blank lines. Teaspoons use the
+  style's g/TL. Without a grid, the style's default recipe is derived with the
+  prose's values and the style's other hot recipes follow unchanged.
+- When the first infusion comes from the style, all steps do; follow-ups from
+  the style keep the style's rise over its base temperature (sencha +5 / +10 °C).
+  Temperatures above 100 °C are capped.
+- A per-litre amount („10 g auf 1 Liter") in the cold-brew prose brews 1000 ml.
+  Cold-brew times outside 1 min – 24 h fall back to the style's.
+- Times snap to 5 s below 10 min and to whole minutes above (PRF-04); water to
+  5 ml (10–3000 ml); leaf to 0,1 g, half up.
+- A conflict needs the prose to differ from the default's grid value **and**
+  from every other row's (prose matching the western row contradicts nothing).
+  The amount is compared as g per 100 ml.
+- One reason per tea, the first that applies: `IMPLAUSIBLE_VALUE`,
+  `TABLE_TEXT_CONFLICT`, `FROM_STYLE_DEFAULT`, `FROM_TEXT`, `UNMAPPED_STYLE`.
+- *Japanese* (Kyusu default): a Japanese style, a style named by a Japanese
+  keyword in the name (a flavoured sencha), the Japan section, or *Anbaugebiete*
+  Japan.
+
 **Worked examples (live data, 2026-10-21):**
 
 | Tea | Grid / prose | Derived recipes | Tea flag |
@@ -260,7 +289,7 @@ seed vessels (WARE-06). Purchase date of the seed stock = first app start;
 
 ### 2.6 Style mapping and umami level
 
-Style from the breadcrumb's last segment, else name keywords:
+Style from the breadcrumb's last segment, else name keywords (the name and the *Sorte*; the more specific first, e.g. „Gyokuro Karigane" → `karigane`, „Genmaicha mit Matcha" → `genmaicha`; D-082):
 
 | Breadcrumb / keyword | Style key |
 |---|---|
@@ -276,9 +305,10 @@ Style from the breadcrumb's last segment, else name keywords:
 | `genmaicha` | `genmaicha` |
 | `kamairicha` | `kamairicha` |
 | `tamaryokucha` | `tamaryokucha` |
-| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic`; form TEA_BAG; default recipe = cold brew |
+| `mizudashi-kaltaufgussbeutel` | style from name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | `aromatisierter-gruentee` | `flavored_green` |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun" / „Anji" / „Sejak" | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` |
+| a flavoured tea no keyword names | `flavored_green` (not flagged, D-082) |
 | anything else | `green_generic` + flag `UNMAPPED_STYLE` |
 
 **Umami level** from the shop's Umami scale when present: 0 → `NONE`, 1 →
@@ -310,6 +340,8 @@ locally); links to product pages become in-app catalog links.
   (YouTube → plain link) and the staff tip blocks; keep basic formatting only:
   paragraphs, line breaks, bold, italics, lists and absolute http(s) links
   without attributes but `href`; headings become bold paragraphs (D-078).
+  Control characters (C0 and C1 but tab and line breaks) become spaces in
+  every text read from a page (D-082).
 - **Cloudflare:** a response is a challenge if it has the header
   `cf-mitigated: challenge`, or (HTTP 403/503) its body contains challenge
   markers (`cdn-cgi/challenge-platform`, `_cf_chl_opt`, „Just a moment…").
@@ -340,7 +372,8 @@ or article number; or > 50 % lack a brewing grid **and** brewing prose
 (selector broke). Out-of-stock products have a price but no availability and
 count as valid. Pages that gave no product or no breadcrumb count among the
 products and as lacking name, price and article number; the brewing
-threshold applies once the parser reads the brewing information (D-077).
+threshold applies since the parser reads the brewing information: a green
+tea lacks it when it has neither a grid row nor brewing prose (D-077, D-082).
 
 ## 3. Built-in tea styles
 
@@ -372,7 +405,9 @@ days after opening.
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
 These values are well-known starting points; imported Tee-Kontor recipes
-take precedence for catalog teas.
+take precedence for catalog teas. The green rows are code in `core:domain`
+(`BuiltInStyles`, D-076, D-082); the rows of other categories follow with the
+collection editor (M3).
 
 ## 4. Tasting descriptor vocabulary
 

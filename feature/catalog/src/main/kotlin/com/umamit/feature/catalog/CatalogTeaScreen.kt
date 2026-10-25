@@ -138,6 +138,7 @@ private fun Detail(
             Taste(tea)
             Description(tea)
             Brewing(tea)
+            Recipes(tea)
             Packages(tea)
             Spacer(Modifier.height(UmamiSpacing.Large))
         }

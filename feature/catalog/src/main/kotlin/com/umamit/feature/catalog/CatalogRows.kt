@@ -1,7 +1,5 @@
 package com.umamit.feature.catalog
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -13,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.component.CheckRecipeBadge
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -64,6 +62,7 @@ private fun TeaRow(
         stringResource(R.string.catalog_price_per_100g, CatalogFormat.euros(it))
     }
     val badges = rowBadges(tea)
+    val check = tea.recipeCheckReason != null
     TeaListItem(
         title = tea.name,
         meta = listOfNotNull(tea.teaType?.takeIf { showType }, tea.originCountry, price).joinToString(separator),
@@ -71,51 +70,39 @@ private fun TeaRow(
         thumbnail = thumbnail,
         placeholderColor = placeholderColor(tea.teaType),
         showDivider = showDivider,
-        badges = if (badges.isEmpty()) null else ({ Badges(badges) }),
+        badges = if (badges.isEmpty() && !check) {
+            null
+        } else {
+            {
+                badges.forEach { BadgeTag(it) }
+                // „Rezept prüfen" (CAT-05, CAT-10), the same chip as everywhere in the app.
+                if (check) CheckRecipeBadge()
+            }
+        },
     )
 }
 
-/** How a row's badge looks: „Neu" stands out, „Rezept prüfen" warns, the rest are plain tags. */
-private enum class BadgeKind { NEW, CHECK, PLAIN }
-
-/** A badge of a catalog row (SCR-19): „Neu", „im Besitz", Bio, aromatisiert, „Rezept prüfen" (CAT-10). */
-private data class Badge(val text: String, val kind: BadgeKind)
+/** A badge of a catalog row (SCR-19, CAT-10): „Neu" stands out; „im Besitz", Bio and aromatisiert are plain tags. */
+private data class Badge(val text: String, val prominent: Boolean = false)
 
 @Composable
 private fun rowBadges(tea: CatalogTeaSummary): List<Badge> = buildList {
-    if (tea.isNew) add(Badge(stringResource(R.string.catalog_badge_new), BadgeKind.NEW))
-    if (tea.owned) add(Badge(stringResource(R.string.catalog_badge_owned), BadgeKind.PLAIN))
-    if (tea.isOrganic) add(Badge(stringResource(R.string.catalog_tea_organic), BadgeKind.PLAIN))
-    if (tea.isFlavored) add(Badge(stringResource(R.string.catalog_tea_flavored), BadgeKind.PLAIN))
-    if (tea.needsRecipeCheck) add(Badge(stringResource(R.string.catalog_badge_recipe_check), BadgeKind.CHECK))
-}
-
-@Composable
-private fun Badges(badges: List<Badge>) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
-        verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XXSmall),
-    ) {
-        badges.forEach { BadgeTag(it) }
-    }
+    if (tea.isNew) add(Badge(stringResource(R.string.catalog_badge_new), prominent = true))
+    if (tea.owned) add(Badge(stringResource(R.string.catalog_badge_owned)))
+    if (tea.isOrganic) add(Badge(stringResource(R.string.catalog_tea_organic)))
+    if (tea.isFlavored) add(Badge(stringResource(R.string.catalog_tea_flavored)))
 }
 
 @Composable
 private fun BadgeTag(badge: Badge) {
     val colors = MaterialTheme.colorScheme
-    val (container, content) = when (badge.kind) {
-        BadgeKind.NEW -> colors.primary to colors.onPrimary
-        BadgeKind.CHECK -> colors.tertiaryContainer to colors.onTertiaryContainer
-        BadgeKind.PLAIN -> colors.secondaryContainer to colors.onSecondaryContainer
-    }
-    Surface(shape = CircleShape, color = container) {
+    Surface(shape = CircleShape, color = if (badge.prominent) colors.primary else colors.secondaryContainer) {
         Text(
             text = badge.text,
             style = MaterialTheme.typography.labelMedium,
-            color = content,
-            modifier = Modifier.padding(horizontal = UmamiSpacing.XSmall, vertical = BadgeVerticalPadding),
+            color = if (badge.prominent) colors.onPrimary else colors.onSecondaryContainer,
+            // The same height as „Rezept prüfen" beside it (CheckRecipeBadge).
+            modifier = Modifier.padding(horizontal = UmamiSpacing.XSmall, vertical = UmamiSpacing.XXSmall),
         )
     }
 }
-
-private val BadgeVerticalPadding = 2.dp

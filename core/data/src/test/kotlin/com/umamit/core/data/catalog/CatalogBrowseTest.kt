@@ -286,7 +286,7 @@ class CatalogBrowseTest {
         assertThat(tea.isOrganic).isTrue()
         assertThat(tea.isFlavored).isTrue()
         assertThat(tea.owned).isTrue()
-        assertThat(tea.needsRecipeCheck).isTrue()
+        assertThat(tea.recipeCheckReason).isEqualTo(RecipeCheckReason.FROM_STYLE_DEFAULT)
         assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.HIGH)
         assertThat(tea.originCountry).isEqualTo("Japan")
     }
