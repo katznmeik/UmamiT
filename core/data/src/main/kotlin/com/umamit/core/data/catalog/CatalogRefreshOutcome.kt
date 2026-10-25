@@ -8,8 +8,15 @@ package com.umamit.core.data.catalog
  *   are read (then the total is not known yet).
  * @property products green teas found so far.
  * @property photos photos downloaded so far (from #66 on).
+ * @property guides *Tee-Info* guides read so far (CAT-09, #76); they come after the photos.
  */
-data class CatalogRefreshProgress(val pagesDone: Int, val pagesTotal: Int, val products: Int, val photos: Int = 0) {
+data class CatalogRefreshProgress(
+    val pagesDone: Int,
+    val pagesTotal: Int,
+    val products: Int,
+    val photos: Int = 0,
+    val guides: Int = 0,
+) {
     companion object {
         /** Reading robots.txt and the sitemap. */
         val STARTING = CatalogRefreshProgress(pagesDone = 0, pagesTotal = 0, products = 0)

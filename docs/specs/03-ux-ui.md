@@ -702,8 +702,20 @@ is already done (ONB-03 shows only on fresh installs).
 
 ### SCR-20 Ratgeber-Artikel
 
-Hero image (if any), serif title, source line „Tee-Kontor Kiel · Tee-Info",
-rich text, links to catalog teas resolved locally, *Im Browser öffnen*.
+Hero image (if any, 16:9 under the status bar with the back button over it,
+as SCR-21), serif title, source line „Tee-Kontor Kiel · Tee-Info · 12. März
+2024" (the date when the shop gives one), rich text (headings in the serif,
+lists, images at their own aspect ratio), links to catalog teas and other
+guides opened in the app, every other link in the browser, *Im Browser
+öffnen*. A link to a guide the catalog no longer holds opens its shop page.
+
+**Ratgeber list** (from SCR-19's *Ratgeber* row, shown only while guides
+exist: „Ratgeber · 12 Guides von Tee-Kontor Kiel, offline lesbar"): header
+A11 (the placeholder landscape until the PO's image), „Grüntee-Wissen von
+Tee-Kontor Kiel – auch ohne Verbindung lesbar.", the guides by title with
+the hero as round thumbnail and the date (else „Tee-Kontor Kiel ·
+Tee-Info"). Empty: the empty state (its illustration instead of the header),
+„Noch keine Ratgeber." (D-087).
 
 ### SCR-21 Katalog-Tee
 
@@ -731,7 +743,7 @@ tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
-Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3)
+Progress (Seiten, Produkte, Fotos, Ratgeber), *Abbrechen*; result summary (CAT-07 AC3)
 as one line: „276 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im
 Sortiment · 3 Rezepte prüfen", each part only when above 0, „274 Grüntees ·
 keine Änderungen" for a later refresh without change, „274 Grüntees ·

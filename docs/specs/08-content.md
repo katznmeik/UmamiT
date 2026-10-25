@@ -138,8 +138,8 @@ including images):
 
 | Refresh | Requests (approx.) | Duration |
 |---|---|---|
-| First | sitemap + ~1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, plus their images; ~10–40) | ~15–18 min |
-| Later | sitemap + ~280 green pages + new items + changed photos + G guides and changed guide images | ~3–4 min |
+| First | sitemap + ~1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, ~10–40 and at most 40, plus their images, at most 4 each: ≤ 200 requests, ≈ 100 s, D-087) | ~15–18 min |
+| Later | sitemap + ~280 green pages + new items + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored is not fetched again, D-087) | ~3–4 min |
 
 ### 2.5 Recipe derivation
 
@@ -339,8 +339,25 @@ Confirmed relevant articles: `ein-guide-fuer-japantee`,
 `kabuse-beschattung-von-japanischem-gruentee`, `teerezepte-matcha-eistee`,
 `teefibel-zubereitung-der-kaltaufguss-fahrplan-wie-geht-eigentlich-die-teezubereitung-als-kaltaufguss`.
 
-Conversion: Markdown (headings, paragraphs, lists, tables, images downloaded
-locally); links to product pages become in-app catalog links.
+Conversion (D-087): the app's own Markdown subset (headings, paragraphs
+with line breaks, bold, italics, absolute http(s) links, lists, tables as
+lists of rows, images), sanitised as in §2.8; a bold first line of a
+paragraph becomes a heading; the body doesn't repeat the hero. Title, date
+and hero image from the JSON-LD `BlogPosting` (else the article's `h1`, no
+date, no hero). At most 40 articles per refresh, the most relevant kept
+(most keywords in the slug, then the shorter slug). An article that is gone is
+left out, one that no longer reads keeps its stored version, and without any
+selected article in the sitemap every stored guide is kept.
+
+Images (the gallery's `data-full-image`, else `data-src`/`src`; lazyload
+placeholders and tracking pixels skipped; each once) are downloaded through
+the refresh's session only while SET-22 is on, at most 4 per article (the
+hero first), and
+stored as ≤ 1200 px WebP named after their URL's hash, so an unchanged image
+is never fetched again. Links to product pages of the shop whose tea is in
+the new catalog become in-app catalog links, links to stored guides in-app
+guide links; every other link opens the browser. The guides are staged and
+swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
 
 ### 2.8 Sanitising and robustness
 

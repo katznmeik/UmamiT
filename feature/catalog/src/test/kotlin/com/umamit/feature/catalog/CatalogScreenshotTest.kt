@@ -234,7 +234,8 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun list() = capture("list") {
         CatalogContent(
-            state = listState(),
+            // With the Ratgeber row (CAT-09, #76).
+            state = listState().copy(guideCount = 12),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,

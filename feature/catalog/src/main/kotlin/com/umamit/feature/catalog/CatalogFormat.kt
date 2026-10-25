@@ -31,4 +31,7 @@ internal object CatalogFormat {
 
     /** A purchase date (SCR-23), e.g. „21. Okt. 2026". */
     fun day(day: LocalDate): String = DAY.format(day)
+
+    /** The day of [millis] in [zone] with its year, e.g. „21. Okt. 2026" (a guide's date, CAT-09). */
+    fun fullDate(millis: Long, zone: ZoneId): String = DAY.format(Instant.ofEpochMilli(millis).atZone(zone))
 }

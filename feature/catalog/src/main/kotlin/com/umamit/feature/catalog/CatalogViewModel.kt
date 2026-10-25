@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
+import com.umamit.core.data.catalog.GuideRepository
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogListing
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -25,12 +27,14 @@ import javax.inject.Inject
  * @property filter the search, filters and sort (CAT-10); the default view at first (D-073).
  * @property refresh the refresh's progress or result for the sheet.
  * @property loading true until the catalog was read once (then nothing is shown yet).
+ * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
  */
 data class CatalogUiState(
     val listing: CatalogListing = CatalogListing.EMPTY,
     val filter: CatalogFilter = CatalogFilter.DEFAULT,
     val refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     val loading: Boolean = true,
+    val guideCount: Int = 0,
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
 
@@ -44,8 +48,11 @@ data class CatalogUiState(
  * view model; the list opens in the default view (D-073, D-083).
  */
 @HiltViewModel
-class CatalogViewModel @Inject constructor(repository: CatalogRepository, private val refresh: CatalogRefreshRunner) :
-    ViewModel() {
+class CatalogViewModel @Inject constructor(
+    repository: CatalogRepository,
+    private val refresh: CatalogRefreshRunner,
+    guides: GuideRepository = GuideRepository.NONE,
+) : ViewModel() {
     private val filter = MutableStateFlow(CatalogFilter.DEFAULT)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,8 +60,15 @@ class CatalogViewModel @Inject constructor(repository: CatalogRepository, privat
         filter.flatMapLatest { repository.observeListing(it) },
         filter,
         refresh.state,
-    ) { listing, filter, refreshState ->
-        CatalogUiState(listing = listing, filter = filter, refresh = refreshState, loading = false)
+        guides.observeGuides().map { it.size },
+    ) { listing, filter, refreshState, guideCount ->
+        CatalogUiState(
+            listing = listing,
+            filter = filter,
+            refresh = refreshState,
+            loading = false,
+            guideCount = guideCount,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())
 
     /** A changed search, filter or sort. */
