@@ -121,6 +121,10 @@ class TimerDiagnosticFormatTest {
             .isEqualTo("service: in the foreground with notification 1 | mono 5000000 boot 1")
         assertThat(TimerDiagnosticFormat.message(TimerDiagnostic.ServiceStopped(now)))
             .isEqualTo("service: stopped | mono 5000000 boot 1")
+        assertThat(TimerDiagnosticFormat.message(TimerDiagnostic.ServiceTookOverStale(now, 1))).isEqualTo(
+            "service: took over the stale foreground notification 1 of a killed process to remove it | " +
+                "mono 5000000 boot 1",
+        )
         val refused = TimerDiagnostic.ServiceStartRefused(
             now,
             2,

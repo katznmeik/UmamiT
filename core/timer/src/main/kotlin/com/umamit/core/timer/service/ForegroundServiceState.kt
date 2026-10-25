@@ -121,6 +121,12 @@ internal sealed interface ServiceReport {
     /** `startForeground` succeeded with notification [notificationId]. */
     data class InForeground(val notificationId: Int) : ServiceReport
 
+    /**
+     * Notification [notificationId], left flagged as a foreground notification by a killed
+     * process, was taken over so the foreground switch removes it (D-084).
+     */
+    data class TookOverStale(val notificationId: Int) : ServiceReport
+
     /** `startForeground` with notification [notificationId] was refused ([error]). */
     data class Refused(val notificationId: Int, val error: Exception) : ServiceReport
 
