@@ -173,6 +173,13 @@ abstract class CatalogModule {
     @Binds
     abstract fun catalogRefreshForeground(impl: ServiceCatalogRefreshForeground): CatalogRefreshForeground
 
+    /** CAT-15 after a successful refresh. */
+    @Binds
+    abstract fun catalogSeedLinker(impl: RoomCatalogSeedLinker): CatalogSeedLinker
+
+    @Binds
+    abstract fun seedTeaLinkMarker(impl: DataStoreSeedTeaLinkMarker): SeedTeaLinkMarker
+
     companion object {
         /** The catalog's photos in app-private `filesDir/catalog/` (05 §4.1, CAT-08); not backed up (05 §8). */
         @Provides

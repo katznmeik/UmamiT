@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.data.catalog.SummaryPart
+import com.umamit.core.data.catalog.summary
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -43,11 +45,15 @@ import kotlinx.coroutines.launch
 /** The refresh sheet (SCR-22). */
 const val CATALOG_REFRESH_SHEET_TAG = "catalog_refresh_sheet"
 
+/** A successful refresh's summary line (CAT-07 AC3). */
+const val CATALOG_REFRESH_SUMMARY_TAG = "catalog_refresh_summary"
+
 /**
  * *Katalog aktualisieren* (SCR-22) as Material 3's modal bottom sheet: while [refresh] runs,
  * the pages and products done and *Abbrechen* ([onCancel], CAT-07 AC1); then the result: the
- * count of green teas, or why nothing changed — with *Details kopieren* for the developer
- * (CAT-07 AC5). Closing it ([onDismissRequest]) never stops a running refresh.
+ * count of green teas and what changed („12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
+ * 3 Rezepte prüfen", CAT-07 AC3), or why nothing changed — with *Details kopieren* for the
+ * developer (CAT-07 AC5). Closing it ([onDismissRequest]) never stops a running refresh.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,8 +116,11 @@ private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Un
     when (outcome) {
         is CatalogRefreshOutcome.Success -> {
             Title(stringResource(R.string.catalog_refresh_success_title))
-            val teas = pluralStringResource(R.plurals.catalog_tea_count, outcome.teas, outcome.teas)
-            Body(stringResource(R.string.catalog_refresh_success_summary, teas, outcome.newTeas))
+            val separator = stringResource(R.string.catalog_refresh_summary_separator)
+            Body(
+                outcome.summary().map { summaryPart(it) }.joinToString(separator),
+                Modifier.testTag(CATALOG_REFRESH_SUMMARY_TAG),
+            )
             Close(stringResource(R.string.catalog_refresh_done), onClose)
         }
 
@@ -131,6 +140,26 @@ private fun ColumnScope.Result(outcome: CatalogRefreshOutcome, onClose: () -> Un
             Close(stringResource(R.string.catalog_refresh_close), onClose)
         }
     }
+}
+
+/** One part of the summary line (CAT-07 AC3): „274 Grüntees", „12 neu", „3 Rezepte prüfen", … */
+@Composable
+private fun summaryPart(part: SummaryPart): String = when (part) {
+    is SummaryPart.Teas -> pluralStringResource(R.plurals.catalog_tea_count, part.count, part.count)
+
+    is SummaryPart.New -> stringResource(R.string.catalog_refresh_summary_new, part.count)
+
+    is SummaryPart.Changed -> stringResource(R.string.catalog_refresh_summary_changed, part.count)
+
+    is SummaryPart.Discontinued -> stringResource(R.string.catalog_refresh_summary_discontinued, part.count)
+
+    is SummaryPart.RecipesToCheck -> pluralStringResource(
+        R.plurals.catalog_refresh_summary_recipes,
+        part.count,
+        part.count,
+    )
+
+    SummaryPart.NoChanges -> stringResource(R.string.catalog_refresh_summary_unchanged)
 }
 
 private fun CatalogRefreshOutcome.Failure.message(): Int = when (this) {
@@ -171,8 +200,13 @@ private fun Title(text: String) {
 }
 
 @Composable
-private fun Body(text: String) {
-    Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun Body(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 /**

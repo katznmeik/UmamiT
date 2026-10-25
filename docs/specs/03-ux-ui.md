@@ -732,11 +732,18 @@ with the source of a non-default recipe not from the shop's table. Then
 *Packungen*: one row per size, smallest first, with the shop's price
 („12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
 Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
-of stock, and a note explaining „≈" when an estimate is shown (D-081).
+of stock, and a note explaining „≈" when an estimate is shown (D-081). A tea
+no longer in the range, kept for a collection tea (CAT-07 AC4), carries the
+tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
-Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3);
+Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3)
+as one line: „276 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im
+Sortiment · 3 Rezepte prüfen", each part only when above 0, „274 Grüntees ·
+keine Änderungen" for a later refresh without change, „274 Grüntees ·
+31 Rezepte prüfen" for the first load; the result notification says the same
+(D-086);
 error state with *Details kopieren* for the developer. Closing the sheet never
 stops a refresh, nor does locking the phone (its progress notification offers
 *Abbrechen* too, D-079); while one runs, the empty catalog offers *Fortschritt

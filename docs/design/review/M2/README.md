@@ -10,7 +10,7 @@ font scale 2.0 (the worst-case set).
 
 | Folder | Content |
 |---|---|
-| `catalog/` | SCR-19 catalog list: default view (grouped by *Sorte*, available, „Pur" on; badges „Neu", Bio, „im Besitz", „Rezept prüfen"), filtered list with no hits, filter sheet, empty state with *Katalog laden* (A8 placeholder until the PO's image). SCR-22 refresh sheet: running, success summary, shop changed. SCR-21 tea detail: top (*In Sammlung aufnehmen*, *Im Shop öffnen*), end (description and the shop's brewing table verbatim), derived recipes with „Rezept prüfen", packages with estimates. SCR-23 add sheet and repurchase sheet (font 1.0 only). |
+| `catalog/` | SCR-19 catalog list: default view (grouped by *Sorte*, available, „Pur" on; badges „Neu", Bio, „im Besitz", „Rezept prüfen"), filtered list with no hits, filter sheet, empty state with *Katalog laden* (A8 placeholder until the PO's image). SCR-22 refresh sheet: running, success (first load), summary of a later refresh, shop changed. SCR-21 tea detail: top (*In Sammlung aufnehmen*, *Im Shop öffnen*), end (description and the shop's brewing table verbatim), derived recipes with „Rezept prüfen", packages with estimates. SCR-23 add sheet and repurchase sheet (font 1.0 only). |
 | `onboarding/` | ONB-03 setup page *Katalog jetzt laden* / *Später*, and its loading state. |
 | `settings/` | The *Katalog* section: last refresh with *Jetzt aktualisieren*, and *Fotos laden* (SET-22, SET-23). |
 

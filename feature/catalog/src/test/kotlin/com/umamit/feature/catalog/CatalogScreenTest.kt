@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -79,6 +80,25 @@ class CatalogScreenTest {
 
     private fun sheet() = compose.onNodeWithTag(CATALOG_REFRESH_SHEET_TAG)
 
+    /** [text] with each `_` a non-breaking space: a summary part never breaks inside (D-086). */
+    private fun nbsp(text: String) = text.replace('_', '\u00A0')
+
+    @Test
+    fun aLaterRefreshSaysWhatChanged() {
+        // CAT-07 AC3: „12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (#70).
+        show()
+        compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(276, 12, 5, 2, 3)))
+
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG)
+            .assertTextEquals(nbsp("276 Grüntees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 1, newTeas = 0, recipesToCheck = 1)))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1 Grüntee_· 1_Rezept_prüfen"))
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 0)))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274 Grüntees_· keine Änderungen"))
+    }
+
     @Test
     fun theEmptyStateLeadsThroughTheSheetToTheList() {
         show()
@@ -101,7 +121,8 @@ class CatalogScreenTest {
         )
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2)))
         compose.onNodeWithText(str(R.string.catalog_refresh_success_title)).assertIsDisplayed()
-        compose.onNodeWithText("2 Grüntees · 2 neu").assertIsDisplayed()
+        // The first load: every tea is new, so the summary only counts them (CAT-07 AC3, #70).
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2 Grüntees")
         compose.onNodeWithText(str(R.string.catalog_refresh_done)).performClick()
         compose.waitForIdle()
 

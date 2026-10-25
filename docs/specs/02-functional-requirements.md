@@ -212,10 +212,17 @@ the shop, parses all products, and replaces the catalog atomically.
   rate-limited request (D-076); a Cloudflare challenge, HTTP 429 or a `Retry-After` header
   stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
-  3 Rezepte prüfen".
+  3 Rezepte prüfen", after the count of green teas, each part only when
+  above 0: *neu* not in the previous catalog, *geändert* the shop changed
+  what it shows of the tea (or it is back in the range), *nicht mehr im
+  Sortiment* left the range, *Rezepte prüfen* flagged since this refresh.
+  The first load leaves out „neu" (every tea is); a later refresh without
+  change says „keine Änderungen" (D-086).
 - AC4: Teas no longer found are **hidden** from the catalog. They are kept
   (marked „Nicht mehr im Sortiment") only if a collection tea links to them
-  via `catalog_key`; otherwise they are deleted with their photos.
+  via `catalog_key`; otherwise they are deleted with their photos. A tea
+  still in the sitemap whose page can't be read once is kept as it was
+  (08 §2.4 item 5, D-086).
 - AC5: If parsing fails structurally (e.g. < 50 % of the previous product
   count, or required fields missing on most products), the existing catalog
   is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
@@ -282,7 +289,11 @@ After the first successful catalog refresh, collection teas whose
 `catalog_key` matches a catalog entry but which have no description (the M1
 seed teas) are linked and receive the catalog description and photo
 automatically. Recipes, stock, journal entries and user edits are never
-changed.
+changed. Only the seed teas Tanabata and Hisui are linked, once (marker
+`seedTeasLinked`, 05 §6): the description as plain text, the photo as the
+tea's own JPEG cover only when it has none (D-076); a seed tea with a
+description of its own is left alone; a seed created after the first
+refresh (D-075) is linked by the next one (D-086).
 
 **CAT-13 — Collection teas stay independent** `Must`
 A refresh never changes collection teas, except the one-time linking of seed

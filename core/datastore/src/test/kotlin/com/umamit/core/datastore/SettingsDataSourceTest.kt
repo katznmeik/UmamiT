@@ -49,6 +49,19 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun theSeedTeaLinkMarkerIsSetOnceAndSurvivesSettingsChanges() = runTest {
+        // CAT-15 links the seed teas once (#70): a settings change must never undo the marker.
+        val source = dataSource()
+        assertThat(source.seedTeasLinked.first()).isFalse()
+
+        source.markSeedTeasLinked()
+        source.update { it.copy(catalogDownloadPhotos = false) }
+
+        assertThat(source.seedTeasLinked.first()).isTrue()
+        assertThat(source.seedDataCreated.first()).isFalse()
+    }
+
+    @Test
     fun changesArePersistedAndReadBack() = runTest {
         val file = File(folder.root, "persisted.json")
         val changed = UserSettings(

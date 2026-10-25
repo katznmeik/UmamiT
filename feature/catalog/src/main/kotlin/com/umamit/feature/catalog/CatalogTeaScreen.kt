@@ -114,7 +114,8 @@ fun CatalogTeaRoute(
 /**
  * The stateless detail (SCR-21): the photo (or the type-coloured leaf, 03 §3.5), names, *Sorte*,
  * badges, price per 100 g, *In Sammlung aufnehmen* or, for a tea in the collection, *Nachkauf
- * erfassen* ([onAdd], CAT-12) and *Im Shop öffnen*; then the facts, the shop's taste scales, aroma
+ * erfassen* ([onAdd], CAT-12) and *Im Shop öffnen* (not for a tea no longer in the range, which
+ * says „Nicht mehr im Sortiment", CAT-07 AC4); then the facts, the shop's taste scales, aroma
  * and taste, the description, the shop's brewing grid and text, verbatim, and the package sizes
  * with their prices. [photo] is the
  * tea's photo; tests pass a placeholder image.
@@ -181,14 +182,17 @@ private fun Detail(
                         .fillMaxWidth()
                         .testTag(CATALOG_TEA_ADD_TAG),
                 )
-                Spacer(Modifier.height(UmamiSpacing.XSmall))
-                OutlinedButton(
-                    onClick = { actions.onOpenShop(shopUrl) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
-                ) {
-                    Text(stringResource(R.string.catalog_tea_open_shop))
+                // A tea no longer in the range has no shop page to open (CAT-07 AC4, as INV-09 AC2).
+                if (!tea.discontinued) {
+                    Spacer(Modifier.height(UmamiSpacing.XSmall))
+                    OutlinedButton(
+                        onClick = { actions.onOpenShop(shopUrl) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
+                    ) {
+                        Text(stringResource(R.string.catalog_tea_open_shop))
+                    }
                 }
             }
             Facts(tea)
@@ -242,11 +246,12 @@ private fun Header(tea: CatalogTeaDetail) = Column {
         Text(text = it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     val tags = listOfNotNull(
+        stringResource(R.string.catalog_tea_discontinued).takeIf { tea.discontinued },
         tea.teaType,
         stringResource(R.string.catalog_tea_organic).takeIf { tea.isOrganic },
         stringResource(R.string.catalog_tea_flavored).takeIf { tea.isFlavored },
         stringResource(R.string.catalog_tea_cold_brew).takeIf { tea.coldBrewSuitable },
-        stringResource(R.string.catalog_tea_out_of_stock).takeIf { tea.available == false },
+        stringResource(R.string.catalog_tea_out_of_stock).takeIf { tea.available == false && !tea.discontinued },
     )
     if (tags.isNotEmpty()) {
         Spacer(Modifier.height(UmamiSpacing.Small))

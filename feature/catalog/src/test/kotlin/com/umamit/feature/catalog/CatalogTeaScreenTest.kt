@@ -257,6 +257,18 @@ class CatalogTeaScreenTest {
     }
 
     @Test
+    fun aTeaNoLongerInTheRangeSaysSoAndOffersNoShopPage() {
+        // Kept for a collection tea that links to it (CAT-07 AC4, #70).
+        catalog.details.value = mapOf(SENCHA.key to SENCHA.copy(discontinued = true, available = false))
+        show()
+
+        shown(str(R.string.catalog_tea_discontinued))
+        shown("Morgennebel Sencha")
+        compose.onNodeWithTag(CATALOG_TEA_OPEN_SHOP_TAG).assertDoesNotExist()
+        compose.onNodeWithText(str(R.string.catalog_tea_out_of_stock)).assertDoesNotExist()
+    }
+
+    @Test
     fun aTeaGoneFromTheCatalogSaysSoAndBackLeaves() {
         show("XY9999")
 
