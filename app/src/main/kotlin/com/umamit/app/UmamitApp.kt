@@ -61,6 +61,7 @@ import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
+import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
 import com.umamit.feature.journal.JournalRoute as JournalTab
 
 internal fun tabTag(tab: Tab) = "tab_${tab.name}"
@@ -181,7 +182,11 @@ internal fun UmamitApp(
                             settings = settings,
                             alertKey = alertKey,
                             catalog = { catalogModifier, scrollToTop ->
-                                catalogScreen(CatalogTab(catalogModifier, scrollToTop, alerting, catalogRefreshRequest))
+                                catalogScreen(
+                                    CatalogTab(catalogModifier, scrollToTop, alerting, catalogRefreshRequest) { key ->
+                                        controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
+                                    },
+                                )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
                             start = { openSettings, scrollToTop ->
@@ -303,6 +308,7 @@ private fun TabHost(
                 onRefreshCatalog = onRefreshCatalog,
             )
         }
+        composable<CatalogTeaRoute> { CatalogTeaScreenRoute(onBack = { navController.popBackStack() }) }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
             settings.screen(

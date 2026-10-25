@@ -1,6 +1,8 @@
 package com.umamit.feature.settings
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -18,8 +20,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Einstellungen (SCR-25) with a missing check and with all ready, and Über (SCR-27), in light and
- * dark at font scale 1.0 and 2.0 (03 §6). Goldens: `src/test/screenshots/`.
+ * Einstellungen (SCR-25) with a missing check, with all ready and scrolled to its *Katalog*
+ * section (SET-22, SET-23), and Über (SCR-27), in light and dark at font scale 1.0 and 2.0
+ * (03 §6). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -34,6 +37,9 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
             listOf(1f, 2f).map { scale -> arrayOf<Any>(dark, scale) }
         }
 
+        /** 22 Oct 2026, 12:00 UTC. */
+        private const val LAST_REFRESH_MS = 1_792_670_400_000L
+
         private val LIVE_UPDATES_MISSING = ReliabilityStatus(
             ReliabilityCheck.entries.associateWith { CheckState.Ok } +
                 (ReliabilityCheck.LiveUpdates to CheckState.Missing),
@@ -45,10 +51,18 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+    private fun capture(
+        name: String,
+        scrollToText: String? = null,
+        content: @androidx.compose.runtime.Composable () -> Unit,
+    ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { UmamiTheme(darkTheme = dark, reduceMotion = true) { content() } }
         compose.waitForIdle()
+        if (scrollToText != null) {
+            compose.onNodeWithText(scrollToText).performScrollTo()
+            compose.waitForIdle()
+        }
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
     }
 
@@ -71,6 +85,20 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
             alerting = false,
             onBack = {},
             actions = SettingsActions(),
+        )
+    }
+
+    /** The *Katalog* section: „Letzter Abruf" with *Jetzt aktualisieren* and *Fotos laden* (SET-22, SET-23). */
+    @Test
+    fun settingsCatalog() = capture("Settings_catalog", scrollToText = "Fotos laden") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            // Midday UTC, so the date is the same in every time zone the tests run in.
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
         )
     }
 

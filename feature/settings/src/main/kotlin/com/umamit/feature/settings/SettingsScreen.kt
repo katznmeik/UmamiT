@@ -78,6 +78,8 @@ class SettingsActions(
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-22 *Katalog: Fotos laden*. */
+    val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
@@ -142,6 +144,7 @@ fun SettingsRoute(
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
@@ -192,6 +195,12 @@ fun SettingsScreen(
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
         CatalogSection(catalog, onRefresh = actions.refreshCatalog)
+        SwitchRow(
+            title = stringResource(R.string.settings_catalog_photos),
+            checked = settings.catalogDownloadPhotos,
+            onCheckedChange = actions.setCatalogPhotos,
+            detail = stringResource(R.string.settings_catalog_photos_detail),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(
             title = stringResource(R.string.settings_about),

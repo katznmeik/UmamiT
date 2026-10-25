@@ -6,8 +6,10 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
+import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +22,7 @@ data class CatalogListRow(
     @ColumnInfo(name = "tea_type") val teaType: String?,
     @ColumnInfo(name = "base_price_cents_per_100g") val basePriceCentsPer100g: Long?,
     @ColumnInfo(name = "available") val available: Boolean?,
+    @ColumnInfo(name = "photo_file") val photoFile: String?,
 )
 
 /**
@@ -32,10 +35,22 @@ data class CatalogListRow(
 abstract class CatalogDao {
     /** The teas in the shop's current range (not discontinued), by name. */
     @Query(
-        "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available FROM catalog_tea " +
+        "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file " +
+            "FROM catalog_tea " +
             "WHERE discontinued = 0 ORDER BY name, key",
     )
     abstract fun observeList(): Flow<List<CatalogListRow>>
+
+    /** One tea of the catalog (SCR-21), or null when the catalog has none with [key]. */
+    @Query("SELECT * FROM catalog_tea WHERE key = :key")
+    abstract fun observeTea(key: String): Flow<CatalogTeaEntity?>
+
+    @Query("SELECT * FROM catalog_tea WHERE key = :key")
+    abstract suspend fun tea(key: String): CatalogTeaEntity?
+
+    /** A tea's package sizes, smallest first (05 §4.2). */
+    @Query("SELECT * FROM catalog_package WHERE catalog_key = :key ORDER BY grams")
+    abstract fun observePackages(key: String): Flow<List<CatalogPackageEntity>>
 
     /** When the last successful refresh finished (CAT-07 AC6), or null before the first one. */
     @Query("SELECT MAX(finished_at) FROM catalog_refresh_log WHERE status = 'SUCCESS'")
@@ -76,6 +91,10 @@ abstract class CatalogDao {
 
     @Query("SELECT key FROM catalog_tea_staging")
     abstract suspend fun stagedKeys(): List<String>
+
+    /** Sets a staged tea's photo file (05 §4.1 `photo_file`), once the refresh has its photo (CAT-08). */
+    @Query("UPDATE catalog_tea_staging SET photo_file = :file WHERE key = :key")
+    abstract suspend fun setStagedPhoto(key: String, file: String)
 
     /** Writes a refresh that ended without a swap (cancelled or failed, 05 §4.4). */
     @Insert

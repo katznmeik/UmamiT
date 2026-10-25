@@ -14,15 +14,16 @@ import java.net.URISyntaxException
  * page embeds ~24 other products (cross-selling) with their own names, prices, order numbers and
  * buy buttons, so every buy-box field is read from the product's own buy box only (D-076).
  *
- * Each field has its own reader below; a field the page doesn't show stays null, and a page
- * without any product part is a [ProductParse.Failed]. Never throws.
+ * Each buy-box field has its own reader below, the detail fields theirs in [ProductDetails]; a
+ * field the page doesn't show stays null, and a page without any product part is a
+ * [ProductParse.Failed]. Never throws.
  */
 object TeeKontorParser {
     /**
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
      * selectors or the fields read change.
      */
-    const val PARSER_VERSION = 1
+    const val PARSER_VERSION = 2
 
     /** Parses [body] (the HTML of [pageUrl], charset from the page, else UTF-8). */
     fun parseProduct(body: ByteArray, pageUrl: String): ProductParse {
@@ -47,7 +48,7 @@ private class ProductDocument(private val document: Document, private val pageUr
         val breadcrumb = breadcrumb()
         val price = price()
         val grams = packageGrams()
-        return ProductPage(
+        val page = ProductPage(
             articleNumber = articleNumber,
             key = (articleNumber ?: ProductUrls.articleNumberOf(pageUrl)?.text)?.let { ArticleNumber.parse(it)?.base },
             productUrl = canonicalUrl() ?: pageUrl,
@@ -61,6 +62,7 @@ private class ProductDocument(private val document: Document, private val pageUr
             basePriceCentsPer100g = basePricePer100g() ?: Prices.per100g(price, grams),
             available = available(),
         )
+        return ProductDetails(document, title, breadcrumb).applyTo(page)
     }
 
     private fun title(): String? = document.selectFirst("h1.product-detail-name")?.cleanText()
@@ -114,16 +116,7 @@ private class ProductDocument(private val document: Document, private val pageUr
     } catch (_: URISyntaxException) {
         null
     }
-
-    private fun Element.cleanText(): String = normalisedSpace(text())
-
-    private companion object {
-        /** The other products' boxes and sliders on a product page (cross-selling). */
-        const val OTHER_PRODUCTS = ".product-box, .cms-element-product-slider, .product-slider"
-    }
 }
-
-private fun normalisedSpace(text: String): String = text.replace(' ', ' ').replace(Regex("""\s+"""), " ").trim()
 
 /** The name and secondary name in a product title (08 §2.3). */
 private object Titles {

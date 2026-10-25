@@ -17,6 +17,8 @@ dependencies {
     // Sitemap reader, product page parser and sanity check of the catalog refresh (06 §3, 08 §2).
     implementation(project(":core:catalog-parser"))
     implementation(libs.kotlinx.coroutines.core)
+    // The catalog's JSON columns: taste scales and the brewing grid (05 §4.1).
+    implementation(libs.kotlinx.serialization.json)
     // The catalog refresh service follows the refresh on the main thread (06 §5.3, #65).
     implementation(libs.kotlinx.coroutines.android)
     // Bitmap.scale for re-encoding the seed photos (05 §3.9, D-050).

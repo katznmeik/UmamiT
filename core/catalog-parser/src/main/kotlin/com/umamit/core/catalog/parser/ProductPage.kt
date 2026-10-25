@@ -30,6 +30,27 @@ enum class CatalogScope {
  * @property packageGrams the content of that package.
  * @property basePriceCentsPer100g the unit price per 100 g.
  * @property available in stock (true), out of stock (false) or not readable (null).
+ * @property photoUrl the product's main photo in full size (the gallery's `data-full-image`).
+ * @property originCountry *Anbaugebiete*; several values joined with „, " (as are the other properties).
+ * @property originRegion a known growing region named in the title, else in the description (08 §2.3).
+ * @property cultivar *Kultivare*.
+ * @property harvest the „Ernte: …" badge's value.
+ * @property shading the „Beschattung: …" badge's value.
+ * @property steaming the „Dämpfung: …" badge's value.
+ * @property isOrganic the „Bio" badge.
+ * @property isFlavored *Aroma* other than „naturbelassen", ingredients beyond tea, or the flavoured section (08 §2.3).
+ * @property coldBrewSuitable the „Coldbrew geeignet" badge.
+ * @property aroma *Aroma*.
+ * @property tasteNotes *Geschmack*.
+ * @property manufacturer *Hersteller …*.
+ * @property season *Saison* (when to drink the tea, not the harvest).
+ * @property matchaGrade *Matcha Qualitäten*.
+ * @property tasteScales the shop's taste scales in page order.
+ * @property ingredients the text after „Zutaten:".
+ * @property descriptionHtml the description, sanitised to basic formatting and links (08 §2.8).
+ * @property descriptionText the description as plain text, paragraphs separated by a blank line.
+ * @property brewTable the brewing grid's rows as found.
+ * @property brewText the description's paragraphs about brewing, as found.
  */
 data class ProductPage(
     val articleNumber: String?,
@@ -44,6 +65,27 @@ data class ProductPage(
     val packageGrams: Double?,
     val basePriceCentsPer100g: Long?,
     val available: Boolean?,
+    val photoUrl: String? = null,
+    val originCountry: String? = null,
+    val originRegion: String? = null,
+    val cultivar: String? = null,
+    val harvest: String? = null,
+    val shading: String? = null,
+    val steaming: String? = null,
+    val isOrganic: Boolean = false,
+    val isFlavored: Boolean = false,
+    val coldBrewSuitable: Boolean = false,
+    val aroma: String? = null,
+    val tasteNotes: String? = null,
+    val manufacturer: String? = null,
+    val season: String? = null,
+    val matchaGrade: String? = null,
+    val tasteScales: List<ShopScale> = emptyList(),
+    val ingredients: String? = null,
+    val descriptionHtml: String? = null,
+    val descriptionText: String? = null,
+    val brewTable: List<BrewGridRow> = emptyList(),
+    val brewText: String? = null,
 ) {
     /** The deepest category path, e.g. `/tee/gruener-tee/japan/sencha/` (05 §4.1 `breadcrumb`). */
     val categoryPath: String? get() = breadcrumb.lastOrNull()?.path
@@ -54,6 +96,20 @@ data class ProductPage(
     /** Lacks a field the sanity check requires of every product (08 §2.9): name, price or article number. */
     val lacksRequiredField: Boolean get() = name == null || priceCents == null || articleNumber == null
 }
+
+/** One of the shop's taste scales (08 §2.3): [label] („Umami", „Bitterstoffe") and its filled [leaves] of 5. */
+data class ShopScale(val label: String, val leaves: Int)
+
+/**
+ * One row of the shop's brewing grid (08 §2.3), as found.
+ *
+ * @property kind the row's method as the shop's class names it: `japan` (Kyusu) or `westlich`.
+ * @property cells the row's cells in order, without the method icon.
+ */
+data class BrewGridRow(val kind: String, val cells: List<BrewGridCell>)
+
+/** A brewing grid cell: its column's [label] („Menge", „1. Aufguss") and its [text] („~4g/100ml", „-"). */
+data class BrewGridCell(val label: String?, val text: String)
 
 /** The result of parsing one product page. */
 sealed interface ProductParse {

@@ -302,6 +302,20 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-080"></a>
+### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
+
+The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
+still posted, with its foreground flag, next to the alert of a step whose
+process had been killed. The service cancels the other notification before
+`startForeground`. After a process death, though, the system can still hold
+notification 1 as the restarted service's foreground notification, and it
+ignores a cancel of the current foreground notification. The service now
+cancels the other notification once more right after `startForeground`, when
+it is no longer the foreground one. Only one of notifications 1 and 2 is
+shown at a time again (D-044). Robolectric cannot reproduce the system's
+refusal, so the emulator test stays the check.
+
 <a id="d-079"></a>
 ### D-079 — Catalog refresh in the background: service, notifications, entry points (#65) · *Accepted* (Claude, 2026-10-25)
 
@@ -358,6 +372,51 @@ gets its three entry points. Decided while building it:
     *Einrichtung erneut zeigen*); a phone set up before M2 never sees it
     (D-073).
 
+<a id="d-078"></a>
+### D-078 — Catalog tea detail: parser rules, photos, shop link (#66) · *Accepted* (Claude, 2026-10-25)
+
+The second M2 slice (spec #62, #66) fills every CAT-03 field, downloads the
+photos and shows a catalog tea's detail (SCR-21). Decided while building it:
+
+- **Parser rules** (08 §2.3, parser version 2): every detail field is read
+  from a copy of the page without the other products it embeds (D-076).
+  Several values of one property are joined with „, ". The region is the
+  first of a fixed list of growing regions (Japan, China, Taiwan, Korea)
+  named as a whole word in the title, else in the description. *Flavoured*:
+  an *Aroma* other than „naturbelassen", an ingredient other than tea, or the
+  flavoured section; roasted rice (genmaicha) is no flavouring, and footnotes
+  („*aus kontrolliert ökologischem Anbau") are no ingredients. The brewing
+  prose is the description's paragraphs about brewing (Zubereitung, Aufguss,
+  amounts in g or ml, °C), verbatim; `brew_table_raw` holds one object per
+  grid row, `{"kind":"japan","cells":[{"label":"Menge","text":"~4g/100ml"},…]}`,
+  the labels from the grid's header.
+- **Description** (08 §2.8): staff tips, scripts, styles, forms, images and
+  embeds are removed (a video player becomes a plain link); headings become
+  bold paragraphs; only paragraphs, line breaks, bold, italics, lists and
+  absolute http(s) links remain, without attributes but `href`.
+  `description_text` is its plain text, one paragraph per block.
+- **Photos** (CAT-08): the sanity check runs before the photos, so a broken
+  parser costs no photo request. Each green tea's photo goes through the
+  refresh's shop session; a photo that is missing, disallowed or doesn't
+  decode leaves that tea with the photo it had (or none), a stop ends the run
+  like any stop. `photo_file` stores the file name (`<key>.webp`). After
+  every run, successful or not, the photo files of teas the catalog doesn't
+  hold are deleted. With SET-22 off, a refresh fetches no photo and keeps the
+  photos already stored. Until #70 every photo is downloaded again on each
+  refresh (no change detection yet).
+- ***Im Shop öffnen*** (D-072): the size of the latest INITIAL or PURCHASE
+  event is matched by grams, else by its package label; without a match the
+  product page opens. The page goes to the browser as a `VIEW` intent
+  (`CATEGORY_BROWSABLE`); without a browser a short message says so.
+- **SCR-21 layout:** the photo full width (4:3, the type-coloured leaf
+  without one) with the back button over it; name, secondary name, tags
+  (*Sorte*, Bio, aromatisiert, Coldbrew geeignet, nicht vorrätig), price per
+  100 g and *Im Shop öffnen*; then the sections *Steckbrief*, *Geschmack*
+  (scales as five leaves, aroma, taste), *Beschreibung* and *Zubereitung*
+  (the shop's grid per method and its text, verbatim), each only when the
+  shop fills it. The derived recipe, the packages and *In Sammlung
+  aufnehmen* follow with #68, #67 and #71.
+
 <a id="d-077"></a>
 ### D-077 — Catalog refresh tracer bullet: staging, skip list, parser rules, sheet (#64) · *Accepted* (Claude, 2026-10-25)
 
@@ -411,20 +470,6 @@ Katalog tab to a filled list. Decided while building it:
   the list shows every tea of the current range by name, with *Sorte* and
   price per 100 g; until the PO's A8 arrives, the empty state shows the
   placeholder landscape.
-
-<a id="d-080"></a>
-### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
-
-The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
-still posted, with its foreground flag, next to the alert of a step whose
-process had been killed. The service cancels the other notification before
-`startForeground`. After a process death, though, the system can still hold
-notification 1 as the restarted service's foreground notification, and it
-ignores a cancel of the current foreground notification. The service now
-cancels the other notification once more right after `startForeground`, when
-it is no longer the foreground one. Only one of notifications 1 and 2 is
-shown at a time again (D-044). Robolectric cannot reproduce the system's
-refusal, so the emulator test stays the check.
 
 <a id="d-076"></a>
 ### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
@@ -2755,6 +2800,7 @@ default but is not a requirement.
 |---|---|
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
 | 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |
+| 2026-10-25 | D-078: catalog tea detail (#66) — full 08 §2.3 field map (parser v2: joined properties, region list, flavoured rule, brewing prose and grid JSON), sanitised description, photos after the sanity check with orphan cleanup and SET-22, *Im Shop öffnen* by grams then label, SCR-21 layout; 02 CAT-08, 03 SCR-21, 05 §4.1, 06 §5.3 and 08 §2.3, §2.8 updated. |
 | 2026-10-25 | D-077: catalog refresh tracer bullet (#64) — staging tables with the live columns, skip list written only with a successful swap, sanity-check counting, parser rules for secondary name, *Sorte*, unit price and stock, product page choice, typed outcomes with details, app-scoped job until #65, catalog as a slot of Sammlung; 03, 05 and 08 updated. |
 | 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
 | 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |

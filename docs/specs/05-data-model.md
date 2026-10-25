@@ -309,14 +309,14 @@ Table `catalog_tea`
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
 | `description_text` | TEXT | plain text of the description, for search (D-076) |
-| `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cell texts) |
+| `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cells with their header labels, `{"kind":"japan","cells":[{"label":"Menge","text":"~4g/100ml"},…]}`, D-078) |
 | `brew_text_raw` | TEXT | brewing prose as found |
 | `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
 | `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
-| `photo_file` | TEXT | `filesDir/catalog/<key>.webp` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076) |
+| `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
 | `photo_url`, `photo_etag` | TEXT | change detection |
 | `content_hash` | TEXT | to report „geändert" |
 | `first_seen_at`, `last_seen_at` | INTEGER | |

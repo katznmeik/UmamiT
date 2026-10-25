@@ -123,6 +123,20 @@ class SettingsTest {
     }
 
     @Test
+    fun `Fotos laden in the Katalog section persists SET-22`() {
+        show()
+        assertThat(stored().catalogDownloadPhotos).isTrue()
+
+        clickRow("Fotos laden")
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(catalogDownloadPhotos = false))
+        clickRow("Fotos laden")
+        compose.waitForIdle()
+        assertThat(stored().catalogDownloadPhotos).isTrue()
+    }
+
+    @Test
     fun `the tone picker shows the German names, stores the pick and plays it on Anhoeren`() {
         show()
         compose.onNodeWithText("Klangschale").assertIsDisplayed()

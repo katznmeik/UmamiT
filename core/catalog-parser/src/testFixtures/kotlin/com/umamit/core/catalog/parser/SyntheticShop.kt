@@ -33,6 +33,12 @@ object SyntheticShop {
     /** How the buy box shows the stock (08 §2.3). */
     enum class Stock { IN_STOCK, OUT_OF_STOCK, UNKNOWN }
 
+    /** The brewing grid's header, as the shop labels its columns (08 §2.3). */
+    val BREW_HEADER = listOf("Menge", "Temperatur", "1. Aufguss", "2. Aufguss", "3. Aufguss")
+
+    /** The path of a gallery photo on the shop (`/media/…`, with the shop's `?ts=` query). */
+    fun photoPath(name: String = "synthetic") = "/media/aa/bb/cc/1700000000/$name.jpg?ts=1700000000"
+
     /** A sitemap index pointing at [children] (absolute URLs). */
     fun sitemapIndex(vararg children: String): String = buildString {
         append("""<?xml version="1.0" encoding="UTF-8"?>""")
@@ -90,6 +96,14 @@ object SyntheticShop {
         stock: Stock = Stock.IN_STOCK,
         crossSellingBoxes: Int = 2,
         microdataName: String? = null,
+        photoPath: String? = photoPath(),
+        description: String? = "<p>Ein erfundener Beschreibungstext für den Test.</p>",
+        teamTip: Boolean = false,
+        properties: List<Pair<String, List<String>>> = emptyList(),
+        badges: List<String> = emptyList(),
+        invertedBadges: List<String> = emptyList(),
+        scales: List<Pair<String, Int>> = emptyList(),
+        brewRows: List<Pair<String, List<String>>> = emptyList(),
     ): String = buildString {
         append("<!DOCTYPE html><html lang=\"de-DE\"><head><meta charset=\"utf-8\">")
         append("<title>Synthetic shop</title>")
@@ -103,7 +117,10 @@ object SyntheticShop {
         append("<div class=\"row product-detail-main\">")
         append("<div class=\"col-lg-7 col-xl-8 product-detail-media\"><div class=\"cms-element-image-gallery\">")
         append("<img class=\"gallery-slider-image img-fluid\" itemprop=\"image\" ")
-        append("data-full-image=\"$baseUrl/media/aa/bb/cc/1700000000/synthetic.jpg?ts=1700000000\" src=\"data:,\">")
+        if (photoPath != null) append("data-full-image=\"$baseUrl$photoPath\" ")
+        append("data-srcset=\"$baseUrl/thumbnail/aa/bb/cc/synthetic_400x400.jpg 400w\" src=\"data:,\">")
+        // The zoom modal repeats the image without data-full-image.
+        append("<img class=\"gallery-slider-image js-load-img\" src=\"data:,\">")
         append("</div></div>")
         append("<div class=\"col-lg-5 col-xl-4 product-detail-buy\">")
         if (title != null) {
@@ -134,11 +151,88 @@ object SyntheticShop {
         append("<div class=\"product-detail-tabs-content card-body\"><div class=\"tab-content\">")
         append("<div class=\"tab-pane\" id=\"description-tab-pane\">")
         append("<div class=\"product-detail-description-text\" itemprop=\"description\">")
-        append("<p>Ein erfundener Beschreibungstext für den Test.</p></div></div>")
+        if (description != null) append(description)
+        if (teamTip) append(TEAM_TIP)
+        append("</div></div>")
+        append(propertiesHtml(properties, badges, invertedBadges, scales, brewRows))
         append("<div class=\"tab-pane\" id=\"cross-selling-tab-pane\">")
         repeat(crossSellingBoxes) { append(crossSellingBox(baseUrl, it)) }
         append("</div></div></div>")
         append("</div></main></body></html>")
+    }
+
+    /** A staff tip block in the description: a person's photo, quote, name and role (stripped, D-076). */
+    private const val TEAM_TIP =
+        "<div class=\"st-teamtipp mt-5\"><div class=\"st-teamtipp-title\"><h4>Unser Tipp</h4></div>" +
+            "<img src=\"/media/ff/ff/ff/1700000000/person.jpg\" alt=\"Erika\">" +
+            "<p class=\"fst-italic\">Ein erfundenes Zitat aus dem Team.</p><h4>Erika Beispiel</h4>" +
+            "<h6>Teeberaterin</h6></div>"
+
+    private const val SCALE_LEAVES = 5
+
+    /** The properties tab: taste scales with the badges nested inside, the properties table, the brewing grid. */
+    private fun propertiesHtml(
+        properties: List<Pair<String, List<String>>>,
+        badges: List<String>,
+        invertedBadges: List<String>,
+        scales: List<Pair<String, Int>>,
+        brewRows: List<Pair<String, List<String>>>,
+    ): String = buildString {
+        append("<div class=\"tab-pane\" id=\"properties-tab-pane\"><div class=\"offcanvas-body\">")
+        append("<div class=\"product-detail-properties tab-pane-container\">")
+        append("<div class=\"st-scales-usp mb-3\"><h2>Geschmacksprofil</h2>")
+        scales.forEach { (label, full) ->
+            append("<div class=\"container mb-1\"><div class=\"row\">")
+            append("<div class=\"col-auto st-scale-label\">${label.htmlEscaped()}</div>")
+            repeat(SCALE_LEAVES) { index ->
+                val leaf = if (index < full) "scale-full-leaf.svg" else "scale-empty-leaf.svg"
+                append("<div class=\"col-auto st-scale-value\"><img src=\"/bundles/teekontorkiel/$leaf\"></div>")
+            }
+            append("</div></div>")
+        }
+        append("<div class=\"st-usps mt-5\"><div class=\"st-usp-title\"><h4>Besonderheiten</h4></div>")
+        badges.forEach { append("<div class=\"filter-active\">${it.htmlEscaped()}</div>") }
+        invertedBadges.forEach { append("<div class=\"filter-active st-invers\">${it.htmlEscaped()}</div>") }
+        append("</div></div>")
+        if (properties.isNotEmpty()) {
+            append("<table class=\"table table-striped product-detail-properties-table\"><tbody>")
+            properties.forEach { (label, values) ->
+                append("<tr class=\"properties-row\"><th class=\"properties-label\">${label.htmlEscaped()}:</th>")
+                append("<td class=\"properties-value\"><span class=\"d-inline-block d-sm-none st-property-label\">")
+                append("<strong>${label.htmlEscaped()}:</strong></span>")
+                values.forEach { append("<span>${it.htmlEscaped()}</span>") }
+                append("</td></tr>")
+            }
+            append("</tbody></table>")
+        }
+        if (brewRows.isNotEmpty()) append(brewGridHtml(brewRows))
+        append("</div></div></div>")
+    }
+
+    /** The brewing grid, nested as on the shop: two elements match `div.st-zubereitung`. */
+    private fun brewGridHtml(rows: List<Pair<String, List<String>>>): String = buildString {
+        append("<div class=\"st-zubereitung mt-5 mb-5\"><h2>Zubereitung</h2>")
+        append("<p class=\"p-0\">Unsere Angaben sind Richtwerte.</p><div class=\"container st-zubereitung\">")
+        append("<div class=\"row st-zubereitung-header d-none d-sm-flex\"><div class=\"col-auto\"></div>")
+        BREW_HEADER.forEach { append("<div class=\"col-2 st-zubereitung-header-col\"><strong>$it</strong></div>") }
+        append("</div>")
+        rows.forEach { (kind, cells) ->
+            val icon = if (kind == "japan") "kyusu" else kind
+            append("<div class=\"row st-zubereitung-$kind st-zubereitung-value\">")
+            append("<div class=\"col-auto st-zubereitung-value-col\">")
+            append("<img src=\"/bundles/teekontorkiel/$icon.svg\"></div>")
+            cells.forEachIndexed { index, cell ->
+                append("<div class=\"col-2 st-zubereitung-value-col\">")
+                append(
+                    "<div class=\"st-zubereitung-mobilelabel d-sm-none\">${BREW_HEADER.getOrElse(index) {
+                        ""
+                    }}</div>",
+                )
+                append(cell.htmlEscaped()).append("</div>")
+            }
+            append("</div>")
+        }
+        append("</div></div>")
     }
 
     private fun breadcrumbHtml(baseUrl: String, crumbs: List<Pair<String, String>>): String = buildString {
@@ -190,6 +284,12 @@ object SyntheticShop {
             "<div class=\"product-price-info\"><p class=\"product-price\">99,9$index €</p>" +
             "<p class=\"product-detail-price\">88,8$index €</p></div>" +
             "<span class=\"product-detail-ordernumber\" itemprop=\"sku\">ZZ09${index}0</span>" +
+            "<img class=\"product-image gallery-slider-image\" " +
+            "data-full-image=\"$baseUrl/media/zz/other-$index.jpg\">" +
+            "<div class=\"filter-active\">Bio</div>" +
+            "<div class=\"filter-active st-invers\">Ernte: Herbst</div>" +
+            "<div class=\"product-detail-description-text\">" +
+            "<p>Zutaten: Fremder Tee, Fremdes Aroma</p></div>" +
             "<div class=\"acris-stock-notification\"></div>" +
             "<button class=\"btn btn-buy\">In den Warenkorb</button></div>"
 

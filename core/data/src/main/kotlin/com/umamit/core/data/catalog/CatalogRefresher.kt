@@ -11,6 +11,8 @@ import com.umamit.core.catalog.parser.Sitemap
 import com.umamit.core.catalog.parser.SitemapReader
 import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.common.WallClock
+import com.umamit.core.data.PhotoTranscoder
+import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
@@ -30,9 +32,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -48,14 +52,19 @@ import javax.inject.Inject
  *    less than 90 days left out; so a first refresh classifies every parent (D-076).
  * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas go into the staging
  *    tables, other products onto the new skip entries.
- * 4. The sanity check (08 §2.9); then one transaction swaps the staged catalog in, adds the
- *    skip entries and logs the run (05 §4.5).
+ * 4. The sanity check (08 §2.9).
+ * 5. The green teas' photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is off: each through
+ *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
+ *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
+ *    leaves only that tea without one (or with the photo it had); a stop ends the run.
+ * 6. One transaction swaps the staged catalog in, adds the skip entries and logs the run
+ *    (05 §4.5); the photos of teas no longer in the catalog are deleted.
  *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
- * storage error or a cancellation leaves the catalog **and the skip list** as they were and
- * empties the staging tables; a failed run's classifications are not kept, so a broken parser
- * can never hide teas (D-077). Each run is logged in `catalog_refresh_log` and its steps in the
- * [DiagnosticsLog] (06 §5.6).
+ * storage error or a cancellation leaves the catalog **and the skip list** as they were (photos
+ * of teas it doesn't hold are deleted again) and empties the staging tables; a failed run's
+ * classifications are not kept, so a broken parser can never hide teas (D-077). Each run is
+ * logged in `catalog_refresh_log` and its steps in the [DiagnosticsLog] (06 §5.6).
  *
  * Cancelling the calling coroutine cancels the refresh: the request in flight is cancelled, no
  * further request is sent, the run is logged as cancelled and the [CancellationException] is
@@ -66,12 +75,21 @@ class CatalogRefresher(
     private val dao: CatalogDao,
     private val clock: WallClock,
     private val diagnostics: DiagnosticsLog,
+    private val settings: SettingsRepository,
+    private val photos: CatalogPhotoFiles,
     private val sanity: SanityCheck = SanityCheck(),
     private val parseDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val fileDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     @Inject
-    constructor(client: ShopClient, dao: CatalogDao, clock: WallClock, diagnostics: DiagnosticsLog) :
-        this(client, dao, clock, diagnostics, SanityCheck(), Dispatchers.Default)
+    constructor(
+        client: ShopClient,
+        dao: CatalogDao,
+        clock: WallClock,
+        diagnostics: DiagnosticsLog,
+        settings: SettingsRepository,
+        photos: CatalogPhotoFiles,
+    ) : this(client, dao, clock, diagnostics, settings, photos, SanityCheck(), Dispatchers.Default, Dispatchers.IO)
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
@@ -93,6 +111,12 @@ class CatalogRefresher(
             throw e
         } catch (e: SQLException) {
             failed(run, CatalogRefreshOutcome.StorageFailed(run.details("storage error: ${e.javaClass.simpleName}")))
+        } catch (e: IOException) {
+            // Only the photo files are written here; the shop's answers come as ShopFetch, never thrown.
+            failed(
+                run,
+                CatalogRefreshOutcome.StorageFailed(run.details("photo storage error: ${e.javaClass.simpleName}")),
+            )
         } catch (
             @Suppress("TooGenericExceptionCaught") e: RuntimeException,
         ) {
@@ -112,12 +136,27 @@ class CatalogRefresher(
         try {
             dao.clearStaging()
             dao.log(run.logEntry(status, newCount = 0, discontinuedCount = 0, errorSummary = summary))
+            keepPhotosOfCatalog()
         } catch (e: SQLException) {
             log("catalog refresh: log not written (${e.javaClass.simpleName})")
         }
     }
 
     private fun log(message: String) = diagnostics.append(clock.nowMs(), clock.zone(), message)
+
+    /**
+     * Deletes the photo files of every tea the catalog doesn't hold (CAT-07 AC4, CAT-08). Never
+     * fails the run: unreadable keys leave the files for the next refresh.
+     */
+    private suspend fun keepPhotosOfCatalog() {
+        val keys = try {
+            dao.keys().toSet()
+        } catch (e: SQLException) {
+            log("catalog refresh: photos not tidied (${e.javaClass.simpleName})")
+            return
+        }
+        withContext(fileDispatcher) { photos.retainOnly(keys) }
+    }
 
     /** One refresh's counts, for the progress, the details and the log; it also names the stops. */
     private inner class Run(val startedAt: Long, private val onProgress: (CatalogRefreshProgress) -> Unit) {
@@ -129,11 +168,22 @@ class CatalogRefresher(
         var sitemapUrls = 0
         var sets = 0
         var skippedKnown = 0
+        var photosStored = 0
+        var photosMissing = 0
+
+        /** Each green tea's key and photo URL, in page order. */
+        val photoUrls = mutableListOf<Pair<String, String>>()
         val skips = mutableListOf<CatalogSkipEntity>()
         val defective = mutableListOf<String>()
 
-        fun progress() =
-            onProgress(CatalogRefreshProgress(pagesDone = pagesDone, pagesTotal = pagesTotal, products = green))
+        fun progress() = onProgress(
+            CatalogRefreshProgress(
+                pagesDone = pagesDone,
+                pagesTotal = pagesTotal,
+                products = green,
+                photos = photosStored,
+            ),
+        )
 
         fun pagesLine() = "$pagesDone of $pagesTotal pages"
 
@@ -164,6 +214,7 @@ class CatalogRefresher(
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
             appendLine("sitemap: $sitemapUrls URLs, $sets sets, $skippedKnown on the skip list")
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
+            appendLine("photos: $photosStored stored, $photosMissing without")
             append("defective: ${defective.size}")
             if (defective.isNotEmpty()) {
                 val more = if (defective.size > MAX_LISTED) ", …" else ""
@@ -180,7 +231,7 @@ class CatalogRefresher(
                 changedCount = 0,
                 discontinuedCount = discontinuedCount,
                 flaggedCount = 0,
-                photosCount = 0,
+                photosCount = photosStored,
                 parserVersion = TeeKontorParser.PARSER_VERSION,
                 errorSummary = errorSummary,
             )
@@ -209,7 +260,9 @@ class CatalogRefresher(
                 run.pagesDone++
                 run.progress()
             }
-            return finish()
+            checkSanity()
+            storePhotos(session)
+            return swap()
         }
 
         /** The URLs of `/sitemap.xml`: a url set, or an index of url sets (`.xml.gz`). */
@@ -269,7 +322,9 @@ class CatalogRefresher(
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
                 CatalogScope.GREEN -> {
-                    dao.stage(StagedCatalogTeaEntity(page.toEntity(group.base, run.startedAt)))
+                    val tea = page.toEntity(group.base, run.startedAt)
+                    dao.stage(StagedCatalogTeaEntity(tea))
+                    tea.photoUrl?.let { run.photoUrls += tea.key to it }
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
                 }
@@ -282,8 +337,8 @@ class CatalogRefresher(
             }
         }
 
-        /** The sanity check (08 §2.9), then the swap (05 §4.5). */
-        private suspend fun finish(): CatalogRefreshOutcome.Success {
+        /** The sanity check (08 §2.9): before the photos, so a broken parser costs no photo request. */
+        private suspend fun checkSanity() {
             val staged = dao.countStaged()
             val counts = SanityCheck.Counts(
                 previousGreen = dao.countCurrent(),
@@ -300,14 +355,62 @@ class CatalogRefresher(
                         "lacking name/price/number ${run.lackingRequired})",
                 )
             }
+        }
+
+        /**
+         * The green teas' photos (CAT-08) unless SET-22 is off; then every staged tea whose photo
+         * is on disk gets its file: downloaded now, or kept from an earlier refresh.
+         */
+        private suspend fun storePhotos(session: ShopSession) {
+            if (settings.settings.first().catalogDownloadPhotos) {
+                for ((key, photoUrl) in run.photoUrls) {
+                    currentCoroutineContext().ensureActive()
+                    if (storePhoto(session, key, photoUrl)) {
+                        run.photosStored++
+                        run.progress()
+                    } else {
+                        run.photosMissing++
+                    }
+                }
+            }
+            for (key in dao.stagedKeys()) {
+                if (withContext(fileDispatcher) { photos.exists(key) }) dao.setStagedPhoto(key, photos.photoName(key))
+            }
+        }
+
+        /** Fetches, re-encodes and writes one tea's photo; false when there is none to store. */
+        private suspend fun storePhoto(session: ShopSession, key: String, photoUrl: String): Boolean {
+            // Only the shop's own host: a photo elsewhere is never fetched (rule 7).
+            val url = photoUrl.toHttpUrlOrNull()?.takeIf { client.isAllowed(it) } ?: return false
+            return when (val answer = session.fetch(url)) {
+                is ShopFetch.Fetched -> {
+                    val photo = withContext(parseDispatcher) { PhotoTranscoder.transcodeForCatalog(answer.body) }
+                    if (photo != null) {
+                        withContext(fileDispatcher) { photos.write(key, photo.full.bytes, photo.thumbnail.bytes) }
+                    }
+                    photo != null
+                }
+
+                is ShopFetch.Stopped -> run.stop(answer.cause, url.encodedPath)
+
+                // Never sent (robots.txt) or gone: only this tea is left without a new photo.
+                ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
+            }
+        }
+
+        /** The swap (05 §4.5), then the photos of teas no longer in the catalog are deleted. */
+        private suspend fun swap(): CatalogRefreshOutcome.Success {
+            val staged = dao.countStaged()
             val previous = dao.keys().toSet()
             val stagedKeys = dao.stagedKeys().toSet()
             val newCount = stagedKeys.count { it !in previous }
             val gone = previous.count { it !in stagedKeys }
             dao.swap(run.skips, run.logEntry(CatalogRefreshStatus.SUCCESS, newCount, gone, errorSummary = null))
+            keepPhotosOfCatalog()
             log(
                 "catalog refresh: success, $staged teas ($newCount new, $gone gone), ${run.skips.size} not green, " +
                     "${run.defective.size} defective, ${run.unavailable} unavailable, " +
+                    "${run.photosStored} photos stored, ${run.photosMissing} without, " +
                     "${TimeUnit.MILLISECONDS.toSeconds(clock.nowMs() - run.startedAt)} s",
             )
             return CatalogRefreshOutcome.Success(teas = staged, newTeas = newCount)
@@ -328,7 +431,7 @@ class CatalogRefresher(
 /** Ends a refresh early with [outcome] (a stop or a structural failure); caught in [CatalogRefresher.refresh]. */
 private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception(outcome.details)
 
-/** A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1; this slice's basic fields). */
+/** A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), without its photo file yet. */
 private fun ProductPage.toEntity(base: String, seenAt: Long) = CatalogTeaEntity(
     key = key ?: base,
     name = name,
@@ -336,9 +439,30 @@ private fun ProductPage.toEntity(base: String, seenAt: Long) = CatalogTeaEntity(
     productUrl = productUrl,
     shopCategory = shopCategory,
     teaType = teaType,
+    originCountry = originCountry,
+    originRegion = originRegion,
+    cultivar = cultivar,
+    harvest = harvest,
+    shading = shading,
+    steaming = steaming,
+    isOrganic = isOrganic,
+    isFlavored = isFlavored,
+    coldBrewSuitable = coldBrewSuitable,
+    aroma = aroma,
+    tasteNotes = tasteNotes,
+    manufacturer = manufacturer,
+    season = season,
+    matchaGrade = matchaGrade,
+    tasteScalesJson = CatalogColumns.tasteScalesJson(tasteScales),
     breadcrumb = categoryPath,
+    ingredients = ingredients,
+    descriptionHtml = descriptionHtml,
+    descriptionText = descriptionText,
+    brewTableRaw = CatalogColumns.brewTableJson(brewTable),
+    brewTextRaw = brewText,
     basePriceCentsPer100g = basePriceCentsPer100g,
     available = available,
+    photoUrl = photoUrl,
     firstSeenAt = seenAt,
     lastSeenAt = seenAt,
 )

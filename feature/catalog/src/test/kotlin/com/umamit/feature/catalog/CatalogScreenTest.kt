@@ -47,6 +47,7 @@ class CatalogScreenTest {
     private val runner = FakeCatalogRefreshRunner()
     private var alerting by mutableStateOf(false)
     private var refreshRequest by mutableIntStateOf(0)
+    private val opened = mutableListOf<String>()
 
     private fun str(@StringRes id: Int, vararg args: Any): String =
         ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
@@ -55,7 +56,12 @@ class CatalogScreenTest {
         val viewModel = CatalogViewModel(repository, runner)
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                CatalogRoute(alerting = alerting, refreshRequest = refreshRequest, viewModel = viewModel)
+                CatalogRoute(
+                    alerting = alerting,
+                    onOpenTea = { opened += it },
+                    refreshRequest = refreshRequest,
+                    viewModel = viewModel,
+                )
             }
         }
         compose.waitForIdle()
@@ -100,6 +106,10 @@ class CatalogScreenTest {
         compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
         compose.onNodeWithText("Sencha · 12,40 €/100 g").assertIsDisplayed()
         compose.onNodeWithText("Gyokuro · 36,00 €/100 g").assertIsDisplayed()
+
+        // A row opens its tea's detail (SCR-21).
+        compose.onNodeWithText("Tautropfen Gyokuro").performClick()
+        assertThat(opened).containsExactly("XY0200")
     }
 
     @Test

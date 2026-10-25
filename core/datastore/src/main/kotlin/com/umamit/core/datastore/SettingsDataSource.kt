@@ -34,6 +34,7 @@ data class StoredSettings(
     val keepScreenOn: Boolean = true,
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
+    val catalogDownloadPhotos: Boolean = true,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -101,6 +102,7 @@ private fun StoredSettings.toModel() = UserSettings(
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
+    catalogDownloadPhotos = catalogDownloadPhotos,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -117,6 +119,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
+    catalogDownloadPhotos = catalogDownloadPhotos,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
 )

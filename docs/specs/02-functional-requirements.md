@@ -232,7 +232,8 @@ The main product photo of each tea is downloaded, resized (max 1200 px long
 edge, WebP) and stored locally, with a small thumbnail for the lists
 (256 px short side, D-074);
 unchanged photos are not downloaded again. About 25–35 MB for the whole
-catalog (D-073).
+catalog (D-073). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
+no photo and keeps those already stored (D-078).
 
 **CAT-09 — Tee-Info guides** `Should`
 Tee-Kontor's guide articles relevant to green tea (e.g. „Ein Guide für
