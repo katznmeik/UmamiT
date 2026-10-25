@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,11 +36,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.catalog.CatalogRefreshState
-import com.umamit.core.designsystem.component.CheckRecipeBadge
 import com.umamit.core.designsystem.component.EmptyState
-import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogListing
 import com.umamit.core.ui.rememberPhotoPainter
 import java.time.ZoneId
 
@@ -49,14 +49,13 @@ const val CATALOG_LIST_TAG = "catalog_list"
 
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
- * control: the empty state with *Katalog laden* (D-073), or the teas by name with their price
- * per 100 g under the header „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt.". A tap
- * on *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
- * the refresh and opens its sheet (SCR-22).
+ * control: the empty state with *Katalog laden* (D-073), or the teas under the header
+ * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." with search, filter chips and the
+ * filter sheet (CAT-10). A tap on *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's
+ * ⋮ menu ([refreshRequest]), starts the refresh and opens its sheet (SCR-22).
  *
- * **Alerts first (rule 8):** while an alert plays ([alerting]) the sheet is not composed, so it
- * leaves in that frame without animation, and it stays closed; the refresh itself goes on
- * (CAT-07 AC8).
+ * **Alerts first (rule 8):** while an alert plays ([alerting]) no sheet is composed, so it leaves
+ * in that frame without animation, and it stays closed; the refresh itself goes on (CAT-07 AC8).
  *
  * @param refreshRequest a counter from the ⋮ menu: every increase while this is shown starts the
  *   refresh; a count from before is never replayed (D-049).
@@ -90,6 +89,8 @@ fun CatalogRoute(
         onShowProgress = { sheetOpen = true },
         modifier = modifier,
         onOpenTea = onOpenTea,
+        onFilterChange = viewModel::changeFilter,
+        alerting = alerting,
         scrollToTopRequest = scrollToTopRequest,
     )
     val refresh = state.refresh
@@ -109,27 +110,65 @@ fun CatalogRoute(
 /**
  * The stateless catalog content (SCR-19): nothing until the catalog was read, then the empty
  * state or the list. [onLoad] is *Katalog laden*; [onShowProgress] reopens the sheet of a
- * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key. [scrollToTopRequest] is
- * a counter; every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail
- * file; tests pass placeholder images.
+ * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key; [onFilterChange] takes
+ * a changed search, filter or sort (CAT-10). The filter sheet is never composed while
+ * [alerting] (rule 8). [scrollToTopRequest] is a counter; every increase scrolls the list to the
+ * top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
  */
 @Composable
+@Suppress("LongParameterList") // the list's state, its callbacks, the alert gate and the thumbnail loader
 fun CatalogContent(
     state: CatalogUiState,
     onLoad: () -> Unit,
     onShowProgress: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenTea: (String) -> Unit = {},
+    onFilterChange: (FilterChange) -> Unit = {},
+    alerting: Boolean = false,
     scrollToTopRequest: Int = 0,
     zone: ZoneId = ZoneId.systemDefault(),
     thumbnail: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     when {
         state.loading -> Spacer(modifier.fillMaxSize())
-        state.teas.isEmpty() -> CatalogEmpty(state.isRefreshing, onLoad, onShowProgress, modifier)
-        else -> CatalogList(state, onShowProgress, onOpenTea, scrollToTopRequest, zone, thumbnail, modifier)
+
+        state.isEmpty -> CatalogEmpty(state.isRefreshing, onLoad, onShowProgress, modifier)
+
+        else -> {
+            var filterSheetOpen by rememberSaveable { mutableStateOf(false) }
+            LaunchedEffect(alerting) { if (alerting) filterSheetOpen = false }
+            CatalogList(
+                state = state,
+                actions = ListActions(
+                    onShowProgress = onShowProgress,
+                    onOpenTea = onOpenTea,
+                    onFilterChange = onFilterChange,
+                    onOpenFilters = { if (!alerting) filterSheetOpen = true },
+                ),
+                scrollToTopRequest = scrollToTopRequest,
+                zone = zone,
+                thumbnail = thumbnail,
+                modifier = modifier,
+            )
+            if (filterSheetOpen && !alerting) {
+                CatalogFilterSheet(
+                    filter = state.filter,
+                    listing = state.listing,
+                    onFilterChange = onFilterChange,
+                    onDismissRequest = { filterSheetOpen = false },
+                )
+            }
+        }
     }
 }
+
+/** What the list's rows and controls do. */
+private class ListActions(
+    val onShowProgress: () -> Unit,
+    val onOpenTea: (String) -> Unit,
+    val onFilterChange: (FilterChange) -> Unit,
+    val onOpenFilters: () -> Unit,
+)
 
 @Composable
 private fun CatalogEmpty(
@@ -160,11 +199,10 @@ private fun CatalogEmpty(
 }
 
 @Composable
-@Suppress("LongParameterList") // the list's state, its callbacks and the thumbnail loader
+@Suppress("LongParameterList") // the list's state, its actions, the scroll counter, the zone and the thumbnail loader
 private fun CatalogList(
     state: CatalogUiState,
-    onShowProgress: () -> Unit,
-    onOpenTea: (String) -> Unit,
+    actions: ListActions,
     scrollToTopRequest: Int,
     zone: ZoneId,
     thumbnail: @Composable (path: String?) -> Painter?,
@@ -179,39 +217,45 @@ private fun CatalogList(
             listState.animateScrollToItem(0)
         }
     }
-    val separator = stringResource(R.string.catalog_meta_separator)
+    val listing = state.listing
+    val filter = state.filter
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .testTag(CATALOG_LIST_TAG),
         state = listState,
     ) {
-        item(key = "header") { Header(state, zone) }
-        if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(onShowProgress) }
-        itemsIndexed(state.teas, key = { _, tea -> tea.key }) { index, tea ->
-            TeaListItem(
-                title = tea.name,
-                meta = listOfNotNull(tea.teaType, tea.basePriceCentsPer100g?.let { pricePer100g(it) })
-                    .joinToString(separator),
-                onClick = { onOpenTea(tea.key) },
-                thumbnail = thumbnail(tea.thumbnailPath),
-                placeholderColor = placeholderColor(tea.teaType),
-                showDivider = index < state.teas.lastIndex,
-                // „Rezept prüfen" (CAT-05, CAT-10).
-                badges = if (tea.recipeCheckReason != null) {
-                    { CheckRecipeBadge() }
-                } else {
-                    null
-                },
-            )
+        item(key = "header") { Header(listing, zone) }
+        if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
+        item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
+        item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
+        if (listing.sections.isEmpty()) {
+            item(key = "no_match") {
+                NoticeRow(stringResource(R.string.catalog_no_match), stringResource(R.string.catalog_reset_filters)) {
+                    actions.onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort) }
+                }
+            }
+        }
+        teaRows(listing, actions.onOpenTea, thumbnail)
+        if (listing.hiddenMatches > 0) {
+            item(key = "hidden") {
+                NoticeRow(
+                    pluralStringResource(
+                        R.plurals.catalog_hidden_matches,
+                        listing.hiddenMatches,
+                        listing.hiddenMatches,
+                    ),
+                    stringResource(R.string.catalog_show_all),
+                ) { actions.onFilterChange { it.withoutFilters() } }
+            }
         }
     }
 }
 
 @Composable
-private fun Header(state: CatalogUiState, zone: ZoneId) {
-    val count = pluralStringResource(R.plurals.catalog_tea_count, state.teas.size, state.teas.size)
-    val updated = state.lastRefreshAtMillis
+private fun Header(listing: CatalogListing, zone: ZoneId) {
+    val count = pluralStringResource(R.plurals.catalog_tea_count, listing.totalCount, listing.totalCount)
+    val updated = listing.lastRefreshAtMillis
     Text(
         text = if (updated != null) {
             stringResource(R.string.catalog_header, count, CatalogFormat.date(updated, zone))
@@ -222,6 +266,23 @@ private fun Header(state: CatalogUiState, zone: ZoneId) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
     )
+}
+
+/** A short notice in the list with one action: no match, or search hits the filters hide. */
+@Composable
+private fun NoticeRow(text: String, action: String, onAction: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onAction) { Text(action) }
+    }
 }
 
 @Composable
@@ -241,10 +302,6 @@ private fun RefreshingRow(onShowProgress: () -> Unit) {
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
     }
 }
-
-@Composable
-private fun pricePer100g(cents: Long): String =
-    stringResource(R.string.catalog_price_per_100g, CatalogFormat.euros(cents))
 
 /** The leaf placeholder's colour by the shop's *Sorte* [teaType] (03 §3.5), for a tea without a photo. */
 @Composable

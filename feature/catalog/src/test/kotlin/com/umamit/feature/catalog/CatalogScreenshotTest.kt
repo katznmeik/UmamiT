@@ -19,10 +19,13 @@ import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
+import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogPackage
+import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeSource
@@ -30,6 +33,7 @@ import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TasteScale
+import com.umamit.core.model.UmamiLevel
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.catalogTea
 import org.junit.Assume.assumeTrue
@@ -64,13 +68,21 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             "≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst."
 
         private val TEAS = listOf(
-            catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha"),
-            catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600, thumbnailPath = "gyokuro"),
-            catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190),
-            catalogTea("XY0400", "Kirschblüte (aromatisiert)", teaType = null, basePriceCentsPer100g = 790)
-                .copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
-            catalogTea("XY0500", "Wolkenberg Matcha", "Matcha Teepulver", 12_995, thumbnailPath = "matcha"),
-            catalogTea("XY0600", "Sonnenhang Bancha", "Bancha", null),
+            catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha")
+                .copy(originCountry = "Japan", isOrganic = true, owned = true),
+            catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600, thumbnailPath = "gyokuro")
+                .copy(originCountry = "Japan", isNew = true),
+            catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190)
+                .copy(originCountry = "Japan", recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+            catalogTea("XY0400", "Kirschblüte", teaType = null, basePriceCentsPer100g = 790)
+                .copy(originCountry = "China", isFlavored = true),
+            catalogTea("XY0500", "Wolkenberg Matcha", "Matcha Teepulver", 12_995, thumbnailPath = "matcha")
+                .copy(originCountry = "Japan", isOrganic = true, isNew = true),
+            catalogTea("XY0600", "Sonnenhang Bancha", "Bancha", null).copy(originCountry = "Japan, Korea"),
+            catalogTea("XY0700", "Bergquelle Sencha", basePriceCentsPer100g = 990).copy(originCountry = "China"),
+            catalogTea("XY0800", "Kirsch Sencha", basePriceCentsPer100g = 1090).copy(isFlavored = true),
+            catalogTea("XY0900", "Stiller See Gyokuro", "Gyokuro", 4400).copy(available = false),
+            catalogTea("XY1000", "Ohne Sorte", teaType = null, basePriceCentsPer100g = 1500),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -195,9 +207,13 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/Catalog_${name}_$variant.png")
     }
 
-    private fun listState(refresh: CatalogRefreshState = CatalogRefreshState.Idle) = CatalogUiState(
-        teas = TEAS,
-        lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+    private fun listState(
+        filter: CatalogFilter = CatalogFilter.DEFAULT,
+        searchHits: Set<String>? = null,
+        refresh: CatalogRefreshState = CatalogRefreshState.Idle,
+    ) = CatalogUiState(
+        listing = CatalogBrowser.listing(TEAS, filter, searchHits, FakeClock.DEFAULT_WALL_MS),
+        filter = filter,
         refresh = refresh,
         loading = false,
     )
@@ -221,6 +237,33 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             zone = FakeClock.BERLIN,
             thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
         )
+    }
+
+    /** A search with the filters changed: by price, „Vorrätig" off, a flavoured hit hidden by „Pur". */
+    @Test
+    fun listFiltered() = capture("listFiltered") {
+        CatalogContent(
+            state = listState(
+                filter = CatalogFilter(search = "Sencha", sort = CatalogSort.PRICE, availableOnly = false),
+                searchHits = setOf("XY0100", "XY0700", "XY0800"),
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The filter sheet over the list, at font scale 1.0 only. */
+    @Test
+    fun filterSheet() {
+        assumeTrue(fontScale == 1f)
+        capture("filterSheet") {
+            val state = listState(filter = CatalogFilter(types = setOf("Gyokuro"), minUmami = UmamiLevel.HIGH))
+            CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
+            CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
+            }, onDismissRequest = {})
+        }
     }
 
     @Test

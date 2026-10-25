@@ -671,12 +671,31 @@ and after the first brew (D-069).
 ### SCR-19 Sammlung › Katalog
 
 Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
-274 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
-search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
-Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
-„15,90 €/100 g", flag chips, a „Neu" badge for teas new in the latest
-refresh. Opens grouped by *Sorte*, available teas only, „Pur" on (flavoured
-teas one tap away; D-073). Overflow: *Katalog aktualisieren*.
+274 Grüntees · aktualisiert am 21. Okt." (every tea of the range, whatever
+the filters); *Ratgeber* row (→ guides list); search field („Name,
+Kultivar, Region …"); a row of filter chips; rows with photo, name, origin,
+„15,90 €/100 g" and badges („Neu", „im Besitz", Bio, aromatisiert, „Rezept
+prüfen"). The filters are CAT-10's (D-076, D-083):
+- **Chips** for the frequent ones: *Filter* (opens the filter sheet; shows
+  how many filters differ from the default view, „Filter (2)"), „Pur",
+  „Vorrätig", „Bio", „Neu", „Im Besitz".
+- **Filter sheet** (Material 3 modal sheet; never over an alert) for the
+  rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
+  *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
+  Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
+  the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
+  to the default view and keeps the search.
+- **Default view** (D-073): grouped by *Sorte* under a section header per
+  *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
+  on, so flavoured teas are one tap away. Sorted by name or price the list
+  is flat and each row names its *Sorte*.
+- Search hits the filters hide are counted below the list („2 weitere
+  Treffer sind durch die Filter ausgeblendet." · *Alle zeigen*); with no
+  match at all: „Kein Tee passt zu deiner Suche und den Filtern." · *Filter
+  zurücksetzen*.
+
+„Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
+*Katalog aktualisieren*.
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).

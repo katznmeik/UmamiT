@@ -5,6 +5,7 @@ import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Fts4
+import androidx.room.FtsOptions
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.RoomWarnings
@@ -70,8 +71,12 @@ data class CatalogTeaEntity(
 @Entity(tableName = "catalog_tea_staging", primaryKeys = ["key"])
 data class StagedCatalogTeaEntity(@Embedded val tea: CatalogTeaEntity)
 
-/** FTS4 `catalog_fts` (05 §4.1) over [CatalogTeaEntity]'s searchable text, kept in sync by Room's triggers. */
-@Fts4(contentEntity = CatalogTeaEntity::class)
+/**
+ * FTS4 `catalog_fts` (05 §4.1) over [CatalogTeaEntity]'s searchable text, kept in sync by Room's
+ * triggers. The `unicode61` tokenizer folds case and diacritics beyond ASCII too, so „älpler"
+ * finds „Älpler" and „goko" finds „Gokō" (CAT-10, D-083).
+ */
+@Fts4(contentEntity = CatalogTeaEntity::class, tokenizer = FtsOptions.TOKENIZER_UNICODE61)
 @Entity(tableName = "catalog_fts")
 data class CatalogFtsEntity(
     @ColumnInfo(name = "name") val name: String?,

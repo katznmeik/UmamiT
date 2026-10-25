@@ -302,6 +302,41 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-083"></a>
+### D-083 — Finding teas in the catalog: search, filters, „Neu" (#69) · *Accepted* (Claude, 2026-10-25)
+
+The catalog list (SCR-19) gets CAT-10's search, filters and sort. Decided
+while building it:
+
+- **„Neu"** is a tea whose `first_seen_at` is the start of the latest
+  successful refresh, and only when an earlier successful refresh exists: the
+  first refresh finds every tea, so 274 „Neu" badges would say nothing. A
+  refresh keeps a known tea's `first_seen_at` at the swap (D-077); a refresh
+  that fails or is cancelled ends nobody's „Neu". The badge stays until the
+  next successful refresh.
+- **Filters** live in a pure `CatalogBrowser` (`core:domain`) over the
+  current range; the search runs on `catalog_fts`. Chips and sheet as in
+  03 SCR-19 (D-076). „Rezept prüfen" is a row badge, not a filter (CAT-10 has
+  none). *Umami* filters by the shop's umami scale (08 §2.6: 0 none … 4–5
+  very high); a tea without a scale passes only „Egal". Several origins of
+  one tea („Japan, Korea") count each. Stock unknown counts as available.
+- **Search:** every word of the search text is a prefix, all required, any
+  other character only separates words (so no FTS syntax reaches the
+  query). `catalog_fts` uses the `unicode61` tokenizer, so „älpler" finds
+  „Älpler" and „goko" finds „Gokō" (05 §4.1; `catalog.db` is not frozen
+  before `v0.2.0-rc.1`). The filters apply to the hits too; the hits they
+  hide are counted with *Alle zeigen*, so a flavoured tea is „searchable but
+  hidden" (D-073) without vanishing silently.
+- **„im Besitz"** is a catalog key some collection tea links to
+  (`tea.catalog_key`, archived teas included), read from `umamit.db` by a
+  new query; no schema change.
+- **Not stored:** search, filters and sort live as long as the screen; the
+  list always opens in the default view (D-073), so 05 §6's `catalogSort`
+  setting is dropped.
+- **One badge slot:** `TeaListItem`'s `badges` is a wrapping row
+  (`FlowRowScope`); the catalog rows put „Neu", „im Besitz", Bio and
+  aromatisiert there next to D-082's `CheckRecipeBadge`.
+
 <a id="d-082"></a>
 ### D-082 — Timer recipes from the catalog and „Rezept prüfen" (#68) · *Accepted* (Claude, 2026-10-25)
 
@@ -2877,6 +2912,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |
 | 2026-10-25 | D-081: catalog package sizes and prices (#67) — sizes from the configurator and the sitemap without fetching size pages, the page's own size at its price, larger sizes estimated, smaller ones priced when added, each with its own `variant_url`; split numbers merged by normalised name only when their own sizes differ; SCR-21 *Packungen*; parser v3; 03 SCR-21, 05 §4.2, 06 §2, §3 and 08 §2.4 updated. |
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |

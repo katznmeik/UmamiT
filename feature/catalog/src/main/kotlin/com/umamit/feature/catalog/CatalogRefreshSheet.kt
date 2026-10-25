@@ -52,7 +52,7 @@ const val CATALOG_REFRESH_SHEET_TAG = "catalog_refresh_sheet"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogRefreshSheet(refresh: CatalogRefreshState, onCancel: () -> Unit, onDismissRequest: () -> Unit) {
-    val sheetState = rememberRefreshSheetState(UmamiTheme.reduceMotion)
+    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
@@ -178,7 +178,7 @@ private fun Body(text: String) {
 /** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun rememberRefreshSheetState(reduceMotion: Boolean): SheetState {
+internal fun rememberCatalogSheetState(reduceMotion: Boolean): SheetState {
     val density = LocalDensity.current
     return remember(reduceMotion) {
         SheetState(

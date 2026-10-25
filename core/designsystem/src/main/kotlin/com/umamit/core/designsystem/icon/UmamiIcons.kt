@@ -41,6 +41,10 @@ object UmamiIcons {
 
     @DrawableRes val Close = R.drawable.ic_close
 
+    @DrawableRes val Search = R.drawable.ic_search
+
+    @DrawableRes val Tune = R.drawable.ic_tune
+
     @DrawableRes val Edit = R.drawable.ic_edit
 
     @DrawableRes val Schedule = R.drawable.ic_schedule
