@@ -27,6 +27,8 @@ class RecipeDeriverTest {
 
     private fun western(vararg texts: String) = BrewGridRow("westlich", cells(*texts))
 
+    private fun china(vararg texts: String) = BrewGridRow("china", cells(*texts))
+
     private fun derive(
         vararg grid: BrewGridRow,
         prose: String? = null,
@@ -339,6 +341,45 @@ class RecipeDeriverTest {
         assertThat(chinese.recipes.single { it.isDefault }.method).isEqualTo(BrewMethod.WESTERN)
     }
 
+    /** Live sample 2 (structure only, D-089): the grid's third row, `st-zubereitung-china`. */
+    @Test
+    fun theChinaRowIsAGongfuRecipeAndTheDefaultOfAGongfuStyle() {
+        val result = derive(
+            western("~10g/L", "~80°C", "~90 Sek", "-", "-"),
+            china("~3g/150ml", "70-80°C", "~60 Sek", "~20(30) Sek", "~20(30) Sek"),
+            path = "/tee/gruener-tee/china/",
+            name = "Bi Lo Chun Frühling",
+        )
+
+        assertThat(result.recipes).containsExactly(
+            recipe("Gongfu", BrewMethod.GONGFU, 3.0, 150, 75, infusions(60, 20, 20), isDefault = true),
+            recipe(
+                "Westlich",
+                BrewMethod.WESTERN,
+                2.5,
+                250,
+                80,
+                listOf(RecipeStep(StepKind.INFUSION, 90), RecipeStep(StepKind.INFUSION, 25, tempC = 85)),
+            ),
+        ).inOrder()
+        assertThat(result.checkReason).isNull()
+    }
+
+    @Test
+    fun aChinaRowsTemperatureMayLackTheCAndAWesternStyleKeepsItsWesternDefault() {
+        val result = derive(
+            western("~10g/L", "~80°C", "~2 Min", "-", "-"),
+            china("~3g/150ml", "~80°", "~60 Sek", "~20 Sek", "~20 Sek"),
+            path = "/tee/gruener-tee/china/",
+            name = "Wolkenspitze",
+        )
+
+        assertThat(result.default.method).isEqualTo(BrewMethod.WESTERN)
+        val gongfu = result.recipes.single { it.method == BrewMethod.GONGFU }
+        assertThat(gongfu.baseTempC).isEqualTo(80)
+        assertThat(gongfu.source).isEqualTo(RecipeSource.CATALOG_TABLE)
+    }
+
     // --- Step 6: cold brew -----------------------------------------------------------------
 
     @Test
@@ -394,6 +435,71 @@ class RecipeDeriverTest {
             check.that(cold.steps).containsExactly(RecipeStep(StepKind.INFUSION, case.seconds))
             check.that(cold.isDefault).isFalse()
         }
+    }
+
+    /**
+     * Live sample 2 (structure only, D-089): cold-brew bags filed under Sencha with one grid row
+     * „1Stk./500ml · kalt · ~3 Min · ~2 Min" brew cold by default, the row read as the cold brew.
+     */
+    @Test
+    fun aGridRowAtKaltIsTheColdBrewAndABagWeighsWhatThePackageSays() {
+        val bags = StyleMapper.map(categoryPath = "/tee/gruener-tee/japan/sencha/", name = "Kühle Brise Mizudashi")
+        val row = kyusu("1Stk./500ml", "kalt", "~3 Min", "~2 Min", "-")
+
+        val weighed = RecipeDeriver.derive(BrewInfo(listOf(row), null, false, gramsPerBag = 5.0), bags)
+            .also { derived += it }
+        assertThat(weighed.recipes.first()).isEqualTo(
+            recipe("Kaltaufguss", BrewMethod.COLD_BREW, 5.0, 500, 5, infusions(180, 120), isDefault = true),
+        )
+        assertThat(weighed.checkReason).isNull()
+        // The cold row is no hot recipe: the hot one is the style's.
+        val hot = weighed.recipes.single { it.method == BrewMethod.KYUSU }
+        assertThat(hot.source).isEqualTo(RecipeSource.STYLE_DEFAULT)
+        assertThat(hot.steps.first().durationSeconds).isEqualTo(60)
+
+        // A bag of unknown weight: the style's cold-brew ratio at the row's water, flagged.
+        val unweighed = RecipeDeriver.derive(BrewInfo(listOf(row), null, false), bags).also { derived += it }
+        assertThat(unweighed.default).isEqualTo(
+            recipe(
+                "Kaltaufguss",
+                BrewMethod.COLD_BREW,
+                5.0,
+                500,
+                5,
+                infusions(180, 120),
+                source = RecipeSource.STYLE_DEFAULT,
+                isDefault = true,
+            ),
+        )
+        assertThat(unweighed.checkReason).isEqualTo(RecipeCheckReason.FROM_STYLE_DEFAULT)
+    }
+
+    @Test
+    fun theProsesBagsPerVolumeGiveTheColdBrewsAmount() {
+        val bags = StyleMapper.map(categoryPath = "/tee/gruener-tee/japan/sencha/", name = "Kühle Brise Mizudashi")
+        val prose = "Einen Beutel auf 0,3–0,5 Liter kaltes Wasser geben, kurz schütteln und zweimal aufgießen."
+
+        val result = RecipeDeriver.derive(BrewInfo(emptyList(), prose, false, gramsPerBag = 4.0), bags)
+            .also { derived += it }
+
+        assertThat(result.default.method).isEqualTo(BrewMethod.COLD_BREW)
+        assertThat(result.default.leafGrams).isEqualTo(4.0)
+        assertThat(result.default.waterMl).isEqualTo(400)
+    }
+
+    /** Live sample 2 (D-089): a powder with the badge is shaken cold, never steeped for hours (08 §3's matcha). */
+    @Test
+    fun aPowderGetsNoLeafColdBrewEvenWithTheBadge() {
+        val matcha = derive(
+            kyusu("~1g/100ml", "~70°C", "-"),
+            coldBrewBadge = true,
+            path = "/tee/gruener-tee/japan/matcha/",
+            name = "Bio Matcha Grüne Wolke",
+        )
+        val hojicha = derive(coldBrewBadge = true, path = "/tee/gruener-tee/japan/houjicha/", name = "Röstblatt Pulver")
+
+        assertThat(matcha.recipes.map { it.method }).containsExactly(BrewMethod.MATCHA_USUCHA)
+        assertThat(hojicha.recipes.none { it.method == BrewMethod.COLD_BREW }).isTrue()
     }
 
     @Test
@@ -506,6 +612,9 @@ class RecipeDeriverTest {
             ::aColdBrewBagsDefaultIsTheColdBrew,
             ::implausibleValuesFallBackToTheStyleAndFlag,
             ::gridAndProseThatDifferAreAConflictAndTheGridWins,
+            ::theChinaRowIsAGongfuRecipeAndTheDefaultOfAGongfuStyle,
+            ::aGridRowAtKaltIsTheColdBrewAndABagWeighsWhatThePackageSays,
+            ::theProsesBagsPerVolumeGiveTheColdBrewsAmount,
         ).forEach { it() }
         assertThat(derived.size).isGreaterThan(40)
 

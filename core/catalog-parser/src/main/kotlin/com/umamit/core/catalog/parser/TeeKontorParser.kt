@@ -23,7 +23,7 @@ object TeeKontorParser {
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
      * selectors or the fields read change.
      */
-    const val PARSER_VERSION = 4
+    const val PARSER_VERSION = 5
 
     /** Parses [body] (the HTML of [pageUrl], charset from the page, else UTF-8). */
     fun parseProduct(body: ByteArray, pageUrl: String): ProductParse {
@@ -63,7 +63,13 @@ private class ProductDocument(private val document: Document, private val pageUr
             available = available(),
             sizeOptions = SizeOptions.read(buyBox),
         )
-        return ProductDetails(document, title, breadcrumb).applyTo(page)
+        val detailed = ProductDetails(document, title, breadcrumb).applyTo(page)
+        // A Japan tea without a type level needs its name and badges (D-089).
+        val greenBadge = detailed.steaming != null || detailed.shading != null
+        return detailed.copy(
+            scope = GreenTeaScope.scope(breadcrumb, detailed.name, greenBadge),
+            teaType = GreenTeaScope.teaType(breadcrumb, detailed.name),
+        )
     }
 
     private fun title(): String? = document.selectFirst("h1.product-detail-name")?.cleanText()

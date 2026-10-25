@@ -11,6 +11,14 @@ internal data class Amount(val leafGrams: Double, val waterMl: Double?) {
     val gramsPer100Ml: Double get() = leafGrams / (waterMl ?: LITRE_ML) * PER_100_ML
 }
 
+/**
+ * [count] tea bags for [waterMl] of water (live sample 2, D-089); [weighed] by the package's
+ * grams per bag, unknown without them.
+ */
+internal data class Bags(val count: Double, val waterMl: Double) {
+    fun weighed(gramsPerBag: Double?): Amount? = gramsPerBag?.let { Amount(count * it, waterMl) }
+}
+
 internal const val LITRE_ML = 1000.0
 private const val PER_100_ML = 100.0
 private const val MINUTE_S = 60.0
@@ -18,6 +26,7 @@ private const val HOUR_S = 3600.0
 private const val BOILING_C = 100.0
 private const val VOLUME_GROUP = 4
 private const val VOLUME_UNIT_GROUP = 5
+private const val BAGS_UNIT_GROUP = 4
 
 /** Reads amounts, temperatures and times from grid cells and prose (08 §2.5 step 2): ranges → midpoint. */
 internal object BrewValues {
@@ -38,6 +47,17 @@ internal object BrewValues {
             else -> number * LITRE_ML
         }
         return Amount(amount, water).takeIf { water == null || water > 0 }
+    }
+
+    /** The first number of tea bags for a volume in [text] („1Stk./500ml", „ein Beutel auf 0,3–0,5 Liter"). */
+    fun bags(text: String): Bags? {
+        val match = BrewProse.BAGS_PER_VOLUME.find(text) ?: return null
+        val (count, low, high) = match.destructured
+        val volume = low.toDecimal()?.let { midpoint(low, high) }
+        val unit = match.groupValues[BAGS_UNIT_GROUP]
+        val water = if (unit.lowercase() == "ml") volume else (volume ?: 1.0) * LITRE_ML
+        val bags = count.toDecimal() ?: 1.0
+        return water?.takeIf { it > 0 && bags > 0 }?.let { Bags(bags, it) }
     }
 
     /**

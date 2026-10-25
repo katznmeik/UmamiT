@@ -1,6 +1,7 @@
 package com.umamit.core.catalog.parser
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.catalog.parser.SyntheticShop.Stock
 import org.junit.Test
 
@@ -190,6 +191,52 @@ class TeeKontorParserTest {
         )
         cases.forEach { (path, scope) ->
             assertThat(parse(SyntheticShop.productPage(breadcrumb = path)).scope).isEqualTo(scope)
+        }
+    }
+
+    /**
+     * Live sample 2 (structure only, D-089): a product whose only breadcrumb is a tea family's page
+     * under the Japan tree has no type level; its name (or its steaming or shading badge) decides.
+     */
+    @Test
+    fun aJapanTeaWithoutTypeLevelIsGreenWhenItsNameOrBadgesSayGreen() {
+        val family = listOf(
+            "Tee" to "/tee/",
+            "Japantee" to "/tee/japantee/",
+            "Teefamilien" to "/tee/japantee/teefamilien/",
+            "Familie Beispiel" to "/tee/japantee/teefamilien/familie-beispiel/",
+        )
+        val garden = listOf("Tee" to "/tee/", "Teegarten" to "/tee/japantee/teegarten-erfunden/")
+        data class Case(
+            val path: List<Pair<String, String>>,
+            val title: String,
+            val scope: CatalogScope,
+            val type: String? = null,
+            val badges: List<String> = emptyList(),
+        )
+        listOf(
+            Case(family, "Bergdorf Bancha – 100g", CatalogScope.GREEN, "Bancha"),
+            Case(family, "Bergdorf Houjicha – 100g", CatalogScope.GREEN, "Houjicha"),
+            Case(family, "Bergdorf Gyokuro – 50g", CatalogScope.GREEN, "Gyokuro"),
+            Case(family, "Bergdorf Kabuse – 50g", CatalogScope.GREEN, "Kabusecha"),
+            Case(family, "Bergdorf Fukamushi – 100g", CatalogScope.GREEN, "Sencha"),
+            Case(family, "Bergdorf Gyokuro Karigane – 100g", CatalogScope.GREEN, "Kukicha"),
+            Case(garden, "Talblick Sencha – 100g", CatalogScope.GREEN, "Sencha"),
+            // No type in the name, but a steaming badge: a green tea of unknown type.
+            Case(family, "Bergdorf Frühling – 100g", CatalogScope.GREEN, badges = listOf("Dämpfung: Chumushi")),
+            // Nothing says green, or the name says another tea or teaware: skipped.
+            Case(family, "Bergdorf Frühling – 100g", CatalogScope.NOT_GREEN),
+            Case(family, "Bergdorf Wakoucha – 50g", CatalogScope.NOT_GREEN),
+            Case(family, "Bergdorf Benifuuki Koucha – 50g", CatalogScope.NOT_GREEN),
+            Case(family, "Bergdorf Oolong – 50g", CatalogScope.NOT_GREEN),
+            Case(family, "Bergdorf Kyusu für Sencha", CatalogScope.NOT_GREEN),
+        ).forEach { case ->
+            val page = parse(
+                SyntheticShop.productPage(breadcrumb = case.path, title = case.title, invertedBadges = case.badges),
+            )
+            val check = assertWithMessage(case.title)
+            check.that(page.scope).isEqualTo(case.scope)
+            check.that(page.teaType).isEqualTo(case.type)
         }
     }
 

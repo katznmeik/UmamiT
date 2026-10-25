@@ -18,6 +18,7 @@ import org.jsoup.nodes.TextNode
 import java.io.ByteArrayInputStream
 import java.net.URI
 import java.net.URISyntaxException
+import java.net.URLDecoder
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -189,7 +190,8 @@ object GuideParser {
     }
 
     private fun absolute(url: String, base: String): String? = try {
-        URI(base).resolve(url.trim()).toString().takeIf { it.startsWith("https://") || it.startsWith("http://") }
+        URI(base).resolve(encodedSpaces(url.trim())).toString()
+            .takeIf { it.startsWith("https://") || it.startsWith("http://") }
     } catch (_: IllegalArgumentException) {
         null
     }
@@ -223,7 +225,7 @@ private class GuideConverter(hero: String?) {
     fun convert(root: Element): GuideDocument {
         children(root)
         endParagraph()
-        return GuideDocument(blocks)
+        return GuideDocument(GuideNoise.clean(blocks))
     }
 
     /** The block-level walk: containers are descended, blocks end the paragraph, the rest is text. */
@@ -319,7 +321,9 @@ private class GuideConverter(hero: String?) {
     /** An image as a block of its own; a tracking pixel, a placeholder or an image seen before is left out. */
     private fun image(img: Element) {
         val url =
-            listOf("data-full-image", "data-src", "src").firstNotNullOfOrNull { httpUrl(img.absUrl(it)) } ?: return
+            listOf("data-full-image", "data-src", "src").firstNotNullOfOrNull { httpUrl(img.absUrl(it)) }
+                ?.let(::encodedSpaces)
+                ?: return
         val pixel = listOf("width", "height").any { (img.attr(it).toIntOrNull() ?: Int.MAX_VALUE) <= PIXEL_SIZE }
         if (pixel || !seenImages.add(imageKey(url))) return
         endParagraph()
@@ -334,6 +338,9 @@ private class GuideConverter(hero: String?) {
     }
 
     private fun list(element: Element) {
+        // The blog's meta list (a calendar icon and the date) is no content (D-089).
+        val texts = element.children().filter { it.normalName() == "li" }.map { it.cleanText() }
+        if (texts.isNotEmpty() && texts.all { DATE.matches(it) }) return
         val items = mutableListOf<List<GuideInline>>()
         element.children().filter { it.normalName() == "li" }.forEach { item ->
             val saved = paragraph
@@ -382,7 +389,8 @@ private class GuideConverter(hero: String?) {
         }
     }
 
-    private fun isSkipped(element: Element) = element.normalName() in SKIPPED || element.hasClass(STAFF_TIP)
+    private fun isSkipped(element: Element) = element.normalName() in SKIPPED || element.hasClass(STAFF_TIP) ||
+        element.classNames().any { name -> SKIPPED_CLASS_PREFIXES.any { name.startsWith(it) } }
 
     private data class Style(val bold: Boolean = false, val italic: Boolean = false, val link: String? = null) {
         companion object {
@@ -393,6 +401,10 @@ private class GuideConverter(hero: String?) {
     private companion object {
         const val GALLERY = "st-blog-gallery"
         const val STAFF_TIP = "st-teamtipp"
+
+        /** The comment section inside the article block (`.pixel-blog-questions__standard`, D-089). */
+        val SKIPPED_CLASS_PREFIXES = listOf("pixel-blog-question", "pixel-blog-comment")
+        val DATE = Regex("""\d{1,2}[./-]\d{1,2}[./-]\d{2,4}""")
         const val PIXEL_SIZE = 2
 
         /** A bold lead line longer than this is emphasis, not a heading. */
@@ -410,9 +422,59 @@ private class GuideConverter(hero: String?) {
 
         fun httpUrl(url: String): String? = url.takeIf { it.startsWith("https://") || it.startsWith("http://") }
 
-        /** Images are told apart without their query (the shop's `?ts=`). */
-        fun imageKey(url: String) = url.substringBefore('?')
+        /**
+         * Images are told apart without their query (the shop's `?ts=`) and by their decoded path:
+         * the gallery writes raw spaces where the body and the JSON-LD write `%20` (D-089).
+         */
+        fun imageKey(url: String): String {
+            val path = url.substringBefore('?')
+            return try {
+                URLDecoder.decode(path.replace("+", "%2B"), Charsets.UTF_8)
+            } catch (_: IllegalArgumentException) {
+                path
+            }
+        }
     }
+}
+
+/** [url] with its raw spaces percent-encoded, as an HTTP client must send it (D-089). */
+private fun encodedSpaces(url: String): String = url.replace(" ", "%20")
+
+/**
+ * Noise blocks of a converted article (live sample 2, D-089): a paragraph introducing a video
+ * that isn't there (no link in it, ending with a colon, no player link after it) and a closing
+ * tag line (a few plain words without punctuation).
+ */
+private object GuideNoise {
+    private val VIDEO = Regex("video", RegexOption.IGNORE_CASE)
+    private val PUNCTUATION = Regex("""[.,;:!?…"„“()]""")
+    private val TAG_WORDS = 2..6
+
+    fun clean(blocks: List<GuideBlock>): List<GuideBlock> {
+        val kept = blocks.filterIndexed { index, block ->
+            !isVideoIntroWithoutVideo(block, blocks.getOrNull(index + 1))
+        }
+        return if (kept.lastOrNull()?.let(::isTagLine) == true) kept.dropLast(1) else kept
+    }
+
+    private fun isVideoIntroWithoutVideo(block: GuideBlock, next: GuideBlock?): Boolean {
+        if (block !is GuideBlock.Paragraph || hasLink(block)) return false
+        val text = text(block).trim()
+        return VIDEO.containsMatchIn(text) && text.endsWith(':') && !(next is GuideBlock.Paragraph && hasLink(next))
+    }
+
+    private fun isTagLine(block: GuideBlock): Boolean {
+        if (block !is GuideBlock.Paragraph) return false
+        val plain = block.inlines.all { it is GuideInline.Span && !it.bold && !it.italic && it.link == null }
+        val text = text(block).trim()
+        return plain && !PUNCTUATION.containsMatchIn(text) && text.split(' ').count { it.isNotEmpty() } in TAG_WORDS
+    }
+
+    private fun hasLink(paragraph: GuideBlock.Paragraph) =
+        paragraph.inlines.any { (it as? GuideInline.Span)?.link != null }
+
+    private fun text(paragraph: GuideBlock.Paragraph) =
+        paragraph.inlines.joinToString("") { (it as? GuideInline.Span)?.text ?: "\n" }
 }
 
 /** Tidying a paragraph's converted text (D-087). */

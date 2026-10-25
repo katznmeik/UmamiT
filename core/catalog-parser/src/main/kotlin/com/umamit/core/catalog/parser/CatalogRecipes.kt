@@ -19,15 +19,34 @@ data class CatalogRecipes(
     companion object {
         private val JAPAN = Regex("japan", RegexOption.IGNORE_CASE)
 
+        /** „20 Aufgussbeutel", „15 Teebeutel" in the name: the package's bags. */
+        private val BAG_COUNT =
+            Regex("""(\d+)\s*(?:x\s*)?(?:aufguss|tee|pyramiden|kaltaufguss)?beutel""", RegexOption.IGNORE_CASE)
+        private val GRAMS_PER_BAG = 0.5..30.0
+
+        /** A bag's weight (D-089): the package's grams over the bags its name counts; null when either is missing. */
+        private fun gramsPerBag(page: ProductPage): Double? {
+            val bags = page.name?.let { BAG_COUNT.find(it) }?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+            val grams = page.packageGrams ?: return null
+            return bags?.let { grams / it }?.takeIf { it in GRAMS_PER_BAG }
+        }
+
         /** Maps [page] to its style and derives its recipes from its grid, prose and cold-brew badge. */
         fun derive(page: ProductPage): CatalogRecipes {
-            val mapped = StyleMapper.map(page.categoryPath, page.name, page.teaType, page.isFlavored)
+            val mapped = StyleMapper.map(
+                page.categoryPath,
+                page.name,
+                page.teaType,
+                page.isFlavored,
+                page.originCountry,
+            )
             // A tea from Japan in a generic section is Japanese too (its Kyusu row is the default).
             val match = mapped.copy(
                 japanese =
                 mapped.japanese || page.originCountry?.let(JAPAN::containsMatchIn) == true,
             )
-            val derived = RecipeDeriver.derive(BrewInfo(page.brewTable, page.brewText, page.coldBrewSuitable), match)
+            val info = BrewInfo(page.brewTable, page.brewText, page.coldBrewSuitable, gramsPerBag(page))
+            val derived = RecipeDeriver.derive(info, match)
             return CatalogRecipes(
                 styleKey = match.style.key,
                 form = match.form,

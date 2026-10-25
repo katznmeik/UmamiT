@@ -29,7 +29,7 @@ class GuideParserTest {
     fun guidesAreSelectedFromTheSitemapBySlugKeywords() {
         val urls = listOf(
             "$SHOP/tee-info/ein-guide-fuer-japantee",
-            "$SHOP/tee-info/matcha-latte-rezept",
+            "$SHOP/tee-info/matcha-fuer-einsteiger",
             "$SHOP/tee-info/kaltaufguss-im-sommer",
             "$SHOP/tee-info/UMAMI-erklaert",
             "$SHOP/tee-info/schwarztee-aus-assam",
@@ -44,14 +44,14 @@ class GuideParserTest {
             "UMAMI-erklaert",
             "ein-guide-fuer-japantee",
             "kaltaufguss-im-sommer",
-            "matcha-latte-rezept",
+            "matcha-fuer-einsteiger",
         ).inOrder()
         assertThat(GuideUrls.select(urls).first().url).isEqualTo("$SHOP/tee-info/UMAMI-erklaert")
     }
 
     @Test
     fun atMostFortyGuidesAreSelectedTheMostRelevantFirst() {
-        val recipes = (10..53).map { "$SHOP/tee-info/ein-langes-matcha-rezept-nr-$it" }
+        val recipes = (10..53).map { "$SHOP/tee-info/ein-langer-matcha-text-nr-$it" }
         val urls = recipes + "$SHOP/tee-info/sencha-und-gyokuro-im-vergleich" + "$SHOP/tee-info/umami"
 
         val selected = GuideUrls.select(urls).map { it.slug }
@@ -60,7 +60,7 @@ class GuideParserTest {
         assertThat(selected).hasSize(40)
         // Two keywords first, then the shorter slug; the longest recipe numbers are left out.
         assertThat(selected).containsAtLeast("sencha-und-gyokuro-im-vergleich", "umami")
-        assertThat(selected).doesNotContain("ein-langes-matcha-rezept-nr-53")
+        assertThat(selected).doesNotContain("ein-langer-matcha-text-nr-53")
         assertThat(selected).isInOrder()
     }
 
@@ -72,6 +72,43 @@ class GuideParserTest {
         )
 
         assertThat(GuideUrls.select(keywords.map { "$SHOP/tee-info/alles-ueber-$it" })).hasSize(keywords.size)
+    }
+
+    /**
+     * Live sample 2 (structure only, D-089): promotions, events and recipes are no guides, also
+     * when they name a keyword; green-tea guides on types the keywords missed are.
+     */
+    @Test
+    fun promotionsEventsAndRecipesAreNoGuidesAndEveryGreenTypeSelectsOne() {
+        val noise = listOf(
+            "sonstiges-matcha-aktion-erfunden",
+            "sonstiges-shincha-1999",
+            "teeverkostungen-shincha-abend",
+            "aktionstees-sencha-woche",
+            "blog-sencha-event-im-laden",
+            "teerezepte-matcha-limonade",
+            "matcha-plaetzchen-erfunden",
+            "houjicha-kekse-vegan",
+            "matcha-beeren-traum-dessert",
+            "sencha-spritz-erfunden",
+            "gyokuro-tasting-abend",
+        )
+        val guides = listOf(
+            "aracha-kurz-erklaert",
+            "mizudashi-im-sommer",
+            "mizucha-im-kuehlschrank",
+            "fukamushi-und-asamushi",
+            "kultivare-im-ueberblick",
+            "bancha-fuer-den-alltag",
+            "kukicha-erklaert",
+            "tamaryokucha-kennenlernen",
+            "kamairicha-aus-der-pfanne",
+            "tencha-erklaert",
+        )
+
+        val selected = GuideUrls.select((noise + guides).map { "$SHOP/tee-info/$it" }).map { it.slug }
+
+        assertThat(selected).containsExactlyElementsIn(guides)
     }
 
     // --- article ---
@@ -215,6 +252,66 @@ class GuideParserTest {
             "$SHOP${SyntheticGuide.imagePath("b")}",
             "$SHOP${SyntheticGuide.imagePath("c")}",
         ).inOrder()
+    }
+
+    /**
+     * Live sample 2 (structure only, D-089): the gallery writes an image's URL with raw spaces,
+     * the body and the JSON-LD hero with `%20`; each image is one, stored encoded.
+     */
+    @Test
+    fun anImageIsOneWhetherItsUrlHasSpacesOrPercent20() {
+        val raw = "/media/gg/hh/ii/1700000000/zwei bilder im glas.jpg?ts=1700000000"
+        val heroRaw = "/media/gg/hh/ii/1700000000/erstes bild.jpg?ts=1700000000"
+        val encoded = raw.replace(" ", "%20")
+        val heroEncoded = heroRaw.replace(" ", "%20")
+        val article = parse(
+            SyntheticGuide.page(
+                baseUrl = SHOP,
+                jsonLd = SyntheticGuide.blogPosting(SHOP, SLUG, "Ein Guide", image = "$SHOP$heroEncoded"),
+                gallery = listOf(heroRaw, raw),
+                body = "<p>Text.</p><img class=\"lazyload\" data-src=\"$SHOP$encoded\" alt=\"\">",
+            ),
+        )
+
+        assertThat(article.body.blocks).containsExactly(
+            GuideBlock.Image("$SHOP$encoded"),
+            GuideBlock.Paragraph(listOf(Span("Text."))),
+        ).inOrder()
+        assertThat(article.imageUrls).containsExactly("$SHOP$heroEncoded", "$SHOP$encoded").inOrder()
+    }
+
+    /**
+     * Live sample 2 (structure only, D-089): the article block ends with the comment section, starts
+     * with the blog's date list, introduces a player that isn't there and closes with a tag line.
+     */
+    @Test
+    fun theCommentSectionTheDateListAVideoIntroWithoutVideoAndATagLineAreLeftOut() {
+        val blocks = body(
+            "<ul class=\"list-unstyled\"><li><span class=\"icon icon-calendar\"></span> 12/03/2024</li></ul>" +
+                "<p>Ein erfundener Absatz über Tee.</p>" +
+                "<p>Wie das geht, zeigen wir in diesem Video Schritt für Schritt:</p>" +
+                "<p>Noch ein Absatz.</p>" +
+                "<p>Sommer Eistee kaltgebrüht</p>" +
+                "<div class=\"pixel-blog-questions pixel-blog-questions__standard\">" +
+                "<h3>Kommentare und Fragen (0)</h3><div class=\"alert alert-info\">Noch keine Kommentare.</div>" +
+                "<h4>Kommentar schreiben</h4><p>Ein Hinweis.</p>" +
+                "<p>Anmeldung erforderlich <a href=\"$SHOP/account/login\">Anmelden</a></p></div>",
+        )
+
+        assertThat(blocks).containsExactly(
+            GuideBlock.Paragraph(listOf(Span("Ein erfundener Absatz über Tee."))),
+            GuideBlock.Paragraph(listOf(Span("Noch ein Absatz."))),
+        ).inOrder()
+    }
+
+    @Test
+    fun aVideoIntroFollowedByItsPlayerStays() {
+        val blocks = body(
+            "<p>So geht es in diesem Video:</p><iframe src=\"https://www.youtube.com/embed/abc123\"></iframe>" +
+                "<p>Ein letzter Satz mit Punkt.</p>",
+        )
+
+        assertThat(blocks).hasSize(3)
     }
 
     // --- resolution ---

@@ -120,12 +120,13 @@ data class TasteScale(val label: String, val leaves: Int) {
 /**
  * One row of the shop's brewing grid, verbatim (05 §4.1 `brew_table_raw`).
  *
- * @property kind the shop's method: `japan` (Kyusu) or `westlich` (western).
+ * @property kind the shop's method: `japan` (Kyusu), `westlich` (western) or `china` (Gongfu, D-089).
  */
 data class BrewTableRow(val kind: String, val cells: List<BrewTableCell>) {
     companion object {
         const val KIND_JAPAN = "japan"
         const val KIND_WESTERN = "westlich"
+        const val KIND_CHINA = "china"
     }
 }
 
