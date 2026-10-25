@@ -75,6 +75,7 @@ internal object PhotoTranscoder {
     const val MAX_SOURCE_PIXELS = 40_000_000L
 
     private const val JPEG_MIME = "image/jpeg"
+    private const val WEBP_MIME = "image/webp"
     private const val MARKER = 0xFF.toByte()
     private const val SOI = 0xD8.toByte()
     private const val EOI = 0xD9.toByte()
@@ -95,10 +96,22 @@ internal object PhotoTranscoder {
         transcode(bytes, listOf(PhotoTarget.CATALOG, PhotoTarget.CATALOG_THUMBNAIL))
             ?.let { (full, thumbnail) -> CatalogPhoto(full, thumbnail) }
 
+    /**
+     * The app's own catalog photo (`<key>.webp`, CAT-08) re-encoded as a collection photo
+     * ([PhotoTarget.COVER], JPEG) when a tea is added from the catalog (CAT-12, 05 §3.9, D-076),
+     * or null when [webp] is no WebP image of an acceptable size or doesn't decode. Only the
+     * app's own files come here; the shop's images stay JPEG only.
+     */
+    fun transcodeCatalogCopy(webp: ByteArray): EncodedPhoto? =
+        transcode(webp, listOf(PhotoTarget.COVER), WEBP_MIME)?.single()
+
     /** [bytes] re-encoded to each of [targets] in order, or null as for [transcode]. */
-    fun transcode(bytes: ByteArray, targets: List<PhotoTarget>): List<EncodedPhoto>? {
+    fun transcode(bytes: ByteArray, targets: List<PhotoTarget>): List<EncodedPhoto>? =
+        transcode(bytes, targets, JPEG_MIME)
+
+    private fun transcode(bytes: ByteArray, targets: List<PhotoTarget>, mime: String): List<EncodedPhoto>? {
         require(targets.isNotEmpty()) { "no target" }
-        val bounds = acceptableBounds(bytes) ?: return null
+        val bounds = acceptableBounds(bytes, mime) ?: return null
         val longSide = max(bounds.outWidth, bounds.outHeight)
         val neededLongSide = targets.maxOf { (longSide * it.scaleFor(bounds.outWidth, bounds.outHeight)).roundToInt() }
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize(longSide, neededLongSide) }
@@ -107,11 +120,11 @@ internal object PhotoTranscoder {
         }
     }
 
-    /** [bytes]' bounds when they are a complete JPEG of an acceptable size, else null. */
-    private fun acceptableBounds(bytes: ByteArray): BitmapFactory.Options? {
+    /** [bytes]' bounds when they are an image of [mime] (a JPEG complete) of an acceptable size, else null. */
+    private fun acceptableBounds(bytes: ByteArray, mime: String): BitmapFactory.Options? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        if (bytes.isCompleteJpeg()) BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-        val acceptable = bounds.outMimeType == JPEG_MIME &&
+        if (mime != JPEG_MIME || bytes.isCompleteJpeg()) BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val acceptable = bounds.outMimeType == mime &&
             bounds.outWidth in 1..MAX_SOURCE_SIDE_PX &&
             bounds.outHeight in 1..MAX_SOURCE_SIDE_PX &&
             bounds.outWidth.toLong() * bounds.outHeight <= MAX_SOURCE_PIXELS

@@ -175,10 +175,13 @@ private fun Body(text: String) {
     Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-/** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
+/**
+ * The catalog's sheets (SCR-22, SCR-23): always fully expanded; under reduce motion it starts
+ * expanded, so it appears without the slide (03 §3.6).
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun rememberRefreshSheetState(reduceMotion: Boolean): SheetState {
+internal fun rememberRefreshSheetState(reduceMotion: Boolean): SheetState {
     val density = LocalDensity.current
     return remember(reduceMotion) {
         SheetState(
