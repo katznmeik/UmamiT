@@ -16,6 +16,9 @@ import javax.inject.Inject
 interface CatalogRepository {
     /** The teas of the shop's current range by name, and the date of the last successful refresh. */
     fun observeCatalog(): Flow<CatalogOverview>
+
+    /** When the last successful refresh finished (SET-23, CAT-07 AC6); null before the first. */
+    fun observeLastRefresh(): Flow<Long?>
 }
 
 /** [CatalogRepository] on `catalog.db`. */
@@ -38,6 +41,8 @@ class RoomCatalogRepository @Inject constructor(private val dao: CatalogDao) : C
             lastRefreshAtMillis = last,
         )
     }.distinctUntilChanged()
+
+    override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()
 }
 
 @Module
@@ -48,4 +53,11 @@ abstract class CatalogModule {
 
     @Binds
     abstract fun catalogRefreshRunner(impl: AppCatalogRefreshRunner): CatalogRefreshRunner
+
+    /** The same runner, as the refresh service sees it (the app hands it over, [CatalogRefreshHost]). */
+    @Binds
+    abstract fun catalogRefreshServicePort(impl: AppCatalogRefreshRunner): CatalogRefreshServicePort
+
+    @Binds
+    abstract fun catalogRefreshForeground(impl: ServiceCatalogRefreshForeground): CatalogRefreshForeground
 }

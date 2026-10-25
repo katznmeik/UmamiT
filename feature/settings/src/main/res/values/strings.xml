@@ -42,6 +42,14 @@
     <string name="settings_test_stop">Stopp</string>
     <string name="settings_save_failed">Konnte nicht gespeichert werden. Versuch es gleich noch einmal; ist der Speicher voll?</string>
 
+    <!-- Katalog (SET-30; SET-23). -->
+    <string name="settings_section_catalog">Katalog</string>
+    <string name="settings_catalog_last_refresh">Letzter Abruf</string>
+    <string name="settings_catalog_never">Noch nie</string>
+    <string name="settings_catalog_refreshing">Wird gerade aktualisiert …</string>
+    <string name="settings_catalog_refresh_now">Jetzt aktualisieren</string>
+    <string name="settings_catalog_refresh_detail">Lädt alle Grüntees von Tee-Kontor Kiel. Das dauert einige Minuten und läuft auch bei gesperrtem Handy weiter.</string>
+
     <!-- Über (SCR-27). -->
     <string name="settings_section_about">Über</string>
     <string name="settings_about">Über UmamiT</string>

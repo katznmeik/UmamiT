@@ -32,8 +32,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * The app-scoped refresh job (#64): one refresh at a time, its progress and result for the sheet,
- * *Abbrechen*, and the list filled from the catalog database afterwards (SCR-19, SCR-22).
+ * The refresh job (#64, #65): one refresh at a time, its progress and result for the sheet,
+ * *Abbrechen*, the list filled from the catalog database afterwards (SCR-19, SCR-22), the
+ * foreground service that keeps it alive with the phone locked (06 §5.3), and no crash of the
+ * process the timer runs in, whatever the refresh throws (rule 8, CAT-07 AC8).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -81,16 +83,41 @@ class CatalogRefreshRunnerTest {
         db.close()
     }
 
-    private fun TestScope.runner(): AppCatalogRefreshRunner {
-        val refresher = CatalogRefresher(
+    /** The foreground service as the runner sees it: counts the calls. */
+    private class FakeForeground : CatalogRefreshForeground {
+        var starts = 0
+        var resultsCleared = 0
+
+        override fun start() {
+            starts++
+        }
+
+        override fun clearResult() {
+            resultsCleared++
+        }
+    }
+
+    private val foreground = FakeForeground()
+    private val clock = FakeClock()
+    private val diagnostics by lazy {
+        DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO)
+    }
+
+    private fun TestScope.runner(
+        refresh: suspend ((CatalogRefreshProgress) -> Unit) -> CatalogRefreshOutcome = CatalogRefresher(
             client = ShopClient.forTesting(baseUrl = server.url("/")),
             dao = db.catalogDao(),
-            clock = FakeClock(),
-            diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
+            clock = clock,
+            diagnostics = diagnostics,
             sanity = SanityCheck(firstImportMinimum = 1),
-        )
-        return AppCatalogRefreshRunner(refresher, TestScope(StandardTestDispatcher(testScheduler)))
-    }
+        )::refresh,
+    ): AppCatalogRefreshRunner = AppCatalogRefreshRunner(
+        refresh = refresh,
+        foreground = foreground,
+        diagnostics = diagnostics,
+        clock = clock,
+        context = StandardTestDispatcher(testScheduler),
+    )
 
     /** Waits (in real time: the refresh does real I/O) for the result. */
     private suspend fun AppCatalogRefreshRunner.awaitFinished(): CatalogRefreshState.Finished =
@@ -101,6 +128,7 @@ class CatalogRefreshRunnerTest {
         val runner = runner()
         val repository = RoomCatalogRepository(db.catalogDao())
         assertThat(repository.observeCatalog().first().isEmpty).isTrue()
+        assertThat(repository.observeLastRefresh().first()).isNull()
 
         runner.start()
         assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
@@ -111,6 +139,8 @@ class CatalogRefreshRunnerTest {
         val catalog = repository.observeCatalog().first()
         assertThat(catalog.teas.map { it.name }).containsExactly("Morgennebel Sencha")
         assertThat(catalog.lastRefreshAtMillis).isEqualTo(FakeClock.DEFAULT_WALL_MS)
+        // Settings' „Letzter Abruf" (SET-23) reads the same date from the refresh log.
+        assertThat(repository.observeLastRefresh().first()).isEqualTo(FakeClock.DEFAULT_WALL_MS)
         runner.acknowledge()
         assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Idle)
     }
@@ -125,8 +155,9 @@ class CatalogRefreshRunnerTest {
         pageGate.countDown()
         runner.awaitFinished()
 
-        // One robots.txt, one sitemap, one page: a single refresh.
+        // One robots.txt, one sitemap, one page: a single refresh, kept alive by one service start.
         assertThat(server.requestCount).isEqualTo(3)
+        assertThat(foreground.starts).isEqualTo(1)
     }
 
     @Test
@@ -153,6 +184,51 @@ class CatalogRefreshRunnerTest {
 
         assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled))
         assertThat(server.requestCount).isEqualTo(0)
+    }
+
+    @Test
+    fun aStartBringsUpTheForegroundServiceAndASeenResultClearsItsNotification() = runTest {
+        val runner = runner()
+
+        runner.start()
+        assertThat(foreground.starts).isEqualTo(1)
+        pageGate.countDown()
+        runner.awaitFinished()
+        val clearedBefore = foreground.resultsCleared
+        runner.acknowledge()
+
+        assertThat(foreground.resultsCleared).isEqualTo(clearedBefore + 1)
+        assertThat(foreground.starts).isEqualTo(1)
+    }
+
+    @Test
+    fun anErrorEscapingTheRefreshEndsItAsShopChangedInsteadOfCrashing() = runTest {
+        val runner = runner(refresh = { throw StackOverflowError("deeply nested page") })
+
+        runner.start()
+        testScheduler.runCurrent()
+
+        val outcome = (runner.state.value as CatalogRefreshState.Finished).outcome
+        assertThat(outcome).isInstanceOf(CatalogRefreshOutcome.ShopChanged::class.java)
+        assertThat((outcome as CatalogRefreshOutcome.ShopChanged).details).contains("StackOverflowError")
+        assertThat(diagnostics.entries().map { it.message }.single { "StackOverflowError" in it })
+            .startsWith("catalog refresh: unexpected")
+    }
+
+    @Test
+    fun theServiceSeesTheSameStateAndCancelsTheSameRun() = runTest {
+        val runner = runner()
+        val port: CatalogRefreshServicePort = runner
+
+        runner.start()
+        testScheduler.runCurrent()
+        pageRequested.await(GATE_SECONDS, TimeUnit.SECONDS)
+        assertThat(port.state.value).isInstanceOf(CatalogRefreshState.Running::class.java)
+        port.cancel()
+        val finished = runner.awaitFinished()
+
+        assertThat(finished.outcome).isEqualTo(CatalogRefreshOutcome.Cancelled)
+        assertThat(port.state.value).isEqualTo(finished)
     }
 
     private fun ok(body: String) = MockResponse.Builder().body(Buffer().writeUtf8(body)).build()

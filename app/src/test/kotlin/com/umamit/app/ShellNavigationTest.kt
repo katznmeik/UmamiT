@@ -2,6 +2,7 @@ package com.umamit.app
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
@@ -60,13 +61,17 @@ class ShellNavigationTest {
         override val progress: () -> Float = { 0.5f }
     }
 
-    private fun start(reduceMotion: Boolean = true) {
+    private fun start(
+        reduceMotion: Boolean = true,
+        catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
+    ) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
                 UmamitApp(
                     activeBrewSource = source,
                     journalSources = testJournalSources(),
                     settings = testSettingsScreens(),
+                    catalogScreen = catalogScreen,
                 )
             }
         }
@@ -264,6 +269,25 @@ class ShellNavigationTest {
         tab(Tab.Stats).performClick()
         tab(Tab.Collection).performClick()
         compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
+    }
+
+    @Test
+    fun katalogAktualisierenInTheMenuReachesTheCatalogSegment() {
+        var requests = 0
+        start(catalogScreen = { tab ->
+            requests = tab.refreshRequest
+            PlaceholderCatalog(tab)
+        })
+        tab(Tab.Collection).performClick()
+        compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).performClick()
+        compose.waitForIdle()
+        assertThat(requests).isEqualTo(0)
+
+        compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
+        compose.onNodeWithText(str(CollectionR.string.collection_catalog_refresh)).performClick()
+        compose.waitForIdle()
+
+        assertThat(requests).isEqualTo(1)
     }
 
     @Test

@@ -49,28 +49,41 @@ const val CATALOG_LIST_TAG = "catalog_list"
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
  * control: the empty state with *Katalog laden* (D-073), or the teas by name with their price
  * per 100 g under the header „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt.". A tap
- * on *Katalog laden* starts the refresh and opens its sheet (SCR-22).
+ * on *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
+ * the refresh and opens its sheet (SCR-22).
  *
  * **Alerts first (rule 8):** while an alert plays ([alerting]) the sheet is not composed, so it
  * leaves in that frame without animation, and it stays closed; the refresh itself goes on
  * (CAT-07 AC8).
+ *
+ * @param refreshRequest a counter from the ⋮ menu: every increase while this is shown starts the
+ *   refresh; a count from before is never replayed (D-049).
  */
 @Composable
 fun CatalogRoute(
     alerting: Boolean,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
+    refreshRequest: Int = 0,
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(alerting) { if (alerting) sheetOpen = false }
+    val startRefresh = {
+        viewModel.startRefresh()
+        if (!alerting) sheetOpen = true
+    }
+    var handledRefresh by remember { mutableIntStateOf(refreshRequest) }
+    LaunchedEffect(refreshRequest) {
+        if (refreshRequest > handledRefresh) {
+            handledRefresh = refreshRequest
+            startRefresh()
+        }
+    }
     CatalogContent(
         state = state,
-        onLoad = {
-            viewModel.startRefresh()
-            sheetOpen = true
-        },
+        onLoad = startRefresh,
         onShowProgress = { sheetOpen = true },
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
