@@ -243,7 +243,11 @@ type. Search over name, secondary name, description, cultivar, region.
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
 description, brewing guide (raw table and text as on the shop), the derived
 recipe(s) with flag reason, package options and prices, and actions
-*In Sammlung aufnehmen* and *Im Shop öffnen* (browser).
+*In Sammlung aufnehmen* and *Im Shop öffnen*. *Im Shop öffnen* opens the
+Tee-Kontor page in the browser: the page of the package size bought last when
+the tea is in the collection (as INV-09), else the product page
+(`product_url`). Opening the browser is not a network use of the app (GEN-01,
+D-072).
 
 **CAT-12 — Add to collection** `Must`
 *In Sammlung aufnehmen* opens SCR-23: choose package option (weight & price;
@@ -326,7 +330,8 @@ hinzugefügt, Bewertung, Vorrat (low → high), geöffnet seit (oldest first).
 SCR-09: hero photo, names, rating „★ 4,5 (12)", type chip, umami meter,
 `StatTriplet` of the default recipe (Temperatur · Ziehzeit · Aufgüsse), primary
 *Brühen*, recipes, stock & cost, freshness, tasting summary, recent sessions,
-notes, details, *Im Shop öffnen* (catalog teas).
+notes, details, and for catalog teas the visible reorder link
+„Beim Tee-Kontor nachbestellen" (INV-09).
 
 **TEA-14 — Duplicate** `Could`
 
@@ -697,6 +702,20 @@ per session = leaf × cost per gram. **One poured infusion = one cup**: cost
 per cup = session cost ÷ completed infusions (rinse and whisk-only matcha:
 the whole session is one cup). Shown on tea detail („0,24 € pro Tasse") and in
 statistics.
+
+**INV-09 — Reorder link** `Must`
+SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN for every tea
+with a `catalog_key`, so reordering takes one tap (D-072). It opens the
+browser on the shop page of the **package size bought last**: the grams of the
+tea's latest INITIAL or PURCHASE event matched to a `catalog_package` of its
+`catalog_key` (`variant_url`). Without a match, or when that size is no longer
+offered, it opens the product page (`product_url`).
+- **AC1:** with stock *Knapp* or *Leer* (INV-05), the link is shown as a
+  filled button; otherwise as a text link.
+- **AC2:** teas without a `catalog_key`, and discontinued catalog teas (CAT-07
+  AC4), show no link.
+- **AC3:** the app makes no request itself; the browser opens the page
+  (GEN-01).
 
 ---
 
