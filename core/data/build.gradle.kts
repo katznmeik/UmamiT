@@ -10,6 +10,8 @@ dependencies {
     // The session repositories and the active brew store take the timer engine's
     // planned steps, step records and snapshot (04 §4, §7.1; D-052).
     api(project(":core:timer-engine"))
+    // The catalog list's filters, sort and search query (CAT-10).
+    implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     // The allow-listed shop client for the seed photo download (ONB-06) and the catalog refresh (CAT-07).

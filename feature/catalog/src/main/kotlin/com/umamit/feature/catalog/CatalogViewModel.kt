@@ -5,46 +5,60 @@ import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
-import com.umamit.core.model.CatalogTeaSummary
+import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogListing
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 /**
  * What Sammlung › Katalog shows (SCR-19, SCR-22).
  *
- * @property teas the catalog's teas by name; empty before the first refresh.
- * @property lastRefreshAtMillis when the last successful refresh finished (CAT-07 AC6).
+ * @property listing the catalog's teas as [filter] shows them; empty before the first refresh.
+ * @property filter the search, filters and sort (CAT-10); the default view at first (D-073).
  * @property refresh the refresh's progress or result for the sheet.
  * @property loading true until the catalog was read once (then nothing is shown yet).
  */
 data class CatalogUiState(
-    val teas: List<CatalogTeaSummary> = emptyList(),
-    val lastRefreshAtMillis: Long? = null,
+    val listing: CatalogListing = CatalogListing.EMPTY,
+    val filter: CatalogFilter = CatalogFilter.DEFAULT,
     val refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     val loading: Boolean = true,
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
+
+    /** Never loaded (or emptied): SCR-19's empty state, whatever the filters. */
+    val isEmpty: Boolean get() = listing.totalCount == 0
 }
 
-/** Sammlung › Katalog's view model: the local catalog and the refresh started from it (CAT-07 AC7: only on a tap). */
+/**
+ * Sammlung › Katalog's view model: the local catalog as the filters show it (CAT-10) and the
+ * refresh started from it (CAT-07 AC7: only on a tap). The filters live as long as the screen's
+ * view model; the list opens in the default view (D-073, D-083).
+ */
 @HiltViewModel
 class CatalogViewModel @Inject constructor(repository: CatalogRepository, private val refresh: CatalogRefreshRunner) :
     ViewModel() {
+    private val filter = MutableStateFlow(CatalogFilter.DEFAULT)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<CatalogUiState> = combine(
-        repository.observeCatalog(),
+        filter.flatMapLatest { repository.observeListing(it) },
+        filter,
         refresh.state,
-    ) { catalog, refreshState ->
-        CatalogUiState(
-            teas = catalog.teas,
-            lastRefreshAtMillis = catalog.lastRefreshAtMillis,
-            refresh = refreshState,
-            loading = false,
-        )
+    ) { listing, filter, refreshState ->
+        CatalogUiState(listing = listing, filter = filter, refresh = refreshState, loading = false)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())
+
+    /** A changed search, filter or sort. */
+    fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update(transform)
 
     /** *Katalog laden*. */
     fun startRefresh() = refresh.start()

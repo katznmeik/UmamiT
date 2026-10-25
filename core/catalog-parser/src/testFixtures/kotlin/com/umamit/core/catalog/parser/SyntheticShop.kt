@@ -45,6 +45,9 @@ object SyntheticShop {
     /** The brewing grid's header, as the shop labels its columns (08 §2.3). */
     val BREW_HEADER = listOf("Menge", "Temperatur", "1. Aufguss", "2. Aufguss", "3. Aufguss")
 
+    /** A grid as most green teas have it (one Kyusu row): a page has brewing information by default. */
+    val BREW_ROWS = listOf("japan" to listOf("~4g/200ml", "~60°C", "60 Sek", "10 Sek", "10 Sek"))
+
     /** The path of a gallery photo on the shop (`/media/…`, with the shop's `?ts=` query). */
     fun photoPath(name: String = "synthetic") = "/media/aa/bb/cc/1700000000/$name.jpg?ts=1700000000"
 
@@ -112,7 +115,7 @@ object SyntheticShop {
         badges: List<String> = emptyList(),
         invertedBadges: List<String> = emptyList(),
         scales: List<Pair<String, Int>> = emptyList(),
-        brewRows: List<Pair<String, List<String>>> = emptyList(),
+        brewRows: List<Pair<String, List<String>>> = BREW_ROWS,
         sizes: List<Size> = ONE_SIZE,
     ): String = buildString {
         append("<!DOCTYPE html><html lang=\"de-DE\"><head><meta charset=\"utf-8\">")
@@ -193,7 +196,8 @@ object SyntheticShop {
         append("<div class=\"st-scales-usp mb-3\"><h2>Geschmacksprofil</h2>")
         scales.forEach { (label, full) ->
             append("<div class=\"container mb-1\"><div class=\"row\">")
-            append("<div class=\"col-auto st-scale-label\">${label.htmlEscaped()}</div>")
+            // As on the shop, the label ends with a colon („Umami:").
+            append("<div class=\"col-auto st-scale-label\">${label.htmlEscaped()}:</div>")
             repeat(SCALE_LEAVES) { index ->
                 val leaf = if (index < full) "scale-full-leaf.svg" else "scale-empty-leaf.svg"
                 append("<div class=\"col-auto st-scale-value\"><img src=\"/bundles/teekontorkiel/$leaf\"></div>")
@@ -210,7 +214,10 @@ object SyntheticShop {
                 append("<tr class=\"properties-row\"><th class=\"properties-label\">${label.htmlEscaped()}:</th>")
                 append("<td class=\"properties-value\"><span class=\"d-inline-block d-sm-none st-property-label\">")
                 append("<strong>${label.htmlEscaped()}:</strong></span>")
-                values.forEach { append("<span>${it.htmlEscaped()}</span>") }
+                // As on the shop, every value after the first starts with its own „, ".
+                values.forEachIndexed { index, value ->
+                    append("<span>").append(if (index > 0) ", " else "").append(value.htmlEscaped()).append("</span>")
+                }
                 append("</td></tr>")
             }
             append("</tbody></table>")

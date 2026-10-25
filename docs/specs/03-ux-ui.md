@@ -671,12 +671,31 @@ and after the first brew (D-069).
 ### SCR-19 Sammlung › Katalog
 
 Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
-274 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
-search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
-Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
-„15,90 €/100 g", flag chips, a „Neu" badge for teas new in the latest
-refresh. Opens grouped by *Sorte*, available teas only, „Pur" on (flavoured
-teas one tap away; D-073). Overflow: *Katalog aktualisieren*.
+274 Grüntees · aktualisiert am 21. Okt." (every tea of the range, whatever
+the filters); *Ratgeber* row (→ guides list); search field („Name,
+Kultivar, Region …"); a row of filter chips; rows with photo, name, origin,
+„15,90 €/100 g" and badges („Neu", „im Besitz", Bio, aromatisiert, „Rezept
+prüfen"). The filters are CAT-10's (D-076, D-083):
+- **Chips** for the frequent ones: *Filter* (opens the filter sheet; shows
+  how many filters differ from the default view, „Filter (2)"), „Pur",
+  „Vorrätig", „Bio", „Neu", „Im Besitz".
+- **Filter sheet** (Material 3 modal sheet; never over an alert) for the
+  rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
+  *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
+  Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
+  the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
+  to the default view and keeps the search.
+- **Default view** (D-073): grouped by *Sorte* under a section header per
+  *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
+  on, so flavoured teas are one tap away. Sorted by name or price the list
+  is flat and each row names its *Sorte*.
+- Search hits the filters hide are counted below the list („2 weitere
+  Treffer sind durch die Filter ausgeblendet." · *Alle zeigen*); with no
+  match at all: „Kein Tee passt zu deiner Suche und den Filtern." · *Filter
+  zurücksetzen*.
+
+„Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
+*Katalog aktualisieren*.
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
@@ -697,7 +716,11 @@ ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
 page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
 status bar with the back button over it; name, secondary name, tags, price
 per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
-*Beschreibung*, *Zubereitung*, each only when the shop fills it; then
+*Beschreibung*, *Zubereitung*, each only when the shop fills it. *Abgeleitete
+Rezepte* follows *Zubereitung* (D-082): `CheckRecipeBadge` and the reason when
+flagged, then each recipe, the default first („Kyusu · Standard", „4,0 g ·
+200 ml · 65 °C" or „kalt", steps „1:00 · 0:15 bei 70 °C", „Aufschlagen 0:20")
+with the source of a non-default recipe not from the shop's table. Then
 *Packungen*: one row per size, smallest first, with the shop's price
 („12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
 Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
