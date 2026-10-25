@@ -104,8 +104,8 @@ class CatalogScreenTest {
         sheet().assertDoesNotExist()
         compose.onNodeWithText("Tee-Kontor Kiel · 2 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
         compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
-        compose.onNodeWithText("Sencha · 12,40 €/100 g").assertIsDisplayed()
-        compose.onNodeWithText("Gyokuro · 36,00 €/100 g").assertIsDisplayed()
+        compose.onNodeWithText("12,40 €/100 g").assertIsDisplayed()
+        compose.onNodeWithText("36,00 €/100 g").assertIsDisplayed()
 
         // A row opens its tea's detail (SCR-21).
         compose.onNodeWithText("Tautropfen Gyokuro").performClick()

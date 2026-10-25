@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,7 +44,8 @@ private const val TITLE_MAX_LINES = 2
  * A tea row (03 §3.8): 48 dp round thumbnail, serif title, meta line
  * („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider. Without a
  * [thumbnail], a leaf in the tea type's [placeholderColor] stands in (03 §3.5).
- * TalkBack reads the row as one item; with [onClick] it is a button with a chevron.
+ * TalkBack reads the row as one item; with [onClick] it is a button with a chevron. [badges]
+ * (e.g. the catalog's „Neu", Bio, im Besitz; SCR-19) sit below the meta line.
  */
 @Composable
 fun TeaListItem(
@@ -55,6 +57,7 @@ fun TeaListItem(
     thumbnail: Painter? = null,
     placeholderColor: Color = UmamiTheme.extendedColors.teaTypes.other,
     showDivider: Boolean = true,
+    badges: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -80,6 +83,10 @@ fun TeaListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (badges != null) {
+                    Spacer(Modifier.height(UmamiSpacing.XXSmall))
+                    badges()
+                }
             }
             if (rating != null) {
                 Spacer(Modifier.width(UmamiSpacing.Small))

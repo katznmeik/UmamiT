@@ -302,6 +302,38 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-083"></a>
+### D-083 — Finding teas in the catalog: search, filters, „Neu" (#69) · *Accepted* (Claude, 2026-10-25)
+
+The catalog list (SCR-19) gets CAT-10's search, filters and sort. Decided
+while building it:
+
+- **„Neu"** is a tea whose `first_seen_at` is the start of the latest
+  successful refresh, and only when an earlier successful refresh exists: the
+  first refresh finds every tea, so 274 „Neu" badges would say nothing. A
+  refresh keeps a known tea's `first_seen_at` at the swap (D-077); a refresh
+  that fails or is cancelled ends nobody's „Neu". The badge stays until the
+  next successful refresh.
+- **Filters** live in a pure `CatalogBrowser` (`core:domain`) over the
+  current range; the search runs on `catalog_fts`. Chips and sheet as in
+  03 SCR-19 (D-076). „Rezept prüfen" is a row badge, not a filter (CAT-10 has
+  none). *Umami* filters by the shop's umami scale (08 §2.6: 0 none … 4–5
+  very high); a tea without a scale passes only „Egal". Several origins of
+  one tea („Japan, Korea") count each. Stock unknown counts as available.
+- **Search:** every word of the search text is a prefix, all required, any
+  other character only separates words (so no FTS syntax reaches the
+  query). `catalog_fts` uses the `unicode61` tokenizer, so „älpler" finds
+  „Älpler" and „goko" finds „Gokō" (05 §4.1; `catalog.db` is not frozen
+  before `v0.2.0-rc.1`). The filters apply to the hits too; the hits they
+  hide are counted with *Alle zeigen*, so a flavoured tea is „searchable but
+  hidden" (D-073) without vanishing silently.
+- **„im Besitz"** is a catalog key some collection tea links to
+  (`tea.catalog_key`, archived teas included), read from `umamit.db` by a
+  new query; no schema change.
+- **Not stored:** search, filters and sort live as long as the screen; the
+  list always opens in the default view (D-073), so 05 §6's `catalogSort`
+  setting is dropped.
+
 <a id="d-080"></a>
 ### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted* (Claude, 2026-10-25)
 
@@ -2798,6 +2830,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
 | 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |
 | 2026-10-25 | D-078: catalog tea detail (#66) — full 08 §2.3 field map (parser v2: joined properties, region list, flavoured rule, brewing prose and grid JSON), sanitised description, photos after the sanity check with orphan cleanup and SET-22, *Im Shop öffnen* by grams then label, SCR-21 layout; 02 CAT-08, 03 SCR-21, 05 §4.1, 06 §5.3 and 08 §2.3, §2.8 updated. |
