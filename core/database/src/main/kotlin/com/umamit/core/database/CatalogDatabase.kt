@@ -12,6 +12,7 @@ import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
+import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 
@@ -30,6 +31,7 @@ import com.umamit.core.database.entity.StagedCatalogTeaEntity
         StagedCatalogPackageEntity::class,
         CatalogSkipEntity::class,
         CatalogGuideEntity::class,
+        StagedCatalogGuideEntity::class,
         CatalogRefreshLogEntity::class,
     ],
     version = CatalogDatabase.VERSION,

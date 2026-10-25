@@ -89,6 +89,26 @@
     <!-- Below the pages' progress once photos arrive (CAT-08); „Fotos" is a label, not a counted noun. -->
     <string name="catalog_refresh_photos" tools:ignore="PluralsCandidate">Fotos: %1$d</string>
 
+    <!-- Below the photos' progress once guides arrive (CAT-09); a label, not a counted noun. -->
+    <string name="catalog_refresh_guides" tools:ignore="PluralsCandidate">Ratgeber: %1$d</string>
+
+    <!-- SCR-19's Ratgeber row and the guides (SCR-20, CAT-09, D-087). -->
+    <string name="catalog_guides_row">Ratgeber</string>
+    <plurals name="catalog_guides_row_count">
+        <item quantity="one">%1$d Guide von Tee-Kontor Kiel, offline lesbar</item>
+        <item quantity="other">%1$d Guides von Tee-Kontor Kiel, offline lesbar</item>
+    </plurals>
+    <string name="guides_title">Ratgeber</string>
+    <string name="guides_intro">Grüntee-Wissen von Tee-Kontor Kiel – auch ohne Verbindung lesbar.</string>
+    <string name="guides_empty_title">Noch keine Ratgeber.</string>
+    <string name="guides_empty_body">Die Guides kommen mit der nächsten Aktualisierung des Katalogs.</string>
+    <string name="guide_source">Tee-Kontor Kiel · Tee-Info</string>
+    <!-- „Tee-Kontor Kiel · Tee-Info · 12. März 2024". -->
+    <string name="guide_source_dated">Tee-Kontor Kiel · Tee-Info · %1$s</string>
+    <string name="guide_open_browser">Im Browser öffnen</string>
+    <string name="guide_gone_title">Dieser Ratgeber ist nicht mehr da.</string>
+    <string name="guide_gone_body">Er ist bei der letzten Aktualisierung aus dem Shop verschwunden.</string>
+
     <!-- SCR-21 Katalog-Tee (CAT-11). -->
     <string name="catalog_tea_open_shop">Im Shop öffnen</string>
     <string name="catalog_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>

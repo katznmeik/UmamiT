@@ -302,6 +302,62 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-087"></a>
+### D-087 — *Ratgeber*: Tee-Info guides offline (#76, CAT-09) · *Accepted* (Claude, 2026-10-25)
+
+The last M2 slice (spec #62, #76) brings Tee-Kontor's green-tea guides into
+the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
+
+- **Staging and swap:** `catalog_guide_staging` is a real table of
+  `catalog.db` with exactly `catalog_guide`'s columns (embedded, like the
+  teas' staging, D-077), part of the schema frozen from `v0.2.0-rc.1`. The
+  refresh stages the guides after the photos and the swap replaces
+  `catalog_guide` in the same transaction as the teas, so a refresh that
+  stops, is cancelled or fails keeps the old guides (05 §4.5). `catalog_guide`
+  gets `published_at` (JSON-LD `datePublished`, epoch ms) for the list and the
+  article's source line.
+- **Which guides:** the sitemap's `/tee-info/<slug>` URLs whose slug contains
+  one of 08 §2.7's keywords, at most 60 per refresh. An article that is gone
+  (404, robots.txt) is left out; one that no longer reads (no article block)
+  keeps its current version; without any selected article in the sitemap
+  every current guide is kept, so a renamed blog never empties *Ratgeber*.
+- **Conversion** (08 §2.7, §2.8): the article block without its title;
+  headings, paragraphs (a bold first line becomes a heading), line breaks,
+  bold, italics, absolute http(s) links, lists, tables as lists of rows
+  („Menge · Zeit"), images; scripts, styles, forms, staff tips, tracking
+  pixels and embeds are left out, a player becomes a plain link; control
+  characters become spaces. Title, date and hero come from the JSON-LD
+  `BlogPosting` (title else the article's `h1`); the body doesn't repeat the
+  hero. `body_markdown` is the app's own small Markdown subset
+  (`GuideMarkdown`, `core:domain`), rendered by the app, not by a library
+  (D-008's in-house option).
+- **Images:** through the refresh's shop session (robots.txt, the 2
+  requests/s, the stops), only while SET-22 *Katalog: Fotos laden* is on, at
+  most 12 per article (hero included), JPEG sources only (D-074), re-encoded
+  to ≤ 1200 px WebP in `filesDir/catalog/guides/`. Each file is named after a
+  hash of its URL (the shop's `?ts=` included), so an unchanged image is never
+  fetched again and a failed refresh never overwrites a file the stored guides
+  show; after every run the files no stored guide shows are deleted. An image
+  that is missing or doesn't decode is left out of the text.
+- **Links:** a link to a product page of the shop whose base number is a tea
+  of the new catalog (merged split numbers included, D-081) becomes an in-app
+  link to that tea, a link to a stored guide one to that guide
+  (`umamit://catalog/<key>`, `umamit://guide/<slug>`: markers in the stored
+  text, no registered links); `linked_catalog_keys` lists the teas. Every
+  other link opens the browser, as does a link to a guide the catalog no
+  longer holds (its shop page) and *Im Browser öffnen*; none of them is a
+  request of the app (GEN-01).
+- **Request budget:** G guide pages plus their new images, inside 08 §2.4's
+  estimate; later refreshes fetch the pages again and only changed images.
+  The refresh sheet counts the guides read („Ratgeber: 12"), the developer
+  details and the diagnostics log their counts.
+- **SCR-19 / SCR-20:** the catalog list's *Ratgeber* row (only while guides
+  exist) opens the list: the A11 header (placeholder landscape until the PO's
+  image), a line on what it is, the guides by title with hero thumbnail and
+  date. The article: hero, serif title, „Tee-Kontor Kiel · Tee-Info · 12. März
+  2024", the text, *Im Browser öffnen*. Everything is read from `catalog.db`
+  and local files, so it works offline after a refresh.
+
 <a id="d-084"></a>
 ### D-084 — A killed process's stale foreground notification is taken over and removed (TMR-41, D-044; corrects D-080) · *Accepted* (Claude, 2026-10-25)
 
@@ -2984,6 +3040,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 12 per article, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |
 | 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
 | 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
 | 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |

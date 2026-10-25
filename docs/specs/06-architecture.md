@@ -194,10 +194,12 @@ changed (CAT-08, D-073, D-074).
 5. Sanity check of the parsed pages (CAT-07 AC5), before any photo or guide
    request; then download changed photos (if SET-22; until #70 every photo,
    D-078).
-6. Fetch and convert *Tee-Info* guides (CAT-09) into staging.
-7. Atomic swap of the staging tables
+6. Fetch and convert *Tee-Info* guides (CAT-09) into staging, with their
+   images unless SET-22 is off (stored ones not fetched again, D-087).
+7. Atomic swap of the staging tables, guides included
    ([05 §4.5](05-data-model.md#45-refresh-transaction)); delete the photos of
-   teas no longer in the catalog (also after a failed run); log.
+   teas and the images of guides no longer in the catalog (also after a
+   failed run); log.
 
 All requests (pages and images) share the 2 req/s limit. Expected
 duration: first refresh (~1,560 classification pages + ~280 photos + guides)

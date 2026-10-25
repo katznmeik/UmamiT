@@ -14,6 +14,7 @@ import com.umamit.feature.catalog.CatalogUiState
  * @property alerting whether an alert plays now: the refresh sheet gives way (rule 8).
  * @property openTea opens a catalog tea's detail (SCR-21) by its key, in the Sammlung tab's stack.
  * @property refreshRequest the ⋮ menu's *Katalog aktualisieren* counter (CAT-07, D-049).
+ * @property openGuides opens the *Ratgeber* (CAT-09), in the Sammlung tab's stack.
  */
 internal data class CatalogTab(
     val modifier: Modifier,
@@ -21,6 +22,7 @@ internal data class CatalogTab(
     val alerting: Boolean,
     val refreshRequest: Int = 0,
     val openTea: (String) -> Unit = {},
+    val openGuides: () -> Unit = {},
 )
 
 /** The catalog segment with its view model and the refresh (#64, #65); a row opens the tea's detail (#66). */
@@ -29,6 +31,7 @@ internal fun CatalogTabContent(tab: CatalogTab) {
     CatalogRoute(
         alerting = tab.alerting,
         onOpenTea = tab.openTea,
+        onOpenGuides = tab.openGuides,
         modifier = tab.modifier,
         scrollToTopRequest = tab.scrollToTopRequest,
         refreshRequest = tab.refreshRequest,

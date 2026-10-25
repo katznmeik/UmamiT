@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,12 +33,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogFilter
@@ -46,6 +51,9 @@ import java.time.ZoneId
 
 /** The catalog list (SCR-19). */
 const val CATALOG_LIST_TAG = "catalog_list"
+
+/** The list's *Ratgeber* row (SCR-19, CAT-09). */
+const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
 
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
@@ -59,12 +67,15 @@ const val CATALOG_LIST_TAG = "catalog_list"
  *
  * @param refreshRequest a counter from the ⋮ menu: every increase while this is shown starts the
  *   refresh; a count from before is never replayed (D-049).
+ * @param onOpenGuides opens the *Ratgeber* (CAT-09) from its row.
  */
 @Composable
+@Suppress("LongParameterList") // the alert gate, the ways out, the shell's counters and the view model
 fun CatalogRoute(
     alerting: Boolean,
     onOpenTea: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenGuides: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     refreshRequest: Int = 0,
     viewModel: CatalogViewModel = hiltViewModel(),
@@ -89,6 +100,7 @@ fun CatalogRoute(
         onShowProgress = { sheetOpen = true },
         modifier = modifier,
         onOpenTea = onOpenTea,
+        onOpenGuides = onOpenGuides,
         onFilterChange = viewModel::changeFilter,
         alerting = alerting,
         scrollToTopRequest = scrollToTopRequest,
@@ -111,9 +123,9 @@ fun CatalogRoute(
  * The stateless catalog content (SCR-19): nothing until the catalog was read, then the empty
  * state or the list. [onLoad] is *Katalog laden*; [onShowProgress] reopens the sheet of a
  * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key; [onFilterChange] takes
- * a changed search, filter or sort (CAT-10). The filter sheet is never composed while
- * [alerting] (rule 8). [scrollToTopRequest] is a counter; every increase scrolls the list to the
- * top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
+ * a changed search, filter or sort (CAT-10); [onOpenGuides] opens the *Ratgeber* (CAT-09). The
+ * filter sheet is never composed while [alerting] (rule 8). [scrollToTopRequest] is a counter;
+ * every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
  */
 @Composable
 @Suppress("LongParameterList") // the list's state, its callbacks, the alert gate and the thumbnail loader
@@ -123,6 +135,7 @@ fun CatalogContent(
     onShowProgress: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenTea: (String) -> Unit = {},
+    onOpenGuides: () -> Unit = {},
     onFilterChange: (FilterChange) -> Unit = {},
     alerting: Boolean = false,
     scrollToTopRequest: Int = 0,
@@ -142,6 +155,7 @@ fun CatalogContent(
                 actions = ListActions(
                     onShowProgress = onShowProgress,
                     onOpenTea = onOpenTea,
+                    onOpenGuides = onOpenGuides,
                     onFilterChange = onFilterChange,
                     onOpenFilters = { if (!alerting) filterSheetOpen = true },
                 ),
@@ -166,6 +180,7 @@ fun CatalogContent(
 private class ListActions(
     val onShowProgress: () -> Unit,
     val onOpenTea: (String) -> Unit,
+    val onOpenGuides: () -> Unit,
     val onFilterChange: (FilterChange) -> Unit,
     val onOpenFilters: () -> Unit,
 )
@@ -227,6 +242,7 @@ private fun CatalogList(
     ) {
         item(key = "header") { Header(listing, zone) }
         if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
+        if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
         item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
         if (listing.sections.isEmpty()) {
@@ -266,6 +282,44 @@ private fun Header(listing: CatalogListing, zone: ZoneId) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
     )
+}
+
+/** SCR-19's *Ratgeber* row (CAT-09): opens the guides. */
+@Composable
+private fun GuidesRow(count: Int, onOpenGuides: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpenGuides)
+            .semantics(mergeDescendants = true) {}
+            .testTag(CATALOG_GUIDES_ROW_TAG)
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Medium),
+    ) {
+        Icon(
+            painter = painterResource(UmamiIcons.Journal),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.catalog_guides_row),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = pluralStringResource(R.plurals.catalog_guides_row_count, count, count),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            painter = painterResource(UmamiIcons.ChevronRight),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /** A short notice in the list with one action: no match, or search hits the filters hide. */

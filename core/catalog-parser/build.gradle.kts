@@ -10,6 +10,8 @@ dependencies {
     implementation(project(":core:common")) // snap5 (GEN-12)
     // HTML and XML parsing of the shop's pages and sitemaps (08 §2.3, §2.4); pure Java.
     implementation(libs.jsoup)
+    // The guides' JSON-LD BlogPosting: title, date and image (08 §2.7, CAT-09).
+    implementation(libs.kotlinx.serialization.json)
     // Derived recipes must be valid plans for the timer engine (#68).
     testImplementation(project(":core:timer-engine"))
 }

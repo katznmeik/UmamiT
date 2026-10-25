@@ -55,6 +55,8 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.feature.catalog.GuideArticleRoute
+import com.umamit.feature.catalog.GuideListRoute
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.journal.JournalSources
@@ -183,9 +185,16 @@ internal fun UmamitApp(
                             alertKey = alertKey,
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
-                                    CatalogTab(catalogModifier, scrollToTop, alerting, catalogRefreshRequest) { key ->
-                                        controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
-                                    },
+                                    CatalogTab(
+                                        modifier = catalogModifier,
+                                        scrollToTopRequest = scrollToTop,
+                                        alerting = alerting,
+                                        refreshRequest = catalogRefreshRequest,
+                                        openTea = { key ->
+                                            controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
+                                        },
+                                        openGuides = { controllers.getValue(Tab.Collection).navigate(GuidesRoute) },
+                                    ),
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
@@ -309,6 +318,19 @@ private fun TabHost(
             )
         }
         composable<CatalogTeaRoute> { CatalogTeaScreenRoute(onBack = { navController.popBackStack() }) }
+        composable<GuidesRoute> {
+            GuideListRoute(
+                onBack = { navController.popBackStack() },
+                onOpenGuide = { navController.navigate(GuideRoute(it)) },
+            )
+        }
+        composable<GuideRoute> {
+            GuideArticleRoute(
+                onBack = { navController.popBackStack() },
+                onOpenTea = { navController.navigate(CatalogTeaRoute(it)) },
+                onOpenGuide = { navController.navigate(GuideRoute(it)) },
+            )
+        }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
             settings.screen(

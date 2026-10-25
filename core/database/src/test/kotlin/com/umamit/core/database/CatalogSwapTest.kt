@@ -5,12 +5,14 @@ import android.database.sqlite.SQLiteConstraintException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.database.entity.CatalogGuideEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogSkipEntity
 import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.database.entity.CatalogTeaEntity
+import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import kotlinx.coroutines.flow.first
@@ -70,6 +72,19 @@ class CatalogSwapTest {
         teas.forEach { dao.stage(StagedCatalogTeaEntity(it)) }
         dao.swap(emptyList(), log(at))
     }
+
+    private fun guide(slug: String, title: String, at: Long) = CatalogGuideEntity(
+        slug = slug,
+        title = title,
+        url = "https://shop.example/tee-info/$slug",
+        bodyMarkdown = "Ein erfundener Absatz.",
+        heroFile = null,
+        linkedCatalogKeys = "[]",
+        fetchedAt = at,
+        publishedAt = null,
+    )
+
+    private suspend fun guideTitles() = dao.observeGuides().first().map { it.title }
 
     private suspend fun names() = dao.observeList().first().map { it.name }
 
@@ -141,5 +156,46 @@ class CatalogSwapTest {
         assertThat(dao.skipList()).isEmpty()
         assertThat(dao.refreshLog()).hasSize(1)
         assertThat(search("Erster")).containsExactly("Erster")
+    }
+
+    @Test
+    fun stagedGuidesReplaceTheGuidesWithTheSwap() = runTest {
+        dao.stageGuide(StagedCatalogGuideEntity(guide("erster-guide", "Erster Guide", 10)))
+        dao.stageGuide(StagedCatalogGuideEntity(guide("zweiter-guide", "Zweiter Guide", 10)))
+        swapIn(tea("XY0100", "Erster", 10), at = 10)
+
+        dao.stageGuide(StagedCatalogGuideEntity(guide("dritter-guide", "Dritter Guide", 20)))
+        swapIn(tea("XY0100", "Erster", 20), at = 20)
+
+        assertThat(guideTitles()).containsExactly("Dritter Guide")
+        assertThat(dao.observeGuide("dritter-guide").first()?.fetchedAt).isEqualTo(20)
+        assertThat(dao.observeGuide("erster-guide").first()).isNull()
+        assertThat(dao.countStagedGuides()).isEqualTo(0)
+    }
+
+    @Test
+    fun aGuideOfTheCurrentCatalogCanBeCarriedOverIntoTheStaging() = runTest {
+        dao.stageGuide(StagedCatalogGuideEntity(guide("erster-guide", "Erster Guide", 10)))
+        dao.stageGuide(StagedCatalogGuideEntity(guide("zweiter-guide", "Zweiter Guide", 10)))
+        swapIn(tea("XY0100", "Erster", 10), at = 10)
+
+        dao.stageCurrentGuide("zweiter-guide")
+        dao.stageCurrentGuide("unbekannt")
+        swapIn(tea("XY0100", "Erster", 20), at = 20)
+
+        assertThat(guideTitles()).containsExactly("Zweiter Guide")
+        assertThat(dao.observeGuide("zweiter-guide").first()?.fetchedAt).isEqualTo(10)
+    }
+
+    @Test
+    fun clearingTheStagingKeepsTheGuides() = runTest {
+        dao.stageGuide(StagedCatalogGuideEntity(guide("erster-guide", "Erster Guide", 10)))
+        swapIn(tea("XY0100", "Erster", 10), at = 10)
+        dao.stageGuide(StagedCatalogGuideEntity(guide("zweiter-guide", "Zweiter Guide", 20)))
+
+        dao.clearStaging()
+
+        assertThat(dao.countStagedGuides()).isEqualTo(0)
+        assertThat(guideTitles()).containsExactly("Erster Guide")
     }
 }

@@ -66,11 +66,13 @@ import javax.inject.Inject
  *    the same session (robots.txt, stops), re-encoded to `<key>.webp` and `<key>_thumb.webp`
  *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
  *    leaves only that tea without one (or with the photo it had); a stop ends the run.
- * 6. One transaction swaps the staged catalog in, adds the skip entries and logs the run
- *    (05 §4.5); the photos of teas no longer in the catalog are deleted.
+ * 6. The *Tee-Info* guides (CAT-09, D-087) through the same session, with their images unless
+ *    SET-22 is off, converted and staged ([CatalogGuides]).
+ * 7. One transaction swaps the staged catalog and guides in, adds the skip entries and logs the
+ *    run (05 §4.5); the photos of teas and the images of guides no longer in it are deleted.
  *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
- * storage error or a cancellation leaves the catalog **and the skip list** as they were (photos
+ * storage error or a cancellation leaves the catalog, its guides **and the skip list** as they were (photos
  * of teas it doesn't hold are deleted again) and empties the staging tables; a failed run's
  * classifications are not kept, so a broken parser can never hide teas (D-077). Each run is
  * logged in `catalog_refresh_log` and its steps in the [DiagnosticsLog] (06 §5.6).
@@ -99,6 +101,8 @@ class CatalogRefresher(
         settings: SettingsRepository,
         photos: CatalogPhotoFiles,
     ) : this(client, dao, clock, diagnostics, settings, photos, SanityCheck(), Dispatchers.Default, Dispatchers.IO)
+
+    private val guides = CatalogGuides(client, dao, photos.guideImages, clock, parseDispatcher, fileDispatcher, ::log)
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
@@ -165,6 +169,11 @@ class CatalogRefresher(
             return
         }
         withContext(fileDispatcher) { photos.retainOnly(keys) }
+        try {
+            guides.keepImagesOfGuides()
+        } catch (e: SQLException) {
+            log("catalog refresh: guide images not tidied (${e.javaClass.simpleName})")
+        }
     }
 
     /** One refresh's counts, for the progress, the details and the log; it also names the stops. */
@@ -181,6 +190,10 @@ class CatalogRefresher(
         var skippedKnown = 0
         var photosStored = 0
         var photosMissing = 0
+        val guides = GuideCounts()
+
+        /** Each base number of the staged catalog (merged split numbers too) to its tea's key (guide links). */
+        val catalogKeys = mutableMapOf<String, String>()
 
         /** Each green tea's key and photo URL, in page order. */
         val photoUrls = mutableListOf<Pair<String, String>>()
@@ -196,6 +209,7 @@ class CatalogRefresher(
                 pagesTotal = pagesTotal,
                 products = green,
                 photos = photosStored,
+                guides = guides.read,
             ),
         )
 
@@ -229,6 +243,7 @@ class CatalogRefresher(
             appendLine("sitemap: $sitemapUrls URLs, $sets sets, $skippedKnown on the skip list")
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
             appendLine("photos: $photosStored stored, $photosMissing without")
+            appendLine(guides.line())
             append("defective: ${defective.size}")
             if (defective.isNotEmpty()) {
                 val more = if (defective.size > MAX_LISTED) ", …" else ""
@@ -279,6 +294,7 @@ class CatalogRefresher(
             stageEntries()
             checkSanity()
             storePhotos(session)
+            storeGuides(session, urls)
             return swap()
         }
 
@@ -365,6 +381,7 @@ class CatalogRefresher(
                 dao.stage(StagedCatalogTeaEntity(tea))
                 dao.stagePackages(entry.packages.map { StagedCatalogPackageEntity(it.toEntity(entry.key)) })
                 tea.photoUrl?.let { run.photoUrls += tea.key to it }
+                (entry.mergedKeys + entry.key + tea.key).forEach { run.catalogKeys[it] = tea.key }
                 if (tea.recipeCheckReason != null) run.flagged++
                 if (entry.mergedKeys.isNotEmpty()) {
                     log("catalog refresh: ${entry.mergedKeys.joinToString()} merged into ${entry.key}")
@@ -431,6 +448,20 @@ class CatalogRefresher(
                 // Never sent (robots.txt) or gone: only this tea is left without a new photo.
                 ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
             }
+        }
+
+        /** The guides (CAT-09, D-087): staged for the swap; read after the photos, each counted in the progress. */
+        private suspend fun storeGuides(session: ShopSession, urls: List<String>) {
+            guides.stage(
+                session = session,
+                sitemapUrls = urls,
+                catalogKeys = run.catalogKeys,
+                downloadImages = settings.settings.first().catalogDownloadPhotos,
+                counts = run.guides,
+                onGuide = run::progress,
+                stop = run::stop,
+            )
+            log("catalog refresh: ${run.guides.line()}")
         }
 
         /** The swap (05 §4.5), then the photos of teas no longer in the catalog are deleted. */

@@ -10,6 +10,7 @@ import java.util.Locale
 /** German number and date formats of the catalog (CLAUDE.md rule 4): „1.234,50", „21. Okt.". */
 internal object CatalogFormat {
     private val DATE = DateTimeFormatter.ofPattern("d. MMM", Locale.GERMAN)
+    private val FULL_DATE = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
     private const val CENT_DIGITS = 2
 
     /** [cents] as euros with two decimals and German separators, e.g. „15,90". */
@@ -26,4 +27,7 @@ internal object CatalogFormat {
 
     /** The day of [millis] in [zone] as the catalog header shows it, e.g. „21. Okt." (CAT-07 AC6). */
     fun date(millis: Long, zone: ZoneId): String = DATE.format(Instant.ofEpochMilli(millis).atZone(zone))
+
+    /** The day of [millis] in [zone] with its year, e.g. „21. Okt. 2026" (a guide's date, CAT-09). */
+    fun fullDate(millis: Long, zone: ZoneId): String = FULL_DATE.format(Instant.ofEpochMilli(millis).atZone(zone))
 }

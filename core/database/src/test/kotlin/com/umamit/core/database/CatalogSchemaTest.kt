@@ -59,6 +59,7 @@ class CatalogSchemaTest {
             "catalog_package_staging",
             "catalog_skip",
             "catalog_guide",
+            "catalog_guide_staging",
             "catalog_refresh_log",
         )
     }
@@ -70,6 +71,9 @@ class CatalogSchemaTest {
             assertThat(db.columns("catalog_tea_staging")).containsExactlyElementsIn(db.columns("catalog_tea")).inOrder()
             assertThat(db.columns("catalog_package_staging"))
                 .containsExactlyElementsIn(db.columns("catalog_package")).inOrder()
+            assertThat(
+                db.columns("catalog_guide_staging"),
+            ).containsExactlyElementsIn(db.columns("catalog_guide")).inOrder()
             assertThat(db.columns("catalog_tea")).containsAtLeast("description_text", "photo_file", "first_seen_at")
         } finally {
             db.close()
