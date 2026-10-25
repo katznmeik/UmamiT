@@ -227,6 +227,11 @@ class RecipeDeriverTest {
         assertThat(fromText.default.source).isEqualTo(RecipeSource.CATALOG_TEXT)
         assertThat(fromText.checkReason).isEqualTo(RecipeCheckReason.FROM_TEXT)
 
+        // Boiling first, then cooling down: the brewing temperature is the one below boiling.
+        val boilThenCool =
+            derive(grid, prose = "Zubereitung: Wasser auf 100 °C aufkochen und auf 70 °C abkühlen lassen.")
+        assertThat(boilThenCool.default.baseTempC).isEqualTo(70)
+
         val fromStyle = derive(grid)
         assertThat(fromStyle.default.baseTempC).isEqualTo(75) // sencha
         assertThat(fromStyle.default.source).isEqualTo(RecipeSource.STYLE_DEFAULT)
@@ -368,6 +373,14 @@ class RecipeDeriverTest {
                 8.0,
                 200,
                 30 * 60,
+                RecipeSource.CATALOG_TEXT,
+            ),
+            // A paragraph's line breaks keep it one paragraph: the hours belong to the cold brew.
+            Case(
+                "Für einen Kaltaufguss 12 g auf 1 Liter geben.\nZiehzeit: 6 Stunden.",
+                12.0,
+                1000,
+                6 * 3600,
                 RecipeSource.CATALOG_TEXT,
             ),
         ).forEach { case ->

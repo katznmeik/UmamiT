@@ -19,7 +19,7 @@ class TeeKontorParserTest {
 
     @Test
     fun allBasicFieldsOfAGreenTea() {
-        val page = parse(SyntheticShop.productPage(baseUrl = SHOP))
+        val page = parse(SyntheticShop.productPage(baseUrl = SHOP, brewRows = emptyList()))
 
         assertThat(page).isEqualTo(
             ProductPage(

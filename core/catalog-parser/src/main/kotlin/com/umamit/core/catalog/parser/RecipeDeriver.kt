@@ -299,7 +299,7 @@ object RecipeDeriver {
             private val DOUBLE_DOSE = Regex("""verdoppel|doppelte\s+(?:menge|dosierung)""", RegexOption.IGNORE_CASE)
 
             fun read(text: String?, gramsPerTeaspoon: Double): Prose {
-                val paragraphs = text.orEmpty().split(Regex("""\n+""")).filter { it.isNotBlank() }
+                val paragraphs = text.orEmpty().split(Regex("""\n\s*\n""")).filter { it.isNotBlank() }
                 val (cold, hot) = paragraphs.partition { BrewProse.COLD.containsMatchIn(it) }
                 val hotText = hot.joinToString("\n")
                 val coldText = cold.joinToString("\n")

@@ -15,6 +15,7 @@ internal const val LITRE_ML = 1000.0
 private const val PER_100_ML = 100.0
 private const val MINUTE_S = 60.0
 private const val HOUR_S = 3600.0
+private const val BOILING_C = 100.0
 private const val VOLUME_GROUP = 4
 private const val VOLUME_UNIT_GROUP = 5
 
@@ -39,9 +40,14 @@ internal object BrewValues {
         return Amount(amount, water).takeIf { water == null || water > 0 }
     }
 
-    /** The first temperature in [text], °C. */
-    fun temperature(text: String): Double? =
-        BrewProse.TEMPERATURE.find(text)?.destructured?.let { (low, high) -> midpoint(low, high) }
+    /**
+     * The first temperature in [text], °C; boiling water („auf 100 °C aufkochen und auf 70 °C
+     * abkühlen lassen") only when no other temperature is named.
+     */
+    fun temperature(text: String): Double? {
+        val all = BrewProse.TEMPERATURE.findAll(text).map { it.destructured.let { (low, high) -> midpoint(low, high) } }
+        return all.firstOrNull { it < BOILING_C } ?: all.firstOrNull()
+    }
 
     /** The first time in [text] in seconds; with [hours] false, a time in hours is skipped. */
     fun seconds(text: String, hours: Boolean = true): Double? = BrewProse.TIME.findAll(text).mapNotNull { match ->

@@ -193,7 +193,8 @@ the recipe instead of flagging the tea.
 - The prose is split into paragraphs: those describing a Kaltaufguss
   (Kaltaufguss, kaltes Wasser, Cold Brew, Kühlschrank) give only the cold
   brew's values; the others the hot recipes' (the first amount per volume,
-  temperature and time; a time in hours is no hot infusion). Teaspoons use the
+  temperature below boiling, else boiling, and time; a time in hours is no hot
+  infusion). Paragraphs are separated by blank lines. Teaspoons use the
   style's g/TL. Without a grid, the style's default recipe is derived with the
   prose's values and the style's other hot recipes follow unchanged.
 - When the first infusion comes from the style, all steps do; follow-ups from
