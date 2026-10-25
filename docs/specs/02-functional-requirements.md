@@ -189,7 +189,9 @@ the shop's brewing grid, when grid and text contradict, or when values were
 implausible. Additional recipes (e.g. a cold brew from the style default)
 only show their source as a note. The flag is visible in the
 catalog and carries over to collection teas created from it until the user
-edits or confirms the recipe.
+edits or confirms the recipe. To confirm it before the recipe editor (M3):
+after a session with a flagged tea, the „Gespeichert" sheet (SCR-06) offers
+*Rezept passt*, which clears the flag (D-073).
 
 **CAT-06 — Style mapping** `Must`
 Every catalog tea is mapped to a built-in style (STY) by its *Sorte* or name
@@ -220,11 +222,15 @@ the shop, parses all products, and replaces the catalog atomically.
 - AC6: Date of the last successful refresh is shown in the catalog header.
 - AC7: Refresh runs **only when the user taps it** (never automatically) and
   is allowed on any connection (Wi-Fi or mobile data) without a warning.
+- AC8: A refresh may run while a brew session is active. The timer always
+  has priority (rule 8): the refresh never delays, hides or silences an
+  alert, and the timer's alarms and service are independent of it (D-073).
 
 **CAT-08 — Photos** `Must`
-The main product photo of each tea is downloaded, resized (max 1600 px long
-edge, JPEG/WebP) and stored locally; unchanged photos are not downloaded
-again.
+The main product photo of each tea is downloaded, resized (max 1200 px long
+edge, WebP) and stored locally, with a small thumbnail for the lists;
+unchanged photos are not downloaded again. About 25–35 MB for the whole
+catalog (D-073).
 
 **CAT-09 — Tee-Info guides** `Should`
 Tee-Kontor's guide articles relevant to green tea (e.g. „Ein Guide für
@@ -236,8 +242,13 @@ resolved locally where possible; other links open the browser.
 SCR-19 lists catalog teas with photo, name, secondary name, type, origin,
 price per 100 g and flags (Bio, aromatisiert, im Besitz, Rezept prüfen).
 Filters: type (multi), origin country (multi), organic, flavoured / pure,
-umami level, „im Besitz" (owned), available. Sort: name, price per 100 g,
-type. Search over name, secondary name, description, cultivar, region.
+umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
+100 g, type. Search over name, secondary name, description, cultivar, region.
+- **Default view** (D-073): grouped by type (*Sorte*), available teas only,
+  and the „Pur" filter on, so flavoured teas are loaded and searchable but
+  hidden until the filter is changed.
+- **Neu:** teas first seen in the latest refresh carry a „Neu" badge until
+  the next refresh; the *Neu* filter lists them.
 
 **CAT-11 — Catalog tea detail** `Must`
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
@@ -257,7 +268,11 @@ purchase date (default today). The exact-price fetch is network use (c) of
 GEN-01. Creates a collection tea that is
 an independent copy (TEA-01) with recipes, stock (INV-01) and price. If the
 tea is already in the collection, the action becomes *Nachkauf erfassen*
-(record repurchase), adding stock instead of a duplicate.
+(record repurchase), adding stock instead of a duplicate. Both ship with M2
+(D-073): the new tea is immediately in the tea picker and brewable with its
+derived recipe and stock deduction. Started from the tea picker's *Aus dem
+Katalog* (SCR-03), adding returns to the brew setup (SCR-04) with that tea
+selected; a catalog tea is never brewed without adding it.
 
 **CAT-15 — Link seed teas on first refresh** `Must`
 After the first successful catalog refresh, collection teas whose
