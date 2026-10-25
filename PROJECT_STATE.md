@@ -9,7 +9,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#75 written; implementation waits for the PO's start |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77 written; implementation waits for the PO's start |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
@@ -40,8 +40,8 @@
 ## Waiting on the PO
 
 1. **Start M2 implementation**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62)
-   and its tickets #63–#75 are approved; `/implement-spec` on #62 begins on the
-   PO's word (frontier: #63 `catalog.db`, #64 parser, #73 polish).
+   and its tickets #63–#77 are approved; `/implement-spec` on #62 begins on the
+   PO's word (frontier: #63 prefactor, #73 #58 fixes; then #64 tracer bullet).
 2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
@@ -113,12 +113,18 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
   final; no emulator test of the refresh; fewer screenshots.
 - Spec #62 via `/to-spec` (4 test seams: parser/recipes, refresh vs. simulated
   shop, add/repurchase on in-memory Room, reduced screenshots; plus Claude's
-  live-shop runs and the PO's checklist). Tickets #63–#75 approved by the PO:
-  #63 `catalog.db` · #64 parser · #65 recipes (←#64) · #66 sitemap/robots/variants
-  (←#64) · #67 refresher, T4 (←#63, #65, #66) · #68 service and refresh sheet, T4
-  (←#67) · #69 list and detail, early design check (←#63) · #70 add/repurchase
-  (←#63, #69) · #71 picker flow and *Rezept passt* (←#70) · #72 Ratgeber (←#67,
-  #69) · #73 #58 polish and seed retry · #74 rc and PO checklist · #75 merge and
+  live-shop runs and the PO's checklist). Correction posted on #62: robots.txt
+  matching already exists in the network module since M1.
+- Tickets #63–#77 approved by the PO, re-sliced as tracer bullets per
+  `/to-tickets` after a first layer-by-layer breakdown:
+  #63 prefactor: shared polite shop session and image re-encoding · #64 tracer
+  bullet *Katalog laden* fills the list, T4 (←#63) · #65 background refresh
+  service, T4 (←#64) · #66 tea detail, photos, *Im Shop öffnen* (←#64) · #67 sizes
+  and prices (←#66) · #68 recipes and „Rezept prüfen" (←#66) · #69 search, filters,
+  default view, „Neu" (←#64) · #70 later refreshes, summary, seed linking, T4
+  (←#66, #68) · #71 add and repurchase (←#67, #68) · #72 picker flow and *Rezept
+  passt* (←#71) · #76 Ratgeber (←#66) · #73 #58 fixes and seed retry · #77 early
+  design check, PO (←#66, #69, #71) · #74 rc and checklist, PO · #75 merge and
   `v0.2.0`.
 - **Decision numbers:** up to D-073 used; the next free is **D-074**.
 
@@ -158,7 +164,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
-| 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#75 (approved by the PO). Implementation waits for the PO's start. |
+| 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#77 (approved by the PO). Implementation waits for the PO's start. |
 | 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |
 | 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |
 | 2026-10-22 | Spec #40 (M1 waves 4–7) written via `/to-spec` and broken into 16 tickets #41–#56 via `/to-tickets` (granularity and blockers approved by the PO). CI: build-logic plugin repositories fixed (failed with an empty Gradle cache). |
