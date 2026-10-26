@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -117,7 +117,11 @@ Table `brew_profile`
 
 Table `brew_step`: `id` PK; `profile_id` FK CASCADE; `position` (unique per
 profile); `kind` `StepKind`; `duration_seconds` 5–86400; `temp_c` INTEGER
-nullable, multiple of 5; `note` ≤ 120.
+nullable, multiple of 5; `note` ≤ 120; from schema v2 `pre_alert_seconds`
+INTEGER nullable — null = *Automatisch* (04 §5: min(B, 5 · ⌊d / 15⌋)), 0 =
+*Aus*, 5–30 step 5 (TMR-23, D-093). Schema v1 has no such column, so this
+needs **umamit.db v2** (§9). Catalog recipes (`derived_recipes_json`) carry
+no pre-alert: their steps start as *Automatisch*.
 
 ### 3.4 Vessel
 
@@ -148,7 +152,7 @@ Table `brew_session`
 | `leaf_grams` | REAL | | |
 | `water_ml` | INTEGER | | |
 | `base_temp_c` | INTEGER | | |
-| `pre_alert_seconds` | INTEGER | | effective value used (04 §5); set at the start and by `editSteps` |
+| `pre_alert_seconds` | INTEGER | | effective value used (04 §5); set at the start and by `editSteps`. From v2 (D-093): the base B (recipe ?: global) frozen at the start; each step's choice is in `session_step` |
 | `planned_step_count` | INTEGER | ✓ | number of steps planned at finish (incl. never-started ones), for „2 von 3 Aufgüssen" (TMR-12) |
 | `cost_cents` | INTEGER | | leaf × cost per gram at finish (INV-08), rounded half up; null without a tea, leaf amount or priced stock |
 | `started_at` | INTEGER | ✓ | |
@@ -168,7 +172,9 @@ FTS4 `session_fts` (tea_name, notes); descriptor search via join.
 Table `session_step`: `id`; `session_id` FK CASCADE; `position`; `kind`;
 `planned_seconds`; `actual_seconds`; `paused_seconds`; `overtime_seconds`;
 `temp_c`; `started_at`; `ended_at`; `skipped`; `overtime_auto_ack`
-(see [04 §3.2](04-brew-timer.md#32-events-and-transitions)); `note` ≤ 300.
+(see [04 §3.2](04-brew-timer.md#32-events-and-transitions)); `note` ≤ 300;
+from schema v2 `pre_alert_seconds` INTEGER nullable — the step's pre-alert
+choice: null = *Automatisch*, 0 = *Aus*, 5–30 step 5 (TMR-23, D-093).
 
 `(session_id, position)` is unique; positions run 0…n−1.
 
@@ -181,7 +187,11 @@ effect of the timer engine, 04 §4; D-052):
 - **Edit/add** (`ReplacePendingSteps`): the rows from the first unstarted
   position on are deleted and the new pending steps inserted; the session's
   `pre_alert_seconds` becomes the effective value after the edit. Started and
-  ended rows are never touched.
+  ended rows are never touched. From v2 (D-093) the session's
+  `pre_alert_seconds` keeps B as frozen at the start; the edit writes each
+  step's choice, the running step's included (its only field an edit may
+  change). The recipe's `brew_step` rows get the choices only through *Im
+  Rezept speichern* (PO, D-093).
 - **Record** (`RecordStep`): the step's row gets the recorded values of
   [04 §5.1](04-brew-timer.md#51-recorded-step-data). A row is ended exactly
   when `actual_seconds` is set.
@@ -242,6 +252,13 @@ Remaining stock = SUM(`delta_grams`). Cost per gram = Σ price / Σ grams of
 the INITIAL and PURCHASE events **that carry a price**; with no such event,
 the cost per gram (and so the session cost) is null (#30).
 
+A stock correction (*Bestand korrigieren*, INV-03; from v0.2.1 also from
+the brew setup's „… g übrig", D-093) is an `ADJUSTMENT` event: `delta_grams`
+= the new total entered in g (0 allowed = leer) − the current remaining stock (nothing is written when
+they are equal), no price, `occurred_at` = now. It never changes the cost per
+gram. `ADJUSTMENT` is already in v1, so the correction needs no schema
+change.
+
 ### 3.12 ActiveBrew
 
 Single-row table `active_brew` (`id` = 1). Together with the session's
@@ -277,8 +294,8 @@ are nullable (#30). A device restore clears the row (§8).
 | `boot_count` | INTEGER | boot of the `…_elapsed_ms` values |
 | `last_interaction_wall_ms` | INTEGER | last user event. `idleDemote` 30 min and `midnightTimeout` at the first local midnight ≥ 6 h after the later of it and `ready_since_wall_ms` / `paused_since_wall_ms` (D-053); quick-timer cancel 30 min after it |
 | `demoted` | INTEGER | FGS stopped, regular notification shown |
-| `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus* |
-| `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off) |
+| `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus*. **Dropped in v2** (D-093): the choice is per step (`session_step.pre_alert_seconds`) |
+| `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off); from v2 the base B of the automatic rule (04 §5) |
 | `zone_id` | TEXT | the session's time zone (IANA id); needed for the quick timer, which has no `brew_session` row |
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
@@ -429,6 +446,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `theme` | SYSTEM/LIGHT/DARK | SYSTEM | SET-05 |
 | `dynamicColor` | Boolean | false | SET-06 |
 | `alertSound` | key | `klangschale` | SET-09 |
+| `preAlertSound` | key | `zimbel` until the PO's pick (D-093) | SET-26 (v0.2.1): `zimbel`, `gloeckchen`, `klangstab`, `tiefe_schale`, `ting` (today's tick); an unknown key reads as the default |
 | `preAlertSeconds` | Int (0, 5…30) | 10 | SET-10; a written value is snapped to 5 s and clamped to 0 or 5…30 |
 | `vibration` | Boolean | true | SET-11 |
 | `alertLength` | SHORT/NORMAL/LONG | NORMAL | SET-14 |
@@ -446,6 +464,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
+| `seedVesselsV2Added` | Boolean | false | WARE-06 (v0.2.1, D-093): the seven vessels of v0.2.1 were added. Set by the seed of a fresh install, which creates all nine vessels; on an existing install (`seedDataCreated` true) the first start of v0.2.1 inserts the seven by their fixed IDs, each only when absent, in one transaction, then sets it. Restored with the database by a device backup, so nothing is added twice |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
 | `seedTeaLinksDone` | Set<String> | ∅ | CAT-15: the done parts of the seed teas' link, `<tea id>/description` and `<tea id>/cover`; each added once, never removed (D-086, D-090) |
 
@@ -547,6 +566,29 @@ and FTS tables of §3 (`tag`, `tea_tag`, `custom_descriptor`, `session_descripto
 `session_fts`) arrive with M3 and M4 through such migrations. The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.
+
+**umamit.db v2 (v0.2.1, D-093).** The per-step pre-alert (TMR-23) needs
+columns that the frozen v1 lacks, so v0.2.1 ships schema version 2 with
+`MIGRATION_1_2` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE brew_step ADD COLUMN pre_alert_seconds INTEGER` and the same
+  on `session_step` (nullable; existing rows read as *Automatisch*);
+- an active session's non-null `active_brew.pre_alert_override_seconds` is
+  copied to its steps that have not started (as an explicit choice), so a
+  session running during the update keeps its pre-alert; then
+  `active_brew.pre_alert_override_seconds` is dropped
+  (`ALTER TABLE … DROP COLUMN`, SQLite ≥ 3.35 on API 35).
+- Tests: a `MigrationTestHelper` test from v1 with data (recipes, a session
+  in progress with and without an override, a quick timer) to v2,
+  `SchemaVersionsTest` with both versions, and the frozen v1 JSON unchanged
+  (`check-frozen-schemas.sh`). The v0.2.1 rc checklist installs it over
+  v0.2.0 (09 §4).
+
+Nothing else of v0.2.1 changes a schema: the stock correction uses
+`ADJUSTMENT` (§3.10), archiving uses `tea.is_archived`, the new vessels are
+rows, and Kräutertees in `catalog.db` are told apart by their style key
+`herbal`. Only `catalog_skip`'s `NOT_GREEN` rows are deleted once (by a
+`catalog.db` migration or at the first refresh of v0.2.1), so herbal
+products are classified again (08 §2.4).
 
 ## 10. Volume assumptions
 

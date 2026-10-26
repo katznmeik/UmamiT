@@ -1,6 +1,7 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (v0.2.1 and v0.3 from
+> the PO's feedback on `v0.2.0-rc.1`, D-093)
 > v0.2 incorporates the PO interview of 2026-10-21. Requirements dropped in
 > v0.2 are listed in §16. A few v0.1 IDs were given new meanings in v0.2 (no
 > code existed yet); from v0.2 on, IDs are stable and never reused.
@@ -160,6 +161,14 @@ the current *Shincha* section and *Matcha-Teepulver* — about 260–280 teas.
 Excluded: sets (`…SET` in any case, or a set by its name or breadcrumb),
 sale duplicates of a regular tea (`…SALE`), matcha bowls and accessories,
 sweets, and items containing no tea (D-091).
+- **Kräutertees (v0.2.1, D-093):** the shop's herbal teas (its *Kräutertee*
+  section; not fruit tea or rooibos) are loaded too, with their own style
+  `herbal` (2 g / 250 ml, Becher, 100 °C, one infusion of 6:00, no cold
+  brew; [08 §3](08-content.md#3-built-in-tea-styles)). They are hidden by
+  default and shown by the *Kräutertee* filter (CAT-10). They add about
+  1–2 min to the first load (NFR-PERF-11 stays ≤ 20 min); the first refresh
+  after the update re-classifies everything once (≈ 16 min, accepted by the
+  PO).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -262,6 +271,12 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   hidden until the filter is changed.
 - **Neu:** teas first seen in the latest refresh carry a „Neu" badge until
   the next refresh; the *Neu* filter lists them.
+- **Kräutertee (v0.2.1, D-093):** herbal teas (CAT-01) are hidden in the
+  default view; the filter chip *Kräutertee* switches the list to the
+  Kräutertees only (grouped by *Sorte*), tapping it again returns to the
+  green teas. The *Pur* filter does not apply in the Kräutertee view; the
+  other filters still do. Search hits among the hidden kind count as hidden
+  by the filters.
 
 **CAT-11 — Catalog tea detail** `Must`
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
@@ -335,6 +350,17 @@ All fields editable. Changing the style does not overwrite recipes.
 *Archivieren* hides a tea from lists and pickers (e.g. when used up); journal
 entries remain. *Löschen* keeps journal sessions (name snapshot) and removes
 recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
+- **From the tea picker (v0.2.1, D-093):** a long press on a tea in SCR-03
+  offers *Aus Sammlung entfernen*. It archives the tea and shows the
+  snackbar „*Tanabata* aus der Sammlung entfernt" · *Rückgängig*. An
+  archived tea disappears from Start (*Nochmal brühen*, BRW-11) and from the
+  tea picker; the journal keeps its entries with name and photo. Not
+  possible for the tea of the active brew session: the item is greyed out
+  with „Erst die Sitzung beenden". Adding it again from the catalog (CAT-12)
+  un-archives the same tea and records the package as a PURCHASE event
+  (D-085); its earlier stock events stay (correct with INV-03). An archived
+  tea's catalog row has no „im Besitz" badge and its detail offers *In
+  Sammlung aufnehmen*.
 
 **TEA-05 — Photos** `Should`
 Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
@@ -393,7 +419,8 @@ Updates never change existing teas or recipes.
 
 A **recipe** (*Rezept*; data entity `BrewProfile`) is: method, leaf amount,
 water volume, base temperature, optional vessel, optional pre-alert override,
-and an ordered list of steps (rinse, infusion, whisk).
+and an ordered list of steps (rinse, infusion, whisk), each with its own
+pre-alert choice (D-093).
 
 **PRF-01 — Recipes per tea** `Must`
 1–10 recipes per tea, exactly one default.
@@ -412,8 +439,8 @@ recipes; teas without style get *Western 3 g / 250 ml / 85 °C / 3:00*.
 | Leaf | 0,1–100 g, step 0,1 g |
 | Water | 10–3000 ml, step 5 ml |
 | Base temperature | 5–100 °C in 5 °C steps; „kalt" (cold) for ≤ 10 °C |
-| Pre-alert | „Wie in Einstellungen" (default) or Aus / 5 … 30 s in 5 s steps |
-| Steps | 1–30 |
+| Pre-alert | „Wie in Einstellungen" (default) or Aus / 5 … 30 s in 5 s steps: the recipe's base value B for TMR-23 |
+| Steps | 1–30, each with its pre-alert: *Automatisch* (default), *Aus* or 5 … 30 s (TMR-23, D-093) |
 | Notes | 0–500 chars |
 
 - AC1: Ratio shown live („4,0 g / 100 ml").
@@ -458,6 +485,14 @@ scaling if set.
 **WARE-06 — Seed teaware** `Must`
 M1 ships the PO's vessels: „Kyusu" (KYUSU, 300 ml, usable 250 ml, at home)
 and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
+- **v0.2.1 (D-093):** seven more seed vessels with typical sizes, named by
+  usable volume: „Kyusu 120 ml", „Kyusu 180 ml", „Kyusu 300 ml", „Kyusu
+  360 ml" (KYUSU; capacity 150, 220, 350, 420 ml) and „Becher 250 ml",
+  „Becher 300 ml", „Becher 350 ml" (MUG_INFUSER; capacity 300, 350,
+  400 ml). The two M1 vessels stay unchanged. A fresh install seeds all
+  nine; an existing install gets the seven added once at the first start of
+  v0.2.1 (fixed IDs, inserted only when absent, 05 §6
+  `seedVesselsV2Added`). Free-size vessels come with M3's editor (WARE-01).
 
 **WARE-05 — Default vessel per method** `Could`
 E.g. KYUSU → „Kyusu 180 ml".
@@ -483,7 +518,12 @@ session (only while no step has started). A known tea starts in **2 taps**
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
 step list, effective pre-alert, *Brühen starten*. Changes apply to this
-session only unless *Im Rezept speichern* is tapped.
+session only unless *Im Rezept speichern* is tapped; this includes each
+step's pre-alert (TMR-23, D-093).
+- **Stock correction (v0.2.1, D-093):** a tap on „38 g übrig" opens a small
+  sheet „Wie viel ist noch da?" where the new total is entered in g (0,1 g
+  steps; 0 allowed = leer); *Speichern* stores the difference as a
+  correction (INV-03) and the setup shows the new amount.
 
 **BRW-03 — Ratio scaling** `Must`
 With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
@@ -515,7 +555,8 @@ for the first step.
 
 **TMR-02 — Countdown** `Must`
 Large tabular digits (mm:ss, h:mm:ss ≥ 1 h) in a thin ring, caption, step
-label „Aufguss 2 von 4", step temperature.
+label „Aufguss 2 von 4", step temperature. The top bar's ← and ⋮ stay
+legible on any tea photo, also a bright one (SCR-05, v0.2.1, D-093).
 
 **TMR-03 — Pause / resume** `Must`
 A cream pill button *Pause* / *Weiter* below the ring (as in the mockup) is the
@@ -558,7 +599,8 @@ temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
 
 **TMR-11 — Edit remaining steps** `Should` (overflow ⋮ *Schritte
 bearbeiten* → Schritte-Sheet SCR-31, not in ALERTING (D-055); this session
-only unless *Im Rezept speichern*).
+only unless *Im Rezept speichern*, each step's pre-alert included; the
+running step's pre-alert is editable too, TMR-23, D-093).
 
 **TMR-12 — Finish & auto-log** `Must`
 Finishing early (e.g. after infusion 2 of 3) is a normal session; the
@@ -621,19 +663,34 @@ without keeping a service running; no pre-alert; the Live Update shows
 **TMR-21 — Second session** `Must`
 Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
 (*Beenden & neu starten* / *Abbrechen*).
+- **Planned for v0.3.0 (D-093):** one brew session at a time stays, but a
+  quick timer (TMR-22) can always start alongside it, without this dialog.
+  Starting a second brew session still asks. Until v0.3.0 (v0.2.1
+  included) one timer at a time, as above.
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00 and
-custom; same alert, pre-alert (global setting) and Live Update; not logged.
+custom; same alert, pre-alert (global setting, automatic rule of TMR-23) and
+Live Update; not logged.
+- **Planned for v0.3.0 (D-093):** quick timers run alongside one brew
+  session (TMR-21).
 
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
 step so the kyusu can be picked up.
-- N comes from the session's own choice in the Schritte-Sheet (SCR-31), else
-  the recipe's pre-alert override, else the global setting (SET-10): Aus or
-  5–30 s in 5 s steps; default **10 s**.
-- Skipped if the step is shorter than N + 5 s, for RINSE steps shorter
-  than 15 s, and for long steps (≥ 10 min, TMR-18).
+- **Per step (v0.2.1, D-093).** Each step has its own pre-alert:
+  *Automatisch* (default), *Aus* or 5–30 s in 5 s steps, set in the
+  Schritte-Sheet (SCR-31) for this session; it goes into the recipe's step
+  (PRF-03) only via *Im Rezept speichern*, like every other step change.
+- **Automatic rule:** B = the recipe's pre-alert, else the global setting
+  (SET-10: Aus or 5–30 s in 5 s steps; default **10 s**), frozen at the
+  session's start; d = the step's planned seconds;
+  **N = min(B, 5 · ⌊d / 15⌋)** — a third of the step rounded down to whole
+  5 s, never more than B; N = 0 means no pre-alert. Examples with B = 10 s:
+  0:10 → none, 0:20 → 5 s, 0:30 and longer → 10 s.
+- Skipped if the step is shorter than N + 5 s (only an explicit value can
+  hit this), for RINSE steps shorter than 15 s, and for long steps
+  (≥ 10 min, TMR-18).
 - The tick follows the ringer mode like the alert (vibrate mode → short
   vibration only).
 - The Live Update / timer caption switches to „Gleich fertig…" at the
@@ -712,6 +769,12 @@ discarding or deleting the session restores it.
 **INV-03 — Manual adjustments** `Must`
 *Nachkauf erfassen* (+g, price, date), *Bestand korrigieren* (set remaining),
 history list (SCR-29).
+- The user enters the new total in g (0 allowed = leer). A correction
+  records an `ADJUSTMENT` event with the difference between that total and
+  the current stock (none when equal); the history shows
+  it as „Bestand korrigiert".
+- **v0.2.1 (D-093):** the correction is first reachable from the brew setup
+  (tap „… g übrig", BRW-02); SCR-29's history follows with M3.
 
 **INV-04 — Session edits** `Must` update the linked deduction.
 
@@ -793,7 +856,8 @@ Every chart has an accessible table alternative.
 | SET-05 | Design (*Hell / Dunkel / System*) | System | Must |
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
-| SET-10 | Vorwarnung (pre-alert) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
+| SET-10 | Vorwarnung (pre-alert; the base B of TMR-23's automatic rule) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
+| SET-26 | Vorwarnton (pre-alert sound, with *Anhören*; v0.2.1, D-093) | Four new synthesised sounds, mastered much louder with a fall-off of ≈ 3 s, still at the notification volume (Zimbel, Glöckchen, Klangstab, Tiefe Schale; 04 §9.2) and today's tick „Ting (leise)" — default chosen by the PO via *Alarm testen* on the first v0.2.1 rc (until then Zimbel) | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
@@ -811,7 +875,8 @@ Every chart has an accessible table alternative.
 *Teegeschirr* (→ SCR-13), *Darstellung*, *Daten* (→ SCR-26, Alle Daten
 löschen), *Über* (→ SCR-27).
 
-**SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert.
+**SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert
+(the chosen *Vorwarnton*, SET-26, from v0.2.1).
 
 **SET-33 — Delete all data** `Must` (type „LÖSCHEN" to confirm).
 
@@ -873,7 +938,7 @@ SCR-05.
 | ONB-02 (v0.1), ONB-04/05 (v0.1) | Unit selection, sample teas | German/metric only; catalog replaces samples (IDs reused for new meaning in v0.2 — no code existed) |
 | TMR-04 | −10 s / +10 s buttons | PO wants a calm running screen (Pause only) |
 | TMR-24/25 | Spoken countdown, tabletop layout | Not needed |
-| TMR-40 | Multiple concurrent timers | One at a time |
+| TMR-40 | Multiple concurrent timers | One at a time; partly revived for v0.3.0: quick timers alongside one brew session (TMR-21, TMR-22, D-093) |
 | SET-01…04, SET-07, SET-08 | Units, teaspoons, language, leaf precision | German/metric only |
 | SET-12 | Start first step immediately | Always wait for the user |
 | SET-13 | Alarm stream choice | Alert always follows ringer mode |

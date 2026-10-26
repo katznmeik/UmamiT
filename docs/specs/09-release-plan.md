@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -41,8 +41,10 @@
 | — | **Go gate** | PO gives explicit go for development | — | — |
 | **M1** | **Timer first** | Probe release, project skeleton, CI (incl. emulator job), signing & release workflow, design system, navigation shell, Einrichtung, complete timer with Live Update and full-screen alert, Schritte-Sheet, quick timer, seed teas ([08 §2.5a](08-content.md#25a-m1-seed-teas-pos-current-teas)), minimal journal, diagnostics log | Single source: [M1 plan §2](../plans/M1-timer.md#2-scope) | v0.0.1-probe, v0.1.0 |
 | **M2** | **Tee-Kontor catalog** | Re-check selectors (V-01 done), parser + synthetic fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, *In Sammlung aufnehmen* / *Nachkauf erfassen* and the picker flow, *Rezept passt*, guides (last slice), „Rezept prüfen", small #58 items (D-073) | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
-| **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.3.0 |
-| **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.4.0 |
+| **v0.2.1** | **Feedback on v0.2.0-rc.1** (D-093, #79; points 2–9) | Legible ← and ⋮ on bright tea photos; pre-alert per infusion with the automatic rule, into the recipe via *Im Rezept speichern* (umamit.db v2 with a tested migration); four new, much louder pre-alert sounds with a ≈ 3 s fall-off and *Vorwarnton*; each rc needs the accuracy run (§4a; timer code changes); seven more seed vessels, added once to existing installs; stock correction from „… g übrig"; *Aus Sammlung entfernen* from the tea picker (archive, undo); Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*) | SCR-05, TMR-23, SCR-31, PRF-03 (pre-alert per step), SET-26, WARE-06, INV-03 (correction only), BRW-02, TEA-04 (archive from the picker only), CAT-01, CAT-10, NFR-PERF-11 | v0.2.1 |
+| **v0.3** | **Quick timers alongside a brew** (D-093, #79; point 1; planned) | One brew session as today plus quick timers that can always start alongside it: engine, `active_brew`, alarms, service, Live Update and alert player for two timers, with the timer tests of 04 §12 extended (rule 8); its own plan before building | TMR-21, TMR-22 | v0.3.0 |
+| **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.4.0 |
+| **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.5.0 |
 | **M5** | **Data & polish → 1.0** | Device backup verification (rules exist since M1), simple manual export (no in-app restore, D-036), reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log extended to the catalog, final illustrations | BAK-01, BAK-05, BAK-06, SET-*, NFR-* | **v1.0.0** |
 
 There are no calendar estimates: pace depends on session availability and the
@@ -121,6 +123,32 @@ only.
 - [ ] *Aus dem Katalog* in the tea picker → add a tea (size, price, date) → the brew setup opens with that tea; after brewing a tea marked „Rezept prüfen", *Rezept passt* clears the mark (CAT-12, CAT-05).
 - [ ] Seed teas after the first catalog load (CAT-15, as far as M2 shows it): Tanabata and Hisui keep their recipes, stock and journal entries; a seed tea that had no photo now shows the shop's photo in the tea picker. Their descriptions show only in M3's tea detail (D-090).
 - [ ] *Nachkauf erfassen* on a seed tea: in the catalog, Tanabata (TG0213) offers *Nachkauf erfassen*, not *In Sammlung aufnehmen*; saving a 100 g package adds it to Tanabata's stock and no second Tanabata appears in the tea picker (CAT-12, D-085).
+
+### v0.2.1 — Feedback on v0.2.0-rc.1 (D-093)
+
+v0.2.1 changes timer code (per-step pre-alert, sounds), so every
+`v0.2.1-rc.N` needs a passing accuracy run first (§4a, D-067, D-073).
+
+- [ ] `v0.2.1-rc.1` installs over `v0.2.0` without losing data (umamit.db v1 → v2): the journal, the teas with their recipes, photos and stock, and the settings are all there; a session running during the update keeps its steps and pre-alert and still alerts on time.
+- [ ] Timer of a tea with a bright, white-backed photo: ← and ⋮ are clearly visible at once and after the photo fades; ⋮ opens the menu (SCR-05).
+- [ ] Automatic pre-alert (*Vorwarnung* 10 s): Hisui's Kyusu recipe (1:00, 0:10, 0:10) shows „10 · – · –" in the setup; a step of 0:20 shows 5 s and one of 0:30 shows 10 s (N = min(B, 5 · ⌊d / 15⌋), TMR-23).
+- [ ] Schritte-Sheet: set step 2's pre-alert to 10 s → „zu kurz" (0:10 < 10 + 5 s); set it to 5 s → it sounds 5 s before the end of step 2. Without *Im Rezept speichern* the next session of that recipe is back to „Auto"; with *Im Rezept speichern* the next session shows 5 s.
+- [ ] *Alarm testen* with each of the four new pre-alert sounds and „Ting (leise)": each is much louder than the old tick and rings out for about 3 s; the PO names the default (SET-26).
+- [ ] Pre-alert follows the notification volume: lowering it makes the pre-alert quieter; ringer on vibrate → a short vibration only; silent → nothing (04 §9.1).
+- [ ] The vessel picker offers Kyusu 120, 180, 300, 360 ml and Becher 250, 300, 350 ml next to „Kyusu" and „Becher mit Sieb", each once; choosing one rescales the leaf (WARE-03, WARE-06).
+- [ ] Brew setup: tap „… g übrig", enter the new total 23,5 g, *Speichern* → „23,5 g übrig"; after brewing 5 g it shows 18,5 g. Entering 0 shows the tea as leer (INV-03, INV-05).
+- [ ] Tea picker: long press a tea → *Aus Sammlung entfernen* → it is gone from the picker and from Start's *Nochmal brühen*; *Rückgängig* brings it back. Remove it again: its journal entries still show its name and photo (TEA-04).
+- [ ] During a brew, long press that session's tea in the picker: *Aus Sammlung entfernen* is greyed out with „Erst die Sitzung beenden" (E15).
+- [ ] Add a removed tea again from the catalog: the same tea comes back (no second one), the new package added to its stock (TEA-04, D-085).
+- [ ] *Katalog aktualisieren*, the first after the update: it re-classifies everything once (≈ 16 min, accepted by the PO) and completes; the catalog still opens on the green teas.
+- [ ] The chip *Kräutertee* shows only Kräutertees, grouped by *Sorte*, with no fruit tea, rooibos or accessory among them; „Pur" does not apply there; tapping the chip again returns to the green teas; the header counts both (CAT-01, CAT-10).
+- [ ] A Kräutertee without the shop's brewing values: 2 g / 250 ml, 100 °C, one infusion of 6:00, marked „Rezept prüfen"; one with shop values uses them, unmarked (08 §3).
+
+### v0.3 — Quick timers alongside a brew (planned, D-093)
+
+The checklist is written with v0.3.0's plan; at least: a quick timer started
+during a running brew step, both alerting on time with the screen off, and
+each acknowledged on its own.
 
 ### M3 — Collection
 

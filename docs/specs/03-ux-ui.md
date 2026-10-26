@@ -1,6 +1,8 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-25
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (v0.2.1: timer top bar,
+> per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
+> picker, Kräutertee chip, D-093)
 
 Information architecture, navigation, visual design system and screens.
 Functional rules: [02](02-functional-requirements.md). The UI language is
@@ -487,6 +489,16 @@ from the catalog list, or a tap on Start, returns to the picker; another tab
 ends the flow; nothing is written before the save. An alert wins: the add
 sheet and the picker give way and no setup opens during it ([D-088](10-open-questions-and-decisions.md#d-088)).
 
+**Removing a tea (v0.2.1, TEA-04, [D-093](10-open-questions-and-decisions.md#d-093)).**
+A long press on a tea row opens a small menu with *Aus Sammlung entfernen*
+(with a haptic tick). Choosing it archives the tea at once (no dialog), the
+row leaves the picker and a snackbar reads „*Tanabata* aus der Sammlung
+entfernt" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
+*Favoriten* and Start's *Nochmal brühen* too; the journal keeps its entries
+with name and photo. For the tea of the active brew session the item is
+greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
+same action as a custom action on the row.
+
 ### SCR-04 Brühen (setup)
 
 ```
@@ -503,7 +515,7 @@ sheet and the picker give way and no setup opens during it ([D-088](10-open-ques
 │ 1  Aufguss  1:30   55 °C      │
 │ 2  Aufguss  0:30   60 °C      │
 │ 3  Aufguss  0:20   60 °C      │  Bearb. → Schritte-Sheet (SCR-31)
-│ Vorwarnung  10 s (Standard)   │
+│ Vorwarnung  10 · 5 · 5 s      │  per step (TMR-23)
 │ [ Im Rezept speichern ]       │ only when changed
 │ [      Brühen starten      ]  │
 └──────────────────────────────┘
@@ -514,6 +526,16 @@ SCR-21's, D-088). *Bearb.* and
 the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
 the ratio lock is a switch with the live ratio; at ≤ 10 °C the kettle hint reads „Kaltes Wasser" /
 „Eiswürfel" ([D-062](10-open-questions-and-decisions.md#d-062)).
+
+v0.2.1 ([D-093](10-open-questions-and-decisions.md#d-093)):
+- The *Vorwarnung* row lists each step's effective pre-alert in order („10 ·
+  5 · 5 s", „–" for none; all equal: „10 s").
+- „38 g übrig" is a button (BRW-02, INV-03): it opens a small Material 3
+  sheet „Wie viel ist noch da?" where the new total is entered (stepper
+  ± 0,1 g, a number field, „g"; 0 allowed = leer) and *Speichern*; saving
+  stores the difference as an `ADJUSTMENT` event and
+  updates the header and the stock warning (BRW-08). Like every sheet, it
+  never covers an alert.
 
 ### SCR-05 Timer
 
@@ -529,6 +551,14 @@ route on top, never the screens themselves
 ([D-069](10-open-questions-and-decisions.md#d-069)). A brew always shows the
 tea photo at the top, the fallback photo A4 (`docs/design/assets.md`) until it is
 read or when the tea has none; the quick timer has no photo (D-058, D-069).
+
+**Top-bar icons on the photo (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
+Tea photos often have a white background, so ← and ⋮ each sit on a filled
+circle (40 dp, the Steeping surface at 60 % opacity; the 48 dp touch target
+is unchanged) with the light icon on it. The icon keeps at least 3:1
+against its circle over any photo, also a pure white one. The circles stay
+when the photo has faded out; on the alert surface they use its own
+container colour instead.
 
 ```
 ┌──────────────────────────────┐
@@ -689,7 +719,12 @@ it), origin, „15,90 €/100 g" and badges („Neu", „im Besitz", Bio,
 aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-076, D-083):
 - **Chips** for the frequent ones: *Filter* (opens the filter sheet; shows
   how many filters differ from the default view, „Filter (2)"), „Pur",
-  „Vorrätig", „Bio", „Neu", „Im Besitz".
+  „Vorrätig", „Bio", „Neu", „Im Besitz", and from v0.2.1 „Kräutertee"
+  (D-093): off by default; on, the list shows only the Kräutertees,
+  grouped by *Sorte* like the green teas; tapping it again returns to the
+  green teas. In the Kräutertee view „Pur" does not apply (hidden); the
+  other chips still apply, and it counts in „Filter (n)".
+  The header then reads „… · 38 Kräutertees · …".
 - **Filter sheet** (Material 3 modal sheet; never over an alert) for the
   rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
@@ -793,7 +828,8 @@ Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 ([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
 between them: „Letzter Abruf" with the date of the last successful refresh
 („21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
-switch *Fotos laden* (SET-22, „zusammen etwa 30 MB").
+switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"). v0.2.1 adds
+*Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093).
 
 ### SCR-26 Daten & Sicherung
 
@@ -831,9 +867,10 @@ editable before *Start*). Never from ALERTING: both entries appear after
 │ Schritte für diese Sitzung    │
 │ ✓ 1 Aufguss  1:30   55 °C     │ done steps read-only
 │   2 Aufguss  [0:30] [60 °C] ✕ │ steppers: 5 s (<10 min) / 1 min, 5 °C
+│     Vorwarnung  Auto · 10 s ▾ │ per step: Automatisch / Aus / 5–30 s
 │   3 Aufguss  [0:20] [60 °C] ✕ │
+│     Vorwarnung  Auto · 5 s  ▾ │
 │ + Aufguss hinzufügen          │
-│ Vorwarnung  Wie Einstellung ▾ │ Wie Einstellung / Aus / 5–30 s
 │ [ Im Rezept speichern ]       │ only for a session with a recipe
 │ [          Fertig          ]  │
 └──────────────────────────────┘
@@ -843,9 +880,18 @@ editable before *Start*). Never from ALERTING: both entries appear after
   temperature (5 °C steps), delete; *Aufguss hinzufügen* appends a step
   (TMR-10 defaults). Started and completed steps are read-only; the running
   step is not editable.
-- Pre-alert selector overrides the effective pre-alert for this session.
-- *Im Rezept speichern* writes the steps and pre-alert into the recipe used
-  (with a confirmation snackbar). Notes per step arrive in M4.
+- **Pre-alert per step (v0.2.1, TMR-23, [D-093](10-open-questions-and-decisions.md#d-093)).**
+  Each pending step, and the running one, has a *Vorwarnung* selector:
+  *Automatisch* (shows its value, „Auto · 5 s", or „Auto · keine") / *Aus* /
+  5–30 s in 5 s steps. An explicit value the step is too short for
+  (d < N + 5 s) shows „zu kurz" and has no pre-alert. The running step's
+  selector is its only editable field. The session-wide selector of v0.2.0
+  is gone.
+- A changed pre-alert applies to **this session** only, like every other
+  step change; it goes into the recipe only via *Im Rezept speichern* (PO,
+  D-093).
+- *Im Rezept speichern* writes the steps with their pre-alerts into the
+  recipe used (with a confirmation snackbar). Notes per step arrive in M4.
 - Changes apply via the `editSteps` event (04 §3.2) on *Fertig*; closing the
   sheet any other way (swipe down, back, scrim, handle) applies nothing.
   Without unsaved edits it closes at once; with unsaved edits it stays and asks

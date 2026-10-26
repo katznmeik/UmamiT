@@ -302,6 +302,141 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-093"></a>
+### D-093 — v0.2.1 and v0.3: the PO's feedback on `v0.2.0-rc.1` (#79; TMR-21, TMR-22, TMR-23, SCR-05, SCR-31, SET-10, SET-26, PRF-03, BRW-02, WARE-06, INV-03, TEA-04, SCR-03, CAT-01, CAT-10, SCR-19, NFR-PERF-11) · *Accepted* (PO, 2026-10-26, in the session and the grilling of this draft, Q1–Q14; details marked „Claude" are Claude's)
+
+After testing `v0.2.0-rc.1` the PO gave nine feedback points (#79). Asked
+as selectable questions, then grilled on the draft (Q1–Q14), the PO
+decided (PO, 2026-10-26, unless marked „Claude"):
+
+- **Cut (PO).** `v0.2.1` gets points 2–6 and 9, plus simple versions of 7
+  and 8. `v0.3.0` gets point 1, a deep timer change with its own tests. M3
+  comes after that, so M3 now releases `v0.4.0` and M4 `v0.5.0` (09 §2).
+  Building starts after the PO's OK on the v0.2.1 spec and tickets (rule 1).
+  v0.2.1 changes timer code, so each of its release candidates needs the
+  accuracy run (09 §4a, D-067, D-073).
+- **1 — Quick timers alongside a brew (PO; v0.3, planned).** One brew
+  session as today, plus quick timers (TMR-22) that can **always** start
+  alongside it. A second brew session still asks „Erst die … -Sitzung
+  beenden?" (TMR-21). This partly revives the removed TMR-40. Nothing
+  changes in v0.2.1: one active timer, `ActiveTimerExists` as today. The
+  engine, `active_brew`, alarms, the foreground service, the Live Update
+  and the alert player for two timers are specified with v0.3's plan; its
+  timer tests (04 §12) are extended then (rule 8).
+- **2 — Legible top bar on the timer (PO: must stay visible; SCR-05).** The
+  ← and ⋮ icons sit on a filled circle (Claude: 40 dp, Steeping surface at
+  60 % opacity), so they stay visible on bright, white-backed tea photos;
+  the icons keep at least 3:1 against the circle whatever the photo.
+- **3 — Pre-alert per infusion (TMR-23, SCR-31, PRF-03, 04 §5).**
+  - Each step carries its own pre-alert: *Automatisch* (the default), *Aus*
+    or 5–30 s in 5 s steps (PO).
+  - **Automatic rule (PO, Q1/Q10):** with B = the recipe's pre-alert ?: the
+    global setting (SET-10), frozen at the session's start, and d = the
+    step's planned seconds, **N = min(B, 5 · ⌊d / 15⌋)**, i.e. a third of
+    the step rounded down to whole 5 s, never more than B. N = 0 means no
+    pre-alert. So a step under 15 s never has one (the old rinse rule, now
+    for every step), 0:20 → 5 s, 0:30 → 10 s, 1:00 → min(B, 20 s). Because
+    N ≤ d/3, the existing rule „none when d < N + 5 s" (E7) never removes an
+    automatic pre-alert; it still applies to an explicit value. Long steps
+    (≥ 10 min) never have one (TMR-18). The quick timer uses the same
+    automatic rule with the global setting (Claude).
+  - **Session first, recipe only on request (PO, Q9).** The Schritte-Sheet
+    sets the pre-alert per step, including the running step's (its other
+    fields stay read-only; Claude); the session-wide selector goes. A change
+    applies to **this session**; it goes into the recipe **only** via *Im
+    Rezept speichern*, like every other step change.
+  - **umamit.db v2.** `brew_step` (frozen schema v1) has no pre-alert, so
+    v0.2.1 ships **umamit.db version 2** with a tested migration (05 §9):
+    `brew_step.pre_alert_seconds` and `session_step.pre_alert_seconds`
+    (INTEGER, null = *Automatisch*, 0 = *Aus*, 5–30); the migration copies
+    an active session's `active_brew.pre_alert_override_seconds` into its
+    unstarted steps and drops that column. `brew_profile.pre_alert_seconds`
+    stays the recipe's base B; `brew_session.pre_alert_seconds` keeps B as
+    frozen at the start (Claude).
+- **4, 5 — Pre-alert sounds (04 §9.2, SET-26).**
+  - PO (Q2, Q3): the pre-alert keeps `USAGE_NOTIFICATION_EVENT`, so it
+    follows the notification volume, and the ringer-mode rules (vibrate:
+    short vibration; silent: nothing) are unchanged. Four new sounds,
+    **mastered much louder**, with a **fall-off of about 3 s** (the old tick:
+    0.8 s). The PO picks the default via *Alarm testen*; the others stay
+    selectable in the settings (*Vorwarnton*, SET-26).
+  - Claude: names Zimbel, Glöckchen, Klangstab, Tiefe Schale; loudness
+    -18 LUFS (6 LU above the old tick, 2 LU below the alert; same -1.5 dBTP
+    ceiling); today's tick stays selectable as „Ting (leise)"; Zimbel is the
+    default until the PO's pick. The chosen sound is loaded ahead like the
+    tick (D-092).
+- **6 — More vessels (PO; WARE-06).** New seed vessels, as usable volume:
+  Kyusu 120, 180, 300 and 360 ml, Becher 250, 300 and 350 ml. Today's
+  „Kyusu" (250 ml usable) and „Becher mit Sieb" (400 ml) stay. Free-size
+  vessels come with M3's editor (WARE-01). Claude: capacities 150, 220,
+  350, 420 ml and 300, 350, 400 ml; fixed IDs like the M1 seed, added once
+  to an existing install at the first start of v0.2.1
+  (`seedVesselsV2Added`, inserted by ID, so never twice).
+- **7 — Remaining amount (PO, Q8; INV-03, BRW-02).** In the brew setup a
+  tap on „… g übrig" opens a small sheet „Wie viel ist noch da?": the user
+  enters the **new total** in g (0 allowed = leer). The difference to the
+  current stock is stored as an `ADJUSTMENT` inventory event (no schema
+  change: the type exists in v1). M3's history (SCR-29) shows it as
+  „Bestand korrigiert".
+- **8 — Removing a tea (TEA-04, SCR-03).**
+  - PO: a long press on a tea in the tea picker offers *Aus Sammlung
+    entfernen*, with undo („*Tanabata* aus der Sammlung entfernt" ·
+    *Rückgängig*). The tea is **archived**, not deleted.
+  - PO (Q7): not possible while that tea is in the active brew session: the
+    item is greyed out with „Erst die Sitzung beenden".
+  - PO (Q13): archived teas disappear from Start (*Nochmal brühen*, the
+    recently brewed teas) and from the tea picker; the journal keeps their
+    entries with name and photo.
+  - PO (Q6): adding it again from the catalog **un-archives the same tea**
+    and records the package as a PURCHASE event, as D-085 does for a
+    repurchase of an archived tea. Claude: its earlier stock events stay
+    (a wrong amount is fixed with point 7); the catalog row of an archived
+    tea shows no „im Besitz" badge and its detail offers *In Sammlung
+    aufnehmen*.
+- **9 — Kräutertees in the catalog (CAT-01, CAT-10, SCR-19, 08 §2.4, §3).**
+  - PO (Q4): only the shop's **Kräutertees**, not fruit tea or rooibos (the
+    section's path is read from the live breadcrumb when built; Claude).
+  - PO (Q5): style `herbal`, default recipe 2 g / 250 ml in the Becher,
+    100 °C, one infusion of 6:00, no cold brew. A shop brewing grid or text
+    still wins (08 §2.5); „Rezept prüfen" only when the shop gives no values
+    (style default), as for green teas.
+  - PO (Q11, Q14): hidden by default; the filter chip *Kräutertee* switches
+    the list to the Kräutertees only (grouped by *Sorte*); tapping it again
+    returns to the green teas. The *Pur* filter does not apply in the
+    Kräutertee view.
+  - PO (Q12): the first load gets about 1–2 min longer (their pages are
+    already fetched for classification today; their photos are new);
+    NFR-PERF-11 stays ≤ 20 min. `catalog_skip` keeps no rules version, so
+    v0.2.1 clears its `NOT_GREEN` rows once and the first refresh after the
+    update re-classifies everything (≈ 16 min, once); the PO accepts this.
+    No catalog.db schema change: a herbal tea is told apart by its style
+    (Claude).
+
+- **Spec grilling (PO, Q15–Q21, 2026-10-26; spec #81).**
+  - Q15: journal entries of an archived tea show no *Nochmal brühen*; to
+    brew it again, add it back from the catalog.
+  - Q16: no downgrades. The app never opens the database destructively;
+    going back to `v0.2.0` would need an uninstall. Fixes always ship as a
+    newer version.
+  - Q17: the Schritte-Sheet shows *Automatisch* with the value it will use
+    („Auto · 5 s", „Auto · keine").
+  - Q18: the two M1 seed vessels are renamed „Kyusu 250 ml" and „Becher mit
+    Sieb 400 ml", only if their names are still the seed names.
+  - Q19: the Umami filter is hidden in the Kräutertee view; the filter sheet
+    there offers Herkunft, Bio, Neu, im Besitz and Vorrätig.
+  - Q20: before the first refresh after the update, the empty Kräutertee
+    view shows „Kräutertees kommen mit dem nächsten Abruf (≈ 16 min,
+    einmalig)" with a *Jetzt laden* button.
+  - Q21: removing a tea shows a snackbar of about 8 s with *Rückgängig*;
+    afterwards the tea can come back via the catalog.
+
+02 TMR-02, TMR-11, TMR-21, TMR-22, TMR-23, SET-10, SET-26 (new), SET-31,
+PRF-03, BRW-02, BRW-11, WARE-06, INV-03, TEA-04, CAT-01, CAT-10 and the
+removed TMR-40; 03 SCR-03, SCR-04, SCR-05, SCR-19, SCR-25, SCR-31; 04
+header, §3.2, §5, §9.1, §9.2, §10, §11 (E7, E15), §12; 05 §3.3, §3.6, §3.7,
+§3.10, §3.12, §6, §9; 07 NFR-PERF-11; 08 §2.4, §2.5a, §2.6, §3; 09 §2 and
+§4; `docs/design/assets.md` updated.
+
 <a id="d-092"></a>
 ### D-092 — The first cue of a process starts as fast as the others: sounds loaded ahead, the alert player on its own thread (TMR-23, TMR-30, rule 8; amends D-059) · *Accepted* (Claude, 2026-10-26)
 
@@ -3499,6 +3634,9 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | D-093 amended with the PO's spec grilling Q15–Q21 (archived tea in the journal, no downgrades, „Auto · N s", vessel names, herbal filter sheet, empty Kräutertee view, undo snackbar). |
+| 2026-10-26 | D-093 amended after the PO's grilling (Q1–Q14): a step's pre-alert goes into the recipe only via *Im Rezept speichern*; the pre-alert keeps `USAGE_NOTIFICATION_EVENT`, sounds mastered much louder (-18 LUFS) with ≈ 3 s fall-off; Kräutertees only (no fruit tea or rooibos), style `herbal` 2 g / 250 ml, Becher, 100 °C, 6:00, *Pur* not applied in the Kräutertee view, the one-time re-classification (≈ 16 min) accepted; no *Aus Sammlung entfernen* for the active session's tea; correction = new total; archived teas leave Start and the picker; v0.2.1 rcs need the accuracy run. PO's and Claude's parts marked. |
+| 2026-10-26 | D-093: the PO's feedback on `v0.2.0-rc.1` (#79) — v0.2.1: legible timer top bar on bright photos, a pre-alert per infusion saved in the recipe (automatic N = min(B, 5 · ⌊d / 15⌋), umamit.db v2 with a tested migration), four new louder pre-alert sounds with a longer fall-off (*Vorwarnton*, SET-26), seven more seed vessels added once, stock correction from „… g übrig" (`ADJUSTMENT`), *Aus Sammlung entfernen* from the tea picker (archive with undo; re-adding un-archives), Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*); v0.3.0: quick timers alongside one brew session (planned); M3 → v0.4.0, M4 → v0.5.0. 02, 03, 04, 05, 07, 08, 09 and `docs/design/assets.md` updated. |
 | 2026-10-26 | The PO approved the early design check #77 without changes and confirmed two choices: tea recipes stay out of the Ratgeber (D-089) and the `hojicha_powder` default (D-091). |
 | 2026-10-26 | D-092: the first pre-alert of a process (accuracy run on 83f2c5c, step 1: 1178 ms) loaded its sound inside the cue; while a timer is active the alert player now keeps the tick and the tone loaded (`keepReady` at the end of every turn) and a cue only starts its sound, with fallbacks that never cost the sound; the player runs on its own thread; the log splits each cue's start (queue, settings, outputs, sound loaded or not) and the accuracy summary names the slowest start; amends D-059. 04 §4, §9.1, 06 §5.6, 09 §4a updated. |
 | 2026-10-26 | D-091: fixes from full live run 1 — pages, photos and guides fetched while the previous answer is processed (same wire, expected first refresh ≈ 15–16 min), PNG and WebP photo sources with transparency on white, a 16 MB body limit for images (pages 5 MB), photos and guide images that failed for good remembered by URL (`catalog_image_failure`), sets in any case and by name or breadcrumb, `…SALE` duplicates left out, Mizucha brewing cold by default, the `hojicha_powder` style (whisked, no leaf recipe or cold brew); parser v6; 02 CAT-01, CAT-08, 05 §4.2b, §4.5, 06 §4, §5.2, §5.3, 07 NFR-PERF-11 and 08 §2.2, §2.4–§2.8, §3 updated. |
