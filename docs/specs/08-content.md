@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -112,6 +112,15 @@ the prose, whose years are travel reports, founding years and link texts
    (`catalog_skip`) so later refreshes don't fetch them again; the skip list
    changes only with a successful refresh (D-077). A page without a
    breadcrumb is neither kept nor skipped.
+   **Kräutertees (v0.2.1, D-093):** products under the shop's herbal tea
+   section (*Kräutertee*; its path is read from the live breadcrumb when
+   built and recorded here with the parser bump) are kept too, as herbal
+   teas with the style `herbal` (§2.6, §3), category `HERBAL`. Fruit teas,
+   rooibos and other non-tea infusions stay out unless the shop files them
+   under *Kräutertee*. The `/tee/japantee/` rule above is unchanged.
+   Because `catalog_skip` keeps no rules version, its `NOT_GREEN` rows are
+   deleted once with v0.2.1 (05 §9), so the next refresh classifies those
+   products again and takes about as long as a first load.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
@@ -160,6 +169,12 @@ including images):
 |---|---|---|
 | First | sitemap + ~1,400–1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~260–280 photos + guides (G = number of keyword-selected guide slugs, §2.7, ~10–40 and at most 40, plus their images, at most 4 each: ≤ 200 requests, ≈ 100 s, D-087); full live run 1: 1,747 requests | ~15–16 min (D-091) |
 | Later | sitemap + ~280 green pages + new items + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored, or one that failed for good, is not fetched again, D-087, D-091) | ~3 min |
+
+**Kräutertees (v0.2.1, D-093):** their pages are already among the parent
+pages fetched for classification, so they add only their photos (and their
+pages again on later refreshes): about 1–2 min on the first load (≈ 16–18
+min, still within NFR-PERF-11's 20 min) and about a minute on later ones.
+Their number is counted on the first live run with v0.2.1.
 
 Each page, photo and guide image is fetched while the previous one is parsed,
 re-encoded or stored (D-091), so the duration approaches the requests' own
@@ -328,7 +343,23 @@ until it succeeds (D-075); that retry never sends the photo download, so
 those covers come with the first catalog refresh (CAT-15).
 
 Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
-seed vessels (WARE-06). Purchase date of the seed stock = first app start;
+seed vessels (WARE-06). From v0.2.1 seven more seed vessels exist (D-093),
+named by usable volume; the seed recipes keep their vessels:
+
+| Name | `VesselType` | Usable | Capacity |
+|---|---|---|---|
+| Kyusu (M1) | KYUSU | 250 ml | 300 ml |
+| Becher mit Sieb (M1) | MUG_INFUSER | 400 ml | 400 ml |
+| Kyusu 120 ml | KYUSU | 120 ml | 150 ml |
+| Kyusu 180 ml | KYUSU | 180 ml | 220 ml |
+| Kyusu 300 ml | KYUSU | 300 ml | 350 ml |
+| Kyusu 360 ml | KYUSU | 360 ml | 420 ml |
+| Becher 250 ml | MUG_INFUSER | 250 ml | 300 ml |
+| Becher 300 ml | MUG_INFUSER | 300 ml | 350 ml |
+| Becher 350 ml | MUG_INFUSER | 350 ml | 400 ml |
+
+Each new vessel has a fixed ID in `SeedData`, so an existing install gets
+it added once and never twice (05 §6 `seedVesselsV2Added`). Purchase date of the seed stock = first app start;
 `opened_date` is set by the first session (INV-06).
 
 ### 2.6 Style mapping and umami level
@@ -353,6 +384,7 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | `mizudashi-kaltaufgussbeutel`, or „Mizudashi" / „Kaltaufgussbeutel" in the name under any breadcrumb (D-089) | style from the breadcrumb or name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | „Mizucha" in the name, under any breadcrumb (D-091) | as Mizudashi: style from breadcrumb or name else `green_generic` (not flagged); default recipe = cold brew; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | `aromatisierter-gruentee` | `flavored_green` |
+| the shop's *Kräutertee* section (v0.2.1, D-093) | `herbal` (category `HERBAL`, umami `NONE`; not flagged) |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
 | tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
@@ -482,13 +514,15 @@ days after opening.
 | `korean_green` | Koreanischer Grüntee (Ujeon/Sejak) | HIGH | 60 | 2,0 | KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
-| `white_generic`, `oolong_generic`, `black_generic`, `dark_generic`, `herbal` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräuter | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 / 100 °C) for manually added non-green teas |
+| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 3 g / 250 ml / 100 °C: 5:00, 7:00 (v0.2.1: catalog Kräutertees, CAT-01, D-093; a shop brewing grid still wins, §2.5; no cold brew, no Kyusu) |
+| `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 °C) for manually added non-green teas |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
 These values are well-known starting points; imported Tee-Kontor recipes
 take precedence for catalog teas. The green rows are code in `core:domain`
-(`BuiltInStyles`, D-076, D-082); the rows of other categories follow with the
-collection editor (M3).
+(`BuiltInStyles`, D-076, D-082), and from v0.2.1 the `herbal` row too
+(D-093); the rows of other categories follow with the collection editor
+(M3).
 
 ## 4. Tasting descriptor vocabulary
 
