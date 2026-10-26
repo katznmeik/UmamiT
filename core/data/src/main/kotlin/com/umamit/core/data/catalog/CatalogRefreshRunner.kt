@@ -34,10 +34,13 @@ sealed interface CatalogRefreshState {
 interface CatalogRefreshRunner {
     val state: StateFlow<CatalogRefreshState>
 
-    /** Starts a refresh unless one is running. */
+    /** Starts a refresh unless one is running or a cancelled one is still cleaning up. */
     fun start()
 
-    /** *Abbrechen*: cancels the running refresh, which ends as [CatalogRefreshOutcome.Cancelled]. */
+    /**
+     * *Abbrechen*: cancels the running refresh, which ends as [CatalogRefreshOutcome.Cancelled], or
+     * as the success it is once its swap has begun (D-090).
+     */
     fun cancel()
 
     /** The result was seen: [CatalogRefreshState.Finished] becomes [CatalogRefreshState.Idle]. */
@@ -83,17 +86,22 @@ class AppCatalogRefreshRunner internal constructor(
 
     override fun start() {
         synchronized(lock) {
-            if (job?.isActive == true) return
+            // Not while a cancelled run still cleans up (staging, log, photos): runs never overlap (D-090).
+            if (job?.isCompleted == false) return
             // A new run: an earlier result's notification goes.
             foreground.clearResult()
             mutableState.value = CatalogRefreshState.Running(CatalogRefreshProgress.STARTING)
-            job = scope.launch {
+            val run = scope.launch {
                 val outcome = runGuarded()
                 mutableState.value = CatalogRefreshState.Finished(outcome)
-            }.apply {
-                // Also when cancelled before it ran: the refresher has logged and cleaned up what it started.
-                invokeOnCompletion { cause ->
-                    if (cause != null) {
+            }
+            job = run
+            // Also when cancelled before it ran: the refresher has logged and cleaned up what it started.
+            // Only while it is still the current run, so an ended run never overwrites the next one's state.
+            // A run that ended itself (a success whose swap was in when the cancel came, D-090) keeps its result.
+            run.invokeOnCompletion { cause ->
+                synchronized(lock) {
+                    if (cause != null && job === run && mutableState.value !is CatalogRefreshState.Finished) {
                         mutableState.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled)
                     }
                 }

@@ -8,15 +8,20 @@ import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.CatalogDatabase
+import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.model.UserSettings
 import com.umamit.core.network.ShopClient
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -181,6 +186,77 @@ class CatalogRefreshRunnerTest {
                 CatalogPhotoFiles(folder.newFolder()),
             ).observeCatalog().first().isEmpty,
         ).isTrue()
+    }
+
+    @Test
+    fun aStartWhileACancelledRunStillCleansUpStartsNothing() = runTest {
+        // The refresher's cleanup after a cancel (staging, log, photos) must never overlap a new run (D-090).
+        val cleanup = CompletableDeferred<Unit>()
+        var runs = 0
+        val runner = runner(refresh = {
+            runs++
+            try {
+                awaitCancellation()
+            } finally {
+                withContext(NonCancellable) { cleanup.await() }
+            }
+        })
+        runner.start()
+        testScheduler.runCurrent()
+        runner.cancel()
+        testScheduler.runCurrent()
+
+        runner.start()
+        testScheduler.runCurrent()
+        cleanup.complete(Unit)
+        testScheduler.runCurrent()
+
+        assertThat(runs).isEqualTo(1)
+        assertThat(foreground.starts).isEqualTo(1)
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled))
+    }
+
+    @Test
+    fun anEndedRunNeverOverwritesTheStateOfTheNextOne() = runTest {
+        val runner = runner(refresh = { CatalogRefreshOutcome.Success(teas = 1, newTeas = 1) })
+        runner.start()
+        testScheduler.runCurrent()
+        runner.acknowledge()
+
+        runner.start()
+
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+        testScheduler.runCurrent()
+        assertThat(runner.state.value)
+            .isEqualTo(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 1, newTeas = 1)))
+    }
+
+    @Test
+    fun aCancelAfterTheSwapStillEndsAsTheSuccessItIs() = runTest {
+        // D-086: once the swap is in, the run is a success; a cancel in the steps after it changes nothing (D-090).
+        lateinit var runner: AppCatalogRefreshRunner
+        runner = runner(
+            refresh = CatalogRefresher(
+                client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+                dao = db.catalogDao(),
+                clock = clock,
+                diagnostics = diagnostics,
+                settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
+                photos = CatalogPhotoFiles(folder.newFolder()),
+                sanity = SanityCheck(firstImportMinimum = 1),
+                seedTeas = CatalogSeedLinker {
+                    runner.cancel()
+                    emptyList()
+                },
+            )::refresh,
+        )
+
+        runner.start()
+        pageGate.countDown()
+        val finished = runner.awaitFinished()
+
+        assertThat(finished.outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 1, newTeas = 1))
+        assertThat(db.catalogDao().refreshLog().map { it.status }).containsExactly(CatalogRefreshStatus.SUCCESS)
     }
 
     @Test

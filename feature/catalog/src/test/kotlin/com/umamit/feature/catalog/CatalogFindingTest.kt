@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.testing.FakeCatalogRefreshRunner
@@ -79,6 +81,21 @@ class CatalogFindingTest {
 
     private fun chip(@StringRes id: Int) = compose.onNode(hasText(str(id)) and isChip)
 
+    @Test
+    fun aSearchTypedBeforeAProcessDeathIsGoneLikeTheFilters() {
+        // D-083: filters are not stored, so the field must not come back with a text the list ignores (D-090).
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            UmamiTheme(reduceMotion = true) { CatalogSearchField(CatalogFilter.DEFAULT, onFilterChange = {}) }
+        }
+        compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("Kagoshima")
+        compose.onNodeWithText("Kagoshima").assertIsDisplayed()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText("Kagoshima").assertDoesNotExist()
+    }
+
     private fun shown(name: String) = compose.onNodeWithText(name).assertIsDisplayed()
 
     private fun hidden(name: String) = compose.onNodeWithText(name).assertDoesNotExist()
@@ -87,7 +104,7 @@ class CatalogFindingTest {
     fun theDefaultViewGroupsAvailablePureTeasBySorte() {
         show()
 
-        compose.onNodeWithText("Tee-Kontor Kiel · 4 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 4\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
         shown("GYOKURO")
         shown("SENCHA")
         shown("Morgennebel Sencha")

@@ -20,7 +20,8 @@ import okhttp3.HttpUrl
  * - **Stops** on a Cloudflare challenge or block page, HTTP 429, any `Retry-After`, a 401/403/5xx
  *   or a network error (offline): the answer becomes [ShopFetch.Stopped] with its [StopCause],
  *   and from then on every [fetch] returns that stop **without a request** — no waiting, no
- *   retry, never an attempt to bypass a challenge.
+ *   retry, never an attempt to bypass a challenge. An answer over the size limit is no stop: it
+ *   leaves only its URL out ([ShopFetch.TooLarge], D-090).
  * - **Retries** ([NetworkRetry], D-076): only a catalog refresh retries a timeout or a
  *   connection error, after 2, 4 and 8 s, each retry a new call through the client (rate
  *   limited, allow-listed). Stop signals and HTTP errors are never retried; the seed photos and
@@ -71,6 +72,8 @@ class ShopSession private constructor(
             is ShopResponse.Success -> ShopFetch.Fetched(answer.contentType, answer.body)
 
             is ShopResponse.HttpError -> ShopFetch.Unavailable(answer.code)
+
+            is ShopResponse.TooLarge -> ShopFetch.TooLarge(answer.declaredBytes)
 
             // Both are stops, handled above.
             is ShopResponse.Blocked, is ShopResponse.NetworkError -> error("unreachable: $answer")
@@ -124,7 +127,7 @@ class ShopSession private constructor(
 
             is ShopResponse.HttpError -> StopCause.HTTP_ERROR.takeIf { code in REFUSED || code in SERVER_ERRORS }
 
-            is ShopResponse.Success -> null
+            is ShopResponse.Success, is ShopResponse.TooLarge -> null
         }
     }
 }
@@ -155,13 +158,19 @@ sealed interface ShopFetch {
     /** A status that leaves only this URL out and the job goes on: a 3xx (never followed), a 404 or another 4xx. */
     data class Unavailable(val code: Int) : ShopFetch
 
+    /**
+     * A 2xx answer over the size limit, left unread (D-090): like [Unavailable], only this URL is
+     * left out and the job goes on. [declaredBytes] is its `Content-Length`, null when undeclared.
+     */
+    data class TooLarge(val declaredBytes: Long?) : ShopFetch
+
     /** The session stopped on [cause]: on this answer, or on an earlier one (then nothing was sent). */
     data class Stopped(val cause: StopCause) : ShopFetch
 }
 
 /** Why a [ShopSession] stopped (CLAUDE.md rule 7, 08 §2.8, D-050). */
 enum class StopCause {
-    /** Offline, DNS, timeout, a dropped connection (after the [NetworkRetry]) or an oversized answer. */
+    /** Offline, DNS, timeout or a dropped connection (after the [NetworkRetry]). */
     NETWORK,
 
     /** A Cloudflare challenge page; never bypassed. */

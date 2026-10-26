@@ -3,9 +3,11 @@ package com.umamit.app
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -232,6 +234,121 @@ class CatalogBrewFlowTest {
         compose.waitForIdle()
     }
 
+    /**
+     * Two taps on the screen's own back button before the next frame, as a quick double tap
+     * lands while the screen still leaves (03 §3.6).
+     */
+    private fun doubleTapOnScreenBack() {
+        val back = compose.onNodeWithContentDescription("Zurück").fetchSemanticsNode()
+        val click = requireNotNull(back.config[SemanticsActions.OnClick].action)
+        compose.runOnUiThread {
+            click()
+            click()
+        }
+        compose.waitForIdle()
+    }
+
+    private fun toCatalogInSammlung() {
+        compose.onNodeWithTag(tabTag(Tab.Collection)).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Katalog").performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `a quick double tap on the tea detail's back leaves Sammlung on the catalog (D-090)`() {
+        show()
+        toCatalogInSammlung()
+        toDetail()
+
+        doubleTapOnScreenBack()
+
+        // Never a blank tab: the second tap must not pop the tab's own start screen.
+        compose.onNodeWithText(NAME).assertIsDisplayed()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a quick double tap on the guides' back leaves Sammlung on the catalog (D-090)`() {
+        show()
+        toCatalogInSammlung()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        doubleTapOnScreenBack()
+
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a quick double tap on a catalog row opens one detail (D-090)`() {
+        show()
+        toCatalogInSammlung()
+        val row = compose.onNodeWithText(NAME).fetchSemanticsNode()
+        val click = requireNotNull(row.config[SemanticsActions.OnClick].action)
+        compose.runOnUiThread {
+            click()
+            click()
+        }
+        compose.waitForIdle()
+
+        back()
+
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a link of a guide to itself opens nothing (D-090)`() {
+        show()
+        toCatalogInSammlung()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(GUIDE.title).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Nach oben").performScrollTo().performFirstLinkClick()
+        compose.waitForIdle()
+        back()
+
+        // One back from the article: the guides list, not the same article again.
+        compose.onNodeWithText("Nach oben").assertDoesNotExist()
+        compose.onNodeWithText(GUIDE.title).assertIsDisplayed()
+    }
+
+    @Test
+    fun `Start's Katalog oeffnen shows the catalog list, not a screen left open in Sammlung (D-090)`() {
+        // An empty collection: Start offers *Katalog öffnen* (GEN-09).
+        runBlocking { SeedData.teas.forEach { collection.teas.saveTea(it.copy(isArchived = true)) } }
+        show()
+        toCatalogInSammlung()
+        toDetail()
+        compose.onNodeWithTag(tabTag(Tab.Start)).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Katalog öffnen").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(tabTag(Tab.Collection)).assertIsSelected()
+        compose.onNodeWithTag(CATALOG_GUIDES_ROW_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a quick double tap on the setup's back leaves the app on Start (D-090)`() {
+        show()
+        openPicker()
+        toCatalog()
+        toDetail()
+        openAddSheet()
+        save()
+        compose.onNodeWithText("Brühen").assertIsDisplayed()
+
+        doubleTapOnScreenBack()
+
+        // Never a blank app: the second tap must not pop the shell under the setup.
+        compose.onNodeWithTag(tabTag(Tab.Start)).assertIsSelected()
+        compose.onNodeWithText("Aufguss starten").assertIsDisplayed()
+    }
+
     @Test
     fun `picker - catalog - detail - add ends in the setup of the new tea`() {
         show()
@@ -417,6 +534,10 @@ class CatalogBrewFlowTest {
                             GuideInline.Span("Probier den "),
                             GuideInline.Span("Morgennebel", link = "umamit://catalog/$KEY"),
                         ),
+                    ),
+                    // An anchor in the article itself (D-087): it resolves to the same guide.
+                    GuideBlock.Paragraph(
+                        listOf(GuideInline.Span("Nach oben", link = "umamit://guide/ein-guide")),
                     ),
                 ),
             ),

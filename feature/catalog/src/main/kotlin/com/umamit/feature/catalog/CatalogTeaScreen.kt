@@ -106,7 +106,7 @@ fun CatalogTeaRoute(
                 onDateChange = viewModel::pickDate,
                 onSave = viewModel::save,
             ),
-            onDismissRequest = viewModel::closeSheet,
+            onDismissRequest = viewModel::dismissSheet,
         )
     }
 }

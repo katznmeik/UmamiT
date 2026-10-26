@@ -17,7 +17,14 @@ sealed interface ShopResponse {
     /** Any other status, including a 3xx (redirects are never followed). */
     data class HttpError(val code: Int) : ShopResponse
 
-    /** No usable answer: offline, DNS failure, timeout, a dropped connection or an oversized body. */
+    /**
+     * A 2xx answer whose body is over [MAX_BODY_BYTES], left unread (D-090): [declaredBytes] is
+     * its `Content-Length`, or null when the shop didn't declare one. The same request would get
+     * it again, so it is never retried; it leaves only this URL out, it is no stop.
+     */
+    data class TooLarge(val declaredBytes: Long?) : ShopResponse
+
+    /** No usable answer: offline, DNS failure, timeout or a dropped connection. */
     data class NetworkError(val cause: IOException) : ShopResponse
 }
 
@@ -58,22 +65,33 @@ private val CHALLENGE_MARKERS = listOf(
 /**
  * Classifies [response] per 08 §2.8 and D-050: a challenge header, 429 or `Retry-After` first
  * (without reading the body), then a refusal (401/403/503) with challenge markers or served by
- * Cloudflare, then success. A body over [MAX_BODY_BYTES] fails as an [IOException].
+ * Cloudflare, then success. A body over [MAX_BODY_BYTES] is not read (D-090): a 2xx becomes
+ * [ShopResponse.TooLarge], any other status counts by its code alone (a refusal served by
+ * Cloudflare is still a block).
  */
-internal fun classify(response: Response): ShopResponse {
+internal fun classify(response: Response): ShopResponse =
+    stopSignal(response)?.let { ShopResponse.Blocked(it) } ?: classifyRead(response)
+
+/** A challenge header, 429 or `Retry-After`: a stop before the body is read. */
+private fun stopSignal(response: Response): BlockReason? = when {
+    response.header("cf-mitigated").equals("challenge", ignoreCase = true) -> BlockReason.CHALLENGE
+
+    response.code == HTTP_TOO_MANY_REQUESTS -> BlockReason.TOO_MANY_REQUESTS
+
+    response.header(STOP_RETRY_AFTER_HEADER) != null || response.header("Retry-After") != null ->
+        BlockReason.RETRY_AFTER
+
+    else -> null
+}
+
+/** An answer without a stop signal, by its status and its body (at most [MAX_BODY_BYTES], read here). */
+private fun classifyRead(response: Response): ShopResponse {
     val code = response.code
-    val stop = when {
-        response.header("cf-mitigated").equals("challenge", ignoreCase = true) -> BlockReason.CHALLENGE
-
-        code == HTTP_TOO_MANY_REQUESTS -> BlockReason.TOO_MANY_REQUESTS
-
-        response.header(STOP_RETRY_AFTER_HEADER) != null || response.header("Retry-After") != null ->
-            BlockReason.RETRY_AFTER
-
-        else -> null
+    val body = try {
+        readLimited(response)
+    } catch (e: ResponseTooLargeException) {
+        return tooLarge(response, e.declaredBytes)
     }
-    if (stop != null) return ShopResponse.Blocked(stop)
-    val body = readLimited(response)
     return when {
         code in REFUSALS && body.hasChallengeMarker() -> ShopResponse.Blocked(BlockReason.CHALLENGE)
         code in REFUSALS && response.isFromCloudflare() -> ShopResponse.Blocked(BlockReason.BLOCKED)
@@ -82,31 +100,34 @@ internal fun classify(response: Response): ShopResponse {
     }
 }
 
+/** An answer whose body is over [MAX_BODY_BYTES], unread: by its status alone (D-090). */
+private fun tooLarge(response: Response, declaredBytes: Long?): ShopResponse = when {
+    response.code in REFUSALS && response.isFromCloudflare() -> ShopResponse.Blocked(BlockReason.BLOCKED)
+    response.isSuccessful -> ShopResponse.TooLarge(declaredBytes)
+    else -> ShopResponse.HttpError(response.code)
+}
+
 private fun Response.isFromCloudflare() =
     header("CF-RAY") != null || header("Server").equals("cloudflare", ignoreCase = true)
 
 private fun readLimited(response: Response): ByteArray {
     val declared = response.body.contentLength()
-    if (declared > MAX_BODY_BYTES) throw ResponseTooLargeException("response body of $declared bytes is over the limit")
+    if (declared > MAX_BODY_BYTES) throw ResponseTooLargeException(declared)
     val source = response.body.source()
-    if (source.request(
-            MAX_BODY_BYTES + 1,
-        )
-    ) {
-        throw ResponseTooLargeException("response body larger than $MAX_BODY_BYTES bytes")
-    }
+    if (source.request(MAX_BODY_BYTES + 1)) throw ResponseTooLargeException(declaredBytes = null)
     return source.buffer.readByteArray()
 }
 
-/** An answer over [MAX_BODY_BYTES]; the same request would get it again, so it is never retried. */
-internal class ResponseTooLargeException(message: String) : IOException(message)
+/** An answer over [MAX_BODY_BYTES], with its declared `Content-Length` if any; never read on. */
+private class ResponseTooLargeException(val declaredBytes: Long?) :
+    IOException("response body over $MAX_BODY_BYTES bytes (declared: ${declaredBytes ?: "none"})")
 
 /**
  * Whether this network error is a timeout or a connection error that a new request may get past
- * (D-076): not an oversized answer and not a refused second attempt.
+ * (D-076): not a refused second attempt.
  */
 internal val ShopResponse.NetworkError.isTransient: Boolean
-    get() = cause !is ResponseTooLargeException && cause !is SecondAttemptRefusedException
+    get() = cause !is SecondAttemptRefusedException
 
 private fun ByteArray.hasChallengeMarker(): Boolean {
     val text = decodeToString()

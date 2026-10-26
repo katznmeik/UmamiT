@@ -109,6 +109,7 @@ only.
 
 ### M2 — Catalog
 
+- [ ] `v0.2.0-rc.1` installs over `v0.1.0` (and each later rc over the one before) without losing data: the journal, Tanabata and Hisui with their photos, recipes and stock, and the settings are all still there; a brew still alerts on time (spec #62 story 46).
 - [ ] *Katalog laden* completes (first run ≈ 15–18 min, D-076); ~260–280 teas; no duplicates per size; no sets or accessories.
 - [ ] 10 spot-checked teas: name, type, origin, prices, photo correct; brewing table/text shown verbatim; derived recipe follows §2.5; flags plausible.
 - [ ] A second refresh right after the first reports „… Grüntees · keine Änderungen" (or only the changes the shop made meanwhile) and is far shorter: no photo is downloaded again (CAT-07 AC3, CAT-08, D-086).
@@ -118,6 +119,8 @@ only.
 - [ ] Refresh during a brew: start a 3-min step, then *Katalog aktualisieren* and lock the phone → the pre-alert and the alert come on time and the refresh completes (CAT-07 AC8, D-073).
 - [ ] Locked phone: the notification „Katalog wird geladen" counts on while the phone is locked; *Abbrechen* in it stops the refresh with the old catalog intact; at the end the progress notification goes and a quiet result remains; *Einstellungen › Katalog* shows the new date (CAT-07 AC1, SET-23, D-079).
 - [ ] *Aus dem Katalog* in the tea picker → add a tea (size, price, date) → the brew setup opens with that tea; after brewing a tea marked „Rezept prüfen", *Rezept passt* clears the mark (CAT-12, CAT-05).
+- [ ] Seed teas after the first catalog load (CAT-15, as far as M2 shows it): Tanabata and Hisui keep their recipes, stock and journal entries; a seed tea that had no photo now shows the shop's photo in the tea picker. Their descriptions show only in M3's tea detail (D-090).
+- [ ] *Nachkauf erfassen* on a seed tea: in the catalog, Tanabata (TG0213) offers *Nachkauf erfassen*, not *In Sammlung aufnehmen*; saving a 100 g package adds it to Tanabata's stock and no second Tanabata appears in the tea picker (CAT-12, D-085).
 
 ### M3 — Collection
 

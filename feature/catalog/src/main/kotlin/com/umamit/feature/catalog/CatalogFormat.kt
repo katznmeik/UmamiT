@@ -14,10 +14,17 @@ internal object CatalogFormat {
     private val DAY = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
     private const val CENT_DIGITS = 2
 
-    /** [cents] as euros with two decimals and German separators, e.g. „15,90". */
+    /** [cents] as euros with two decimals and German separators, e.g. „15,90", „1.234,50". */
     fun euros(cents: Long): String = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
         minimumFractionDigits = CENT_DIGITS
         maximumFractionDigits = CENT_DIGITS
+    }.format(BigDecimal.valueOf(cents, CENT_DIGITS))
+
+    /** [cents] for an editable price field: as [euros] without thousands separators, e.g. „1234,50" (D-090). */
+    fun editableEuros(cents: Long): String = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
+        minimumFractionDigits = CENT_DIGITS
+        maximumFractionDigits = CENT_DIGITS
+        isGroupingUsed = false
     }.format(BigDecimal.valueOf(cents, CENT_DIGITS))
 
     /** [grams] with German separators and no trailing zeros, e.g. „250", „37,5". */

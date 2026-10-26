@@ -148,7 +148,11 @@ dispatcher thread for the shop). Each job (the seed photos, one refresh, one
 exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
 reads robots.txt once with RFC 9309's status rules, never fetches a
 disallowed URL, retries connection errors only for the refresh (D-076), and
-after the first stop signal sends nothing more.
+after the first stop signal sends nothing more. An answer over 5 MB leaves
+only its URL out (D-090). An idle connection is kept for 30 s only, since
+connection retries are off (D-090). The seed photo download ends before a
+refresh started from the setup (D-090); a new refresh starts only once a
+cancelled one has cleaned up.
 
 ## 5. Key technical designs
 

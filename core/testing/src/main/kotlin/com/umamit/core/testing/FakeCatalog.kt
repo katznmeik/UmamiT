@@ -72,10 +72,11 @@ fun catalogTea(
     teaType: String? = "Sencha",
     basePriceCentsPer100g: Long? = 1240,
     thumbnailPath: String? = null,
+    secondaryName: String? = null,
 ) = CatalogTeaSummary(
     key = key,
     name = name,
-    secondaryName = null,
+    secondaryName = secondaryName,
     teaType = teaType,
     basePriceCentsPer100g = basePriceCentsPer100g,
     available = true,

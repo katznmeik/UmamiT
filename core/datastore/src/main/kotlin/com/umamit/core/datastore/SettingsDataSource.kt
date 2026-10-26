@@ -39,8 +39,11 @@ data class StoredSettings(
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
     val seedPhotosAttempted: Boolean = false,
-    /** Set once the seed teas were linked to the catalog after a successful refresh (CAT-15); never reset. */
-    val seedTeasLinked: Boolean = false,
+    /**
+     * The parts of the seed teas' catalog link that are done (CAT-15, D-090), as
+     * `<tea id>/description` and `<tea id>/cover`; each is added once and never removed.
+     */
+    val seedTeaLinksDone: Set<String> = emptySet(),
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -73,7 +76,7 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     val seedPhotosAttempted: Flow<Boolean> = dataStore.data.map { it.seedPhotosAttempted }
 
-    val seedTeasLinked: Flow<Boolean> = dataStore.data.map { it.seedTeasLinked }
+    val seedTeaLinksDone: Flow<Set<String>> = dataStore.data.map { it.seedTeaLinksDone }
 
     /** Applies [transform] atomically to the current settings. */
     suspend fun update(transform: (UserSettings) -> UserSettings) {
@@ -88,8 +91,9 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
         dataStore.updateData { it.copy(seedPhotosAttempted = true) }
     }
 
-    suspend fun markSeedTeasLinked() {
-        dataStore.updateData { it.copy(seedTeasLinked = true) }
+    /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
+    suspend fun markSeedTeaLinksDone(parts: Set<String>) {
+        dataStore.updateData { it.copy(seedTeaLinksDone = it.seedTeaLinksDone + parts) }
     }
 }
 
@@ -130,5 +134,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     catalogDownloadPhotos = catalogDownloadPhotos,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
-    seedTeasLinked = markersOf.seedTeasLinked,
+    seedTeaLinksDone = markersOf.seedTeaLinksDone,
 )

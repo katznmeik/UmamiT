@@ -150,6 +150,12 @@ internal class CatalogGuides(
 
                 // Never sent (robots.txt) or gone: only this guide is left out.
                 null, ShopFetch.Disallowed, is ShopFetch.Unavailable -> counts.unavailable++
+
+                // Over the size limit: only this guide is left out, no stop (D-090).
+                is ShopFetch.TooLarge -> {
+                    log("catalog refresh: ${answer.line(requireNotNull(url))}")
+                    counts.unavailable++
+                }
             }
             counts.read++
             onGuide()
@@ -202,6 +208,12 @@ internal class CatalogGuides(
             is ShopFetch.Stopped -> stop(answer.cause, url.encodedPath)
 
             ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
+
+            // Over the size limit: only this image is left out, no stop (D-090).
+            is ShopFetch.TooLarge -> {
+                log("catalog refresh: ${answer.line(url)}")
+                false
+            }
         }
     }
 

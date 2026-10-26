@@ -67,12 +67,19 @@ class ShopClient private constructor(
         .addNetworkInterceptor(rateLimit(rateLimiter))
         .addNetworkInterceptor(retryAfterShield())
         .dispatcher(
-            Dispatcher(Executors.newSingleThreadExecutor { Thread(it, "UmamiT-shop") }).apply {
+            // A daemon thread: an idle client never keeps a JVM (a test run) alive.
+            Dispatcher(
+                Executors.newSingleThreadExecutor {
+                    Thread(it, "UmamiT-shop").apply { isDaemon = true }
+                },
+            ).apply {
                 maxRequests = 1
                 maxRequestsPerHost = 1
             },
         )
-        .connectionPool(ConnectionPool(1, KEEP_ALIVE_MINUTES, TimeUnit.MINUTES))
+        // A short keep-alive: connection retries are off, so a connection the shop (or a NAT) closed
+        // while idle must not be reused for the next job's first request (D-090).
+        .connectionPool(ConnectionPool(1, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS))
         .fastFallback(false)
         .proxy(Proxy.NO_PROXY)
         .socketFactory(socketFactory)
@@ -135,7 +142,7 @@ class ShopClient private constructor(
         const val SHOP_HOST = "www.tee-kontor-kiel.de"
 
         private val SHOP_BASE_URL = "https://$SHOP_HOST/".toHttpUrl()
-        private const val KEEP_ALIVE_MINUTES = 5L
+        private const val KEEP_ALIVE_SECONDS = 30L
         private const val TIMEOUT_SECONDS = 20L
 
         /** The production client for `https://www.tee-kontor-kiel.de/`. */
@@ -144,14 +151,24 @@ class ShopClient private constructor(
 
         /**
          * A client whose allow-list is [baseUrl]'s scheme, host and port, e.g. a MockWebServer.
-         * [socketFactory] lets a test add connection latency.
+         * [socketFactory] lets a test add connection latency. [requestIntervalMillis] is the gap
+         * between requests: the real 500 ms by default; a test that doesn't measure the rate may
+         * shorten it, so it never waits on the wall clock (D-090).
          */
         @VisibleForTesting
         fun forTesting(
             baseUrl: HttpUrl,
             appVersion: String = "test",
             socketFactory: SocketFactory = SocketFactory.getDefault(),
-        ): ShopClient = ShopClient(baseUrl, appVersion, RequestRateLimiter(), socketFactory)
+            requestIntervalMillis: Long? = null,
+        ): ShopClient = ShopClient(
+            baseUrl,
+            appVersion,
+            requestIntervalMillis?.let {
+                RequestRateLimiter(TimeUnit.MILLISECONDS.toNanos(it))
+            } ?: RequestRateLimiter(),
+            socketFactory,
+        )
     }
 }
 

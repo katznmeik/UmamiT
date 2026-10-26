@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -226,7 +227,8 @@ internal fun UmamitRoot(
             }
             composable<BrewSetupRoute> {
                 setupScreen(
-                    { navController.popBackStack() },
+                    // Only while resumed: a quick double tap never pops the shell under it (D-090).
+                    dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces the setup, so back from the timer returns to where the brew began.
                     {
                         navController.navigate(TimerRoute) {
@@ -238,7 +240,7 @@ internal fun UmamitRoot(
             }
             composable<QuickTimerRoute> {
                 quickTimerScreen(
-                    { navController.popBackStack() },
+                    dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces it, so back from the running quick timer returns to Start.
                     {
                         navController.navigate(TimerRoute) {
@@ -251,7 +253,7 @@ internal fun UmamitRoot(
             composable<TimerSettingsRoute> {
                 settings.screen(
                     SettingsHost(
-                        onBack = { navController.popBackStack() },
+                        onBack = dropUnlessResumed { navController.popBackStack() },
                         onOpenAbout = { navigateAbove(AboutRoute) {} },
                         alertKey = alert,
                     ),
@@ -260,13 +262,13 @@ internal fun UmamitRoot(
             composable<AboutRoute> {
                 settings.about(
                     AboutHost(
-                        onBack = { navController.popBackStack() },
+                        onBack = dropUnlessResumed { navController.popBackStack() },
                         onRerunSetup = rerunSetup,
                         onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
                     ),
                 )
             }
-            composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
+            composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
         }
         ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }

@@ -19,7 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,11 +42,12 @@ const val CATALOG_SEARCH_TAG = "catalog_search"
 
 /**
  * The search over name, secondary name, description, cultivar and region (CAT-10). The field
- * keeps its own text, so typing never waits for the list.
+ * keeps its own text, so typing never waits for the list; it starts from the filter's, so it
+ * resets with the filters after a process death (D-083, D-090).
  */
 @Composable
 internal fun CatalogSearchField(filter: CatalogFilter, onFilterChange: (FilterChange) -> Unit) {
-    var text by rememberSaveable { mutableStateOf(filter.search) }
+    var text by remember { mutableStateOf(filter.search) }
     val focus = LocalFocusManager.current
     val change = { value: String ->
         text = value

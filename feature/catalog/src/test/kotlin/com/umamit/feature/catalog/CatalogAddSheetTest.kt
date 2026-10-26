@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -254,6 +255,69 @@ class CatalogAddSheetTest {
         sheetShown().assertIsDisplayed()
         save()
         assertThat(add.purchases).hasSize(1)
+    }
+
+    @Test
+    fun whileItSavesTheSheetCannotBeDismissedAndItsOutcomeIsKept() {
+        // A save the user dismisses would lose its message (D-090): the sheet stays until it ends.
+        val gate = CompletableDeferred<Unit>()
+        add.gate = gate
+        add.failNext = true
+        show()
+        openSheet()
+        save()
+
+        Espresso.pressBack()
+        compose.waitForIdle()
+        sheetShown().assertIsDisplayed()
+
+        gate.complete(Unit)
+        compose.waitForIdle()
+        compose.onNodeWithText(str(R.string.catalog_add_failed)).assertIsDisplayed()
+    }
+
+    @Test
+    fun aSaveThatFailsAfterAnAlertRemovedTheSheetBringsItBackWithItsMessageAfterTheAlert() {
+        val gate = CompletableDeferred<Unit>()
+        add.gate = gate
+        add.failNext = true
+        show()
+        openSheet()
+        save()
+
+        alerting.value = true
+        compose.waitForIdle()
+        sheetShown().assertDoesNotExist()
+        gate.complete(Unit)
+        compose.waitForIdle()
+        // Never over the alert (rule 8).
+        sheetShown().assertDoesNotExist()
+
+        alerting.value = false
+        compose.waitForIdle()
+        sheetShown().assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_add_failed)).assertIsDisplayed()
+        price().assertTextContains("12,40")
+    }
+
+    @Test
+    fun aSaveThatSucceedsAfterAnAlertRemovedTheSheetIsRecordedAndReported() {
+        val gate = CompletableDeferred<Unit>()
+        add.gate = gate
+        show()
+        openSheet()
+        save()
+
+        alerting.value = true
+        compose.waitForIdle()
+        gate.complete(Unit)
+        compose.waitForIdle()
+        alerting.value = false
+        compose.waitForIdle()
+
+        assertThat(add.purchases).hasSize(1)
+        assertThat(added).containsExactly("tea-${SENCHA.key}")
+        sheetShown().assertDoesNotExist()
     }
 
     @Test

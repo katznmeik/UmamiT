@@ -217,7 +217,10 @@ private fun Body(text: String, modifier: Modifier = Modifier) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun rememberCatalogSheetState(reduceMotion: Boolean): SheetState {
+internal fun rememberCatalogSheetState(
+    reduceMotion: Boolean,
+    confirmValueChange: (SheetValue) -> Boolean = { true },
+): SheetState {
     val density = LocalDensity.current
     return remember(reduceMotion) {
         SheetState(
@@ -225,6 +228,7 @@ internal fun rememberCatalogSheetState(reduceMotion: Boolean): SheetState {
             positionalThreshold = { with(density) { PositionalThreshold.toPx() } },
             velocityThreshold = { with(density) { VelocityThreshold.toPx() } },
             initialValue = if (reduceMotion) SheetValue.Expanded else SheetValue.Hidden,
+            confirmValueChange = confirmValueChange,
         )
     }
 }

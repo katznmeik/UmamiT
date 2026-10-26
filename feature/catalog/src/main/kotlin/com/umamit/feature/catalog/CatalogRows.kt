@@ -48,7 +48,10 @@ internal fun LazyListScope.teaRows(
     }
 }
 
-/** A catalog tea's row (CAT-10): name, *Sorte* (when not grouped), origin, price per 100 g and its badges. */
+/**
+ * A catalog tea's row (CAT-10): name, secondary name (one line, D-090), *Sorte* (when not grouped),
+ * origin, price per 100 g and its badges.
+ */
 @Composable
 private fun TeaRow(
     tea: CatalogTeaSummary,
@@ -65,6 +68,7 @@ private fun TeaRow(
     val check = tea.recipeCheckReason != null
     TeaListItem(
         title = tea.name,
+        subtitle = tea.secondaryName?.takeIf { it.isNotBlank() },
         meta = listOfNotNull(tea.teaType?.takeIf { showType }, tea.originCountry, price).joinToString(separator),
         onClick = onClick,
         thumbnail = thumbnail,

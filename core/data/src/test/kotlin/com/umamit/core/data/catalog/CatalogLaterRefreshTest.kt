@@ -43,8 +43,8 @@ import java.util.concurrent.TimeUnit
  * Later refreshes against a simulated shop (#70; spec #62 seam 2; CAT-07 AC3/AC4, CAT-08, 08 §2.4,
  * 05 §4.5): MockWebServer serving a synthetic robots.txt, sitemap index, gzip url set, product
  * pages and JPEGs (D-016), an in-memory `catalog.db`, the photo folder in a temporary directory,
- * a fake clock and the collection's catalog keys. Each test runs two refreshes; every request
- * costs half a second (the real rate limit), so the shop stays small.
+ * a fake clock and the collection's catalog keys. Each test runs two refreshes; the client's
+ * request gap is shortened (the rate limit has its own tests), so no test waits on the wall clock.
  *
  * The shop of the first refresh: a Sencha, a Gyokuro, a Matcha-free Sencha sold under one number
  * per size (merged, 08 §2.4 item 7), a Kabusecha the PO owns, a Bancha nobody owns, and a black
@@ -72,6 +72,11 @@ class CatalogLaterRefreshTest {
 
     /** How often the refresh linked the seed teas (CAT-15). */
     private var seedLinks = 0
+
+    /** Whether each link was told that the refresh downloads photos (SET-22, D-090). */
+    private val seedLinkPhotos = mutableListOf<Boolean>()
+
+    private val settings = FakeSettingsRepository()
 
     private val routes = mutableMapOf<String, () -> MockResponse>()
     private val requests = CopyOnWriteArrayList<RecordedRequest>()
@@ -146,16 +151,17 @@ class CatalogLaterRefreshTest {
     }
 
     private fun refresher() = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/")),
+        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
         dao = dao,
         clock = clock,
         diagnostics = diagnostics,
-        settings = FakeSettingsRepository(),
+        settings = settings,
         photos = photos,
         sanity = SanityCheck(firstImportMinimum = 1),
         owned = OwnedCatalogKeys { owned },
-        seedTeas = CatalogSeedLinker {
+        seedTeas = CatalogSeedLinker { withPhotos ->
             seedLinks++
+            seedLinkPhotos += withPhotos
             emptyList()
         },
     )
@@ -382,9 +388,20 @@ class CatalogLaterRefreshTest {
     }
 
     @Test
+    fun theSeedLinkKnowsWhetherTheRefreshDownloadedPhotos() = runTest {
+        // A seed tea's cover is expected only from a refresh with SET-22 on (CAT-15, D-090).
+        firstRefresh()
+        settings.update { it.copy(catalogDownloadPhotos = false) }
+
+        refresher().refresh()
+
+        assertThat(seedLinkPhotos).containsExactly(true, false).inOrder()
+    }
+
+    @Test
     fun aFailingSeedLinkNeverFailsTheRefresh() = runTest {
         val refresher = CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/")),
+            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
             dao = dao,
             clock = clock,
             diagnostics = diagnostics,

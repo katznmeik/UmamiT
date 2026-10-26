@@ -27,6 +27,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -56,7 +57,7 @@ sealed interface AddFromCatalogResult {
     /** The catalog holds no tea with the key (any more); nothing was written. */
     data object NotInCatalog : AddFromCatalogResult
 
-    /** The database or the disk failed; nothing was written. */
+    /** The database or the disk failed, or an unexpected error (D-090); nothing was written. */
     data object Failed : AddFromCatalogResult
 }
 
@@ -106,6 +107,13 @@ class RoomAddFromCatalog @Inject constructor(
     } catch (_: SQLException) {
         AddFromCatalogResult.Failed
     } catch (_: IOException) {
+        AddFromCatalogResult.Failed
+    } catch (e: CancellationException) {
+        throw e
+    } catch (
+        // Rule 8: the timer runs in this process; a bug in the copy fails the add, never the app (D-090).
+        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
+    ) {
         AddFromCatalogResult.Failed
     }
 

@@ -443,7 +443,10 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
    machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
    *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
-   in its service with its notification (ONB-03, D-079).
+   in its service with its notification (ONB-03, D-079). *Katalog jetzt
+   laden* ends a seed photo download still running first, so two jobs never
+   run against the shop at once; the refresh gives the seed teas their
+   photos instead (CAT-15, D-090).
 
 ### SCR-02 Start (Home)
 
@@ -680,9 +683,10 @@ and after the first brew (D-069).
 Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
 274 Grüntees · aktualisiert am 21. Okt." (every tea of the range, whatever
 the filters); *Ratgeber* row (→ guides list); search field („Name,
-Kultivar, Region …"); a row of filter chips; rows with photo, name, origin,
-„15,90 €/100 g" and badges („Neu", „im Besitz", Bio, aromatisiert, „Rezept
-prüfen"). The filters are CAT-10's (D-076, D-083):
+Kultivar, Region …"); a row of filter chips; rows with photo, name, secondary
+name (one line, cut off when longer), *Sorte* (when the list isn't grouped by
+it), origin, „15,90 €/100 g" and badges („Neu", „im Besitz", Bio,
+aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-076, D-083):
 - **Chips** for the frequent ones: *Filter* (opens the filter sheet; shows
   how many filters differ from the default view, „Filter (2)"), „Pur",
   „Vorrätig", „Bio", „Neu", „Im Besitz".
@@ -774,6 +778,9 @@ abgerufen …", „≈ geschätzt …", „Kein Preis bekannt …"); *Kaufdatum*
 2026", today by default, never later); *Aufnehmen*. For a tea already in the
 collection the sheet is *Nachkauf erfassen* and opens on the size bought last.
 Saving never waits for a price; the sheet never covers an alert (D-085).
+While it saves, neither a swipe nor back closes it, so a failure always shows
+its message; an alert still removes it at once, and a save that fails meanwhile
+brings it back with its input and the message after the alert (D-090).
 
 ### SCR-25 Einstellungen
 
@@ -785,7 +792,8 @@ Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 *Über*; no dialog over an alert
 ([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
 between them: „Letzter Abruf" with the date of the last successful refresh
-(„21. Okt. 2026", „Noch nie") and *Jetzt aktualisieren* (SET-23, D-079).
+(„21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
+switch *Fotos laden* (SET-22, „zusammen etwa 30 MB").
 
 ### SCR-26 Daten & Sicherung
 

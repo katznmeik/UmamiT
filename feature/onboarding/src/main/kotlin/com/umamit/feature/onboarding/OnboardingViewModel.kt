@@ -71,9 +71,12 @@ class OnboardingViewModel @Inject constructor(
 
     /**
      * *Katalog jetzt laden*: the refresh starts in its own service and goes on after the setup
-     * (CAT-07 AC1); only this tap starts it (AC7).
+     * (CAT-07 AC1); only this tap starts it (AC7). The seed photo download ends first, so two jobs
+     * against the shop never run at once and a stop of one never leaves the other sending (rule 7,
+     * D-090); the refresh gives the seed teas their covers instead (CAT-15).
      */
     fun loadCatalog() {
+        firstStart.skipPhotos()
         catalogStarted.value = true
         catalog.start()
     }

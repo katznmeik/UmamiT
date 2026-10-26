@@ -82,7 +82,7 @@ import javax.inject.Inject
  *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
  *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
  *    photos of teas and the images of guides no longer in the catalog are deleted and the
- *    seed teas are linked once ([CatalogSeedLinker], CAT-15).
+ *    seed teas are linked ([CatalogSeedLinker], CAT-15; each part once, D-090).
  *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
  * storage error or a cancellation leaves the catalog, its guides **and the skip list** as they were (photos
@@ -92,7 +92,7 @@ import javax.inject.Inject
  *
  * Cancelling the calling coroutine cancels the refresh: the request in flight is cancelled, no
  * further request is sent, the run is logged as cancelled and the [CancellationException] is
- * rethrown.
+ * rethrown. Once the swap begins, a cancel changes nothing: the run returns its success (D-090).
  */
 class CatalogRefresher(
     private val client: ShopClient,
@@ -149,6 +149,8 @@ class CatalogRefresher(
         } catch (e: RunStopped) {
             failed(run, e.outcome)
         } catch (e: CancellationException) {
+            // Cancelled once the swap was in: the run is the success it is (D-086, D-090).
+            run.success?.let { return it }
             withContext(NonCancellable) {
                 end(run, CatalogRefreshStatus.CANCELLED, "cancelled after ${run.pagesLine()}")
             }
@@ -162,9 +164,10 @@ class CatalogRefresher(
                 CatalogRefreshOutcome.StorageFailed(run.details("photo storage error: ${e.javaClass.simpleName}")),
             )
         } catch (
-            @Suppress("TooGenericExceptionCaught") e: RuntimeException,
+            @Suppress("TooGenericExceptionCaught") e: Throwable,
         ) {
-            // A bug here must never take down the process the timer runs in (rule 8, CAT-07 AC8).
+            // A bug (a stack overflow in a page, …) must never take down the process the timer runs in
+            // (rule 8, CAT-07 AC8), nor skip the cleanup and the log (D-090).
             failed(run, CatalogRefreshOutcome.ShopChanged(run.details("unexpected error: ${e.javaClass.simpleName}")))
         }
     }
@@ -220,6 +223,12 @@ class CatalogRefresher(
         var skippedKnown = 0
         var photosStored = 0
         var photosMissing = 0
+
+        /** SET-22 *Katalog: Fotos laden* as this run read it. */
+        var downloadPhotos = true
+
+        /** The outcome once the swap and the steps after it are done; a cancel then changes nothing. */
+        var success: CatalogRefreshOutcome.Success? = null
         val guides = GuideCounts()
 
         /** Each base number of the staged catalog (merged split numbers too) to its tea's key (guide links). */
@@ -377,6 +386,7 @@ class CatalogRefresher(
                 is ShopFetch.Stopped -> run.stop(answer.cause, url.encodedPath)
                 ShopFetch.Disallowed -> run.shopChanged("${url.encodedPath} disallowed by robots.txt")
                 is ShopFetch.Unavailable -> run.shopChanged("${url.encodedPath} answered HTTP ${answer.code}")
+                is ShopFetch.TooLarge -> run.shopChanged(answer.line(url))
             }
 
         /**
@@ -428,6 +438,12 @@ class CatalogRefresher(
 
                 // Never sent (robots.txt) or gone (404, 3xx): only this product is left out.
                 ShopFetch.Disallowed, is ShopFetch.Unavailable -> run.unavailable++
+
+                // Over the size limit: only this product is left out, no stop (D-090).
+                is ShopFetch.TooLarge -> {
+                    log("catalog refresh: ${answer.line(url)}")
+                    run.unavailable++
+                }
             }
         }
 
@@ -507,6 +523,7 @@ class CatalogRefresher(
          */
         private suspend fun storePhotos(session: ShopSession) {
             val download = settings.settings.first().catalogDownloadPhotos
+            run.downloadPhotos = download
             for ((key, photoUrl) in run.photoUrls) {
                 if (unchangedPhoto(key, photoUrl)) {
                     run.photosKept++
@@ -554,6 +571,12 @@ class CatalogRefresher(
 
                 // Never sent (robots.txt) or gone: only this tea is left without a new photo.
                 ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
+
+                // Over the size limit: only this tea is left without a new photo, no stop (D-090).
+                is ShopFetch.TooLarge -> {
+                    log("catalog refresh: ${answer.line(url)}")
+                    false
+                }
             }
         }
 
@@ -563,7 +586,7 @@ class CatalogRefresher(
                 session = session,
                 sitemapUrls = urls,
                 catalogKeys = guideCatalogKeys(),
-                downloadImages = settings.settings.first().catalogDownloadPhotos,
+                downloadImages = run.downloadPhotos,
                 counts = run.guides,
                 onGuide = run::progress,
                 stop = run::stop,
@@ -610,10 +633,12 @@ class CatalogRefresher(
             }
             val summary = summary(gone)
             val entry = run.logEntry(CatalogRefreshStatus.SUCCESS, summary, errorSummary = null)
-            dao.swap(run.skips, entry, unchanged, discontinued)
             // The teas in the range: the staged ones and the unread ones kept (none of them discontinued).
             val teas = run.staged.size + unchanged.size
+            // The last moment a cancel ends the run: the swap and everything after it run to their end (D-090).
+            currentCoroutineContext().ensureActive()
             return withContext(NonCancellable) {
+                dao.swap(run.skips, entry, unchanged, discontinued)
                 keepPhotosOfCatalog()
                 log(
                     "catalog refresh: success, $teas teas (${summary.newTeas} new, ${summary.changedTeas} changed, " +
@@ -631,7 +656,7 @@ class CatalogRefresher(
                     changedTeas = summary.changedTeas,
                     discontinuedTeas = summary.discontinuedTeas,
                     recipesToCheck = summary.recipesToCheck,
-                )
+                ).also { run.success = it }
             }
         }
 
@@ -666,13 +691,13 @@ class CatalogRefresher(
                 bases.none { it in run.skippedBases || it in run.stagedBases }
         }
 
-        /** CAT-15 after the swap; a failure is logged and tried again after the next successful refresh. */
+        /** CAT-15 after the swap; what failed or is still to do is tried again after the next successful refresh. */
         private suspend fun linkSeedTeas() {
             try {
-                val linked = seedTeas.linkSeedTeas()
+                val linked = seedTeas.linkSeedTeas(withPhotos = run.downloadPhotos)
                 if (linked.isNotEmpty()) log("catalog refresh: seed teas linked (${linked.joinToString()})")
             } catch (
-                @Suppress("TooGenericExceptionCaught") e: Exception,
+                @Suppress("TooGenericExceptionCaught") e: Throwable,
             ) {
                 // The catalog is in; the collection's database or files failing must not undo that.
                 log("catalog refresh: seed teas not linked (${e.javaClass.simpleName})")
@@ -760,6 +785,10 @@ private fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
     variantUrl = variantUrl,
     available = available,
 )
+
+/** The diagnostics line of an answer over the client's size limit at [url] (D-090). */
+internal fun ShopFetch.TooLarge.line(url: HttpUrl): String =
+    "${url.encodedPath} over the size limit (${declaredBytes?.let { "$it bytes" } ?: "size not declared"}), left out"
 
 /** The first line of a failure's details: the log's error summary. */
 private fun CatalogRefreshOutcome.Failure.summary(): String =

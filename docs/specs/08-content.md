@@ -412,7 +412,8 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
 - **Refusals and outages:** a 401/403/5xx or a network error (offline; for
   the refresh after its retries, D-076) also stops the whole job; after any stop the job sends no further request. A
   3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
-  D-074).
+  D-074), and so does a 2xx answer over 5 MB, which is not read (a photo,
+  guide image or page; never a stop, D-090).
 - **One connection:** all requests go through a single HTTP connection,
   sequentially, at ≤ 2 requests/s.
 - **robots.txt:** rules are matched with longest-match precedence and `*` /

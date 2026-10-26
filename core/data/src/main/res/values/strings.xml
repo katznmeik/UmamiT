@@ -10,8 +10,8 @@
     <string name="data_catalog_cancel">Abbrechen</string>
     <string name="data_catalog_result_success_title">Katalog geladen</string>
     <plurals name="data_catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
     </plurals>
     <!-- The summary line after the count of green teas (CAT-07 AC3, D-086), as in the refresh sheet:
          „274 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen". -->
@@ -24,7 +24,7 @@
         <item quantity="one">%1$d Rezept prüfen</item>
         <item quantity="other">%1$d Rezepte prüfen</item>
     </plurals>
-    <string name="data_catalog_summary_unchanged">keine Änderungen</string>
+    <string name="data_catalog_summary_unchanged">keine Änderungen</string>
     <string name="data_catalog_result_failed_title">Katalog nicht geladen</string>
     <string name="data_catalog_result_kept">Dein bisheriger Katalog bleibt erhalten.</string>
     <string name="data_catalog_result_blocked">Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen.</string>

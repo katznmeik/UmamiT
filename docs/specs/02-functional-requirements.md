@@ -285,15 +285,17 @@ Katalog* (SCR-03), adding returns to the brew setup (SCR-04) with that tea
 selected; a catalog tea is never brewed without adding it.
 
 **CAT-15 — Link seed teas on first refresh** `Must`
-After the first successful catalog refresh, collection teas whose
-`catalog_key` matches a catalog entry but which have no description (the M1
-seed teas) are linked and receive the catalog description and photo
-automatically. Recipes, stock, journal entries and user edits are never
-changed. Only the seed teas Tanabata and Hisui are linked, once (marker
-`seedTeasLinked`, 05 §6): the description as plain text, the photo as the
-tea's own JPEG cover only when it has none (D-076); a seed tea with a
-description of its own is left alone; a seed created after the first
-refresh (D-075) is linked by the next one (D-086).
+After a successful catalog refresh, the M1 seed teas Tanabata and Hisui,
+whose `catalog_key` matches a catalog entry, are linked and receive the
+catalog description and photo automatically. Recipes, stock, journal entries
+and user edits are never changed. Each seed tea has two parts, each done once
+(05 §6 `seedTeaLinksDone`, D-086, D-090): the **description** as plain text,
+only when the tea has none (done once it has one, linked or its own), and the
+**photo** as the tea's own JPEG cover, only when it has none (done once it has
+one, or when the refresh loaded no photos, SET-22; D-076). A part the refresh
+couldn't give (the tea's page unread, no description or photo, a seed created
+after the first refresh, D-075) is tried again after every later successful
+refresh; a done part never again.
 
 **CAT-13 — Collection teas stay independent** `Must`
 A refresh never changes collection teas, except the one-time linking of seed

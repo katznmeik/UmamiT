@@ -44,7 +44,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * in-memory `catalog.db`, the photo folder in a temporary directory.
  *
  * The shop: a Sencha (a large landscape photo), a Gyokuro (a small portrait photo) and a black
- * tea (out of scope; its photo must never be fetched). Every request costs half a second.
+ * tea (out of scope; its photo must never be fetched). The client's request gap is shortened.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -124,7 +124,7 @@ class CatalogRefresherDetailTest {
     }
 
     private fun refresher() = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/")),
+        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
         dao = dao,
         clock = clock,
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
@@ -233,6 +233,40 @@ class CatalogRefresherDetailTest {
         assertThat(dao.tea("XY0100")?.photoFile).isNull()
         assertThat(dao.tea("XY0200")?.photoFile).isNull()
         assertThat(dao.refreshLog().single().photosCount).isEqualTo(0)
+    }
+
+    @Test
+    fun anOversizedPhotoLeavesOnlyThatTeaWithoutOneAndTheRefreshGoesOn() = runTest {
+        // Over the client's body limit, declared or not: only this URL is left out, no stop (D-090).
+        routes[photoRoute("sencha")] = { jpeg(ByteArray(OVER_LIMIT)) }
+        routes[photoRoute("gyokuro")] = {
+            MockResponse.Builder().addHeader("Content-Type", "image/jpeg")
+                .chunkedBody(Buffer().write(ByteArray(OVER_LIMIT)), CHUNK_BYTES).build()
+        }
+        product(NEW_TEA, "XY0150", SyntheticShop.SENCHA_PATH, photo = "neu")
+        routes[photoRoute("neu")] = { jpeg(syntheticJpeg(800, 600)) }
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 3, newTeas = 3))
+        assertThat(dao.tea("XY0100")?.photoFile).isNull()
+        assertThat(dao.tea("XY0200")?.photoFile).isNull()
+        // The photo after the first oversized one is still fetched and stored, and so is the next one.
+        assertThat(paths().filter { it.startsWith("/media/") })
+            .containsExactly(photoRoute("sencha"), photoRoute("neu"), photoRoute("gyokuro"))
+            .inOrder()
+        assertThat(dao.tea("XY0150")?.photoFile).isEqualTo("XY0150.webp")
+    }
+
+    @Test
+    fun anOversizedProductPageLeavesOnlyThatTeaOut() = runTest {
+        routes[GYOKURO] = { text("<html>" + "x".repeat(OVER_LIMIT) + "</html>") }
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 1, newTeas = 1))
+        assertThat(dao.tea("XY0200")).isNull()
+        assertThat(paths()).contains(photoRoute("sencha"))
     }
 
     @Test
@@ -351,6 +385,10 @@ class CatalogRefresherDetailTest {
         const val BLACK = "/abendglut-assam/XY0300"
         const val NEW_TEA = "/fruehlingshauch-sencha/XY0150"
         const val WEBP_HEADER = 12
+
+        /** One byte over the shop client's 5 MB body limit. */
+        const val OVER_LIMIT = 5 * 1024 * 1024 + 1
+        const val CHUNK_BYTES = 64 * 1024
 
         val GYOKURO_PATH = listOf(
             "Tee" to "/tee/",

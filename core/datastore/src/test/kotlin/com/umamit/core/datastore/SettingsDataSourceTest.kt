@@ -49,15 +49,17 @@ class SettingsDataSourceTest {
     }
 
     @Test
-    fun theSeedTeaLinkMarkerIsSetOnceAndSurvivesSettingsChanges() = runTest {
-        // CAT-15 links the seed teas once (#70): a settings change must never undo the marker.
+    fun theSeedTeaLinkPartsAddUpAndSurviveSettingsChanges() = runTest {
+        // CAT-15 links each part of each seed tea once (#70, D-090): a settings change must never undo one.
         val source = dataSource()
-        assertThat(source.seedTeasLinked.first()).isFalse()
+        assertThat(source.seedTeaLinksDone.first()).isEmpty()
 
-        source.markSeedTeasLinked()
+        source.markSeedTeaLinksDone(setOf("tanabata/description"))
         source.update { it.copy(catalogDownloadPhotos = false) }
+        source.markSeedTeaLinksDone(setOf("tanabata/cover", "hisui/description"))
 
-        assertThat(source.seedTeasLinked.first()).isTrue()
+        assertThat(source.seedTeaLinksDone.first())
+            .containsExactly("tanabata/description", "tanabata/cover", "hisui/description")
         assertThat(source.seedDataCreated.first()).isFalse()
     }
 
