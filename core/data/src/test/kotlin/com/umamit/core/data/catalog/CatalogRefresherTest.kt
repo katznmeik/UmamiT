@@ -39,6 +39,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
@@ -49,7 +50,8 @@ import java.util.concurrent.TimeUnit
  *
  * The shop: two green teas (a Sencha with size variants, a Gyokuro in the Japantee tree), a
  * black tea and a teapot (out of scope), a set (never fetched), a guide and category pages.
- * Every request costs half a second (the real rate limit), so the shops stay small.
+ * Only [requestsGoOutAtMostTwicePerSecondOnOneConnection] runs on the real rate limit; the other
+ * tests shorten the client's request gap, so none of them waits on the wall clock (D-090).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -65,8 +67,8 @@ class CatalogRefresherTest {
     private val dao = db.catalogDao()
     private val clock = FakeClock()
 
-    /** What the synthetic shop answers per path; unknown paths are 404. */
-    private val routes = mutableMapOf<String, () -> MockResponse>()
+    /** What the synthetic shop answers per path; unknown paths are 404 (read on the server's thread). */
+    private val routes = ConcurrentHashMap<String, () -> MockResponse>()
 
     /** Every request the shop saw, in order. */
     private val requests = CopyOnWriteArrayList<RecordedRequest>()
@@ -74,8 +76,8 @@ class CatalogRefresherTest {
     /** When the client wrote each request onto its socket (System.nanoTime), in order. */
     private val sent = CopyOnWriteArrayList<Long>()
 
-    /** The product URLs (paths) the sitemap lists. */
-    private val listed = mutableListOf<String>()
+    /** The product URLs (paths) the sitemap lists (read on the server's thread). */
+    private val listed = CopyOnWriteArrayList<String>()
 
     private val base get() = server.url("/").toString().removeSuffix("/")
 
@@ -164,16 +166,21 @@ class CatalogRefresherTest {
         }
     }
 
-    private fun refresher(sanity: SanityCheck = SanityCheck(firstImportMinimum = 1)) = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/"), socketFactory = SendTimes(sent)),
-        dao = dao,
-        clock = clock,
-        diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
-        // The photos have their own tests (CatalogRefresherDetailTest); here they would only add requests.
-        settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
-        photos = CatalogPhotoFiles(folder.newFolder()),
-        sanity = sanity,
-    )
+    private fun refresher(sanity: SanityCheck = SanityCheck(firstImportMinimum = 1), realRateLimit: Boolean = false) =
+        CatalogRefresher(
+            client = ShopClient.forTesting(
+                baseUrl = server.url("/"),
+                socketFactory = SendTimes(sent),
+                requestIntervalMillis = if (realRateLimit) null else 0,
+            ),
+            dao = dao,
+            clock = clock,
+            diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
+            // The photos have their own tests (CatalogRefresherDetailTest); here they would only add requests.
+            settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
+            photos = CatalogPhotoFiles(folder.newFolder()),
+            sanity = sanity,
+        )
 
     private fun paths() = requests.map { it.url.encodedPath }
 
@@ -248,7 +255,7 @@ class CatalogRefresherTest {
     @Test
     fun requestsGoOutAtMostTwicePerSecondOnOneConnection() = runTest {
         val start = System.nanoTime()
-        refresher().refresh()
+        refresher(realRateLimit = true).refresh()
         val end = System.nanoTime()
 
         assertThat(requests.map { it.connectionIndex }.distinct()).containsExactly(0)
@@ -280,41 +287,66 @@ class CatalogRefresherTest {
         assertThat(paths()).containsExactly(ROBOTS)
     }
 
+    // One test per stop (D-090): each one refresh after the catalog it must keep.
     @Test
-    fun eachStopKeepsTheOldCatalog() = runTest {
-        previousCatalog()
-        val skipsBefore = dao.skipList()
-        val stops = listOf(
-            stopOnPage({ MockResponse.Builder().code(403).addHeader("cf-mitigated", "challenge").build() }) to
-                CatalogRefreshOutcome.Blocked::class.java,
-            stopOnPage({ MockResponse.Builder().code(429).build() }) to CatalogRefreshOutcome.Blocked::class.java,
-            stopOnPage({ MockResponse.Builder().addHeader("Retry-After", "120").body("x").build() }) to
-                CatalogRefreshOutcome.Blocked::class.java,
-            stopOnPage({ MockResponse.Builder().code(503).build() }) to
-                CatalogRefreshOutcome.ShopUnavailable::class.java,
-            stopOnPage({ MockResponse.Builder().onResponseStart(SocketEffect.CloseSocket()).build() }) to
-                CatalogRefreshOutcome.Offline::class.java,
-        )
-        for ((stop, expected) in stops) {
-            requests.clear()
-            stop()
-
-            val outcome = refresher().refresh()
-
-            assertThat(outcome).isInstanceOf(expected)
-            assertThat(names()).containsExactly("Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
-            assertThat(dao.skipList()).isEqualTo(skipsBefore)
-            assertThat(dao.countStaged()).isEqualTo(0)
-            assertThat(dao.refreshLog().last().status).isEqualTo(CatalogRefreshStatus.FAILED)
-            // Nothing after the stop: the Gyokuro page stopped the run, the new page was never asked for.
-            assertThat(paths()).doesNotContain(NEW_TEA)
+    fun aChallengeKeepsTheOldCatalog() = runTest {
+        stopOnPageKeepsTheOldCatalog(CatalogRefreshOutcome.Blocked::class.java) {
+            MockResponse.Builder().code(403).addHeader("cf-mitigated", "challenge").build()
         }
     }
 
-    /** The shop answers [answer] on the Gyokuro page; a new tea listed after it must not be fetched. */
-    private fun stopOnPage(answer: () -> MockResponse): () -> Unit = {
+    @Test
+    fun http429KeepsTheOldCatalog() = runTest {
+        stopOnPageKeepsTheOldCatalog(CatalogRefreshOutcome.Blocked::class.java) {
+            MockResponse.Builder().code(429).build()
+        }
+    }
+
+    @Test
+    fun aRetryAfterKeepsTheOldCatalog() = runTest {
+        stopOnPageKeepsTheOldCatalog(CatalogRefreshOutcome.Blocked::class.java) {
+            MockResponse.Builder().addHeader("Retry-After", "120").body("x").build()
+        }
+    }
+
+    @Test
+    fun aServerErrorKeepsTheOldCatalog() = runTest {
+        stopOnPageKeepsTheOldCatalog(CatalogRefreshOutcome.ShopUnavailable::class.java) {
+            MockResponse.Builder().code(503).build()
+        }
+    }
+
+    @Test
+    fun aDroppedConnectionKeepsTheOldCatalog() = runTest {
+        // Every attempt (the first and the refresh's three retries, D-076) loses its connection.
+        stopOnPageKeepsTheOldCatalog(CatalogRefreshOutcome.Offline::class.java) {
+            MockResponse.Builder().onResponseStart(SocketEffect.CloseSocket()).build()
+        }
+    }
+
+    /**
+     * After a first refresh, the shop answers [answer] on the Gyokuro page: the run ends as
+     * [expected] with the old catalog, its skip list and no staging left, and a new tea listed
+     * after the Gyokuro is never asked for.
+     */
+    private suspend fun TestScope.stopOnPageKeepsTheOldCatalog(
+        expected: Class<out CatalogRefreshOutcome>,
+        answer: () -> MockResponse,
+    ) {
+        previousCatalog()
+        val skipsBefore = dao.skipList()
         routes[GYOKURO] = answer
-        if (NEW_TEA !in listed) product(NEW_TEA, "Frühlingshauch Shincha – 100g", "XY0600", SHINCHA_PATH)
+        product(NEW_TEA, "Frühlingshauch Shincha – 100g", "XY0600", SHINCHA_PATH)
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isInstanceOf(expected)
+        assertThat(names()).containsExactly("Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
+        assertThat(dao.skipList()).isEqualTo(skipsBefore)
+        assertThat(dao.countStaged()).isEqualTo(0)
+        assertThat(dao.refreshLog().last().status).isEqualTo(CatalogRefreshStatus.FAILED)
+        // Nothing after the stop: the Gyokuro page stopped the run, the new page was never asked for.
+        assertThat(paths()).doesNotContain(NEW_TEA)
     }
 
     @Test
@@ -339,6 +371,30 @@ class CatalogRefresherTest {
             assertThat(outcome.details).contains(cause.name)
             assertThat(paths()).containsExactly(ROBOTS)
         }
+    }
+
+    @Test
+    fun anErrorInTheRunStillCleansUpAndLogsIt() = runTest {
+        // A stack overflow or similar Error must not skip the cleanup and the log (D-090); rule 8 as before.
+        previousCatalog()
+        val refresher = CatalogRefresher(
+            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
+            dao = dao,
+            clock = clock,
+            diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
+            settings = FakeSettingsRepository(UserSettings(catalogDownloadPhotos = false)),
+            photos = CatalogPhotoFiles(folder.newFolder()),
+            sanity = SanityCheck(firstImportMinimum = 1),
+            owned = OwnedCatalogKeys { throw StackOverflowError("deeply nested") },
+        )
+
+        val outcome = refresher.refresh()
+
+        assertThat(outcome).isInstanceOf(CatalogRefreshOutcome.ShopChanged::class.java)
+        assertThat((outcome as CatalogRefreshOutcome.ShopChanged).details).contains("StackOverflowError")
+        assertThat(names()).containsExactly("Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
+        assertThat(dao.countStaged()).isEqualTo(0)
+        assertThat(dao.refreshLog().last().status).isEqualTo(CatalogRefreshStatus.FAILED)
     }
 
     @Test

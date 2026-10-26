@@ -42,7 +42,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  *
  * The shop: one Sencha (without a photo, so the guides' requests stand out), a Sencha guide with
  * a hero, a gallery image and links to the tea, the other guide and the web; a Matcha guide
- * without images; a black-tea article no keyword selects. Every request costs half a second.
+ * without images; a black-tea article no keyword selects. The client's request gap is shortened.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -123,7 +123,7 @@ class CatalogRefresherGuidesTest {
     )
 
     private fun refresher(limits: GuideLimits = GuideLimits.DEFAULT) = CatalogRefresher(
-        client = ShopClient.forTesting(baseUrl = server.url("/")),
+        client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
         dao = dao,
         clock = clock,
         diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),
@@ -179,6 +179,20 @@ class CatalogRefresherGuidesTest {
             }.linkedCatalogKeys,
         ).isEqualTo("[\"XY0100\"]")
         assertThat(requireNotNull(repository().observeGuide("matcha-erklaert").first()).heroPath).isNull()
+    }
+
+    @Test
+    fun anOversizedGuideImageIsLeftOutAndTheRefreshGoesOn() = runTest {
+        // Over the client's body limit: only this image is left out, no stop (D-090).
+        routes[imageRoute("hero")] = { jpeg(ByteArray(OVER_LIMIT)) }
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 1, newTeas = 1))
+        assertThat(paths().last()).isEqualTo(imageRoute("kanne"))
+        val sencha = requireNotNull(repository().observeGuide("ein-guide-fuer-sencha").first())
+        assertThat(sencha.heroPath).isNull()
+        assertThat(sencha.body.blocks.filterIsInstance<GuideBlock.Image>()).hasSize(1)
     }
 
     @Test
@@ -322,5 +336,8 @@ class CatalogRefresherGuidesTest {
         const val SENCHA_GUIDE = "/tee-info/ein-guide-fuer-sencha"
         const val MATCHA_GUIDE = "/tee-info/matcha-erklaert"
         const val BLACK_TEA_GUIDE = "/tee-info/schwarztee-geschichte"
+
+        /** One byte over the shop client's 5 MB body limit. */
+        const val OVER_LIMIT = 5 * 1024 * 1024 + 1
     }
 }

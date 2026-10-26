@@ -282,11 +282,31 @@ class ShopSessionTest {
     }
 
     @Test
-    fun anOversizedAnswerIsNeverRetried() = runTest {
-        routes[PAGE] = { MockResponse.Builder().body(Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))).build() }
+    fun anOversizedAnswerLeavesOnlyThatUrlOutAndIsNeverRetried() = runTest {
+        // A photo over the body limit is no stop (D-090): the job goes on with the next URL.
+        val tooBig = Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))
+        routes[PAGE] = { MockResponse.Builder().body(tooBig.copy()).build() }
+        routes[IMAGE] = { MockResponse.Builder().chunkedBody(tooBig.copy(), CHUNK_BYTES).build() }
+        routes[OTHER] = { ok("other") }
         val session = ShopSession.open(client(), NetworkRetry.REFRESH)
 
-        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.Stopped(StopCause.NETWORK))
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(MAX_BODY_BYTES + 1))
+        assertThat(session.fetch(session.resolve(IMAGE))).isEqualTo(ShopFetch.TooLarge(declaredBytes = null))
+        assertThat(session.stopCause).isNull()
+        assertThat(session.fetch(session.resolve(OTHER))).isInstanceOf(ShopFetch.Fetched::class.java)
+        assertThat(requested).containsExactly(ROBOTS, PAGE, IMAGE, OTHER).inOrder()
+    }
+
+    @Test
+    fun anOversizedRefusalStillStops() = runTest {
+        // A 503 too large to look for challenge markers is still the shop refusing (08 §2.8).
+        routes[PAGE] = {
+            MockResponse.Builder().code(503).body(Buffer().write(ByteArray(MAX_BODY_BYTES.toInt() + 1))).build()
+        }
+        val session = openSession()
+
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.Stopped(StopCause.HTTP_ERROR))
+        assertThat(session.fetch(session.resolve(OTHER))).isEqualTo(ShopFetch.Stopped(StopCause.HTTP_ERROR))
         assertThat(requested).containsExactly(ROBOTS, PAGE).inOrder()
     }
 
@@ -323,6 +343,7 @@ class ShopSessionTest {
         const val BLOCK_SECONDS = 10L
         const val QUEUE_MS = 300L
         const val AFTER_STOP_MS = 700L
+        const val CHUNK_BYTES = 64 * 1024
 
         /** Every stop answer of 08 §2.8 and D-050 with the cause it gives. */
         val STOPS: List<Pair<() -> MockResponse, StopCause>> = listOf(

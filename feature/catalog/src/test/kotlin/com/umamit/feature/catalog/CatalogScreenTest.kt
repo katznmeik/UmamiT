@@ -92,11 +92,28 @@ class CatalogScreenTest {
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(276, 12, 5, 2, 3)))
 
         compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG)
-            .assertTextEquals(nbsp("276 Grüntees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
+            .assertTextEquals(nbsp("276_Grüntees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 1, newTeas = 0, recipesToCheck = 1)))
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1 Grüntee_· 1_Rezept_prüfen"))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1_Grüntee_· 1_Rezept_prüfen"))
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 0)))
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274 Grüntees_· keine Änderungen"))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274_Grüntees_· keine_Änderungen"))
+    }
+
+    @Test
+    fun aRowShowsTheTeasSecondaryName() {
+        // CAT-10, spec #62 story 17: photo, name, secondary name, type, origin, price and chips (D-090).
+        repository.catalog.value = CatalogOverview(
+            teas = listOf(
+                catalogTea("XY0100", "Morgennebel Sencha", secondaryName = "Asagiri"),
+                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600),
+            ),
+            lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+        )
+
+        show()
+
+        compose.onNodeWithText("Asagiri").assertIsDisplayed()
+        compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
     }
 
     @Test
@@ -122,13 +139,13 @@ class CatalogScreenTest {
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2)))
         compose.onNodeWithText(str(R.string.catalog_refresh_success_title)).assertIsDisplayed()
         // The first load: every tea is new, so the summary only counts them (CAT-07 AC3, #70).
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2 Grüntees")
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2\u00A0Grüntees")
         compose.onNodeWithText(str(R.string.catalog_refresh_done)).performClick()
         compose.waitForIdle()
 
         assertThat(runner.acknowledgements).isEqualTo(1)
         sheet().assertDoesNotExist()
-        compose.onNodeWithText("Tee-Kontor Kiel · 2 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
         compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
         compose.onNodeWithText("12,40 €/100 g").assertIsDisplayed()
         compose.onNodeWithText("36,00 €/100 g").assertIsDisplayed()

@@ -71,12 +71,16 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         private val PURCHASE_DAY: LocalDate = LocalDate.of(2026, 10, 22)
 
         private val TEAS = listOf(
-            catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha")
+            catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha", secondaryName = "朝霧")
                 .copy(originCountry = "Japan", isOrganic = true, owned = true),
             catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600, thumbnailPath = "gyokuro")
-                .copy(originCountry = "Japan", isNew = true),
-            catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190)
-                .copy(originCountry = "Japan", recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+                .copy(secondaryName = "Tamatsuyu", originCountry = "Japan", isNew = true),
+            catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190).copy(
+                // The worst case: a secondary name longer than one line is cut off (CAT-10, D-090).
+                secondaryName = "Haru no ibuki ichiban-cha aus dem Hochland von Kagoshima",
+                originCountry = "Japan",
+                recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT,
+            ),
             catalogTea("XY0400", "Kirschblüte", teaType = null, basePriceCentsPer100g = 790)
                 .copy(originCountry = "China", isFlavored = true),
             catalogTea("XY0500", "Wolkenberg Matcha", "Matcha Teepulver", 12_995, thumbnailPath = "matcha")

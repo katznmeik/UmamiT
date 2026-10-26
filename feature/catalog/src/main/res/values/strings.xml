@@ -11,8 +11,8 @@
     <string name="catalog_header">Tee-Kontor Kiel · %1$s · aktualisiert am %2$s</string>
     <string name="catalog_header_undated">Tee-Kontor Kiel · %1$s</string>
     <plurals name="catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
     </plurals>
     <!-- A row's price (CAT-10): „15,90 €/100 g". -->
     <string name="catalog_price_per_100g">%1$s €/100 g</string>
@@ -36,7 +36,7 @@
     <string name="catalog_filter_sort">Sortierung</string>
     <string name="catalog_sort_type">Sorte</string>
     <string name="catalog_sort_name">Name</string>
-    <string name="catalog_sort_price">Preis pro 100 g</string>
+    <string name="catalog_sort_price">Preis pro 100 g</string>
     <string name="catalog_filter_types">Sorte</string>
     <string name="catalog_filter_origins">Herkunft</string>
     <string name="catalog_filter_flavour">Aroma</string>
@@ -84,7 +84,7 @@
         <item quantity="one">%1$d Rezept prüfen</item>
         <item quantity="other">%1$d Rezepte prüfen</item>
     </plurals>
-    <string name="catalog_refresh_summary_unchanged">keine Änderungen</string>
+    <string name="catalog_refresh_summary_unchanged">keine Änderungen</string>
     <string name="catalog_refresh_cancelled_title">Laden abgebrochen</string>
     <string name="catalog_refresh_failed_title">Katalog nicht geladen</string>
     <string name="catalog_refresh_kept">Dein bisheriger Katalog bleibt erhalten.</string>

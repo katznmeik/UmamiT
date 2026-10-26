@@ -106,7 +106,7 @@ data class AddSheetState(
     /** Chooses size [index] (`sizes.size`: the custom amount); its price replaces the field's. */
     fun select(index: Int): AddSheetState = copy(
         selected = index.coerceIn(0, sizes.size),
-        price = sizes.getOrNull(index)?.priceCents?.let(CatalogFormat::euros).orEmpty(),
+        price = sizes.getOrNull(index)?.priceCents?.let(CatalogFormat::editableEuros).orEmpty(),
         priceEdited = false,
         failed = false,
     )
@@ -135,7 +135,7 @@ data class AddSheetState(
         return if (cents != null && index == selected &&
             !priceEdited
         ) {
-            next.copy(price = CatalogFormat.euros(cents))
+            next.copy(price = CatalogFormat.editableEuros(cents))
         } else {
             next
         }
@@ -149,6 +149,10 @@ data class AddSheetState(
         private const val CENT_DIGITS = 2
         private val AMOUNT = Regex("""\d{1,6}(?:[.,]\d{1,2})?""")
         private val GRAMS = Regex("""\d{1,5}(?:[.,]\d)?""")
+
+        /** German thousands groups (D-090): „1.234,50", „1.234", „10.000". */
+        private val GROUPED_AMOUNT = Regex("""\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?""")
+        private val GROUPED_GRAMS = Regex("""\d{1,2}(?:\.\d{3})+(?:,\d)?""")
         private const val SAME_GRAMS = 0.01
 
         /**
@@ -183,18 +187,22 @@ data class AddSheetState(
             ).select(selected)
         }
 
-        /** „12,40", „12.4", „12" → cents; null when blank or no amount. */
+        /** „12,40", „12.4", „12", „1.234,50" → cents; null when blank or no amount. */
         fun parseCents(text: String): Long? {
-            val bare = text.replace("€", "").trim()
+            val bare = ungrouped(text.replace("€", "").trim(), GROUPED_AMOUNT)
             if (!AMOUNT.matches(bare)) return null
             return BigDecimal(bare.replace(',', '.')).movePointRight(CENT_DIGITS).toLong()
         }
 
-        /** „250", „37,5" → grams in (0, 10 000]; null otherwise. */
+        /** „250", „37,5", „1.000" → grams in (0, 10 000]; null otherwise. */
         fun parseGrams(text: String): Double? {
-            val bare = text.replace("g", "").trim()
+            val bare = ungrouped(text.replace("g", "").trim(), GROUPED_GRAMS)
             if (!GRAMS.matches(bare)) return null
             return bare.replace(',', '.').toDouble().takeIf { it > 0.0 && it <= MAX_GRAMS }
         }
+
+        /** [text] without its German thousands separators when [grouped] matches it; else as it is. */
+        private fun ungrouped(text: String, grouped: Regex): String =
+            if (grouped.matches(text)) text.replace(".", "") else text
     }
 }

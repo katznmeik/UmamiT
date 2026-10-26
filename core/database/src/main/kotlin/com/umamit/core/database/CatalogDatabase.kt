@@ -48,7 +48,7 @@ abstract class CatalogDatabase : RoomDatabase() {
 
 /**
  * Every migration of `catalog.db` (05 §9). [catalogDatabaseBuilder] registers exactly these, and
- * `CatalogSchemaVersionsTest` opens a database of every committed schema version with it. Empty
+ * `CatalogSchemaTest` opens a database of every committed schema version with it. Empty
  * while the schema is at version 1.
  */
 internal val CATALOG_MIGRATIONS: List<Migration> = emptyList()

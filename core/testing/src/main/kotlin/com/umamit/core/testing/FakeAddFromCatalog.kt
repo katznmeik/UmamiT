@@ -25,11 +25,15 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
 
     var failNext = false
 
+    /** While set, each [add] waits for it: a save that takes its time. */
+    var gate: CompletableDeferred<Unit>? = null
+
     override fun observeOwner(catalogKey: String): Flow<String?> = collection.teas.observeTeas()
         .map { teas -> teas.firstOrNull { it.tea.catalogKey == catalogKey }?.tea?.id }
         .distinctUntilChanged()
 
     override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult {
+        gate?.await()
         if (failNext) {
             failNext = false
             return AddFromCatalogResult.Failed

@@ -215,7 +215,7 @@ class CatalogRefreshServiceTest {
         // The summary of CAT-07 AC3, as the refresh sheet shows it (#70).
         assertThat(result.text())
             .isEqualTo(
-                "276 Grüntees\u00A0· 12\u00A0neu\u00A0· 5\u00A0geändert\u00A0· " +
+                "276\u00A0Grüntees\u00A0· 12\u00A0neu\u00A0· 5\u00A0geändert\u00A0· " +
                     "2\u00A0nicht\u00A0mehr\u00A0im\u00A0Sortiment\u00A0· 3\u00A0Rezepte\u00A0prüfen",
             )
         assertThat(result.flags and Notification.FLAG_AUTO_CANCEL).isNotEqualTo(0)
@@ -251,7 +251,7 @@ class CatalogRefreshServiceTest {
         assertThat(shadow.isForegroundStopped).isTrue()
         assertThat(shadow.isStoppedBySelf).isTrue()
         // A first load: every tea is new, so the summary doesn't say so.
-        assertThat(posted(CatalogNotifications.ID_RESULT)?.text()).isEqualTo("2 Grüntees")
+        assertThat(posted(CatalogNotifications.ID_RESULT)?.text()).isEqualTo("2\u00A0Grüntees")
     }
 
     @Test

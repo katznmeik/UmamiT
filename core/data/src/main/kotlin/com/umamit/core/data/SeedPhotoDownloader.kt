@@ -156,7 +156,7 @@ class SeedPhotoDownloader @Inject constructor(
             if (stop != null) break
             state.value = Running(current = index + 1, total = pending.size)
             val (teaId, path) = photo
-            // A disallowed path is never fetched; a 404 or a bad image leaves only this photo out.
+            // A disallowed path is never fetched; a 404, an oversized answer or a bad image leaves only this photo out.
             when (val answer = session.fetch(session.resolve(path))) {
                 is ShopFetch.Fetched -> when (store(teaId, answer.body)) {
                     StoreResult.STORED -> stored++
@@ -166,7 +166,8 @@ class SeedPhotoDownloader @Inject constructor(
 
                 is ShopFetch.Stopped -> stop = failureCause(answer.cause)
 
-                ShopFetch.Disallowed, is ShopFetch.Unavailable -> Unit
+                // Gone, disallowed or over the size limit (D-090): only this photo is left out.
+                ShopFetch.Disallowed, is ShopFetch.Unavailable, is ShopFetch.TooLarge -> Unit
             }
         }
         return stop?.let(::Failed) ?: Done(stored)

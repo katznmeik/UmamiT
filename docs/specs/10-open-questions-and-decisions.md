@@ -302,6 +302,86 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-090"></a>
+### D-090 — M2 milestone review fixes (spec #62, PR #78; CAT-07, CAT-10, CAT-12, CAT-15; amends D-086) · *Accepted* (Claude, 2026-10-26)
+
+The T4 milestone review of M2 (areas A: network, refresh, data; B: UI,
+navigation, strings) found three Should items in each area and a set of
+Optional ones. Fixed test-first; decided:
+
+- **Oversized answers (A-S1):** a 2xx answer over the client's 5 MB body
+  limit is not read and becomes `ShopFetch.TooLarge`: only that URL is left
+  out (a photo or guide image is missing, a product page counts as
+  unavailable, the sitemap means „shop changed"), never a stop, never
+  retried, logged with its declared size. A non-2xx answer over the limit
+  counts by its status (a 503 still stops). Before, one oversized photo ended
+  every refresh as „offline" (08 §2.8, 06 §4). Aligning the limit with the
+  40 MP source limit waits for the full live run's largest photo.
+- **CAT-15 per seed tea and part (A-S2, amends D-086):** the single
+  `seedTeasLinked` marker is replaced by `seedTeaLinksDone` (05 §6, never
+  released): per seed tea, the *description* is done once the tea has one
+  (linked, or its own, which is never overwritten) and the *cover* once it
+  has one (linked, from the seed photo download or its own) or the refresh
+  loaded no photos (SET-22 off). A part not done — the tea's page unread on
+  the first refresh, no description or photo in the catalog, a seed created
+  later by the D-075 retry — is tried again after every later successful
+  refresh; a done part never again, so a description the PO empties later
+  stays empty. A seed tea with a description of its own still gets the
+  catalog photo when it has no cover. Each tea is still one transaction that
+  checks again, and the parts are marked after it (idempotent).
+- **No crash from a live page outside the refresh (A-S3, rule 8):** the exact
+  price fetch catches everything but a cancellation (the parser's stack
+  overflow included), keeps the estimate and logs one line; *In Sammlung
+  aufnehmen* maps an unexpected `RuntimeException` to „Failed", writing
+  nothing.
+- **The two flaky tests (T1):** `CatalogRefresherTest.eachStopKeepsTheOldCatalog`
+  ran six refreshes on the real 500 ms request gap (≈ 15 s) and exceeded
+  `runTest`'s 60 s under load; it is split into one test per stop, and the
+  refresh tests that don't measure the rate use a client with a shortened
+  gap (`ShopClient.forTesting(requestIntervalMillis)`), so no test waits on
+  the wall clock (only `requestsGoOutAtMostTwicePerSecondOnOneConnection`
+  keeps the real limiter). `ExactPricesTest.onlineTheSizesPageGivesTheExactPrice`
+  passed 120 of 120 runs here (60 under CPU load, 60 inside the whole suite),
+  so its cause is inferred, not reproduced: the same real-time dependence. It
+  was the only plain-JVM shop test, so it loaded the client and the server
+  cold in the app class loader of the overloaded test JVM in which the test
+  above timed out, and with `NetworkRetry.NONE` one stall past OkHttp's 10 s
+  read timeout gives no price. It now runs under Robolectric
+  like the other shop tests (warm, shared sandbox), on the shortened gap, and
+  its assertions name the session's diagnostics. The shop client's dispatcher
+  thread is a daemon, so test clients never keep a JVM alive.
+- **Backs and taps act only on the resumed screen (B-S1, B-O1):** every
+  on-screen back/up in the tab stacks and the root (setup, quick timer,
+  settings, *Über*, diagnostics, tea detail, guides) is wrapped in
+  `dropUnlessResumed`, and a catalog row, the *Ratgeber* row and a guide's
+  links act only while their screen is resumed; a quick double tap no longer
+  pops a tab's start screen (a blank tab or app) or pushes a screen twice. A
+  guide's link to itself opens nothing.
+- **Secondary name in the catalog rows (B-S2):** CAT-10 and spec #62
+  story 17 stand; the row shows it on one line under the name (cut off when
+  longer), and 03 SCR-19 says so again.
+- **Refresh runner (A-O1):** a start while a cancelled refresh still cleans up
+  starts nothing, and an ended run's completion never overwrites the next
+  run's state.
+- **Stale connections (A-O6):** the client keeps an idle connection for 30 s
+  instead of 5 min, since its connection retries are off.
+- **Setup page 3 (B-O8):** *Katalog jetzt laden* ends a seed photo download
+  still running before the refresh starts, so two shop jobs never overlap and
+  a stop of one never leaves the other sending (rule 7); CAT-15 gives the
+  covers.
+- **Add sheet (B-O2, B-O3):** while it saves, neither a swipe nor back
+  closes it; an alert still removes it at once (rule 8), and a save that
+  fails meanwhile brings it back with its input and the message after the
+  alert; a started save runs to its end. The editable price is written
+  without thousands separators („1234,50"), and „1.234,50" or „1.000" g typed
+  the German way are read.
+- **Texts (B-O9, B-O10):** counts and units keep a no-break space („276
+  Grüntees", „keine Änderungen", „100 g", „30 MB"); Settings says the first
+  load takes about a quarter of an hour and later ones a few minutes.
+- **On-device checklist (B-S4):** 09 §4 M2 gains installing over `v0.1.0`
+  with data kept, the seed teas after the first load (as far as M2 shows
+  them) and *Nachkauf erfassen* on Tanabata.
+
 <a id="d-089"></a>
 ### D-089 — Parser fixes from live sample 2 (spec #62; CAT-03, CAT-05, CAT-06, CAT-09) · *Accepted* (Claude, 2026-10-25)
 
@@ -451,7 +531,7 @@ the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
   and local files, so it works offline after a refresh.
 
 <a id="d-086"></a>
-### D-086 — Later catalog refreshes: summary, discontinued teas, seed teas linked (#70) · *Accepted* (Claude, 2026-10-25)
+### D-086 — Later catalog refreshes: summary, discontinued teas, seed teas linked (#70) · *Accepted*, CAT-15 part amended by D-090 (Claude, 2026-10-25)
 
 The seventh M2 slice (spec #62, #70) makes a refresh of an existing catalog
 cheaper and tells what changed (CAT-07 AC3/AC4, CAT-08, CAT-15). Decided
@@ -975,6 +1055,12 @@ was never retried after *Weiter*, so Start and the tea picker stayed empty.
   come with the first catalog refresh (CAT-15).
 - Instrumented tests mark the seed done before the setup (`SetupDoneRule`),
   so the retry never seeds in the emulator.
+- **The #58 fixes of M2-11** ship with it (recorded here since D-090): the
+  navigation labels stay on one line and shrink to fit at a large font scale
+  („Sammlung" at 200 %, 03 §6), the tea picker sheet uses the page's
+  `surface` colour, a no-break space joins a number and its unit („80 °C",
+  „4,0 g") with „Std."/„Min." everywhere, and list separators come from
+  `strings.xml`.
 
 <a id="d-074"></a>
 ### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted* (Claude, 2026-10-25)
@@ -3239,6 +3325,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | D-090: M2 milestone review fixes — an answer over 5 MB leaves only its URL out (no stop), CAT-15 per seed tea and part with retries (`seedTeaLinksDone`, amends D-086), the exact price and the add never crash on a bad page, the two flaky tests made clock-independent (split, shortened request gap, Robolectric), on-screen backs and row/link taps only while resumed, the secondary name back in the catalog rows, no refresh start during a cancelled one's cleanup, a 30 s keep-alive, seed photos ended before a setup refresh, the add sheet's save outcome kept and prices from 1.000 €, no-break spaces in counts, the first-load duration in Settings, three M2 checklist items; 02 CAT-15, 03 SCR-01, SCR-19, SCR-23, 05 §6, 06 §4, 08 §2.8 and 09 §4 updated. |
 | 2026-10-25 | D-089: parser fixes from live sample 2 — Japan teas on tea-family pages kept by name or badge (Sorte from the name), Bi Lo Chun and Korean grade keywords, the China grid row as Gongfu, Mizudashi bags by name with the „kalt" row as cold brew and bag weights, video pointers never brewing prose, harvest year only from badge and title, no cold brew for powder, guides without comments, date list, empty video intros and tag lines, images de-duplicated by decoded URL, promotions/events/recipes not selected and ten more green-type keywords; parser v5; 05 §4.1 and 08 §2.3–§2.7 updated. |
 | 2026-10-25 | D-088: brewing a new tea from the picker (#72) — *Aus dem Katalog* runs through Sammlung › Katalog in the Sammlung tab, a save there opens the setup of that tea (a repurchase too), back returns to the picker, an alert wins; the setup shows „Rezept prüfen" with its reason above the steps; the „Gespeichert" sheet's *Rezept passt* clears the flag of that tea only; 03 SCR-03, SCR-04, SCR-06 updated. |
 | 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 40 guides with ≤ 4 images each, ≤ 200 requests on a first refresh, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |

@@ -35,8 +35,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  * MockWebServer serving synthetic pages and sitemaps (D-016), an in-memory `catalog.db`, photos off.
  *
  * The shop: a Sencha with a page per size in the sitemap (10, 50 and 250 g besides its own 100 g),
- * and a Matcha sold under one article number per size (30 g and 100 g). Every request costs half
- * a second.
+ * and a Matcha sold under one article number per size (30 g and 100 g). The client's request gap
+ * is shortened.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -110,7 +110,7 @@ class CatalogRefresherPackagesTest {
     private suspend fun refresh(): CatalogRefreshOutcome {
         settings.update { it.copy(catalogDownloadPhotos = false) }
         return CatalogRefresher(
-            client = ShopClient.forTesting(baseUrl = server.url("/")),
+            client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
             dao = dao,
             clock = FakeClock(),
             diagnostics = DiagnosticsLog(folder.newFolder(), maxBytes = 100_000, dispatcher = Dispatchers.IO),

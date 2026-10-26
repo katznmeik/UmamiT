@@ -48,11 +48,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -208,10 +212,13 @@ internal fun UmamitApp(
                                         scrollToTopRequest = scrollToTop,
                                         alerting = alerting,
                                         refreshRequest = catalogRefreshRequest,
-                                        openTea = { key ->
+                                        // Only from the resumed list: a double tap opens one detail (D-090).
+                                        openTea = resumedOnly { key ->
                                             controllers.getValue(Tab.Collection).navigate(CatalogTeaRoute(key))
                                         },
-                                        openGuides = { controllers.getValue(Tab.Collection).navigate(GuidesRoute) },
+                                        openGuides = dropUnlessResumed {
+                                            controllers.getValue(Tab.Collection).navigate(GuidesRoute)
+                                        },
                                     ),
                                 )
                             },
@@ -234,6 +241,8 @@ internal fun UmamitApp(
                                         scrollToTopRequest = scrollToTop,
                                         showJournal = { selected = Tab.Journal },
                                         openCatalog = {
+                                            // The list, not a screen left open in Sammlung (D-090).
+                                            controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
                                             segment = CollectionSegment.Catalog
                                             selected = Tab.Collection
                                         },
@@ -329,10 +338,7 @@ private class CatalogBrewFlow(
         pickerReturn = false
     }
 
-    // Only a stack deeper than its root is popped: a tab never shown has no graph yet.
-    private fun popToRoot() {
-        if (collection.previousBackStackEntry != null) collection.popBackStack(Tab.Collection.root, inclusive = false)
-    }
+    private fun popToRoot() = collection.popToRoot(Tab.Collection)
 
     companion object {
         fun saver(collection: NavHostController) = listSaver<CatalogBrewFlow, Boolean>(
@@ -420,24 +426,30 @@ private fun TabHost(
                 onRefreshCatalog = onRefreshCatalog,
             )
         }
-        // The add sheet (SCR-23) gives way to an alert (rule 8).
-        composable<CatalogTeaRoute> { catalogTea { navController.popBackStack() } }
+        // The add sheet (SCR-23) gives way to an alert (rule 8). Every on-screen back acts only while its
+        // screen is resumed: a quick double tap on a leaving screen never pops the tab's start (D-090).
+        composable<CatalogTeaRoute> { catalogTea(dropUnlessResumed { navController.popBackStack() }) }
         composable<GuidesRoute> {
-            catalogScreens.guides({ navController.popBackStack() }, { navController.navigate(GuideRoute(it)) })
+            catalogScreens.guides(
+                dropUnlessResumed { navController.popBackStack() },
+                resumedOnly { navController.navigate(GuideRoute(it)) },
+            )
         }
         // A tea linked from a guide is the same detail: in the picker's flow its save opens the setup (D-088).
-        composable<GuideRoute> {
+        // A link to the article itself (an anchor in it) opens nothing (D-090).
+        composable<GuideRoute> { entry ->
+            val slug = entry.toRoute<GuideRoute>().slug
             catalogScreens.guide(
-                { navController.popBackStack() },
-                { navController.navigate(CatalogTeaRoute(it)) },
-                { navController.navigate(GuideRoute(it)) },
+                dropUnlessResumed { navController.popBackStack() },
+                resumedOnly { navController.navigate(CatalogTeaRoute(it)) },
+                resumedOnly { if (it != slug) navController.navigate(GuideRoute(it)) },
             )
         }
         composable<StatsRoute> { StatsScreen(openSettings, scrollToTopRequest = scrollToTopRequest) }
         composable<SettingsRoute> {
             settings.screen(
                 SettingsHost(
-                    onBack = { navController.popBackStack() },
+                    onBack = dropUnlessResumed { navController.popBackStack() },
                     onOpenAbout = { navController.navigate(AboutRoute) },
                     alertKey = alertKey,
                     scrollToTopRequest = scrollToTopRequest,
@@ -447,14 +459,29 @@ private fun TabHost(
         composable<AboutRoute> {
             settings.about(
                 AboutHost(
-                    onBack = { navController.popBackStack() },
+                    onBack = dropUnlessResumed { navController.popBackStack() },
                     onRerunSetup = settings.onRerunSetup,
                     onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
                 ),
             )
         }
-        composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
+        composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
     }
+}
+
+/** Pops this tab's stack to [tab]'s root; a tab never shown has no graph yet, so only a deeper stack is popped. */
+private fun NavHostController.popToRoot(tab: Tab) {
+    if (previousBackStackEntry != null) popBackStack(tab.root, inclusive = false)
+}
+
+/**
+ * [action] that acts only while the screen it was composed in is resumed (as [dropUnlessResumed]
+ * for a callback with an argument): a quick double tap on a row or link navigates once (D-090).
+ */
+@Composable
+private fun <T> resumedOnly(action: (T) -> Unit): (T) -> Unit {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    return { if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) action(it) }
 }
 
 /**

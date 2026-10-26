@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
+import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.TestClocks
 import com.umamit.core.data.TestDatabase
 import com.umamit.core.data.TimerDriver
@@ -32,6 +33,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
@@ -296,6 +298,29 @@ class AddFromCatalogTest {
         assertThat(recipes.count { it.isDefault }).isEqualTo(1)
         assertThat(recipes.first { it.isDefault }.method).isEqualTo(BrewMethod.KYUSU)
         assertThat(recipes.map { it.source }.distinct()).containsExactly(RecipeSource.STYLE_DEFAULT)
+    }
+
+    @Test
+    fun `an unexpected error writes nothing and ends as failed instead of crashing`() = runTest {
+        // Rule 8: the add runs in the process the timer runs in; a bug becomes „Failed" (D-090).
+        catalog(sencha() to packages())
+        val broken = object : TeaRepository by data.teas {
+            override suspend fun saveTea(tea: Tea) = throw IllegalStateException("a bug")
+        }
+        val add = RoomAddFromCatalog(
+            db = data.db,
+            teas = broken,
+            recipes = data.recipes,
+            stock = data.stock,
+            catalog = catalogDb.catalogDao(),
+            catalogPhotos = catalogPhotos,
+            photoFiles = photoFiles,
+            time = clock,
+        )
+
+        assertThat(add.add(purchase())).isEqualTo(AddFromCatalogResult.Failed)
+        assertThat(data.teas.observeTeas().first()).isEmpty()
+        assertThat(photoFiles.dir.listFiles().orEmpty()).isEmpty()
     }
 
     @Test

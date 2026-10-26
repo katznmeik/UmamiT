@@ -40,9 +40,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * CAT-15 on both databases (#70; spec #62 seam 3): after the first successful refresh the seed
- * teas Tanabata and Hisui get the catalog's description and, without a cover, its photo as their
- * own JPEG (D-076); their recipes, stock and journal stay as they were, and it happens once.
+ * CAT-15 on both databases (#70; spec #62 seam 3): after a successful refresh the seed teas
+ * Tanabata and Hisui get the catalog's description and, without a cover, its photo as their own
+ * JPEG (D-076); their recipes, stock and journal stay as they were. Each part of each seed tea is
+ * done once (D-090): a part the refresh couldn't give (no catalog entry, no description, no photo)
+ * is tried again after every later successful refresh, a done one never again.
  * An in-memory `umamit.db` with the seed data, an in-memory `catalog.db`, both photo folders in
  * a temporary directory.
  */
@@ -64,8 +66,8 @@ class CatalogSeedLinkTest {
     private lateinit var photoFiles: PhotoFiles
     private lateinit var journal: JournalRepository
 
-    /** The settings file's marker, kept across [linker]s as across process starts. */
-    private val linked = MutableStateFlow(false)
+    /** The settings file's done parts, kept across [linker]s as across process starts. */
+    private val done = MutableStateFlow(emptySet<String>())
 
     @Before
     fun setUp() {
@@ -90,12 +92,20 @@ class CatalogSeedLinkTest {
     )
 
     private fun memoryMarker() = object : SeedTeaLinkMarker {
-        override val linked = this@CatalogSeedLinkTest.linked
+        override val done = this@CatalogSeedLinkTest.done
 
-        override suspend fun markLinked() {
-            linked.value = true
+        override suspend fun markDone(parts: Set<String>) {
+            done.value += parts
         }
     }
+
+    /** Every part of both seed teas. */
+    private val allParts = setOf(
+        "${SeedData.TANABATA_TEA_ID}/description",
+        "${SeedData.TANABATA_TEA_ID}/cover",
+        "${SeedData.HISUI_TEA_ID}/description",
+        "${SeedData.HISUI_TEA_ID}/cover",
+    )
 
     private suspend fun seed() {
         SeedDataSeeder(data.db, data.teas, data.recipes, data.vessels, data.stock, settings, data.time).seedIfNeeded()
@@ -177,7 +187,7 @@ class CatalogSeedLinkTest {
         val teasBefore = listOf(tea(SeedData.TANABATA_TEA_ID), tea(SeedData.HISUI_TEA_ID))
         val before = untouchable()
 
-        val keys = linker().linkSeedTeas()
+        val keys = linker().linkSeedTeas(withPhotos = true)
 
         assertThat(keys).containsExactly("TG0213", "TG0557")
         for (old in teasBefore) {
@@ -198,7 +208,7 @@ class CatalogSeedLinkTest {
             assertThat(cover.widthPx to cover.heightPx).isEqualTo(1200 to 900)
         }
         assertThat(untouchable()).isEqualTo(before)
-        assertThat(linked.value).isTrue()
+        assertThat(done.value).isEqualTo(allParts)
     }
 
     @Test
@@ -212,7 +222,7 @@ class CatalogSeedLinkTest {
         data.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "seed-photo")
         catalogWith("TG0213", "TG0557")
 
-        linker().linkSeedTeas()
+        linker().linkSeedTeas(withPhotos = true)
 
         val hisui = tea(SeedData.HISUI_TEA_ID)
         assertThat(hisui.coverPhotoId).isEqualTo("seed-photo")
@@ -224,13 +234,13 @@ class CatalogSeedLinkTest {
     fun theLinkHappensOnceAndNeverOverwritesALaterEdit() = runTest {
         seed()
         catalogWith("TG0213", "TG0557")
-        linker().linkSeedTeas()
+        linker().linkSeedTeas(withPhotos = true)
         // Later the PO empties Tanabata's description (M3's editor) and the catalog's text changes.
         data.teas.saveTea(tea(SeedData.TANABATA_TEA_ID).copy(description = null))
         catalogWith("TG0213", "TG0557") { "Ein neuer Text zu $it." }
         val files = photoFiles.dir.list()?.toSet()
 
-        val keys = linker().linkSeedTeas()
+        val keys = linker().linkSeedTeas(withPhotos = true)
 
         assertThat(keys).isEmpty()
         assertThat(tea(SeedData.TANABATA_TEA_ID).description).isNull()
@@ -245,19 +255,19 @@ class CatalogSeedLinkTest {
         catalogWith("TG0213", "TG0557")
         linker(
             marker = object : SeedTeaLinkMarker {
-                override val linked = MutableStateFlow(false)
+                override val done = MutableStateFlow(emptySet<String>())
 
-                override suspend fun markLinked() = Unit
+                override suspend fun markDone(parts: Set<String>) = Unit
             },
-        ).linkSeedTeas()
+        ).linkSeedTeas(withPhotos = true)
         val teas = listOf(tea(SeedData.TANABATA_TEA_ID), tea(SeedData.HISUI_TEA_ID))
         val files = photoFiles.dir.list()?.toSet()
 
-        linker().linkSeedTeas()
+        linker().linkSeedTeas(withPhotos = true)
 
         assertThat(listOf(tea(SeedData.TANABATA_TEA_ID), tea(SeedData.HISUI_TEA_ID))).isEqualTo(teas)
         assertThat(photoFiles.dir.list()?.toSet()).isEqualTo(files)
-        assertThat(linked.value).isTrue()
+        assertThat(done.value).isEqualTo(allParts)
     }
 
     @Test
@@ -265,36 +275,96 @@ class CatalogSeedLinkTest {
         // The first start's seed failed and is retried at the next app start (D-075).
         catalogWith("TG0213", "TG0557")
 
-        assertThat(linker().linkSeedTeas()).isEmpty()
-        assertThat(linked.value).isFalse()
+        assertThat(linker().linkSeedTeas(withPhotos = true)).isEmpty()
+        assertThat(done.value).isEmpty()
 
         seed()
-        assertThat(linker().linkSeedTeas()).containsExactly("TG0213", "TG0557")
+        assertThat(linker().linkSeedTeas(withPhotos = true)).containsExactly("TG0213", "TG0557")
+        assertThat(done.value).isEqualTo(allParts)
     }
 
     @Test
-    fun aSeedTeaTheCatalogDoesNotHoldOrThatHasADescriptionIsLeftAlone() = runTest {
+    fun aSeedTeaMissingFromTheCatalogIsLinkedByALaterRefreshThatHoldsIt() = runTest {
+        // S2 (a): Tanabata's page couldn't be read on the first refresh, so the catalog lacks it.
         seed()
-        // A restored Hisui with the PO's own text; Tanabata is not in the shop's range.
-        data.teas.saveTea(tea(SeedData.HISUI_TEA_ID).copy(description = "Mein eigener Text."))
         catalogWith("TG0557")
-        val before = listOf(tea(SeedData.TANABATA_TEA_ID), tea(SeedData.HISUI_TEA_ID))
 
-        val keys = linker().linkSeedTeas()
+        assertThat(linker().linkSeedTeas(withPhotos = true)).containsExactly("TG0557")
+        assertThat(tea(SeedData.TANABATA_TEA_ID).description).isNull()
+        assertThat(
+            done.value,
+        ).containsNoneOf("${SeedData.TANABATA_TEA_ID}/description", "${SeedData.TANABATA_TEA_ID}/cover")
 
-        assertThat(keys).isEmpty()
-        assertThat(listOf(tea(SeedData.TANABATA_TEA_ID), tea(SeedData.HISUI_TEA_ID))).isEqualTo(before)
-        assertThat(photoFiles.dir.list()?.filter { it.endsWith(".jpg") }).isEmpty()
-        assertThat(linked.value).isTrue()
+        catalogWith("TG0213", "TG0557")
+        val hisui = tea(SeedData.HISUI_TEA_ID)
+
+        assertThat(linker().linkSeedTeas(withPhotos = true)).containsExactly("TG0213")
+        assertThat(tea(SeedData.TANABATA_TEA_ID).description).isEqualTo("Erfundener Text zu TG0213.")
+        assertThat(tea(SeedData.TANABATA_TEA_ID).coverPhotoId).isNotNull()
+        assertThat(tea(SeedData.HISUI_TEA_ID)).isEqualTo(hisui)
+        assertThat(done.value).isEqualTo(allParts)
     }
 
     @Test
-    fun aCatalogEntryWithoutDescriptionOrPhotoGivesWhatItHas() = runTest {
+    fun aCoverTheRefreshCouldNotGiveIsAddedByALaterOneWithoutTouchingTheDescription() = runTest {
+        // S2 (b): the first refresh stored no photo of the seed teas (one failed, or it was cut short).
+        seed()
+        catalogWith("TG0213", "TG0557")
+        catalogPhotos.retainOnly(emptySet())
+
+        linker().linkSeedTeas(withPhotos = true)
+
+        assertThat(tea(SeedData.TANABATA_TEA_ID).description).isEqualTo("Erfundener Text zu TG0213.")
+        assertThat(tea(SeedData.TANABATA_TEA_ID).coverPhotoId).isNull()
+        // The PO edits the description meanwhile; the next refresh brings the photos.
+        data.teas.saveTea(tea(SeedData.TANABATA_TEA_ID).copy(description = "Mein Text."))
+        catalogWith("TG0213", "TG0557") { "Ein neuer Text zu $it." }
+
+        assertThat(linker().linkSeedTeas(withPhotos = true)).containsExactly("TG0213", "TG0557")
+        val tanabata = tea(SeedData.TANABATA_TEA_ID)
+        assertThat(tanabata.description).isEqualTo("Mein Text.")
+        assertThat(tanabata.coverPhotoId).isNotNull()
+        assertThat(tea(SeedData.HISUI_TEA_ID).description).isEqualTo("Erfundener Text zu TG0557.")
+        assertThat(done.value).isEqualTo(allParts)
+    }
+
+    @Test
+    fun withPhotosOffTheDescriptionIsEnough() = runTest {
+        // SET-22 off: no catalog photo is expected, so the seed teas are done without a cover.
+        seed()
+        catalogWith("TG0213", "TG0557")
+        catalogPhotos.retainOnly(emptySet())
+
+        linker().linkSeedTeas(withPhotos = false)
+        catalogWith("TG0213", "TG0557")
+
+        assertThat(done.value).isEqualTo(allParts)
+        assertThat(linker().linkSeedTeas(withPhotos = true)).isEmpty()
+        assertThat(tea(SeedData.TANABATA_TEA_ID).coverPhotoId).isNull()
+    }
+
+    @Test
+    fun aSeedTeaWithADescriptionOfItsOwnKeepsIt() = runTest {
+        seed()
+        // A restored Hisui with the PO's own text: never overwritten; without a cover it gets the photo.
+        data.teas.saveTea(tea(SeedData.HISUI_TEA_ID).copy(description = "Mein eigener Text."))
+        catalogWith("TG0213", "TG0557")
+
+        linker().linkSeedTeas(withPhotos = true)
+
+        val hisui = tea(SeedData.HISUI_TEA_ID)
+        assertThat(hisui.description).isEqualTo("Mein eigener Text.")
+        assertThat(hisui.coverPhotoId).isNotNull()
+        assertThat(done.value).isEqualTo(allParts)
+    }
+
+    @Test
+    fun aCatalogEntryWithoutDescriptionOrPhotoGivesWhatItHasAndTheRestLater() = runTest {
         seed()
         catalogWith("TG0213", "TG0557") { null }
         catalogPhotos.retainOnly(setOf("TG0213"))
 
-        linker().linkSeedTeas()
+        linker().linkSeedTeas(withPhotos = true)
 
         val tanabata = tea(SeedData.TANABATA_TEA_ID)
         assertThat(tanabata.description).isNull()
@@ -302,5 +372,14 @@ class CatalogSeedLinkTest {
         val hisui = tea(SeedData.HISUI_TEA_ID)
         assertThat(hisui.description).isNull()
         assertThat(hisui.coverPhotoId).isNull()
+        assertThat(done.value).containsExactly("${SeedData.TANABATA_TEA_ID}/cover")
+
+        catalogWith("TG0213", "TG0557")
+        linker().linkSeedTeas(withPhotos = true)
+
+        assertThat(tea(SeedData.TANABATA_TEA_ID).coverPhotoId).isEqualTo(tanabata.coverPhotoId)
+        assertThat(tea(SeedData.TANABATA_TEA_ID).description).isEqualTo("Erfundener Text zu TG0213.")
+        assertThat(tea(SeedData.HISUI_TEA_ID).coverPhotoId).isNotNull()
+        assertThat(done.value).isEqualTo(allParts)
     }
 }

@@ -2,6 +2,8 @@ package com.umamit.core.data.catalog
 
 import com.umamit.core.catalog.parser.ProductParse
 import com.umamit.core.catalog.parser.TeeKontorParser
+import com.umamit.core.common.WallClock
+import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.network.HostNotAllowedException
 import com.umamit.core.network.NetworkRetry
 import com.umamit.core.network.ShopClient
@@ -11,6 +13,7 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -40,25 +43,61 @@ fun interface ExactPriceSession {
     suspend fun price(variantUrl: String, grams: Double): Long?
 }
 
-/** [ExactPrices] through the allow-listed [ShopClient] (≤ 2 requests/s, one connection, D-050). */
-class ShopExactPrices @Inject constructor(private val client: ShopClient) : ExactPrices {
-    override fun session(): ExactPriceSession = Session(client)
+/**
+ * [ExactPrices] through the allow-listed [ShopClient] (≤ 2 requests/s, one connection, D-050).
+ *
+ * Like the refresh (D-077, D-079), nothing a live page does reaches the process the timer runs
+ * in (rule 8, D-090): any error but a cancellation, the parser's included, gives no price, so the
+ * sheet keeps the estimate, and one line goes to the [DiagnosticsLog].
+ */
+class ShopExactPrices internal constructor(
+    private val client: ShopClient,
+    private val diagnostics: DiagnosticsLog,
+    private val clock: WallClock,
+    private val parse: (ByteArray, String) -> ProductParse,
+) : ExactPrices {
+    @Inject
+    constructor(client: ShopClient, diagnostics: DiagnosticsLog, clock: WallClock) :
+        this(client, diagnostics, clock, TeeKontorParser::parseProduct)
 
-    private class Session(private val client: ShopClient) : ExactPriceSession {
+    override fun session(): ExactPriceSession = Session()
+
+    private fun log(message: String) = diagnostics.append(clock.nowMs(), clock.zone(), message)
+
+    private inner class Session : ExactPriceSession {
         private val opening = Mutex()
         private var shop: ShopSession? = null
 
-        override suspend fun price(variantUrl: String, grams: Double): Long? {
+        override suspend fun price(variantUrl: String, grams: Double): Long? = try {
+            exactPrice(variantUrl, grams)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (
+            // Rule 8: a stack overflow in a page, a parser bug, … ends this price fetch, never the process.
+            @Suppress("TooGenericExceptionCaught") e: Throwable,
+        ) {
+            log("exact price: unexpected ${e.javaClass.simpleName}, the estimate stays")
+            null
+        }
+
+        private suspend fun exactPrice(variantUrl: String, grams: Double): Long? {
             val url = variantUrl.toHttpUrlOrNull()?.takeIf(client::isAllowed) ?: return null
-            val body = (fetch(url) as? ShopFetch.Fetched)?.body
-            val page = body?.let {
-                withContext(Dispatchers.Default) {
-                    (TeeKontorParser.parseProduct(it, url.toString()) as? ProductParse.Parsed)?.page
-                }
+            val answer = fetch(url)
+            val page = (answer as? ShopFetch.Fetched)?.let { fetched ->
+                withContext(Dispatchers.Default) { (parse(fetched.body, url.toString()) as? ProductParse.Parsed)?.page }
             }
             // Only a page that shows this size: never another size's price.
             val shown = page?.packageGrams
-            return page?.priceCents?.takeIf { shown != null && abs(shown - grams) < SAME_GRAMS }
+            val cents = page?.priceCents?.takeIf { shown != null && abs(shown - grams) < SAME_GRAMS }
+            if (cents == null) {
+                val why = if (answer is ShopFetch.Fetched) {
+                    "shows no price of this size"
+                } else {
+                    "not read (${answer ?: "off the host"})"
+                }
+                log("exact price: ${url.encodedPath} $why, the estimate stays")
+            }
+            return cents
         }
 
         /** [url] through the sheet's session, opened (robots.txt read) with the first fetch; null off the host. */

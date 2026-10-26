@@ -434,7 +434,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `dismissedHints` | Set<String> | ∅ | |
 | `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
-| `seedTeasLinked` | Boolean | false | CAT-15 (set once the seed teas were linked after a successful refresh; never reset, D-086) |
+| `seedTeaLinksDone` | Set<String> | ∅ | CAT-15: the done parts of the seed teas' link, `<tea id>/description` and `<tea id>/cover`; each added once, never removed (D-086, D-090) |
 
 The catalog list's search, filters and sort are not stored: it opens in its
 default view each time (D-073, D-083).

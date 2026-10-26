@@ -115,7 +115,7 @@ class OnboardingTest {
 
         catalog.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 274))
         compose.waitForIdle()
-        compose.onNodeWithText("Katalog geladen: 274 Grüntees").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Katalog geladen: 274\u00A0Grüntees").performScrollTo().assertIsDisplayed()
 
         catalog.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Offline("details"))
         compose.waitForIdle()
@@ -188,6 +188,20 @@ class OnboardingTest {
         compose.onNodeWithText("Los geht's").performClick()
 
         compose.onNodeWithText("Gerätewartung öffnen").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Katalog jetzt laden ends the seed photo download first, so two shop jobs never overlap`() {
+        // Rule 7 (D-090): a stop of one job must not leave the other sending; CAT-15 gives the covers.
+        firstStart.photoProgress.value = SeedPhotoProgress.Running(current = 1, total = 2)
+        show()
+        toCatalogPage()
+
+        compose.onNodeWithText("Katalog jetzt laden").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(firstStart.skips).isEqualTo(1)
+        assertThat(catalog.starts).isEqualTo(1)
     }
 
     @Test

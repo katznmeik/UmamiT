@@ -39,8 +39,8 @@
     <string name="onboarding_catalog_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
     <string name="onboarding_catalog_running_hint">Der Katalog lädt im Hintergrund weiter, auch bei gesperrtem Handy. Du kannst schon loslegen.</string>
     <plurals name="onboarding_catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
     </plurals>
     <string name="onboarding_catalog_done">Katalog geladen: %1$s</string>
     <string name="onboarding_catalog_cancelled">Laden abgebrochen. Du kannst den Katalog später unter Sammlung › Katalog laden.</string>

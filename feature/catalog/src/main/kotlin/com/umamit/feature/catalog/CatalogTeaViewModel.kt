@@ -18,6 +18,7 @@ import com.umamit.core.model.InventoryEventType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -105,6 +107,9 @@ class CatalogTeaViewModel @Inject constructor(
     private var prices: ExactPriceSession? = null
     private val fetches = mutableListOf<Job>()
 
+    /** The sheet of a save still running after an alert removed it (D-090): a failure brings it back. */
+    private var savingClosed: AddSheetState? = null
+
     /** The stock events of the collection tea [teaId], or null when there is none. */
     private fun ownedEvents(teaId: String?): Flow<List<InventoryEvent>?> =
         if (teaId == null) flowOf(null) else stock.observeEvents(teaId)
@@ -113,7 +118,7 @@ class CatalogTeaViewModel @Inject constructor(
     fun openSheet() {
         val current = state.value
         val tea = current.tea ?: return
-        if (sheetState.value != null) return
+        if (sheetState.value != null || savingClosed != null) return
         val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
         prices = exactPrices.session()
         sheetState.value = AddSheetState.open(
@@ -138,29 +143,57 @@ class CatalogTeaViewModel @Inject constructor(
 
     fun pickDate(day: LocalDate) = sheetState.update { it?.pickDate(day) }
 
-    /** Closes the sheet without saving; a running price fetch is cancelled. */
+    /** The user dismissed the sheet: it closes unless it saves (D-090), so a save's outcome is never lost. */
+    fun dismissSheet() {
+        if (sheetState.value?.saving != true) closeSheet()
+    }
+
+    /**
+     * Closes the sheet at once (an alert, rule 8; or a dismissal); a running price fetch is
+     * cancelled. A save goes on: it is recorded, or a failure brings the sheet back with its
+     * message once nothing covers it (D-090).
+     */
     fun closeSheet() {
+        savingClosed = sheetState.value?.takeIf { it.saving } ?: savingClosed
         sheetState.value = null
         fetches.forEach { it.cancel() }
         fetches.clear()
         prices = null
     }
 
-    /** *Aufnehmen*: records the purchase (CAT-12); the sheet closes once it is written. */
+    /**
+     * *Aufnehmen*: records the purchase (CAT-12); the sheet closes once it is written. Once
+     * started, the save runs to its end even if the detail is left (D-090).
+     */
     fun save() {
         val sheet = sheetState.value?.takeIf { it.canSave } ?: return
         val grams = sheet.grams ?: return
         sheetState.value = sheet.copy(saving = true, failed = false)
         viewModelScope.launch {
-            val result = add.add(CatalogPurchase(key, grams, sheet.priceCents, sheet.date))
+            val result = withContext(NonCancellable) {
+                add.add(CatalogPurchase(key, grams, sheet.priceCents, sheet.date))
+            }
             val teaId = when (result) {
                 is AddFromCatalogResult.Added -> result.teaId
                 is AddFromCatalogResult.Repurchased -> result.teaId
                 AddFromCatalogResult.NotInCatalog, AddFromCatalogResult.Failed -> null
             }
+            val closed = savingClosed
+            savingClosed = null
             if (teaId != null) {
                 closeSheet()
                 addedTeas.send(teaId)
+            } else if (closed != null) {
+                // Removed meanwhile: the sheet comes back with its input and the message; a price
+                // fetch the removal cancelled counts as failed, so the estimate stays.
+                prices = exactPrices.session()
+                sheetState.value = closed.copy(
+                    sizes = closed.sizes.map { size ->
+                        if (size.fetch == PriceFetch.RUNNING) size.copy(fetch = PriceFetch.FAILED) else size
+                    },
+                    saving = false,
+                    failed = true,
+                )
             } else {
                 sheetState.update { it?.copy(saving = false, failed = true) }
             }

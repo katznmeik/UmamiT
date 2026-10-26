@@ -20,16 +20,19 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -81,10 +84,13 @@ data class AddSheetActions(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogAddSheet(state: AddSheetState, actions: AddSheetActions, onDismissRequest: () -> Unit) {
-    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion)
+    // While it saves, neither a swipe nor back hides it, so the save's outcome shows (D-090).
+    val saving by rememberUpdatedState(state.saving)
+    val sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion) { it != SheetValue.Hidden || !saving }
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !state.saving),
         modifier = Modifier.testTag(CATALOG_ADD_SHEET_TAG),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
