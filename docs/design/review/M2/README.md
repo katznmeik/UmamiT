@@ -12,6 +12,8 @@ font scale 2.0 (the worst-case set).
 |---|---|
 | `catalog/` | SCR-19 catalog list: default view (grouped by *Sorte*, available, „Pur" on; the secondary name under the name, D-090; badges „Neu", Bio, „im Besitz", „Rezept prüfen"), filtered list with no hits, filter sheet, empty state with *Katalog laden* (A8 placeholder until the PO's image). SCR-22 refresh sheet: running, success (first load), summary of a later refresh, shop changed. SCR-21 tea detail: top (*In Sammlung aufnehmen*, *Im Shop öffnen*), end (description and the shop's brewing table verbatim), derived recipes with „Rezept prüfen", packages with estimates. SCR-23 add sheet and repurchase sheet (font 1.0 only). |
 | `guides/` | *Ratgeber* (CAT-09, #76): the list under the A11 header (placeholder landscape until the PO's image) with hero thumbnails and dates, its empty state (font 1.0 only), an article (SCR-20) at the top (hero, serif title, source line with date, text with a tea link) and at its end (list, image, links, *Im Browser öffnen*). The catalog list renders show its *Ratgeber* row. |
+| `brew/` | SCR-03 tea picker with *Aus dem Katalog* (#72), SCR-04 setup of a tea marked „Rezept prüfen" with its reason (CAT-05). |
+| `journal/` | SCR-06 „Gespeichert" sheet after brewing a marked tea, with *Rezept passt* (D-088). |
 | `onboarding/` | ONB-03 setup page *Katalog jetzt laden* / *Später*, and its loading state. |
 | `settings/` | The *Katalog* section: last refresh with *Jetzt aktualisieren*, and *Fotos laden* (SET-22, SET-23). |
 
@@ -21,4 +23,3 @@ Known points to judge:
 - Rows without a photo show the tea-type leaf placeholder (03 §3.5); the sample photos are
   gradients.
 - The article's back button floats over the text the same way when it scrolls (`Guide_articleEnd_*`).
-- Not built yet: the picker flow *Aus dem Katalog* (#72).
