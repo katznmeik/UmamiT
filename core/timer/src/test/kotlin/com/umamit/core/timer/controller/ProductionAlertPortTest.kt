@@ -84,6 +84,28 @@ class ProductionAlertPortTest {
     }
 
     @Test
+    fun `the first tick and alert of a session start sounds loaded before them`() = runTest {
+        harness()
+        h.settings.update { it.copy(alertSound = "sanft") }
+        h.controller.startSession(brewStart(infusion(60)))
+        assertThat(sound.wanted).containsExactly(AlertSound.TICK, AlertSound.SANFT).inOrder()
+
+        h.controller.send(TimerEvent.Start)
+        h.advanceSeconds(60)
+        playAlertToTheEnd()
+
+        assertThat(sound.plays(AlertSound.TICK)).hasSize(1)
+        assertThat(sound.plays(AlertSound.SANFT)).hasSize(5)
+        assertThat(sound.loadedOnPlay).isEmpty()
+        val started = h.diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.start?.soundLoaded }
+        assertThat(started).containsExactly(true, true).inOrder()
+
+        h.controller.send(TimerEvent.Poured)
+        h.controller.send(TimerEvent.FinishSession)
+        assertThat(sound.wanted).isEmpty()
+    }
+
+    @Test
     fun `an alert acknowledged before its end is not reported`() = runTest {
         harness()
         h.controller.startSession(brewStart(infusion(20), infusion(30)))

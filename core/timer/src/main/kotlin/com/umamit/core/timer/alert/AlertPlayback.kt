@@ -1,6 +1,7 @@
 package com.umamit.core.timer.alert
 
 import android.content.Context
+import android.os.Handler
 import android.util.Log
 import com.umamit.core.common.ClockReading
 import com.umamit.core.data.SettingsRepository
@@ -12,8 +13,8 @@ import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -56,17 +57,23 @@ interface AlertTester {
  *
  * Every call only queues a command and returns at once (the controller calls
  * it inside its event lock). The commands run in order, one at a time, on
- * [scope]'s thread, the main thread in production, which the player and its
- * Android outputs need. The settings come from a cache that follows the
- * settings file. Right after the process starts, a command waits for the
+ * [scope]'s thread: in production the alert thread ([AlertThread], D-092),
+ * where the player, its repeats and its sound callbacks all run, so a busy
+ * main thread never delays a cue. The settings come from a cache that follows
+ * the settings file. Right after the process starts, a command waits for the
  * first value at most [SETTINGS_WAIT_MS]; an unreadable or late file plays
  * the defaults (Klangschale, Normal, vibration on) rather than a late alert
  * (rule 8).
+ *
+ * While the controller keeps it ready ([keepReady]: a timer is active), the
+ * tick and the current tone stay loaded, so a cue only starts its sound
+ * (D-092). Each tick and alert logs where its start spent the time
+ * ([CueStart]).
  */
 @Singleton
 class AlertPlayback internal constructor(
     private val environment: AlertEnvironment,
-    sound: AlertSoundOutput,
+    private val sound: AlertSoundOutput,
     haptics: AlertHaptics,
     scheduler: AlertScheduler,
     settings: Flow<UserSettings>,
@@ -83,25 +90,28 @@ class AlertPlayback internal constructor(
         clocks: TimerClocks,
     ) : this(
         environment = AndroidAlertEnvironment(context),
-        sound = MediaPlayerSoundOutput(context),
+        sound = MediaPlayerSoundOutput(context, AlertThread.looper),
         haptics = VibratorHaptics(context),
-        scheduler = HandlerAlertScheduler(),
+        scheduler = HandlerAlertScheduler(Handler(AlertThread.looper)),
         settings = settings.settings,
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+        scope = CoroutineScope(SupervisorJob() + Handler(AlertThread.looper).asCoroutineDispatcher(THREAD)),
         diagnostics = diagnostics,
         clock = clocks::read,
     )
 
+    /** A command; `sentAtMs` is when a cue was queued (elapsed clock), for the log's [CueStart]. */
     private sealed interface Command {
-        class PreAlert(val scheduled: ScheduledTime?) : Command
+        class PreAlert(val scheduled: ScheduledTime?, val sentAtMs: Long) : Command
 
-        class Alert(val scheduled: ScheduledTime?, val onFinished: () -> Unit) : Command
+        class Alert(val scheduled: ScheduledTime?, val onFinished: () -> Unit, val sentAtMs: Long) : Command
 
         data object Stop : Command
 
         data object Test : Command
 
         data object StopTest : Command
+
+        class KeepReady(val ready: Boolean) : Command
     }
 
     /**
@@ -140,7 +150,7 @@ class AlertPlayback internal constructor(
      * The pre-alert tick (TMR-23); a playing alert is never cut by it. [scheduled]: when it was
      * due, for the log's delay up to the moment it started (D-068).
      */
-    fun playPreAlert(scheduled: ScheduledTime? = null) = send(Command.PreAlert(scheduled))
+    fun playPreAlert(scheduled: ScheduledTime? = null) = send(Command.PreAlert(scheduled, clock().elapsedMs))
 
     /**
      * Starts the alert, replacing anything playing; [onFinished] runs once when its last cycle
@@ -148,7 +158,7 @@ class AlertPlayback internal constructor(
      * started (D-068).
      */
     fun startAlert(scheduled: ScheduledTime? = null, onFinished: () -> Unit) =
-        send(Command.Alert(scheduled, onFinished))
+        send(Command.Alert(scheduled, onFinished, clock().elapsedMs))
 
     /** Stops the playing alert, tick or test at once; idempotent. */
     fun stopAlert() = send(Command.Stop)
@@ -156,6 +166,15 @@ class AlertPlayback internal constructor(
     override fun testAlert() = send(Command.Test)
 
     override fun stopTestAlert() = send(Command.StopTest)
+
+    /**
+     * While [ready] (a timer is active), the tick and the current tone stay loaded, so the next
+     * tick or alert only starts its sound; false releases them (D-092). The controller calls it
+     * at the end of every turn, after the turn's own cues. Loading never waits for the settings
+     * file: it takes the tone known now (the defaults before the first read), and a later call
+     * follows a changed tone.
+     */
+    fun keepReady(ready: Boolean) = send(Command.KeepReady(ready))
 
     private fun send(command: Command) {
         // An unlimited channel never refuses while the scope lives.
@@ -177,15 +196,19 @@ class AlertPlayback internal constructor(
     private suspend fun run(command: Command) {
         when (command) {
             is Command.PreAlert -> {
+                val begunAtMs = clock().elapsedMs
                 current = settings()
+                val timing = StartTiming(command.sentAtMs, begunAtMs, clock().elapsedMs, AlertSound.TICK in sound.ready)
                 player.playPreAlert()
-                logPlayed(AlertCue.PRE_ALERT, command.scheduled)
+                logPlayed(AlertCue.PRE_ALERT, command.scheduled, timing)
             }
 
             is Command.Alert -> {
+                val begunAtMs = clock().elapsedMs
                 current = settings()
+                val timing = StartTiming(command.sentAtMs, begunAtMs, clock().elapsedMs, current.tone in sound.ready)
                 player.startAlert(onFinished = command.onFinished)
-                logPlayed(AlertCue.ALERT, command.scheduled)
+                logPlayed(AlertCue.ALERT, command.scheduled, timing)
             }
 
             Command.Stop -> player.stopAlert()
@@ -197,28 +220,55 @@ class AlertPlayback internal constructor(
             }
 
             Command.StopTest -> player.stopTestAlert()
+
+            // The tone known now, never a wait for the settings file (rule 8).
+            is Command.KeepReady -> sound.prepare(
+                if (command.ready) setOf(AlertSound.TICK, (latest.value ?: current).tone) else emptySet(),
+            )
         }
+    }
+
+    /**
+     * The moments of a cue's start before its outputs (elapsed clock): queued, its command
+     * begun, the settings read; [soundLoaded]: its sound was loaded before it.
+     */
+    private class StartTiming(
+        val sentAtMs: Long,
+        val begunAtMs: Long,
+        val settledAtMs: Long,
+        val soundLoaded: Boolean,
+    ) {
+        /** The [CueStart] of outputs started by [startedAtMs]; [sound]: a sound played. */
+        fun cueStart(startedAtMs: Long, sound: Boolean) = CueStart(
+            queuedMs = begunAtMs - sentAtMs,
+            settingsMs = settledAtMs - begunAtMs,
+            outputsMs = startedAtMs - settledAtMs,
+            soundLoaded = soundLoaded.takeIf { sound },
+        )
     }
 
     /**
      * Logs the ringer mode and the outputs of [cue] (06 §5.6), after the player has started
      * it: the log never delays or stops an alert (rule 8). With its [scheduled] time, the entry
      * shows how late the cue actually started, which *Diagnose* and the accuracy run read
-     * (TMR-30, D-068).
+     * (TMR-30, D-068); with its [timing], where the time went before the sound (D-092).
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun logPlayed(cue: AlertCue, scheduled: ScheduledTime? = null) {
+    private fun logPlayed(cue: AlertCue, scheduled: ScheduledTime? = null, timing: StartTiming? = null) {
         try {
+            val at = clock()
             val conditions = environment.conditions()
+            val outputs = AlertMatrix.outputs(conditions, current.vibration)
             diagnostics.record(
                 TimerDiagnostic.AlertPlayed(
-                    at = clock(),
+                    at = at,
                     cue = cue,
                     conditions = conditions,
-                    outputs = AlertMatrix.outputs(conditions, current.vibration),
+                    outputs = outputs,
                     tone = if (cue == AlertCue.PRE_ALERT) AlertSound.TICK.key else current.tone.key,
                     length = current.length,
                     scheduled = scheduled,
+                    start = timing?.cueStart(at.elapsedMs, outputs.sound),
                 ),
             )
         } catch (e: CancellationException) {
@@ -233,6 +283,9 @@ class AlertPlayback internal constructor(
         ?: AlertSettings()
 
     companion object {
+        /** The name of the alert thread's dispatcher (D-092). */
+        private const val THREAD = "UmamiTAlert"
+
         /** How long a command waits for the settings file's first value after the process starts. */
         const val SETTINGS_WAIT_MS = 300L
 

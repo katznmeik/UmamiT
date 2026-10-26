@@ -12,11 +12,15 @@ import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerDiagnosticsPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -185,6 +189,77 @@ class AlertPlaybackTest {
     }
 
     @Test
+    fun whileATimerIsActiveTheTickAndTheStoredToneStayLoaded() = runTest {
+        settings.update { it.copy(alertSound = "glocke") }
+        val playback = playback(settings.settings)
+
+        playback.keepReady(true)
+        assertThat(sound.wanted).containsExactly(AlertSound.TICK, AlertSound.GLOCKE).inOrder()
+
+        playback.playPreAlert()
+        playback.startAlert(onFinished = {})
+        scheduler.advanceBy(300_000L)
+        assertThat(sound.plays(AlertSound.TICK)).hasSize(1)
+        assertThat(sound.plays(AlertSound.GLOCKE)).isNotEmpty()
+        assertThat(sound.loadedOnPlay).isEmpty()
+
+        playback.keepReady(false)
+        assertThat(sound.wanted).isEmpty()
+    }
+
+    @Test
+    fun aToneChangedInTheSettingsIsLoadedWithTheNextCall() = runTest {
+        val playback = playback(settings.settings)
+        playback.keepReady(true)
+
+        settings.update { it.copy(alertSound = "holzblock") }
+        playback.keepReady(true)
+
+        assertThat(sound.wanted).containsExactly(AlertSound.TICK, AlertSound.HOLZBLOCK).inOrder()
+    }
+
+    @Test
+    fun loadingTheSoundsNeverWaitsForTheSettingsFile() = runTest {
+        val playback = playback(flow { awaitCancellation() })
+
+        playback.keepReady(true)
+
+        // No 300 ms wait (SETTINGS_WAIT_MS) as a cue has: the defaults' tone is loaded at once.
+        assertThat(sound.prepares).containsExactly("prepare [TICK, KLANGSCHALE] @ 0")
+        assertThat(currentTime).isEqualTo(0L)
+    }
+
+    @Test
+    fun aCueLogsWhereItsStartSpentTheTimeAndWhetherItsSoundWasLoaded() = runTest {
+        val slow = SlowSoundOutput(sound, clock, playMs = 40)
+        val playback = playback(settings.settings, sound = slow, queued = true)
+        playback.keepReady(true)
+        runCurrent()
+
+        playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed))
+        clock.advanceBy(7)
+        runCurrent()
+        playback.keepReady(false)
+        runCurrent()
+        playback.startAlert(ScheduledTime(TimerAlarmKind.DEADLINE, clock.elapsed), onFinished = {})
+        runCurrent()
+        environment.conditions = AlertConditions(RingerMode.VIBRATE)
+        playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed))
+        runCurrent()
+        playback.testAlert()
+        runCurrent()
+
+        val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>()
+        assertThat(played.map { it.start }).containsExactly(
+            CueStart(queuedMs = 7, settingsMs = 0, outputsMs = 40, soundLoaded = true),
+            CueStart(queuedMs = 0, settingsMs = 0, outputsMs = 40, soundLoaded = false),
+            CueStart(queuedMs = 0, settingsMs = 0, outputsMs = 0, soundLoaded = null),
+            null,
+        ).inOrder()
+        assertThat(played.first().scheduled?.lateMs(played.first().at)).isEqualTo(47L)
+    }
+
+    @Test
     fun theSettingsRetryBacksOffUpToAMinute() {
         assertThat((0L..7L).map { AlertPlayback.retryDelayMs(it) })
             .containsExactly(1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 32_000L, 60_000L, 60_000L).inOrder()
@@ -255,18 +330,38 @@ class AlertPlaybackTest {
         assertThat(reported).containsExactly(14_000L)
     }
 
-    /** The playback on the test thread: its commands run as soon as they are sent. */
+    /**
+     * The playback on the test thread: its commands run as soon as they are sent, or, when
+     * [queued], only when the test lets the scheduler run (`runCurrent`), as on the alert thread.
+     */
     private fun TestScope.playback(
         settings: Flow<UserSettings>,
         diagnostics: TimerDiagnosticsPort = this@AlertPlaybackTest.diagnostics,
+        sound: AlertSoundOutput = this@AlertPlaybackTest.sound,
+        queued: Boolean = false,
     ) = AlertPlayback(
         environment = environment,
         sound = sound,
         haptics = haptics,
         scheduler = scheduler,
         settings = settings,
-        scope = CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler)),
+        scope = CoroutineScope(
+            backgroundScope.coroutineContext +
+                if (queued) StandardTestDispatcher(testScheduler) else UnconfinedTestDispatcher(testScheduler),
+        ),
         diagnostics = diagnostics,
         clock = clock::reading,
     )
+}
+
+/** [sound], whose every play takes [playMs] on [clock], as a slow device does. */
+private class SlowSoundOutput(
+    private val sound: FakeSoundOutput,
+    private val clock: FakeClock,
+    private val playMs: Long,
+) : AlertSoundOutput by sound {
+    override fun play(sound: AlertSound) {
+        clock.advanceBy(playMs)
+        this.sound.play(sound)
+    }
 }

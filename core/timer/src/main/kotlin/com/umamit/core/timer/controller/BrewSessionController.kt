@@ -284,6 +284,11 @@ class BrewSessionController @Inject constructor(
                     val now = clocks.read()
                     watchdog.follow(effects.alertPlaying, deadlineGuardAt(timer, now), now)
                 }
+                // After the turn's own cues: while a timer is active, the sounds of its next tick and
+                // alert stay loaded, so they start without loading (D-092). A port that throws is
+                // logged; each cue then loads its own sound.
+                attempt { ports.alert.keepReady(timer is TimerState.Active) }
+                    ?.let { Log.w(TAG, "alert sounds not kept ready", it) }
             }
         }
     }

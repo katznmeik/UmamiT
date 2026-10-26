@@ -7,6 +7,7 @@ import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.alert.RingerMode
 import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.ScheduledTime
@@ -127,6 +128,43 @@ class AccuracyReportTest {
         assertThat(FireTime.parsePlayed(test)).isNull()
         assertThat(FireTime.parsePlayed(event)).isNull()
         assertThat(FireTime.parsePlayed("")).isNull()
+    }
+
+    @Test
+    fun `a sound start parses back with where its start spent the time (D-092)`() {
+        clock.advanceBy(1_178)
+        val line = TimerDiagnosticFormat.message(
+            played(AlertCue.PRE_ALERT, lateMs = 1_178)
+                .copy(start = CueStart(queuedMs = 2, settingsMs = 0, outputsMs = 1_150, soundLoaded = false)),
+        )
+
+        val fire = FireTime.parsePlayed(line)!!
+
+        assertThat(fire.deltaMs).isEqualTo(1_178)
+        assertThat(fire.scheduledMonoMs).isEqualTo(5_000_000)
+        assertThat(fire.start).isEqualTo("queued 2 ms, settings 0 ms, outputs 1150 ms, sound loaded on play")
+        assertThat(FireTime.parsePlayed(TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 5)))?.start)
+            .isNull()
+    }
+
+    @Test
+    fun `the summary names each event's slowest start and where its time went`() {
+        val slow = fire(TimerAlarmKind.PRE_ALERT, FireTime.PLAYER, "10:00:50", 50_000, 1_178)
+            .copy(start = "queued 2 ms, settings 0 ms, outputs 1150 ms, sound loaded on play")
+        val steps = (1..50).map { step(it, preAlertMs = 2, alertMs = 3, alertPlayedMs = if (it == 9) 40L else 20L) }
+            .toMutableList()
+        steps[0] = steps[0].copy(preAlert = steps[0].preAlert.copy(played = slow))
+
+        val markdown = AccuracyReport(RUN, steps).markdown()
+
+        assertThat(markdown).contains(
+            "Slowest pre-alert: step 1, 1178 ms (handled 2 ms, WAKE_UP; " +
+                "queued 2 ms, settings 0 ms, outputs 1150 ms, sound loaded on play)",
+        )
+        assertThat(markdown).contains("Slowest alert: step 9, 40 ms (handled 3 ms, ALARM)")
+        assertThat(steps[0].preAlert.summary()).isEqualTo(
+            "1178 ms (handled 2 ms, WAKE_UP; queued 2 ms, settings 0 ms, outputs 1150 ms, sound loaded on play)",
+        )
     }
 
     @Test

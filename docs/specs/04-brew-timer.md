@@ -6,7 +6,8 @@
 > controller inputs and ports, D-056; alarms, service and recovery in the
 > first turn, D-057; recovery triggers, device restore, alert watchdog, D-063;
 > accuracy workflow, D-067, 2026-10-23; deadline guard, accuracy up to the
-> sound, D-068, 2026-10-23)
+> sound, D-068, 2026-10-23; sounds loaded ahead, the alert player's own
+> thread, D-092, 2026-10-26)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -296,7 +297,10 @@ flowchart LR
   notification and holds the wake lock; no timer logic. Its port sends it the
   notification of the state and the wake-lock time (§6.3, D-057). The
   `AlertPlayer` is a process singleton the controller drives (D-059); the
-  service keeps the process in the foreground while it plays.
+  service keeps the process in the foreground while it plays. It runs on its
+  own thread, and at the end of every turn, after the turn's own cues, the
+  controller tells it whether a timer is active, so it keeps the sounds of
+  the next tick and alert loaded (§9.1, D-092).
 - UI renders remaining time per frame from the deadline while visible.
 
 ## 5. Time computation
@@ -726,6 +730,14 @@ ongoing notification** (Live Update):
   with the current settings, through the same player and matrix. It is
   ignored while a real alert or tick plays; a real one replaces a running
   test.
+- **Loading and thread (D-092).** While a timer is active, the player keeps
+  the tick and the current tone loaded, so a cue only starts its sound; a
+  used sound is loaded again right after its cue, and idle releases them.
+  Loading never waits for the settings file. A sound that is not loaded, or
+  a loaded one that fails, is loaded on the spot, so a failure costs time,
+  never the sound. The player runs on its own thread (`UmamiTAlert`), so a
+  busy main thread never delays a cue. Each step's tick and alert logs where
+  its start spent the time (06 §5.6).
 
 ### 9.2 Sounds
 

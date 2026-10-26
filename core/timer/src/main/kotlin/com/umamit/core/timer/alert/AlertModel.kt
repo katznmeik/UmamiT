@@ -24,6 +24,15 @@ data class AlertConditions(
 /** What the player starts, for the diagnostics log (06 §5.6): the pre-alert tick, a step's alert, *Alarm testen*. */
 enum class AlertCue { PRE_ALERT, ALERT, TEST }
 
+/**
+ * Where the start of a step's tick or alert spent its time, for the diagnostics log (06 §5.6,
+ * D-092): [queuedMs] from the controller's call to the start of its command on the alert
+ * thread, [settingsMs] waiting for the settings file, [outputsMs] starting the outputs (the
+ * ringer matrix, the vibration, the audio focus and the sound). [soundLoaded]: the sound was
+ * loaded before the cue (true) or by it (false); null when no sound played.
+ */
+data class CueStart(val queuedMs: Long, val settingsMs: Long, val outputsMs: Long, val soundLoaded: Boolean?)
+
 /** Which outputs an alert (or pre-alert) uses; the visual alert always shows. */
 data class AlertOutputs(val sound: Boolean, val vibration: Boolean) {
     companion object {

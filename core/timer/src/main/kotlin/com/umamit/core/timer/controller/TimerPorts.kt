@@ -131,6 +131,14 @@ interface TimerAlertPort {
 
     /** Stops the playing alert; idempotent. */
     fun stopAlert()
+
+    /**
+     * While [ready] (a timer is active), keeps the sounds of the next tick and alert loaded, so a
+     * cue only starts its sound; false releases them (D-092). Called at the end of every turn,
+     * after the turn's own cues; idempotent. Like every port call it must not block: the
+     * loading happens later on the player's own thread.
+     */
+    fun keepReady(ready: Boolean)
 }
 
 /** `ShowSavedSheet`: the „Gespeichert im Journal" sheet (SCR-06) for a finished session. */

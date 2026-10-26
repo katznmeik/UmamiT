@@ -179,13 +179,8 @@ class AccuracyRunTest {
         val (preAlert, deadline) = eventually("step $number's pre-alert and alert in the diagnostics log", TIMEOUT) {
             newCues(number)
         }
-        Log.i(
-            TAG,
-            "step $number/$plannedSteps: pre-alert ${preAlert.played.deltaMs} ms " +
-                "(handled ${preAlert.handled.deltaMs} ms, ${preAlert.handled.source}), " +
-                "alert ${deadline.played.deltaMs} ms " +
-                "(handled ${deadline.handled.deltaMs} ms, ${deadline.handled.source})",
-        )
+        // With where each start spent the time (queue, settings, outputs, sound loaded or not; D-092).
+        Log.i(TAG, "step $number/$plannedSteps: pre-alert ${preAlert.summary()}, alert ${deadline.summary()}")
         tap(alert, poured)
         eventually("the alert of step $number gone after $poured", TIMEOUT) {
             Unit.takeIf { activeNotification(TimerNotifications.ID_ALERT) == null }
