@@ -394,7 +394,7 @@ maximum, 910 ms, very likely on the same first step. Decided:
   04 §4 and §9.1, 06 §5.6 and 09 §4a updated.
 
 <a id="d-091"></a>
-### D-091 — Fixes from the first full live run of the catalog refresh (spec #62, PR #78; CAT-01, CAT-04, CAT-06 – CAT-09, NFR-PERF-11; amends D-074, D-087, D-090; extends D-089) · *Accepted* (Claude, 2026-10-26)
+### D-091 — Fixes from the first full live run of the catalog refresh (spec #62, PR #78; CAT-01, CAT-04, CAT-06 – CAT-09, NFR-PERF-11; amends D-074, D-087, D-090; extends D-089) · *Accepted* (Claude, 2026-10-26; the `hojicha_powder` default confirmed by the PO, 2026-10-26)
 
 Full live run 1 against the shop (1,747 requests, no stop, 261 teas; its
 report gives counts and article numbers only) took 1,207 s, over
@@ -555,7 +555,7 @@ Optional ones. Fixed test-first; decided:
   them) and *Nachkauf erfassen* on Tanabata.
 
 <a id="d-089"></a>
-### D-089 — Parser fixes from live sample 2 (spec #62; CAT-03, CAT-05, CAT-06, CAT-09) · *Accepted* (Claude, 2026-10-25)
+### D-089 — Parser fixes from live sample 2 (spec #62; CAT-03, CAT-05, CAT-06, CAT-09) · *Accepted* (Claude, 2026-10-25; tea recipes stay out of the Ratgeber, confirmed by the PO, 2026-10-26)
 
 A second live sample of the shop (24 product pages, 4 guides; no stop
 signal) found products the scope dropped and smaller derivation and guide
@@ -3499,6 +3499,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | The PO approved the early design check #77 without changes and confirmed two choices: tea recipes stay out of the Ratgeber (D-089) and the `hojicha_powder` default (D-091). |
 | 2026-10-26 | D-092: the first pre-alert of a process (accuracy run on 83f2c5c, step 1: 1178 ms) loaded its sound inside the cue; while a timer is active the alert player now keeps the tick and the tone loaded (`keepReady` at the end of every turn) and a cue only starts its sound, with fallbacks that never cost the sound; the player runs on its own thread; the log splits each cue's start (queue, settings, outputs, sound loaded or not) and the accuracy summary names the slowest start; amends D-059. 04 §4, §9.1, 06 §5.6, 09 §4a updated. |
 | 2026-10-26 | D-091: fixes from full live run 1 — pages, photos and guides fetched while the previous answer is processed (same wire, expected first refresh ≈ 15–16 min), PNG and WebP photo sources with transparency on white, a 16 MB body limit for images (pages 5 MB), photos and guide images that failed for good remembered by URL (`catalog_image_failure`), sets in any case and by name or breadcrumb, `…SALE` duplicates left out, Mizucha brewing cold by default, the `hojicha_powder` style (whisked, no leaf recipe or cold brew); parser v6; 02 CAT-01, CAT-08, 05 §4.2b, §4.5, 06 §4, §5.2, §5.3, 07 NFR-PERF-11 and 08 §2.2, §2.4–§2.8, §3 updated. |
 | 2026-10-26 | D-090: M2 milestone review fixes — an answer over 5 MB leaves only its URL out (no stop), CAT-15 per seed tea and part with retries (`seedTeaLinksDone`, amends D-086), the exact price and the add never crash on a bad page, the two flaky tests made clock-independent (split, shortened request gap, Robolectric), on-screen backs and row/link taps only while resumed, the secondary name back in the catalog rows, no refresh start during a cancelled one's cleanup, a 30 s keep-alive, seed photos ended before a setup refresh, the add sheet's save outcome kept and prices from 1.000 €, no-break spaces in counts, the first-load duration in Settings, three M2 checklist items; 02 CAT-15, 03 SCR-01, SCR-19, SCR-23, 05 §6, 06 §4, 08 §2.8 and 09 §4 updated. |
