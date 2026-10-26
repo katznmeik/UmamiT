@@ -302,6 +302,97 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-092"></a>
+### D-092 — The first cue of a process starts as fast as the others: sounds loaded ahead, the alert player on its own thread (TMR-23, TMR-30, rule 8; amends D-059) · *Accepted* (Claude, 2026-10-26)
+
+The rc gate's accuracy run on 83f2c5c (API 36, `v0.2.0-rc.1`) failed on one
+cue: the pre-alert of step 1 started its sound 1178 ms late (handled 26 ms,
+by the alarm), over the 1 s maximum. The alert of step 1 took 311 ms; steps
+2–50 stayed at 90 ms or less (p95 61 ms and 39 ms). M1's rc run had its
+maximum, 910 ms, very likely on the same first step. Decided:
+
+- **Cause** (from the code and the AOSP sources; the run logged no split).
+  Step 1 is the first cue of a new process: the test kills the timer process
+  before it starts. Each cue loaded its sound inside its own command, on the
+  main thread, between the handled event and the „alert" log entry that
+  marks the sound's start. `MediaPlayer.create` prepares synchronously. On
+  first use in a process this means:
+  - the `MediaPlayer` class initialises `libmedia_jni`, unless the zygote already did;
+  - the player registers with AudioService (`trackPlayer`);
+  - it opens a session with the media server, which opens and parses the
+    file through `media.extractor`.
+
+  Warm, this costs about 20 ms (steps 2–50). In the fresh process the cue
+  spent about 1.15 s between the handled event and its sound, which this
+  load explains; the rest of the command is the settings cache and a few
+  binder calls (ringer mode, vibration, audio focus). The alert's 311 ms is
+  the same load for its own file. Very likely the main thread also first ran
+  the service's command for the deadline: its first `startForeground` of the
+  alert.
+- **Sounds loaded ahead.** While a timer is active, the controller keeps the
+  alert player's sounds ready. At the end of every turn, after the turn's
+  own cues, it calls the alert port's `keepReady` with „a timer is active";
+  idle releases them. The player keeps the tick and the current tone loaded
+  (`AlertSoundOutput.prepare`), so a cue only starts its loaded player. A
+  used sound is loaded again right after its cue (posted, so after the cue
+  has started).
+  - A session starts in READY, so its sounds are loaded before *Start*. A
+    step's first cue comes at least 5 s after the start (E7).
+  - Loading never waits for the settings file. It uses the tone known at
+    that moment, and a changed tone is loaded at the next turn.
+  - A failure never costs the sound (rule 8). A sound that does not load
+    plays as before, loaded on play. A loaded player that broke while it
+    waited (the media server died) is dropped. A loaded player whose start
+    throws or reports an error is replaced once by one loaded on the spot.
+  - Cost: two prepared players while a session is active, none when idle.
+    The media server holds no codec and no audio track for them until they
+    start.
+- **The alert player's own thread (amends D-059).** The player's commands,
+  repeats, sound callbacks, focus changes and loads run on the `UmamiTAlert`
+  thread (a `HandlerThread`), no longer on the main thread. So a busy main
+  thread no longer delays a cue: the service posting its notification, an
+  activity starting from the full-screen intent, the timer screen drawing.
+  A load no longer blocks the UI either.
+  - Loading on the player's thread keeps the order simple. A cue queued
+    behind a load waits at most for that load, which is what it would have
+    spent loading its own sound. Recovery replays an alert before its turn's
+    `keepReady`.
+  - The thread keeps the default priority. A raised priority needs a
+    privilege the app may not have, and a failed `setThreadPriority` would
+    end the thread.
+  - The tone preview (SET-09) stays on the main thread with its own output.
+- **Where the time went is logged** (06 §5.6). The entry of a step's tick or
+  alert now has a part before its scheduled and actual time: `queued 2 ms,
+  settings 0 ms, outputs 15 ms, sound ready` (or `sound loaded on play`,
+  `no sound`). It gives the time from the controller's call to the start of
+  the command, the wait for the settings, and the start of the outputs
+  (matrix, vibration, focus, sound). `FireTime.parsePlayed` reads it. The
+  accuracy run logs it for each step, and its summary names each event's
+  slowest start with this split. The targets are unchanged.
+- **Expected:** step 1 now does what steps 2–50 do: the first vibration and
+  focus request of the process (binder calls) and the player's start, with
+  no load. Expected: about 100 ms or less. If a later run still shows a slow
+  first cue, the split names the phase.
+- **Tests:**
+  - `AndroidAlertOutputsTest`: a loaded sound starts without a load and is
+    loaded again after its cue; a sound not loaded loads on play; sounds no
+    longer wanted are released and not loaded again. A player broken while
+    it waited, one that reports an error when started and one whose start
+    throws: each still sounds.
+  - `FirstCueTest`: the production player with the real sound output loads
+    nothing for the first tick and alert after `keepReady`.
+  - `AlertPlaybackTest`: the tick and the stored tone are loaded, a changed
+    tone is followed, loading never waits for the settings, the split is
+    logged.
+  - `AlertDeliveryTest`: ready from a session's start to its end, for a
+    quick timer, and again after recovery in a new process.
+    `ProductionAlertPortTest`: a session's first tick and alert start loaded
+    sounds.
+  - Format and report tests for the new log part and summary lines. The
+    timer tests of 04 §12 are unchanged and pass.
+
+  04 §4 and §9.1, 06 §5.6 and 09 §4a updated.
+
 <a id="d-091"></a>
 ### D-091 — Fixes from the first full live run of the catalog refresh (spec #62, PR #78; CAT-01, CAT-04, CAT-06 – CAT-09, NFR-PERF-11; amends D-074, D-087, D-090; extends D-089) · *Accepted* (Claude, 2026-10-26)
 
@@ -2164,7 +2255,7 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   M1-15 moves it under *Über*.
 
 <a id="d-059"></a>
-### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted* (Claude, 2026-10-22)
+### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted*, its main-thread queue amended by D-092 (Claude, 2026-10-22)
 
 #44 turned the ringer-mode player of #16 into the controller's alert port
 ([04 §9](04-brew-timer.md#9-alerts)). Decided while building it:
@@ -2178,6 +2269,8 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
 - **Calls never block.** Every port call only queues a command; the
   commands run in order on the main thread, which the player and its
   Android outputs need. So a stop can never overtake its start.
+  *Amended by D-092:* they run in order on the player's own thread
+  (`UmamiTAlert`), not on the main thread.
 - **Settings per alert.** Tone (SET-09), vibration (SET-11) and alert length
   (SET-14) are read at the start of every alert, tick and test from a cache
   of the settings file. Right after the process starts, a command waits at
@@ -3406,6 +3499,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | D-092: the first pre-alert of a process (accuracy run on 83f2c5c, step 1: 1178 ms) loaded its sound inside the cue; while a timer is active the alert player now keeps the tick and the tone loaded (`keepReady` at the end of every turn) and a cue only starts its sound, with fallbacks that never cost the sound; the player runs on its own thread; the log splits each cue's start (queue, settings, outputs, sound loaded or not) and the accuracy summary names the slowest start; amends D-059. 04 §4, §9.1, 06 §5.6, 09 §4a updated. |
 | 2026-10-26 | D-091: fixes from full live run 1 — pages, photos and guides fetched while the previous answer is processed (same wire, expected first refresh ≈ 15–16 min), PNG and WebP photo sources with transparency on white, a 16 MB body limit for images (pages 5 MB), photos and guide images that failed for good remembered by URL (`catalog_image_failure`), sets in any case and by name or breadcrumb, `…SALE` duplicates left out, Mizucha brewing cold by default, the `hojicha_powder` style (whisked, no leaf recipe or cold brew); parser v6; 02 CAT-01, CAT-08, 05 §4.2b, §4.5, 06 §4, §5.2, §5.3, 07 NFR-PERF-11 and 08 §2.2, §2.4–§2.8, §3 updated. |
 | 2026-10-26 | D-090: M2 milestone review fixes — an answer over 5 MB leaves only its URL out (no stop), CAT-15 per seed tea and part with retries (`seedTeaLinksDone`, amends D-086), the exact price and the add never crash on a bad page, the two flaky tests made clock-independent (split, shortened request gap, Robolectric), on-screen backs and row/link taps only while resumed, the secondary name back in the catalog rows, no refresh start during a cancelled one's cleanup, a 30 s keep-alive, seed photos ended before a setup refresh, the add sheet's save outcome kept and prices from 1.000 €, no-break spaces in counts, the first-load duration in Settings, three M2 checklist items; 02 CAT-15, 03 SCR-01, SCR-19, SCR-23, 05 §6, 06 §4, 08 §2.8 and 09 §4 updated. |
 | 2026-10-25 | D-089: parser fixes from live sample 2 — Japan teas on tea-family pages kept by name or badge (Sorte from the name), Bi Lo Chun and Korean grade keywords, the China grid row as Gongfu, Mizudashi bags by name with the „kalt" row as cold brew and bag weights, video pointers never brewing prose, harvest year only from badge and title, no cold brew for powder, guides without comments, date list, empty video intros and tag lines, images de-duplicated by decoded URL, promotions/events/recipes not selected and ten more green-type keywords; parser v5; 05 §4.1 and 08 §2.3–§2.7 updated. |

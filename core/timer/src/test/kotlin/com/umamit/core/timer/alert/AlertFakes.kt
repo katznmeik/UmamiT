@@ -16,6 +16,26 @@ class FakeSoundOutput(private val clock: FakeScheduler) : AlertSoundOutput {
         private set
     private var onLost: (() -> Unit)? = null
 
+    /**
+     * The sounds of the last [prepare]: loaded. Like the real output, which loads a used sound
+     * again after its cue, a play leaves them loaded.
+     */
+    var wanted: Set<AlertSound> = emptySet()
+        private set
+
+    /** Every [prepare] as text, e.g. `prepare [TICK, KLANGSCHALE] @ 0` (kept apart from [events]). */
+    val prepares = mutableListOf<String>()
+
+    /** The sounds a play had to load first, in order: none of them was loaded before (D-092). */
+    val loadedOnPlay = mutableListOf<AlertSound>()
+
+    override val ready: Set<AlertSound> get() = wanted
+
+    override fun prepare(sounds: Set<AlertSound>) {
+        prepares += "prepare ${sounds.toList()} @ ${clock.now}"
+        wanted = sounds
+    }
+
     override fun requestFocus(onLost: () -> Unit): Boolean {
         events += "requestFocus @ ${clock.now}"
         if (grantFocus) {
@@ -33,6 +53,7 @@ class FakeSoundOutput(private val clock: FakeScheduler) : AlertSoundOutput {
 
     override fun play(sound: AlertSound) {
         events += "play $sound @ ${clock.now}"
+        if (sound !in wanted) loadedOnPlay += sound
         playing = sound
     }
 

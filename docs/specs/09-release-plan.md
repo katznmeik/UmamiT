@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-23 (accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -197,6 +197,10 @@ version at `--ref` runs (D-039, D-070).
   comparison: the difference is the persist, the alarms and the player's
   queue. *Fired by* says whether the in-process wake-up or the exact alarm
   delivered the event.
+- **Slowest pre-alert / alert** (below the table) names the step with the
+  latest sound start of each event and splits its start: queued, settings,
+  outputs, and whether the sound was loaded before (D-092). The job log
+  shows the same split for every step.
 - **Pass** („**Result: PASS**", job green): all 50 steps completed, and both
   events have p95 ≤ 250 ms and max ≤ 1 s. Anything else fails the job:
   a slow distribution, or a step that never alerted. In that case the test

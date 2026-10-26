@@ -30,6 +30,45 @@ class AlertDeliveryTest {
     fun tearDown() = h.close()
 
     @Test
+    fun `the sounds stay loaded from the start of a session to its end, so its first tick finds them`() = runTest {
+        h.controller.startSession(brewStart(infusion(60), infusion(60)))
+        assertThat(h.alert.soundsReady).isTrue()
+
+        h.controller.send(TimerEvent.Start)
+        h.advanceSeconds(50)
+        assertThat(h.alert.ticks).isEqualTo(1)
+        h.advanceSeconds(10)
+        h.controller.send(TimerEvent.Poured)
+        assertThat(h.active.phase).isEqualTo(TimerPhase.READY)
+        assertThat(h.alert.soundsReady).isTrue()
+
+        h.controller.send(TimerEvent.FinishSession)
+        assertThat(h.alert.soundsReady).isFalse()
+        assertThat(h.alert.readyChanges).containsExactly(true, false).inOrder()
+    }
+
+    @Test
+    fun `a quick timer keeps them loaded until it ends`() = runTest {
+        h.controller.startQuickTimer(60, run = true)
+        assertThat(h.alert.soundsReady).isTrue()
+
+        h.controller.send(TimerEvent.Cancel)
+
+        assertThat(h.alert.soundsReady).isFalse()
+    }
+
+    @Test
+    fun `a new process loads them again for the timer it recovers`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        h.controller.send(TimerEvent.Start)
+
+        val restarted = h.processRestarted()
+        restarted.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(restarted.alert.soundsReady).isTrue()
+    }
+
+    @Test
     fun `the deadline alarm after the wake-up starts no second alert`() = runTest {
         h.controller.startSession(brewStart(infusion(60)))
         h.controller.send(TimerEvent.Start)

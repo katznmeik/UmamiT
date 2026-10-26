@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-25 (shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -284,7 +284,9 @@ something goes wrong. It exists **from M1** (D-036) and records:
   **scheduled and actual fire time** (wall and monotonic, difference in ms);
 - FGS start/stop, refused background starts;
 - the ringer mode at each alert, and for a step's tick or alert the
-  scheduled time and the moment the sound started (delta in ms; D-068);
+  scheduled time and the moment the sound started (delta in ms; D-068),
+  with where its start spent the time: queued, settings, outputs, and
+  whether its sound was loaded before (D-092);
 - `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and recovery decisions;
 - permission states at app start (notifications, promoted notifications,
   full-screen intent, exact alarms, battery optimisation);

@@ -231,6 +231,21 @@ class FakeTimerAlertPlayer(private val log: TimerPortLog = TimerPortLog()) : Tim
         playing = null
         log.record(AlertStopped)
     }
+
+    /**
+     * The last [keepReady]: the sounds are loaded (D-092). Not in the shared log, which stays
+     * the order of the effects; [readyChanges] has every change.
+     */
+    var soundsReady = false
+        private set
+
+    /** Each change of [soundsReady], in order. */
+    val readyChanges = mutableListOf<Boolean>()
+
+    override fun keepReady(ready: Boolean) {
+        if (ready != soundsReady) readyChanges += ready
+        soundsReady = ready
+    }
 }
 
 /** Fake [TimerDiagnosticsPort]: the [entries] in order. */

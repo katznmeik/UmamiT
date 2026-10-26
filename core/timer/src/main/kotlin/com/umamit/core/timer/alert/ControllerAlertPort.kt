@@ -45,6 +45,8 @@ class ControllerAlertPort internal constructor(
 
     override fun stopAlert() = playback.stopAlert()
 
+    override fun keepReady(ready: Boolean) = playback.keepReady(ready)
+
     @Suppress("TooGenericExceptionCaught") // a failed report is logged; recovery replays the alert (D-047)
     private fun report(alert: StepAlert) {
         scope.launch {
