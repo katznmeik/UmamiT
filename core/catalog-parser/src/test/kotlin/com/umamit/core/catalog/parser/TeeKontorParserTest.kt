@@ -240,6 +240,38 @@ class TeeKontorParserTest {
         }
     }
 
+    /**
+     * Full live run 1 (article numbers only, D-091): a set without a set number („…SET") got into
+     * the catalog. A product of the green sections is a set by its name or its breadcrumb.
+     */
+    @Test
+    fun aSetIsASetByItsNameOrBreadcrumbNeverAGreenTea() {
+        val sets = listOf(
+            "Tee" to "/tee/",
+            "Grüner Tee" to "/tee/gruener-tee/",
+            "Grüntee-Sets" to "/tee/gruener-tee/gruentee-sets/",
+        )
+        val matcha = listOf("Matcha" to "/matcha/", "Matcha Teepulver" to "/matcha/matcha-teepulver/")
+        listOf(
+            SyntheticShop.SENCHA_PATH to "Bio Grüntee Wanderung 3er Set – 3x50g",
+            SyntheticShop.SENCHA_PATH to "Bio Grüntee Wanderung 3er-Set – 3x50g",
+            SyntheticShop.SENCHA_PATH to "Morgennebel Sencha Probierset",
+            SyntheticShop.SENCHA_PATH to "Tautropfen Geschenkset",
+            SyntheticShop.SENCHA_PATH to "Morgennebel Jubiläumsset – 2x30g",
+            SyntheticShop.SENCHA_PATH to "Morgennebel SET",
+            matcha to "Grüne Wolke Komplett-Set mit Besen",
+            sets to "Morgennebel Trio – 3x50g",
+        ).forEach { (path, title) ->
+            val page = parse(SyntheticShop.productPage(breadcrumb = path, title = title))
+            assertWithMessage(title).that(page.scope).isEqualTo(CatalogScope.SET)
+        }
+        // Words that only contain „set" are no sets.
+        listOf("Setouchi Sencha – 100g", "Sunset Sencha – 100g", "Morgennebel Sencha Settai – 50g").forEach { title ->
+            val page = parse(SyntheticShop.productPage(title = title))
+            assertWithMessage(title).that(page.scope).isEqualTo(CatalogScope.GREEN)
+        }
+    }
+
     @Test
     fun withoutABreadcrumbTheScopeIsUnknown() {
         assertThat(parse(SyntheticShop.productPage(breadcrumb = null)).scope).isEqualTo(CatalogScope.UNKNOWN)

@@ -11,16 +11,16 @@ import com.umamit.core.data.PhotoTarget
 import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogGuideEntity
+import com.umamit.core.database.entity.CatalogImageFailureReason
 import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.domain.guide.GuideMarkdown
 import com.umamit.core.model.GuideBlock
+import com.umamit.core.network.BodyLimit
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
 import com.umamit.core.network.ShopSession
 import com.umamit.core.network.StopCause
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -39,8 +39,12 @@ internal class GuideCounts {
     var imagesFetched = 0
     var imagesMissing = 0
 
+    /** Images without a file because they failed for good before (D-091): not asked for again. */
+    var imagesFailedBefore = 0
+
     fun line() = "guides: $selected selected, $stored stored, $kept kept from before (unreadable), " +
-        "$unavailable unavailable, images $imagesFetched fetched, $imagesMissing without"
+        "$unavailable unavailable, images $imagesFetched fetched, $imagesMissing without " +
+        "($imagesFailedBefore failed before)"
 }
 
 /**
@@ -55,9 +59,12 @@ internal class GuideCounts {
  * - An article that is gone (404, robots.txt) is left out; one that no longer reads (the blog's
  *   layout changed) keeps its current version, images included.
  * - Images only while SET-22 *Katalog: Fotos laden* is on, at most [GuideLimits.maxImagesPerGuide]
- *   per article (the hero first), each
- *   re-encoded to ≤ 1200 px WebP ([PhotoTarget.CATALOG]) and named after its URL: one already on
- *   disk is not fetched again. An image that is missing or doesn't decode is left out of the text.
+ *   per article (the hero first), each up to the image body limit and re-encoded to ≤ 1200 px
+ *   WebP ([PhotoTarget.CATALOG]) and named after its URL: one already on disk is not fetched
+ *   again, nor one that failed for good ([ImageFailures], D-091). An image that is missing or
+ *   doesn't decode is left out of the text.
+ * - The next article or image is fetched while this one is converted or re-encoded
+ *   ([fetchOverlapped], D-091).
  * - Links to a catalog tea or a stored guide become in-app links; others stay web links.
  * - Any stop ends the run like a stop on a product page: the old catalog and guides stay.
  */
@@ -73,14 +80,16 @@ internal class CatalogGuides(
 ) {
     /**
      * Stages the guides of [sitemapUrls]; [catalogKeys] maps each base number of the staged
-     * catalog to its tea's key. [onGuide] follows each article read; [stop] ends the run.
+     * catalog to its tea's key. [failures] knows the images that failed for good. [onGuide]
+     * follows each article read; [stop] ends the run.
      */
-    @Suppress("LongParameterList") // the session, the sitemap, the catalog, the setting and the run's callbacks
+    @Suppress("LongParameterList") // the session, the sitemap, the catalog, the setting, the run's state and callbacks
     suspend fun stage(
         session: ShopSession,
         sitemapUrls: List<String>,
         catalogKeys: Map<String, String>,
         downloadImages: Boolean,
+        failures: ImageFailures,
         counts: GuideCounts,
         onGuide: () -> Unit,
         stop: (StopCause, String) -> Nothing,
@@ -94,7 +103,8 @@ internal class CatalogGuides(
             return
         }
         val articles = fetchArticles(session, candidates, counts, onGuide, stop)
-        val files = imageFiles(session, articles.map { it.article }, downloadImages, counts, stop)
+        val files =
+            imageFiles(session, articles.map { it.article }, ImageDownload(downloadImages, failures), counts, stop)
         val slugs = articles.map { it.article.slug }.toSet() + dao.stagedGuideSlugs()
         val resolver = GuideLinkResolver(client.baseUrl.host, catalogKeys, slugs)
         for ((article, fetchedAt) in articles) {
@@ -132,10 +142,14 @@ internal class CatalogGuides(
         stop: (StopCause, String) -> Nothing,
     ): List<Fetched> {
         val articles = mutableListOf<Fetched>()
-        for (candidate in candidates) {
-            currentCoroutineContext().ensureActive()
-            val url = candidate.url.toHttpUrlOrNull()?.takeIf { session.isAllowed(it) }
-            when (val answer = url?.let { session.fetch(it) }) {
+        // The next article is fetched while this one is converted (D-091).
+        fetchOverlapped(
+            items = candidates,
+            fetch = { candidate -> candidate.allowedUrl(session)?.let { session.fetch(it) } },
+            isLast = { it is ShopFetch.Stopped },
+        ) { candidate, answer ->
+            val url = candidate.url.toHttpUrlOrNull()
+            when (answer) {
                 is ShopFetch.Fetched -> {
                     val parsed = withContext(parseDispatcher) { GuideParser.parse(answer.body, candidate.url) }
                     if (parsed is GuideParse.Parsed) {
@@ -163,57 +177,94 @@ internal class CatalogGuides(
         return articles
     }
 
+    /** [GuideCandidate.url] when robots.txt and the allow-list let the app fetch it, else null (never sent). */
+    private suspend fun GuideCandidate.allowedUrl(session: ShopSession) =
+        url.toHttpUrlOrNull()?.takeIf { session.isAllowed(it) }
+
+    /** Whether this run fetches images (SET-22), and which failed for good before (D-091). */
+    private class ImageDownload(val enabled: Boolean, val failures: ImageFailures)
+
     /** Each image of [articles] to its local file: on disk already, fetched now, or none. */
     private suspend fun imageFiles(
         session: ShopSession,
         articles: List<GuideArticle>,
-        download: Boolean,
+        download: ImageDownload,
         counts: GuideCounts,
         stop: (StopCause, String) -> Nothing,
     ): Map<String, String> {
         val files = mutableMapOf<String, String>()
+        val toFetch = mutableListOf<Pair<String, String>>()
         for (source in articles.flatMap { it.imageUrls.take(limits.maxImagesPerGuide) }.distinct()) {
-            currentCoroutineContext().ensureActive()
             val name = images.name(source)
             when {
                 withContext(fileDispatcher) { images.exists(name) } -> files[source] = name
 
-                download && storeImage(session, source, name, stop) -> {
-                    files[source] = name
-                    counts.imagesFetched++
+                // No request either way; an image that failed for good stays remembered (D-091).
+                !download.enabled -> {
+                    download.failures.remembers(source)
+                    counts.imagesMissing++
                 }
 
-                else -> counts.imagesMissing++
+                download.failures.remembers(source) -> {
+                    counts.imagesFailedBefore++
+                    counts.imagesMissing++
+                }
+
+                else -> toFetch += source to name
+            }
+        }
+        // The next image is fetched while this one is re-encoded and written (D-091).
+        fetchOverlapped(
+            items = toFetch,
+            fetch = { (source, _) -> source.shopUrl()?.let { session.fetch(it, BodyLimit.IMAGE) } },
+            isLast = { it is ShopFetch.Stopped },
+        ) { (source, name), answer ->
+            if (storeImage(source, name, answer, download.failures, stop)) {
+                files[source] = name
+                counts.imagesFetched++
+            } else {
+                counts.imagesMissing++
             }
         }
         return files
     }
 
-    /** Fetches, re-encodes and writes one image; false when there is none to store. */
+    /** Only the shop's own host: an image elsewhere is never fetched (rule 7). */
+    private fun String.shopUrl() = toHttpUrlOrNull()?.takeIf { client.isAllowed(it) }
+
+    /**
+     * Re-encodes and writes one image from its [answer] (null: not on the shop's host, never
+     * fetched); false when there is none to store. An image too large or unreadable failed for
+     * good (D-091).
+     */
     private suspend fun storeImage(
-        session: ShopSession,
         source: String,
         name: String,
+        answer: ShopFetch?,
+        failures: ImageFailures,
         stop: (StopCause, String) -> Nothing,
-    ): Boolean {
-        // Only the shop's own host: an image elsewhere is never fetched (rule 7).
-        val url = source.toHttpUrlOrNull()?.takeIf { client.isAllowed(it) } ?: return false
-        return when (val answer = session.fetch(url)) {
-            is ShopFetch.Fetched -> {
-                val photo = withContext(parseDispatcher) { PhotoTranscoder.transcode(answer.body, PhotoTarget.CATALOG) }
-                if (photo != null) withContext(fileDispatcher) { images.write(name, photo.bytes) }
-                photo != null
+    ): Boolean = when (answer) {
+        null -> false
+
+        is ShopFetch.Fetched -> {
+            val photo = withContext(parseDispatcher) { PhotoTranscoder.transcode(answer.body, PhotoTarget.CATALOG) }
+            if (photo != null) {
+                withContext(fileDispatcher) { images.write(name, photo.bytes) }
+            } else {
+                failures.failed(source, CatalogImageFailureReason.UNREADABLE)
             }
+            photo != null
+        }
 
-            is ShopFetch.Stopped -> stop(answer.cause, url.encodedPath)
+        is ShopFetch.Stopped -> stop(answer.cause, requireNotNull(source.shopUrl()).encodedPath)
 
-            ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
+        ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
 
-            // Over the size limit: only this image is left out, no stop (D-090).
-            is ShopFetch.TooLarge -> {
-                log("catalog refresh: ${answer.line(url)}")
-                false
-            }
+        // Over the image limit: only this image is left out, no stop (D-090, D-091).
+        is ShopFetch.TooLarge -> {
+            log("catalog refresh: ${answer.line(requireNotNull(source.shopUrl()))}")
+            failures.failed(source, CatalogImageFailureReason.TOO_LARGE)
+            false
         }
     }
 

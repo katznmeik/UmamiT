@@ -55,6 +55,7 @@ object RecipeDeriver {
     fun derive(info: BrewInfo, match: StyleMatch): DerivedRecipes {
         val style = match.style
         val prose = Prose.read(info.prose, style.gramsPerTeaspoon, info.gramsPerBag)
+        // A whisked powder (matcha, hōjicha powder, D-091): its rows become one Usucha recipe.
         val matcha = style.defaultRecipe.method == BrewMethod.MATCHA_USUCHA
         // A row at „kalt" is the cold brew's (D-089), never a hot recipe.
         val (coldRows, hotRows) = info.grid.mapNotNull {

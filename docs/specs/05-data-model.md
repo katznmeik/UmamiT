@@ -344,6 +344,18 @@ Table `catalog_skip`: `base_key` PK, `reason` (`NOT_GREEN`, `SET`,
 as out of scope, so later refreshes don't fetch them again (re-checked after
 90 days).
 
+### 4.2b CatalogImageFailure
+
+Table `catalog_image_failure`: `url` PK, `reason` (`TOO_LARGE`, `UNREADABLE`),
+`rules_version`, `failed_at` — product photo and guide image URLs that
+failed for good (over the 16 MB image limit, or no decodable JPEG, PNG or
+WebP within the transcoder's limits). A refresh doesn't fetch them again
+while the URL (which carries the shop's image version, `?ts=`) stays the
+same and `rules_version` is the app's; a new transcoder or limit raises the
+version, so every failure is tried once more. The swap replaces the table
+with the failures the run met, remembered or new, so a failed run remembers
+nothing and a URL no longer met is forgotten (D-091).
+
 ### 4.3 CatalogGuide
 
 Table `catalog_guide`: `slug` PK, `title`, `url`, `body_markdown`,
@@ -379,7 +391,8 @@ so the swap copies them with `INSERT … SELECT *`; a tea already in the
 catalog keeps its `first_seen_at`. The skip entries of the run
 (`catalog_skip`) and its `catalog_refresh_log` row are written in the same
 transaction, so a refresh that stops, is cancelled or fails the sanity check
-leaves the skip list unchanged too (D-077). A tea of the old catalog that the
+leaves the skip list unchanged too (D-077); so are the images that failed for
+good (`catalog_image_failure`, D-091). A tea of the old catalog that the
 refresh did not stage is copied into the staging tables unchanged while its
 base numbers are still in the sitemap (its page couldn't be read this time);
 otherwise it left the range and stays, with `discontinued = 1`, only while a

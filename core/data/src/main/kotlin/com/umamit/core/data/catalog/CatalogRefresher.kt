@@ -21,6 +21,7 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.CatalogTeaState
+import com.umamit.core.database.entity.CatalogImageFailureReason
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
@@ -29,6 +30,7 @@ import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
+import com.umamit.core.network.BodyLimit
 import com.umamit.core.network.NetworkRetry
 import com.umamit.core.network.ShopClient
 import com.umamit.core.network.ShopFetch
@@ -57,12 +59,13 @@ import javax.inject.Inject
  * 1. robots.txt and the sitemap (index → `.xml.gz` url sets) through one [ShopSession] with the
  *    refresh's retries ([NetworkRetry.REFRESH], D-076): every request on the allow-listed
  *    [ShopClient], one connection, ≤ 2 requests/s, robots.txt honoured (CLAUDE.md rule 7).
- * 2. Candidates: one page per base number, sets left out, base numbers on the skip list for
- *    less than 90 days left out; so a first refresh classifies every parent (D-076), and a later
- *    one fetches the known green teas (with the numbers merged into them, D-081), the base
- *    numbers new in the sitemap and the skip entries due again (08 §2.4 item 5).
+ * 2. Candidates: one page per base number, sets and sale duplicates left out (D-091), base
+ *    numbers on the skip list for less than 90 days left out; so a first refresh classifies every
+ *    parent (D-076), and a later one fetches the known green teas (with the numbers merged into
+ *    them, D-081), the base numbers new in the sitemap and the skip entries due again (08 §2.4
+ *    item 5).
  * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas are kept, other products
- *    go onto the new skip entries.
+ *    and sets without a set number go onto the new skip entries.
  * 4. The green teas go into the staging tables, one entry per tea with its package sizes
  *    ([CatalogEntries]: split numbers merged, sizes and prices from the page and the sitemap,
  *    no size page fetched; 08 §2.4 items 6–7, D-081), its style and derived recipes
@@ -70,10 +73,11 @@ import javax.inject.Inject
  *    (08 §2.9).
  * 5. The green teas' new and changed photos (CAT-08), unless SET-22 *Katalog: Fotos laden* is
  *    off: a photo whose URL is the one the stored photo came from is never fetched again (#70);
- *    each other one through the same session (robots.txt, stops), re-encoded to `<key>.webp` and
- *    `<key>_thumb.webp` ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing
- *    or doesn't decode leaves only that tea without one (or with the photo it had); a stop ends
- *    the run.
+ *    each other one through the same session (robots.txt, stops; up to the image body limit,
+ *    D-091), re-encoded to `<key>.webp` and `<key>_thumb.webp`
+ *    ([PhotoTranscoder.transcodeForCatalog], D-074). A photo that is missing or doesn't decode
+ *    leaves only that tea without one (or with the photo it had); one that failed for good is not
+ *    asked for again while its URL is the same ([ImageFailures], D-091); a stop ends the run.
  * 6. The *Tee-Info* guides (CAT-09, D-087) through the same session, with their images unless
  *    SET-22 is off, converted and staged ([CatalogGuides]).
  * 7. One transaction swaps the staged catalog and guides in, adds the skip entries and logs the
@@ -84,15 +88,20 @@ import javax.inject.Inject
  *    photos of teas and the images of guides no longer in the catalog are deleted and the
  *    seed teas are linked ([CatalogSeedLinker], CAT-15; each part once, D-090).
  *
+ * Pages, photos and guides are fetched one after another while the previous answer is processed
+ * ([fetchOverlapped], D-091): the wire sees the same requests at the same rate, and the
+ * processing no longer adds to the request gaps.
+ *
  * Any stop (challenge, block, 429, `Retry-After`, a refusal, offline), a structural failure, a
  * storage error or a cancellation leaves the catalog, its guides **and the skip list** as they were (photos
  * of teas it doesn't hold are deleted again) and empties the staging tables; a failed run's
  * classifications are not kept, so a broken parser can never hide teas (D-077). Each run is
  * logged in `catalog_refresh_log` and its steps in the [DiagnosticsLog] (06 §5.6).
  *
- * Cancelling the calling coroutine cancels the refresh: the request in flight is cancelled, no
- * further request is sent, the run is logged as cancelled and the [CancellationException] is
- * rethrown. Once the swap begins, a cancel changes nothing: the run returns its success (D-090).
+ * Cancelling the calling coroutine cancels the refresh: the request in flight (it may be the
+ * next page's, fetched while this one is processed) is cancelled, no further request is sent,
+ * the run is logged as cancelled and the [CancellationException] is rethrown. Once the swap
+ * begins, a cancel changes nothing: the run returns its success (D-090).
  */
 class CatalogRefresher(
     private val client: ShopClient,
@@ -220,9 +229,16 @@ class CatalogRefresher(
         var unavailable = 0
         var sitemapUrls = 0
         var sets = 0
+        var sales = 0
         var skippedKnown = 0
         var photosStored = 0
         var photosMissing = 0
+
+        /** Photos without one because they failed for good before (D-091): not asked for again. */
+        var photosFailedBefore = 0
+
+        /** The images that failed for good, read with the previous catalog (D-091). */
+        var imageFailures = ImageFailures(emptyList(), startedAt)
 
         /** SET-22 *Katalog: Fotos laden* as this run read it. */
         var downloadPhotos = true
@@ -302,10 +318,13 @@ class CatalogRefresher(
             appendLine("client: ${client.userAgent}")
             appendLine("parser: v${TeeKontorParser.PARSER_VERSION}")
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
-            appendLine("sitemap: $sitemapUrls URLs, $sets sets, $skippedKnown on the skip list")
+            appendLine("sitemap: $sitemapUrls URLs, $sets sets, $sales sale duplicates, $skippedKnown on the skip list")
             appendLine("candidates: $known known green, $new new, $recheck to check again")
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
-            appendLine("photos: $photosStored stored, $photosKept unchanged, $photosMissing without")
+            appendLine(
+                "photos: $photosStored stored, $photosKept unchanged, $photosMissing without " +
+                    "($photosFailedBefore failed before, not asked again)",
+            )
             appendLine(guides.line())
             append("defective: ${defective.size}")
             if (defective.isNotEmpty()) {
@@ -339,22 +358,19 @@ class CatalogRefresher(
             run.sitemapUrls = urls.size
             val products = ProductUrls.group(urls)
             run.sets = products.sets
+            run.sales = products.sales
             if (products.groups.isEmpty()) run.shopChanged("no product URLs in the sitemap (${urls.size} URLs)")
             readPrevious(products.groups)
             val candidates = candidates(session, products.groups)
             log(
                 "catalog refresh: sitemap ${urls.size} URLs, ${products.groups.size} products, " +
-                    "${products.sets} sets, ${run.skippedKnown} on the skip list, ${candidates.size} to fetch " +
+                    "${products.sets} sets, ${products.sales} sale duplicates, ${run.skippedKnown} on the skip list, " +
+                    "${candidates.size} to fetch " +
                     "(${run.known} known green, ${run.new} new, ${run.recheck} to check again)",
             )
             run.pagesTotal = candidates.size
             run.progress()
-            for (group in candidates) {
-                currentCoroutineContext().ensureActive()
-                fetchProduct(session, group)
-                run.pagesDone++
-                run.progress()
-            }
+            fetchProducts(session, candidates)
             stageEntries()
             checkSanity()
             storePhotos(session)
@@ -401,6 +417,7 @@ class CatalogRefresher(
                 setOf(key) + merged[key].orEmpty().filterNotNull()
             }
             run.listedBases = groups.map { it.base }.toSet()
+            run.imageFailures = ImageFailures(dao.imageFailures(), run.startedAt)
         }
 
         /**
@@ -426,9 +443,22 @@ class CatalogRefresher(
             }
         }
 
-        private suspend fun fetchProduct(session: ShopSession, group: ProductGroup) {
-            val url = requireNotNull(group.pageUrl.toHttpUrlOrNull())
-            when (val answer = session.fetch(url)) {
+        /** Each candidate's page, the next one fetched while this one is parsed and classified (D-091). */
+        private suspend fun fetchProducts(session: ShopSession, candidates: List<ProductGroup>) = fetchOverlapped(
+            items = candidates,
+            fetch = { group -> session.fetch(group.url()) },
+            isLast = { it is ShopFetch.Stopped },
+        ) { group, answer ->
+            productAnswer(group, answer)
+            run.pagesDone++
+            run.progress()
+        }
+
+        private fun ProductGroup.url() = requireNotNull(pageUrl.toHttpUrlOrNull())
+
+        private suspend fun productAnswer(group: ProductGroup, answer: ShopFetch) {
+            val url = group.url()
+            when (answer) {
                 is ShopFetch.Fetched -> when (val parsed = parse(answer.body, group.pageUrl)) {
                     is ProductParse.Parsed -> classify(group, parsed.page)
                     is ProductParse.Failed -> run.defective += group.base
@@ -459,14 +489,19 @@ class CatalogRefresher(
                     if (page.brewTable.isEmpty() && page.brewText == null) run.lackingBrewing++
                 }
 
-                CatalogScope.NOT_GREEN -> {
-                    run.skips += CatalogSkipEntity(group.base, CatalogSkipReason.NOT_GREEN, run.startedAt)
-                    run.skippedBases += group.base
-                }
+                CatalogScope.NOT_GREEN -> skip(group, CatalogSkipReason.NOT_GREEN)
+
+                // A set without a set number, by its name or breadcrumb (D-091).
+                CatalogScope.SET -> skip(group, CatalogSkipReason.SET)
 
                 // No breadcrumb: neither kept nor skipped; the sanity check counts it.
                 CatalogScope.UNKNOWN -> run.defective += group.base
             }
+        }
+
+        private fun skip(group: ProductGroup, reason: CatalogSkipReason) {
+            run.skips += CatalogSkipEntity(group.base, reason, run.startedAt)
+            run.skippedBases += group.base
         }
 
         /**
@@ -524,18 +559,34 @@ class CatalogRefresher(
         private suspend fun storePhotos(session: ShopSession) {
             val download = settings.settings.first().catalogDownloadPhotos
             run.downloadPhotos = download
+            val toFetch = mutableListOf<Pair<String, String>>()
             for ((key, photoUrl) in run.photoUrls) {
-                if (unchangedPhoto(key, photoUrl)) {
-                    run.photosKept++
-                } else if (download) {
-                    currentCoroutineContext().ensureActive()
-                    if (storePhoto(session, key, photoUrl)) {
-                        run.photosWritten += key
-                        run.photosStored++
-                        run.progress()
-                    } else {
+                when {
+                    unchangedPhoto(key, photoUrl) -> run.photosKept++
+
+                    // No request either way; a photo that failed for good stays remembered (D-091).
+                    !download -> run.imageFailures.remembers(photoUrl)
+
+                    run.imageFailures.remembers(photoUrl) -> {
+                        run.photosFailedBefore++
                         run.photosMissing++
                     }
+
+                    else -> toFetch += key to photoUrl
+                }
+            }
+            // The next photo is fetched while this one is re-encoded and written (D-091).
+            fetchOverlapped(
+                items = toFetch,
+                fetch = { (_, photoUrl) -> photoUrl.shopUrl()?.let { session.fetch(it, BodyLimit.IMAGE) } },
+                isLast = { it is ShopFetch.Stopped },
+            ) { (key, photoUrl), answer ->
+                if (storePhoto(key, photoUrl, answer)) {
+                    run.photosWritten += key
+                    run.photosStored++
+                    run.progress()
+                } else {
+                    run.photosMissing++
                 }
             }
             val pageUrls = run.photoUrls.toMap()
@@ -554,29 +605,37 @@ class CatalogRefresher(
                 withContext(fileDispatcher) { photos.exists(key) }
         }
 
-        /** Fetches, re-encodes and writes one tea's photo; false when there is none to store. */
-        private suspend fun storePhoto(session: ShopSession, key: String, photoUrl: String): Boolean {
-            // Only the shop's own host: a photo elsewhere is never fetched (rule 7).
-            val url = photoUrl.toHttpUrlOrNull()?.takeIf { client.isAllowed(it) } ?: return false
-            return when (val answer = session.fetch(url)) {
-                is ShopFetch.Fetched -> {
-                    val photo = withContext(parseDispatcher) { PhotoTranscoder.transcodeForCatalog(answer.body) }
-                    if (photo != null) {
-                        withContext(fileDispatcher) { photos.write(key, photo.full.bytes, photo.thumbnail.bytes) }
-                    }
-                    photo != null
+        /** Only the shop's own host: a photo elsewhere is never fetched (rule 7). */
+        private fun String.shopUrl() = toHttpUrlOrNull()?.takeIf { client.isAllowed(it) }
+
+        /**
+         * Re-encodes and writes one tea's photo from its [answer] (null: not on the shop's host,
+         * never fetched); false when there is none to store. A photo too large or unreadable
+         * failed for good (D-091).
+         */
+        private suspend fun storePhoto(key: String, photoUrl: String, answer: ShopFetch?): Boolean = when (answer) {
+            null -> false
+
+            is ShopFetch.Fetched -> {
+                val photo = withContext(parseDispatcher) { PhotoTranscoder.transcodeForCatalog(answer.body) }
+                if (photo != null) {
+                    withContext(fileDispatcher) { photos.write(key, photo.full.bytes, photo.thumbnail.bytes) }
+                } else {
+                    run.imageFailures.failed(photoUrl, CatalogImageFailureReason.UNREADABLE)
                 }
+                photo != null
+            }
 
-                is ShopFetch.Stopped -> run.stop(answer.cause, url.encodedPath)
+            is ShopFetch.Stopped -> run.stop(answer.cause, requireNotNull(photoUrl.shopUrl()).encodedPath)
 
-                // Never sent (robots.txt) or gone: only this tea is left without a new photo.
-                ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
+            // Never sent (robots.txt) or gone: only this tea is left without a new photo.
+            ShopFetch.Disallowed, is ShopFetch.Unavailable -> false
 
-                // Over the size limit: only this tea is left without a new photo, no stop (D-090).
-                is ShopFetch.TooLarge -> {
-                    log("catalog refresh: ${answer.line(url)}")
-                    false
-                }
+            // Over the image limit: only this tea is left without a new photo, no stop (D-090, D-091).
+            is ShopFetch.TooLarge -> {
+                log("catalog refresh: ${answer.line(requireNotNull(photoUrl.shopUrl()))}")
+                run.imageFailures.failed(photoUrl, CatalogImageFailureReason.TOO_LARGE)
+                false
             }
         }
 
@@ -587,6 +646,7 @@ class CatalogRefresher(
                 sitemapUrls = urls,
                 catalogKeys = guideCatalogKeys(),
                 downloadImages = run.downloadPhotos,
+                failures = run.imageFailures,
                 counts = run.guides,
                 onGuide = run::progress,
                 stop = run::stop,
@@ -631,6 +691,8 @@ class CatalogRefresher(
                     }
                 }
             }
+            // A tea kept unread fetched no photo: what failed of it stays remembered (D-091).
+            unchanged.forEach { key -> run.previous[key]?.photoUrl?.let(run.imageFailures::remembers) }
             val summary = summary(gone)
             val entry = run.logEntry(CatalogRefreshStatus.SUCCESS, summary, errorSummary = null)
             // The teas in the range: the staged ones and the unread ones kept (none of them discontinued).
@@ -638,7 +700,7 @@ class CatalogRefresher(
             // The last moment a cancel ends the run: the swap and everything after it run to their end (D-090).
             currentCoroutineContext().ensureActive()
             return withContext(NonCancellable) {
-                dao.swap(run.skips, entry, unchanged, discontinued)
+                dao.swap(run.skips, entry, unchanged, discontinued, run.imageFailures.stored())
                 keepPhotosOfCatalog()
                 log(
                     "catalog refresh: success, $teas teas (${summary.newTeas} new, ${summary.changedTeas} changed, " +
@@ -646,7 +708,7 @@ class CatalogRefresher(
                         "${summary.recipesToCheck} to check), ${run.skips.size} not green, " +
                         "${run.defective.size} defective, ${run.unavailable} unavailable, " +
                         "${run.photosStored} photos stored, ${run.photosKept} unchanged, " +
-                        "${run.photosMissing} without, " +
+                        "${run.photosMissing} without (${run.photosFailedBefore} failed before), " +
                         "${TimeUnit.MILLISECONDS.toSeconds(clock.nowMs() - run.startedAt)} s",
                 )
                 linkSeedTeas()

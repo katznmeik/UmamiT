@@ -214,6 +214,23 @@ class CatalogRefresherTest {
     }
 
     @Test
+    fun setsAndSaleDuplicatesNeverEnterTheCatalog() = runTest {
+        // Full live run 1 (article numbers only, D-091): „…Set" numbers, a set without a set number
+        // and two „…SALE" duplicates of a regular tea got into the catalog.
+        listed += listOf("/morgennebel-sencha/XY0100SALE", "/zweierlei-sencha/XY0410Set", "/dreierlei/XY0420SETc")
+        product(SET_PAGE, "Sencha Wanderung 3er Set – 3x50g", "XY0700", SyntheticShop.SENCHA_PATH)
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2))
+        // The numbers say set or sale: never asked for. The set without a set number: skipped as a set.
+        assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA, GYOKURO, BLACK, TEAPOT, SET_PAGE)
+            .inOrder()
+        assertThat(dao.skipList().map { it.baseKey to it.reason }).contains("XY0700" to CatalogSkipReason.SET)
+        assertThat(names()).containsExactly("Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
+    }
+
+    @Test
     fun aLaterRefreshFetchesKnownGreensAndNewProductsButNotTheSkipList() = runTest {
         previousCatalog()
         product(NEW_TEA, "Frühlingshauch Shincha – 100g", "XY0600", SHINCHA_PATH)
@@ -421,7 +438,10 @@ class CatalogRefresherTest {
         assertThat(names()).containsExactly("Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
         assertThat(dao.countStaged()).isEqualTo(0)
         assertThat(dao.refreshLog().last().status).isEqualTo(CatalogRefreshStatus.CANCELLED)
-        assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA).inOrder()
+        // The next page may already be on its way while this one is processed (D-091): its answer
+        // is dropped, and nothing after it is asked for.
+        assertThat(paths().take(4)).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA).inOrder()
+        assertThat(paths().drop(4)).isIn(listOf(emptyList(), listOf(GYOKURO)))
     }
 
     @Test
@@ -529,6 +549,7 @@ class CatalogRefresherTest {
         const val BLACK = "/abendglut-assam/XY0300"
         const val TEAPOT = "/kanne-aus-ton/XY0500"
         const val NEW_TEA = "/fruehlingshauch-shincha/XY0600"
+        const val SET_PAGE = "/sencha-wanderung/XY0700"
         const val SKIP_RECHECK_DAYS = 90L
         const val LIMITER_INTERVAL_MS = 500L
 

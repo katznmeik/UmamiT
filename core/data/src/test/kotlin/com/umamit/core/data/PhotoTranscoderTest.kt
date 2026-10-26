@@ -1,16 +1,22 @@
 package com.umamit.core.data
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.ByteArrayOutputStream
 
 /**
  * Re-encoding downloaded images to a target size and format (#63; 05 §3.9, 06 §5.2, CAT-08,
- * D-050, D-073, D-074). The sources are synthetic JPEGs encoded on the spot (D-016).
+ * D-050, D-073, D-074, D-091). The sources are synthetic JPEGs, PNGs and WebPs encoded on the spot
+ * (D-016).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -95,6 +101,57 @@ class PhotoTranscoderTest {
         )
 
         sources.forEach { source ->
+            assertThat(PhotoTranscoder.transcodeForCatalog(source)).isNull()
+            assertThat(PhotoTranscoder.transcode(source)).isNull()
+        }
+    }
+
+    @Test
+    fun pngAndWebPSourcesAreAcceptedToo() {
+        // Full live run 1 (counts only, D-091): 27 product photos and some guide images were PNGs.
+        val png = syntheticImage(width = 3000, height = 2000, format = Bitmap.CompressFormat.PNG)
+        val fromPng = checkNotNull(PhotoTranscoder.transcodeForCatalog(png))
+        assertThat(decodedSize(fromPng.full.bytes)).isEqualTo(1200 to 800)
+        assertThat(mimeType(fromPng.full.bytes)).isEqualTo("image/webp")
+        assertThat(decodedSize(fromPng.thumbnail.bytes)).isEqualTo(384 to 256)
+        val cover = checkNotNull(PhotoTranscoder.transcode(png))
+        assertThat(cover.width to cover.height).isEqualTo(2048 to 1365)
+        assertThat(mimeType(cover.bytes)).isEqualTo("image/jpeg")
+        val guide = checkNotNull(PhotoTranscoder.transcode(png, PhotoTarget.CATALOG))
+        assertThat(guide.width to guide.height).isEqualTo(1200 to 800)
+
+        val webp = syntheticImage(width = 1600, height = 1600, format = Bitmap.CompressFormat.WEBP_LOSSY)
+        val fromWebP = checkNotNull(PhotoTranscoder.transcodeForCatalog(webp))
+        assertThat(decodedSize(fromWebP.full.bytes)).isEqualTo(1200 to 1200)
+    }
+
+    @Test
+    fun aTransparentPngIsFlattenedOntoWhite() {
+        val bitmap = Bitmap.createBitmap(400, 300, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.TRANSPARENT)
+            Canvas(this).drawRect(100f, 100f, 300f, 200f, Paint().apply { color = Color.rgb(74, 86, 67) })
+        }
+        val png = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+
+        val cover = checkNotNull(PhotoTranscoder.transcode(png))
+        val catalog = checkNotNull(PhotoTranscoder.transcodeForCatalog(png))
+
+        listOf(cover.bytes, catalog.full.bytes, catalog.thumbnail.bytes).forEach { bytes ->
+            val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val corner = decoded.getPixel(2, 2)
+            assertThat(Color.alpha(corner)).isEqualTo(255)
+            assertThat(listOf(Color.red(corner), Color.green(corner), Color.blue(corner)).min()).isAtLeast(240)
+            val centre = decoded.getPixel(decoded.width / 2, decoded.height / 2)
+            assertThat(Color.red(centre)).isLessThan(120)
+        }
+    }
+
+    @Test
+    fun truncatedPngOrWebPGivesNoPhoto() {
+        val png = syntheticImage(width = 400, height = 300, format = Bitmap.CompressFormat.PNG)
+        val webp = syntheticImage(width = 400, height = 300, format = Bitmap.CompressFormat.WEBP_LOSSY)
+
+        listOf(png.copyOf(png.size - 12), png.copyOf(png.size / 2), webp.copyOf(webp.size - 8)).forEach { source ->
             assertThat(PhotoTranscoder.transcodeForCatalog(source)).isNull()
             assertThat(PhotoTranscoder.transcode(source)).isNull()
         }

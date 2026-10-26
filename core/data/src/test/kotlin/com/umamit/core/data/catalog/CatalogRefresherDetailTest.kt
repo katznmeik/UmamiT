@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.content.Context
+import android.graphics.Bitmap
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -36,6 +37,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -237,11 +239,11 @@ class CatalogRefresherDetailTest {
 
     @Test
     fun anOversizedPhotoLeavesOnlyThatTeaWithoutOneAndTheRefreshGoesOn() = runTest {
-        // Over the client's body limit, declared or not: only this URL is left out, no stop (D-090).
-        routes[photoRoute("sencha")] = { jpeg(ByteArray(OVER_LIMIT)) }
+        // Over the client's image limit, declared or not: only this URL is left out, no stop (D-090, D-091).
+        routes[photoRoute("sencha")] = { jpeg(ByteArray(IMAGE_OVER_LIMIT)) }
         routes[photoRoute("gyokuro")] = {
             MockResponse.Builder().addHeader("Content-Type", "image/jpeg")
-                .chunkedBody(Buffer().write(ByteArray(OVER_LIMIT)), CHUNK_BYTES).build()
+                .chunkedBody(Buffer().write(ByteArray(IMAGE_OVER_LIMIT)), CHUNK_BYTES).build()
         }
         product(NEW_TEA, "XY0150", SyntheticShop.SENCHA_PATH, photo = "neu")
         routes[photoRoute("neu")] = { jpeg(syntheticJpeg(800, 600)) }
@@ -256,6 +258,65 @@ class CatalogRefresherDetailTest {
             .containsExactly(photoRoute("sencha"), photoRoute("neu"), photoRoute("gyokuro"))
             .inOrder()
         assertThat(dao.tea("XY0150")?.photoFile).isEqualTo("XY0150.webp")
+    }
+
+    @Test
+    fun aPngPhotoLargerThanAPageIsStored() = runTest {
+        // Full live run 1 (counts and sizes only, D-091): every one of the 27 photos missing was a
+        // PNG, 10 of them over the page limit of 5 MB.
+        val png = noisePng(width = 1400, height = 1400)
+        assertThat(png.size.toLong()).isGreaterThan(OVER_LIMIT.toLong())
+        routes[photoRoute("sencha")] = { image(png, "image/png") }
+
+        refresher().refresh()
+
+        assertThat(dao.tea("XY0100")?.photoFile).isEqualTo("XY0100.webp")
+        assertThat(decodedSize(photos.photo("XY0100").readBytes())).isEqualTo(1200 to 1200)
+        assertThat(decodedSize(photos.thumbnail("XY0100").readBytes())).isEqualTo(256 to 256)
+    }
+
+    @Test
+    fun aPhotoThatFailedForGoodIsNotAskedForAgainWhileItsUrlIsTheSame() = runTest {
+        // Full live run 1 (counts only, D-091): the photos that failed were asked for on every refresh.
+        routes[photoRoute("sencha")] = { jpeg("kein Bild".toByteArray()) }
+        routes[photoRoute("gyokuro")] = { jpeg(ByteArray(IMAGE_OVER_LIMIT)) }
+        product(NEW_TEA, "XY0150", SyntheticShop.SENCHA_PATH, photo = "neu")
+        routes[photoRoute("neu")] = { MockResponse.Builder().code(404).build() }
+        refresher().refresh()
+        requests.clear()
+
+        refresher().refresh()
+
+        // Undecodable and too large: not asked for again; a 404 may be gone for a moment only.
+        assertThat(paths().filter { it.startsWith("/media/") }).containsExactly(photoRoute("neu"))
+        assertThat(dao.tea("XY0100")?.photoFile).isNull()
+
+        // The shop's media URL changes with the image (`?ts=`): a new one is asked for.
+        listed -= SENCHA
+        product(SENCHA, "XY0100", SyntheticShop.SENCHA_PATH, photo = "sencha-neu")
+        routes[photoRoute("sencha-neu")] = { jpeg(syntheticJpeg(800, 600)) }
+        requests.clear()
+
+        refresher().refresh()
+
+        assertThat(paths().filter { it.startsWith("/media/") })
+            .containsExactly(photoRoute("sencha-neu"), photoRoute("neu")).inOrder()
+        assertThat(dao.tea("XY0100")?.photoFile).isEqualTo("XY0100.webp")
+    }
+
+    @Test
+    fun aFailedRunRemembersNoFailedPhoto() = runTest {
+        // A stop after the photos: the run keeps nothing, so its failed photos are asked for again.
+        routes[photoRoute("sencha")] = { jpeg("kein Bild".toByteArray()) }
+        listed += GUIDE
+        routes[GUIDE] = { MockResponse.Builder().code(429).build() }
+        assertThat(refresher().refresh()).isInstanceOf(CatalogRefreshOutcome.Blocked::class.java)
+        routes.remove(GUIDE)
+        requests.clear()
+
+        refresher().refresh()
+
+        assertThat(paths()).contains(photoRoute("sencha"))
     }
 
     @Test
@@ -370,8 +431,18 @@ class CatalogRefresherDetailTest {
     private fun text(body: String) =
         MockResponse.Builder().addHeader("Content-Type", "text/html; charset=utf-8").body(body).build()
 
-    private fun jpeg(bytes: ByteArray) =
-        MockResponse.Builder().addHeader("Content-Type", "image/jpeg").body(Buffer().write(bytes)).build()
+    private fun jpeg(bytes: ByteArray) = image(bytes, "image/jpeg")
+
+    private fun image(bytes: ByteArray, type: String) =
+        MockResponse.Builder().addHeader("Content-Type", type).body(Buffer().write(bytes)).build()
+
+    /** A synthetic PNG of random pixels, which PNG can't compress (D-016). */
+    private fun noisePng(width: Int, height: Int): ByteArray {
+        val random = java.util.Random(PNG_SEED)
+        val pixels = IntArray(width * height) { random.nextInt() or OPAQUE }
+        val bitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+        return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+    }
 
     private fun ByteArray.isWebP() = size > WEBP_HEADER &&
         String(copyOfRange(0, 4), Charsets.US_ASCII) == "RIFF" &&
@@ -384,11 +455,17 @@ class CatalogRefresherDetailTest {
         const val GYOKURO = "/tautropfen-gyokuro/XY0200"
         const val BLACK = "/abendglut-assam/XY0300"
         const val NEW_TEA = "/fruehlingshauch-sencha/XY0150"
+        const val GUIDE = "/tee-info/sencha-erklaert"
         const val WEBP_HEADER = 12
 
-        /** One byte over the shop client's 5 MB body limit. */
+        /** One byte over the shop client's 5 MB body limit of a page. */
         const val OVER_LIMIT = 5 * 1024 * 1024 + 1
+
+        /** One byte over its 16 MB body limit of an image (D-091). */
+        const val IMAGE_OVER_LIMIT = 16 * 1024 * 1024 + 1
         const val CHUNK_BYTES = 64 * 1024
+        const val PNG_SEED = 91L
+        const val OPAQUE = -0x1000000
 
         val GYOKURO_PATH = listOf(
             "Tee" to "/tee/",

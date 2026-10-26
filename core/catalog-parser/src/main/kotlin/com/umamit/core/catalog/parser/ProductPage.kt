@@ -11,6 +11,12 @@ enum class CatalogScope {
     /** A breadcrumb outside them: remembered in the skip list (05 §4.2a). */
     NOT_GREEN,
 
+    /**
+     * Under the green sections, but a set by its name or breadcrumb, without a set number
+     * (D-091): remembered in the skip list as a set.
+     */
+    SET,
+
     /** No breadcrumb found: nothing can be said, so the product is neither kept nor skipped. */
     UNKNOWN,
 }

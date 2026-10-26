@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.database.entity.CatalogGuideEntity
+import com.umamit.core.database.entity.CatalogImageFailureEntity
+import com.umamit.core.database.entity.CatalogImageFailureReason
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
@@ -133,6 +135,23 @@ class CatalogSwapTest {
 
         assertThat(dao.skippedSince(0)).containsExactly("XY0900")
         assertThat(dao.skippedSince(11)).isEmpty()
+    }
+
+    @Test
+    fun theImagesThatFailedForGoodAreReplacedWithTheSwap() = runTest {
+        // D-091: the refresh hands the swap every image URL not to ask for again; a swap without
+        // them keeps those there are.
+        val old =
+            CatalogImageFailureEntity("https://shop.example/media/a.png", CatalogImageFailureReason.TOO_LARGE, 1, 10)
+        val new =
+            CatalogImageFailureEntity("https://shop.example/media/b.jpg", CatalogImageFailureReason.UNREADABLE, 1, 20)
+        dao.swap(emptyList(), log(10), imageFailures = listOf(old))
+
+        dao.swap(emptyList(), log(15))
+        assertThat(dao.imageFailures()).containsExactly(old)
+
+        dao.swap(emptyList(), log(20), imageFailures = listOf(new))
+        assertThat(dao.imageFailures()).containsExactly(new)
     }
 
     @Test

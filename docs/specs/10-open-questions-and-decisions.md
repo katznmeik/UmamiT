@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-25
+> Status: **Living document** · Last updated: 2026-10-26
 
 ## Open questions
 
@@ -302,8 +302,89 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-091"></a>
+### D-091 — Fixes from the first full live run of the catalog refresh (spec #62, PR #78; CAT-01, CAT-04, CAT-06 – CAT-09, NFR-PERF-11; amends D-074, D-087, D-090; extends D-089) · *Accepted* (Claude, 2026-10-26)
+
+Full live run 1 against the shop (1,747 requests, no stop, 261 teas; its
+report gives counts and article numbers only) took 1,207 s, over
+NFR-PERF-11's 20 min, and found PNG photos, sets, sale duplicates and two
+style gaps. Fixed test-first with synthetic fixtures (D-016); parser
+version 6. Decided:
+
+- **Processing overlaps the request gaps (NFR-PERF-11, CAT-07):** of the
+  1,207 s, ≈ 874 s were the 500 ms gaps; the rest was parsing, re-encoding
+  and storing between the requests. Product pages, photos, guide pages and
+  guide images are now fetched one after another while the previous answer
+  is processed (`fetchOverlapped`): a rendezvous hands each answer over, so
+  at most the next answer waits while one is processed (≤ 2 held at once).
+  The wire is unchanged: the same requests in the same order through the
+  one shop session, one connection, ≤ 2 requests/s; after a stop nothing
+  more is fetched. A cancel, or a failure while processing (storage, a bug),
+  cancels the request in flight — possibly the next page's — and drops its
+  answer; nothing is sent after it. The sanity check still runs before the
+  first photo request, the photos before the guides, and the swap stays
+  atomic. A test with a 200 ms gap, 150 ms latency and 150 ms processing
+  measures ≈ 201 ms per page and 203 ms per photo (≈ 326 ms before); the
+  first refresh is expected at ≈ 15–16 min (the gaps alone ≈ 14.6 min),
+  later ones at ≈ 3 min (06 §5.3, 07, 08 §2.4).
+- **PNG and WebP sources (CAT-08, CAT-09; amends D-074 and D-087's JPEG
+  only):** every one of the 27 teas without a photo had a PNG. The
+  transcoder reads complete JPEG, PNG and WebP images (a JPEG ends with EOI,
+  a PNG with IEND, a WebP is as long as its RIFF header says), decoded once
+  with sampling, never larger than the largest target needs; the output is
+  unchanged (≤ 1200 px WebP and thumbnail, the cover JPEG). Transparency is
+  flattened onto white, as the shop shows it (JPEG has no alpha).
+- **Image body limit 16 MB (amends D-090):** photos and guide images are read
+  up to 16 MiB (`BodyLimit.IMAGE`); pages, robots.txt and sitemaps stay at
+  5 MiB (`BodyLimit.PAGE`). Run 1's largest image answers declared
+  9.3–11.7 MB. A larger answer still leaves only its URL out. The seed photo
+  download and the exact price fetch keep the page limit (06 §4, 08 §2.8).
+- **No endless re-fetching (CAT-08, CAT-09):** a photo or guide image that
+  failed for good — over the image limit, or no decodable JPEG, PNG or WebP
+  within the transcoder's limits — is remembered by its URL in the new
+  `catalog_image_failure` (05 §4.2b) and not asked for again while the URL
+  (with the shop's `?ts=`) stays the same. A 404, a robots.txt rule or a
+  network error is no failure for good. The swap replaces the table with the
+  failures the run met, remembered or new (a tea kept unread keeps its
+  photo's), so a failed run remembers nothing and a URL no longer met is
+  forgotten; `rules_version` (now 1) is raised whenever the readable formats
+  or limits change, so every failure is tried once more. This saves the 45
+  requests run 1 repeated on every later refresh. `catalog.db` v1 changes in
+  place: it is frozen only from `v0.2.0-rc.1`.
+- **Sets (CAT-01):** set numbers count in any case and with letters after
+  „SET" (`AT0635Set`, `AT0636Set`, `…SETc`, `…SETSALE`, a variant `-SET`); a
+  product of the green sections whose name says set („Set" as a word,
+  „3er-Set", „Probierset", „Geschenkset", „Jubiläumsset", …; not „Setouchi"
+  or „Sunset") or whose breadcrumb is a set category (`…-sets`, `teesets`) is
+  skipped with reason `SET` (`TG0182`) (08 §2.2, §2.4).
+- **Sale duplicates (CAT-01, CAT-02):** a number ending in „SALE" in any case
+  (`AT0516SALE`, `AT0810SALE`) is a reduced duplicate of a regular tea and is
+  left out without a request, like a set; the regular number stays the
+  catalog entry. A sale-only listing is a clearance, so its tea leaves the
+  range (kept hidden while owned, D-086). The log and the details count the
+  sale duplicates (08 §2.4).
+- **Mizucha (CAT-06, extends D-089):** „Mizucha" in the name brews cold by
+  default like a Mizudashi, under any breadcrumb (the style from breadcrumb
+  or name, else `green_generic`, not flagged); its form is TEA_BAG with bag
+  words in the name, else loose leaf (`AT0549`, `AT0675`; 08 §2.6).
+- **Hōjicha powder (CAT-04, CAT-06):** a new built-in style
+  `hojicha_powder` (08 §3: LOW umami, 30 days, 2,0 g/TL, Usucha 2 g / 70 ml /
+  80 °C with a 0:20 whisk, no cold brew). „Pulver"/„Powder" with hōjicha in
+  the breadcrumb or the name maps to it under any breadcrumb, form POWDER;
+  its grid rows become one whisked Usucha recipe like a matcha's, never a
+  leaf recipe or a cold brew (`AT622`, `AT0845`; 08 §2.5, §2.6). The
+  journal's placeholder colour is hōjicha's.
+- **Parser version 6** (the scope and style rules changed): content hashes of
+  v5 don't count as changes (D-086).
+
+Left as they are: run 1's other observations (the cold-brew grid values of
+`AT0380`, `AT0384`, `AT0429`, hot grid temperatures, 4 g packages, the
+`AT0429-50g` package number, the ten non-tea pages without a breadcrumb that
+are fetched on every refresh) are what the shop states or minor; they stay
+for later.
+
 <a id="d-090"></a>
-### D-090 — M2 milestone review fixes (spec #62, PR #78; CAT-07, CAT-10, CAT-12, CAT-15; amends D-086) · *Accepted* (Claude, 2026-10-26)
+### D-090 — M2 milestone review fixes (spec #62, PR #78; CAT-07, CAT-10, CAT-12, CAT-15; amends D-086) · *Accepted*, the images' 5 MB limit amended by D-091 (Claude, 2026-10-26)
 
 The T4 milestone review of M2 (areas A: network, refresh, data; B: UI,
 navigation, strings) found three Should items in each area and a set of
@@ -470,7 +551,7 @@ The ninth M2 slice (spec #62, #72) lets the PO brew a tea just bought
   cancelled by an alert starting right after the tap.
 
 <a id="d-087"></a>
-### D-087 — *Ratgeber*: Tee-Info guides offline (#76, CAT-09) · *Accepted* (Claude, 2026-10-25)
+### D-087 — *Ratgeber*: Tee-Info guides offline (#76, CAT-09) · *Accepted*, JPEG-only images amended by D-091 (Claude, 2026-10-25)
 
 The last M2 slice (spec #62, #76) brings Tee-Kontor's green-tea guides into
 the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
@@ -1063,7 +1144,7 @@ was never retried after *Weiter*, so Start and the tea picker stayed empty.
   `strings.xml`.
 
 <a id="d-074"></a>
-### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted* (Claude, 2026-10-25)
+### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted*, JPEG-only sources amended by D-091 (Claude, 2026-10-25)
 
 **Shop session (`core:network`, rule 7):** the robots.txt handling and the
 stop mapping move out of the seed photo download into `ShopSession`, which
@@ -3325,6 +3406,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | D-091: fixes from full live run 1 — pages, photos and guides fetched while the previous answer is processed (same wire, expected first refresh ≈ 15–16 min), PNG and WebP photo sources with transparency on white, a 16 MB body limit for images (pages 5 MB), photos and guide images that failed for good remembered by URL (`catalog_image_failure`), sets in any case and by name or breadcrumb, `…SALE` duplicates left out, Mizucha brewing cold by default, the `hojicha_powder` style (whisked, no leaf recipe or cold brew); parser v6; 02 CAT-01, CAT-08, 05 §4.2b, §4.5, 06 §4, §5.2, §5.3, 07 NFR-PERF-11 and 08 §2.2, §2.4–§2.8, §3 updated. |
 | 2026-10-26 | D-090: M2 milestone review fixes — an answer over 5 MB leaves only its URL out (no stop), CAT-15 per seed tea and part with retries (`seedTeaLinksDone`, amends D-086), the exact price and the add never crash on a bad page, the two flaky tests made clock-independent (split, shortened request gap, Robolectric), on-screen backs and row/link taps only while resumed, the secondary name back in the catalog rows, no refresh start during a cancelled one's cleanup, a 30 s keep-alive, seed photos ended before a setup refresh, the add sheet's save outcome kept and prices from 1.000 €, no-break spaces in counts, the first-load duration in Settings, three M2 checklist items; 02 CAT-15, 03 SCR-01, SCR-19, SCR-23, 05 §6, 06 §4, 08 §2.8 and 09 §4 updated. |
 | 2026-10-25 | D-089: parser fixes from live sample 2 — Japan teas on tea-family pages kept by name or badge (Sorte from the name), Bi Lo Chun and Korean grade keywords, the China grid row as Gongfu, Mizudashi bags by name with the „kalt" row as cold brew and bag weights, video pointers never brewing prose, harvest year only from badge and title, no cold brew for powder, guides without comments, date list, empty video intros and tag lines, images de-duplicated by decoded URL, promotions/events/recipes not selected and ten more green-type keywords; parser v5; 05 §4.1 and 08 §2.3–§2.7 updated. |
 | 2026-10-25 | D-088: brewing a new tea from the picker (#72) — *Aus dem Katalog* runs through Sammlung › Katalog in the Sammlung tab, a save there opens the setup of that tea (a repurchase too), back returns to the picker, an alert wins; the setup shows „Rezept prüfen" with its reason above the steps; the „Gespeichert" sheet's *Rezept passt* clears the flag of that tea only; 03 SCR-03, SCR-04, SCR-06 updated. |

@@ -36,7 +36,7 @@ class StyleMapperTest {
             Case("$japan/kukicha/", "Stängelchen", "karigane"),
             Case("$japan/bancha/", "Großblatt", "bancha"),
             Case("$japan/houjicha/", "Röstblatt", "hojicha"),
-            Case("$japan/houjicha/", "Röstblatt Pulver", "hojicha", form = TeaForm.POWDER),
+            Case("$japan/houjicha/", "Röstblatt Pulver", "hojicha_powder", form = TeaForm.POWDER),
             Case("$japan/genmaicha/", "Reisfeld", "genmaicha"),
             Case("$japan/kamairicha/", "Pfannenblatt", "kamairicha"),
             Case("$japan/tamaryokucha/", "Lockenblatt", "tamaryokucha"),
@@ -131,6 +131,56 @@ class StyleMapperTest {
         assertThat(hotBags.coldBrewDefault).isFalse()
         assertThat(StyleMapper.map(categoryPath = sencha, name = "Morgennebel Sencha Nachfüllbeutel").form)
             .isEqualTo(TeaForm.LOOSE_LEAF)
+    }
+
+    /** Full live run 1 (D-091): „Mizucha" bags filed under a type brew cold by default, like a Mizudashi. */
+    @Test
+    fun mizuchaBrewsColdByDefault() {
+        val sencha = StyleMapper.map(
+            categoryPath = "/tee/gruener-tee/japan/sencha/",
+            name = "Talwind Mizucha – 16 Aufgussbeutel",
+        )
+        assertThat(sencha.style.key).isEqualTo("sencha")
+        assertThat(sencha.form).isEqualTo(TeaForm.TEA_BAG)
+        assertThat(sencha.coldBrewDefault).isTrue()
+        assertThat(sencha.unmapped).isFalse()
+
+        // No style in breadcrumb or name: the generic style, not flagged, as a Mizudashi's.
+        val plain = StyleMapper.map(
+            categoryPath = "/tee/gruener-tee/japan/",
+            name = "Bio Talwind Mizucha 20 Aufgussbeutel",
+        )
+        assertThat(plain.style.key).isEqualTo("green_generic")
+        assertThat(plain.form).isEqualTo(TeaForm.TEA_BAG)
+        assertThat(plain.coldBrewDefault).isTrue()
+        assertThat(plain.unmapped).isFalse()
+
+        // Loose „Mizucha" leaves brew cold too, but stay leaves.
+        val loose = StyleMapper.map(categoryPath = "/tee/gruener-tee/japan/sencha/", name = "Talwind Mizucha – 100g")
+        assertThat(loose.form).isEqualTo(TeaForm.LOOSE_LEAF)
+        assertThat(loose.coldBrewDefault).isTrue()
+    }
+
+    /** Full live run 1 (D-091): a hōjicha powder is the powder style, whatever the breadcrumb. */
+    @Test
+    fun aHojichaPowderIsThePowderStyle() {
+        listOf(
+            "/tee/gruener-tee/japan/houjicha/" to "Röstblatt Houjicha Pulver – 50g",
+            "/tee/gruener-tee/bio-gruentee/" to "Bio Röstblatt Houjicha Pulver für die Küche – 1kg",
+            "/tee/japantee/houjicha/" to "Röstblatt Hōjicha Powder",
+            null to "Röstblatt Hojicha-Pulver",
+        ).forEach { (path, name) ->
+            val match = StyleMapper.map(categoryPath = path, name = name)
+            val check = assertWithMessage("$path $name")
+            check.that(match.style.key).isEqualTo("hojicha_powder")
+            check.that(match.form).isEqualTo(TeaForm.POWDER)
+            check.that(match.unmapped).isFalse()
+            check.that(match.japanese).isTrue()
+            check.that(match.coldBrewDefault).isFalse()
+        }
+        // Roasted leaves stay hōjicha leaves.
+        assertThat(StyleMapper.map(categoryPath = "/tee/gruener-tee/japan/houjicha/", name = "Röstblatt").style.key)
+            .isEqualTo("hojicha")
     }
 
     @Test
