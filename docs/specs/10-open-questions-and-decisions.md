@@ -412,6 +412,24 @@ decided (PO, 2026-10-26, unless marked „Claude"):
     No catalog.db schema change: a herbal tea is told apart by its style
     (Claude).
 
+- **Spec grilling (PO, Q15–Q21, 2026-10-26; spec #81).**
+  - Q15: journal entries of an archived tea show no *Nochmal brühen*; to
+    brew it again, add it back from the catalog.
+  - Q16: no downgrades. The app never opens the database destructively;
+    going back to `v0.2.0` would need an uninstall. Fixes always ship as a
+    newer version.
+  - Q17: the Schritte-Sheet shows *Automatisch* with the value it will use
+    („Auto · 5 s", „Auto · keine").
+  - Q18: the two M1 seed vessels are renamed „Kyusu 250 ml" and „Becher mit
+    Sieb 400 ml", only if their names are still the seed names.
+  - Q19: the Umami filter is hidden in the Kräutertee view; the filter sheet
+    there offers Herkunft, Bio, Neu, im Besitz and Vorrätig.
+  - Q20: before the first refresh after the update, the empty Kräutertee
+    view shows „Kräutertees kommen mit dem nächsten Abruf (≈ 16 min,
+    einmalig)" with a *Jetzt laden* button.
+  - Q21: removing a tea shows a snackbar of about 8 s with *Rückgängig*;
+    afterwards the tea can come back via the catalog.
+
 02 TMR-02, TMR-11, TMR-21, TMR-22, TMR-23, SET-10, SET-26 (new), SET-31,
 PRF-03, BRW-02, BRW-11, WARE-06, INV-03, TEA-04, CAT-01, CAT-10 and the
 removed TMR-40; 03 SCR-03, SCR-04, SCR-05, SCR-19, SCR-25, SCR-31; 04
@@ -3616,6 +3634,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | D-093 amended with the PO's spec grilling Q15–Q21 (archived tea in the journal, no downgrades, „Auto · N s", vessel names, herbal filter sheet, empty Kräutertee view, undo snackbar). |
 | 2026-10-26 | D-093 amended after the PO's grilling (Q1–Q14): a step's pre-alert goes into the recipe only via *Im Rezept speichern*; the pre-alert keeps `USAGE_NOTIFICATION_EVENT`, sounds mastered much louder (-18 LUFS) with ≈ 3 s fall-off; Kräutertees only (no fruit tea or rooibos), style `herbal` 2 g / 250 ml, Becher, 100 °C, 6:00, *Pur* not applied in the Kräutertee view, the one-time re-classification (≈ 16 min) accepted; no *Aus Sammlung entfernen* for the active session's tea; correction = new total; archived teas leave Start and the picker; v0.2.1 rcs need the accuracy run. PO's and Claude's parts marked. |
 | 2026-10-26 | D-093: the PO's feedback on `v0.2.0-rc.1` (#79) — v0.2.1: legible timer top bar on bright photos, a pre-alert per infusion saved in the recipe (automatic N = min(B, 5 · ⌊d / 15⌋), umamit.db v2 with a tested migration), four new louder pre-alert sounds with a longer fall-off (*Vorwarnton*, SET-26), seven more seed vessels added once, stock correction from „… g übrig" (`ADJUSTMENT`), *Aus Sammlung entfernen* from the tea picker (archive with undo; re-adding un-archives), Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*); v0.3.0: quick timers alongside one brew session (planned); M3 → v0.4.0, M4 → v0.5.0. 02, 03, 04, 05, 07, 08, 09 and `docs/design/assets.md` updated. |
 | 2026-10-26 | The PO approved the early design check #77 without changes and confirmed two choices: tea recipes stay out of the Ratgeber (D-089) and the `hojicha_powder` default (D-091). |
