@@ -155,10 +155,13 @@ class ProcessDeathTest {
         val killed = checkNotNull(timerPid()) { "no timer process" }
         Process.killProcess(killed)
         eventually("timer process $killed gone", START_TIMEOUT) { Unit.takeIf { timerPid() != killed } }
-        // The service's notification went with its process, so its return below is the reopening's.
-        eventually("notification 1 gone with the killed process", START_TIMEOUT) {
-            Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
+        // The service's notification goes with its process, so its return below is the reopening's,
+        // unless the system restarts the sticky service first: then a new timer process posts it again
+        // (seen on API 36 about 4 s after the kill), which is as good a return.
+        eventually("notification 1 gone with the killed process, or a restarted timer process", START_TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null || timerPid() != null }
         }
+        Log.i(TAG, "after the kill of $killed: timer process ${timerPid() ?: "none"}")
 
         // The user opens the app again: its process start recovers the step (04 §7.2).
         context.startActivity(TimerStateActivity.intent(context))
