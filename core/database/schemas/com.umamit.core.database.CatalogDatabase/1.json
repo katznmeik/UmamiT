@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3dd87784ea0ebbaa353d421ec79da510",
+    "identityHash": "f54ab40fab3fc42b673dbe22fd4b5181",
     "entities": [
       {
         "tableName": "catalog_tea",
@@ -877,11 +877,47 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_catalog_refresh_log_status_finished_at` ON `${TABLE_NAME}` (`status`, `finished_at`)"
           }
         ]
+      },
+      {
+        "tableName": "catalog_image_failure",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`url` TEXT NOT NULL, `reason` TEXT NOT NULL, `rules_version` INTEGER NOT NULL, `failed_at` INTEGER NOT NULL, PRIMARY KEY(`url`))",
+        "fields": [
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rulesVersion",
+            "columnName": "rules_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "failedAt",
+            "columnName": "failed_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "url"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3dd87784ea0ebbaa353d421ec79da510')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f54ab40fab3fc42b673dbe22fd4b5181')"
     ]
   }
 }

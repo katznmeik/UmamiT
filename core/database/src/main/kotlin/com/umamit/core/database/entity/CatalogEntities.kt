@@ -154,6 +154,30 @@ data class CatalogGuideEntity(
 @Entity(tableName = "catalog_guide_staging", primaryKeys = ["slug"])
 data class StagedCatalogGuideEntity(@Embedded val guide: CatalogGuideEntity)
 
+/** Why a catalog image is not asked for again (05 §4.6, D-091). */
+enum class CatalogImageFailureReason {
+    /** Over the image body limit (16 MB). */
+    TOO_LARGE,
+
+    /** No complete JPEG, PNG or WebP, over the transcoder's pixel limits, or not decodable. */
+    UNREADABLE,
+}
+
+/**
+ * Table `catalog_image_failure` (05 §4.6, D-091): a product photo's or guide image's URL that
+ * failed for good. A refresh doesn't ask for it again while the shop's URL (which carries the
+ * image's version, `?ts=`) stays the same and [rulesVersion] is the app's (a new transcoder or
+ * limit tries again). Replaced as a whole by each successful swap, so a failed run remembers
+ * nothing.
+ */
+@Entity(tableName = "catalog_image_failure")
+data class CatalogImageFailureEntity(
+    @PrimaryKey @ColumnInfo(name = "url") val url: String,
+    @ColumnInfo(name = "reason") val reason: CatalogImageFailureReason,
+    @ColumnInfo(name = "rules_version") val rulesVersion: Int,
+    @ColumnInfo(name = "failed_at") val failedAt: Long,
+)
+
 /** How a refresh ended (05 §4.4). */
 enum class CatalogRefreshStatus { SUCCESS, FAILED, CANCELLED }
 

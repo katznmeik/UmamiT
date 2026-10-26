@@ -157,8 +157,9 @@ All products in the shop's green tea sections (verified structure in
 Mizudashi cold-brew bags), China, Taiwan, *andere Regionen*, *Bio*,
 *Klassischer Grüntee*, *Aromatisierter Grüntee* (flavoured teas and blends),
 the current *Shincha* section and *Matcha-Teepulver* — about 260–280 teas.
-Excluded: sets (`…SET`), matcha bowls and accessories, sweets, and items
-containing no tea.
+Excluded: sets (`…SET` in any case, or a set by its name or breadcrumb),
+sale duplicates of a regular tea (`…SALE`), matcha bowls and accessories,
+sweets, and items containing no tea (D-091).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -238,7 +239,9 @@ the shop, parses all products, and replaces the catalog atomically.
 The main product photo of each tea is downloaded, resized (max 1200 px long
 edge, WebP) and stored locally, with a small thumbnail for the lists
 (256 px short side, D-074);
-unchanged photos are not downloaded again. About 25–35 MB for the whole
+unchanged photos are not downloaded again, nor photos that failed for good
+while their URL stays the same (D-091). JPEG, PNG and WebP sources are read
+(D-091). About 25–35 MB for the whole
 catalog (D-073). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
 no photo and keeps those already stored (D-078).
 

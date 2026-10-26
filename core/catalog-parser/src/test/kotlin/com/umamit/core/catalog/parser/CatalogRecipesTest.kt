@@ -3,6 +3,8 @@ package com.umamit.core.catalog.parser
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
 import org.junit.Test
@@ -107,6 +109,65 @@ class CatalogRecipesTest {
         assertThat(default.waterMl).isEqualTo(500)
         assertThat(default.steps.map { it.durationSeconds }).containsExactly(180, 120).inOrder()
         assertThat(result.checkReason).isNull()
+    }
+
+    /** Full live run 1 (counts only, D-091): Mizucha bags without any brewing data got hot Kyusu defaults. */
+    @Test
+    fun mizuchaBagsWithoutBrewingDataBrewColdByDefault() {
+        val page = parse(
+            SyntheticShop.productPage(
+                title = "Bio Talwind Mizucha – 16 Aufgussbeutel",
+                unitContent = "0.08 kg",
+                brewRows = emptyList(),
+            ),
+        )
+
+        val result = CatalogRecipes.derive(page)
+
+        assertThat(result.form).isEqualTo(TeaForm.TEA_BAG)
+        val default = result.recipes.first()
+        assertThat(default.isDefault).isTrue()
+        assertThat(default.method).isEqualTo(BrewMethod.COLD_BREW)
+        assertThat(default.baseTempC).isEqualTo(5)
+        assertThat(result.recipes.map { it.method }).contains(BrewMethod.KYUSU)
+    }
+
+    /** Full live run 1 (counts only, D-091): a hōjicha powder's Kyusu row gave it a leaf recipe. */
+    @Test
+    fun aHojichaPowderIsWhiskedNeverSteepedNorColdBrewed() {
+        val page = parse(
+            SyntheticShop.productPage(
+                title = "Bio Röstblatt Houjicha Pulver – 50g",
+                breadcrumb = listOf(
+                    "Grüner Tee" to "/tee/gruener-tee/",
+                    "Japan" to "/tee/gruener-tee/japan/",
+                    "Houjicha" to "/tee/gruener-tee/japan/houjicha/",
+                ),
+                badges = listOf("Coldbrew geeignet"),
+                brewRows = listOf("japan" to listOf("~1g/100ml", "~80°C", "30 Sek", "30 Sek", "60 Sek")),
+            ),
+        )
+
+        val result = CatalogRecipes.derive(page)
+
+        assertThat(result.styleKey).isEqualTo("hojicha_powder")
+        assertThat(result.form).isEqualTo(TeaForm.POWDER)
+        val usucha = result.recipes.single()
+        assertThat(usucha.method).isEqualTo(BrewMethod.MATCHA_USUCHA)
+        assertThat(usucha.leafGrams).isEqualTo(1.0)
+        assertThat(usucha.waterMl).isEqualTo(100)
+        assertThat(usucha.baseTempC).isEqualTo(80)
+        assertThat(usucha.steps).containsExactly(RecipeStep(StepKind.WHISK, 20))
+        assertThat(result.checkReason).isNull()
+
+        // Without a grid, filed under another type: the powder style's own whisked recipe, flagged
+        // as a style default.
+        val bare = CatalogRecipes.derive(
+            parse(SyntheticShop.productPage(title = "Röstblatt Hojicha Pulver", brewRows = emptyList())),
+        )
+        assertThat(bare.styleKey).isEqualTo("hojicha_powder")
+        assertThat(bare.recipes.map { it.method }).containsExactly(BrewMethod.MATCHA_USUCHA)
+        assertThat(bare.checkReason).isEqualTo(RecipeCheckReason.FROM_STYLE_DEFAULT)
     }
 
     @Test

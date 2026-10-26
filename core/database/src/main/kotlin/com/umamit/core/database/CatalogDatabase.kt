@@ -8,6 +8,7 @@ import androidx.room.migration.Migration
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogFtsEntity
 import com.umamit.core.database.entity.CatalogGuideEntity
+import com.umamit.core.database.entity.CatalogImageFailureEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
@@ -33,6 +34,7 @@ import com.umamit.core.database.entity.StagedCatalogTeaEntity
         CatalogGuideEntity::class,
         StagedCatalogGuideEntity::class,
         CatalogRefreshLogEntity::class,
+        CatalogImageFailureEntity::class,
     ],
     version = CatalogDatabase.VERSION,
     exportSchema = true,

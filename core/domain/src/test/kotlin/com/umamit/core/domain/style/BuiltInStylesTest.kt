@@ -16,8 +16,8 @@ class BuiltInStylesTest {
     fun everyGreenStyleOf08Section3Exists() {
         assertThat(BuiltInStyles.all.map { it.key }).containsExactly(
             "gyokuro", "kabusecha", "sencha", "fukamushi_sencha", "shincha", "matcha", "karigane", "bancha",
-            "hojicha", "genmaicha", "kamairicha", "tamaryokucha", "longjing", "anji_bai_cha", "bi_luo_chun",
-            "korean_green", "flavored_green", "green_generic",
+            "hojicha", "hojicha_powder", "genmaicha", "kamairicha", "tamaryokucha", "longjing", "anji_bai_cha",
+            "bi_luo_chun", "korean_green", "flavored_green", "green_generic",
         ).inOrder()
         assertThat(BuiltInStyles.byKey("nope")).isNull()
     }
@@ -75,6 +75,27 @@ class BuiltInStylesTest {
             },
         ).containsExactly(BrewMethod.WESTERN, BrewMethod.GONGFU).inOrder()
         assertThat(generic.japanese).isFalse()
+    }
+
+    @Test
+    fun aHojichaPowderIsWhiskedLikeAMatchaNeverSteeped() {
+        // Full live run 1 (D-091): a powder gets no leaf recipe and no cold brew (08 §3).
+        val powder = BuiltInStyles.byKey("hojicha_powder")!!
+        assertThat(powder.umami).isEqualTo(UmamiLevel.LOW)
+        assertThat(powder.japanese).isTrue()
+        assertThat(powder.recipes).containsExactly(
+            RecipeTemplate(
+                name = "Usucha",
+                method = BrewMethod.MATCHA_USUCHA,
+                leafGrams = 2.0,
+                waterMl = 70,
+                baseTempC = 80,
+                steps = listOf(RecipeStep(StepKind.WHISK, 20)),
+                source = RecipeSource.STYLE_DEFAULT,
+                isDefault = true,
+            ),
+        )
+        assertThat(powder.coldBrew).isNull()
     }
 
     @Test

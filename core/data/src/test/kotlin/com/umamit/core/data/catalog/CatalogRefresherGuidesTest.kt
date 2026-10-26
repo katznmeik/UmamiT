@@ -183,8 +183,8 @@ class CatalogRefresherGuidesTest {
 
     @Test
     fun anOversizedGuideImageIsLeftOutAndTheRefreshGoesOn() = runTest {
-        // Over the client's body limit: only this image is left out, no stop (D-090).
-        routes[imageRoute("hero")] = { jpeg(ByteArray(OVER_LIMIT)) }
+        // Over the client's image limit: only this image is left out, no stop (D-090, D-091).
+        routes[imageRoute("hero")] = { jpeg(ByteArray(IMAGE_OVER_LIMIT)) }
 
         val outcome = refresher().refresh()
 
@@ -204,6 +204,21 @@ class CatalogRefresherGuidesTest {
 
         assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SENCHA, SENCHA_GUIDE, MATCHA_GUIDE).inOrder()
         assertThat(requireNotNull(repository().observeGuide("ein-guide-fuer-sencha").first()).heroPath).isNotNull()
+    }
+
+    @Test
+    fun aGuideImageThatFailedForGoodIsNotAskedForAgainWhileItsUrlIsTheSame() = runTest {
+        // Full live run 1 (counts only, D-091): the 18 guide images missing were asked for on every refresh.
+        routes[imageRoute("hero")] = { jpeg("kein Bild".toByteArray()) }
+        refresher().refresh()
+        requests.clear()
+
+        refresher().refresh()
+
+        assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SENCHA, SENCHA_GUIDE, MATCHA_GUIDE).inOrder()
+        val sencha = requireNotNull(repository().observeGuide("ein-guide-fuer-sencha").first())
+        assertThat(sencha.heroPath).isNull()
+        assertThat(sencha.body.blocks.filterIsInstance<GuideBlock.Image>()).hasSize(1)
     }
 
     @Test
@@ -337,7 +352,7 @@ class CatalogRefresherGuidesTest {
         const val MATCHA_GUIDE = "/tee-info/matcha-erklaert"
         const val BLACK_TEA_GUIDE = "/tee-info/schwarztee-geschichte"
 
-        /** One byte over the shop client's 5 MB body limit. */
-        const val OVER_LIMIT = 5 * 1024 * 1024 + 1
+        /** One byte over the shop client's 16 MB body limit of an image (D-091). */
+        const val IMAGE_OVER_LIMIT = 16 * 1024 * 1024 + 1
     }
 }

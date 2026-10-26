@@ -219,7 +219,7 @@ private fun placeholderColor(styleKey: String?): Color {
         "shincha" -> colors.shincha
         "matcha" -> colors.matcha
         "karigane", "bancha" -> colors.kukichaKarigane
-        "hojicha" -> colors.hojicha
+        "hojicha", "hojicha_powder" -> colors.hojicha
         "genmaicha" -> colors.genmaicha
         "longjing", "anji_bai_cha", "bi_luo_chun", "korean_green" -> colors.chinaKoreaGreen
         else -> colors.other

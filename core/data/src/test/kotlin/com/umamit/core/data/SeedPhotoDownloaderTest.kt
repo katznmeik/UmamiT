@@ -567,6 +567,12 @@ internal fun syntheticJpeg(width: Int, height: Int): ByteArray {
     return ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }.toByteArray()
 }
 
+/** A synthetic one-colour image of the given size in [format] (PNG, WebP), encoded on the spot (D-016). */
+internal fun syntheticImage(width: Int, height: Int, format: Bitmap.CompressFormat): ByteArray {
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.rgb(74, 86, 67)) }
+    return ByteArrayOutputStream().also { bitmap.compress(format, 90, it) }.toByteArray()
+}
+
 /** [jpeg] with an APP1 „Exif" segment after SOI, as camera and shop images carry. */
 internal fun withExifSegment(jpeg: ByteArray): ByteArray {
     // "Exif\0\0", a big-endian TIFF header pointing at an empty IFD, then a marker string.

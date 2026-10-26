@@ -1,6 +1,7 @@
 package com.umamit.core.catalog.parser
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /** Article numbers and product URLs from the sitemap, grouped per base number (08 §2.2, §2.4 items 1–2). */
@@ -88,6 +89,45 @@ class ProductUrlsTest {
 
         assertThat(products.groups.map { it.base }).containsExactly("XY0100")
         assertThat(products.sets).isEqualTo(1)
+    }
+
+    @Test
+    fun setsAreRecognisedInAnyCaseAndWithALetterAfterTheirMark() {
+        // Full live run 1 (D-091): „…Set" got through the upper-case-only rule; the shop also
+        // writes „…SETc" and „…SETSALE", and „-SET" as a variant.
+        listOf("XY0100Set", "XY0100set", "XY0100SET", "XY0100SETc", "XY0100SetSALE", "XY0100-SET", "XY0100-Set")
+            .forEach { assertWithMessage(it).that(ArticleNumber.parse(it)?.isSet).isTrue() }
+        listOf("XY0100", "XY0100a", "XY0100SALE", "XY0100-250").forEach {
+            assertWithMessage(it).that(ArticleNumber.parse(it)?.isSet).isFalse()
+        }
+    }
+
+    @Test
+    fun saleNumbersAreReducedDuplicates() {
+        listOf("XY0100SALE", "XY0100Sale", "XY0100SETSALE").forEach {
+            assertWithMessage(it).that(ArticleNumber.parse(it)?.isSale).isTrue()
+        }
+        listOf("XY0100", "XY0100a", "XY0100SET", "XY0100-50").forEach {
+            assertWithMessage(it).that(ArticleNumber.parse(it)?.isSale).isFalse()
+        }
+    }
+
+    @Test
+    fun setsAndSaleDuplicatesAreSkippedWithoutARequest() {
+        val products = ProductUrls.group(
+            listOf(
+                "$SHOP/a/XY0100",
+                "$SHOP/a/XY0100SALE",
+                "$SHOP/s/XY0500Set",
+                "$SHOP/s/XY0600SETc",
+                "$SHOP/s/XY0700SETSALE",
+                "$SHOP/b/XY0800SALE",
+            ),
+        )
+
+        assertThat(products.groups.map { it.base }).containsExactly("XY0100")
+        assertThat(products.sets).isEqualTo(3)
+        assertThat(products.sales).isEqualTo(2)
     }
 
     @Test

@@ -298,6 +298,27 @@ class ShopSessionTest {
     }
 
     @Test
+    fun anImageMayBeLargerThanAPageUpToItsOwnLimit() = runTest {
+        // Full live run 1 (sizes only, D-091): PNG photos and guide images of 5–12 MB; pages stay at 5 MB.
+        val overPage = ByteArray(MAX_BODY_BYTES.toInt() + 1)
+        routes[PAGE] = { MockResponse.Builder().body(Buffer().write(overPage)).build() }
+        routes[IMAGE] = { MockResponse.Builder().body(Buffer().write(overPage)).build() }
+        routes[OTHER] = {
+            MockResponse.Builder().chunkedBody(Buffer().write(ByteArray(IMAGE_LIMIT.toInt() + 1)), CHUNK_BYTES).build()
+        }
+        val session = openSession()
+
+        assertThat(session.fetch(session.resolve(PAGE))).isEqualTo(ShopFetch.TooLarge(MAX_BODY_BYTES + 1))
+        val image = session.fetch(session.resolve(IMAGE), BodyLimit.IMAGE)
+        assertThat((image as ShopFetch.Fetched).body.size).isEqualTo(overPage.size)
+        // Over the image limit: still only this URL left out.
+        assertThat(session.fetch(session.resolve(OTHER), BodyLimit.IMAGE)).isEqualTo(ShopFetch.TooLarge(null))
+        assertThat(session.stopCause).isNull()
+        assertThat(BodyLimit.PAGE.maxBytes).isEqualTo(MAX_BODY_BYTES)
+        assertThat(BodyLimit.IMAGE.maxBytes).isEqualTo(IMAGE_LIMIT)
+    }
+
+    @Test
     fun anOversizedRefusalStillStops() = runTest {
         // A 503 too large to look for challenge markers is still the shop refusing (08 §2.8).
         routes[PAGE] = {
@@ -344,6 +365,9 @@ class ShopSessionTest {
         const val QUEUE_MS = 300L
         const val AFTER_STOP_MS = 700L
         const val CHUNK_BYTES = 64 * 1024
+
+        /** 16 MiB (D-091). */
+        const val IMAGE_LIMIT = 16L * 1024 * 1024
 
         /** Every stop answer of 08 §2.8 and D-050 with the cause it gives. */
         val STOPS: List<Pair<() -> MockResponse, StopCause>> = listOf(

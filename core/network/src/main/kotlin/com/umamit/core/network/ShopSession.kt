@@ -53,16 +53,17 @@ class ShopSession private constructor(
         client.isAllowed(url) && withContext(Dispatchers.Default) { robots.isAllowed(url) }
 
     /**
-     * Fetches [url] with at most one GET request and returns what the job does with it.
+     * Fetches [url] with at most one GET request and returns what the job does with it; an
+     * answer over [limit] is a [ShopFetch.TooLarge] (images may be larger than pages, D-091).
      *
      * @throws HostNotAllowedException when [url] is not on the allow-list (a programming
      *   error); nothing is sent.
      */
-    suspend fun fetch(url: HttpUrl): ShopFetch = oneAtATime.withLock {
+    suspend fun fetch(url: HttpUrl, limit: BodyLimit = BodyLimit.PAGE): ShopFetch = oneAtATime.withLock {
         stopCause?.let { return@withLock ShopFetch.Stopped(it) }
         if (!client.isAllowed(url)) throw HostNotAllowedException(url)
         if (!withContext(Dispatchers.Default) { robots.isAllowed(url) }) return@withLock ShopFetch.Disallowed
-        val answer = client.getRetrying(url, retry)
+        val answer = client.getRetrying(url, retry, limit)
         val stop = answer.stopCause()
         if (stop != null) {
             stopCause = stop
@@ -104,12 +105,16 @@ class ShopSession private constructor(
         }
 
         /** [url] fetched, and again after each of [retry]'s pauses while the answer is a transient network error. */
-        private suspend fun ShopClient.getRetrying(url: HttpUrl, retry: NetworkRetry): ShopResponse {
-            var answer = get(url)
+        private suspend fun ShopClient.getRetrying(
+            url: HttpUrl,
+            retry: NetworkRetry,
+            limit: BodyLimit = BodyLimit.PAGE,
+        ): ShopResponse {
+            var answer = get(url, limit)
             for (pause in retry.pausesMillis) {
                 if (answer !is ShopResponse.NetworkError || !answer.isTransient) break
                 delay(pause)
-                answer = get(url)
+                answer = get(url, limit)
             }
             return answer
         }
@@ -159,8 +164,9 @@ sealed interface ShopFetch {
     data class Unavailable(val code: Int) : ShopFetch
 
     /**
-     * A 2xx answer over the size limit, left unread (D-090): like [Unavailable], only this URL is
-     * left out and the job goes on. [declaredBytes] is its `Content-Length`, null when undeclared.
+     * A 2xx answer over the request's [BodyLimit], left unread (D-090): like [Unavailable], only
+     * this URL is left out and the job goes on. [declaredBytes] is its `Content-Length`, null when
+     * undeclared.
      */
     data class TooLarge(val declaredBytes: Long?) : ShopFetch
 

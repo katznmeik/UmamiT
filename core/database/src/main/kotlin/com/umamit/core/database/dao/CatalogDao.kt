@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.umamit.core.database.entity.CatalogGuideEntity
+import com.umamit.core.database.entity.CatalogImageFailureEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
@@ -141,6 +142,10 @@ abstract class CatalogDao {
     @Query("SELECT * FROM catalog_guide")
     abstract suspend fun guides(): List<CatalogGuideEntity>
 
+    /** The photo and guide image URLs that failed for good (05 §4.6, D-091). */
+    @Query("SELECT * FROM catalog_image_failure")
+    abstract suspend fun imageFailures(): List<CatalogImageFailureEntity>
+
     /** Empties the staging tables, before a refresh and after a failed one. */
     @Transaction
     open suspend fun clearStaging() {
@@ -198,6 +203,8 @@ abstract class CatalogDao {
      * they were (still in the sitemap, but their page couldn't be read this time, 08 §2.4 item 5);
      * those in [discontinued] stay hidden as „Nicht mehr im Sortiment" while a collection tea
      * links to them (CAT-07 AC4); every other one is deleted with its packages.
+     *
+     * [imageFailures], when given, replace the image URLs not to ask for again (05 §4.6, D-091).
      */
     @Transaction
     open suspend fun swap(
@@ -205,6 +212,7 @@ abstract class CatalogDao {
         entry: CatalogRefreshLogEntity,
         unchanged: List<String> = emptyList(),
         discontinued: List<String> = emptyList(),
+        imageFailures: List<CatalogImageFailureEntity>? = null,
     ) {
         stageCurrent(unchanged + discontinued)
         markStagedDiscontinued(discontinued)
@@ -215,6 +223,10 @@ abstract class CatalogDao {
         insertStagedPackages()
         replaceGuides()
         putSkips(skips)
+        if (imageFailures != null) {
+            deleteImageFailures()
+            putImageFailures(imageFailures)
+        }
         log(entry)
         clearStagedPackages()
         clearStagedTeas()
@@ -274,6 +286,12 @@ abstract class CatalogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     protected abstract suspend fun putSkips(skips: List<CatalogSkipEntity>)
+
+    @Query("DELETE FROM catalog_image_failure")
+    protected abstract suspend fun deleteImageFailures()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    protected abstract suspend fun putImageFailures(failures: List<CatalogImageFailureEntity>)
 
     @Query("DELETE FROM catalog_tea_staging")
     protected abstract suspend fun clearStagedTeas()

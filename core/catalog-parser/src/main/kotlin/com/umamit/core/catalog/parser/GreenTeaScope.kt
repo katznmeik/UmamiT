@@ -48,7 +48,7 @@ internal object GreenTeaScope {
         "matcha" to "Matcha",
         "sencha" to "Sencha",
         // Green, but no type page of its own.
-        "tencha|aracha|konacha|mizudashi|grüntee|grüner\\s+tee|green\\s+tea" to null,
+        "tencha|aracha|konacha|mizudashi|mizucha|grüntee|grüner\\s+tee|green\\s+tea" to null,
     ).map { (pattern, type) -> Regex(pattern, RegexOption.IGNORE_CASE) to type }
 
     /** Another tea or teaware in a name: never green, whatever else it names. */
@@ -62,20 +62,42 @@ internal object GreenTeaScope {
     private val OTHER_IN_PATH =
         Regex("""koucha|oolong|schwarz(er)?-?tee|wei(ss|ß)(er)?-?tee|kraeuter|zubehoer|geschirr""")
 
+    /**
+     * A set in a name (D-091): „Set" as a word („3er Set", „Komplett-Set", „SET") or a set compound
+     * („Probierset", „Geschenkset", „Jubiläumsset", …); „Setouchi" or „Sunset" are no sets.
+     */
+    private val SET_IN_NAME = Regex(
+        """\bsets?\b|(probier|geschenk|starter|kennenlern|entdecker|jubiläums|jubilaeums|verkostungs|""" +
+            """einsteiger|schnupper|tee|matcha)sets?\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /** A set category as a path segment (`gruentee-sets`, `teesets`, `multipacks-sets-zum-probieren`). */
+    private val SET_IN_PATH = Regex("""(^|-)(tee)?sets?(-|$)""")
+
     private const val GREEN_SECTION = "/tee/gruener-tee/"
     private const val MATCHA_POWDER = "/matcha/matcha-teepulver/"
     private val JAPAN_TEA = listOf("tee", "japantee")
 
     /**
      * The scope of a product with [breadcrumb] and [name]; [greenBadge] is a steaming or shading
-     * badge, which only green teas carry.
+     * badge, which only green teas carry. A product of the green sections whose name or
+     * breadcrumb says set is a [CatalogScope.SET], even without a set number (D-091).
      */
     fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope = when {
         breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
-        breadcrumb.any { isGreen(it.path) } -> CatalogScope.GREEN
-        isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge) -> CatalogScope.GREEN
-        else -> CatalogScope.NOT_GREEN
+
+        breadcrumb.none { isGreen(it.path) } && !(isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge)) ->
+            CatalogScope.NOT_GREEN
+
+        isSet(breadcrumb, name) -> CatalogScope.SET
+
+        else -> CatalogScope.GREEN
     }
+
+    private fun isSet(breadcrumb: List<Crumb>, name: String?): Boolean =
+        (name != null && SET_IN_NAME.containsMatchIn(name)) ||
+            breadcrumb.any { crumb -> segments(crumb.path).any { SET_IN_PATH.containsMatchIn(it) } }
 
     /**
      * The title of the deepest breadcrumb item that is a green type, e.g. „Sencha"; for a Japan tea

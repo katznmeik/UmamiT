@@ -13,7 +13,7 @@ import com.umamit.core.model.UmamiLevel
  *   flavoured sencha keeps it, though its style is `flavored_green`.
  * @property unmapped neither breadcrumb nor name named a style: [style] is `green_generic` and
  *   the tea is flagged `UNMAPPED_STYLE`.
- * @property coldBrewDefault a cold-brew bag (Mizudashi): its default recipe is the cold brew.
+ * @property coldBrewDefault a cold-brew bag (Mizudashi) or a Mizucha: its default recipe is the cold brew.
  */
 data class StyleMatch(
     val style: TeaStyle,
@@ -74,6 +74,11 @@ object StyleMapper {
     private val MIZUDASHI_NAME =
         Regex("""mizudashi|kaltaufgussbeutel|cold\s*-?\s*brew\s*-?\s*beutel""", RegexOption.IGNORE_CASE)
 
+    /** „Mizucha", Japanese water tea: brewed cold (D-091). */
+    private val MIZUCHA = Regex("mizucha", RegexOption.IGNORE_CASE)
+    private const val HOJICHA = "hojicha"
+    private const val HOJICHA_POWDER = "hojicha_powder"
+
     /** Tea bags, not a refill bag of leaf („Nachfüllbeutel"). */
     private val TEA_BAGS = Regex("aufgussbeutel|teebeutel|pyramidenbeutel", RegexOption.IGNORE_CASE)
     private val SENCHA_STYLES = setOf("sencha", "fukamushi_sencha")
@@ -99,7 +104,9 @@ object StyleMapper {
             ?: KOREAN_GREEN.takeIf { originCountry != null && KOREA.containsMatchIn(originCountry) }
         // Cold-brew bags by their section or, filed under a type, by their name (D-089).
         val mizudashi = segment == MIZUDASHI || MIZUDASHI_NAME.containsMatchIn(text)
-        val key = styleKey(segment, byName, mizudashi)
+        // „Mizucha" (water tea) brews cold by default too, bags or leaves (D-091).
+        val coldBrew = mizudashi || MIZUCHA.containsMatchIn(text)
+        val key = withPowder(styleKey(segment, byName, coldBrew), byName, text)
         val flavoured = isFlavored && (key in SENCHA_STYLES || key == null)
         val style = (if (flavoured) FLAVORED else key)?.let(BuiltInStyles::byKey) ?: BuiltInStyles.GENERIC
         // The base style or the name's (a flavoured sencha), or the Japan section, make a tea Japanese.
@@ -110,26 +117,36 @@ object StyleMapper {
             form = form(mizudashi, style.key, text),
             japanese = japanese,
             unmapped = key == null && !flavoured,
-            coldBrewDefault = mizudashi,
+            coldBrewDefault = coldBrew,
         )
     }
 
-    /** The style key by the breadcrumb's [segment], else the name's [byName]; null when neither names one. */
-    private fun styleKey(segment: String, byName: String?, mizudashi: Boolean): String? {
+    /**
+     * The style key by the breadcrumb's [segment], else the name's [byName]; null when neither
+     * names one. A tea that brews cold by default ([coldBrew]) without either is the generic
+     * style, not flagged (D-089).
+     */
+    private fun styleKey(segment: String, byName: String?, coldBrew: Boolean): String? {
         val bySegment = SEGMENTS.firstOrNull { (pattern, _) -> pattern.matches(segment) }?.second
         return when {
             segment == MIZUDASHI -> byName ?: BuiltInStyles.GENERIC.key
-            mizudashi && bySegment == null && byName == null -> BuiltInStyles.GENERIC.key
+            coldBrew && bySegment == null && byName == null -> BuiltInStyles.GENERIC.key
             segment == FLAVOURED_SECTION -> if (byName == "matcha") byName else FLAVORED
             bySegment == "sencha" && byName == "fukamushi_sencha" -> byName
             else -> bySegment ?: byName
         }
     }
 
+    /**
+     * [key], or the hōjicha powder's style when [key] or the name ([byName]) says hōjicha and
+     * [text] says powder: a powder is whisked, never steeped (08 §3, D-091), whatever the breadcrumb.
+     */
+    private fun withPowder(key: String?, byName: String?, text: String): String? =
+        if ((key == HOJICHA || byName == HOJICHA) && POWDER.containsMatchIn(text)) HOJICHA_POWDER else key
+
     private fun form(mizudashi: Boolean, styleKey: String, text: String): TeaForm = when {
         mizudashi -> TeaForm.TEA_BAG
-        styleKey == "matcha" -> TeaForm.POWDER
-        styleKey == "hojicha" && POWDER.containsMatchIn(text) -> TeaForm.POWDER
+        styleKey == "matcha" || styleKey == HOJICHA_POWDER -> TeaForm.POWDER
         TEA_BAGS.containsMatchIn(text) -> TeaForm.TEA_BAG
         else -> TeaForm.LOOSE_LEAF
     }

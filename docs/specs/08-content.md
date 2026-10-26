@@ -34,7 +34,7 @@ parser (NFR-MAINT-04).
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
 | Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. |
-| Article numbers | Parent `TG0557`; size variants `TG0557-10/-50/-100/-250/-500/-1000` (suffix = grams); `TG0557M` is the same page as the parent (canonical `TG0557`), not a sample; lower-case suffixes like `AT0220a` are separate articles; `…SET` = sets (excluded); some teas are split into separate base numbers per size (e.g. `AT0868`/`AT0869`). |
+| Article numbers | Parent `TG0557`; size variants `TG0557-10/-50/-100/-250/-500/-1000` (suffix = grams); `TG0557M` is the same page as the parent (canonical `TG0557`), not a sample; lower-case suffixes like `AT0220a` are separate articles; `…SET` = sets (excluded; in any case and with letters after it, `…Set`, `…SETc`, D-091); `…SALE` = a reduced duplicate of a regular tea (excluded, D-091); some teas are split into separate base numbers per size (e.g. `AT0868`/`AT0869`). |
 
 ### 2.3 Product page selectors and field mapping
 
@@ -86,7 +86,12 @@ the prose, whose years are travel reports, founding years and link texts
 
 1. Fetch `robots.txt` and respect it; fetch `sitemap.xml` and its `.xml.gz`.
 2. From product URLs (`/<slug>/<article number>`), derive base numbers;
-   group variant URLs per base number. Skip `…SET`. Per base number the
+   group variant URLs per base number. Skip sets and sale duplicates without
+   a request (D-091): a number whose letters after the digits start with
+   „SET" in any case (`…SET`, `…Set`, `…SETc`, `…SETSALE`) or whose variant is
+   `-SET` is a set; one ending in „SALE" in any case (`AT0516SALE` next to
+   `AT0516`) is the same tea reduced, so the regular number stays the catalog
+   entry (a sale-only listing is a clearance: its tea leaves the range). Per base number the
    parent's own page is fetched, else its `M` page, else the smallest size
    (D-077). A sitemap that is missing, disallowed, broken or lists no product
    is a structural failure.
@@ -99,7 +104,11 @@ the prose, whose years are travel reports, founding years and link texts
    tencha, aracha, „Grüntee", …) or it carries a steaming or shading badge,
    and neither its name nor its path names another tea (Koucha/Wakoucha,
    Oolong, Schwarz-, Weiß- or Kräutertee) or teaware (Kyusu, Kanne, Chawan,
-   Set, …); otherwise it is skipped (D-089). Store non-green base numbers in a skip list
+   Set, …); otherwise it is skipped (D-089). A product of the green sections
+   whose name says set („Set" as a word, „3er-Set", „Probierset",
+   „Geschenkset", „Jubiläumsset", …; not „Setouchi" or „Sunset") or whose
+   breadcrumb is a set category (`…-sets`, `teesets`) is a set without a set
+   number: skipped with reason `SET` (D-091). Store non-green base numbers in a skip list
    (`catalog_skip`) so later refreshes don't fetch them again; the skip list
    changes only with a successful refresh (D-077). A page without a
    breadcrumb is neither kept nor skipped.
@@ -113,7 +122,10 @@ the prose, whose years are travel reports, founding years and link texts
    time (robots.txt, 404, a page without product) but whose numbers are still
    in the sitemap is kept as it was; one that is now out of scope or missing
    from the sitemap is discontinued (CAT-07 AC4). Only new and changed photos
-   are fetched (D-086).
+   are fetched (D-086); a photo or guide image that failed for good (over the
+   16 MB image limit, or not decodable) is not fetched again while its URL
+   stays the same (`catalog_image_failure`, D-091), while a 404 or a network
+   error is tried again next time.
 6. **Package prices:** variant sizes come from the configurator labels and
    variant URLs. Sizes **larger** than the parent package are **estimated**
    without extra requests: `price(size) = parent price ÷ parent grams × size ×
@@ -146,8 +158,13 @@ including images):
 
 | Refresh | Requests (approx.) | Duration |
 |---|---|---|
-| First | sitemap + ~1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~280 photos + guides (G = number of keyword-selected guide slugs, §2.7, ~10–40 and at most 40, plus their images, at most 4 each: ≤ 200 requests, ≈ 100 s, D-087) | ~15–18 min |
-| Later | sitemap + ~280 green pages + new items + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored is not fetched again, D-087) | ~3–4 min |
+| First | sitemap + ~1,400–1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~260–280 photos + guides (G = number of keyword-selected guide slugs, §2.7, ~10–40 and at most 40, plus their images, at most 4 each: ≤ 200 requests, ≈ 100 s, D-087); full live run 1: 1,747 requests | ~15–16 min (D-091) |
+| Later | sitemap + ~280 green pages + new items + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored, or one that failed for good, is not fetched again, D-087, D-091) | ~3 min |
+
+Each page, photo and guide image is fetched while the previous one is parsed,
+re-encoded or stored (D-091), so the duration approaches the requests' own
+gaps (1,747 × 0.5 s ≈ 15 min); full live run 1 took 20 min with the
+processing done between the requests.
 
 ### 2.5 Recipe derivation
 
@@ -155,8 +172,8 @@ including images):
 (CAT-04).
 
 **Step 1 — Rows to recipes.** Each grid row becomes one recipe:
-`st-zubereitung-japan` → „Kyusu" (`KYUSU`), or for matcha „Usucha"
-(`MATCHA_USUCHA`);
+`st-zubereitung-japan` → „Kyusu" (`KYUSU`), or for a whisked powder (matcha,
+hōjicha powder, D-091) „Usucha" (`MATCHA_USUCHA`);
 `st-zubereitung-westlich` → „Westlich" (`WESTERN`);
 `st-zubereitung-china` → „Gongfu" (`GONGFU`, D-089). The **default recipe** is
 the Kyusu row for Japanese teas when present, otherwise the row of the style's
@@ -328,11 +345,13 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | `matcha`, `matcha-teepulver` | `matcha` (latte/flavoured blends → `matcha`, flavoured) |
 | `kukicha`, `kukicha-karigane-shiraore` | `karigane` |
 | `bancha` | `bancha` |
-| `houjicha` (incl. powder → form POWDER) | `hojicha` |
+| `houjicha` | `hojicha` |
+| „Pulver" / „Powder" with `houjicha` or a hōjicha keyword in the name, under any breadcrumb (D-091) | `hojicha_powder`, form POWDER: whisked („Usucha"), no leaf recipe, no cold brew |
 | `genmaicha` | `genmaicha` |
 | `kamairicha` | `kamairicha` |
 | `tamaryokucha` | `tamaryokucha` |
 | `mizudashi-kaltaufgussbeutel`, or „Mizudashi" / „Kaltaufgussbeutel" in the name under any breadcrumb (D-089) | style from the breadcrumb or name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
+| „Mizucha" in the name, under any breadcrumb (D-091) | as Mizudashi: style from breadcrumb or name else `green_generic` (not flagged); default recipe = cold brew; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | `aromatisierter-gruentee` | `flavored_green` |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
@@ -386,9 +405,9 @@ placeholders and tracking pixels skipped; each once, told apart by their
 decoded path without the query, so the gallery's raw spaces and the body's
 `%20` are one image, stored with spaces encoded, D-089) are downloaded through
 the refresh's session only while SET-22 is on, at most 4 per article (the
-hero first), and
+hero first), read up to 16 MB as JPEG, PNG or WebP (D-091), and
 stored as ≤ 1200 px WebP named after their URL's hash, so an unchanged image
-is never fetched again. Links to product pages of the shop whose tea is in
+is never fetched again, nor one that failed for good (D-091). Links to product pages of the shop whose tea is in
 the new catalog become in-app catalog links, links to stored guides in-app
 guide links; every other link opens the browser. The guides are staged and
 swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
@@ -412,7 +431,8 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
 - **Refusals and outages:** a 401/403/5xx or a network error (offline; for
   the refresh after its retries, D-076) also stops the whole job; after any stop the job sends no further request. A
   3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
-  D-074), and so does a 2xx answer over 5 MB, which is not read (a photo,
+  D-074), and so does a 2xx answer over its body limit, which is not read
+  (5 MB for a page, 16 MB for a photo or guide image, D-091; a photo,
   guide image or page; never a stop, D-090).
 - **One connection:** all requests go through a single HTTP connection,
   sequentially, at ≤ 2 requests/s.
@@ -452,6 +472,7 @@ days after opening.
 | `karigane` | Kukicha / Karigane 茎茶 | MEDIUM | 45 | 1,5 | KYUSU 5 g / 150 ml / 70 °C: 1:00, 0:20 @75, 1:00 @85 |
 | `bancha` | Bancha 番茶 | LOW | 60 | 2,0 | KYUSU 5 g / 200 ml / 85 °C: 0:45, 0:20 @90, 1:00 @95 |
 | `hojicha` | Hōjicha ほうじ茶 | LOW | 60 | 1,5 | KYUSU 4 g / 200 ml / 95 °C: 0:30, 0:30, 1:00 |
+| `hojicha_powder` | Hōjicha-Pulver ほうじ茶パウダー | LOW | 30 | 2,0 | Usucha 2 g / 70 ml / 80 °C: Aufschlagen 0:20 (a powder: no leaf recipe, no cold brew, D-091) |
 | `genmaicha` | Genmaicha 玄米茶 | LOW | 45 | 3,0 | KYUSU 5 g / 200 ml / 85 °C: 0:45, 0:15 @90, 1:00 @95 |
 | `kamairicha` | Kamairicha 釜炒り茶 | LOW | 60 | 2,5 | KYUSU 5 g / 150 ml / 80 °C: 1:00, 0:20 @85, 0:45 @90 |
 | `tamaryokucha` | Tamaryokucha 玉緑茶 | MEDIUM | 45 | 2,5 | KYUSU 5 g / 150 ml / 75 °C: 1:00, 0:15 @80, 0:45 @85 |

@@ -6,14 +6,22 @@ import java.net.URISyntaxException
 /**
  * A shop article number (08 §2.2): parent `TG0557`, size variants `TG0557-50` (suffix = grams),
  * `TG0557M` (the parent's page under another number), lower-case suffixes such as `AT0220a`
- * (separate articles) and sets `…SET` (out of scope).
+ * (separate articles), sets `…SET` and sale duplicates `…SALE` (both out of scope).
  *
  * @property base the catalog key (05 §4.1): the number without a variant suffix and without `M`;
  *   a lower-case letter stays.
  * @property variant the part after the dash (`50`, `250mittel`), or null.
- * @property isSet a set (`…SET`), never fetched (08 §2.4 item 2).
+ * @property isSet a set, never fetched (08 §2.4 item 2): the letters after the digits start with
+ *   „SET" in any case (`…SET`, `…Set`, `…SETc`, `…SETSALE`; D-091), or the variant is „SET".
+ * @property isSale a reduced duplicate of a regular tea (`…SALE` in any case, D-091), never fetched.
  */
-data class ArticleNumber(val text: String, val base: String, val variant: String?, val isSet: Boolean) {
+data class ArticleNumber(
+    val text: String,
+    val base: String,
+    val variant: String?,
+    val isSet: Boolean,
+    val isSale: Boolean = false,
+) {
     /** The grams of a size variant (`-250` → 250), or null. */
     val grams: Int? get() = variant?.toIntOrNull()
 
@@ -30,12 +38,16 @@ data class ArticleNumber(val text: String, val base: String, val variant: String
             val head = text.substringBefore('-')
             val variant = if ('-' in text) text.substringAfter('-') else null
             if (!HEAD.matches(head) || (variant != null && !VARIANT.matches(variant))) return null
-            val isSet = head.endsWith(SET_SUFFIX)
+            val letters = head.takeLastWhile { it.isLetter() }
+            val isSale = letters.endsWith(SALE_MARK, ignoreCase = true)
+            val unsold = if (isSale) letters.dropLast(SALE_MARK.length) else letters
+            val isSet = unsold.startsWith(SET_MARK, ignoreCase = true) || variant.equals(SET_MARK, ignoreCase = true)
             val base = PARENT_ALIAS.matchEntire(head)?.groupValues?.get(1)?.takeUnless { isSet } ?: head
-            return ArticleNumber(text = text, base = base, variant = variant, isSet = isSet)
+            return ArticleNumber(text = text, base = base, variant = variant, isSet = isSet, isSale = isSale)
         }
 
-        private const val SET_SUFFIX = "SET"
+        private const val SET_MARK = "SET"
+        private const val SALE_MARK = "SALE"
     }
 }
 
@@ -49,8 +61,12 @@ data class ArticleNumber(val text: String, val base: String, val variant: String
  */
 data class ProductGroup(val base: String, val pageUrl: String, val variantUrls: Map<String, String>)
 
-/** The products of a sitemap: one [ProductGroup] per base number, sorted by it, and the [sets] left out. */
-data class SitemapProducts(val groups: List<ProductGroup>, val sets: Int)
+/**
+ * The products of a sitemap: one [ProductGroup] per base number, sorted by it, and the base
+ * numbers left out without a request: the [sets] and the [sales] (sale duplicates that are no
+ * set, D-091).
+ */
+data class SitemapProducts(val groups: List<ProductGroup>, val sets: Int, val sales: Int = 0)
 
 /** Finds the product URLs among a sitemap's URLs (08 §2.2): `/<slug>/<article number>`. */
 object ProductUrls {
@@ -59,7 +75,9 @@ object ProductUrls {
     /** Groups the product URLs among [urls] per base number; any other URL is ignored. */
     fun group(urls: List<String>): SitemapProducts {
         val numbered = urls.distinct().mapNotNull { url -> articleNumberOf(url)?.let { it to url } }
-        val (sets, products) = numbered.partition { (number, _) -> number.isSet }
+        val (sets, others) = numbered.partition { (number, _) -> number.isSet }
+        // A sale duplicate (`…SALE` next to the regular number) is the same tea, reduced (D-091).
+        val (sales, products) = others.partition { (number, _) -> number.isSale }
         val groups = products.groupBy { (number, _) -> number.base }.toSortedMap().map { (base, pages) ->
             ProductGroup(
                 base = base,
@@ -69,7 +87,11 @@ object ProductUrls {
                     .toSortedMap(),
             )
         }
-        return SitemapProducts(groups, sets = sets.map { (number, _) -> number.base }.distinct().size)
+        return SitemapProducts(
+            groups,
+            sets = sets.map { (number, _) -> number.base }.distinct().size,
+            sales = sales.map { (number, _) -> number.base }.distinct().size,
+        )
     }
 
     /** The article number of a product URL, or null for any other URL. */

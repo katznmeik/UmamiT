@@ -148,8 +148,9 @@ dispatcher thread for the shop). Each job (the seed photos, one refresh, one
 exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
 reads robots.txt once with RFC 9309's status rules, never fetches a
 disallowed URL, retries connection errors only for the refresh (D-076), and
-after the first stop signal sends nothing more. An answer over 5 MB leaves
-only its URL out (D-090). An idle connection is kept for 30 s only, since
+after the first stop signal sends nothing more. An answer over its body
+limit (5 MB for pages, 16 MB for images, D-091) leaves only its URL out
+(D-090). An idle connection is kept for 30 s only, since
 connection retries are off (D-090). The seed photo download ends before a
 refresh started from the setup (D-090); a new refresh starts only once a
 cancelled one has cleaned up.
@@ -167,7 +168,11 @@ Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
 (quality 80) plus a WebP list thumbnail with a 256 px short side (never
 larger than the photo), both from one decode; downloaded again only when the
 page's photo URL is not the one the stored photo came from (CAT-08, D-073,
-D-074, D-086).
+D-074, D-086). Sources are JPEG, PNG or WebP, decoded with sampling (never
+held at full resolution beyond what the largest target needs); transparency
+is flattened onto white. A photo or guide image that failed for good (over
+16 MB, or not decodable) is not downloaded again while its URL stays the
+same (`catalog_image_failure`, D-091).
 
 ### 5.3 Catalog refresh
 
@@ -188,31 +193,45 @@ D-074, D-086).
    [08 §2.4](08-content.md#24-discovery-variants-and-request-budget): a
    later refresh fetches the known green teas (with the numbers merged into
    them), the new base numbers and the skip entries due again (D-086).
-   `robots.txt` rules use longest-match precedence with `*` and `$`
-   wildcards (RFC 9309).
+   Sets (`…SET`, `…Set`, `…SETc`) and sale duplicates (`…SALE`) are left out
+   without a request (D-091). `robots.txt` rules use longest-match
+   precedence with `*` and `$` wildcards (RFC 9309).
 3. Fetch each candidate parent page (≤ 2 req/s, one connection, 20 s
    timeout; a timeout or connection error is retried ≤ 3 times with 2/4/8 s
    backoff, each retry a new call through `ShopClient`; stop signals and
-   HTTP errors are never retried, D-076); classify by breadcrumb; parse with
-   `TeeKontorParser` (selectors versioned as `parserVersion`). Stop the
-   refresh (old catalog kept) on a Cloudflare challenge, on HTTP 429 or on
-   any `Retry-After` header ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
+   HTTP errors are never retried, D-076); classify by breadcrumb (a set
+   without a set number, by its name or breadcrumb, is skipped as a set,
+   D-091); parse with `TeeKontorParser` (selectors versioned as
+   `parserVersion`). Stop the refresh (old catalog kept) on a Cloudflare
+   challenge, on HTTP 429 or on any `Retry-After` header
+   ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
 4. Merge variants, map styles, derive recipes, compute content hashes.
 5. Sanity check of the parsed pages (CAT-07 AC5), before any photo or guide
    request; then download new and changed photos (if SET-22; an unchanged
-   photo is never fetched again, D-086).
+   photo is never fetched again, D-086; nor one that failed for good while
+   its URL stays the same, D-091).
 6. Fetch and convert *Tee-Info* guides (CAT-09) into staging, with their
-   images unless SET-22 is off (stored ones not fetched again, D-087).
+   images unless SET-22 is off (stored ones not fetched again, D-087; nor
+   ones that failed for good, D-091).
 7. Atomic swap of the staging tables, guides included
    ([05 §4.5](05-data-model.md#45-refresh-transaction)) with the summary
    counts (CAT-07 AC3), keeping unread known teas and owned discontinued ones
-   (CAT-07 AC4); delete the photos of teas and the images of guides no
-   longer in the catalog (also after a failed run); log; link the seed teas
-   once (CAT-15, D-086).
+   (CAT-07 AC4), and the images that failed for good it met (D-091); delete
+   the photos of teas and the images of guides no longer in the catalog (also
+   after a failed run); log; link the seed teas once (CAT-15, D-086).
+
+Steps 3, 5 and 6 fetch one URL after the other while the previous answer is
+parsed, re-encoded or stored (`fetchOverlapped`, D-091): a rendezvous hands
+each answer over, so at most the next answer waits while one is processed.
+The wire is unchanged (the same requests in the same order, one connection,
+≤ 2 req/s, a stop sends nothing more); a cancel or a failure in processing
+cancels the request in flight, whose answer is dropped.
 
 All requests (pages and images) share the 2 req/s limit. Expected
-duration: first refresh (~1,560 classification pages + ~280 photos + guides)
-≈ 15–18 min (D-076); later refreshes (~280 pages, changed photos only) ≈ 3–4 min.
+duration: first refresh (~1,750 requests: ~1,400 classification pages +
+~260 photos + guides) ≈ 15–16 min, close to the requests' own gaps
+(≈ 875 s); full live run 1 took 20 min before processing overlapped the gaps
+(D-076, D-091). Later refreshes (~280 pages, changed photos only) ≈ 3 min.
 Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 ### 5.4 Background work

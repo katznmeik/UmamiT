@@ -61,6 +61,7 @@ class CatalogSchemaTest {
             "catalog_guide",
             "catalog_guide_staging",
             "catalog_refresh_log",
+            "catalog_image_failure",
         )
     }
 

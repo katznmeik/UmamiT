@@ -101,14 +101,15 @@ class ShopClient private constructor(
     }
 
     /**
-     * Fetches [url] with exactly one GET request and classifies the answer. Suspends until the
-     * single connection is free and the rate limit allows the request. Cancelling the caller
-     * cancels the call; a call cancelled before it went out is never sent.
+     * Fetches [url] with exactly one GET request and classifies the answer, reading a body of at
+     * most [limit] (D-091). Suspends until the single connection is free and the rate limit
+     * allows the request. Cancelling the caller cancels the call; a call cancelled before it went
+     * out is never sent.
      *
      * @throws HostNotAllowedException when [url] is not on the allow-list (a programming error,
      *   so it is not folded into [ShopResponse.NetworkError]).
      */
-    suspend fun get(url: HttpUrl): ShopResponse {
+    suspend fun get(url: HttpUrl, limit: BodyLimit = BodyLimit.PAGE): ShopResponse {
         if (!isAllowed(url)) throw HostNotAllowedException(url)
         val call = okHttp.newCall(Request.Builder().url(url).get().build())
         return suspendCancellableCoroutine { continuation ->
@@ -126,7 +127,7 @@ class ShopClient private constructor(
                     override fun onResponse(call: Call, response: Response) {
                         // Read on the dispatcher thread: the next call waits until the body is in.
                         val result = try {
-                            response.use(::classify)
+                            response.use { classify(it, limit) }
                         } catch (e: IOException) {
                             ShopResponse.NetworkError(e)
                         }

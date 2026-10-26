@@ -80,6 +80,14 @@ object BuiltInStyles {
         japanese("karigane", UmamiLevel.MEDIUM, 45, 1.5, kyusu(5.0, 150, 70, 60 at null, 20 at 75, 60 at 85)),
         japanese("bancha", UmamiLevel.LOW, 60, 2.0, kyusu(5.0, 200, 85, 45 at null, 20 at 90, 60 at 95)),
         japanese("hojicha", UmamiLevel.LOW, 60, 1.5, kyusu(4.0, 200, 95, 30 at null, 30 at null, 60 at null)),
+        // A powder is whisked like a matcha, never steeped and never cold-brewed (D-091).
+        japanese(
+            "hojicha_powder",
+            UmamiLevel.LOW,
+            30,
+            2.0,
+            RecipeTemplate("Usucha", BrewMethod.MATCHA_USUCHA, 2.0, 70, 80, listOf(RecipeStep(StepKind.WHISK, 20))),
+        ),
         japanese("genmaicha", UmamiLevel.LOW, 45, 3.0, kyusu(5.0, 200, 85, 45 at null, 15 at 90, 60 at 95)),
         japanese("kamairicha", UmamiLevel.LOW, 60, 2.5, kyusu(5.0, 150, 80, 60 at null, 20 at 85, 45 at 90)),
         japanese("tamaryokucha", UmamiLevel.MEDIUM, 45, 2.5, kyusu(5.0, 150, 75, 60 at null, 15 at 80, 45 at 85)),
