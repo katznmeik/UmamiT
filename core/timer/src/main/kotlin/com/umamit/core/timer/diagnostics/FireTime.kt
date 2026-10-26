@@ -12,8 +12,9 @@ import com.umamit.core.timer.controller.TimerAlarmKind
  *   `event DeadlineReached from WAKE_UP: RUNNING -> ALERTING accepted | DEADLINE scheduled
  *   10:01:00.000 (mono 5060000) actual 10:01:00.012 (mono 5060012) delta +12 ms`;
  * - [parsePlayed]: the alert player started its sound (D-068), e.g.
- *   `alert ALERT: ringer NORMAL, … | tone klangschale, length NORMAL | DEADLINE scheduled
- *   10:01:00.000 (mono 5060000) actual 10:01:00.140 (mono 5060140) delta +140 ms`.
+ *   `alert ALERT: ringer NORMAL, … | tone klangschale, length NORMAL | queued 1 ms, settings 0 ms,
+ *   outputs 12 ms, sound ready | DEADLINE scheduled 10:01:00.000 (mono 5060000) actual
+ *   10:01:00.140 (mono 5060140) delta +140 ms` (the part on the start since D-092).
  *
  * The accuracy workflow (04 §12, #52) reads the pre-alert and the alert of every step this
  * way; the round-trip tests keep these parsers and the log format together.
@@ -34,6 +35,12 @@ data class FireTime(
     val actualMonoMs: Long,
     /** How late it happened, in ms, on the kind's own clock (negative: early). */
     val deltaMs: Long,
+    /**
+     * For a sound start: where the player's start spent the time, as logged (D-092), e.g.
+     * `queued 1 ms, settings 0 ms, outputs 12 ms, sound ready`; null for a handled event or a
+     * line without it.
+     */
+    val start: String? = null,
 ) {
     companion object {
         /** The [source] of a fire time read by [parsePlayed]: the alert player started the sound. */
@@ -46,6 +53,9 @@ data class FireTime(
 
         // An empty second group, so both regexes share the group numbers below.
         private val PLAYED = Regex("""^alert (\w+)(): .* \| $TIMING$""")
+
+        /** The start part of a sound start's line (D-092). */
+        private val START = Regex("""\| (queued -?\d+ ms, settings -?\d+ ms, outputs -?\d+ ms, [^|]+?) \|""")
 
         /**
          * The fire time in the log [message] of an accepted time-based event; null for any
@@ -70,7 +80,8 @@ data class FireTime(
                 AlertCue.ALERT.name -> TimerAlarmKind.DEADLINE
                 else -> null
             }
-            return kind?.takeIf { it.name == values[KIND] }?.let { fireTime(it, PLAYER, values) }
+            return kind?.takeIf { it.name == values[KIND] }
+                ?.let { fireTime(it, PLAYER, values).copy(start = START.find(message)?.groupValues?.get(1)) }
         }
 
         private fun fireTime(kind: TimerAlarmKind, source: String, values: List<String>) = FireTime(

@@ -34,10 +34,16 @@ data class StoredSettings(
     val keepScreenOn: Boolean = true,
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
+    val catalogDownloadPhotos: Boolean = true,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
     val seedPhotosAttempted: Boolean = false,
+    /**
+     * The parts of the seed teas' catalog link that are done (CAT-15, D-090), as
+     * `<tea id>/description` and `<tea id>/cover`; each is added once and never removed.
+     */
+    val seedTeaLinksDone: Set<String> = emptySet(),
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -70,6 +76,8 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     val seedPhotosAttempted: Flow<Boolean> = dataStore.data.map { it.seedPhotosAttempted }
 
+    val seedTeaLinksDone: Flow<Set<String>> = dataStore.data.map { it.seedTeaLinksDone }
+
     /** Applies [transform] atomically to the current settings. */
     suspend fun update(transform: (UserSettings) -> UserSettings) {
         dataStore.updateData { stored -> transform(stored.toModel()).toStored(markersOf = stored) }
@@ -81,6 +89,11 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     suspend fun markSeedPhotosAttempted() {
         dataStore.updateData { it.copy(seedPhotosAttempted = true) }
+    }
+
+    /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
+    suspend fun markSeedTeaLinksDone(parts: Set<String>) {
+        dataStore.updateData { it.copy(seedTeaLinksDone = it.seedTeaLinksDone + parts) }
     }
 }
 
@@ -101,6 +114,7 @@ private fun StoredSettings.toModel() = UserSettings(
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
+    catalogDownloadPhotos = catalogDownloadPhotos,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -117,6 +131,8 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
+    catalogDownloadPhotos = catalogDownloadPhotos,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
+    seedTeaLinksDone = markersOf.seedTeaLinksDone,
 )

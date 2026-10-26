@@ -32,4 +32,12 @@ object DatabaseModule {
 
     @Provides
     fun activeBrewDao(db: UmamiDatabase) = db.activeBrewDao()
+
+    /** The catalog database `catalog.db` (05 §4): separate from the personal data, never backed up. */
+    @Provides
+    @Singleton
+    fun catalogDatabase(@ApplicationContext context: Context): CatalogDatabase = catalogDatabaseBuilder(context).build()
+
+    @Provides
+    fun catalogDao(db: CatalogDatabase) = db.catalogDao()
 }

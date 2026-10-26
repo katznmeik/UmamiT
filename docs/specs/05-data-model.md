@@ -308,27 +308,34 @@ Table `catalog_tea`
 | `breadcrumb` | TEXT | category path of the product page |
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
-| `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich and the cell texts) |
+| `description_text` | TEXT | plain text of the description, for search (D-076) |
+| `brew_table_raw` | TEXT | brewing grid as found (JSON: one object per row with `kind` = japan/westlich/china and the cells with their header labels, `{"kind":"japan","cells":[{"label":"Menge","text":"~4g/100ml"},…]}`, D-078) |
 | `brew_text_raw` | TEXT | brewing prose as found |
-| `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps) |
+| `derived_recipes_json` | TEXT | list of recipes (same shape as `brew_profile` + steps), the default first: `[{"name","method","leaf_grams","water_ml","base_temp_c","source","is_default","steps":[{"kind","duration_seconds","temp_c"}]}]` (D-082) |
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
-| `available` | INTEGER | in stock at refresh |
-| `discontinued` | INTEGER | not found in the latest refresh; only kept if a collection tea links to it (CAT-07 AC4) |
-| `photo_file` | TEXT | `filesDir/catalog/<key>.webp` |
-| `photo_url`, `photo_etag` | TEXT | change detection |
-| `content_hash` | TEXT | to report „geändert" |
-| `first_seen_at`, `last_seen_at` | INTEGER | |
+| `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
+| `discontinued` | INTEGER | left the shop's range (missing from the sitemap, or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
+| `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
+| `photo_url`, `photo_etag` | TEXT | change detection (CAT-08, D-086): `photo_url` is the URL the stored photo came from (else the page's), so a refresh downloads a photo only when it is new or its URL changed (the shop's media URL changes with the image, `?ts=`); `photo_etag` stays empty: a conditional request would still cost a request |
+| `content_hash` | TEXT | `<parser version>:<SHA-256>` of what the shop shows of the tea (the page's fields, its photo URL, its packages; not the derived style, recipes, flag or plain text), to report „geändert"; two hashes count only under the same parser version (D-086) |
+| `first_seen_at`, `last_seen_at` | INTEGER | the start of the refresh that first / last found the tea; a tea is „Neu" when `first_seen_at` is the start of the latest successful refresh and an earlier successful refresh exists (CAT-10, D-083) |
 
-FTS4 `catalog_fts` over name, secondary_name, description text, cultivar,
-origin_region.
+FTS4 `catalog_fts` over name, secondary_name, `description_text`, cultivar,
+origin_region, with the `unicode61` tokenizer (case and diacritics folded,
+D-083). The search takes every word of the search text as a prefix, all
+required.
 
 ### 4.2 CatalogPackage
 
 Table `catalog_package`: `catalog_key` FK CASCADE, `article_number`
 (e.g. `TG0557-50`), `label` („50 g", „250 g · 3 % gespart"), `grams` REAL,
 `price_cents`, `price_is_estimate` INTEGER, `savings_percent` INTEGER,
-`variant_url`, `available`.
+`variant_url`, `available`; primary key (`catalog_key`, `grams`) (D-077).
+`price_cents` is the shop's price for the fetched page's own size, an
+estimate for a larger size (`price_is_estimate` = 1), and NULL for a smaller
+one („Preis beim Hinzufügen"); `available` is known only for a fetched page's
+own size (08 §2.4 items 6–7, D-081).
 
 ### 4.2a CatalogSkip
 
@@ -337,23 +344,61 @@ Table `catalog_skip`: `base_key` PK, `reason` (`NOT_GREEN`, `SET`,
 as out of scope, so later refreshes don't fetch them again (re-checked after
 90 days).
 
+### 4.2b CatalogImageFailure
+
+Table `catalog_image_failure`: `url` PK, `reason` (`TOO_LARGE`, `UNREADABLE`),
+`rules_version`, `failed_at` — product photo and guide image URLs that
+failed for good (over the 16 MB image limit, or no decodable JPEG, PNG or
+WebP within the transcoder's limits). A refresh doesn't fetch them again
+while the URL (which carries the shop's image version, `?ts=`) stays the
+same and `rules_version` is the app's; a new transcoder or limit raises the
+version, so every failure is tried once more. The swap replaces the table
+with the failures the run met, remembered or new, so a failed run remembers
+nothing and a URL no longer met is forgotten (D-091).
+
 ### 4.3 CatalogGuide
 
 Table `catalog_guide`: `slug` PK, `title`, `url`, `body_markdown`,
-`hero_file`, `linked_catalog_keys` (JSON), `fetched_at`.
+`hero_file`, `linked_catalog_keys` (JSON), `fetched_at`, `published_at`
+(the shop's publication date, epoch ms, nullable). `body_markdown` is the
+converted article in the app's own Markdown subset (`GuideMarkdown`: `##`
+headings, paragraphs with line breaks, `**`/`*`, `[text](target)`, `-`/`1.`
+lists, `![alt](file)` images); links to catalog teas and stored guides are
+`umamit://catalog/<key>` and `umamit://guide/<slug>`. Images and `hero_file`
+are file names in `filesDir/catalog/guides/` (`g_<hash>.webp`, not backed
+up). Table `catalog_guide_staging` has exactly its columns (D-087).
 
 ### 4.4 CatalogRefreshLog
 
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
-flagged, photos), `parser_version`, `error_summary`.
+flagged, photos), `parser_version`, `error_summary`. The counts of a
+successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
+counts the teas flagged „Rezept prüfen" since this refresh (new ones
+included), `photos_count` the photos downloaded; a failed run logs zeros.
 
 ### 4.5 Refresh transaction
 
 Parsing writes into staging tables; on success, one transaction replaces
 `catalog_tea`, `catalog_package`, `catalog_guide` and marks discontinued keys
 (kept from the previous catalog with `discontinued = 1`). On failure the
-staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
+staging tables are emptied and the old catalog stays untouched (CAT-07 AC5).
+
+The staging tables `catalog_tea_staging`, `catalog_package_staging` and
+`catalog_guide_staging` have exactly the columns of `catalog_tea`,
+`catalog_package` and `catalog_guide` in the same order,
+so the swap copies them with `INSERT … SELECT *`; a tea already in the
+catalog keeps its `first_seen_at`. The skip entries of the run
+(`catalog_skip`) and its `catalog_refresh_log` row are written in the same
+transaction, so a refresh that stops, is cancelled or fails the sanity check
+leaves the skip list unchanged too (D-077); so are the images that failed for
+good (`catalog_image_failure`, D-091). A tea of the old catalog that the
+refresh did not stage is copied into the staging tables unchanged while its
+base numbers are still in the sitemap (its page couldn't be read this time);
+otherwise it left the range and stays, with `discontinued = 1`, only while a
+collection tea links to it; the owned keys are read from `umamit.db` before
+the swap, as the two databases share no transaction (D-076). Every other
+tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 ## 5. Enumerations
 
@@ -396,12 +441,16 @@ staging tables are dropped and the old catalog stays untouched (CAT-07 AC5).
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
 | `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 |
-| `collectionSort`, `catalogSort` | enums | name | |
+| `collectionSort` | enum | name | |
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
-| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again |
+| `seedDataCreated` | Boolean | false | WARE-06 (seed data created once, M1-07). In DataStore, so a device restore brings it back and nothing is seeded again. While false after the setup, every app start retries the seed (D-075) |
 | `seedPhotosAttempted` | Boolean | false | ONB-06 (set before the first request of the one-time seed photo download, D-050) |
+| `seedTeaLinksDone` | Set<String> | ∅ | CAT-15: the done parts of the seed teas' link, `<tea id>/description` and `<tea id>/cover`; each added once, never removed (D-086, D-090) |
+
+The catalog list's search, filters and sort are not stored: it opens in its
+default view each time (D-073, D-083).
 
 The settings are one JSON file, `files/datastore/settings.json`. A missing
 key reads as its default, an unknown enum name falls back to the default,
@@ -414,9 +463,14 @@ and an unreadable file reads as all defaults (#30).
 | Temperature | °C, integer, multiple of 5 | „55 °C" |
 | Leaf | g, REAL (0.1) | „4,0 g" (German decimal comma) |
 | Water | ml, INTEGER | „100 ml" |
-| Duration | s | „1:30", „1 Min 30 s" in prose, „3 Min" in lists |
+| Duration | s | „1:30", „1 Min. 30 s" in prose, „3 Min." / „4 Std." in lists |
 | Ratio | derived | „4,0 g / 100 ml" |
 | Money | cents + currency (EUR) | „15,90 €" |
+
+A number and its unit are joined by a no-break space (U+00A0, „55 °C",
+„3 Min."), so a line never breaks between them; the abbreviations are always
+„Std.", „Min.", „Sek." with a full stop (#58 U-O7, D-073). Separators such as
+„ · " come from `strings.xml`, never from code.
 
 Snap rule: `snap5(x) = 5 × floor(x / 5 + 0.5)` (half up: 52,5 → 55).
 Time rounding for derived recipes: nearest 5 s (half up).

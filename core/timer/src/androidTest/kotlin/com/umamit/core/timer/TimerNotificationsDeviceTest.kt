@@ -102,7 +102,9 @@ class TimerNotificationsDeviceTest {
         // The service starts with READY's Live Update (*Brühen starten*, D-053); *Start* updates it.
         val liveUpdate = eventually("the running step's Live Update (ID 1) as the foreground notification", TIMEOUT) {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)
-                ?.takeIf { it.flags and Notification.FLAG_FOREGROUND_SERVICE != 0 && it.text() == "Zieht bei 60 °C" }
+                ?.takeIf {
+                    it.flags and Notification.FLAG_FOREGROUND_SERVICE != 0 && it.text() == "Zieht bei 60\u00A0°C"
+                }
         }
         assertEquals(TimerNotifications.CHANNEL_BREW_TIMER, liveUpdate.channelId)
         check("the Live Update is not ongoing", liveUpdate.flags and Notification.FLAG_ONGOING_EVENT != 0)
@@ -129,7 +131,7 @@ class TimerNotificationsDeviceTest {
         }
         tap(paused, "Weiter")
         eventually("Zieht again after Weiter in the notification", TIMEOUT) {
-            activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.takeIf { it.text() == "Zieht bei 60 °C" }
+            activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.takeIf { it.text() == "Zieht bei 60\u00A0°C" }
         }
     }
 

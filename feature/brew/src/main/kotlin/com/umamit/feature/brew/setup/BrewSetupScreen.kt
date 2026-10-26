@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.DropdownMenu
@@ -55,6 +53,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.RecipeCheckNote
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import com.umamit.feature.brew.steps.StepsSheet
@@ -69,10 +68,12 @@ const val SETUP_SAVED_TAG = "setup_saved_to_recipe"
 const val SETUP_SAVE_TAG = "setup_save_to_recipe"
 const val SETUP_STEPS_EDIT_TAG = "setup_steps_edit"
 const val SETUP_PRE_ALERT_TAG = "setup_pre_alert"
+const val SETUP_RECIPE_CHECK_TAG = "setup_recipe_check"
 
 /**
  * The setup (SCR-04, BRW-02): tea, recipe chips, vessel, water and leaf with
- * the ratio lock (BRW-03), the kettle hint (BRW-10), the steps, the effective
+ * the ratio lock (BRW-03), the kettle hint (BRW-10), „Rezept prüfen" with its
+ * reason for a flagged tea (CAT-05), the steps, the effective
  * pre-alert, *Im Rezept speichern* (only after a change) and *Brühen starten*.
  * *Bearb.* and the *Vorwarnung* row open the Schritte-Sheet (SCR-31) for this
  * session.
@@ -140,6 +141,16 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
             water = state.kettle.water,
             modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),
         )
+        // „Rezept prüfen" with its reason, above the steps it is about (CAT-05; 03 SCR-04).
+        state.recipeCheckReason?.let { reason ->
+            RecipeCheckNote(
+                reason = reason,
+                modifier = Modifier
+                    .padding(horizontal = UmamiSpacing.SideMargin)
+                    .padding(bottom = UmamiSpacing.Small)
+                    .testTag(SETUP_RECIPE_CHECK_TAG),
+            )
+        }
         StepsSection(state, onEdit = openSteps)
         PreAlertRow(state, onClick = openSteps)
         SetupButtons(state, actions)
@@ -185,27 +196,9 @@ private fun TeaHeader(state: BrewSetupUiState.Ready) {
         val meta = listOfNotNull(
             state.secondaryName,
             state.stockGrams?.let { stringResource(R.string.brew_setup_stock, grams(it)) },
-        ).joinToString(" · ")
+        ).joinToString(stringResource(R.string.brew_setup_meta_separator))
         if (meta.isNotEmpty()) {
             Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (state.recipeCheckReason != null) {
-            Row(
-                modifier = Modifier.padding(top = UmamiSpacing.XXSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painterResource(UmamiIcons.Warning),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.width(UmamiSpacing.XXSmall))
-                Text(
-                    text = stringResource(R.string.brew_setup_recipe_check),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
         }
     }
 }

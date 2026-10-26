@@ -171,14 +171,15 @@ private fun JournalRow(entry: JournalEntry, thumbnail: Painter?, onClick: (() ->
 /** „55 °C · 1:00 · 3 Aufgüsse", or „… · 2 von 3 Aufgüssen" for an early finish (JRN-08, TMR-12). */
 @Composable
 @ReadOnlyComposable
-internal fun metaLine(entry: JournalEntry): String =
-    metaParts(entry, entry.firstInfusionSeconds?.let(::clockText)).joinToString(META_SEPARATOR)
+internal fun metaLine(entry: JournalEntry): String = metaParts(entry, entry.firstInfusionSeconds?.let(::clockText))
+    .joinToString(stringResource(R.string.journal_meta_separator))
 
 /** The meta line for TalkBack: „55 °C, 1 Minute, 3 Aufgüsse", so „1:00" is not read as a time of day. */
 @Composable
 @ReadOnlyComposable
 private fun spokenMetaLine(entry: JournalEntry): String =
-    metaParts(entry, entry.firstInfusionSeconds?.let { spokenDuration(it) }).joinToString(SPOKEN_SEPARATOR)
+    metaParts(entry, entry.firstInfusionSeconds?.let { spokenDuration(it) })
+        .joinToString(stringResource(R.string.journal_spoken_separator))
 
 @Composable
 @ReadOnlyComposable
@@ -196,9 +197,6 @@ private fun metaParts(entry: JournalEntry, firstInfusion: String?): List<String>
         pluralStringResource(R.plurals.journal_infusions, entry.infusions, entry.infusions)
     },
 )
-
-private const val META_SEPARATOR = " · "
-private const val SPOKEN_SEPARATOR = ", "
 
 @Composable
 @ReadOnlyComposable
@@ -221,7 +219,7 @@ private fun placeholderColor(styleKey: String?): Color {
         "shincha" -> colors.shincha
         "matcha" -> colors.matcha
         "karigane", "bancha" -> colors.kukichaKarigane
-        "hojicha" -> colors.hojicha
+        "hojicha", "hojicha_powder" -> colors.hojicha
         "genmaicha" -> colors.genmaicha
         "longjing", "anji_bai_cha", "bi_luo_chun", "korean_green" -> colors.chinaKoreaGreen
         else -> colors.other

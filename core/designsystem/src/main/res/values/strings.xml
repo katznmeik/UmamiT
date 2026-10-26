@@ -82,4 +82,7 @@
     <string name="ds_finish_active_quick_title">Erst den Schnelltimer beenden?</string>
     <string name="ds_finish_active_restart">Beenden &amp; neu starten</string>
     <string name="ds_finish_active_cancel">Abbrechen</string>
+
+    <!-- CheckRecipeBadge (03 §3.8, CAT-05). -->
+    <string name="ds_check_recipe">Rezept prüfen</string>
 </resources>

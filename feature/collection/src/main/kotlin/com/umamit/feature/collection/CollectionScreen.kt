@@ -11,30 +11,47 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.OverflowItem
 import com.umamit.core.designsystem.component.OverflowSettingsAction
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.theme.UmamiSpacing
 
 /**
- * Sammlung (SCR-08 / SCR-19), a calm placeholder until M2 and M3. *Meine Tees*
- * says where the teas are for now instead of an empty shelf: the seed teas
- * exist from the first start (#54 S2, GEN-09).
+ * Sammlung (SCR-08 / SCR-19): the segmented control [ Meine Tees | Katalog ] at the top and the
+ * segment below it. *Meine Tees* is a calm placeholder until M3 that says where the teas are for
+ * now instead of an empty shelf: the seed teas exist from the first start (#54 S2, GEN-09).
+ * *Katalog* is [catalogContent] (`feature:catalog`, wired by the app, since a feature never
+ * depends on another, 06 §3), which fills the rest of the screen and scrolls itself; it gets
+ * the [scrollToTopRequest] counter (03 §2.2, D-049). On *Katalog* the ⋮ menu offers
+ * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07).
  */
 @Composable
 fun CollectionScreen(
     segment: CollectionSegment,
     onSegmentChange: (CollectionSegment) -> Unit,
     onOpenSettings: () -> Unit,
+    catalogContent: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
+    onRefreshCatalog: () -> Unit = {},
 ) {
+    val refreshLabel = stringResource(R.string.collection_catalog_refresh)
+    val menuItems = if (segment ==
+        CollectionSegment.Catalog
+    ) {
+        listOf(OverflowItem(refreshLabel, onRefreshCatalog))
+    } else {
+        emptyList()
+    }
     ScreenScaffold(
         title = stringResource(R.string.collection_title),
         modifier = modifier,
-        actions = { OverflowSettingsAction(onOpenSettings) },
+        actions = { OverflowSettingsAction(onOpenSettings, items = menuItems) },
         scrollToTopRequest = scrollToTopRequest,
         // The segments stay at the top (a centred column moved them with the placeholder's height).
         verticalArrangement = Arrangement.Top,
+        // The catalog is a lazy list that scrolls itself below the segments.
+        scrollable = segment == CollectionSegment.MyTeas,
     ) {
         val segments = CollectionSegment.entries
         SingleChoiceSegmentedButtonRow(
@@ -58,10 +75,7 @@ fun CollectionScreen(
                 body = stringResource(R.string.collection_my_teas_later_body),
             )
 
-            CollectionSegment.Catalog -> EmptyState(
-                title = stringResource(R.string.collection_catalog_empty_title),
-                body = stringResource(R.string.collection_catalog_empty_body),
-            )
+            CollectionSegment.Catalog -> catalogContent(Modifier.weight(1f), scrollToTopRequest)
         }
     }
 }

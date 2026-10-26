@@ -43,8 +43,24 @@ class SettingsDataSourceTest {
         assertThat(settings.keepScreenOn).isTrue()
         assertThat(settings.dimWhileSteeping).isTrue()
         assertThat(settings.dismissedHints).isEmpty()
+        assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
+    }
+
+    @Test
+    fun theSeedTeaLinkPartsAddUpAndSurviveSettingsChanges() = runTest {
+        // CAT-15 links each part of each seed tea once (#70, D-090): a settings change must never undo one.
+        val source = dataSource()
+        assertThat(source.seedTeaLinksDone.first()).isEmpty()
+
+        source.markSeedTeaLinksDone(setOf("tanabata/description"))
+        source.update { it.copy(catalogDownloadPhotos = false) }
+        source.markSeedTeaLinksDone(setOf("tanabata/cover", "hisui/description"))
+
+        assertThat(source.seedTeaLinksDone.first())
+            .containsExactly("tanabata/description", "tanabata/cover", "hisui/description")
+        assertThat(source.seedDataCreated.first()).isFalse()
     }
 
     @Test
@@ -63,6 +79,7 @@ class SettingsDataSourceTest {
             keepScreenOn = false,
             dimWhileSteeping = false,
             dismissedHints = setOf("swipe", "stock"),
+            catalogDownloadPhotos = false,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())

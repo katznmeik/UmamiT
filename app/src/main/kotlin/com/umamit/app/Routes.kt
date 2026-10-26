@@ -44,6 +44,18 @@ internal data object CollectionRoute
 @Serializable
 internal data object StatsRoute
 
+/** A catalog tea's detail (SCR-21), in the Sammlung tab's stack; [key] is the catalog key (05 §4.1). */
+@Serializable
+internal data class CatalogTeaRoute(val key: String)
+
+/** The *Ratgeber* list (CAT-09), in the Sammlung tab's stack. */
+@Serializable
+internal data object GuidesRoute
+
+/** A guide's article (SCR-20), in the Sammlung tab's stack; [slug] is the guide's key (05 §4.3). */
+@Serializable
+internal data class GuideRoute(val slug: String)
+
 @Serializable
 internal data object SettingsRoute
 

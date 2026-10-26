@@ -18,9 +18,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The *Sammlung* placeholders (SCR-08 / SCR-19, #54 S2) in light and dark at font
- * scale 1.0 and 2.0 (03 §6): *Meine Tees* and *Katalog* until M2/M3.
- * Goldens: `src/test/screenshots/`.
+ * The *Sammlung* placeholder (SCR-08, #54 S2) in light and dark at font scale 1.0
+ * and 2.0 (03 §6): *Meine Tees* until M3. The *Katalog* segment's content is
+ * `feature:catalog`'s (`CatalogScreenshotTest`). Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,7 +45,8 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
                 Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    CollectionScreen(segment = segment, onSegmentChange = {}, onOpenSettings = {})
+                    CollectionScreen(segment = segment, onSegmentChange = {
+                    }, onOpenSettings = {}, catalogContent = { _, _ -> })
                 }
             }
         }
@@ -55,7 +56,4 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
 
     @Test
     fun myTeas() = capture("myTeas", CollectionSegment.MyTeas)
-
-    @Test
-    fun catalog() = capture("catalog", CollectionSegment.Catalog)
 }

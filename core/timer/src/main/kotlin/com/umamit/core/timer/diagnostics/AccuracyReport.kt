@@ -32,6 +32,14 @@ data class CueTimes(val handled: FireTime, val played: FireTime) {
             "the sound $played is not that of $handled"
         }
     }
+
+    /**
+     * One line for the run's log and summary: the delay to the sound, the handled delay with
+     * what delivered the event, and where the player's start spent the time (D-092), e.g.
+     * `1178 ms (handled 26 ms, ALARM; queued 2 ms, settings 0 ms, outputs 1150 ms, sound loaded on play)`.
+     */
+    fun summary(): String =
+        "${played.deltaMs} ms (handled ${handled.deltaMs} ms, ${handled.source}${played.start?.let { "; $it" } ?: ""})"
 }
 
 /** The cues of one step of the run (1-based [step]). */
@@ -132,6 +140,8 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
         appendLine("|---|---:|---:|---:|---:|---:|---|---|")
         appendLine(row("Pre-alert", preAlert, preAlertHandled, steps.map { it.preAlert.handled }))
         appendLine(row("Alert", alert, alertHandled, steps.map { it.alert.handled }))
+        slowest("pre-alert") { it.preAlert }?.let { appendLine().appendLine(it) }
+        slowest("alert") { it.alert }?.let { appendLine().appendLine(it) }
         if (!complete) {
             appendLine()
             appendLine(
@@ -140,6 +150,11 @@ class AccuracyReport(val run: AccuracyRun, val steps: List<StepFireTimes>) {
             )
         }
     }
+
+    /** The step whose [cue] started its sound latest, and where the time went (D-092); null without steps. */
+    private fun slowest(label: String, cue: (StepFireTimes) -> CueTimes): String? =
+        steps.maxByOrNull { abs(cue(it).played.deltaMs) }
+            ?.let { "Slowest $label: step ${it.step}, ${cue(it).summary()}" }
 
     private fun row(label: String, stats: DelayStats?, handled: DelayStats?, fires: List<FireTime>): String {
         val sources = fires.groupingBy { it.source }.eachCount().toSortedMap().entries

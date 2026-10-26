@@ -36,6 +36,7 @@ data class TeaWithDetails(
 )
 
 @Dao
+@Suppress("TooManyFunctions") // one query per need of the tea, its photos and its catalog link (CAT-12)
 interface TeaDao {
     @Transaction
     @Query("SELECT * FROM tea ORDER BY name")
@@ -47,6 +48,10 @@ interface TeaDao {
 
     @Query("SELECT * FROM tea WHERE id = :id")
     suspend fun get(id: String): TeaEntity?
+
+    /** The catalog keys the collection's teas link to („im Besitz", CAT-10; 05 §1.6 soft link). */
+    @Query("SELECT DISTINCT catalog_key FROM tea WHERE catalog_key IS NOT NULL")
+    fun observeCatalogKeys(): Flow<List<String>>
 
     @Upsert
     suspend fun upsert(tea: TeaEntity)
@@ -63,6 +68,10 @@ interface TeaDao {
     @Query("UPDATE tea SET cover_photo_id = :photoId, updated_at = :now WHERE id = :teaId")
     suspend fun setCoverPhoto(teaId: String, photoId: String?, now: Long)
 
+    /** *Rezept passt* (CAT-05, SCR-06): the one tea's „Rezept prüfen" reason goes, nothing else. */
+    @Query("UPDATE tea SET recipe_check_reason = NULL, updated_at = :now WHERE id = :teaId")
+    suspend fun clearRecipeCheck(teaId: String, now: Long)
+
     /** *Geöffnet am* (INV-06). */
     @Query("UPDATE tea SET opened_date = :openedDate, updated_at = :now WHERE id = :teaId")
     suspend fun setOpenedDate(teaId: String, openedDate: LocalDate, now: Long)
@@ -72,6 +81,21 @@ interface TeaDao {
 
     @Query("SELECT * FROM photo WHERE id = :id")
     suspend fun photo(id: String): PhotoEntity?
+
+    /**
+     * The collection tea linked to catalog tea [catalogKey] (05 §1.6 soft link; the duplicate
+     * guard of CAT-12): a tea not archived first, then the oldest; null when none is.
+     */
+    @Query(
+        "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
+    )
+    fun observeIdByCatalogKey(catalogKey: String): Flow<String?>
+
+    /** [observeIdByCatalogKey], read once. */
+    @Query(
+        "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
+    )
+    suspend fun idByCatalogKey(catalogKey: String): String?
 }
 
 @Dao

@@ -1,0 +1,294 @@
+package com.umamit.feature.catalog
+
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.test.core.app.ApplicationProvider
+import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.catalog.BlockCause
+import com.umamit.core.data.catalog.CatalogRefreshOutcome
+import com.umamit.core.data.catalog.CatalogRefreshProgress
+import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogOverview
+import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.testing.FakeCatalogRefreshRunner
+import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.catalogTea
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import com.umamit.core.designsystem.R as DesignR
+
+/**
+ * Sammlung › Katalog (SCR-19) and its refresh sheet (SCR-22) on fake data (#64, #65): the empty
+ * state leads through the sheet to the list, *Katalog aktualisieren* from the ⋮ menu, *Abbrechen*,
+ * every error message with *Details kopieren*, and alerts first (rule 8).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
+class CatalogScreenTest {
+    @get:Rule
+    val compose = createAndroidComposeRule<ComponentActivity>()
+
+    private val repository = FakeCatalogRepository()
+    private val runner = FakeCatalogRefreshRunner()
+    private var alerting by mutableStateOf(false)
+    private var refreshRequest by mutableIntStateOf(0)
+    private val opened = mutableListOf<String>()
+
+    private fun str(@StringRes id: Int, vararg args: Any): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
+
+    private fun show() {
+        val viewModel = CatalogViewModel(repository, runner)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                CatalogRoute(
+                    alerting = alerting,
+                    onOpenTea = { opened += it },
+                    refreshRequest = refreshRequest,
+                    viewModel = viewModel,
+                )
+            }
+        }
+        compose.waitForIdle()
+    }
+
+    private fun set(state: CatalogRefreshState) {
+        runner.state.value = state
+        compose.waitForIdle()
+    }
+
+    private fun sheet() = compose.onNodeWithTag(CATALOG_REFRESH_SHEET_TAG)
+
+    /** [text] with each `_` a non-breaking space: a summary part never breaks inside (D-086). */
+    private fun nbsp(text: String) = text.replace('_', '\u00A0')
+
+    @Test
+    fun aLaterRefreshSaysWhatChanged() {
+        // CAT-07 AC3: „12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte prüfen" (#70).
+        show()
+        compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(276, 12, 5, 2, 3)))
+
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG)
+            .assertTextEquals(nbsp("276_Grüntees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 1, newTeas = 0, recipesToCheck = 1)))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1_Grüntee_· 1_Rezept_prüfen"))
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 0)))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274_Grüntees_· keine_Änderungen"))
+    }
+
+    @Test
+    fun aRowShowsTheTeasSecondaryName() {
+        // CAT-10, spec #62 story 17: photo, name, secondary name, type, origin, price and chips (D-090).
+        repository.catalog.value = CatalogOverview(
+            teas = listOf(
+                catalogTea("XY0100", "Morgennebel Sencha", secondaryName = "Asagiri"),
+                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600),
+            ),
+            lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+        )
+
+        show()
+
+        compose.onNodeWithText("Asagiri").assertIsDisplayed()
+        compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
+    }
+
+    @Test
+    fun theEmptyStateLeadsThroughTheSheetToTheList() {
+        show()
+        compose.onNodeWithText(str(R.string.catalog_empty_title)).assertIsDisplayed()
+
+        compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+        assertThat(runner.starts).isEqualTo(1)
+        compose.onNodeWithText(str(R.string.catalog_refresh_starting)).assertIsDisplayed()
+
+        set(CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 2, pagesTotal = 4, products = 1)))
+        compose.onNodeWithText(str(R.string.catalog_refresh_progress, 2, 4, 1)).assertIsDisplayed()
+
+        repository.catalog.value = CatalogOverview(
+            teas = listOf(
+                catalogTea("XY0100", "Morgennebel Sencha"),
+                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600),
+            ),
+            lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+        )
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2)))
+        compose.onNodeWithText(str(R.string.catalog_refresh_success_title)).assertIsDisplayed()
+        // The first load: every tea is new, so the summary only counts them (CAT-07 AC3, #70).
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2\u00A0Grüntees")
+        compose.onNodeWithText(str(R.string.catalog_refresh_done)).performClick()
+        compose.waitForIdle()
+
+        assertThat(runner.acknowledgements).isEqualTo(1)
+        sheet().assertDoesNotExist()
+        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+        compose.onNodeWithText("Morgennebel Sencha").assertIsDisplayed()
+        compose.onNodeWithText("12,40 €/100 g").assertIsDisplayed()
+        compose.onNodeWithText("36,00 €/100 g").assertIsDisplayed()
+
+        // A row opens its tea's detail (SCR-21).
+        compose.onNodeWithText("Tautropfen Gyokuro").performClick()
+        assertThat(opened).containsExactly("XY0200")
+    }
+
+    @Test
+    fun aTeaWhoseRecipeShouldBeCheckedCarriesTheChip() {
+        repository.catalog.value = CatalogOverview(
+            teas = listOf(
+                catalogTea("XY0100", "Morgennebel Sencha"),
+                catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600)
+                    .copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+            ),
+            lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS,
+        )
+        show()
+
+        val check = str(DesignR.string.ds_check_recipe)
+        // One chip, in the flagged tea's row (TalkBack reads it with the row).
+        compose.onAllNodesWithText(check).assertCountEquals(1)
+        compose.onNode(hasText("Tautropfen Gyokuro") and hasText(check)).assertIsDisplayed()
+        compose.onNode(hasText("Morgennebel Sencha") and hasText(check)).assertDoesNotExist()
+    }
+
+    @Test
+    fun abbrechenCancelsTheRunningRefresh() {
+        show()
+        compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 1, pagesTotal = 3, products = 0)))
+
+        compose.onNodeWithText(str(R.string.catalog_refresh_cancel)).performScrollTo().performClick()
+
+        assertThat(runner.cancels).isEqualTo(1)
+        set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Cancelled))
+        compose.onNodeWithText(str(R.string.catalog_refresh_cancelled_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_refresh_kept)).assertIsDisplayed()
+    }
+
+    @Test
+    fun eachFailureShowsItsMessageAndCopiesItsDetails() {
+        val failures = mapOf(
+            CatalogRefreshOutcome.Blocked(BlockCause.CHALLENGE, "details: challenge") to
+                R.string.catalog_refresh_blocked,
+            CatalogRefreshOutcome.Blocked(BlockCause.TOO_MANY_REQUESTS, "details: 429") to
+                R.string.catalog_refresh_blocked,
+            CatalogRefreshOutcome.Offline("details: offline") to R.string.catalog_refresh_offline,
+            CatalogRefreshOutcome.ShopUnavailable("details: 503") to R.string.catalog_refresh_unavailable,
+            CatalogRefreshOutcome.ShopChanged("details: shop changed") to R.string.catalog_refresh_shop_changed,
+            CatalogRefreshOutcome.StorageFailed("details: storage") to R.string.catalog_refresh_storage,
+        )
+        show()
+        for ((failure, message) in failures) {
+            compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+            set(CatalogRefreshState.Finished(failure))
+
+            compose.onNodeWithText(str(R.string.catalog_refresh_failed_title)).assertIsDisplayed()
+            compose.onNodeWithText(str(message)).assertIsDisplayed()
+            compose.onNodeWithText(str(R.string.catalog_refresh_copy_details)).performScrollTo().performClick()
+            compose.waitForIdle()
+            assertThat(clipboardText()).isEqualTo(failure.details)
+            compose.onNodeWithText(str(R.string.catalog_refresh_close)).performScrollTo().performClick()
+            compose.waitForIdle()
+            sheet().assertDoesNotExist()
+            compose.onNodeWithText(str(R.string.catalog_empty_title)).assertIsDisplayed()
+        }
+        assertThat(runner.starts).isEqualTo(failures.size)
+    }
+
+    @Test
+    fun anAlertRemovesTheSheetAndTheRefreshGoesOn() {
+        show()
+        compose.onNodeWithText(str(R.string.catalog_load)).performClick()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress(pagesDone = 1, pagesTotal = 3, products = 0)))
+        sheet().assertIsDisplayed()
+
+        alerting = true
+        compose.waitForIdle()
+        sheet().assertDoesNotExist()
+        alerting = false
+        compose.waitForIdle()
+
+        // The sheet stays closed; the running refresh can be shown again.
+        sheet().assertDoesNotExist()
+        assertThat(runner.cancels).isEqualTo(0)
+        compose.onNodeWithText(str(R.string.catalog_show_progress)).performClick()
+        compose.waitForIdle()
+        sheet().assertIsDisplayed()
+        assertThat(runner.starts).isEqualTo(1)
+    }
+
+    @Test
+    fun theSheetOnlyOpensOnATap() {
+        // A refresh's state from earlier (e.g. a result nobody saw) never opens the sheet by itself (CAT-07 AC7).
+        runner.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Offline("x"))
+        show()
+
+        sheet().assertDoesNotExist()
+        assertThat(runner.starts).isEqualTo(0)
+    }
+
+    @Test
+    fun katalogAktualisierenFromTheMenuStartsTheRefreshAndOpensItsSheet() {
+        repository.catalog.value =
+            CatalogOverview(listOf(catalogTea("XY0100", "Morgennebel Sencha")), FakeClock.DEFAULT_WALL_MS)
+        show()
+        sheet().assertDoesNotExist()
+
+        refreshRequest++
+        compose.waitForIdle()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+
+        assertThat(runner.starts).isEqualTo(1)
+        sheet().assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_refresh_starting)).assertIsDisplayed()
+    }
+
+    @Test
+    fun duringAnAlertTheMenuStartsTheRefreshButOpensNoSheet() {
+        alerting = true
+        show()
+
+        refreshRequest++
+        compose.waitForIdle()
+        set(CatalogRefreshState.Running(CatalogRefreshProgress.STARTING))
+
+        assertThat(runner.starts).isEqualTo(1)
+        sheet().assertDoesNotExist()
+    }
+
+    @Test
+    fun aMenuRequestFromBeforeIsNeverReplayed() {
+        // The segment is shown again (a tab switch): the counter's count stands, nothing starts (D-049).
+        refreshRequest = 3
+        show()
+
+        assertThat(runner.starts).isEqualTo(0)
+        sheet().assertDoesNotExist()
+    }
+
+    private fun clipboardText(): String? = ApplicationProvider.getApplicationContext<Context>()
+        .getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.text?.toString()
+}

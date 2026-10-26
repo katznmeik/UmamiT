@@ -48,9 +48,10 @@ const val TEA_PICKER_TAG = "tea_picker"
 
 /**
  * The tea picker (SCR-03) with its view model, as Material 3's modal bottom
- * sheet: one tap on a tea opens its setup ([onPickTea]); *Ohne Tee
- * (Schnelltimer)* the quick timer ([onQuickTimer]). *Aus dem Katalog* comes
- * with M2.
+ * sheet: one tap on a tea opens its setup ([onPickTea]); *Aus dem Katalog*
+ * leads through the catalog to the add sheet and back to the setup of the new
+ * tea ([onCatalog], D-073); *Ohne Tee (Schnelltimer)* the quick timer
+ * ([onQuickTimer]).
  *
  * **Alerts first (rule 8):** the host remembers the alert the sheet was
  * opened in ([openedIn], the `alertKey` of that moment). While another alert
@@ -65,6 +66,7 @@ fun TeaPickerHost(
     onPickTea: (teaId: String) -> Unit,
     onQuickTimer: () -> Unit,
     onDismissRequest: () -> Unit,
+    onCatalog: () -> Unit = {},
     viewModel: TeaPickerViewModel = hiltViewModel(),
 ) {
     // A closed picker forgets its search, so it opens on the sections again.
@@ -77,6 +79,7 @@ fun TeaPickerHost(
             onPickTea = onPickTea,
             onQuickTimer = onQuickTimer,
             onDismissRequest = onDismissRequest,
+            onCatalog = onCatalog,
         )
     }
 }
@@ -103,7 +106,7 @@ internal fun AlertGate(
 
 /**
  * The stateless tea picker sheet (SCR-03): search, *Zuletzt*, *Favoriten*,
- * *Alle* and the footer *Ohne Tee (Schnelltimer)*. It opens expanded with
+ * *Alle* and the footer *Aus dem Katalog* and *Ohne Tee (Schnelltimer)*. It opens expanded with
  * Material's calm sheet motion, like the Schritte-Sheet (D-051); under reduce
  * motion it appears without the slide. A pick calls back in the tap's frame:
  * the host closes the sheet and opens the next route, whose fade is the only
@@ -118,6 +121,7 @@ fun TeaPickerSheet(
     onPickTea: (teaId: String) -> Unit,
     onQuickTimer: () -> Unit,
     onDismissRequest: () -> Unit,
+    onCatalog: () -> Unit = {},
 ) {
     val reduceMotion = UmamiTheme.reduceMotion
     val sheetState = rememberPickerSheetState(reduceMotion)
@@ -125,7 +129,7 @@ fun TeaPickerSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         modifier = Modifier.testTag(TEA_PICKER_TAG),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
         Column(
             modifier = Modifier
@@ -158,10 +162,22 @@ fun TeaPickerSheet(
                 color = MaterialTheme.colorScheme.outline,
             )
             OutlinedButton(
+                onClick = onCatalog,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = UmamiSpacing.SideMargin)
+                    .padding(top = UmamiSpacing.Medium),
+            ) {
+                Icon(painterResource(UmamiIcons.Collection), contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Text(stringResource(R.string.brew_picker_catalog))
+            }
+            OutlinedButton(
                 onClick = onQuickTimer,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),
+                    .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small)
+                    .padding(bottom = UmamiSpacing.XSmall),
             ) {
                 Icon(painterResource(UmamiIcons.Timer), contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(UmamiSpacing.XSmall))

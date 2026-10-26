@@ -10,6 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -48,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.data.catalog.CatalogRefreshOutcome
+import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.StatusCheck
 import com.umamit.core.designsystem.component.StatusCheckRow
@@ -62,8 +67,8 @@ import com.umamit.core.timer.reliability.samsungAutoRestartIntents
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberNotificationPermissionAction
 
-/** The pages of SCR-01 in M1; the catalog page (ONB-03) follows in M2. */
-enum class OnboardingPage { Welcome, Reliability }
+/** The pages of SCR-01: welcome (ONB-01), reliability (ONB-02), catalog (ONB-03). */
+enum class OnboardingPage { Welcome, Reliability, Catalog }
 
 /** Test tags of SCR-01. */
 object OnboardingTags {
@@ -84,7 +89,12 @@ class OnboardingActions(
     val openCheck: (ReliabilityCheck) -> Unit = {},
     val openAutoRestart: () -> Unit = {},
     val skipPhotos: () -> Unit = {},
+    /** *Weiter* on the reliability page: to the catalog page. */
     val next: () -> Unit = {},
+    /** *Katalog jetzt laden* (ONB-03). */
+    val loadCatalog: () -> Unit = {},
+    /** *Später* or *Weiter* on the catalog page: the setup is done (ONB-04). */
+    val finish: () -> Unit = {},
 )
 
 /**
@@ -103,11 +113,14 @@ fun OnboardingRoute(
     val status by viewModel.status.collectAsStateWithLifecycle()
     val photosLoading by viewModel.photosLoading.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
+    val catalogLoad by viewModel.catalogLoad.collectAsStateWithLifecycle()
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
         onPauseOrDispose {}
     }
-    BackHandler(enabled = page == OnboardingPage.Reliability) { page = OnboardingPage.Welcome }
+    BackHandler(enabled = page != OnboardingPage.Welcome) {
+        page = if (page == OnboardingPage.Catalog) OnboardingPage.Reliability else OnboardingPage.Welcome
+    }
     val requestNotifications = rememberNotificationPermissionAction(
         onResult = viewModel::refresh,
         openSettings = { context.startFirstIntent(viewModel.open(ReliabilityCheck.Notifications)) },
@@ -117,6 +130,7 @@ fun OnboardingRoute(
         status = status,
         photosLoading = photosLoading,
         saveFailed = saveFailed,
+        catalogLoad = catalogLoad,
         actions = OnboardingActions(
             start = { page = OnboardingPage.Reliability },
             openCheck = { check ->
@@ -128,13 +142,18 @@ fun OnboardingRoute(
             },
             openAutoRestart = { context.startFirstIntent(samsungAutoRestartIntents()) },
             skipPhotos = viewModel::skipPhotos,
-            next = { viewModel.finish(onFinish) },
+            next = { page = OnboardingPage.Catalog },
+            loadCatalog = viewModel::loadCatalog,
+            finish = { viewModel.finish(onFinish) },
         ),
         modifier = modifier,
     )
 }
 
-/** SCR-01 without state: the [page] with its content; pages change with the tab fade-through (03 §3.6). */
+/**
+ * SCR-01 without state: the [page] with its content; pages change with the tab fade-through (03 §3.6).
+ * [catalogLoad] is the catalog load started on the catalog page, null before *Katalog jetzt laden*.
+ */
 @Composable
 fun OnboardingScreen(
     page: OnboardingPage,
@@ -143,6 +162,7 @@ fun OnboardingScreen(
     actions: OnboardingActions,
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
+    catalogLoad: CatalogRefreshState? = null,
 ) {
     val motion = UmamiTheme.motion
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -153,7 +173,8 @@ fun OnboardingScreen(
         ) { shown ->
             when (shown) {
                 OnboardingPage.Welcome -> WelcomePage(onStart = actions.start)
-                OnboardingPage.Reliability -> ReliabilityPage(status, photosLoading, saveFailed, actions)
+                OnboardingPage.Reliability -> ReliabilityPage(status, photosLoading, actions)
+                OnboardingPage.Catalog -> CatalogPage(catalogLoad, saveFailed, actions)
             }
         }
     }
@@ -228,12 +249,7 @@ private const val WELCOME_TOP_DP = 96
 private const val RELIABILITY_ART_WIDTH = 0.7f
 
 @Composable
-private fun ReliabilityPage(
-    status: ReliabilityStatus,
-    photosLoading: Boolean,
-    saveFailed: Boolean,
-    actions: OnboardingActions,
-) {
+private fun ReliabilityPage(status: ReliabilityStatus, photosLoading: Boolean, actions: OnboardingActions) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -285,6 +301,70 @@ private fun ReliabilityPage(
             onClick = actions.next,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+        // Below *Weiter*, so *Weiter* never moves under a finger when the download ends.
+        if (photosLoading) {
+            Spacer(Modifier.height(UmamiSpacing.Small))
+            PhotosLine(onSkip = actions.skipPhotos)
+        }
+    }
+}
+
+/**
+ * *Katalog laden* (ONB-03, SCR-01 page 3): *Katalog jetzt laden* or *Später*. A started load shows
+ * its progress inline and goes on in its own service after *Weiter* (CAT-07 AC1); the page says
+ * how it ended if it ends while shown.
+ */
+@Composable
+private fun CatalogPage(load: CatalogRefreshState?, saveFailed: Boolean, actions: OnboardingActions) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Large),
+    ) {
+        // The A8 illustration comes from the PO (docs/design/assets.md); the placeholder stands in.
+        Image(
+            painter = painterResource(UmamiIcons.LandscapePlaceholder),
+            contentDescription = null,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth(RELIABILITY_ART_WIDTH),
+            contentScale = ContentScale.FillWidth,
+        )
+        Spacer(Modifier.height(UmamiSpacing.Medium))
+        Text(
+            text = stringResource(R.string.onboarding_catalog_title),
+            modifier = Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.height(UmamiSpacing.XSmall))
+        Text(
+            text = stringResource(R.string.onboarding_catalog_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(UmamiSpacing.Large))
+        if (load == null) {
+            PillButton(
+                text = stringResource(R.string.onboarding_catalog_load),
+                onClick = actions.loadCatalog,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            Spacer(Modifier.height(UmamiSpacing.XSmall))
+            TextButton(onClick = actions.finish, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text(stringResource(R.string.onboarding_catalog_later), style = MaterialTheme.typography.labelLarge)
+            }
+        } else {
+            CatalogLoadStatus(load)
+            Spacer(Modifier.height(UmamiSpacing.Large))
+            PillButton(
+                text = stringResource(R.string.onboarding_next),
+                onClick = actions.finish,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+        }
         if (saveFailed) {
             Spacer(Modifier.height(UmamiSpacing.XSmall))
             Text(
@@ -297,11 +377,66 @@ private fun ReliabilityPage(
                 textAlign = TextAlign.Center,
             )
         }
-        // Below *Weiter*, so *Weiter* never moves under a finger when the download ends.
-        if (photosLoading) {
-            Spacer(Modifier.height(UmamiSpacing.Small))
-            PhotosLine(onSkip = actions.skipPhotos)
+    }
+}
+
+/** The load's progress inline (SCR-01 page 3), or how it ended. */
+@Composable
+private fun ColumnScope.CatalogLoadStatus(load: CatalogRefreshState) {
+    if (load is CatalogRefreshState.Running) {
+        val progress = load.progress
+        if (progress.pagesTotal == 0) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        } else {
+            LinearProgressIndicator(
+                progress = { progress.pagesDone.toFloat() / progress.pagesTotal },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
+        Spacer(Modifier.height(UmamiSpacing.XSmall))
+    }
+    val line = when (load) {
+        is CatalogRefreshState.Running -> if (load.progress.pagesTotal == 0) {
+            stringResource(R.string.onboarding_catalog_starting)
+        } else {
+            stringResource(
+                R.string.onboarding_catalog_progress,
+                load.progress.pagesDone,
+                load.progress.pagesTotal,
+                load.progress.products,
+            )
+        }
+
+        is CatalogRefreshState.Finished -> when (val outcome = load.outcome) {
+            is CatalogRefreshOutcome.Success -> stringResource(
+                R.string.onboarding_catalog_done,
+                pluralStringResource(R.plurals.onboarding_catalog_tea_count, outcome.teas, outcome.teas),
+            )
+
+            CatalogRefreshOutcome.Cancelled -> stringResource(R.string.onboarding_catalog_cancelled)
+
+            is CatalogRefreshOutcome.Failure -> stringResource(R.string.onboarding_catalog_failed)
+        }
+
+        CatalogRefreshState.Idle -> null
+    }
+    if (line != null) {
+        Text(
+            text = line,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+    if (load is CatalogRefreshState.Running) {
+        Spacer(Modifier.height(UmamiSpacing.XSmall))
+        Text(
+            text = stringResource(R.string.onboarding_catalog_running_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

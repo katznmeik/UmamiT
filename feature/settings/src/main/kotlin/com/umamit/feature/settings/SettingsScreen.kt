@@ -59,6 +59,7 @@ import com.umamit.core.ui.rememberNotificationPermissionAction
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
+    const val CATALOG = "SettingsCatalog"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
@@ -77,10 +78,14 @@ class SettingsActions(
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-22 *Katalog: Fotos laden*. */
+    val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
     val openAbout: () -> Unit = {},
+    /** *Jetzt aktualisieren* (SET-23). */
+    val refreshCatalog: () -> Unit = {},
 )
 
 /**
@@ -96,9 +101,11 @@ fun SettingsRoute(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
+    catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val settings by viewModel.current.collectAsStateWithLifecycle()
+    val catalog by catalogViewModel.state.collectAsStateWithLifecycle()
     val status by viewModel.status.collectAsStateWithLifecycle()
     val saveFailed by viewModel.saveFailed.collectAsStateWithLifecycle()
     LifecycleResumeEffect(viewModel) {
@@ -137,16 +144,19 @@ fun SettingsRoute(
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
+            refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
+        catalog = catalog,
     )
 }
 
-/** SCR-25 without state: the reliability card first, then *Timer & Alarm*, then *Über* (SET-30). */
+/** SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Katalog* and *Über* (SET-30). */
 @Composable
 fun SettingsScreen(
     settings: UserSettings,
@@ -157,6 +167,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     saveFailed: Boolean = false,
     scrollToTopRequest: Int = 0,
+    catalog: CatalogSettingsState = CatalogSettingsState(),
 ) {
     var dialog by rememberSaveable { mutableStateOf<SettingsDialog?>(null) }
     // Rule 8: an alert removes an open dialog in its first frame, without animation.
@@ -182,6 +193,14 @@ fun SettingsScreen(
         ReliabilityCard(status = status, onFix = actions.fix)
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
+        SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
+        CatalogSection(catalog, onRefresh = actions.refreshCatalog)
+        SwitchRow(
+            title = stringResource(R.string.settings_catalog_photos),
+            checked = settings.catalogDownloadPhotos,
+            onCheckedChange = actions.setCatalogPhotos,
+            detail = stringResource(R.string.settings_catalog_photos_detail),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(
             title = stringResource(R.string.settings_about),

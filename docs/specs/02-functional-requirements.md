@@ -157,8 +157,9 @@ All products in the shop's green tea sections (verified structure in
 Mizudashi cold-brew bags), China, Taiwan, *andere Regionen*, *Bio*,
 *Klassischer Grüntee*, *Aromatisierter Grüntee* (flavoured teas and blends),
 the current *Shincha* section and *Matcha-Teepulver* — about 260–280 teas.
-Excluded: sets (`…SET`), matcha bowls and accessories, sweets, and items
-containing no tea.
+Excluded: sets (`…SET` in any case, or a set by its name or breadcrumb),
+sale duplicates of a regular tea (`…SALE`), matcha bowls and accessories,
+sweets, and items containing no tea (D-091).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -208,13 +209,21 @@ the shop, parses all products, and replaces the catalog atomically.
 - AC2: Requests are polite: ≤ 2 requests/second (all requests, incl.
   images), one HTTP connection, identifying user agent, `robots.txt`
   respected (no paginated listings; discovery via the sitemap), timeouts and
-  ≤ 3 retries; a Cloudflare challenge, HTTP 429 or a `Retry-After` header
+  ≤ 3 retries for timeouts and connection errors only, each a new
+  rate-limited request (D-076); a Cloudflare challenge, HTTP 429 or a `Retry-After` header
   stops the refresh without changes (08 §2.8).
 - AC3: Result summary: „12 neu · 5 geändert · 2 nicht mehr im Sortiment ·
-  3 Rezepte prüfen".
+  3 Rezepte prüfen", after the count of green teas, each part only when
+  above 0: *neu* not in the previous catalog, *geändert* the shop changed
+  what it shows of the tea (or it is back in the range), *nicht mehr im
+  Sortiment* left the range, *Rezepte prüfen* flagged since this refresh.
+  The first load leaves out „neu" (every tea is); a later refresh without
+  change says „keine Änderungen" (D-086).
 - AC4: Teas no longer found are **hidden** from the catalog. They are kept
   (marked „Nicht mehr im Sortiment") only if a collection tea links to them
-  via `catalog_key`; otherwise they are deleted with their photos.
+  via `catalog_key`; otherwise they are deleted with their photos. A tea
+  still in the sitemap whose page can't be read once is kept as it was
+  (08 §2.4 item 5, D-086).
 - AC5: If parsing fails structurally (e.g. < 50 % of the previous product
   count, or required fields missing on most products), the existing catalog
   is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
@@ -228,9 +237,13 @@ the shop, parses all products, and replaces the catalog atomically.
 
 **CAT-08 — Photos** `Must`
 The main product photo of each tea is downloaded, resized (max 1200 px long
-edge, WebP) and stored locally, with a small thumbnail for the lists;
-unchanged photos are not downloaded again. About 25–35 MB for the whole
-catalog (D-073).
+edge, WebP) and stored locally, with a small thumbnail for the lists
+(256 px short side, D-074);
+unchanged photos are not downloaded again, nor photos that failed for good
+while their URL stays the same (D-091). JPEG, PNG and WebP sources are read
+(D-091). About 25–35 MB for the whole
+catalog (D-073). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
+no photo and keeps those already stored (D-078).
 
 **CAT-09 — Tee-Info guides** `Should`
 Tee-Kontor's guide articles relevant to green tea (e.g. „Ein Guide für
@@ -275,11 +288,17 @@ Katalog* (SCR-03), adding returns to the brew setup (SCR-04) with that tea
 selected; a catalog tea is never brewed without adding it.
 
 **CAT-15 — Link seed teas on first refresh** `Must`
-After the first successful catalog refresh, collection teas whose
-`catalog_key` matches a catalog entry but which have no description (the M1
-seed teas) are linked and receive the catalog description and photo
-automatically. Recipes, stock, journal entries and user edits are never
-changed.
+After a successful catalog refresh, the M1 seed teas Tanabata and Hisui,
+whose `catalog_key` matches a catalog entry, are linked and receive the
+catalog description and photo automatically. Recipes, stock, journal entries
+and user edits are never changed. Each seed tea has two parts, each done once
+(05 §6 `seedTeaLinksDone`, D-086, D-090): the **description** as plain text,
+only when the tea has none (done once it has one, linked or its own), and the
+**photo** as the tea's own JPEG cover, only when it has none (done once it has
+one, or when the refresh loaded no photos, SET-22; D-076). A part the refresh
+couldn't give (the tea's page unread, no description or photo, a seed created
+after the first refresh, D-075) is tried again after every later successful
+refresh; a done part never again.
 
 **CAT-13 — Collection teas stay independent** `Must`
 A refresh never changes collection teas, except the one-time linking of seed

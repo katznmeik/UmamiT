@@ -10,11 +10,19 @@ dependencies {
     // The session repositories and the active brew store take the timer engine's
     // planned steps, step records and snapshot (04 §4, §7.1; D-052).
     api(project(":core:timer-engine"))
+    // The catalog list's filters, sort and search query (CAT-10).
+    implementation(project(":core:domain"))
     implementation(project(":core:database"))
     implementation(project(":core:datastore"))
-    // The allow-listed shop client for the seed photo download (ONB-06, GEN-01).
+    // The allow-listed shop client for the seed photo download (ONB-06) and the catalog refresh (CAT-07).
     implementation(project(":core:network"))
+    // Sitemap reader, product page parser and sanity check of the catalog refresh (06 §3, 08 §2).
+    implementation(project(":core:catalog-parser"))
     implementation(libs.kotlinx.coroutines.core)
+    // The catalog's JSON columns: taste scales and the brewing grid (05 §4.1).
+    implementation(libs.kotlinx.serialization.json)
+    // The catalog refresh service follows the refresh on the main thread (06 §5.3, #65).
+    implementation(libs.kotlinx.coroutines.android)
     // Bitmap.scale for re-encoding the seed photos (05 §3.9, D-050).
     implementation(libs.androidx.core.ktx)
 
@@ -24,6 +32,8 @@ dependencies {
     testImplementation(libs.androidx.datastore)
     // FakeSettingsRepository for the seeder tests (M1-07).
     testImplementation(project(":core:testing"))
-    // The synthetic shop for the seed photo download tests (#37).
+    // The synthetic shop for the seed photo download tests (#37) and the catalog refresh tests (#64).
     testImplementation(libs.okhttp.mockwebserver3)
+    // Synthetic product pages and sitemaps (D-016).
+    testImplementation(testFixtures(project(":core:catalog-parser")))
 }

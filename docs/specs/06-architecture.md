@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-23 (diagnostics: start of the sound, D-068)
+> Status: **Draft v0.2** · Last updated: 2026-10-26 (where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -68,7 +68,7 @@ Use cases: `ScaleRecipe`, `Snap5`, `StartSession`, `FinishSession`
 `AddFromCatalog`, `ResetFromCatalog`, `CreateBackup` (`RestoreBackup` is
 post-1.0, BAK-02).
 
-Catalog: `TeeKontorParser` (HTML → `ParsedProduct`), `VariantMerger`,
+Catalog: `TeeKontorParser` (HTML → `ProductPage`), `CatalogEntries` (variant merge),
 `StyleMapper`, `RecipeDeriver` (rules in [08 §2.5](08-content.md#25-recipe-derivation)),
 `CatalogDiff`. All pure and unit-testable with HTML fixtures.
 
@@ -89,7 +89,7 @@ UmamiT/
 │   ├── domain/                Use cases
 │   ├── timer-engine/          BrewTimerEngine (pure)
 │   ├── timer/                 Controller, service, AlertPlayer, alarms, receivers, Live Update
-│   ├── catalog-parser/        TeeKontorParser, VariantMerger, StyleMapper, RecipeDeriver (pure JVM)
+│   ├── catalog-parser/        TeeKontorParser, CatalogEntries, StyleMapper, RecipeDeriver (pure JVM)
 │   ├── network/               OkHttp client with host allow-list (M1: seed photos), rate limiter, robots.txt (M1, D-050); the only HTTP client (D-054)
 │   ├── database/              Room, DAOs, migrations, schemas/
 │   ├── datastore/             Settings
@@ -144,7 +144,16 @@ download at first start, and the on-demand exact price fetch when adding a
 package. An OkHttp interceptor rejects any host other than
 `www.tee-kontor-kiel.de` (images are served from the same host, 08 §2.2).
 The client uses a **single connection** (`maxRequestsPerHost = 1`, one
-dispatcher thread for the shop).
+dispatcher thread for the shop). Each job (the seed photos, one refresh, one
+exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
+reads robots.txt once with RFC 9309's status rules, never fetches a
+disallowed URL, retries connection errors only for the refresh (D-076), and
+after the first stop signal sends nothing more. An answer over its body
+limit (5 MB for pages, 16 MB for images, D-091) leaves only its URL out
+(D-090). An idle connection is kept for 30 s only, since
+connection retries are off (D-090). The seed photo download ends before a
+refresh started from the setup (D-090); a new refresh starts only once a
+cancelled one has cleaned up.
 
 ## 5. Key technical designs
 
@@ -156,7 +165,14 @@ Photo picker (`PickVisualMedia`) and camera (`TakePicture` into a
 `FileProvider` URI; no `CAMERA` permission); decode with sampling, rotate per
 EXIF, resize to 2048 px, JPEG 85, strip EXIF; store in `filesDir/photos/`.
 Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
-plus a list thumbnail, re-downloaded only if URL/ETag changed (CAT-08, D-073).
+(quality 80) plus a WebP list thumbnail with a 256 px short side (never
+larger than the photo), both from one decode; downloaded again only when the
+page's photo URL is not the one the stored photo came from (CAT-08, D-073,
+D-074, D-086). Sources are JPEG, PNG or WebP, decoded with sampling (never
+held at full resolution beyond what the largest target needs); transparency
+is flattened onto white. A photo or guide image that failed for good (over
+16 MB, or not decodable) is not downloaded again while its URL stays the
+same (`catalog_image_failure`, D-091).
 
 ### 5.3 Catalog refresh
 
@@ -166,26 +182,56 @@ plus a list thumbnail, re-downloaded only if URL/ETag changed (CAT-08, D-073).
    the foreground. Not WorkManager: on Android 16 jobs are subject to
    runtime quotas that could stop a 10-minute refresh. Progress notification
    on the `catalog` channel; cancellable from the sheet and the
-   notification; the service stops itself when done.
+   notification; the service stops itself when done. The refresh job itself
+   runs in the app's scope (`AppCatalogRefreshRunner`); the service keeps
+   the process running, follows its state (progress at most every 2 s) and
+   holds a partial wake lock of its own while it makes progress, so the
+   phone may be locked. Separate from the timer's service, channels, IDs and
+   alarms (rule 8; [D-079](10-open-questions-and-decisions.md#d-079)).
 2. Fetch `robots.txt` and the sitemap; derive base article numbers from
    product URLs, skip known out-of-scope numbers (`catalog_skip`) per
-   [08 §2.4](08-content.md#24-discovery-variants-and-request-budget).
-   `robots.txt` rules use longest-match precedence with `*` and `$`
-   wildcards (RFC 9309).
-3. Fetch each candidate parent page (≤ 2 req/s, one connection, retry ≤ 3
-   with backoff, 20 s timeout); classify by breadcrumb; parse with
-   `TeeKontorParser` (selectors versioned as `parserVersion`). Stop the
-   refresh (old catalog kept) on a Cloudflare challenge, on HTTP 429 or on
-   any `Retry-After` header ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
+   [08 §2.4](08-content.md#24-discovery-variants-and-request-budget): a
+   later refresh fetches the known green teas (with the numbers merged into
+   them), the new base numbers and the skip entries due again (D-086).
+   Sets (`…SET`, `…Set`, `…SETc`) and sale duplicates (`…SALE`) are left out
+   without a request (D-091). `robots.txt` rules use longest-match
+   precedence with `*` and `$` wildcards (RFC 9309).
+3. Fetch each candidate parent page (≤ 2 req/s, one connection, 20 s
+   timeout; a timeout or connection error is retried ≤ 3 times with 2/4/8 s
+   backoff, each retry a new call through `ShopClient`; stop signals and
+   HTTP errors are never retried, D-076); classify by breadcrumb (a set
+   without a set number, by its name or breadcrumb, is skipped as a set,
+   D-091); parse with `TeeKontorParser` (selectors versioned as
+   `parserVersion`). Stop the refresh (old catalog kept) on a Cloudflare
+   challenge, on HTTP 429 or on any `Retry-After` header
+   ([08 §2.8](08-content.md#28-sanitising-and-robustness)).
 4. Merge variants, map styles, derive recipes, compute content hashes.
-5. Download changed photos (if SET-22).
-6. Fetch and convert *Tee-Info* guides (CAT-09) into staging.
-7. Sanity check (CAT-07 AC5); atomic swap of the staging tables
-   ([05 §4.5](05-data-model.md#45-refresh-transaction)); log.
+5. Sanity check of the parsed pages (CAT-07 AC5), before any photo or guide
+   request; then download new and changed photos (if SET-22; an unchanged
+   photo is never fetched again, D-086; nor one that failed for good while
+   its URL stays the same, D-091).
+6. Fetch and convert *Tee-Info* guides (CAT-09) into staging, with their
+   images unless SET-22 is off (stored ones not fetched again, D-087; nor
+   ones that failed for good, D-091).
+7. Atomic swap of the staging tables, guides included
+   ([05 §4.5](05-data-model.md#45-refresh-transaction)) with the summary
+   counts (CAT-07 AC3), keeping unread known teas and owned discontinued ones
+   (CAT-07 AC4), and the images that failed for good it met (D-091); delete
+   the photos of teas and the images of guides no longer in the catalog (also
+   after a failed run); log; link the seed teas once (CAT-15, D-086).
+
+Steps 3, 5 and 6 fetch one URL after the other while the previous answer is
+parsed, re-encoded or stored (`fetchOverlapped`, D-091): a rendezvous hands
+each answer over, so at most the next answer waits while one is processed.
+The wire is unchanged (the same requests in the same order, one connection,
+≤ 2 req/s, a stop sends nothing more); a cancel or a failure in processing
+cancels the request in flight, whose answer is dropped.
 
 All requests (pages and images) share the 2 req/s limit. Expected
-duration: first refresh (~700 classification pages + ~280 photos + guides)
-≈ 9–10 min; later refreshes (~280 pages, changed photos only) ≈ 3–4 min.
+duration: first refresh (~1,750 requests: ~1,400 classification pages +
+~260 photos + guides) ≈ 15–16 min, close to the requests' own gaps
+(≈ 875 s); full live run 1 took 20 min before processing overlapped the gaps
+(D-076, D-091). Later refreshes (~280 pages, changed photos only) ≈ 3 min.
 Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 ### 5.4 Background work
@@ -207,7 +253,8 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Catalog refresh service |
-| `WAKE_LOCK`, `VIBRATE` | Timer |
+| `WAKE_LOCK` | Timer; catalog refresh (CPU kept running while it makes progress with the phone locked, D-079) |
+| `VIBRATE` | Timer |
 | `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED` | Timer alarms and reboot recovery |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
 
@@ -237,7 +284,9 @@ something goes wrong. It exists **from M1** (D-036) and records:
   **scheduled and actual fire time** (wall and monotonic, difference in ms);
 - FGS start/stop, refused background starts;
 - the ringer mode at each alert, and for a step's tick or alert the
-  scheduled time and the moment the sound started (delta in ms; D-068);
+  scheduled time and the moment the sound started (delta in ms; D-068),
+  with where its start spent the time: queued, settings, outputs, and
+  whether its sound was loaded before (D-092);
 - `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and recovery decisions;
 - permission states at app start (notifications, promoted notifications,
   full-screen intent, exact alarms, battery optimisation);
@@ -285,9 +334,10 @@ again.
   action, and verifies the APK again before it publishes. Claude triggers it
   through the GitHub Actions API / tool (no local tag push needed). GitHub
   only dispatches workflows whose file exists on the default branch, so
-  `release.yml` and `accuracy.yml` reach `main` through small housekeeping
-  PRs before their first dispatch; the version at the dispatch's workflow
-  ref runs (D-039, D-070). How to dispatch: `docs/release.md`.
+  `release.yml`, `accuracy.yml` and `timer-stress.yml` (D-084) reach `main`
+  through small housekeeping PRs before their first dispatch; the version at
+  the dispatch's workflow ref runs (D-039, D-070). How to dispatch:
+  `docs/release.md`.
 - **Release candidates:** `vX.Y.Z-rc.N` are built from the milestone's PR
   branch and published as **pre-releases** for the PO's on-device testing.
   After the PR is merged, the final `vX.Y.Z` is built from `main`.

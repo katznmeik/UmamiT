@@ -22,11 +22,11 @@ class FakeBrewController(
     private val savedSheet: SavedSheetPort,
     private val startedAtMs: () -> Long = { JournalSessions.ms(java.time.LocalDateTime.of(2026, 10, 22, 9, 12)) },
 ) {
-    fun start(id: String, vararg plannedSeconds: Int) = runBlocking {
+    fun start(id: String, vararg plannedSeconds: Int, teaId: String? = null) = runBlocking {
         sessions.startSession(
             SessionStart(
                 id = id,
-                snapshot = SNAPSHOT,
+                snapshot = SNAPSHOT.copy(teaId = teaId),
                 steps = plannedSeconds.map { PlannedStep(StepKind.INFUSION, it, tempC = 55) },
                 preAlertSeconds = 10,
                 startedAtMs = startedAtMs(),
@@ -60,9 +60,9 @@ class FakeBrewController(
         savedSheet.showSavedSheet(id)
     }
 
-    /** A whole session whose every step is poured on time, then finished. */
-    fun brew(id: String, vararg seconds: Int) {
-        start(id, *seconds)
+    /** A whole session of the tea [teaId] (none: without a tea) whose every step is poured on time, then finished. */
+    fun brew(id: String, vararg seconds: Int, teaId: String? = null) {
+        start(id, *seconds, teaId = teaId)
         seconds.forEachIndexed { index, s -> pour(id, index, s) }
         finish(id)
     }

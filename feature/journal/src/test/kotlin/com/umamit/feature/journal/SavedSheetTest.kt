@@ -8,13 +8,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.Tea
+import com.umamit.core.model.TeaCategory
+import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.timer.controller.SavedSheetRequests
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +38,8 @@ class SavedSheetTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val data = FakeSessions()
+    private val collection = FakeCollection()
+    private val data = FakeSessions(collection)
     private val clock = FakeClock()
     private val requests = SavedSheetRequests(clock)
     private val controller = FakeBrewController(data.sessions, requests)
@@ -44,7 +52,12 @@ class SavedSheetTest {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
                 if (hostComposed) {
-                    SavedSheetHost(requests = requests, sessions = data.sessions, alerting = alerting)
+                    SavedSheetHost(
+                        requests = requests,
+                        sessions = data.sessions,
+                        teas = collection.teas,
+                        alerting = alerting,
+                    )
                 }
             }
         }
@@ -80,6 +93,59 @@ class SavedSheetTest {
         compose.mainClock.advanceTimeBy(2_000)
         compose.onNodeWithText("Gespeichert im Journal").assertDoesNotExist()
         assertThat(requests.pending.value).isNull()
+    }
+
+    private fun saveTea(id: String, reason: RecipeCheckReason?) = runBlocking {
+        collection.teas.saveTea(
+            Tea(id, "Tee $id", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF, recipeCheckReason = reason),
+        )
+    }
+
+    @Test
+    fun `Rezept passt clears the flag of the session's tea only`() {
+        saveTea("flagged", RecipeCheckReason.FROM_TEXT)
+        saveTea("other", RecipeCheckReason.FROM_STYLE_DEFAULT)
+        show()
+
+        controller.brew("s1", 60, teaId = "flagged")
+        compose.onNodeWithText("Rezept passt").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        assertThat(runBlocking { collection.teas.getTea("flagged") }?.recipeCheckReason).isNull()
+        assertThat(runBlocking { collection.teas.getTea("other") }?.recipeCheckReason)
+            .isEqualTo(RecipeCheckReason.FROM_STYLE_DEFAULT)
+        // The sheet says so instead of offering it again.
+        compose.onNodeWithText("Rezept passt").assertDoesNotExist()
+        compose.onNodeWithText("„Rezept prüfen“ ist entfernt.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a session of a tea not flagged offers no Rezept passt`() {
+        saveTea("fine", null)
+        show()
+
+        controller.brew("s1", 60, teaId = "fine")
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.onNodeWithText("Rezept passt").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the sheet with Rezept passt in the same frame`() {
+        saveTea("flagged", RecipeCheckReason.FROM_TEXT)
+        show()
+        compose.mainClock.autoAdvance = false
+        controller.brew("s1", 60, teaId = "flagged")
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Rezept passt").assertIsDisplayed()
+
+        alerting = true
+        Snapshot.sendApplyNotifications()
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onNodeWithText("Rezept passt").assertDoesNotExist()
+        assertThat(runBlocking { collection.teas.getTea("flagged") }?.recipeCheckReason)
+            .isEqualTo(RecipeCheckReason.FROM_TEXT)
     }
 
     @Test

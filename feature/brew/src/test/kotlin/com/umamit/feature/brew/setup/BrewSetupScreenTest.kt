@@ -18,6 +18,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedData
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
@@ -95,6 +96,31 @@ class BrewSetupScreenTest {
         assertThat((starter.state.value as TimerUiState.Active).phase).isEqualTo(TimerPhase.READY)
         assertThat(starter.starts.single().snapshot.leafGrams).isEqualTo(5.0)
         assertThat(timerOpened).isEqualTo(1)
+    }
+
+    @Test
+    fun `a tea flagged Rezept pruefen shows the flag with its reason above the steps (CAT-05, SCR-04)`() {
+        runBlocking {
+            val hisui = collection.teas.getTea(SeedData.HISUI_TEA_ID)!!
+            collection.teas.saveTea(hisui.copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT))
+        }
+        show()
+
+        compose.onNodeWithText("Rezept prüfen").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(
+            "Der Shop nennt nicht alle Werte – die fehlenden stammen aus den Standardwerten der Sorte.",
+        ).performScrollTo().assertIsDisplayed()
+        val note = compose.onNodeWithTag(SETUP_RECIPE_CHECK_TAG).fetchSemanticsNode().boundsInRoot
+        val steps = compose.onNodeWithTag(SETUP_STEPS_EDIT_TAG).fetchSemanticsNode().boundsInRoot
+        assertThat(note.bottom).isAtMost(steps.top)
+    }
+
+    @Test
+    fun `a tea not flagged shows no Rezept pruefen`() {
+        show()
+
+        compose.onNodeWithText("Bio Sencha Hisui").assertIsDisplayed()
+        compose.onNodeWithText("Rezept prüfen").assertDoesNotExist()
     }
 
     @Test

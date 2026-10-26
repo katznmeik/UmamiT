@@ -148,7 +148,9 @@ class BrewTimerServiceTest {
         assertThat(BrewTimerService.wakeLockMsOf(command)).isEqualTo(0L)
         assertThat(ShadowPowerManager.getLatestWakeLock().isHeld).isFalse()
         val shown = shadowOf(notificationManager).getNotification(TimerNotifications.ID_LIVE_UPDATE)
-        assertThat(shown.extras.getString(Notification.EXTRA_TEXT)).isEqualTo("Bereit · 1:00 · Wasserkocher auf 60 °C")
+        assertThat(
+            shown.extras.getString(Notification.EXTRA_TEXT),
+        ).isEqualTo("Bereit · 1:00 · Wasserkocher auf 60\u00A0°C")
         assertThat(shadowOf(service.get()).isStoppedBySelf).isFalse()
     }
 
@@ -346,6 +348,14 @@ class BrewTimerServiceTest {
             "stopped",
         ).inOrder()
         assertThat(diagnostics.entries.first().at).isEqualTo(clock.reading())
+    }
+
+    @Test
+    fun `the takeover of a stale foreground notification is logged`() {
+        ForegroundServiceState.report(ServiceReport.TookOverStale(TimerNotifications.ID_LIVE_UPDATE))
+
+        assertThat(diagnostics.entries)
+            .containsExactly(TimerDiagnostic.ServiceTookOverStale(clock.reading(), TimerNotifications.ID_LIVE_UPDATE))
     }
 
     private fun TimerDiagnostic.describe(): String = when (this) {

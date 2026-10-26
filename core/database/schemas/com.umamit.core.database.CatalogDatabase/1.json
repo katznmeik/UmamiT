@@ -1,0 +1,923 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "f54ab40fab3fc42b673dbe22fd4b5181",
+    "entities": [
+      {
+        "tableName": "catalog_tea",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `name` TEXT COLLATE NOCASE, `secondary_name` TEXT, `product_url` TEXT NOT NULL, `shop_category` TEXT, `tea_type` TEXT, `style_key` TEXT, `origin_country` TEXT, `origin_region` TEXT, `cultivar` TEXT, `harvest` TEXT, `shading` TEXT, `steaming` TEXT, `is_organic` INTEGER NOT NULL, `is_flavored` INTEGER NOT NULL, `cold_brew_suitable` INTEGER NOT NULL, `aroma` TEXT, `taste_notes` TEXT, `manufacturer` TEXT, `season` TEXT, `matcha_grade` TEXT, `taste_scales_json` TEXT, `breadcrumb` TEXT, `ingredients` TEXT, `description_html` TEXT, `description_text` TEXT, `brew_table_raw` TEXT, `brew_text_raw` TEXT, `derived_recipes_json` TEXT, `recipe_check_reason` TEXT, `base_price_cents_per_100g` INTEGER, `available` INTEGER, `discontinued` INTEGER NOT NULL, `photo_file` TEXT, `photo_url` TEXT, `photo_etag` TEXT, `content_hash` TEXT, `first_seen_at` INTEGER NOT NULL, `last_seen_at` INTEGER NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "secondaryName",
+            "columnName": "secondary_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "productUrl",
+            "columnName": "product_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "shopCategory",
+            "columnName": "shop_category",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "teaType",
+            "columnName": "tea_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "styleKey",
+            "columnName": "style_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originCountry",
+            "columnName": "origin_country",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originRegion",
+            "columnName": "origin_region",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cultivar",
+            "columnName": "cultivar",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "harvest",
+            "columnName": "harvest",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "shading",
+            "columnName": "shading",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "steaming",
+            "columnName": "steaming",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isOrganic",
+            "columnName": "is_organic",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFlavored",
+            "columnName": "is_flavored",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "coldBrewSuitable",
+            "columnName": "cold_brew_suitable",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "aroma",
+            "columnName": "aroma",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tasteNotes",
+            "columnName": "taste_notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "manufacturer",
+            "columnName": "manufacturer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "season",
+            "columnName": "season",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "matchaGrade",
+            "columnName": "matcha_grade",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tasteScalesJson",
+            "columnName": "taste_scales_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "breadcrumb",
+            "columnName": "breadcrumb",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ingredients",
+            "columnName": "ingredients",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "descriptionHtml",
+            "columnName": "description_html",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "descriptionText",
+            "columnName": "description_text",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brewTableRaw",
+            "columnName": "brew_table_raw",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brewTextRaw",
+            "columnName": "brew_text_raw",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "derivedRecipesJson",
+            "columnName": "derived_recipes_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "recipeCheckReason",
+            "columnName": "recipe_check_reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "basePriceCentsPer100g",
+            "columnName": "base_price_cents_per_100g",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "available",
+            "columnName": "available",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "discontinued",
+            "columnName": "discontinued",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photoFile",
+            "columnName": "photo_file",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoUrl",
+            "columnName": "photo_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoEtag",
+            "columnName": "photo_etag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "contentHash",
+            "columnName": "content_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "firstSeenAt",
+            "columnName": "first_seen_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "last_seen_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_catalog_tea_tea_type",
+            "unique": false,
+            "columnNames": [
+              "tea_type"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_catalog_tea_tea_type` ON `${TABLE_NAME}` (`tea_type`)"
+          },
+          {
+            "name": "index_catalog_tea_discontinued",
+            "unique": false,
+            "columnNames": [
+              "discontinued"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_catalog_tea_discontinued` ON `${TABLE_NAME}` (`discontinued`)"
+          }
+        ]
+      },
+      {
+        "tableName": "catalog_tea_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `name` TEXT COLLATE NOCASE, `secondary_name` TEXT, `product_url` TEXT NOT NULL, `shop_category` TEXT, `tea_type` TEXT, `style_key` TEXT, `origin_country` TEXT, `origin_region` TEXT, `cultivar` TEXT, `harvest` TEXT, `shading` TEXT, `steaming` TEXT, `is_organic` INTEGER NOT NULL, `is_flavored` INTEGER NOT NULL, `cold_brew_suitable` INTEGER NOT NULL, `aroma` TEXT, `taste_notes` TEXT, `manufacturer` TEXT, `season` TEXT, `matcha_grade` TEXT, `taste_scales_json` TEXT, `breadcrumb` TEXT, `ingredients` TEXT, `description_html` TEXT, `description_text` TEXT, `brew_table_raw` TEXT, `brew_text_raw` TEXT, `derived_recipes_json` TEXT, `recipe_check_reason` TEXT, `base_price_cents_per_100g` INTEGER, `available` INTEGER, `discontinued` INTEGER NOT NULL, `photo_file` TEXT, `photo_url` TEXT, `photo_etag` TEXT, `content_hash` TEXT, `first_seen_at` INTEGER NOT NULL, `last_seen_at` INTEGER NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "tea.key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.name",
+            "columnName": "name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.secondaryName",
+            "columnName": "secondary_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.productUrl",
+            "columnName": "product_url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.shopCategory",
+            "columnName": "shop_category",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.teaType",
+            "columnName": "tea_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.styleKey",
+            "columnName": "style_key",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.originCountry",
+            "columnName": "origin_country",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.originRegion",
+            "columnName": "origin_region",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.cultivar",
+            "columnName": "cultivar",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.harvest",
+            "columnName": "harvest",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.shading",
+            "columnName": "shading",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.steaming",
+            "columnName": "steaming",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.isOrganic",
+            "columnName": "is_organic",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.isFlavored",
+            "columnName": "is_flavored",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.coldBrewSuitable",
+            "columnName": "cold_brew_suitable",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.aroma",
+            "columnName": "aroma",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.tasteNotes",
+            "columnName": "taste_notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.manufacturer",
+            "columnName": "manufacturer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.season",
+            "columnName": "season",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.matchaGrade",
+            "columnName": "matcha_grade",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.tasteScalesJson",
+            "columnName": "taste_scales_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.breadcrumb",
+            "columnName": "breadcrumb",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.ingredients",
+            "columnName": "ingredients",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.descriptionHtml",
+            "columnName": "description_html",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.descriptionText",
+            "columnName": "description_text",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.brewTableRaw",
+            "columnName": "brew_table_raw",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.brewTextRaw",
+            "columnName": "brew_text_raw",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.derivedRecipesJson",
+            "columnName": "derived_recipes_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.recipeCheckReason",
+            "columnName": "recipe_check_reason",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.basePriceCentsPer100g",
+            "columnName": "base_price_cents_per_100g",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tea.available",
+            "columnName": "available",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "tea.discontinued",
+            "columnName": "discontinued",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.photoFile",
+            "columnName": "photo_file",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.photoUrl",
+            "columnName": "photo_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.photoEtag",
+            "columnName": "photo_etag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.contentHash",
+            "columnName": "content_hash",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tea.firstSeenAt",
+            "columnName": "first_seen_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tea.lastSeenAt",
+            "columnName": "last_seen_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_fts",
+        "createSql": "CREATE VIRTUAL TABLE IF NOT EXISTS `${TABLE_NAME}` USING FTS4(`name` TEXT, `secondary_name` TEXT, `description_text` TEXT, `cultivar` TEXT, `origin_region` TEXT, tokenize=unicode61, content=`catalog_tea`)",
+        "fields": [
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "secondaryName",
+            "columnName": "secondary_name",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "descriptionText",
+            "columnName": "description_text",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cultivar",
+            "columnName": "cultivar",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "originRegion",
+            "columnName": "origin_region",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": []
+        },
+        "ftsVersion": "FTS4",
+        "ftsOptions": {
+          "tokenizer": "unicode61",
+          "tokenizerArgs": [],
+          "contentTable": "catalog_tea",
+          "languageIdColumnName": "",
+          "matchInfo": "FTS4",
+          "notIndexedColumns": [],
+          "prefixSizes": [],
+          "preferredOrder": "ASC"
+        },
+        "contentSyncTriggers": [
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_catalog_fts_BEFORE_UPDATE BEFORE UPDATE ON `catalog_tea` BEGIN DELETE FROM `catalog_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_catalog_fts_BEFORE_DELETE BEFORE DELETE ON `catalog_tea` BEGIN DELETE FROM `catalog_fts` WHERE `docid`=OLD.`rowid`; END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_catalog_fts_AFTER_UPDATE AFTER UPDATE ON `catalog_tea` BEGIN INSERT INTO `catalog_fts`(`docid`, `name`, `secondary_name`, `description_text`, `cultivar`, `origin_region`) VALUES (NEW.`rowid`, NEW.`name`, NEW.`secondary_name`, NEW.`description_text`, NEW.`cultivar`, NEW.`origin_region`); END",
+          "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_catalog_fts_AFTER_INSERT AFTER INSERT ON `catalog_tea` BEGIN INSERT INTO `catalog_fts`(`docid`, `name`, `secondary_name`, `description_text`, `cultivar`, `origin_region`) VALUES (NEW.`rowid`, NEW.`name`, NEW.`secondary_name`, NEW.`description_text`, NEW.`cultivar`, NEW.`origin_region`); END"
+        ]
+      },
+      {
+        "tableName": "catalog_package",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`catalog_key` TEXT NOT NULL, `article_number` TEXT NOT NULL, `label` TEXT NOT NULL, `grams` REAL NOT NULL, `price_cents` INTEGER, `price_is_estimate` INTEGER NOT NULL, `savings_percent` INTEGER, `variant_url` TEXT, `available` INTEGER, PRIMARY KEY(`catalog_key`, `grams`), FOREIGN KEY(`catalog_key`) REFERENCES `catalog_tea`(`key`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "catalogKey",
+            "columnName": "catalog_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "articleNumber",
+            "columnName": "article_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "grams",
+            "columnName": "grams",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priceCents",
+            "columnName": "price_cents",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "priceIsEstimate",
+            "columnName": "price_is_estimate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "savingsPercent",
+            "columnName": "savings_percent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "variantUrl",
+            "columnName": "variant_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "available",
+            "columnName": "available",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "catalog_key",
+            "grams"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "catalog_tea",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "catalog_key"
+            ],
+            "referencedColumns": [
+              "key"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "catalog_package_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`catalog_key` TEXT NOT NULL, `article_number` TEXT NOT NULL, `label` TEXT NOT NULL, `grams` REAL NOT NULL, `price_cents` INTEGER, `price_is_estimate` INTEGER NOT NULL, `savings_percent` INTEGER, `variant_url` TEXT, `available` INTEGER, PRIMARY KEY(`catalog_key`, `grams`))",
+        "fields": [
+          {
+            "fieldPath": "pkg.catalogKey",
+            "columnName": "catalog_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pkg.articleNumber",
+            "columnName": "article_number",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pkg.label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pkg.grams",
+            "columnName": "grams",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pkg.priceCents",
+            "columnName": "price_cents",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pkg.priceIsEstimate",
+            "columnName": "price_is_estimate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pkg.savingsPercent",
+            "columnName": "savings_percent",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pkg.variantUrl",
+            "columnName": "variant_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pkg.available",
+            "columnName": "available",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "catalog_key",
+            "grams"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_skip",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`base_key` TEXT NOT NULL, `reason` TEXT NOT NULL, `checked_at` INTEGER NOT NULL, PRIMARY KEY(`base_key`))",
+        "fields": [
+          {
+            "fieldPath": "baseKey",
+            "columnName": "base_key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "checkedAt",
+            "columnName": "checked_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "base_key"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_guide",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `title` TEXT NOT NULL, `url` TEXT NOT NULL, `body_markdown` TEXT NOT NULL, `hero_file` TEXT, `linked_catalog_keys` TEXT, `fetched_at` INTEGER NOT NULL, `published_at` INTEGER, PRIMARY KEY(`slug`))",
+        "fields": [
+          {
+            "fieldPath": "slug",
+            "columnName": "slug",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyMarkdown",
+            "columnName": "body_markdown",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heroFile",
+            "columnName": "hero_file",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "linkedCatalogKeys",
+            "columnName": "linked_catalog_keys",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "publishedAt",
+            "columnName": "published_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "slug"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_guide_staging",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `title` TEXT NOT NULL, `url` TEXT NOT NULL, `body_markdown` TEXT NOT NULL, `hero_file` TEXT, `linked_catalog_keys` TEXT, `fetched_at` INTEGER NOT NULL, `published_at` INTEGER, PRIMARY KEY(`slug`))",
+        "fields": [
+          {
+            "fieldPath": "guide.slug",
+            "columnName": "slug",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.bodyMarkdown",
+            "columnName": "body_markdown",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.heroFile",
+            "columnName": "hero_file",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "guide.linkedCatalogKeys",
+            "columnName": "linked_catalog_keys",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "guide.fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "guide.publishedAt",
+            "columnName": "published_at",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "slug"
+          ]
+        }
+      },
+      {
+        "tableName": "catalog_refresh_log",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `started_at` INTEGER NOT NULL, `finished_at` INTEGER NOT NULL, `status` TEXT NOT NULL, `new_count` INTEGER NOT NULL, `changed_count` INTEGER NOT NULL, `discontinued_count` INTEGER NOT NULL, `flagged_count` INTEGER NOT NULL, `photos_count` INTEGER NOT NULL, `parser_version` INTEGER NOT NULL, `error_summary` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "started_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finishedAt",
+            "columnName": "finished_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "newCount",
+            "columnName": "new_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "changedCount",
+            "columnName": "changed_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "discontinuedCount",
+            "columnName": "discontinued_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "flaggedCount",
+            "columnName": "flagged_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "photosCount",
+            "columnName": "photos_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parserVersion",
+            "columnName": "parser_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorSummary",
+            "columnName": "error_summary",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_catalog_refresh_log_status_finished_at",
+            "unique": false,
+            "columnNames": [
+              "status",
+              "finished_at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_catalog_refresh_log_status_finished_at` ON `${TABLE_NAME}` (`status`, `finished_at`)"
+          }
+        ]
+      },
+      {
+        "tableName": "catalog_image_failure",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`url` TEXT NOT NULL, `reason` TEXT NOT NULL, `rules_version` INTEGER NOT NULL, `failed_at` INTEGER NOT NULL, PRIMARY KEY(`url`))",
+        "fields": [
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reason",
+            "columnName": "reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rulesVersion",
+            "columnName": "rules_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "failedAt",
+            "columnName": "failed_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "url"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f54ab40fab3fc42b673dbe22fd4b5181')"
+    ]
+  }
+}

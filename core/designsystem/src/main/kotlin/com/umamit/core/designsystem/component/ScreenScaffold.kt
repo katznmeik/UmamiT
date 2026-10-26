@@ -42,6 +42,8 @@ import com.umamit.core.designsystem.icon.UmamiIcons
  * @param scrollToTopRequest a counter; every increase scrolls the body to the top
  *   (re-selecting the tab, 03 §2.2).
  * @param verticalArrangement the body's arrangement: centred for an empty state, [Arrangement.Top] for a list.
+ * @param scrollable whether the body scrolls; false for a body that scrolls itself (a lazy list), which
+ *   then handles [scrollToTopRequest] too.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +54,7 @@ fun ScreenScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     scrollToTopRequest: Int = 0,
     verticalArrangement: Arrangement.Vertical = Arrangement.Center,
+    scrollable: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -80,7 +83,7 @@ fun ScreenScaffold(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(scrollState),
+                .then(if (scrollable) Modifier.verticalScroll(scrollState) else Modifier),
             verticalArrangement = verticalArrangement,
             horizontalAlignment = Alignment.CenterHorizontally,
             content = content,
@@ -96,14 +99,30 @@ fun SettingsGearAction(onOpenSettings: () -> Unit, modifier: Modifier = Modifier
     }
 }
 
-/** The ⋮ menu of the other tabs, whose only entry for now is the settings (03 §2.2). */
+/** An entry of a screen's own in the ⋮ menu, above *Einstellungen* (e.g. *Katalog aktualisieren*). */
+class OverflowItem(val label: String, val onClick: () -> Unit)
+
+/** The ⋮ menu of the other tabs: the screen's own [items], then the settings (03 §2.2). */
 @Composable
-fun OverflowSettingsAction(onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+fun OverflowSettingsAction(
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    items: List<OverflowItem> = emptyList(),
+) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }, modifier = modifier) {
         Icon(painterResource(UmamiIcons.MoreVert), contentDescription = stringResource(R.string.ds_more_options))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        items.forEach { item ->
+            DropdownMenuItem(
+                text = { Text(item.label) },
+                onClick = {
+                    expanded = false
+                    item.onClick()
+                },
+            )
+        }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.ds_settings)) },
             onClick = {

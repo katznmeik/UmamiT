@@ -6,6 +6,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.diagnostics.PermissionStates
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerEvent
@@ -148,6 +149,13 @@ sealed interface TimerDiagnostic {
     /** The foreground service runs in the foreground with notification [notificationId] (04 §6.3). */
     data class ServiceInForeground(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
 
+    /**
+     * The service took over notification [notificationId], which a killed process had left
+     * flagged as a foreground notification that the app cannot cancel, so its foreground switch
+     * removes it (D-084).
+     */
+    data class ServiceTookOverStale(override val at: ClockReading, val notificationId: Int) : TimerDiagnostic
+
     /** The foreground service ended (stopped by the port or by itself). */
     data class ServiceStopped(override val at: ClockReading) : TimerDiagnostic
 
@@ -156,7 +164,9 @@ sealed interface TimerDiagnostic {
      * Disturb) and the [outputs] the ringer-mode matrix allowed then (04 §9.1, 06 §5.6), playing
      * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14). [scheduled] is when
      * a step's tick or alert was due (null for *Alarm testen*): with [at], the moment the sound
-     * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068).
+     * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068). [start]
+     * splits a step's cue into the time it was queued, waited for the settings and started its
+     * outputs, and says whether its sound was loaded before (D-092; null for *Alarm testen*).
      */
     data class AlertPlayed(
         override val at: ClockReading,
@@ -166,6 +176,7 @@ sealed interface TimerDiagnostic {
         val tone: String,
         val length: AlertLength,
         val scheduled: ScheduledTime? = null,
+        val start: CueStart? = null,
     ) : TimerDiagnostic
 
     /**

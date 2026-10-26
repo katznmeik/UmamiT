@@ -9,15 +9,15 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`, 2026-10-25). **Next: M2 — catalog**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62) and tickets #63–#77 written; implementation waits for the PO's start |
+| Current milestone | **M1 — Timer first: done** (`v0.1.0`). **M2 — catalog: `v0.2.0-rc.1` released 2026-10-26** for the PO's on-device checklist and final design review (#74); merge of #78 and `v0.2.0` (#75) after the PO's approval |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60 |
-| Open PR | #61 (D-073 M2 decisions, docs); M2 opens its milestone PR with its first merge |
+| Open PR | #78 (M2 milestone, draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) (release, versionCode 10099, from `main` 04a22a5) |
+| Latest APK | [`v0.2.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.0-rc.1) (pre-release, versionCode 20001, from 3950f07); last full release [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) |
 
 ## Done (M0)
 
@@ -39,9 +39,8 @@
 
 ## Waiting on the PO
 
-1. **Start M2 implementation**: spec [#62](https://github.com/katznmeik/UmamiT/issues/62)
-   and its tickets #63–#77 are approved; `/implement-spec` on #62 begins on the
-   PO's word (frontier: #63 prefactor, #73 #58 fixes; then #64 tracer bullet).
+1. **`v0.2.0-rc.1` on the Galaxy (#74):** install over `v0.1.0`, the 09 §4 M2 checklist,
+   the final design review, then an explicit approval (allows merging #78 and `v0.2.0`).
 2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
@@ -126,7 +125,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
   passt* (←#71) · #76 Ratgeber (←#66) · #73 #58 fixes and seed retry · #77 early
   design check, PO (←#66, #69, #71) · #74 rc and checklist, PO · #75 merge and
   `v0.2.0`.
-- **Decision numbers:** up to D-073 used; the next free is **D-074**.
+- **Decision numbers:** up to D-092 used; the next free is **D-093**.
 
 ### M1 done (2026-10-25)
 
@@ -164,6 +163,9 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-26 | Parser fixes from live sample 2 (D-089); T4 milestone review (2 areas, no Block) fixed (D-090); two full live runs (run 1: 20.1 min, PNG photos missing, sets/SALE in → D-091 fixes; run 2: 15.7 min, 255 teas, all photos, no stop); the PO approved #77 and confirmed D-089/D-091 choices; accuracy run failed on step 1 (1178 ms) → D-092 keeps alert sounds loaded (rerun PASS, max 643 ms); `v0.2.0-rc.1` released (versionCode 20001, cert verified), checklist on #74. ProcessDeathTest made robust against a sticky service restart. |
+| 2026-10-25 | M2 tickets #63–#73, #76 merged on PR #78 (D-074 … D-088), each gated by the orchestrator; timer fix D-084 (stale foreground notification after a process death, corrects D-080); two live samples of the shop (59 requests, no stops); early design check #77 sent to the PO. |
+| 2026-10-25 | **M2 started:** the PO invoked `/implement-spec` on spec #62 (frontier #63 prefactor and #73 #58 fixes). |
 | 2026-10-25 | M2 planned: D-072 reorder link (#60); M2 grilled with the PO (D-073, #61); spec #62 written and broken into tickets #63–#77 (approved by the PO). Implementation waits for the PO's start. |
 | 2026-10-25 | **M1 done.** The PO approved the checklist and the design review with `v0.1.0-rc.1` (#55); version 0.1.0; #25 merged into `main`; `v0.1.0` released from `main`; the working branch restarted from `main`. |
 | 2026-10-23 | #54 finished: review fixes (UI S1–S7, R2-1, D-068 … D-071), the PO's images A1–A5 built in, version `0.1.0-rc.1`, accuracy run passed, `v0.1.0-rc.1` released; checklist posted on #55. A committed merge conflict in 09 §4 was resolved. |

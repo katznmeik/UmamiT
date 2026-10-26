@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22
+> Status: **Draft v0.2** · Last updated: 2026-10-25
 
 Information architecture, navigation, visual design system and screens.
 Functional rules: [02](02-functional-requirements.md). The UI language is
@@ -125,7 +125,7 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 |---|---|
 | Timer notification / Live Update / alert | SCR-05 |
 | „Sitzung gespeichert" notification | SCR-16 |
-| Catalog refresh result notification | SCR-19 |
+| Catalog refresh progress and result notifications | The app where it was, like its launcher icon (D-079) |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
 | Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
 
@@ -407,7 +407,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 | Component | Description |
 |---|---|
-| `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min · 80 °C"), trailing „★ 4,5", hairline divider |
+| `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider |
 | `PrimaryActionCard` | Dark-green card, leaf icon, title + subtitle, chevron |
 | `StatTriplet` | Temperatur · Ziehzeit · Aufgüsse with line icons |
 | `SectionHeader` | Overline + optional „Alle anzeigen" |
@@ -441,7 +441,12 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
 3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
-   machen" · *Katalog jetzt laden* (progress inline) / *Später*.
+   machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
+   *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
+   in its service with its notification (ONB-03, D-079). *Katalog jetzt
+   laden* ends a seed photo download still running first, so two jobs never
+   run against the shop at once; the refresh gives the seed teas their
+   photos instead (CAT-15, D-090).
 
 ### SCR-02 Start (Home)
 
@@ -458,7 +463,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 │ (○ Gyokuro) (○ Sencha) (○ …) │
 │ ZULETZT GEBRÜHT  Alle anzeigen│  last 3 sessions
 │ (○) Sencha Asamushi    ★ 4,5 │
-│     8. Juni · 3 Min · 80 °C  │
+│     8. Juni · 3 Min. · 80 °C │
 │ FAVORITEN                    │
 └──────────────────────────────┘
 │ Start · Journal · Sammlung · Statistik │
@@ -476,6 +481,11 @@ Search (GEN-10); sections *Zuletzt*, *Favoriten*, *Alle* (non-archived owned tea
 footer *Aus dem Katalog* (→ SCR-19 → SCR-21 → SCR-23 *In Sammlung aufnehmen*,
 then back to SCR-04 with the new tea selected; D-073) and *Ohne Tee
 (Schnelltimer)*. Material 3's modal sheet like SCR-31; never over an alert ([D-062](10-open-questions-and-decisions.md#d-062)).
+The catalog flow runs in the Sammlung tab (Sammlung › Katalog at its root);
+an add or a repurchase saved there opens SCR-04 of that tea above Start. Back
+from the catalog list, or a tap on Start, returns to the picker; another tab
+ends the flow; nothing is written before the save. An alert wins: the add
+sheet and the picker give way and no setup opens during it ([D-088](10-open-questions-and-decisions.md#d-088)).
 
 ### SCR-04 Brühen (setup)
 
@@ -499,7 +509,8 @@ then back to SCR-04 with the new tea selected; D-073) and *Ohne Tee
 └──────────────────────────────┘
 ```
 
-„Rezept prüfen" badge with reason above the steps if flagged. *Bearb.* and
+„Rezept prüfen" badge with reason above the steps if flagged (the same note as
+SCR-21's, D-088). *Bearb.* and
 the *Vorwarnung* row open the Schritte-Sheet (SCR-31). Steppers: leaf ± 0,1 g, water to the next 5 ml;
 the ratio lock is a switch with the live ratio; at ≤ 10 °C the kettle hint reads „Kaltes Wasser" /
 „Eiswürfel" ([D-062](10-open-questions-and-decisions.md#d-062)).
@@ -574,7 +585,8 @@ beenden*, also while the shell is covered, so it never returns stale. It is
 never shown while an alert plays, and an alert removes it in
 the same frame (rule 8). M1 shows only the text; the two actions come with
 M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
-*Rezept passt*, which clears the flag (CAT-05, D-073).
+*Rezept passt*, which clears the flag of that tea only and then reads
+„„Rezept prüfen“ ist entfernt.“ (CAT-05, D-073, D-088).
 
 ### SCR-07 Schnelltimer
 
@@ -669,20 +681,52 @@ and after the first brew (D-069).
 ### SCR-19 Sammlung › Katalog
 
 Segmented control [ Meine Tees | **Katalog** ]; header „Tee-Kontor Kiel ·
-274 Grüntees · aktualisiert am 21. Okt."; *Ratgeber* row (→ guides list);
-search; filter chips (Sorte, Herkunft, Bio, aromatisiert, im Besitz,
-Rezept prüfen); sort; rows with photo, name, subtitle, type, origin,
-„15,90 €/100 g", flag chips, a „Neu" badge for teas new in the latest
-refresh. Opens grouped by *Sorte*, available teas only, „Pur" on (flavoured
-teas one tap away; D-073). Overflow: *Katalog aktualisieren*.
+274 Grüntees · aktualisiert am 21. Okt." (every tea of the range, whatever
+the filters); *Ratgeber* row (→ guides list); search field („Name,
+Kultivar, Region …"); a row of filter chips; rows with photo, name, secondary
+name (one line, cut off when longer), *Sorte* (when the list isn't grouped by
+it), origin, „15,90 €/100 g" and badges („Neu", „im Besitz", Bio,
+aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-076, D-083):
+- **Chips** for the frequent ones: *Filter* (opens the filter sheet; shows
+  how many filters differ from the default view, „Filter (2)"), „Pur",
+  „Vorrätig", „Bio", „Neu", „Im Besitz".
+- **Filter sheet** (Material 3 modal sheet; never over an alert) for the
+  rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
+  *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
+  Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
+  the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
+  to the default view and keeps the search.
+- **Default view** (D-073): grouped by *Sorte* under a section header per
+  *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
+  on, so flavoured teas are one tap away. Sorted by name or price the list
+  is flat and each row names its *Sorte*.
+- Search hits the filters hide are counted below the list („2 weitere
+  Treffer sind durch die Filter ausgeblendet." · *Alle zeigen*); with no
+  match at all: „Kein Tee passt zu deiner Suche und den Filtern." · *Filter
+  zurücksetzen*.
+
+„Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
+*Katalog aktualisieren*.
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
 
 ### SCR-20 Ratgeber-Artikel
 
-Hero image (if any), serif title, source line „Tee-Kontor Kiel · Tee-Info",
-rich text, links to catalog teas resolved locally, *Im Browser öffnen*.
+Hero image (if any, 16:9 under the status bar with the back button over it,
+as SCR-21), serif title, source line „Tee-Kontor Kiel · Tee-Info · 12. März
+2024" (the date when the shop gives one), rich text (headings in the serif,
+lists, images at their own aspect ratio), links to catalog teas and other
+guides opened in the app, every other link in the browser, *Im Browser
+öffnen*. A link to a guide the catalog no longer holds opens its shop page.
+
+**Ratgeber list** (from SCR-19's *Ratgeber* row, shown only while guides
+exist: „Ratgeber · 12 Guides von Tee-Kontor Kiel, offline lesbar"): header
+A11 (the placeholder landscape until the PO's image), „Grüntee-Wissen von
+Tee-Kontor Kiel – auch ohne Verbindung lesbar.", the guides by title with
+the hero as round thumbnail and the date (else „Tee-Kontor Kiel ·
+Tee-Info"). Empty: the empty state (its illustration instead of the header),
+„Noch keine Ratgeber." (D-087).
 
 ### SCR-21 Katalog-Tee
 
@@ -690,20 +734,53 @@ Photo, name, subtitle, type, origin/cultivar/harvest/shading/steaming, Bio /
 aromatisiert / Coldbrew geeignet, the shop's taste scales (Umami,
 Bitterstoffe, … as leaf rows 0–5), aroma and taste notes, description, ZUBEREITUNG (shop table and text, verbatim),
 ABGELEITETES REZEPT (steps + flag reason), PACKUNGEN (sizes and prices), primary
-*In Sammlung aufnehmen* or *Nachkauf erfassen*, secondary *Im Shop öffnen*
+*In Sammlung aufnehmen* or, for a tea in the collection, *Nachkauf erfassen*
+(SCR-23, D-085), secondary *Im Shop öffnen*
 (the size bought last when the tea is in the collection, else the product
-page; CAT-11, D-072).
+page; CAT-11, D-072). Layout (D-078): the photo full width (4:3) under the
+status bar with the back button over it; name, secondary name, tags, price
+per 100 g and the actions; then the sections *Steckbrief*, *Geschmack*,
+*Beschreibung*, *Zubereitung*, each only when the shop fills it. *Abgeleitete
+Rezepte* follows *Zubereitung* (D-082): `CheckRecipeBadge` and the reason when
+flagged, then each recipe, the default first („Kyusu · Standard", „4,0 g ·
+200 ml · 65 °C" or „kalt", steps „1:00 · 0:15 bei 70 °C", „Aufschlagen 0:20")
+with the source of a non-default recipe not from the shop's table. Then
+*Packungen*: one row per size, smallest first, with the shop's price
+(„12,40 €"), an estimate („≈ 30,07 € · 3 % gespart") or „Preis beim
+Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
+of stock, and a note explaining „≈" when an estimate is shown (D-081). A tea
+no longer in the range, kept for a collection tea (CAT-07 AC4), carries the
+tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
-Progress (Seiten, Produkte, Fotos), *Abbrechen*; result summary (CAT-07 AC3);
-error state with *Details kopieren* for the developer.
+Progress (Seiten, Produkte, Fotos, Ratgeber), *Abbrechen*; result summary (CAT-07 AC3)
+as one line: „276 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im
+Sortiment · 3 Rezepte prüfen", each part only when above 0, „274 Grüntees ·
+keine Änderungen" for a later refresh without change, „274 Grüntees ·
+31 Rezepte prüfen" for the first load; the result notification says the same
+(D-086);
+error state with *Details kopieren* for the developer. Closing the sheet never
+stops a refresh, nor does locking the phone (its progress notification offers
+*Abbrechen* too, D-079); while one runs, the empty catalog offers *Fortschritt
+anzeigen*. Opened by *Katalog laden* and by *Katalog aktualisieren* in the ⋮
+menu. The sheet never covers an alert: an alert removes it in the same
+frame and it stays closed (rule 8, D-077).
 
 ### SCR-23 In Sammlung aufnehmen (sheet)
 
 Package option radio list („50 g · 8,95 €", „100 g · 17,90 €", „250 g ·
-≈ 43,41 € · 3 % gespart", custom); estimated prices are marked „≈" and
-replaced by the exact price when fetched; Kaufdatum; *Aufnehmen*.
+≈ 43,41 € · 3 % gespart", „10 g · Preis beim Hinzufügen", *Andere Menge* with
+an amount field); estimated prices are marked „≈" and replaced by the exact
+price when fetched; the price field (editable, empty allowed) says where its
+price comes from („Preis aus dem Shop", „Der genaue Preis wird im Shop
+abgerufen …", „≈ geschätzt …", „Kein Preis bekannt …"); *Kaufdatum* („22. Okt.
+2026", today by default, never later); *Aufnehmen*. For a tea already in the
+collection the sheet is *Nachkauf erfassen* and opens on the size bought last.
+Saving never waits for a price; the sheet never covers an alert (D-085).
+While it saves, neither a swipe nor back closes it, so a failure always shows
+its message; an alert still removes it at once, and a save that fails meanwhile
+brings it back with its input and the message after the alert (D-090).
 
 ### SCR-25 Einstellungen
 
@@ -713,7 +790,10 @@ Alarme) and *Beheben* buttons; *Alarm testen*. In M1: the card, *Timer &
 Alarm* (Alarmton with *Anhören*, Vorwarnung, Vibration, Alarmdauer,
 Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 *Über*; no dialog over an alert
-([D-066](10-open-questions-and-decisions.md#d-066)).
+([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
+between them: „Letzter Abruf" with the date of the last successful refresh
+(„21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
+switch *Fotos laden* (SET-22, „zusammen etwa 30 MB").
 
 ### SCR-26 Daten & Sicherung
 
@@ -795,10 +875,16 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
 | Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh blocked (08 §2.8) | „Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh offline | „Keine Verbindung zum Shop – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh, shop down (401/403/5xx) | „Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh, storage full | „Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?" · „Dein bisheriger Katalog bleibt erhalten." |
+| Catalog refresh cancelled | „Laden abgebrochen" · „Dein bisheriger Katalog bleibt erhalten." |
 
 ## 6. Accessibility
 
 Touch targets ≥ 48 dp (timer pill ≥ 72 dp high); contrast ≥ 4.5:1 for body
 text in all schemes; content descriptions in German; chart table
 alternatives; correct semantics for rating, sliders, ring; 200 % font scale
-without loss of essential content.
+without loss of essential content. Navigation labels stay on one line and
+shrink to fit their item instead of wrapping („Sammlung" at 200 %, D-075).

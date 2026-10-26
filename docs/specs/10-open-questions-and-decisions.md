@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-23
+> Status: **Living document** · Last updated: 2026-10-26
 
 ## Open questions
 
@@ -301,6 +301,980 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-092"></a>
+### D-092 — The first cue of a process starts as fast as the others: sounds loaded ahead, the alert player on its own thread (TMR-23, TMR-30, rule 8; amends D-059) · *Accepted* (Claude, 2026-10-26)
+
+The rc gate's accuracy run on 83f2c5c (API 36, `v0.2.0-rc.1`) failed on one
+cue: the pre-alert of step 1 started its sound 1178 ms late (handled 26 ms,
+by the alarm), over the 1 s maximum. The alert of step 1 took 311 ms; steps
+2–50 stayed at 90 ms or less (p95 61 ms and 39 ms). M1's rc run had its
+maximum, 910 ms, very likely on the same first step. Decided:
+
+- **Cause** (from the code and the AOSP sources; the run logged no split).
+  Step 1 is the first cue of a new process: the test kills the timer process
+  before it starts. Each cue loaded its sound inside its own command, on the
+  main thread, between the handled event and the „alert" log entry that
+  marks the sound's start. `MediaPlayer.create` prepares synchronously. On
+  first use in a process this means:
+  - the `MediaPlayer` class initialises `libmedia_jni`, unless the zygote already did;
+  - the player registers with AudioService (`trackPlayer`);
+  - it opens a session with the media server, which opens and parses the
+    file through `media.extractor`.
+
+  Warm, this costs about 20 ms (steps 2–50). In the fresh process the cue
+  spent about 1.15 s between the handled event and its sound, which this
+  load explains; the rest of the command is the settings cache and a few
+  binder calls (ringer mode, vibration, audio focus). The alert's 311 ms is
+  the same load for its own file. Very likely the main thread also first ran
+  the service's command for the deadline: its first `startForeground` of the
+  alert.
+- **Sounds loaded ahead.** While a timer is active, the controller keeps the
+  alert player's sounds ready. At the end of every turn, after the turn's
+  own cues, it calls the alert port's `keepReady` with „a timer is active";
+  idle releases them. The player keeps the tick and the current tone loaded
+  (`AlertSoundOutput.prepare`), so a cue only starts its loaded player. A
+  used sound is loaded again right after its cue (posted, so after the cue
+  has started).
+  - A session starts in READY, so its sounds are loaded before *Start*. A
+    step's first cue comes at least 5 s after the start (E7).
+  - Loading never waits for the settings file. It uses the tone known at
+    that moment, and a changed tone is loaded at the next turn.
+  - A failure never costs the sound (rule 8). A sound that does not load
+    plays as before, loaded on play. A loaded player that broke while it
+    waited (the media server died) is dropped. A loaded player whose start
+    throws or reports an error is replaced once by one loaded on the spot.
+  - Cost: two prepared players while a session is active, none when idle.
+    The media server holds no codec and no audio track for them until they
+    start.
+- **The alert player's own thread (amends D-059).** The player's commands,
+  repeats, sound callbacks, focus changes and loads run on the `UmamiTAlert`
+  thread (a `HandlerThread`), no longer on the main thread. So a busy main
+  thread no longer delays a cue: the service posting its notification, an
+  activity starting from the full-screen intent, the timer screen drawing.
+  A load no longer blocks the UI either.
+  - Loading on the player's thread keeps the order simple. A cue queued
+    behind a load waits at most for that load, which is what it would have
+    spent loading its own sound. Recovery replays an alert before its turn's
+    `keepReady`.
+  - The thread keeps the default priority. A raised priority needs a
+    privilege the app may not have, and a failed `setThreadPriority` would
+    end the thread.
+  - The tone preview (SET-09) stays on the main thread with its own output.
+- **Where the time went is logged** (06 §5.6). The entry of a step's tick or
+  alert now has a part before its scheduled and actual time: `queued 2 ms,
+  settings 0 ms, outputs 15 ms, sound ready` (or `sound loaded on play`,
+  `no sound`). It gives the time from the controller's call to the start of
+  the command, the wait for the settings, and the start of the outputs
+  (matrix, vibration, focus, sound). `FireTime.parsePlayed` reads it. The
+  accuracy run logs it for each step, and its summary names each event's
+  slowest start with this split. The targets are unchanged.
+- **Expected:** step 1 now does what steps 2–50 do: the first vibration and
+  focus request of the process (binder calls) and the player's start, with
+  no load. Expected: about 100 ms or less. If a later run still shows a slow
+  first cue, the split names the phase.
+- **Tests:**
+  - `AndroidAlertOutputsTest`: a loaded sound starts without a load and is
+    loaded again after its cue; a sound not loaded loads on play; sounds no
+    longer wanted are released and not loaded again. A player broken while
+    it waited, one that reports an error when started and one whose start
+    throws: each still sounds.
+  - `FirstCueTest`: the production player with the real sound output loads
+    nothing for the first tick and alert after `keepReady`.
+  - `AlertPlaybackTest`: the tick and the stored tone are loaded, a changed
+    tone is followed, loading never waits for the settings, the split is
+    logged.
+  - `AlertDeliveryTest`: ready from a session's start to its end, for a
+    quick timer, and again after recovery in a new process.
+    `ProductionAlertPortTest`: a session's first tick and alert start loaded
+    sounds.
+  - Format and report tests for the new log part and summary lines. The
+    timer tests of 04 §12 are unchanged and pass.
+
+  04 §4 and §9.1, 06 §5.6 and 09 §4a updated.
+
+<a id="d-091"></a>
+### D-091 — Fixes from the first full live run of the catalog refresh (spec #62, PR #78; CAT-01, CAT-04, CAT-06 – CAT-09, NFR-PERF-11; amends D-074, D-087, D-090; extends D-089) · *Accepted* (Claude, 2026-10-26; the `hojicha_powder` default confirmed by the PO, 2026-10-26)
+
+Full live run 1 against the shop (1,747 requests, no stop, 261 teas; its
+report gives counts and article numbers only) took 1,207 s, over
+NFR-PERF-11's 20 min, and found PNG photos, sets, sale duplicates and two
+style gaps. Fixed test-first with synthetic fixtures (D-016); parser
+version 6. Decided:
+
+- **Processing overlaps the request gaps (NFR-PERF-11, CAT-07):** of the
+  1,207 s, ≈ 874 s were the 500 ms gaps; the rest was parsing, re-encoding
+  and storing between the requests. Product pages, photos, guide pages and
+  guide images are now fetched one after another while the previous answer
+  is processed (`fetchOverlapped`): a rendezvous hands each answer over, so
+  at most the next answer waits while one is processed (≤ 2 held at once).
+  The wire is unchanged: the same requests in the same order through the
+  one shop session, one connection, ≤ 2 requests/s; after a stop nothing
+  more is fetched. A cancel, or a failure while processing (storage, a bug),
+  cancels the request in flight — possibly the next page's — and drops its
+  answer; nothing is sent after it. The sanity check still runs before the
+  first photo request, the photos before the guides, and the swap stays
+  atomic. A test with a 200 ms gap, 150 ms latency and 150 ms processing
+  measures ≈ 201 ms per page and 203 ms per photo (≈ 326 ms before); the
+  first refresh is expected at ≈ 15–16 min (the gaps alone ≈ 14.6 min),
+  later ones at ≈ 3 min (06 §5.3, 07, 08 §2.4).
+- **PNG and WebP sources (CAT-08, CAT-09; amends D-074 and D-087's JPEG
+  only):** every one of the 27 teas without a photo had a PNG. The
+  transcoder reads complete JPEG, PNG and WebP images (a JPEG ends with EOI,
+  a PNG with IEND, a WebP is as long as its RIFF header says), decoded once
+  with sampling, never larger than the largest target needs; the output is
+  unchanged (≤ 1200 px WebP and thumbnail, the cover JPEG). Transparency is
+  flattened onto white, as the shop shows it (JPEG has no alpha).
+- **Image body limit 16 MB (amends D-090):** photos and guide images are read
+  up to 16 MiB (`BodyLimit.IMAGE`); pages, robots.txt and sitemaps stay at
+  5 MiB (`BodyLimit.PAGE`). Run 1's largest image answers declared
+  9.3–11.7 MB. A larger answer still leaves only its URL out. The seed photo
+  download and the exact price fetch keep the page limit (06 §4, 08 §2.8).
+- **No endless re-fetching (CAT-08, CAT-09):** a photo or guide image that
+  failed for good — over the image limit, or no decodable JPEG, PNG or WebP
+  within the transcoder's limits — is remembered by its URL in the new
+  `catalog_image_failure` (05 §4.2b) and not asked for again while the URL
+  (with the shop's `?ts=`) stays the same. A 404, a robots.txt rule or a
+  network error is no failure for good. The swap replaces the table with the
+  failures the run met, remembered or new (a tea kept unread keeps its
+  photo's), so a failed run remembers nothing and a URL no longer met is
+  forgotten; `rules_version` (now 1) is raised whenever the readable formats
+  or limits change, so every failure is tried once more. This saves the 45
+  requests run 1 repeated on every later refresh. `catalog.db` v1 changes in
+  place: it is frozen only from `v0.2.0-rc.1`.
+- **Sets (CAT-01):** set numbers count in any case and with letters after
+  „SET" (`AT0635Set`, `AT0636Set`, `…SETc`, `…SETSALE`, a variant `-SET`); a
+  product of the green sections whose name says set („Set" as a word,
+  „3er-Set", „Probierset", „Geschenkset", „Jubiläumsset", …; not „Setouchi"
+  or „Sunset") or whose breadcrumb is a set category (`…-sets`, `teesets`) is
+  skipped with reason `SET` (`TG0182`) (08 §2.2, §2.4).
+- **Sale duplicates (CAT-01, CAT-02):** a number ending in „SALE" in any case
+  (`AT0516SALE`, `AT0810SALE`) is a reduced duplicate of a regular tea and is
+  left out without a request, like a set; the regular number stays the
+  catalog entry. A sale-only listing is a clearance, so its tea leaves the
+  range (kept hidden while owned, D-086). The log and the details count the
+  sale duplicates (08 §2.4).
+- **Mizucha (CAT-06, extends D-089):** „Mizucha" in the name brews cold by
+  default like a Mizudashi, under any breadcrumb (the style from breadcrumb
+  or name, else `green_generic`, not flagged); its form is TEA_BAG with bag
+  words in the name, else loose leaf (`AT0549`, `AT0675`; 08 §2.6).
+- **Hōjicha powder (CAT-04, CAT-06):** a new built-in style
+  `hojicha_powder` (08 §3: LOW umami, 30 days, 2,0 g/TL, Usucha 2 g / 70 ml /
+  80 °C with a 0:20 whisk, no cold brew). „Pulver"/„Powder" with hōjicha in
+  the breadcrumb or the name maps to it under any breadcrumb, form POWDER;
+  its grid rows become one whisked Usucha recipe like a matcha's, never a
+  leaf recipe or a cold brew (`AT622`, `AT0845`; 08 §2.5, §2.6). The
+  journal's placeholder colour is hōjicha's.
+- **Parser version 6** (the scope and style rules changed): content hashes of
+  v5 don't count as changes (D-086).
+
+Left as they are: run 1's other observations (the cold-brew grid values of
+`AT0380`, `AT0384`, `AT0429`, hot grid temperatures, 4 g packages, the
+`AT0429-50g` package number, the ten non-tea pages without a breadcrumb that
+are fetched on every refresh) are what the shop states or minor; they stay
+for later.
+
+<a id="d-090"></a>
+### D-090 — M2 milestone review fixes (spec #62, PR #78; CAT-07, CAT-10, CAT-12, CAT-15; amends D-086) · *Accepted*, the images' 5 MB limit amended by D-091 (Claude, 2026-10-26)
+
+The T4 milestone review of M2 (areas A: network, refresh, data; B: UI,
+navigation, strings) found three Should items in each area and a set of
+Optional ones. Fixed test-first; decided:
+
+- **Oversized answers (A-S1):** a 2xx answer over the client's 5 MB body
+  limit is not read and becomes `ShopFetch.TooLarge`: only that URL is left
+  out (a photo or guide image is missing, a product page counts as
+  unavailable, the sitemap means „shop changed"), never a stop, never
+  retried, logged with its declared size. A non-2xx answer over the limit
+  counts by its status (a 503 still stops). Before, one oversized photo ended
+  every refresh as „offline" (08 §2.8, 06 §4). Aligning the limit with the
+  40 MP source limit waits for the full live run's largest photo.
+- **CAT-15 per seed tea and part (A-S2, amends D-086):** the single
+  `seedTeasLinked` marker is replaced by `seedTeaLinksDone` (05 §6, never
+  released): per seed tea, the *description* is done once the tea has one
+  (linked, or its own, which is never overwritten) and the *cover* once it
+  has one (linked, from the seed photo download or its own) or the refresh
+  loaded no photos (SET-22 off). A part not done — the tea's page unread on
+  the first refresh, no description or photo in the catalog, a seed created
+  later by the D-075 retry — is tried again after every later successful
+  refresh; a done part never again, so a description the PO empties later
+  stays empty. A seed tea with a description of its own still gets the
+  catalog photo when it has no cover. Each tea is still one transaction that
+  checks again, and the parts are marked after it (idempotent).
+- **No crash from a live page outside the refresh (A-S3, rule 8):** the exact
+  price fetch catches everything but a cancellation (the parser's stack
+  overflow included), keeps the estimate and logs one line; *In Sammlung
+  aufnehmen* maps an unexpected `RuntimeException` to „Failed", writing
+  nothing.
+- **The two flaky tests (T1):** `CatalogRefresherTest.eachStopKeepsTheOldCatalog`
+  ran six refreshes on the real 500 ms request gap (≈ 15 s) and exceeded
+  `runTest`'s 60 s under load; it is split into one test per stop, and the
+  refresh tests that don't measure the rate use a client with a shortened
+  gap (`ShopClient.forTesting(requestIntervalMillis)`), so no test waits on
+  the wall clock (only `requestsGoOutAtMostTwicePerSecondOnOneConnection`
+  keeps the real limiter). `ExactPricesTest.onlineTheSizesPageGivesTheExactPrice`
+  passed 120 of 120 runs here (60 under CPU load, 60 inside the whole suite),
+  so its cause is inferred, not reproduced: the same real-time dependence. It
+  was the only plain-JVM shop test, so it loaded the client and the server
+  cold in the app class loader of the overloaded test JVM in which the test
+  above timed out, and with `NetworkRetry.NONE` one stall past OkHttp's 10 s
+  read timeout gives no price. It now runs under Robolectric
+  like the other shop tests (warm, shared sandbox), on the shortened gap, and
+  its assertions name the session's diagnostics. The shop client's dispatcher
+  thread is a daemon, so test clients never keep a JVM alive.
+- **Backs and taps act only on the resumed screen (B-S1, B-O1):** every
+  on-screen back/up in the tab stacks and the root (setup, quick timer,
+  settings, *Über*, diagnostics, tea detail, guides) is wrapped in
+  `dropUnlessResumed`, and a catalog row, the *Ratgeber* row and a guide's
+  links act only while their screen is resumed; a quick double tap no longer
+  pops a tab's start screen (a blank tab or app) or pushes a screen twice. A
+  guide's link to itself opens nothing.
+- **Secondary name in the catalog rows (B-S2):** CAT-10 and spec #62
+  story 17 stand; the row shows it on one line under the name (cut off when
+  longer), and 03 SCR-19 says so again.
+- **Refresh runner (A-O1):** a start while a cancelled refresh still cleans up
+  starts nothing, and an ended run's completion never overwrites the next
+  run's state.
+- **Stale connections (A-O6):** the client keeps an idle connection for 30 s
+  instead of 5 min, since its connection retries are off.
+- **Setup page 3 (B-O8):** *Katalog jetzt laden* ends a seed photo download
+  still running before the refresh starts, so two shop jobs never overlap and
+  a stop of one never leaves the other sending (rule 7); CAT-15 gives the
+  covers.
+- **Add sheet (B-O2, B-O3):** while it saves, neither a swipe nor back
+  closes it; an alert still removes it at once (rule 8), and a save that
+  fails meanwhile brings it back with its input and the message after the
+  alert; a started save runs to its end. The editable price is written
+  without thousands separators („1234,50"), and „1.234,50" or „1.000" g typed
+  the German way are read.
+- **Texts (B-O9, B-O10):** counts and units keep a no-break space („276
+  Grüntees", „keine Änderungen", „100 g", „30 MB"); Settings says the first
+  load takes about a quarter of an hour and later ones a few minutes.
+- **On-device checklist (B-S4):** 09 §4 M2 gains installing over `v0.1.0`
+  with data kept, the seed teas after the first load (as far as M2 shows
+  them) and *Nachkauf erfassen* on Tanabata.
+
+<a id="d-089"></a>
+### D-089 — Parser fixes from live sample 2 (spec #62; CAT-03, CAT-05, CAT-06, CAT-09) · *Accepted* (Claude, 2026-10-25; tea recipes stay out of the Ratgeber, confirmed by the PO, 2026-10-26)
+
+A second live sample of the shop (24 product pages, 4 guides; no stop
+signal) found products the scope dropped and smaller derivation and guide
+defects. Fixed test-first with synthetic pages of the same structure (D-016);
+parser version 5. Decided:
+
+- **Japan teas without a type level (D1):** 5 of 22 sampled green teas had
+  only a tea family's page (`/tee/japantee/teefamilien/<family>/`) as
+  breadcrumb and were skipped as not green. A product of `/tee/japantee/`
+  without a type level is now green when its name names a green type (or
+  tencha, aracha, „Grüntee", …) or it carries a steaming or shading badge, and
+  neither its name nor its path names another tea (Koucha/Wakoucha, Oolong,
+  Schwarz-, Weiß-, Kräutertee) or teaware (Kyusu, Kanne, Chawan, Set, …).
+  The positive signal is required, so a Japanese black tea or a potter's
+  teaware on a family page stays skipped. Its *Sorte* is the type its name
+  names (the shop's type-page title; „Fukamushi" → „Sencha"), so the style
+  follows (08 §2.3, §2.4 item 3).
+- **Style keywords (D2):** „Bi Lo Chun", „Pi Lo Chun" → `bi_luo_chun`; the
+  Korean grades Ujeon/Woojeon, Sejak, Jungjak/Joongjak, Daejak →
+  `korean_green`, and *Anbaugebiete* Korea without a keyword too (08 §2.6).
+- **Gongfu row (D3):** the grid's `st-zubereitung-china` row is a „Gongfu"
+  recipe (`GONGFU`); a non-Japanese tea's default is the row of its style's
+  default method (Gongfu for the Chinese styles), else the first row. Cells
+  „~80°" (no C) and „~20(30) Sek" (the first value) are read. The catalog
+  detail labels the row „Gongfu" (08 §2.5 steps 1–2).
+- **Cold-brew bags (D4):** „Mizudashi"/„Kaltaufgussbeutel" in the name makes
+  the Mizudashi mapping (TEA_BAG, cold-brew default) under any breadcrumb, the
+  style from breadcrumb or name; „Aufgussbeutel"/„Teebeutel" alone make the
+  form TEA_BAG. A grid row at „kalt" is the cold brew's row (its amount and
+  every given infusion), never a hot recipe. Bags per volume („1Stk./500ml")
+  weigh the package's grams over the bags the name counts; unknown, the
+  style's cold-brew ratio brews the stated water, flagged as style default
+  (08 §2.5 steps 2, 6; §2.6).
+- **Brewing prose (D5):** a paragraph naming a video is never brewing prose;
+  bags per volume count as an amount, so „ein Beutel auf 0,3–0,5 Liter …
+  zweimal aufgießen" is (08 §2.3).
+- **Harvest year (D6):** only from the *Ernte* badge and the title, never from
+  the prose (travel reports' and founding years, link texts) (08 §2.3).
+- **Matcha cold brew (D7):** a powder gets no cold brew, badge or not; 08 §3's
+  matcha has none and the sencha fallback (10 g / 1 L, 4 h) is no powder recipe.
+- **Guides (G1–G4):** the comment section inside the article block, the
+  blog's date list, a video intro without a video and a closing tag line are
+  left out; images are told apart by their decoded path (raw spaces vs `%20`)
+  and stored encoded; promotions, events and recipes (`sonstiges-`,
+  `teeverkostungen-`, `aktionstees-`, `blog-`, `teerezepte-` and recipe or
+  event words in the slug) are no guides, so `teerezepte-matcha-eistee`
+  leaves 08 §2.7's list; ten green-type keywords join the selection, within
+  D-087's caps (08 §2.7).
+
+<a id="d-088"></a>
+### D-088 — Brewing a new tea from the picker, „Rezept passt" (#72) · *Accepted* (Claude, 2026-10-25)
+
+The ninth M2 slice (spec #62, #72) lets the PO brew a tea just bought
+(D-073, CAT-12, CAT-05). Decided while building it:
+
+- **Where the flow runs:** *Aus dem Katalog* in the tea picker (SCR-03)
+  closes the picker and opens Sammlung › Katalog in the Sammlung tab, at its
+  root on the *Katalog* segment: the same SCR-19 → SCR-21 → SCR-23 as from
+  Sammlung, with the navigation bar and the active brew bar where they always
+  are. No separate full-screen copy of the catalog.
+- **The save:** an add or a repurchase saved in this flow puts the shell back
+  on Start and opens the setup (SCR-04) of that tea above it, so back from
+  the setup returns to Start like any brew from the picker. An add from
+  Sammlung itself stays in Sammlung.
+- **Leaving without a save:** back from the catalog list, or a tap on Start,
+  returns to Start with the picker open again; a tap on Journal or Statistik
+  ends the flow quietly. Starting and leaving the flow pop the Sammlung stack
+  to its root, so none of its screens stays behind; nothing is written until
+  the save. The flow survives a configuration change and process death.
+  A tea opened from a *Ratgeber* article during the flow (SCR-20, D-087) is
+  the same detail, so its save opens the setup too; backing out through the
+  guides still returns to the picker.
+- **Alerts first (rule 8):** an alert removes the add sheet (D-085) and the
+  picker (D-062); the picker does not come back while an alert plays, and the
+  setup is never opened during one (the alerting timer opens instead).
+- **SCR-04:** the flag moves from under the tea name to above the steps,
+  with its reason, as on SCR-21: one shared `RecipeCheckNote` in `core:ui`,
+  whose reason strings move there from `feature:catalog`.
+- **SCR-06:** *Rezept passt* shows for a session whose tea is flagged when
+  the sheet is due (the tea read then, not the session's snapshot). It clears
+  `recipe_check_reason` of that tea only (`TeaRepository.clearRecipeCheck`, one
+  `UPDATE`, no schema change), then reads „„Rezept prüfen“ ist entfernt.“; the
+  sheet keeps its 10 s and its alert rules (D-061). The write is never
+  cancelled by an alert starting right after the tap.
+
+<a id="d-087"></a>
+### D-087 — *Ratgeber*: Tee-Info guides offline (#76, CAT-09) · *Accepted*, JPEG-only images amended by D-091 (Claude, 2026-10-25)
+
+The last M2 slice (spec #62, #76) brings Tee-Kontor's green-tea guides into
+the catalog (CAT-09, SCR-20, 08 §2.7). Decided while building it:
+
+- **Staging and swap:** `catalog_guide_staging` is a real table of
+  `catalog.db` with exactly `catalog_guide`'s columns (embedded, like the
+  teas' staging, D-077), part of the schema frozen from `v0.2.0-rc.1`. The
+  refresh stages the guides after the photos and the swap replaces
+  `catalog_guide` in the same transaction as the teas, so a refresh that
+  stops, is cancelled or fails keeps the old guides (05 §4.5). `catalog_guide`
+  gets `published_at` (JSON-LD `datePublished`, epoch ms) for the list and the
+  article's source line.
+- **Which guides:** the sitemap's `/tee-info/<slug>` URLs whose slug contains
+  one of 08 §2.7's keywords, at most 40 per refresh; with more, the most
+  relevant are kept: the slugs naming the most keywords, then the shorter
+  slug (a general guide before a narrow recipe), then the slug. An article that is gone
+  (404, robots.txt) is left out; one that no longer reads (no article block)
+  keeps its current version; without any selected article in the sitemap
+  every current guide is kept, so a renamed blog never empties *Ratgeber*.
+- **Conversion** (08 §2.7, §2.8): the article block without its title;
+  headings, paragraphs (a bold first line becomes a heading), line breaks,
+  bold, italics, absolute http(s) links, lists, tables as lists of rows
+  („Menge · Zeit"), images; scripts, styles, forms, staff tips, tracking
+  pixels and embeds are left out, a player becomes a plain link; control
+  characters become spaces. Title, date and hero come from the JSON-LD
+  `BlogPosting` (title else the article's `h1`); the body doesn't repeat the
+  hero. `body_markdown` is the app's own small Markdown subset
+  (`GuideMarkdown`, `core:domain`), rendered by the app, not by a library
+  (D-008's in-house option).
+- **Images:** through the refresh's shop session (robots.txt, the 2
+  requests/s, the stops), only while SET-22 *Katalog: Fotos laden* is on, at
+  most 4 per article (the hero first), JPEG sources only (D-074), re-encoded
+  to ≤ 1200 px WebP in `filesDir/catalog/guides/`. Each file is named after a
+  hash of its URL (the shop's `?ts=` included), so an unchanged image is never
+  fetched again and a failed refresh never overwrites a file the stored guides
+  show; after every run the files no stored guide shows are deleted. An image
+  that is missing or doesn't decode is left out of the text.
+- **Links:** a link to a product page of the shop whose base number is a tea
+  of the new catalog (merged split numbers included, D-081) becomes an in-app
+  link to that tea, a link to a stored guide one to that guide
+  (`umamit://catalog/<key>`, `umamit://guide/<slug>`: markers in the stored
+  text, no registered links); `linked_catalog_keys` lists the teas. Every
+  other link opens the browser, as does a link to a guide the catalog no
+  longer holds (its shop page) and *Im Browser öffnen*; none of them is a
+  request of the app (GEN-01).
+- **Request budget** (D-076, NFR-PERF-11): at most 40 guide pages and 160
+  images, so ≤ 200 requests (≈ 100 s at 2 requests/s) on a first refresh,
+  inside 08 §2.4's G; later refreshes fetch the ≤ 40 pages again and only new
+  or changed images (≈ 0–40 more). `GuideLimits` holds the caps; a refresher
+  test checks the requests stay within them on a first and a later refresh.
+  The refresh sheet counts the guides read („Ratgeber: 12"), the developer
+  details and the diagnostics log their counts.
+- **SCR-19 / SCR-20:** the catalog list's *Ratgeber* row (only while guides
+  exist) opens the list: the A11 header (placeholder landscape until the PO's
+  image), a line on what it is, the guides by title with hero thumbnail and
+  date. The article: hero, serif title, „Tee-Kontor Kiel · Tee-Info · 12. März
+  2024", the text, *Im Browser öffnen*. Everything is read from `catalog.db`
+  and local files, so it works offline after a refresh.
+
+<a id="d-086"></a>
+### D-086 — Later catalog refreshes: summary, discontinued teas, seed teas linked (#70) · *Accepted*, CAT-15 part amended by D-090 (Claude, 2026-10-25)
+
+The seventh M2 slice (spec #62, #70) makes a refresh of an existing catalog
+cheaper and tells what changed (CAT-07 AC3/AC4, CAT-08, CAT-15). Decided
+while building it; `umamit.db` stays at version 1, `catalog.db` needs no
+new column:
+
+- **Which pages** (08 §2.4 item 5): the known green parents are the
+  catalog's keys and the base numbers merged into them (D-081), read back
+  from their packages' article numbers (each page's own size keeps its
+  number), so a split tea's second number counts as known, not new. With the
+  base numbers new in the sitemap and the skip entries due again (90 days)
+  that is every product not freshly skipped; the diagnostics log counts the
+  three groups.
+- **Discontinued** means missing from the sitemap or now out of scope. A
+  known tea whose numbers are still in the sitemap but whose page couldn't
+  be read this time (robots.txt, 404, a page without product) is copied into
+  the new catalog unchanged, so one bad answer neither hides a tea nor makes
+  it „Neu" again later. A tea that left the range stays, hidden, with
+  `discontinued = 1` while a collection tea links to it (the owned keys read
+  from `umamit.db` before the swap, D-076); otherwise it is deleted with its
+  packages and photos. Back in the shop, it is in the range again and keeps
+  its `first_seen_at`.
+- **Photos** (CAT-08): `photo_url` holds the URL the stored photo came
+  from; a photo is downloaded only when the page's URL differs (the shop's
+  media URL carries the image's version, `?ts=`) or no photo is stored. A
+  changed photo that can't be fetched leaves the old one and its old URL,
+  so the next refresh asks again. `photo_etag` stays empty: an ETag needs a
+  conditional request, which still costs one.
+- **„geändert"**: `content_hash` is `<parser version>:<SHA-256>` of what the
+  shop shows of a tea (page fields, photo URL, packages with prices and
+  stock), not of what the app derives (style, recipes, flag, plain text).
+  Hashes count only under the same parser version, so an app update with a
+  new parser does not report every tea as changed; a tea back in the range
+  counts as changed too.
+- **Summary** (CAT-07 AC3), in the sheet and the result notification: „276
+  Grüntees · 12 neu · 5 geändert · 2 nicht mehr im Sortiment · 3 Rezepte
+  prüfen", each part only above 0 and never broken across lines
+  (non-breaking spaces). „Rezepte prüfen" counts the teas flagged
+  since this refresh (new ones, or known ones not flagged before), not every
+  flagged tea, which D-082's `flagged_count` did; the log stores the same
+  counts. The first load leaves out „neu" (every tea is, as with the badge,
+  D-083); a later refresh without change says „keine Änderungen".
+- **SCR-21:** a discontinued tea kept for the collection shows the tag
+  „Nicht mehr im Sortiment" and no *Im Shop öffnen* (as INV-09 AC2).
+- **CAT-15:** after each successful swap, until done: the seed teas
+  Tanabata and Hisui (by id, CAT-13) whose `catalog_key` the catalog holds
+  and which have no description get the catalog's plain-text description
+  and, only without a cover, its photo re-encoded as their own JPEG
+  (D-076). Each tea is one `umamit.db` transaction that checks again; the
+  marker `seedTeasLinked` (DataStore, 05 §6) is set after the first run
+  that found a seed tea, so a description emptied later is never filled in
+  again, and a run cut short before the marker changes nothing the second
+  time. Before the seed exists (D-075) nothing is marked. A failure is
+  logged and never fails the refresh, whose swap is in; the steps after the
+  swap are not cancellable.
+
+<a id="d-085"></a>
+### D-085 — Adding and repurchasing a catalog tea (#71) · *Accepted* (Claude, 2026-10-25)
+
+The eighth M2 slice (spec #62, #71) adds a catalog tea to the collection or
+records a repurchase (CAT-12, CAT-13, TEA-01, INV-01). Decided while building
+it:
+
+- **Duplicate guard:** the collection tea linked to a catalog key is the one
+  with that `catalog_key` that is not archived, else the oldest. An owned key,
+  Tanabata's `TG0213` and Hisui's `TG0557` included, always records a
+  PURCHASE event, never a second tea; the guard is read again inside the
+  write's transaction. A repurchase of an archived tea brings it back
+  (TEA-04: archived when used up). A repurchase changes nothing else.
+- **The copy** (`AddFromCatalog`, one transaction in `umamit.db`): the derived
+  recipes in their order with the default first and exactly one default (the
+  style's recipes when the catalog has none), each keeping its source; the
+  tea's „Rezept prüfen" reason; an INITIAL event with the grams, the price in
+  cents (or none) and `package_label` „250 g"; `catalog_key`, `product_url`,
+  vendor „Tee-Kontor Kiel", *Sorte*, style, form (08 §2.6), umami level
+  (the shop's scale, else the style's), the plain-text description, and the
+  fields of 08 §2.3's conversion table. The country becomes its ISO code
+  from a list of the shop's country names (unknown: empty). A bare season
+  („Sommer") counts only in the *Ernte* badge, never in the prose; prose
+  shading counts only in a sentence about shading. Nothing links the copy to
+  the catalog but `catalog_key`, so no refresh changes it (CAT-13).
+- **Cover:** the catalog's own `<key>.webp` is re-encoded with the cover
+  target (≤ 2048 px JPEG 85) into `photos/<id>.jpg` with a `CATALOG_COPY` row
+  (D-076); only the app's own WebP is accepted there, the shop's images stay
+  JPEG only. Without a usable photo the tea has no cover.
+- **Purchase date → `occurred_at`:** today is now; an earlier day is noon of
+  that day in the phone's zone. The date can't be after today.
+- **Exact price** (GEN-01 (c), D-074): one `ShopSession` (`NetworkRetry.NONE`)
+  per open sheet, so robots.txt is read once however many sizes are priced.
+  Only the chosen size is fetched, once per sheet, and only when its price is
+  an estimate or missing and it has its own page; the page's own size from the
+  refresh is the shop's price already and sends nothing. The page must show
+  that size (its unit content), else there is no price. Offline, on any stop
+  or for another size the estimate (or no price) stays. A price typed before
+  the exact one arrives is kept; saving never waits.
+- **SCR-23:** the sizes smallest first with their prices, *Andere Menge* with
+  an amount field, the price field with a line saying where the price comes
+  from, *Kaufdatum* with Material's date picker, *Aufnehmen* / *Nachkauf
+  erfassen*. The sheet opens on the size bought last (repurchase), else the
+  size with the shop's own price, else the first priced one. A failed save
+  keeps the sheet open with a message. An alert removes the sheet in the same
+  frame and it stays closed; it can't be opened during one (rule 8). SCR-21's
+  primary action is *In Sammlung aufnehmen*, or *Nachkauf erfassen* for an
+  owned tea. The route reports the saved tea for the picker flow (#72).
+
+<a id="d-084"></a>
+### D-084 — A killed process's stale foreground notification is taken over and removed (TMR-41, D-044; corrects D-080) · *Accepted* (Claude, 2026-10-25)
+
+`ProcessDeathTest` (CI emulator, API 35) failed again with D-080 in place:
+after the kill, notification 1 (`ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE`)
+was still posted next to the new process's alert. Root cause from the AOSP
+sources (`NotificationManagerService`, `ActiveServices`, `ServiceRecord`):
+
+- **D-080 was wrong.** A killed service does not keep its notification:
+  `killServicesLocked` brings it down (`START_NOT_STICKY`, no start pending)
+  and `cancelForegroundNotificationLocked` cancels the notification as the
+  system. The restarted service gets a new record with no foreground
+  notification. An app's cancel never removes a notification flagged
+  `FLAG_FOREGROUND_SERVICE` (`cancelNotificationWithTag` refuses it for callers
+  other than the system), before `startForeground` or after it, so D-080's
+  second cancel changed nothing. It is removed.
+- **What leaves notification 1:** the process dies while it posts an update of
+  its foreground notification. In the test this is D-071's re-post, 0.5–0.8 s
+  after the start, about when the test kills. `enqueueNotificationInternal`
+  flags the update as the foreground notification on the binder thread (the
+  service is still in the foreground) and only later queues it on the
+  NotificationManager's handler. The system's cancel for the dead service can
+  come in between. The update is then posted after the cancel, as a new
+  notification that keeps the flag but belongs to no service. The app cannot
+  cancel it, and the new process's `startForeground(2)` does not touch it, so
+  it stays next to the alert, which Android 16 would group and silence (D-044).
+  D-071's re-post stays: any update of the foreground notification can meet a
+  kill, and the re-post only makes the test's kill meet one more often.
+- **Decided:** when the service starts in the foreground while it is not
+  there yet (its first start, or one after a refusal), it first looks among
+  its active notifications for the other timer ID with
+  `FLAG_FOREGROUND_SERVICE`. If it finds one, it calls
+  `startForeground(other, copy)` with a copy of it (only-alert-once, no
+  full-screen intent) and then `startForeground(id)` as before. The switch
+  makes the system cancel the old ID (`setServiceForegroundInnerLocked` →
+  `cancelForegroundNotificationLocked`). The copy's post, that cancel and the
+  new notification's post go through the ActivityManager's handler in this
+  order, so the stale notification is gone before the new one is queued. It
+  works both ways: a stale notification 1 before the alert, a stale alert
+  before notification 1. The diagnostics log records the takeover (06 §5.6).
+- **Never at the alert's cost:** a failure of the lookup or of the extra call
+  is logged, and the normal start follows. The cost is one
+  `getActiveNotifications` call per such start, plus one `startForeground`
+  call when a stale notification exists. After a takeover, the new ID's
+  `startForeground` is the service's second one, which Android checks again
+  against the background-start rules. The exact alarm's allowance and the
+  battery exemption (ONB-02) allow it. If it is refused, the existing
+  fallback (04 §6.3) leaves the foreground, which also removes the
+  taken-over notification, and posts the alert alone.
+- **Limits:** a stale notification stays until the service next starts in the
+  foreground. The paths without the service (a long step, a demoted session,
+  the end of the session) cannot remove it. A notification whose system
+  cancel is still on its way (a stop right before the start) can be taken
+  over too; it goes all the same. So far a stale notification has been seen
+  only in the emulator test.
+- **Tests:** `StaleForegroundNotificationTest` (Robolectric) uses shadows that
+  add the AOSP rules Robolectric leaves out: an app's cancel is refused for a
+  flagged notification, an update keeps the flag, and a foreground switch or a
+  removing stop cancels as the system. They do not model the race itself.
+  `ProcessDeathTest` keeps its assertion. Its failure message now adds the
+  kill time and the device state, and it logs whether the kill left
+  notification 1. `timer-stress.yml` (dispatch only; it must be on `main`
+  before its first dispatch, D-039) repeats one instrumented test with
+  `scripts/stress-instrumented.sh`. It can sweep the kill moment across the
+  re-post (`umamitKillAfterStartMs`). 04 §6.3 and §12 and 06 §6 updated.
+
+<a id="d-083"></a>
+### D-083 — Finding teas in the catalog: search, filters, „Neu" (#69) · *Accepted* (Claude, 2026-10-25)
+
+The catalog list (SCR-19) gets CAT-10's search, filters and sort. Decided
+while building it:
+
+- **„Neu"** is a tea whose `first_seen_at` is the start of the latest
+  successful refresh, and only when an earlier successful refresh exists: the
+  first refresh finds every tea, so 274 „Neu" badges would say nothing. A
+  refresh keeps a known tea's `first_seen_at` at the swap (D-077); a refresh
+  that fails or is cancelled ends nobody's „Neu". The badge stays until the
+  next successful refresh.
+- **Filters** live in a pure `CatalogBrowser` (`core:domain`) over the
+  current range; the search runs on `catalog_fts`. Chips and sheet as in
+  03 SCR-19 (D-076). „Rezept prüfen" is a row badge, not a filter (CAT-10 has
+  none). *Umami* filters by the shop's umami scale (08 §2.6: 0 none … 4–5
+  very high); a tea without a scale passes only „Egal". Several origins of
+  one tea („Japan, Korea") count each. Stock unknown counts as available.
+- **Search:** every word of the search text is a prefix, all required, any
+  other character only separates words (so no FTS syntax reaches the
+  query). `catalog_fts` uses the `unicode61` tokenizer, so „älpler" finds
+  „Älpler" and „goko" finds „Gokō" (05 §4.1; `catalog.db` is not frozen
+  before `v0.2.0-rc.1`). The filters apply to the hits too; the hits they
+  hide are counted with *Alle zeigen*, so a flavoured tea is „searchable but
+  hidden" (D-073) without vanishing silently.
+- **„im Besitz"** is a catalog key some collection tea links to
+  (`tea.catalog_key`, archived teas included), read from `umamit.db` by a
+  new query; no schema change.
+- **Not stored:** search, filters and sort live as long as the screen; the
+  list always opens in the default view (D-073), so 05 §6's `catalogSort`
+  setting is dropped.
+- **One badge slot:** `TeaListItem`'s `badges` is a wrapping row
+  (`FlowRowScope`); the catalog rows put „Neu", „im Besitz", Bio and
+  aromatisiert there next to D-082's `CheckRecipeBadge`.
+
+<a id="d-082"></a>
+### D-082 — Timer recipes from the catalog and „Rezept prüfen" (#68) · *Accepted* (Claude, 2026-10-25)
+
+The fifth M2 slice (spec #62, #68) derives each catalog tea's timer recipes
+(CAT-04) and flags those to check (CAT-05). Decided while building it:
+
+- **Where the code lives:** 08 §3's green styles are `BuiltInStyles` in
+  `core:domain` (D-076), so the collection editor (M3) can use them too;
+  `StyleMapper`, `RecipeDeriver` and `CatalogRecipes` (page → style, recipes,
+  reason) are in `core:catalog-parser`. A recipe without a tea is a
+  `RecipeTemplate` (`core:model`) with the timer's own `RecipeStep`s; it becomes
+  a `Recipe` when the tea is added (#71). Tests check every derived recipe
+  against the engine's step model and PRF-03/04.
+- **Derivation details** (08 §2.5, listed there): a recipe's source is its
+  least certain field; grid columns by header label; the prose split into hot
+  and Kaltaufguss paragraphs; all steps from the style when the first is;
+  style follow-ups keep the style's temperature rise; 5 s / 1 min / 5 ml /
+  0,1 g grids; a conflict only against every grid row; one reason per tea by
+  priority (implausible, conflict, style default, text, unmapped style). The
+  PO's second western infusion keeps the recipe's source (the shop's grid
+  sits next to it in the detail).
+- **Style mapping** (08 §2.6): the name and the *Sorte* are searched with the
+  more specific keywords first; a flavoured tea no keyword names is
+  `flavored_green`, a Mizudashi bag without a style name `green_generic`, both
+  unflagged; a flavoured sencha stays Japanese, so its Kyusu row is the default
+  (08 example `TG0569`).
+- **Refresh:** each green tea's `style_key`, `derived_recipes_json` (05 §4.1)
+  and `recipe_check_reason` are written with its row; the log's
+  `flagged_count` counts the flagged teas of a swapped-in catalog (for #70's
+  summary; D-086 counts only those flagged since the refresh). The sanity check's brewing threshold (08 §2.9) is on: a green tea
+  lacks brewing information with neither a grid row nor brewing prose.
+- **Parser fixes from live sample 1** (parser version 4, after #67's 3): the
+  brewing prose is only paragraphs that are instructions (two of temperature, time and amount
+  per volume, or one with a brewing word); tasting notes on the liquor, video
+  pointers, package sizes and storage hints are not, because a wrong value from
+  the text is worse than the style default. Each multi-value property span's
+  own leading „, " is dropped before joining; taste-scale labels lose their
+  colon („Umami:"), so the Umami level maps; control characters become spaces
+  in every text read (08 §2.3, §2.8).
+- **SCR-21:** *Abgeleitete Rezepte* follows *Zubereitung*: „Rezept prüfen"
+  with its reason when flagged, then each recipe (name, „Standard", „4,0 g ·
+  200 ml · 65 °C" or „kalt", the steps with a hotter step's temperature,
+  „Aufschlagen 0:20" for matcha) and the source of a non-default recipe not
+  from the table. **SCR-19:** a flagged tea's row carries the
+  `CheckRecipeBadge` chip (03 §3.8), a slot of `TeaListItem` that the other
+  chips (#69) can use too.
+
+<a id="d-081"></a>
+### D-081 — Catalog package sizes and prices, split numbers (#67) · *Accepted* (Claude, 2026-10-25)
+
+The catalog shows each tea once with all its sizes (CAT-02, CAT-11, 08 §2.4
+items 6–7). Decided while building it:
+
+- **No size page is fetched** (D-076's budget): the sizes are the union of
+  the page's configurator options („250g 3% gespart¹") and the sitemap's
+  `<base>-<grams>` URLs. The fetched page's own size (its unit content, else
+  the checked option) has the page's price and stock; a larger size is
+  estimated by 08 §2.4's formula (savings from its option, else 0 %), half up
+  to the cent; a smaller size has no price („Preis beim Hinzufügen"); the
+  other sizes' stock is unknown. Each size keeps its sitemap URL as
+  `variant_url` (the product page for the page's own size; none for a size
+  only the configurator names, whose article number is then `<base>-<grams>`).
+  `label` is „250 g · 3 % gespart" as in 05 §4.2. Parser version 3.
+- **Split numbers** are merged after all pages are read, before the staging
+  tables are filled: same normalised name (lower case, sizes such as „30g" and
+  punctuation removed; the URL slug when a page has no name), only when the
+  pages' own sizes differ. Two pages with the same name and the same size are
+  two teas (e.g. two harvests), and a size can be a package only once
+  (primary key `catalog_key`, `grams`). The lowest number is the key and its
+  page gives the details; a size's own page wins over another page's
+  estimate; the tea is in stock when any of its pages is; the price per 100 g
+  is the key page's. Merges are written to the diagnostics log (numbers only).
+- **SCR-21 *Packungen*:** after *Zubereitung*, one row per size, smallest
+  first: „12,40 €", „≈ 30,07 € · 3 % gespart", „Preis beim Hinzufügen", with
+  „nicht vorrätig" for a size known to be out of stock and a note under the
+  rows explaining „≈" when an estimate is shown. Numbers and units are joined
+  by non-breaking spaces so a row never breaks inside „3 % gespart" at large
+  font sizes. The list keeps the price per 100 g (CAT-10, #64).
+
+<a id="d-080"></a>
+### D-080 — The other timer notification is cancelled again after `startForeground` (TMR-41, D-044) · *Accepted*, corrected by D-084 (Claude, 2026-10-25)
+
+The CI emulator test `ProcessDeathTest` (API 35) once found notification 1
+still posted, with its foreground flag, next to the alert of a step whose
+process had been killed. The service cancels the other notification before
+`startForeground`. After a process death, though, the system can still hold
+notification 1 as the restarted service's foreground notification, and it
+ignores a cancel of the current foreground notification. The service now
+cancels the other notification once more right after `startForeground`, when
+it is no longer the foreground one. Only one of notifications 1 and 2 is
+shown at a time again (D-044). Robolectric cannot reproduce the system's
+refusal, so the emulator test stays the check.
+
+*Corrected by D-084:* the system does not keep a killed service's
+notification, and it refuses the app's cancel of a flagged notification
+after `startForeground` too, so the second cancel had no effect and is
+removed. The notification is a stale one that the kill left behind; the
+service takes it over and so removes it.
+
+<a id="d-079"></a>
+### D-079 — Catalog refresh in the background: service, notifications, entry points (#65) · *Accepted* (Claude, 2026-10-25)
+
+The refresh keeps running with the phone locked (CAT-07 AC1, 06 §5.3) and
+gets its three entry points. Decided while building it:
+
+- **Hosting:** the refresh job stays in the app's own scope
+  (`AppCatalogRefreshRunner`, D-077). `CatalogRefreshService`, the `dataSync`
+  foreground service, keeps the process running while it lasts and follows
+  the runner's state for its notification; it has no refresh logic, so the
+  screens keep observing the same `CatalogRefreshRunner`, and *Abbrechen* in
+  the sheet and in the notification cancel the same job. The system creates
+  the service; the app hands it the refresh through `CatalogRefreshHost`
+  (the timer's `TimerHost` pattern, D-057).
+- **The timer first (rule 8, CAT-07 AC8):**
+  - own service, channel `catalog` (LOW, so Android 16 sorts it into the
+    silent section and never groups it with the alert, D-044), own
+    notification IDs (10 progress, 11 result), own wake lock, no alarms;
+  - the progress notification changes at most every 2 s: Android drops an
+    app's notification updates beyond five a second, and the timer's Live
+    Update must never be one of them;
+  - every start calls `startForeground` before anything else, and only the
+    latest start stops the service (`stopSelfResult`): a service started with
+    `startForegroundService` that stops without it crashes the process;
+  - a refused foreground start (Android 15+'s six-hour daily `dataSync`
+    budget) is logged, and the refresh then runs while the app lives, as in
+    #64; at the end of the budget (`onTimeout`) the refresh is cancelled and
+    the service stops at once;
+  - an error the refresher does not turn into an outcome itself (e.g. a stack
+    overflow on a page) ends the run as „shop changed" instead of the process.
+- **Locked phone:** a foreground service alone does not keep the CPU awake.
+  The service holds a partial wake lock of its own (`UmamiT:CatalogRefresh`),
+  renewed with each progress update and expiring 10 min after the last one, so
+  a stuck refresh never drains the battery; it is released at the end
+  (`WAKE_LOCK` was declared for the timer already; 06 §5.7 updated).
+- **Notifications:** the progress „Katalog wird geladen · Seiten: 120 von 1560
+  · Produkte: 40" with *Abbrechen*; at the end a quiet result („Katalog
+  geladen · 274 Grüntees · 12 neu", or „Katalog nicht geladen" with the
+  reason), none after *Abbrechen* or when the result was seen in the app
+  already; seeing the result in the app or starting the next refresh removes
+  it. A tap opens the app where it was, like its launcher icon. A deep link
+  into SCR-19 would be a navigation of its own that must give way to alerts
+  like the timer's; it is left out for now (03 §2.4 updated).
+- **Entry points:**
+  - Sammlung › Katalog's ⋮ menu: *Katalog aktualisieren* starts the refresh
+    and opens the sheet (during an alert it starts without the sheet);
+  - Settings, section *Katalog* (SET-23): „Letzter Abruf" with the date of
+    the last successful refresh from the refresh log („21. Okt. 2026", or
+    „Noch nie") and *Jetzt aktualisieren*, which waits while a refresh runs;
+    progress and result show in the notification;
+  - the setup's third page (ONB-03): *Katalog jetzt laden* shows the progress
+    inline and *Weiter* finishes the setup while the load goes on; *Später*
+    loads nothing. The page belongs to every run of the setup (also
+    *Einrichtung erneut zeigen*); a phone set up before M2 never sees it
+    (D-073).
+
+<a id="d-078"></a>
+### D-078 — Catalog tea detail: parser rules, photos, shop link (#66) · *Accepted* (Claude, 2026-10-25)
+
+The second M2 slice (spec #62, #66) fills every CAT-03 field, downloads the
+photos and shows a catalog tea's detail (SCR-21). Decided while building it:
+
+- **Parser rules** (08 §2.3, parser version 2): every detail field is read
+  from a copy of the page without the other products it embeds (D-076).
+  Several values of one property are joined with „, ". The region is the
+  first of a fixed list of growing regions (Japan, China, Taiwan, Korea)
+  named as a whole word in the title, else in the description. *Flavoured*:
+  an *Aroma* other than „naturbelassen", an ingredient other than tea, or the
+  flavoured section; roasted rice (genmaicha) is no flavouring, and footnotes
+  („*aus kontrolliert ökologischem Anbau") are no ingredients. The brewing
+  prose is the description's paragraphs about brewing (Zubereitung, Aufguss,
+  amounts in g or ml, °C), verbatim; `brew_table_raw` holds one object per
+  grid row, `{"kind":"japan","cells":[{"label":"Menge","text":"~4g/100ml"},…]}`,
+  the labels from the grid's header.
+- **Description** (08 §2.8): staff tips, scripts, styles, forms, images and
+  embeds are removed (a video player becomes a plain link); headings become
+  bold paragraphs; only paragraphs, line breaks, bold, italics, lists and
+  absolute http(s) links remain, without attributes but `href`.
+  `description_text` is its plain text, one paragraph per block.
+- **Photos** (CAT-08): the sanity check runs before the photos, so a broken
+  parser costs no photo request. Each green tea's photo goes through the
+  refresh's shop session; a photo that is missing, disallowed or doesn't
+  decode leaves that tea with the photo it had (or none), a stop ends the run
+  like any stop. `photo_file` stores the file name (`<key>.webp`). After
+  every run, successful or not, the photo files of teas the catalog doesn't
+  hold are deleted. With SET-22 off, a refresh fetches no photo and keeps the
+  photos already stored. Until #70 every photo is downloaded again on each
+  refresh (no change detection yet; D-086 adds it).
+- ***Im Shop öffnen*** (D-072): the size of the latest INITIAL or PURCHASE
+  event is matched by grams, else by its package label; without a match the
+  product page opens. The page goes to the browser as a `VIEW` intent
+  (`CATEGORY_BROWSABLE`); without a browser a short message says so.
+- **SCR-21 layout:** the photo full width (4:3, the type-coloured leaf
+  without one) with the back button over it; name, secondary name, tags
+  (*Sorte*, Bio, aromatisiert, Coldbrew geeignet, nicht vorrätig), price per
+  100 g and *Im Shop öffnen*; then the sections *Steckbrief*, *Geschmack*
+  (scales as five leaves, aroma, taste), *Beschreibung* and *Zubereitung*
+  (the shop's grid per method and its text, verbatim), each only when the
+  shop fills it. The derived recipe, the packages and *In Sammlung
+  aufnehmen* follow with #68, #67 and #71.
+
+<a id="d-077"></a>
+### D-077 — Catalog refresh tracer bullet: staging, skip list, parser rules, sheet (#64) · *Accepted* (Claude, 2026-10-25)
+
+The first M2 slice (spec #62, #64) runs *Katalog laden* from the empty
+Katalog tab to a filled list. Decided while building it:
+
+- **Staging tables** (05 §4.5): `catalog_tea_staging` and
+  `catalog_package_staging` are real tables of `catalog.db` (part of its
+  frozen schema from `v0.2.0-rc.1`) with exactly the columns of `catalog_tea`
+  and `catalog_package` in the same order (the staging entities embed the
+  live ones; a test holds them equal), so the swap is `INSERT … SELECT *` in
+  one transaction. Each refresh empties them first and after any end without
+  a swap. `catalog_package` is keyed by (`catalog_key`, `grams`).
+- **The skip list changes only with a successful swap**, in the same
+  transaction. A refresh that stops, is cancelled or fails the sanity check
+  keeps no classification, so a broken parser or a renamed shop section can
+  never hide teas for 90 days; the price is that an interrupted first
+  refresh classifies again next time. A product page without a breadcrumb is
+  neither kept nor skipped and counts as defective for 08 §2.9.
+- **Sanity check** (08 §2.9): defective pages count among the products and
+  as lacking name, price and article number; the brewing threshold is judged
+  only once the parser reads the brewing grid and prose (#68).
+- **Parser rules** (08 §2.3): the secondary name is the Japanese or Chinese
+  text in the title (kana, kanji, CJK brackets), the name the rest without the
+  size suffix; *Sorte* is the title of the breadcrumb's green type level
+  (`…/japan/<type>/`, `/tee/japantee/<type>/`, `matcha-teepulver`), else
+  empty; the price per 100 g comes from the unit price, else from price and
+  content; stock is unknown (null) when the buy box shows neither a buy
+  button with delivery information nor a stock notification. Only the
+  product's own buy box is read. The live sample run checks these rules.
+- **Discovery** (08 §2.4): a product URL is `/<slug>/<article number>`; per
+  base number the parent's page is fetched, else its `M` page, else the
+  smallest size. A sitemap that is missing, disallowed, broken or lists no
+  product is a structural failure.
+- **Outcomes:** success; cancelled; blocked (challenge, Cloudflare block,
+  429, `Retry-After`); offline; shop unavailable (401/403/5xx without
+  Cloudflare); shop changed (structural, also for an unexpected error, so a
+  refresh bug never crashes the process the timer runs in); storage failed.
+  Each failure carries technical details for *Details kopieren* (counts and
+  article numbers, no shop content) and is logged (`catalog_refresh_log`,
+  diagnostics log).
+- **Hosting until #65:** an app-scoped job (`AppCatalogRefreshRunner`) runs
+  the Android-independent `CatalogRefresher` while the app's process lives;
+  #65 moves it into the `dataSync` foreground service behind the same
+  `CatalogRefreshRunner`. Closing the sheet never stops the refresh; the empty
+  state then offers *Fortschritt anzeigen*. An alert removes the sheet in the
+  same frame (rule 8).
+- **Sammlung › Katalog** is a slot of `CollectionScreen` that the app fills
+  with `feature:catalog` (no feature-to-feature dependency, 06 §3); the
+  catalog's lazy list scrolls itself below the segmented control. Until #69
+  the list shows every tea of the current range by name, with *Sorte* and
+  price per 100 g; until the PO's A8 arrives, the empty state shows the
+  placeholder landscape.
+
+<a id="d-076"></a>
+### D-076 — M2 implementation clarifications (exploration of the shop and the code) · *Accepted* (PO for the request budget, Claude for the rest, 2026-10-25)
+
+An exploration before the first M2 slices (spec #62) found contradictions
+between the specs, the tickets and the code. Resolved:
+
+- **Request budget (PO):** the live sitemap lists ~1,560 distinct base
+  article numbers across all shop categories, not ~700. The first refresh
+  classifies every unclassified parent once, so it takes ≈ 15–18 min
+  (background service, phone may be locked); later refreshes stay ≈ 3–4 min.
+  No prefix shortcut, so no green tea is missed. NFR-PERF-11 first refresh
+  ≤ 20 min; 06 §5.3 and 08 §2.4 updated.
+- **Retries:** CAT-07 AC2's „≤ 3 retries" applies only to timeouts and
+  connection errors of a refresh request. Each retry is a new call through
+  `ShopClient` (rate-limited, allow-listed), after 2/4/8 s. Stop signals
+  (challenge, block, 429, `Retry-After`) and HTTP errors are never retried.
+  This keeps D-050 (one network attempt per call). Seed photos (run once)
+  and the exact price fetch (falls back to the estimate) don't retry.
+- **Structural failure:** the refresh aborts by the three thresholds of
+  08 §2.9, not by a single „< 50 % parsed" rule (#64's wording).
+- **Manifest:** `FOREGROUND_SERVICE_DATA_SYNC` is already in the allowed
+  list of the manifest check (06 §5.7); M2 adds the permission and the
+  service to the manifest only.
+- **Filters:** CAT-10 is the source of truth. SCR-19 shows the frequent
+  filters as chips and the rest in a filter sheet; #69 aligns 03.
+- **catalog.db columns:** a plain-text `description_text` for search (FTS),
+  and the thumbnail as `<key>_thumb.webp` next to the photo (05 §4.1).
+- **Discontinued teas kept when owned:** the refresh reads the owned
+  `catalog_key`s from `umamit.db` before the swap (two databases, no shared
+  transaction).
+- **Built-in styles:** 08 §3's style table is code for the first time
+  (pure module). Styles without a cold-brew default use sencha's (08 §2.5
+  step 6).
+- **Photos copied into the collection** (*In Sammlung aufnehmen*, CAT-15)
+  are re-encoded to the collection's JPEG format, so restore detection
+  keeps them.
+- **Page parsing:** selectors are scoped to the product's own sections
+  (product pages embed other products); the nested brewing grid is
+  de-duplicated; staff tip blocks are stripped from the description; the
+  sitemap `.xml.gz` is decompressed by the app (the shop sends no
+  `Content-Encoding`). Challenge markers are checked only on refusals, as
+  `ShopClient` already does, because normal pages contain the marker text.
+
+<a id="d-075"></a>
+### D-075 — Seed retry at app start (#58 D-O1, M2-11) · *Accepted* (Claude, 2026-10-25)
+
+A seed that failed on the first start (D-066: logged, the download left due)
+was never retried after *Weiter*, so Start and the tea picker stayed empty.
+
+- **Every app start retries the seed** while `seedDataCreated` is false:
+  `UmamitApplication` calls `FirstStart.retrySeedAtAppStart`, once per
+  process, in the first start's IO scope. It runs only once the setup is done
+  (`onboardingCompleted`); before that the setup page's first start seeds. The
+  seeder's own rules stay: one transaction, nothing on a database that already
+  holds personal data (a restore), the marker set afterwards. A failure is
+  logged and retried at the next start; nothing is shown.
+- **Only the seed, never the photo download.** The retry sends no request,
+  so the one-time seed photo download (ONB-06, D-050) stays a first-start
+  setup thing: it is never repeated, and it is not started outside the setup
+  either (GEN-01, NFR-PRIV-02). The covers of seed teas created by a retry
+  come with the first catalog refresh (CAT-15).
+- Instrumented tests mark the seed done before the setup (`SetupDoneRule`),
+  so the retry never seeds in the emulator.
+- **The #58 fixes of M2-11** ship with it (recorded here since D-090): the
+  navigation labels stay on one line and shrink to fit at a large font scale
+  („Sammlung" at 200 %, 03 §6), the tea picker sheet uses the page's
+  `surface` colour, a no-break space joins a number and its unit („80 °C",
+  „4,0 g") with „Std."/„Min." everywhere, and list separators come from
+  `strings.xml`.
+
+<a id="d-074"></a>
+### D-074 — Shared shop session and image targets (M2 prefactor, #63) · *Accepted*, JPEG-only sources amended by D-091 (Claude, 2026-10-25)
+
+**Shop session (`core:network`, rule 7):** the robots.txt handling and the
+stop mapping move out of the seed photo download into `ShopSession`, which
+the catalog refresh (CAT-07) and the exact price fetch (CAT-12) reuse. One
+session = one job; every request still goes through the one `ShopClient`.
+- `ShopSession.open` reads robots.txt once with D-050's status rules: 2xx
+  parsed; 404/410 → everything allowed; a stop answer → the session starts
+  stopped; any other answer → everything disallowed.
+- `fetch` returns `Fetched`, `Disallowed` (robots; nothing sent),
+  `Unavailable(code)` (3xx, 404, other 4xx: only this URL is left out) or
+  `Stopped(cause)`. The causes: network, challenge, Cloudflare block page,
+  429, `Retry-After`, 401/403/5xx.
+- Retries per D-076 are the session's `NetworkRetry`: `REFRESH` retries a
+  timeout or connection error after 2, 4 and 8 s (robots.txt included), each
+  a new call; `NONE` (seed photos, exact price) never retries. An oversized
+  answer or a refused second attempt is not retried; when the retries fail,
+  the session stops with `NETWORK`.
+- A stop is **sticky**: every later `fetch` returns the same stop without a
+  request. Fetches of one session are serialised, so a fetch queued behind
+  the stopping one is never sent. A cancellation is no stop.
+- A foreign host still fails with `HostNotAllowedException` (a programming
+  error). The seed photo download behaves exactly as before (D-050); its
+  `FailureCause` maps one-to-one from the session's `StopCause` plus
+  `STORAGE`.
+- Not in this step: `Crawl-delay` (the shop sets none, 08 §2.2) and a stop
+  shared across concurrent sessions.
+
+**Image targets (`PhotoTranscoder`, CAT-08):** re-encoding takes a target
+(long-side cap, optional short-side cap, format, quality) and never
+upscales or changes the aspect ratio. The source is decoded once, sampled for
+the largest target, and re-encoded without metadata.
+- Collection photos and covers: ≤ 2048 px JPEG 85 (05 §3.9, unchanged).
+- Catalog photo: ≤ 1200 px WebP (lossy, quality 80, D-073).
+- Catalog list thumbnail: WebP quality 80, short side 256 px (a round list
+  thumbnail up to 64 dp at 4× density), never larger than the photo. The
+  thumbnail size was not fixed before; it adds roughly 10 KB per tea to
+  CAT-08's 25–35 MB.
+- Sources stay JPEG only, as the shop's images are (08 §2.2); truncated,
+  oversized (> 8192 px per side or 40 MP) or undecodable images give no photo.
 
 <a id="d-073"></a>
 ### D-073 — M2 cut, behaviour and process (grilling with the PO) · *Accepted* (PO, 2026-10-25)
@@ -1281,7 +2255,7 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   M1-15 moves it under *Über*.
 
 <a id="d-059"></a>
-### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted* (Claude, 2026-10-22)
+### D-059 — Production alert player, four more tones, *Alarm testen* (M1-10, #44) · *Accepted*, its main-thread queue amended by D-092 (Claude, 2026-10-22)
 
 #44 turned the ringer-mode player of #16 into the controller's alert port
 ([04 §9](04-brew-timer.md#9-alerts)). Decided while building it:
@@ -1295,6 +2269,8 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
 - **Calls never block.** Every port call only queues a command; the
   commands run in order on the main thread, which the player and its
   Android outputs need. So a stop can never overtake its start.
+  *Amended by D-092:* they run in order on the player's own thread
+  (`UmamiTAlert`), not on the main thread.
 - **Settings per alert.** Tone (SET-09), vibration (SET-11) and alert length
   (SET-14) are read at the start of every alert, tick and test from a cache
   of the settings file. Right after the process starts, a command waits at
@@ -2523,6 +3499,26 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-26 | The PO approved the early design check #77 without changes and confirmed two choices: tea recipes stay out of the Ratgeber (D-089) and the `hojicha_powder` default (D-091). |
+| 2026-10-26 | D-092: the first pre-alert of a process (accuracy run on 83f2c5c, step 1: 1178 ms) loaded its sound inside the cue; while a timer is active the alert player now keeps the tick and the tone loaded (`keepReady` at the end of every turn) and a cue only starts its sound, with fallbacks that never cost the sound; the player runs on its own thread; the log splits each cue's start (queue, settings, outputs, sound loaded or not) and the accuracy summary names the slowest start; amends D-059. 04 §4, §9.1, 06 §5.6, 09 §4a updated. |
+| 2026-10-26 | D-091: fixes from full live run 1 — pages, photos and guides fetched while the previous answer is processed (same wire, expected first refresh ≈ 15–16 min), PNG and WebP photo sources with transparency on white, a 16 MB body limit for images (pages 5 MB), photos and guide images that failed for good remembered by URL (`catalog_image_failure`), sets in any case and by name or breadcrumb, `…SALE` duplicates left out, Mizucha brewing cold by default, the `hojicha_powder` style (whisked, no leaf recipe or cold brew); parser v6; 02 CAT-01, CAT-08, 05 §4.2b, §4.5, 06 §4, §5.2, §5.3, 07 NFR-PERF-11 and 08 §2.2, §2.4–§2.8, §3 updated. |
+| 2026-10-26 | D-090: M2 milestone review fixes — an answer over 5 MB leaves only its URL out (no stop), CAT-15 per seed tea and part with retries (`seedTeaLinksDone`, amends D-086), the exact price and the add never crash on a bad page, the two flaky tests made clock-independent (split, shortened request gap, Robolectric), on-screen backs and row/link taps only while resumed, the secondary name back in the catalog rows, no refresh start during a cancelled one's cleanup, a 30 s keep-alive, seed photos ended before a setup refresh, the add sheet's save outcome kept and prices from 1.000 €, no-break spaces in counts, the first-load duration in Settings, three M2 checklist items; 02 CAT-15, 03 SCR-01, SCR-19, SCR-23, 05 §6, 06 §4, 08 §2.8 and 09 §4 updated. |
+| 2026-10-25 | D-089: parser fixes from live sample 2 — Japan teas on tea-family pages kept by name or badge (Sorte from the name), Bi Lo Chun and Korean grade keywords, the China grid row as Gongfu, Mizudashi bags by name with the „kalt" row as cold brew and bag weights, video pointers never brewing prose, harvest year only from badge and title, no cold brew for powder, guides without comments, date list, empty video intros and tag lines, images de-duplicated by decoded URL, promotions/events/recipes not selected and ten more green-type keywords; parser v5; 05 §4.1 and 08 §2.3–§2.7 updated. |
+| 2026-10-25 | D-088: brewing a new tea from the picker (#72) — *Aus dem Katalog* runs through Sammlung › Katalog in the Sammlung tab, a save there opens the setup of that tea (a repurchase too), back returns to the picker, an alert wins; the setup shows „Rezept prüfen" with its reason above the steps; the „Gespeichert" sheet's *Rezept passt* clears the flag of that tea only; 03 SCR-03, SCR-04, SCR-06 updated. |
+| 2026-10-25 | D-087: *Ratgeber* (#76, CAT-09) — guides staged in `catalog_guide_staging` and swapped with the teas, `published_at` added, keyword-selected articles converted to the app's Markdown subset, images through the refresh's session (SET-22, ≤ 40 guides with ≤ 4 images each, ≤ 200 requests on a first refresh, named by URL hash, unchanged ones not fetched again), tea and guide links resolved in the app, list with A11 placeholder and article view; 03 SCR-19/SCR-20, 05 §4.3/§4.5, 06 §5.3 and 08 §2.4/§2.7 updated. |
+| 2026-10-25 | D-086: later catalog refreshes (#70) — merged numbers known through their packages, unread known teas kept, discontinued teas kept hidden while owned and deleted otherwise, photos fetched only when new or their URL changed, `content_hash` per parser version for „geändert", the CAT-07 AC3 summary in the sheet and the notification („Rezepte prüfen" = flagged since this refresh), SCR-21's „Nicht mehr im Sortiment", CAT-15 seed linking once with the `seedTeasLinked` marker; 02 CAT-07, CAT-15, 03 SCR-21, SCR-22, 05 §4.1, §4.4, §4.5, §6, 06 §5.2, §5.3 and 08 §2.4 updated. |
+| 2026-10-25 | D-085: adding and repurchasing a catalog tea (#71) — duplicate guard on `catalog_key` (seed teas included), the independent copy with recipes, flag, INITIAL stock and the cover re-encoded to JPEG, purchase date to `occurred_at`, the exact price of the chosen size once per sheet through one shop session, SCR-23 and SCR-21's primary action; 03 SCR-21/SCR-23 and 08 §2.3 updated. |
+| 2026-10-25 | D-084 (corrects D-080): a killed process can leave notification 1 (or the alert) flagged as a foreground notification that no service owns and the app cannot cancel; starting in the foreground while not yet there, the timer service takes the other ID over with `startForeground` and switches, so the system removes it before the new notification appears; D-080's second cancel removed; `StaleForegroundNotificationTest`, a more diagnostic `ProcessDeathTest`, `timer-stress.yml` and `scripts/stress-instrumented.sh`. 04 §6.3 and §12 and 06 §6 updated. |
+| 2026-10-25 | D-083: finding teas (#69) — „Neu" only after a second successful refresh, CAT-10's filters as chips plus a filter sheet, prefix search over `catalog_fts` with the `unicode61` tokenizer and a count of hits the filters hide, „im Besitz" from `tea.catalog_key`, filters not stored (`catalogSort` dropped); 03 SCR-19 and 05 §4.1, §6 updated. |
+| 2026-10-25 | D-082: timer recipes from the catalog (#68) — 08 §3's green styles in `core:domain`, style mapping and recipe derivation with their details, recipes and „Rezept prüfen" stored by the refresh, the brewing sanity threshold on, the reason in the detail and the chip in the list; parser fixes from live sample 1 (brewing prose, property separators, scale labels, control characters); 03, 05 and 08 updated. |
+| 2026-10-25 | D-081: catalog package sizes and prices (#67) — sizes from the configurator and the sitemap without fetching size pages, the page's own size at its price, larger sizes estimated, smaller ones priced when added, each with its own `variant_url`; split numbers merged by normalised name only when their own sizes differ; SCR-21 *Packungen*; parser v3; 03 SCR-21, 05 §4.2, 06 §2, §3 and 08 §2.4 updated. |
+| 2026-10-25 | D-080: the timer service cancels the other notification again after `startForeground`, so a killed step's notification 1 never stays next to the alert. |
+| 2026-10-25 | D-079: catalog refresh in the background (#65) — the job in the app's scope kept alive by the `dataSync` service, which follows it; own channel, IDs 10/11 and wake lock; progress at most every 2 s; `startForeground` first and `stopSelfResult`; refusal and time-limit handling; errors end the run, not the process; quiet result notification opening the app; entry points in the catalog menu, Settings (SET-23) and the setup's third page (ONB-03); 03, 04, 06 and 09 updated. |
+| 2026-10-25 | D-078: catalog tea detail (#66) — full 08 §2.3 field map (parser v2: joined properties, region list, flavoured rule, brewing prose and grid JSON), sanitised description, photos after the sanity check with orphan cleanup and SET-22, *Im Shop öffnen* by grams then label, SCR-21 layout; 02 CAT-08, 03 SCR-21, 05 §4.1, 06 §5.3 and 08 §2.3, §2.8 updated. |
+| 2026-10-25 | D-077: catalog refresh tracer bullet (#64) — staging tables with the live columns, skip list written only with a successful swap, sanity-check counting, parser rules for secondary name, *Sorte*, unit price and stock, product page choice, typed outcomes with details, app-scoped job until #65, catalog as a slot of Sammlung; 03, 05 and 08 updated. |
+| 2026-10-25 | D-076: M2 implementation clarifications — first refresh ≈ 15–18 min (~1,560 products, PO), retries only for timeouts/connection errors, 08 §2.9 abort thresholds, FTS text and thumbnail columns, owned keys read before the swap, style table and cold-brew fallback, JPEG copies, page parsing notes; 02, 05, 06, 07, 08 updated. |
+| 2026-10-25 | D-075: a failed first seed is retried at every app start once the setup is done, without the seed photo download; plus the #58 fixes of M2-11 (one-line nav labels at font 2.0, the picker sheet on `surface`, no-break space before units and „Std."/„Min.", separators from `strings.xml`). 05 §6, §7 and 08 §2.5a updated. |
+| 2026-10-25 | D-074: shared shop session (`ShopSession`: robots.txt once per job with the RFC 9309 status rules, typed fetch results, sticky stop, serialised fetches, D-076 retries for the refresh only) and image targets for re-encoding (catalog photo ≤ 1200 px WebP 80, list thumbnail 256 px short side, covers unchanged) from #63; 02 CAT-08, 06 §4 and §5.2, 08 §2.8 updated. |
 | 2026-10-25 | D-073: M2 grilled with the PO: CAT-12 add and repurchase in M2 with the picker flow, *Rezept passt*, guides last, small #58 items; catalog first loaded from the Katalog tab; refresh allowed during a brew (CAT-07 AC8); „Neu" badge; list grouped by Sorte, available only, „Pur" on; photos 1200 px plus thumbnails; live-shop tests by Claude; accuracy run only for rcs that touch timer code (09 §4a); early design check; A8/A11 now. |
 | 2026-10-25 | D-072: one-tap reorder: „Beim Tee-Kontor nachbestellen" visible on SCR-09 (new INV-09; filled when the stock is low), opening the shop page of the size bought last; CAT-11 / SCR-21 follow the same rule; checks added to 09 §4 M2/M3. Requested by the PO. |
 | 2026-10-23 | D-071: `BrewTimerService` posts a same-ID update made within 1 s of `startForeground` once more after 0.5 s (only-alert-once, only while still the foreground ID, newest wins), because AOSP posts the start's notification asynchronously and it can overwrite the update; service path logging, `dumpsys activity services` in the device test dump, wider CI logcat filter. 04 §6.3 and §8.3 updated. |

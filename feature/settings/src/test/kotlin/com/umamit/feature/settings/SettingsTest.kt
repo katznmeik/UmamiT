@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
@@ -14,9 +16,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.catalog.CatalogRefreshProgress
+import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeCatalogRefreshRunner
+import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.alert.AlertTester
@@ -34,7 +42,8 @@ import org.robolectric.annotation.Config
 /**
  * The timer settings (SCR-25): every M1 row persists in the settings (SET-09…11, 14, 17, 25), the
  * *Timer-Zuverlässigkeit* card follows the checks (SET-24), *Alarm testen* plays through the
- * player (SET-31), and no dialog stays over an alert (rule 8).
+ * player (SET-31), no dialog stays over an alert (rule 8), and *Katalog* shows the last refresh
+ * with *Jetzt aktualisieren* (SET-23).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -75,9 +84,12 @@ class SettingsTest {
     private var alertKey by mutableStateOf<String?>(null)
     private var aboutOpened = 0
     private var visible by mutableStateOf(true)
+    private val catalog = FakeCatalogRepository()
+    private val catalogRefresh = FakeCatalogRefreshRunner()
 
     private fun show(): SettingsViewModel {
         val viewModel = SettingsViewModel(settings, tester, reliability, preview)
+        val catalogViewModel = CatalogSettingsViewModel(catalog, catalogRefresh)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 if (visible) {
@@ -86,6 +98,7 @@ class SettingsTest {
                         onOpenAbout = { aboutOpened++ },
                         alertKey = alertKey,
                         viewModel = viewModel,
+                        catalogViewModel = catalogViewModel,
                     )
                 }
             }
@@ -107,6 +120,20 @@ class SettingsTest {
         compose.waitForIdle()
 
         assertThat(stored()).isEqualTo(UserSettings(vibration = false, keepScreenOn = false, dimWhileSteeping = false))
+    }
+
+    @Test
+    fun `Fotos laden in the Katalog section persists SET-22`() {
+        show()
+        assertThat(stored().catalogDownloadPhotos).isTrue()
+
+        clickRow("Fotos laden")
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(catalogDownloadPhotos = false))
+        clickRow("Fotos laden")
+        compose.waitForIdle()
+        assertThat(stored().catalogDownloadPhotos).isTrue()
     }
 
     @Test
@@ -239,5 +266,37 @@ class SettingsTest {
         compose.onNodeWithTag(SettingsTags.ABOUT).performScrollTo().performClick()
 
         assertThat(aboutOpened).isEqualTo(1)
+    }
+
+    @Test
+    fun `Katalog shows the last refresh, and Jetzt aktualisieren starts one`() {
+        catalog.catalog.value = CatalogOverview(emptyList(), lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS)
+        show()
+
+        compose.onNodeWithText("Letzter Abruf").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("22. Okt. 2026").assertIsDisplayed()
+        clickRow("Jetzt aktualisieren")
+
+        assertThat(catalogRefresh.starts).isEqualTo(1)
+    }
+
+    @Test
+    fun `before the first refresh Katalog says Noch nie`() {
+        show()
+
+        compose.onNodeWithText("Letzter Abruf").performScrollTo()
+        compose.onNodeWithText("Noch nie").assertIsDisplayed()
+        compose.onNodeWithText("Jetzt aktualisieren").assertIsEnabled()
+    }
+
+    @Test
+    fun `while a refresh runs Katalog says so and starts no second one`() {
+        catalog.catalog.value = CatalogOverview(emptyList(), lastRefreshAtMillis = FakeClock.DEFAULT_WALL_MS)
+        catalogRefresh.state.value = CatalogRefreshState.Running(CatalogRefreshProgress.STARTING)
+        show()
+
+        compose.onNodeWithText("Letzter Abruf").performScrollTo()
+        compose.onNodeWithText("Wird gerade aktualisiert …").assertIsDisplayed()
+        compose.onNodeWithText("Jetzt aktualisieren").assertIsNotEnabled()
     }
 }

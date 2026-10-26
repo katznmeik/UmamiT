@@ -6,7 +6,8 @@
 > controller inputs and ports, D-056; alarms, service and recovery in the
 > first turn, D-057; recovery triggers, device restore, alert watchdog, D-063;
 > accuracy workflow, D-067, 2026-10-23; deadline guard, accuracy up to the
-> sound, D-068, 2026-10-23)
+> sound, D-068, 2026-10-23; sounds loaded ahead, the alert player's own
+> thread, D-092, 2026-10-26)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time.
@@ -296,7 +297,10 @@ flowchart LR
   notification and holds the wake lock; no timer logic. Its port sends it the
   notification of the state and the wake-lock time (§6.3, D-057). The
   `AlertPlayer` is a process singleton the controller drives (D-059); the
-  service keeps the process in the foreground while it plays.
+  service keeps the process in the foreground while it plays. It runs on its
+  own thread, and at the end of every turn, after the turn's own cues, the
+  controller tells it whether a timer is active, so it keeps the sounds of
+  the next tick and alert loaded (§9.1, D-092).
 - UI renders remaining time per frame from the deadline while visible.
 
 ## 5. Time computation
@@ -441,6 +445,16 @@ rules (D-047):
   more 0.5 s later (only-alert-once, only while that ID is still the
   foreground notification; a newer update replaces it). Same-ID updates never
   call `startForeground` again (D-071).
+- A process killed while it posts an update of its foreground notification
+  can leave that notification behind, still flagged as a foreground
+  notification but owned by no service; the app can never cancel it. So a
+  foreground start of the service while it is not in the foreground first
+  takes over the other timer notification (1 or 2) when it is posted with
+  that flag: `startForeground` with a copy of it (only-alert-once, no
+  full-screen intent), then `startForeground` with its own notification, a
+  switch that makes Android remove the stale one before the new one appears
+  (D-044). A failure of the takeover is logged and the normal start follows
+  (D-084).
 
 ### 6.4 Samsung battery management
 
@@ -598,7 +612,7 @@ away, including the FGS restart attempt (D-063).
 Actions → non-exported receiver → controller (source NOTIFICATION).
 Notification IDs: 1 Live Update/FGS, 2 alert, 3 sessions, 4 the quiet
 notification without the service (a long running step, a demoted session;
-D-064), 10+ reminders/catalog. Content intent → SCR-05 through the app's
+D-064), 10 catalog progress and 11 catalog result (D-079), 12+ reminders. Content intent → SCR-05 through the app's
 launcher activity, named explicitly with `com.umamit.action.OPEN_TIMER`, which opens the timer route; the
 same intent is the alert's full-screen intent (D-064). Actions: *Start*,
 *Pause*/*Weiter*, *Abgegossen* (*Weggegossen* for a rinse, *Fertig* for the
@@ -716,6 +730,14 @@ ongoing notification** (Live Update):
   with the current settings, through the same player and matrix. It is
   ignored while a real alert or tick plays; a real one replaces a running
   test.
+- **Loading and thread (D-092).** While a timer is active, the player keeps
+  the tick and the current tone loaded, so a cue only starts its sound; a
+  used sound is loaded again right after its cue, and idle releases them.
+  Loading never waits for the settings file. A sound that is not loaded, or
+  a loaded one that fails, is loaded on the spot, so a failure costs time,
+  never the sound. The player runs on its own thread (`UmamiTAlert`), so a
+  busy main thread never delays a cue. Each step's tick and alert logs where
+  its start spent the time (06 §5.6).
 
 ### 9.2 Sounds
 
@@ -797,8 +819,8 @@ Uses the global pre-alert, the same alert and the Live Update
 | Level | Tests |
 |---|---|
 | Unit | Every transition in §3.2; pre-alert computation and skip rules; idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
-| Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`. |
-| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). |
+| Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
+| Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). A test that fails only now and then is repeated by the manually dispatched workflow `timer-stress.yml` (`scripts/stress-instrumented.sh`; for the kill during a step it can sweep the moment of the kill, D-084). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert, measured up to the moment the player started the sound (the „alert" entry), not the handling of the event (D-068). |
 

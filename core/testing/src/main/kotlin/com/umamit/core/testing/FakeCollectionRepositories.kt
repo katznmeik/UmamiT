@@ -73,6 +73,10 @@ class FakeTeaRepository internal constructor(private val c: FakeCollection) : Te
     override suspend fun setCoverPhoto(teaId: String, photoId: String?) = c.teaRows.update { map ->
         map[teaId]?.let { map + (teaId to it.copy(coverPhotoId = photoId)) } ?: map
     }
+
+    override suspend fun clearRecipeCheck(teaId: String) = c.teaRows.update { map ->
+        map[teaId]?.let { map + (teaId to it.copy(recipeCheckReason = null)) } ?: map
+    }
 }
 
 /** Fake [RecipeRepository]; create it through [FakeCollection]. */

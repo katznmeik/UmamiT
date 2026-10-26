@@ -2,6 +2,7 @@ package com.umamit.core.timer.service
 
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -27,6 +28,9 @@ import com.umamit.core.timer.TimerNotifications
  * - The alert (ID 2) replaces the Live Update (ID 1) as the foreground
  *   notification, and a Live Update posted without the service is cancelled,
  *   so Android 16 never force-groups the two and silences the alert (D-044).
+ *   Starting in the foreground, the service first takes over the other one when
+ *   a killed process left it flagged as a foreground notification, so the
+ *   switch removes it (D-084).
  * - A command sent while the service is already in the foreground only
  *   updates a notification of the same ID; a new ID takes `startForeground`.
  * - If `startForeground` is refused ([ForegroundServiceStartNotAllowedException]),
@@ -86,8 +90,9 @@ class BrewTimerService : Service() {
     }
 
     private fun show(id: Int, notification: Notification, foregroundRequired: Boolean) {
-        // Only one of notifications 1 and 2 at a time (D-044, 04 §8.2). The system ignores
-        // the cancel of the current foreground notification; startForeground replaces it.
+        // Only one of notifications 1 and 2 at a time (D-044, 04 §8.2). Android refuses an app's
+        // cancel of a notification flagged as a foreground notification; for the service's own,
+        // the switch of startForeground removes it.
         TimerNotifications.cancel(this, otherIdThan(id))
         // A pending re-post holds older content; this command is newer.
         cancelRepost()
@@ -98,6 +103,7 @@ class BrewTimerService : Service() {
             if (sinceStart != null && sinceStart < REPOST_WINDOW_MS) scheduleRepost(id, notification)
             return
         }
+        if (!ForegroundServiceState.isForeground) takeOverStale(otherIdThan(id))
         try {
             Log.i(TAG, "show($id): startForeground, foregroundRequired=$foregroundRequired")
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -111,6 +117,38 @@ class BrewTimerService : Service() {
             TimerNotifications.cancel(this, otherIdThan(id))
             TimerNotifications.post(this, id, notification)
             ForegroundServiceState.report(ServiceReport.Refused(id, e))
+        }
+    }
+
+    /**
+     * Takes over notification [id] when a killed process left it flagged as a foreground
+     * notification that no service owns (D-084): `startForeground` with a copy makes it this
+     * service's foreground notification, so the switch to the new ID right after removes it, as
+     * the system, before the new notification is posted (D-044). AOSP leaves such a notification
+     * when the process dies while it posts an update of its foreground notification: the
+     * system's cancel for the dead service can come first, and the update, already flagged,
+     * is posted after it. The app's cancel never removes it.
+     *
+     * Only while the service is not in the foreground (its first start, or one after a refusal):
+     * in the foreground, the other ID is its own foreground notification or an ordinary one. The
+     * copy never alerts again and opens no screen. Any failure is logged, and the normal start
+     * follows (rule 8).
+     */
+    @Suppress("TooGenericExceptionCaught") // the takeover is an extra; nothing it throws may stop the start
+    private fun takeOverStale(id: Int) {
+        try {
+            val stale = checkNotNull(getSystemService(NotificationManager::class.java)).activeNotifications
+                .firstOrNull { it.id == id && it.tag == null && it.notification.flags and FOREGROUND != 0 }
+                ?: return
+            val copy = stale.notification.clone().apply {
+                flags = flags or Notification.FLAG_ONLY_ALERT_ONCE
+                fullScreenIntent = null
+            }
+            Log.w(TAG, "show: taking over the stale foreground notification $id")
+            ServiceCompat.startForeground(this, id, copy, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+            ForegroundServiceState.report(ServiceReport.TookOverStale(id))
+        } catch (e: Exception) {
+            Log.w(TAG, "Taking over notification $id failed; starting without it", e)
         }
     }
 
@@ -156,6 +194,7 @@ class BrewTimerService : Service() {
 
     internal companion object {
         private const val TAG = "UmamiTService"
+        private const val FOREGROUND = Notification.FLAG_FOREGROUND_SERVICE
         private const val WAKE_LOCK_TAG = "UmamiT:BrewTimer"
         private const val ACTION_SHOW = "com.umamit.core.timer.action.SHOW"
         private const val EXTRA_ID = "com.umamit.core.timer.extra.NOTIFICATION_ID"

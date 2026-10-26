@@ -3,6 +3,7 @@ package com.umamit.core.timer.diagnostics
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.alert.AlertOutputs
+import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.controller.AlarmClock
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerDiagnostic
@@ -62,12 +63,17 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceInForeground ->
             "service: in the foreground with notification ${entry.notificationId} | ${clocks(entry.at)}"
 
+        is TimerDiagnostic.ServiceTookOverStale ->
+            "service: took over the stale foreground notification ${entry.notificationId} " +
+                "of a killed process to remove it | ${clocks(entry.at)}"
+
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->
             "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
                 "DND blocks ${yesNo(entry.conditions.dndBlocksAlerts)} -> ${outputs(entry.outputs)} | " +
                 "tone ${entry.tone}, length ${entry.length} | " +
+                (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
         is TimerDiagnostic.PermissionsAtStart -> with(entry.states) {
@@ -148,4 +154,14 @@ object TimerDiagnosticFormat {
 
     private const val MAX_ERROR_CHARS = 200
     private const val MS_PER_SECOND = 1_000L
+}
+
+/** Where a cue's start spent the time (D-092), e.g. `queued 2 ms, settings 0 ms, outputs 15 ms, sound ready`. */
+private fun CueStart.text(): String {
+    val sound = when (soundLoaded) {
+        true -> "sound ready"
+        false -> "sound loaded on play"
+        null -> "no sound"
+    }
+    return "queued $queuedMs ms, settings $settingsMs ms, outputs $outputsMs ms, $sound"
 }

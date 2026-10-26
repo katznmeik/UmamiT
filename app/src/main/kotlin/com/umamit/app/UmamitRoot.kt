@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -66,6 +67,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
+ * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
+ * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param setupScreen the setup route's content (SCR-04); tests replace it.
  * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
  *   read, and nothing is shown until then. Not done: the setup (SCR-01) is the start destination.
@@ -92,6 +95,8 @@ internal fun UmamitRoot(
         BrewTimerRoute(onClose = onClose, onAdjustBrew = onAdjust, onOpenTimerSettings = onSettings)
     },
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
+    catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
+    catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     setupScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
         BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
     },
@@ -202,6 +207,8 @@ internal fun UmamitRoot(
                     startNavigation = startNavigation,
                     alertKey = alert,
                     startScreen = startScreen,
+                    catalogScreen = catalogScreen,
+                    catalogScreens = catalogScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                 )
             }
@@ -220,7 +227,8 @@ internal fun UmamitRoot(
             }
             composable<BrewSetupRoute> {
                 setupScreen(
-                    { navController.popBackStack() },
+                    // Only while resumed: a quick double tap never pops the shell under it (D-090).
+                    dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces the setup, so back from the timer returns to where the brew began.
                     {
                         navController.navigate(TimerRoute) {
@@ -232,7 +240,7 @@ internal fun UmamitRoot(
             }
             composable<QuickTimerRoute> {
                 quickTimerScreen(
-                    { navController.popBackStack() },
+                    dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces it, so back from the running quick timer returns to Start.
                     {
                         navController.navigate(TimerRoute) {
@@ -245,7 +253,7 @@ internal fun UmamitRoot(
             composable<TimerSettingsRoute> {
                 settings.screen(
                     SettingsHost(
-                        onBack = { navController.popBackStack() },
+                        onBack = dropUnlessResumed { navController.popBackStack() },
                         onOpenAbout = { navigateAbove(AboutRoute) {} },
                         alertKey = alert,
                     ),
@@ -254,13 +262,13 @@ internal fun UmamitRoot(
             composable<AboutRoute> {
                 settings.about(
                     AboutHost(
-                        onBack = { navController.popBackStack() },
+                        onBack = dropUnlessResumed { navController.popBackStack() },
                         onRerunSetup = rerunSetup,
                         onOpenDiagnostics = { navigateAbove(DiagnosticsRoute) {} },
                     ),
                 )
             }
-            composable<DiagnosticsRoute> { settings.diagnostics { navController.popBackStack() } }
+            composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
         }
         ShellCover(requestPending = timerFirst.requestPending, timerOnTop = timerOnTop)
     }

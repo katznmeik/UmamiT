@@ -39,6 +39,8 @@ class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val
 
     override suspend fun setCoverPhoto(teaId: String, photoId: String?) =
         dao.setCoverPhoto(teaId, photoId, time.nowMs())
+
+    override suspend fun clearRecipeCheck(teaId: String) = dao.clearRecipeCheck(teaId, time.nowMs())
 }
 
 /** [RecipeRepository] on Room (05 §3.2, §3.3); temperatures snapped to 5 °C (GEN-12). */

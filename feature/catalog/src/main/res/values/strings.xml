@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- SCR-19 empty state (never loaded, 08 §7; D-073): the entry point when the first-start setup is done. -->
+    <string name="catalog_empty_title">Der Katalog ist noch leer.</string>
+    <string name="catalog_empty_body">Lade alle Grüntees von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
+    <string name="catalog_load">Katalog laden</string>
+    <!-- While a first load runs and its sheet is closed. -->
+    <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>
+    <string name="catalog_show_progress">Fortschritt anzeigen</string>
+    <!-- SCR-19 header (CAT-07 AC6): „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." -->
+    <string name="catalog_header">Tee-Kontor Kiel · %1$s · aktualisiert am %2$s</string>
+    <string name="catalog_header_undated">Tee-Kontor Kiel · %1$s</string>
+    <plurals name="catalog_tea_count">
+        <item quantity="one">%1$d Grüntee</item>
+        <item quantity="other">%1$d Grüntees</item>
+    </plurals>
+    <!-- A row's price (CAT-10): „15,90 €/100 g". -->
+    <string name="catalog_price_per_100g">%1$s €/100 g</string>
+    <!-- Between the parts of a row's meta line; quoted to keep the spaces. -->
+    <string name="catalog_meta_separator">" · "</string>
+    <string name="catalog_refreshing">Der Katalog wird aktualisiert …</string>
+
+    <!-- SCR-19 finding teas (CAT-10, D-076, D-083): search, chips, filter sheet, badges. -->
+    <string name="catalog_search_label">Suchen</string>
+    <string name="catalog_search_hint">Name, Kultivar, Region …</string>
+    <string name="catalog_search_clear">Suche löschen</string>
+    <string name="catalog_filter_button">Filter</string>
+    <!-- „Filter (2)": the filters changed from the default view. -->
+    <string name="catalog_filter_button_count">Filter (%1$d)</string>
+    <string name="catalog_filter_pure">Pur</string>
+    <string name="catalog_filter_available">Vorrätig</string>
+    <string name="catalog_filter_organic">Bio</string>
+    <string name="catalog_filter_new">Neu</string>
+    <string name="catalog_filter_owned">Im Besitz</string>
+    <string name="catalog_filter_sheet_title">Filter und Sortierung</string>
+    <string name="catalog_filter_sort">Sortierung</string>
+    <string name="catalog_sort_type">Sorte</string>
+    <string name="catalog_sort_name">Name</string>
+    <string name="catalog_sort_price">Preis pro 100 g</string>
+    <string name="catalog_filter_types">Sorte</string>
+    <string name="catalog_filter_origins">Herkunft</string>
+    <string name="catalog_filter_flavour">Aroma</string>
+    <string name="catalog_flavour_all">Alle</string>
+    <string name="catalog_flavour_pure">Pur</string>
+    <string name="catalog_flavour_flavoured">Aromatisiert</string>
+    <string name="catalog_filter_umami">Umami</string>
+    <string name="catalog_umami_any">Egal</string>
+    <string name="catalog_umami_medium">ab mittel</string>
+    <string name="catalog_umami_high">ab hoch</string>
+    <string name="catalog_umami_very_high">sehr hoch</string>
+    <string name="catalog_filter_more">Weitere</string>
+    <string name="catalog_filter_reset">Zurücksetzen</string>
+    <string name="catalog_filter_done">Fertig</string>
+    <!-- A group of the list without a Sorte. -->
+    <string name="catalog_group_untyped">Ohne Sorte</string>
+    <string name="catalog_no_match">Kein Tee passt zu deiner Suche und den Filtern.</string>
+    <string name="catalog_reset_filters">Filter zurücksetzen</string>
+    <!-- Search hits the filters hide (D-073: flavoured teas are searchable but hidden). -->
+    <plurals name="catalog_hidden_matches">
+        <item quantity="one">%1$d weiterer Treffer ist durch die Filter ausgeblendet.</item>
+        <item quantity="other">%1$d weitere Treffer sind durch die Filter ausgeblendet.</item>
+    </plurals>
+    <string name="catalog_show_all">Alle zeigen</string>
+    <string name="catalog_badge_new">Neu</string>
+    <string name="catalog_badge_owned">im Besitz</string>
+
+    <!-- SCR-22 refresh sheet (CAT-07 AC1, AC3, AC5; 08 §2.8; 03 §5). -->
+    <string name="catalog_refresh_running_title">Katalog wird geladen</string>
+    <string name="catalog_refresh_starting">Sitemap wird gelesen …</string>
+    <!-- „von" and „neu" are no nouns: nothing to pluralise. -->
+    <string name="catalog_refresh_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
+    <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen und das Handy sperren: Der Katalog lädt im Hintergrund weiter.</string>
+    <string name="catalog_refresh_cancel">Abbrechen</string>
+    <string name="catalog_refresh_success_title">Katalog geladen</string>
+    <!-- The summary line after the count of green teas (CAT-07 AC3, D-086): „274 Grüntees · 12 neu · 5 geändert ·
+         2 nicht mehr im Sortiment · 3 Rezepte prüfen", each part only with a count above 0. „neu", „geändert" and
+         „nicht mehr im Sortiment" don't change with the number. -->
+    <!-- Non-breaking spaces keep each part on one line and the dot after the part before it. -->
+    <string name="catalog_refresh_summary_separator">" · "</string>
+    <string name="catalog_refresh_summary_new" tools:ignore="PluralsCandidate">%1$d neu</string>
+    <string name="catalog_refresh_summary_changed" tools:ignore="PluralsCandidate">%1$d geändert</string>
+    <string name="catalog_refresh_summary_discontinued" tools:ignore="PluralsCandidate">%1$d nicht mehr im Sortiment</string>
+    <plurals name="catalog_refresh_summary_recipes">
+        <item quantity="one">%1$d Rezept prüfen</item>
+        <item quantity="other">%1$d Rezepte prüfen</item>
+    </plurals>
+    <string name="catalog_refresh_summary_unchanged">keine Änderungen</string>
+    <string name="catalog_refresh_cancelled_title">Laden abgebrochen</string>
+    <string name="catalog_refresh_failed_title">Katalog nicht geladen</string>
+    <string name="catalog_refresh_kept">Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="catalog_refresh_blocked">Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_offline">Keine Verbindung zum Shop – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_unavailable">Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen.</string>
+    <string name="catalog_refresh_shop_changed">Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten.</string>
+    <string name="catalog_refresh_storage">Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?</string>
+    <string name="catalog_refresh_copy_details">Details kopieren</string>
+    <string name="catalog_refresh_details_label">UmamiT Katalog-Details</string>
+    <string name="catalog_refresh_done">Fertig</string>
+    <string name="catalog_refresh_close">Schließen</string>
+    <!-- Below the pages' progress once photos arrive (CAT-08); „Fotos" is a label, not a counted noun. -->
+    <string name="catalog_refresh_photos" tools:ignore="PluralsCandidate">Fotos: %1$d</string>
+
+    <!-- Below the photos' progress once guides arrive (CAT-09); a label, not a counted noun. -->
+    <string name="catalog_refresh_guides" tools:ignore="PluralsCandidate">Ratgeber: %1$d</string>
+
+    <!-- SCR-19's Ratgeber row and the guides (SCR-20, CAT-09, D-087). -->
+    <string name="catalog_guides_row">Ratgeber</string>
+    <plurals name="catalog_guides_row_count">
+        <item quantity="one">%1$d Guide von Tee-Kontor Kiel, offline lesbar</item>
+        <item quantity="other">%1$d Guides von Tee-Kontor Kiel, offline lesbar</item>
+    </plurals>
+    <string name="guides_title">Ratgeber</string>
+    <string name="guides_intro">Grüntee-Wissen von Tee-Kontor Kiel – auch ohne Verbindung lesbar.</string>
+    <string name="guides_empty_title">Noch keine Ratgeber.</string>
+    <string name="guides_empty_body">Die Guides kommen mit der nächsten Aktualisierung des Katalogs.</string>
+    <string name="guide_source">Tee-Kontor Kiel · Tee-Info</string>
+    <!-- „Tee-Kontor Kiel · Tee-Info · 12. März 2024". -->
+    <string name="guide_source_dated">Tee-Kontor Kiel · Tee-Info · %1$s</string>
+    <string name="guide_open_browser">Im Browser öffnen</string>
+    <string name="guide_gone_title">Dieser Ratgeber ist nicht mehr da.</string>
+    <string name="guide_gone_body">Er ist bei der letzten Aktualisierung aus dem Shop verschwunden.</string>
+
+    <!-- SCR-21 Katalog-Tee (CAT-11). -->
+    <string name="catalog_tea_open_shop">Im Shop öffnen</string>
+    <string name="catalog_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <string name="catalog_tea_gone_title">Dieser Tee ist nicht mehr im Katalog.</string>
+    <string name="catalog_tea_gone_body">Er ist bei der letzten Aktualisierung aus dem Sortiment verschwunden.</string>
+    <string name="catalog_tea_organic">Bio</string>
+    <string name="catalog_tea_flavored">aromatisiert</string>
+    <string name="catalog_tea_cold_brew">Coldbrew geeignet</string>
+    <string name="catalog_tea_out_of_stock">nicht vorrätig</string>
+    <!-- A tea that left the shop's range, kept while a collection tea links to it (CAT-07 AC4). -->
+    <string name="catalog_tea_discontinued">Nicht mehr im Sortiment</string>
+    <string name="catalog_tea_section_profile">Steckbrief</string>
+    <string name="catalog_tea_origin">Anbaugebiet</string>
+    <string name="catalog_tea_region">Region</string>
+    <string name="catalog_tea_cultivar">Kultivar</string>
+    <string name="catalog_tea_harvest">Ernte</string>
+    <string name="catalog_tea_shading">Beschattung</string>
+    <string name="catalog_tea_steaming">Dämpfung</string>
+    <string name="catalog_tea_season">Saison</string>
+    <string name="catalog_tea_matcha_grade">Matcha-Qualität</string>
+    <string name="catalog_tea_manufacturer">Hersteller</string>
+    <string name="catalog_tea_section_taste">Geschmack</string>
+    <string name="catalog_tea_aroma">Aroma</string>
+    <string name="catalog_tea_taste_notes">Geschmack</string>
+    <!-- TalkBack for a taste scale's leaf row: „Umami: 4 von 5". -->
+    <string name="catalog_tea_scale_description" tools:ignore="PluralsCandidate">%1$s: %2$d von 5</string>
+    <string name="catalog_tea_section_description">Beschreibung</string>
+    <string name="catalog_tea_ingredients">Zutaten</string>
+    <string name="catalog_tea_section_brewing">Zubereitung</string>
+    <string name="catalog_tea_brew_kyusu">Kyusu</string>
+    <string name="catalog_tea_brew_western">Westlich</string>
+    <string name="catalog_tea_brew_gongfu">Gongfu</string>
+    <string name="catalog_tea_brewing_source">Angaben des Shops, unverändert übernommen.</string>
+
+    <!-- SCR-21 PACKUNGEN (CAT-11, 08 §2.4 item 6; #67): one row per size, smallest first. -->
+    <string name="catalog_tea_section_packages">Packungen</string>
+    <!-- Non-breaking spaces ( ) keep a number with its unit at large font sizes. -->
+    <!-- A size: „250 g", „37,5 g". -->
+    <string name="catalog_package_grams">%1$s g</string>
+    <!-- The shop's price of a size: „12,40 €". -->
+    <string name="catalog_package_price">%1$s €</string>
+    <!-- An estimated price (08 §2.4): „≈ 30,07 €". -->
+    <string name="catalog_package_estimate">≈ %1$s €</string>
+    <!-- The savings the shop notes for a size: „3 % gespart". -->
+    <string name="catalog_package_savings">%1$d %% gespart</string>
+    <!-- A smaller size (a sample) is never estimated: its price is fetched when it is added (CAT-12). -->
+    <string name="catalog_package_price_on_add">Preis beim Hinzufügen</string>
+    <string name="catalog_package_estimate_note">≈ geschätzt aus dem Preis im Shop. Den genauen Preis holt die App, wenn du die Packung hinzufügst.</string>
+
+    <!-- SCR-21's primary action (CAT-12): a tea not yet in the collection, and one that is (D-073). -->
+    <string name="catalog_tea_add">In Sammlung aufnehmen</string>
+    <string name="catalog_tea_repurchase">Nachkauf erfassen</string>
+
+    <!-- SCR-23 add sheet (CAT-12, GEN-01 (c)). -->
+    <string name="catalog_add_title">In Sammlung aufnehmen</string>
+    <string name="catalog_add_title_repurchase">Nachkauf erfassen</string>
+    <string name="catalog_add_package">Packung</string>
+    <string name="catalog_add_custom">Andere Menge</string>
+    <string name="catalog_add_grams">Menge</string>
+    <string name="catalog_add_grams_unit">g</string>
+    <string name="catalog_add_price">Preis</string>
+    <string name="catalog_add_price_unit">€</string>
+    <string name="catalog_add_price_fetching">Der genaue Preis wird im Shop abgerufen …</string>
+    <string name="catalog_add_price_shop">Preis aus dem Shop. Du kannst ihn ändern.</string>
+    <string name="catalog_add_price_estimate">≈ geschätzt – der genaue Preis war nicht abrufbar. Du kannst ihn ändern.</string>
+    <string name="catalog_add_price_none">Kein Preis bekannt – trag ihn ein, wenn du magst.</string>
+    <string name="catalog_add_price_invalid">Bitte einen Preis wie 12,40 eingeben.</string>
+    <string name="catalog_add_date">Kaufdatum</string>
+    <string name="catalog_add_date_ok">OK</string>
+    <string name="catalog_add_date_cancel">Abbrechen</string>
+    <string name="catalog_add_save">Aufnehmen</string>
+    <string name="catalog_add_save_repurchase">Nachkauf erfassen</string>
+    <string name="catalog_add_failed">Das hat nicht geklappt. Bitte versuch es noch einmal.</string>
+</resources>
