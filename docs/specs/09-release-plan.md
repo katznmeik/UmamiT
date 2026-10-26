@@ -110,7 +110,7 @@ only.
 ### M2 — Catalog
 
 - [ ] `v0.2.0-rc.1` installs over `v0.1.0` (and each later rc over the one before) without losing data: the journal, Tanabata and Hisui with their photos, recipes and stock, and the settings are all still there; a brew still alerts on time (spec #62 story 46).
-- [ ] *Katalog laden* completes (first run ≈ 15–18 min, D-076); ~260–280 teas; no duplicates per size; no sets or accessories.
+- [ ] *Katalog laden* completes (first run ≈ 15–16 min, D-076, D-091); about 250–280 teas (the shop's range changes; 255 in the live run of 2026-10-26); no duplicates per size; no sets or accessories.
 - [ ] 10 spot-checked teas: name, type, origin, prices, photo correct; brewing table/text shown verbatim; derived recipe follows §2.5; flags plausible.
 - [ ] A second refresh right after the first reports „… Grüntees · keine Änderungen" (or only the changes the shop made meanwhile) and is far shorter: no photo is downloaded again (CAT-07 AC3, CAT-08, D-086).
 - [ ] Airplane mode during refresh: clear error, old catalog intact.
