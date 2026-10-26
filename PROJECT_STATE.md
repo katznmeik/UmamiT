@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-25
+**Last updated:** 2026-10-26
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M1 — Timer first: done** (`v0.1.0`). **M2 — catalog: `v0.2.0-rc.1` released 2026-10-26** for the PO's on-device checklist and final design review (#74); merge of #78 and `v0.2.0` (#75) after the PO's approval |
+| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 approved by the PO, tickets next (the PO runs `/to-tickets`, then approves them) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the M1 merge |
+| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #80 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs), #25 (M1 milestone, merged 2026-10-25); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60 |
-| Open PR | #78 (M2 milestone, draft) |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80 |
+| Open PR | none |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.2.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.0-rc.1) (pre-release, versionCode 20001, from 3950f07); last full release [`v0.1.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.1.0) |
+| Latest APK | [`v0.2.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.0) (full release, versionCode 20099, from `main` 7157cc4) |
 
 ## Done (M0)
 
@@ -39,8 +39,8 @@
 
 ## Waiting on the PO
 
-1. **`v0.2.0-rc.1` on the Galaxy (#74):** install over `v0.1.0`, the 09 §4 M2 checklist,
-   the final design review, then an explicit approval (allows merging #78 and `v0.2.0`).
+1. **v0.2.1 tickets:** run `/mattpocock-skills:to-tickets #81` (the skill runs only when the
+   PO starts it), then approve the tickets. No building before that.
 2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
@@ -62,6 +62,27 @@
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps
+
+### v0.2.1 planned (2026-10-26)
+
+- The PO tested `v0.2.0-rc.1` and approved M2; the feedback (#79, 9 points) goes into a
+  v0.2.1 patch, except quick timers alongside a brew (v0.3.0). M3 becomes v0.4.0, M4 v0.5.0.
+- Grilled in four rounds (Q1–Q21) and recorded as **D-093** (#80, merged): legible timer top
+  bar; Vorwarnung per step (`min(B, 5·⌊d/15⌋)`, session-only unless *Im Rezept speichern*,
+  umamit.db v2); four louder Vorwarnung sounds (SET-26); seven more seed vessels; stock
+  correction; archiving a tea from the picker; Kräutertees in the catalog.
+- Spec #81 written with `/to-spec` (lean tests, 6 seams); the PO confirmed it is tight.
+  Next: tickets via `/to-tickets` (started by the PO), the PO's approval, then
+  `/implement-spec`.
+- **Decision numbers:** up to D-093 used; the next free is **D-094**.
+
+### M2 done (2026-10-26)
+
+- The PO approved `v0.2.0-rc.1` (#74, #77). #78 merged into `main` (7157cc4); accuracy run on
+  7157cc4 passed; `v0.2.0` released from `main` (versionCode 20099, certificate verified).
+  Spec #62 and its tickets closed.
+
+### Earlier
 
 Spec [#6](https://github.com/katznmeik/UmamiT/issues/6) (M1-00 … M1-03a,
 tickets #8–#17) is done: SDK hook, Gradle skeleton, CI gate with emulator
@@ -125,7 +146,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
   passt* (←#71) · #76 Ratgeber (←#66) · #73 #58 fixes and seed retry · #77 early
   design check, PO (←#66, #69, #71) · #74 rc and checklist, PO · #75 merge and
   `v0.2.0`.
-- **Decision numbers:** up to D-092 used; the next free is **D-093**.
+- **Decision numbers:** M2 used up to D-092 (see the v0.2.1 section for the current next free number).
 
 ### M1 done (2026-10-25)
 
@@ -163,6 +184,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-26 | **M2 done:** the PO approved rc.1; #78 merged; accuracy on 7157cc4 passed; `v0.2.0` released from `main`. PO feedback #79 grilled (Q1–Q21) into D-093 (#80, merged); spec #81 for v0.2.1 approved by the PO; tickets next. |
 | 2026-10-26 | Parser fixes from live sample 2 (D-089); T4 milestone review (2 areas, no Block) fixed (D-090); two full live runs (run 1: 20.1 min, PNG photos missing, sets/SALE in → D-091 fixes; run 2: 15.7 min, 255 teas, all photos, no stop); the PO approved #77 and confirmed D-089/D-091 choices; accuracy run failed on step 1 (1178 ms) → D-092 keeps alert sounds loaded (rerun PASS, max 643 ms); `v0.2.0-rc.1` released (versionCode 20001, cert verified), checklist on #74. ProcessDeathTest made robust against a sticky service restart. |
 | 2026-10-25 | M2 tickets #63–#73, #76 merged on PR #78 (D-074 … D-088), each gated by the orchestrator; timer fix D-084 (stale foreground notification after a process death, corrects D-080); two live samples of the shop (59 requests, no stops); early design check #77 sent to the PO. |
 | 2026-10-25 | **M2 started:** the PO invoked `/implement-spec` on spec #62 (frontier #63 prefactor and #73 #58 fixes). |
