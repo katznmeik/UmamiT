@@ -110,7 +110,7 @@ time is derived from the deadline, not stored (D-048).
 | `overtimeTimeout` | Alerting, 10 min after deadline (`dueTimes.overtimeTimeoutAt`) | As `poured`, but actual = planned, overtime = 0 and `endedAt` = the deadline's wall time (assume poured on time); flag `overtimeAutoAck`. Not an interaction; silent. A quick timer ends. A `poured`, `endStepNow` or `finishSession` at or after deadline + 10 min records the same auto-ack (D-053). |
 | `skipStep` | Ready | Mark skipped → next Ready or Finished. |
 | `addStep` | any except Idle | *Weiterer Aufguss* (TMR-10): append `defaultAddedStep(plan)` — the last non-rinse step's kind and temperature, 1.5 × its duration rounded half up to 5 s below 10 min and to whole minutes from 10 min on, within 5 s – 24 h; if Finished → `Ready(new)`. A due pre-alert of the running step stays due (§5, D-054). |
-| `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. The running step's pre-alert follows the new N, but one that is already due stays due unless the edit leaves the step without a pre-alert (*Aus*, §5, D-054). Session-only unless *Im Rezept speichern*. **From v0.2.1 (D-093):** `editSteps(list)` — each step carries its own `PreAlertChoice` (*Automatisch* / *Aus* / N s) and the session-wide choice goes; the running step may change only its choice (else `StartedStepChanged`), and its pre-alert follows its new N by the same rules. Changed choices are also written to the recipe's steps by the caller (TMR-23). An added step (`addStep`) starts as *Automatisch*. |
+| `editSteps(list, preAlertChoice)` | any except Idle | From the Schritte-Sheet (SCR-31): the whole plan plus *Wie Einstellung* / *Aus* / N s. Replaces only the pending steps and sets or clears the session's pre-alert override. Rejected unchanged if it changes, removes or reorders a started or ended step (`StartedStepChanged`) or leaves no non-rinse step (`NoBrewStepLeft`). Ready re-points to the first pending step, or goes to Finished; Finished with new steps goes to Ready. The running step's pre-alert follows the new N, but one that is already due stays due unless the edit leaves the step without a pre-alert (*Aus*, §5, D-054). Session-only unless *Im Rezept speichern*. **From v0.2.1 (D-093):** `editSteps(list)` — each step carries its own `PreAlertChoice` (*Automatisch* / *Aus* / N s) and the session-wide choice goes; the running step may change only its choice (else `StartedStepChanged`), and its pre-alert follows its new N by the same rules. Like every step change, the choices stay in the session; only *Im Rezept speichern* writes them to the recipe's steps (TMR-23, PO). An added step (`addStep`) starts as *Automatisch*. |
 | `finishSession` | any except Idle | A RUNNING/PAUSED step is completed as `endStepNow`, an ALERTING step as `poured`; then COMPLETED if ≥ 1 non-rinse step completed, else discard (UI confirms) → Idle; show SCR-06 sheet. |
 | `discard` | any except Idle | Delete session and stock deduction → Idle. |
 | `idleDemote` | Ready, Paused, Finished of a brew session, not yet demoted; 30 min after it became idle (`dueTimes.idleDemoteAt`) | Sets `demoted`, no other change: `StopForeground`, then the Live Update is posted again as a regular silent ongoing notification (with *Start*/*Weiter*/*Sitzung beenden*). Any user event clears `demoted` and ensures the FGS (notification action exemption; D-053). |
@@ -778,17 +778,19 @@ About.
 
 **Pre-alert sounds (v0.2.1, SET-26, D-093).** The PO found the tick too
 quiet and too short. Claude synthesises four new pre-alert sounds with
-`scripts/sounds/generate.sh`, louder and with a longer fall-off: normalised
-to **-20 LUFS** (4 LU below the alert instead of 8; same -1.5 dBTP ceiling),
-each a single soft strike with a long exponential decay (a fall-off of
-about 2–2.5 s instead of 0.8 s), OGG ≤ 60 KB:
+`scripts/sounds/generate.sh`, mastered **much louder** and with a longer
+fall-off (PO): normalised to **-18 LUFS** (Claude: 6 LU above the old tick,
+2 LU below the alert; same -1.5 dBTP ceiling), each a single strike with an
+exponential decay over **about 3 s** (PO; the old tick: 0.8 s), OGG ≤ 60 KB.
+They keep `USAGE_NOTIFICATION_EVENT`, so they follow the notification
+volume, and the ringer-mode matrix of §9.1 is unchanged (PO):
 
 | Sound | Character | Length |
 |---|---|---|
-| Zimbel | two small cymbals (tingsha), bright, slow beating | 2.5 s |
-| Glöckchen | small high bell, 1320 Hz, soft strike | 2.0 s |
-| Klangstab | one wind-chime bar, pure partials, long ring | 2.5 s |
-| Tiefe Schale | lower singing bowl, 440 Hz, round | 2.5 s |
+| Zimbel | two small cymbals (tingsha), bright, slow beating | 3.2 s |
+| Glöckchen | small high bell, 1320 Hz, soft strike | 3.0 s |
+| Klangstab | one wind-chime bar, pure partials, long ring | 3.2 s |
+| Tiefe Schale | lower singing bowl, 440 Hz, round | 3.2 s |
 
 Today's tick stays selectable as „Ting (leise)". The PO picks the default
 via *Alarm testen* on the first v0.2.1 release candidate (each sound can be
@@ -797,7 +799,7 @@ chosen sound is the pre-alert's sound everywhere the tick was: the matrix of
 §9.1, *Alarm testen* and the loading ahead of D-092 (it replaces the tick
 there). A pre-alert sound still never cuts a playing alert, and it ends
 before the step's deadline: with at least 5 s between pre-alert and
-deadline (E7), a 2.5 s sound always fits.
+deadline (E7), a sound of about 3 s always fits.
 
 ## 10. Quick timer
 
@@ -853,7 +855,7 @@ it (rule 8). Nothing of it is in v0.2.1.
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
 | E7 | Planned step < N + 5 s | No pre-alert for that step. From v0.2.1 only an explicit per-step value can meet this; the automatic N is at most a third of the step (§5, D-093). |
-| E15 | Tea archived (*Aus Sammlung entfernen*) while its session is active (v0.2.1) | Allowed; the session runs on and is logged with its snapshot (TEA-04, D-093). |
+| E15 | *Aus Sammlung entfernen* on the tea of the active brew session (v0.2.1) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093). |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |

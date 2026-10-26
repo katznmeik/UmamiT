@@ -190,8 +190,8 @@ effect of the timer engine, 04 §4; D-052):
   ended rows are never touched. From v2 (D-093) the session's
   `pre_alert_seconds` keeps B as frozen at the start; the edit writes each
   step's choice, the running step's included (its only field an edit may
-  change), and the caller writes changed choices to the recipe's
-  `brew_step` rows at the same positions.
+  change). The recipe's `brew_step` rows get the choices only through *Im
+  Rezept speichern* (PO, D-093).
 - **Record** (`RecordStep`): the step's row gets the recorded values of
   [04 §5.1](04-brew-timer.md#51-recorded-step-data). A row is ended exactly
   when `actual_seconds` is set.
@@ -254,7 +254,7 @@ the cost per gram (and so the session cost) is null (#30).
 
 A stock correction (*Bestand korrigieren*, INV-03; from v0.2.1 also from
 the brew setup's „… g übrig", D-093) is an `ADJUSTMENT` event: `delta_grams`
-= the amount entered − the current remaining stock (nothing is written when
+= the new total entered in g (0 allowed = leer) − the current remaining stock (nothing is written when
 they are equal), no price, `occurred_at` = now. It never changes the cost per
 gram. `ADJUSTMENT` is already in v1, so the correction needs no schema
 change.

@@ -49,8 +49,8 @@ the timer ring.
   CC0 / public domain) next to the file in `docs/design/assets/source/CREDITS.md`.
 - **Sounds** (D-036): the alert tones and the pre-alert tick are synthesised
   by Claude (ffmpeg) in M1. v0.2.1 adds four pre-alert sounds (Zimbel,
-  Glöckchen, Klangstab, Tiefe Schale), louder (-20 LUFS) and with a longer
-  fall-off, from the same `scripts/sounds/generate.sh` (04 §9.2, SET-26,
+  Glöckchen, Klangstab, Tiefe Schale), mastered much louder (-18 LUFS) and
+  with a fall-off of about 3 s, from the same `scripts/sounds/generate.sh` (04 §9.2, SET-26,
   D-093). To replace a tone, upload a CC0 recording to
   `docs/design/assets/source/` and note its source URL and licence in
   `CREDITS.md`.

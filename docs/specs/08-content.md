@@ -115,12 +115,13 @@ the prose, whose years are travel reports, founding years and link texts
    **Kräutertees (v0.2.1, D-093):** products under the shop's herbal tea
    section (*Kräutertee*; its path is read from the live breadcrumb when
    built and recorded here with the parser bump) are kept too, as herbal
-   teas with the style `herbal` (§2.6, §3), category `HERBAL`. Fruit teas,
-   rooibos and other non-tea infusions stay out unless the shop files them
-   under *Kräutertee*. The `/tee/japantee/` rule above is unchanged.
+   teas with the style `herbal` (§2.6, §3), category `HERBAL`. Only the
+   shop's Kräutertees (PO): fruit teas, rooibos and other infusions stay
+   out. The `/tee/japantee/` rule above is unchanged.
    Because `catalog_skip` keeps no rules version, its `NOT_GREEN` rows are
-   deleted once with v0.2.1 (05 §9), so the next refresh classifies those
-   products again and takes about as long as a first load.
+   deleted once with v0.2.1 (05 §9), so the first refresh after the update
+   classifies those products again and takes about as long as a first load
+   (≈ 16 min, once; accepted by the PO).
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
@@ -514,7 +515,7 @@ days after opening.
 | `korean_green` | Koreanischer Grüntee (Ujeon/Sejak) | HIGH | 60 | 2,0 | KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
-| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 3 g / 250 ml / 100 °C: 5:00, 7:00 (v0.2.1: catalog Kräutertees, CAT-01, D-093; a shop brewing grid still wins, §2.5; no cold brew, no Kyusu) |
+| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas |
 | `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 °C) for manually added non-green teas |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 

@@ -162,10 +162,13 @@ Excluded: sets (`…SET` in any case, or a set by its name or breadcrumb),
 sale duplicates of a regular tea (`…SALE`), matcha bowls and accessories,
 sweets, and items containing no tea (D-091).
 - **Kräutertees (v0.2.1, D-093):** the shop's herbal teas (its *Kräutertee*
-  section) are loaded too, with their own style `herbal` (100 °C, longer
-  steeping; [08 §3](08-content.md#3-built-in-tea-styles)). They are hidden
-  by default and shown by the *Kräutertee* filter (CAT-10). They add about
-  1–2 min to the first load (NFR-PERF-11 stays ≤ 20 min).
+  section; not fruit tea or rooibos) are loaded too, with their own style
+  `herbal` (2 g / 250 ml, Becher, 100 °C, one infusion of 6:00, no cold
+  brew; [08 §3](08-content.md#3-built-in-tea-styles)). They are hidden by
+  default and shown by the *Kräutertee* filter (CAT-10). They add about
+  1–2 min to the first load (NFR-PERF-11 stays ≤ 20 min); the first refresh
+  after the update re-classifies everything once (≈ 16 min, accepted by the
+  PO).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -269,9 +272,11 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
 - **Neu:** teas first seen in the latest refresh carry a „Neu" badge until
   the next refresh; the *Neu* filter lists them.
 - **Kräutertee (v0.2.1, D-093):** herbal teas (CAT-01) are hidden in the
-  default view; the filter chip *Kräutertee* switches the list to them
-  (green teas hidden while it is on; the other filters still apply). Search
-  hits among the hidden kind count as hidden by the filters.
+  default view; the filter chip *Kräutertee* switches the list to the
+  Kräutertees only (grouped by *Sorte*), tapping it again returns to the
+  green teas. The *Pur* filter does not apply in the Kräutertee view; the
+  other filters still do. Search hits among the hidden kind count as hidden
+  by the filters.
 
 **CAT-11 — Catalog tea detail** `Must`
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
@@ -346,10 +351,12 @@ All fields editable. Changing the style does not overwrite recipes.
 entries remain. *Löschen* keeps journal sessions (name snapshot) and removes
 recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
 - **From the tea picker (v0.2.1, D-093):** a long press on a tea in SCR-03
-  offers *Aus Sammlung entfernen*. It archives the tea (journal entries keep
-  their tea) and shows the snackbar „*Tanabata* aus der Sammlung entfernt" ·
-  *Rückgängig*. Archiving the tea of the active session is allowed; the
-  session uses its snapshot. Adding it again from the catalog (CAT-12)
+  offers *Aus Sammlung entfernen*. It archives the tea and shows the
+  snackbar „*Tanabata* aus der Sammlung entfernt" · *Rückgängig*. An
+  archived tea disappears from Start (*Nochmal brühen*, BRW-11) and from the
+  tea picker; the journal keeps its entries with name and photo. Not
+  possible for the tea of the active brew session: the item is greyed out
+  with „Erst die Sitzung beenden". Adding it again from the catalog (CAT-12)
   un-archives the same tea and records the package as a PURCHASE event
   (D-085); its earlier stock events stay (correct with INV-03). An archived
   tea's catalog row has no „im Besitz" badge and its detail offers *In
@@ -511,12 +518,12 @@ session (only while no step has started). A known tea starts in **2 taps**
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
 step list, effective pre-alert, *Brühen starten*. Changes apply to this
-session only unless *Im Rezept speichern* is tapped; a pre-alert changed in
-the Schritte-Sheet is saved in the recipe at once (TMR-23, D-093).
+session only unless *Im Rezept speichern* is tapped; this includes each
+step's pre-alert (TMR-23, D-093).
 - **Stock correction (v0.2.1, D-093):** a tap on „38 g übrig" opens a small
-  sheet „Wie viel ist noch da?" with the amount (0,1 g steps, 0 allowed);
-  *Speichern* records the correction (INV-03) and the setup shows the new
-  amount.
+  sheet „Wie viel ist noch da?" where the new total is entered in g (0,1 g
+  steps; 0 allowed = leer); *Speichern* stores the difference as a
+  correction (INV-03) and the setup shows the new amount.
 
 **BRW-03 — Ratio scaling** `Must`
 With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
@@ -592,8 +599,8 @@ temperature; last duration + 50 %, rounded per PRF-04: 5 s below 10 min,
 
 **TMR-11 — Edit remaining steps** `Should` (overflow ⋮ *Schritte
 bearbeiten* → Schritte-Sheet SCR-31, not in ALERTING (D-055); this session
-only unless *Im Rezept speichern*; a step's pre-alert, also the running
-step's, is saved in the recipe at once, TMR-23, D-093).
+only unless *Im Rezept speichern*, each step's pre-alert included; the
+running step's pre-alert is editable too, TMR-23, D-093).
 
 **TMR-12 — Finish & auto-log** `Must`
 Finishing early (e.g. after infusion 2 of 3) is a normal session; the
@@ -673,7 +680,8 @@ A soft tick sound (plus short haptic) **N seconds before the end** of each
 step so the kyusu can be picked up.
 - **Per step (v0.2.1, D-093).** Each step has its own pre-alert:
   *Automatisch* (default), *Aus* or 5–30 s in 5 s steps, set in the
-  Schritte-Sheet (SCR-31) and saved in the recipe's step (PRF-03).
+  Schritte-Sheet (SCR-31) for this session; it goes into the recipe's step
+  (PRF-03) only via *Im Rezept speichern*, like every other step change.
 - **Automatic rule:** B = the recipe's pre-alert, else the global setting
   (SET-10: Aus or 5–30 s in 5 s steps; default **10 s**), frozen at the
   session's start; d = the step's planned seconds;
@@ -761,8 +769,9 @@ discarding or deleting the session restores it.
 **INV-03 — Manual adjustments** `Must`
 *Nachkauf erfassen* (+g, price, date), *Bestand korrigieren* (set remaining),
 history list (SCR-29).
-- A correction records an `ADJUSTMENT` event with the difference between the
-  amount entered and the current stock (none when equal); the history shows
+- The user enters the new total in g (0 allowed = leer). A correction
+  records an `ADJUSTMENT` event with the difference between that total and
+  the current stock (none when equal); the history shows
   it as „Bestand korrigiert".
 - **v0.2.1 (D-093):** the correction is first reachable from the brew setup
   (tap „… g übrig", BRW-02); SCR-29's history follows with M3.
@@ -848,7 +857,7 @@ Every chart has an accessible table alternative.
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
 | SET-10 | Vorwarnung (pre-alert; the base B of TMR-23's automatic rule) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
-| SET-26 | Vorwarnton (pre-alert sound, with *Anhören*; v0.2.1, D-093) | Four new synthesised sounds (Zimbel, Glöckchen, Klangstab, Tiefe Schale; 04 §9.2) and today's tick „Ting (leise)" — default chosen by the PO via *Alarm testen* on the first v0.2.1 rc (until then Zimbel) | Must |
+| SET-26 | Vorwarnton (pre-alert sound, with *Anhören*; v0.2.1, D-093) | Four new synthesised sounds, mastered much louder with a fall-off of ≈ 3 s, still at the notification volume (Zimbel, Glöckchen, Klangstab, Tiefe Schale; 04 §9.2) and today's tick „Ting (leise)" — default chosen by the PO via *Alarm testen* on the first v0.2.1 rc (until then Zimbel) | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
