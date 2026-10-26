@@ -40,7 +40,8 @@
 ## Waiting on the PO
 
 1. **Go for v0.2.1:** tickets #83–#94 are published and approved. Building starts only on
-   the PO's explicit go (`/implement-spec #81` or "go" in the session).
+   the PO's explicit go: the PO types `/implement-spec #81` (the skill cannot be
+   model-invoked). Handover for that session: `docs/plans/v0.2.1.md`.
 2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
    on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
    Later: A6, A7, A9, A10 (`docs/design/assets.md`).
@@ -82,7 +83,10 @@
   PO picks the Vorwarnton (←all) · #94 merge and `v0.2.1` (←#93).
 - Frontier at the go: #83, #84, #85, #86, #87, #88, #89; the two T4 timer tickets (#83, #84)
   first, at most 2 implementers at a time.
-- **Not started:** the PO asked for a separate go before any building.
+- **Not started:** the PO asked for a separate go before any building. The PO paused on
+  2026-10-26 (weekly usage limit); work resumes after the reset.
+- **Handover:** `docs/plans/v0.2.1.md` has the task graph, process, local gate, the guards
+  that bite (frozen schemas, accuracy run, 04 §12) and the release steps (rc versionCode 20101).
 - **Decision numbers:** up to D-093 used; the next free is **D-094**.
 
 ### M2 done (2026-10-26)
@@ -193,6 +197,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-26 | Handover plan `docs/plans/v0.2.1.md` for the next session; paused until the PO's usage limit resets. |
 | 2026-10-26 | v0.2.1 tickets #83–#94 via `/to-tickets`, approved by the PO and published under #81; building waits for the PO's go. |
 | 2026-10-26 | **M2 done:** the PO approved rc.1; #78 merged; accuracy on 7157cc4 passed; `v0.2.0` released from `main`. PO feedback #79 grilled (Q1–Q21) into D-093 (#80, merged); spec #81 for v0.2.1 approved by the PO; tickets next. |
 | 2026-10-26 | Parser fixes from live sample 2 (D-089); T4 milestone review (2 areas, no Block) fixed (D-090); two full live runs (run 1: 20.1 min, PNG photos missing, sets/SALE in → D-091 fixes; run 2: 15.7 min, 255 teas, all photos, no stop); the PO approved #77 and confirmed D-089/D-091 choices; accuracy run failed on step 1 (1178 ms) → D-092 keeps alert sounds loaded (rerun PASS, max 643 ms); `v0.2.0-rc.1` released (versionCode 20001, cert verified), checklist on #74. ProcessDeathTest made robust against a sticky service restart. |
