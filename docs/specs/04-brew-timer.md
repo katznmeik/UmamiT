@@ -21,8 +21,8 @@ specifies its behaviour, state machine, background execution, persistence,
 notifications and alerts. Functional requirements: TMR-xx and NOT-xx in
 [02](02-functional-requirements.md).
 
-**Target platform:** Samsung Galaxy, Android 16 / One UI 8 (minimum Android
-15, API 35).
+**Target platform:** Samsung Galaxy, Android 17 / One UI 9 since 2026-10-28,
+before that Android 16 / One UI 8 (minimum Android 15, API 35; target SDK 36).
 
 ## 1. Terminology
 
@@ -476,7 +476,8 @@ rules (D-047):
   UmamiT to *Nie schlafende Apps*.
 - `PowerManager.isIgnoringBatteryOptimizations()` is checked at app start and
   before each session; if false → reliability banner.
-- Verified on the PO's Galaxy (Android 16 / One UI 8) as part of acceptance.
+- Verified on the PO's Galaxy as part of acceptance (Android 16 / One UI 8
+  through v0.2.0; re-checked on Android 17 / One UI 9 on 2026-10-28).
 
 ## 7. Persistence & recovery
 
@@ -684,7 +685,7 @@ ongoing notification** (Live Update):
   `setWhen(deadlineWall)`); no static short critical text with a time. In
   READY / PAUSED / FINISHED a short critical text is used (e.g. „60 °C",
   „Pause"; at most 10 °C „Kaltes Wasser" or „Eiswürfel", D-068).
-- Shown as a status-bar chip and on the lock screen. On One UI 8 it may also
+- Shown as a status-bar chip and on the lock screen. On One UI 8 and 9 it may also
   appear in the Samsung **Now Bar**; this is **best effort** (One UI may
   require the user to enable live notifications per app or a developer
   option) and is not a release blocker. With `v0.0.2-probe` the countdown did

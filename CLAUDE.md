@@ -8,7 +8,8 @@ tea. It has four parts:
 - an automatic journal with statistics.
 
 There is one user, the product owner (PO). It runs on one Samsung Galaxy
-(Android 16 / One UI 8) and is installed from GitHub Releases, not a store.
+(Android 17 / One UI 9 since 2026-10-28; the app still targets SDK 36) and is
+installed from GitHub Releases, not a store.
 
 ## Start of every session
 
