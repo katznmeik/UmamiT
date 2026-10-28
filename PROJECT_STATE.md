@@ -39,12 +39,12 @@
 
 ## Waiting on the PO
 
-1. **Go for v0.2.1:** tickets #83–#94, #97 and #98 are published and approved. Building starts only on
+1. **Go for v0.2.1:** tickets #83–#94, #97, #98 and #100 are published and approved. Building starts only on
    the PO's explicit go: the PO types `/implement-spec #81` (the skill cannot be
    model-invoked). Handover for that session: `docs/plans/v0.2.1.md`.
-2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
-   on 2026-10-25. Upload to `docs/design/assets/source/` on the working branch.
-   Later: A6, A7, A9, A10 (`docs/design/assets.md`).
+2. Images: **all delivered** (A1–A11, light and dark; A6–A11 on 2026-10-28). A8 and A11
+   replace the catalog placeholders in v0.2.1 (#100); A6, A7, A9 and A10 are built in with
+   the screens of M3/M4.
 3. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
    stays open for later milestones.
 
@@ -200,6 +200,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-28 | The PO uploaded A6–A11 (light and dark, 1536 × 1024), checked: complete, no text, frames or dark corners; #100 builds A8 and A11 into v0.2.1. |
 | 2026-10-28 | D-094: sold-out teas missing from the shop's sitemap (TG0170); re-check (#97) and a tea from a shop link (#98) added to v0.2.1; specs, CLAUDE.md rule 7 and the plan updated. Image prompts A6–A11 sent to the PO. |
 | 2026-10-26 | Handover plan `docs/plans/v0.2.1.md` for the next session; paused until the PO's usage limit resets. |
 | 2026-10-26 | v0.2.1 tickets #83–#94 via `/to-tickets`, approved by the PO and published under #81; building waits for the PO's go. |
