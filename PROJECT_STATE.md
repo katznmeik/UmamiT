@@ -90,7 +90,7 @@
 - **D-094 (2026-10-28):** the PO found Bio Sencha Kirishima Yabukita (TG0170) missing from the catalog. The shop's sitemap leaves sold-out products out, and paginated listings are off-limits (robots `*/?`). The PO chose:
   - #97 (T4, ←#89): a refresh re-checks known teas missing from the sitemap (CAT-16);
   - #98 (T4, ←#97): a tea from a shared or pasted shop link (CAT-17), the fourth network use GEN-01 (d), CLAUDE.md rule 7 updated.
-- **D-095 (2026-10-28):** the PO found the Tee-Kontor photos unattractive as the timer's top band. The PO chose an ink-wash band (new asset **A13**, dark only, the PO uploads it) with the tea photo as a small round seal; the quick timer gets the band without a seal; in v0.2.1 as #102 (T3, ←#85); A13 delivered the same day. Prompt and filename in `docs/design/assets.md`.
+- **D-095 (2026-10-28):** the PO found the Tee-Kontor photos unattractive as the timer's top band. The PO chose an ink-wash band (new asset **A13**, dark only, the PO uploads it) with the tea photo as a small round seal; the quick timer gets the band without a seal; in v0.2.1 as #102 (T3, ←#85; approved by the PO on 2026-10-28); A13 delivered the same day. Prompt and filename in `docs/design/assets.md`.
 - **Decision numbers:** up to D-095 used; the next free is **D-096**.
 
 ### M2 done (2026-10-26)
