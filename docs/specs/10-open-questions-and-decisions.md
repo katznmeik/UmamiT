@@ -302,6 +302,40 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-095"></a>
+### D-095 — Timer top: ink-wash band and tea seal (#102; SCR-05, SCR-07; amends D-058, D-069, D-093 point 2) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
+
+**Context.** The Tee-Kontor photos are product shots on a white background.
+As the full-width band at the top of the always-dark timer they look like a
+pasted-in rectangle (PO feedback, 2026-10-28).
+
+**Decision (PO).**
+- **Band and seal.** The top of the timer shows our own dark ink-wash
+  picture, a new asset **A13** (`A13-timer-band-dark.png`, dark only,
+  delivered by the PO), instead of the tea photo. The tea photo becomes a
+  small round **seal** overlapping the band's lower edge.
+- **Quick timer.** SCR-07 gets the band too, without a seal (amends D-069
+  „no photo").
+- **Release.** In v0.2.1, as ticket #102; the PO uploads A13 before it is
+  built.
+
+**Details (Claude).**
+- **Band.** Full width, about 220 dp, A13 centre-cropped and fading into
+  the Steeping background like today's photo (`PHOTO_FADE_START`). ← and ⋮
+  keep their 40 dp circles from D-093 point 2.
+- **Seal.** An 88 dp washi disc (`#F3F0E9`) with a thin ring, centred, half
+  over the band's lower edge. The photo fills the inner circle (crop) and is
+  drawn with a multiply blend, so a white background turns into the disc's
+  cream and the leaves seem to lie in a bowl. Without a photo, or until it is
+  read, the disc shows the type-coloured leaf drawn in code (as the tea
+  thumbnails). Decorative: the title names the tea.
+- **A4 retires.** The timer fallback photo A4 is no longer shown; its
+  resource leaves the app (the source stays in `docs/design/assets/source/`).
+- **Alert.** As today, the band and the seal are hidden on the alert surface
+  and their space stays, so nothing moves when the alert starts (D-058).
+- **Not the timer.** Pure layout and drawing in `feature:brew`; no engine,
+  service or alarm code, so the accuracy run is not touched by it (rule 8).
+
 <a id="d-094"></a>
 ### D-094 — Sold-out teas and adding a tea from a shop link (#97, #98; CAT-07, CAT-16, CAT-17, GEN-01, SCR-19, SCR-21, NFR-PRIV-02; amends D-036) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
 
@@ -403,6 +437,7 @@ decided (PO, 2026-10-26, unless marked „Claude"):
   ← and ⋮ icons sit on a filled circle (Claude: 40 dp, Steeping surface at
   60 % opacity), so they stay visible on bright, white-backed tea photos;
   the icons keep at least 3:1 against the circle whatever the photo.
+  (Since [D-095](#d-095) they sit on the ink-wash band; the circles stay.)
 - **3 — Pre-alert per infusion (TMR-23, SCR-31, PRF-03, 04 §5).**
   - Each step carries its own pre-alert: *Automatisch* (the default), *Aus*
     or 5–30 s in 5 s steps (PO).
@@ -2590,7 +2625,8 @@ and *Diagnose* (SCR-27; TMR-30). Decided while building it:
   of them is open. The rule is the pure `ScreenDimming`, tested with a moved
   clock; the screen re-checks only when the result can change.
 - **Photo and liquor.** The tea photo sits at the top and fades into the
-  background (mockup v2). The screen takes it as a parameter; since #54 the
+  background (mockup v2; since [D-095](#d-095) an ink-wash band with the
+  photo as a small seal). The screen takes it as a parameter; since #54 the
   route passes the session tea's cover photo, or the placeholder, for every
   brew ([D-069](#d-069)).
   The liquor fill is the green liquor until the tea's style is in the state.
@@ -3711,6 +3747,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-28 | D-095: timer top as an ink-wash band (new asset A13, dark) with the tea photo as a small round seal on a washi disc (multiply blend, type leaf as fallback); the quick timer gets the band without a seal; A4 retires; in v0.2.1 as #102. 03 SCR-05, SCR-07, 09 §4 and `docs/design/assets.md` updated. |
 | 2026-10-28 | D-094: sold-out teas and adding a tea from a shop link (#97, #98) — the shop's sitemap leaves sold-out products out, so known teas missing from it are re-checked once per refresh and kept while their page is still a green or herbal product (CAT-16), and a tea can be fetched from a shop link shared to the app or pasted via *Link einfügen* (CAT-17, share target `ACTION_SEND` `text/plain`); GEN-01 now has four network uses; paginated listings rejected (robots `*/?`). 02, 03, 06, 07, 08, 09 and CLAUDE.md rule 7 updated. |
 | 2026-10-26 | D-093 amended with the PO's spec grilling Q15–Q21 (archived tea in the journal, no downgrades, „Auto · N s", vessel names, herbal filter sheet, empty Kräutertee view, undo snackbar). |
 | 2026-10-26 | D-093 amended after the PO's grilling (Q1–Q14): a step's pre-alert goes into the recipe only via *Im Rezept speichern*; the pre-alert keeps `USAGE_NOTIFICATION_EVENT`, sounds mastered much louder (-18 LUFS) with ≈ 3 s fall-off; Kräutertees only (no fruit tea or rooibos), style `herbal` 2 g / 250 ml, Becher, 100 °C, 6:00, *Pur* not applied in the Kräutertee view, the one-time re-classification (≈ 16 min) accepted; no *Aus Sammlung entfernen* for the active session's tea; correction = new total; archived teas leave Start and the picker; v0.2.1 rcs need the accuracy run. PO's and Claude's parts marked. |
