@@ -1,6 +1,6 @@
 # 07 · Non-Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (NFR-PERF-11 with Kräutertees, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-28 (NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
 > v0.2: single user, single device (Samsung Galaxy, Android 16 / One UI 8),
 > no store; catalog network access.
 
@@ -16,7 +16,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 | Performance | Cold start to Home ≤ 1 s; smooth scrolling |
 | Reliability | No data loss; no crashes during sessions; missed alerts = 0 |
 | Accessibility | Large fonts, TalkBack basics, contrast AA |
-| Privacy | Personal data never leaves the phone; network only to tee-kontor-kiel.de (three uses, GEN-01) |
+| Privacy | Personal data never leaves the phone; network only to tee-kontor-kiel.de (four uses, GEN-01) |
 | Size | APK ≤ 20 MB |
 
 ## 2. Performance
@@ -69,7 +69,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 | ID | Requirement |
 |---|---|
 | NFR-PRIV-01 | Personal data (collection, journal, stock, settings, photos) is never transmitted. |
-| NFR-PRIV-02 | The only network traffic goes to the allow-listed host `www.tee-kontor-kiel.de` for exactly three uses (GEN-01, D-036): the user-initiated catalog refresh, the one-time seed photo download at first start, and the exact price fetch when the user adds a package. No other background network activity. |
+| NFR-PRIV-02 | The only network traffic goes to the allow-listed host `www.tee-kontor-kiel.de` for exactly four uses (GEN-01, D-036, D-094): the user-initiated catalog refresh (incl. the re-check of known teas missing from the sitemap, CAT-16), the one-time seed photo download at first start, the exact price fetch when the user adds a package, and the user-triggered fetch of one product page from a shop link the user shares or pastes (CAT-17). No other background network activity. |
 | NFR-PRIV-03 | No analytics, ads, crash reporting or tracking SDKs. |
 | NFR-PRIV-04 | Own photos have EXIF (incl. GPS) removed. |
 | NFR-PRIV-07 | Android device backup includes database and settings only (photos/catalog excluded). |

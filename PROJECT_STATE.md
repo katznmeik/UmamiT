@@ -9,7 +9,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 and tickets #83–#94 approved by the PO; **building waits for the PO's explicit go** |
+| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 and tickets #83–#94 approved by the PO, plus #97 and #98 from D-094 (2026-10-28); **building waits for the PO's explicit go** |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #82 |
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **Go for v0.2.1:** tickets #83–#94 are published and approved. Building starts only on
+1. **Go for v0.2.1:** tickets #83–#94, #97 and #98 are published and approved. Building starts only on
    the PO's explicit go: the PO types `/implement-spec #81` (the skill cannot be
    model-invoked). Handover for that session: `docs/plans/v0.2.1.md`.
 2. Images A8 (empty catalog) and A11 (Ratgeber header) for M2; prompts were sent
@@ -87,7 +87,10 @@
   2026-10-26 (weekly usage limit); work resumes after the reset.
 - **Handover:** `docs/plans/v0.2.1.md` has the task graph, process, local gate, the guards
   that bite (frozen schemas, accuracy run, 04 §12) and the release steps (rc versionCode 20101).
-- **Decision numbers:** up to D-093 used; the next free is **D-094**.
+- **D-094 (2026-10-28):** the PO found Bio Sencha Kirishima Yabukita (TG0170) missing from the catalog. The shop's sitemap leaves sold-out products out, and paginated listings are off-limits (robots `*/?`). The PO chose:
+  - #97 (T4, ←#89): a refresh re-checks known teas missing from the sitemap (CAT-16);
+  - #98 (T4, ←#97): a tea from a shared or pasted shop link (CAT-17), the fourth network use GEN-01 (d), CLAUDE.md rule 7 updated.
+- **Decision numbers:** up to D-094 used; the next free is **D-095**.
 
 ### M2 done (2026-10-26)
 
@@ -197,6 +200,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-28 | D-094: sold-out teas missing from the shop's sitemap (TG0170); re-check (#97) and a tea from a shop link (#98) added to v0.2.1; specs, CLAUDE.md rule 7 and the plan updated. Image prompts A6–A11 sent to the PO. |
 | 2026-10-26 | Handover plan `docs/plans/v0.2.1.md` for the next session; paused until the PO's usage limit resets. |
 | 2026-10-26 | v0.2.1 tickets #83–#94 via `/to-tickets`, approved by the PO and published under #81; building waits for the PO's go. |
 | 2026-10-26 | **M2 done:** the PO approved rc.1; #78 merged; accuracy on 7157cc4 passed; `v0.2.0` released from `main`. PO feedback #79 grilled (Q1–Q21) into D-093 (#80, merged); spec #81 for v0.2.1 approved by the PO; tickets next. |

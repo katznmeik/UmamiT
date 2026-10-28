@@ -61,13 +61,20 @@ commit and push.
    - the on-device checklist passes (`docs/specs/09-release-plan.md` §4);
    - the design review passes. Rendered screenshots (light and dark) go in
      `docs/design/review/<milestone>/`, using placeholder images only.
-7. **The app uses the network for exactly three things**, all only to
-   `www.tee-kontor-kiel.de` (D-036): the user-triggered catalog refresh, a
-   one-time download of the two seed teas' photos at first start, and the
-   exact price fetch when the user adds a package. Rules:
+7. **The app uses the network for exactly four things**, all only to
+   `www.tee-kontor-kiel.de` (D-036, D-094):
+   - the user-triggered catalog refresh;
+   - a one-time download of the two seed teas' photos at first start;
+   - the exact price fetch when the user adds a package;
+   - the fetch of one product page from a shop link the user shares or
+     pastes.
+
+   Rules:
    - host allow-list;
    - at most 2 requests per second, one connection;
-   - respect `robots.txt` and discover pages through the sitemap;
+   - respect `robots.txt` and discover pages through the sitemap, plus the
+     one page of a link the user shares or pastes, and the once-per-refresh
+     check of known teas missing from the sitemap;
    - stop on a Cloudflare challenge, HTTP 429 or `Retry-After`, and never
      bypass a challenge.
 8. **Timer reliability beats features.** Any change to the timer needs the

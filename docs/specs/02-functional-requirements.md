@@ -1,7 +1,8 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (v0.2.1 and v0.3 from
-> the PO's feedback on `v0.2.0-rc.1`, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-28 (sold-out teas and
+> adding a tea from a shop link, CAT-16, CAT-17, D-094; 2026-10-26: v0.2.1
+> and v0.3 from the PO's feedback on `v0.2.0-rc.1`, D-093)
 > v0.2 incorporates the PO interview of 2026-10-21. Requirements dropped in
 > v0.2 are listed in §16. A few v0.1 IDs were given new meanings in v0.2 (no
 > code existed yet); from v0.2 on, IDs are stable and never reused.
@@ -48,16 +49,18 @@ German with an English gloss where helpful.
 
 ## 1. General (GEN)
 
-**GEN-01 — Local-first, three network uses** `Must`
+**GEN-01 — Local-first, four network uses** `Must`
 All personal data is stored only on the device. The app declares
-`INTERNET` for exactly three uses (D-036), all to the shop host:
-(a) the user-triggered catalog refresh (CAT-07); (b) the one-time download
-of the two seed teas' photos at first start (ONB-06); (c) the on-demand
-exact price fetch when the user adds a package (CAT-12).
+`INTERNET` for exactly four uses (D-036, D-094), all to the shop host:
+(a) the user-triggered catalog refresh (CAT-07, incl. the re-check of CAT-16);
+(b) the one-time download of the two seed teas' photos at first start
+(ONB-06); (c) the on-demand exact price fetch when the user adds a package
+(CAT-12); (d) the user-triggered fetch of one product page the user shares
+or pastes (CAT-17, v0.2.1).
 - AC1: Network requests are made only to `www.tee-kontor-kiel.de` (the shop
   serves its images from the same host), enforced by a host allow-list in
   the HTTP client.
-- AC2: Every feature except these three works in airplane mode (the seed
+- AC2: Every feature except these four works in airplane mode (the seed
   teas then use the placeholder image; prices stay estimates).
 - AC3: No analytics, ads, crash-reporting or other third-party network SDKs.
 
@@ -232,7 +235,8 @@ the shop, parses all products, and replaces the catalog atomically.
   (marked „Nicht mehr im Sortiment") only if a collection tea links to them
   via `catalog_key`; otherwise they are deleted with their photos. A tea
   still in the sitemap whose page can't be read once is kept as it was
-  (08 §2.4 item 5, D-086).
+  (08 §2.4 item 5, D-086). Exception (v0.2.1, D-094): a tea missing from the
+  sitemap counts as no longer found only after the re-check of CAT-16.
 - AC5: If parsing fails structurally (e.g. < 50 % of the previous product
   count, or required fields missing on most products), the existing catalog
   is kept unchanged and the error „Die Shop-Seite hat sich geändert – ein
@@ -324,6 +328,56 @@ confirmation and a choice of what to reset).
 **CAT-14 — Bundled snapshot** `Won't`
 No catalog snapshot is bundled in the APK: the APK is publicly downloadable
 from GitHub Releases, which would redistribute shop content (D-016, D-036).
+
+**CAT-16 — Sold-out teas stay in the catalog** `Must` (v0.2.1, D-094, #97)
+The shop leaves sold-out products out of its sitemap (08 §2.2). During a
+refresh, every catalog tea whose article number is missing from the sitemap
+gets its own product page fetched once, within the refresh's limits and stop
+rules (CAT-07 AC2). This is part of network use (a) of GEN-01, not a new use.
+- AC1: Answer 200, the canonical URL is that product page, and the breadcrumb
+  is still green or herbal tea (CAT-01) → the tea is kept with the page's
+  data and stock („nicht vorrätig" when no size is available); it never
+  counts as „nicht mehr im Sortiment".
+- AC2: 404/410, a redirect away from the product (its `Location`, never
+  followed), or a breadcrumb out of scope → the tea is no longer found, as in
+  CAT-07 AC4.
+- AC3: The page can't be read this once without a stop (e.g. `robots.txt`
+  disallows it, or the answer is over the body limit; 08 §2.8) → the tea is
+  kept as it was. A 5xx, or a network error after its retries, stops the
+  whole refresh as 08 §2.8 says.
+- AC4: A Cloudflare challenge, HTTP 429 or `Retry-After` stops the whole
+  refresh without changes, as today (08 §2.8).
+- AC5: Expected about 5–20 extra requests per refresh, inside the refresh's
+  budget (NFR-PERF-11).
+
+**CAT-17 — Add a tea from a shop link** `Must` (v0.2.1, D-094, #98)
+A tea the sitemap doesn't list (e.g. sold out) can be fetched on its own from
+its shop link. This is network use (d) of GEN-01.
+- AC1: Entry points: the Android share target (`ACTION_SEND`, `text/plain`),
+  so UmamiT appears in the browser's *Teilen* sheet, and *Link einfügen* in
+  the catalog's overflow menu (SCR-19), which opens a paste field.
+- AC2: Accepted is only `https://www.tee-kontor-kiel.de/<slug>/<Artikelnummer>`
+  with an optional `-<Gramm>` size suffix. Anything else (another or
+  look-alike host, `http`, userinfo, a query string, a category or
+  `/tee-info/` URL) shows „Das ist kein Tee-Link von Tee-Kontor Kiel." and
+  sends no request.
+- AC3: The app fetches only that one product page through the shared polite
+  shop session (`robots.txt` respected, ≤ 2 requests/second, stop on a
+  challenge, HTTP 429 or `Retry-After`). Offline, it shows a message and
+  sends nothing.
+- AC4: A green or herbal tea (CAT-01) is stored in the catalog as a regular
+  entry (photo per SET-22) and its detail (SCR-21) opens with *In Sammlung
+  aufnehmen* / *Nachkauf erfassen* as usual; the exact price is fetched on
+  adding (GEN-01 (c)). A sold-out tea shows „nicht vorrätig". It is not
+  marked „Neu".
+- AC5: Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur
+  Grün- und Kräutertees)." and nothing is stored.
+- AC6: Already in the catalog → its detail opens, and the page refreshes the
+  entry.
+- AC7: While a refresh runs → „Gerade läuft ein Abruf – versuch es danach."
+  and no request.
+- AC8: A tea fetched this way that is not in the sitemap is kept by the
+  re-check of CAT-16 on later refreshes.
 
 ---
 

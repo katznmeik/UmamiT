@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-26
+> Status: **Living document** · Last updated: 2026-10-28
 
 ## Open questions
 
@@ -301,6 +301,82 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-094"></a>
+### D-094 — Sold-out teas and adding a tea from a shop link (#97, #98; CAT-07, CAT-16, CAT-17, GEN-01, SCR-19, SCR-21, NFR-PRIV-02; amends D-036) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
+
+**Context.** Checked live on 2026-10-28: the shop (Shopware) leaves sold-out
+products out of its sitemap. „Bio Sencha Kirishima Yabukita" (TG0170) and
+„Bio Sencha Gabalong" (TG0577) show every size as unavailable; their pages
+are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan ›
+Sencha), but neither is in the sitemap. On page 1 of the Sencha listing, 3
+of 24 products were missing from the sitemap. The app discovers products
+only through the sitemap (CLAUDE.md rule 7, 08 §2.4), so such a tea never
+appears, and a known tea that sells out is counted as discontinued.
+
+**Decision (PO).** (a) Sharing or pasting a shop link fetches that one tea;
+(b) teas that drop out of the sitemap are re-checked.
+
+**Details (Claude).**
+- **CAT-16 — Sold-out teas stay in the catalog (`Must`, v0.2.1, #97, T4,
+  blocked by #89).** During a refresh, every catalog tea whose number is
+  missing from the sitemap gets its own page fetched once, within the
+  refresh's limits and stop rules. 200, the canonical is that product page
+  and the breadcrumb is still green or herbal → kept with the page's stock
+  („nicht vorrätig" when no size is available), never counted as
+  discontinued. 404/410, a redirect away from the product, or a breadcrumb
+  out of scope → discontinued as today (CAT-07 AC4). Not readable this once
+  without a stop (08 §2.8) → kept as it was. A challenge, 429 or
+  `Retry-After` stops the whole refresh as today. Expected ≈ 5–20 extra
+  requests per refresh, inside the existing budget. This is part of network
+  use (a), not a new use.
+- **CAT-17 — Add a tea from a shop link (`Must`, v0.2.1, #98, T4, blocked
+  by #97).**
+  - Entry points: the Android share target (`ACTION_SEND`, `text/plain`),
+    so UmamiT appears in the browser's *Teilen* sheet, and *Link einfügen*
+    in the catalog's overflow menu (a paste sheet, SCR-19).
+  - Accepted only: `https://www.tee-kontor-kiel.de/<slug>/<Artikelnummer>`
+    with an optional `-<grams>` size suffix. Anything else (another or
+    look-alike host, `http`, userinfo, a query string, a category or
+    `/tee-info/` URL) → „Das ist kein Tee-Link von Tee-Kontor Kiel." with no
+    request.
+  - The app fetches only that one product page through the shared polite
+    shop session (robots.txt, ≤ 2 requests/s, stop on a challenge, 429 or
+    `Retry-After`; offline → message).
+  - Green or herbal → stored in catalog.db as a regular entry (photo per
+    SET-22), and its detail (SCR-21) opens with *In Sammlung aufnehmen* /
+    *Nachkauf erfassen* as usual; the exact price is fetched on adding
+    (GEN-01 (c)). Sold out → „nicht vorrätig". Not marked „Neu".
+  - Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur Grün-
+    und Kräutertees)." and nothing stored.
+  - Already in the catalog → its detail opens, and the page refreshes the
+    entry. While a refresh runs → „Gerade läuft ein Abruf – versuch es
+    danach."
+  - A tea fetched this way that is not in the sitemap is kept by CAT-16's
+    re-check on later refreshes.
+- **GEN-01: four network uses.** New use (d): the user-triggered fetch of
+  one product page the user shares or pastes. Host allow-list, ≤ 2
+  requests/s, one connection, robots.txt and the stop rules are unchanged.
+  CLAUDE.md rule 7, 02 GEN-01, 06 §4 and §5.7, 07 NFR-PRIV-02 updated.
+- **Manifest.** A share-target intent filter for `ACTION_SEND` +
+  `text/plain`, exported only for that; no new permission (06 §5.7).
+
+**Consequences.** A refresh makes a few more requests. The shared or pasted
+text is untrusted input and is checked before any request. Sold-out teas are
+visible and addable, shown „nicht vorrätig". A v0.2.1 checklist item covers
+both (09 §4).
+
+**Rejected.**
+- *Reading the paginated category listings (`?p=N`)*: `robots.txt` has
+  `Disallow: */?` (08 §2.2), so this is off-limits.
+- *Leaving it as is*: sold-out teas would never appear, and known ones would
+  be counted as discontinued whenever they sell out.
+- *Re-check only*: it keeps known teas but can't bring in a tea the catalog
+  never had (e.g. one that was sold out at the first load).
+
+02 GEN-01, CAT-07, CAT-16 (new), CAT-17 (new); 03 SCR-19, SCR-21, §5; 06 §4,
+§5.7; 07 privacy row, NFR-PRIV-02; 08 §2.2, §2.4, §2.8; 09 §2, §4; CLAUDE.md
+rule 7 updated.
 
 <a id="d-093"></a>
 ### D-093 — v0.2.1 and v0.3: the PO's feedback on `v0.2.0-rc.1` (#79; TMR-21, TMR-22, TMR-23, SCR-05, SCR-31, SET-10, SET-26, PRF-03, BRW-02, WARE-06, INV-03, TEA-04, SCR-03, CAT-01, CAT-10, SCR-19, NFR-PERF-11) · *Accepted* (PO, 2026-10-26, in the session and the grilling of this draft, Q1–Q14; details marked „Claude" are Claude's)
@@ -3564,7 +3640,8 @@ Result of an Opus `xhigh` review of spec v0.2 plus the PO's answers.
   start (during the first-start setup, visible progress, skippable,
   placeholder fallback; ONB-06); (c) the on-demand exact variant price fetch
   when the user adds a package (CAT-12). Updates GEN-01, NFR-PRIV-02,
-  06 §4/§5.7, 08 §2.5a.
+  06 §4/§5.7, 08 §2.5a. *Amended by D-094:* a fourth use, (d) the fetch of
+  one product page from a shop link the user shares or pastes (CAT-17).
 - **Sounds:** synthesised first (ffmpeg in the cloud container): Klangschale
   (default), Glocke, Holzblock, Glockenspiel, Sanft and the pre-alert tick.
   The PO may replace any tone later with uploaded CC0 recordings (licence in
@@ -3634,6 +3711,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-28 | D-094: sold-out teas and adding a tea from a shop link (#97, #98) — the shop's sitemap leaves sold-out products out, so known teas missing from it are re-checked once per refresh and kept while their page is still a green or herbal product (CAT-16), and a tea can be fetched from a shop link shared to the app or pasted via *Link einfügen* (CAT-17, share target `ACTION_SEND` `text/plain`); GEN-01 now has four network uses; paginated listings rejected (robots `*/?`). 02, 03, 06, 07, 08, 09 and CLAUDE.md rule 7 updated. |
 | 2026-10-26 | D-093 amended with the PO's spec grilling Q15–Q21 (archived tea in the journal, no downgrades, „Auto · N s", vessel names, herbal filter sheet, empty Kräutertee view, undo snackbar). |
 | 2026-10-26 | D-093 amended after the PO's grilling (Q1–Q14): a step's pre-alert goes into the recipe only via *Im Rezept speichern*; the pre-alert keeps `USAGE_NOTIFICATION_EVENT`, sounds mastered much louder (-18 LUFS) with ≈ 3 s fall-off; Kräutertees only (no fruit tea or rooibos), style `herbal` 2 g / 250 ml, Becher, 100 °C, 6:00, *Pur* not applied in the Kräutertee view, the one-time re-classification (≈ 16 min) accepted; no *Aus Sammlung entfernen* for the active session's tea; correction = new total; archived teas leave Start and the picker; v0.2.1 rcs need the accuracy run. PO's and Claude's parts marked. |
 | 2026-10-26 | D-093: the PO's feedback on `v0.2.0-rc.1` (#79) — v0.2.1: legible timer top bar on bright photos, a pre-alert per infusion saved in the recipe (automatic N = min(B, 5 · ⌊d / 15⌋), umamit.db v2 with a tested migration), four new louder pre-alert sounds with a longer fall-off (*Vorwarnton*, SET-26), seven more seed vessels added once, stock correction from „… g übrig" (`ADJUSTMENT`), *Aus Sammlung entfernen* from the tea picker (archive with undo; re-adding un-archives), Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*); v0.3.0: quick timers alongside one brew session (planned); M3 → v0.4.0, M4 → v0.5.0. 02, 03, 04, 05, 07, 08, 09 and `docs/design/assets.md` updated. |

@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-28 (sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -33,7 +33,7 @@ parser (NFR-MAINT-04).
 | `robots.txt` | `Allow: /`, but `Disallow: */?` (so paginated listings `?p=N` are off-limits), `*/widgets/`, `*/navigation/`, `*/bundles/`, account/checkout. No crawl-delay. Sitemap: `/sitemap.xml`. |
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
-| Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. |
+| Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. **Sold-out products are left out** (checked 2026-10-28, D-094): e.g. „Bio Sencha Kirishima Yabukita" (TG0170) and „Bio Sencha Gabalong" (TG0577), every size unavailable, are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan › Sencha) but not in the sitemap; on page 1 of the Sencha listing, 3 of 24 products were missing. Known teas missing from the sitemap are therefore re-checked (§2.4 item 5, CAT-16), and a single tea can be fetched from its shop link (§2.4 item 9, CAT-17). Paginated listings stay off-limits (`Disallow: */?`). |
 | Article numbers | Parent `TG0557`; size variants `TG0557-10/-50/-100/-250/-500/-1000` (suffix = grams); `TG0557M` is the same page as the parent (canonical `TG0557`), not a sample; lower-case suffixes like `AT0220a` are separate articles; `…SET` = sets (excluded; in any case and with letters after it, `…Set`, `…SETc`, D-091); `…SALE` = a reduced duplicate of a regular tea (excluded, D-091); some teas are split into separate base numbers per size (e.g. `AT0868`/`AT0869`). |
 
 ### 2.3 Product page selectors and field mapping
@@ -125,13 +125,25 @@ the prose, whose years are travel reports, founding years and link texts
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
-   sitemap; products missing from the sitemap → discontinued. The known green
+   sitemap; products missing from the sitemap are re-checked (below) before
+   they count as discontinued. The known green
    parents are the catalog's keys and the base numbers merged into them
    (item 7), read from their packages' article numbers; skip entries due
    again (90 days) are fetched too. A known tea whose page can't be read this
    time (robots.txt, 404, a page without product) but whose numbers are still
-   in the sitemap is kept as it was; one that is now out of scope or missing
-   from the sitemap is discontinued (CAT-07 AC4). Only new and changed photos
+   in the sitemap is kept as it was; one that is now out of scope is
+   discontinued (CAT-07 AC4). **Re-check of teas missing from the sitemap
+   (v0.2.1, CAT-16, D-094):** the sitemap leaves sold-out products out
+   (§2.2), so each catalog tea none of whose numbers is in the sitemap gets
+   its product page (`product_url`) fetched once, in the same session and
+   within the refresh's limits and stop rules. 200, the canonical is that
+   product page and the breadcrumb is still in scope (item 3) → kept with the
+   page's data and stock („nicht vorrätig" when no size is available), never
+   discontinued; 404/410, a 3xx whose `Location` leads away from the product
+   (not followed), or a breadcrumb out of scope → discontinued; read this
+   time without a stop (e.g. disallowed by robots.txt, over the body limit,
+   §2.8) → kept as it was. A challenge, 429 or `Retry-After` stops the whole
+   refresh as always (§2.8). Expected ≈ 5–20 extra requests. Only new and changed photos
    are fetched (D-086); a photo or guide image that failed for good (over the
    16 MB image limit, or not decodable) is not fetched again while its URL
    stays the same (`catalog_image_failure`, D-091), while a 404 or a network
@@ -162,6 +174,18 @@ the prose, whose years are travel reports, founding years and link texts
    two harvests) and are not merged (D-081).
 8. New harvests usually get new article numbers; the old one becomes
    discontinued.
+9. **A tea from a shop link (v0.2.1, CAT-17, D-094):** a link the user
+   shares to UmamiT or pastes (*Link einfügen*) is accepted only as
+   `https://www.tee-kontor-kiel.de/<slug>/<article number>` with an optional
+   `-<grams>` size suffix; any other link (other or look-alike host, `http`,
+   userinfo, a query string, a category or `/tee-info/` URL) sends no
+   request. The app then runs one shop session (robots.txt read first, §2.8)
+   that fetches only that one product page and its photo (SET-22),
+   classifies it by
+   item 3, and stores a green or herbal tea as a regular catalog entry; a
+   tea out of scope is not stored and not added to `catalog_skip`. A link to
+   a tea already in the catalog refreshes that entry. Not while a refresh
+   runs. Network use (d) of GEN-01.
 
 Request budget at the default rate limit (2 requests/s, all requests
 including images):
@@ -169,7 +193,7 @@ including images):
 | Refresh | Requests (approx.) | Duration |
 |---|---|---|
 | First | sitemap + ~1,400–1,560 parent pages for classification (all shop categories, counted live on 2026-10-25, D-076) + ~260–280 photos + guides (G = number of keyword-selected guide slugs, §2.7, ~10–40 and at most 40, plus their images, at most 4 each: ≤ 200 requests, ≈ 100 s, D-087); full live run 1: 1,747 requests | ~15–16 min (D-091) |
-| Later | sitemap + ~280 green pages + new items + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored, or one that failed for good, is not fetched again, D-087, D-091) | ~3 min |
+| Later | sitemap + ~280 green pages + new items + ≈ 5–20 re-checks of known teas missing from the sitemap (item 5, D-094) + changed photos + G ≤ 40 guide pages and only new or changed guide images (≈ 0–40; an image already stored, or one that failed for good, is not fetched again, D-087, D-091) | ~3 min |
 
 **Kräutertees (v0.2.1, D-093):** their pages are already among the parent
 pages fetched for classification, so they add only their photos (and their
@@ -471,7 +495,8 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
   sequentially, at ≤ 2 requests/s.
 - **robots.txt:** rules are matched with longest-match precedence and `*` /
   `$` wildcards (RFC 9309); a disallowed URL is never fetched. It is read
-  once per job (seed photos, refresh, exact price) by the shared shop session:
+  once per job (seed photos, refresh, exact price, a shared or pasted link)
+  by the shared shop session:
   404/410 → everything allowed; 401/403/5xx or a stop signal → the job stops
   before any other request; any other failure → everything disallowed
   (RFC 9309 §2.3.1, D-050, D-074).
