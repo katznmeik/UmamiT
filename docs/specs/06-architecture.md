@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-10-28 (four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -139,13 +139,15 @@ concurrently.
 | Debug | LeakCanary, StrictMode |
 
 No analytics, ads or crash-reporting SDKs. The network is used for exactly
-three things (GEN-01, D-036): the catalog refresh, the one-time seed photo
-download at first start, and the on-demand exact price fetch when adding a
-package. An OkHttp interceptor rejects any host other than
+four things (GEN-01, D-036, D-094): the catalog refresh (incl. the once-per-
+refresh re-check of known teas missing from the sitemap, CAT-16), the
+one-time seed photo download at first start, the on-demand exact price fetch
+when adding a package, and the fetch of one product page from a shop link
+the user shares or pastes (CAT-17). An OkHttp interceptor rejects any host other than
 `www.tee-kontor-kiel.de` (images are served from the same host, 08 §2.2).
 The client uses a **single connection** (`maxRequestsPerHost = 1`, one
 dispatcher thread for the shop). Each job (the seed photos, one refresh, one
-exact price fetch) runs as one **shop session** (`ShopSession`, D-074): it
+exact price fetch, one shared or pasted link) runs as one **shop session** (`ShopSession`, D-074): it
 reads robots.txt once with RFC 9309's status rules, never fetches a
 disallowed URL, retries connection errors only for the refresh (D-076), and
 after the first stop signal sends nothing more. An answer over its body
@@ -248,7 +250,7 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 
 | Permission | Purpose |
 |---|---|
-| `INTERNET` | The three uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch (all to `www.tee-kontor-kiel.de`) |
+| `INTERNET` | The four uses of GEN-01: catalog refresh, one-time seed photo download, exact price fetch, one product page from a shared or pasted shop link (all to `www.tee-kontor-kiel.de`) |
 | `POST_NOTIFICATIONS`, `POST_PROMOTED_NOTIFICATIONS` | Timer, Live Update, catalog progress (`POST_PROMOTED_NOTIFICATIONS` is not in the SDK 36 stubs but from Android 16 QPR1 a normal|appop permission that promotion requires; must stay declared; the user controls it, checked via `canPostPromotedNotifications()`, D-043/D-044) |
 | `USE_FULL_SCREEN_INTENT` | Full-screen step alert over the lock screen (TMR-06) |
 | `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE` | Timer service |
@@ -259,6 +261,13 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
 
 No storage, camera, location or contacts permissions.
+
+**Share target (v0.2.1, CAT-17, D-094).** One activity (or activity alias)
+has an intent filter for `android.intent.action.SEND` with MIME type
+`text/plain` and category `DEFAULT`, so UmamiT appears in the browser's
+*Teilen* sheet. It is exported only for that filter; it needs no new
+permission. The shared text is untrusted input: only a link accepted by
+CAT-17 AC2 leads to a request, and the intent opens SCR-21 for the tea.
 
 The build enforces this list (`./gradlew checkManifestPermissions`, in CI,
 M1-02): the merged **release** manifest may request only the permissions

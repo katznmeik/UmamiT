@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-26 (v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-28 (*Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -90,6 +90,7 @@ App
 │   └── Katalog (SCR-19)
 │       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
 │       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
+│       ├── Link einfügen (sheet, v0.2.1) → Katalog-Tee (SCR-21)
 │       └── Katalog aktualisieren (SCR-22)
 ├── Statistik (SCR-18)
 └── Einstellungen (SCR-25)
@@ -741,7 +742,21 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   zurücksetzen*.
 
 „Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
-*Katalog aktualisieren*.
+*Katalog aktualisieren*, and from v0.2.1 *Link einfügen* (CAT-17, D-094).
+
+**Link einfügen (sheet, v0.2.1, CAT-17, D-094).** Title „Tee per Link
+hinzufügen", a paste field („Link zur Tee-Seite bei Tee-Kontor Kiel") filled
+from the clipboard when it holds a link, and *Tee laden*. While it loads, a
+progress indicator and „Tee wird geladen …". A green or herbal tea opens its
+SCR-21; otherwise the sheet stays open with the message under the field:
+„Das ist kein Tee-Link von Tee-Kontor Kiel." (link not accepted, no
+request), „Dieser Tee gehört nicht zum Katalog (nur Grün- und
+Kräutertees)." (nothing stored), „Gerade läuft ein Abruf – versuch es
+danach." (a refresh runs), or the shop messages of §5 (offline, blocked,
+not reachable). **Share target:** a link shared from the browser's *Teilen*
+sheet to UmamiT goes the same way without the field: it opens SCR-21 for the
+tea, or a small sheet with the same messages. The sheet never covers an
+alert (rule 8).
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
@@ -786,6 +801,9 @@ Hinzufügen" for a smaller size, „nicht vorrätig" for a size known to be out
 of stock, and a note explaining „≈" when an estimate is shown (D-081). A tea
 no longer in the range, kept for a collection tea (CAT-07 AC4), carries the
 tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
+A tea whose sizes are all unavailable (sold out, kept by CAT-16 or fetched
+from a link by CAT-17, D-094) shows „nicht vorrätig" for each size and can
+still be added (*In Sammlung aufnehmen* / *Nachkauf erfassen*).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
@@ -926,6 +944,10 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Catalog refresh, shop down (401/403/5xx) | „Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh, storage full | „Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?" · „Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh cancelled | „Laden abgebrochen" · „Dein bisheriger Katalog bleibt erhalten." |
+| Tee per Link: not a shop tea link (CAT-17) | „Das ist kein Tee-Link von Tee-Kontor Kiel." |
+| Tee per Link: not green or herbal (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." |
+| Tee per Link: a refresh runs (CAT-17) | „Gerade läuft ein Abruf – versuch es danach." |
+| Tee per Link: offline / blocked / shop down (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
 
 ## 6. Accessibility
 
