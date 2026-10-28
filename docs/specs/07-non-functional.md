@@ -1,10 +1,15 @@
 # 07 · Non-Functional Requirements
 
 > Status: **Draft v0.2** · Last updated: 2026-10-28 (NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
-> v0.2: single user, single device (Samsung Galaxy, Android 16 / One UI 8),
+> v0.2: single user, single device (Samsung Galaxy, Android 17 / One UI 9),
 > no store; catalog network access.
 
-Reference device: **the PO's Samsung Galaxy (Android 16 / One UI 8)**.
+Reference device: **the PO's Samsung Galaxy (Android 17 / One UI 9)**. It
+was updated from Android 16 / One UI 8 on 2026-10-28; the PO re-checked the
+timer with `v0.2.0` afterwards (reliability settings, *Alarm testen*, a brew
+with the phone locked, full-screen alert, Live Update / Now Bar, quick
+timer): all passed. The app still targets SDK 36, so Android 17 runs it in
+compatibility mode.
 Automated instrumented checks run in the CI emulator job on GitHub Actions
 (API 35 and 36); the cloud container has no emulator ([06 §7](06-architecture.md#7-quality-gates)).
 
@@ -90,7 +95,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 
 | ID | Requirement |
 |---|---|
-| NFR-COMP-01 | Android 15–16+ (API 35+); primary: Samsung Galaxy on One UI 8. |
+| NFR-COMP-01 | Android 15–17+ (API 35+); primary: Samsung Galaxy on One UI 9 (One UI 8 until 2026-10-28). |
 | NFR-COMP-02 | Portrait and landscape; split screen; Samsung DeX and foldables should not break layouts (best effort). |
 | NFR-COMP-04 | Edge-to-edge, gesture and 3-button navigation. |
 | NFR-COMP-05 | Light and dark system themes. |

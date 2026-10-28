@@ -201,6 +201,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-28 | The PO updated the Galaxy to One UI 9 (Android 17) and re-checked the timer with `v0.2.0`: reliability settings, *Alarm testen*, a locked brew with full-screen alert, Live Update / Now Bar, quick timer — all passed. Device references in CLAUDE.md and specs 01, 04, 07 updated; the app keeps target SDK 36. |
 | 2026-10-28 | D-095: timer top as an ink-wash band with the tea photo as a seal; #102 added to v0.2.1; A13 prompted, delivered and checked (1536 × 1024, no text or frame, calm bottom centre). Nested sessions considered and not used (subagents in worktrees stay). |
 | 2026-10-28 | The PO uploaded A6–A11 (light and dark, 1536 × 1024), checked: complete, no text, frames or dark corners; #100 builds A8 and A11 into v0.2.1. |
 | 2026-10-28 | D-094: sold-out teas missing from the shop's sitemap (TG0170); re-check (#97) and a tea from a shop link (#98) added to v0.2.1; specs, CLAUDE.md rule 7 and the plan updated. Image prompts A6–A11 sent to the PO. |

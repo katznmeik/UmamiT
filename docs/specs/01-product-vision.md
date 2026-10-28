@@ -31,7 +31,7 @@ Japanese tagline: **「お茶で、いい時間を。」**
 | Fact | Consequence for the spec |
 |---|---|
 | Single user, single device | No multi-user, accounts or sync. Requirements are tuned to the PO's habits. |
-| Samsung Galaxy, Android 16 / One UI 8 | Minimum Android 15 (API 35). Samsung battery management must be handled. Android 16 Live Updates and the Samsung Now Bar are used. |
+| Samsung Galaxy, Android 17 / One UI 9 (Android 16 / One UI 8 until 2026-10-28) | Minimum Android 15 (API 35). Samsung battery management must be handled. Android 16 Live Updates and the Samsung Now Bar are used. |
 | Brews in mixed styles (kyusu, mug, gongfu, cold brew) | Timer is step-based and style-agnostic. |
 | Has a kettle adjustable in 5 °C steps | All temperatures are expressed and snapped to 5 °C. No water-cooling helper. |
 | German speaker; buys from Tee-Kontor Kiel | German UI and content; metric units only; Tee-Kontor catalog as the primary data source. |
