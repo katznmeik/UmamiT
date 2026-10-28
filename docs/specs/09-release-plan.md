@@ -124,13 +124,14 @@ only.
 - [ ] Seed teas after the first catalog load (CAT-15, as far as M2 shows it): Tanabata and Hisui keep their recipes, stock and journal entries; a seed tea that had no photo now shows the shop's photo in the tea picker. Their descriptions show only in M3's tea detail (D-090).
 - [ ] *Nachkauf erfassen* on a seed tea: in the catalog, Tanabata (TG0213) offers *Nachkauf erfassen*, not *In Sammlung aufnehmen*; saving a 100 g package adds it to Tanabata's stock and no second Tanabata appears in the tea picker (CAT-12, D-085).
 
-### v0.2.1 — Feedback on v0.2.0-rc.1 (D-093, D-094)
+### v0.2.1 — Feedback on v0.2.0-rc.1 (D-093, D-094, D-095)
 
 v0.2.1 changes timer code (per-step pre-alert, sounds), so every
 `v0.2.1-rc.N` needs a passing accuracy run first (§4a, D-067, D-073).
 
 - [ ] `v0.2.1-rc.1` installs over `v0.2.0` without losing data (umamit.db v1 → v2): the journal, the teas with their recipes, photos and stock, and the settings are all there; a session running during the update keeps its steps and pre-alert and still alerts on time.
-- [ ] Timer of a tea with a bright, white-backed photo: ← and ⋮ are clearly visible at once and after the photo fades; ⋮ opens the menu (SCR-05).
+- [ ] Timer of a tea with a bright, white-backed photo: ← and ⋮ are clearly visible at once and after the band fades; ⋮ opens the menu (SCR-05).
+- [ ] Timer top (D-095): the ink-wash band with the tea's photo in the round seal, no white square around a white-backed photo; a tea without a photo shows its type leaf; the quick timer shows the band without a seal; nothing moves when the alert starts.
 - [ ] Automatic pre-alert (*Vorwarnung* 10 s): Hisui's Kyusu recipe (1:00, 0:10, 0:10) shows „10 · – · –" in the setup; a step of 0:20 shows 5 s and one of 0:30 shows 10 s (N = min(B, 5 · ⌊d / 15⌋), TMR-23).
 - [ ] Schritte-Sheet: set step 2's pre-alert to 10 s → „zu kurz" (0:10 < 10 + 5 s); set it to 5 s → it sounds 5 s before the end of step 2. Without *Im Rezept speichern* the next session of that recipe is back to „Auto"; with *Im Rezept speichern* the next session shows 5 s.
 - [ ] *Alarm testen* with each of the four new pre-alert sounds and „Ting (leise)": each is much louder than the old tick and rings out for about 3 s; the PO names the default (SET-26).

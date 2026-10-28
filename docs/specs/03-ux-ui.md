@@ -549,22 +549,33 @@ The status-bar icons and the gesture handle follow the surface, not the phone's
 theme: light on the dark Steeping surface (also SCR-07), dark on the washi/matcha
 alert; the app theme's own on every other screen. The root sets them from the
 route on top, never the screens themselves
-([D-069](10-open-questions-and-decisions.md#d-069)). A brew always shows the
-tea photo at the top, the fallback photo A4 (`docs/design/assets.md`) until it is
-read or when the tea has none; the quick timer has no photo (D-058, D-069).
+([D-069](10-open-questions-and-decisions.md#d-069)).
 
-**Top-bar icons on the photo (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
+**Ink-wash band and tea seal (v0.2.1, [D-095](10-open-questions-and-decisions.md#d-095)).**
+The top is our own ink-wash picture A13 (`docs/design/assets.md`), full width,
+about 220 dp, centre-cropped and fading into the Steeping background. A brew
+shows the tea photo as a **seal**: an 88 dp washi disc (`#F3F0E9`) with a thin
+ring, centred, half over the band's lower edge. The photo fills its inner
+circle and is drawn with a multiply blend, so a white background becomes the
+disc's cream. Without a photo, or until it is read, the disc shows the
+type-coloured leaf. The quick timer shows the band without a seal. On the
+alert surface both are hidden and their space stays. (Until v0.2.0 the tea
+photo itself filled the top, with A4 as fallback.)
+
+**Top-bar icons (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
 Tea photos often have a white background, so ← and ⋮ each sit on a filled
 circle (40 dp, the Steeping surface at 60 % opacity; the 48 dp touch target
 is unchanged) with the light icon on it. The icon keeps at least 3:1
 against its circle over any photo, also a pure white one. The circles stay
-when the photo has faded out; on the alert surface they use its own
+when the band has faded out; on the alert surface they use its own
 container colour instead.
 
 ```
 ┌──────────────────────────────┐
-│ ←                         ⋮  │
-│   [tea photo, fades out]     │
+│ (←) ~ ink-wash band A13 ~ (⋮)│
+│  ~~~~~~~~~~ ╭────╮ ~~~~~~~~  │ fades out
+│            │ 🍃 │            │ seal: tea photo on washi disc
+│             ╰────╯           │
 │      Bio Uji Gyokuro Gokō    │
 │      55 °C · Aufguss 1 von 3 │
 │        ●  ○  ○               │ step dots (rinse = small square)
@@ -621,7 +632,7 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
+Dark like SCR-05, with the ink-wash band but no seal (D-095); chips 0:30 … 5:00; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 
