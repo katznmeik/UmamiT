@@ -42,7 +42,7 @@
 1. **Go for v0.2.1:** tickets #83–#94, #97, #98, #100 and #102 are published and approved. Building starts only on
    the PO's explicit go: the PO types `/implement-spec #81` (the skill cannot be
    model-invoked). Handover for that session: `docs/plans/v0.2.1.md`.
-2. Images: **A13 open** (timer band, dark only, D-095; prompt and filename `A13-timer-band-dark.png` in `docs/design/assets.md` §4), needed before #102. A1–A11 all delivered (light and dark; A6–A11 on 2026-10-28). A8 and A11
+2. Images: **all delivered**. A13 (timer band, dark only, D-095) arrived on 2026-10-28 for #102. A1–A11 all delivered (light and dark; A6–A11 on 2026-10-28). A8 and A11
    replace the catalog placeholders in v0.2.1 (#100); A6, A7, A9 and A10 are built in with
    the screens of M3/M4.
 3. #58: the small items and the seed retry moved into M2 (#73, D-073); the rest
@@ -90,7 +90,7 @@
 - **D-094 (2026-10-28):** the PO found Bio Sencha Kirishima Yabukita (TG0170) missing from the catalog. The shop's sitemap leaves sold-out products out, and paginated listings are off-limits (robots `*/?`). The PO chose:
   - #97 (T4, ←#89): a refresh re-checks known teas missing from the sitemap (CAT-16);
   - #98 (T4, ←#97): a tea from a shared or pasted shop link (CAT-17), the fourth network use GEN-01 (d), CLAUDE.md rule 7 updated.
-- **D-095 (2026-10-28):** the PO found the Tee-Kontor photos unattractive as the timer's top band. The PO chose an ink-wash band (new asset **A13**, dark only, the PO uploads it) with the tea photo as a small round seal; the quick timer gets the band without a seal; in v0.2.1 as #102 (T3, ←#85 and the A13 upload). Prompt and filename in `docs/design/assets.md`.
+- **D-095 (2026-10-28):** the PO found the Tee-Kontor photos unattractive as the timer's top band. The PO chose an ink-wash band (new asset **A13**, dark only, the PO uploads it) with the tea photo as a small round seal; the quick timer gets the band without a seal; in v0.2.1 as #102 (T3, ←#85); A13 delivered the same day. Prompt and filename in `docs/design/assets.md`.
 - **Decision numbers:** up to D-095 used; the next free is **D-096**.
 
 ### M2 done (2026-10-26)
@@ -201,7 +201,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
-| 2026-10-28 | D-095: timer top as an ink-wash band with the tea photo as a seal; #102 added to v0.2.1; A13 prompt for the PO. Nested sessions considered and not used (subagents in worktrees stay). |
+| 2026-10-28 | D-095: timer top as an ink-wash band with the tea photo as a seal; #102 added to v0.2.1; A13 prompted, delivered and checked (1536 × 1024, no text or frame, calm bottom centre). Nested sessions considered and not used (subagents in worktrees stay). |
 | 2026-10-28 | The PO uploaded A6–A11 (light and dark, 1536 × 1024), checked: complete, no text, frames or dark corners; #100 builds A8 and A11 into v0.2.1. |
 | 2026-10-28 | D-094: sold-out teas missing from the shop's sitemap (TG0170); re-check (#97) and a tea from a shop link (#98) added to v0.2.1; specs, CLAUDE.md rule 7 and the plan updated. Image prompts A6–A11 sent to the PO. |
 | 2026-10-26 | Handover plan `docs/plans/v0.2.1.md` for the next session; paused until the PO's usage limit resets. |

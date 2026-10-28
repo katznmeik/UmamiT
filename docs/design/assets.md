@@ -29,7 +29,7 @@
 | A10 | **No search results** ✓ delivered | lists | ≥ 1200 × 900 vignette | M3 |
 | A11 | **Ratgeber header** (guides list) ✓ delivered, built in with v0.2.1 | SCR-19 › Ratgeber | ≥ 2400 × 1000 | M2 |
 | A12 | **Dark variants** of A6–A11 ✓ delivered with them | dark theme | as above | with each asset |
-| A13 | **Timer band** (ink-wash, D-095) — open, needed for #102 | SCR-05 and SCR-07 top (full width × about 220 dp, centre-cropped, fading into the background; the tea seal sits on its lower edge, ← and ⋮ in its top corners) | PNG 1536 × 1024 (3:2), `A13-timer-band-dark.png` | dark only (timer is always dark) — v0.2.1 |
+| A13 | **Timer band** (ink-wash, D-095) ✓ delivered 2026-10-28, built in with v0.2.1 (#102) | SCR-05 and SCR-07 top (full width × about 220 dp, centre-cropped, fading into the background; the tea seal sits on its lower edge, ← and ⋮ in its top corners) | PNG 1536 × 1024 (3:2), `A13-timer-band-dark.png` | dark only (timer is always dark) — v0.2.1 |
 
 All of A6–A11 were delivered on 2026-10-28 as PNG 1536 × 1024 (3:2), light and dark (`A<n>-<name>-light.png` / `-dark.png`). ChatGPT has no 4:3 or 2.4:1 output, so the vignettes have a small motif in the centre and A11 keeps everything in the middle third of the height; the app crops them, matches the paper to the theme background and feathers the edges, as for A5.
 
