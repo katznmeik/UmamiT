@@ -146,6 +146,14 @@ class BrewSetupViewModel @Inject constructor(
         recipes.saveRecipe(current.appliedTo(recipe))
     }
 
+    /**
+     * *Speichern* in „Wie viel ist noch da?" (BRW-02, INV-03, D-093 point 7): the tea's stock becomes
+     * [newTotalGrams] through one correction event; the header follows the stock it observes.
+     */
+    fun correctStock(newTotalGrams: Double) = launchWithSource { s ->
+        stock.correctStock(s.tea.tea.id, newTotalGrams)
+    }
+
     /** *Brühen starten* (TMR-01): the session waits in READY and the timer opens. */
     fun startBrew() = launchWithSource { s ->
         val current = edits.value ?: return@launchWithSource

@@ -13,8 +13,10 @@ import com.umamit.core.database.entity.InventoryEventEntity
 import com.umamit.core.database.entity.PhotoEntity
 import com.umamit.core.database.entity.TeaEntity
 import com.umamit.core.database.entity.VesselEntity
+import com.umamit.core.model.InventoryEventType
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
+import kotlin.math.abs
 
 // Writes use @Upsert (insert or update), never REPLACE: a REPLACE deletes the row
 // first and would cascade into its recipes, steps, photos and stock events.
@@ -182,19 +184,55 @@ interface VesselDao {
 }
 
 @Dao
-interface InventoryDao {
+abstract class InventoryDao {
     @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
-    fun observeForTea(teaId: String): Flow<List<InventoryEventEntity>>
+    abstract fun observeForTea(teaId: String): Flow<List<InventoryEventEntity>>
 
     @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
-    suspend fun eventsForTea(teaId: String): List<InventoryEventEntity>
+    abstract suspend fun eventsForTea(teaId: String): List<InventoryEventEntity>
 
     @Query("SELECT * FROM inventory_event WHERE id = :id")
-    suspend fun get(id: String): InventoryEventEntity?
+    abstract suspend fun get(id: String): InventoryEventEntity?
 
     @Upsert
-    suspend fun upsert(event: InventoryEventEntity)
+    abstract suspend fun upsert(event: InventoryEventEntity)
 
     @Query("DELETE FROM inventory_event WHERE id = :id")
-    suspend fun delete(id: String)
+    abstract suspend fun delete(id: String)
+
+    /** The tea's remaining stock in g: the sum of its events' deltas, 0 without any (05 §3.10). */
+    @Query("SELECT COALESCE(SUM(delta_grams), 0.0) FROM inventory_event WHERE tea_id = :teaId")
+    abstract suspend fun remainingGrams(teaId: String): Double
+
+    /**
+     * *Bestand korrigieren* (INV-03, 05 §3.10): writes one `ADJUSTMENT` row [id] whose delta is
+     * [newTotalGrams] minus the tea's current stock, read and written in one transaction. Nothing is
+     * written when they are equal; the written row is returned, else null.
+     */
+    @Transaction
+    open suspend fun correctStock(teaId: String, newTotalGrams: Double, id: String, now: Long): InventoryEventEntity? {
+        val delta = newTotalGrams - remainingGrams(teaId)
+        if (abs(delta) < UNCHANGED_GRAMS) return null
+        val row = InventoryEventEntity(
+            id = id,
+            teaId = teaId,
+            sessionId = null,
+            type = InventoryEventType.ADJUSTMENT,
+            deltaGrams = delta,
+            priceCents = null,
+            currency = null,
+            packageLabel = null,
+            occurredAt = now,
+            note = null,
+            createdAt = now,
+            updatedAt = now,
+        )
+        upsert(row)
+        return row
+    }
+
+    private companion object {
+        /** Below this the totals are equal: sums of 0,1 g steps in doubles differ only by rounding noise. */
+        const val UNCHANGED_GRAMS = 1e-6
+    }
 }

@@ -24,6 +24,20 @@
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
+    <!-- INV-05: the stock is 0 g or less. -->
+    <string name="brew_setup_stock_empty">Leer</string>
+    <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->
+    <string name="brew_setup_stock_correct">Bestand korrigieren</string>
+    <!-- The stock sheet „Wie viel ist noch da?" (SCR-04, BRW-02, INV-03; D-093). -->
+    <string name="brew_setup_stock_title">Wie viel ist noch da?</string>
+    <string name="brew_setup_stock_field">Noch da</string>
+    <string name="brew_setup_stock_unit">g</string>
+    <string name="brew_setup_stock_hint">0 g heißt: der Tee ist leer.</string>
+    <string name="brew_setup_stock_invalid">Gib eine Menge ab 0 g ein, z. B. 23,5</string>
+    <string name="brew_setup_stock_less">0,1 g weniger</string>
+    <string name="brew_setup_stock_more">0,1 g mehr</string>
+    <string name="brew_setup_stock_cancel">Abbrechen</string>
+    <string name="brew_setup_stock_save">Speichern</string>
     <string name="brew_setup_vessel">Gefäß</string>
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
     <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>

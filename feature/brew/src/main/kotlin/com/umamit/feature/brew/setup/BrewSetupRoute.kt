@@ -44,6 +44,7 @@ fun BrewSetupRoute(
             start = viewModel::startBrew,
             confirmRestart = viewModel::confirmRestart,
             dismissQuestion = viewModel::dismissQuestion,
+            correctStock = viewModel::correctStock,
         )
     }
     BrewSetupScreen(state = state, modifier = modifier, actions = actions)

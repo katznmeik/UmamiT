@@ -8,7 +8,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performTouchInput
@@ -140,6 +144,32 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setupRecipeCheck() = capture("BrewSetup_recipeCheck") {
         BrewSetupScreen(kyusu.copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT))
+    }
+
+    /** „38,0 g übrig" tapped: „Wie viel ist noch da?" on the current stock (BRW-02, INV-03; SCR-04). */
+    @Test
+    fun setupStockSheet() = capture("BrewSetup_stock", act = { tapStock() }) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** A total that isn't one: the field says why and *Speichern* is off. */
+    @Test
+    fun setupStockSheetInvalid() = capture(
+        "BrewSetup_stockInvalid",
+        act = {
+            tapStock()
+            compose.onNode(hasSetTextAction()).performTextReplacement("23,45")
+        },
+    ) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** At 0 g the header reads „Leer" (INV-05). */
+    @Test
+    fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
+
+    private fun tapStock() {
+        compose.onNodeWithTag(SETUP_STOCK_TAG).performClick()
     }
 
     @Test
