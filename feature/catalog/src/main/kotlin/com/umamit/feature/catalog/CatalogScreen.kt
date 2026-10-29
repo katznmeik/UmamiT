@@ -261,12 +261,13 @@ private fun CatalogEmpty(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // The A8 illustration comes from the PO (docs/design/assets.md); the placeholder stands in.
             EmptyState(
                 title = stringResource(R.string.catalog_empty_title),
                 body = stringResource(if (refreshing) R.string.catalog_loading_body else R.string.catalog_empty_body),
                 actionLabel = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_load),
                 onAction = if (refreshing) onShowProgress else onLoad,
+                illustration = catalogEmptyIllustration(),
+                illustrationTint = null,
             )
         }
     }
