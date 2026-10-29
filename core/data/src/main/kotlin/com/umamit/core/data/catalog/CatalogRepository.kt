@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.content.Context
+import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.entity.CatalogPackageEntity
@@ -39,6 +40,13 @@ interface CatalogRepository {
 
     /** One catalog tea with everything its detail shows (SCR-21), or null when the catalog has none with [key]. */
     fun observeTea(key: String): Flow<CatalogTeaDetail?>
+
+    /**
+     * The Kräutertees are still to come (v0.2.1, D-093 Q20): the last successful refresh ran a
+     * parser from before them, so the first refresh after the update, which brings them once, is
+     * still due. False before the first refresh (the empty catalog has its own state).
+     */
+    fun observeHerbalPending(): Flow<Boolean>
 }
 
 /** The catalog keys of the collection's teas: `tea.catalog_key` in `umamit.db` (05 §1.6). */
@@ -115,6 +123,10 @@ class RoomCatalogRepository @Inject constructor(
     }
 
     override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()
+
+    override fun observeHerbalPending(): Flow<Boolean> = dao.observeLastSuccessParserVersion()
+        .map { version -> version != null && version < TeeKontorParser.HERBAL_SINCE_VERSION }
+        .distinctUntilChanged()
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = combine(
         dao.observeTea(key),

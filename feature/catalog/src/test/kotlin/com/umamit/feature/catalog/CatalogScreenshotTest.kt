@@ -284,6 +284,39 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /**
+     * The Kräutertee view before the first refresh after the update (v0.2.1, #91, D-093 Q20): no
+     * Kräutertees yet, the hint with *Jetzt laden* instead of the no-match notice.
+     */
+    @Test
+    fun listHerbalPending() = capture("listHerbalPending") {
+        val filter = CatalogFilter.DEFAULT.withHerbal(true)
+        val greenOnly = TEAS.filterNot { it.isHerbal }
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(greenOnly, filter, null, FakeClock.DEFAULT_WALL_MS),
+                filter = filter,
+                loading = false,
+                herbalPending = true,
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+        )
+    }
+
+    /** The Kräutertee view's filter sheet (v0.2.1, #91, D-093 Q19): no Aroma, no Umami; font scale 1.0 only. */
+    @Test
+    fun filterSheetHerbal() {
+        assumeTrue(fontScale == 1f)
+        capture("filterSheetHerbal") {
+            val state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true).copy(organicOnly = true))
+            CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
+            CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
+            }, onDismissRequest = {})
+        }
+    }
+
     /** The filter sheet over the list, at font scale 1.0 only. */
     @Test
     fun filterSheet() {
