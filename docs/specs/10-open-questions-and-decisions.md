@@ -317,12 +317,12 @@ doubt) where it touches them.
 - `brew_session.pre_alert_seconds` records B. The migration does not rewrite
   old rows. *Im Rezept speichern* writes each step's value and leaves the
   recipe's B alone.
-- **Migration 1 → 2** copies an active session's override into its steps
-  that have not ended (the running one too, 05 §9), so a session running
-  during the update keeps its leads. A v0.2.0 session without an override
-  keeps its stored tick at deadline − B for the step that is running; its
-  ring and Live Update point show the automatic lead until that step ends.
-  Nothing is delayed or silenced.
+- **Migration 1 → 2** gives an active session's steps that have not ended
+  (the running one too, 05 §9) the lead v1 gave them, as an explicit value:
+  its override, or else its inherited B (`COALESCE`). So a session running
+  during the update behaves exactly as in v1: a 15–29 s step keeps B
+  instead of the automatic 5 s, and the running step's ring and Live Update
+  point match its stored tick. Nothing is delayed or silenced.
 - **Schritte-Sheet:**
   - Each option previews its effect („Automatisch · 5 s", „10 s · zu kurz",
     „10 s · keine" on a long step); the button reads „Auto · 5 s".
@@ -337,7 +337,11 @@ doubt) where it touches them.
 - *Alarm testen* starts the alert 0.7 s after the pre-alert sound ends:
   1.5 s for „Ting (leise)", 3.9 s for a 3.2 s sound.
 - A tone or *Vorwarnton* changed while a timer is active is loaded at once
-  (D-092 said "at the next turn").
+  (D-092 said "at the next turn"). The loads ahead run on their own loader
+  thread (`UmamiTAlertLoad`), not on `UmamiTAlert`, so no load ever sits
+  ahead of a cue (rule 8; D-092's "a cue queued behind a load waits at most
+  for that load" no longer applies). A cue whose sound has not loaded yet
+  still loads it on the spot.
 - A real pre-alert keeps the audio focus until its sound has rung out; an
   alert still cuts it at once.
 - „Ting (leise)" is stored as `ting`, and its file stays `tick.ogg`.
@@ -353,6 +357,11 @@ doubt) where it touches them.
   mapping).
 - The band starts behind the status bar, and the seal's centre always sits
   on its lower edge. The quick timer's title starts 8 dp below the band.
+- On a short screen a brew's band gets shorter, down to the status bar and
+  ← ⋮, until the primary control and the bottom margin fit without
+  scrolling (rule 8). Its height follows the screen, the insets and the
+  content above the control only, so nothing moves when the alert starts.
+  The band scrolls with the page. The quick timer's band keeps 220 dp.
 
 **Kräutertees (#89, #91).**
 - The whole shop section `/tee/kraeutertee/` is in scope, Mate and Lapacho

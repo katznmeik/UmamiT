@@ -3,13 +3,18 @@ package com.umamit.feature.brew.timer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -32,12 +37,16 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
+import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 
 /** Test tag of the ink-wash band at the top of the timer (SCR-05, SCR-07, D-095). */
@@ -46,7 +55,10 @@ const val TIMER_BAND_TAG = "timer_band"
 /** Test tag of the brew's tea seal (SCR-05, D-095). */
 const val TIMER_SEAL_TAG = "timer_seal"
 
-/** The band: full width, about 220 dp, from the top of the screen behind the status bar (D-095). */
+/**
+ * The band: full width, about 220 dp, from the top of the screen behind the status bar (D-095);
+ * shorter on a short screen ([TimerBandPage], D-096).
+ */
 internal val TimerBandHeight = 220.dp
 
 /** The seal's washi disc. */
@@ -99,27 +111,101 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
 }
 
 /**
- * The top of the timer's column, below the status bar: ← and ⋮ ([topBar]) at
- * its top and, for a brew, the [seal] at its bottom, centred on the band's lower
- * edge whatever the status bar's height. The quick timer has no seal; its
- * content starts at the band's lower edge. The seal's slot keeps its space
- * when [seal] draws nothing, as on the alert surface (D-058).
+ * The timer's scrolling page under the ink-wash band (SCR-05, SCR-07, D-095):
+ * the [band] from the top of the screen, behind the status bar; ← and ⋮
+ * ([topBar]) below the status bar; for a brew ([withSeal]) the [seal] centred
+ * on the band's lower edge; then [aboveControls], from the title down to the
+ * space above the primary control, and [controls], the primary control and
+ * what follows it, all centred. The quick timer has no seal; its content starts at
+ * the band's lower edge. The band's and the seal's space stays when they draw
+ * nothing, as on the alert surface (D-058).
+ *
+ * **Short screens (rule 8, D-096).** With [adaptive], the band is
+ * [TimerBandHeight] tall when everything down to the primary control fits,
+ * and gives way otherwise, down to the status bar and the top bar, until the
+ * primary control ([controlHeight] tall) and the bottom margin lie on the
+ * screen without scrolling. Its height follows only the screen, the insets
+ * and [aboveControls], never [controls] or whether the band and the seal are
+ * drawn, so nothing moves when the alert starts. What does not fit even then
+ * scrolls, and so does everything below the primary control.
  */
 @Composable
-internal fun TimerBandTop(
+internal fun TimerBandPage(
     withSeal: Boolean,
+    controlHeight: Dp,
+    band: @Composable () -> Unit,
     topBar: @Composable BoxScope.() -> Unit,
-    seal: @Composable () -> Unit = {},
+    seal: @Composable () -> Unit,
+    aboveControls: @Composable ColumnScope.() -> Unit,
+    controls: @Composable ColumnScope.() -> Unit,
+    adaptive: Boolean = withSeal,
 ) {
-    val statusBar = WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding()
-    val below = TimerBandHeight - statusBar + if (withSeal) TimerSealSize / 2 else 0.dp
-    Box(modifier = Modifier.fillMaxWidth().height(below.coerceAtLeast(0.dp))) {
-        topBar()
-        if (withSeal) {
-            Box(modifier = Modifier.align(Alignment.BottomCenter).size(TimerSealSize)) { seal() }
+    val insets = WindowInsets.safeDrawing
+    val top: @Composable () -> Unit = {
+        Box(modifier = Modifier.fillMaxSize()) {
+            topBar()
+            if (withSeal) {
+                Box(modifier = Modifier.align(Alignment.BottomCenter).size(TimerSealSize)) { seal() }
+            }
+        }
+    }
+    val column: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = aboveControls)
+    }
+    val below: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = controls)
+    }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenHeight = constraints.maxHeight
+        Layout(
+            contents = listOf(band, top, column, below),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+        ) { slots, constraints ->
+            val bandSlot = slots[0]
+            val topSlot = slots[1]
+            val contentSlot = slots[2]
+            val controlsSlot = slots[3]
+            val statusBar = insets.getTop(this)
+            val left = insets.getLeft(this, layoutDirection)
+            val width = constraints.maxWidth
+            val columnWidth = (width - left - insets.getRight(this, layoutDirection)).coerceAtLeast(0)
+            val inColumn = Constraints.fixedWidth(columnWidth)
+            val contentPlaceable = contentSlot.single().measure(inColumn)
+            val controlsPlaceable = controlsSlot.single().measure(inColumn)
+
+            val sealHalf = if (withSeal) TimerSealSize.roundToPx() / 2 else 0
+            val margin = UmamiSpacing.Large.roundToPx()
+            val tallest = TimerBandHeight.roundToPx()
+            val bandHeight = if (adaptive && screenHeight != Constraints.Infinity) {
+                val lowest = minOf(statusBar + TimerTopBarHeight.roundToPx(), tallest)
+                // The band's lower edge as low as the content, the primary control and the margin allow.
+                val fits = screenHeight - insets.getBottom(this) - margin - controlHeight.roundToPx() -
+                    contentPlaceable.height - sealHalf
+                fits.coerceIn(lowest, tallest)
+            } else {
+                tallest
+            }
+            val topHeight = (bandHeight + sealHalf - statusBar).coerceAtLeast(0)
+            val topPlaceable = topSlot.single().measure(Constraints.fixed(columnWidth, topHeight))
+            val bandPlaceables = bandSlot.map { it.measure(Constraints.fixed(width, bandHeight)) }
+
+            val contentTop = statusBar + topHeight
+            val controlsTop = contentTop + contentPlaceable.height
+            val height = controlsTop + controlsPlaceable.height + margin + insets.getBottom(this)
+            layout(width, height.coerceAtLeast(constraints.minHeight)) {
+                bandPlaceables.forEach { it.place(0, 0) }
+                topPlaceable.place(left, statusBar)
+                contentPlaceable.place(left, contentTop)
+                controlsPlaceable.place(left, controlsTop)
+            }
         }
     }
 }
+
+/** ← and ⋮ with their 48 dp touch targets: the band never gets shorter than the status bar and these. */
+private val TimerTopBarHeight = UmamiSpacing.MinTouchTarget
 
 /**
  * The tea seal (D-095): an 88 dp washi disc with a thin ring; the tea's

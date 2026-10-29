@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -579,14 +579,18 @@ columns that the frozen v1 lacks, so v0.2.1 ships schema version 2 with
 - `ALTER TABLE brew_step ADD COLUMN pre_alert_seconds INTEGER` and the same
   on `session_step` (nullable, appended as the last column; existing rows
   read as *Automatisch*);
-- an active session's non-null `active_brew.pre_alert_override_seconds` is
-  copied (as an explicit choice) to its steps that have not ended, i.e. its
-  `session_step` rows without `actual_seconds`: the current step, running
-  or waiting, and the pending ones. v1 applied the override to the running
-  step too, so a session running during the update keeps the same leads,
-  its running step's included (rule 8; #90). Ended rows, other sessions'
+- an active session's steps that have not ended, i.e. its `session_step`
+  rows without `actual_seconds` (the current step, running or waiting, and
+  the pending ones), get the lead v1 gave them as an explicit choice:
+  `COALESCE(active_brew.pre_alert_override_seconds,
+  active_brew.pre_alert_inherited_seconds)`, the session's override or
+  else its inherited B (0 = *Aus*). v1 applied that value to every step,
+  the running one included, whatever its length, so a session running
+  during the update keeps the same leads (a 15–29 s step does not drop to
+  the automatic 5 s), and its running step's ring and Live Update point
+  match its stored tick (rule 8; #90, D-096). Ended rows, other sessions'
   rows (also one left `IN_PROGRESS` by a device restore) and the quick
-  timer, which has no rows and no override, stay *Automatisch*. Then
+  timer, which has no rows, stay *Automatisch*. Then
   `active_brew.pre_alert_override_seconds` is dropped
   (`ALTER TABLE … DROP COLUMN`, SQLite ≥ 3.35 on API 35). Nothing else
   changes: `brew_session.pre_alert_seconds` keeps the value v1 recorded (the
@@ -596,9 +600,10 @@ columns that the frozen v1 lacks, so v0.2.1 ships schema version 2 with
 - Tests: `Migration1To2Test`, a `MigrationTestHelper` test from v1 with data
   (a tea with its cover photo, a vessel, recipes with steps, a finished
   session with its stock events, a session left in progress, and the
-  active timer: running with and without an override, waiting with *Aus*, a
-  quick timer) to v2, every row and value checked, then opened with the
-  production builder; `SchemaVersionsTest` with both versions; and the
+  active timer: running with and without an override, waiting with *Aus*,
+  waiting without an override (B = 15 s and B = 0), a quick timer) to
+  v2, every row and value checked, then opened with the production
+  builder; `SchemaVersionsTest` with both versions; and the
   frozen v1 JSON unchanged (`check-frozen-schemas.sh`). The v0.2.1 rc
   checklist installs it over v0.2.0 (09 §4).
 

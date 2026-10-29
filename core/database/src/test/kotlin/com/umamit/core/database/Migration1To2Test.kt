@@ -20,10 +20,11 @@ import org.robolectric.annotation.Config
  * `MIGRATION_1_2` (05 §9, D-093, #90; spec #81 seam 2): a populated database of the frozen schema v1 — a tea with
  * its cover photo, a vessel, recipes with steps, a finished session in the journal with its stock events, a session
  * left in progress by a device restore, and the active timer — migrates to v2 with every row and value kept.
- * `brew_step` and `session_step` gain `pre_alert_seconds` (null = *Automatisch*); the active session's override
- * (`active_brew.pre_alert_override_seconds`) moves into its steps that have not ended, so a session running during
- * the update keeps its leads, and the column is dropped. Room's helper validates the result against the exported
- * v2 schema, foreign keys included.
+ * `brew_step` and `session_step` gain `pre_alert_seconds` (null = *Automatisch*); the active session's steps that
+ * have not ended get the lead v1 gave them, its override (`active_brew.pre_alert_override_seconds`) or else the
+ * inherited B (`active_brew.pre_alert_inherited_seconds`), so a session running during the update keeps its leads
+ * (D-096), and the override column is dropped. Room's helper validates the result against the exported v2 schema,
+ * foreign keys included.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -42,12 +43,16 @@ class Migration1To2Test {
         Case("running with an override", running(override = 20), liveSteps = listOf(null, 20, 20)),
         // Waiting for step 1 with the session's *Aus*: the running and the pending steps keep it.
         Case("waiting with the pre-alert off", waiting(override = 0), liveSteps = listOf(null, 0, 0)),
-        Case("running without an override", running(override = null), liveSteps = listOf(null, null, null)),
+        // Without an override v1 gave every step the inherited B (10 s here), whatever its length: the steps that have
+        // not ended keep it, so a 15–29 s step does not drop to the automatic 5 s.
+        Case("running without an override", running(override = null), liveSteps = listOf(null, 10, 10)),
+        Case("waiting without an override", waiting(override = null, inherited = 15), liveSteps = listOf(null, 15, 15)),
+        Case("waiting with B off", waiting(override = null, inherited = 0), liveSteps = listOf(null, 0, 0)),
         Case("a quick timer", quickTimer(), liveSteps = listOf(null, null, null)),
     )
 
     @Test
-    fun `every row survives and the active session's steps that have not ended get its override`() {
+    fun `every row survives and the active session's steps that have not ended keep their v1 lead`() {
         cases.forEach { case ->
             val name = "migrate-${cases.indexOf(case)}.db"
             val before = helper.createDatabase(name, 1).use { db ->
@@ -243,8 +248,12 @@ class Migration1To2Test {
             OVERRIDE to override,
         )
 
-        /** `live-1` waiting in READY for step 1. */
-        fun waiting(override: Int?) = activeBrew("ready_since_wall_ms" to WALL, OVERRIDE to override)
+        /** `live-1` waiting in READY for step 1, with the inherited B of [inherited] s. */
+        fun waiting(override: Int?, inherited: Int = 10) = activeBrew(
+            "ready_since_wall_ms" to WALL,
+            OVERRIDE to override,
+            "pre_alert_inherited_seconds" to inherited,
+        )
 
         /** A quick timer of 2 min waiting in READY: no session, no override (04 §10). */
         fun quickTimer() = activeBrew(
