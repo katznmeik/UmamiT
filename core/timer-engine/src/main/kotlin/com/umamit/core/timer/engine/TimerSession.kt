@@ -73,24 +73,40 @@ data class SessionStep(
 }
 
 /**
- * The pre-alert lead time of a session (TMR-23, 04 §5): the session's own
- * [sessionOverrideSeconds] from the Schritte-Sheet (null: *Wie Einstellung*),
- * else [inheritedSeconds], which is the recipe value or else the global
- * setting, frozen at the start. The effective value is thus computable without
- * I/O, and a later change of the recipe or the settings never changes an
- * active session. 0 means off.
+ * The pre-alert of a session (TMR-23, 04 §5): the session's own explicit
+ * [sessionOverrideSeconds] from the Schritte-Sheet (null: *Wie Einstellung*,
+ * the automatic rule), and [inheritedSeconds], the base B of the automatic
+ * rule: the recipe value or else the global setting, frozen at the start. Each
+ * step's lead is thus computable without I/O, and a later change of the recipe
+ * or the settings never changes an active session. 0 means off.
  */
 data class PreAlertSettings(val sessionOverrideSeconds: Int?, val inheritedSeconds: Int) {
     init {
         require(inheritedSeconds >= 0 && (sessionOverrideSeconds ?: 0) >= 0) { "pre-alert seconds are never negative" }
     }
 
-    /** N of 04 §5: session override ?: recipe ?: global. */
+    /**
+     * The session's value as `brew_session.pre_alert_seconds` records it: the explicit override ?: B. A step's
+     * own N comes from [leadSecondsFor].
+     */
     val effectiveSeconds: Int get() = sessionOverrideSeconds ?: inheritedSeconds
+
+    /**
+     * N of a step of [plannedSeconds], before the skip rules (04 §5, D-093): the explicit override as set, else
+     * the automatic N = min(B, 5 · ⌊d / 15⌋), a third of the step rounded down to whole 5 s, never more than B.
+     */
+    internal fun leadSecondsFor(plannedSeconds: Int): Int = sessionOverrideSeconds
+        ?: minOf(inheritedSeconds, AUTO_LEAD_UNIT_SECONDS * (plannedSeconds / AUTO_LEAD_PART_SECONDS))
 
     companion object {
         /** `preAlertSeconds` default (05 §6). */
         const val DEFAULT_GLOBAL_SECONDS = 10
+
+        /** The automatic N is a whole multiple of 5 s (TMR-23, D-093). */
+        private const val AUTO_LEAD_UNIT_SECONDS = 5
+
+        /** The automatic N grows by one unit per 15 s of the step: a third of it (TMR-23, D-093). */
+        private const val AUTO_LEAD_PART_SECONDS = 15
 
         /** The settings at the start of a session: the recipe's [recipeSeconds] (null: not set) ?: [globalSeconds]. */
         fun inherited(recipeSeconds: Int?, globalSeconds: Int) =
@@ -101,13 +117,16 @@ data class PreAlertSettings(val sessionOverrideSeconds: Int?, val inheritedSecon
 /** The pre-alert selector of the Schritte-Sheet (SCR-31), for this session only. */
 sealed interface PreAlertChoice {
 
-    /** *Wie Einstellung*: no session override; the recipe or global value applies. */
+    /**
+     * *Wie Einstellung*: no explicit value; each step gets the automatic N from the recipe or global value B
+     * (TMR-23, D-093).
+     */
     data object Inherit : PreAlertChoice
 
     /** *Aus*: no pre-alert in this session. */
     data object Off : PreAlertChoice
 
-    /** A lead time of [seconds] (5–30 s in the sheet). */
+    /** A lead time of [seconds] (5–30 s in the sheet) for every step, as set (E7 still applies). */
     data class Seconds(val seconds: Int) : PreAlertChoice {
         init {
             require(seconds > 0) { "a pre-alert lead time is positive, was $seconds; use Off" }
