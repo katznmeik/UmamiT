@@ -574,15 +574,23 @@ class CatalogRefresher(
                     unread(before.key, "not fetched (robots.txt or off the shop)")
                     null
                 } else {
-                    Unlisted(ShopProduct(client, before.key, run.previousBases[before.key].orEmpty()), url)
+                    Unlisted(
+                        ShopProduct(client, before.key, run.previousBases[before.key].orEmpty()),
+                        url,
+                        discontinued = before.discontinued,
+                    )
                 }
             }
         }
 
-        /** Each unlisted tea's page once, the next one fetched while this one is parsed (D-091). */
+        /**
+         * Each unlisted tea's page once, the next one fetched while this one is parsed (D-091). For
+         * a tea already „Nicht mehr im Sortiment", a plain 401/403 on its old page is no stop: it
+         * is read as not this once, so one broken old page can't block every refresh (D-096).
+         */
         private suspend fun recheckUnlisted(session: ShopSession, unlisted: List<Unlisted>) = fetchOverlapped(
             items = unlisted,
-            fetch = { tea -> session.fetch(tea.url) },
+            fetch = { tea -> session.fetch(tea.url, refusalStops = !tea.discontinued) },
             isLast = { it is ShopFetch.Stopped },
         ) { tea, answer ->
             unlistedAnswer(tea, answer)
@@ -619,13 +627,17 @@ class CatalogRefresher(
         /**
          * 404/410, or a redirect whose `Location` leads away from the product (never followed):
          * gone (CAT-16 AC2). A redirect to one of the product's own pages (a new slug, a size) or
-         * without a `Location`, and any other 4xx: not read this once, kept as it was (AC3).
+         * without a `Location`, and any other 4xx: not read this once, kept as it was (AC3); so is
+         * a 401/403, which comes here only for a tea already discontinued (D-096).
          */
         private fun unlistedUnavailable(tea: Unlisted, answer: ShopFetch.Unavailable) {
             val status = "${tea.url.encodedPath} answered HTTP ${answer.code}"
             val location = answer.location
             when {
                 answer.code in GONE -> gone(tea.key, status)
+
+                // Only for a tea already discontinued (D-096): never judged by a `Location`.
+                answer.code in REFUSED -> unread(tea.key, status)
 
                 location != null && !tea.product.isNamedBy(location) -> gone(
                     tea.key,
@@ -944,6 +956,9 @@ class CatalogRefresher(
         /** A product page that is gone: a tea missing from the sitemap left the range (CAT-16 AC2). */
         val GONE = setOf(404, 410)
 
+        /** A plain refusal, which reaches the re-check only for a tea already discontinued (D-096). */
+        val REFUSED = setOf(401, 403)
+
         /** 05 §4.2a: a base number on the skip list is classified again after 90 days. */
         val SKIP_RECHECK_MS = TimeUnit.DAYS.toMillis(90)
 
@@ -959,9 +974,10 @@ private class StagedTea(val hash: String?, val flagged: Boolean)
  * A known tea missing from the sitemap (CAT-16): the [product] with its key and base numbers
  * (merged ones included, D-081, judged by [ShopProduct] as a tea from a link is) and its product
  * page [url], fetched once. Its page is classified and staged like a sitemap product of its key
- * without size URLs, so its sizes are the page's (08 §2.4 item 6).
+ * without size URLs, so its sizes are the page's (08 §2.4 item 6). [discontinued]: it is already
+ * „Nicht mehr im Sortiment", so a plain 401/403 on its page is no stop (D-096).
  */
-private class Unlisted(val product: ShopProduct, val url: HttpUrl) {
+private class Unlisted(val product: ShopProduct, val url: HttpUrl, val discontinued: Boolean) {
     val key: String get() = product.key
     val group = ProductGroup(base = product.key, pageUrl = url.toString(), variantUrls = emptyMap())
 }

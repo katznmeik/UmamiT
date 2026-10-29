@@ -1,5 +1,6 @@
 package com.umamit.feature.catalog
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -131,13 +133,17 @@ fun CatalogRoute(
         currentOnTakeSharedLink(share.token)
     }
     // Shown once this screen is resumed: a tea that came while the timer was on top is never lost.
+    // A tea its page couldn't refresh opens as it was, and a toast says why (CAT-17 AC6, D-096).
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val context = LocalContext.current
     val currentOnOpenTea by rememberUpdatedState(onOpenTea)
     val opened = link.opened
+    val notice = link.notice
     LaunchedEffect(opened) {
         if (opened != null) {
             lifecycle.withResumed {
                 currentOnOpenTea(opened)
+                notice?.let { Toast.makeText(context, it.messageRes(), Toast.LENGTH_LONG).show() }
                 viewModel.teaOpened()
             }
         }

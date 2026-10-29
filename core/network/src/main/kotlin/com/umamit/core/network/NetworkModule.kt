@@ -12,7 +12,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     /**
-     * The one [ShopClient] of the app: a singleton, so all three network uses (GEN-01) share
+     * The one [ShopClient] of the app: a singleton, so all four network uses (GEN-01) share
      * its single connection and its rate limit. Its User-Agent carries the app's versionName.
      */
     @Provides

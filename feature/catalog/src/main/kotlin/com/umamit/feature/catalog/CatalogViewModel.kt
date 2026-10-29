@@ -53,9 +53,14 @@ data class CatalogUiState(
 
 /**
  * A tea from a shop link (CAT-17): its [sheet] while open, and the catalog key of a tea a link
- * [opened] (stored, refreshed or found), until its detail (SCR-21) is shown.
+ * [opened] (stored, refreshed or found), until its detail (SCR-21) is shown, with the [notice] why
+ * its page didn't refresh it, if so (CAT-17 AC6, D-096), shown as the detail opens.
  */
-data class TeaLinkState(val sheet: TeaLinkSheetState? = null, val opened: String? = null)
+data class TeaLinkState(
+    val sheet: TeaLinkSheetState? = null,
+    val opened: String? = null,
+    val notice: TeaLinkOutcome? = null,
+)
 
 /**
  * Sammlung › Katalog's view model: the local catalog as the filters show it (CAT-10), the
@@ -156,7 +161,7 @@ class CatalogViewModel @Inject constructor(
     }
 
     /** The detail of the tea a link opened is shown. */
-    fun teaOpened() = mutableLink.update { it.copy(opened = null) }
+    fun teaOpened() = mutableLink.update { it.copy(opened = null, notice = null) }
 
     /** One link at a time: a link still loading is cancelled, and ends, before [text] is loaded. */
     private fun load(text: String, sheet: TeaLinkSheetState) {
@@ -167,7 +172,9 @@ class CatalogViewModel @Inject constructor(
             val outcome = links.load(text)
             mutableLink.update { state ->
                 when (outcome) {
-                    is TeaLinkOutcome.Opened -> TeaLinkState(sheet = null, opened = outcome.key)
+                    is TeaLinkOutcome.Opened ->
+                        TeaLinkState(sheet = null, opened = outcome.key, notice = outcome.notRefreshed)
+
                     else -> state.copy(sheet = state.sheet?.copy(loading = false, message = outcome))
                 }
             }

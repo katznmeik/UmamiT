@@ -33,6 +33,8 @@
     <string name="brew_setup_stock_field">Noch da</string>
     <string name="brew_setup_stock_unit">g</string>
     <string name="brew_setup_stock_hint">0 g heißt: der Tee ist leer.</string>
+    <!-- D-096: a session of this tea is running; %1$s is its leaf in g („4,5"). It is deducted at Sitzung beenden. -->
+    <string name="brew_setup_stock_session">Die laufende Sitzung zieht beim Beenden noch %1$s\u00A0g ab.</string>
     <string name="brew_setup_stock_invalid">Gib eine Menge ab 0 g ein, z. B. 23,5</string>
     <string name="brew_setup_stock_less">0,1 g weniger</string>
     <string name="brew_setup_stock_more">0,1 g mehr</string>

@@ -34,6 +34,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * A tea from a shop link in the catalog (v0.2.1, #98; CAT-17, SCR-19, D-094; spec #81 seam 5):
@@ -101,6 +102,43 @@ class TeaLinkSheetTest {
         assertThat(links.loaded).containsExactly(LINK)
         assertThat(opened).containsExactly(KEY)
         sheet().assertDoesNotExist()
+    }
+
+    @Test
+    fun aTeaInTheCatalogThatItsPageCouldNotRefreshOpensWithTheMessage() {
+        // CAT-17 AC6 (D-096): offline, no tea page or an unreadable page: the detail opens anyway, with the reason.
+        val reasons = mapOf(
+            TeaLinkOutcome.Offline to str(R.string.catalog_refresh_offline),
+            TeaLinkOutcome.NoTeaPage to str(R.string.tea_link_no_tea_page),
+            TeaLinkOutcome.Unreadable to str(R.string.tea_link_unreadable),
+        )
+        show()
+        reasons.forEach { (reason, message) ->
+            links.outcome = { TeaLinkOutcome.Opened(KEY, notRefreshed = reason) }
+            opened.clear()
+            ShadowToast.reset()
+            openPasteSheet()
+            field().performTextReplacement(LINK)
+            compose.onNodeWithTag(TEA_LINK_LOAD_TAG).performClick()
+            compose.waitForIdle()
+
+            assertThat(opened).containsExactly(KEY)
+            sheet().assertDoesNotExist()
+            assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo(message)
+        }
+    }
+
+    @Test
+    fun aTeaThatItsPageRefreshedOpensWithoutAMessage() {
+        links.outcome = { TeaLinkOutcome.Opened(KEY) }
+        show()
+        openPasteSheet()
+        field().performTextInput(LINK)
+        compose.onNodeWithTag(TEA_LINK_LOAD_TAG).performClick()
+        compose.waitForIdle()
+
+        assertThat(opened).containsExactly(KEY)
+        assertThat(ShadowToast.shownToastCount()).isEqualTo(0)
     }
 
     @Test

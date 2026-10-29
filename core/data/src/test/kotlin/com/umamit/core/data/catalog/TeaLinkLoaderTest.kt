@@ -206,6 +206,21 @@ class TeaLinkLoaderTest {
         assertThat(messages).contains("tea link: $SOLD_OUT_KEY stored")
     }
 
+    @Test
+    fun theDiagnosticsNameALinkThatLedToNoTeaByItsNumberOnly() = runTest {
+        // The slug is the user's text too: the line names the article number alone.
+        routes["/mein-privater-slug/$SOLD_OUT_KEY"] = { MockResponse.Builder().code(404).build() }
+        routes["/noch-ein-slug/$SOLD_OUT_KEY"] = { text("<html>" + "x".repeat(OVER_PAGE_LIMIT) + "</html>") }
+
+        loader().load("$SHOP/mein-privater-slug/$SOLD_OUT_KEY")
+        loader().load("$SHOP/noch-ein-slug/$SOLD_OUT_KEY")
+
+        val messages = diagnostics.entries().joinToString("\n") { it.message }
+        assertThat(messages).doesNotContain("slug")
+        assertThat(messages).contains("tea link: $SOLD_OUT_KEY answered HTTP 404, nothing stored")
+        assertThat(messages).contains("tea link: $SOLD_OUT_KEY over the size limit, nothing stored")
+    }
+
     // --- AC3, AC4: the one page, stored ---
 
     @Test
@@ -331,6 +346,49 @@ class TeaLinkLoaderTest {
         assertThat(paths()).containsExactly(ROBOTS, SOLD_OUT).inOrder()
         assertThat(after.photoFile).isEqualTo(before.photoFile)
         assertThat(after.photoUrl).isEqualTo(before.photoUrl)
+    }
+
+    @Test
+    fun aTeaAlreadyInTheCatalogWhosePageCantRefreshItOpensAsItWasWithTheReason() = runTest {
+        // CAT-17 AC6: no tea page, an unreadable page or no connection: the detail opens, and the message says why.
+        product(SOLD_OUT, "Nebelhang Sencha – 100g")
+        loader().load("$SHOP$SOLD_OUT")
+        val before = requireNotNull(dao.tea(SOLD_OUT_KEY))
+        val answers = listOf(
+            TeaLinkOutcome.NoTeaPage to { MockResponse.Builder().code(404).build() },
+            TeaLinkOutcome.NoTeaPage to { text("<html><body><p>Wartung</p></body></html>") },
+            TeaLinkOutcome.Unreadable to { text("<html>" + "x".repeat(OVER_PAGE_LIMIT) + "</html>") },
+        )
+        for ((reason, answer) in answers) {
+            routes[SOLD_OUT] = answer
+
+            assertWithMessage("$reason").that(loader().load("$SHOP$SOLD_OUT"))
+                .isEqualTo(TeaLinkOutcome.Opened(SOLD_OUT_KEY, notRefreshed = reason))
+            assertWithMessage("$reason").that(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
+        }
+
+        server.close()
+        assertThat(loader().load("$SHOP$SOLD_OUT"))
+            .isEqualTo(TeaLinkOutcome.Opened(SOLD_OUT_KEY, notRefreshed = TeaLinkOutcome.Offline))
+        assertThat(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
+    }
+
+    @Test
+    fun aTeaAlreadyInTheCatalogStillStopsOnAStopAnswer() = runTest {
+        // A challenge, 429, Retry-After or the shop down (08 §2.8): the message alone, nothing opens.
+        product(SOLD_OUT, "Nebelhang Sencha – 100g")
+        loader().load("$SHOP$SOLD_OUT")
+        val answers = listOf(
+            TeaLinkOutcome.Blocked to { MockResponse.Builder().code(429).build() },
+            TeaLinkOutcome.Blocked to
+                { MockResponse.Builder().code(403).addHeader("cf-mitigated", "challenge").build() },
+            TeaLinkOutcome.ShopUnavailable to { MockResponse.Builder().code(503).build() },
+        )
+        for ((expected, answer) in answers) {
+            routes[SOLD_OUT] = answer
+
+            assertWithMessage("$expected").that(loader().load("$SHOP$SOLD_OUT")).isEqualTo(expected)
+        }
     }
 
     @Test
@@ -627,6 +685,29 @@ class TeaLinkLoaderTest {
         assertThat(paths().count { it == SOLD_OUT }).isEqualTo(1)
         assertThat(requireNotNull(dao.tea(SOLD_OUT_KEY)).available).isFalse()
         assertThat(catalogKeys()).containsExactly(SENCHA_KEY, SOLD_OUT_KEY)
+    }
+
+    @Test
+    fun aTeaFromALinkThatARecentRefreshSkippedStaysWithTheNextRefresh() = runTest {
+        listed += SENCHA
+        product(SENCHA, "Morgennebel Sencha – 100g")
+        product(SOLD_OUT, "Nebelhang Sencha – 100g", breadcrumb = SyntheticShop.BLACK_TEA_PATH, list = true)
+        refresher().refresh()
+        assertThat(dao.skipList().map { it.baseKey }).containsExactly(SOLD_OUT_KEY)
+        // The shop files the product as a green tea now; the user shares its link within the 90 days.
+        clock.advanceBy(TimeUnit.DAYS.toMillis(1))
+        product(SOLD_OUT, "Nebelhang Sencha – 100g", list = true)
+        assertThat(loader().load("$SHOP$SOLD_OUT")).isEqualTo(TeaLinkOutcome.Opened(SOLD_OUT_KEY))
+        clock.advanceBy(TimeUnit.DAYS.toMillis(1))
+        requests.clear()
+
+        val outcome = refresher().refresh()
+
+        // Its old skip entry is gone with the link, so the refresh reads it as a known tea, never deletes it.
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0))
+        assertThat(paths()).contains(SOLD_OUT)
+        assertThat(catalogKeys()).containsExactly(SENCHA_KEY, SOLD_OUT_KEY)
+        assertThat(dao.skipList()).isEmpty()
     }
 
     @Test

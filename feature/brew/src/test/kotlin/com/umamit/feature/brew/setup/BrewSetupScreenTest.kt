@@ -265,25 +265,47 @@ class BrewSetupScreenTest {
         compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").performScrollTo().performClick()
         compose.waitForIdle()
 
+        // Each seed name ends with its volume: the name alone, never „Kyusu 120 ml · 120 ml"; its volume
+        // keeps its unit on the same line.
         listOf(
-            "Becher 250 ml · 250\u00A0ml",
-            "Becher 300 ml · 300\u00A0ml",
-            "Becher 350 ml · 350\u00A0ml",
-            "Becher mit Sieb 400 ml · 400\u00A0ml",
-            "Kyusu 120 ml · 120\u00A0ml",
-            "Kyusu 180 ml · 180\u00A0ml",
-            "Kyusu 250 ml · 250\u00A0ml",
-            "Kyusu 300 ml · 300\u00A0ml",
-            "Kyusu 360 ml · 360\u00A0ml",
-        ).forEach { compose.onNode(hasText(it) and hasAnyAncestor(isPopup())).assertExists() }
+            "Becher 250\u00A0ml",
+            "Becher 300\u00A0ml",
+            "Becher 350\u00A0ml",
+            "Becher mit Sieb 400\u00A0ml",
+            "Kyusu 120\u00A0ml",
+            "Kyusu 180\u00A0ml",
+            "Kyusu 250\u00A0ml",
+            "Kyusu 300\u00A0ml",
+            "Kyusu 360\u00A0ml",
+        ).forEach { compose.onNode(hasText(it, substring = false) and hasAnyAncestor(isPopup())).assertExists() }
 
-        compose.onNode(hasText("Kyusu 120 ml · 120\u00A0ml") and hasAnyAncestor(isPopup()))
+        compose.onNode(hasText("Kyusu 120\u00A0ml", substring = false) and hasAnyAncestor(isPopup()))
             .performScrollTo()
             .performClick()
         compose.waitForIdle()
 
         compose.onNode(hasText("Wasser") and hasText("120\u00A0ml")).assertExists()
         compose.onNodeWithContentDescription("Gefäß: Kyusu 120 ml. Ändern").assertExists()
+        compose.onNodeWithText("Kyusu 120\u00A0ml", substring = false).assertExists()
+    }
+
+    @Test
+    fun `a vessel whose name doesn't end with its volume shows the volume after it (WARE-03)`() {
+        runBlocking {
+            val kyusu = SeedData.vessels.first { it.name == "Kyusu 250 ml" }
+            collection.vessels.saveVessel(kyusu.copy(name = "Omas Kyusu"))
+            collection.vessels.saveVessel(
+                SeedData.vessels.first { it.name == "Becher 300 ml" }.copy(name = "Becher 250 ml"),
+            )
+        }
+        show()
+
+        compose.onNodeWithText("Omas Kyusu · 250\u00A0ml").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Gefäß: Omas Kyusu. Ändern").performClick()
+        compose.waitForIdle()
+
+        // A name that ends with another volume than the vessel's usable one keeps the volume too.
+        compose.onNode(hasText("Becher 250 ml · 300\u00A0ml") and hasAnyAncestor(isPopup())).assertExists()
     }
 
     @Test

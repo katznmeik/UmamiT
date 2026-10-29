@@ -67,7 +67,11 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
             recipeCheckReason = null,
             recipes = listOf(RecipeChip("k", "Kyusu"), RecipeChip("w", "Westlich"), RecipeChip("c", "Kaltaufguss")),
             selectedRecipeId = "k",
-            vessels = listOf(VesselOption("ky", "Kyusu", 250), VesselOption("mug", "Becher mit Sieb", 400)),
+            // Seed names end with their volume, so the row shows the name alone (WARE-03, D-096).
+            vessels = listOf(
+                VesselOption("ky", "Kyusu 250 ml", 250),
+                VesselOption("mug", "Becher mit Sieb 400 ml", 400),
+            ),
             selectedVesselId = "ky",
             method = BrewMethod.KYUSU,
             waterMl = 250,
@@ -150,6 +154,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setupStockSheet() = capture("BrewSetup_stock", act = { tapStock() }) {
         BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** A session of this tea runs: the sheet says what it still deducts at *Sitzung beenden* (D-096). */
+    @Test
+    fun setupStockSheetDuringSession() = capture("BrewSetup_stockSession", act = { tapStock() }) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0, sessionLeafGrams = 5.0))
     }
 
     /** A total that isn't one: the field says why and *Speichern* is off. */

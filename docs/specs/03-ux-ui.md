@@ -535,8 +535,10 @@ v0.2.1 ([D-093](10-open-questions-and-decisions.md#d-093)):
   sheet „Wie viel ist noch da?" where the new total is entered (stepper
   ± 0,1 g, a number field, „g"; 0 allowed = leer) and *Speichern*; saving
   stores the difference as an `ADJUSTMENT` event and
-  updates the header and the stock warning (BRW-08). Like every sheet, it
-  never covers an alert.
+  updates the header. While a session of this tea runs (or the setup is its
+  *Brühen anpassen*), a line under the field says „Die laufende Sitzung zieht
+  beim Beenden noch 5,0 g ab." (its leaf; deducted at *Sitzung beenden* as
+  always, D-096). Like every sheet, it never covers an alert.
 
 ### SCR-05 Timer
 
@@ -785,7 +787,10 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
 hinzufügen", a paste field („Link zur Tee-Seite bei Tee-Kontor Kiel") filled
 from the clipboard when it holds a link, and *Tee laden*. While it loads, a
 progress indicator and „Tee wird geladen …". A green or herbal tea opens its
-SCR-21; otherwise the sheet stays open with the message under the field:
+SCR-21; a tea already in the catalog whose page can't refresh it without a
+stop (offline, no tea page, unreadable) opens its SCR-21 as it was, with the
+message as a toast (CAT-17 AC6, D-096); otherwise the sheet stays open with
+the message under the field:
 „Das ist kein Tee-Link von Tee-Kontor Kiel." (link not accepted, no
 request), „Dieser Tee gehört nicht zum Katalog (nur Grün- und
 Kräutertees)." (nothing stored), „Gerade läuft ein Abruf – versuch es

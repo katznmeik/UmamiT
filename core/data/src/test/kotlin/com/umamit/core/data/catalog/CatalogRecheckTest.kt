@@ -404,6 +404,14 @@ class CatalogRecheckTest {
     }
 
     @Test
+    fun aRefusalStopsTheRefreshForATeaNotYetDiscontinued() = runTest {
+        // D-096 changes this only for a tea already „Nicht mehr im Sortiment".
+        stopOnTheUnlistedPage(CatalogRefreshOutcome.ShopUnavailable::class.java) {
+            MockResponse.Builder().code(403).build()
+        }
+    }
+
+    @Test
     fun http429StopsTheRefreshAndKeepsTheOldCatalog() = runTest {
         stopOnTheUnlistedPage(CatalogRefreshOutcome.Blocked::class.java) {
             MockResponse.Builder().code(429).build()
@@ -527,6 +535,53 @@ class CatalogRecheckTest {
 
         assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0))
         assertThat(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
+    }
+
+    @Test
+    fun anOwnedTeaNichtMehrImSortimentWhosePageIsRefusedStaysAsItWasAndTheRefreshGoesOn() = runTest {
+        // D-096: its old page answering a plain 401/403 must not stop every refresh from now on.
+        ownedTeaNichtMehrImSortiment()
+        val before = requireNotNull(dao.tea(SOLD_OUT_KEY))
+        listOf(401, 403).forEach { code ->
+            routes[SOLD_OUT] = { MockResponse.Builder().code(code).build() }
+
+            val outcome = refresher().refresh()
+
+            assertWithMessage("HTTP $code").that(outcome)
+                .isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0))
+            assertWithMessage("HTTP $code").that(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
+            assertWithMessage("HTTP $code").that(dao.refreshLog().last().status)
+                .isEqualTo(CatalogRefreshStatus.SUCCESS)
+            clock.advanceBy(TimeUnit.DAYS.toMillis(1))
+        }
+    }
+
+    @Test
+    fun anOwnedTeaNichtMehrImSortimentWhosePageSaysStopStillStopsTheRefresh() = runTest {
+        // 08 §2.8: a 5xx, 429, Retry-After or a challenge stops the refresh, whichever tea it is.
+        ownedTeaNichtMehrImSortiment()
+        val before = dao.observeList().first()
+        listOf(
+            CatalogRefreshOutcome.ShopUnavailable::class.java to { MockResponse.Builder().code(503).build() },
+            CatalogRefreshOutcome.Blocked::class.java to { MockResponse.Builder().code(429).build() },
+            CatalogRefreshOutcome.Blocked::class.java to {
+                MockResponse.Builder().code(404).addHeader("Retry-After", "120").build()
+            },
+            CatalogRefreshOutcome.Blocked::class.java to {
+                MockResponse.Builder().code(403).addHeader("cf-mitigated", "challenge").build()
+            },
+            CatalogRefreshOutcome.Blocked::class.java to {
+                MockResponse.Builder().code(403).addHeader("CF-RAY", "x").addHeader("Server", "cloudflare")
+                    .body("Sorry, you have been blocked").build()
+            },
+        ).forEach { (expected, answer) ->
+            routes[SOLD_OUT] = answer
+
+            assertThat(refresher().refresh()).isInstanceOf(expected)
+            assertThat(dao.observeList().first()).isEqualTo(before)
+            assertThat(dao.refreshLog().last().status).isEqualTo(CatalogRefreshStatus.FAILED)
+            clock.advanceBy(TimeUnit.DAYS.toMillis(1))
+        }
     }
 
     @Test
