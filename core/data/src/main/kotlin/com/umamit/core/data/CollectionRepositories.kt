@@ -52,8 +52,11 @@ interface RecipeRepository {
      */
     suspend fun saveRecipe(recipe: Recipe)
 
-    /** *Im Rezept speichern* (BRW-02, SCR-31): replaces exactly the steps and the pre-alert. */
-    suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?)
+    /**
+     * *Im Rezept speichern* (BRW-02, SCR-31): replaces exactly the steps, each with its pre-alert (TMR-23,
+     * D-093); the recipe's pre-alert base B stays.
+     */
+    suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>)
 
     suspend fun deleteRecipe(id: String)
 }

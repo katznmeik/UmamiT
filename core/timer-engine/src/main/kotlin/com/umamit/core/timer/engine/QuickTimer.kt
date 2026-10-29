@@ -34,7 +34,8 @@ internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReadin
     val session = TimerSession(
         kind = SessionKind.Quick,
         steps = listOf(SessionStep(StepKind.INFUSION, event.durationSeconds, null, StepStatus.PENDING, null)),
-        preAlert = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = event.globalPreAlertSeconds),
+        // Its one step is *Automatisch* with B = the global setting (TMR-22, D-093).
+        preAlert = PreAlertSettings(inheritedSeconds = event.globalPreAlertSeconds),
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,
         bootCount = now.bootCount,

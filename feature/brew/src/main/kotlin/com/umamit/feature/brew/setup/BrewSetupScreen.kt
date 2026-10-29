@@ -156,7 +156,9 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         SetupButtons(state, actions)
     }
     val input = StepsSheetInput(
-        steps = state.steps.map { StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING) },
+        steps = state.steps.map {
+            StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, it.preAlertSeconds)
+        },
         preAlert = state.preAlert,
         hasRecipe = state.selectedRecipeId != null,
         baseTempC = state.baseTempC,

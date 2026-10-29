@@ -123,8 +123,8 @@ abstract class RecipeDao {
     @Query("UPDATE brew_profile SET is_default = 0 WHERE tea_id = :teaId AND id != :keepId AND is_default = 1")
     protected abstract suspend fun clearOtherDefaults(teaId: String, keepId: String)
 
-    @Query("UPDATE brew_profile SET pre_alert_seconds = :preAlertSeconds, updated_at = :now WHERE id = :id")
-    protected abstract suspend fun setPreAlert(id: String, preAlertSeconds: Int?, now: Long)
+    @Query("UPDATE brew_profile SET updated_at = :now WHERE id = :id")
+    protected abstract suspend fun touch(id: String, now: Long)
 
     @Query("DELETE FROM brew_profile WHERE id = :id")
     abstract suspend fun delete(id: String)
@@ -138,15 +138,13 @@ abstract class RecipeDao {
         insertSteps(steps)
     }
 
-    /** Replaces exactly the recipe's steps and pre-alert (*Im Rezept speichern*, BRW-02). */
+    /**
+     * Replaces exactly the recipe's steps, each with its pre-alert (*Im Rezept speichern*, BRW-02, SCR-31,
+     * D-093); the recipe's own values, its pre-alert base included, stay.
+     */
     @Transaction
-    open suspend fun replaceStepsAndPreAlert(
-        profileId: String,
-        steps: List<BrewStepEntity>,
-        preAlertSeconds: Int?,
-        now: Long,
-    ) {
-        setPreAlert(profileId, preAlertSeconds, now)
+    open suspend fun replaceSteps(profileId: String, steps: List<BrewStepEntity>, now: Long) {
+        touch(profileId, now)
         deleteSteps(profileId)
         insertSteps(steps)
     }

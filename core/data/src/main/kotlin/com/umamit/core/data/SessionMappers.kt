@@ -101,6 +101,7 @@ internal fun PlannedStep.toEntity(sessionId: String, position: Int, now: Long) =
     note = null,
     createdAt = now,
     updatedAt = now,
+    preAlertSeconds = preAlertSeconds,
 )
 
 /** This row with the recorded values of 04 §5.1. */
@@ -128,9 +129,10 @@ internal fun SessionStepEntity.toRow() = SessionStepRow(
     endedAtWallMs = endedAt,
     skipped = skipped,
     overtimeAutoAck = overtimeAutoAck,
+    preAlertSeconds = preAlertSeconds,
 )
 
-/** This row with the timer values of [row]; the id, the note and the creation time stay. */
+/** This row with the timer values of [row], its pre-alert included; the id, the note and the creation time stay. */
 internal fun SessionStepEntity.with(row: SessionStepRow, now: Long): SessionStepEntity {
     val updated = copy(
         kind = row.kind,
@@ -143,6 +145,7 @@ internal fun SessionStepEntity.with(row: SessionStepRow, now: Long): SessionStep
         endedAt = row.endedAtWallMs,
         skipped = row.skipped,
         overtimeAutoAck = row.overtimeAutoAck,
+        preAlertSeconds = row.preAlertSeconds,
     )
     return if (updated == this) this else updated.copy(updatedAt = now)
 }
@@ -164,6 +167,7 @@ internal fun SessionStepRow.toEntity(sessionId: String, now: Long) = SessionStep
     note = null,
     createdAt = now,
     updatedAt = now,
+    preAlertSeconds = preAlertSeconds,
 )
 
 internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = ActiveBrewEntity(
@@ -186,7 +190,6 @@ internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = Act
     bootCount = bootCount,
     lastInteractionWallMs = lastInteractionWallMs,
     demoted = demoted,
-    preAlertOverrideSeconds = preAlertOverrideSeconds,
     preAlertInheritedSeconds = preAlertInheritedSeconds,
     zoneId = zoneId,
     createdAt = createdAt,
@@ -213,7 +216,6 @@ internal fun ActiveBrewEntity.toSnapshot() = ActiveBrewSnapshot(
     bootCount = bootCount,
     lastInteractionWallMs = lastInteractionWallMs,
     demoted = demoted,
-    preAlertOverrideSeconds = preAlertOverrideSeconds,
     preAlertInheritedSeconds = preAlertInheritedSeconds,
     zoneId = zoneId,
 )

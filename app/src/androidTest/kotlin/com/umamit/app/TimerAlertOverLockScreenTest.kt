@@ -29,7 +29,6 @@ import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.feature.brew.timer.TIMER_RING_TAG
@@ -238,9 +237,10 @@ class TimerAlertOverLockScreenTest {
                 waterMl = null,
                 baseTempC = 60,
             ),
-            steps = listOf(PlannedStep(StepKind.INFUSION, STEP.inWholeSeconds.toInt(), tempC = 60)),
+            steps = listOf(
+                PlannedStep(StepKind.INFUSION, STEP.inWholeSeconds.toInt(), tempC = 60, preAlertSeconds = 0),
+            ),
             recipePreAlertSeconds = 0,
-            preAlert = PreAlertChoice.Off,
         )
     }
 }

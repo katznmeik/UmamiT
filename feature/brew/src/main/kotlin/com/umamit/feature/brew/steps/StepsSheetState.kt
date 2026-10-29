@@ -18,18 +18,29 @@ import com.umamit.core.timer.engine.TimerSession
 
 /**
  * One step of the session plan as the Schritte-Sheet shows it (SCR-31): its
- * planned values and its [status]. Only PENDING steps are editable.
+ * planned values, its [status] and its own pre-alert [preAlertSeconds] (null
+ * *Automatisch*, 0 *Aus*; TMR-23, D-093). Only PENDING steps are editable.
  */
-data class StepsSheetStep(val kind: StepKind, val plannedSeconds: Int, val tempC: Int?, val status: StepStatus) {
-    /** The planned values, as the engine takes them. */
-    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC)
+data class StepsSheetStep(
+    val kind: StepKind,
+    val plannedSeconds: Int,
+    val tempC: Int?,
+    val status: StepStatus,
+    val preAlertSeconds: Int? = null,
+) {
+    /** The planned values, as the engine takes them, the step's own pre-alert included. */
+    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC, preAlertSeconds)
+
+    /** Done or skipped: the sheet's pre-alert selector leaves its value as it is. */
+    val ended: Boolean get() = status == StepStatus.DONE || status == StepStatus.SKIPPED
 }
 
 /**
- * What the Schritte-Sheet opens with: the session's [steps] with their status,
- * the session's [preAlert] option, whether the session [hasRecipe] (a quick
- * timer has none, so *Im Rezept speichern* is hidden), and the recipe's
- * [baseTempC], shown for steps without their own temperature.
+ * What the Schritte-Sheet opens with: the session's [steps] with their status
+ * and pre-alerts, the [preAlert] its single selector shows until #92 (the
+ * choice of the first step that has not ended), whether the session
+ * [hasRecipe] (a quick timer has none, so *Im Rezept speichern* is hidden), and
+ * the recipe's [baseTempC], shown for steps without their own temperature.
  */
 data class StepsSheetInput(
     val steps: List<StepsSheetStep>,
@@ -39,34 +50,28 @@ data class StepsSheetInput(
 ) {
     companion object {
         /** The input for the active [session] (SCR-04, SCR-05 hosts). */
-        fun of(session: TimerSession, hasRecipe: Boolean, baseTempC: Int?) = StepsSheetInput(
-            steps = session.steps.map { StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status) },
-            preAlert = PreAlertChoice.of(session.preAlert),
-            hasRecipe = hasRecipe,
-            baseTempC = baseTempC,
-        )
+        fun of(session: TimerSession, hasRecipe: Boolean, baseTempC: Int?): StepsSheetInput {
+            val steps = session.steps.map {
+                StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
+            }
+            return StepsSheetInput(steps, selectorChoiceOf(steps), hasRecipe, baseTempC)
+        }
+
+        /** What the single selector shows for [steps]: the first step that has not ended (D-093, until #92). */
+        fun selectorChoiceOf(steps: List<StepsSheetStep>): PreAlertChoice =
+            PreAlertChoice.of(steps.firstOrNull { !it.ended }?.preAlertSeconds)
     }
 }
 
 /**
- * *Im Rezept speichern* (BRW-02, SCR-31): the whole plan as the sheet shows it
- * and the pre-alert option, for the recipe the session was started from.
+ * *Im Rezept speichern* (BRW-02, SCR-31): the whole plan as the sheet shows it,
+ * each step with its pre-alert, for the recipe the session was started from.
  */
-data class SaveToRecipeRequest(val steps: List<PlannedStep>, val preAlert: PreAlertChoice) {
+data class SaveToRecipeRequest(val steps: List<PlannedStep>) {
 
-    /** The steps as recipe steps (notes per step arrive in M4). */
-    val recipeSteps: List<RecipeStep> get() = steps.map { RecipeStep(it.kind, it.plannedSeconds, it.tempC) }
-
-    /**
-     * The recipe's pre-alert value (05 §3.2: null = global, 0 = off, else
-     * seconds). *Wie Einstellung* keeps the recipe's [current] value, because
-     * the session inherited it from there.
-     */
-    fun recipePreAlertSeconds(current: Int?): Int? = when (preAlert) {
-        PreAlertChoice.Inherit -> current
-        PreAlertChoice.Off -> 0
-        is PreAlertChoice.Seconds -> preAlert.seconds
-    }
+    /** The steps as recipe steps, each with its pre-alert (TMR-23, D-093; notes per step arrive in M4). */
+    val recipeSteps: List<RecipeStep>
+        get() = steps.map { RecipeStep(it.kind, it.plannedSeconds, it.tempC, preAlertSeconds = it.preAlertSeconds) }
 }
 
 /** One stepper tap on a pending step (SCR-31). */
@@ -168,7 +173,8 @@ class StepsSheetState(input: StepsSheetInput) {
     /** *Aufguss hinzufügen*: appends the engine's *Weiterer Aufguss* default (TMR-10, D-048). */
     fun addStep() {
         val added = BrewTimerEngine.defaultAddedStep(steps.map { it.planned })
-        steps = steps + StepsSheetStep(added.kind, added.plannedSeconds, added.tempC, StepStatus.PENDING)
+        steps = steps +
+            StepsSheetStep(added.kind, added.plannedSeconds, added.tempC, StepStatus.PENDING, added.preAlertSeconds)
     }
 
     /** The confirmation of the last save is on screen; a reopened sheet does not show it again. */
@@ -177,19 +183,21 @@ class StepsSheetState(input: StepsSheetInput) {
     }
 
     /**
-     * *Fertig*: the whole plan and the pre-alert option for the engine's `editSteps` (04 §3.2).
-     * The host applies it, so the sheet counts it as applied: it is no longer [isDirty].
+     * *Fertig*: the whole plan for the engine's `editSteps` (04 §3.2), the selector's pre-alert in every step
+     * that has not ended. The host applies it, so the sheet counts it as applied: it is no longer [isDirty].
      */
     fun editRequest(): TimerEvent.EditSteps {
-        appliedSteps = steps.map { it.planned }
+        val plan = steps.planWith(preAlert)
+        steps = steps.withPlanned(plan)
+        appliedSteps = plan
         appliedPreAlert = preAlert
-        return TimerEvent.EditSteps(appliedSteps, preAlert)
+        return TimerEvent.EditSteps(plan)
     }
 
-    /** *Im Rezept speichern*: the request, and the confirmation snackbar. */
+    /** *Im Rezept speichern*: the request, the steps with their pre-alerts as in [editRequest], and the snackbar. */
     fun saveRequest(): SaveToRecipeRequest {
         confirmationPending = true
-        return SaveToRecipeRequest(steps.map { it.planned }, preAlert)
+        return SaveToRecipeRequest(steps.planWith(preAlert))
     }
 
     companion object {
@@ -198,10 +206,19 @@ class StepsSheetState(input: StepsSheetInput) {
     }
 }
 
-/** These steps with the planned values of [planned], keeping each step's status by position. */
+/**
+ * The plan of these steps with the single selector's [choice] written into every step that has not ended (the
+ * running one included, SCR-31); an ended step keeps its own (D-093; per-step selectors come with #92).
+ */
+private fun List<StepsSheetStep>.planWith(choice: PreAlertChoice): List<PlannedStep> = map { step ->
+    if (step.ended) step.planned else step.planned.copy(preAlertSeconds = choice.explicitSeconds)
+}
+
+/** These steps with the planned values of [planned], pre-alerts included, keeping each step's status by position. */
 private fun List<StepsSheetStep>.withPlanned(planned: List<PlannedStep>): List<StepsSheetStep> =
     planned.mapIndexed { i, step ->
-        StepsSheetStep(step.kind, step.plannedSeconds, step.tempC, getOrNull(i)?.status ?: StepStatus.PENDING)
+        val status = getOrNull(i)?.status ?: StepStatus.PENDING
+        StepsSheetStep(step.kind, step.plannedSeconds, step.tempC, status, step.preAlertSeconds)
     }
 
 /** A [StepsSheetState] for [input] that survives configuration changes; a new input starts over. */

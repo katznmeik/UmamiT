@@ -24,8 +24,8 @@ package com.umamit.core.model
  * @property bootCount the boot of the elapsed values (`Settings.Global.BOOT_COUNT`).
  * @property lastInteractionWallMs last user event, for idle demote and the midnight timeout (TMR-14).
  * @property demoted the foreground service was stopped and a regular notification shown (`idleDemote`).
- * @property preAlertOverrideSeconds the session's own pre-alert from the Schritte-Sheet; null: *Wie Einstellung*.
- * @property preAlertInheritedSeconds the recipe ?: global pre-alert, frozen at the start (0: off).
+ * @property preAlertInheritedSeconds the recipe ?: global pre-alert, frozen at the start (0: off): the base B of
+ *   the automatic rule; each step's own choice is in its [SessionStepRow] (umamit.db v2, D-093).
  * @property zoneId the session's time zone (IANA id), also for the quick timer, which has no session row.
  */
 data class ActiveBrewSnapshot(
@@ -48,7 +48,6 @@ data class ActiveBrewSnapshot(
     val bootCount: Int,
     val lastInteractionWallMs: Long,
     val demoted: Boolean,
-    val preAlertOverrideSeconds: Int?,
     val preAlertInheritedSeconds: Int,
     val zoneId: String,
 )
@@ -57,7 +56,9 @@ data class ActiveBrewSnapshot(
  * The timer's view of one `session_step` row (05 §3.7) at [position]. A
  * planned step has only its plan values; an ended step also has its recorded
  * values (04 §5.1), `actualSeconds` non-null. A skipped step records zeros
- * and no times.
+ * and no times. [preAlertSeconds] is the step's own pre-alert choice (from
+ * umamit.db v2; TMR-23, D-093): null *Automatisch*, 0 *Aus*, else the lead in
+ * seconds.
  */
 data class SessionStepRow(
     val position: Int,
@@ -71,4 +72,5 @@ data class SessionStepRow(
     val endedAtWallMs: Long?,
     val skipped: Boolean,
     val overtimeAutoAck: Boolean,
+    val preAlertSeconds: Int? = null,
 )

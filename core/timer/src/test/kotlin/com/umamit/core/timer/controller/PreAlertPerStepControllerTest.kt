@@ -6,8 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.TimerStateNotifications
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -73,7 +73,7 @@ class PreAlertPerStepControllerTest {
         assertThat(livePoints()).containsExactly(150)
         h.advanceSeconds(2)
 
-        h.controller.send(TimerEvent.EditSteps(listOf(infusion(20)), PreAlertChoice.Seconds(10)))
+        h.controller.send(TimerEvent.EditSteps(listOf(infusion(20, preAlert = 10))))
 
         assertThat(h.active.preAlertLeadSeconds).isEqualTo(10)
         assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
@@ -82,6 +82,42 @@ class PreAlertPerStepControllerTest {
         assertThat(h.alert.ticks).isEqualTo(0)
         h.advanceSeconds(1)
         assertThat(h.alert.ticks).isEqualTo(1)
+    }
+
+    @Test
+    fun `a new process restores each step's own lead, a running step's lead changed mid-step included`() = runTest {
+        h.teaWithStock()
+        // B = 10 s: 20 s explicit, then Automatisch (5 s for 20 s), then Aus (umamit.db v2, #90).
+        h.controller.startSession(brewStart(infusion(60, preAlert = 20), infusion(20), infusion(30, preAlert = 0)))
+        h.controller.send(TimerEvent.Start)
+        h.advanceSeconds(5)
+        // The running step's only editable field: its pre-alert (SCR-31, D-093). Its row follows with the Persist.
+        h.controller.send(
+            TimerEvent.EditSteps(listOf(infusion(60, preAlert = 15), infusion(20), infusion(30, preAlert = 0))),
+        )
+        val deadline = h.active.deadlineElapsedMs!!
+
+        val after = h.processRestarted()
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
+        assertThat(after.active.preAlertLeadSeconds).isEqualTo(15)
+        assertThat(after.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 15_000)
+        after.advanceSeconds(39)
+        assertThat(after.alert.ticks).isEqualTo(0)
+        after.advanceSeconds(1)
+        assertThat(after.alert.ticks).isEqualTo(1)
+        after.advanceSeconds(15)
+        after.controller.send(TimerEvent.Poured)
+        assertThat(after.active.preAlertLeadSeconds).isEqualTo(5)
+
+        val again = after.processRestarted()
+        again.controller.recover(RecoveryTrigger.APP_START)
+        assertThat(again.active.preAlertLeadSeconds).isEqualTo(5)
+        again.controller.send(TimerEvent.SkipStep)
+        assertThat(again.active.preAlertLeadSeconds).isNull()
+        assertThat(again.store.stored().let { (it as TimerState.Active).session.steps.map { s -> s.preAlertSeconds } })
+            .containsExactly(15, null, 0).inOrder()
     }
 
     @Test

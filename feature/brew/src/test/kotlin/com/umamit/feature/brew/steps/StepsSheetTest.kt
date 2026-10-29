@@ -267,7 +267,26 @@ class StepsSheetTest {
         compose.onNodeWithText("Aus").performClick()
 
         compose.onNodeWithContentDescription("Vorwarnung: Aus. Ändern").assertExists()
-        assertThat(done().preAlert).isEqualTo(PreAlertChoice.Off)
+        assertThat(done().steps.single().preAlertSeconds).isEqualTo(0)
+    }
+
+    @Test
+    fun `the selector's pre-alert goes into the running and pending steps, an ended step keeps its own`() {
+        // The single selector until #92 shows the first step that has not ended (D-093).
+        show(
+            listOf(
+                doneStep(seconds = 90, preAlert = 20),
+                StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED, preAlertSeconds = 25),
+                StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED, preAlertSeconds = 15),
+                pending(seconds = 45),
+            ),
+            preAlert = PreAlertChoice.Seconds(15),
+        )
+
+        openPreAlert("15 Sekunden vorher")
+        compose.onNodeWithText("Aus").performClick()
+
+        assertThat(done().steps.map { it.preAlertSeconds }).containsExactly(20, 25, 0, 0).inOrder()
     }
 
     @Test
@@ -287,11 +306,11 @@ class StepsSheetTest {
         assertThat(done()).isEqualTo(
             TimerEvent.EditSteps(
                 steps = listOf(
+                    // The done step keeps its own pre-alert; the others take the selector's (D-093).
                     PlannedStep(StepKind.INFUSION, 60, 60),
-                    PlannedStep(StepKind.INFUSION, 35, 60),
-                    PlannedStep(StepKind.INFUSION, 55, 60),
+                    PlannedStep(StepKind.INFUSION, 35, 60, preAlertSeconds = 15),
+                    PlannedStep(StepKind.INFUSION, 55, 60, preAlertSeconds = 15),
                 ),
-                preAlert = PreAlertChoice.Seconds(15),
             ),
         )
         assertThat(saveRequests).isEmpty()
@@ -315,10 +334,13 @@ class StepsSheetTest {
         compose.onNodeWithText("Im Rezept gespeichert").assertIsDisplayed()
         assertThat(saveRequests.single()).isEqualTo(
             SaveToRecipeRequest(
-                steps = listOf(PlannedStep(StepKind.INFUSION, 60, 60), PlannedStep(StepKind.INFUSION, 35, 60)),
-                preAlert = PreAlertChoice.Off,
+                steps = listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 60),
+                    PlannedStep(StepKind.INFUSION, 35, 60, preAlertSeconds = 0),
+                ),
             ),
         )
+        assertThat(saveRequests.single().recipeSteps.map { it.preAlertSeconds }).containsExactly(null, 0).inOrder()
         assertThat(doneRequests).isEmpty()
     }
 
@@ -341,6 +363,6 @@ class StepsSheetTest {
     private fun pending(kind: StepKind = StepKind.INFUSION, seconds: Int = 30, tempC: Int? = 60) =
         StepsSheetStep(kind, seconds, tempC, StepStatus.PENDING)
 
-    private fun doneStep(seconds: Int = 60, tempC: Int? = 60) =
-        StepsSheetStep(StepKind.INFUSION, seconds, tempC, StepStatus.DONE)
+    private fun doneStep(seconds: Int = 60, tempC: Int? = 60, preAlert: Int? = null) =
+        StepsSheetStep(StepKind.INFUSION, seconds, tempC, StepStatus.DONE, preAlertSeconds = preAlert)
 }

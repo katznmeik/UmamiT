@@ -68,15 +68,11 @@ class TimerDriver(
         when (effect) {
             is TimerEffect.CreateSession -> {
                 val event = checkNotNull(pendingStart)
-                data.sessions.startSession(start(effect.sessionId, event.steps, event.preAlert.effectiveSeconds))
+                data.sessions.startSession(start(effect.sessionId, event.steps, event.preAlert.inheritedSeconds))
             }
 
-            is TimerEffect.ReplacePendingSteps -> data.sessions.replacePendingSteps(
-                effect.sessionId,
-                effect.fromIndex,
-                effect.steps,
-                preAlertSeconds = (newState as TimerState.Active).session.preAlert.effectiveSeconds,
-            )
+            is TimerEffect.ReplacePendingSteps ->
+                data.sessions.replacePendingSteps(effect.sessionId, effect.fromIndex, effect.steps)
 
             is TimerEffect.RecordStep -> data.sessions.recordStep(effect.sessionId, effect.stepIndex, effect.record)
 
@@ -95,7 +91,9 @@ const val SESSION_ID = "session-1"
 
 fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
-fun infusion(seconds: Int, tempC: Int? = 60) = PlannedStep(StepKind.INFUSION, seconds, tempC)
+/** An infusion with its own [preAlert]: null *Automatisch*, 0 *Aus*, else the lead (TMR-23, D-093). */
+fun infusion(seconds: Int, tempC: Int? = 60, preAlert: Int? = null) =
+    PlannedStep(StepKind.INFUSION, seconds, tempC, preAlert)
 
 fun startEvent(vararg steps: PlannedStep, id: String = SESSION_ID, preAlert: Int = 10) = TimerEvent.StartSession(
     id,

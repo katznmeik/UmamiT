@@ -67,12 +67,15 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
 /**
  * *Nochmal brühen* (BRW-11): a start with the parameters of [last], the tea's
  * last session: its snapshot of tea, recipe, vessel, leaf and water, its steps
- * as planned (in order) and its effective pre-alert, frozen like a recipe's.
- * A session finished early has kept only its started steps (TMR-12), so those
- * are the ones brewed again (D-062).
+ * as planned (in order, each with its own pre-alert; D-093) and its pre-alert
+ * base (B from umamit.db v2, the effective value before), frozen like a
+ * recipe's. A session finished early has kept only its started steps (TMR-12),
+ * so those are the ones brewed again (D-062).
  */
 fun brewAgainStart(last: BrewSession): BrewStart = BrewStart(
     snapshot = last.snapshot,
-    steps = last.steps.sortedBy { it.position }.map { PlannedStep(it.kind, it.plannedSeconds, it.tempC) },
+    steps = last.steps.sortedBy { it.position }.map {
+        PlannedStep(it.kind, it.plannedSeconds, it.tempC, it.preAlertSeconds)
+    },
     recipePreAlertSeconds = last.preAlertSeconds,
 )
