@@ -39,8 +39,9 @@
 
 ## Waiting on the PO
 
-1. **v0.2.1 in progress:** the PO gave the go on 2026-10-29 by running `/implement-spec`
-   (spec #81). Plan: `docs/plans/v0.2.1.md`. Next PO step: the rc test (#93). Optional: the
+1. **Test `v0.2.1-rc.1`** (released 2026-10-29 from f88e371, versionCode 20101, accuracy PASS:
+   pre-alert p95 50 ms / max 185 ms, alert p95 24 ms / max 117 ms): the checklist is on #93; the PO
+   picks the default *Vorwarnton* (Zimbel preset → rc.2 if another) and approves. PR #106 stays draft until then. Optional: the
    PO's own alarm / Voralarm recordings (`docs/design/assets/source/sound-alert-<name>.wav`,
    `sound-prealert-<name>.wav`), added to #84 if they arrive in time.
 2. Images: **all delivered**. A13 (timer band, dark only, D-095) arrived on 2026-10-28 for #102. A1–A11 all delivered (light and dark; A6–A11 on 2026-10-28). A8 and A11
@@ -201,6 +202,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-29 | `v0.2.1-rc.1` released (f88e371, versionCode 20101, certificate verified); accuracy run PASS; checklist posted on #93; waiting for the PO. |
 | 2026-10-29 | v0.2.1 built on PR #106: all 14 tickets merged and verified (#83–#92, #97, #98, #100, #102), three parallel code reviews (T4 timer/migration, T4 catalog/network, T3 UI) with two fix rounds, D-096 recorded, design renders in `docs/design/review/v0.2.1/`, version `0.2.1-rc.1`; next: accuracy run, rc dispatch, PO test (#93). |
 | 2026-10-29 | **Go for v0.2.1:** the PO ran `/implement-spec`; building spec #81 started with #83 and #84 (T4). |
 | 2026-10-28 | The PO updated the Galaxy to One UI 9 (Android 17) and re-checked the timer with `v0.2.0`: reliability settings, *Alarm testen*, a locked brew with full-screen alert, Live Update / Now Bar, quick timer — all passed. Device references in CLAUDE.md and specs 01, 04, 07 updated; the app keeps target SDK 36. |
