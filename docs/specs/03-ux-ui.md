@@ -443,7 +443,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    (ONB-06), below *Weiter*.
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
-3. *Katalog laden* — „Alle Grüntees von Tee-Kontor Kiel offline verfügbar
+3. *Katalog laden* — „Alle Grün- und Kräutertees von Tee-Kontor Kiel offline verfügbar
    machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
    *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
    in its service with its notification (ONB-03, D-079). *Katalog jetzt
@@ -874,9 +874,9 @@ size, the only one whose stock the page tells (D-096), and can still be added (*
 ### SCR-22 Katalog aktualisieren (sheet)
 
 Progress (Seiten, Produkte, Fotos, Ratgeber), *Abbrechen*; result summary (CAT-07 AC3)
-as one line: „276 Grüntees · 12 neu · 5 geändert · 2 nicht mehr im
-Sortiment · 3 Rezepte prüfen", each part only when above 0, „274 Grüntees ·
-keine Änderungen" for a later refresh without change, „274 Grüntees ·
+as one line: „276 Tees · 12 neu · 5 geändert · 2 nicht mehr im
+Sortiment · 3 Rezepte prüfen" (the count of all catalog teas, green and herbal, D-096), each part only when above 0, „274 Tees ·
+keine Änderungen" for a later refresh without change, „274 Tees ·
 31 Rezepte prüfen" for the first load; the result notification says the same
 (D-086);
 error state with *Details kopieren* for the developer. Closing the sheet never

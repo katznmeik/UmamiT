@@ -92,11 +92,11 @@ class CatalogScreenTest {
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(276, 12, 5, 2, 3)))
 
         compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG)
-            .assertTextEquals(nbsp("276_Grüntees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
+            .assertTextEquals(nbsp("276_Tees_· 12_neu_· 5_geändert_· 2_nicht_mehr_im_Sortiment_· 3_Rezepte_prüfen"))
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 1, newTeas = 0, recipesToCheck = 1)))
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1_Grüntee_· 1_Rezept_prüfen"))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("1_Tee_· 1_Rezept_prüfen"))
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 0)))
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274_Grüntees_· keine_Änderungen"))
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(nbsp("274_Tees_· keine_Änderungen"))
     }
 
     @Test
@@ -139,7 +139,7 @@ class CatalogScreenTest {
         set(CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 2, newTeas = 2)))
         compose.onNodeWithText(str(R.string.catalog_refresh_success_title)).assertIsDisplayed()
         // The first load: every tea is new, so the summary only counts them (CAT-07 AC3, #70).
-        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2\u00A0Grüntees")
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals("2\u00A0Tees")
         compose.onNodeWithText(str(R.string.catalog_refresh_done)).performClick()
         compose.waitForIdle()
 

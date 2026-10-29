@@ -82,6 +82,11 @@
     <string name="catalog_refresh_running_hint">Du kannst das Fenster schließen und das Handy sperren: Der Katalog lädt im Hintergrund weiter.</string>
     <string name="catalog_refresh_cancel">Abbrechen</string>
     <string name="catalog_refresh_success_title">Katalog geladen</string>
+    <!-- The summary's count of all catalog teas, green and herbal (CAT-07 AC3, D-096): „312 Tees · …". -->
+    <plurals name="catalog_refresh_tea_count">
+        <item quantity="one">%1$d Tee</item>
+        <item quantity="other">%1$d Tees</item>
+    </plurals>
     <!-- The summary line after the count of green teas (CAT-07 AC3, D-086): „274 Grüntees · 12 neu · 5 geändert ·
          2 nicht mehr im Sortiment · 3 Rezepte prüfen", each part only with a count above 0. „neu", „geändert" and
          „nicht mehr im Sortiment" don't change with the number. -->

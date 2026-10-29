@@ -55,7 +55,7 @@
     <string name="settings_catalog_never">Noch nie</string>
     <string name="settings_catalog_refreshing">Wird gerade aktualisiert …</string>
     <string name="settings_catalog_refresh_now">Jetzt aktualisieren</string>
-    <string name="settings_catalog_refresh_detail">Lädt alle Grüntees von Tee-Kontor Kiel. Das erste Laden dauert etwa eine Viertelstunde, spätere Aktualisierungen wenige Minuten; es läuft auch bei gesperrtem Handy weiter.</string>
+    <string name="settings_catalog_refresh_detail">Lädt alle Grün- und Kräutertees von Tee-Kontor Kiel. Das erste Laden dauert etwa eine Viertelstunde, spätere Aktualisierungen wenige Minuten; es läuft auch bei gesperrtem Handy weiter.</string>
     <string name="settings_catalog_photos">Fotos laden</string>
     <string name="settings_catalog_photos_detail">Beim Aktualisieren ein Foto je Tee laden, zusammen etwa 30 MB</string>
 
