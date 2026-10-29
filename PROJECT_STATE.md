@@ -201,6 +201,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-29 | v0.2.1 built on PR #106: all 14 tickets merged and verified (#83–#92, #97, #98, #100, #102), three parallel code reviews (T4 timer/migration, T4 catalog/network, T3 UI) with two fix rounds, D-096 recorded, design renders in `docs/design/review/v0.2.1/`, version `0.2.1-rc.1`; next: accuracy run, rc dispatch, PO test (#93). |
 | 2026-10-29 | **Go for v0.2.1:** the PO ran `/implement-spec`; building spec #81 started with #83 and #84 (T4). |
 | 2026-10-28 | The PO updated the Galaxy to One UI 9 (Android 17) and re-checked the timer with `v0.2.0`: reliability settings, *Alarm testen*, a locked brew with full-screen alert, Live Update / Now Bar, quick timer — all passed. Device references in CLAUDE.md and specs 01, 04, 07 updated; the app keeps target SDK 36. |
 | 2026-10-28 | D-095: timer top as an ink-wash band with the tea photo as a seal; #102 added to v0.2.1; A13 prompted, delivered and checked (1536 × 1024, no text or frame, calm bottom centre). Nested sessions considered and not used (subagents in worktrees stay). |
