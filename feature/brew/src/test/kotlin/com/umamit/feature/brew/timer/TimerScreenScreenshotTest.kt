@@ -1,5 +1,8 @@
 package com.umamit.feature.brew.timer
 
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -23,7 +26,8 @@ import org.robolectric.annotation.GraphicsMode
  * and the dark app theme: the timer is always dark, so both look the same.
  * The alert is captured in both pulse phases (matcha and washi) and with the
  * prominent overtime; the content must stay readable in each (D-055). The tea
- * photo is the placeholder illustration. Goldens: `src/test/screenshots/`.
+ * photo is the placeholder illustration, or a synthetic plain white or dark
+ * one for the top bar's circles (#85). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -50,7 +54,13 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         '_',
     )}"
 
-    private fun capture(name: String, state: TimerUiState.Active, advanceMillis: Long = 0, photo: Boolean = true) {
+    private fun capture(
+        name: String,
+        state: TimerUiState.Active,
+        advanceMillis: Long = 0,
+        photo: Boolean = true,
+        photoColor: Color? = null,
+    ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
@@ -63,7 +73,11 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    teaPhoto = if (photo) painterResource(UmamiIcons.TimerFallbackPhoto) else null,
+                    teaPhoto = when {
+                        photoColor != null -> remember(photoColor) { ColorPainter(photoColor) }
+                        photo -> painterResource(UmamiIcons.TimerFallbackPhoto)
+                        else -> null
+                    },
                 )
             }
         }
@@ -78,6 +92,14 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
 
     @Test
     fun running() = capture("Running", TimerStates.running(remainingMs = 48_000))
+
+    /** ← and ⋮ on their circles over a synthetic pure white photo, the usual shop background (#85, D-016). */
+    @Test
+    fun runningOnWhitePhoto() = capture("Running_whitePhoto", TimerStates.running(), photoColor = Color.White)
+
+    /** ← and ⋮ on their circles over a synthetic near-black photo: they look the same (#85). */
+    @Test
+    fun runningOnDarkPhoto() = capture("Running_darkPhoto", TimerStates.running(), photoColor = Color(0xFF101010))
 
     @Test
     fun preAlert() = capture("PreAlert", TimerStates.running(remainingMs = 8_000, preAlertPlayed = true, stepIndex = 1))
