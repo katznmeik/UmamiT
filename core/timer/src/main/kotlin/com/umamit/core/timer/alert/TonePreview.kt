@@ -9,12 +9,16 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Inject
 
 /**
- * *Anhören* in the tone picker (SET-09): the tone once, so the PO hears the sound itself; unlike
- * *Alarm testen* (SET-31) no tick, no vibration and no alert length, and [stop] ends it at once.
+ * *Anhören* in the tone picker (SET-09) and the *Vorwarnton* picker (SET-26): the sound once, so
+ * the PO hears the sound itself; unlike *Alarm testen* (SET-31) no tick, no vibration and no alert
+ * length, and [stop] ends it at once.
  */
 interface TonePreview {
     /** Plays the tone stored under [toneKey] once (an unknown key: the Klangschale), replacing a preview. */
     fun play(toneKey: String)
+
+    /** Plays the *Vorwarnton* stored under [preAlertKey] once (an unknown key: the default), replacing a preview. */
+    fun playPreAlert(preAlertKey: String)
 
     /** Stops a playing preview; idempotent. */
     fun stop()
@@ -39,13 +43,16 @@ class RingerTonePreview internal constructor(
         scheduler = HandlerAlertScheduler(),
     )
 
-    override fun play(toneKey: String) {
+    override fun play(toneKey: String) = playOnce(AlertSound.tone(toneKey))
+
+    override fun playPreAlert(preAlertKey: String) = playOnce(PreAlertSound.of(preAlertKey).sound)
+
+    private fun playOnce(alertSound: AlertSound) {
         stop()
         if (!AlertMatrix.outputs(environment.conditions(), vibrationEnabled = false).sound) return
-        val tone = AlertSound.tone(toneKey)
         if (!sound.requestFocus(onLost = ::stop)) return
-        sound.play(tone)
-        scheduler.schedule(tone.lengthMs) { sound.abandonFocus() }
+        sound.play(alertSound)
+        scheduler.schedule(alertSound.lengthMs) { sound.abandonFocus() }
     }
 
     override fun stop() {

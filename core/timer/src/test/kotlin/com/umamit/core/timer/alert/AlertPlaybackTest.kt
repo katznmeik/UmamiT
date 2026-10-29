@@ -41,7 +41,9 @@ class AlertPlaybackTest {
     private val environment = FakeEnvironment()
     private val sound = FakeSoundOutput(scheduler)
     private val haptics = FakeHaptics(scheduler)
-    private val settings = FakeSettingsRepository()
+
+    // „Ting (leise)", the tick of M1, unless a test chooses another Vorwarnton (SET-26).
+    private val settings = FakeSettingsRepository(UserSettings(preAlertSound = "ting"))
     private val diagnostics = FakeTimerDiagnostics()
     private val clock = FakeClock()
 
@@ -219,13 +221,104 @@ class AlertPlaybackTest {
     }
 
     @Test
+    fun theChosenPreAlertSoundIsTheOneLoadedAheadAndPlayed() = runTest {
+        // SET-26, D-092: the Vorwarnton replaces the tick in the loading ahead and in the pre-alert.
+        settings.update { it.copy(preAlertSound = "klangstab", alertSound = "glocke") }
+        val playback = playback(settings.settings)
+
+        playback.keepReady(true)
+        assertThat(sound.wanted).containsExactly(AlertSound.KLANGSTAB, AlertSound.GLOCKE).inOrder()
+
+        playback.playPreAlert()
+        assertThat(sound.plays(AlertSound.KLANGSTAB)).containsExactly(0L)
+        assertThat(sound.plays(AlertSound.TICK)).isEmpty()
+        assertThat(sound.loadedOnPlay).isEmpty()
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().single().start?.soundLoaded).isTrue()
+    }
+
+    @Test
+    fun aPreAlertSoundChangedWhileATimerIsActiveIsLoadedAtOnceAndTheOldOneReleased() = runTest {
+        settings.update { it.copy(preAlertSound = "zimbel") }
+        val playback = playback(settings.settings)
+        playback.keepReady(true)
+        assertThat(sound.wanted).containsExactly(AlertSound.ZIMBEL, AlertSound.KLANGSCHALE).inOrder()
+
+        // Changed in the settings while the session runs: no turn of the controller comes in between.
+        settings.update { it.copy(preAlertSound = "tiefe_schale") }
+        assertThat(sound.wanted).containsExactly(AlertSound.TIEFE_SCHALE, AlertSound.KLANGSCHALE).inOrder()
+
+        playback.playPreAlert()
+        assertThat(sound.plays(AlertSound.TIEFE_SCHALE)).containsExactly(0L)
+        assertThat(sound.loadedOnPlay).isEmpty()
+    }
+
+    @Test
+    fun aToneChangedWhileATimerIsActiveIsLoadedAtOnce() = runTest {
+        val playback = playback(settings.settings)
+        playback.keepReady(true)
+
+        settings.update { it.copy(alertSound = "glockenspiel") }
+
+        assertThat(sound.wanted).containsExactly(AlertSound.TICK, AlertSound.GLOCKENSPIEL).inOrder()
+    }
+
+    @Test
+    fun whileNoTimerIsActiveAChangedSoundIsNotLoaded() = runTest {
+        val playback = playback(settings.settings)
+        playback.keepReady(true)
+        playback.keepReady(false)
+        val prepares = sound.prepares.toList()
+
+        settings.update { it.copy(preAlertSound = "gloeckchen", alertSound = "sanft") }
+        // Other settings changes never load anything either.
+        settings.update { it.copy(keepScreenOn = false) }
+
+        assertThat(sound.wanted).isEmpty()
+        assertThat(sound.prepares).isEqualTo(prepares)
+    }
+
+    @Test
+    fun alarmTestenPlaysTheChosenPreAlertSoundToItsEndThenTheAlert() = runTest {
+        settings.update { it.copy(preAlertSound = "gloeckchen", alertSound = "sanft", alertLength = AlertLength.SHORT) }
+        val tester: AlertTester = playback(settings.settings)
+
+        tester.testAlert()
+        scheduler.advanceBy(300_000L)
+
+        // Glöckchen 3.0 s, then the pause of 0.7 s (SET-31).
+        assertThat(sound.events.filter { it.startsWith("play") })
+            .containsExactly("play GLOECKCHEN @ 0", "play SANFT @ 3700").inOrder()
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.tone }).containsExactly("sanft")
+    }
+
+    @Test
+    fun aPreAlertLogsTheKeyOfTheSoundItPlayed() = runTest {
+        settings.update { it.copy(preAlertSound = "tiefe_schale") }
+        val playback = playback(settings.settings)
+
+        playback.playPreAlert()
+
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.tone }).containsExactly("tiefe_schale")
+    }
+
+    @Test
+    fun anUnknownPreAlertSoundKeyPlaysTheDefault() = runTest {
+        settings.update { it.copy(preAlertSound = "gong") }
+        val playback = playback(settings.settings)
+
+        playback.playPreAlert()
+
+        assertThat(sound.plays(PreAlertSound.DEFAULT.sound)).containsExactly(0L)
+    }
+
+    @Test
     fun loadingTheSoundsNeverWaitsForTheSettingsFile() = runTest {
         val playback = playback(flow { awaitCancellation() })
 
         playback.keepReady(true)
 
-        // No 300 ms wait (SETTINGS_WAIT_MS) as a cue has: the defaults' tone is loaded at once.
-        assertThat(sound.prepares).containsExactly("prepare [TICK, KLANGSCHALE] @ 0")
+        // No 300 ms wait (SETTINGS_WAIT_MS) as a cue has: the defaults' sounds are loaded at once.
+        assertThat(sound.prepares).containsExactly("prepare [${PreAlertSound.DEFAULT.sound}, KLANGSCHALE] @ 0")
         assertThat(currentTime).isEqualTo(0L)
     }
 
