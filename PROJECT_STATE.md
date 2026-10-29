@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-29
+**Last updated:** 2026-10-29 (v0.2.1 released)
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 and tickets #83–#94 approved by the PO, plus #97 and #98 from D-094 (2026-10-28), #100 and #102; **building started 2026-10-29 on the PO's go** (`/implement-spec`) |
+| Current milestone | **v0.2.1 — the PO's feedback on v0.2.0-rc.1: done** (`v0.2.1`, 2026-10-29; spec #81, PR #106). **Next: v0.3.0**, quick timers alongside a brew session (D-093 point 1); then M3 → v0.4.0, M4 → v0.5.0. A v0.3.0 spec needs the PO (grilling, `/to-spec`, `/to-tickets`) and the PO's go |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #82 |
+| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82 |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105 |
 | Open PR | none |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.2.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.0) (full release, versionCode 20099, from `main` 7157cc4) |
+| Latest APK | [`v0.2.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.1) (full release, versionCode 20199, from `main` 9a73b19; accuracy PASS on `main`: pre-alert p95 51 ms / max 64 ms, alert p95 27 ms / max 76 ms) |
 
 ## Done (M0)
 
@@ -39,11 +39,10 @@
 
 ## Waiting on the PO
 
-1. **Test `v0.2.1-rc.1`** (released 2026-10-29 from f88e371, versionCode 20101, accuracy PASS:
-   pre-alert p95 50 ms / max 185 ms, alert p95 24 ms / max 117 ms): the checklist is on #93; the PO
-   picks the default *Vorwarnton* (Zimbel preset → rc.2 if another) and approves. PR #106 stays draft until then. Optional: the
-   PO's own alarm / Voralarm recordings (`docs/design/assets/source/sound-alert-<name>.wav`,
-   `sound-prealert-<name>.wav`), added to #84 if they arrive in time.
+1. **v0.3.0:** the next step is the PO's call: grill and spec quick timers alongside a brew (D-093 point 1).
+   Optional at any time: the PO's own alarm / Vorwarnung recordings
+   (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
+   sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
 2. Images: **all delivered**. A13 (timer band, dark only, D-095) arrived on 2026-10-28 for #102. A1–A11 all delivered (light and dark; A6–A11 on 2026-10-28). A8 and A11
    replace the catalog placeholders in v0.2.1 (#100); A6, A7, A9 and A10 are built in with
    the screens of M3/M4.
@@ -65,6 +64,19 @@
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps
+
+### v0.2.1 done (2026-10-29)
+
+- Built on PR #106 with `/implement-spec #81` (go 2026-10-29): 14 tickets (#83–#92, #97, #98, #100, #102), at most two
+  implementers in worktrees, each verified on the combined tree and by CI before the next.
+- Three parallel code reviews (T4 timer/migration, T4 catalog/network, T3 UI): no blockers; two fix rounds (alert sounds
+  load on a separate loader thread, short-screen timer layout, migration keeps v1 leads, look-alike hosts refused, …).
+- Build decisions recorded as **D-096**; design renders in `docs/design/review/v0.2.1/`.
+- `v0.2.1-rc.1` (f88e371): accuracy PASS; the PO passed the whole checklist, kept Zimbel as *Vorwarnton* and approved.
+  Merged (9a73b19), accuracy PASS on `main`, `v0.2.1` released; #81 and all its tickets closed.
+- Known follow-ups (not planned): Robolectric fetches its runtime jar at test time and has failed CI twice on a network
+  hiccup (an offline/cached setup would remove that); `ProcessDeathTest` flaked once on API 36 (passed on rerun).
+- **Decision numbers:** up to D-096 used; the next free is **D-097**.
 
 ### v0.2.1 planned (2026-10-26)
 
@@ -92,7 +104,7 @@
   - #97 (T4, ←#89): a refresh re-checks known teas missing from the sitemap (CAT-16);
   - #98 (T4, ←#97): a tea from a shared or pasted shop link (CAT-17), the fourth network use GEN-01 (d), CLAUDE.md rule 7 updated.
 - **D-095 (2026-10-28):** the PO found the Tee-Kontor photos unattractive as the timer's top band. The PO chose an ink-wash band (new asset **A13**, dark only, the PO uploads it) with the tea photo as a small round seal; the quick timer gets the band without a seal; in v0.2.1 as #102 (T3, ←#85; approved by the PO on 2026-10-28); A13 delivered the same day. Prompt and filename in `docs/design/assets.md`.
-- **Decision numbers:** up to D-095 used; the next free is **D-096**.
+- **Decision numbers:** see the v0.2.1 done section (next free D-097).
 
 ### M2 done (2026-10-26)
 
@@ -202,6 +214,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-29 | **v0.2.1 done:** #106 merged (9a73b19), accuracy PASS on `main`, `v0.2.1` released (versionCode 20199, certificate verified); #81, #83–#94, #97, #98, #100, #102 closed. Next: v0.3.0. |
 | 2026-10-29 | **PO approved v0.2.1-rc.1** (all checklist items, design review; Vorwarnton Zimbel stays default); version 0.2.1; merge of #106 and the final release follow. |
 | 2026-10-29 | `v0.2.1-rc.1` released (f88e371, versionCode 20101, certificate verified); accuracy run PASS; checklist posted on #93; waiting for the PO. |
 | 2026-10-29 | v0.2.1 built on PR #106: all 14 tickets merged and verified (#83–#92, #97, #98, #100, #102), three parallel code reviews (T4 timer/migration, T4 catalog/network, T3 UI) with two fix rounds, D-096 recorded, design renders in `docs/design/review/v0.2.1/`, version `0.2.1-rc.1`; next: accuracy run, rc dispatch, PO test (#93). |
