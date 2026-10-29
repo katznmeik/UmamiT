@@ -126,7 +126,8 @@ class SnapshotTest {
                 phase = TimerPhase.RUNNING,
                 deadlineElapsedMs = running.deadlineElapsedMs,
                 deadlineWallMs = running.deadlineWallMs,
-                preAlertElapsedMs = running.deadlineElapsedMs - 10_000,
+                // The 20 s step's automatic pre-alert: min(10, 5 · ⌊20 / 15⌋) = 5 s (TMR-23, D-093).
+                preAlertElapsedMs = running.deadlineElapsedMs - 5_000,
                 preAlertPlayed = false,
                 remainingMs = null,
                 pausedTotalMs = 0,

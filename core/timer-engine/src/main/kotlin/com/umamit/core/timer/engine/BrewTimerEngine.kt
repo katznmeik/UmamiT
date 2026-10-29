@@ -150,10 +150,11 @@ object BrewTimerEngine {
     /**
      * The pre-alert lead time N of the current step of [state] in seconds,
      * whether its tick played or not, for the TimerRing glow and the
-     * ProgressStyle point (04 §8.3). Null when the step has none (N = 0, a
-     * step shorter than N + 5 s, a rinse shorter than 15 s, a long step;
-     * TMR-23) and in Idle and Finished, so the UI never re-implements the
-     * skip rules.
+     * ProgressStyle point (04 §8.3). N is the step's own: the explicit value,
+     * else the automatic min(B, 5 · ⌊d / 15⌋) (D-093). Null when the step has
+     * none (N = 0, a step shorter than N + 5 s, a rinse shorter than 15 s, a
+     * long step; TMR-23) and in Idle and Finished, so the UI never
+     * re-implements the rules.
      */
     fun preAlertLeadSeconds(state: TimerState): Int? = (state as? TimerState.OnStep)
         ?.let { it.session.preAlertLeadMs(it.stepIndex) }
