@@ -15,6 +15,7 @@ import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 
 /** [TeaRepository] on Room (05 §3.1, §3.9). */
@@ -97,4 +98,9 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
     }
 
     override suspend fun deleteEvent(id: String) = dao.delete(id)
+
+    override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
+        require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
+        return dao.correctStock(teaId, newTotalGrams, UUID.randomUUID().toString(), time.nowMs())?.toModel()
+    }
 }

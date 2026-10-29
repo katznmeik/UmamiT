@@ -86,6 +86,15 @@ interface StockRepository {
     suspend fun addEvent(event: InventoryEvent)
 
     suspend fun deleteEvent(id: String)
+
+    /**
+     * *Bestand korrigieren* (INV-03, BRW-02, D-093 point 7): sets the tea's stock to [newTotalGrams] (0 = leer)
+     * with one `ADJUSTMENT` event of the difference to the current stock, no price, at now (05 §3.10).
+     * Returns that event, or null when the stock already is [newTotalGrams] (nothing is written).
+     *
+     * @throws IllegalArgumentException when [newTotalGrams] is negative or not a number.
+     */
+    suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent?
 }
 
 /** The settings of 05 §6 (M1 subset) and the seed markers. */

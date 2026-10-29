@@ -17,4 +17,6 @@ class BrewSetupActions(
     val start: () -> Unit = {},
     val confirmRestart: () -> Unit = {},
     val dismissQuestion: () -> Unit = {},
+    /** *Speichern* in „Wie viel ist noch da?": the tea's new total in g (BRW-02, INV-03). */
+    val correctStock: (Double) -> Unit = {},
 )
