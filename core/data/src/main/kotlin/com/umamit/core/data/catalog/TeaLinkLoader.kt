@@ -44,8 +44,13 @@ import javax.inject.Inject
 
 /** What a shared or pasted tea link led to (CAT-17). Only [Opened] may have changed the catalog. */
 sealed interface TeaLinkOutcome {
-    /** The tea [key] is in the catalog (stored or refreshed from its page, or found there): its detail opens. */
-    data class Opened(val key: String) : TeaLinkOutcome
+    /**
+     * The tea [key] is in the catalog (stored or refreshed from its page, or found there): its
+     * detail opens. [notRefreshed] is why its page didn't refresh a tea already in the catalog
+     * (CAT-17 AC6, D-096): [NoTeaPage], [Unreadable] or [Offline], shown with the detail; null
+     * when the page refreshed it, or no request was needed.
+     */
+    data class Opened(val key: String, val notRefreshed: TeaLinkOutcome? = null) : TeaLinkOutcome
 
     /** Not a tea link of the shop (CAT-17 AC2): no request. */
     data object NotATeaLink : TeaLinkOutcome
@@ -125,7 +130,11 @@ interface TeaLinkLoader {
  *
  * Like the refresh (rule 8, D-090), nothing a page does reaches the process the timer runs in:
  * an unexpected error ends as [TeaLinkOutcome.Unreadable]. The [DiagnosticsLog] gets one line per
- * link, with the article number only, never the shared text.
+ * link, with the article number only, never the shared text or its slug.
+ *
+ * A link to a tea already in the catalog whose page can't refresh it without a stop (no tea page,
+ * an unreadable page, no connection) opens that tea as it was, with the reason (CAT-17 AC6,
+ * D-096); a stop answer (a challenge, 429, `Retry-After`, 401/403/5xx) gives the message alone.
  */
 class ShopTeaLinkLoader internal constructor(
     private val client: ShopClient,
@@ -208,8 +217,20 @@ class ShopTeaLinkLoader internal constructor(
                 fetchAndStore()
             }
         } catch (e: LinkEnded) {
-            e.outcome
+            asItWas(e.outcome)
         }
+
+        /**
+         * CAT-17 AC6: a tea already in the catalog opens as it was when its page couldn't refresh
+         * it without a stop, with [outcome] as the reason; any other [outcome] stays as it is.
+         */
+        private suspend fun asItWas(outcome: TeaLinkOutcome): TeaLinkOutcome =
+            if (outcome in NOT_REFRESHED && dao.tea(link.base) != null) {
+                log("$where already in the catalog, opened as it was")
+                TeaLinkOutcome.Opened(link.base, notRefreshed = outcome)
+            } else {
+                outcome
+            }
 
         private suspend fun fetchAndStore(): TeaLinkOutcome {
             val session = ShopSession.open(client, NetworkRetry.NONE)
@@ -373,14 +394,19 @@ class ShopTeaLinkLoader internal constructor(
         }
 
         private fun noTeaPage(why: String): Nothing {
-            log("$where ${url.encodedPath} $why, nothing stored")
+            log("$where $why, nothing stored")
             throw LinkEnded(TeaLinkOutcome.NoTeaPage)
         }
 
         private fun unreadable(why: String): Nothing {
-            log("$where ${url.encodedPath} $why, nothing stored")
+            log("$where $why, nothing stored")
             throw LinkEnded(TeaLinkOutcome.Unreadable)
         }
+    }
+
+    private companion object {
+        /** A link's page that couldn't refresh a tea without a stop (CAT-17 AC6). */
+        val NOT_REFRESHED = setOf(TeaLinkOutcome.NoTeaPage, TeaLinkOutcome.Unreadable, TeaLinkOutcome.Offline)
     }
 }
 

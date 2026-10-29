@@ -11,7 +11,8 @@ package com.umamit.core.catalog.parser
  * another tea (Wakoucha, Oolong, …) or teaware; its *Sorte* is the green type its name names.
  *
  * From v0.2.1 (D-093) the shop's Kräutertee section is in scope too, as [CatalogScope.HERBAL]
- * with its sub-section as the *Sorte*; fruit tea and rooibos stay out.
+ * with its sub-section as the *Sorte*; fruit tea and rooibos stay out, and so does teaware filed
+ * there (a gourd, a filter, a tin; 08 §2.4 item 4), as [CatalogScope.NOT_GREEN].
  */
 internal object GreenTeaScope {
     /** The green types of the Japan trees (08 §2.2), as path segments. */
@@ -54,16 +55,33 @@ internal object GreenTeaScope {
         "tencha|aracha|konacha|mizudashi|mizucha|grüntee|grüner\\s+tee|green\\s+tea" to null,
     ).map { (pattern, type) -> Regex(pattern, RegexOption.IGNORE_CASE) to type }
 
+    /** Teaware in a name, as the Japan rule reads it (D-089). */
+    private const val TEAWARE = """kyusu|kanne|chawan|teeschale|becher|tasse|chasen"""
+
     /** Another tea or teaware in a name: never green, whatever else it names. */
     private val OTHER_IN_NAME = Regex(
         """koucha|oolong|schwarz(er)?\s*tee|black\s+tea|wei(ß|ss)(er)?\s*tee|white\s+tea|kräuter|kraeuter|""" +
-            """kyusu|kanne|chawan|teeschale|becher|tasse|chasen|\bset\b""",
+            """$TEAWARE|\bset\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * Teaware in the name of a product of the Kräutertee section (08 §2.4 item 4): the Japan rule's
+     * words plus the mate gear and accessories the section may file („Mate-Kalebasse", „Bombilla",
+     * „Teefilter", „Teedose", „Teesieb", „Messlöffel", „Zubehör"). A word or the end of a compound
+     * („Glaskanne"), never the start of one, so „Filterbeutel" or „Siebenkraut" stay teas.
+     */
+    private val TEAWARE_IN_HERBAL_NAME = Regex(
+        """($TEAWARE|kalebasse|bombilla|filter|dose|löffel|loeffel|sieb|zubehör|zubehoer)(e|en|n|s)?(?!\p{L})""",
         RegexOption.IGNORE_CASE,
     )
 
     /** Another tea or teaware as a path segment of the Japan tree (`/tee/japantee/wakoucha/`). */
     private val OTHER_IN_PATH =
         Regex("""koucha|oolong|schwarz(er)?-?tee|wei(ss|ß)(er)?-?tee|kraeuter|zubehoer|geschirr""")
+
+    /** A teaware category as a path segment (`/tee/kraeutertee/zubehoer/`). */
+    private val TEAWARE_IN_PATH = Regex("""zubehoer|geschirr""")
 
     /**
      * A set in a name (D-091): „Set" as a word („3er Set", „Komplett-Set", „SET") or a set compound
@@ -90,7 +108,7 @@ internal object GreenTeaScope {
     fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope {
         val green =
             breadcrumb.any { isGreen(it.path) } || (isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge))
-        val herbal = !green && breadcrumb.any { HerbalSection.contains(it.path) }
+        val herbal = !green && breadcrumb.any { HerbalSection.contains(it.path) } && !isTeaware(breadcrumb, name)
         return when {
             breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
             !green && !herbal -> CatalogScope.NOT_GREEN
@@ -99,6 +117,11 @@ internal object GreenTeaScope {
             else -> CatalogScope.GREEN
         }
     }
+
+    /** Teaware by its [name] or an accessories segment of its breadcrumb: no tea (08 §2.4 item 4). */
+    private fun isTeaware(breadcrumb: List<Crumb>, name: String?): Boolean =
+        (name != null && TEAWARE_IN_HERBAL_NAME.containsMatchIn(name)) ||
+            breadcrumb.any { crumb -> segments(crumb.path).any { TEAWARE_IN_PATH.containsMatchIn(it) } }
 
     private fun isSet(breadcrumb: List<Crumb>, name: String?): Boolean =
         (name != null && SET_IN_NAME.containsMatchIn(name)) ||

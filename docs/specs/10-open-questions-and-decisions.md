@@ -356,7 +356,10 @@ doubt) where it touches them.
 
 **Kräutertees (#89, #91).**
 - The whole shop section `/tee/kraeutertee/` is in scope, Mate and Lapacho
-  included, because the shop files them there.
+  included, because the shop files them there. Teaware filed there (a gourd,
+  a bombilla, a filter, a tin, a pot, a sieve …, by its name or a
+  `zubehoer`/`geschirr` segment) is no tea and stays out (08 §2.4 item 4;
+  code review).
 - The one-time `NOT_GREEN` reset is keyed on the parser version of the last
   successful refresh, not on a DataStore marker. A failed refresh keeps the
   old list, and the next one tries again.
@@ -397,6 +400,11 @@ doubt) where it touches them.
   link, so their price stays an estimate.
 - Sold-out teas show with the *Vorrätig* filter off (CAT-10's default
   hides them).
+- For a tea already „Nicht mehr im Sortiment", a plain 401/403 on its old
+  page (no challenge or block page) is „not read this time": the tea stays as
+  it was and the refresh goes on, so one broken old page can't block every
+  refresh. A 5xx, 429, `Retry-After` or a challenge still stops the refresh
+  (08 §2.8); a tea not yet discontinued keeps the 401/403 stop (code review).
 
 **Shop link (#98).**
 - **Accepted:**
@@ -425,6 +433,14 @@ doubt) where it touches them.
   until the tabs show. The link sheet hides during an alert (as D-090).
 - **Paste field:** it is filled from the clipboard only with an accepted
   link.
+- **A tea already in the catalog** (CAT-17 AC6, code review): when its page
+  can't refresh it without a stop (no tea page, an unreadable page, offline),
+  its detail opens as it was and a toast shows the message. A stop answer
+  (challenge, 429, `Retry-After`, 401/403/5xx) shows the message alone.
+- Storing a tea from a link deletes its skip entry, so a product skipped
+  less than 90 days ago is read by the next refresh, not deleted (code
+  review). The parser version of the latest successful refresh is the last
+  logged row's, not the latest by the clock.
 - A link may be used before the first catalog load.
 
 **Collection and setup (#86, #87, #88, #100).**
@@ -439,6 +455,10 @@ doubt) where it touches them.
   - „Leer" shows below 0,05 g.
   - The sheet opens at 0,0 for a negative stock, with no autofocus. An alert
     removes it unsaved.
+  - While a session of this tea is active (also its *Brühen anpassen*), the
+    sheet adds „Die laufende Sitzung zieht beim Beenden noch 5,0 g ab." with
+    its leaf, while stock deduction is on. The arithmetic is unchanged: the
+    session still deducts its leaf at *Sitzung beenden* (code review).
 - **Archiving:**
   - „im Besitz" counts only teas that aren't archived. The refresher keeps a
     discontinued catalog tea while any tea, archived ones too, links to it.

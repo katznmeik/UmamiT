@@ -48,6 +48,7 @@ import java.math.RoundingMode
 
 const val STOCK_SHEET_FIELD_TAG = "stock_sheet_field"
 const val STOCK_SHEET_SAVE_TAG = "stock_sheet_save"
+const val STOCK_SHEET_SESSION_TAG = "stock_sheet_session"
 
 /**
  * „Wie viel ist noch da?" (BRW-02, INV-03, D-093 point 7; 03 SCR-04): the new total of the tea in g, with
@@ -55,26 +56,37 @@ const val STOCK_SHEET_SAVE_TAG = "stock_sheet_save"
  * ([currentGrams], at least 0). 0 is allowed (leer); a negative, non-numeric or finer than 0,1 g input
  * is refused: *Speichern* stays off and the field says why. *Speichern* calls [onSave] with the new total
  * and the host closes the sheet in that frame; *Abbrechen*, back, the scrim or a drag close it without
- * saving ([onDismissRequest]).
+ * saving ([onDismissRequest]). While a session of this tea runs, [sessionLeafGrams] is the leaf it still
+ * deducts at *Sitzung beenden*, and a line says so (D-096); the total typed is stored as it is.
  *
  * Like every sheet it never covers an alert: the host composes it inside [com.umamit.feature.brew.picker]'s
  * `AlertGate` (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun StockSheet(currentGrams: Double, onSave: (Double) -> Unit, onDismissRequest: () -> Unit) {
+internal fun StockSheet(
+    currentGrams: Double,
+    onSave: (Double) -> Unit,
+    onDismissRequest: () -> Unit,
+    sessionLeafGrams: Double? = null,
+) {
     val sheetState = rememberStockSheetState(UmamiTheme.reduceMotion)
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        StockSheetContent(currentGrams, onSave, onDismissRequest)
+        StockSheetContent(currentGrams, sessionLeafGrams, onSave, onDismissRequest)
     }
 }
 
 @Composable
-private fun StockSheetContent(currentGrams: Double, onSave: (Double) -> Unit, onCancel: () -> Unit) {
+private fun StockSheetContent(
+    currentGrams: Double,
+    sessionLeafGrams: Double?,
+    onSave: (Double) -> Unit,
+    onCancel: () -> Unit,
+) {
     var value by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         val text = StockInput.format(currentGrams)
         mutableStateOf(TextFieldValue(text, selection = TextRange(text.length)))
@@ -138,6 +150,16 @@ private fun StockSheetContent(currentGrams: Double, onSave: (Double) -> Unit, on
                     contentDescription = stringResource(R.string.brew_setup_stock_more),
                 )
             }
+        }
+        // The running session of this tea deducts its leaf when it ends, on top of this total (D-096).
+        sessionLeafGrams?.let { leaf ->
+            Spacer(Modifier.height(UmamiSpacing.XSmall))
+            Text(
+                text = stringResource(R.string.brew_setup_stock_session, grams(leaf)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag(STOCK_SHEET_SESSION_TAG),
+            )
         }
         Spacer(Modifier.height(UmamiSpacing.Small))
         Row(

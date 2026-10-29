@@ -137,17 +137,22 @@ abstract class CatalogDao {
     @Query("SELECT * FROM catalog_skip ORDER BY base_key")
     abstract suspend fun skipList(): List<CatalogSkipEntity>
 
-    /** The parser version of the latest successful refresh (05 §4.4); null before the first. */
+    /**
+     * The parser version of the latest successful refresh (05 §4.4); null before the first. The
+     * latest is the last one logged (the highest row id, never reused), not the latest by the wall
+     * clock: a clock set back must not bring an older parser's run back as the latest and so
+     * re-trigger the one-time re-classification (D-093, D-096).
+     */
     @Query(
         "SELECT parser_version FROM catalog_refresh_log WHERE status = 'SUCCESS' " +
-            "ORDER BY finished_at DESC, id DESC LIMIT 1",
+            "ORDER BY id DESC LIMIT 1",
     )
     abstract suspend fun lastSuccessParserVersion(): Int?
 
     /** [lastSuccessParserVersion] as it changes (SCR-19: the Kräutertees' hint, D-093 Q20). */
     @Query(
         "SELECT parser_version FROM catalog_refresh_log WHERE status = 'SUCCESS' " +
-            "ORDER BY finished_at DESC, id DESC LIMIT 1",
+            "ORDER BY id DESC LIMIT 1",
     )
     abstract fun observeLastSuccessParserVersion(): Flow<Int?>
 
@@ -264,7 +269,10 @@ abstract class CatalogDao {
      * two never run together, D-094): [tea] and its [packages] replace that tea's row and
      * packages, or are added. A tea seen before keeps its first sighting, and a new one carries
      * its own, so neither is „Neu" (CAT-17 AC4, D-083). [imageFailure], when given, is remembered
-     * like a refresh's (05 §4.6, D-091). One transaction; the search index follows by Room's triggers.
+     * like a refresh's (05 §4.6, D-091). The tea's skip entry, if any, is deleted: a product the
+     * last refresh skipped (`NOT_GREEN`, `SET`) and now in scope would otherwise stay unread for
+     * up to 90 days, and the next refresh would delete the tea (D-096). One transaction; the
+     * search index follows by Room's triggers.
      */
     @Transaction
     open suspend fun putLinkedTea(
@@ -276,11 +284,15 @@ abstract class CatalogDao {
         deletePackagesOf(tea.key)
         if (before == null) insertTea(tea) else updateTea(tea.copy(firstSeenAt = before.firstSeenAt))
         insertPackages(packages)
+        deleteSkipOf(tea.key)
         if (imageFailure != null) putImageFailures(listOf(imageFailure))
     }
 
     @Query("DELETE FROM catalog_package WHERE catalog_key = :key")
     protected abstract suspend fun deletePackagesOf(key: String)
+
+    @Query("DELETE FROM catalog_skip WHERE base_key = :key")
+    protected abstract suspend fun deleteSkipOf(key: String)
 
     @Insert
     protected abstract suspend fun insertTea(tea: CatalogTeaEntity)

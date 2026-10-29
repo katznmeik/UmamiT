@@ -193,7 +193,7 @@ private fun Message(text: String) {
 
 /** The copy of 03 §5 for a link that led to no tea; the shop's refusals as the refresh says them. */
 @StringRes
-private fun TeaLinkOutcome.messageRes(): Int = when (this) {
+internal fun TeaLinkOutcome.messageRes(): Int = when (this) {
     TeaLinkOutcome.NotATeaLink -> R.string.tea_link_not_a_tea_link
 
     TeaLinkOutcome.NotInCatalog -> R.string.tea_link_not_in_catalog

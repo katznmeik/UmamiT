@@ -57,18 +57,19 @@ class CatalogSwapTest {
         lastSeenAt = seen,
     )
 
-    private fun log(at: Long, status: CatalogRefreshStatus = CatalogRefreshStatus.SUCCESS) = CatalogRefreshLogEntity(
-        startedAt = at,
-        finishedAt = at + 1,
-        status = status,
-        newCount = 0,
-        changedCount = 0,
-        discontinuedCount = 0,
-        flaggedCount = 0,
-        photosCount = 0,
-        parserVersion = 1,
-        errorSummary = null,
-    )
+    private fun log(at: Long, status: CatalogRefreshStatus = CatalogRefreshStatus.SUCCESS, parserVersion: Int = 1) =
+        CatalogRefreshLogEntity(
+            startedAt = at,
+            finishedAt = at + 1,
+            status = status,
+            newCount = 0,
+            changedCount = 0,
+            discontinuedCount = 0,
+            flaggedCount = 0,
+            photosCount = 0,
+            parserVersion = parserVersion,
+            errorSummary = null,
+        )
 
     private suspend fun swapIn(vararg teas: CatalogTeaEntity, at: Long) {
         teas.forEach { dao.stage(StagedCatalogTeaEntity(it)) }
@@ -135,6 +136,33 @@ class CatalogSwapTest {
 
         assertThat(dao.skippedSince(0)).containsExactly("XY0900")
         assertThat(dao.skippedSince(11)).isEmpty()
+    }
+
+    @Test
+    fun theLatestSuccessIsTheLastLoggedEvenWithTheClockSetBack() = runTest {
+        // D-096: an older parser's run must not come back as the latest when the clock went back.
+        dao.swap(emptyList(), log(2_000, parserVersion = 6))
+        dao.swap(emptyList(), log(1_000, parserVersion = 7))
+        dao.log(log(3_000, CatalogRefreshStatus.FAILED, parserVersion = 5))
+
+        assertThat(dao.lastSuccessParserVersion()).isEqualTo(7)
+        assertThat(dao.observeLastSuccessParserVersion().first()).isEqualTo(7)
+    }
+
+    @Test
+    fun aTeaFromALinkLeavesTheSkipList() = runTest {
+        // D-096: a product skipped not long ago and now stored from a link is read by the next refresh.
+        dao.swap(
+            listOf(
+                CatalogSkipEntity("XY0100", CatalogSkipReason.NOT_GREEN, 10),
+                CatalogSkipEntity("XY0900", CatalogSkipReason.SET, 10),
+            ),
+            log(10),
+        )
+
+        dao.putLinkedTea(tea("XY0100", "Erster", 20), emptyList())
+
+        assertThat(dao.skipList().map { it.baseKey }).containsExactly("XY0900")
     }
 
     @Test

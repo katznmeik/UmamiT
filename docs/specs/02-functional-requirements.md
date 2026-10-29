@@ -373,7 +373,9 @@ its shop link. This is network use (d) of GEN-01.
 - AC5: Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur
   Grün- und Kräutertees)." and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
-  entry.
+  entry. When the page can't refresh it without a stop (offline, no tea at
+  the link, a page the app can't read), the detail opens as it was and the
+  message shows too (D-096).
 - AC7: While a refresh runs → „Gerade läuft ein Abruf – versuch es danach."
   and no request.
 - AC8: A tea fetched this way that is not in the sitemap is kept by the

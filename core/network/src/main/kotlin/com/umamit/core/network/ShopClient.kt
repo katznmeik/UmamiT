@@ -22,7 +22,7 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * The app's only HTTP client (GEN-01, D-036, D-050, CLAUDE.md rule 7, 06 §4, 08 §2.8). Every
- * request of the three network uses goes through one instance:
+ * request of the four network uses goes through one instance:
  *
  * - **Host allow-list:** only `https://www.tee-kontor-kiel.de` (scheme, host and port must
  *   match [baseUrl]). Any other URL fails with [HostNotAllowedException] before a connection

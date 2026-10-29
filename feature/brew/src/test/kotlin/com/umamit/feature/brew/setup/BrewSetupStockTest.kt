@@ -19,6 +19,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedData
+import com.umamit.core.data.SessionStart
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.InventoryEventType
@@ -206,6 +207,60 @@ class BrewSetupStockTest {
         assertThat(hisuiEvents().map { it.type }).doesNotContain(InventoryEventType.ADJUSTMENT)
     }
 
+    @Test
+    fun `during a session of this tea the sheet says what it still deducts (INV-03, D-096)`() {
+        activeSession(hisui(leafGrams = 4.5))
+        show()
+        openSheet()
+
+        compose.onNodeWithText(PENDING_LINE.format("4,5")).assertIsDisplayed()
+        // The arithmetic stays: the new total is stored as typed.
+        field().performTextReplacement("50")
+        save().performClick()
+        compose.waitForIdle()
+        assertThat(
+            hisuiEvents().single {
+                it.type == InventoryEventType.ADJUSTMENT
+            }.deltaGrams,
+        ).isWithin(1e-9).of(-50.0)
+    }
+
+    @Test
+    fun `a session of another tea or without deduction adds no line`() {
+        activeSession(tanabata())
+        show()
+        openSheet()
+        compose.onNodeWithText("Die laufende Sitzung", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with deduction off the session deducts nothing, so no line`() {
+        runBlocking { settings.update { it.copy(deductStock = false) } }
+        activeSession(hisui(leafGrams = 4.5))
+        show()
+        openSheet()
+        compose.onNodeWithText("Die laufende Sitzung", substring = true).assertDoesNotExist()
+    }
+
+    private fun activeSession(request: BrewStart) {
+        runBlocking {
+            sessions.sessions.startSession(
+                SessionStart("running", request.snapshot, request.steps, preAlertSeconds = 10, 0, "Europe/Berlin"),
+            )
+        }
+        starter.state.value = FakeBrewStarter.readyState(request, "running")
+            .copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+    }
+
+    private fun hisui(leafGrams: Double) = BrewStart(
+        snapshot = SessionSnapshot(
+            SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", null, "Sencha", "sencha", null, null, "Kyusu",
+            BrewMethod.KYUSU, SeedData.KYUSU_VESSEL_ID, "Kyusu", leafGrams, 250, 65,
+        ),
+        steps = listOf(PlannedStep(StepKind.INFUSION, 45, 65)),
+        recipePreAlertSeconds = null,
+    )
+
     private fun tanabata() = BrewStart(
         snapshot = SessionSnapshot(
             SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", null, "Sencha", "sencha", null, null, "Kyusu",
@@ -214,4 +269,8 @@ class BrewSetupStockTest {
         steps = listOf(PlannedStep(StepKind.INFUSION, 45, 65)),
         recipePreAlertSeconds = null,
     )
+
+    private companion object {
+        const val PENDING_LINE = "Die laufende Sitzung zieht beim Beenden noch %s\u00A0g ab."
+    }
 }

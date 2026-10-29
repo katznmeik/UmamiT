@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- SCR-19 empty state (never loaded, 08 §7; D-073): the entry point when the first-start setup is done. -->
     <string name="catalog_empty_title">Der Katalog ist noch leer.</string>
-    <string name="catalog_empty_body">Lade alle Grüntees von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
+    <string name="catalog_empty_body">Lade alle Grün- und Kräutertees von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
     <string name="catalog_load">Katalog laden</string>
     <!-- While a first load runs and its sheet is closed. -->
     <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>

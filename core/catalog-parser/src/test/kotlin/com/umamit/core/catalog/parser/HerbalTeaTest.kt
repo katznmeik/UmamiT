@@ -60,6 +60,38 @@ class HerbalTeaTest {
     }
 
     @Test
+    fun teawareFiledUnderTheKraeuterteeSectionIsNoTea() {
+        // 08 §2.4 item 4: a gourd, a straw, a filter, a tin … under /tee/kraeutertee/ is no tea.
+        listOf(
+            "Mate-Kalebasse aus Holz",
+            "Bombilla Edelstahl",
+            "Papierfilter für Teekannen, 100 Stück",
+            "Teedose für Kräuter – 200g",
+            "Glaskanne 1,2 l",
+            "Kräuterbecher",
+            "Messlöffel",
+            "Teesieb fein",
+            "Mate Zubehör",
+        ).forEach { name ->
+            assertThat(herbalPage(title = name).scope).isEqualTo(CatalogScope.NOT_GREEN)
+        }
+        val accessories = SyntheticShop.HERBAL_PATH.take(2) + ("Zubehör" to "/tee/kraeutertee/zubehoer/")
+        assertThat(herbalPage(breadcrumb = accessories).scope).isEqualTo(CatalogScope.NOT_GREEN)
+    }
+
+    @Test
+    fun aKraeuterteeWhoseNameOnlyContainsATeawareWordIsStillHerbal() {
+        listOf(
+            "Wiesenzauber – 100g",
+            "Kamille im Filterbeutel – 20 Stück",
+            "Mate Siebenkraut – 100g",
+            "Dosenfreie Mischung – 50g",
+        ).forEach { name ->
+            assertThat(herbalPage(title = name).scope).isEqualTo(CatalogScope.HERBAL)
+        }
+    }
+
+    @Test
     fun aGreenTeaKeepsItsScopeAndAJapanTeaNamingAHerbIsStillNoHerbalTea() {
         assertThat(herbalPage(breadcrumb = SyntheticShop.SENCHA_PATH).scope).isEqualTo(CatalogScope.GREEN)
         val japanHerb = herbalPage(

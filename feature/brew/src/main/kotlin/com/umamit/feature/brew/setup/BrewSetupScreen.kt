@@ -197,6 +197,7 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
     AlertGate(stockOpen, stockOpenedIn, state.alertKey, onDismissRequest = { stockOpen = false }) {
         StockSheet(
             currentGrams = state.stockGrams ?: 0.0,
+            sessionLeafGrams = state.sessionLeafGrams,
             onSave = { grams ->
                 actions.correctStock(grams)
                 stockOpen = false
@@ -317,7 +318,7 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit)
         ) {
             RowLabel(stringResource(R.string.brew_setup_vessel))
             Text(
-                text = selected?.let { stringResource(R.string.brew_setup_vessel_option, it.name, it.brewMl) } ?: name,
+                text = selected?.let { vesselLabel(it) } ?: name,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
@@ -329,7 +330,7 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit)
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             state.vessels.forEach { vessel ->
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.brew_setup_vessel_option, vessel.name, vessel.brewMl)) },
+                    text = { Text(vesselLabel(vessel)) },
                     onClick = {
                         open = false
                         onSelect(vessel.id)
@@ -338,6 +339,18 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit)
             }
         }
     }
+}
+
+/**
+ * A vessel as the setup names it (WARE-03): its name alone when the name already ends with its
+ * volume (the seed vessels, „Kyusu 120 ml"), else „<name> · N ml" (a vessel the user renamed). The
+ * volume never wraps away from its unit.
+ */
+@Composable
+private fun vesselLabel(vessel: VesselOption): String = if (vessel.namesItsVolume) {
+    vessel.name.trim().replace(VOLUME_SPACE, "$1\u00A0ml")
+} else {
+    stringResource(R.string.brew_setup_vessel_option, vessel.name, vessel.brewMl)
 }
 
 @Composable
@@ -353,6 +366,9 @@ internal fun RowLabel(text: String) {
 }
 
 private val LABEL_MIN_WIDTH = UmamiSpacing.XXLarge * 2
+
+/** The space between a vessel name's volume and its „ml". */
+private val VOLUME_SPACE = Regex("""(\d)\s+ml$""", RegexOption.IGNORE_CASE)
 
 /** A value with − and + steppers (BRW-03). */
 @Composable

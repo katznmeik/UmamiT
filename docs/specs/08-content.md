@@ -137,7 +137,11 @@ the prose, whose years are travel reports, founding years and link texts
    fails keeps the old skip list, so the next one classifies them again;
    after the first successful v7 refresh, never again. No schema change.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
-   Shot" in the flavoured section).
+   Shot" in the flavoured section). In the Kräutertee section, teaware is
+   left out by its name (Kalebasse, Bombilla, Filter, Dose, Kanne, Becher,
+   Löffel, Sieb, Zubehör and the Japan rule's words, as a word or the end of
+   a compound: „Teesieb", not „Siebenkraut") or a `zubehoer`/`geschirr`
+   breadcrumb segment, as out of scope (D-096).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
    sitemap; products missing from the sitemap are re-checked (below) before
    they count as discontinued. The known green
@@ -164,6 +168,11 @@ the prose, whose years are travel reports, founding years and link texts
      tea that had only sold out as discontinued. Such a tea whose page is
      still in scope is back in the range („geändert"); any other answer leaves
      it „Nicht mehr im Sortiment", not counted as discontinued again.
+   - **A plain 401/403 for a tea already discontinued** (no challenge or
+     block page) is read as not this time: the tea stays as it was and the
+     refresh goes on, so one broken old page can't stop every refresh. A 5xx,
+     429, `Retry-After` or a challenge still stops it, and for a tea not yet
+     discontinued a 401/403 still stops it too (D-096).
    - **When:** after the sitemap's pages, before the photos; they count among
      the progress's pages, and a robots.txt-disallowed `product_url` (or one
      off the shop's host) is kept as it was without a request.

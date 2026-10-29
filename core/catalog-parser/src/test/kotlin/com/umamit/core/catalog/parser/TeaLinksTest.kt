@@ -78,6 +78,14 @@ class TeaLinksTest {
             "https://www.tee-kontor-kie1.de/nebelhang-sencha/XY0170",
             "https://www.example.com/www.tee-kontor-kiel.de/nebelhang-sencha/XY0170",
             "https://www.tee-kontor-kiel.de\\@example.com/nebelhang-sencha/XY0170",
+            // Letters that only match the host or the scheme when case is ignored: the Kelvin sign,
+            // a dotless ı, a dotted İ, a long ſ in the scheme.
+            "https://www.tee-\u212Aontor-kiel.de/nebelhang-sencha/XY0170",
+            "https://www.tee-kontor-k\u0131el.de/nebelhang-sencha/XY0170",
+            "https://www.tee-kontor-k\u0130el.de/nebelhang-sencha/XY0170",
+            "http\u017F://www.tee-kontor-kiel.de/nebelhang-sencha/XY0170",
+            // Any non-ASCII character anywhere in the link.
+            "https://www.tee-kontor-kiel.de/nebelhang-sench\u00E4/XY0170",
         )
     }
 

@@ -36,10 +36,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
@@ -228,9 +230,25 @@ class BrewSetupViewModel @Inject constructor(
                         vessels.observeVessels(),
                         stock.observeStock(teaId).map { it.remainingGrams },
                         settings.settings.map { it.preAlertSeconds },
-                    ) { r, v, grams, global -> Source(overview, r, v, grams, global, session) },
+                        sessionLeaf(teaId),
+                    ) { r, v, grams, global, leaf -> Source(overview, r, v, grams, global, session, leaf) },
                 )
             }
+        }
+
+    /**
+     * The leaf the active session of [teaId] still deducts at *Sitzung beenden* (INV-03, D-096): its
+     * snapshot's leaf while deduction is on; null without such a session (another tea, a quick timer).
+     */
+    private fun sessionLeaf(teaId: String): Flow<Double?> = combine(
+        starter.state.map { (it as? TimerUiState.Active)?.sessionId }.distinctUntilChanged(),
+        settings.settings.map { it.deductStock }.distinctUntilChanged(),
+    ) { sessionId, deduct -> sessionId?.takeIf { deduct } }
+        .mapLatest { sessionId ->
+            sessionId?.let { sessions.getSession(it) }?.snapshot
+                ?.takeIf { it.teaId == teaId }
+                ?.leafGrams
+                ?.takeIf { it > 0.0 }
         }
 
     private fun uiState(s: Source, e: SetupEdits, p: PendingStart?, timer: TimerUiState): BrewSetupUiState.Ready {
@@ -261,6 +279,7 @@ class BrewSetupViewModel @Inject constructor(
             canSaveToRecipe = recipe != null && e.differsFrom(recipe),
             question = p?.question,
             alertKey = timer.alertKey(),
+            sessionLeafGrams = s.sessionLeafGrams,
         )
     }
 
@@ -298,6 +317,7 @@ class BrewSetupViewModel @Inject constructor(
         val stockGrams: Double,
         val globalPreAlertSeconds: Int,
         val session: BrewSession?,
+        val sessionLeafGrams: Double?,
     ) {
         fun recipe(id: String?): Recipe? = recipes.firstOrNull { it.id == id }
 

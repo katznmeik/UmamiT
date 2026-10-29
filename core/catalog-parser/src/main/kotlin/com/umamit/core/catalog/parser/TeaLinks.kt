@@ -34,13 +34,15 @@ sealed interface TeaLinkResult {
  * checked before any request: only a link `https://www.tee-kontor-kiel.de/<slug>/<article number>`
  * with an optional `-<grams>` size suffix is accepted.
  *
- * Strict on purpose (CLAUDE.md rule 7, D-094): `https` only; exactly the shop's host (scheme and
- * host in any case), no port, no userinfo, no trailing dot; a path of exactly two segments of
- * ASCII letters, digits and hyphens, so no query, fragment, percent-encoding, dot segment or
- * trailing slash; not a `/tee-info/` guide; the second segment an article number (08 §2.2) whose
- * suffix, if any, is grams. Anything else, or anything in doubt, is refused. A share may carry
- * text around the link (a page title): the text is split at whitespace, and exactly one link may
- * be in it (the same link twice counts once). Lengths are capped before anything is parsed.
+ * Strict on purpose (CLAUDE.md rule 7, D-094): ASCII only, so no letter that matches the host or
+ * the scheme only when case is ignored (the Kelvin sign, a dotless ı, a long ſ); `https` only;
+ * exactly the shop's host (scheme and host in any ASCII case), no port, no userinfo, no trailing
+ * dot; a path of exactly two segments of ASCII letters, digits and hyphens, so no query, fragment,
+ * percent-encoding, dot segment or trailing slash; not a `/tee-info/` guide; the second segment an
+ * article number (08 §2.2) whose suffix, if any, is grams. Anything else, or anything in doubt,
+ * is refused. A share may carry text around the link (a page title): the text is split at
+ * whitespace, and exactly one link may be in it (the same link twice counts once). Lengths are
+ * capped before anything is parsed.
  */
 object TeaLinks {
     /** The shop's host, the only one the app talks to (GEN-01 AC1, `ShopClient.SHOP_HOST`). */
@@ -53,6 +55,7 @@ object TeaLinks {
     const val MAX_LINK_LENGTH = 300
 
     private const val SCHEME = "https://"
+    private const val ASCII_END = 0x80
     private const val MAX_SLUG = 200
     private const val MAX_NUMBER = 40
     private val WHITESPACE = Regex("""\s+""")
@@ -86,11 +89,15 @@ object TeaLinks {
     }
 
     /**
-     * The path of [link] (from its first `/` on) when it is no longer than [MAX_LINK_LENGTH] and
-     * starts with `https://` and exactly the shop's host: no userinfo (`@`), no port, no trailing dot.
+     * The path of [link] (from its first `/` on) when it is no longer than [MAX_LINK_LENGTH], is
+     * ASCII only and starts with `https://` and exactly the shop's host: no userinfo (`@`), no port,
+     * no trailing dot. ASCII is checked first because a case-insensitive comparison also matches
+     * some non-ASCII letters (`K` U+212A equals `k`, `ı` equals `i`).
      */
     private fun pathOnShop(link: String): String? {
-        val rest = link.takeIf { it.length <= MAX_LINK_LENGTH && it.startsWith(SCHEME, ignoreCase = true) }
+        val rest = link
+            .takeIf { it.length <= MAX_LINK_LENGTH && it.all { char -> char.code < ASCII_END } }
+            ?.takeIf { it.startsWith(SCHEME, ignoreCase = true) }
             ?.substring(SCHEME.length)
         val slash = rest?.indexOf('/') ?: -1
         val onShop = rest != null && slash >= 0 && rest.substring(0, slash).equals(HOST, ignoreCase = true)
