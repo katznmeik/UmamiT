@@ -817,11 +817,12 @@ guides opened in the app, every other link in the browser, *Im Browser
 
 **Ratgeber list** (from SCR-19's *Ratgeber* row, shown only while guides
 exist: „Ratgeber · 12 Guides von Tee-Kontor Kiel, offline lesbar"): header
-A11 (the placeholder landscape until the PO's image), „Grüntee-Wissen von
+A11 (edge to edge, 2.4:1, its paper the theme's background), „Grüntee-Wissen von
 Tee-Kontor Kiel – auch ohne Verbindung lesbar.", the guides by title with
 the hero as round thumbnail and the date (else „Tee-Kontor Kiel ·
-Tee-Info"). Empty: the empty state (its illustration instead of the header),
-„Noch keine Ratgeber." (D-087).
+Tee-Info"). Empty: the empty state (its illustration A8 instead of the header),
+„Noch keine Ratgeber." (D-087). A8 is also the illustration of the catalog
+module's other empty states (a tea or a guide that is gone).
 
 ### SCR-21 Katalog-Tee
 
