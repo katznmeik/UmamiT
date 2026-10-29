@@ -202,6 +202,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-29 | **PO approved v0.2.1-rc.1** (all checklist items, design review; Vorwarnton Zimbel stays default); version 0.2.1; merge of #106 and the final release follow. |
 | 2026-10-29 | `v0.2.1-rc.1` released (f88e371, versionCode 20101, certificate verified); accuracy run PASS; checklist posted on #93; waiting for the PO. |
 | 2026-10-29 | v0.2.1 built on PR #106: all 14 tickets merged and verified (#83–#92, #97, #98, #100, #102), three parallel code reviews (T4 timer/migration, T4 catalog/network, T3 UI) with two fix rounds, D-096 recorded, design renders in `docs/design/review/v0.2.1/`, version `0.2.1-rc.1`; next: accuracy run, rc dispatch, PO test (#93). |
 | 2026-10-29 | **Go for v0.2.1:** the PO ran `/implement-spec`; building spec #81 started with #83 and #84 (T4). |
