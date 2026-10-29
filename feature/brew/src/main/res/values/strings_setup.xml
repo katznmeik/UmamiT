@@ -36,8 +36,16 @@
     <string name="brew_setup_steps_edit_description">Aufgüsse bearbeiten</string>
     <string name="brew_setup_pre_alert">Vorwarnung</string>
     <string name="brew_setup_pre_alert_seconds">%1$d\u00A0s</string>
-    <string name="brew_setup_pre_alert_off">Aus</string>
-    <string name="brew_setup_pre_alert_default">%1$s (Standard)</string>
+    <!-- Each step's pre-alert in order (SCR-04, TMR-23): „10 · 5 · 5 s", „–" for none; all equal: „10 s". -->
+    <string name="brew_setup_pre_alert_none">–</string>
+    <string name="brew_setup_pre_alert_separator">"\u0020·\u0020"</string>
+    <!-- TalkBack: „10 Sekunden, 5 Sekunden, keine". -->
+    <plurals name="brew_setup_pre_alert_seconds_description">
+        <item quantity="one">%1$d Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
+    </plurals>
+    <string name="brew_setup_pre_alert_none_description">keine</string>
+    <string name="brew_setup_pre_alert_spoken_separator">",\u0020"</string>
     <string name="brew_setup_save_to_recipe">Im Rezept speichern</string>
     <string name="brew_setup_saved_to_recipe">Im Rezept gespeichert</string>
     <string name="brew_setup_start">Brühen starten</string>

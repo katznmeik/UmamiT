@@ -6,7 +6,6 @@ import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Vessel
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 
 /**
  * The values of the setup for this session (BRW-02): the recipe they started
@@ -25,12 +24,6 @@ internal data class SetupEdits(
     val baseTempC: Int,
     val steps: List<PlannedStep>,
 ) {
-    /**
-     * What the Schritte-Sheet's single selector and the *Vorwarnung* row show until #92: the first step's
-     * choice (the sheet writes one value into every step; D-093).
-     */
-    val preAlert: PreAlertChoice get() = PreAlertChoice.of(steps.firstOrNull()?.preAlertSeconds)
-
     /** A vessel sets the water to the volume it brews and, with the lock, rescales the leaf (WARE-03). */
     fun withVessel(vessel: Vessel): SetupEdits = withWater(vessel.brewMl()).copy(vesselId = vessel.id)
 
@@ -55,13 +48,6 @@ internal data class SetupEdits(
     /** The session's steps with their pre-alerts, each with a temperature (the base where none is given). */
     fun withSteps(steps: List<PlannedStep>): SetupEdits =
         copy(steps = steps.map { it.copy(tempC = it.tempC ?: baseTempC) })
-
-    /** The pre-alert the *Vorwarnung* row shows (04 §5): the steps' explicit value, else the recipe's, else global. */
-    fun effectivePreAlertSeconds(recipe: Recipe?, globalSeconds: Int): Int = when (val preAlert = preAlert) {
-        PreAlertChoice.Inherit -> recipe?.preAlertSeconds ?: globalSeconds
-        PreAlertChoice.Off -> 0
-        is PreAlertChoice.Seconds -> preAlert.seconds
-    }
 
     /** Whether these values differ from [recipe], so *Im Rezept speichern* is offered (BRW-02). */
     fun differsFrom(recipe: Recipe): Boolean = this != of(recipe).copy(locked = locked, ratio = ratio)

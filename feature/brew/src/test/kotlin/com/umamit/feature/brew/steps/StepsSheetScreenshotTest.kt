@@ -14,7 +14,6 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.Rule
 import org.junit.Test
@@ -84,15 +83,17 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
     fun withDoneSteps() = capture(
         "withDoneSteps",
         StepsSheetInput(
+            // The running step's selector stays; 0:20 gives „Auto · 5 s", 10 s on 0:10 is „zu kurz" (Q17, E7).
             steps = listOf(
                 step(StepKind.INFUSION, 90, 55, StepStatus.DONE),
                 step(StepKind.INFUSION, 30, 60, StepStatus.STARTED),
-                step(StepKind.INFUSION, 30, 60),
+                step(StepKind.INFUSION, 30, 60, preAlert = 0),
                 step(StepKind.INFUSION, 20, null),
+                step(StepKind.INFUSION, 10, 65, preAlert = 10),
             ),
-            preAlert = PreAlertChoice.Inherit,
             hasRecipe = true,
             baseTempC = 60,
+            preAlertBaseSeconds = 10,
         ),
     )
 
@@ -100,10 +101,10 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
     fun withoutRecipe() = capture(
         "withoutRecipe",
         StepsSheetInput(
-            steps = listOf(step(StepKind.INFUSION, 180, null)),
-            preAlert = PreAlertChoice.Seconds(15),
+            steps = listOf(step(StepKind.INFUSION, 180, null, preAlert = 15)),
             hasRecipe = false,
             baseTempC = null,
+            preAlertBaseSeconds = 10,
         ),
     )
 
@@ -114,12 +115,17 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
             steps = listOf(step(StepKind.RINSE, 10, 80, StepStatus.DONE)) +
                 (1..8).map { step(StepKind.INFUSION, 30 + it * 15, 60 + it / 2 * 5) } +
                 step(StepKind.INFUSION, 14_400, 5),
-            preAlert = PreAlertChoice.Off,
             hasRecipe = true,
             baseTempC = 60,
+            preAlertBaseSeconds = 10,
         ),
     )
 
-    private fun step(kind: StepKind, seconds: Int, tempC: Int?, status: StepStatus = StepStatus.PENDING) =
-        StepsSheetStep(kind, seconds, tempC, status)
+    private fun step(
+        kind: StepKind,
+        seconds: Int,
+        tempC: Int?,
+        status: StepStatus = StepStatus.PENDING,
+        preAlert: Int? = null,
+    ) = StepsSheetStep(kind, seconds, tempC, status, preAlert)
 }

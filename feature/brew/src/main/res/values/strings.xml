@@ -11,9 +11,15 @@
     <string name="brew_steps_temperature">%1$d °C</string>
     <string name="brew_steps_add">Aufguss hinzufügen</string>
     <string name="brew_steps_pre_alert">Vorwarnung</string>
-    <string name="brew_steps_pre_alert_inherit">Wie Einstellung</string>
     <string name="brew_steps_pre_alert_off">Aus</string>
     <string name="brew_steps_pre_alert_seconds">%1$d s</string>
+    <!-- Per step (TMR-23, D-093 Q17): Automatisch with the lead it will use, „Auto · 5 s" or „Auto · keine". -->
+    <string name="brew_steps_pre_alert_auto">Auto · %1$s</string>
+    <string name="brew_steps_pre_alert_auto_option">Automatisch · %1$s</string>
+    <string name="brew_steps_pre_alert_none">keine</string>
+    <!-- An explicit value the step is too short for (E7), or one on a long step (TMR-18): no pre-alert. -->
+    <string name="brew_steps_pre_alert_too_short">%1$s · zu kurz</string>
+    <string name="brew_steps_pre_alert_long_step">%1$s · keine</string>
     <string name="brew_steps_save_to_recipe">Im Rezept speichern</string>
     <string name="brew_steps_saved_to_recipe">Im Rezept gespeichert</string>
     <string name="brew_steps_done">Fertig</string>
@@ -33,7 +39,10 @@
     <string name="brew_steps_warmer">Temperatur erhöhen, Schritt %1$d</string>
     <string name="brew_steps_cooler">Temperatur senken, Schritt %1$d</string>
     <string name="brew_steps_delete">Löschen, Schritt %1$d</string>
-    <string name="brew_steps_pre_alert_description">Vorwarnung: %1$s. Ändern</string>
+    <string name="brew_steps_pre_alert_description">Vorwarnung, Schritt %1$d: %2$s. Ändern</string>
+    <string name="brew_steps_pre_alert_auto_description">Automatisch, %1$s</string>
+    <string name="brew_steps_pre_alert_too_short_description">%1$s, zu kurz</string>
+    <string name="brew_steps_pre_alert_long_step_description">%1$s, keine</string>
     <plurals name="brew_steps_pre_alert_seconds_description">
         <item quantity="one">%1$d Sekunde vorher</item>
         <item quantity="other">%1$d Sekunden vorher</item>

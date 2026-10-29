@@ -18,7 +18,6 @@ import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.picker.PickerTea
 import com.umamit.feature.brew.picker.TeaPickerSheet
 import com.umamit.feature.brew.picker.TeaPickerUiState
@@ -74,9 +73,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 PlannedStep(StepKind.INFUSION, 10, 65),
                 PlannedStep(StepKind.INFUSION, 10, 65),
             ),
-            preAlert = PreAlertChoice.Inherit,
-            effectivePreAlertSeconds = 10,
-            preAlertIsDefault = true,
+            preAlertBaseSeconds = 10,
             canSaveToRecipe = false,
             question = null,
             alertKey = null,
@@ -106,9 +103,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 waterMl = 400,
                 leafGrams = 8.0,
                 canSaveToRecipe = true,
-                preAlert = PreAlertChoice.Seconds(20),
-                effectivePreAlertSeconds = 20,
-                preAlertIsDefault = false,
+                // Changed per step in the Schritte-Sheet: the row reads „20 · 5 · –" (SCR-04, TMR-23).
+                steps = listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 65, preAlertSeconds = 20),
+                    PlannedStep(StepKind.INFUSION, 20, 65),
+                    PlannedStep(StepKind.INFUSION, 10, 65),
+                ),
             ),
         )
     }

@@ -164,6 +164,27 @@ object BrewTimerEngine {
         ?.let { (it / MS_PER_SECOND).toInt() }
 
     /**
+     * The pre-alert lead N in seconds that a planned [step] gets in a session with the base [inheritedSeconds]
+     * (B, the recipe's value ?: the global setting) and, for a cold or ice brew, [longStepsOnly]: the same rules
+     * as [preAlertLeadSeconds] (TMR-23, 04 §5, D-093). Null when the step has none. The Schritte-Sheet shows it
+     * as „Auto · 5 s" and the setup's *Vorwarnung* row lists it per step (SCR-31, SCR-04), so the UI never
+     * re-implements the rules.
+     */
+    fun stepPreAlertLeadSeconds(step: PlannedStep, inheritedSeconds: Int, longStepsOnly: Boolean): Int? =
+        preAlertLeadSecondsOf(
+            step = step,
+            settings = PreAlertSettings(inheritedSeconds),
+            longStep = isLongStepOf(step.plannedSeconds, longStepsOnly),
+        )
+
+    /**
+     * True when a planned [step] is a long step (≥ 10 min, or any step when [longStepsOnly]; TMR-18), which never
+     * has a pre-alert, whatever its choice: the Schritte-Sheet tells it apart from a step too short for its value.
+     */
+    fun isLongStep(step: PlannedStep, longStepsOnly: Boolean): Boolean =
+        isLongStepOf(step.plannedSeconds, longStepsOnly)
+
+    /**
      * The wall-clock time at which the running long step of [state] ends, for
      * „Fertig um 14:30" (TMR-18): now plus the remaining time on the monotonic
      * clock, so it follows a change of the wall clock (E1). Null unless a long

@@ -51,6 +51,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.RecipeCheckNote
@@ -159,9 +160,11 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         steps = state.steps.map {
             StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, it.preAlertSeconds)
         },
-        preAlert = state.preAlert,
         hasRecipe = state.selectedRecipeId != null,
         baseTempC = state.baseTempC,
+        // Each step's „Auto · 5 s" from the B this session will start with (TMR-23, D-093 Q17).
+        preAlertBaseSeconds = state.preAlertBaseSeconds,
+        longStepsOnly = BrewTimerEngine.longStepsOnly(state.method),
     )
     StepsSheet(
         visible = stepsOpen && !stepsCovered,

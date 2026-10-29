@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -43,11 +44,12 @@ class StepsSheetTest {
 
     private fun show(
         steps: List<StepsSheetStep>,
-        preAlert: PreAlertChoice = PreAlertChoice.Inherit,
         hasRecipe: Boolean = true,
         baseTempC: Int? = 60,
+        preAlertBase: Int = 10,
+        longStepsOnly: Boolean = false,
     ) {
-        val state = StepsSheetState(StepsSheetInput(steps, preAlert, hasRecipe, baseTempC))
+        val state = StepsSheetState(StepsSheetInput(steps, hasRecipe, baseTempC, preAlertBase, longStepsOnly))
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 StepsSheetContent(state = state, onDone = {
@@ -63,11 +65,26 @@ class StepsSheetTest {
 
     private fun clickText(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
 
-    /** Opens the pre-alert menu the way TalkBack does: through the click action, not a touch. */
-    private fun openPreAlert(spoken: String) = compose.onNodeWithContentDescription("Vorwarnung: $spoken. Ändern")
+    /** The *Vorwarnung* selector of step [number] as TalkBack reads it, with its [spoken] value. */
+    private fun preAlertSelector(number: Int, spoken: String) =
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt $number: $spoken. Ändern")
+
+    /** Every *Vorwarnung* selector, or those of step [number]. */
+    private fun preAlertSelectors(number: Int? = null) = compose.onAllNodes(
+        hasContentDescription("Vorwarnung, Schritt ${number?.let { "$it:" }.orEmpty()}", substring = true),
+    )
+
+    /** Opens step [number]'s pre-alert menu the way TalkBack does: through the click action, not a touch. */
+    private fun openPreAlert(number: Int, spoken: String) = preAlertSelector(number, spoken)
         .performScrollTo()
         .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
         .performSemanticsAction(SemanticsActions.OnClick)
+
+    /** Picks [option] in step [number]'s open pre-alert menu. */
+    private fun choosePreAlert(number: Int, spoken: String, option: String) {
+        openPreAlert(number, spoken)
+        compose.onNodeWithText(option).performClick()
+    }
 
     /** The action buttons stay below the scrolling plan. */
     private fun clickButton(text: String) = compose.onNodeWithText(text).performClick()
@@ -229,14 +246,70 @@ class StepsSheetTest {
     }
 
     @Test
-    fun `the pre-alert selector offers Wie Einstellung, Aus and 5 to 30 s`() {
-        show(listOf(pending()))
+    fun `every pending step and the running step have a Vorwarnung selector, done and skipped steps none`() {
+        // SCR-31, D-093: per step; the session-wide selector of v0.2.0 is gone.
+        show(
+            listOf(
+                doneStep(seconds = 90),
+                StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.SKIPPED),
+                StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED),
+                pending(seconds = 20),
+                pending(seconds = 10),
+            ),
+        )
 
-        openPreAlert("Wie Einstellung")
+        preAlertSelectors(1).assertCountEquals(0)
+        preAlertSelectors(2).assertCountEquals(0)
+        preAlertSelector(3, "Automatisch, 10 Sekunden vorher").assertExists()
+        preAlertSelector(4, "Automatisch, 5 Sekunden vorher").assertExists()
+        preAlertSelector(5, "Automatisch, keine").assertExists()
+        preAlertSelectors().assertCountEquals(3)
+    }
 
-        val labels = listOf("Aus", "5 s", "10 s", "15 s", "20 s", "25 s", "30 s")
+    @Test
+    fun `Automatisch shows the lead it will use, Auto N s or Auto keine`() {
+        // Q17: N = min(B, 5 · ⌊d / 15⌋); none under 15 s and for long steps (TMR-23, TMR-18).
+        show(listOf(pending(seconds = 60), pending(seconds = 20), pending(seconds = 10), pending(seconds = 600)))
+
+        compose.onNodeWithText("Auto · 10 s", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Auto · 5 s", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithText("Auto · keine", useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    @Test
+    fun `Automatisch takes the session's base B`() {
+        show(listOf(pending(seconds = 45), pending(seconds = 120)), preAlertBase = 20)
+
+        compose.onNodeWithText("Auto · 15 s", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Auto · 20 s", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `in a cold or ice brew Automatisch gives none`() {
+        show(listOf(pending(seconds = 60)), longStepsOnly = true)
+
+        compose.onNodeWithText("Auto · keine", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the Automatisch label follows the step's duration as it is edited`() {
+        show(listOf(pending(seconds = 20)))
+        compose.onNodeWithText("Auto · 5 s", useUnmergedTree = true).assertIsDisplayed()
+
+        click("Ziehzeit verlängern, Schritt 1", times = 2)
+
+        compose.onNodeWithText("Auto · 10 s", useUnmergedTree = true).assertIsDisplayed()
+        preAlertSelector(1, "Automatisch, 10 Sekunden vorher").assertExists()
+    }
+
+    @Test
+    fun `the selector offers Automatisch with its lead, Aus and 5 to 30 s`() {
+        show(listOf(pending(seconds = 60)))
+
+        openPreAlert(1, "Automatisch, 10 Sekunden vorher")
+
+        val labels = listOf("Automatisch · 10 s", "Aus", "5 s", "10 s", "15 s", "20 s", "25 s", "30 s")
         labels.forEach { compose.onNodeWithText(it).assertIsDisplayed() }
-        compose.onNodeWithText("Wie Einstellung").assertIsDisplayed()
         assertThat(PreAlertOptions).containsExactly(
             PreAlertChoice.Inherit,
             PreAlertChoice.Off,
@@ -250,29 +323,56 @@ class StepsSheetTest {
     }
 
     @Test
+    fun `an explicit value the step is too short for shows zu kurz, on a long step keine`() {
+        // E7: none when d < N + 5 s; a long step never has one (09 §4 v0.2.1: 0:10 with 10 s → „zu kurz").
+        show(listOf(pending(seconds = 10), pending(seconds = 600)))
+
+        choosePreAlert(1, "Automatisch, keine", "10 s · zu kurz")
+        compose.onNodeWithText("10 s · zu kurz", useUnmergedTree = true).assertIsDisplayed()
+        preAlertSelector(1, "10 Sekunden vorher, zu kurz").assertExists()
+        choosePreAlert(1, "10 Sekunden vorher, zu kurz", "5 s")
+        preAlertSelector(1, "5 Sekunden vorher").assertExists()
+        choosePreAlert(2, "Automatisch, keine", "10 s · keine")
+        preAlertSelector(2, "10 Sekunden vorher, keine").assertExists()
+
+        assertThat(done().steps.map { it.preAlertSeconds }).containsExactly(5, 10).inOrder()
+    }
+
+    @Test
     fun `a new step scrolls into view`() {
         show((1..12).map { pending(seconds = 30 + it * 5) })
 
         clickText("Aufguss hinzufügen")
 
         compose.onNodeWithContentDescription("Ziehzeit verlängern, Schritt 13").assertIsDisplayed()
-        compose.onNodeWithText("Vorwarnung").assertIsDisplayed()
+        // The added step starts as Automatisch (04 §3.2): 2:15 gives min(10, 45) = 10 s.
+        preAlertSelector(13, "Automatisch, 10 Sekunden vorher").assertIsDisplayed()
     }
 
     @Test
-    fun `the selected pre-alert goes into the request`() {
-        show(listOf(pending()), preAlert = PreAlertChoice.Seconds(10))
+    fun `each step's choice goes into its own step of the request`() {
+        show(listOf(pending(seconds = 60), pending(seconds = 30), pending(seconds = 20)))
 
-        openPreAlert("10 Sekunden vorher")
-        compose.onNodeWithText("Aus").performClick()
+        choosePreAlert(1, "Automatisch, 10 Sekunden vorher", "15 s")
+        choosePreAlert(2, "Automatisch, 10 Sekunden vorher", "Aus")
 
-        compose.onNodeWithContentDescription("Vorwarnung: Aus. Ändern").assertExists()
-        assertThat(done().steps.single().preAlertSeconds).isEqualTo(0)
+        preAlertSelector(1, "15 Sekunden vorher").assertExists()
+        preAlertSelector(2, "Aus").assertExists()
+        preAlertSelector(3, "Automatisch, 5 Sekunden vorher").assertExists()
+        assertThat(done().steps.map { it.preAlertSeconds }).containsExactly(15, 0, null).inOrder()
     }
 
     @Test
-    fun `the selector's pre-alert goes into the running and pending steps, an ended step keeps its own`() {
-        // The single selector until #92 shows the first step that has not ended (D-093).
+    fun `a step set back to Automatisch keeps no value of its own`() {
+        show(listOf(StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.PENDING, preAlertSeconds = 20)))
+
+        choosePreAlert(1, "20 Sekunden vorher", "Automatisch · 10 s")
+
+        assertThat(done().steps.single().preAlertSeconds).isNull()
+    }
+
+    @Test
+    fun `the running step's Vorwarnung is its only editable field, ended steps keep their own`() {
         show(
             listOf(
                 doneStep(seconds = 90, preAlert = 20),
@@ -280,36 +380,41 @@ class StepsSheetTest {
                 StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.STARTED, preAlertSeconds = 15),
                 pending(seconds = 45),
             ),
-            preAlert = PreAlertChoice.Seconds(15),
         )
 
-        openPreAlert("15 Sekunden vorher")
-        compose.onNodeWithText("Aus").performClick()
+        listOf("Ziehzeit verlängern", "Ziehzeit verkürzen", "Temperatur erhöhen", "Temperatur senken", "Löschen")
+            .forEach { compose.onAllNodesWithContentDescription("$it, Schritt 3").assertCountEquals(0) }
+        choosePreAlert(3, "15 Sekunden vorher", "Aus")
 
-        assertThat(done().steps.map { it.preAlertSeconds }).containsExactly(20, 25, 0, 0).inOrder()
+        assertThat(done()).isEqualTo(
+            TimerEvent.EditSteps(
+                listOf(
+                    PlannedStep(StepKind.INFUSION, 90, 60, preAlertSeconds = 20),
+                    PlannedStep(StepKind.INFUSION, 30, 60, preAlertSeconds = 25),
+                    PlannedStep(StepKind.INFUSION, 60, 60, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 45, 60),
+                ),
+            ),
+        )
     }
 
     @Test
-    fun `Fertig emits exactly the edited plan and pre-alert`() {
-        show(
-            listOf(doneStep(seconds = 60, tempC = 60), pending(seconds = 30, tempC = 65), pending(seconds = 45)),
-            preAlert = PreAlertChoice.Inherit,
-        )
+    fun `Fertig emits exactly the edited plan with each step's pre-alert`() {
+        show(listOf(doneStep(seconds = 60, tempC = 60), pending(seconds = 30, tempC = 65), pending(seconds = 45)))
 
         click("Ziehzeit verlängern, Schritt 2")
         click("Temperatur senken, Schritt 2")
         click("Löschen, Schritt 3")
         clickText("Aufguss hinzufügen")
-        openPreAlert("Wie Einstellung")
-        compose.onNodeWithText("15 s").performClick()
+        choosePreAlert(2, "Automatisch, 10 Sekunden vorher", "15 s")
 
         assertThat(done()).isEqualTo(
             TimerEvent.EditSteps(
                 steps = listOf(
-                    // The done step keeps its own pre-alert; the others take the selector's (D-093).
                     PlannedStep(StepKind.INFUSION, 60, 60),
                     PlannedStep(StepKind.INFUSION, 35, 60, preAlertSeconds = 15),
-                    PlannedStep(StepKind.INFUSION, 55, 60, preAlertSeconds = 15),
+                    // The added step starts as Automatisch (04 §3.2).
+                    PlannedStep(StepKind.INFUSION, 55, 60),
                 ),
             ),
         )
@@ -325,10 +430,12 @@ class StepsSheetTest {
     }
 
     @Test
-    fun `Im Rezept speichern emits the plan and confirms with a snackbar`() {
-        show(listOf(doneStep(), pending(seconds = 30)), preAlert = PreAlertChoice.Off)
+    fun `Im Rezept speichern emits the plan with each step's pre-alert and confirms with a snackbar`() {
+        show(listOf(doneStep(), pending(seconds = 30), pending(seconds = 20), pending(seconds = 45)))
 
         click("Ziehzeit verlängern, Schritt 2")
+        choosePreAlert(2, "Automatisch, 10 Sekunden vorher", "Aus")
+        choosePreAlert(4, "Automatisch, 10 Sekunden vorher", "20 s")
         clickButton("Im Rezept speichern")
 
         compose.onNodeWithText("Im Rezept gespeichert").assertIsDisplayed()
@@ -337,10 +444,13 @@ class StepsSheetTest {
                 steps = listOf(
                     PlannedStep(StepKind.INFUSION, 60, 60),
                     PlannedStep(StepKind.INFUSION, 35, 60, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 20, 60),
+                    PlannedStep(StepKind.INFUSION, 45, 60, preAlertSeconds = 20),
                 ),
             ),
         )
-        assertThat(saveRequests.single().recipeSteps.map { it.preAlertSeconds }).containsExactly(null, 0).inOrder()
+        assertThat(saveRequests.single().recipeSteps.map { it.preAlertSeconds })
+            .containsExactly(null, 0, null, 20).inOrder()
         assertThat(doneRequests).isEmpty()
     }
 

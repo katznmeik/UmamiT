@@ -131,8 +131,8 @@ sealed interface PreAlertChoice {
     val explicitSeconds: Int?
 
     /**
-     * *Automatisch* (shown as *Wie Einstellung* until #92): no explicit value; the step gets the automatic N from
-     * the recipe or global value B (TMR-23, D-093).
+     * *Automatisch* (shown with its lead, „Auto · 5 s", SCR-31): no explicit value; the step gets the automatic N
+     * from the recipe or global value B (TMR-23, D-093).
      */
     data object Inherit : PreAlertChoice {
         override val explicitSeconds: Int? get() = null
@@ -211,7 +211,7 @@ data class TimerSession(
     internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs, demoted = false)
 
     /** Step [index] is a long step (≥ 10 min, or any step of a cold or ice brew; TMR-18, 04 §1). */
-    internal fun isLongStep(index: Int): Boolean = longStepsOnly || steps[index].plannedSeconds >= LONG_STEP_SECONDS
+    internal fun isLongStep(index: Int): Boolean = isLongStepOf(steps[index].plannedSeconds, longStepsOnly)
 
     /** This session with step [index] replaced by [transform] of it. */
     internal fun withStep(index: Int, transform: (SessionStep) -> SessionStep): TimerSession =

@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -41,6 +42,7 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.timer.label
 
@@ -97,15 +99,29 @@ internal fun StepsSection(state: BrewSetupUiState.Ready, onEdit: () -> Unit) {
     }
 }
 
+/**
+ * The *Vorwarnung* row (SCR-04, TMR-23, D-093): each step's effective pre-alert in order, „10 · 5 · 5 s", with
+ * „–" for a step without one, or one value when all are equal („10 s"). Tapping it opens the Schritte-Sheet.
+ */
 @Composable
 internal fun PreAlertRow(state: BrewSetupUiState.Ready, onClick: () -> Unit) {
-    val seconds = state.effectivePreAlertSeconds
-    val value = if (seconds == 0) {
-        stringResource(R.string.brew_setup_pre_alert_off)
-    } else {
-        stringResource(R.string.brew_setup_pre_alert_seconds, seconds)
-    }
-    val shown = if (state.preAlertIsDefault) stringResource(R.string.brew_setup_pre_alert_default, value) else value
+    val leads = state.preAlertLeads()
+    val shown = if (leads.distinct().size == 1) leads.take(1) else leads
+    val none = stringResource(R.string.brew_setup_pre_alert_none)
+    val value = shown.mapIndexed { i, lead ->
+        when {
+            lead == null -> none
+
+            // The unit once, after the last value.
+            i == shown.lastIndex -> stringResource(R.string.brew_setup_pre_alert_seconds, lead)
+
+            else -> lead.toString()
+        }
+    }.joinToString(stringResource(R.string.brew_setup_pre_alert_separator))
+    val noneSpoken = stringResource(R.string.brew_setup_pre_alert_none_description)
+    val spoken = shown.map { lead ->
+        lead?.let { pluralStringResource(R.plurals.brew_setup_pre_alert_seconds_description, it, it) } ?: noneSpoken
+    }.joinToString(stringResource(R.string.brew_setup_pre_alert_spoken_separator))
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -116,8 +132,23 @@ internal fun PreAlertRow(state: BrewSetupUiState.Ready, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowLabel(stringResource(R.string.brew_setup_pre_alert))
-        Text(shown, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
+            color = MaterialTheme.colorScheme.onSurface,
+            // „10 · –" in words for TalkBack: „10 Sekunden, keine".
+            modifier = Modifier.semantics { contentDescription = spoken },
+        )
     }
+}
+
+/**
+ * Each step's effective pre-alert lead in seconds, null for none: the engine's rules with the B and the method
+ * the session will start with (TMR-23, 04 §5), so the row shows what the timer will do.
+ */
+internal fun BrewSetupUiState.Ready.preAlertLeads(): List<Int?> {
+    val longStepsOnly = BrewTimerEngine.longStepsOnly(method)
+    return steps.map { BrewTimerEngine.stepPreAlertLeadSeconds(it, preAlertBaseSeconds, longStepsOnly) }
 }
 
 @Composable

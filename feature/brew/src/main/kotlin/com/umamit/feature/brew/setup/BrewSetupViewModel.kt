@@ -22,7 +22,7 @@ import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
@@ -247,9 +247,9 @@ class BrewSetupViewModel @Inject constructor(
             baseTempC = e.baseTempC,
             kettle = Kettle(firstTemp, KettleWater.of(firstTemp, iceBrew = e.method == BrewMethod.ICE_BREW)),
             steps = e.steps,
-            preAlert = e.preAlert,
-            effectivePreAlertSeconds = e.effectivePreAlertSeconds(recipe, s.globalPreAlertSeconds),
-            preAlertIsDefault = e.preAlert == PreAlertChoice.Inherit,
+            // The B that startRequest hands the controller with the recipe's value (04 §5, TMR-23).
+            preAlertBaseSeconds = PreAlertSettings.inherited(recipe?.preAlertSeconds, s.globalPreAlertSeconds)
+                .inheritedSeconds,
             canSaveToRecipe = recipe != null && e.differsFrom(recipe),
             question = p?.question,
             alertKey = timer.alertKey(),
