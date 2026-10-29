@@ -149,6 +149,39 @@ class ShopSessionTest {
     }
 
     @Test
+    fun aPlainRefusalMayLeaveOnlyThatPageOutWhenTheJobAsksForIt() = runTest {
+        // D-096: the re-check of a tea already discontinued reads a plain 401/403 as „not this once".
+        listOf(401, 403).forEach { code ->
+            requested.clear()
+            routes[PAGE] = { MockResponse.Builder().code(code).build() }
+            routes[OTHER] = { ok("other") }
+            val session = openSession()
+
+            assertThat(
+                session.fetch(session.resolve(PAGE), refusalStops = false),
+            ).isEqualTo(ShopFetch.Unavailable(code))
+            assertThat(session.stopCause).isNull()
+            assertThat(session.fetch(session.resolve(OTHER))).isInstanceOf(ShopFetch.Fetched::class.java)
+            assertThat(requested).containsExactly(ROBOTS, PAGE, OTHER).inOrder()
+        }
+    }
+
+    @Test
+    fun everyOtherStopStillStopsWhenARefusalMayNot() = runTest {
+        // A challenge or block page, 429, Retry-After and 5xx stop the job whatever it asks (08 §2.8).
+        STOPS.filterNot { (response, cause) -> cause == StopCause.HTTP_ERROR && response().code < 500 }
+            .forEach { (response, cause) ->
+                requested.clear()
+                routes[PAGE] = response
+                val session = openSession()
+
+                assertThat(session.fetch(session.resolve(PAGE), refusalStops = false))
+                    .isEqualTo(ShopFetch.Stopped(cause))
+                assertThat(session.stopCause).isEqualTo(cause)
+            }
+    }
+
+    @Test
     fun offlineStopsTheSession() = runTest {
         val session = openSession()
         server.close()
@@ -176,7 +209,9 @@ class ShopSessionTest {
 
         assertThat(session.fetch(session.resolve("/gone"))).isEqualTo(ShopFetch.Unavailable(404))
         assertThat(session.fetch(session.resolve(OTHER))).isEqualTo(ShopFetch.Unavailable(400))
-        assertThat(session.fetch(session.resolve(MOVED))).isEqualTo(ShopFetch.Unavailable(301))
+        // A redirect names its target, resolved against the page, for the job to judge (CAT-16).
+        assertThat(session.fetch(session.resolve(MOVED)))
+            .isEqualTo(ShopFetch.Unavailable(301, location = session.resolve(PAGE)))
         assertThat(session.fetch(session.resolve(PAGE))).isInstanceOf(ShopFetch.Fetched::class.java)
 
         assertThat(session.stopCause).isNull()

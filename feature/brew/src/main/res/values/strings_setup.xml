@@ -11,12 +11,35 @@
     <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>
     <string name="brew_picker_empty">Noch keine Tees in deiner Sammlung.</string>
     <string name="brew_picker_no_results">Kein Tee zu „%1$s“ gefunden.</string>
+    <!-- SCR-03, TEA-04 (D-093): a long press on a tea; the tea is archived, with undo. -->
+    <string name="brew_picker_tea_menu">Optionen</string>
+    <string name="brew_picker_remove">Aus Sammlung entfernen</string>
+    <!-- E15: the tea of the active brew session can't be removed. -->
+    <string name="brew_picker_remove_blocked">Erst die Sitzung beenden</string>
+    <string name="brew_picker_removed">%1$s aus der Sammlung entfernt</string>
+    <string name="brew_picker_undo">Rückgängig</string>
 
     <!-- Brew setup (SCR-04) -->
     <string name="brew_setup_title">Brühen</string>
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
+    <!-- INV-05: the stock is 0 g or less. -->
+    <string name="brew_setup_stock_empty">Leer</string>
+    <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->
+    <string name="brew_setup_stock_correct">Bestand korrigieren</string>
+    <!-- The stock sheet „Wie viel ist noch da?" (SCR-04, BRW-02, INV-03; D-093). -->
+    <string name="brew_setup_stock_title">Wie viel ist noch da?</string>
+    <string name="brew_setup_stock_field">Noch da</string>
+    <string name="brew_setup_stock_unit">g</string>
+    <string name="brew_setup_stock_hint">0 g heißt: der Tee ist leer.</string>
+    <!-- D-096: a session of this tea is running; %1$s is its leaf in g („4,5"). It is deducted at Sitzung beenden. -->
+    <string name="brew_setup_stock_session">Die laufende Sitzung zieht beim Beenden noch %1$s\u00A0g ab.</string>
+    <string name="brew_setup_stock_invalid">Gib eine Menge ab 0 g ein, z. B. 23,5</string>
+    <string name="brew_setup_stock_less">0,1 g weniger</string>
+    <string name="brew_setup_stock_more">0,1 g mehr</string>
+    <string name="brew_setup_stock_cancel">Abbrechen</string>
+    <string name="brew_setup_stock_save">Speichern</string>
     <string name="brew_setup_vessel">Gefäß</string>
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
     <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>
@@ -36,8 +59,16 @@
     <string name="brew_setup_steps_edit_description">Aufgüsse bearbeiten</string>
     <string name="brew_setup_pre_alert">Vorwarnung</string>
     <string name="brew_setup_pre_alert_seconds">%1$d\u00A0s</string>
-    <string name="brew_setup_pre_alert_off">Aus</string>
-    <string name="brew_setup_pre_alert_default">%1$s (Standard)</string>
+    <!-- Each step's pre-alert in order (SCR-04, TMR-23): „10 · 5 · 5 s", „–" for none; all equal: „10 s". -->
+    <string name="brew_setup_pre_alert_none">–</string>
+    <string name="brew_setup_pre_alert_separator">"\u0020·\u0020"</string>
+    <!-- TalkBack: „10 Sekunden, 5 Sekunden, keine". -->
+    <plurals name="brew_setup_pre_alert_seconds_description">
+        <item quantity="one">%1$d Sekunde</item>
+        <item quantity="other">%1$d Sekunden</item>
+    </plurals>
+    <string name="brew_setup_pre_alert_none_description">keine</string>
+    <string name="brew_setup_pre_alert_spoken_separator">",\u0020"</string>
     <string name="brew_setup_save_to_recipe">Im Rezept speichern</string>
     <string name="brew_setup_saved_to_recipe">Im Rezept gespeichert</string>
     <string name="brew_setup_start">Brühen starten</string>

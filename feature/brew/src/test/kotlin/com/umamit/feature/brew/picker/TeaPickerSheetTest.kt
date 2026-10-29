@@ -4,11 +4,17 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import org.junit.Rule
@@ -170,5 +176,92 @@ class TeaPickerSheetTest {
         }
 
         compose.onNodeWithText("Tee wählen").assertIsDisplayed()
+    }
+
+    private val removedTeas = mutableListOf<String>()
+    private var undone = 0
+    private var snackbarGone = 0
+
+    private fun showRemovable(state: TeaPickerUiState) {
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                TeaPickerSheet(
+                    state = state,
+                    onQueryChange = {},
+                    onPickTea = { picked += it },
+                    onQuickTimer = {},
+                    onDismissRequest = {},
+                    onRemoveTea = { removedTeas += it },
+                    onUndoRemove = { undone++ },
+                    onRemovedDismiss = { snackbarGone++ },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `a long press offers Aus Sammlung entfernen, which removes the tea without a dialog`() {
+        showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata), loading = false))
+
+        compose.onNodeWithText("Bio Sencha Hisui").performTouchInput { longClick() }
+        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+
+        assertThat(removedTeas).containsExactly("h")
+        assertThat(picked).isEmpty()
+        compose.onNodeWithText("Aus Sammlung entfernen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the tea of the active session is greyed out with Erst die Sitzung beenden (E15)`() {
+        showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata.copy(removable = false)), loading = false))
+
+        compose.onNodeWithText("Bio Sencha Tanabata").performTouchInput { longClick() }
+
+        compose.onNodeWithText("Erst die Sitzung beenden", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasClickAction() and hasText("Aus Sammlung entfernen")).assertIsNotEnabled().performClick()
+        assertThat(removedTeas).isEmpty()
+    }
+
+    @Test
+    fun `TalkBack offers Aus Sammlung entfernen as a custom action on the row`() {
+        showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata.copy(removable = false)), loading = false))
+
+        val row = compose.onNode(hasText("Bio Sencha Hisui") and hasClickAction()).fetchSemanticsNode()
+        compose.runOnIdle {
+            row.config[SemanticsActions.CustomActions].single { it.label == "Aus Sammlung entfernen" }.action()
+        }
+        // Not for the tea of the active session.
+        val blocked = compose.onNode(hasText("Bio Sencha Tanabata") and hasClickAction()).fetchSemanticsNode()
+
+        assertThat(removedTeas).containsExactly("h")
+        assertThat(blocked.config.getOrElse(SemanticsActions.CustomActions) { emptyList() }).isEmpty()
+    }
+
+    @Test
+    fun `the snackbar names the removed tea and Rueckgaengig undoes it`() {
+        showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
+
+        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Rückgängig").performClick()
+        compose.waitForIdle()
+
+        assertThat(undone).isEqualTo(1)
+        assertThat(snackbarGone).isEqualTo(0)
+    }
+
+    @Test
+    fun `the snackbar stays about 8 s, then goes and the tea stays removed (D-093 Q21)`() {
+        showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
+        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+
+        compose.mainClock.advanceTimeBy(7_500)
+        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        assertThat(snackbarGone).isEqualTo(0)
+
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+
+        assertThat(snackbarGone).isEqualTo(1)
+        assertThat(undone).isEqualTo(0)
     }
 }

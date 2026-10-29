@@ -19,6 +19,7 @@ import androidx.annotation.RawRes
 import androidx.annotation.RequiresPermission
 import com.umamit.core.timer.AlertPlayer
 import java.util.EnumMap
+import java.util.EnumSet
 import com.umamit.core.content.R as ContentR
 
 /*
@@ -50,6 +51,10 @@ val AlertSound.rawRes: Int
         AlertSound.GLOCKENSPIEL -> ContentR.raw.glockenspiel
         AlertSound.SANFT -> ContentR.raw.sanft
         AlertSound.TICK -> ContentR.raw.tick
+        AlertSound.ZIMBEL -> ContentR.raw.zimbel
+        AlertSound.GLOECKCHEN -> ContentR.raw.gloeckchen
+        AlertSound.KLANGSTAB -> ContentR.raw.klangstab
+        AlertSound.TIEFE_SCHALE -> ContentR.raw.tiefe_schale
     }
 
 /** Ringer mode from [AudioManager], calls from the audio mode, DND from the interruption filter. */
@@ -104,32 +109,33 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
  * never the sound (rule 8). Failures are logged and never thrown: the
  * vibration and the visual alert must still happen.
  *
- * Every call comes on [looper]'s thread. The players are made there, so their
- * callbacks, the focus changes and the reloads after a cue run there too.
- * [loader] makes one prepared player, or null; tests count the loads with it.
+ * Every call comes on [looper]'s thread, the alert thread. The loads ahead run
+ * on [background] (the loader thread, D-096), never on [looper]'s thread, so a
+ * cue never waits behind one (rule 8; [LoadedAhead]). Only a cue whose sound
+ * is not loaded loads on the spot, on [looper]'s thread (the D-092 fallback).
+ * A player made on the loader thread reports its completion and errors there;
+ * they are handed to [looper]'s thread, so the players' state is only touched
+ * there. [loader] makes one prepared player, or null; tests count the loads
+ * with it.
  */
 internal class MediaPlayerSoundOutput(
     private val context: Context,
     looper: Looper = Looper.getMainLooper(),
     private val loader: (AlertSound) -> MediaPlayer? = { load(context, it) },
+    private val background: (Runnable) -> Unit = AlertThread::runOnLoader,
 ) : AlertSoundOutput {
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val handler = Handler(looper)
     private var player: MediaPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
-
-    /** The sounds [prepare] asked for, in its order. */
-    private var wanted: Set<AlertSound> = emptySet()
-
-    /** The loaded, unused player of each wanted sound that has one. */
-    private val loaded = EnumMap<AlertSound, MediaPlayer>(AlertSound::class.java)
+    private val ahead = LoadedAhead(handler, background, ::loadOrNull)
 
     /** For tests: a sound is playing right now. */
     internal val isPlaying: Boolean
         get() = player?.isPlaying == true
 
     override val ready: Set<AlertSound>
-        get() = loaded.keys.toSet()
+        get() = ahead.ready
 
     override fun requestFocus(onLost: () -> Unit): Boolean {
         val manager = audioManager ?: return false
@@ -157,36 +163,18 @@ internal class MediaPlayerSoundOutput(
         audioManager?.abandonAudioFocusRequest(request)
     }
 
-    override fun prepare(sounds: Set<AlertSound>) {
-        wanted = sounds.toSet()
-        (loaded.keys - wanted).forEach { sound -> loaded.remove(sound)?.release() }
-        wanted.forEach(::loadAhead)
-    }
+    override fun prepare(sounds: Set<AlertSound>) = ahead.want(sounds)
 
     override fun play(sound: AlertSound) {
         stop()
-        val ahead = loaded.remove(sound)
-        if (ahead == null || !start(ahead, sound, loadedAhead = true)) loadAndStart(sound)
-        // Posted, so the next load runs after the cue at hand has started (D-092).
-        if (sound in wanted) handler.post { loadAhead(sound) }
+        val loaded = ahead.take(sound)
+        if (loaded == null || !start(loaded, sound, loadedAhead = true)) loadAndStart(sound)
+        // After the cue at hand has started, and on the loader thread (D-092, D-096).
+        ahead.load(sound)
     }
 
     override fun stop() {
         player?.let { release(it) }
-    }
-
-    /** Loads [sound] for a later cue, while it is wanted and has no loaded player yet. */
-    private fun loadAhead(sound: AlertSound) {
-        if (sound !in wanted || sound in loaded) return
-        val mediaPlayer = loadOrNull(sound) ?: return
-        mediaPlayer.setOnErrorListener { mp, what, extra ->
-            // Broken while it waited (the media server died): dropped; the next prepare loads it again.
-            Log.w(TAG, "Loaded $sound failed while it waited ($what/$extra)")
-            if (loaded[sound] === mp) loaded.remove(sound)
-            mp.release()
-            true
-        }
-        loaded[sound] = mediaPlayer
     }
 
     /** Loads [sound] now and starts it: the way every sound played before D-092. */
@@ -205,12 +193,17 @@ internal class MediaPlayerSoundOutput(
      * now, so a player that went bad while it waited still sounds.
      */
     private fun start(mediaPlayer: MediaPlayer, sound: AlertSound, loadedAhead: Boolean): Boolean {
-        mediaPlayer.setOnCompletionListener { release(it) }
+        // A player that is no longer the playing one was already released when it was replaced or stopped:
+        // its late report (posted from the loader thread) changes nothing.
+        mediaPlayer.setOnCompletionListener { mp -> handler.runHere { if (player === mp) release(mp) } }
         mediaPlayer.setOnErrorListener { mp, what, extra ->
-            Log.w(TAG, "Playback error $what/$extra for $sound")
-            val playing = player === mp
-            release(mp)
-            if (loadedAhead && playing) loadAndStart(sound)
+            handler.runHere {
+                Log.w(TAG, "Playback error $what/$extra for $sound")
+                if (player === mp) {
+                    release(mp)
+                    if (loadedAhead) loadAndStart(sound)
+                }
+            }
             true
         }
         player = mediaPlayer
@@ -263,6 +256,107 @@ internal class MediaPlayerSoundOutput(
     }
 }
 
+/**
+ * The players loaded ahead for [MediaPlayerSoundOutput] (D-092): the loaded, unused player of
+ * each wanted sound. Every call comes on [alert]'s thread, the alert thread, and returns at once:
+ * the loads and the releases of unused players run on [background], the loader thread (D-096),
+ * so a cue on the alert thread never waits behind one (rule 8). Each load hands its player back
+ * to the alert thread, which keeps it while its sound is still wanted and releases it otherwise;
+ * a load whose sound is no longer wanted when its turn comes is skipped. [make] makes one
+ * prepared player, or null.
+ */
+private class LoadedAhead(
+    private val alert: Handler,
+    private val background: (Runnable) -> Unit,
+    private val make: (AlertSound) -> MediaPlayer?,
+) {
+    /** The sounds [want] asked for, in its order. */
+    private var wanted: Set<AlertSound> = emptySet()
+
+    /** [wanted] for the loader thread. */
+    @Volatile
+    private var wantedNow: Set<AlertSound> = emptySet()
+
+    /** The loaded, unused player of each wanted sound that has one. */
+    private val loaded = EnumMap<AlertSound, MediaPlayer>(AlertSound::class.java)
+
+    /** The sounds with a load on the loader thread whose player has not come back yet. */
+    private val loading = EnumSet.noneOf(AlertSound::class.java)
+
+    val ready: Set<AlertSound>
+        get() = loaded.keys.toSet()
+
+    /** Keeps [sounds] loaded from now on: the others are released, the missing ones loaded. */
+    fun want(sounds: Set<AlertSound>) {
+        wanted = sounds.toSet()
+        wantedNow = wanted
+        (loaded.keys - wanted).forEach { sound -> loaded.remove(sound)?.let(::discard) }
+        wanted.forEach(::load)
+    }
+
+    /** The loaded player of [sound], handed over to a cue; null when none is loaded. */
+    fun take(sound: AlertSound): MediaPlayer? = loaded.remove(sound)
+
+    /**
+     * Asks the loader thread for a player of [sound] for a later cue, while [sound] is wanted and has
+     * neither a loaded player nor a load on the way.
+     */
+    fun load(sound: AlertSound) {
+        if (sound !in wanted || sound in loaded || sound in loading) return
+        loading += sound
+        background {
+            // Off the alert thread (D-096): a cue on it never waits for this load.
+            val stillWanted = sound in wantedNow
+            val made = if (stillWanted) make(sound) else null
+            alert.post { arrived(sound, made, skipped = !stillWanted) }
+        }
+    }
+
+    /**
+     * On the alert thread: the loader thread's player of [sound] ([made], null when it could not be
+     * loaded or the load was [skipped]). Kept while [sound] is wanted and has no loaded player, else
+     * released. A skipped sound that is wanted again by now is asked for once more.
+     */
+    private fun arrived(sound: AlertSound, made: MediaPlayer?, skipped: Boolean) {
+        loading -= sound
+        if (made == null) {
+            // A sound that does not load is left out: a cue loads it on the spot, a later want tries again.
+            if (skipped) load(sound)
+            return
+        }
+        if (sound !in wanted || sound in loaded) {
+            discard(made)
+            return
+        }
+        made.setOnErrorListener { mp, what, extra ->
+            // Reported on the loader thread, which made the player.
+            alert.runHere {
+                // Broken while it waited (the media server died): dropped; the next want loads it again.
+                Log.w(TAG, "Loaded $sound failed while it waited ($what/$extra)")
+                if (loaded[sound] === mp) {
+                    loaded.remove(sound)
+                    discard(mp)
+                }
+            }
+            true
+        }
+        loaded[sound] = made
+    }
+
+    /** Releases an unused [mediaPlayer] on the loader thread: never a wait for the media server on the alert thread. */
+    private fun discard(mediaPlayer: MediaPlayer) {
+        background { mediaPlayer.release() }
+    }
+}
+
+/**
+ * Runs [block] on this handler's thread: at once when called there, else posted. A player made on
+ * the loader thread reports its completion and errors there (D-096).
+ */
+private fun Handler.runHere(block: () -> Unit) {
+    if (Looper.myLooper() === looper) block() else post(block)
+}
+
 /** Vibrates through the default vibrator with `VibrationAttributes.USAGE_NOTIFICATION` (04 §9.1). */
 internal class VibratorHaptics(context: Context) : AlertHaptics {
     private val vibrator: Vibrator? = context.getSystemService(VibratorManager::class.java)?.defaultVibrator
@@ -285,13 +379,26 @@ internal class VibratorHaptics(context: Context) : AlertHaptics {
 }
 
 /**
- * The thread of the timer's alert player (D-092): its commands, repeats, sound callbacks and
- * loads run here, not on the main thread, so a busy main thread (a screen being drawn, the
- * service posting its notification, an activity starting) never delays a cue, and loading a
- * sound never blocks the UI. Started at the first use; it lives as long as the process.
+ * The thread of the timer's alert player (D-092): its commands, repeats and sound callbacks run
+ * here, not on the main thread, so a busy main thread (a screen being drawn, the service posting
+ * its notification, an activity starting) never delays a cue. The sounds loaded ahead load on
+ * the [loader] thread instead (D-096), so a load never delays a cue either and never blocks the
+ * UI; only a cue whose sound is not loaded loads it here. Started at the first use; both threads
+ * live as long as the process.
  */
 internal object AlertThread {
     val looper: Looper by lazy { HandlerThread("UmamiTAlert").apply { start() }.looper }
+
+    /**
+     * The loader thread (D-096): the sounds loaded ahead are loaded, and unused players released,
+     * here, so no load ever sits ahead of a cue on the alert thread (rule 8). Started at the first load.
+     */
+    private val loader: Handler by lazy { Handler(HandlerThread("UmamiTAlertLoad").apply { start() }.looper) }
+
+    /** Runs [task] on the loader thread, after the tasks given before it. */
+    fun runOnLoader(task: Runnable) {
+        loader.post(task)
+    }
 }
 
 /**

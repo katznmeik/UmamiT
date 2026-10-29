@@ -28,6 +28,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
  * Calm empty state (03 §3.8, GEN-09): illustration, serif title, body and an
  * optional button. The illustration is decorative; the default is the
  * placeholder landscape, tinted from the theme so it works in both schemes.
+ * A finished illustration (a light and a dark WebP whose paper is the theme's
+ * background, docs/design/assets.md) passes `illustrationTint = null`.
  */
 @Composable
 fun EmptyState(
@@ -37,6 +39,7 @@ fun EmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     illustration: Painter = painterResource(UmamiIcons.LandscapePlaceholder),
+    illustrationTint: ColorFilter? = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
 ) {
     Column(
         modifier = modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XLarge),
@@ -50,7 +53,7 @@ fun EmptyState(
                 .widthIn(max = 240.dp)
                 .fillMaxWidth(),
             contentScale = ContentScale.FillWidth,
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
+            colorFilter = illustrationTint,
         )
         Spacer(Modifier.height(UmamiSpacing.Large))
         Text(

@@ -9,7 +9,8 @@
 > sound, D-068, 2026-10-23; sounds loaded ahead, the alert player's own
 > thread, D-092, 2026-10-26; pre-alert per step and new pre-alert sounds
 > for v0.2.1, quick timers alongside a brew planned for v0.3.0, D-093,
-> 2026-10-26)
+> 2026-10-26; loads ahead on a loader thread, a late pre-alert sound cut by
+> the alert, D-096, 2026-10-29)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time
@@ -739,10 +740,12 @@ ongoing notification** (Live Update):
   `alertCompleted` for that alert once; an alert stopped or replaced first
   is not reported, and recovery replays an unreported alert (at least once,
   D-047). A pre-alert never cuts a playing alert.
-- Test via SET-31 (*Alarm testen*): the tick, then 1.5 s later the alert,
-  with the current settings, through the same player and matrix. It is
-  ignored while a real alert or tick plays; a real one replaces a running
-  test.
+- Test via SET-31 (*Alarm testen*): the tick, then the alert 0.7 s after
+  the tick's sound has ended (1.5 s after the start for the 0.8 s „Ting
+  (leise)"; from v0.2.1 3.7–3.9 s for the Vorwarnton, so its fall-off is
+  heard whole, #84), with the current settings, through the same player and
+  matrix. It is ignored while a real alert or tick plays; a real one
+  replaces a running test.
 - **Loading and thread (D-092).** While a timer is active, the player keeps
   the tick and the current tone loaded, so a cue only starts its sound; a
   used sound is loaded again right after its cue, and idle releases them.
@@ -751,7 +754,17 @@ ongoing notification** (Live Update):
   never the sound. The player runs on its own thread (`UmamiTAlert`), so a
   busy main thread never delays a cue. Each step's tick and alert logs where
   its start spent the time (06 §5.6). From v0.2.1 „the tick" is the chosen
-  pre-alert sound (SET-26, §9.2, D-093), read and loaded like the tone.
+  pre-alert sound (SET-26, §9.2, D-093), read and loaded like the tone, and
+  logged with its file key. A tone or pre-alert sound changed in the
+  settings while a timer is active is loaded at once (the old one released),
+  not only at the controller's next turn, so the next cue still finds it
+  loaded (#84). The loads ahead (and the release of unused players) run on a
+  loader thread of their own (`UmamiTAlertLoad`), never on `UmamiTAlert`, so
+  no load ever sits ahead of a cue: a pre-alert or alert that comes while a
+  changed sound loads starts at once, and a cue whose own sound has not
+  loaded yet loads it on the spot as above (D-096). The pre-alert releases
+  its sound and focus only after the sound has rung out; an alert still cuts
+  it at once.
 
 ### 9.2 Sounds
 
@@ -798,9 +811,23 @@ via *Alarm testen* on the first v0.2.1 release candidate (each sound can be
 heard with *Anhören* in SET-26); until then the default is Zimbel. The
 chosen sound is the pre-alert's sound everywhere the tick was: the matrix of
 §9.1, *Alarm testen* and the loading ahead of D-092 (it replaces the tick
-there). A pre-alert sound still never cuts a playing alert, and it ends
-before the step's deadline: with at least 5 s between pre-alert and
-deadline (E7), a sound of about 3 s always fits.
+there). A pre-alert sound still never cuts a playing alert, but an alert
+always cuts a pre-alert sound that still rings (§9.1). On time, a pre-alert
+comes at least 5 s before the deadline (E7), so a sound of about 3 s has
+rung out by then; a late one plays while at least 1 s is left (§5, D-053),
+and the alert then cuts it at the deadline. A pre-alert sound still ringing
+after *Pause*, *Aufguss jetzt beenden*, *Schritt überspringen*, *Sitzung
+beenden* or *Sitzung verwerfen* rings out (at most about 3.5 s: the sound,
+then the audio focus 250 ms later), since only an alert stops it.
+
+Each pre-alert sound starts with its strike in the first milliseconds (no
+leading silence) and is in phase at the strike, so it is loudest at its
+start. `generate.sh` checks the five pre-alert files as encoded (also
+`--verify`): -18 LUFS ± 0.5 LU (the tick -24), true peak at or below its
+ceiling, length within 20 ms, mono 48 kHz Vorbis ≤ 60 KB, and at least
+-30 dBFS within the first 5 ms (#84). The sounds are a list in the app
+(`PreAlertSound`, stored keys of 05 §6): an own recording of the PO later is
+one more entry, shorter than 5 s.
 
 ## 10. Quick timer
 

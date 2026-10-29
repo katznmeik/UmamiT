@@ -22,11 +22,11 @@ interface AlertSoundOutput {
     fun abandonFocus()
 
     /**
-     * Loads [sounds] now, so that a later [play] of one of them only starts it, and releases the
-     * loaded sounds not in [sounds] (empty: all of them; D-092). A sound that [play] used is
-     * loaded again after it, while it is still wanted. It blocks its thread while it loads, so
-     * the player calls it only after the cue at hand has started; a sound that does not load is
-     * left out, and [play] loads it as before. Must not throw.
+     * Has [sounds] loaded ahead, so that a later [play] of one of them only starts it, and releases
+     * the loaded sounds not in [sounds] (empty: all of them; D-092). A sound that [play] used is
+     * loaded again after it, while it is still wanted. It returns at once: the loads run off the
+     * player's thread, so a cue never waits behind one (rule 8, D-096). A sound that does not load,
+     * or has not loaded yet, is not [ready], and [play] loads it on the spot as before. Must not throw.
      */
     fun prepare(sounds: Set<AlertSound>)
 

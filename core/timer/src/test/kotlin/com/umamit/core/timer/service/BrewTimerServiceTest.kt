@@ -20,7 +20,6 @@ import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.notification.TimerScreenIntents
@@ -422,6 +421,6 @@ class BrewTimerServiceTest {
         kettleTempC = 60,
         demoted = false,
         finishWouldDiscard = false,
-        preAlert = PreAlertChoice.Inherit,
+        preAlertBaseSeconds = 10,
     )
 }

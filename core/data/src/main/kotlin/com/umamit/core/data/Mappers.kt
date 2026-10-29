@@ -105,7 +105,9 @@ internal fun ProfileWithSteps.toModel() = Recipe(
     leafGrams = profile.leafGrams,
     waterMl = profile.waterMl,
     baseTempC = profile.baseTempC,
-    steps = steps.sortedBy { it.position }.map { RecipeStep(it.kind, it.durationSeconds, it.tempC, it.note) },
+    steps = steps.sortedBy { it.position }.map {
+        RecipeStep(it.kind, it.durationSeconds, it.tempC, it.note, it.preAlertSeconds)
+    },
     vesselId = profile.vesselId,
     preAlertSeconds = profile.preAlertSeconds,
     isDefault = profile.isDefault,
@@ -144,6 +146,7 @@ internal fun List<RecipeStep>.toEntities(profileId: String, now: Long) = mapInde
         note = step.note,
         createdAt = now,
         updatedAt = now,
+        preAlertSeconds = step.preAlertSeconds,
     )
 }
 

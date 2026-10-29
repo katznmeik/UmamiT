@@ -136,7 +136,7 @@ v0.2.1 changes timer code (per-step pre-alert, sounds), so every
 - [ ] Schritte-Sheet: set step 2's pre-alert to 10 s → „zu kurz" (0:10 < 10 + 5 s); set it to 5 s → it sounds 5 s before the end of step 2. Without *Im Rezept speichern* the next session of that recipe is back to „Auto"; with *Im Rezept speichern* the next session shows 5 s.
 - [ ] *Alarm testen* with each of the four new pre-alert sounds and „Ting (leise)": each is much louder than the old tick and rings out for about 3 s; the PO names the default (SET-26).
 - [ ] Pre-alert follows the notification volume: lowering it makes the pre-alert quieter; ringer on vibrate → a short vibration only; silent → nothing (04 §9.1).
-- [ ] The vessel picker offers Kyusu 120, 180, 300, 360 ml and Becher 250, 300, 350 ml next to „Kyusu" and „Becher mit Sieb", each once; choosing one rescales the leaf (WARE-03, WARE-06).
+- [ ] The vessel picker offers Kyusu 120, 180, 300, 360 ml and Becher 250, 300, 350 ml next to „Kyusu 250 ml" and „Becher mit Sieb 400 ml" (the M1 vessels, renamed while unchanged, D-093 Q18), each once; choosing one rescales the leaf (WARE-03, WARE-06).
 - [ ] Brew setup: tap „… g übrig", enter the new total 23,5 g, *Speichern* → „23,5 g übrig"; after brewing 5 g it shows 18,5 g. Entering 0 shows the tea as leer (INV-03, INV-05).
 - [ ] Tea picker: long press a tea → *Aus Sammlung entfernen* → it is gone from the picker and from Start's *Nochmal brühen*; *Rückgängig* brings it back. Remove it again: its journal entries still show its name and photo (TEA-04).
 - [ ] During a brew, long press that session's tea in the picker: *Aus Sammlung entfernen* is greyed out with „Erst die Sitzung beenden" (E15).
@@ -144,9 +144,10 @@ v0.2.1 changes timer code (per-step pre-alert, sounds), so every
 - [ ] *Katalog aktualisieren*, the first after the update: it re-classifies everything once (≈ 16 min, accepted by the PO) and completes; the catalog still opens on the green teas.
 - [ ] The chip *Kräutertee* shows only Kräutertees, grouped by *Sorte*, with no fruit tea, rooibos or accessory among them; „Pur" does not apply there; tapping the chip again returns to the green teas; the header counts both (CAT-01, CAT-10).
 - [ ] A Kräutertee without the shop's brewing values: 2 g / 250 ml, 100 °C, one infusion of 6:00, marked „Rezept prüfen"; one with shop values uses them, unmarked (08 §3).
-- [ ] In the browser, open the shop page of a sold-out tea (e.g. TG0170) and share it to UmamiT: its detail opens with every size „nicht vorrätig" and can be added with *In Sammlung aufnehmen* (CAT-17).
+- [ ] In the browser, open the shop page of a sold-out tea (e.g. TG0170) and share it to UmamiT: its detail opens with its size „nicht vorrätig" (D-096: only the page's own size knows its stock) and can be added with *In Sammlung aufnehmen* (CAT-17).
 - [ ] Catalog ⋮ *Link einfügen*: a category link or a link to another site shows „Das ist kein Tee-Link von Tee-Kontor Kiel."; a link to a black tea shows „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." (CAT-17).
-- [ ] *Katalog aktualisieren* after that: the sold-out tea stays in the catalog („nicht vorrätig") and is not counted as „nicht mehr im Sortiment" (CAT-16).
+- [ ] *Katalog aktualisieren* after that: the sold-out tea stays in the catalog („nicht vorrätig"; visible with the *Vorrätig* filter off, CAT-10) and is not counted as „nicht mehr im Sortiment" (CAT-16). An owned tea that v0.2.0 marked „Nicht mehr im Sortiment" only because it sold out is back in the range (D-096).
+- [ ] Kräutertee view before the first refresh after the update: the hint „Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)" with *Jetzt laden*; its filter sheet has no Aroma or Umami (Q19, Q20). Mate and Lapacho appear among the Kräutertees, as the shop files them there (D-096).
 
 ### v0.3 — Quick timers alongside a brew (planned, D-093)
 

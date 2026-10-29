@@ -53,16 +53,16 @@ class SnapshotTest {
         put("Paused, demoted", running().apply { send(TimerEvent.Pause) }.demoted().state)
         put("Finished, demoted", sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.demoted().state)
         put(
-            "Running with a session pre-alert override",
+            "Running with the steps' own pre-alert",
             sessionWith(infusion(60), infusion(20)).apply {
-                send(TimerEvent.EditSteps(listOf(infusion(60), infusion(20)), PreAlertChoice.Seconds(25)))
+                send(editSteps(PreAlertChoice.Seconds(25), infusion(60), infusion(20)))
                 send(TimerEvent.Start)
             }.state,
         )
         put(
             "Ready with the pre-alert off",
             sessionWith(infusion(60)).apply {
-                send(TimerEvent.EditSteps(listOf(infusion(60, tempC = null), whisk(20)), PreAlertChoice.Off))
+                send(editSteps(PreAlertChoice.Off, infusion(60, tempC = null), whisk(20)))
             }.state,
         )
         put(
@@ -126,7 +126,8 @@ class SnapshotTest {
                 phase = TimerPhase.RUNNING,
                 deadlineElapsedMs = running.deadlineElapsedMs,
                 deadlineWallMs = running.deadlineWallMs,
-                preAlertElapsedMs = running.deadlineElapsedMs - 10_000,
+                // The 20 s step's automatic pre-alert: min(10, 5 · ⌊20 / 15⌋) = 5 s (TMR-23, D-093).
+                preAlertElapsedMs = running.deadlineElapsedMs - 5_000,
                 preAlertPlayed = false,
                 remainingMs = null,
                 pausedTotalMs = 0,
@@ -138,7 +139,6 @@ class SnapshotTest {
                 bootCount = START_BOOT_COUNT,
                 lastInteractionWallMs = driver.clocks.wall,
                 demoted = false,
-                preAlertOverrideSeconds = null,
                 preAlertInheritedSeconds = 10,
                 zoneId = "Europe/Berlin",
             ),

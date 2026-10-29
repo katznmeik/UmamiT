@@ -6,12 +6,12 @@ import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Vessel
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 
 /**
  * The values of the setup for this session (BRW-02): the recipe they started
  * from, vessel, water, leaf, the locked [ratio] (BRW-03), method, base
- * temperature, steps and pre-alert option. Pure: every change is a new value.
+ * temperature and steps, each with its own pre-alert (TMR-23, D-093). Pure:
+ * every change is a new value.
  */
 internal data class SetupEdits(
     val recipeId: String?,
@@ -23,7 +23,6 @@ internal data class SetupEdits(
     val method: BrewMethod,
     val baseTempC: Int,
     val steps: List<PlannedStep>,
-    val preAlert: PreAlertChoice,
 ) {
     /** A vessel sets the water to the volume it brews and, with the lock, rescales the leaf (WARE-03). */
     fun withVessel(vessel: Vessel): SetupEdits = withWater(vessel.brewMl()).copy(vesselId = vessel.id)
@@ -46,32 +45,28 @@ internal data class SetupEdits(
     /** Locking takes the current values as the ratio. */
     fun withLock(locked: Boolean): SetupEdits = copy(locked = locked, ratio = Ratio(leafGrams, waterMl))
 
-    /** The session's steps, each with a temperature (the base where none is given). */
-    fun withSteps(steps: List<PlannedStep>, preAlert: PreAlertChoice): SetupEdits =
-        copy(steps = steps.map { it.copy(tempC = it.tempC ?: baseTempC) }, preAlert = preAlert)
-
-    /** The pre-alert of the session (04 §5): its own choice, else the recipe's, else the global setting. */
-    fun effectivePreAlertSeconds(recipe: Recipe?, globalSeconds: Int): Int = when (preAlert) {
-        PreAlertChoice.Inherit -> recipe?.preAlertSeconds ?: globalSeconds
-        PreAlertChoice.Off -> 0
-        is PreAlertChoice.Seconds -> preAlert.seconds
-    }
+    /** The session's steps with their pre-alerts, each with a temperature (the base where none is given). */
+    fun withSteps(steps: List<PlannedStep>): SetupEdits =
+        copy(steps = steps.map { it.copy(tempC = it.tempC ?: baseTempC) })
 
     /** Whether these values differ from [recipe], so *Im Rezept speichern* is offered (BRW-02). */
     fun differsFrom(recipe: Recipe): Boolean = this != of(recipe).copy(locked = locked, ratio = ratio)
 
-    /** The recipe with these values (*Im Rezept speichern*); a step at the base temperature keeps none of its own. */
+    /**
+     * The recipe with these values (*Im Rezept speichern*): the steps with their pre-alerts (D-093); a step at the
+     * base temperature keeps none of its own. The recipe's pre-alert base B stays.
+     */
     fun appliedTo(recipe: Recipe): Recipe = recipe.copy(
         vesselId = vesselId,
         waterMl = waterMl,
         leafGrams = leafGrams,
         steps = steps.map { step ->
-            RecipeStep(step.kind, step.plannedSeconds, step.tempC.takeIf { it != baseTempC })
-        },
-        preAlertSeconds = when (preAlert) {
-            PreAlertChoice.Inherit -> recipe.preAlertSeconds
-            PreAlertChoice.Off -> 0
-            is PreAlertChoice.Seconds -> preAlert.seconds
+            RecipeStep(
+                step.kind,
+                step.plannedSeconds,
+                step.tempC.takeIf { it != baseTempC },
+                preAlertSeconds = step.preAlertSeconds,
+            )
         },
     )
 
@@ -86,8 +81,9 @@ internal data class SetupEdits(
             locked = true,
             method = recipe.method,
             baseTempC = recipe.baseTempC,
-            steps = recipe.steps.map { PlannedStep(it.kind, it.durationSeconds, it.tempC ?: recipe.baseTempC) },
-            preAlert = PreAlertChoice.Inherit,
+            steps = recipe.steps.map {
+                PlannedStep(it.kind, it.durationSeconds, it.tempC ?: recipe.baseTempC, it.preAlertSeconds)
+            },
         )
 
         /** A tea without any recipe: one minute at 70 °C, 5,0 g in 250 ml (the Kyusu ratio of 08 §2.5a). */
@@ -101,7 +97,6 @@ internal data class SetupEdits(
             method = BrewMethod.KYUSU,
             baseTempC = DEFAULT_TEMP_C,
             steps = listOf(PlannedStep(StepKind.INFUSION, DEFAULT_SECONDS, DEFAULT_TEMP_C)),
-            preAlert = PreAlertChoice.Inherit,
         )
 
         private const val DEFAULT_WATER_ML = 250
@@ -114,7 +109,6 @@ internal data class SetupEdits(
         private const val STEP = ";"
         private const val PART = ":"
         private const val NONE = ""
-        private const val INHERIT = -1
 
         fun encode(e: SetupEdits): String = listOf(
             e.recipeId ?: NONE,
@@ -126,12 +120,9 @@ internal data class SetupEdits(
             e.locked,
             e.method.name,
             e.baseTempC,
-            when (val p = e.preAlert) {
-                PreAlertChoice.Inherit -> INHERIT
-                PreAlertChoice.Off -> 0
-                is PreAlertChoice.Seconds -> p.seconds
+            e.steps.joinToString(STEP) {
+                listOf(it.kind.name, it.plannedSeconds, it.tempC ?: NONE, it.preAlertSeconds ?: NONE).joinToString(PART)
             },
-            e.steps.joinToString(STEP) { "${it.kind.name}$PART${it.plannedSeconds}$PART${it.tempC ?: NONE}" },
         ).joinToString(FIELD)
 
         /** The edits of [encoded], or null when it is missing or unreadable (the setup then starts over). */
@@ -147,14 +138,14 @@ internal data class SetupEdits(
                 locked = f[6].toBooleanStrict(),
                 method = BrewMethod.valueOf(f[7]),
                 baseTempC = f[8].toInt(),
-                preAlert = when (val p = f[9].toInt()) {
-                    INHERIT -> PreAlertChoice.Inherit
-                    0 -> PreAlertChoice.Off
-                    else -> PreAlertChoice.Seconds(p)
-                },
-                steps = f[10].split(STEP).map { s ->
+                steps = f[9].split(STEP).map { s ->
                     val p = s.split(PART)
-                    PlannedStep(StepKind.valueOf(p[0]), p[1].toInt(), p[2].ifEmpty { null }?.toInt())
+                    PlannedStep(
+                        StepKind.valueOf(p[0]),
+                        p[1].toInt(),
+                        p[2].ifEmpty { null }?.toInt(),
+                        p[3].ifEmpty { null }?.toInt(),
+                    )
                 },
             )
         }.getOrNull()

@@ -1,11 +1,17 @@
 package com.umamit.feature.brew.setup
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -29,6 +35,7 @@ import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.feature.brew.setup.BrewSetupScreenshotTest.Companion.kyusu
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Rule
@@ -237,14 +244,93 @@ class BrewSetupScreenTest {
     }
 
     @Test
-    fun `the pre-alert row opens the Schritte-Sheet too (SCR-04)`() {
+    fun `the Vorwarnung row lists each step's pre-alert and opens the Schritte-Sheet too (SCR-04)`() {
+        // Hisui's Kyusu recipe, 1:00 · 0:10 · 0:10, with the global 10 s (TMR-23; 09 §4 v0.2.1).
         show()
-        compose.onNodeWithText("10 s (Standard)").assertIsDisplayed()
+        compose.onNodeWithTag(SETUP_PRE_ALERT_TAG)
+            .performScrollTo()
+            .assert(hasText("10 · – · –"))
+            .assert(hasContentDescription("10 Sekunden, keine, keine"))
 
-        compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performScrollTo().performClick()
+        compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performClick()
 
         compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Auto · 10\u00A0s", useUnmergedTree = true).assertIsDisplayed()
     }
+
+    @Test
+    fun `the vessel choice offers all nine seed vessels and sets the usable volume (WARE-03, WARE-06)`() {
+        show()
+
+        compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        // Each seed name ends with its volume: the name alone, never „Kyusu 120 ml · 120 ml"; its volume
+        // keeps its unit on the same line.
+        listOf(
+            "Becher 250\u00A0ml",
+            "Becher 300\u00A0ml",
+            "Becher 350\u00A0ml",
+            "Becher mit Sieb 400\u00A0ml",
+            "Kyusu 120\u00A0ml",
+            "Kyusu 180\u00A0ml",
+            "Kyusu 250\u00A0ml",
+            "Kyusu 300\u00A0ml",
+            "Kyusu 360\u00A0ml",
+        ).forEach { compose.onNode(hasText(it, substring = false) and hasAnyAncestor(isPopup())).assertExists() }
+
+        compose.onNode(hasText("Kyusu 120\u00A0ml", substring = false) and hasAnyAncestor(isPopup()))
+            .performScrollTo()
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNode(hasText("Wasser") and hasText("120\u00A0ml")).assertExists()
+        compose.onNodeWithContentDescription("Gefäß: Kyusu 120 ml. Ändern").assertExists()
+        compose.onNodeWithText("Kyusu 120\u00A0ml", substring = false).assertExists()
+    }
+
+    @Test
+    fun `a vessel whose name doesn't end with its volume shows the volume after it (WARE-03)`() {
+        runBlocking {
+            val kyusu = SeedData.vessels.first { it.name == "Kyusu 250 ml" }
+            collection.vessels.saveVessel(kyusu.copy(name = "Omas Kyusu"))
+            collection.vessels.saveVessel(
+                SeedData.vessels.first { it.name == "Becher 300 ml" }.copy(name = "Becher 250 ml"),
+            )
+        }
+        show()
+
+        compose.onNodeWithText("Omas Kyusu · 250\u00A0ml").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Gefäß: Omas Kyusu. Ändern").performClick()
+        compose.waitForIdle()
+
+        // A name that ends with another volume than the vessel's usable one keeps the volume too.
+        compose.onNode(hasText("Becher 250 ml · 300\u00A0ml") and hasAnyAncestor(isPopup())).assertExists()
+    }
+
+    @Test
+    fun `the Vorwarnung row shows mixed values with the unit once, one value when all are equal (SCR-04)`() {
+        var state by mutableStateOf(kyusu.copy(steps = listOf(infusion(60), infusion(20), infusion(10))))
+        compose.setContent { UmamiTheme(reduceMotion = true) { BrewSetupScreen(state) } }
+        val row = compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performScrollTo()
+
+        row.assert(hasText("10 · 5 · –")).assert(hasContentDescription("10 Sekunden, 5 Sekunden, keine"))
+        state = kyusu.copy(steps = listOf(infusion(60, preAlert = 20), infusion(20), infusion(45)))
+        row.assert(hasText("20 · 5 · 10\u00A0s"))
+        state = kyusu.copy(steps = listOf(infusion(60), infusion(30), infusion(45)))
+        row.assert(hasText("10\u00A0s")).assert(hasContentDescription("10 Sekunden"))
+        state = kyusu.copy(steps = listOf(infusion(60, preAlert = 0), infusion(10), infusion(19, preAlert = 15)))
+        row.assert(hasText("–")).assert(hasContentDescription("keine"))
+        // B = 20 s: 0:45 gives min(20, 15) = 15 s.
+        state = kyusu.copy(preAlertBaseSeconds = 20, steps = listOf(infusion(60), infusion(45)))
+        row.assert(hasText("20 · 15\u00A0s"))
+        // A cold brew has long steps only, so none at all (TMR-18).
+        state = kyusu.copy(method = BrewMethod.COLD_BREW, steps = listOf(infusion(300)))
+        row.assert(hasText("–"))
+    }
+
+    private fun infusion(seconds: Int, preAlert: Int? = null) =
+        PlannedStep(StepKind.INFUSION, seconds, 65, preAlertSeconds = preAlert)
 
     private fun tanabata() = BrewStart(
         snapshot = SessionSnapshot(

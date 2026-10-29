@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -31,6 +31,7 @@ parser (NFR-MAINT-04).
 | Platform | **Shopware 6.7** storefront behind **Cloudflare** (bot challenges possible) |
 | Host | All pages and images on `www.tee-kontor-kiel.de` (`/media/…` originals, `/thumbnail/…_{W}x{W}.jpg`). This is the only allow-listed host. |
 | `robots.txt` | `Allow: /`, but `Disallow: */?` (so paginated listings `?p=N` are off-limits), `*/widgets/`, `*/navigation/`, `*/bundles/`, account/checkout. No crawl-delay. Sitemap: `/sitemap.xml`. |
+| Kräutertee section (v0.2.1) | `/tee/kraeutertee/` with `bio-kraeutertee/`, `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`, `mate-lapacho/` (sitemap, 2026-10-29); products carry `TK…` base numbers. Its pages have the same structure as the green teas' (breadcrumb, buy box, properties, brewing grid, typically one `st-zubereitung-westlich` row with a per-litre amount, a temperature and one infusion). Fruit tea (`/tee/fruechtetee/`) and rooibos (`/tee/rotbusch/`) are separate sections. |
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
 | Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. **Sold-out products are left out** (checked 2026-10-28, D-094): e.g. „Bio Sencha Kirishima Yabukita" (TG0170) and „Bio Sencha Gabalong" (TG0577), every size unavailable, are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan › Sencha) but not in the sitemap; on page 1 of the Sencha listing, 3 of 24 products were missing. Known teas missing from the sitemap are therefore re-checked (§2.4 item 5, CAT-16), and a single tea can be fetched from its shop link (§2.4 item 9, CAT-17). Paginated listings stay off-limits (`Disallow: */?`). |
@@ -113,17 +114,34 @@ the prose, whose years are travel reports, founding years and link texts
    changes only with a successful refresh (D-077). A page without a
    breadcrumb is neither kept nor skipped.
    **Kräutertees (v0.2.1, D-093):** products under the shop's herbal tea
-   section (*Kräutertee*; its path is read from the live breadcrumb when
-   built and recorded here with the parser bump) are kept too, as herbal
-   teas with the style `herbal` (§2.6, §3), category `HERBAL`. Only the
-   shop's Kräutertees (PO): fruit teas, rooibos and other infusions stay
-   out. The `/tee/japantee/` rule above is unchanged.
+   section `/tee/kraeutertee/` (*Kräutertee*; read from a live breadcrumb on
+   2026-10-29, Tee › Kräutertee › <sub-section>, with parser v7) are kept
+   too, as herbal teas with the style `herbal` (§2.6, §3), category
+   `HERBAL`. The section's sub-sections, as path segments: `bio-kraeutertee/`,
+   `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`,
+   `mate-lapacho/`; all of them are in scope, mate and lapacho included,
+   since the shop files them as Kräutertees. A Kräutertee's *Sorte* is the
+   title of its sub-section (none when filed in the section itself). Only
+   the shop's Kräutertees (PO): fruit teas (`/tee/fruechtetee/`), rooibos
+   (`/tee/rotbusch/`) and other infusions are sections of their own and stay
+   out. A set there is a set (`SET`) as in the green sections. A product
+   under a green section and the Kräutertee section is green. The
+   `/tee/japantee/` rule above is unchanged.
    Because `catalog_skip` keeps no rules version, its `NOT_GREEN` rows are
    deleted once with v0.2.1 (05 §9), so the first refresh after the update
    classifies those products again and takes about as long as a first load
-   (≈ 16 min, once; accepted by the PO).
+   (≈ 16 min, once; accepted by the PO). Built as: while the latest
+   successful refresh in `catalog_refresh_log` ran a parser before v7, a
+   refresh treats the `NOT_GREEN` skip entries as due and its swap deletes
+   them before adding the run's own skip entries. A refresh that stops or
+   fails keeps the old skip list, so the next one classifies them again;
+   after the first successful v7 refresh, never again. No schema change.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
-   Shot" in the flavoured section).
+   Shot" in the flavoured section). In the Kräutertee section, teaware is
+   left out by its name (Kalebasse, Bombilla, Filter, Dose, Kanne, Becher,
+   Löffel, Sieb, Zubehör and the Japan rule's words, as a word or the end of
+   a compound: „Teesieb", not „Siebenkraut") or a `zubehoer`/`geschirr`
+   breadcrumb segment, as out of scope (D-096).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
    sitemap; products missing from the sitemap are re-checked (below) before
    they count as discontinued. The known green
@@ -143,7 +161,40 @@ the prose, whose years are travel reports, founding years and link texts
    (not followed), or a breadcrumb out of scope → discontinued; read this
    time without a stop (e.g. disallowed by robots.txt, over the body limit,
    §2.8) → kept as it was. A challenge, 429 or `Retry-After` stops the whole
-   refresh as always (§2.8). Expected ≈ 5–20 extra requests. Only new and changed photos
+   refresh as always (§2.8), and so do a 401/403/5xx and a network error after
+   its retries. Expected ≈ 5–20 extra requests. As built (#97):
+   - **Which teas:** every tea in `catalog.db`, those „Nicht mehr im
+     Sortiment" (kept for a collection tea) included, since v0.2.0 counted a
+     tea that had only sold out as discontinued. Such a tea whose page is
+     still in scope is back in the range („geändert"); any other answer leaves
+     it „Nicht mehr im Sortiment", not counted as discontinued again.
+   - **A plain 401/403 for a tea already discontinued** (no challenge or
+     block page) is read as not this time: the tea stays as it was and the
+     refresh goes on, so one broken old page can't stop every refresh. A 5xx,
+     429, `Retry-After` or a challenge still stops it, and for a tea not yet
+     discontinued a 401/403 still stops it too (D-096).
+   - **When:** after the sitemap's pages, before the photos; they count among
+     the progress's pages, and a robots.txt-disallowed `product_url` (or one
+     off the shop's host) is kept as it was without a request.
+   - **That product:** the canonical (else the fetched URL) is a
+     `/<slug>/<number>` page on the shop with one of the tea's numbers, and
+     so is the page's own number when it has one. A page of another product
+     is read as not this time, so the tea is kept as it was.
+   - **Redirects:** judged by their `Location` alone, resolved against the
+     page and never requested. It leads away when it is off the shop's host
+     or not a product page with one of the tea's numbers (a category, the
+     home page). A redirect to one of the tea's own pages (a new slug, a size
+     variant) or without a `Location`, and any other 4xx, keep the tea as it
+     was.
+   - **Out of scope:** like any page out of scope, onto the skip list
+     (05 §4.2a). A page without product or breadcrumb keeps the tea as it was
+     and counts as defective in the sanity check (§2.9).
+   - **Kept with its page:** staged like a sitemap product of its key but
+     without size URLs, so its sizes are the page's own size and the
+     configurator's (item 6), the other sizes with no stock and no
+     `variant_url`. In the summary it is „geändert" when its page changed
+     (e.g. now sold out), never „nicht mehr im Sortiment".
+   Only new and changed photos
    are fetched (D-086); a photo or guide image that failed for good (over the
    16 MB image limit, or not decodable) is not fetched again while its URL
    stays the same (`catalog_image_failure`, D-091), while a 404 or a network
@@ -185,7 +236,46 @@ the prose, whose years are travel reports, founding years and link texts
    item 3, and stores a green or herbal tea as a regular catalog entry; a
    tea out of scope is not stored and not added to `catalog_skip`. A link to
    a tea already in the catalog refreshes that entry. Not while a refresh
-   runs. Network use (d) of GEN-01.
+   runs. Network use (d) of GEN-01. As built (#98):
+   - **The link** (`TeaLinks`, `core:catalog-parser`), strict and refused in
+     doubt:
+     - `https://` and exactly the host, scheme and host in any case; no port,
+       no userinfo, no trailing dot;
+     - a path of exactly two segments of ASCII letters, digits and hyphens: no
+       query, no fragment, no percent-encoding, no trailing slash, not
+       `/tee-info/`;
+     - the second segment an article number (§2.2), its suffix only
+       `-<grams>`;
+     - at most 300 characters.
+     A share may carry text around the link (a title): the text, at most 2,000
+     characters, is split at whitespace and must hold exactly one link (the
+     same link twice counts once). A set or sale duplicate number
+     (`…SET`, `…SALE`) is out of scope without a request.
+   - **The request:** the link's path is resolved against the shop's own base
+     URL. The session doesn't retry (like the exact price), sends at most
+     robots.txt, the page and its photo, and never follows a redirect.
+   - **The page must be that product:** its canonical and its own number name
+     the link's number, judged as the re-check of item 5 judges it
+     (`ShopProduct`). Otherwise, as for a 404/410, a 3xx or another 4xx, no
+     tea is at the link. robots.txt disallowing it, an answer over the body
+     limit or a page without breadcrumb can't be read. Nothing is stored
+     either way.
+   - **Stored** like a tea item 5 keeps with its page: the page's own size
+     (price and stock) and the configurator's sizes (no stock known, no
+     `variant_url`), so a sold-out page shows „nicht vorrätig" for its own
+     size. Style, recipes and content hash are derived as by a refresh. The
+     photo follows SET-22: it is not fetched when the catalog already has the
+     photo from that URL, nor when it failed for good before; one that fails
+     for good now is remembered (D-091). A tea seen before keeps its
+     `first_seen_at`; a new one gets the link's time, so neither is „Neu".
+     A tea „Nicht mehr im Sortiment" whose page is in scope is back in the range.
+   - **A number merged into another tea** (item 7) opens that tea without a
+     request.
+   - **A stop** (challenge, 429, `Retry-After`, 401/403/5xx, offline), also on
+     the photo, stores nothing.
+   - **With the refresh:** the two take turns (06 §4). Until the first
+     successful refresh, a refresh's sanity check counts as a first import
+     (§2.9), whatever a link stored before.
 
 Request budget at the default rate limit (2 requests/s, all requests
 including images):
@@ -325,7 +415,8 @@ cultivar, processing, brewing parameters, prices); the shop's description
 texts and photos are **not** committed (D-016). During the first-start setup
 the app downloads the two product photos **once** from the allow-listed host
 (ONB-06, network use (b) of GEN-01; visible progress, skippable); without
-network the timer fallback image (A4) is used. Descriptions (and photos, if
+network the timer's seal shows the type-coloured leaf (until v0.2.0: the
+timer fallback image A4, retired by D-095). Descriptions (and photos, if
 still missing) arrive **automatically** with the first catalog refresh in M2
 via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 
@@ -345,8 +436,8 @@ via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 | Taste notes (*Geschmack*) | fruchtig, mild, süß | fruchtig, mild, mittelkräftig, süß |
 | Badges | Für Einsteiger | Coldbrew geeignet, Für Einsteiger, Preistipp |
 | Brewing grid (verbatim) | Westlich `~10g/L · ~65-70°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-70°C · 45 Sek · 10 Sek · 10 Sek` | Westlich `~10g/L · ~65°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` |
-| **Recipe „Kyusu" (default)**, vessel „Kyusu" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
-| Recipe „Westlich", vessel „Becher mit Sieb" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:15 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:15 @70 |
+| **Recipe „Kyusu" (default)**, vessel „Kyusu 250 ml" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
+| Recipe „Westlich", vessel „Becher mit Sieb 400 ml" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:15 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:15 @70 |
 | Recipe „Kaltaufguss" | — | 10,0 g / 1000 ml / 5 °C: 4:00:00 (style default, from badge) |
 | Recipe check flag | none | none |
 | Packages (exact prices) | 10 g 1,85 € · 100 g 8,50 € · 250 g 20,60 € · 500 g 40,35 € · 1000 g 76,50 € | 10 g 2,80 € · 50 g 8,95 € · 100 g 17,90 € · 250 g 43,40 € · 500 g 85,05 € · 1000 g 161,10 € |
@@ -369,12 +460,16 @@ those covers come with the first catalog refresh (CAT-15).
 
 Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
 seed vessels (WARE-06). From v0.2.1 seven more seed vessels exist (D-093),
-named by usable volume; the seed recipes keep their vessels:
+named by usable volume; the seed recipes keep their vessels. The two M1
+vessels are named „Kyusu 250 ml" and „Becher mit Sieb 400 ml" from v0.2.1:
+a fresh install seeds them so, and an existing install renames them only
+while they still carry their M1 names „Kyusu" and „Becher mit Sieb"
+(D-093 Q18). The fixed IDs are in `SeedData` (`core/data`):
 
 | Name | `VesselType` | Usable | Capacity |
 |---|---|---|---|
-| Kyusu (M1) | KYUSU | 250 ml | 300 ml |
-| Becher mit Sieb (M1) | MUG_INFUSER | 400 ml | 400 ml |
+| Kyusu 250 ml (M1 „Kyusu") | KYUSU | 250 ml | 300 ml |
+| Becher mit Sieb 400 ml (M1 „Becher mit Sieb") | MUG_INFUSER | 400 ml | 400 ml |
 | Kyusu 120 ml | KYUSU | 120 ml | 150 ml |
 | Kyusu 180 ml | KYUSU | 180 ml | 220 ml |
 | Kyusu 300 ml | KYUSU | 300 ml | 350 ml |
@@ -409,7 +504,7 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | `mizudashi-kaltaufgussbeutel`, or „Mizudashi" / „Kaltaufgussbeutel" in the name under any breadcrumb (D-089) | style from the breadcrumb or name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | „Mizucha" in the name, under any breadcrumb (D-091) | as Mizudashi: style from breadcrumb or name else `green_generic` (not flagged); default recipe = cold brew; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | `aromatisierter-gruentee` | `flavored_green` |
-| the shop's *Kräutertee* section (v0.2.1, D-093) | `herbal` (category `HERBAL`, umami `NONE`; not flagged) |
+| the shop's *Kräutertee* section `/tee/kraeutertee/` (v0.2.1, D-093), whatever the name names | `herbal` (category `HERBAL`, umami `NONE`; not flagged); form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
 | tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
@@ -490,7 +585,9 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
   3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
   D-074), and so does a 2xx answer over its body limit, which is not read
   (5 MB for a page, 16 MB for a photo or guide image, D-091; a photo,
-  guide image or page; never a stop, D-090).
+  guide image or page; never a stop, D-090). A 3xx's `Location` is only
+  read, never requested, to judge the re-check of a tea missing from the
+  sitemap (§2.4 item 5, CAT-16).
 - **One connection:** all requests go through a single HTTP connection,
   sequentially, at ≤ 2 requests/s.
 - **robots.txt:** rules are matched with longest-match precedence and `*` /
@@ -505,7 +602,7 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
 ### 2.9 Sanity thresholds (CAT-07 AC5)
 
 Abort without changes if: fewer than 50 % of the previous green product count
-(or < 150 on first import) are parsed; or > 30 % of products lack name, price
+(or < 150 on first import, i.e. before the first successful refresh, #98) are parsed; or > 30 % of products lack name, price
 or article number; or > 50 % lack a brewing grid **and** brewing prose
 (selector broke). Out-of-stock products have a price but no availability and
 count as valid. Pages that gave no product or no breadcrumb count among the
@@ -540,7 +637,7 @@ days after opening.
 | `korean_green` | Koreanischer Grüntee (Ujeon/Sejak) | HIGH | 60 | 2,0 | KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
-| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas |
+| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas. A Kräutertee keeps the infusions the shop gives: the PO's second western infusion (§2.5 step 5) is for green teas only. The „Coldbrew geeignet" badge alone adds no cold brew; the shop's own cold values (a „kalt" row or cold-brew prose) do (§2.5 step 6) |
 | `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 °C) for manually added non-green teas |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 

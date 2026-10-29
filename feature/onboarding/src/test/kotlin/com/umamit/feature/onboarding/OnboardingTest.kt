@@ -115,7 +115,7 @@ class OnboardingTest {
 
         catalog.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 274, newTeas = 274))
         compose.waitForIdle()
-        compose.onNodeWithText("Katalog geladen: 274\u00A0Grüntees").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Katalog geladen: 274\u00A0Tees").performScrollTo().assertIsDisplayed()
 
         catalog.state.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Offline("details"))
         compose.waitForIdle()

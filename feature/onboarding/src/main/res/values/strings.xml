@@ -31,7 +31,7 @@
 
     <!-- Catalog page (ONB-03, SCR-01 page 3; CAT-07). -->
     <string name="onboarding_catalog_title">Katalog laden</string>
-    <string name="onboarding_catalog_body">Alle Grüntees von Tee-Kontor Kiel offline verfügbar machen. Das erste Laden dauert etwa eine Viertelstunde; die App kannst du währenddessen schon nutzen.</string>
+    <string name="onboarding_catalog_body">Alle Grün- und Kräutertees von Tee-Kontor Kiel offline verfügbar machen. Das erste Laden dauert etwa eine Viertelstunde; die App kannst du währenddessen schon nutzen.</string>
     <string name="onboarding_catalog_load">Katalog jetzt laden</string>
     <string name="onboarding_catalog_later">Später</string>
     <string name="onboarding_catalog_starting">Sitemap wird gelesen …</string>
@@ -39,8 +39,8 @@
     <string name="onboarding_catalog_progress" tools:ignore="PluralsCandidate">Seiten: %1$d von %2$d · Produkte: %3$d</string>
     <string name="onboarding_catalog_running_hint">Der Katalog lädt im Hintergrund weiter, auch bei gesperrtem Handy. Du kannst schon loslegen.</string>
     <plurals name="onboarding_catalog_tea_count">
-        <item quantity="one">%1$d Grüntee</item>
-        <item quantity="other">%1$d Grüntees</item>
+        <item quantity="one">%1$d Tee</item>
+        <item quantity="other">%1$d Tees</item>
     </plurals>
     <string name="onboarding_catalog_done">Katalog geladen: %1$s</string>
     <string name="onboarding_catalog_cancelled">Laden abgebrochen. Du kannst den Katalog später unter Sammlung › Katalog laden.</string>

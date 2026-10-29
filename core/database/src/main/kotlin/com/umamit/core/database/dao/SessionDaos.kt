@@ -65,9 +65,6 @@ interface SessionDao {
     /** Deletes the rows that were never started, i.e. carry no recorded values (05 §3.7, TMR-12). */
     @Query("DELETE FROM session_step WHERE session_id = :sessionId AND actual_seconds IS NULL")
     suspend fun deleteUnrecordedSteps(sessionId: String)
-
-    @Query("UPDATE brew_session SET pre_alert_seconds = :preAlertSeconds, updated_at = :now WHERE id = :id")
-    suspend fun setPreAlert(id: String, preAlertSeconds: Int, now: Long)
 }
 
 /** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */
@@ -96,4 +93,15 @@ interface ActiveBrewDao {
 
     @Query("DELETE FROM active_brew")
     suspend fun clear()
+
+    /** The tea of the active brew session; null without one, for the quick timer or a session without a tea (E15). */
+    @Query(ACTIVE_TEA_ID)
+    fun observeActiveTeaId(): Flow<String?>
+
+    /** [observeActiveTeaId], read once. */
+    @Query(ACTIVE_TEA_ID)
+    suspend fun activeTeaId(): String?
 }
+
+private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +
+    "JOIN brew_session ON brew_session.id = active_brew.session_id"

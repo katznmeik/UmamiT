@@ -302,6 +302,186 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-096"></a>
+### D-096 — v0.2.1 build decisions (#83–#92, #97, #98, #100, #102; TMR-23, SET-26, PRF-03, SCR-04, SCR-05, SCR-07, SCR-19, SCR-31, CAT-10, CAT-16, CAT-17, TEA-04, INV-03, WARE-06) · *Accepted* (Claude, 2026-10-29)
+
+Details the specs left open, decided while building v0.2.1 (PR #106). Each
+favours rule 8 (timer reliability) and rule 7 (fewer requests, refuse on
+doubt) where it touches them.
+
+**Pre-alert per step (#83, #90, #92).**
+- An explicit value applies to its step as set, never capped by B or the
+  automatic third; the E7 rules (N + 5 s, a rinse under 15 s, a long step)
+  still apply. The automatic rule covers rinses too: a 15 s rinse with
+  B = 10 s gets 5 s.
+- `brew_session.pre_alert_seconds` records B. The migration does not rewrite
+  old rows. *Im Rezept speichern* writes each step's value and leaves the
+  recipe's B alone.
+- **Migration 1 → 2** gives an active session's steps that have not ended
+  (the running one too, 05 §9) the lead v1 gave them, as an explicit value:
+  its override, or else its inherited B (`COALESCE`). So a session running
+  during the update behaves exactly as in v1: a 15–29 s step keeps B
+  instead of the automatic 5 s, and the running step's ring and Live Update
+  point match its stored tick. Nothing is delayed or silenced.
+- **Schritte-Sheet:**
+  - Each option previews its effect („Automatisch · 5 s", „10 s · zu kurz",
+    „10 s · keine" on a long step); the button reads „Auto · 5 s".
+  - „zu kurz" also covers a rinse under 15 s.
+  - A change applies on *Fertig*.
+  - The running step's selector stays editable after its tick has played;
+    the change then has no effect for that step (04 §5).
+- **Setup row:** „–" when no step has a pre-alert, and TalkBack reads the
+  row in words.
+
+**Sounds (#84).**
+- *Alarm testen* starts the alert 0.7 s after the pre-alert sound ends:
+  1.5 s for „Ting (leise)", 3.9 s for a 3.2 s sound.
+- A tone or *Vorwarnton* changed while a timer is active is loaded at once
+  (D-092 said "at the next turn"). The loads ahead run on their own loader
+  thread (`UmamiTAlertLoad`), not on `UmamiTAlert`, so no load ever sits
+  ahead of a cue (rule 8; D-092's "a cue queued behind a load waits at most
+  for that load" no longer applies). A cue whose sound has not loaded yet
+  still loads it on the spot.
+- A real pre-alert keeps the audio focus until its sound has rung out; an
+  alert still cuts it at once.
+- „Ting (leise)" is stored as `ting`, and its file stays `tick.ogg`.
+- The *Vorwarnton* row stays enabled when *Vorwarnung* is „Aus".
+- The loudness check of `generate.sh --verify` runs locally, not in CI.
+
+**Timer screen (#85, #102).**
+- On the alert surface ← and ⋮ sit on opaque ink circles with a washi icon,
+  like *Abgegossen*. Over a pure white photo the 60 % Steeping circle gives
+  3.3:1.
+- **Seal:** a 1 dp ink ring at 30 %, the photo in a 76 dp circle, and the
+  leaf in the style's colour (`TeaTypeColors.forStyle`, the journal's
+  mapping).
+- The band starts behind the status bar, and the seal's centre always sits
+  on its lower edge. The quick timer's title starts 8 dp below the band.
+- On a short screen a brew's band gets shorter, down to the status bar and
+  ← ⋮, until the primary control and the bottom margin fit without
+  scrolling (rule 8). Its height follows the screen, the insets and the
+  content above the control only, so nothing moves when the alert starts.
+  The band scrolls with the page. The quick timer's band keeps 220 dp.
+
+**Kräutertees (#89, #91).**
+- The whole shop section `/tee/kraeutertee/` is in scope, Mate and Lapacho
+  included, because the shop files them there. Teaware filed there (a gourd,
+  a bombilla, a filter, a tin, a pot, a sieve …, by its name or a
+  `zubehoer`/`geschirr` segment) is no tea and stays out (08 §2.4 item 4;
+  code review).
+- The one-time `NOT_GREEN` reset is keyed on the parser version of the last
+  successful refresh, not on a DataStore marker. A failed refresh keeps the
+  old list, and the next one tries again.
+- No second western infusion for Kräutertees. The cold-brew badge alone adds
+  no cold brew.
+- *Sorte* is the sub-section's title; a tea filed in the section itself
+  shows under „Ohne Sorte".
+- **Herbal view:**
+  - Umami is ignored there, like *Pur*.
+  - Switching views clears the chosen *Sorten*.
+  - *Alle zeigen* switches view when every hidden hit is of the other kind.
+  - The *Kräutertee* chip sits right after *Filter*.
+- **Herbal filter sheet:**
+  - It keeps *Sortierung* and *Sorte* and drops Aroma and Umami (Q19).
+  - *Zurücksetzen* resets the filters but stays in the Kräutertee view.
+- **The Q20 hint** shows in the whole Kräutertee view until the first
+  successful refresh after the update. While a refresh runs its button reads
+  *Fortschritt anzeigen*.
+
+**Sold-out teas (#97).**
+- The re-check also covers owned teas already „Nicht mehr im Sortiment",
+  because v0.2.0 marked sold-out ones that way. A green or herbal page
+  brings such a tea back; any other answer leaves it as it was, and it isn't
+  counted again.
+- Redirects are judged by `Location` alone and never followed:
+  - one leading away from the product means discontinued;
+  - one to the tea's own page, or one without `Location`, keeps the tea as
+    it was;
+  - other 4xx answers keep the tea too.
+- A 200 page must name one of the tea's numbers (canonical or own number). A
+  page without a product or a breadcrumb keeps the tea and counts as
+  defective in the sanity check.
+- A re-checked page out of scope goes on the skip list.
+- There is no cap on re-checks.
+- A kept tea has only the page's sizes: its own size plus the configurator's.
+  Only the page's own size knows its stock, so only that size reads „nicht
+  vorrätig" (SCR-21's "every size" is narrowed). The other sizes have no size
+  link, so their price stays an estimate.
+- Sold-out teas show with the *Vorrätig* filter off (CAT-10's default
+  hides them).
+- For a tea already „Nicht mehr im Sortiment", a plain 401/403 on its old
+  page (no challenge or block page) is „not read this time": the tea stays as
+  it was and the refresh goes on, so one broken old page can't block every
+  refresh. A 5xx, 429, `Retry-After` or a challenge still stops the refresh
+  (08 §2.8); a tea not yet discontinued keeps the 401/403 stop (code review).
+
+**Shop link (#98).**
+- **Accepted:**
+  `https://www.tee-kontor-kiel.de/<slug>/<Artikelnummer>[-<grams>]`.
+  - Scheme and host in any case; no userinfo, port or trailing dot.
+  - Exactly two path segments of `[A-Za-z0-9-]`, ≤ 300 characters. A share
+    of ≤ 2 000 characters must hold exactly one distinct link.
+  - Refused: query, fragment, `%`, `/tee-info/`.
+  - `…SET` and `…SALE` numbers are out of scope and send no request.
+- **Messages:**
+  - „Unter diesem Link gibt es im Shop keinen Tee.": 404/410, a redirect,
+    another 4xx, or a page with no product or another product.
+  - „Diese Shop-Seite kann die App nicht lesen.": robots.txt disallows it,
+    over 5 MB, no breadcrumb, or an unexpected error.
+- **Fetching:**
+  - The link's session never retries, and any stop, the photo's included,
+    stores nothing.
+  - A linked tea is never „Neu".
+  - A number merged into another tea (D-081) opens that tea without a
+    request.
+- **Order:** `CatalogJobs` makes a refresh wait for a link in progress; a
+  link never waits and answers „Gerade läuft ein Abruf". The sanity check
+  treats the first refresh as the first import even after a link.
+- **Share target:** a separate invisible `ShareTeaLinkActivity` (exported,
+  `ACTION_SEND` `text/plain` only). A share never closes the timer; it waits
+  until the tabs show. The link sheet hides during an alert (as D-090).
+- **Paste field:** it is filled from the clipboard only with an accepted
+  link.
+- **A tea already in the catalog** (CAT-17 AC6, code review): when its page
+  can't refresh it without a stop (no tea page, an unreadable page, offline),
+  its detail opens as it was and a toast shows the message. A stop answer
+  (challenge, 429, `Retry-After`, 401/403/5xx) shows the message alone.
+- Storing a tea from a link deletes its skip entry, so a product skipped
+  less than 90 days ago is read by the next refresh, not deleted (code
+  review). The parser version of the latest successful refresh is the last
+  logged row's, not the latest by the clock.
+- A link may be used before the first catalog load.
+
+**Collection and setup (#86, #87, #88, #100).**
+- **Vessels:**
+  - A fresh install seeds the M1 vessels under their new names.
+  - The rename checks only the name.
+  - A database restored without the seed markers gets no vessels (D-075).
+- **Stock correction:**
+  - Input takes a comma or a dot, at most one decimal, 0–9 999,9 g. Finer
+    input is refused, not rounded, and „1.000" is refused.
+  - An unchanged total writes no event.
+  - „Leer" shows below 0,05 g.
+  - The sheet opens at 0,0 for a negative stock, with no autofocus. An alert
+    removes it unsaved.
+  - While a session of this tea is active (also its *Brühen anpassen*), the
+    sheet adds „Die laufende Sitzung zieht beim Beenden noch 5,0 g ab." with
+    its leaf, while stock deduction is on. The arithmetic is unchanged: the
+    session still deducts its leaf at *Sitzung beenden* (code review).
+- **Archiving:**
+  - „im Besitz" counts only teas that aren't archived. The refresher keeps a
+    discontinued catalog tea while any tea, archived ones too, links to it.
+  - A removed tea's catalog detail offers *In Sammlung aufnehmen*, which
+    repurchases the same tea.
+  - The active session (E15) is `active_brew`'s session, READY and FINISHED
+    included; a quick timer blocks nothing.
+  - Undo lasts 8 s, or longer when accessibility recommends it. Closing the
+    picker drops the undo.
+  - TalkBack's custom action shows only for removable teas.
+  - Start's „Zuletzt gebrüht" keeps the removed tea's photo.
+- **Images:** they are in `drawable-nodpi`, picked by the app theme, as for
+  A2, A3 and A5. A8 also fills the catalog's other empty states.
+
 <a id="d-095"></a>
 ### D-095 — Timer top: ink-wash band and tea seal (#102; SCR-05, SCR-07; amends D-058, D-069, D-093 point 2) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
 
@@ -3747,6 +3927,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-29 | D-096: v0.2.1 build decisions (#83–#92, #97, #98, #100, #102): per-step pre-alert details and migration of a running session, *Alarm testen* waits for the Vorwarnton, sounds load at once on change, timer band and seal details, Kräutertee scope (Mate/Lapacho), one-time reset by parser version, herbal view rules, sold-out re-check incl. owned discontinued teas, redirect and page rules, the strict shop-link grammar and its messages, `CatalogJobs` ordering, vessel seed, stock input, archiving rules. 09 §4 updated. |
 | 2026-10-28 | D-095: timer top as an ink-wash band (new asset A13, dark) with the tea photo as a small round seal on a washi disc (multiply blend, type leaf as fallback); the quick timer gets the band without a seal; A4 retires; in v0.2.1 as #102. 03 SCR-05, SCR-07, 09 §4 and `docs/design/assets.md` updated. |
 | 2026-10-28 | D-094: sold-out teas and adding a tea from a shop link (#97, #98) — the shop's sitemap leaves sold-out products out, so known teas missing from it are re-checked once per refresh and kept while their page is still a green or herbal product (CAT-16), and a tea can be fetched from a shop link shared to the app or pasted via *Link einfügen* (CAT-17, share target `ACTION_SEND` `text/plain`); GEN-01 now has four network uses; paginated listings rejected (robots `*/?`). 02, 03, 06, 07, 08, 09 and CLAUDE.md rule 7 updated. |
 | 2026-10-26 | D-093 amended with the PO's spec grilling Q15–Q21 (archived tea in the journal, no downgrades, „Auto · N s", vessel names, herbal filter sheet, empty Kräutertee view, undo snackbar). |

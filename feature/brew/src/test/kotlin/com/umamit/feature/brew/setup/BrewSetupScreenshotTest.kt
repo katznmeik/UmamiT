@@ -7,7 +7,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -18,7 +26,6 @@ import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.picker.PickerTea
 import com.umamit.feature.brew.picker.TeaPickerSheet
 import com.umamit.feature.brew.picker.TeaPickerUiState
@@ -60,7 +67,11 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
             recipeCheckReason = null,
             recipes = listOf(RecipeChip("k", "Kyusu"), RecipeChip("w", "Westlich"), RecipeChip("c", "Kaltaufguss")),
             selectedRecipeId = "k",
-            vessels = listOf(VesselOption("ky", "Kyusu", 250), VesselOption("mug", "Becher mit Sieb", 400)),
+            // Seed names end with their volume, so the row shows the name alone (WARE-03, D-096).
+            vessels = listOf(
+                VesselOption("ky", "Kyusu 250 ml", 250),
+                VesselOption("mug", "Becher mit Sieb 400 ml", 400),
+            ),
             selectedVesselId = "ky",
             method = BrewMethod.KYUSU,
             waterMl = 250,
@@ -74,9 +85,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 PlannedStep(StepKind.INFUSION, 10, 65),
                 PlannedStep(StepKind.INFUSION, 10, 65),
             ),
-            preAlert = PreAlertChoice.Inherit,
-            effectivePreAlertSeconds = 10,
-            preAlertIsDefault = true,
+            preAlertBaseSeconds = 10,
             canSaveToRecipe = false,
             question = null,
             alertKey = null,
@@ -88,9 +97,11 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+    private fun capture(name: String, act: () -> Unit = {}, content: @androidx.compose.runtime.Composable () -> Unit) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { UmamiTheme(darkTheme = dark, reduceMotion = true) { content() } }
+        compose.waitForIdle()
+        act()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
     }
@@ -106,9 +117,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 waterMl = 400,
                 leafGrams = 8.0,
                 canSaveToRecipe = true,
-                preAlert = PreAlertChoice.Seconds(20),
-                effectivePreAlertSeconds = 20,
-                preAlertIsDefault = false,
+                // Changed per step in the Schritte-Sheet: the row reads „20 · 5 · –" (SCR-04, TMR-23).
+                steps = listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 65, preAlertSeconds = 20),
+                    PlannedStep(StepKind.INFUSION, 20, 65),
+                    PlannedStep(StepKind.INFUSION, 10, 65),
+                ),
             ),
         )
     }
@@ -134,6 +148,38 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setupRecipeCheck() = capture("BrewSetup_recipeCheck") {
         BrewSetupScreen(kyusu.copy(recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT))
+    }
+
+    /** „38,0 g übrig" tapped: „Wie viel ist noch da?" on the current stock (BRW-02, INV-03; SCR-04). */
+    @Test
+    fun setupStockSheet() = capture("BrewSetup_stock", act = { tapStock() }) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** A session of this tea runs: the sheet says what it still deducts at *Sitzung beenden* (D-096). */
+    @Test
+    fun setupStockSheetDuringSession() = capture("BrewSetup_stockSession", act = { tapStock() }) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0, sessionLeafGrams = 5.0))
+    }
+
+    /** A total that isn't one: the field says why and *Speichern* is off. */
+    @Test
+    fun setupStockSheetInvalid() = capture(
+        "BrewSetup_stockInvalid",
+        act = {
+            tapStock()
+            compose.onNode(hasSetTextAction()).performTextReplacement("23,45")
+        },
+    ) {
+        BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** At 0 g the header reads „Leer" (INV-05). */
+    @Test
+    fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
+
+    private fun tapStock() {
+        compose.onNodeWithTag(SETUP_STOCK_TAG).performClick()
     }
 
     @Test
@@ -172,6 +218,34 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun pickerEmpty() = capture("TeaPicker_empty") { PickerHost(TeaPickerUiState(loading = false)) }
+
+    /** A long press on a tea: its menu with *Aus Sammlung entfernen* (SCR-03, TEA-04). */
+    @Test
+    fun pickerMenu() = capture("TeaPicker_menu", act = { longPress("Bio Sencha Tanabata") }) {
+        PickerHost(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata), loading = false))
+    }
+
+    /** The tea of the active brew session: greyed out with „Erst die Sitzung beenden" (E15). */
+    @Test
+    fun pickerMenuBlocked() = capture("TeaPicker_menuBlocked", act = { longPress("Bio Sencha Tanabata") }) {
+        PickerHost(
+            TeaPickerUiState(
+                favorites = listOf(hisui),
+                all = listOf(hisui, tanabata.copy(removable = false)),
+                loading = false,
+            ),
+        )
+    }
+
+    /** Removed: the snackbar with *Rückgängig* (D-093 Q21). */
+    @Test
+    fun pickerRemoved() = capture("TeaPicker_removed") {
+        PickerHost(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
+    }
+
+    private fun longPress(name: String) {
+        compose.onAllNodesWithText(name).onLast().performTouchInput { longClick() }
+    }
 
     @androidx.compose.runtime.Composable
     private fun PickerHost(state: TeaPickerUiState) {

@@ -174,7 +174,9 @@ fun brewStart(
     recipePreAlertSeconds = recipePreAlertSeconds,
 )
 
-fun infusion(seconds: Int, tempC: Int = 60) = PlannedStep(StepKind.INFUSION, seconds, tempC)
+/** An infusion with its own [preAlert]: null *Automatisch*, 0 *Aus*, else the lead in seconds (TMR-23, D-093). */
+fun infusion(seconds: Int, tempC: Int = 60, preAlert: Int? = null) =
+    PlannedStep(StepKind.INFUSION, seconds, tempC, preAlert)
 
 fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 

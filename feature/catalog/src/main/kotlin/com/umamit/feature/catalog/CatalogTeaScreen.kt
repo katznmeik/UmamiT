@@ -137,6 +137,8 @@ fun CatalogTeaScreen(
             EmptyState(
                 title = stringResource(R.string.catalog_tea_gone_title),
                 body = stringResource(R.string.catalog_tea_gone_body),
+                illustration = catalogEmptyIllustration(),
+                illustrationTint = null,
             )
         }
 

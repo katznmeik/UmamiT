@@ -4,7 +4,6 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.BrewTimerEngine
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.TimerDisplay
 import com.umamit.core.timer.engine.TimerEvent
@@ -34,12 +33,23 @@ class TimerUiStateTest {
     private fun ui(state: TimerState) = uiStateOf(state, "Gyokuro", now) as TimerUiState.Active
 
     @Test
-    fun `the session's own pre-alert option is published for the Schritte-Sheet (SCR-31)`() {
-        assertThat(ui(ready).preAlert).isEqualTo(PreAlertChoice.Inherit)
+    fun `each step's own pre-alert, the session's B and its long steps are published for the Schritte-Sheet`() {
+        // SCR-31, #92: the sheet shows each step's „Auto · N s" from B, frozen at the start (TMR-23, D-093).
+        val edited = ready.on(TimerEvent.EditSteps(listOf(infusion(60, preAlert = 20), infusion(30, preAlert = 0))))
 
-        val edited = ready.on(TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(20)))
-
-        assertThat(ui(edited).preAlert).isEqualTo(PreAlertChoice.Seconds(20))
+        assertThat(ui(edited).steps.map { it.preAlertSeconds }).containsExactly(20, 0).inOrder()
+        assertThat(ui(edited).preAlertBaseSeconds).isEqualTo(10)
+        assertThat(ui(edited).longStepsOnly).isFalse()
+        val coldBrew = TimerState.Idle.on(
+            TimerEvent.StartSession(
+                sessionId = "c",
+                steps = listOf(infusion(4 * 3_600, tempC = 5)),
+                preAlert = PreAlertSettings.inherited(recipeSeconds = 20, globalSeconds = 10),
+                longStepsOnly = true,
+            ),
+        )
+        assertThat(ui(coldBrew).preAlertBaseSeconds).isEqualTo(20)
+        assertThat(ui(coldBrew).longStepsOnly).isTrue()
     }
 
     @Test

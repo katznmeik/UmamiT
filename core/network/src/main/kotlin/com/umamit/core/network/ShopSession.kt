@@ -9,7 +9,8 @@ import okhttp3.HttpUrl
 
 /**
  * One polite job against the shop (CLAUDE.md rule 7, 08 §2.8, D-050, D-074): the seed photo
- * download (ONB-06), one catalog refresh (CAT-07) or one exact price fetch (CAT-12). Every
+ * download (ONB-06), one catalog refresh (CAT-07), one exact price fetch (CAT-12) or one tea
+ * from a shared or pasted shop link (CAT-17, D-094). Every
  * request goes through the allow-listed [ShopClient] (one connection, ≤ 2 requests/s, honest
  * User-Agent); the session adds what a whole job must honour:
  *
@@ -21,7 +22,9 @@ import okhttp3.HttpUrl
  *   or a network error (offline): the answer becomes [ShopFetch.Stopped] with its [StopCause],
  *   and from then on every [fetch] returns that stop **without a request** — no waiting, no
  *   retry, never an attempt to bypass a challenge. An answer over the size limit is no stop: it
- *   leaves only its URL out ([ShopFetch.TooLarge], D-090).
+ *   leaves only its URL out ([ShopFetch.TooLarge], D-090). A job may ask for one fetch that a
+ *   plain 401/403 (no challenge or block page) leaves only that URL out ([fetch]'s
+ *   `refusalStops`, D-096); every other stop stays a stop.
  * - **Retries** ([NetworkRetry], D-076): only a catalog refresh retries a timeout or a
  *   connection error, after 2, 4 and 8 s, each retry a new call through the client (rate
  *   limited, allow-listed). Stop signals and HTTP errors are never retried; the seed photos and
@@ -55,31 +58,38 @@ class ShopSession private constructor(
     /**
      * Fetches [url] with at most one GET request and returns what the job does with it; an
      * answer over [limit] is a [ShopFetch.TooLarge] (images may be larger than pages, D-091).
+     * With [refusalStops] false, a plain 401/403 is a [ShopFetch.Unavailable] that leaves only
+     * this URL out and the session goes on (D-096: the re-check of a tea already „Nicht mehr im
+     * Sortiment", whose old page must not block every refresh); a challenge or block page, 429,
+     * `Retry-After`, a 5xx and a network error still stop it (08 §2.8).
      *
      * @throws HostNotAllowedException when [url] is not on the allow-list (a programming
      *   error); nothing is sent.
      */
-    suspend fun fetch(url: HttpUrl, limit: BodyLimit = BodyLimit.PAGE): ShopFetch = oneAtATime.withLock {
-        stopCause?.let { return@withLock ShopFetch.Stopped(it) }
-        if (!client.isAllowed(url)) throw HostNotAllowedException(url)
-        if (!withContext(Dispatchers.Default) { robots.isAllowed(url) }) return@withLock ShopFetch.Disallowed
-        val answer = client.getRetrying(url, retry, limit)
-        val stop = answer.stopCause()
-        if (stop != null) {
-            stopCause = stop
-            return@withLock ShopFetch.Stopped(stop)
+    suspend fun fetch(url: HttpUrl, limit: BodyLimit = BodyLimit.PAGE, refusalStops: Boolean = true): ShopFetch =
+        oneAtATime.withLock {
+            stopCause?.let { return@withLock ShopFetch.Stopped(it) }
+            if (!client.isAllowed(url)) throw HostNotAllowedException(url)
+            if (!withContext(Dispatchers.Default) { robots.isAllowed(url) }) return@withLock ShopFetch.Disallowed
+            val answer = client.getRetrying(url, retry, limit)
+            val refusalOnly = !refusalStops && answer is ShopResponse.HttpError && answer.code in REFUSED
+            val stop = answer.stopCause().takeUnless { refusalOnly }
+            if (stop != null) {
+                stopCause = stop
+                return@withLock ShopFetch.Stopped(stop)
+            }
+            when (answer) {
+                is ShopResponse.Success -> ShopFetch.Fetched(answer.contentType, answer.body)
+
+                // A 3xx or 4xx; a 401/403 only when the job asked so (above).
+                is ShopResponse.HttpError -> ShopFetch.Unavailable(answer.code, answer.location)
+
+                is ShopResponse.TooLarge -> ShopFetch.TooLarge(answer.declaredBytes)
+
+                // Both are stops, handled above.
+                is ShopResponse.Blocked, is ShopResponse.NetworkError -> error("unreachable: $answer")
+            }
         }
-        when (answer) {
-            is ShopResponse.Success -> ShopFetch.Fetched(answer.contentType, answer.body)
-
-            is ShopResponse.HttpError -> ShopFetch.Unavailable(answer.code)
-
-            is ShopResponse.TooLarge -> ShopFetch.TooLarge(answer.declaredBytes)
-
-            // Both are stops, handled above.
-            is ShopResponse.Blocked, is ShopResponse.NetworkError -> error("unreachable: $answer")
-        }
-    }
 
     companion object {
         private val MISSING = setOf(404, 410)
@@ -160,8 +170,12 @@ sealed interface ShopFetch {
     /** robots.txt disallows the URL; nothing was sent. */
     data object Disallowed : ShopFetch
 
-    /** A status that leaves only this URL out and the job goes on: a 3xx (never followed), a 404 or another 4xx. */
-    data class Unavailable(val code: Int) : ShopFetch
+    /**
+     * A status that leaves only this URL out and the job goes on: a 3xx (never followed), a 404
+     * or another 4xx. A redirect's target is its [location] (resolved, null without one), which
+     * the job may judge but never requests (CAT-16).
+     */
+    data class Unavailable(val code: Int, val location: HttpUrl? = null) : ShopFetch
 
     /**
      * A 2xx answer over the request's [BodyLimit], left unread (D-090): like [Unavailable], only

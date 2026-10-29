@@ -30,6 +30,10 @@ class DataStoreSettingsRepository @Inject constructor(private val source: Settin
     override val seedPhotosAttempted: Flow<Boolean> = source.seedPhotosAttempted
 
     override suspend fun markSeedPhotosAttempted() = source.markSeedPhotosAttempted()
+
+    override val seedVesselsV2Added: Flow<Boolean> = source.seedVesselsV2Added
+
+    override suspend fun markSeedVesselsV2Added() = source.markSeedVesselsV2Added()
 }
 
 private const val TAG = "UmamiTSettings"

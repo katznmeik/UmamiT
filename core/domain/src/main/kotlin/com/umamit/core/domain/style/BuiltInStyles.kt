@@ -5,6 +5,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.UmamiLevel
 
 /**
@@ -16,6 +17,8 @@ import com.umamit.core.model.UmamiLevel
  * @property gramsPerTeaspoon converts teaspoon amounts of the shop's prose (08 §2.5).
  * @property recipes the style's recipes in 08 §3's order; the first is the default.
  * @property japanese a Japanese tea: its Kyusu row is its default recipe (08 §2.5 step 1).
+ * @property category the tea category of a tea of this style (05 §3.1): green, or herbal for
+ *   `herbal` (v0.2.1, D-093).
  */
 data class TeaStyle(
     val key: String,
@@ -24,6 +27,7 @@ data class TeaStyle(
     val gramsPerTeaspoon: Double,
     val recipes: List<RecipeTemplate>,
     val japanese: Boolean,
+    val category: TeaCategory = TeaCategory.GREEN,
 ) {
     /** The hot recipes: neither cold nor ice brew. */
     val hotRecipes: List<RecipeTemplate> get() = recipes.filter { it.method !in COLD_METHODS }
@@ -43,9 +47,10 @@ data class TeaStyle(
 }
 
 /**
- * The built-in green tea styles of 08 §3 (STY-01, D-076). Temperatures in 5 °C steps; a step
- * without a temperature brews at the recipe's base temperature. The generic styles of other
- * tea categories (white, oolong, …) come with the collection editor (M3).
+ * The built-in green tea styles of 08 §3 (STY-01, D-076) and, from v0.2.1, the catalog's
+ * Kräutertees' `herbal` (D-093). Temperatures in 5 °C steps; a step without a temperature brews
+ * at the recipe's base temperature. The generic styles of other tea categories (white, oolong, …)
+ * come with the collection editor (M3).
  */
 object BuiltInStyles {
     val all: List<TeaStyle> = listOf(
@@ -111,6 +116,16 @@ object BuiltInStyles {
             western(3.0, 80, 120, 150),
             gongfu(5.0, 80, 15, 20, 25, 35, 50),
         ),
+        // The shop's Kräutertees (v0.2.1, D-093 Q5): the mug, boiling, one infusion of 6:00, no cold brew.
+        style(
+            "herbal",
+            UmamiLevel.NONE,
+            HERBAL_FRESHNESS_DAYS,
+            1.5,
+            japanese = false,
+            recipes = arrayOf(western(2.0, 100, 6 * MINUTE)),
+            category = TeaCategory.HERBAL,
+        ),
     )
 
     private val byKey: Map<String, TeaStyle> = all.associateBy { it.key }
@@ -123,6 +138,8 @@ object BuiltInStyles {
 }
 
 private const val HOUR = 3600
+private const val MINUTE = 60
+private const val HERBAL_FRESHNESS_DAYS = 180
 private const val COLD_C = 5
 
 /** A step's duration in seconds and its temperature (null: the base temperature). */
@@ -161,6 +178,7 @@ private fun style(
     teaspoon: Double,
     japanese: Boolean,
     recipes: Array<out RecipeTemplate>,
+    category: TeaCategory = TeaCategory.GREEN,
 ) = TeaStyle(
     key = key,
     umami = umami,
@@ -170,6 +188,7 @@ private fun style(
         recipe.copy(source = RecipeSource.STYLE_DEFAULT, isDefault = index == 0)
     },
     japanese = japanese,
+    category = category,
 )
 
 private fun japanese(key: String, umami: UmamiLevel, freshness: Int, teaspoon: Double, vararg recipes: RecipeTemplate) =

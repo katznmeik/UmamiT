@@ -86,15 +86,16 @@ class ProductionAlertPortTest {
     @Test
     fun `the first tick and alert of a session start sounds loaded before them`() = runTest {
         harness()
-        h.settings.update { it.copy(alertSound = "sanft") }
+        // The chosen Vorwarnton is the tick's sound (SET-26), loaded ahead like it (D-092).
+        h.settings.update { it.copy(alertSound = "sanft", preAlertSound = "klangstab") }
         h.controller.startSession(brewStart(infusion(60)))
-        assertThat(sound.wanted).containsExactly(AlertSound.TICK, AlertSound.SANFT).inOrder()
+        assertThat(sound.wanted).containsExactly(AlertSound.KLANGSTAB, AlertSound.SANFT).inOrder()
 
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(60)
         playAlertToTheEnd()
 
-        assertThat(sound.plays(AlertSound.TICK)).hasSize(1)
+        assertThat(sound.plays(AlertSound.KLANGSTAB)).hasSize(1)
         assertThat(sound.plays(AlertSound.SANFT)).hasSize(5)
         assertThat(sound.loadedOnPlay).isEmpty()
         val started = h.diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.start?.soundLoaded }
@@ -126,6 +127,7 @@ class ProductionAlertPortTest {
     @Test
     fun `the tick is never repeated, however often the pre-alert is delivered`() = runTest {
         harness()
+        h.settings.update { it.copy(preAlertSound = "ting") }
         h.controller.startSession(brewStart(infusion(60)))
         h.controller.send(TimerEvent.Start)
 

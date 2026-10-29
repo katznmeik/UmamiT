@@ -20,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -50,10 +51,10 @@ interface AlertTester {
 /**
  * The production alert player (04 §9; M1-10, D-059): the [RingerModeAlertPlayer]
  * with the device outputs, playing with the stored settings (SET-09 tone,
- * SET-11 vibration, SET-14 alert length) read at the start of every alert,
- * tick and test. [ControllerAlertPort] drives it for the controller, the
- * settings screen through [AlertTester]; both share this one player, so a
- * test never plays over a real alert.
+ * SET-11 vibration, SET-14 alert length, SET-26 pre-alert sound) read at the
+ * start of every alert, tick and test. [ControllerAlertPort] drives it for
+ * the controller, the settings screen through [AlertTester]; both share this
+ * one player, so a test never plays over a real alert.
  *
  * Every call only queues a command and returns at once (the controller calls
  * it inside its event lock). The commands run in order, one at a time, on
@@ -66,8 +67,11 @@ interface AlertTester {
  * (rule 8).
  *
  * While the controller keeps it ready ([keepReady]: a timer is active), the
- * tick and the current tone stay loaded, so a cue only starts its sound
- * (D-092). Each tick and alert logs where its start spent the time
+ * chosen pre-alert sound and the current tone stay loaded, so a cue only
+ * starts its sound (D-092); one changed in the settings meanwhile is loaded at
+ * once (SET-26). The loads run on the loader thread, never as a command here:
+ * a cue queued after a settings change never waits for the new sound to load
+ * (rule 8, D-096). Each tick and alert logs where its start spent the time
  * ([CueStart]).
  */
 @Singleton
@@ -112,6 +116,9 @@ class AlertPlayback internal constructor(
         data object StopTest : Command
 
         class KeepReady(val ready: Boolean) : Command
+
+        /** The tone or the pre-alert sound changed in the settings: load it now if a timer is active. */
+        data object SoundsChanged : Command
     }
 
     /**
@@ -142,8 +149,21 @@ class AlertPlayback internal constructor(
     private val player = RingerModeAlertPlayer(environment, sound, haptics, scheduler) { current }
     private val commands = Channel<Command>(Channel.UNLIMITED)
 
+    /** The controller keeps the sounds ready (a timer is active); read only on [scope]'s thread. */
+    private var keptReady = false
+
+    /** The sounds last asked to stay loaded; read only on [scope]'s thread. */
+    private var prepared: Set<AlertSound> = emptySet()
+
     init {
         scope.launch { for (command in commands) runGuarded(command) }
+        // A tone or Vorwarnton changed in the settings while a timer is active is loaded at once,
+        // not only at the controller's next turn, so the next cue still finds it loaded (D-092,
+        // SET-26). Other settings changes load nothing. The command only asks for the load, which
+        // runs on the loader thread: a cue queued behind it starts at once (rule 8, D-096).
+        scope.launch {
+            latest.filterNotNull().map { it.sounds }.distinctUntilChanged().collect { send(Command.SoundsChanged) }
+        }
     }
 
     /**
@@ -168,11 +188,12 @@ class AlertPlayback internal constructor(
     override fun stopTestAlert() = send(Command.StopTest)
 
     /**
-     * While [ready] (a timer is active), the tick and the current tone stay loaded, so the next
-     * tick or alert only starts its sound; false releases them (D-092). The controller calls it
-     * at the end of every turn, after the turn's own cues. Loading never waits for the settings
-     * file: it takes the tone known now (the defaults before the first read), and a later call
-     * follows a changed tone.
+     * While [ready] (a timer is active), the chosen pre-alert sound (SET-26) and the current tone
+     * stay loaded, so the next tick or alert only starts its sound; false releases them (D-092).
+     * The controller calls it at the end of every turn, after the turn's own cues. Loading never
+     * waits for the settings file: it takes the sounds known now (the defaults before the first
+     * read). A sound changed in the settings while ready is loaded at once, the old one released.
+     * The loads run off the alert thread ([AlertSoundOutput.prepare]), so no cue waits for one.
      */
     fun keepReady(ready: Boolean) = send(Command.KeepReady(ready))
 
@@ -198,7 +219,8 @@ class AlertPlayback internal constructor(
             is Command.PreAlert -> {
                 val begunAtMs = clock().elapsedMs
                 current = settings()
-                val timing = StartTiming(command.sentAtMs, begunAtMs, clock().elapsedMs, AlertSound.TICK in sound.ready)
+                val timing =
+                    StartTiming(command.sentAtMs, begunAtMs, clock().elapsedMs, current.preAlert in sound.ready)
                 player.playPreAlert()
                 logPlayed(AlertCue.PRE_ALERT, command.scheduled, timing)
             }
@@ -221,10 +243,18 @@ class AlertPlayback internal constructor(
 
             Command.StopTest -> player.stopTestAlert()
 
-            // The tone known now, never a wait for the settings file (rule 8).
-            is Command.KeepReady -> sound.prepare(
-                if (command.ready) setOf(AlertSound.TICK, (latest.value ?: current).tone) else emptySet(),
-            )
+            // The pre-alert sound and the tone known now, never a wait for the settings file (rule 8).
+            is Command.KeepReady -> {
+                keptReady = command.ready
+                prepared = if (command.ready) (latest.value ?: current).sounds else emptySet()
+                sound.prepare(prepared)
+            }
+
+            // Only while a timer is active, and only when the sounds really changed.
+            Command.SoundsChanged -> (latest.value ?: current).sounds.takeIf { keptReady && it != prepared }?.let {
+                prepared = it
+                sound.prepare(it)
+            }
         }
     }
 
@@ -265,7 +295,7 @@ class AlertPlayback internal constructor(
                     cue = cue,
                     conditions = conditions,
                     outputs = outputs,
-                    tone = if (cue == AlertCue.PRE_ALERT) AlertSound.TICK.key else current.tone.key,
+                    tone = if (cue == AlertCue.PRE_ALERT) current.preAlert.key else current.tone.key,
                     length = current.length,
                     scheduled = scheduled,
                     start = timing?.cueStart(at.elapsedMs, outputs.sound),

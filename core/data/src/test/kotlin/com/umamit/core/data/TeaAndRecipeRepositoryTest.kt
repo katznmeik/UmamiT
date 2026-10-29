@@ -131,25 +131,43 @@ class TeaAndRecipeRepositoryTest {
     }
 
     @Test
-    fun replacingStepsAndPreAlertPersistsExactlyTheNewListAndValue() = runTest {
+    fun imRezeptSpeichernPersistsExactlyTheNewStepsWithTheirPreAlertsAndKeepsTheRecipesBase() = runTest {
         data.teas.saveTea(tea("t1"))
         data.recipes.saveRecipe(
             recipe(
                 "r1",
                 "t1",
-                steps = List(4) { RecipeStep(StepKind.INFUSION, 30 + it) },
-            ).copy(preAlertSeconds = 10),
+                steps = List(4) { RecipeStep(StepKind.INFUSION, 30 + it, preAlertSeconds = 10) },
+            ).copy(preAlertSeconds = 15),
         )
-        val newSteps = listOf(RecipeStep(StepKind.INFUSION, 75, 65), RecipeStep(StepKind.INFUSION, 20))
+        // *Automatisch*, *Aus* and an explicit value (TMR-23, D-093).
+        val newSteps = listOf(
+            RecipeStep(StepKind.INFUSION, 75, 65, preAlertSeconds = 20),
+            RecipeStep(StepKind.INFUSION, 20),
+            RecipeStep(StepKind.INFUSION, 30, preAlertSeconds = 0),
+        )
 
-        data.recipes.replaceStepsAndPreAlert("r1", newSteps, preAlertSeconds = 0)
+        data.recipes.replaceSteps("r1", newSteps)
 
         val stored = data.recipes.getRecipe("r1")!!
         assertThat(stored.steps).isEqualTo(newSteps)
-        assertThat(stored.preAlertSeconds).isEqualTo(0)
+        // The recipe's B (brew_profile.pre_alert_seconds) is not a step field (D-093).
+        assertThat(stored.preAlertSeconds).isEqualTo(15)
+    }
 
-        data.recipes.replaceStepsAndPreAlert("r1", newSteps, preAlertSeconds = null)
-        assertThat(data.recipes.getRecipe("r1")!!.preAlertSeconds).isNull()
+    @Test
+    fun aSavedRecipeKeepsEachStepsPreAlert() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val steps = listOf(
+            RecipeStep(StepKind.RINSE, 10, preAlertSeconds = 0),
+            RecipeStep(StepKind.INFUSION, 60, preAlertSeconds = 25),
+            RecipeStep(StepKind.INFUSION, 20),
+        )
+
+        data.recipes.saveRecipe(recipe("r1", "t1", steps = steps))
+
+        assertThat(data.recipes.getRecipe("r1")!!.steps.map { it.preAlertSeconds }).containsExactly(0, 25, null)
+            .inOrder()
     }
 
     @Test
@@ -161,7 +179,7 @@ class TeaAndRecipeRepositoryTest {
         assertThat(data.recipes.getRecipe("r1")!!.baseTempC).isEqualTo(60)
         assertThat(data.recipes.getRecipe("r1")!!.steps.single().tempC).isEqualTo(50)
 
-        data.recipes.replaceStepsAndPreAlert("r1", listOf(RecipeStep(StepKind.INFUSION, 60, 53)), null)
+        data.recipes.replaceSteps("r1", listOf(RecipeStep(StepKind.INFUSION, 60, 53)))
         assertThat(data.recipes.getRecipe("r1")!!.steps.single().tempC).isEqualTo(55)
     }
 

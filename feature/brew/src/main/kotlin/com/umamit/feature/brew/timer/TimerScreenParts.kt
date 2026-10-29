@@ -3,7 +3,6 @@ package com.umamit.feature.brew.timer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,23 +13,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,12 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -80,13 +64,10 @@ import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
 
-private val PhotoHeight = 280.dp
-private val PhotoOverlap = 150.dp
 private val TimerPillMinHeight = 72.dp
 private val TimerPillMinWidth = 200.dp
 private val OvertimeDotSize = 10.dp
 private const val PAUSED_RING_ALPHA = 0.6f
-private const val PHOTO_FADE_START = 0.35f
 private const val PLACEHOLDER_TEMPERATURE = 100
 private const val PLACEHOLDER_STEP = 10
 private const val PLACEHOLDER_SECONDS = 600
@@ -101,6 +82,7 @@ internal class TimerBodyArgs(
     val reliabilityProblem: Boolean,
     val onFixReliability: () -> Unit,
     val teaPhoto: Painter?,
+    val teaStyleKey: String?,
 )
 
 @Composable
@@ -109,20 +91,16 @@ internal fun TimerBody(args: TimerBodyArgs) {
     val now = args.now
     val overlays = args.overlays
     val actions = args.actions
-    val teaPhoto = args.teaPhoto
-    Box(modifier = Modifier.fillMaxSize()) {
-        // No photo on the alert surface, but its space stays, so nothing moves when the alert starts.
-        if (teaPhoto != null && !state.alerting) TeaPhoto(teaPhoto)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = UmamiSpacing.Large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TimerTopBar(state, overlays, actions)
-            if (teaPhoto != null) Spacer(Modifier.height(PhotoOverlap))
+    // No band and no seal on the alert surface, but their space stays, so nothing moves when the alert
+    // starts (D-058, D-095). On a short screen the band gives way so the primary control stays on it (D-096).
+    TimerBandPage(
+        withSeal = !state.isQuick,
+        controlHeight = TimerPillMinHeight,
+        band = { if (!state.alerting) TimerBand() },
+        topBar = { TimerTopBar(state, overlays, actions) },
+        seal = { if (!state.alerting) TeaSeal(args.teaPhoto, args.teaStyleKey) },
+        aboveControls = {
+            Spacer(Modifier.height(UmamiSpacing.Small))
             TimerHeader(state)
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerRingArea(state, now, args.nowElapsedMs, actions)
@@ -134,6 +112,8 @@ internal fun TimerBody(args: TimerBodyArgs) {
                 TimerBelowRing(state, now)
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
+        },
+        controls = {
             TimerControls(state, actions)
             // Below the controls, so it never moves them; hidden during the alert.
             if (args.reliabilityProblem && !state.alerting) {
@@ -147,8 +127,8 @@ internal fun TimerBody(args: TimerBodyArgs) {
                     ),
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 /**
@@ -176,69 +156,6 @@ private fun BelowRingSpace() {
         Overtime(PLACEHOLDER_SECONDS)
     }
 }
-
-/** The tea photo at the top, fading into the background (SCR-05). Decorative: the title names the tea. */
-@Composable
-private fun TeaPhoto(photo: Painter) {
-    val background = MaterialTheme.colorScheme.background
-    Image(
-        painter = photo,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(PhotoHeight)
-            .drawWithContent {
-                drawContent()
-                drawRect(Brush.verticalGradient(PHOTO_FADE_START to Color.Transparent, 1f to background))
-            },
-    )
-}
-
-@Composable
-private fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, actions: TimerActions) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = UmamiSpacing.XXSmall),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = actions.back) {
-            Icon(painterResource(UmamiIcons.ArrowBack), contentDescription = stringResource(R.string.brew_timer_back))
-        }
-        Spacer(Modifier.weight(1f))
-        Box {
-            IconButton(onClick = overlays::openMenu) {
-                Icon(
-                    painterResource(UmamiIcons.MoreVert),
-                    contentDescription = stringResource(R.string.brew_timer_more),
-                )
-            }
-            // Not composed once the alert hides it: Material's menu would otherwise keep its popup for the
-            // exit animation over the first frames of the alert (rule 8). A normal close still animates.
-            if (overlays.menuComposable) {
-                DropdownMenu(expanded = overlays.menuShown, onDismissRequest = { overlays.menuOpen = false }) {
-                    state.menuItems().forEach { item ->
-                        DropdownMenuItem(text = { Text(stringResource(item.label)) }, onClick = { actions.menu(item) })
-                    }
-                }
-            }
-        }
-    }
-}
-
-private val TimerMenuItem.label: Int
-    get() = when (this) {
-        TimerMenuItem.AdjustBrew -> R.string.brew_timer_menu_adjust
-        TimerMenuItem.EndStepNow -> R.string.brew_timer_menu_end_step
-        TimerMenuItem.SkipStep -> R.string.brew_timer_menu_skip
-        TimerMenuItem.EditSteps -> R.string.brew_timer_menu_edit_steps
-        TimerMenuItem.AddStep -> R.string.brew_timer_menu_add_step
-        TimerMenuItem.FinishSession -> R.string.brew_timer_menu_finish
-        TimerMenuItem.DiscardSession -> R.string.brew_timer_menu_discard
-        TimerMenuItem.TimerSettings -> R.string.brew_timer_menu_settings
-        TimerMenuItem.CancelQuickTimer -> R.string.brew_quick_cancel
-    }
 
 /** Tea name, „55 °C · Aufguss 1 von 3" and the step dots (TMR-02). */
 @Composable

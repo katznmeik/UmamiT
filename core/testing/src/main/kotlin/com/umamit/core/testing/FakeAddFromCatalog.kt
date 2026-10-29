@@ -16,9 +16,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
- * [AddFromCatalog] on a [FakeCollection]: the owner is the collection tea with the catalog key; an
- * add creates a tea named after the key with an INITIAL event, a repurchase adds a PURCHASE event.
- * Records every [purchases]; [failNext] makes the next add fail.
+ * [AddFromCatalog] on a [FakeCollection]: the owner is the collection tea with the catalog key that is
+ * not archived; an add creates a tea named after the key with an INITIAL event, a repurchase (an
+ * archived tea's brings it back) adds a PURCHASE event. Records every [purchases]; [failNext] makes
+ * the next add fail.
  */
 class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalog {
     val purchases = mutableListOf<CatalogPurchase>()
@@ -29,7 +30,7 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
     var gate: CompletableDeferred<Unit>? = null
 
     override fun observeOwner(catalogKey: String): Flow<String?> = collection.teas.observeTeas()
-        .map { teas -> teas.firstOrNull { it.tea.catalogKey == catalogKey }?.tea?.id }
+        .map { teas -> teas.firstOrNull { it.tea.catalogKey == catalogKey && !it.tea.isArchived }?.tea?.id }
         .distinctUntilChanged()
 
     override suspend fun add(purchase: CatalogPurchase): AddFromCatalogResult {
@@ -39,7 +40,10 @@ class FakeAddFromCatalog(private val collection: FakeCollection) : AddFromCatalo
             return AddFromCatalogResult.Failed
         }
         purchases += purchase
-        val owner = collection.teaRows.value.values.firstOrNull { it.catalogKey == purchase.catalogKey }?.id
+        val linked = collection.teaRows.value.values.firstOrNull { it.catalogKey == purchase.catalogKey }
+        // As on Room: a removed (archived) tea comes back (TEA-04, D-085).
+        if (linked?.isArchived == true) collection.teas.saveTea(linked.copy(isArchived = false))
+        val owner = linked?.id
         val teaId = owner ?: "tea-${purchase.catalogKey}"
         if (owner == null) {
             collection.teas.saveTea(

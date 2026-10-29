@@ -29,7 +29,10 @@ sealed interface RejectionReason {
     /** A session or quick timer is already [active] (GEN-03, TMR-21: „Erst die … -Sitzung beenden?"). */
     data class ActiveTimerExists(val active: SessionKind) : RejectionReason
 
-    /** `editSteps` would change, remove or reorder a started or ended step (SCR-31). */
+    /**
+     * `editSteps` would change, remove or reorder an ended step, or change the started step other than in its
+     * pre-alert (SCR-31, D-093).
+     */
     data object StartedStepChanged : RejectionReason
 
     /** `editSteps` would leave the session without a non-rinse step (PRF-04). */
@@ -150,14 +153,36 @@ object BrewTimerEngine {
     /**
      * The pre-alert lead time N of the current step of [state] in seconds,
      * whether its tick played or not, for the TimerRing glow and the
-     * ProgressStyle point (04 §8.3). Null when the step has none (N = 0, a
-     * step shorter than N + 5 s, a rinse shorter than 15 s, a long step;
-     * TMR-23) and in Idle and Finished, so the UI never re-implements the
-     * skip rules.
+     * ProgressStyle point (04 §8.3). N is the step's own: the explicit value,
+     * else the automatic min(B, 5 · ⌊d / 15⌋) (D-093). Null when the step has
+     * none (N = 0, a step shorter than N + 5 s, a rinse shorter than 15 s, a
+     * long step; TMR-23) and in Idle and Finished, so the UI never
+     * re-implements the rules.
      */
     fun preAlertLeadSeconds(state: TimerState): Int? = (state as? TimerState.OnStep)
         ?.let { it.session.preAlertLeadMs(it.stepIndex) }
         ?.let { (it / MS_PER_SECOND).toInt() }
+
+    /**
+     * The pre-alert lead N in seconds that a planned [step] gets in a session with the base [inheritedSeconds]
+     * (B, the recipe's value ?: the global setting) and, for a cold or ice brew, [longStepsOnly]: the same rules
+     * as [preAlertLeadSeconds] (TMR-23, 04 §5, D-093). Null when the step has none. The Schritte-Sheet shows it
+     * as „Auto · 5 s" and the setup's *Vorwarnung* row lists it per step (SCR-31, SCR-04), so the UI never
+     * re-implements the rules.
+     */
+    fun stepPreAlertLeadSeconds(step: PlannedStep, inheritedSeconds: Int, longStepsOnly: Boolean): Int? =
+        preAlertLeadSecondsOf(
+            step = step,
+            settings = PreAlertSettings(inheritedSeconds),
+            longStep = isLongStepOf(step.plannedSeconds, longStepsOnly),
+        )
+
+    /**
+     * True when a planned [step] is a long step (≥ 10 min, or any step when [longStepsOnly]; TMR-18), which never
+     * has a pre-alert, whatever its choice: the Schritte-Sheet tells it apart from a step too short for its value.
+     */
+    fun isLongStep(step: PlannedStep, longStepsOnly: Boolean): Boolean =
+        isLongStepOf(step.plannedSeconds, longStepsOnly)
 
     /**
      * The wall-clock time at which the running long step of [state] ends, for

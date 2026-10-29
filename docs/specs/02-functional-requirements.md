@@ -373,7 +373,9 @@ its shop link. This is network use (d) of GEN-01.
 - AC5: Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur
   Grün- und Kräutertees)." and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
-  entry.
+  entry. When the page can't refresh it without a stop (offline, no tea at
+  the link, a page the app can't read), the detail opens as it was and the
+  message shows too (D-096).
 - AC7: While a refresh runs → „Gerade läuft ein Abruf – versuch es danach."
   and no request.
 - AC8: A tea fetched this way that is not in the sitemap is kept by the
@@ -543,7 +545,9 @@ and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
   usable volume: „Kyusu 120 ml", „Kyusu 180 ml", „Kyusu 300 ml", „Kyusu
   360 ml" (KYUSU; capacity 150, 220, 350, 420 ml) and „Becher 250 ml",
   „Becher 300 ml", „Becher 350 ml" (MUG_INFUSER; capacity 300, 350,
-  400 ml). The two M1 vessels stay unchanged. A fresh install seeds all
+  400 ml). The two M1 vessels stay; they are named „Kyusu 250 ml" and
+  „Becher mit Sieb 400 ml", renamed on an existing install only while
+  they still carry their M1 names (Q18). A fresh install seeds all
   nine; an existing install gets the seven added once at the first start of
   v0.2.1 (fixed IDs, inserted only when absent, 05 §6
   `seedVesselsV2Added`). Free-size vessels come with M3's editor (WARE-01).

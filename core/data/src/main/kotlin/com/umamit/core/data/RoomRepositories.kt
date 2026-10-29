@@ -15,11 +15,15 @@ import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 
 /** [TeaRepository] on Room (05 §3.1, §3.9). */
 class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val time: WallClock) : TeaRepository {
     override fun observeTeas(): Flow<List<TeaOverview>> = dao.observeAll().map { rows -> rows.map { it.toOverview() } }
+
+    override fun observeOwnedTeas(): Flow<List<TeaOverview>> =
+        dao.observeOwned().map { rows -> rows.map { it.toOverview() } }
 
     override fun observeTea(id: String): Flow<TeaOverview?> = dao.observe(id).map { it?.toOverview() }
 
@@ -57,9 +61,9 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
         dao.save(recipe.toEntity(createdAt, now), recipe.steps.toEntities(recipe.id, now))
     }
 
-    override suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?) {
+    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) {
         val now = time.nowMs()
-        dao.replaceStepsAndPreAlert(recipeId, steps.toEntities(recipeId, now), preAlertSeconds, now)
+        dao.replaceSteps(recipeId, steps.toEntities(recipeId, now), now)
     }
 
     override suspend fun deleteRecipe(id: String) = dao.delete(id)
@@ -94,4 +98,9 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
     }
 
     override suspend fun deleteEvent(id: String) = dao.delete(id)
+
+    override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
+        require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
+        return dao.correctStock(teaId, newTotalGrams, UUID.randomUUID().toString(), time.nowMs())?.toModel()
+    }
 }

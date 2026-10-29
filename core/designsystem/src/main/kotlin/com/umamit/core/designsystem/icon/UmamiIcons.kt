@@ -85,8 +85,18 @@ object UmamiIcons {
     /** A5: the reliability vignette in the dark theme. */
     @DrawableRes val ReliabilityDark = R.drawable.illustration_reliability_dark
 
-    // Photos (03 §3.5, docs/design/assets.md)
+    /** A8: the empty catalog's vignette in the light theme (SCR-19, also the empty *Ratgeber* list). */
+    @DrawableRes val CatalogEmptyLight = R.drawable.illustration_catalog_empty_light
 
-    /** A4: the timer's photo for a tea without one of its own (SCR-05). */
-    @DrawableRes val TimerFallbackPhoto = R.drawable.photo_timer_fallback
+    /** A8: the empty catalog's vignette in the dark theme. */
+    @DrawableRes val CatalogEmptyDark = R.drawable.illustration_catalog_empty_dark
+
+    /** A11: the *Ratgeber* list's header band in the light theme (SCR-20). */
+    @DrawableRes val GuidesHeaderLight = R.drawable.illustration_guides_header_light
+
+    /** A11: the *Ratgeber* header band in the dark theme. */
+    @DrawableRes val GuidesHeaderDark = R.drawable.illustration_guides_header_dark
+
+    /** A13: the timer's ink-wash band, dark only (SCR-05, SCR-07, D-095). */
+    @DrawableRes val TimerBand = R.drawable.illustration_timer_band
 }

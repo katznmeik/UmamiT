@@ -16,6 +16,9 @@ interface TeaRepository {
     /** All teas, archived ones included, sorted by name (case-insensitive). */
     fun observeTeas(): Flow<List<TeaOverview>>
 
+    /** The teas that are not archived, sorted by name: Start and the tea picker (SCR-02, SCR-03, TEA-04). */
+    fun observeOwnedTeas(): Flow<List<TeaOverview>>
+
     fun observeTea(id: String): Flow<TeaOverview?>
 
     suspend fun getTea(id: String): Tea?
@@ -52,8 +55,11 @@ interface RecipeRepository {
      */
     suspend fun saveRecipe(recipe: Recipe)
 
-    /** *Im Rezept speichern* (BRW-02, SCR-31): replaces exactly the steps and the pre-alert. */
-    suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?)
+    /**
+     * *Im Rezept speichern* (BRW-02, SCR-31): replaces exactly the steps, each with its pre-alert (TMR-23,
+     * D-093); the recipe's pre-alert base B stays.
+     */
+    suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>)
 
     suspend fun deleteRecipe(id: String)
 }
@@ -80,6 +86,15 @@ interface StockRepository {
     suspend fun addEvent(event: InventoryEvent)
 
     suspend fun deleteEvent(id: String)
+
+    /**
+     * *Bestand korrigieren* (INV-03, BRW-02, D-093 point 7): sets the tea's stock to [newTotalGrams] (0 = leer)
+     * with one `ADJUSTMENT` event of the difference to the current stock, no price, at now (05 §3.10).
+     * Returns that event, or null when the stock already is [newTotalGrams] (nothing is written).
+     *
+     * @throws IllegalArgumentException when [newTotalGrams] is negative or not a number.
+     */
+    suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent?
 }
 
 /** The settings of 05 §6 (M1 subset) and the seed markers. */
@@ -98,4 +113,9 @@ interface SettingsRepository {
     val seedPhotosAttempted: Flow<Boolean>
 
     suspend fun markSeedPhotosAttempted()
+
+    /** Whether the seven seed vessels of v0.2.1 have been added (WARE-06, D-093); never reset. */
+    val seedVesselsV2Added: Flow<Boolean>
+
+    suspend fun markSeedVesselsV2Added()
 }

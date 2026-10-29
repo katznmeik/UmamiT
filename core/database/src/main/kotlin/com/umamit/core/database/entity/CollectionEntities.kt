@@ -115,7 +115,10 @@ data class BrewProfileEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
 
-/** Table `brew_step` (05 §3.3); `position` is unique per recipe. */
+/**
+ * Table `brew_step` (05 §3.3); `position` is unique per recipe. `pre_alert_seconds` (schema v2, D-093) is the
+ * step's pre-alert: null *Automatisch*, 0 *Aus*, else 5–30 s.
+ */
 @Entity(
     tableName = "brew_step",
     foreignKeys = [
@@ -138,6 +141,7 @@ data class BrewStepEntity(
     @ColumnInfo(name = "note") val note: String?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "pre_alert_seconds") val preAlertSeconds: Int?,
 )
 
 /** Table `vessel` (05 §3.4). */

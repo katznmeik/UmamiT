@@ -1,5 +1,6 @@
 package com.umamit.app
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -38,6 +39,10 @@ import javax.inject.Inject
  * opens, and the lock-screen flags are set at once, before the first frame. Behind
  * the keyguard with the screen off no frame is drawn until the screen turns on, so
  * the flags cannot wait for the navigation (D-064).
+ *
+ * A link shared to the app reaches it from [ShareTeaLinkActivity] ([openTeaLink], CAT-17): the
+ * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
+ * timer or another screen above the tabs is shown, the share waits until the tabs are back (rule 8).
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -58,14 +63,19 @@ class MainActivity : ComponentActivity() {
     /** The notifications' requests to open the timer; a pending one survives a recreation. */
     private val timerRequests = TimerScreenRequests()
 
+    /** Links shared to the app (CAT-17); a pending one survives a recreation. */
+    private val teaLinkShares = TeaLinkShares()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // A recreated activity has seen its intent already, but keeps a request not handled yet (S1, #47).
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
-        } else if (timerRequests.restore(savedInstanceState, intent)) {
-            showTimerOverLockScreen()
+            teaLinkShares.offer(intent)
+        } else {
+            if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
+            teaLinkShares.restore(savedInstanceState)
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
@@ -87,6 +97,8 @@ class MainActivity : ComponentActivity() {
                     timerRequest = timerRequests.token,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
+                    teaLinkShare = teaLinkShares.share,
+                    onTakeTeaLinkShare = teaLinkShares::taken,
                     startScreen = { StartTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
                 )
@@ -98,11 +110,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         openTimerIfAsked(intent)
+        teaLinkShares.offer(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         timerRequests.save(outState)
+        teaLinkShares.save(outState)
     }
 
     private fun openTimerIfAsked(intent: Intent?) {
@@ -117,6 +131,17 @@ class MainActivity : ComponentActivity() {
         val flags = lockScreenFlags(brewTimer.state.value, timerVisible = true)
         setShowWhenLocked(flags.showWhenLocked)
         setTurnScreenOn(flags.turnScreenOn)
+    }
+
+    companion object {
+        /**
+         * Opens the app's own task with the shared [text] (CAT-17), as the timer's notifications
+         * open it (`NEW_TASK | SINGLE_TOP`): a running activity gets it in [onNewIntent].
+         */
+        fun openTeaLink(context: Context, text: String): Intent = Intent(context, MainActivity::class.java)
+            .setAction(TeaLinkShares.ACTION_OPEN_TEA_LINK)
+            .putExtra(TeaLinkShares.EXTRA_TEXT, text)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 }
 

@@ -17,6 +17,22 @@ object SyntheticShop {
         "Sencha" to "/tee/gruener-tee/japan/sencha/",
     )
 
+    /**
+     * A Kräutertee's path in the shop's shape (`/tee/kraeutertee/<sub-section>/`, 08 §2.4 item 3,
+     * D-093): in scope as herbal. The sub-section is invented.
+     */
+    val HERBAL_PATH = listOf(
+        "Tee" to "/tee/",
+        "Kräutertee" to "/tee/kraeutertee/",
+        "Wiesenmischungen" to "/tee/kraeutertee/wiesenmischungen/",
+    )
+
+    /** A fruit tea's path: out of scope, like rooibos (D-093). */
+    val FRUIT_TEA_PATH = listOf(
+        "Tee" to "/tee/",
+        "Früchtetee" to "/tee/fruechtetee/",
+    )
+
     /** A black tea's path: out of scope. */
     val BLACK_TEA_PATH = listOf(
         "Tee" to "/tee/",

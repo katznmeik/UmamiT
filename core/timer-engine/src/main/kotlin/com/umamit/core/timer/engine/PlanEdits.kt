@@ -46,42 +46,56 @@ internal fun addStep(state: TimerState.Active, now: ClockReading): TimerTransiti
 }
 
 /**
- * The Schritte-Sheet's plan and pre-alert (SCR-31). The started or ended
- * prefix must come back unchanged and at least one non-rinse step must stay,
- * else the request is rejected and changes nothing. Brew sessions only.
+ * The Schritte-Sheet's plan, each step with its pre-alert (SCR-31, D-093).
+ * The ended steps must come back unchanged and the started step with only its
+ * pre-alert changed, and at least one non-rinse step must stay, else the
+ * request is rejected and changes nothing. Brew sessions only.
  */
 internal fun editSteps(state: TimerState.Active, event: TimerEvent.EditSteps, now: ClockReading): TimerTransition? {
-    val prefixSize = state.session.startedPrefixSize
+    val prefix = state.session.steps.take(state.session.startedPrefixSize)
     val reason = when {
-        event.steps.take(prefixSize) != state.session.steps.take(prefixSize).map { it.planned } ->
-            RejectionReason.StartedStepChanged
-
+        !keepsStartedSteps(prefix, event.steps) -> RejectionReason.StartedStepChanged
         event.steps.none { it.kind != StepKind.RINSE } -> RejectionReason.NoBrewStepLeft
-
         else -> null
     }
     if (reason != null) return TimerTransition(state, emptyList(), TransitionOutcome.Rejected(reason))
-    return replacePending(state, event.steps.drop(prefixSize), now, state.session.preAlert.with(event.preAlert))
+    // The started step takes its new pre-alert; its row follows with the Persist (05 §3.7).
+    val edited = prefix.mapIndexed { i, step ->
+        if (step.status == StepStatus.STARTED) step.copy(preAlertSeconds = event.steps[i].preAlertSeconds) else step
+    }
+    return replacePending(state, event.steps.drop(prefix.size), now, edited)
 }
 
 /**
- * Replaces the pending suffix of [state]'s plan with [pending] and sets the
- * session's [preAlert]. A waiting state re-points: Ready waits for the first
- * pending step, Finished when none is left; a started step keeps its state.
- * Null for the quick timer.
+ * Whether [requested] starts with the started or ended [prefix]: the ended steps as they are, the started step
+ * with its planned values and any pre-alert (its only field an edit may change; SCR-31, D-093).
+ */
+private fun keepsStartedSteps(prefix: List<SessionStep>, requested: List<PlannedStep>): Boolean =
+    requested.size >= prefix.size && prefix.indices.all { i ->
+        val current = prefix[i].planned
+        val asked = if (prefix[i].status == StepStatus.STARTED) {
+            requested[i].copy(preAlertSeconds = current.preAlertSeconds)
+        } else {
+            requested[i]
+        }
+        asked == current
+    }
+
+/**
+ * Replaces the pending suffix of [state]'s plan with [pending], after the
+ * started or ended [prefix] (by default unchanged). A waiting state re-points:
+ * Ready waits for the first pending step, Finished when none is left; a
+ * started step keeps its state. Null for the quick timer.
  */
 private fun replacePending(
     state: TimerState.Active,
     pending: List<PlannedStep>,
     now: ClockReading,
-    preAlert: PreAlertSettings = state.session.preAlert,
+    prefix: List<SessionStep> = state.session.steps.take(state.session.startedPrefixSize),
 ): TimerTransition? {
     val sessionId = state.session.brewSessionId ?: return null
-    val fromIndex = state.session.startedPrefixSize
-    val session = state.session.touched(now).copy(
-        steps = state.session.steps.take(fromIndex) + pending.map { it.asPending() },
-        preAlert = preAlert,
-    )
+    val fromIndex = prefix.size
+    val session = state.session.touched(now).copy(steps = prefix + pending.map { it.asPending() })
     val newState = when (state) {
         is TimerState.Ready -> waitingFor(session, state.readySinceWallMs)
 
@@ -137,4 +151,5 @@ internal fun waitingFor(session: TimerSession, readySinceWallMs: Long): TimerSta
 private fun TimerState.Active.pendingSuffix(): List<PlannedStep> =
     session.steps.drop(session.startedPrefixSize).map { it.planned }
 
-private fun PlannedStep.asPending() = SessionStep(kind, plannedSeconds, tempC, StepStatus.PENDING, record = null)
+private fun PlannedStep.asPending() =
+    SessionStep(kind, plannedSeconds, tempC, StepStatus.PENDING, record = null, preAlertSeconds = preAlertSeconds)

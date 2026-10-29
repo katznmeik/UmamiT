@@ -14,7 +14,6 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import kotlinx.coroutines.Dispatchers
@@ -94,13 +93,13 @@ class BrewSetupViewModelTest {
         val vm = viewModel()
         val steps = vm.ready.steps
 
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
         assertThat(vm.ready.waterMl).isEqualTo(400)
         assertThat(vm.ready.leafGrams).isEqualTo(8.0)
         assertThat(vm.ready.steps).isEqualTo(steps)
         assertThat(vm.ready.kettle.tempC).isEqualTo(65)
 
-        vm.selectVessel(vm.ready.vessel("Kyusu"))
+        vm.selectVessel(vm.ready.vessel("Kyusu 250 ml"))
         assertThat(vm.ready.waterMl).isEqualTo(250)
         assertThat(vm.ready.leafGrams).isEqualTo(5.0)
     }
@@ -113,7 +112,7 @@ class BrewSetupViewModelTest {
         assertThat(vm.ready.leafGrams).isEqualTo(4.0)
         assertThat(vm.ready.waterMl).isEqualTo(400)
 
-        vm.selectVessel(vm.ready.vessel("Kyusu"))
+        vm.selectVessel(vm.ready.vessel("Kyusu 250 ml"))
         assertThat(vm.ready.leafGrams).isEqualTo(2.5)
         assertThat(vm.ready.steps).containsExactly(
             PlannedStep(StepKind.INFUSION, 60, 70),
@@ -145,7 +144,7 @@ class BrewSetupViewModelTest {
         val vm = viewModel()
         assertThat(vm.ready.canSaveToRecipe).isFalse()
 
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
         assertThat(vm.ready.canSaveToRecipe).isTrue()
 
         vm.saveToRecipe()
@@ -168,20 +167,58 @@ class BrewSetupViewModelTest {
     }
 
     @Test
-    fun `the Schritte-Sheet's steps and pre-alert apply to this session - its save writes the recipe`() = runTest {
+    fun `the Schritte-Sheet's steps and pre-alerts apply to this session - its save writes them into the recipe`() =
+        runTest {
+            val vm = viewModel()
+            val steps = listOf(
+                PlannedStep(StepKind.INFUSION, 90, 70, preAlertSeconds = 20),
+                PlannedStep(StepKind.INFUSION, 30, 70, preAlertSeconds = 20),
+            )
+
+            vm.applySteps(TimerEvent.EditSteps(steps))
+            assertThat(vm.ready.steps).containsExactlyElementsIn(steps).inOrder()
+            assertThat(vm.ready.canSaveToRecipe).isTrue()
+
+            vm.saveStepsToRecipe(SaveToRecipeRequest(vm.ready.steps))
+            val saved = collection.recipes.getRecipe(vm.ready.selectedRecipeId!!)!!
+            assertThat(saved.steps.map { it.durationSeconds to it.preAlertSeconds })
+                .containsExactly(90 to 20, 30 to 20).inOrder()
+            // The recipe's base B stays; each step carries its own (TMR-23, D-093).
+            assertThat(saved.preAlertSeconds).isNull()
+            assertThat(viewModel().ready.steps.map { it.preAlertSeconds }).containsExactly(20, 20)
+        }
+
+    @Test
+    fun `the pre-alert base B the steps show is the recipe's value, else the global setting (TMR-23)`() = runTest {
         val vm = viewModel()
-        assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(10)
-        assertThat(vm.ready.preAlert).isEqualTo(PreAlertChoice.Inherit)
+        assertThat(vm.ready.preAlertBaseSeconds).isEqualTo(10)
 
-        vm.applySteps(TimerEvent.EditSteps(listOf(PlannedStep(StepKind.INFUSION, 90, 70)), PreAlertChoice.Seconds(20)))
-        assertThat(vm.ready.steps).containsExactly(PlannedStep(StepKind.INFUSION, 90, 70))
-        assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(20)
-        assertThat(vm.ready.canSaveToRecipe).isTrue()
+        settings.update { it.copy(preAlertSeconds = 15) }
+        assertThat(vm.ready.preAlertBaseSeconds).isEqualTo(15)
 
-        vm.saveStepsToRecipe(SaveToRecipeRequest(vm.ready.steps, PreAlertChoice.Seconds(20)))
-        val saved = collection.recipes.getRecipe(vm.ready.selectedRecipeId!!)!!
-        assertThat(saved.steps.map { it.durationSeconds }).containsExactly(90)
-        assertThat(saved.preAlertSeconds).isEqualTo(20)
+        val recipe = collection.recipes.getRecipe(vm.ready.selectedRecipeId!!)!!
+        collection.recipes.saveRecipe(recipe.copy(preAlertSeconds = 20))
+        assertThat(vm.ready.preAlertBaseSeconds).isEqualTo(20)
+        // The session starts with the same B (04 §5): the recipe's value goes to the controller.
+        vm.startBrew()
+        assertThat(starter.starts.single().recipePreAlertSeconds).isEqualTo(20)
+    }
+
+    @Test
+    fun `Bruehen starten hands each step's own pre-alert to the controller (TMR-23)`() = runTest {
+        val vm = viewModel()
+        vm.applySteps(
+            TimerEvent.EditSteps(
+                listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 65, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 20, 65),
+                ),
+            ),
+        )
+
+        vm.startBrew()
+
+        assertThat(starter.starts.single().steps.map { it.preAlertSeconds }).containsExactly(0, null).inOrder()
     }
 
     @Test
@@ -197,7 +234,7 @@ class BrewSetupViewModelTest {
     @Test
     fun `Bruehen starten hands the controller the snapshot and the plan, then opens the timer (TMR-01)`() = runTest {
         val vm = viewModel()
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
 
         vm.startBrew()
 
@@ -205,7 +242,7 @@ class BrewSetupViewModelTest {
         assertThat(start.snapshot.teaId).isEqualTo(SeedData.HISUI_TEA_ID)
         assertThat(start.snapshot.teaName).isEqualTo("Bio Sencha Hisui")
         assertThat(start.snapshot.profileName).isEqualTo("Kyusu")
-        assertThat(start.snapshot.vesselName).isEqualTo("Becher mit Sieb")
+        assertThat(start.snapshot.vesselName).isEqualTo("Becher mit Sieb 400 ml")
         assertThat(start.snapshot.leafGrams).isEqualTo(8.0)
         assertThat(start.snapshot.waterMl).isEqualTo(400)
         assertThat(start.snapshot.baseTempC).isEqualTo(65)

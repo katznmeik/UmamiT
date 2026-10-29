@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The three network uses of GEN-01, all to www.tee-kontor-kiel.de through ShopClient (06 §5.7, D-036). -->
+<!-- The four network uses of GEN-01, all to www.tee-kontor-kiel.de through ShopClient (06 §5.7, D-036, D-094). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />

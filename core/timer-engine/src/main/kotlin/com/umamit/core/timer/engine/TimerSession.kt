@@ -6,12 +6,20 @@ import java.time.ZoneId
 
 /**
  * One step as planned by the recipe snapshot or the Schritte-Sheet (04 §1):
- * its [kind], [plannedSeconds] and optional temperature [tempC] (a multiple
- * of 5 °C, GEN-12; the engine does not use it).
+ * its [kind], [plannedSeconds], optional temperature [tempC] (a multiple
+ * of 5 °C, GEN-12; the engine does not use it) and its own pre-alert
+ * [preAlertSeconds] (TMR-23, D-093): null *Automatisch*, 0 *Aus*, else the
+ * lead in seconds (5–30 s in the sheet).
  */
-data class PlannedStep(val kind: StepKind, val plannedSeconds: Int, val tempC: Int?) {
+data class PlannedStep(
+    val kind: StepKind,
+    val plannedSeconds: Int,
+    val tempC: Int?,
+    val preAlertSeconds: Int? = null,
+) {
     init {
         require(plannedSeconds > 0) { "plannedSeconds must be positive, was $plannedSeconds" }
+        require((preAlertSeconds ?: 0) >= 0) { "a pre-alert is never negative, was $preAlertSeconds" }
     }
 }
 
@@ -56,82 +64,103 @@ data class StepRecord(
     val overtimeAutoAck: Boolean,
 )
 
-/** One step of the session plan: the [PlannedStep] values plus its [status] and, once ended, its [record]. */
+/**
+ * One step of the session plan: the [PlannedStep] values, its own pre-alert [preAlertSeconds] (null
+ * *Automatisch*, 0 *Aus*; `session_step.pre_alert_seconds`), plus its [status] and, once ended, its [record].
+ */
 data class SessionStep(
     val kind: StepKind,
     val plannedSeconds: Int,
     val tempC: Int?,
     val status: StepStatus,
     val record: StepRecord?,
+    val preAlertSeconds: Int? = null,
 ) {
     init {
         require(plannedSeconds > 0) { "plannedSeconds must be positive, was $plannedSeconds" }
+        require((preAlertSeconds ?: 0) >= 0) { "a pre-alert is never negative, was $preAlertSeconds" }
     }
 
-    /** The planned values of this step. */
-    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC)
+    /** The planned values of this step, its pre-alert included. */
+    val planned: PlannedStep get() = PlannedStep(kind, plannedSeconds, tempC, preAlertSeconds)
 }
 
 /**
- * The pre-alert lead time of a session (TMR-23, 04 §5): the session's own
- * [sessionOverrideSeconds] from the Schritte-Sheet (null: *Wie Einstellung*),
- * else [inheritedSeconds], which is the recipe value or else the global
- * setting, frozen at the start. The effective value is thus computable without
- * I/O, and a later change of the recipe or the settings never changes an
- * active session. 0 means off.
+ * The pre-alert base of a session (TMR-23, 04 §5): [inheritedSeconds] is the
+ * base B of the automatic rule, the recipe value or else the global setting,
+ * frozen at the start (`active_brew.pre_alert_inherited_seconds`). Each step
+ * carries its own choice ([SessionStep.preAlertSeconds], from umamit.db v2,
+ * D-093), so each step's lead is computable without I/O, and a later change of
+ * the recipe or the settings never changes an active session. 0 means off.
  */
-data class PreAlertSettings(val sessionOverrideSeconds: Int?, val inheritedSeconds: Int) {
+data class PreAlertSettings(val inheritedSeconds: Int) {
     init {
-        require(inheritedSeconds >= 0 && (sessionOverrideSeconds ?: 0) >= 0) { "pre-alert seconds are never negative" }
+        require(inheritedSeconds >= 0) { "pre-alert seconds are never negative" }
     }
 
-    /** N of 04 §5: session override ?: recipe ?: global. */
-    val effectiveSeconds: Int get() = sessionOverrideSeconds ?: inheritedSeconds
+    /**
+     * N of a step of [plannedSeconds] with its own choice [stepSeconds], before the skip rules (04 §5, D-093):
+     * an explicit value as set (0: *Aus*), else (*Automatisch*) N = min(B, 5 · ⌊d / 15⌋), a third of the step
+     * rounded down to whole 5 s, never more than B.
+     */
+    internal fun leadSecondsFor(plannedSeconds: Int, stepSeconds: Int?): Int = stepSeconds
+        ?: minOf(inheritedSeconds, AUTO_LEAD_UNIT_SECONDS * (plannedSeconds / AUTO_LEAD_PART_SECONDS))
 
     companion object {
         /** `preAlertSeconds` default (05 §6). */
         const val DEFAULT_GLOBAL_SECONDS = 10
 
+        /** The automatic N is a whole multiple of 5 s (TMR-23, D-093). */
+        private const val AUTO_LEAD_UNIT_SECONDS = 5
+
+        /** The automatic N grows by one unit per 15 s of the step: a third of it (TMR-23, D-093). */
+        private const val AUTO_LEAD_PART_SECONDS = 15
+
         /** The settings at the start of a session: the recipe's [recipeSeconds] (null: not set) ?: [globalSeconds]. */
-        fun inherited(recipeSeconds: Int?, globalSeconds: Int) =
-            PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = recipeSeconds ?: globalSeconds)
+        fun inherited(recipeSeconds: Int?, globalSeconds: Int) = PreAlertSettings(recipeSeconds ?: globalSeconds)
     }
 }
 
-/** The pre-alert selector of the Schritte-Sheet (SCR-31), for this session only. */
+/**
+ * A step's pre-alert choice in the Schritte-Sheet (SCR-31, TMR-23), for this session only; stored as
+ * [explicitSeconds] with the step (`pre_alert_seconds`: null, 0 or the lead).
+ */
 sealed interface PreAlertChoice {
 
-    /** *Wie Einstellung*: no session override; the recipe or global value applies. */
-    data object Inherit : PreAlertChoice
+    /** The value stored with a step: null for *Automatisch*, 0 for *Aus*, else the lead in seconds. */
+    val explicitSeconds: Int?
 
-    /** *Aus*: no pre-alert in this session. */
-    data object Off : PreAlertChoice
+    /**
+     * *Automatisch* (shown with its lead, „Auto · 5 s", SCR-31): no explicit value; the step gets the automatic N
+     * from the recipe or global value B (TMR-23, D-093).
+     */
+    data object Inherit : PreAlertChoice {
+        override val explicitSeconds: Int? get() = null
+    }
 
-    /** A lead time of [seconds] (5–30 s in the sheet). */
+    /** *Aus*: no pre-alert for the step. */
+    data object Off : PreAlertChoice {
+        override val explicitSeconds: Int get() = 0
+    }
+
+    /** A lead time of [seconds] (5–30 s in the sheet), as set (E7 still applies). */
     data class Seconds(val seconds: Int) : PreAlertChoice {
         init {
             require(seconds > 0) { "a pre-alert lead time is positive, was $seconds; use Off" }
         }
+
+        override val explicitSeconds: Int get() = seconds
     }
 
     companion object {
-        /** The choice the sheet shows for a session with [settings]. */
-        fun of(settings: PreAlertSettings): PreAlertChoice = when (val override = settings.sessionOverrideSeconds) {
+        /** The choice a step with the stored value [explicitSeconds] has (null *Automatisch*, 0 *Aus*). */
+        fun of(explicitSeconds: Int?): PreAlertChoice = when (explicitSeconds) {
             null -> Inherit
             0 -> Off
-            else -> Seconds(override)
+            else -> Seconds(explicitSeconds)
         }
     }
 }
-
-/** These settings with the session override that [choice] stands for. */
-internal fun PreAlertSettings.with(choice: PreAlertChoice): PreAlertSettings = copy(
-    sessionOverrideSeconds = when (choice) {
-        PreAlertChoice.Inherit -> null
-        PreAlertChoice.Off -> 0
-        is PreAlertChoice.Seconds -> choice.seconds
-    },
-)
 
 /** What the active timer is: a brew session with a journal row, or the quick timer (04 §10). */
 sealed interface SessionKind {
@@ -182,7 +211,7 @@ data class TimerSession(
     internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs, demoted = false)
 
     /** Step [index] is a long step (≥ 10 min, or any step of a cold or ice brew; TMR-18, 04 §1). */
-    internal fun isLongStep(index: Int): Boolean = longStepsOnly || steps[index].plannedSeconds >= LONG_STEP_SECONDS
+    internal fun isLongStep(index: Int): Boolean = isLongStepOf(steps[index].plannedSeconds, longStepsOnly)
 
     /** This session with step [index] replaced by [transform] of it. */
     internal fun withStep(index: Int, transform: (SessionStep) -> SessionStep): TimerSession =

@@ -80,7 +80,9 @@ internal fun CatalogSearchField(filter: CatalogFilter, onFilterChange: (FilterCh
 
 /**
  * The frequent filters as chips (SCR-19, D-076): *Filter* opens the sheet with the rest, then
- * „Pur", „Vorrätig" (both on in the default view, D-073), „Bio", „Neu" and „Im Besitz".
+ * *Kräutertee* (v0.2.1, D-093: the Kräutertees instead of the green teas, and back), „Pur" (not
+ * in the Kräutertee view, Q14), „Vorrätig" (both on in the default view, D-073), „Bio", „Neu"
+ * and „Im Besitz".
  */
 @Composable
 internal fun CatalogFilterChips(
@@ -114,9 +116,14 @@ internal fun CatalogFilterChips(
                 )
             },
         )
-        CatalogChip(stringResource(R.string.catalog_filter_pure), filter.flavour == FlavourFilter.PURE) {
-            onFilterChange {
-                it.copy(flavour = if (it.flavour == FlavourFilter.PURE) FlavourFilter.ALL else FlavourFilter.PURE)
+        CatalogChip(stringResource(R.string.catalog_filter_herbal), filter.herbal) {
+            onFilterChange { it.withHerbal(!it.herbal) }
+        }
+        if (!filter.herbal) {
+            CatalogChip(stringResource(R.string.catalog_filter_pure), filter.flavour == FlavourFilter.PURE) {
+                onFilterChange {
+                    it.copy(flavour = if (it.flavour == FlavourFilter.PURE) FlavourFilter.ALL else FlavourFilter.PURE)
+                }
             }
         }
         switches.forEach { option ->

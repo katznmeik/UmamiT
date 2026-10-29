@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -74,10 +73,9 @@ fun GuideListRoute(
 }
 
 /**
- * The stateless *Ratgeber* list (CAT-09): the header illustration A11 (the placeholder landscape
- * until the PO's image arrives, docs/design/assets.md), a line on what it is, then the guides by
- * title with their hero as thumbnail and their date. [image] loads a hero file; tests pass
- * placeholder images.
+ * The stateless *Ratgeber* list (CAT-09): the header illustration A11 (docs/design/assets.md),
+ * a line on what it is, then the guides by title with their hero as thumbnail and their date.
+ * [image] loads a hero file; tests pass placeholder images.
  */
 @Composable
 fun GuideListScreen(
@@ -96,23 +94,26 @@ fun GuideListScreen(
     ) {
         if (state.loading) return@ScreenScaffold
         if (state.guides.isEmpty()) {
-            // Its own illustration stands in for the header.
+            // Its own illustration (A8) stands in for the header.
             EmptyState(
                 title = stringResource(R.string.guides_empty_title),
                 body = stringResource(R.string.guides_empty_body),
+                illustration = catalogEmptyIllustration(),
+                illustrationTint = null,
             )
             return@ScreenScaffold
         }
-        // A11 comes from the PO (docs/design/assets.md); the placeholder landscape stands in.
+        // A11, edge to edge as the Start header (A3): its paper is the theme's background and its
+        // top and bottom fade out, so the band has no visible border.
         Image(
-            painter = painterResource(UmamiIcons.LandscapePlaceholder),
+            painter = painterResource(
+                if (UmamiTheme.isDark) UmamiIcons.GuidesHeaderDark else UmamiIcons.GuidesHeaderLight,
+            ),
             contentDescription = null,
-            contentScale = ContentScale.Fit,
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(HEADER_RATIO)
-                .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
+                .aspectRatio(HEADER_RATIO),
         )
         Text(
             text = stringResource(R.string.guides_intro),
@@ -189,6 +190,8 @@ fun GuideArticleScreen(
             EmptyState(
                 title = stringResource(R.string.guide_gone_title),
                 body = stringResource(R.string.guide_gone_body),
+                illustration = catalogEmptyIllustration(),
+                illustrationTint = null,
             )
         }
 
@@ -304,6 +307,7 @@ private fun shopGuidePage(articleUrl: String, slug: String): String? = try {
     null
 }
 
+/** The A11 header band's aspect ratio (the WebP is 1536 × 640). */
 private const val HEADER_RATIO = 2.4f
 private const val HERO_RATIO = 16f / 9f
 private const val BACK_SURFACE_ALPHA = 0.92f
