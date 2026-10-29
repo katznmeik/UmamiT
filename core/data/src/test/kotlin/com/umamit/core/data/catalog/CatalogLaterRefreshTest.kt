@@ -168,6 +168,15 @@ class CatalogLaterRefreshTest {
 
     private fun paths() = requests.map { it.url.encodedPath }
 
+    /**
+     * The teas at [paths] left the shop's range: out of the sitemap and their pages gone (404),
+     * so the re-check of teas missing from the sitemap (CAT-16) finds them gone.
+     */
+    private fun leaveTheRange(vararg paths: String) {
+        listed -= paths.toSet()
+        paths.forEach { path -> routes[path] = { MockResponse.Builder().code(404).build() } }
+    }
+
     /** The first refresh, a day before the later one. */
     private suspend fun TestScope.firstRefresh() {
         val first = refresher().refresh()
@@ -188,7 +197,7 @@ class CatalogLaterRefreshTest {
             price = "19,50 €",
             photoPath = NEW_GYOKURO_PHOTO,
         )
-        listed -= listOf(KABUSE, BANCHA)
+        leaveTheRange(KABUSE, BANCHA)
         product(
             SHINCHA,
             "Frühlingshauch Shincha – 100g",
@@ -208,18 +217,21 @@ class CatalogLaterRefreshTest {
             ),
         )
         // 08 §2.4: robots.txt, the sitemap and its url set; the known green parents (the split
-        // tea's two numbers included) and the new base number; no page on the skip list; only the
-        // new and the changed photo.
+        // tea's two numbers included) and the new base number; no page on the skip list; once the
+        // page of each known tea missing from the sitemap (CAT-16); only the new and the changed photo.
         val sitemap = listOf(ROBOTS, SITEMAP, SITEMAP_GZ)
         val knownGreenParents = listOf(SENCHA, GYOKURO, SPLIT_30, SPLIT_100)
         val newBaseNumbers = listOf(SHINCHA)
+        val missingFromTheSitemap = listOf(KABUSE, BANCHA)
         val changedPhotos = listOf(NEW_GYOKURO_PHOTO.substringBefore('?'), photoRoute("shincha"))
-        assertThat(paths()).containsExactlyElementsIn(sitemap + knownGreenParents + newBaseNumbers + changedPhotos)
-        assertThat(paths()).hasSize(10)
+        assertThat(paths()).containsExactlyElementsIn(
+            sitemap + knownGreenParents + newBaseNumbers + missingFromTheSitemap + changedPhotos,
+        )
+        assertThat(paths()).hasSize(12)
         assertThat(
             diagnostics.entries().map { it.message }.filter {
-                "5 to fetch (4 known green, 1 new, 0 to check again)" in
-                    it
+                "5 to fetch (4 known green, 1 new, 0 to check again), " +
+                    "2 known missing from the sitemap (2 to fetch once)" in it
             },
         )
             .hasSize(1)
@@ -268,7 +280,7 @@ class CatalogLaterRefreshTest {
     @Test
     fun aDiscontinuedTeaIsHiddenAndKeptOnlyWhileTheCollectionLinksToIt() = runTest {
         firstRefresh()
-        listed -= listOf(KABUSE, BANCHA)
+        leaveTheRange(KABUSE, BANCHA)
 
         refresher().refresh()
 
@@ -300,10 +312,10 @@ class CatalogLaterRefreshTest {
     fun aDiscontinuedTeaBackInTheShopIsInTheRangeAgainAndKeepsItsFirstSighting() = runTest {
         val firstSeen = clock.wall
         firstRefresh()
-        listed -= KABUSE
+        leaveTheRange(KABUSE)
         refresher().refresh()
         clock.advanceBy(TimeUnit.DAYS.toMillis(1))
-        listed += KABUSE
+        product(KABUSE, "Schattenblatt Kabusecha – 100g", photo = "kabuse")
 
         val outcome = refresher().refresh() as CatalogRefreshOutcome.Success
 

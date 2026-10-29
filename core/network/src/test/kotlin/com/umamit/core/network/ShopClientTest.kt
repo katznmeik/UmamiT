@@ -347,9 +347,27 @@ class ShopClientTest {
         server.enqueue(MockResponse.Builder().code(302).addHeader("Location", "https://example.com/a.jpg").build())
         val client = testClient()
 
-        assertThat(client.get(server.url("/a"))).isEqualTo(ShopResponse.HttpError(302))
-        assertThat(client.get(server.url("/c"))).isEqualTo(ShopResponse.HttpError(301))
-        assertThat(client.get(server.url("/d"))).isEqualTo(ShopResponse.HttpError(302))
+        // Each answer names its target (CAT-16 judges a re-checked page by it), never followed.
+        assertThat(client.get(server.url("/a"))).isEqualTo(ShopResponse.HttpError(302, server.url("/b")))
+        assertThat(client.get(server.url("/c")))
+            .isEqualTo(ShopResponse.HttpError(301, "http://example.com/a.jpg".toHttpUrl()))
+        assertThat(client.get(server.url("/d")))
+            .isEqualTo(ShopResponse.HttpError(302, "https://example.com/a.jpg".toHttpUrl()))
+        assertThat(server.requestCount).isEqualTo(3)
+    }
+
+    @Test
+    fun aRedirectsLocationIsResolvedAgainstTheRequestAndOnlyARedirectHasOne() = runTest {
+        server.enqueue(MockResponse.Builder().code(308).addHeader("Location", "../neu/XY0100").build())
+        server.enqueue(MockResponse.Builder().code(301).build())
+        server.enqueue(MockResponse.Builder().code(404).addHeader("Location", "/elsewhere").build())
+        val client = testClient()
+
+        assertThat(
+            client.get(server.url("/alt/XY0100")),
+        ).isEqualTo(ShopResponse.HttpError(308, server.url("/neu/XY0100")))
+        assertThat(client.get(server.url("/a"))).isEqualTo(ShopResponse.HttpError(301, location = null))
+        assertThat(client.get(server.url("/b"))).isEqualTo(ShopResponse.HttpError(404, location = null))
         assertThat(server.requestCount).isEqualTo(3)
     }
 

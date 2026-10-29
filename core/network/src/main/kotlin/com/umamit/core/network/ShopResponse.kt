@@ -1,5 +1,6 @@
 package com.umamit.core.network
 
+import okhttp3.HttpUrl
 import okhttp3.Response
 import java.io.IOException
 
@@ -14,8 +15,12 @@ sealed interface ShopResponse {
      */
     data class Blocked(val reason: BlockReason) : ShopResponse
 
-    /** Any other status, including a 3xx (redirects are never followed). */
-    data class HttpError(val code: Int) : ShopResponse
+    /**
+     * Any other status, including a 3xx (redirects are never followed). A redirect names its
+     * target in [location]: its `Location` resolved against the request's URL, null when it has
+     * none (or for any other status). Only for the job to judge it (CAT-16); never requested.
+     */
+    data class HttpError(val code: Int, val location: HttpUrl? = null) : ShopResponse
 
     /**
      * A 2xx answer whose body is over the request's [BodyLimit], left unread (D-090): [declaredBytes]
@@ -111,7 +116,7 @@ private fun classifyRead(response: Response, maxBytes: Long): ShopResponse {
         code in REFUSALS && body.hasChallengeMarker() -> ShopResponse.Blocked(BlockReason.CHALLENGE)
         code in REFUSALS && response.isFromCloudflare() -> ShopResponse.Blocked(BlockReason.BLOCKED)
         response.isSuccessful -> ShopResponse.Success(code, response.header("Content-Type"), body)
-        else -> ShopResponse.HttpError(code)
+        else -> ShopResponse.HttpError(code, response.redirectTarget())
     }
 }
 
@@ -119,8 +124,12 @@ private fun classifyRead(response: Response, maxBytes: Long): ShopResponse {
 private fun tooLarge(response: Response, declaredBytes: Long?): ShopResponse = when {
     response.code in REFUSALS && response.isFromCloudflare() -> ShopResponse.Blocked(BlockReason.BLOCKED)
     response.isSuccessful -> ShopResponse.TooLarge(declaredBytes)
-    else -> ShopResponse.HttpError(response.code)
+    else -> ShopResponse.HttpError(response.code, response.redirectTarget())
 }
+
+/** A redirect's `Location` resolved against the request's URL (never followed); null for any other answer. */
+private fun Response.redirectTarget(): HttpUrl? =
+    if (isRedirect) header("Location")?.let { request.url.resolve(it) } else null
 
 private fun Response.isFromCloudflare() =
     header("CF-RAY") != null || header("Server").equals("cloudflare", ignoreCase = true)

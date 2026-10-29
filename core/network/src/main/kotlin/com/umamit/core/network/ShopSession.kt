@@ -72,7 +72,7 @@ class ShopSession private constructor(
         when (answer) {
             is ShopResponse.Success -> ShopFetch.Fetched(answer.contentType, answer.body)
 
-            is ShopResponse.HttpError -> ShopFetch.Unavailable(answer.code)
+            is ShopResponse.HttpError -> ShopFetch.Unavailable(answer.code, answer.location)
 
             is ShopResponse.TooLarge -> ShopFetch.TooLarge(answer.declaredBytes)
 
@@ -160,8 +160,12 @@ sealed interface ShopFetch {
     /** robots.txt disallows the URL; nothing was sent. */
     data object Disallowed : ShopFetch
 
-    /** A status that leaves only this URL out and the job goes on: a 3xx (never followed), a 404 or another 4xx. */
-    data class Unavailable(val code: Int) : ShopFetch
+    /**
+     * A status that leaves only this URL out and the job goes on: a 3xx (never followed), a 404
+     * or another 4xx. A redirect's target is its [location] (resolved, null without one), which
+     * the job may judge but never requests (CAT-16).
+     */
+    data class Unavailable(val code: Int, val location: HttpUrl? = null) : ShopFetch
 
     /**
      * A 2xx answer over the request's [BodyLimit], left unread (D-090): like [Unavailable], only
