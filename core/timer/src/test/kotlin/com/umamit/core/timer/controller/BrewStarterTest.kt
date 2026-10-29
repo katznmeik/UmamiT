@@ -8,7 +8,6 @@ import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
@@ -251,7 +250,7 @@ class BrewStarterTest {
         }
 
     @Test
-    fun `brewing again copies the last session's snapshot, planned steps and pre-alert (BRW-11)`() {
+    fun `brewing again copies the last session's snapshot, planned steps with their pre-alerts and B (BRW-11)`() {
         val last = BrewSession(
             id = "s1",
             status = SessionStatus.COMPLETED,
@@ -264,8 +263,9 @@ class BrewStarterTest {
             zoneId = "Europe/Berlin",
             autoFinished = false,
             steps = listOf(
-                row(position = 1, StepKind.INFUSION, plannedSeconds = 10, tempC = 70),
+                row(position = 1, StepKind.INFUSION, plannedSeconds = 10, tempC = 70, preAlertSeconds = 0),
                 row(position = 0, StepKind.INFUSION, plannedSeconds = 45, tempC = 65),
+                row(position = 2, StepKind.INFUSION, plannedSeconds = 60, tempC = 70, preAlertSeconds = 20),
             ),
         )
 
@@ -274,23 +274,25 @@ class BrewStarterTest {
         assertThat(start.snapshot).isEqualTo(last.snapshot)
         assertThat(start.steps).containsExactly(
             PlannedStep(StepKind.INFUSION, 45, 65),
-            PlannedStep(StepKind.INFUSION, 10, 70),
+            PlannedStep(StepKind.INFUSION, 10, 70, preAlertSeconds = 0),
+            PlannedStep(StepKind.INFUSION, 60, 70, preAlertSeconds = 20),
         ).inOrder()
         assertThat(start.recipePreAlertSeconds).isEqualTo(15)
-        assertThat(start.preAlert).isEqualTo(PreAlertChoice.Inherit)
     }
 
-    private fun row(position: Int, kind: StepKind, plannedSeconds: Int, tempC: Int?) = SessionStepRow(
-        position = position,
-        kind = kind,
-        plannedSeconds = plannedSeconds,
-        tempC = tempC,
-        actualSeconds = plannedSeconds,
-        pausedSeconds = 0,
-        overtimeSeconds = 0,
-        startedAtWallMs = 0,
-        endedAtWallMs = 1,
-        skipped = false,
-        overtimeAutoAck = false,
-    )
+    private fun row(position: Int, kind: StepKind, plannedSeconds: Int, tempC: Int?, preAlertSeconds: Int? = null) =
+        SessionStepRow(
+            position = position,
+            kind = kind,
+            plannedSeconds = plannedSeconds,
+            tempC = tempC,
+            actualSeconds = plannedSeconds,
+            pausedSeconds = 0,
+            overtimeSeconds = 0,
+            startedAtWallMs = 0,
+            endedAtWallMs = 1,
+            skipped = false,
+            overtimeAutoAck = false,
+            preAlertSeconds = preAlertSeconds,
+        )
 }

@@ -127,16 +127,15 @@ class BrewSetupViewModel @Inject constructor(
 
     fun setRatioLocked(locked: Boolean) = change { it.withLock(locked) }
 
-    /** *Fertig* in the Schritte-Sheet: the steps and pre-alert of this session (SCR-31). */
-    fun applySteps(request: TimerEvent.EditSteps) = change { it.withSteps(request.steps, request.preAlert) }
+    /** *Fertig* in the Schritte-Sheet: the steps of this session, each with its pre-alert (SCR-31, D-093). */
+    fun applySteps(request: TimerEvent.EditSteps) = change { it.withSteps(request.steps) }
 
-    /** *Im Rezept speichern* in the Schritte-Sheet: only the steps and the pre-alert (SCR-31). */
+    /** *Im Rezept speichern* in the Schritte-Sheet: only the steps, each with its pre-alert (SCR-31, D-093). */
     fun saveStepsToRecipe(request: SaveToRecipeRequest) = launchWithSource { s ->
         val recipe = s.recipe(edits.value?.recipeId) ?: return@launchWithSource
-        recipes.replaceStepsAndPreAlert(
+        recipes.replaceSteps(
             recipe.id,
             request.recipeSteps.map { it.copy(tempC = it.tempC.takeIf { t -> t != recipe.baseTempC }) },
-            request.recipePreAlertSeconds(recipe.preAlertSeconds),
         )
     }
 
@@ -145,8 +144,6 @@ class BrewSetupViewModel @Inject constructor(
         val current = edits.value ?: return@launchWithSource
         val recipe = s.recipe(current.recipeId) ?: return@launchWithSource
         recipes.saveRecipe(current.appliedTo(recipe))
-        // The recipe holds the pre-alert now, so the session inherits it.
-        change { it.copy(preAlert = PreAlertChoice.Inherit) }
     }
 
     /** *Brühen starten* (TMR-01): the session waits in READY and the timer opens. */
@@ -282,7 +279,6 @@ class BrewSetupViewModel @Inject constructor(
             ),
             steps = steps,
             recipePreAlertSeconds = recipe?.preAlertSeconds,
-            preAlert = preAlert,
         )
     }
 
@@ -308,7 +304,6 @@ class BrewSetupViewModel @Inject constructor(
             val base = recipe?.let(SetupEdits::of) ?: SetupEdits.default()
             val water = snapshot.waterMl ?: base.waterMl
             val leaf = snapshot.leafGrams ?: base.leafGrams
-            val inherited = recipe?.preAlertSeconds ?: globalPreAlertSeconds
             return base.copy(
                 vesselId = snapshot.vesselId,
                 waterMl = water,
@@ -316,13 +311,10 @@ class BrewSetupViewModel @Inject constructor(
                 ratio = Ratio(leaf, water),
                 method = snapshot.method,
                 baseTempC = snapshot.baseTempC ?: base.baseTempC,
+                // Each step with its own pre-alert, as the session holds it (D-093).
                 steps = session.steps.sortedBy { it.position }.map {
-                    PlannedStep(it.kind, it.plannedSeconds, it.tempC ?: snapshot.baseTempC ?: base.baseTempC)
-                },
-                preAlert = when (val own = session.preAlertSeconds) {
-                    null, inherited -> PreAlertChoice.Inherit
-                    0 -> PreAlertChoice.Off
-                    else -> PreAlertChoice.Seconds(own)
+                    val tempC = it.tempC ?: snapshot.baseTempC ?: base.baseTempC
+                    PlannedStep(it.kind, it.plannedSeconds, tempC, it.preAlertSeconds)
                 },
             )
         }

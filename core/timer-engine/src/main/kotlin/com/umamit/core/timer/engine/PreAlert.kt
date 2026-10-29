@@ -32,7 +32,7 @@ internal const val PRE_ALERT_MIN_LEFT_MS = 1_000L
  */
 internal fun TimerSession.preAlertLeadMs(index: Int): Long? {
     val step = steps[index]
-    val n = preAlert.leadSecondsFor(step.plannedSeconds)
+    val n = preAlert.leadSecondsFor(step.plannedSeconds, step.preAlertSeconds)
     val none = n == 0 ||
         step.plannedSeconds < n + PRE_ALERT_MIN_SPARE_SECONDS ||
         (step.kind == StepKind.RINSE && step.plannedSeconds < RINSE_MIN_SECONDS) ||

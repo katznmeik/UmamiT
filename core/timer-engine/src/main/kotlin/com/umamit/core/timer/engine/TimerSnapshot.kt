@@ -52,7 +52,6 @@ internal fun snapshotOf(state: TimerState): TimerSnapshot? {
         bootCount = session.bootCount,
         lastInteractionWallMs = session.lastInteractionWallMs,
         demoted = session.demoted,
-        preAlertOverrideSeconds = session.preAlert.sessionOverrideSeconds,
         preAlertInheritedSeconds = session.preAlert.inheritedSeconds,
         zoneId = session.zone.id,
     )
@@ -209,7 +208,7 @@ private fun sessionOf(snapshot: TimerSnapshot): TimerSession {
     return TimerSession(
         kind = row.sessionId?.let(SessionKind::Brew) ?: SessionKind.Quick,
         steps = steps,
-        preAlert = PreAlertSettings(row.preAlertOverrideSeconds, row.preAlertInheritedSeconds),
+        preAlert = PreAlertSettings(row.preAlertInheritedSeconds),
         zone = zoneOf(row.zoneId),
         lastInteractionWallMs = row.lastInteractionWallMs,
         bootCount = row.bootCount,
@@ -238,6 +237,7 @@ private fun rowOf(position: Int, step: SessionStep) = SessionStepRow(
     endedAtWallMs = step.record?.endedAtWallMs,
     skipped = step.record?.skipped ?: false,
     overtimeAutoAck = step.record?.overtimeAutoAck ?: false,
+    preAlertSeconds = step.preAlertSeconds,
 )
 
 private fun stepOf(row: SessionStepRow, current: Boolean): SessionStep {
@@ -265,7 +265,7 @@ private fun stepOf(row: SessionStepRow, current: Boolean): SessionStep {
         record.skipped -> StepStatus.SKIPPED
         else -> StepStatus.DONE
     }
-    return SessionStep(row.kind, row.plannedSeconds, row.tempC, status, record)
+    return SessionStep(row.kind, row.plannedSeconds, row.tempC, status, record, row.preAlertSeconds)
 }
 
 /**

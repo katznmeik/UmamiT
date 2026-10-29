@@ -15,8 +15,8 @@ import org.robolectric.annotation.Config
 
 /**
  * The committed schema JSON (05 §9) matches the entities: a database created from
- * `schemas/…/1.json` opens with the current entities, which Room only allows when the
- * schema's identity hash equals the one generated from the entities.
+ * `schemas/…/N.json` of the current version N opens with the current entities, which Room only
+ * allows when the schema's identity hash equals the one generated from the entities.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -28,7 +28,7 @@ class ExportedSchemaTest {
     )
 
     @Test
-    fun committedSchemaVersion1MatchesTheEntities() = runTest {
+    fun committedSchemaOfTheCurrentVersionMatchesTheEntities() = runTest {
         helper.createDatabase(DB_NAME, UmamiDatabase.VERSION).close()
 
         val db = Room.databaseBuilder(context(), UmamiDatabase::class.java, DB_NAME)
@@ -37,7 +37,7 @@ class ExportedSchemaTest {
         try {
             // Opening validates the identity hash and every table against the entities.
             assertThat(db.activeBrewDao().get()).isNull()
-            assertThat(db.openHelper.readableDatabase.version).isEqualTo(1)
+            assertThat(db.openHelper.readableDatabase.version).isEqualTo(UmamiDatabase.VERSION)
         } finally {
             db.close()
         }

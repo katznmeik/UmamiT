@@ -7,6 +7,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
+import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.test.runTest
@@ -58,10 +59,14 @@ class ActiveBrewStoreTest {
         step("Paused", TimerEvent.Pause, advanceSeconds = 30)
         step("Running after a pause", TimerEvent.Resume, advanceSeconds = 12)
         step(
-            "Running with a session pre-alert and an added step",
+            "Running with the steps' own pre-alerts, the running one's changed, and an added step",
             TimerEvent.EditSteps(
-                listOf(rinse(10), infusion(60), infusion(20), infusion(45, tempC = 65)),
-                PreAlertChoice.Seconds(25),
+                listOf(
+                    rinse(10),
+                    infusion(60, preAlert = 25),
+                    infusion(20, preAlert = 0),
+                    infusion(45, tempC = 65, preAlert = 15),
+                ),
             ),
         )
         step("Alerting", TimerEvent.DeadlineReached, advanceSeconds = 34)
@@ -106,7 +111,7 @@ class ActiveBrewStoreTest {
     }
 
     @Test
-    fun `values the engine sets later round-trip too - pre-alert, demoted, override`() = runTest {
+    fun `values the engine sets later round-trip too - pre-alert, demoted, the steps' own pre-alerts`() = runTest {
         data.teas.saveTea(tea("t1"))
         val driver = TimerDriver(data)
         driver.send(startEvent(infusion(60), infusion(20)))
@@ -116,10 +121,15 @@ class ActiveBrewStoreTest {
             "Running with the pre-alert due" to running.copy(preAlertAtElapsedMs = running.deadlineElapsedMs - 10_000),
             "Running with the pre-alert played" to running.copy(preAlertAtElapsedMs = null, preAlertPlayed = true),
             "Ready, demoted" to ready.copy(session = ready.session.copy(demoted = true)),
-            "Ready with a 0 s override" to
+            "Ready with each step's own pre-alert" to
                 ready.copy(
-                    session = ready.session.copy(preAlert = ready.session.preAlert.copy(sessionOverrideSeconds = 0)),
+                    session = ready.session.copy(
+                        steps = ready.session.steps.zip(listOf(0, 25)) { step, own ->
+                            step.copy(preAlertSeconds = own)
+                        },
+                    ),
                 ),
+            "Ready with B off" to ready.copy(session = ready.session.copy(preAlert = PreAlertSettings(0))),
         )
 
         handMade.forEach { (name, state) ->
@@ -138,7 +148,7 @@ class ActiveBrewStoreTest {
         var state = driver.state
         listOf(
             TimerEvent.SkipStep,
-            TimerEvent.EditSteps(listOf(rinse(10), infusion(45, tempC = 75)), PreAlertChoice.Inherit),
+            TimerEvent.EditSteps(listOf(rinse(10), infusion(45, tempC = 75, preAlert = 15))),
             TimerEvent.Start,
         ).forEach { event ->
             clocks.advanceSeconds(5)
@@ -200,9 +210,15 @@ class ActiveBrewStoreTest {
         assertThat(data.sessions.getSession(SESSION_ID)).isNotNull()
     }
 
-    /** The Schritte-Sheet's request: the plan without its last [drop] pending steps and [choice]. */
+    /**
+     * The Schritte-Sheet's request: the plan without its last [drop] pending steps, with [choice] in every step that
+     * has not ended (its single selector before #92).
+     */
     private fun editPlan(driver: TimerDriver, choice: PreAlertChoice, drop: Int): TimerEvent.EditSteps {
-        val steps = (driver.state as TimerState.Active).session.steps.map { it.planned }
-        return TimerEvent.EditSteps(steps.dropLast(drop), choice)
+        val steps = (driver.state as TimerState.Active).session.steps.map { step ->
+            val ended = step.status == StepStatus.DONE || step.status == StepStatus.SKIPPED
+            if (ended) step.planned else step.planned.copy(preAlertSeconds = choice.explicitSeconds)
+        }
+        return TimerEvent.EditSteps(steps.dropLast(drop))
     }
 }

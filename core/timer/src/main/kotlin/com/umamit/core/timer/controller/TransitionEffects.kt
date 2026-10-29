@@ -141,7 +141,7 @@ internal class TransitionEffects(
         val snapshot = BrewTimerEngine.snapshot(state)
         val failure = attempt {
             transactions.inTransaction {
-                data.forEach { executeData(it, state, start) }
+                data.forEach { executeData(it, start) }
                 activeBrew.persist(snapshot)
             }
         } ?: return
@@ -150,16 +150,12 @@ internal class TransitionEffects(
             ?.let { record(TimerDiagnostic.PersistFailed(now, retry = true, error = it)) }
     }
 
-    private suspend fun executeData(effect: TimerEffect, newState: TimerState, start: SessionStart?) {
+    private suspend fun executeData(effect: TimerEffect, start: SessionStart?) {
         when (effect) {
             is TimerEffect.CreateSession -> sessions.startSession(checkNotNull(start))
 
-            is TimerEffect.ReplacePendingSteps -> sessions.replacePendingSteps(
-                effect.sessionId,
-                effect.fromIndex,
-                effect.steps,
-                preAlertSeconds = (newState as TimerState.Active).session.preAlert.effectiveSeconds,
-            )
+            is TimerEffect.ReplacePendingSteps ->
+                sessions.replacePendingSteps(effect.sessionId, effect.fromIndex, effect.steps)
 
             is TimerEffect.RecordStep -> sessions.recordStep(effect.sessionId, effect.stepIndex, effect.record)
 

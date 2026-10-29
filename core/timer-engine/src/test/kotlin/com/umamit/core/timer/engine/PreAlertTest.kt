@@ -28,21 +28,21 @@ class PreAlertTest {
     }
 
     @Test
-    fun `N is the session override, else the recipe value, else the global setting`() {
-        // (settings, expected lead in seconds or null for none); a 90 s infusion starts at START_ELAPSED_MS.
-        // Its automatic third (30 s) never caps B here; PreAlertPerStepTest has the cap (D-093).
+    fun `N is the step's own value, else the recipe value, else the global setting`() {
+        // (step's own value, settings, expected lead in seconds or null for none); a 90 s infusion starts at
+        // START_ELAPSED_MS. Its automatic third (30 s) never caps B here; PreAlertPerStepTest has the cap (D-093).
         val cases = listOf(
-            PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 10) to 10,
-            PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 25) to 25,
-            PreAlertSettings.inherited(recipeSeconds = 20, globalSeconds = 10) to 20,
-            PreAlertSettings.inherited(recipeSeconds = 0, globalSeconds = 10) to null,
-            PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 0) to null,
-            PreAlertSettings(sessionOverrideSeconds = 15, inheritedSeconds = 20) to 15,
-            PreAlertSettings(sessionOverrideSeconds = 5, inheritedSeconds = 0) to 5,
-            PreAlertSettings(sessionOverrideSeconds = 0, inheritedSeconds = 20) to null,
+            Triple(null, PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 10), 10),
+            Triple(null, PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 25), 25),
+            Triple(null, PreAlertSettings.inherited(recipeSeconds = 20, globalSeconds = 10), 20),
+            Triple(null, PreAlertSettings.inherited(recipeSeconds = 0, globalSeconds = 10), null),
+            Triple(null, PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 0), null),
+            Triple(15, PreAlertSettings(inheritedSeconds = 20), 15),
+            Triple(5, PreAlertSettings(inheritedSeconds = 0), 5),
+            Triple(0, PreAlertSettings(inheritedSeconds = 20), null),
         )
-        cases.forEach { (settings, lead) ->
-            assertWithMessage("$settings").that(preAlertAfterStart(infusion(90), settings))
+        cases.forEach { (own, settings, lead) ->
+            assertWithMessage("$own with $settings").that(preAlertAfterStart(infusion(90).withPreAlert(own), settings))
                 .isEqualTo(lead?.let { START_ELAPSED_MS + 90_000 - it * 1000L })
         }
     }
@@ -50,27 +50,23 @@ class PreAlertTest {
     @Test
     fun `a step has no pre-alert when it is too short, a short rinse or a long step (E7)`() {
         // Explicit values: since v0.2.1 only they can meet the N + 5 s and the rinse rule (D-093).
-        val ten = PreAlertSettings(sessionOverrideSeconds = 10, inheritedSeconds = 10)
-        val thirty = PreAlertSettings(sessionOverrideSeconds = 30, inheritedSeconds = 10)
-        val five = PreAlertSettings(sessionOverrideSeconds = 5, inheritedSeconds = 10)
-        // (step, settings, has a pre-alert)
+        // (step with its explicit N, has a pre-alert); B = 10 s.
         val cases = listOf(
-            Triple(infusion(15), ten, true),
-            Triple(infusion(14), ten, false),
-            Triple(whisk(15), ten, true),
-            Triple(whisk(14), ten, false),
-            Triple(infusion(35), thirty, true),
-            Triple(infusion(34), thirty, false),
-            Triple(rinse(15), five, true),
-            Triple(rinse(14), five, false),
-            Triple(rinse(10), five, false),
-            Triple(infusion(599), ten, true),
-            Triple(infusion(600), ten, false),
-            Triple(infusion(4 * 3600), ten, false),
+            infusion(15).withPreAlert(10) to true,
+            infusion(14).withPreAlert(10) to false,
+            whisk(15).withPreAlert(10) to true,
+            whisk(14).withPreAlert(10) to false,
+            infusion(35).withPreAlert(30) to true,
+            infusion(34).withPreAlert(30) to false,
+            rinse(15).withPreAlert(5) to true,
+            rinse(14).withPreAlert(5) to false,
+            rinse(10).withPreAlert(5) to false,
+            infusion(599).withPreAlert(10) to true,
+            infusion(600).withPreAlert(10) to false,
+            infusion(4 * 3600).withPreAlert(10) to false,
         )
-        cases.forEach { (step, settings, expected) ->
-            assertWithMessage("$step with N = ${settings.effectiveSeconds}")
-                .that(preAlertAfterStart(step, settings) != null).isEqualTo(expected)
+        cases.forEach { (step, expected) ->
+            assertWithMessage("$step").that(preAlertAfterStart(step, PRE_ALERT) != null).isEqualTo(expected)
         }
     }
 
@@ -206,13 +202,13 @@ class PreAlertTest {
         )
         cases.forEach { (choice, lead) ->
             val driver = sessionWith(infusion(60)).apply {
-                send(TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(30)))
+                send(editSteps(PreAlertChoice.Seconds(30), infusion(60)))
                 send(TimerEvent.Start)
             }
             val deadline = driver.deadline
             driver.clocks.advanceSeconds(5)
 
-            val effects = driver.send(TimerEvent.EditSteps(listOf(infusion(60)), choice))
+            val effects = driver.send(editSteps(choice, infusion(60)))
 
             val expected = lead?.let { deadline - it * 1000L }
             assertWithMessage("$choice").that((driver.state as TimerState.Running).preAlertAtElapsedMs)
@@ -229,7 +225,7 @@ class PreAlertTest {
         driver.send(TimerEvent.PreAlertReached)
         driver.clocks.advanceSeconds(1)
 
-        driver.send(TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(5)))
+        driver.send(editSteps(PreAlertChoice.Seconds(5), infusion(60)))
 
         assertThat((driver.state as TimerState.Running).preAlertAtElapsedMs).isNull()
         assertThat(BrewTimerEngine.dueTimes(driver.state).preAlertAtElapsedMs).isNull()
@@ -245,12 +241,12 @@ class PreAlertTest {
         // (edit, the queued tick plays)
         val cases = listOf(
             TimerEvent.AddStep to true,
-            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Inherit) to true,
-            TimerEvent.EditSteps(listOf(infusion(60), infusion(30)), PreAlertChoice.Seconds(10)) to true,
-            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(20)) to true,
-            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Off) to false,
+            editSteps(PreAlertChoice.Inherit, infusion(60)) to true,
+            editSteps(PreAlertChoice.Seconds(10), infusion(60), infusion(30)) to true,
+            editSteps(PreAlertChoice.Seconds(20), infusion(60)) to true,
+            editSteps(PreAlertChoice.Off, infusion(60)) to false,
             // N = 60 leaves the 60 s step without a pre-alert (E7).
-            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(60)) to false,
+            editSteps(PreAlertChoice.Seconds(60), infusion(60)) to false,
         )
         cases.forEach { (edit, plays) ->
             val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
@@ -280,7 +276,7 @@ class PreAlertTest {
         driver.send(TimerEvent.PreAlertReached)
         assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(10)
 
-        driver.send(TimerEvent.EditSteps(listOf(infusion(60), infusion(14), infusion(600)), PreAlertChoice.Seconds(20)))
+        driver.send(editSteps(PreAlertChoice.Seconds(20), infusion(60), infusion(14), infusion(600)))
         assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(20)
 
         // A step shorter than N + 5 s and a long step have none (E7, TMR-18); Finished has no step.

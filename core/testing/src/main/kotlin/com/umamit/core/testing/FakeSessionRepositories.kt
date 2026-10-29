@@ -73,17 +73,12 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
             )
     }
 
-    override suspend fun replacePendingSteps(
-        sessionId: String,
-        fromIndex: Int,
-        steps: List<PlannedStep>,
-        preAlertSeconds: Int,
-    ) = s.updateSession(sessionId) { session ->
-        session.copy(
-            preAlertSeconds = preAlertSeconds,
-            steps = session.steps.take(fromIndex) + steps.mapIndexed { i, step -> step.row(fromIndex + i) },
-        )
-    }
+    override suspend fun replacePendingSteps(sessionId: String, fromIndex: Int, steps: List<PlannedStep>) =
+        s.updateSession(sessionId) { session ->
+            session.copy(
+                steps = session.steps.take(fromIndex) + steps.mapIndexed { i, step -> step.row(fromIndex + i) },
+            )
+        }
 
     override suspend fun recordStep(sessionId: String, stepIndex: Int, record: StepRecord) =
         s.updateSession(sessionId) { session ->
@@ -176,6 +171,7 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
         endedAtWallMs = null,
         skipped = false,
         overtimeAutoAck = false,
+        preAlertSeconds = preAlertSeconds,
     )
 }
 

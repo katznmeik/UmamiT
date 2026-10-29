@@ -29,7 +29,10 @@ sealed interface RejectionReason {
     /** A session or quick timer is already [active] (GEN-03, TMR-21: „Erst die … -Sitzung beenden?"). */
     data class ActiveTimerExists(val active: SessionKind) : RejectionReason
 
-    /** `editSteps` would change, remove or reorder a started or ended step (SCR-31). */
+    /**
+     * `editSteps` would change, remove or reorder an ended step, or change the started step other than in its
+     * pre-alert (SCR-31, D-093).
+     */
     data object StartedStepChanged : RejectionReason
 
     /** `editSteps` would leave the session without a non-rinse step (PRF-04). */

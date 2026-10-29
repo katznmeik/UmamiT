@@ -120,8 +120,8 @@ class PreAlertPerStepTest {
         )
         cases.forEach { (case, lead) ->
             val (step, explicit, base) = case
-            val settings = PreAlertSettings(sessionOverrideSeconds = explicit, inheritedSeconds = base)
-            assertLead("$step with N = $explicit, B = $base", step, settings, lead)
+            val settings = PreAlertSettings(inheritedSeconds = base)
+            assertLead("$step with N = $explicit, B = $base", step.withPreAlert(explicit), settings, lead)
         }
     }
 
@@ -136,7 +136,7 @@ class PreAlertPerStepTest {
             PreAlertChoice.Off to listOf(null, null, null, null, null, null),
         )
         cases.forEach { (choice, leads) ->
-            val driver = sessionWith(infusion(60)).apply { send(TimerEvent.EditSteps(plan, choice)) }
+            val driver = sessionWith(infusion(60)).apply { send(editSteps(choice, *plan.toTypedArray())) }
 
             val shown = plan.indices.map {
                 BrewTimerEngine.preAlertLeadSeconds(driver.state).also { driver.send(TimerEvent.SkipStep) }
@@ -189,13 +189,13 @@ class PreAlertPerStepTest {
         )
         cases.forEach { (before, after, lead) ->
             val driver = sessionWith(infusion(20)).apply {
-                send(TimerEvent.EditSteps(listOf(infusion(20)), before))
+                send(editSteps(before, infusion(20)))
                 send(TimerEvent.Start)
             }
             val deadline = driver.deadline
             driver.clocks.advanceSeconds(2)
 
-            val effects = driver.send(TimerEvent.EditSteps(listOf(infusion(20)), after))
+            val effects = driver.send(editSteps(after, infusion(20)))
 
             val label = "$before → $after"
             val expected = lead?.let { deadline - it * 1_000L }
@@ -228,13 +228,13 @@ class PreAlertPerStepTest {
         )
         cases.forEach { case ->
             val driver = sessionWith(infusion(20)).apply {
-                send(TimerEvent.EditSteps(listOf(infusion(20)), case.before))
+                send(editSteps(case.before, infusion(20)))
                 send(TimerEvent.Start)
             }
             val started = driver.deadline - 20_000
             driver.advanceTo(started + case.atMs)
 
-            driver.send(TimerEvent.EditSteps(listOf(infusion(20)), case.after))
+            driver.send(editSteps(case.after, infusion(20)))
 
             assertWithMessage("$case").that(BrewTimerEngine.dueTimes(driver.state).preAlertAtElapsedMs)
                 .isEqualTo(case.dueAtMs?.let { started + it })

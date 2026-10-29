@@ -14,7 +14,10 @@ data class Recipe(
     val baseTempC: Int,
     val steps: List<RecipeStep>,
     val vesselId: String? = null,
-    /** null = global setting; 0 = off; otherwise 5–30 s (TMR-23). */
+    /**
+     * The base B of the steps' automatic pre-alert (TMR-23, D-093): null = global setting; 0 = off; otherwise
+     * 5–30 s. Each step has its own choice ([RecipeStep.preAlertSeconds]).
+     */
     val preAlertSeconds: Int? = null,
     val isDefault: Boolean = false,
     val position: Int = 0,
@@ -29,4 +32,6 @@ data class RecipeStep(
     /** null = the recipe's base temperature. */
     val tempC: Int? = null,
     val note: String? = null,
+    /** The step's pre-alert (TMR-23, D-093): null *Automatisch*, 0 *Aus*, otherwise 5–30 s. */
+    val preAlertSeconds: Int? = null,
 )

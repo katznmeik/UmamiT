@@ -168,20 +168,46 @@ class BrewSetupViewModelTest {
     }
 
     @Test
-    fun `the Schritte-Sheet's steps and pre-alert apply to this session - its save writes the recipe`() = runTest {
+    fun `the Schritte-Sheet's steps and pre-alerts apply to this session - its save writes them into the recipe`() =
+        runTest {
+            val vm = viewModel()
+            assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(10)
+            assertThat(vm.ready.preAlert).isEqualTo(PreAlertChoice.Inherit)
+            val steps = listOf(
+                PlannedStep(StepKind.INFUSION, 90, 70, preAlertSeconds = 20),
+                PlannedStep(StepKind.INFUSION, 30, 70, preAlertSeconds = 20),
+            )
+
+            vm.applySteps(TimerEvent.EditSteps(steps))
+            assertThat(vm.ready.steps).containsExactlyElementsIn(steps).inOrder()
+            assertThat(vm.ready.preAlert).isEqualTo(PreAlertChoice.Seconds(20))
+            assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(20)
+            assertThat(vm.ready.canSaveToRecipe).isTrue()
+
+            vm.saveStepsToRecipe(SaveToRecipeRequest(vm.ready.steps))
+            val saved = collection.recipes.getRecipe(vm.ready.selectedRecipeId!!)!!
+            assertThat(saved.steps.map { it.durationSeconds to it.preAlertSeconds })
+                .containsExactly(90 to 20, 30 to 20).inOrder()
+            // The recipe's base B stays; each step carries its own (TMR-23, D-093).
+            assertThat(saved.preAlertSeconds).isNull()
+            assertThat(viewModel().ready.steps.map { it.preAlertSeconds }).containsExactly(20, 20)
+        }
+
+    @Test
+    fun `Bruehen starten hands each step's own pre-alert to the controller (TMR-23)`() = runTest {
         val vm = viewModel()
-        assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(10)
-        assertThat(vm.ready.preAlert).isEqualTo(PreAlertChoice.Inherit)
+        vm.applySteps(
+            TimerEvent.EditSteps(
+                listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 65, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 20, 65),
+                ),
+            ),
+        )
 
-        vm.applySteps(TimerEvent.EditSteps(listOf(PlannedStep(StepKind.INFUSION, 90, 70)), PreAlertChoice.Seconds(20)))
-        assertThat(vm.ready.steps).containsExactly(PlannedStep(StepKind.INFUSION, 90, 70))
-        assertThat(vm.ready.effectivePreAlertSeconds).isEqualTo(20)
-        assertThat(vm.ready.canSaveToRecipe).isTrue()
+        vm.startBrew()
 
-        vm.saveStepsToRecipe(SaveToRecipeRequest(vm.ready.steps, PreAlertChoice.Seconds(20)))
-        val saved = collection.recipes.getRecipe(vm.ready.selectedRecipeId!!)!!
-        assertThat(saved.steps.map { it.durationSeconds }).containsExactly(90)
-        assertThat(saved.preAlertSeconds).isEqualTo(20)
+        assertThat(starter.starts.single().steps.map { it.preAlertSeconds }).containsExactly(0, null).inOrder()
     }
 
     @Test

@@ -12,7 +12,6 @@ import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.Flow
@@ -80,24 +79,43 @@ class SessionLifecycleTest {
     }
 
     @Test
-    fun `editing and adding steps replaces only the unstarted rows and the effective pre-alert`() = runTest {
+    fun `editing and adding steps replaces only the unstarted rows and keeps the session's B`() = runTest {
         teaWithStock()
         val driver = TimerDriver(data)
         driver.send(startEvent(infusion(60), infusion(20), infusion(30)))
         driver.send(TimerEvent.Start)
         driver.clocks.advanceSeconds(10)
 
-        driver.send(TimerEvent.EditSteps(listOf(infusion(60), infusion(25, tempC = 70)), PreAlertChoice.Seconds(20)))
+        driver.send(TimerEvent.EditSteps(listOf(infusion(60), infusion(25, tempC = 70))))
         driver.send(TimerEvent.AddStep)
 
         val session = session()
-        assertThat(session.preAlertSeconds).isEqualTo(20)
+        // From umamit.db v2 the session's value is B as frozen at the start (D-093).
+        assertThat(session.preAlertSeconds).isEqualTo(10)
         assertThat(session.steps).containsExactly(
             planned(0, StepKind.INFUSION, 60, 60),
             planned(1, StepKind.INFUSION, 25, 70),
             // TMR-10: 1.5 × 25 s = 37.5 s → 40 s at the last temperature.
             planned(2, StepKind.INFUSION, 40, 70),
         ).inOrder()
+    }
+
+    @Test
+    fun `each step's pre-alert is stored with its row at the start, by an edit and for an added step`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60, preAlert = 20), infusion(20), infusion(30, preAlert = 0)))
+        assertThat(session().steps.map { it.preAlertSeconds }).containsExactly(20, null, 0).inOrder()
+
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(10)
+        // The running step changes only its pre-alert; the pending ones are replaced (SCR-31, D-093).
+        driver.send(TimerEvent.EditSteps(listOf(infusion(60, preAlert = 15), infusion(20, preAlert = 5))))
+        driver.send(TimerEvent.AddStep)
+
+        val session = session()
+        assertThat(session.steps.map { it.preAlertSeconds }).containsExactly(15, 5, null).inOrder()
+        assertThat(session.preAlertSeconds).isEqualTo(10)
     }
 
     @Test

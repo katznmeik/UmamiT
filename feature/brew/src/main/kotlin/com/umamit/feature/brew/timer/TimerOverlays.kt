@@ -115,7 +115,9 @@ internal fun rememberTimerOverlays(): TimerOverlays = rememberSaveable(saver = T
 internal fun TimerStepsSheet(state: TimerUiState.Active, overlays: TimerOverlays, onEvent: (TimerEvent) -> Unit) {
     val input = remember(state.steps, state.preAlert) {
         StepsSheetInput(
-            steps = state.steps.map { StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status) },
+            steps = state.steps.map {
+                StepsSheetStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
+            },
             preAlert = state.preAlert,
             // SCR-05 calls only the controller: *Im Rezept speichern* stays on the setup (D-058).
             hasRecipe = false,
