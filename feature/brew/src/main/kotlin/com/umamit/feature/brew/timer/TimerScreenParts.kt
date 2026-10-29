@@ -3,7 +3,6 @@ package com.umamit.feature.brew.timer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -40,12 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -76,13 +70,10 @@ import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
 
-private val PhotoHeight = 280.dp
-private val PhotoOverlap = 150.dp
 private val TimerPillMinHeight = 72.dp
 private val TimerPillMinWidth = 200.dp
 private val OvertimeDotSize = 10.dp
 private const val PAUSED_RING_ALPHA = 0.6f
-private const val PHOTO_FADE_START = 0.35f
 private const val PLACEHOLDER_TEMPERATURE = 100
 private const val PLACEHOLDER_STEP = 10
 private const val PLACEHOLDER_SECONDS = 600
@@ -97,6 +88,7 @@ internal class TimerBodyArgs(
     val reliabilityProblem: Boolean,
     val onFixReliability: () -> Unit,
     val teaPhoto: Painter?,
+    val teaStyleKey: String?,
 )
 
 @Composable
@@ -105,10 +97,10 @@ internal fun TimerBody(args: TimerBodyArgs) {
     val now = args.now
     val overlays = args.overlays
     val actions = args.actions
-    val teaPhoto = args.teaPhoto
     Box(modifier = Modifier.fillMaxSize()) {
-        // No photo on the alert surface, but its space stays, so nothing moves when the alert starts.
-        if (teaPhoto != null && !state.alerting) TeaPhoto(teaPhoto)
+        // No band and no seal on the alert surface, but their space stays, so nothing moves when the
+        // alert starts (D-058, D-095).
+        if (!state.alerting) TimerBand()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -117,8 +109,12 @@ internal fun TimerBody(args: TimerBodyArgs) {
                 .padding(bottom = UmamiSpacing.Large),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TimerTopBar(state, overlays, actions)
-            if (teaPhoto != null) Spacer(Modifier.height(PhotoOverlap))
+            TimerBandTop(
+                withSeal = !state.isQuick,
+                topBar = { TimerTopBar(state, overlays, actions) },
+                seal = { if (!state.alerting) TeaSeal(args.teaPhoto, args.teaStyleKey) },
+            )
+            Spacer(Modifier.height(UmamiSpacing.Small))
             TimerHeader(state)
             Spacer(Modifier.height(UmamiSpacing.Large))
             TimerRingArea(state, now, args.nowElapsedMs, actions)
@@ -171,24 +167,6 @@ private fun BelowRingSpace() {
         )
         Overtime(PLACEHOLDER_SECONDS)
     }
-}
-
-/** The tea photo at the top, fading into the background (SCR-05). Decorative: the title names the tea. */
-@Composable
-private fun TeaPhoto(photo: Painter) {
-    val background = MaterialTheme.colorScheme.background
-    Image(
-        painter = photo,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(PhotoHeight)
-            .drawWithContent {
-                drawContent()
-                drawRect(Brush.verticalGradient(PHOTO_FADE_START to Color.Transparent, 1f to background))
-            },
-    )
 }
 
 /** Tea name, „55 °C · Aufguss 1 von 3" and the step dots (TMR-02). */

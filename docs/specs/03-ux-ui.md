@@ -558,7 +558,12 @@ shows the tea photo as a **seal**: an 88 dp washi disc (`#F3F0E9`) with a thin
 ring, centred, half over the band's lower edge. The photo fills its inner
 circle and is drawn with a multiply blend, so a white background becomes the
 disc's cream. Without a photo, or until it is read, the disc shows the
-type-coloured leaf. The quick timer shows the band without a seal. On the
+type-coloured leaf (the tea's style colour, 03 §3.1). The thin ring is
+1 dp of ink at 30 % inside the disc's edge; the photo's circle is 76 dp.
+The band starts at the top of the screen, behind the status bar, so the
+seal's centre sits on its lower edge whatever the status bar's height. The
+quick timer shows the band without a seal; its content starts at the band's
+lower edge, before *Start* as while it runs (SCR-07). On the
 alert surface both are hidden and their space stays. (Until v0.2.0 the tea
 photo itself filled the top, with A4 as fallback.)
 
@@ -632,7 +637,7 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05, with the ink-wash band but no seal (D-095); chips 0:30 … 5:00; tap time for a duration picker; *Start*;
+Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 

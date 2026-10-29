@@ -97,8 +97,6 @@ object UmamiIcons {
     /** A11: the *Ratgeber* header band in the dark theme. */
     @DrawableRes val GuidesHeaderDark = R.drawable.illustration_guides_header_dark
 
-    // Photos (03 §3.5, docs/design/assets.md)
-
-    /** A4: the timer's photo for a tea without one of its own (SCR-05). */
-    @DrawableRes val TimerFallbackPhoto = R.drawable.photo_timer_fallback
+    /** A13: the timer's ink-wash band, dark only (SCR-05, SCR-07, D-095). */
+    @DrawableRes val TimerBand = R.drawable.illustration_timer_band
 }

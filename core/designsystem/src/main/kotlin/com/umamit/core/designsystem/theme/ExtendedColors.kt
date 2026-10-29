@@ -23,7 +23,25 @@ data class TeaTypeColors(
     val chinaKoreaGreen: Color,
     val flavoured: Color,
     val other: Color,
-)
+) {
+    /**
+     * The leaf placeholder's colour for a tea of [styleKey] (08 §2 style keys) without a
+     * photo: the journal's thumbnails and the timer's seal (03 §3.5, D-095).
+     */
+    fun forStyle(styleKey: String?): Color = when (styleKey) {
+        "gyokuro" -> gyokuro
+        "kabusecha" -> kabusecha
+        "sencha", "tamaryokucha", "kamairicha" -> sencha
+        "fukamushi_sencha" -> fukamushi
+        "shincha" -> shincha
+        "matcha" -> matcha
+        "karigane", "bancha" -> kukichaKarigane
+        "hojicha", "hojicha_powder" -> hojicha
+        "genmaicha" -> genmaicha
+        "longjing", "anji_bai_cha", "bi_luo_chun", "korean_green" -> chinaKoreaGreen
+        else -> other
+    }
+}
 
 /**
  * The alert surface (03 §3.6 `alertPulse`): it pulses between [washi] and

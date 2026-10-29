@@ -406,7 +406,8 @@ cultivar, processing, brewing parameters, prices); the shop's description
 texts and photos are **not** committed (D-016). During the first-start setup
 the app downloads the two product photos **once** from the allow-listed host
 (ONB-06, network use (b) of GEN-01; visible progress, skippable); without
-network the timer fallback image (A4) is used. Descriptions (and photos, if
+network the timer's seal shows the type-coloured leaf (until v0.2.0: the
+timer fallback image A4, retired by D-095). Descriptions (and photos, if
 still missing) arrive **automatically** with the first catalog refresh in M2
 via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 
