@@ -80,6 +80,7 @@ class RoomCatalogRepository @Inject constructor(
                     recipeCheckReason = row.recipeCheckReason,
                     isNew = row.isNew,
                     owned = row.key in ownedKeys,
+                    isHerbal = row.styleKey == HERBAL_STYLE,
                 )
             },
             lastRefreshAtMillis = last,
@@ -98,6 +99,9 @@ class RoomCatalogRepository @Inject constructor(
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */
         const val UMAMI_SCALE = "Umami"
+
+        /** The style of the shop's Kräutertees (08 §3, D-093): a herbal tea is told apart by it. */
+        const val HERBAL_STYLE = "herbal"
     }
 
     override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()

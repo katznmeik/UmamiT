@@ -9,6 +9,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -78,7 +79,9 @@ object RecipeDeriver {
         }.coerceAtLeast(0)
         // A powder is shaken cold, never steeped for hours: no cold brew (08 §3's matcha, D-089).
         val coldRow = coldRows.firstOrNull()
-        val wantsCold = info.coldBrewBadge || prose.cold != null || match.coldBrewDefault || coldRow != null
+        // A Kräutertee's style has no cold brew (08 §3, D-093): only the shop's own cold values add one.
+        val badge = info.coldBrewBadge && style.category == TeaCategory.GREEN
+        val wantsCold = badge || prose.cold != null || match.coldBrewDefault || coldRow != null
         val cold = if (wantsCold && match.form != TeaForm.POWDER) {
             coldBrew(coldRow, prose.cold, style, hot[hotDefault].recipe)
         } else {
@@ -311,27 +314,29 @@ object RecipeDeriver {
                         max(TIME_TOLERANCE_S, TIME_TOLERANCE * t)
                 }
             }
-            val head = RecipeStep(StepKind.INFUSION, duration(first))
-            val rest = when {
-                given.size >= 2 -> given.drop(1).map { RecipeStep(StepKind.INFUSION, duration(it)) }
+            return listOf(RecipeStep(StepKind.INFUSION, duration(first))) + followUps(given, first, temperature)
+        }
 
-                // PO preference: a second western infusion of a quarter, 5 °C hotter; not flagged.
-                method == BrewMethod.WESTERN -> listOf(
-                    RecipeStep(
-                        StepKind.INFUSION,
-                        duration(first * WESTERN_SECOND_FACTOR),
-                        hotter(temperature, WESTERN_SECOND_RISE_C),
-                    ),
-                )
+        /** The infusions after the [first] (step 5): the grid's, else by method and style. */
+        private fun followUps(given: List<Double>, first: Double, temperature: Int): List<RecipeStep> = when {
+            given.size >= 2 -> given.drop(1).map { RecipeStep(StepKind.INFUSION, duration(it)) }
 
-                method == BrewMethod.KYUSU || method == BrewMethod.GONGFU ->
-                    template.steps.drop(1).also {
-                        if (it.isNotEmpty()) fields.style(Unit)
-                    }.map { rebased(it, temperature) }
+            // PO preference: a second western infusion of a quarter, 5 °C hotter; not flagged.
+            // A Kräutertee keeps the one infusion its style has (08 §3, D-093).
+            method == BrewMethod.WESTERN && style.category == TeaCategory.GREEN -> listOf(
+                RecipeStep(
+                    StepKind.INFUSION,
+                    duration(first * WESTERN_SECOND_FACTOR),
+                    hotter(temperature, WESTERN_SECOND_RISE_C),
+                ),
+            )
 
-                else -> emptyList()
-            }
-            return listOf(head) + rest
+            method == BrewMethod.KYUSU || method == BrewMethod.GONGFU ->
+                template.steps.drop(1).also {
+                    if (it.isNotEmpty()) fields.style(Unit)
+                }.map { rebased(it, temperature) }
+
+            else -> emptyList()
         }
 
         /** A style step at the recipe's temperature, keeping the style's rise over its own base. */

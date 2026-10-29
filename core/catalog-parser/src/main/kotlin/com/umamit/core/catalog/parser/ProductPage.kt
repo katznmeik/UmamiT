@@ -3,17 +3,20 @@ package com.umamit.core.catalog.parser
 /** One breadcrumb item of a product page: its [title] as the shop names it and its URL [path]. */
 data class Crumb(val title: String, val path: String)
 
-/** Whether a product belongs in the catalog (08 §2.4 item 3), by its breadcrumb. */
+/** Whether a product belongs in the catalog (08 §2.4 item 3), by its breadcrumb: green and herbal teas do. */
 enum class CatalogScope {
     /** Under the green tea sections: kept. */
     GREEN,
+
+    /** Under the shop's Kräutertee section (v0.2.1, D-093): kept as a herbal tea (style `herbal`). */
+    HERBAL,
 
     /** A breadcrumb outside them: remembered in the skip list (05 §4.2a). */
     NOT_GREEN,
 
     /**
-     * Under the green sections, but a set by its name or breadcrumb, without a set number
-     * (D-091): remembered in the skip list as a set.
+     * Under the green or herbal sections, but a set by its name or breadcrumb, without a set
+     * number (D-091): remembered in the skip list as a set.
      */
     SET,
 

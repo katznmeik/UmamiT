@@ -38,8 +38,8 @@ data class CatalogUiState(
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
 
-    /** Never loaded (or emptied): SCR-19's empty state, whatever the filters. */
-    val isEmpty: Boolean get() = listing.totalCount == 0
+    /** Never loaded (or emptied): SCR-19's empty state, whatever the filters and the kind shown. */
+    val isEmpty: Boolean get() = listing.catalogCount == 0
 }
 
 /**

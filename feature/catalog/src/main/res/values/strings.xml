@@ -14,6 +14,11 @@
         <item quantity="one">%1$d Grüntee</item>
         <item quantity="other">%1$d Grüntees</item>
     </plurals>
+    <!-- The header's count in the Kräutertee view (v0.2.1, D-093): „… · 38 Kräutertees · …". -->
+    <plurals name="catalog_herbal_count">
+        <item quantity="one">%1$d Kräutertee</item>
+        <item quantity="other">%1$d Kräutertees</item>
+    </plurals>
     <!-- A row's price (CAT-10): „15,90 €/100 g". -->
     <string name="catalog_price_per_100g">%1$s €/100 g</string>
     <!-- Between the parts of a row's meta line; quoted to keep the spaces. -->
@@ -28,6 +33,8 @@
     <!-- „Filter (2)": the filters changed from the default view. -->
     <string name="catalog_filter_button_count">Filter (%1$d)</string>
     <string name="catalog_filter_pure">Pur</string>
+    <!-- The chip that switches the list to the shop's Kräutertees and back (v0.2.1, D-093). -->
+    <string name="catalog_filter_herbal">Kräutertee</string>
     <string name="catalog_filter_available">Vorrätig</string>
     <string name="catalog_filter_organic">Bio</string>
     <string name="catalog_filter_new">Neu</string>

@@ -11,6 +11,7 @@ import com.umamit.core.database.entity.CatalogImageFailureEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogSkipEntity
+import com.umamit.core.database.entity.CatalogSkipReason
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogGuideEntity
 import com.umamit.core.database.entity.StagedCatalogPackageEntity
@@ -34,6 +35,8 @@ data class CatalogListRow(
     @ColumnInfo(name = "recipe_check_reason") val recipeCheckReason: RecipeCheckReason? = null,
     /** First seen in the latest successful refresh, and that refresh was not the first (CAT-10 „Neu", D-083). */
     @ColumnInfo(name = "is_new") val isNew: Boolean = false,
+    /** The built-in style (`herbal` for a Kräutertee, D-093). */
+    @ColumnInfo(name = "style_key") val styleKey: String? = null,
 )
 
 /**
@@ -71,7 +74,7 @@ abstract class CatalogDao {
      */
     @Query(
         "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
-            "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, " +
+            "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, style_key, " +
             "(first_seen_at = (SELECT l.started_at FROM catalog_refresh_log l WHERE l.status = 'SUCCESS' " +
             "ORDER BY l.finished_at DESC, l.id DESC LIMIT 1) " +
             "AND EXISTS (SELECT 1 FROM catalog_refresh_log e WHERE e.status = 'SUCCESS' " +
@@ -127,6 +130,13 @@ abstract class CatalogDao {
 
     @Query("SELECT * FROM catalog_skip ORDER BY base_key")
     abstract suspend fun skipList(): List<CatalogSkipEntity>
+
+    /** The parser version of the latest successful refresh (05 §4.4); null before the first. */
+    @Query(
+        "SELECT parser_version FROM catalog_refresh_log WHERE status = 'SUCCESS' " +
+            "ORDER BY finished_at DESC, id DESC LIMIT 1",
+    )
+    abstract suspend fun lastSuccessParserVersion(): Int?
 
     @Query("SELECT * FROM catalog_refresh_log ORDER BY id")
     abstract suspend fun refreshLog(): List<CatalogRefreshLogEntity>
@@ -205,6 +215,8 @@ abstract class CatalogDao {
      * links to them (CAT-07 AC4); every other one is deleted with its packages.
      *
      * [imageFailures], when given, replace the image URLs not to ask for again (05 §4.6, D-091).
+     * With [clearNotGreen] the skip list's not-green entries are deleted before [skips] are added:
+     * the one-time re-classification for the Kräutertees (v0.2.1, 05 §9, D-093).
      */
     @Transaction
     open suspend fun swap(
@@ -213,6 +225,7 @@ abstract class CatalogDao {
         unchanged: List<String> = emptyList(),
         discontinued: List<String> = emptyList(),
         imageFailures: List<CatalogImageFailureEntity>? = null,
+        clearNotGreen: Boolean = false,
     ) {
         stageCurrent(unchanged + discontinued)
         markStagedDiscontinued(discontinued)
@@ -222,6 +235,7 @@ abstract class CatalogDao {
         insertStagedTeas()
         insertStagedPackages()
         replaceGuides()
+        if (clearNotGreen) deleteSkips(CatalogSkipReason.NOT_GREEN)
         putSkips(skips)
         if (imageFailures != null) {
             deleteImageFailures()
@@ -286,6 +300,9 @@ abstract class CatalogDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     protected abstract suspend fun putSkips(skips: List<CatalogSkipEntity>)
+
+    @Query("DELETE FROM catalog_skip WHERE reason = :reason")
+    protected abstract suspend fun deleteSkips(reason: CatalogSkipReason)
 
     @Query("DELETE FROM catalog_image_failure")
     protected abstract suspend fun deleteImageFailures()

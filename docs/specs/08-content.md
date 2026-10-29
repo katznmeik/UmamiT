@@ -31,6 +31,7 @@ parser (NFR-MAINT-04).
 | Platform | **Shopware 6.7** storefront behind **Cloudflare** (bot challenges possible) |
 | Host | All pages and images on `www.tee-kontor-kiel.de` (`/media/…` originals, `/thumbnail/…_{W}x{W}.jpg`). This is the only allow-listed host. |
 | `robots.txt` | `Allow: /`, but `Disallow: */?` (so paginated listings `?p=N` are off-limits), `*/widgets/`, `*/navigation/`, `*/bundles/`, account/checkout. No crawl-delay. Sitemap: `/sitemap.xml`. |
+| Kräutertee section (v0.2.1) | `/tee/kraeutertee/` with `bio-kraeutertee/`, `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`, `mate-lapacho/` (sitemap, 2026-10-29); products carry `TK…` base numbers. Its pages have the same structure as the green teas' (breadcrumb, buy box, properties, brewing grid, typically one `st-zubereitung-westlich` row with a per-litre amount, a temperature and one infusion). Fruit tea (`/tee/fruechtetee/`) and rooibos (`/tee/rotbusch/`) are separate sections. |
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
 | Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. **Sold-out products are left out** (checked 2026-10-28, D-094): e.g. „Bio Sencha Kirishima Yabukita" (TG0170) and „Bio Sencha Gabalong" (TG0577), every size unavailable, are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan › Sencha) but not in the sitemap; on page 1 of the Sencha listing, 3 of 24 products were missing. Known teas missing from the sitemap are therefore re-checked (§2.4 item 5, CAT-16), and a single tea can be fetched from its shop link (§2.4 item 9, CAT-17). Paginated listings stay off-limits (`Disallow: */?`). |
@@ -113,15 +114,28 @@ the prose, whose years are travel reports, founding years and link texts
    changes only with a successful refresh (D-077). A page without a
    breadcrumb is neither kept nor skipped.
    **Kräutertees (v0.2.1, D-093):** products under the shop's herbal tea
-   section (*Kräutertee*; its path is read from the live breadcrumb when
-   built and recorded here with the parser bump) are kept too, as herbal
-   teas with the style `herbal` (§2.6, §3), category `HERBAL`. Only the
-   shop's Kräutertees (PO): fruit teas, rooibos and other infusions stay
-   out. The `/tee/japantee/` rule above is unchanged.
+   section `/tee/kraeutertee/` (*Kräutertee*; read from a live breadcrumb on
+   2026-10-29, Tee › Kräutertee › <sub-section>, with parser v7) are kept
+   too, as herbal teas with the style `herbal` (§2.6, §3), category
+   `HERBAL`. The section's sub-sections, as path segments: `bio-kraeutertee/`,
+   `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`,
+   `mate-lapacho/`; all of them are in scope, mate and lapacho included,
+   since the shop files them as Kräutertees. A Kräutertee's *Sorte* is the
+   title of its sub-section (none when filed in the section itself). Only
+   the shop's Kräutertees (PO): fruit teas (`/tee/fruechtetee/`), rooibos
+   (`/tee/rotbusch/`) and other infusions are sections of their own and stay
+   out. A set there is a set (`SET`) as in the green sections. A product
+   under a green section and the Kräutertee section is green. The
+   `/tee/japantee/` rule above is unchanged.
    Because `catalog_skip` keeps no rules version, its `NOT_GREEN` rows are
    deleted once with v0.2.1 (05 §9), so the first refresh after the update
    classifies those products again and takes about as long as a first load
-   (≈ 16 min, once; accepted by the PO).
+   (≈ 16 min, once; accepted by the PO). Built as: while the latest
+   successful refresh in `catalog_refresh_log` ran a parser before v7, a
+   refresh treats the `NOT_GREEN` skip entries as due and its swap deletes
+   them before adding the run's own skip entries. A refresh that stops or
+   fails keeps the old skip list, so the next one classifies them again;
+   after the first successful v7 refresh, never again. No schema change.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section).
 5. **Later refreshes:** fetch known green parents plus base numbers new in the
@@ -409,7 +423,7 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | `mizudashi-kaltaufgussbeutel`, or „Mizudashi" / „Kaltaufgussbeutel" in the name under any breadcrumb (D-089) | style from the breadcrumb or name tokens (e.g. Sencha) else `green_generic` (not flagged); form TEA_BAG; default recipe = cold brew |
 | „Mizucha" in the name, under any breadcrumb (D-091) | as Mizudashi: style from breadcrumb or name else `green_generic` (not flagged); default recipe = cold brew; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | `aromatisierter-gruentee` | `flavored_green` |
-| the shop's *Kräutertee* section (v0.2.1, D-093) | `herbal` (category `HERBAL`, umami `NONE`; not flagged) |
+| the shop's *Kräutertee* section `/tee/kraeutertee/` (v0.2.1, D-093), whatever the name names | `herbal` (category `HERBAL`, umami `NONE`; not flagged); form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
 | tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
@@ -540,7 +554,7 @@ days after opening.
 | `korean_green` | Koreanischer Grüntee (Ujeon/Sejak) | HIGH | 60 | 2,0 | KYUSU 4 g / 120 ml / 70 °C: 1:00, 0:30 @75, 1:00 @80 |
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
-| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas |
+| `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas. A Kräutertee keeps the infusions the shop gives: the PO's second western infusion (§2.5 step 5) is for green teas only. The „Coldbrew geeignet" badge alone adds no cold brew; the shop's own cold values (a „kalt" row or cold-brew prose) do (§2.5 step 6) |
 | `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 °C) for manually added non-green teas |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 

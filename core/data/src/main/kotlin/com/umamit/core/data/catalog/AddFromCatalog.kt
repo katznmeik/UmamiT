@@ -22,7 +22,6 @@ import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.Tea
-import com.umamit.core.model.TeaCategory
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -207,7 +206,7 @@ class RoomAddFromCatalog @Inject constructor(
         return Tea(
             id = id,
             name = (name ?: key).take(NAME_MAX),
-            category = TeaCategory.GREEN,
+            category = style.category,
             form = match.form,
             secondaryName = secondaryName?.take(NAME_MAX),
             catalogKey = key,

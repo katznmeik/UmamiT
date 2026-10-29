@@ -231,6 +231,12 @@ class CatalogRefresher(
         var sets = 0
         var sales = 0
         var skippedKnown = 0
+
+        /**
+         * The last successful refresh ran a parser before Kräutertees: this one classifies the skip
+         * list's not-green entries again and, on success, replaces them (05 §9, D-093 Q12).
+         */
+        var reclassifyNotGreen = false
         var photosStored = 0
         var photosMissing = 0
 
@@ -426,8 +432,19 @@ class CatalogRefresher(
          * entries due again.
          */
         private suspend fun candidates(session: ShopSession, groups: List<ProductGroup>): List<ProductGroup> {
-            val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet()
-            val due = dao.skipList().map { it.baseKey }.toSet() - fresh
+            val skipList = dao.skipList()
+            run.reclassifyNotGreen =
+                (dao.lastSuccessParserVersion() ?: TeeKontorParser.PARSER_VERSION) <
+                TeeKontorParser.HERBAL_SINCE_VERSION
+            val notGreen = skipList.filter { it.reason == CatalogSkipReason.NOT_GREEN }.map { it.baseKey }.toSet()
+            val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet() -
+                (if (run.reclassifyNotGreen) notGreen else emptySet())
+            val due = skipList.map { it.baseKey }.toSet() - fresh
+            if (run.reclassifyNotGreen) {
+                log(
+                    "catalog refresh: ${notGreen.size} not-green products classified again once",
+                )
+            }
             run.skippedBases += fresh
             run.skippedKnown = groups.count { it.base in fresh }
             val knownGreen = run.previousBases.values.flatten().toSet()
@@ -482,7 +499,8 @@ class CatalogRefresher(
 
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
-                CatalogScope.GREEN -> {
+                // Kräutertees are kept next to the green teas, told apart by their style (D-093).
+                CatalogScope.GREEN, CatalogScope.HERBAL -> {
                     run.entries += CatalogEntry.of(group, page)
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
@@ -700,7 +718,14 @@ class CatalogRefresher(
             // The last moment a cancel ends the run: the swap and everything after it run to their end (D-090).
             currentCoroutineContext().ensureActive()
             return withContext(NonCancellable) {
-                dao.swap(run.skips, entry, unchanged, discontinued, run.imageFailures.stored())
+                dao.swap(
+                    run.skips,
+                    entry,
+                    unchanged,
+                    discontinued,
+                    run.imageFailures.stored(),
+                    clearNotGreen = run.reclassifyNotGreen,
+                )
                 keepPhotosOfCatalog()
                 log(
                     "catalog refresh: success, $teas teas (${summary.newTeas} new, ${summary.changedTeas} changed, " +
