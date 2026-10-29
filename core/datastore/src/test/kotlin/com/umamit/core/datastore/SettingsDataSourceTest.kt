@@ -35,6 +35,7 @@ class SettingsDataSourceTest {
         assertThat(settings.theme).isEqualTo(ThemeMode.SYSTEM)
         assertThat(settings.dynamicColor).isFalse()
         assertThat(settings.alertSound).isEqualTo("klangschale")
+        assertThat(settings.preAlertSound).isEqualTo("zimbel")
         assertThat(settings.preAlertSeconds).isEqualTo(10)
         assertThat(settings.vibration).isTrue()
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
@@ -71,6 +72,7 @@ class SettingsDataSourceTest {
             theme = ThemeMode.DARK,
             dynamicColor = true,
             alertSound = "glocke",
+            preAlertSound = "klangstab",
             preAlertSeconds = 0,
             vibration = false,
             alertLength = AlertLength.LONG,
@@ -106,6 +108,21 @@ class SettingsDataSourceTest {
         assertThat(settings.theme).isEqualTo(ThemeMode.SYSTEM)
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
         assertThat(settings.preAlertSeconds).isEqualTo(15)
+    }
+
+    @Test
+    fun aFileOfVersion020WithoutAPreAlertSoundReadsTheZimbelAndKeepsTheRest() = runTest {
+        // SET-26 is new in v0.2.1: an update keeps every other setting (05 §6).
+        val file = File(folder.root, "v020.json")
+        file.writeText("""{"alertSound":"sanft","preAlertSeconds":20,"seedDataCreated":true}""")
+        val source = dataSource(file)
+
+        val settings = source.settings.first()
+
+        assertThat(settings.preAlertSound).isEqualTo("zimbel")
+        assertThat(settings.alertSound).isEqualTo("sanft")
+        assertThat(settings.preAlertSeconds).isEqualTo(20)
+        assertThat(source.seedDataCreated.first()).isTrue()
     }
 
     @Test

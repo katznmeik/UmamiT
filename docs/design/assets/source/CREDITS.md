@@ -12,7 +12,11 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 | File | Asset | Source | Licence |
 |---|---|---|---|
 | `core/content/src/main/res/raw/klangschale.ogg` | Klangschale — default alert tone (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
-| `core/content/src/main/res/raw/tick.ogg` | Tick — pre-alert, small-bowl „ting" (D-045) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/tick.ogg` | Tick — pre-alert, small-bowl „ting" (D-045); „Ting (leise)" in SET-26 | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/zimbel.ogg` | Zimbel — pre-alert, two small cymbals with a slow beating (SET-26, D-093) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/gloeckchen.ogg` | Glöckchen — pre-alert, small high bell (SET-26, D-093) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/klangstab.ogg` | Klangstab — pre-alert, one wind-chime bar (SET-26, D-093) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
+| `core/content/src/main/res/raw/tiefe_schale.ogg` | Tiefe Schale — pre-alert, lower singing bowl (SET-26, D-093) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 | `core/content/src/main/res/raw/glocke.ogg` | Glocke — alert tone, small bell struck twice (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 | `core/content/src/main/res/raw/holzblock.ogg` | Holzblock — alert tone, two wood blocks (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |
 | `core/content/src/main/res/raw/glockenspiel.ogg` | Glockenspiel — alert tone, rising steel-bar arpeggio (D-059) | Synthesised, own work (ffmpeg, `scripts/sounds/generate.sh`) | Own work |

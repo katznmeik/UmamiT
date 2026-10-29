@@ -49,6 +49,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertSound
+import com.umamit.core.timer.alert.PreAlertSound
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
 import com.umamit.core.timer.reliability.ReliabilityStatus
@@ -63,7 +64,7 @@ object SettingsTags {
 }
 
 /** The dialogs of SCR-25; saveable by name. */
-internal enum class SettingsDialog { Tone, PreAlert, AlertLength }
+internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength }
 
 /** What the rows of SCR-25 do. */
 class SettingsActions(
@@ -74,6 +75,10 @@ class SettingsActions(
     /** The picker closes, or an alert removes it: the preview stops. */
     val stopPreview: () -> Unit = {},
     val setPreAlert: (Int) -> Unit = {},
+    /** SET-26 *Vorwarnton*: the stored key of the picked sound. */
+    val setPreAlertSound: (String) -> Unit = {},
+    /** *Anhören* in the *Vorwarnton* picker: the picked sound once (SET-26). */
+    val previewPreAlertSound: () -> Unit = {},
     val setVibration: (Boolean) -> Unit = {},
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
@@ -140,6 +145,8 @@ fun SettingsRoute(
             previewTone = { viewModel.previewTone((settings ?: UserSettings()).alertSound) },
             stopPreview = viewModel::stopPreview,
             setPreAlert = { seconds -> viewModel.change { it.copy(preAlertSeconds = seconds) } },
+            setPreAlertSound = { key -> viewModel.change { it.copy(preAlertSound = key) } },
+            previewPreAlertSound = { viewModel.previewPreAlertSound((settings ?: UserSettings()).preAlertSound) },
             setVibration = { on -> viewModel.change { it.copy(vibration = on) } },
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
@@ -215,6 +222,8 @@ fun SettingsScreen(
 
             SettingsDialog.PreAlert -> PreAlertDialog(settings.preAlertSeconds, actions.setPreAlert) { dialog = null }
 
+            SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions) { dialog = null }
+
             SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength) {
                 dialog =
                     null
@@ -274,6 +283,11 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
             title = stringResource(R.string.settings_pre_alert),
             value = preAlertLabel(settings.preAlertSeconds),
             onClick = { openDialog(SettingsDialog.PreAlert) },
+        )
+        SettingsRow(
+            title = stringResource(R.string.settings_pre_alert_sound),
+            value = stringResource(PreAlertSound.of(settings.preAlertSound).sound.label()),
+            onClick = { openDialog(SettingsDialog.PreAlertSound) },
         )
         SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, actions.setVibration)
         SettingsRow(
@@ -355,18 +369,19 @@ private fun preAlertLabel(seconds: Int): String = if (seconds == 0) {
     stringResource(R.string.settings_pre_alert_seconds, seconds)
 }
 
+/** The German name of each bundled sound: the tones of SET-09 and the *Vorwarnton* choices of SET-26. */
 @StringRes
 internal fun AlertSound.label(): Int = when (this) {
+    AlertSound.KLANGSCHALE -> R.string.settings_tone_klangschale
     AlertSound.GLOCKE -> R.string.settings_tone_glocke
-
     AlertSound.HOLZBLOCK -> R.string.settings_tone_holzblock
-
     AlertSound.GLOCKENSPIEL -> R.string.settings_tone_glockenspiel
-
     AlertSound.SANFT -> R.string.settings_tone_sanft
-
-    // The tick is no choice; an unknown key plays the Klangschale (D-059).
-    AlertSound.KLANGSCHALE, AlertSound.TICK -> R.string.settings_tone_klangschale
+    AlertSound.TICK -> R.string.settings_pre_alert_sound_ting
+    AlertSound.ZIMBEL -> R.string.settings_pre_alert_sound_zimbel
+    AlertSound.GLOECKCHEN -> R.string.settings_pre_alert_sound_gloeckchen
+    AlertSound.KLANGSTAB -> R.string.settings_pre_alert_sound_klangstab
+    AlertSound.TIEFE_SCHALE -> R.string.settings_pre_alert_sound_tiefe_schale
 }
 
 @StringRes
