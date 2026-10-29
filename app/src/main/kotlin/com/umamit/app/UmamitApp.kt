@@ -60,6 +60,7 @@ import androidx.navigation.toRoute
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.journal.JournalSources
@@ -92,6 +93,8 @@ private const val SLIDE_FRACTION = 12
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20) in the Sammlung tab;
  *   tests replace them.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
+ * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
+ *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
  * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
@@ -115,6 +118,8 @@ internal fun UmamitApp(
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
+    teaLinkShare: TeaLinkShare? = null,
+    onTakeTeaLinkShare: (Long) -> Unit = {},
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(Tab.Start) }
@@ -122,6 +127,16 @@ internal fun UmamitApp(
     val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
     // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
+    // *Link einfügen* in the same menu (CAT-17).
+    var catalogPasteRequest by remember { mutableIntStateOf(0) }
+    // A shared link shows the catalog list, which loads it (CAT-17).
+    LaunchedEffect(teaLinkShare?.token) {
+        if (teaLinkShare != null) {
+            controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
+            segment = CollectionSegment.Catalog
+            selected = Tab.Collection
+        }
+    }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
@@ -219,10 +234,14 @@ internal fun UmamitApp(
                                         openGuides = dropUnlessResumed {
                                             controllers.getValue(Tab.Collection).navigate(GuidesRoute)
                                         },
+                                        pasteLinkRequest = catalogPasteRequest,
+                                        sharedLink = teaLinkShare,
+                                        onTakeSharedLink = onTakeTeaLinkShare,
                                     ),
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
+                            onPasteLink = { catalogPasteRequest++ },
                             catalogTea = { onBack ->
                                 catalogScreens.tea(
                                     CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
@@ -393,6 +412,7 @@ private fun TabHost(
     catalogScreens: CatalogStackScreens,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
+    onPasteLink: () -> Unit,
     catalogTea: @Composable (onBack: () -> Unit) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
@@ -424,6 +444,7 @@ private fun TabHost(
                 catalogContent = catalog,
                 scrollToTopRequest = scrollToTopRequest,
                 onRefreshCatalog = onRefreshCatalog,
+                onPasteLink = onPasteLink,
             )
         }
         // The add sheet (SCR-23) gives way to an alert (rule 8). Every on-screen back acts only while its

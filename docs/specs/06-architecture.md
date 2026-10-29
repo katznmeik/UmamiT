@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -155,7 +155,11 @@ limit (5 MB for pages, 16 MB for images, D-091) leaves only its URL out
 (D-090). An idle connection is kept for 30 s only, since
 connection retries are off (D-090). The seed photo download ends before a
 refresh started from the setup (D-090); a new refresh starts only once a
-cancelled one has cleaned up.
+cancelled one has cleaned up. A refresh and a shared or pasted link both
+write `catalog.db`, so they take turns (`CatalogJobs`, #98): a refresh waits
+for a link in progress (seconds at most) and holds its turn to the end of its
+cleanup; a link never waits: while a refresh has the turn it sends nothing and
+says so (CAT-17 AC7). The link's session doesn't retry, like the exact price.
 
 ## 5. Key technical designs
 
@@ -268,6 +272,23 @@ has an intent filter for `android.intent.action.SEND` with MIME type
 *Teilen* sheet. It is exported only for that filter; it needs no new
 permission. The shared text is untrusted input: only a link accepted by
 CAT-17 AC2 leads to a request, and the intent opens SCR-21 for the tea.
+As built (#98):
+- **`ShareTeaLinkActivity`** (`app`) is that activity: exported with only the
+  `SEND` + `text/plain` filter, `Theme.NoDisplay`, `noHistory`,
+  `excludeFromRecents`. It shows nothing and finishes in `onCreate`.
+- **Hand-over:** it reads only `EXTRA_TEXT`, never a stream or another extra,
+  cut to one character over the 2,000 the app reads (a longer text is
+  refused). It checks the action and type again, since an explicit intent
+  reaches an exported activity with any. It passes the text to `MainActivity`
+  with the app's own action, as the timer's notifications do
+  (`NEW_TASK | SINGLE_TOP`), so the app never opens a second time inside the
+  browser's task.
+- **`MainActivity`** (exported only as the launcher, as before) keeps the
+  share until Sammlung › Katalog takes it, across a recreation. A task reopened
+  from the recent apps doesn't load its share again. While the timer or
+  another full-screen route is on top, the share waits (rule 8).
+- **Checks:** `ShareTargetTest` checks the merged manifest; the permission
+  list and `checkManifestPermissions` are unchanged.
 
 The build enforces this list (`./gradlew checkManifestPermissions`, in CI,
 M1-02): the merged **release** manifest may request only the permissions

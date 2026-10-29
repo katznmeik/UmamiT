@@ -110,6 +110,21 @@
     <!-- Below the photos' progress once guides arrive (CAT-09); a label, not a counted noun. -->
     <string name="catalog_refresh_guides" tools:ignore="PluralsCandidate">Ratgeber: %1$d</string>
 
+    <!-- A tea from a shop link (SCR-19 *Link einfügen* and the share target; CAT-17, D-094; 03 §5). Offline, blocked,
+         shop down and storage full say what the refresh says (catalog_refresh_offline, _blocked, _unavailable, _storage). -->
+    <string name="tea_link_title">Tee per Link hinzufügen</string>
+    <string name="tea_link_field">Link zur Tee-Seite bei Tee-Kontor Kiel</string>
+    <string name="tea_link_load">Tee laden</string>
+    <string name="tea_link_loading">Tee wird geladen …</string>
+    <string name="tea_link_close">Schließen</string>
+    <string name="tea_link_not_a_tea_link">Das ist kein Tee-Link von Tee-Kontor Kiel.</string>
+    <string name="tea_link_not_in_catalog">Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees).</string>
+    <string name="tea_link_refresh_running">Gerade läuft ein Abruf – versuch es danach.</string>
+    <!-- 404/410, a redirect (never followed), another 4xx, or a page of no or another product. -->
+    <string name="tea_link_no_tea_page">Unter diesem Link gibt es im Shop keinen Tee.</string>
+    <!-- robots.txt disallows the page, it is too large, it has no breadcrumb, or it broke the parser. -->
+    <string name="tea_link_unreadable">Diese Shop-Seite kann die App nicht lesen.</string>
+
     <!-- SCR-19's Ratgeber row and the guides (SCR-20, CAT-09, D-087). -->
     <string name="catalog_guides_row">Ratgeber</string>
     <plurals name="catalog_guides_row_count">

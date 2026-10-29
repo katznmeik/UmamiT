@@ -18,6 +18,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.BrewMethod
@@ -400,4 +401,54 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             CatalogRefreshSheet(refresh = refresh, onCancel = {}, onDismissRequest = {})
         }
     }
+
+    // *Link einfügen* and a shared link (v0.2.1, #98; CAT-17, SCR-19, 03 §5; spec #81 seam 5).
+
+    /** The paste field with a link from the clipboard, also at font scale 2.0 (its label is long). */
+    @Test
+    fun linkPaste() = linkSheet("linkPaste", TeaLinkSheetState(text = TEA_LINK), anyFontScale = true)
+
+    @Test
+    fun linkLoading() = linkSheet("linkLoading", TeaLinkSheetState(text = TEA_LINK, loading = true))
+
+    @Test
+    fun linkNotATeaLink() = linkSheet(
+        "linkNotATeaLink",
+        TeaLinkSheetState(text = "https://www.example.com/tee/sencha", message = TeaLinkOutcome.NotATeaLink),
+        anyFontScale = true,
+    )
+
+    @Test
+    fun linkNotInCatalog() =
+        linkSheet("linkNotInCatalog", TeaLinkSheetState(text = TEA_LINK, message = TeaLinkOutcome.NotInCatalog))
+
+    @Test
+    fun linkSharedLoading() = linkSheet("linkSharedLoading", TeaLinkSheetState(shared = true, loading = true))
+
+    @Test
+    fun linkSharedOffline() =
+        linkSheet("linkSharedOffline", TeaLinkSheetState(shared = true, message = TeaLinkOutcome.Offline))
+
+    @Test
+    fun linkSharedRefreshRunning() = linkSheet(
+        "linkSharedRefreshRunning",
+        TeaLinkSheetState(shared = true, message = TeaLinkOutcome.RefreshRunning),
+    )
+
+    /** The tea link's sheet over the list, at font scale 1.0 unless [anyFontScale]. */
+    private fun linkSheet(name: String, state: TeaLinkSheetState, anyFontScale: Boolean = false) {
+        assumeTrue(anyFontScale || fontScale == 1f)
+        capture(name) {
+            CatalogContent(
+                state = listState(),
+                onLoad = {},
+                onShowProgress = {},
+                thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+            )
+            TeaLinkSheet(state = state, onTextChange = {}, onLoad = {}, onDismissRequest = {})
+        }
+    }
 }
+
+/** An invented tea link (D-016). */
+private const val TEA_LINK = "https://www.tee-kontor-kiel.de/nebelhang-sencha/XY0170"

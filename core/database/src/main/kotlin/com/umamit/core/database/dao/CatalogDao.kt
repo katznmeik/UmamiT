@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import com.umamit.core.database.entity.CatalogGuideEntity
 import com.umamit.core.database.entity.CatalogImageFailureEntity
 import com.umamit.core.database.entity.CatalogPackageEntity
@@ -250,6 +251,38 @@ abstract class CatalogDao {
         clearStagedPackages()
         clearStagedTeas()
     }
+
+    /**
+     * One tea from a shared or pasted shop link (CAT-17, 08 §2.4 item 9), outside a refresh (the
+     * two never run together, D-094): [tea] and its [packages] replace that tea's row and
+     * packages, or are added. A tea seen before keeps its first sighting, and a new one carries
+     * its own, so neither is „Neu" (CAT-17 AC4, D-083). [imageFailure], when given, is remembered
+     * like a refresh's (05 §4.6, D-091). One transaction; the search index follows by Room's triggers.
+     */
+    @Transaction
+    open suspend fun putLinkedTea(
+        tea: CatalogTeaEntity,
+        packages: List<CatalogPackageEntity>,
+        imageFailure: CatalogImageFailureEntity? = null,
+    ) {
+        val before = tea(tea.key)
+        deletePackagesOf(tea.key)
+        if (before == null) insertTea(tea) else updateTea(tea.copy(firstSeenAt = before.firstSeenAt))
+        insertPackages(packages)
+        if (imageFailure != null) putImageFailures(listOf(imageFailure))
+    }
+
+    @Query("DELETE FROM catalog_package WHERE catalog_key = :key")
+    protected abstract suspend fun deletePackagesOf(key: String)
+
+    @Insert
+    protected abstract suspend fun insertTea(tea: CatalogTeaEntity)
+
+    @Update
+    protected abstract suspend fun updateTea(tea: CatalogTeaEntity)
+
+    @Insert
+    protected abstract suspend fun insertPackages(packages: List<CatalogPackageEntity>)
 
     /** The staged guides replace the guides (D-087); part of [swap]'s transaction. */
     @Transaction

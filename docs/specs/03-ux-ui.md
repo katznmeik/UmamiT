@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (*Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (*Link einfügen* and the share target as built, #98; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -768,6 +768,29 @@ not reachable). **Share target:** a link shared from the browser's *Teilen*
 sheet to UmamiT goes the same way without the field: it opens SCR-21 for the
 tea, or a small sheet with the same messages. The sheet never covers an
 alert (rule 8).
+As built (#98):
+- **Clipboard:** the field is filled only when the clipboard holds a tea link
+  the app accepts, and then with that link alone; any other clipboard text is
+  never shown. Only the clipboard's text is read.
+- **Field:** one line; its label is cut off with „…" when it doesn't fit (font
+  scale 2.0). Editing the link clears the message. *Tee laden* acts only on a
+  non-empty field and not while a link loads.
+- **Messages** (§5): besides the four above, „Unter diesem Link gibt es im Shop
+  keinen Tee." (404/410, a redirect, which is never followed, another 4xx, or a
+  page that shows no product or another one) and „Diese Shop-Seite kann die App
+  nicht lesen." (robots.txt disallows it, it is over the body limit, it has no
+  breadcrumb). Nothing is stored for any message. Each message is in the error
+  colour and read out by TalkBack when it appears.
+- **Shared link:** the small sheet shows the progress, then the message and
+  *Schließen*. Sharing again replaces a link still loading. A share is taken by
+  Sammlung › Katalog (the list, not a screen left open there); while the timer
+  or another full-screen screen is shown, the share waits until the user comes
+  back to the tabs, so it never covers the timer.
+- **Alerts:** the sheet leaves with the alert's first frame, without animation;
+  its fetch goes on, and the sheet comes back after the alert with its link and
+  message. A tea loaded meanwhile opens its SCR-21 once the catalog is on screen
+  again (never over the timer). *Link einfügen* closes a refresh sheet it would
+  cover; the refresh goes on. Closing the link's sheet cancels a link still loading.
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
@@ -958,7 +981,9 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Tee per Link: not a shop tea link (CAT-17) | „Das ist kein Tee-Link von Tee-Kontor Kiel." |
 | Tee per Link: not green or herbal (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." |
 | Tee per Link: a refresh runs (CAT-17) | „Gerade läuft ein Abruf – versuch es danach." |
-| Tee per Link: offline / blocked / shop down (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
+| Tee per Link: no tea at the link (404/410, a redirect, another 4xx, no or another product; CAT-17, #98) | „Unter diesem Link gibt es im Shop keinen Tee." |
+| Tee per Link: the page can't be read (robots.txt, over the body limit, no breadcrumb; CAT-17, #98) | „Diese Shop-Seite kann die App nicht lesen." |
+| Tee per Link: offline / blocked / shop down / storage full (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
 
 ## 6. Accessibility
 

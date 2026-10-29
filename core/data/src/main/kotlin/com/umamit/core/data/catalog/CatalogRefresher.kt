@@ -121,6 +121,7 @@ class CatalogRefresher(
     private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
     guideLimits: GuideLimits = GuideLimits.DEFAULT,
+    private val jobs: CatalogJobs = CatalogJobs(),
 ) {
     @Inject
     constructor(
@@ -132,6 +133,7 @@ class CatalogRefresher(
         photos: CatalogPhotoFiles,
         owned: OwnedCatalogKeys,
         seedTeas: CatalogSeedLinker,
+        jobs: CatalogJobs,
     ) : this(
         client,
         dao,
@@ -144,6 +146,8 @@ class CatalogRefresher(
         Dispatchers.IO,
         owned,
         seedTeas,
+        GuideLimits.DEFAULT,
+        jobs,
     )
 
     private val guides =
@@ -151,9 +155,13 @@ class CatalogRefresher(
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
-     * returns how it ended. Only a [CatalogRefreshOutcome.Success] changed the catalog.
+     * returns how it ended. Only a [CatalogRefreshOutcome.Success] changed the catalog. It runs
+     * in its turn ([CatalogJobs]): after a tea from a link in progress, and none starts until it ends.
      */
-    suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome {
+    suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome =
+        jobs.refresh { refreshInTurn(onProgress) }
+
+    private suspend fun refreshInTurn(onProgress: (CatalogRefreshProgress) -> Unit): CatalogRefreshOutcome {
         val run = Run(startedAt = clock.nowMs(), onProgress = onProgress)
         log("catalog refresh: started, parser v${TeeKontorParser.PARSER_VERSION}")
         onProgress(CatalogRefreshProgress.STARTING)
@@ -566,7 +574,7 @@ class CatalogRefresher(
                     unread(before.key, "not fetched (robots.txt or off the shop)")
                     null
                 } else {
-                    Unlisted(before.key, run.previousBases[before.key].orEmpty(), url)
+                    Unlisted(ShopProduct(client, before.key, run.previousBases[before.key].orEmpty()), url)
                 }
             }
         }
@@ -619,7 +627,7 @@ class CatalogRefresher(
             when {
                 answer.code in GONE -> gone(tea.key, status)
 
-                location != null && !location.namesProductOf(tea) -> gone(
+                location != null && !tea.product.isNamedBy(location) -> gone(
                     tea.key,
                     "$status to " + if (client.isAllowed(location)) location.encodedPath else "another host",
                 )
@@ -632,7 +640,7 @@ class CatalogRefresher(
 
         /** A fetched page of an unlisted tea: classified as any page while it still shows that product. */
         private suspend fun unlistedPage(tea: Unlisted, page: ProductPage) {
-            if (!page.showsProductOf(tea)) {
+            if (!tea.product.isShownBy(page)) {
                 unread(tea.key, "${tea.url.encodedPath} shows another product (${page.key})")
                 return
             }
@@ -642,16 +650,6 @@ class CatalogRefresher(
                 CatalogScope.NOT_GREEN, CatalogScope.SET -> gone(tea.key, "${tea.url.encodedPath} out of scope")
                 CatalogScope.UNKNOWN -> unread(tea.key, "${tea.url.encodedPath} has no breadcrumb")
             }
-        }
-
-        /** [this] is a product page of [tea] on the shop: `/<slug>/<number>` with one of its numbers. */
-        private fun HttpUrl.namesProductOf(tea: Unlisted): Boolean =
-            client.isAllowed(this) && ProductUrls.articleNumberOf(toString())?.base in tea.bases
-
-        /** The page is [tea]'s: its canonical (else the fetched URL) names it, and so does its own number if read. */
-        private fun ProductPage.showsProductOf(tea: Unlisted): Boolean {
-            val canonical = productUrl.toHttpUrlOrNull() ?: return false
-            return canonical.namesProductOf(tea) && (key ?: tea.key) in tea.bases
         }
 
         private fun unread(key: String, why: String) {
@@ -688,11 +686,16 @@ class CatalogRefresher(
             }
         }
 
-        /** The sanity check (08 §2.9): before the photos, so a broken parser costs no photo request. */
+        /**
+         * The sanity check (08 §2.9): before the photos, so a broken parser costs no photo request.
+         * Before the first successful refresh it is a first import, even when a tea from a shop
+         * link (CAT-17) is already in the catalog: that one tea never lowers the first import's minimum.
+         */
         private suspend fun checkSanity() {
             val staged = dao.countStaged()
+            val firstImport = dao.lastSuccessParserVersion() == null
             val counts = SanityCheck.Counts(
-                previousGreen = dao.countCurrent(),
+                previousGreen = if (firstImport) 0 else dao.countCurrent(),
                 green = staged,
                 defective = run.defective.size,
                 lackingRequired = run.lackingRequired,
@@ -953,13 +956,14 @@ class CatalogRefresher(
 private class StagedTea(val hash: String?, val flagged: Boolean)
 
 /**
- * A known tea missing from the sitemap (CAT-16): its [key], its base numbers ([bases], merged
- * ones included, D-081) and its product page [url], fetched once. Its page is classified and
- * staged like a sitemap product of its key without size URLs, so its sizes are the page's
- * (08 §2.4 item 6).
+ * A known tea missing from the sitemap (CAT-16): the [product] with its key and base numbers
+ * (merged ones included, D-081, judged by [ShopProduct] as a tea from a link is) and its product
+ * page [url], fetched once. Its page is classified and staged like a sitemap product of its key
+ * without size URLs, so its sizes are the page's (08 §2.4 item 6).
  */
-private class Unlisted(val key: String, val bases: Set<String>, val url: HttpUrl) {
-    val group = ProductGroup(base = key, pageUrl = url.toString(), variantUrls = emptyMap())
+private class Unlisted(val product: ShopProduct, val url: HttpUrl) {
+    val key: String get() = product.key
+    val group = ProductGroup(base = product.key, pageUrl = url.toString(), variantUrls = emptyMap())
 }
 
 /** The counts of a refresh's summary (CAT-07 AC3), as logged (05 §4.4). */
@@ -976,7 +980,7 @@ private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception
  * A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), with its style
  * and derived recipes (CAT-04 – CAT-06), without its photo file yet.
  */
-private fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
+internal fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
 
 private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRecipes) = CatalogTeaEntity(
     key = key ?: base,
@@ -1017,7 +1021,7 @@ private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRec
 )
 
 /** A package size of the tea [key] as a catalog row (05 §4.2). */
-private fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
+internal fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
     catalogKey = key,
     articleNumber = articleNumber,
     label = CatalogColumns.packageLabel(grams, savingsPercent),
