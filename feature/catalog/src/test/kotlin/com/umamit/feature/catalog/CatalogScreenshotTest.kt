@@ -90,6 +90,15 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             catalogTea("XY0800", "Kirsch Sencha", basePriceCentsPer100g = 1090).copy(isFlavored = true),
             catalogTea("XY0900", "Stiller See Gyokuro", "Gyokuro", 4400).copy(available = false),
             catalogTea("XY1000", "Ohne Sorte", teaType = null, basePriceCentsPer100g = 1500),
+            // Kräutertees (v0.2.1, D-093): only in the Kräutertee view.
+            catalogTea("XK1100", "Wiesenzauber", "Kräutermischungen", 890, thumbnailPath = "wiese")
+                .copy(isHerbal = true, isOrganic = true, isNew = true),
+            catalogTea("XK1200", "Zitronenwiese mit Apfelstückchen", "Kräutermischungen", 790)
+                .copy(isHerbal = true, isFlavored = true, owned = true),
+            catalogTea("XK1300", "Bergminze", "Einzelkräuter", 1190, thumbnailPath = "minze")
+                .copy(isHerbal = true, originCountry = "Deutschland"),
+            catalogTea("XK1400", "Abendruhe", "Ayurveda & Wellness", 1290)
+                .copy(isHerbal = true, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -255,6 +264,18 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 filter = CatalogFilter(search = "Sencha", sort = CatalogSort.PRICE, availableOnly = false),
                 searchHits = setOf("XY0100", "XY0700", "XY0800"),
             ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The Kräutertee view (v0.2.1, #89): the Kräutertees by Sorte, without „Pur" (D-093 Q14). */
+    @Test
+    fun listHerbal() = capture("listHerbal") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,

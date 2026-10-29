@@ -98,6 +98,7 @@ object StyleMapper {
         isFlavored: Boolean = false,
         originCountry: String? = null,
     ): StyleMatch {
+        if (categoryPath != null && HerbalSection.contains(categoryPath)) return herbal(listOfNotNull(name, teaType))
         val segment = categoryPath?.trimEnd('/')?.substringAfterLast('/')?.lowercase().orEmpty()
         val text = listOfNotNull(name, teaType).joinToString(" ")
         val byName = KEYWORDS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second
@@ -120,6 +121,18 @@ object StyleMapper {
             coldBrewDefault = coldBrew,
         )
     }
+
+    /**
+     * A Kräutertee (v0.2.1, D-093): the `herbal` style whatever its name names (a „Kräuter-Sencha"
+     * of the herbal section is no sencha), never flagged; in bags when its name says so.
+     */
+    private fun herbal(names: List<String>): StyleMatch = StyleMatch(
+        style = requireNotNull(BuiltInStyles.byKey(HERBAL)),
+        form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
+        japanese = false,
+        unmapped = false,
+        coldBrewDefault = false,
+    )
 
     /**
      * The style key by the breadcrumb's [segment], else the name's [byName]; null when neither
@@ -158,6 +171,7 @@ object StyleMapper {
             ?: style.umami
 
     private const val FLAVORED = "flavored_green"
+    private const val HERBAL = "herbal"
     private const val KOREAN_GREEN = "korean_green"
 
     /** *Anbaugebiete* Korea: a green tea no keyword names is a Korean green (D-089). */

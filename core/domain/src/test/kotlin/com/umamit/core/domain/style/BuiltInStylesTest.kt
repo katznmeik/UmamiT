@@ -7,6 +7,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.UmamiLevel
 import org.junit.Test
 
@@ -17,9 +18,35 @@ class BuiltInStylesTest {
         assertThat(BuiltInStyles.all.map { it.key }).containsExactly(
             "gyokuro", "kabusecha", "sencha", "fukamushi_sencha", "shincha", "matcha", "karigane", "bancha",
             "hojicha", "hojicha_powder", "genmaicha", "kamairicha", "tamaryokucha", "longjing", "anji_bai_cha",
-            "bi_luo_chun", "korean_green", "flavored_green", "green_generic",
+            "bi_luo_chun", "korean_green", "flavored_green", "green_generic", "herbal",
         ).inOrder()
         assertThat(BuiltInStyles.byKey("nope")).isNull()
+    }
+
+    @Test
+    fun theHerbalStyleBrewsOneSixMinuteInfusionInTheMugAtBoiling() {
+        // 08 §3, D-093 Q5: 2 g / 250 ml in the Becher, 100 °C, one infusion of 6:00, no cold brew.
+        val herbal = BuiltInStyles.byKey("herbal")!!
+        assertThat(herbal.category).isEqualTo(TeaCategory.HERBAL)
+        assertThat(herbal.umami).isEqualTo(UmamiLevel.NONE)
+        assertThat(herbal.freshnessDays).isEqualTo(180)
+        assertThat(herbal.gramsPerTeaspoon).isEqualTo(1.5)
+        assertThat(herbal.japanese).isFalse()
+        assertThat(herbal.recipes).containsExactly(
+            RecipeTemplate(
+                name = "Westlich",
+                method = BrewMethod.WESTERN,
+                leafGrams = 2.0,
+                waterMl = 250,
+                baseTempC = 100,
+                steps = listOf(RecipeStep(StepKind.INFUSION, 360)),
+                source = RecipeSource.STYLE_DEFAULT,
+                isDefault = true,
+            ),
+        )
+        assertThat(herbal.coldBrew).isNull()
+        assertThat(BuiltInStyles.all.filter { it.category != TeaCategory.GREEN }.map { it.key })
+            .containsExactly("herbal")
     }
 
     @Test

@@ -58,9 +58,10 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
  * control: the empty state with *Katalog laden* (D-073), or the teas under the header
- * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." with search, filter chips and the
- * filter sheet (CAT-10). A tap on *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's
- * ⋮ menu ([refreshRequest]), starts the refresh and opens its sheet (SCR-22).
+ * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." (in the *Kräutertee* view „… · 38
+ * Kräutertees · …", D-093) with search, filter chips and the filter sheet (CAT-10). A tap on
+ * *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
+ * the refresh and opens its sheet (SCR-22).
  *
  * **Alerts first (rule 8):** while an alert plays ([alerting]) no sheet is composed, so it leaves
  * in that frame without animation, and it stays closed; the refresh itself goes on (CAT-07 AC8).
@@ -240,7 +241,7 @@ private fun CatalogList(
             .testTag(CATALOG_LIST_TAG),
         state = listState,
     ) {
-        item(key = "header") { Header(listing, zone) }
+        item(key = "header") { Header(listing, filter.herbal, zone) }
         if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
@@ -262,15 +263,25 @@ private fun CatalogList(
                         listing.hiddenMatches,
                     ),
                     stringResource(R.string.catalog_show_all),
-                ) { actions.onFilterChange { it.withoutFilters() } }
+                ) { actions.onFilterChange { showAll(it, listing) } }
             }
         }
     }
 }
 
+/**
+ * *Alle zeigen* for the search hits the filters hide: the current kind without filters, or, when
+ * every hidden hit is of the other kind (CAT-10, D-093), the other kind's view without filters.
+ */
+internal fun showAll(filter: CatalogFilter, listing: CatalogListing): CatalogFilter {
+    val all = filter.withoutFilters()
+    return if (listing.hiddenMatches == listing.hiddenInOtherView) all.withHerbal(!filter.herbal) else all
+}
+
 @Composable
-private fun Header(listing: CatalogListing, zone: ZoneId) {
-    val count = pluralStringResource(R.plurals.catalog_tea_count, listing.totalCount, listing.totalCount)
+private fun Header(listing: CatalogListing, herbal: Boolean, zone: ZoneId) {
+    val plurals = if (herbal) R.plurals.catalog_herbal_count else R.plurals.catalog_tea_count
+    val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis
     Text(
         text = if (updated != null) {

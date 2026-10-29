@@ -15,6 +15,8 @@ package com.umamit.core.model
  *   „Rezept prüfen" badge; null when it came straight from the shop's grid.
  * @property isNew first seen in the latest successful refresh (CAT-10 „Neu", D-083).
  * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
+ * @property isHerbal one of the shop's Kräutertees (style `herbal`, v0.2.1, D-093): shown in the
+ *   *Kräutertee* view only.
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -31,6 +33,7 @@ data class CatalogTeaSummary(
     val recipeCheckReason: RecipeCheckReason? = null,
     val isNew: Boolean = false,
     val owned: Boolean = false,
+    val isHerbal: Boolean = false,
 ) {
     /** The growing countries one by one (the shop joins several with „, "). */
     val originCountries: List<String>

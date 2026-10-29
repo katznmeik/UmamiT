@@ -329,6 +329,39 @@ class AddFromCatalogTest {
         assertThat(data.teas.observeTeas().first()).isEmpty()
     }
 
+    @Test
+    fun `a Kraeutertee is added as a herbal tea with its recipe and stock`() = runTest {
+        // v0.2.1, D-093: the shop's Kräutertees are added and repurchased as green teas are (CAT-10).
+        val herbal = sencha(key = "XK0200", name = "Wiesenzauber", recipes = null, styleKey = "herbal").copy(
+            shopCategory = "Tee › Kräutertee › Wiesenmischungen",
+            teaType = "Wiesenmischungen",
+            breadcrumb = "/tee/kraeutertee/wiesenmischungen/",
+            originCountry = null,
+            tasteScalesJson = null,
+            shading = null,
+            steaming = null,
+        )
+        catalog(herbal to packages("XK0200"))
+
+        val teaId = (add.add(purchase(key = "XK0200")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.category).isEqualTo(TeaCategory.HERBAL)
+        assertThat(tea.styleKey).isEqualTo("herbal")
+        assertThat(tea.teaType).isEqualTo("Wiesenmischungen")
+        assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.NONE)
+        assertThat(tea.form).isEqualTo(TeaForm.LOOSE_LEAF)
+        val recipe = data.recipes.observeRecipes(teaId).first().single()
+        assertThat(recipe.method).isEqualTo(BrewMethod.WESTERN)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(2.0 to 250)
+        assertThat(recipe.baseTempC).isEqualTo(100)
+        assertThat(recipe.steps).containsExactly(RecipeStep(StepKind.INFUSION, 360))
+        assertThat(data.stock.observeEvents(teaId).first().single().type).isEqualTo(InventoryEventType.INITIAL)
+
+        // Repurchase works as for a green tea (CAT-13).
+        assertThat(add.add(purchase(key = "XK0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
+    }
+
     private companion object {
         val BERLIN: ZoneId = ZoneId.of("Europe/Berlin")
         val TODAY: LocalDate = LocalDate.of(2026, 10, 25)

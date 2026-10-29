@@ -9,6 +9,9 @@ package com.umamit.core.catalog.parser
  * `/tee/japantee/teefamilien/<family>/`; live sample 2, D-089) is a green tea when its name names
  * a green type, or its badges say steamed or shaded, and neither its name nor its path names
  * another tea (Wakoucha, Oolong, …) or teaware; its *Sorte* is the green type its name names.
+ *
+ * From v0.2.1 (D-093) the shop's Kräutertee section is in scope too, as [CatalogScope.HERBAL]
+ * with its sub-section as the *Sorte*; fruit tea and rooibos stay out.
  */
 internal object GreenTeaScope {
     /** The green types of the Japan trees (08 §2.2), as path segments. */
@@ -84,15 +87,17 @@ internal object GreenTeaScope {
      * badge, which only green teas carry. A product of the green sections whose name or
      * breadcrumb says set is a [CatalogScope.SET], even without a set number (D-091).
      */
-    fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope = when {
-        breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
-
-        breadcrumb.none { isGreen(it.path) } && !(isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge)) ->
-            CatalogScope.NOT_GREEN
-
-        isSet(breadcrumb, name) -> CatalogScope.SET
-
-        else -> CatalogScope.GREEN
+    fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope {
+        val green =
+            breadcrumb.any { isGreen(it.path) } || (isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge))
+        val herbal = !green && breadcrumb.any { HerbalSection.contains(it.path) }
+        return when {
+            breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
+            !green && !herbal -> CatalogScope.NOT_GREEN
+            isSet(breadcrumb, name) -> CatalogScope.SET
+            herbal -> CatalogScope.HERBAL
+            else -> CatalogScope.GREEN
+        }
     }
 
     private fun isSet(breadcrumb: List<Crumb>, name: String?): Boolean =
@@ -101,12 +106,14 @@ internal object GreenTeaScope {
 
     /**
      * The title of the deepest breadcrumb item that is a green type, e.g. „Sencha"; for a Japan tea
-     * without a type level the type its [name] names; null without one.
+     * without a type level the type its [name] names; for a Kräutertee its sub-section
+     * ([HerbalSection.sorte]); null without one.
      */
     fun teaType(breadcrumb: List<Crumb>, name: String? = null): String? =
         breadcrumb.lastOrNull { isGreen(it.path) && isType(segments(it.path).lastOrNull()) }?.title
             ?: name?.takeIf { breadcrumb.none { isGreen(it.path) } && isJapanTeaOfNoType(breadcrumb) }
                 ?.let(::namedType)
+            ?: breadcrumb.takeIf { crumbs -> crumbs.none { isGreen(it.path) } }?.let(HerbalSection::sorte)
 
     private fun isGreen(path: String): Boolean {
         val normal = normalised(path)
