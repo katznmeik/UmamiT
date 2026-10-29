@@ -83,16 +83,59 @@ object SeedData {
 
     val teas: List<Tea> = listOf(tanabata, hisui)
 
-    /** The PO's teaware (WARE-06). */
-    val vessels: List<Vessel> = listOf(
-        Vessel(id = KYUSU_VESSEL_ID, name = "Kyusu", type = VesselType.KYUSU, capacityMl = 300, usableMl = 250),
+    /** The seven seed vessels of v0.2.1 (WARE-06, D-093), named by usable volume. */
+    const val KYUSU_120_VESSEL_ID = "3ea8af55-15b3-4bb4-996f-eea61277628d"
+    const val KYUSU_180_VESSEL_ID = "8bb0950c-801f-4362-bd0b-3c8792b92e75"
+    const val KYUSU_300_VESSEL_ID = "7d270291-b854-4710-9935-83102da0beb1"
+    const val KYUSU_360_VESSEL_ID = "6e97aef0-f232-4a6d-b096-059b213fc372"
+    const val BECHER_250_VESSEL_ID = "110a59ac-c73f-47fa-aa78-5195c8462cbc"
+    const val BECHER_300_VESSEL_ID = "b8b20cec-dd18-4223-ae71-dff2dd4a0cbf"
+    const val BECHER_350_VESSEL_ID = "f4695c5a-d7f7-48b9-a895-b10f0a670427"
+
+    /** The M1 seed names of the PO's two vessels, renamed while unchanged (D-093 Q18). */
+    const val KYUSU_M1_NAME = "Kyusu"
+    const val MUG_M1_NAME = "Becher mit Sieb"
+
+    /** The PO's teaware of M1 (WARE-06) under its v0.2.1 names (D-093 Q18). */
+    val m1Vessels: List<Vessel> = listOf(
+        Vessel(id = KYUSU_VESSEL_ID, name = "Kyusu 250 ml", type = VesselType.KYUSU, capacityMl = 300, usableMl = 250),
         Vessel(
             id = MUG_VESSEL_ID,
-            name = "Becher mit Sieb",
+            name = "Becher mit Sieb 400 ml",
             type = VesselType.MUG_INFUSER,
             capacityMl = 400,
             usableMl = 400,
         ),
+    )
+
+    /** The seven typical sizes added in v0.2.1 (WARE-06, D-093 point 5). */
+    val vesselsV2: List<Vessel> = listOf(
+        kyusuVessel(KYUSU_120_VESSEL_ID, usableMl = 120, capacityMl = 150),
+        kyusuVessel(KYUSU_180_VESSEL_ID, usableMl = 180, capacityMl = 220),
+        kyusuVessel(KYUSU_300_VESSEL_ID, usableMl = 300, capacityMl = 350),
+        kyusuVessel(KYUSU_360_VESSEL_ID, usableMl = 360, capacityMl = 420),
+        becherVessel(BECHER_250_VESSEL_ID, usableMl = 250, capacityMl = 300),
+        becherVessel(BECHER_300_VESSEL_ID, usableMl = 300, capacityMl = 350),
+        becherVessel(BECHER_350_VESSEL_ID, usableMl = 350, capacityMl = 400),
+    )
+
+    /** All nine seed vessels, as a fresh install gets them (WARE-06). */
+    val vessels: List<Vessel> = m1Vessels + vesselsV2
+
+    private fun kyusuVessel(id: String, usableMl: Int, capacityMl: Int) = Vessel(
+        id = id,
+        name = "Kyusu $usableMl ml",
+        type = VesselType.KYUSU,
+        capacityMl = capacityMl,
+        usableMl = usableMl,
+    )
+
+    private fun becherVessel(id: String, usableMl: Int, capacityMl: Int) = Vessel(
+        id = id,
+        name = "Becher $usableMl ml",
+        type = VesselType.MUG_INFUSER,
+        capacityMl = capacityMl,
+        usableMl = usableMl,
     )
 
     /** The recipes of 08 §2.5a, scaled from the shop's ratios to the seed vessels. */

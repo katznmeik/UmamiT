@@ -8,8 +8,10 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -254,6 +256,34 @@ class BrewSetupScreenTest {
 
         compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
         compose.onNodeWithText("Auto · 10\u00A0s", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the vessel choice offers all nine seed vessels and sets the usable volume (WARE-03, WARE-06)`() {
+        show()
+
+        compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        listOf(
+            "Becher 250 ml · 250\u00A0ml",
+            "Becher 300 ml · 300\u00A0ml",
+            "Becher 350 ml · 350\u00A0ml",
+            "Becher mit Sieb 400 ml · 400\u00A0ml",
+            "Kyusu 120 ml · 120\u00A0ml",
+            "Kyusu 180 ml · 180\u00A0ml",
+            "Kyusu 250 ml · 250\u00A0ml",
+            "Kyusu 300 ml · 300\u00A0ml",
+            "Kyusu 360 ml · 360\u00A0ml",
+        ).forEach { compose.onNode(hasText(it) and hasAnyAncestor(isPopup())).assertExists() }
+
+        compose.onNode(hasText("Kyusu 120 ml · 120\u00A0ml") and hasAnyAncestor(isPopup()))
+            .performScrollTo()
+            .performClick()
+        compose.waitForIdle()
+
+        compose.onNode(hasText("Wasser") and hasText("120\u00A0ml")).assertExists()
+        compose.onNodeWithContentDescription("Gefäß: Kyusu 120 ml. Ändern").assertExists()
     }
 
     @Test

@@ -45,6 +45,8 @@ data class StoredSettings(
      * `<tea id>/description` and `<tea id>/cover`; each is added once and never removed.
      */
     val seedTeaLinksDone: Set<String> = emptySet(),
+    /** Set once the seven seed vessels of v0.2.1 exist (WARE-06, D-093); never reset. */
+    val seedVesselsV2Added: Boolean = false,
 )
 
 /** JSON serializer for [StoredSettings]; an unreadable file reads as the defaults. */
@@ -79,6 +81,8 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     val seedTeaLinksDone: Flow<Set<String>> = dataStore.data.map { it.seedTeaLinksDone }
 
+    val seedVesselsV2Added: Flow<Boolean> = dataStore.data.map { it.seedVesselsV2Added }
+
     /** Applies [transform] atomically to the current settings. */
     suspend fun update(transform: (UserSettings) -> UserSettings) {
         dataStore.updateData { stored -> transform(stored.toModel()).toStored(markersOf = stored) }
@@ -90,6 +94,10 @@ class SettingsDataSource @Inject constructor(private val dataStore: DataStore<St
 
     suspend fun markSeedPhotosAttempted() {
         dataStore.updateData { it.copy(seedPhotosAttempted = true) }
+    }
+
+    suspend fun markSeedVesselsV2Added() {
+        dataStore.updateData { it.copy(seedVesselsV2Added = true) }
     }
 
     /** Adds [parts] to [seedTeaLinksDone] (CAT-15, D-090). */
@@ -138,4 +146,5 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,
+    seedVesselsV2Added = markersOf.seedVesselsV2Added,
 )

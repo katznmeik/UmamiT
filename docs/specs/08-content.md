@@ -427,8 +427,8 @@ via CAT-15 — no manual *Aus Katalog zurücksetzen* needed.
 | Taste notes (*Geschmack*) | fruchtig, mild, süß | fruchtig, mild, mittelkräftig, süß |
 | Badges | Für Einsteiger | Coldbrew geeignet, Für Einsteiger, Preistipp |
 | Brewing grid (verbatim) | Westlich `~10g/L · ~65-70°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-70°C · 45 Sek · 10 Sek · 10 Sek` | Westlich `~10g/L · ~65°C · ~1 Min · - · -`; Kyusu `~4g/200ml · 60-65°C · 60 Sek · 10 Sek · 10 Sek` |
-| **Recipe „Kyusu" (default)**, vessel „Kyusu" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
-| Recipe „Westlich", vessel „Becher mit Sieb" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:15 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:15 @70 |
+| **Recipe „Kyusu" (default)**, vessel „Kyusu 250 ml" (250 ml usable) | 5,0 g / 250 ml / **65 °C**: 0:45, 0:10, 0:10 | 5,0 g / 250 ml / **65 °C**: 1:00, 0:10, 0:10 |
+| Recipe „Westlich", vessel „Becher mit Sieb 400 ml" (400 ml) | 4,0 g / 400 ml / 70 °C: 1:00, 0:15 @75 | 4,0 g / 400 ml / 65 °C: 1:00, 0:15 @70 |
 | Recipe „Kaltaufguss" | — | 10,0 g / 1000 ml / 5 °C: 4:00:00 (style default, from badge) |
 | Recipe check flag | none | none |
 | Packages (exact prices) | 10 g 1,85 € · 100 g 8,50 € · 250 g 20,60 € · 500 g 40,35 € · 1000 g 76,50 € | 10 g 2,80 € · 50 g 8,95 € · 100 g 17,90 € · 250 g 43,40 € · 500 g 85,05 € · 1000 g 161,10 € |
@@ -451,12 +451,16 @@ those covers come with the first catalog refresh (CAT-15).
 
 Recipes are scaled from the shop's ratios (4 g/200 ml, 10 g/L) to the PO's
 seed vessels (WARE-06). From v0.2.1 seven more seed vessels exist (D-093),
-named by usable volume; the seed recipes keep their vessels:
+named by usable volume; the seed recipes keep their vessels. The two M1
+vessels are named „Kyusu 250 ml" and „Becher mit Sieb 400 ml" from v0.2.1:
+a fresh install seeds them so, and an existing install renames them only
+while they still carry their M1 names „Kyusu" and „Becher mit Sieb"
+(D-093 Q18). The fixed IDs are in `SeedData` (`core/data`):
 
 | Name | `VesselType` | Usable | Capacity |
 |---|---|---|---|
-| Kyusu (M1) | KYUSU | 250 ml | 300 ml |
-| Becher mit Sieb (M1) | MUG_INFUSER | 400 ml | 400 ml |
+| Kyusu 250 ml (M1 „Kyusu") | KYUSU | 250 ml | 300 ml |
+| Becher mit Sieb 400 ml (M1 „Becher mit Sieb") | MUG_INFUSER | 400 ml | 400 ml |
 | Kyusu 120 ml | KYUSU | 120 ml | 150 ml |
 | Kyusu 180 ml | KYUSU | 180 ml | 220 ml |
 | Kyusu 300 ml | KYUSU | 300 ml | 350 ml |

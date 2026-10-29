@@ -10,10 +10,13 @@ class DefaultSettings : SettingsRepository {
     override val settings: Flow<UserSettings> = MutableStateFlow(UserSettings())
     override val seedDataCreated: Flow<Boolean> = MutableStateFlow(true)
     override val seedPhotosAttempted: Flow<Boolean> = MutableStateFlow(true)
+    override val seedVesselsV2Added: Flow<Boolean> = MutableStateFlow(true)
 
     override suspend fun update(transform: (UserSettings) -> UserSettings) = Unit
 
     override suspend fun markSeedDataCreated() = Unit
 
     override suspend fun markSeedPhotosAttempted() = Unit
+
+    override suspend fun markSeedVesselsV2Added() = Unit
 }

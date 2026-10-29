@@ -47,6 +47,7 @@ class SettingsDataSourceTest {
         assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
+        assertThat(source.seedVesselsV2Added.first()).isFalse()
     }
 
     @Test
@@ -89,6 +90,7 @@ class SettingsDataSourceTest {
         writer.update { changed }
         writer.markSeedDataCreated()
         writer.markSeedPhotosAttempted()
+        writer.markSeedVesselsV2Added()
         writerScope.cancel()
         writerScope.coroutineContext.job.join()
 
@@ -96,6 +98,7 @@ class SettingsDataSourceTest {
         assertThat(reader.settings.first()).isEqualTo(changed)
         assertThat(reader.seedDataCreated.first()).isTrue()
         assertThat(reader.seedPhotosAttempted.first()).isTrue()
+        assertThat(reader.seedVesselsV2Added.first()).isTrue()
     }
 
     @Test

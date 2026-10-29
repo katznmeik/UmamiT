@@ -113,4 +113,9 @@ interface SettingsRepository {
     val seedPhotosAttempted: Flow<Boolean>
 
     suspend fun markSeedPhotosAttempted()
+
+    /** Whether the seven seed vessels of v0.2.1 have been added (WARE-06, D-093); never reset. */
+    val seedVesselsV2Added: Flow<Boolean>
+
+    suspend fun markSeedVesselsV2Added()
 }

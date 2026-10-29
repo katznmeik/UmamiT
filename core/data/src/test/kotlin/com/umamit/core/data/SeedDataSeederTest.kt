@@ -107,22 +107,11 @@ class SeedDataSeederTest {
     }
 
     @Test
-    fun freshDatabaseGetsTheTwoSeedVessels() = runTest {
-        seeder.seedIfNeeded()
-
-        val vessels = data.vessels.observeVessels().first()
-        assertThat(vessels.map { it.copy(id = "") }).containsExactly(
-            Vessel(id = "", name = "Becher mit Sieb", type = VesselType.MUG_INFUSER, capacityMl = 400, usableMl = 400),
-            Vessel(id = "", name = "Kyusu", type = VesselType.KYUSU, capacityMl = 300, usableMl = 250),
-        ).inOrder()
-    }
-
-    @Test
     fun tanabataGetsKyusuAsDefaultAndWestlich() = runTest {
         seeder.seedIfNeeded()
         val tea = seededTea("TG0213")
-        val kyusu = vesselId("Kyusu")
-        val mug = vesselId("Becher mit Sieb")
+        val kyusu = vesselId("Kyusu 250 ml")
+        val mug = vesselId("Becher mit Sieb 400 ml")
 
         assertThat(recipesOf(tea)).containsExactly(
             Recipe(
@@ -159,8 +148,8 @@ class SeedDataSeederTest {
     fun hisuiGetsKyusuAsDefaultWestlichAndKaltaufguss() = runTest {
         seeder.seedIfNeeded()
         val tea = seededTea("TG0557")
-        val kyusu = vesselId("Kyusu")
-        val mug = vesselId("Becher mit Sieb")
+        val kyusu = vesselId("Kyusu 250 ml")
+        val mug = vesselId("Becher mit Sieb 400 ml")
 
         assertThat(recipesOf(tea)).containsExactly(
             Recipe(
@@ -303,8 +292,9 @@ class SeedDataSeederTest {
     }
 
     @Test
-    fun anEmptyDatabaseIsNotSeededOnceTheMarkerIsSet() = runTest {
-        settings = FakeSettingsRepository(seeded = true)
+    fun anEmptyDatabaseIsNotSeededOnceTheMarkersAreSet() = runTest {
+        // Only the v0.2.1 vessels are added to an install seeded before (SeedVesselsTest).
+        settings = FakeSettingsRepository(seeded = true, seedVesselsV2Added = true)
 
         assertThat(seeder.seedIfNeeded()).isFalse()
 
