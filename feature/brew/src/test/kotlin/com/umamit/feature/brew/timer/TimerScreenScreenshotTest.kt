@@ -1,14 +1,17 @@
 package com.umamit.feature.brew.timer
 
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
-import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
@@ -25,9 +28,10 @@ import org.robolectric.annotation.GraphicsMode
  * SCR-05 in every state, at font scale 1.0 and 2.0 (03 §6), inside the light
  * and the dark app theme: the timer is always dark, so both look the same.
  * The alert is captured in both pulse phases (matcha and washi) and with the
- * prominent overtime; the content must stay readable in each (D-055). The tea
- * photo is the placeholder illustration, or a synthetic plain white or dark
- * one for the top bar's circles (#85). Goldens: `src/test/screenshots/`.
+ * prominent overtime; the content must stay readable in each (D-055). The top
+ * is the ink-wash band A13; a brew's seal shows a synthetic white-backed tea
+ * photo (never a Tee-Kontor photo, D-016), a plain white one, or the leaf
+ * without a photo (D-095). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -58,8 +62,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         name: String,
         state: TimerUiState.Active,
         advanceMillis: Long = 0,
-        photo: Boolean = true,
-        photoColor: Color? = null,
+        photo: SealPhoto = SealPhoto.Leaves,
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.mainClock.autoAdvance = false
@@ -73,11 +76,12 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    teaPhoto = when {
-                        photoColor != null -> remember(photoColor) { ColorPainter(photoColor) }
-                        photo -> painterResource(UmamiIcons.TimerFallbackPhoto)
-                        else -> null
+                    teaPhoto = when (photo) {
+                        SealPhoto.Leaves -> remember { SyntheticTeaPhoto() }
+                        SealPhoto.White -> remember { ColorPainter(Color.White) }
+                        SealPhoto.None -> null
                     },
+                    teaStyleKey = "gyokuro",
                 )
             }
         }
@@ -93,13 +97,13 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
     @Test
     fun running() = capture("Running", TimerStates.running(remainingMs = 48_000))
 
-    /** ← and ⋮ on their circles over a synthetic pure white photo, the usual shop background (#85, D-016). */
+    /** A pure white photo, the usual shop background: the seal shows only the disc's cream (D-095, D-016). */
     @Test
-    fun runningOnWhitePhoto() = capture("Running_whitePhoto", TimerStates.running(), photoColor = Color.White)
+    fun runningOnWhitePhoto() = capture("Running_whitePhoto", TimerStates.running(), photo = SealPhoto.White)
 
-    /** ← and ⋮ on their circles over a synthetic near-black photo: they look the same (#85). */
+    /** A tea without a photo: the leaf in its type's colour (gyokuro) on the seal (D-095). */
     @Test
-    fun runningOnDarkPhoto() = capture("Running_darkPhoto", TimerStates.running(), photoColor = Color(0xFF101010))
+    fun runningWithoutPhoto() = capture("Running_noPhoto", TimerStates.running(), photo = SealPhoto.None)
 
     /** Step 2 (0:20) after its pre-alert: the automatic rule gives it 5 s (TMR-23), so 0:04 is left. */
     @Test
@@ -132,20 +136,50 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
     fun finished() = capture("Finished", TimerStates.finished())
 
     @Test
-    fun quickRunning() = capture("Quick_running", TimerStates.quick(TimerPhase.RUNNING), photo = false)
+    fun quickRunning() = capture("Quick_running", TimerStates.quick(TimerPhase.RUNNING), photo = SealPhoto.None)
 
     @Test
-    fun quickPaused() = capture("Quick_paused", TimerStates.quick(TimerPhase.PAUSED), photo = false)
+    fun quickPaused() = capture("Quick_paused", TimerStates.quick(TimerPhase.PAUSED), photo = SealPhoto.None)
 
     @Test
-    fun quickAlerting() = capture("Quick_alerting", TimerStates.quick(TimerPhase.ALERTING), photo = false)
+    fun quickAlerting() = capture("Quick_alerting", TimerStates.quick(TimerPhase.ALERTING), photo = SealPhoto.None)
 
     @Test
-    fun quickReady() = capture("Quick_ready", TimerStates.quick(TimerPhase.READY), photo = false)
+    fun quickReady() = capture("Quick_ready", TimerStates.quick(TimerPhase.READY), photo = SealPhoto.None)
 
     @Test
     fun readyColdBrew() = capture("Ready_coldBrew", TimerStates.coldReady(iceBrew = false))
 
     @Test
     fun readyIceBrew() = capture("Ready_iceBrew", TimerStates.coldReady(iceBrew = true))
+}
+
+/** What the seal shows in a capture. */
+private enum class SealPhoto { Leaves, White, None }
+
+/**
+ * A synthetic product shot (D-016): a few green leaves on a white background,
+ * like a shop photo. On the seal the white turns into the disc's cream.
+ */
+private class SyntheticTeaPhoto : Painter() {
+    override val intrinsicSize: Size = Size(400f, 300f)
+
+    override fun DrawScope.onDraw() {
+        drawRect(Color.White)
+        val leaves = listOf(
+            Triple(Offset(0.38f, 0.42f), -30f, Color(0xFF4F6B2E)),
+            Triple(Offset(0.58f, 0.50f), 25f, Color(0xFF5F7F45)),
+            Triple(Offset(0.47f, 0.64f), 75f, Color(0xFF3F5A24)),
+        )
+        leaves.forEach { (at, degrees, color) ->
+            val centre = Offset(at.x * size.width, at.y * size.height)
+            rotate(degrees, centre) {
+                drawOval(
+                    color = color,
+                    topLeft = centre - Offset(size.width * 0.16f, size.height * 0.06f),
+                    size = Size(size.width * 0.32f, size.height * 0.12f),
+                )
+            }
+        }
+    }
 }

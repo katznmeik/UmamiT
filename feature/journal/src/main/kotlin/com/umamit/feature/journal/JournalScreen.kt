@@ -32,7 +32,6 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaThumbnail
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.theme.TeaTypeColors
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import java.io.File
@@ -209,19 +208,4 @@ private fun dayTitle(day: JournalDay): String = when (day) {
 /** The leaf placeholder's colour per tea style (03 §3.1 tea-type colours, 08 §2 style keys). */
 @Composable
 @ReadOnlyComposable
-private fun placeholderColor(styleKey: String?): Color {
-    val colors: TeaTypeColors = UmamiTheme.extendedColors.teaTypes
-    return when (styleKey) {
-        "gyokuro" -> colors.gyokuro
-        "kabusecha" -> colors.kabusecha
-        "sencha", "tamaryokucha", "kamairicha" -> colors.sencha
-        "fukamushi_sencha" -> colors.fukamushi
-        "shincha" -> colors.shincha
-        "matcha" -> colors.matcha
-        "karigane", "bancha" -> colors.kukichaKarigane
-        "hojicha", "hojicha_powder" -> colors.hojicha
-        "genmaicha" -> colors.genmaicha
-        "longjing", "anji_bai_cha", "bi_luo_chun", "korean_green" -> colors.chinaKoreaGreen
-        else -> colors.other
-    }
-}
+private fun placeholderColor(styleKey: String?): Color = UmamiTheme.extendedColors.teaTypes.forStyle(styleKey)

@@ -51,17 +51,26 @@ class TimerViewModel @Inject constructor(
     val state: StateFlow<TimerUiState> get() = timer.state
 
     /**
-     * The file of the session tea's cover photo (SCR-05, D-058), or null: none, the
-     * quick timer, or not read yet. The screen shows the placeholder until then.
+     * What the brew's seal shows (SCR-05, D-095): the session tea's style and the file of
+     * its cover photo; null for the quick timer (no seal) or before the session is read.
+     * The screen shows the type-coloured leaf until the photo is read, or without one.
      */
-    val teaPhotoPath: StateFlow<String?> = timer.state
+    val teaSeal: StateFlow<TimerTeaSeal?> = timer.state
         .map { (it as? TimerUiState.Active)?.sessionId }
         .distinctUntilChanged()
         .flatMapLatest { id ->
-            val teaId = id?.let { sessions.getSession(it)?.snapshot?.teaId }
-            teaId?.let { teas.observeTea(it) }?.map { tea ->
-                tea?.coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path
-            } ?: flowOf(null)
+            val snapshot = id?.let { sessions.getSession(it)?.snapshot }
+            val teaId = snapshot?.teaId
+            when {
+                snapshot == null -> flowOf(null)
+
+                teaId == null -> flowOf(TimerTeaSeal(snapshot.styleKey, photoPath = null))
+
+                else -> teas.observeTea(teaId).map { tea ->
+                    val path = tea?.coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path
+                    TimerTeaSeal(snapshot.styleKey, path)
+                }
+            }
         }
         .catch { emit(null) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)

@@ -99,21 +99,21 @@ class TimerViewModelTest {
     }
 
     @Test
-    fun `the brew's tea photo reaches the timer, none without a cover photo or for the quick timer (S3, D-058)`() =
-        runTest {
-            collection.teas.saveTea(SeedData.hisui)
-            startHisuiSession("s1")
-            val vm = viewModel()
-            assertThat(vm.teaPhotoPath.value).isNull()
+    fun `the brew's seal gets the tea's style and cover photo, no seal for the quick timer (D-095)`() = runTest {
+        collection.teas.saveTea(SeedData.hisui)
+        startHisuiSession("s1")
+        val vm = viewModel()
+        // No cover photo yet: the seal shows the leaf in the style's colour.
+        assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
 
-            collection.teas.savePhoto(Photo("p1", PhotoOwner.OfTea(SeedData.HISUI_TEA_ID), PhotoOrigin.OWN, 10, 10, 3))
-            photos.write("p1", byteArrayOf(1, 2, 3))
-            collection.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "p1")
-            assertThat(vm.teaPhotoPath.value).isEqualTo(photos.file("p1").path)
+        collection.teas.savePhoto(Photo("p1", PhotoOwner.OfTea(SeedData.HISUI_TEA_ID), PhotoOrigin.OWN, 10, 10, 3))
+        photos.write("p1", byteArrayOf(1, 2, 3))
+        collection.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "p1")
+        assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = photos.file("p1").path))
 
-            timer.state.value = TimerStates.quick(TimerPhase.RUNNING)
-            assertThat(vm.teaPhotoPath.value).isNull()
-        }
+        timer.state.value = TimerStates.quick(TimerPhase.RUNNING)
+        assertThat(vm.teaSeal.value).isNull()
+    }
 
     @Test
     fun `the state is the controller's state and events go to the controller`() {

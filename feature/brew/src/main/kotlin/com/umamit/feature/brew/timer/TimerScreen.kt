@@ -60,7 +60,11 @@ const val TIMER_RING_TAG = "timer_ring"
  *
  * @param nowElapsedMs the monotonic clock (`elapsedRealtime`), as the
  *   controller's deadlines use it.
- * @param teaPhoto the tea's photo, fading into the background; none for the quick timer.
+ * The top is the ink-wash band A13; a brew shows its tea in a seal on the
+ * band's lower edge, the quick timer has none (D-095).
+ *
+ * @param teaPhoto the brew's tea photo in the seal; null: the leaf in [teaStyleKey]'s colour.
+ * @param teaStyleKey the brew tea's style (08 §2), for the leaf's colour.
  */
 @Composable
 fun TimerScreen(
@@ -75,6 +79,7 @@ fun TimerScreen(
     reliabilityProblem: Boolean = false,
     onFixReliability: () -> Unit = {},
     teaPhoto: Painter? = null,
+    teaStyleKey: String? = null,
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
@@ -123,6 +128,7 @@ fun TimerScreen(
                     reliabilityProblem,
                     onFixReliability,
                     teaPhoto,
+                    teaStyleKey,
                 )
             // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
             val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }

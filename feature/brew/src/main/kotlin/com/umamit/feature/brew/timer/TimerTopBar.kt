@@ -42,10 +42,10 @@ internal data class TimerTopBarColors(val circle: Color, val icon: Color)
 internal object TimerTopBarDefaults {
     /**
      * In the Steeping scheme the circle is the surface at 60 % opacity with the
-     * light `onSurface` icon: over a pure white photo the circle is ≈ #7B807C
-     * and the icon 3.3:1 on it; over the background or a dark photo 12–14:1.
-     * On the [com.umamit.core.designsystem.component.AlertSurface] there is no
-     * photo; the circle takes the alert's container colour, ink with a washi
+     * light `onSurface` icon: over a pure white picture the circle is ≈ #7B807C
+     * and the icon 3.3:1 on it; over the background or the dark ink-wash band
+     * (D-095) 12–14:1. On the [com.umamit.core.designsystem.component.AlertSurface]
+     * there is no band; the circle takes the alert's container colour, ink with a washi
      * icon like the *Abgegossen* pill (13.5:1), and stands out from both pulse
      * phases (13.5:1 on washi, 4.55:1 on matcha).
      */
@@ -63,7 +63,7 @@ internal object TimerTopBarDefaults {
     }
 }
 
-/** ← and ⋮ over the top of the timer, each on its circle, legible on any tea photo (SCR-05). */
+/** ← and ⋮ over the ink-wash band, each on its circle, legible over any picture (SCR-05, D-093, D-095). */
 @Composable
 internal fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, actions: TimerActions) {
     val colors = TimerTopBarDefaults.colors()
@@ -100,13 +100,13 @@ internal fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, ac
     }
 }
 
-/** A 48 dp icon button whose icon sits on a 40 dp filled circle. */
+/** A 48 dp icon button whose icon sits on a 40 dp filled circle; also SCR-07's ← before *Start*. */
 @Composable
-private fun CircledIconButton(
+internal fun CircledIconButton(
     painter: Painter,
     contentDescription: String,
-    colors: TimerTopBarColors,
     onClick: () -> Unit,
+    colors: TimerTopBarColors = TimerTopBarDefaults.colors(),
 ) {
     IconButton(onClick = onClick, colors = IconButtonDefaults.iconButtonColors(contentColor = colors.icon)) {
         Box(

@@ -2,6 +2,7 @@ package com.umamit.feature.brew.quick
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -20,8 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,6 +52,9 @@ import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.timer.CircledIconButton
+import com.umamit.feature.brew.timer.TimerBand
+import com.umamit.feature.brew.timer.TimerBandTop
 
 /** Test tag of SCR-07's ring: a tap opens the duration picker. */
 const val QUICK_RING_TAG = "quick_ring"
@@ -73,8 +75,8 @@ class QuickTimerActions(
 )
 
 /**
- * The quick timer before its *Start* (SCR-07, TMR-22): dark like SCR-05, the
- * ring with the chosen duration, the chips 0:30 … 5:00 and *Start*. A tap on
+ * The quick timer before its *Start* (SCR-07, TMR-22): dark like SCR-05 with
+ * its ink-wash band and no seal (D-095), the ring with the chosen duration, the chips 0:30 … 5:00 and *Start*. A tap on
  * the ring opens the duration picker (5 s – 24 h, PRF-04 increments). Once it
  * runs, the timer screen shows it (*Pause* / *Weiter*, *Fertig*, overflow
  * *Abbrechen*), as the notification and the full-screen alert open it.
@@ -129,6 +131,20 @@ fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modif
 @Composable
 private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions, openPicker: () -> Unit) {
     val title = stringResource(R.string.brew_quick_title)
+    // The ink-wash band without a seal, laid out like the running quick timer, so nothing moves at *Start* (D-095).
+    Box(modifier = Modifier.fillMaxSize()) {
+        TimerBand()
+        QuickTimerColumn(state, actions, openPicker, title)
+    }
+}
+
+@Composable
+private fun QuickTimerColumn(
+    state: QuickTimerUiState,
+    actions: QuickTimerActions,
+    openPicker: () -> Unit,
+    title: String,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -137,14 +153,19 @@ private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions,
             .padding(bottom = UmamiSpacing.Large),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.XXSmall)) {
-            IconButton(onClick = actions.back) {
-                Icon(
-                    painterResource(UmamiIcons.ArrowBack),
-                    contentDescription = stringResource(R.string.brew_quick_back),
-                )
-            }
-        }
+        TimerBandTop(
+            withSeal = false,
+            topBar = {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.XXSmall)) {
+                    CircledIconButton(
+                        painter = painterResource(UmamiIcons.ArrowBack),
+                        contentDescription = stringResource(R.string.brew_quick_back),
+                        onClick = actions.back,
+                    )
+                }
+            },
+        )
+        Spacer(Modifier.height(UmamiSpacing.Small))
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
