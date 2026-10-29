@@ -40,6 +40,7 @@ import org.robolectric.annotation.GraphicsMode
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * The re-check of known teas missing from the sitemap (v0.2.1, #97; CAT-16, CAT-07 AC4, 08 §2.4
@@ -469,22 +470,63 @@ class CatalogRecheckTest {
         assertThat(paths()).doesNotContain(NEW_PHOTO.substringBefore('?'))
     }
 
-    @Test
-    fun aTeaThatLeftTheRangeIsNotCheckedAgain() = runTest {
+    /**
+     * The owned tea is „Nicht mehr im Sortiment", as v0.2.0 left a tea that had only sold out
+     * (CAT-07 AC4): out of the sitemap, kept for the collection. Here a refresh whose page answer
+     * was 404 got it there; the next one runs a day later.
+     */
+    private suspend fun TestScope.ownedTeaNichtMehrImSortiment() {
         owned.value = setOf(SOLD_OUT_KEY)
         soldOutSinceTheFirstRefresh()
         routes[SOLD_OUT] = { MockResponse.Builder().code(404).build() }
-        refresher().refresh()
+        assertThat(refresher().refresh())
+            .isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0, discontinuedTeas = 1))
         assertThat(requireNotNull(dao.tea(SOLD_OUT_KEY)).discontinued).isTrue()
         requests.clear()
         clock.advanceBy(TimeUnit.DAYS.toMillis(1))
+    }
+
+    @Test
+    fun anOwnedTeaNichtMehrImSortimentWhosePageIsSoldOutIsBackInTheRange() = runTest {
+        ownedTeaNichtMehrImSortiment()
+        product(SOLD_OUT, "Nebelhang Sencha – 100g", stock = Stock.OUT_OF_STOCK, list = false)
 
         val outcome = refresher().refresh()
 
-        // Known as „Nicht mehr im Sortiment" already: no request, counted once only.
+        // Back in the range counts as „geändert" (CAT-07 AC3), not as new.
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 3, newTeas = 0, changedTeas = 1))
+        assertThat(paths().count { it == SOLD_OUT }).isEqualTo(1)
+        val tea = requireNotNull(dao.tea(SOLD_OUT_KEY))
+        assertThat(tea.discontinued).isFalse()
+        assertThat(tea.available).isFalse()
+        assertThat(RoomCatalogRepository(dao, photos).observeCatalog().first().teas.map { it.key })
+            .contains(SOLD_OUT_KEY)
+    }
+
+    @Test
+    fun anOwnedTeaNichtMehrImSortimentWhosePageIsGoneStaysSoAndIsNotCountedAgain() = runTest {
+        ownedTeaNichtMehrImSortiment()
+        val before = requireNotNull(dao.tea(SOLD_OUT_KEY))
+
+        val outcome = refresher().refresh()
+
+        // Checked once more; still 404: no change, and no second „nicht mehr im Sortiment".
         assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0))
-        assertThat(paths()).doesNotContain(SOLD_OUT)
-        assertThat(requireNotNull(dao.tea(SOLD_OUT_KEY)).discontinued).isTrue()
+        assertThat(paths().count { it == SOLD_OUT }).isEqualTo(1)
+        assertThat(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
+        assertThat(photos.exists(SOLD_OUT_KEY)).isTrue()
+    }
+
+    @Test
+    fun anOwnedTeaNichtMehrImSortimentWhosePageCantBeReadStaysAsItWas() = runTest {
+        ownedTeaNichtMehrImSortiment()
+        val before = requireNotNull(dao.tea(SOLD_OUT_KEY))
+        routes[SOLD_OUT] = { MockResponse.Builder().code(302).build() }
+
+        val outcome = refresher().refresh()
+
+        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0))
+        assertThat(dao.tea(SOLD_OUT_KEY)).isEqualTo(before)
     }
 
     @Test
@@ -529,8 +571,10 @@ class CatalogRecheckTest {
         assertThat(messages.filter { "$SOLD_OUT_KEY missing from the sitemap, gone" in it }).hasSize(1)
     }
 
+    // The only test on the real rate limiter: its requests and the photos' decoding run on the wall
+    // clock, so on a loaded machine it may need more than runTest's default minute (seen once).
     @Test
-    fun requestsStayAtMostTwicePerSecondOnOneConnection() = runTest {
+    fun requestsStayAtMostTwicePerSecondOnOneConnection() = runTest(timeout = 3.minutes) {
         soldOutSinceTheFirstRefresh()
         product(SOLD_OUT, "Nebelhang Sencha – 100g", stock = Stock.OUT_OF_STOCK, list = false)
         val sent = CopyOnWriteArrayList<Long>()

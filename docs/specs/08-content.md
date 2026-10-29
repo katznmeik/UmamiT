@@ -159,9 +159,11 @@ the prose, whose years are travel reports, founding years and link texts
    §2.8) → kept as it was. A challenge, 429 or `Retry-After` stops the whole
    refresh as always (§2.8), and so do a 401/403/5xx and a network error after
    its retries. Expected ≈ 5–20 extra requests. As built (#97):
-   - **Which teas:** those still in the range; a tea already „Nicht mehr im
-     Sortiment" (kept for a collection tea) is not checked again until its
-     numbers are back in the sitemap or its link is shared (item 9).
+   - **Which teas:** every tea in `catalog.db`, those „Nicht mehr im
+     Sortiment" (kept for a collection tea) included, since v0.2.0 counted a
+     tea that had only sold out as discontinued. Such a tea whose page is
+     still in scope is back in the range („geändert"); any other answer leaves
+     it „Nicht mehr im Sortiment", not counted as discontinued again.
    - **When:** after the sitemap's pages, before the photos; they count among
      the progress's pages, and a robots.txt-disallowed `product_url` (or one
      off the shop's host) is kept as it was without a request.

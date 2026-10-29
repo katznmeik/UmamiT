@@ -265,7 +265,10 @@ class CatalogRefresher(
         var new = 0
         var recheck = 0
 
-        /** Known teas none of whose numbers the sitemap lists, each checked once (CAT-16, D-094). */
+        /**
+         * Known teas none of whose numbers the sitemap lists, each checked once (CAT-16, D-094),
+         * those „Nicht mehr im Sortiment" included.
+         */
         var unlisted = 0
 
         /** Of them: kept in the range with their page, and gone (404/410, a redirect away, out of scope). */
@@ -546,13 +549,15 @@ class CatalogRefresher(
 
         /**
          * The known teas none of whose numbers the sitemap lists (CAT-16, 08 §2.4 item 5, D-094):
-         * the shop leaves sold-out products out of it. Each one's product page is fetched once,
-         * after the sitemap's pages; one that robots.txt disallows or that is off the shop's host
-         * is kept as it was without a request (CAT-16 AC3).
+         * the shop leaves sold-out products out of it. Those „Nicht mehr im Sortiment" too (kept
+         * for a collection tea): v0.2.0 counted a tea that had only sold out as discontinued, so a
+         * page still in scope brings it back into the range; any other answer leaves it as it was.
+         * Each one's product page is fetched once, after the sitemap's pages; one that robots.txt
+         * disallows or that is off the shop's host is kept as it was without a request (CAT-16 AC3).
          */
         private suspend fun unlistedTeas(session: ShopSession): List<Unlisted> {
             val unlisted = run.previous.values.filter { before ->
-                !before.discontinued && run.previousBases[before.key].orEmpty().none { it in run.listedBases }
+                run.previousBases[before.key].orEmpty().none { it in run.listedBases }
             }.sortedBy { it.key }
             run.unlisted = unlisted.size
             return unlisted.mapNotNull { before ->
