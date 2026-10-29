@@ -69,7 +69,9 @@ interface AlertTester {
  * While the controller keeps it ready ([keepReady]: a timer is active), the
  * chosen pre-alert sound and the current tone stay loaded, so a cue only
  * starts its sound (D-092); one changed in the settings meanwhile is loaded at
- * once (SET-26). Each tick and alert logs where its start spent the time
+ * once (SET-26). The loads run on the loader thread, never as a command here:
+ * a cue queued after a settings change never waits for the new sound to load
+ * (rule 8, D-096). Each tick and alert logs where its start spent the time
  * ([CueStart]).
  */
 @Singleton
@@ -157,7 +159,8 @@ class AlertPlayback internal constructor(
         scope.launch { for (command in commands) runGuarded(command) }
         // A tone or Vorwarnton changed in the settings while a timer is active is loaded at once,
         // not only at the controller's next turn, so the next cue still finds it loaded (D-092,
-        // SET-26). Other settings changes load nothing.
+        // SET-26). Other settings changes load nothing. The command only asks for the load, which
+        // runs on the loader thread: a cue queued behind it starts at once (rule 8, D-096).
         scope.launch {
             latest.filterNotNull().map { it.sounds }.distinctUntilChanged().collect { send(Command.SoundsChanged) }
         }
@@ -190,6 +193,7 @@ class AlertPlayback internal constructor(
      * The controller calls it at the end of every turn, after the turn's own cues. Loading never
      * waits for the settings file: it takes the sounds known now (the defaults before the first
      * read). A sound changed in the settings while ready is loaded at once, the old one released.
+     * The loads run off the alert thread ([AlertSoundOutput.prepare]), so no cue waits for one.
      */
     fun keepReady(ready: Boolean) = send(Command.KeepReady(ready))
 

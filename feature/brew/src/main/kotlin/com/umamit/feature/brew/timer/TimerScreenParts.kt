@@ -13,18 +13,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -97,23 +91,15 @@ internal fun TimerBody(args: TimerBodyArgs) {
     val now = args.now
     val overlays = args.overlays
     val actions = args.actions
-    Box(modifier = Modifier.fillMaxSize()) {
-        // No band and no seal on the alert surface, but their space stays, so nothing moves when the
-        // alert starts (D-058, D-095).
-        if (!state.alerting) TimerBand()
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = UmamiSpacing.Large),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            TimerBandTop(
-                withSeal = !state.isQuick,
-                topBar = { TimerTopBar(state, overlays, actions) },
-                seal = { if (!state.alerting) TeaSeal(args.teaPhoto, args.teaStyleKey) },
-            )
+    // No band and no seal on the alert surface, but their space stays, so nothing moves when the alert
+    // starts (D-058, D-095). On a short screen the band gives way so the primary control stays on it (D-096).
+    TimerBandPage(
+        withSeal = !state.isQuick,
+        controlHeight = TimerPillMinHeight,
+        band = { if (!state.alerting) TimerBand() },
+        topBar = { TimerTopBar(state, overlays, actions) },
+        seal = { if (!state.alerting) TeaSeal(args.teaPhoto, args.teaStyleKey) },
+        aboveControls = {
             Spacer(Modifier.height(UmamiSpacing.Small))
             TimerHeader(state)
             Spacer(Modifier.height(UmamiSpacing.Large))
@@ -126,6 +112,8 @@ internal fun TimerBody(args: TimerBodyArgs) {
                 TimerBelowRing(state, now)
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
+        },
+        controls = {
             TimerControls(state, actions)
             // Below the controls, so it never moves them; hidden during the alert.
             if (args.reliabilityProblem && !state.alerting) {
@@ -139,8 +127,8 @@ internal fun TimerBody(args: TimerBodyArgs) {
                     ),
                 )
             }
-        }
-    }
+        },
+    )
 }
 
 /**

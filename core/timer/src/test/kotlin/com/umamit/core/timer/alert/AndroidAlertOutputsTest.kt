@@ -24,6 +24,22 @@ import org.robolectric.shadows.util.DataSource
 @Config(sdk = [36])
 class AndroidAlertOutputsTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
+
+    /** The loader thread's tasks (D-096), run by [settle] on the test thread. */
+    private val loaderThread = ArrayDeque<Runnable>()
+
+    /** The output on the main looper (standing in for the alert thread) with [loaderThread] and [loader]. */
+    private fun output(loader: (AlertSound) -> MediaPlayer? = { MediaPlayerSoundOutput.load(context, it) }) =
+        MediaPlayerSoundOutput(context, loader = loader, background = loaderThread::addLast)
+
+    /** Runs the loader thread's tasks and the alert thread's until both are done. */
+    private fun settle() {
+        shadowOf(Looper.getMainLooper()).idle()
+        while (loaderThread.isNotEmpty()) {
+            loaderThread.removeFirst().run()
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val vibrator: Vibrator = context.getSystemService(VibratorManager::class.java).defaultVibrator
@@ -57,7 +73,7 @@ class AndroidAlertOutputsTest {
 
     @Test
     fun soundRequestsTransientDuckingFocusWithNotificationEventAttributes() {
-        val output = MediaPlayerSoundOutput(context)
+        val output = output()
 
         assertThat(output.requestFocus(onLost = {})).isTrue()
 
@@ -74,13 +90,13 @@ class AndroidAlertOutputsTest {
     fun refusedFocusIsReported() {
         shadowOf(audioManager).setNextFocusRequestResponse(AudioManager.AUDIOFOCUS_REQUEST_FAILED)
 
-        assertThat(MediaPlayerSoundOutput(context).requestFocus(onLost = {})).isFalse()
+        assertThat(output().requestFocus(onLost = {})).isFalse()
     }
 
     @Test
     fun soundPlaysTheBundledFileAndStops() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(3_500, 0) }
-        val output = MediaPlayerSoundOutput(context)
+        val output = output()
 
         output.play(AlertSound.KLANGSCHALE)
         assertThat(output.isPlaying).isTrue()
@@ -94,23 +110,27 @@ class AndroidAlertOutputsTest {
     fun aLoadedSoundStartsWithoutLoadingAndIsLoadedAgainAfterwards() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
         val loads = mutableListOf<AlertSound>()
-        val output = MediaPlayerSoundOutput(context, loader = {
+        val output = output(loader = {
             loads += it
             MediaPlayerSoundOutput.load(context, it)
         })
 
         output.prepare(setOf(AlertSound.TICK, AlertSound.KLANGSCHALE))
+        // It returns at once: the loads run on the loader thread, never on the alert thread (D-096).
+        assertThat(loads).isEmpty()
+        assertThat(output.ready).isEmpty()
+        settle()
         assertThat(loads).containsExactly(AlertSound.TICK, AlertSound.KLANGSCHALE).inOrder()
         assertThat(output.ready).containsExactly(AlertSound.TICK, AlertSound.KLANGSCHALE)
         loads.clear()
 
         output.play(AlertSound.TICK)
 
-        // The cue only started the loaded player (D-092); it loads the next tick after the cue.
+        // The cue only started the loaded player (D-092); the next tick loads after the cue, on the loader thread.
         assertThat(loads).isEmpty()
         assertThat(output.isPlaying).isTrue()
         assertThat(output.ready).containsExactly(AlertSound.KLANGSCHALE)
-        shadowOf(Looper.getMainLooper()).idle()
+        settle()
         assertThat(loads).containsExactly(AlertSound.TICK)
         assertThat(output.ready).containsExactly(AlertSound.TICK, AlertSound.KLANGSCHALE)
     }
@@ -119,18 +139,19 @@ class AndroidAlertOutputsTest {
     fun aSoundThatIsNotLoadedStillPlaysLoadedOnPlay() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(3_500, 0) }
         val loads = mutableListOf<AlertSound>()
-        val output = MediaPlayerSoundOutput(context, loader = {
+        val output = output(loader = {
             loads += it
             MediaPlayerSoundOutput.load(context, it)
         })
         output.prepare(setOf(AlertSound.TICK))
+        settle()
         loads.clear()
 
         output.play(AlertSound.GLOCKE)
 
         assertThat(loads).containsExactly(AlertSound.GLOCKE)
         assertThat(output.isPlaying).isTrue()
-        shadowOf(Looper.getMainLooper()).idle()
+        settle()
         assertThat(output.ready).containsExactly(AlertSound.TICK)
     }
 
@@ -138,13 +159,15 @@ class AndroidAlertOutputsTest {
     fun soundsNoLongerWantedAreReleased() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
         val players = mutableListOf<MediaPlayer>()
-        val output = MediaPlayerSoundOutput(context, loader = { sound ->
+        val output = output(loader = { sound ->
             MediaPlayerSoundOutput.load(context, sound)?.also { players += it }
         })
         output.prepare(setOf(AlertSound.TICK, AlertSound.KLANGSCHALE))
+        settle()
 
         // The tone setting changed: the old tone goes, the new one is loaded.
         output.prepare(setOf(AlertSound.TICK, AlertSound.GLOCKE))
+        settle()
         assertThat(output.ready).containsExactly(AlertSound.TICK, AlertSound.GLOCKE)
         assertThat(players).hasSize(3)
         assertThat(shadowOf(players[1]).state).isEqualTo(ShadowMediaPlayer.State.END)
@@ -153,7 +176,7 @@ class AndroidAlertOutputsTest {
         output.play(AlertSound.TICK)
         output.prepare(emptySet())
         output.stop()
-        shadowOf(Looper.getMainLooper()).idle()
+        settle()
 
         assertThat(output.ready).isEmpty()
         assertThat(players).hasSize(3)
@@ -168,13 +191,15 @@ class AndroidAlertOutputsTest {
     fun aLoadedSoundThatBrokeWhileWaitingIsDroppedAndTheCueLoadsItsOwn() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
         val players = mutableListOf<MediaPlayer>()
-        val output = MediaPlayerSoundOutput(context, loader = { sound ->
+        val output = output(loader = { sound ->
             MediaPlayerSoundOutput.load(context, sound)?.also { players += it }
         })
         output.prepare(setOf(AlertSound.TICK))
+        settle()
 
         // The media server died while the tick waited.
         shadowOf(players.single()).invokeErrorListener(MediaPlayer.MEDIA_ERROR_SERVER_DIED, 0)
+        settle()
         assertThat(output.ready).isEmpty()
         assertThat(shadowOf(players.single()).state).isEqualTo(ShadowMediaPlayer.State.END)
 
@@ -188,10 +213,11 @@ class AndroidAlertOutputsTest {
     fun aLoadedSoundThatFailsWhenStartedIsLoadedAgainAndPlays() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
         val players = mutableListOf<MediaPlayer>()
-        val output = MediaPlayerSoundOutput(context, loader = { sound ->
+        val output = output(loader = { sound ->
             MediaPlayerSoundOutput.load(context, sound)?.also { players += it }
         })
         output.prepare(setOf(AlertSound.TICK))
+        settle()
         output.play(AlertSound.TICK)
 
         // The start reported an error instead of playing (rule 8: the cue must still sound).
@@ -206,10 +232,11 @@ class AndroidAlertOutputsTest {
     fun aLoadedSoundWhoseStartThrowsIsLoadedAgainAndPlays() {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
         var loads = 0
-        val output = MediaPlayerSoundOutput(context, loader = { sound ->
+        val output = output(loader = { sound ->
             if (loads++ == 0) UnstartablePlayer() else MediaPlayerSoundOutput.load(context, sound)
         })
         output.prepare(setOf(AlertSound.TICK))
+        settle()
 
         output.play(AlertSound.TICK)
 
@@ -218,9 +245,81 @@ class AndroidAlertOutputsTest {
     }
 
     @Test
+    fun aCueWhileItsSoundIsStillLoadingLoadsItsOwnAndTheLoadThatComesBackIsKept() {
+        ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
+        val players = mutableListOf<MediaPlayer>()
+        val output = output(loader = { sound -> MediaPlayerSoundOutput.load(context, sound)?.also { players += it } })
+        output.prepare(setOf(AlertSound.ZIMBEL))
+
+        // The pre-alert comes before the loader thread has loaded its sound: loaded on the spot (D-092).
+        output.play(AlertSound.ZIMBEL)
+        assertThat(players).hasSize(1)
+        assertThat(output.isPlaying).isTrue()
+
+        // The load asked for earlier arrives and stays loaded for the next cue; nothing is loaded twice ahead.
+        settle()
+        assertThat(players).hasSize(2)
+        assertThat(output.ready).containsExactly(AlertSound.ZIMBEL)
+        assertThat(shadowOf(players[1]).state).isNotEqualTo(ShadowMediaPlayer.State.END)
+    }
+
+    @Test
+    fun aSoundNoLongerWantedWhenItsTurnOnTheLoaderComesIsNotLoaded() {
+        ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
+        val loads = mutableListOf<AlertSound>()
+        val output = output(loader = {
+            loads += it
+            MediaPlayerSoundOutput.load(context, it)
+        })
+
+        // Two tone changes in a row: only the last one is loaded.
+        output.prepare(setOf(AlertSound.GLOCKE))
+        output.prepare(setOf(AlertSound.SANFT))
+        settle()
+
+        assertThat(loads).containsExactly(AlertSound.SANFT)
+        assertThat(output.ready).containsExactly(AlertSound.SANFT)
+    }
+
+    @Test
+    fun aLoadThatComesBackForASoundNoLongerWantedIsReleased() {
+        ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
+        val players = mutableListOf<MediaPlayer>()
+        val output = output(loader = { sound -> MediaPlayerSoundOutput.load(context, sound)?.also { players += it } })
+        output.prepare(setOf(AlertSound.GLOCKE))
+        // The loader thread has loaded it; its player is on its way to the alert thread.
+        loaderThread.removeFirst().run()
+
+        output.prepare(setOf(AlertSound.SANFT))
+        settle()
+
+        assertThat(output.ready).containsExactly(AlertSound.SANFT)
+        assertThat(shadowOf(players.first()).state).isEqualTo(ShadowMediaPlayer.State.END)
+    }
+
+    @Test
+    fun anErrorOfALoadedPlayerReportedOnTheLoaderThreadIsHandledOnTheAlertThread() {
+        ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
+        val players = mutableListOf<MediaPlayer>()
+        val output = output(loader = { sound -> MediaPlayerSoundOutput.load(context, sound)?.also { players += it } })
+        output.prepare(setOf(AlertSound.TICK))
+        settle()
+
+        // A player made on the loader thread reports its errors there (MediaPlayer's own looper).
+        Thread { shadowOf(players.single()).invokeErrorListener(MediaPlayer.MEDIA_ERROR_SERVER_DIED, 0) }
+            .apply { start() }
+            .join()
+        assertThat(output.ready).containsExactly(AlertSound.TICK)
+
+        settle()
+        assertThat(output.ready).isEmpty()
+        assertThat(shadowOf(players.single()).state).isEqualTo(ShadowMediaPlayer.State.END)
+    }
+
+    @Test
     fun soundFailureDoesNotThrow() {
         // Without media info Robolectric's MediaPlayer cannot open the file; create() returns null.
-        val output = MediaPlayerSoundOutput(context)
+        val output = output()
 
         output.play(AlertSound.TICK)
 
