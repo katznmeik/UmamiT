@@ -62,6 +62,9 @@
     <string name="catalog_group_untyped">Ohne Sorte</string>
     <string name="catalog_no_match">Kein Tee passt zu deiner Suche und den Filtern.</string>
     <string name="catalog_reset_filters">Filter zurücksetzen</string>
+    <!-- The Kräutertee view before the first refresh after the update (SCR-19, D-093 Q20). -->
+    <string name="catalog_herbal_pending">Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)</string>
+    <string name="catalog_herbal_load_now">Jetzt laden</string>
     <!-- Search hits the filters hide (D-073: flavoured teas are searchable but hidden). -->
     <plurals name="catalog_hidden_matches">
         <item quantity="one">%1$d weiterer Treffer ist durch die Filter ausgeblendet.</item>

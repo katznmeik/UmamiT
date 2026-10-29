@@ -34,6 +34,8 @@ import javax.inject.Inject
  * @property refresh the refresh's progress or result for the sheet.
  * @property loading true until the catalog was read once (then nothing is shown yet).
  * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
+ * @property herbalPending the Kräutertees are still to come with the first refresh after the
+ *   update (D-093 Q20): the *Kräutertee* view shows its hint with *Jetzt laden*.
  */
 data class CatalogUiState(
     val listing: CatalogListing = CatalogListing.EMPTY,
@@ -41,6 +43,7 @@ data class CatalogUiState(
     val refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     val loading: Boolean = true,
     val guideCount: Int = 0,
+    val herbalPending: Boolean = false,
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
 
@@ -76,13 +79,15 @@ class CatalogViewModel @Inject constructor(
         filter,
         refresh.state,
         guides.observeGuides().map { it.size },
-    ) { listing, filter, refreshState, guideCount ->
+        repository.observeHerbalPending(),
+    ) { listing, filter, refreshState, guideCount, herbalPending ->
         CatalogUiState(
             listing = listing,
             filter = filter,
             refresh = refreshState,
             loading = false,
             guideCount = guideCount,
+            herbalPending = herbalPending,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())
 

@@ -144,6 +144,13 @@ abstract class CatalogDao {
     )
     abstract suspend fun lastSuccessParserVersion(): Int?
 
+    /** [lastSuccessParserVersion] as it changes (SCR-19: the Kräutertees' hint, D-093 Q20). */
+    @Query(
+        "SELECT parser_version FROM catalog_refresh_log WHERE status = 'SUCCESS' " +
+            "ORDER BY finished_at DESC, id DESC LIMIT 1",
+    )
+    abstract fun observeLastSuccessParserVersion(): Flow<Int?>
+
     @Query("SELECT * FROM catalog_refresh_log ORDER BY id")
     abstract suspend fun refreshLog(): List<CatalogRefreshLogEntity>
 

@@ -34,8 +34,9 @@ const val CATALOG_FILTER_SHEET_TAG = "catalog_filter_sheet"
 /**
  * Every filter and the sort (CAT-10) in Material 3's modal sheet: sort, *Sorte* and *Herkunft*
  * (several each, from the catalog's own values in [listing]), aroma, umami and the chips'
- * switches. *Zurücksetzen* returns to the default view (D-073) and keeps the search. The caller
- * never composes it during an alert (rule 8).
+ * switches. In the *Kräutertee* view aroma („Pur", Q14) and umami (Q19) don't apply and are left
+ * out. *Zurücksetzen* returns to the default view (D-073) of the kind shown and keeps the search.
+ * The caller never composes it during an alert (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,8 +72,10 @@ internal fun CatalogFilterSheet(
             ChoiceGroup(stringResource(R.string.catalog_filter_origins), listing.origins, filter.origins) { value ->
                 onFilterChange { it.copy(origins = it.origins.toggle(value)) }
             }
-            FlavourGroup(filter, onFilterChange)
-            UmamiGroup(filter, onFilterChange)
+            if (!filter.herbal) {
+                FlavourGroup(filter, onFilterChange)
+                UmamiGroup(filter, onFilterChange)
+            }
             val switches = switchOptions(filter)
             Group(stringResource(R.string.catalog_filter_more)) {
                 switches.forEach { option ->
@@ -80,7 +83,9 @@ internal fun CatalogFilterSheet(
                 }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search) } }) {
+                TextButton(onClick = {
+                    onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, herbal = it.herbal) }
+                }) {
                     Text(stringResource(R.string.catalog_filter_reset))
                 }
                 TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.catalog_filter_done)) }
