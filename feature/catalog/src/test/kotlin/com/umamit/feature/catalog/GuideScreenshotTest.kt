@@ -35,7 +35,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The *Ratgeber* (CAT-09, SCR-20; #76) in light and dark, at font scales 1.0 and 2.0: the list
- * under the A11 placeholder, its empty state, an article (top and end). Invented guides (D-016);
+ * under the A11 header, its empty state, an article (top and end). Invented guides (D-016);
  * the images are placeholder gradients, never shop images. Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)

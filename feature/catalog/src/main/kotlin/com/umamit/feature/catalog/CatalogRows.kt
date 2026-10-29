@@ -10,11 +10,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.umamit.core.designsystem.component.CheckRecipeBadge
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaListItem
+import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogTeaSummary
 
@@ -110,3 +113,12 @@ private fun BadgeTag(badge: Badge) {
         )
     }
 }
+
+/**
+ * A8, the catalog's empty-state vignette (SCR-19), for the theme: its paper is the theme's
+ * background, so it is drawn untinted (`illustrationTint = null`). Every empty state of the
+ * catalog module uses it (the empty catalog, no guides yet, a tea or guide that is gone).
+ */
+@Composable
+internal fun catalogEmptyIllustration(): Painter =
+    painterResource(if (UmamiTheme.isDark) UmamiIcons.CatalogEmptyDark else UmamiIcons.CatalogEmptyLight)
