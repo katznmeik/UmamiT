@@ -144,9 +144,10 @@ v0.2.1 changes timer code (per-step pre-alert, sounds), so every
 - [ ] *Katalog aktualisieren*, the first after the update: it re-classifies everything once (≈ 16 min, accepted by the PO) and completes; the catalog still opens on the green teas.
 - [ ] The chip *Kräutertee* shows only Kräutertees, grouped by *Sorte*, with no fruit tea, rooibos or accessory among them; „Pur" does not apply there; tapping the chip again returns to the green teas; the header counts both (CAT-01, CAT-10).
 - [ ] A Kräutertee without the shop's brewing values: 2 g / 250 ml, 100 °C, one infusion of 6:00, marked „Rezept prüfen"; one with shop values uses them, unmarked (08 §3).
-- [ ] In the browser, open the shop page of a sold-out tea (e.g. TG0170) and share it to UmamiT: its detail opens with every size „nicht vorrätig" and can be added with *In Sammlung aufnehmen* (CAT-17).
+- [ ] In the browser, open the shop page of a sold-out tea (e.g. TG0170) and share it to UmamiT: its detail opens with its size „nicht vorrätig" (D-096: only the page's own size knows its stock) and can be added with *In Sammlung aufnehmen* (CAT-17).
 - [ ] Catalog ⋮ *Link einfügen*: a category link or a link to another site shows „Das ist kein Tee-Link von Tee-Kontor Kiel."; a link to a black tea shows „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." (CAT-17).
-- [ ] *Katalog aktualisieren* after that: the sold-out tea stays in the catalog („nicht vorrätig") and is not counted as „nicht mehr im Sortiment" (CAT-16).
+- [ ] *Katalog aktualisieren* after that: the sold-out tea stays in the catalog („nicht vorrätig"; visible with the *Vorrätig* filter off, CAT-10) and is not counted as „nicht mehr im Sortiment" (CAT-16). An owned tea that v0.2.0 marked „Nicht mehr im Sortiment" only because it sold out is back in the range (D-096).
+- [ ] Kräutertee view before the first refresh after the update: the hint „Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)" with *Jetzt laden*; its filter sheet has no Aroma or Umami (Q19, Q20). Mate and Lapacho appear among the Kräutertees, as the shop files them there (D-096).
 
 ### v0.3 — Quick timers alongside a brew (planned, D-093)
 
