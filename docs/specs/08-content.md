@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -157,7 +157,33 @@ the prose, whose years are travel reports, founding years and link texts
    (not followed), or a breadcrumb out of scope → discontinued; read this
    time without a stop (e.g. disallowed by robots.txt, over the body limit,
    §2.8) → kept as it was. A challenge, 429 or `Retry-After` stops the whole
-   refresh as always (§2.8). Expected ≈ 5–20 extra requests. Only new and changed photos
+   refresh as always (§2.8), and so do a 401/403/5xx and a network error after
+   its retries. Expected ≈ 5–20 extra requests. As built (#97):
+   - **Which teas:** those still in the range; a tea already „Nicht mehr im
+     Sortiment" (kept for a collection tea) is not checked again until its
+     numbers are back in the sitemap or its link is shared (item 9).
+   - **When:** after the sitemap's pages, before the photos; they count among
+     the progress's pages, and a robots.txt-disallowed `product_url` (or one
+     off the shop's host) is kept as it was without a request.
+   - **That product:** the canonical (else the fetched URL) is a
+     `/<slug>/<number>` page on the shop with one of the tea's numbers, and
+     so is the page's own number when it has one. A page of another product
+     is read as not this time, so the tea is kept as it was.
+   - **Redirects:** judged by their `Location` alone, resolved against the
+     page and never requested. It leads away when it is off the shop's host
+     or not a product page with one of the tea's numbers (a category, the
+     home page). A redirect to one of the tea's own pages (a new slug, a size
+     variant) or without a `Location`, and any other 4xx, keep the tea as it
+     was.
+   - **Out of scope:** like any page out of scope, onto the skip list
+     (05 §4.2a). A page without product or breadcrumb keeps the tea as it was
+     and counts as defective in the sanity check (§2.9).
+   - **Kept with its page:** staged like a sitemap product of its key but
+     without size URLs, so its sizes are the page's own size and the
+     configurator's (item 6), the other sizes with no stock and no
+     `variant_url`. In the summary it is „geändert" when its page changed
+     (e.g. now sold out), never „nicht mehr im Sortiment".
+   Only new and changed photos
    are fetched (D-086); a photo or guide image that failed for good (over the
    16 MB image limit, or not decodable) is not fetched again while its URL
    stays the same (`catalog_image_failure`, D-091), while a 404 or a network
@@ -504,7 +530,9 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
   3xx (never followed), 404 or other 4xx leaves only that URL out (D-050,
   D-074), and so does a 2xx answer over its body limit, which is not read
   (5 MB for a page, 16 MB for a photo or guide image, D-091; a photo,
-  guide image or page; never a stop, D-090).
+  guide image or page; never a stop, D-090). A 3xx's `Location` is only
+  read, never requested, to judge the re-check of a tea missing from the
+  sitemap (§2.4 item 5, CAT-16).
 - **One connection:** all requests go through a single HTTP connection,
   sequentially, at ≤ 2 requests/s.
 - **robots.txt:** rules are matched with longest-match precedence and `*` /

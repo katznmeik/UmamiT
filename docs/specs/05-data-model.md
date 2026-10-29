@@ -332,7 +332,7 @@ Table `catalog_tea`
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
-| `discontinued` | INTEGER | left the shop's range (missing from the sitemap, or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
+| `discontinued` | INTEGER | left the shop's range (missing from the sitemap and its page gone or out of scope on the re-check, CAT-16; or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
 | `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
 | `photo_url`, `photo_etag` | TEXT | change detection (CAT-08, D-086): `photo_url` is the URL the stored photo came from (else the page's), so a refresh downloads a photo only when it is new or its URL changed (the shop's media URL changes with the image, `?ts=`); `photo_etag` stays empty: a conditional request would still cost a request |
 | `content_hash` | TEXT | `<parser version>:<SHA-256>` of what the shop shows of the tea (the page's fields, its photo URL, its packages; not the derived style, recipes, flag or plain text), to report „geändert"; two hashes count only under the same parser version (D-086) |

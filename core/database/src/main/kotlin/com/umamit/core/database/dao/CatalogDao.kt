@@ -40,12 +40,14 @@ data class CatalogListRow(
 )
 
 /**
- * What a later refresh needs to know of a tea in the catalog before its swap (#70): its photo's
- * source and file (CAT-08), its shop content's hash („geändert"), its recipe flag („Rezepte
- * prüfen") and whether it already left the range (CAT-07 AC4).
+ * What a later refresh needs to know of a tea in the catalog before its swap (#70): its product
+ * page (the re-check of a tea missing from the sitemap, CAT-16), its photo's source and file
+ * (CAT-08), its shop content's hash („geändert"), its recipe flag („Rezepte prüfen") and whether
+ * it already left the range (CAT-07 AC4).
  */
 data class CatalogTeaState(
     @ColumnInfo(name = "key") val key: String,
+    @ColumnInfo(name = "product_url") val productUrl: String,
     @ColumnInfo(name = "photo_url") val photoUrl: String?,
     @ColumnInfo(name = "photo_file") val photoFile: String?,
     @ColumnInfo(name = "content_hash") val contentHash: String?,
@@ -117,7 +119,10 @@ abstract class CatalogDao {
     abstract suspend fun keys(): List<String>
 
     /** Every tea of the catalog, discontinued ones included, as a later refresh compares it (#70). */
-    @Query("SELECT key, photo_url, photo_file, content_hash, recipe_check_reason, discontinued FROM catalog_tea")
+    @Query(
+        "SELECT key, product_url, photo_url, photo_file, content_hash, recipe_check_reason, discontinued " +
+            "FROM catalog_tea",
+    )
     abstract suspend fun teaStates(): List<CatalogTeaState>
 
     /** Every package's article number, by tea: the base numbers merged into a tea are among them (D-081). */
