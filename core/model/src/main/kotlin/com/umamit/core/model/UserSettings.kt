@@ -7,6 +7,8 @@ data class UserSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = false,
     val alertSound: String = DEFAULT_ALERT_SOUND,
+    /** SET-26 *Vorwarnton*, the key of the pre-alert's sound; an unknown key plays the default (05 §6). */
+    val preAlertSound: String = DEFAULT_PRE_ALERT_SOUND,
     /** 0 = off, otherwise 5–30 in steps of 5 (SET-10). */
     val preAlertSeconds: Int = 10,
     val vibration: Boolean = true,
@@ -21,5 +23,8 @@ data class UserSettings(
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"
+
+        /** SET-26 *Vorwarnton*: the Zimbel until the PO picks the default with the first v0.2.1 rc (D-093). */
+        const val DEFAULT_PRE_ALERT_SOUND = "zimbel"
     }
 }

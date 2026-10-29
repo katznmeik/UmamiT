@@ -7,11 +7,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberPhotoPainter
@@ -37,7 +35,7 @@ fun BrewTimerRoute(
     val recovered by viewModel.recovered.collectAsStateWithLifecycle()
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
     val problem by viewModel.reliabilityProblem.collectAsStateWithLifecycle()
-    val photoPath by viewModel.teaPhotoPath.collectAsStateWithLifecycle()
+    val seal by viewModel.teaSeal.collectAsStateWithLifecycle()
     val currentOnClose by rememberUpdatedState(onClose)
     LifecycleResumeEffect(viewModel) {
         viewModel.refreshReliability()
@@ -55,13 +53,10 @@ fun BrewTimerRoute(
             settings = settings,
             reliabilityProblem = problem,
             onFixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
-            // A brew always has its photo's space: the tea's cover photo, the fallback photo (A4) until it
-            // is read or without one, so nothing moves when it arrives (D-058). The quick timer has none.
-            teaPhoto = if (active.sessionId != null) {
-                rememberPhotoPainter(photoPath, painterResource(UmamiIcons.TimerFallbackPhoto))
-            } else {
-                null
-            },
+            // The seal shows the tea's cover photo, the type-coloured leaf until it is read or without one;
+            // its space is fixed, so nothing moves when the photo arrives (D-058, D-095).
+            teaPhoto = seal?.photoPath?.let { rememberPhotoPainter(it, rememberSealLeafPainter(seal?.styleKey)) },
+            teaStyleKey = seal?.styleKey,
         )
 
         // Restored after process death (from recents, or a notification of a session the new

@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * What the controller holds when the engine accepts a start ([TimerEffect.CreateSession]):
- * the snapshots of tea, recipe and vessel (05 §1.5), the planned steps, the effective
- * pre-alert (04 §5) and the start on the wall clock in the session's zone.
+ * the snapshots of tea, recipe and vessel (05 §1.5), the planned steps, each with its own
+ * pre-alert, the session's pre-alert base B ([preAlertSeconds], recipe ?: global, frozen at the
+ * start; 04 §5, D-093) and the start on the wall clock in the session's zone.
  */
 data class SessionStart(
     val id: String,
@@ -29,14 +30,18 @@ data class SessionStart(
  * in 5 °C steps (GEN-12).
  */
 interface SessionRepository {
-    /** [TimerEffect.CreateSession]: the `brew_session` row with its snapshots and one row per planned step. */
+    /**
+     * [TimerEffect.CreateSession]: the `brew_session` row with its snapshots and one row per planned step, each
+     * with its pre-alert.
+     */
     suspend fun startSession(start: SessionStart)
 
     /**
      * [TimerEffect.ReplacePendingSteps] (`editSteps`, `addStep`): the rows from [fromIndex] on
-     * are replaced by [steps]; [preAlertSeconds] is the session's effective pre-alert after the edit.
+     * are replaced by [steps], each with its pre-alert. The session's B stays as frozen at the start
+     * (05 §3.7, D-093); the running step's new pre-alert reaches its row with the `Persist`.
      */
-    suspend fun replacePendingSteps(sessionId: String, fromIndex: Int, steps: List<PlannedStep>, preAlertSeconds: Int)
+    suspend fun replacePendingSteps(sessionId: String, fromIndex: Int, steps: List<PlannedStep>)
 
     /** [TimerEffect.RecordStep]: the ended step [stepIndex] gets the engine's recorded data (04 §5.1). */
     suspend fun recordStep(sessionId: String, stepIndex: Int, record: StepRecord)

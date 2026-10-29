@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.content.Context
+import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.entity.CatalogPackageEntity
@@ -39,16 +40,33 @@ interface CatalogRepository {
 
     /** One catalog tea with everything its detail shows (SCR-21), or null when the catalog has none with [key]. */
     fun observeTea(key: String): Flow<CatalogTeaDetail?>
+
+    /**
+     * The Kräutertees are still to come (v0.2.1, D-093 Q20): the last successful refresh ran a
+     * parser from before them, so the first refresh after the update, which brings them once, is
+     * still due. False before the first refresh (the empty catalog has its own state).
+     */
+    fun observeHerbalPending(): Flow<Boolean>
 }
 
-/** The catalog keys of the collection's teas („im Besitz", CAT-10): `tea.catalog_key` in `umamit.db` (05 §1.6). */
+/** The catalog keys of the collection's teas: `tea.catalog_key` in `umamit.db` (05 §1.6). */
 fun interface OwnedCatalogKeys {
+    /**
+     * The keys any collection tea links to, archived ones included: the refresher keeps a
+     * discontinued catalog tea for them (CAT-07 AC4).
+     */
     fun observe(): Flow<Set<String>>
+
+    /** The keys of the teas that are not archived: „im Besitz" (CAT-10, TEA-04). */
+    fun observeOwned(): Flow<Set<String>> = observe()
 }
 
 /** [OwnedCatalogKeys] from the collection's database. */
 class RoomOwnedCatalogKeys @Inject constructor(private val teas: TeaDao) : OwnedCatalogKeys {
     override fun observe(): Flow<Set<String>> = teas.observeCatalogKeys().map { it.toSet() }.distinctUntilChanged()
+
+    override fun observeOwned(): Flow<Set<String>> =
+        teas.observeOwnedCatalogKeys().map { it.toSet() }.distinctUntilChanged()
 }
 
 /** [CatalogRepository] on `catalog.db`, the photo files of `filesDir/catalog/` and the [owned] keys. */
@@ -60,7 +78,7 @@ class RoomCatalogRepository @Inject constructor(
     override fun observeCatalog(): Flow<CatalogOverview> = combine(
         dao.observeList(),
         dao.observeLastSuccess(),
-        owned.observe(),
+        owned.observeOwned(),
     ) { rows, last, ownedKeys ->
         CatalogOverview(
             teas = rows.map { row ->
@@ -80,6 +98,7 @@ class RoomCatalogRepository @Inject constructor(
                     recipeCheckReason = row.recipeCheckReason,
                     isNew = row.isNew,
                     owned = row.key in ownedKeys,
+                    isHerbal = row.styleKey == HERBAL_STYLE,
                 )
             },
             lastRefreshAtMillis = last,
@@ -98,9 +117,16 @@ class RoomCatalogRepository @Inject constructor(
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */
         const val UMAMI_SCALE = "Umami"
+
+        /** The style of the shop's Kräutertees (08 §3, D-093): a herbal tea is told apart by it. */
+        const val HERBAL_STYLE = "herbal"
     }
 
     override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()
+
+    override fun observeHerbalPending(): Flow<Boolean> = dao.observeLastSuccessParserVersion()
+        .map { version -> version != null && version < TeeKontorParser.HERBAL_SINCE_VERSION }
+        .distinctUntilChanged()
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = combine(
         dao.observeTea(key),

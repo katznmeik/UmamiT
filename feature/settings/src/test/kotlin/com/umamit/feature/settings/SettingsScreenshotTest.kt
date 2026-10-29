@@ -2,6 +2,7 @@ package com.umamit.feature.settings
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -20,9 +21,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Einstellungen (SCR-25) with a missing check, with all ready and scrolled to its *Katalog*
- * section (SET-22, SET-23), and Über (SCR-27), in light and dark at font scale 1.0 and 2.0
- * (03 §6). Goldens: `src/test/screenshots/`.
+ * Einstellungen (SCR-25) with a missing check, with all ready, with the *Vorwarnton* picker
+ * (SET-26) and scrolled to its *Katalog* section (SET-22, SET-23), and Über (SCR-27), in light and
+ * dark at font scale 1.0 and 2.0 (03 §6). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -54,6 +55,7 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
     private fun capture(
         name: String,
         scrollToText: String? = null,
+        clickText: String? = null,
         content: @androidx.compose.runtime.Composable () -> Unit,
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
@@ -61,6 +63,10 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         compose.waitForIdle()
         if (scrollToText != null) {
             compose.onNodeWithText(scrollToText).performScrollTo()
+            compose.waitForIdle()
+        }
+        if (clickText != null) {
+            compose.onNodeWithText(clickText).performScrollTo().performClick()
             compose.waitForIdle()
         }
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
@@ -81,6 +87,18 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
     fun settingsAllReady() = capture("Settings_allReady") {
         SettingsScreen(
             settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
+    /** The *Vorwarnton* picker (SET-26): the five sounds by name, Klangstab picked, *Anhören* and *Fertig*. */
+    @Test
+    fun settingsPreAlertSoundPicker() = capture("Settings_preAlertSound", clickText = "Vorwarnton") {
+        SettingsScreen(
+            settings = UserSettings(preAlertSound = "klangstab"),
             status = ReliabilityStatus.AllOk,
             alerting = false,
             onBack = {},

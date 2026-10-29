@@ -27,17 +27,28 @@ internal const val PRE_ALERT_MIN_LEFT_MS = 1_000L
 /**
  * The pre-alert lead time of step [index] in milliseconds, or null when the
  * step has none: N = 0, a step shorter than N + 5 s, a rinse shorter than
- * 15 s, or a long step (TMR-23, 04 §5).
+ * 15 s, or a long step (TMR-23, 04 §5). N is the step's own: the explicit
+ * value, else the automatic rule (D-093).
  */
-internal fun TimerSession.preAlertLeadMs(index: Int): Long? {
-    val n = preAlert.effectiveSeconds
-    val step = steps[index]
+internal fun TimerSession.preAlertLeadMs(index: Int): Long? =
+    preAlertLeadSecondsOf(steps[index].planned, preAlert, isLongStep(index))?.let { it * MS_PER_SECOND }
+
+/**
+ * The lead in seconds of [step] with the session base [settings], or null when it has none (TMR-23, 04 §5): the
+ * one rule for a step of a session and for a planned step the Schritte-Sheet or the setup shows (D-093, #92).
+ */
+internal fun preAlertLeadSecondsOf(step: PlannedStep, settings: PreAlertSettings, longStep: Boolean): Int? {
+    val n = settings.leadSecondsFor(step.plannedSeconds, step.preAlertSeconds)
     val none = n == 0 ||
         step.plannedSeconds < n + PRE_ALERT_MIN_SPARE_SECONDS ||
         (step.kind == StepKind.RINSE && step.plannedSeconds < RINSE_MIN_SECONDS) ||
-        isLongStep(index)
-    return if (none) null else n * MS_PER_SECOND
+        longStep
+    return if (none) null else n
 }
+
+/** A step of [plannedSeconds] is a long step (≥ 10 min), or every step is in a cold or ice brew (TMR-18, 04 §1). */
+internal fun isLongStepOf(plannedSeconds: Int, longStepsOnly: Boolean): Boolean =
+    longStepsOnly || plannedSeconds >= LONG_STEP_SECONDS
 
 /**
  * When the pre-alert of step [index] of [session] is due for a step that

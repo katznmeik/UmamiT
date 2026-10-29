@@ -22,7 +22,6 @@ import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.Tea
-import com.umamit.core.model.TeaCategory
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -72,7 +71,10 @@ sealed interface AddFromCatalogResult {
  *   at once in the tea picker and brewable with stock deduction.
  */
 interface AddFromCatalog {
-    /** The collection tea linked to [catalogKey], or null: decides between add and repurchase. */
+    /**
+     * The collection tea that owns [catalogKey], or null: decides between *In Sammlung aufnehmen*
+     * and *Nachkauf erfassen*. An archived tea owns nothing; adding its key brings it back (TEA-04).
+     */
     fun observeOwner(catalogKey: String): Flow<String?>
 
     /** Adds the tea of [purchase], or records the repurchase when it is owned; one transaction. */
@@ -157,7 +159,7 @@ class RoomAddFromCatalog @Inject constructor(
     }
 
     private suspend fun repurchase(teaId: String, purchase: CatalogPurchase): AddFromCatalogResult {
-        // A tea archived when it was used up is back in stock (TEA-04).
+        // A tea archived when it was used up, or removed from the collection, comes back (TEA-04, D-093 Q6).
         teas.getTea(teaId)?.takeIf { it.isArchived }?.let { teas.saveTea(it.copy(isArchived = false)) }
         stock.addEvent(event(teaId, InventoryEventType.PURCHASE, purchase))
         return AddFromCatalogResult.Repurchased(teaId)
@@ -207,7 +209,7 @@ class RoomAddFromCatalog @Inject constructor(
         return Tea(
             id = id,
             name = (name ?: key).take(NAME_MAX),
-            category = TeaCategory.GREEN,
+            category = style.category,
             form = match.form,
             secondaryName = secondaryName?.take(NAME_MAX),
             catalogKey = key,

@@ -13,7 +13,7 @@
     <string name="settings_check_exact_alarms">Exakte Alarme</string>
     <string name="settings_fix">Beheben</string>
 
-    <!-- Timer & Alarm (SET-30; SET-09, 10, 11, 14, 17, 25, 31). -->
+    <!-- Timer & Alarm (SET-30; SET-09, 10, 11, 14, 17, 25, 26, 31). -->
     <string name="settings_section_timer">Timer &amp; Alarm</string>
     <string name="settings_tone">Alarmton</string>
     <string name="settings_tone_klangschale">Klangschale</string>
@@ -25,6 +25,13 @@
     <string name="settings_pre_alert">Vorwarnung</string>
     <string name="settings_pre_alert_off">Aus</string>
     <string name="settings_pre_alert_seconds">%1$d s vorher</string>
+    <!-- Vorwarnton (SET-26, 04 §9.2, D-093). -->
+    <string name="settings_pre_alert_sound">Vorwarnton</string>
+    <string name="settings_pre_alert_sound_zimbel">Zimbel</string>
+    <string name="settings_pre_alert_sound_gloeckchen">Glöckchen</string>
+    <string name="settings_pre_alert_sound_klangstab">Klangstab</string>
+    <string name="settings_pre_alert_sound_tiefe_schale">Tiefe Schale</string>
+    <string name="settings_pre_alert_sound_ting">Ting (leise)</string>
     <string name="settings_vibration">Vibration</string>
     <string name="settings_alert_length">Alarmdauer</string>
     <string name="settings_alert_length_short">Kurz</string>

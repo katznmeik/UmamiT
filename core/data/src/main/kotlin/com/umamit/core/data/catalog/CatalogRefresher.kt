@@ -65,7 +65,11 @@ import javax.inject.Inject
  *    them, D-081), the base numbers new in the sitemap and the skip entries due again (08 §2.4
  *    item 5).
  * 3. Each candidate's page is parsed ([TeeKontorParser]); green teas are kept, other products
- *    and sets without a set number go onto the new skip entries.
+ *    and sets without a set number go onto the new skip entries. Then each known tea none of
+ *    whose numbers the sitemap lists (the shop leaves sold-out products out) gets its own product
+ *    page fetched once (CAT-16, D-094): still that product's page in scope → kept with the page's
+ *    data and stock; 404/410, a redirect away (judged by its `Location`, never followed) or out
+ *    of scope → it left the range; not readable this once → kept as it was.
  * 4. The green teas go into the staging tables, one entry per tea with its package sizes
  *    ([CatalogEntries]: split numbers merged, sizes and prices from the page and the sitemap,
  *    no size page fetched; 08 §2.4 items 6–7, D-081), its style and derived recipes
@@ -82,7 +86,8 @@ import javax.inject.Inject
  *    SET-22 is off, converted and staged ([CatalogGuides]).
  * 7. One transaction swaps the staged catalog and guides in, adds the skip entries and logs the
  *    run with its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
- *    read stays as it was; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
+ *    read stays as it was, and so does one missing from the sitemap whose page couldn't be read
+ *    this once; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
  *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
  *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
  *    photos of teas and the images of guides no longer in the catalog are deleted and the
@@ -116,6 +121,7 @@ class CatalogRefresher(
     private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
     guideLimits: GuideLimits = GuideLimits.DEFAULT,
+    private val jobs: CatalogJobs = CatalogJobs(),
 ) {
     @Inject
     constructor(
@@ -127,6 +133,7 @@ class CatalogRefresher(
         photos: CatalogPhotoFiles,
         owned: OwnedCatalogKeys,
         seedTeas: CatalogSeedLinker,
+        jobs: CatalogJobs,
     ) : this(
         client,
         dao,
@@ -139,6 +146,8 @@ class CatalogRefresher(
         Dispatchers.IO,
         owned,
         seedTeas,
+        GuideLimits.DEFAULT,
+        jobs,
     )
 
     private val guides =
@@ -146,9 +155,13 @@ class CatalogRefresher(
 
     /**
      * Runs one refresh, reporting each step to [onProgress] (on the caller's context), and
-     * returns how it ended. Only a [CatalogRefreshOutcome.Success] changed the catalog.
+     * returns how it ended. Only a [CatalogRefreshOutcome.Success] changed the catalog. It runs
+     * in its turn ([CatalogJobs]): after a tea from a link in progress, and none starts until it ends.
      */
-    suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome {
+    suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome =
+        jobs.refresh { refreshInTurn(onProgress) }
+
+    private suspend fun refreshInTurn(onProgress: (CatalogRefreshProgress) -> Unit): CatalogRefreshOutcome {
         val run = Run(startedAt = clock.nowMs(), onProgress = onProgress)
         log("catalog refresh: started, parser v${TeeKontorParser.PARSER_VERSION}")
         onProgress(CatalogRefreshProgress.STARTING)
@@ -231,6 +244,12 @@ class CatalogRefresher(
         var sets = 0
         var sales = 0
         var skippedKnown = 0
+
+        /**
+         * The last successful refresh ran a parser before Kräutertees: this one classifies the skip
+         * list's not-green entries again and, on success, replaces them (05 §9, D-093 Q12).
+         */
+        var reclassifyNotGreen = false
         var photosStored = 0
         var photosMissing = 0
 
@@ -253,6 +272,19 @@ class CatalogRefresher(
         var known = 0
         var new = 0
         var recheck = 0
+
+        /**
+         * Known teas none of whose numbers the sitemap lists, each checked once (CAT-16, D-094),
+         * those „Nicht mehr im Sortiment" included.
+         */
+        var unlisted = 0
+
+        /** Of them: kept in the range with their page, and gone (404/410, a redirect away, out of scope). */
+        var unlistedKept = 0
+        var unlistedGone = 0
+
+        /** Of them, the teas whose page couldn't be read this once: kept as they were (CAT-16 AC3). */
+        val unlistedUnread = mutableSetOf<String>()
 
         /** The catalog before this refresh, by key (#70). */
         var previous: Map<String, CatalogTeaState> = emptyMap()
@@ -320,6 +352,10 @@ class CatalogRefresher(
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
             appendLine("sitemap: $sitemapUrls URLs, $sets sets, $sales sale duplicates, $skippedKnown on the skip list")
             appendLine("candidates: $known known green, $new new, $recheck to check again")
+            appendLine(
+                "missing from the sitemap: $unlisted checked once, $unlistedKept kept, $unlistedGone gone, " +
+                    "${unlistedUnread.size} unread",
+            )
             appendLine("pages: ${pagesLine()}, green $green, not green ${skips.size}, unavailable $unavailable")
             appendLine(
                 "photos: $photosStored stored, $photosKept unchanged, $photosMissing without " +
@@ -362,15 +398,18 @@ class CatalogRefresher(
             if (products.groups.isEmpty()) run.shopChanged("no product URLs in the sitemap (${urls.size} URLs)")
             readPrevious(products.groups)
             val candidates = candidates(session, products.groups)
+            val unlisted = unlistedTeas(session)
             log(
                 "catalog refresh: sitemap ${urls.size} URLs, ${products.groups.size} products, " +
                     "${products.sets} sets, ${products.sales} sale duplicates, ${run.skippedKnown} on the skip list, " +
                     "${candidates.size} to fetch " +
-                    "(${run.known} known green, ${run.new} new, ${run.recheck} to check again)",
+                    "(${run.known} known green, ${run.new} new, ${run.recheck} to check again), " +
+                    "${run.unlisted} known missing from the sitemap (${unlisted.size} to fetch once)",
             )
-            run.pagesTotal = candidates.size
+            run.pagesTotal = candidates.size + unlisted.size
             run.progress()
             fetchProducts(session, candidates)
+            recheckUnlisted(session, unlisted)
             stageEntries()
             checkSanity()
             storePhotos(session)
@@ -426,8 +465,19 @@ class CatalogRefresher(
          * entries due again.
          */
         private suspend fun candidates(session: ShopSession, groups: List<ProductGroup>): List<ProductGroup> {
-            val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet()
-            val due = dao.skipList().map { it.baseKey }.toSet() - fresh
+            val skipList = dao.skipList()
+            run.reclassifyNotGreen =
+                (dao.lastSuccessParserVersion() ?: TeeKontorParser.PARSER_VERSION) <
+                TeeKontorParser.HERBAL_SINCE_VERSION
+            val notGreen = skipList.filter { it.reason == CatalogSkipReason.NOT_GREEN }.map { it.baseKey }.toSet()
+            val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet() -
+                (if (run.reclassifyNotGreen) notGreen else emptySet())
+            val due = skipList.map { it.baseKey }.toSet() - fresh
+            if (run.reclassifyNotGreen) {
+                log(
+                    "catalog refresh: ${notGreen.size} not-green products classified again once",
+                )
+            }
             run.skippedBases += fresh
             run.skippedKnown = groups.count { it.base in fresh }
             val knownGreen = run.previousBases.values.flatten().toSet()
@@ -482,7 +532,8 @@ class CatalogRefresher(
 
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
-                CatalogScope.GREEN -> {
+                // Kräutertees are kept next to the green teas, told apart by their style (D-093).
+                CatalogScope.GREEN, CatalogScope.HERBAL -> {
                     run.entries += CatalogEntry.of(group, page)
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
@@ -502,6 +553,113 @@ class CatalogRefresher(
         private fun skip(group: ProductGroup, reason: CatalogSkipReason) {
             run.skips += CatalogSkipEntity(group.base, reason, run.startedAt)
             run.skippedBases += group.base
+        }
+
+        /**
+         * The known teas none of whose numbers the sitemap lists (CAT-16, 08 §2.4 item 5, D-094):
+         * the shop leaves sold-out products out of it. Those „Nicht mehr im Sortiment" too (kept
+         * for a collection tea): v0.2.0 counted a tea that had only sold out as discontinued, so a
+         * page still in scope brings it back into the range; any other answer leaves it as it was.
+         * Each one's product page is fetched once, after the sitemap's pages; one that robots.txt
+         * disallows or that is off the shop's host is kept as it was without a request (CAT-16 AC3).
+         */
+        private suspend fun unlistedTeas(session: ShopSession): List<Unlisted> {
+            val unlisted = run.previous.values.filter { before ->
+                run.previousBases[before.key].orEmpty().none { it in run.listedBases }
+            }.sortedBy { it.key }
+            run.unlisted = unlisted.size
+            return unlisted.mapNotNull { before ->
+                val url = before.productUrl.toHttpUrlOrNull()?.takeIf { session.isAllowed(it) }
+                if (url == null) {
+                    unread(before.key, "not fetched (robots.txt or off the shop)")
+                    null
+                } else {
+                    Unlisted(ShopProduct(client, before.key, run.previousBases[before.key].orEmpty()), url)
+                }
+            }
+        }
+
+        /** Each unlisted tea's page once, the next one fetched while this one is parsed (D-091). */
+        private suspend fun recheckUnlisted(session: ShopSession, unlisted: List<Unlisted>) = fetchOverlapped(
+            items = unlisted,
+            fetch = { tea -> session.fetch(tea.url) },
+            isLast = { it is ShopFetch.Stopped },
+        ) { tea, answer ->
+            unlistedAnswer(tea, answer)
+            run.pagesDone++
+            run.progress()
+        }
+
+        /**
+         * CAT-16: a page of that product still in scope keeps the tea with the page's data and
+         * stock; 404/410 or a page out of scope leaves it gone (CAT-07 AC4); a page that can't be
+         * read this once without a stop keeps it as it was; a stop ends the run (08 §2.8).
+         */
+        private suspend fun unlistedAnswer(tea: Unlisted, answer: ShopFetch) {
+            when (answer) {
+                is ShopFetch.Fetched -> when (val parsed = parse(answer.body, tea.url.toString())) {
+                    is ProductParse.Parsed -> unlistedPage(tea, parsed.page)
+
+                    is ProductParse.Failed -> {
+                        run.defective += tea.key
+                        unread(tea.key, "${tea.url.encodedPath} shows no product")
+                    }
+                }
+
+                is ShopFetch.Stopped -> run.stop(answer.cause, tea.url.encodedPath)
+
+                ShopFetch.Disallowed -> unread(tea.key, "${tea.url.encodedPath} disallowed by robots.txt")
+
+                is ShopFetch.TooLarge -> unread(tea.key, answer.line(tea.url))
+
+                is ShopFetch.Unavailable -> unlistedUnavailable(tea, answer)
+            }
+        }
+
+        /**
+         * 404/410, or a redirect whose `Location` leads away from the product (never followed):
+         * gone (CAT-16 AC2). A redirect to one of the product's own pages (a new slug, a size) or
+         * without a `Location`, and any other 4xx: not read this once, kept as it was (AC3).
+         */
+        private fun unlistedUnavailable(tea: Unlisted, answer: ShopFetch.Unavailable) {
+            val status = "${tea.url.encodedPath} answered HTTP ${answer.code}"
+            val location = answer.location
+            when {
+                answer.code in GONE -> gone(tea.key, status)
+
+                location != null && !tea.product.isNamedBy(location) -> gone(
+                    tea.key,
+                    "$status to " + if (client.isAllowed(location)) location.encodedPath else "another host",
+                )
+
+                location != null -> unread(tea.key, "$status to its own ${location.encodedPath}, not followed")
+
+                else -> unread(tea.key, status)
+            }
+        }
+
+        /** A fetched page of an unlisted tea: classified as any page while it still shows that product. */
+        private suspend fun unlistedPage(tea: Unlisted, page: ProductPage) {
+            if (!tea.product.isShownBy(page)) {
+                unread(tea.key, "${tea.url.encodedPath} shows another product (${page.key})")
+                return
+            }
+            classify(tea.group, page)
+            when (page.scope) {
+                CatalogScope.GREEN, CatalogScope.HERBAL -> run.unlistedKept++
+                CatalogScope.NOT_GREEN, CatalogScope.SET -> gone(tea.key, "${tea.url.encodedPath} out of scope")
+                CatalogScope.UNKNOWN -> unread(tea.key, "${tea.url.encodedPath} has no breadcrumb")
+            }
+        }
+
+        private fun unread(key: String, why: String) {
+            run.unlistedUnread += key
+            log("catalog refresh: $key missing from the sitemap, kept as it was: $why")
+        }
+
+        private fun gone(key: String, why: String) {
+            run.unlistedGone++
+            log("catalog refresh: $key missing from the sitemap, gone: $why")
         }
 
         /**
@@ -528,11 +686,16 @@ class CatalogRefresher(
             }
         }
 
-        /** The sanity check (08 §2.9): before the photos, so a broken parser costs no photo request. */
+        /**
+         * The sanity check (08 §2.9): before the photos, so a broken parser costs no photo request.
+         * Before the first successful refresh it is a first import, even when a tea from a shop
+         * link (CAT-17) is already in the catalog: that one tea never lowers the first import's minimum.
+         */
         private suspend fun checkSanity() {
             val staged = dao.countStaged()
+            val firstImport = dao.lastSuccessParserVersion() == null
             val counts = SanityCheck.Counts(
-                previousGreen = dao.countCurrent(),
+                previousGreen = if (firstImport) 0 else dao.countCurrent(),
                 green = staged,
                 defective = run.defective.size,
                 lackingRequired = run.lackingRequired,
@@ -661,7 +824,7 @@ class CatalogRefresher(
         private fun guideCatalogKeys(): Map<String, String> {
             val keys = run.catalogKeys.toMutableMap()
             for ((key, before) in run.previous) {
-                if (key !in run.staged && stillListed(key, before)) {
+                if (key !in run.staged && stillInRange(key, before)) {
                     (run.previousBases[key].orEmpty() + key).forEach { keys.putIfAbsent(it, key) }
                 }
             }
@@ -683,7 +846,7 @@ class CatalogRefresher(
                 when {
                     key in run.staged -> Unit
 
-                    stillListed(key, before) -> unchanged += key
+                    stillInRange(key, before) -> unchanged += key
 
                     else -> {
                         if (!before.discontinued) gone++
@@ -700,7 +863,14 @@ class CatalogRefresher(
             // The last moment a cancel ends the run: the swap and everything after it run to their end (D-090).
             currentCoroutineContext().ensureActive()
             return withContext(NonCancellable) {
-                dao.swap(run.skips, entry, unchanged, discontinued, run.imageFailures.stored())
+                dao.swap(
+                    run.skips,
+                    entry,
+                    unchanged,
+                    discontinued,
+                    run.imageFailures.stored(),
+                    clearNotGreen = run.reclassifyNotGreen,
+                )
                 keepPhotosOfCatalog()
                 log(
                     "catalog refresh: success, $teas teas (${summary.newTeas} new, ${summary.changedTeas} changed, " +
@@ -741,15 +911,16 @@ class CatalogRefresher(
 
         /**
          * A known tea that is still in the shop's range although this refresh staged none of it:
-         * its base numbers are in the sitemap, none of them is skipped or staged under another
-         * key, and it hadn't left the range. Its page couldn't be read this time (robots.txt, a
-         * 404, a defective page): only a tea missing from the sitemap is discontinued (08 §2.4
-         * item 5).
+         * its page couldn't be read this time (robots.txt, a 404 while listed, a defective page)
+         * while its base numbers are in the sitemap, or, missing from the sitemap, while its own
+         * page couldn't be read this once without a stop (CAT-16 AC3); none of its numbers is
+         * skipped or staged under another key, and it hadn't left the range. A tea missing from
+         * the sitemap whose page is gone or out of scope is discontinued (08 §2.4 item 5).
          */
-        private fun stillListed(key: String, before: CatalogTeaState): Boolean {
+        private fun stillInRange(key: String, before: CatalogTeaState): Boolean {
             val bases = run.previousBases[key].orEmpty()
             return !before.discontinued &&
-                bases.any { it in run.listedBases } &&
+                (bases.any { it in run.listedBases } || key in run.unlistedUnread) &&
                 bases.none { it in run.skippedBases || it in run.stagedBases }
         }
 
@@ -770,6 +941,9 @@ class CatalogRefresher(
     private companion object {
         const val SITEMAP_PATH = "/sitemap.xml"
 
+        /** A product page that is gone: a tea missing from the sitemap left the range (CAT-16 AC2). */
+        val GONE = setOf(404, 410)
+
         /** 05 §4.2a: a base number on the skip list is classified again after 90 days. */
         val SKIP_RECHECK_MS = TimeUnit.DAYS.toMillis(90)
 
@@ -780,6 +954,17 @@ class CatalogRefresher(
 
 /** A staged tea's shop content hash and whether its recipe is flagged, for the summary (#70). */
 private class StagedTea(val hash: String?, val flagged: Boolean)
+
+/**
+ * A known tea missing from the sitemap (CAT-16): the [product] with its key and base numbers
+ * (merged ones included, D-081, judged by [ShopProduct] as a tea from a link is) and its product
+ * page [url], fetched once. Its page is classified and staged like a sitemap product of its key
+ * without size URLs, so its sizes are the page's (08 §2.4 item 6).
+ */
+private class Unlisted(val product: ShopProduct, val url: HttpUrl) {
+    val key: String get() = product.key
+    val group = ProductGroup(base = product.key, pageUrl = url.toString(), variantUrls = emptyMap())
+}
 
 /** The counts of a refresh's summary (CAT-07 AC3), as logged (05 §4.4). */
 private data class Summary(val newTeas: Int, val changedTeas: Int, val discontinuedTeas: Int, val recipesToCheck: Int) {
@@ -795,7 +980,7 @@ private class RunStopped(val outcome: CatalogRefreshOutcome.Failure) : Exception
  * A green tea's page as a catalog row first and last seen at [seenAt] (05 §4.1), with its style
  * and derived recipes (CAT-04 – CAT-06), without its photo file yet.
  */
-private fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
+internal fun ProductPage.toEntity(base: String, seenAt: Long) = toEntity(base, seenAt, CatalogRecipes.derive(this))
 
 private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRecipes) = CatalogTeaEntity(
     key = key ?: base,
@@ -836,7 +1021,7 @@ private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRec
 )
 
 /** A package size of the tea [key] as a catalog row (05 §4.2). */
-private fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
+internal fun ShopPackage.toEntity(key: String) = CatalogPackageEntity(
     catalogKey = key,
     articleNumber = articleNumber,
     label = CatalogColumns.packageLabel(grams, savingsPercent),

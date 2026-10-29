@@ -75,15 +75,34 @@ class EngineDriver(val clocks: VirtualClocks = VirtualClocks(), var state: Timer
 
     fun display(): TimerDisplay? = BrewTimerEngine.display(state, clocks.now())
 
+    /**
+     * *Fertig* in the Schritte-Sheet with its single pre-alert selector of v0.2.1 before #92: the [plan] with
+     * [choice] written into every step that has not ended (the running one included); ended steps keep their own.
+     */
+    fun editSteps(plan: List<PlannedStep>, choice: PreAlertChoice): List<TimerEffect> =
+        send(TimerEvent.EditSteps(withChoice(plan, choice, state)))
+
     /** Moves both clocks to [elapsedMs] on the monotonic clock. */
     fun advanceTo(elapsedMs: Long) = clocks.advance(elapsedMs - clocks.elapsed)
 
     val deadline: Long get() = (state as TimerState.Running).deadlineElapsedMs
 }
 
+/**
+ * [plan] with [choice] in every step that has not ended in [state] (none in Idle); an ended step keeps its own
+ * value, so the edit leaves it unchanged.
+ */
+fun withChoice(plan: List<PlannedStep>, choice: PreAlertChoice, state: TimerState): List<PlannedStep> {
+    val steps = (state as? TimerState.Active)?.session?.steps.orEmpty()
+    return plan.mapIndexed { i, step ->
+        val ended = steps.getOrNull(i)?.takeIf { it.status == StepStatus.DONE || it.status == StepStatus.SKIPPED }
+        step.copy(preAlertSeconds = if (ended != null) ended.preAlertSeconds else choice.explicitSeconds)
+    }
+}
+
 const val SESSION_ID = "session-1"
 val BREW = SessionKind.Brew(SESSION_ID)
-val PRE_ALERT = PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 10)
+val PRE_ALERT = PreAlertSettings(inheritedSeconds = 10)
 
 /** `ScheduleAlarms` with nothing due: every alarm cancelled. */
 val NO_ALARMS = TimerEffect.ScheduleAlarms(DueTimes.NONE)
@@ -113,6 +132,16 @@ fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 fun infusion(seconds: Int, tempC: Int? = 60) = PlannedStep(StepKind.INFUSION, seconds, tempC)
 
 fun whisk(seconds: Int) = PlannedStep(StepKind.WHISK, seconds, tempC = 80)
+
+/** This step with its own pre-alert: null *Automatisch*, 0 *Aus*, else the lead in seconds (TMR-23, #90). */
+fun PlannedStep.withPreAlert(seconds: Int?) = copy(preAlertSeconds = seconds)
+
+/**
+ * `editSteps` with [choice] for every step of [steps]: the single selector of the Schritte-Sheet before #92 on a
+ * plan without ended steps (with ended steps, use [EngineDriver.editSteps]).
+ */
+fun editSteps(choice: PreAlertChoice, vararg steps: PlannedStep) =
+    TimerEvent.EditSteps(steps.map { it.withPreAlert(choice.explicitSeconds) })
 
 fun startSession(vararg steps: PlannedStep) =
     TimerEvent.StartSession(SESSION_ID, steps.toList(), PRE_ALERT, longStepsOnly = false)

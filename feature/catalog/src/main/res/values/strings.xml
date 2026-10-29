@@ -14,6 +14,11 @@
         <item quantity="one">%1$d Grüntee</item>
         <item quantity="other">%1$d Grüntees</item>
     </plurals>
+    <!-- The header's count in the Kräutertee view (v0.2.1, D-093): „… · 38 Kräutertees · …". -->
+    <plurals name="catalog_herbal_count">
+        <item quantity="one">%1$d Kräutertee</item>
+        <item quantity="other">%1$d Kräutertees</item>
+    </plurals>
     <!-- A row's price (CAT-10): „15,90 €/100 g". -->
     <string name="catalog_price_per_100g">%1$s €/100 g</string>
     <!-- Between the parts of a row's meta line; quoted to keep the spaces. -->
@@ -28,6 +33,8 @@
     <!-- „Filter (2)": the filters changed from the default view. -->
     <string name="catalog_filter_button_count">Filter (%1$d)</string>
     <string name="catalog_filter_pure">Pur</string>
+    <!-- The chip that switches the list to the shop's Kräutertees and back (v0.2.1, D-093). -->
+    <string name="catalog_filter_herbal">Kräutertee</string>
     <string name="catalog_filter_available">Vorrätig</string>
     <string name="catalog_filter_organic">Bio</string>
     <string name="catalog_filter_new">Neu</string>
@@ -55,6 +62,9 @@
     <string name="catalog_group_untyped">Ohne Sorte</string>
     <string name="catalog_no_match">Kein Tee passt zu deiner Suche und den Filtern.</string>
     <string name="catalog_reset_filters">Filter zurücksetzen</string>
+    <!-- The Kräutertee view before the first refresh after the update (SCR-19, D-093 Q20). -->
+    <string name="catalog_herbal_pending">Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)</string>
+    <string name="catalog_herbal_load_now">Jetzt laden</string>
     <!-- Search hits the filters hide (D-073: flavoured teas are searchable but hidden). -->
     <plurals name="catalog_hidden_matches">
         <item quantity="one">%1$d weiterer Treffer ist durch die Filter ausgeblendet.</item>
@@ -102,6 +112,21 @@
 
     <!-- Below the photos' progress once guides arrive (CAT-09); a label, not a counted noun. -->
     <string name="catalog_refresh_guides" tools:ignore="PluralsCandidate">Ratgeber: %1$d</string>
+
+    <!-- A tea from a shop link (SCR-19 *Link einfügen* and the share target; CAT-17, D-094; 03 §5). Offline, blocked,
+         shop down and storage full say what the refresh says (catalog_refresh_offline, _blocked, _unavailable, _storage). -->
+    <string name="tea_link_title">Tee per Link hinzufügen</string>
+    <string name="tea_link_field">Link zur Tee-Seite bei Tee-Kontor Kiel</string>
+    <string name="tea_link_load">Tee laden</string>
+    <string name="tea_link_loading">Tee wird geladen …</string>
+    <string name="tea_link_close">Schließen</string>
+    <string name="tea_link_not_a_tea_link">Das ist kein Tee-Link von Tee-Kontor Kiel.</string>
+    <string name="tea_link_not_in_catalog">Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees).</string>
+    <string name="tea_link_refresh_running">Gerade läuft ein Abruf – versuch es danach.</string>
+    <!-- 404/410, a redirect (never followed), another 4xx, or a page of no or another product. -->
+    <string name="tea_link_no_tea_page">Unter diesem Link gibt es im Shop keinen Tee.</string>
+    <!-- robots.txt disallows the page, it is too large, it has no breadcrumb, or it broke the parser. -->
+    <string name="tea_link_unreadable">Diese Shop-Seite kann die App nicht lesen.</string>
 
     <!-- SCR-19's Ratgeber row and the guides (SCR-20, CAT-09, D-087). -->
     <string name="catalog_guides_row">Ratgeber</string>

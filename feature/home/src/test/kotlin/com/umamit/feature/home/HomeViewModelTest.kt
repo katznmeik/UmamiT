@@ -6,6 +6,9 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Photo
+import com.umamit.core.model.PhotoOrigin
+import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
@@ -147,6 +150,23 @@ class HomeViewModelTest {
         collection.teas.saveTea(SeedData.tanabata.copy(isArchived = true))
 
         assertThat(viewModel().state.value.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+    }
+
+    @Test
+    fun `a removed tea keeps its name and photo under Zuletzt gebrueht, like the journal (D-093 Q13)`() = runTest {
+        seed()
+        val photos = PhotoFiles(folder.newFolder("photos"))
+        photos.write("cover", byteArrayOf(1, 2, 3))
+        collection.teas.savePhoto(Photo("cover", PhotoOwner.OfTea(SeedData.TANABATA_TEA_ID), PhotoOrigin.OWN, 1, 1, 3))
+        collection.teas.setCoverPhoto(SeedData.TANABATA_TEA_ID, "cover")
+        brewed("s1", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 1_000, 45)
+        collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
+
+        val state = HomeViewModel(collection.teas, sessions.sessions, starter, clock, photos, reliability).state.value
+
+        assertThat(state.brewAgain).isEmpty()
+        assertThat(state.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(state.recent.single().photoPath).isEqualTo(photos.file("cover").path)
     }
 
     @Test

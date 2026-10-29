@@ -19,8 +19,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,11 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,13 +40,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,20 +56,19 @@ import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
 import kotlinx.coroutines.launch
 
-/** The pre-alert options of the sheet (SCR-31): *Wie Einstellung*, *Aus*, 5–30 s in 5 s steps. */
-val PreAlertOptions: List<PreAlertChoice> =
-    listOf(PreAlertChoice.Inherit, PreAlertChoice.Off) + (5..30 step 5).map { PreAlertChoice.Seconds(it) }
+/** The column of a read-only step's status icon (✓ for a done step). */
+internal val StatusIconSize = 20.dp
 
 /**
- * The content of the Schritte-Sheet: the plan, *Aufguss hinzufügen*, the
- * pre-alert selector, *Im Rezept speichern* (only with a recipe) and *Fertig*.
- * Stateless apart from the snackbar: the edits live in [state].
+ * The content of the Schritte-Sheet: the plan with a *Vorwarnung* selector under
+ * each pending step and the running one, *Aufguss hinzufügen*, *Im Rezept
+ * speichern* (only with a recipe) and *Fertig*. Stateless apart from the
+ * snackbar: the edits live in [state].
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -116,6 +108,8 @@ fun StepsSheetContent(
             ) {
                 state.steps.forEachIndexed { index, _ ->
                     if (state.isEditable(index)) EditableStepRow(state, index) else ReadOnlyStepRow(state, index)
+                    // The running step's pre-alert is its only editable field (SCR-31, D-093).
+                    if (state.hasPreAlert(index)) StepPreAlertRow(state, index)
                     HorizontalDivider(
                         thickness = UmamiSpacing.Hairline,
                         color = MaterialTheme.colorScheme.outlineVariant,
@@ -135,7 +129,6 @@ fun StepsSheetContent(
                     Spacer(Modifier.width(UmamiSpacing.XSmall))
                     Text(stringResource(R.string.brew_steps_add), style = MaterialTheme.typography.labelLarge)
                 }
-                PreAlertRow(selected = state.preAlert, onSelect = { state.preAlert = it })
             }
             SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
         }
@@ -270,10 +263,10 @@ private fun ReadOnlyStepRow(state: StepsSheetState, index: Int) {
                 painter = painterResource(UmamiIcons.Check),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(StatusIconSize),
             )
         } else {
-            Spacer(Modifier.size(20.dp))
+            Spacer(Modifier.size(StatusIconSize))
         }
         Text(
             text = stringResource(R.string.brew_steps_step_label, number, kind),
@@ -333,65 +326,6 @@ private fun Stepper(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PreAlertRow(selected: PreAlertChoice, onSelect: (PreAlertChoice) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedLabel = preAlertLabel(selected)
-    val description = stringResource(R.string.brew_steps_pre_alert_description, preAlertSpoken(selected))
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(vertical = UmamiSpacing.XSmall),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        itemVerticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.brew_steps_pre_alert),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(end = UmamiSpacing.XSmall),
-        )
-        Box {
-            TextButton(
-                onClick = { expanded = true },
-                // One TalkBack element with the spoken value, a button role and a click action.
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                    onClick {
-                        expanded = true
-                        true
-                    }
-                },
-            ) {
-                Text(selectedLabel, style = MaterialTheme.typography.labelLarge)
-                Spacer(Modifier.width(UmamiSpacing.XXSmall))
-                Icon(
-                    painterResource(R.drawable.ic_expand_more),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                PreAlertOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(preAlertLabel(option)) },
-                        onClick = {
-                            onSelect(option)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            if (option == selected) {
-                                Icon(painterResource(UmamiIcons.Check), contentDescription = null)
-                            } else {
-                                Spacer(Modifier.size(24.dp))
-                            }
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun kindLabel(kind: StepKind): String = stringResource(
     when (kind) {
@@ -400,21 +334,6 @@ private fun kindLabel(kind: StepKind): String = stringResource(
         StepKind.WHISK -> R.string.brew_steps_kind_whisk
     },
 )
-
-@Composable
-private fun preAlertLabel(choice: PreAlertChoice): String = when (choice) {
-    PreAlertChoice.Inherit -> stringResource(R.string.brew_steps_pre_alert_inherit)
-    PreAlertChoice.Off -> stringResource(R.string.brew_steps_pre_alert_off)
-    is PreAlertChoice.Seconds -> stringResource(R.string.brew_steps_pre_alert_seconds, choice.seconds)
-}
-
-@Composable
-private fun preAlertSpoken(choice: PreAlertChoice): String = when (choice) {
-    is PreAlertChoice.Seconds ->
-        pluralStringResource(R.plurals.brew_steps_pre_alert_seconds_description, choice.seconds, choice.seconds)
-
-    else -> preAlertLabel(choice)
-}
 
 /** Tabular lining figures, so the stepper values never jitter (03 §3.2). */
 private fun androidx.compose.ui.text.TextStyle.tabular() = copy(fontFeatureSettings = "lnum, tnum")

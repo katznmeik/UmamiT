@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -121,7 +121,10 @@ nullable, multiple of 5; `note` ≤ 120; from schema v2 `pre_alert_seconds`
 INTEGER nullable — null = *Automatisch* (04 §5: min(B, 5 · ⌊d / 15⌋)), 0 =
 *Aus*, 5–30 step 5 (TMR-23, D-093). Schema v1 has no such column, so this
 needs **umamit.db v2** (§9). Catalog recipes (`derived_recipes_json`) carry
-no pre-alert: their steps start as *Automatisch*.
+no pre-alert: their steps start as *Automatisch*. *Im Rezept speichern*
+replaces the recipe's steps with the session's, each with its pre-alert;
+it leaves `brew_profile.pre_alert_seconds`, the recipe's base B, as it is
+(D-093).
 
 ### 3.4 Vessel
 
@@ -190,8 +193,11 @@ effect of the timer engine, 04 §4; D-052):
   ended rows are never touched. From v2 (D-093) the session's
   `pre_alert_seconds` keeps B as frozen at the start; the edit writes each
   step's choice, the running step's included (its only field an edit may
-  change). The recipe's `brew_step` rows get the choices only through *Im
-  Rezept speichern* (PO, D-093).
+  change): the pending rows through `ReplacePendingSteps`, the running
+  step's row through the same transition's `Persist`, whose write brings
+  the rows to the engine's plan (§3.12). A step added by `addStep` starts
+  as *Automatisch*. The recipe's `brew_step` rows get the choices only
+  through *Im Rezept speichern* (PO, D-093).
 - **Record** (`RecordStep`): the step's row gets the recorded values of
   [04 §5.1](04-brew-timer.md#51-recorded-step-data). A row is ended exactly
   when `actual_seconds` is set.
@@ -332,7 +338,7 @@ Table `catalog_tea`
 | `recipe_check_reason` | TEXT | `RecipeCheckReason` or null |
 | `base_price_cents_per_100g` | INTEGER | |
 | `available` | INTEGER | in stock at refresh; null when the page didn't say (D-077) |
-| `discontinued` | INTEGER | left the shop's range (missing from the sitemap, or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
+| `discontinued` | INTEGER | left the shop's range (missing from the sitemap and its page gone or out of scope on the re-check, CAT-16; or no longer green); only kept, hidden, while a collection tea links to it (CAT-07 AC4, D-086) |
 | `photo_file` | TEXT | the file name `<key>.webp` in `filesDir/catalog/` (1200 px); the list thumbnail is `<key>_thumb.webp` next to it (D-076, D-078) |
 | `photo_url`, `photo_etag` | TEXT | change detection (CAT-08, D-086): `photo_url` is the URL the stored photo came from (else the page's), so a refresh downloads a photo only when it is new or its URL changed (the shop's media URL changes with the image, `?ts=`); `photo_etag` stays empty: a conditional request would still cost a request |
 | `content_hash` | TEXT | `<parser version>:<SHA-256>` of what the shop shows of the tea (the page's fields, its photo URL, its packages; not the derived style, recipes, flag or plain text), to report „geändert"; two hashes count only under the same parser version (D-086) |
@@ -571,17 +577,30 @@ prompt to refresh), since they are re-downloadable.
 columns that the frozen v1 lacks, so v0.2.1 ships schema version 2 with
 `MIGRATION_1_2` in `UMAMI_MIGRATIONS`:
 - `ALTER TABLE brew_step ADD COLUMN pre_alert_seconds INTEGER` and the same
-  on `session_step` (nullable; existing rows read as *Automatisch*);
+  on `session_step` (nullable, appended as the last column; existing rows
+  read as *Automatisch*);
 - an active session's non-null `active_brew.pre_alert_override_seconds` is
-  copied to its steps that have not started (as an explicit choice), so a
-  session running during the update keeps its pre-alert; then
+  copied (as an explicit choice) to its steps that have not ended, i.e. its
+  `session_step` rows without `actual_seconds`: the current step, running
+  or waiting, and the pending ones. v1 applied the override to the running
+  step too, so a session running during the update keeps the same leads,
+  its running step's included (rule 8; #90). Ended rows, other sessions'
+  rows (also one left `IN_PROGRESS` by a device restore) and the quick
+  timer, which has no rows and no override, stay *Automatisch*. Then
   `active_brew.pre_alert_override_seconds` is dropped
-  (`ALTER TABLE … DROP COLUMN`, SQLite ≥ 3.35 on API 35).
-- Tests: a `MigrationTestHelper` test from v1 with data (recipes, a session
-  in progress with and without an override, a quick timer) to v2,
-  `SchemaVersionsTest` with both versions, and the frozen v1 JSON unchanged
-  (`check-frozen-schemas.sh`). The v0.2.1 rc checklist installs it over
-  v0.2.0 (09 §4).
+  (`ALTER TABLE … DROP COLUMN`, SQLite ≥ 3.35 on API 35). Nothing else
+  changes: `brew_session.pre_alert_seconds` keeps the value v1 recorded (the
+  effective value, override ?: B), and new sessions record B there (§3.6).
+- The whole migration is one transaction (Room's): it applies whole or not
+  at all, and the database is never opened destructively (D-093 Q16).
+- Tests: `Migration1To2Test`, a `MigrationTestHelper` test from v1 with data
+  (a tea with its cover photo, a vessel, recipes with steps, a finished
+  session with its stock events, a session left in progress, and the
+  active timer: running with and without an override, waiting with *Aus*, a
+  quick timer) to v2, every row and value checked, then opened with the
+  production builder; `SchemaVersionsTest` with both versions; and the
+  frozen v1 JSON unchanged (`check-frozen-schemas.sh`). The v0.2.1 rc
+  checklist installs it over v0.2.0 (09 §4).
 
 Nothing else of v0.2.1 changes a schema: the stock correction uses
 `ADJUSTMENT` (§3.10), archiving uses `tea.is_archived`, the new vessels are

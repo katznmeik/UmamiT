@@ -23,7 +23,6 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -65,9 +64,9 @@ class StepsSheetMotionRecordingTest {
             StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
             StepsSheetStep(StepKind.INFUSION, 20, 60, StepStatus.PENDING),
         ),
-        preAlert = PreAlertChoice.Inherit,
         hasRecipe = true,
         baseTempC = 60,
+        preAlertBaseSeconds = 10,
     )
 
     private var visible by mutableStateOf(false)

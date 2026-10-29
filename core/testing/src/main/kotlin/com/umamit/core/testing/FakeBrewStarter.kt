@@ -6,7 +6,7 @@ import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
@@ -92,7 +92,7 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
             kettleTempC = null,
             demoted = false,
             finishWouldDiscard = false,
-            preAlert = PreAlertChoice.Inherit,
+            preAlertBaseSeconds = PreAlertSettings.DEFAULT_GLOBAL_SECONDS,
         )
 
         /** The controller's state right after [request] started as [sessionId]. */
@@ -101,7 +101,9 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
             teaName = request.snapshot.teaName,
             phase = TimerPhase.READY,
             stepIndex = 0,
-            steps = request.steps.map { TimerUiStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING) },
+            steps = request.steps.map {
+                TimerUiStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, it.preAlertSeconds)
+            },
             deadlineElapsedMs = null,
             deadlineWallMs = null,
             pausedRemainingMs = null,
@@ -112,7 +114,7 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
             kettleTempC = request.steps.first().tempC,
             demoted = false,
             finishWouldDiscard = true,
-            preAlert = PreAlertChoice.Inherit,
+            preAlertBaseSeconds = request.recipePreAlertSeconds ?: PreAlertSettings.DEFAULT_GLOBAL_SECONDS,
         )
     }
 }

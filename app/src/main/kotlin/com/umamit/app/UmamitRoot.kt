@@ -32,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
+import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.journal.JournalSources
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,6 +78,9 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   tests replace them.
  * @param quickTimerScreen the quick timer route's content (SCR-07); tests replace it. Its second argument
  *   opens the timer once the quick timer runs.
+ * @param teaLinkShare a link shared to the app and not taken yet (CAT-17); the shell takes it to
+ *   Sammlung › Katalog, which loads it and hands its token to [onTakeTeaLinkShare]. Nothing above
+ *   the tabs is closed for it: while the timer or another full-screen route is shown, it waits (rule 8).
  */
 @Composable
 internal fun UmamitRoot(
@@ -108,8 +112,11 @@ internal fun UmamitRoot(
     quickTimerScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
         QuickTimerScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
     },
+    teaLinkShare: StateFlow<TeaLinkShare?> = NO_TEA_LINK_SHARE,
+    onTakeTeaLinkShare: (Long) -> Unit = {},
 ) {
     val navController = rememberNavController()
+    val share by teaLinkShare.collectAsStateWithLifecycle()
     // The start destination, chosen once from the first value read: the setup until it is completed. Nothing
     // below runs before it is known, so no navigation can reach a NavHost without its graph.
     val completed by onboardingCompleted.collectAsStateWithLifecycle()
@@ -210,6 +217,8 @@ internal fun UmamitRoot(
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
                     settings = settings.withRerunSetup(rerunSetup),
+                    teaLinkShare = share,
+                    onTakeTeaLinkShare = onTakeTeaLinkShare,
                 )
             }
             composable<OnboardingRoute> { onboardingScreen(finishSetup) }
@@ -369,6 +378,9 @@ internal const val SHELL_COVER_TAG = "shell_cover"
 
 /** No request to open the timer ever comes. */
 private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
+
+/** No link is ever shared. */
+private val NO_TEA_LINK_SHARE: StateFlow<TeaLinkShare?> = MutableStateFlow(null)
 
 /** The two ends of a route transition. */
 private class AnimatedTimer(val initial: NavBackStackEntry, val target: NavBackStackEntry)

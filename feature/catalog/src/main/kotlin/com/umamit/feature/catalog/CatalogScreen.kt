@@ -26,19 +26,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.withResumed
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -58,15 +62,25 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
 /**
  * Sammlung › Katalog (SCR-19) with its view model, as the content below Sammlung's segmented
  * control: the empty state with *Katalog laden* (D-073), or the teas under the header
- * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." with search, filter chips and the
- * filter sheet (CAT-10). A tap on *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's
- * ⋮ menu ([refreshRequest]), starts the refresh and opens its sheet (SCR-22).
+ * „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." (in the *Kräutertee* view „… · 38
+ * Kräutertees · …", D-093) with search, filter chips and the filter sheet (CAT-10). A tap on
+ * *Katalog laden*, or on *Katalog aktualisieren* in Sammlung's ⋮ menu ([refreshRequest]), starts
+ * the refresh and opens its sheet (SCR-22).
+ *
+ * *Link einfügen* in the ⋮ menu ([pasteLinkRequest]) opens the paste sheet of a tea from a shop
+ * link, and a link shared to the app ([sharedLink]) loads at once (CAT-17); a tea a link stored
+ * or found opens its detail through [onOpenTea] once this screen is resumed.
  *
  * **Alerts first (rule 8):** while an alert plays ([alerting]) no sheet is composed, so it leaves
- * in that frame without animation, and it stays closed; the refresh itself goes on (CAT-07 AC8).
+ * in that frame without animation. The refresh sheet stays closed; the refresh itself goes on
+ * (CAT-07 AC8). The tea link's sheet comes back after the alert with its link and message, as
+ * its fetch went on meanwhile.
  *
  * @param refreshRequest a counter from the ⋮ menu: every increase while this is shown starts the
  *   refresh; a count from before is never replayed (D-049).
+ * @param pasteLinkRequest a counter from the ⋮ menu's *Link einfügen*, like [refreshRequest].
+ * @param sharedLink a link shared to the app and not loaded yet; [onTakeSharedLink] gets its
+ *   token once its load has started.
  * @param onOpenGuides opens the *Ratgeber* (CAT-09) from its row.
  */
 @Composable
@@ -78,6 +92,9 @@ fun CatalogRoute(
     onOpenGuides: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     refreshRequest: Int = 0,
+    pasteLinkRequest: Int = 0,
+    sharedLink: TeaLinkShare? = null,
+    onTakeSharedLink: (token: Long) -> Unit = {},
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -92,6 +109,37 @@ fun CatalogRoute(
         if (refreshRequest > handledRefresh) {
             handledRefresh = refreshRequest
             startRefresh()
+        }
+    }
+    // A tea from a shop link (CAT-17). Its sheet takes the refresh sheet's place; the refresh goes on.
+    val link by viewModel.link.collectAsStateWithLifecycle()
+    val clipboard = LocalClipboard.current
+    var handledPaste by remember { mutableIntStateOf(pasteLinkRequest) }
+    LaunchedEffect(pasteLinkRequest) {
+        if (pasteLinkRequest > handledPaste) {
+            handledPaste = pasteLinkRequest
+            sheetOpen = false
+            viewModel.openLinkSheet()
+            viewModel.fillLinkFromClipboard(clipboard.plainText())
+        }
+    }
+    val currentOnTakeSharedLink by rememberUpdatedState(onTakeSharedLink)
+    LaunchedEffect(sharedLink) {
+        val share = sharedLink ?: return@LaunchedEffect
+        sheetOpen = false
+        viewModel.loadSharedLink(share)
+        currentOnTakeSharedLink(share.token)
+    }
+    // Shown once this screen is resumed: a tea that came while the timer was on top is never lost.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val currentOnOpenTea by rememberUpdatedState(onOpenTea)
+    val opened = link.opened
+    LaunchedEffect(opened) {
+        if (opened != null) {
+            lifecycle.withResumed {
+                currentOnOpenTea(opened)
+                viewModel.teaOpened()
+            }
         }
     }
     CatalogContent(
@@ -115,6 +163,15 @@ fun CatalogRoute(
                 // A result is seen once; a running refresh goes on behind the closed sheet.
                 if (refresh is CatalogRefreshState.Finished) viewModel.acknowledgeResult()
             },
+        )
+    }
+    val linkSheet = link.sheet
+    if (linkSheet != null && !alerting) {
+        TeaLinkSheet(
+            state = linkSheet,
+            onTextChange = viewModel::changeLinkText,
+            onLoad = viewModel::loadLink,
+            onDismissRequest = viewModel::dismissLink,
         )
     }
 }
@@ -153,6 +210,7 @@ fun CatalogContent(
             CatalogList(
                 state = state,
                 actions = ListActions(
+                    onLoad = onLoad,
                     onShowProgress = onShowProgress,
                     onOpenTea = onOpenTea,
                     onOpenGuides = onOpenGuides,
@@ -178,6 +236,7 @@ fun CatalogContent(
 
 /** What the list's rows and controls do. */
 private class ListActions(
+    val onLoad: () -> Unit,
     val onShowProgress: () -> Unit,
     val onOpenTea: (String) -> Unit,
     val onOpenGuides: () -> Unit,
@@ -202,12 +261,13 @@ private fun CatalogEmpty(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // The A8 illustration comes from the PO (docs/design/assets.md); the placeholder stands in.
             EmptyState(
                 title = stringResource(R.string.catalog_empty_title),
                 body = stringResource(if (refreshing) R.string.catalog_loading_body else R.string.catalog_empty_body),
                 actionLabel = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_load),
                 onAction = if (refreshing) onShowProgress else onLoad,
+                illustration = catalogEmptyIllustration(),
+                illustrationTint = null,
             )
         }
     }
@@ -240,15 +300,20 @@ private fun CatalogList(
             .testTag(CATALOG_LIST_TAG),
         state = listState,
     ) {
-        item(key = "header") { Header(listing, zone) }
+        item(key = "header") { Header(listing, filter.herbal, zone) }
         if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
         item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
-        if (listing.sections.isEmpty()) {
+        // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
+        val herbalHint = filter.herbal && state.herbalPending
+        if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
+        if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
             item(key = "no_match") {
                 NoticeRow(stringResource(R.string.catalog_no_match), stringResource(R.string.catalog_reset_filters)) {
-                    actions.onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort) }
+                    actions.onFilterChange {
+                        CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, herbal = it.herbal)
+                    }
                 }
             }
         }
@@ -262,15 +327,25 @@ private fun CatalogList(
                         listing.hiddenMatches,
                     ),
                     stringResource(R.string.catalog_show_all),
-                ) { actions.onFilterChange { it.withoutFilters() } }
+                ) { actions.onFilterChange { showAll(it, listing) } }
             }
         }
     }
 }
 
+/**
+ * *Alle zeigen* for the search hits the filters hide: the current kind without filters, or, when
+ * every hidden hit is of the other kind (CAT-10, D-093), the other kind's view without filters.
+ */
+internal fun showAll(filter: CatalogFilter, listing: CatalogListing): CatalogFilter {
+    val all = filter.withoutFilters()
+    return if (listing.hiddenMatches == listing.hiddenInOtherView) all.withHerbal(!filter.herbal) else all
+}
+
 @Composable
-private fun Header(listing: CatalogListing, zone: ZoneId) {
-    val count = pluralStringResource(R.plurals.catalog_tea_count, listing.totalCount, listing.totalCount)
+private fun Header(listing: CatalogListing, herbal: Boolean, zone: ZoneId) {
+    val plurals = if (herbal) R.plurals.catalog_herbal_count else R.plurals.catalog_tea_count
+    val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis
     Text(
         text = if (updated != null) {
@@ -320,6 +395,19 @@ private fun GuidesRow(count: Int, onOpenGuides: () -> Unit) {
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * The *Kräutertee* view's hint before the first refresh after the update (SCR-19, D-093 Q20):
+ * *Jetzt laden* starts the refresh, or, while one runs, *Fortschritt anzeigen* opens its sheet.
+ */
+@Composable
+private fun HerbalPendingRow(refreshing: Boolean, actions: ListActions) {
+    NoticeRow(
+        text = stringResource(R.string.catalog_herbal_pending),
+        action = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_herbal_load_now),
+        onAction = if (refreshing) actions.onShowProgress else actions.onLoad,
+    )
 }
 
 /** A short notice in the list with one action: no match, or search hits the filters hide. */

@@ -6,7 +6,9 @@ import android.graphics.Color
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.RoomTeaArchive
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.TestClocks
@@ -274,6 +276,44 @@ class AddFromCatalogTest {
     }
 
     @Test
+    fun `a removed tea is no longer im Besitz and the catalog offers to add it again`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+        val owned = RoomOwnedCatalogKeys(data.db.teaDao())
+        val listed = RoomCatalogRepository(catalogDb.catalogDao(), catalogPhotos, owned)
+        assertThat(listed.observeCatalog().first().teas.single().owned).isTrue()
+
+        assertThat(RoomTeaArchive(data.db, data.time).archive(teaId)).isEqualTo(ArchiveResult.Archived)
+
+        // No „im Besitz" badge or filter hit, and the detail offers *In Sammlung aufnehmen* (TEA-04, CAT-10).
+        assertThat(listed.observeCatalog().first().teas.single().owned).isFalse()
+        assertThat(owned.observeOwned().first()).isEmpty()
+        assertThat(add.observeOwner(KEY).first()).isNull()
+        // The refresher still keeps a discontinued catalog tea for it (CAT-07 AC4): it stays linked.
+        assertThat(owned.observe().first()).containsExactly(KEY)
+    }
+
+    @Test
+    fun `adding a removed tea again brings back the same tea with a purchase, never a second one`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+        RoomTeaArchive(data.db, data.time).archive(teaId)
+
+        val again = add.add(purchase(grams = 250.0, priceCents = 2990))
+
+        // D-085, D-093 Q6: un-archived, its package a PURCHASE; recipes and earlier stock stay.
+        assertThat(again).isEqualTo(AddFromCatalogResult.Repurchased(teaId))
+        assertThat(data.teas.observeTeas().first().map { it.tea.id }).containsExactly(teaId)
+        assertThat(data.teas.getTea(teaId)!!.isArchived).isFalse()
+        assertThat(data.teas.observeOwnedTeas().first().map { it.tea.id }).containsExactly(teaId)
+        assertThat(data.stock.observeEvents(teaId).first().map { it.type })
+            .containsExactly(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
+        assertThat(data.stock.observeStock(teaId).first().remainingGrams).isEqualTo(350.0)
+        assertThat(data.recipes.observeRecipes(teaId).first()).hasSize(2)
+        assertThat(add.observeOwner(KEY).first()).isEqualTo(teaId)
+    }
+
+    @Test
     fun `a tea without a usable catalog photo is added without a cover`() = runTest {
         catalog(sencha() to packages(), sencha(key = "XY0200", name = "Ohne Foto") to emptyList())
         // The catalog row names a photo file that is no image.
@@ -327,6 +367,39 @@ class AddFromCatalogTest {
     fun `a key the catalog doesn't hold adds nothing`() = runTest {
         assertThat(add.add(purchase(key = "XY9999"))).isEqualTo(AddFromCatalogResult.NotInCatalog)
         assertThat(data.teas.observeTeas().first()).isEmpty()
+    }
+
+    @Test
+    fun `a Kraeutertee is added as a herbal tea with its recipe and stock`() = runTest {
+        // v0.2.1, D-093: the shop's Kräutertees are added and repurchased as green teas are (CAT-10).
+        val herbal = sencha(key = "XK0200", name = "Wiesenzauber", recipes = null, styleKey = "herbal").copy(
+            shopCategory = "Tee › Kräutertee › Wiesenmischungen",
+            teaType = "Wiesenmischungen",
+            breadcrumb = "/tee/kraeutertee/wiesenmischungen/",
+            originCountry = null,
+            tasteScalesJson = null,
+            shading = null,
+            steaming = null,
+        )
+        catalog(herbal to packages("XK0200"))
+
+        val teaId = (add.add(purchase(key = "XK0200")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.category).isEqualTo(TeaCategory.HERBAL)
+        assertThat(tea.styleKey).isEqualTo("herbal")
+        assertThat(tea.teaType).isEqualTo("Wiesenmischungen")
+        assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.NONE)
+        assertThat(tea.form).isEqualTo(TeaForm.LOOSE_LEAF)
+        val recipe = data.recipes.observeRecipes(teaId).first().single()
+        assertThat(recipe.method).isEqualTo(BrewMethod.WESTERN)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(2.0 to 250)
+        assertThat(recipe.baseTempC).isEqualTo(100)
+        assertThat(recipe.steps).containsExactly(RecipeStep(StepKind.INFUSION, 360))
+        assertThat(data.stock.observeEvents(teaId).first().single().type).isEqualTo(InventoryEventType.INITIAL)
+
+        // Repurchase works as for a green tea (CAT-13).
+        assertThat(add.add(purchase(key = "XK0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
     }
 
     private companion object {

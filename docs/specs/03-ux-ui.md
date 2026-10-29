@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (*Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (*Link einfügen* and the share target as built, #98; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -558,7 +558,12 @@ shows the tea photo as a **seal**: an 88 dp washi disc (`#F3F0E9`) with a thin
 ring, centred, half over the band's lower edge. The photo fills its inner
 circle and is drawn with a multiply blend, so a white background becomes the
 disc's cream. Without a photo, or until it is read, the disc shows the
-type-coloured leaf. The quick timer shows the band without a seal. On the
+type-coloured leaf (the tea's style colour, 03 §3.1). The thin ring is
+1 dp of ink at 30 % inside the disc's edge; the photo's circle is 76 dp.
+The band starts at the top of the screen, behind the status bar, so the
+seal's centre sits on its lower edge whatever the status bar's height. The
+quick timer shows the band without a seal; its content starts at the band's
+lower edge, before *Start* as while it runs (SCR-07). On the
 alert surface both are hidden and their space stays. (Until v0.2.0 the tea
 photo itself filled the top, with A4 as fallback.)
 
@@ -632,7 +637,7 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05, with the ink-wash band but no seal (D-095); chips 0:30 … 5:00; tap time for a duration picker; *Start*;
+Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 
@@ -742,7 +747,18 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
   Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
   the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
-  to the default view and keeps the search.
+  to the default view and keeps the search. In the Kräutertee view (v0.2.1,
+  D-093 Q19) *Aroma* and *Umami* are left out (*Sortierung*, *Sorte*,
+  *Herkunft* and the switches Vorrätig, Bio, Neu, Im Besitz stay), and
+  *Zurücksetzen* as well as „Filter zurücksetzen" reset the filters but stay
+  in the Kräutertee view (#91).
+- **Kräutertee hint (v0.2.1, D-093 Q20):** until the first successful refresh
+  after the update (the last one ran a parser from before the Kräutertees),
+  the Kräutertee view shows „Kräutertees kommen mit dem nächsten Abruf
+  (≈ 16 min, einmalig)" with *Jetzt laden*, which starts the refresh and
+  opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
+  empty it takes the no-match notice's place; the header still reads
+  „… · 0 Kräutertees · …".
 - **Default view** (D-073): grouped by *Sorte* under a section header per
   *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
   on, so flavoured teas are one tap away. Sorted by name or price the list
@@ -768,6 +784,29 @@ not reachable). **Share target:** a link shared from the browser's *Teilen*
 sheet to UmamiT goes the same way without the field: it opens SCR-21 for the
 tea, or a small sheet with the same messages. The sheet never covers an
 alert (rule 8).
+As built (#98):
+- **Clipboard:** the field is filled only when the clipboard holds a tea link
+  the app accepts, and then with that link alone; any other clipboard text is
+  never shown. Only the clipboard's text is read.
+- **Field:** one line; its label is cut off with „…" when it doesn't fit (font
+  scale 2.0). Editing the link clears the message. *Tee laden* acts only on a
+  non-empty field and not while a link loads.
+- **Messages** (§5): besides the four above, „Unter diesem Link gibt es im Shop
+  keinen Tee." (404/410, a redirect, which is never followed, another 4xx, or a
+  page that shows no product or another one) and „Diese Shop-Seite kann die App
+  nicht lesen." (robots.txt disallows it, it is over the body limit, it has no
+  breadcrumb). Nothing is stored for any message. Each message is in the error
+  colour and read out by TalkBack when it appears.
+- **Shared link:** the small sheet shows the progress, then the message and
+  *Schließen*. Sharing again replaces a link still loading. A share is taken by
+  Sammlung › Katalog (the list, not a screen left open there); while the timer
+  or another full-screen screen is shown, the share waits until the user comes
+  back to the tabs, so it never covers the timer.
+- **Alerts:** the sheet leaves with the alert's first frame, without animation;
+  its fetch goes on, and the sheet comes back after the alert with its link and
+  message. A tea loaded meanwhile opens its SCR-21 once the catalog is on screen
+  again (never over the timer). *Link einfügen* closes a refresh sheet it would
+  cover; the refresh goes on. Closing the link's sheet cancels a link still loading.
 Empty (never loaded): illustration A8, „Der Katalog ist noch leer" ·
 *Katalog laden*. This is the entry point on a phone whose first-start setup
 is already done (ONB-03 shows only on fresh installs).
@@ -783,11 +822,12 @@ guides opened in the app, every other link in the browser, *Im Browser
 
 **Ratgeber list** (from SCR-19's *Ratgeber* row, shown only while guides
 exist: „Ratgeber · 12 Guides von Tee-Kontor Kiel, offline lesbar"): header
-A11 (the placeholder landscape until the PO's image), „Grüntee-Wissen von
+A11 (edge to edge, 2.4:1, its paper the theme's background), „Grüntee-Wissen von
 Tee-Kontor Kiel – auch ohne Verbindung lesbar.", the guides by title with
 the hero as round thumbnail and the date (else „Tee-Kontor Kiel ·
-Tee-Info"). Empty: the empty state (its illustration instead of the header),
-„Noch keine Ratgeber." (D-087).
+Tee-Info"). Empty: the empty state (its illustration A8 instead of the header),
+„Noch keine Ratgeber." (D-087). A8 is also the illustration of the catalog
+module's other empty states (a tea or a guide that is gone).
 
 ### SCR-21 Katalog-Tee
 
@@ -958,7 +998,9 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Tee per Link: not a shop tea link (CAT-17) | „Das ist kein Tee-Link von Tee-Kontor Kiel." |
 | Tee per Link: not green or herbal (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." |
 | Tee per Link: a refresh runs (CAT-17) | „Gerade läuft ein Abruf – versuch es danach." |
-| Tee per Link: offline / blocked / shop down (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
+| Tee per Link: no tea at the link (404/410, a redirect, another 4xx, no or another product; CAT-17, #98) | „Unter diesem Link gibt es im Shop keinen Tee." |
+| Tee per Link: the page can't be read (robots.txt, over the body limit, no breadcrumb; CAT-17, #98) | „Diese Shop-Seite kann die App nicht lesen." |
+| Tee per Link: offline / blocked / shop down / storage full (CAT-17) | The first line of the matching catalog refresh row above (nothing is stored) |
 
 ## 6. Accessibility
 

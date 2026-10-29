@@ -8,7 +8,7 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-/** `editSteps` from the Schritte-Sheet (TMR-11, SCR-31): only pending steps and the session's pre-alert. */
+/** `editSteps` from the Schritte-Sheet (TMR-11, SCR-31): only pending steps and the steps' pre-alerts. */
 class EditStepsTest {
 
     @Test
@@ -86,37 +86,36 @@ class EditStepsTest {
     }
 
     @Test
-    fun `the pre-alert choice sets or clears the session override`() {
-        val driver = sessionWith(infusion(60))
-        val plan = listOf(infusion(60))
+    fun `the pre-alert choice sets each step's value and keeps the session's B`() {
+        val driver = sessionWith(infusion(60), infusion(30))
+        val plan = listOf(infusion(60), infusion(30))
 
-        driver.send(TimerEvent.EditSteps(plan, PreAlertChoice.Seconds(20)))
-        assertThat(preAlert(driver)).isEqualTo(PreAlertSettings(sessionOverrideSeconds = 20, inheritedSeconds = 10))
-        assertThat(preAlert(driver).effectiveSeconds).isEqualTo(20)
+        driver.editSteps(plan, PreAlertChoice.Seconds(20))
+        assertThat(stepValues(driver)).containsExactly(20, 20).inOrder()
 
-        driver.send(TimerEvent.EditSteps(plan, PreAlertChoice.Off))
-        assertThat(preAlert(driver)).isEqualTo(PreAlertSettings(sessionOverrideSeconds = 0, inheritedSeconds = 10))
-        assertThat(preAlert(driver).effectiveSeconds).isEqualTo(0)
+        driver.editSteps(plan, PreAlertChoice.Off)
+        assertThat(stepValues(driver)).containsExactly(0, 0).inOrder()
 
-        driver.send(TimerEvent.EditSteps(plan, PreAlertChoice.Inherit))
-        assertThat(preAlert(driver)).isEqualTo(PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 10))
-        assertThat(preAlert(driver).effectiveSeconds).isEqualTo(10)
+        driver.editSteps(plan, PreAlertChoice.Inherit)
+        assertThat(stepValues(driver)).containsExactly(null, null).inOrder()
+        assertThat(preAlert(driver)).isEqualTo(PRE_ALERT)
     }
 
     @Test
-    fun `the pre-alert choice of a session reads back from its settings`() {
-        assertThat(PreAlertChoice.of(PreAlertSettings(null, 10))).isEqualTo(PreAlertChoice.Inherit)
-        assertThat(PreAlertChoice.of(PreAlertSettings(0, 10))).isEqualTo(PreAlertChoice.Off)
-        assertThat(PreAlertChoice.of(PreAlertSettings(15, 10))).isEqualTo(PreAlertChoice.Seconds(15))
+    fun `a step's pre-alert choice reads back from its stored value`() {
+        assertThat(PreAlertChoice.of(null)).isEqualTo(PreAlertChoice.Inherit)
+        assertThat(PreAlertChoice.of(0)).isEqualTo(PreAlertChoice.Off)
+        assertThat(PreAlertChoice.of(15)).isEqualTo(PreAlertChoice.Seconds(15))
+        assertThat(listOf(null, 0, 15).map { PreAlertChoice.of(it).explicitSeconds }).containsExactly(null, 0, 15)
+            .inOrder()
         assertThrows(IllegalArgumentException::class.java) { PreAlertChoice.Seconds(0) }
     }
 
     @Test
     fun `the inherited pre-alert is the recipe value, else the global setting`() {
-        assertThat(PreAlertSettings.inherited(recipeSeconds = 15, globalSeconds = 10))
-            .isEqualTo(PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 15))
-        assertThat(PreAlertSettings.inherited(recipeSeconds = 0, globalSeconds = 10).effectiveSeconds).isEqualTo(0)
-        assertThat(PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 25).effectiveSeconds).isEqualTo(25)
+        assertThat(PreAlertSettings.inherited(recipeSeconds = 15, globalSeconds = 10)).isEqualTo(PreAlertSettings(15))
+        assertThat(PreAlertSettings.inherited(recipeSeconds = 0, globalSeconds = 10).inheritedSeconds).isEqualTo(0)
+        assertThat(PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 25).inheritedSeconds).isEqualTo(25)
     }
 
     @Test
@@ -182,9 +181,12 @@ class EditStepsTest {
         }
     }
 
-    private fun edit(vararg steps: PlannedStep) = TimerEvent.EditSteps(steps.toList(), PreAlertChoice.Inherit)
+    private fun edit(vararg steps: PlannedStep) = TimerEvent.EditSteps(steps.toList())
 
     private fun preAlert(driver: EngineDriver) = (driver.state as TimerState.Active).session.preAlert
+
+    private fun stepValues(driver: EngineDriver) =
+        (driver.state as TimerState.Active).session.steps.map { it.preAlertSeconds }
 
     private fun assertRejected(driver: EngineDriver, event: TimerEvent, reason: RejectionReason) {
         val before = driver.state

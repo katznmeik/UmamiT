@@ -3,13 +3,13 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-26
+**Last updated:** 2026-10-29
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 and tickets #83–#94 approved by the PO, plus #97 and #98 from D-094 (2026-10-28); **building waits for the PO's explicit go** |
+| Current milestone | **M2 — catalog: done** (`v0.2.0`, 2026-10-26). **Next: v0.2.1**, the PO's feedback on rc.1 (#79, D-093): spec #81 and tickets #83–#94 approved by the PO, plus #97 and #98 from D-094 (2026-10-28), #100 and #102; **building started 2026-10-29 on the PO's go** (`/implement-spec`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #82 |
@@ -39,9 +39,10 @@
 
 ## Waiting on the PO
 
-1. **Go for v0.2.1:** tickets #83–#94, #97, #98, #100 and #102 are published and approved. Building starts only on
-   the PO's explicit go: the PO types `/implement-spec #81` (the skill cannot be
-   model-invoked). Handover for that session: `docs/plans/v0.2.1.md`.
+1. **v0.2.1 in progress:** the PO gave the go on 2026-10-29 by running `/implement-spec`
+   (spec #81). Plan: `docs/plans/v0.2.1.md`. Next PO step: the rc test (#93). Optional: the
+   PO's own alarm / Voralarm recordings (`docs/design/assets/source/sound-alert-<name>.wav`,
+   `sound-prealert-<name>.wav`), added to #84 if they arrive in time.
 2. Images: **all delivered**. A13 (timer band, dark only, D-095) arrived on 2026-10-28 for #102. A1–A11 all delivered (light and dark; A6–A11 on 2026-10-28). A8 and A11
    replace the catalog placeholders in v0.2.1 (#100); A6, A7, A9 and A10 are built in with
    the screens of M3/M4.
@@ -83,8 +84,7 @@
   PO picks the Vorwarnton (←all) · #94 merge and `v0.2.1` (←#93).
 - Frontier at the go: #83, #84, #85, #86, #87, #88, #89; the two T4 timer tickets (#83, #84)
   first, at most 2 implementers at a time.
-- **Not started:** the PO asked for a separate go before any building. The PO paused on
-  2026-10-26 (weekly usage limit); work resumes after the reset.
+- **Started 2026-10-29** on the PO's go (`/implement-spec`). Frontier also has #100; #102 follows #85.
 - **Handover:** `docs/plans/v0.2.1.md` has the task graph, process, local gate, the guards
   that bite (frozen schemas, accuracy run, 04 §12) and the release steps (rc versionCode 20101).
 - **D-094 (2026-10-28):** the PO found Bio Sencha Kirishima Yabukita (TG0170) missing from the catalog. The shop's sitemap leaves sold-out products out, and paginated listings are off-limits (robots `*/?`). The PO chose:
@@ -201,6 +201,7 @@ None blocking. The remaining approvals are listed under "Waiting on the PO".
 
 | Date | Summary |
 |---|---|
+| 2026-10-29 | **Go for v0.2.1:** the PO ran `/implement-spec`; building spec #81 started with #83 and #84 (T4). |
 | 2026-10-28 | The PO updated the Galaxy to One UI 9 (Android 17) and re-checked the timer with `v0.2.0`: reliability settings, *Alarm testen*, a locked brew with full-screen alert, Live Update / Now Bar, quick timer — all passed. Device references in CLAUDE.md and specs 01, 04, 07 updated; the app keeps target SDK 36. |
 | 2026-10-28 | D-095: timer top as an ink-wash band with the tea photo as a seal; #102 added to v0.2.1; A13 prompted, delivered and checked (1536 × 1024, no text or frame, calm bottom centre). Nested sessions considered and not used (subagents in worktrees stay). |
 | 2026-10-28 | The PO uploaded A6–A11 (light and dark, 1536 × 1024), checked: complete, no text, frames or dark corners; #100 builds A8 and A11 into v0.2.1. |

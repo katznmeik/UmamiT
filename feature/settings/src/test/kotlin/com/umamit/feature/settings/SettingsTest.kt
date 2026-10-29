@@ -8,7 +8,9 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -66,10 +68,15 @@ class SettingsTest {
 
     private class FakeTonePreview : TonePreview {
         val played = mutableListOf<String>()
+        val preAlertsPlayed = mutableListOf<String>()
         var stops = 0
 
         override fun play(toneKey: String) {
             played += toneKey
+        }
+
+        override fun playPreAlert(preAlertKey: String) {
+            preAlertsPlayed += preAlertKey
         }
 
         override fun stop() {
@@ -151,6 +158,64 @@ class SettingsTest {
         assertThat(preview.played).containsExactly("glockenspiel")
         assertThat(tester.tests).isEqualTo(0)
         compose.onNodeWithText("Glockenspiel").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the Vorwarnton picker offers the five sounds by name, stores the pick and plays it on Anhoeren`() {
+        runBlocking { settings.update { it.copy(preAlertSound = "zimbel") } }
+        show()
+        compose.onNodeWithText("Vorwarnton").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zimbel").assertIsDisplayed()
+
+        clickRow("Vorwarnton")
+        listOf("Glöckchen", "Klangstab", "Tiefe Schale", "Ting (leise)").forEach {
+            compose.onNodeWithText(it).assertIsDisplayed()
+        }
+        compose.onNode(hasText("Zimbel") and isSelectable()).assertIsSelected()
+        compose.onNodeWithText("Tiefe Schale").performClick()
+        compose.waitForIdle()
+        assertThat(stored().preAlertSound).isEqualTo("tiefe_schale")
+        compose.onNode(hasText("Tiefe Schale") and isSelectable()).assertIsSelected()
+        compose.onNodeWithText("Anhören").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        assertThat(preview.preAlertsPlayed).containsExactly("tiefe_schale")
+        assertThat(preview.played).isEmpty()
+        assertThat(preview.stops).isAtLeast(1)
+        assertThat(tester.tests).isEqualTo(0)
+        compose.onNodeWithText("Tiefe Schale").assertIsDisplayed()
+        // The alert tone stays as it was (SET-09).
+        assertThat(stored().alertSound).isEqualTo(UserSettings.DEFAULT_ALERT_SOUND)
+    }
+
+    @Test
+    fun `Ting (leise) can be picked again`() {
+        show()
+
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Ting (leise)").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().preAlertSound).isEqualTo("ting")
+        compose.onNodeWithText("Ting (leise)").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an alert closes the Vorwarnton picker and stops its preview`() {
+        show()
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Anhören").performClick()
+        val stopsBefore = preview.stops
+
+        alertKey = "session-1:0"
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Anhören").assertDoesNotExist()
+        assertThat(preview.stops).isGreaterThan(stopsBefore)
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Ting (leise)").assertDoesNotExist()
     }
 
     @Test

@@ -17,7 +17,6 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.feature.brew.quick.QuickTimerActions
@@ -69,7 +68,7 @@ class SystemBarIconsTest {
         kettleTempC = null,
         demoted = false,
         finishWouldDiscard = false,
-        preAlert = PreAlertChoice.Inherit,
+        preAlertBaseSeconds = 10,
     )
 
     private val controller get() = compose.activity.window.let { WindowCompat.getInsetsController(it, it.decorView) }

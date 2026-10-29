@@ -11,7 +11,6 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.CoroutineScope
@@ -105,9 +104,11 @@ class TimerTestActivity : Activity() {
                 waterMl = null,
                 baseTempC = 60,
             ),
-            steps = List(steps) { PlannedStep(StepKind.INFUSION, seconds, tempC = 60) },
+            // Each step's own explicit pre-alert, 0 = Aus (TMR-23, D-093).
+            steps = List(steps) {
+                PlannedStep(StepKind.INFUSION, seconds, tempC = 60, preAlertSeconds = preAlertSeconds)
+            },
             recipePreAlertSeconds = 0,
-            preAlert = if (preAlertSeconds > 0) PreAlertChoice.Seconds(preAlertSeconds) else PreAlertChoice.Off,
         )
     }
 }

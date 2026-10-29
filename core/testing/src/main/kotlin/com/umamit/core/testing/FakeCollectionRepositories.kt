@@ -6,6 +6,7 @@ import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlin.math.abs
 
 // In-memory fakes of the core:data repositories for tests that need no database.
 // They follow the Room implementations' observable behaviour: name ordering, one
@@ -54,6 +56,10 @@ class FakeTeaRepository internal constructor(private val c: FakeCollection) : Te
     }
 
     override fun observeTeas(): Flow<List<TeaOverview>> = overviews
+
+    override fun observeOwnedTeas(): Flow<List<TeaOverview>> = overviews.map { list ->
+        list.filter { !it.tea.isArchived }
+    }
 
     override fun observeTea(id: String): Flow<TeaOverview?> = overviews.map { list -> list.find { it.tea.id == id } }
 
@@ -99,11 +105,10 @@ class FakeRecipeRepository internal constructor(private val c: FakeCollection) :
         }
     }
 
-    override suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?) =
-        c.recipeRows.update { map ->
-            val recipe = map[recipeId] ?: return@update map
-            map + (recipeId to recipe.copy(steps = steps.snapped(), preAlertSeconds = preAlertSeconds))
-        }
+    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) = c.recipeRows.update { map ->
+        val recipe = map[recipeId] ?: return@update map
+        map + (recipeId to recipe.copy(steps = steps.snapped()))
+    }
 
     override suspend fun deleteRecipe(id: String) = c.recipeRows.update { it - id }
 }
@@ -133,6 +138,30 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
     override suspend fun addEvent(event: InventoryEvent) = c.eventRows.update { it + (event.id to event) }
 
     override suspend fun deleteEvent(id: String) = c.eventRows.update { it - id }
+
+    /** As on Room: one ADJUSTMENT of the difference at [now], none when the stock is unchanged. */
+    override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
+        require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
+        val delta = newTotalGrams - c.eventRows.value.values.filter { it.teaId == teaId }.sumOf { it.deltaGrams }
+        if (abs(delta) < UNCHANGED_GRAMS) return null
+        val event = InventoryEvent(
+            id = "adjustment-${c.eventRows.value.size + 1}",
+            teaId = teaId,
+            type = InventoryEventType.ADJUSTMENT,
+            deltaGrams = delta,
+            occurredAtMillis = now,
+            currency = null,
+        )
+        addEvent(event)
+        return event
+    }
+
+    /** The time of the next [correctStock]. */
+    var now: Long = 0L
+
+    private companion object {
+        const val UNCHANGED_GRAMS = 1e-6
+    }
 }
 
 /** Half-up snap to 5 °C (GEN-12), as the Room repositories do. */

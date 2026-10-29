@@ -19,7 +19,9 @@ object CatalogBrowser {
         .thenBy { it.key }
 
     /**
-     * The list of [teas] (the current range) as [filter] shows it.
+     * The list of [teas] (the current range) as [filter] shows it: the green teas, or in the
+     * *Kräutertee* view the Kräutertees (v0.2.1, D-093); search hits of the other kind count as
+     * hidden (CAT-10).
      *
      * @param searchHits the keys the search found, or null without a search ([CatalogFilter.search] blank).
      */
@@ -29,8 +31,9 @@ object CatalogBrowser {
         searchHits: Set<String>?,
         lastRefreshAtMillis: Long?,
     ): CatalogListing {
+        val range = teas.filter { it.isHerbal == filter.herbal }
         val found = if (searchHits == null) teas else teas.filter { it.key in searchHits }
-        val shown = found.filter { filter.admits(it) }
+        val shown = found.filter { it.isHerbal == filter.herbal && filter.admits(it) }
         val grouped = filter.sort == CatalogSort.TYPE
         val sections = when (filter.sort) {
             CatalogSort.TYPE -> shown.groupBy { it.teaType }
@@ -49,11 +52,13 @@ object CatalogBrowser {
         return CatalogListing(
             sections = sections,
             grouped = grouped,
-            totalCount = teas.size,
+            totalCount = range.size,
             hiddenMatches = if (searchHits == null) 0 else found.size - shown.size,
-            types = teas.mapNotNull { it.teaType }.distinct().sortedWith(collator),
-            origins = teas.flatMap { it.originCountries }.distinct().sortedWith(collator),
+            types = range.mapNotNull { it.teaType }.distinct().sortedWith(collator),
+            origins = range.flatMap { it.originCountries }.distinct().sortedWith(collator),
             lastRefreshAtMillis = lastRefreshAtMillis,
+            catalogCount = teas.size,
+            hiddenInOtherView = if (searchHits == null) 0 else found.count { it.isHerbal != filter.herbal },
         )
     }
 
@@ -74,14 +79,16 @@ object CatalogBrowser {
         (origins.isEmpty() || tea.originCountries.any { it in origins }) &&
         admitsSwitches(tea)
 
-    private fun CatalogFilter.admitsFlavour(tea: CatalogTeaSummary): Boolean = when (flavour) {
+    /** „Pur" doesn't apply to Kräutertees (D-093 Q14). */
+    private fun CatalogFilter.admitsFlavour(tea: CatalogTeaSummary): Boolean = herbal || when (flavour) {
         FlavourFilter.ALL -> true
         FlavourFilter.PURE -> !tea.isFlavored
         FlavourFilter.FLAVOURED -> tea.isFlavored
     }
 
+    /** Kräutertees have no umami: the filter is hidden in their view (D-093 Q19) and doesn't apply. */
     private fun CatalogFilter.admitsUmami(tea: CatalogTeaSummary): Boolean {
-        val min = minUmami ?: return true
+        val min = minUmami?.takeUnless { herbal } ?: return true
         return tea.umamiLevel?.let { it >= min } ?: false
     }
 

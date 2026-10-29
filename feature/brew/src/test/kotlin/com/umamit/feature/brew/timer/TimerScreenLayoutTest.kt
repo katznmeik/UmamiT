@@ -7,22 +7,34 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.TimerRingColors
 import com.umamit.core.designsystem.component.TimerRingDefaults
-import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.feature.brew.quick.QUICK_RING_TAG
+import com.umamit.feature.brew.quick.QuickTimerActions
+import com.umamit.feature.brew.quick.QuickTimerScreen
+import com.umamit.feature.brew.quick.QuickTimerUiState
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
 import org.junit.Test
@@ -33,8 +45,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05's layout and colours: the pill stays where the finger is (spatial
- * consistency, TMR-03), overlays survive a configuration change (GEN-07), and
- * the paused ring keeps its text readable (03 §6).
+ * consistency, TMR-03), the ink-wash band and the tea seal (D-095) leave the
+ * alert surface without moving anything, overlays survive a configuration
+ * change (GEN-07), and the paused ring keeps its text readable (03 §6).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,6 +58,11 @@ class TimerScreenLayoutTest {
     val compose = createComposeRule()
 
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready())
+
+    /** A synthetic white-backed tea photo (never a Tee-Kontor photo, D-016). */
+    private val whitePhoto = ColorPainter(Color.White)
+
+    private var photo by mutableStateOf<Painter?>(whitePhoto)
 
     private fun show(initial: TimerUiState.Active) {
         state = initial
@@ -59,13 +77,106 @@ class TimerScreenLayoutTest {
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
                     reliabilityProblem = true,
-                    teaPhoto = painterResource(UmamiIcons.TimerFallbackPhoto),
+                    teaPhoto = photo,
+                    teaStyleKey = "gyokuro",
                 )
             }
         }
     }
 
     private fun top(text: String): Dp = compose.onNodeWithText(text).getUnclippedBoundsInRoot().top
+
+    private fun tagTop(tag: String): Dp =
+        compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot().top
+
+    private fun band() = compose.onNodeWithTag(TIMER_BAND_TAG, useUnmergedTree = true)
+
+    private fun seal() = compose.onNodeWithTag(TIMER_SEAL_TAG, useUnmergedTree = true)
+
+    private fun sealShows(content: SealContent) = SemanticsMatcher.expectValue(SealContentKey, content)
+
+    @Test
+    fun `band and seal leave the alert surface, and the title, ring and pill do not move (D-095, D-058)`() {
+        show(TimerStates.ready())
+        band().assertExists()
+        seal().assertExists()
+        val ready = listOf(top("Bio Uji Gyokuro Gokō"), tagTop(TIMER_RING_TAG), top("Start"))
+
+        state = TimerStates.running()
+        compose.waitForIdle()
+        band().assertExists()
+        seal().assertExists()
+        val running = listOf(top("Bio Uji Gyokuro Gokō"), tagTop(TIMER_RING_TAG), top("Pause"))
+
+        state = TimerStates.alerting(overtimeMs = 7_000, stepIndex = 0)
+        compose.waitForIdle()
+        band().assertDoesNotExist()
+        seal().assertDoesNotExist()
+        val alert = listOf(top("Bio Uji Gyokuro Gokō"), tagTop(TIMER_RING_TAG), top("Abgegossen"))
+
+        assertThat(running).isEqualTo(ready)
+        assertThat(alert).isEqualTo(ready)
+    }
+
+    @Test
+    fun `the seal is 88 dp, centred, and half over the band's lower edge`() {
+        show(TimerStates.running())
+        val band = band().getUnclippedBoundsInRoot()
+        val seal = seal().getUnclippedBoundsInRoot()
+
+        assertThat(seal.width).isEqualTo(88.dp)
+        assertThat(seal.height).isEqualTo(88.dp)
+        assertThat(band.height).isEqualTo(220.dp)
+        assertThat((seal.top + seal.bottom) / 2).isEqualTo(band.bottom)
+        assertThat((seal.left + seal.right) / 2).isEqualTo((band.left + band.right) / 2)
+    }
+
+    @Test
+    fun `the seal shows the tea's photo, and the type-coloured leaf without one`() {
+        show(TimerStates.running())
+        seal().assert(sealShows(SealContent.Photo))
+
+        photo = null
+        compose.waitForIdle()
+        seal().assert(sealShows(SealContent.Leaf))
+    }
+
+    @Test
+    fun `the band and the seal are decorative, the title names the tea`() {
+        show(TimerStates.running())
+        val noDescription = SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription)
+        band().assert(noDescription)
+        seal().assert(noDescription)
+    }
+
+    @Test
+    fun `the quick timer shows the band without a seal (SCR-07)`() {
+        photo = null
+        show(TimerStates.quick(TimerPhase.RUNNING))
+        band().assertExists()
+        seal().assertDoesNotExist()
+    }
+
+    @Test
+    fun `the quick timer's ring stays where it was before Start (SCR-07)`() {
+        var started by mutableStateOf(false)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                if (started) {
+                    TimerScreen(TimerStates.quick(TimerPhase.RUNNING), { NOW }, {}, {}, {}, {})
+                } else {
+                    QuickTimerScreen(state = QuickTimerUiState(durationSeconds = 90), actions = QuickTimerActions())
+                }
+            }
+        }
+        band().assertExists()
+        val beforeStart = tagTop(QUICK_RING_TAG)
+
+        started = true
+        compose.waitForIdle()
+        band().assertExists()
+        assertThat(tagTop(TIMER_RING_TAG)).isEqualTo(beforeStart)
+    }
 
     @Test
     fun `the pill does not move at Start, at the alert, nor when the overtime turns large`() = pillStaysPut()

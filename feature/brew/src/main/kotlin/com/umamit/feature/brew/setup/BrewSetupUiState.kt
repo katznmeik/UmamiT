@@ -4,7 +4,6 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 
 /** What the setup (SCR-04) shows. */
 sealed interface BrewSetupUiState {
@@ -19,8 +18,8 @@ sealed interface BrewSetupUiState {
      *
      * @property steps the plan; each step carries its temperature (the recipe's base where it had none).
      * @property ratioPer100Ml the leaf per 100 ml of water, shown live („2,0 g / 100 ml", PRF-03 AC1).
-     * @property effectivePreAlertSeconds the pre-alert of this session (04 §5): own choice ?: recipe ?: global.
-     * @property preAlertIsDefault the session has no own choice (*Wie Einstellung*), shown as „(Standard)".
+     * @property preAlertBaseSeconds the pre-alert base B the session will start with (recipe ?: global, 04 §5):
+     *   each step's *Automatisch* lead, listed in the *Vorwarnung* row and shown in the Schritte-Sheet (TMR-23).
      * @property canSaveToRecipe something differs from the selected recipe (BRW-02).
      * @property question „Erst die … -Sitzung beenden?" is open (TMR-21).
      * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
@@ -42,9 +41,7 @@ sealed interface BrewSetupUiState {
         val baseTempC: Int,
         val kettle: Kettle,
         val steps: List<PlannedStep>,
-        val preAlert: PreAlertChoice,
-        val effectivePreAlertSeconds: Int,
-        val preAlertIsDefault: Boolean,
+        val preAlertBaseSeconds: Int,
         val canSaveToRecipe: Boolean,
         val question: ActiveSessionQuestion?,
         val alertKey: String?,

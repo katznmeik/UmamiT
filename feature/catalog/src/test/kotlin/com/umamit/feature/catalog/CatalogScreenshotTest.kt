@@ -18,6 +18,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
+import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.BrewMethod
@@ -90,6 +91,15 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             catalogTea("XY0800", "Kirsch Sencha", basePriceCentsPer100g = 1090).copy(isFlavored = true),
             catalogTea("XY0900", "Stiller See Gyokuro", "Gyokuro", 4400).copy(available = false),
             catalogTea("XY1000", "Ohne Sorte", teaType = null, basePriceCentsPer100g = 1500),
+            // Kräutertees (v0.2.1, D-093): only in the Kräutertee view.
+            catalogTea("XK1100", "Wiesenzauber", "Kräutermischungen", 890, thumbnailPath = "wiese")
+                .copy(isHerbal = true, isOrganic = true, isNew = true),
+            catalogTea("XK1200", "Zitronenwiese mit Apfelstückchen", "Kräutermischungen", 790)
+                .copy(isHerbal = true, isFlavored = true, owned = true),
+            catalogTea("XK1300", "Bergminze", "Einzelkräuter", 1190, thumbnailPath = "minze")
+                .copy(isHerbal = true, originCountry = "Deutschland"),
+            catalogTea("XK1400", "Abendruhe", "Ayurveda & Wellness", 1290)
+                .copy(isHerbal = true, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -262,6 +272,51 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /** The Kräutertee view (v0.2.1, #89): the Kräutertees by Sorte, without „Pur" (D-093 Q14). */
+    @Test
+    fun listHerbal() = capture("listHerbal") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true)),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /**
+     * The Kräutertee view before the first refresh after the update (v0.2.1, #91, D-093 Q20): no
+     * Kräutertees yet, the hint with *Jetzt laden* instead of the no-match notice.
+     */
+    @Test
+    fun listHerbalPending() = capture("listHerbalPending") {
+        val filter = CatalogFilter.DEFAULT.withHerbal(true)
+        val greenOnly = TEAS.filterNot { it.isHerbal }
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(greenOnly, filter, null, FakeClock.DEFAULT_WALL_MS),
+                filter = filter,
+                loading = false,
+                herbalPending = true,
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+        )
+    }
+
+    /** The Kräutertee view's filter sheet (v0.2.1, #91, D-093 Q19): no Aroma, no Umami; font scale 1.0 only. */
+    @Test
+    fun filterSheetHerbal() {
+        assumeTrue(fontScale == 1f)
+        capture("filterSheetHerbal") {
+            val state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true).copy(organicOnly = true))
+            CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
+            CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
+            }, onDismissRequest = {})
+        }
+    }
+
     /** The filter sheet over the list, at font scale 1.0 only. */
     @Test
     fun filterSheet() {
@@ -379,4 +434,54 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             CatalogRefreshSheet(refresh = refresh, onCancel = {}, onDismissRequest = {})
         }
     }
+
+    // *Link einfügen* and a shared link (v0.2.1, #98; CAT-17, SCR-19, 03 §5; spec #81 seam 5).
+
+    /** The paste field with a link from the clipboard, also at font scale 2.0 (its label is long). */
+    @Test
+    fun linkPaste() = linkSheet("linkPaste", TeaLinkSheetState(text = TEA_LINK), anyFontScale = true)
+
+    @Test
+    fun linkLoading() = linkSheet("linkLoading", TeaLinkSheetState(text = TEA_LINK, loading = true))
+
+    @Test
+    fun linkNotATeaLink() = linkSheet(
+        "linkNotATeaLink",
+        TeaLinkSheetState(text = "https://www.example.com/tee/sencha", message = TeaLinkOutcome.NotATeaLink),
+        anyFontScale = true,
+    )
+
+    @Test
+    fun linkNotInCatalog() =
+        linkSheet("linkNotInCatalog", TeaLinkSheetState(text = TEA_LINK, message = TeaLinkOutcome.NotInCatalog))
+
+    @Test
+    fun linkSharedLoading() = linkSheet("linkSharedLoading", TeaLinkSheetState(shared = true, loading = true))
+
+    @Test
+    fun linkSharedOffline() =
+        linkSheet("linkSharedOffline", TeaLinkSheetState(shared = true, message = TeaLinkOutcome.Offline))
+
+    @Test
+    fun linkSharedRefreshRunning() = linkSheet(
+        "linkSharedRefreshRunning",
+        TeaLinkSheetState(shared = true, message = TeaLinkOutcome.RefreshRunning),
+    )
+
+    /** The tea link's sheet over the list, at font scale 1.0 unless [anyFontScale]. */
+    private fun linkSheet(name: String, state: TeaLinkSheetState, anyFontScale: Boolean = false) {
+        assumeTrue(anyFontScale || fontScale == 1f)
+        capture(name) {
+            CatalogContent(
+                state = listState(),
+                onLoad = {},
+                onShowProgress = {},
+                thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+            )
+            TeaLinkSheet(state = state, onTextChange = {}, onLoad = {}, onDismissRequest = {})
+        }
+    }
 }
+
+/** An invented tea link (D-016). */
+private const val TEA_LINK = "https://www.tee-kontor-kiel.de/nebelhang-sencha/XY0170"

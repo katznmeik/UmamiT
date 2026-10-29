@@ -21,9 +21,15 @@ import java.net.URISyntaxException
 object TeeKontorParser {
     /**
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
-     * selectors or the fields read change.
+     * selectors or the fields read change. v7 (v0.2.1, D-093): the Kräutertee section is in scope.
      */
-    const val PARSER_VERSION = 6
+    const val PARSER_VERSION = 7
+
+    /**
+     * The first parser version that keeps Kräutertees (D-093). After a last successful refresh of
+     * an older parser, the skip list's not-green entries are classified once more (05 §9, 08 §2.4).
+     */
+    const val HERBAL_SINCE_VERSION = 7
 
     /** Parses [body] (the HTML of [pageUrl], charset from the page, else UTF-8). */
     fun parseProduct(body: ByteArray, pageUrl: String): ProductParse {

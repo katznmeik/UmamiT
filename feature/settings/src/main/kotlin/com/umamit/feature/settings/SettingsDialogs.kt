@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.Role
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
 import com.umamit.core.timer.alert.AlertSound
+import com.umamit.core.timer.alert.PreAlertSound
 
 /** The SET-10 choices: off, then 5 to 30 s in steps of 5. */
 private val PRE_ALERT_CHOICES = listOf(0, 5, 10, 15, 20, 25, 30)
@@ -50,6 +51,36 @@ internal fun ToneDialog(selected: String, actions: SettingsActions, onDismiss: (
                 onClick = {
                     actions.stopPreview()
                     actions.setTone(tone.key)
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Vorwarnton (SET-26): the four pre-alert sounds and „Ting (leise)" by their German names, in the
+ * order of 04 §9.2. A pick is stored at once; *Anhören* plays the picked sound once, as long as it
+ * rings ([com.umamit.core.timer.alert.TonePreview]).
+ */
+@Composable
+internal fun PreAlertSoundDialog(selected: String, actions: SettingsActions, onDismiss: () -> Unit) {
+    val current = PreAlertSound.of(selected)
+    // Closed by *Fertig*, outside or by an alert (rule 8): the preview ends with the picker.
+    DisposableEffect(Unit) { onDispose(actions.stopPreview) }
+    ChoiceDialog(
+        title = stringResource(R.string.settings_pre_alert_sound),
+        onDismiss = onDismiss,
+        extraButton = {
+            TextButton(onClick = actions.previewPreAlertSound) { Text(stringResource(R.string.settings_tone_preview)) }
+        },
+    ) {
+        PreAlertSound.entries.forEach { choice ->
+            ChoiceRow(
+                stringResource(choice.sound.label()),
+                selected = choice == current,
+                onClick = {
+                    actions.stopPreview()
+                    actions.setPreAlertSound(choice.key)
                 },
             )
         }

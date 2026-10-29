@@ -8,12 +8,14 @@ enum class FlavourFilter { ALL, PURE, FLAVOURED }
 
 /**
  * What the catalog list shows (CAT-10, SCR-19). The defaults are the list's default view
- * (D-073): grouped by *Sorte*, available teas only, „Pur" on.
+ * (D-073): the green teas grouped by *Sorte*, available teas only, „Pur" on.
  *
  * @property search the search text over name, secondary name, description, cultivar and region; blank = no search.
  * @property types the *Sorten* to show; empty = every one.
  * @property origins the growing countries to show; empty = every one.
  * @property minUmami only teas whose umami scale reaches this level; null = no umami filter.
+ * @property herbal the *Kräutertee* view (v0.2.1, D-093): the Kräutertees instead of the green
+ *   teas. [flavour] („Pur", Q14) and [minUmami] (Q19) don't apply in it.
  */
 data class CatalogFilter(
     val search: String = "",
@@ -26,27 +28,40 @@ data class CatalogFilter(
     val availableOnly: Boolean = true,
     val newOnly: Boolean = false,
     val sort: CatalogSort = CatalogSort.TYPE,
+    val herbal: Boolean = false,
 ) {
-    /** The filters that differ from the default view, without search and sort (the filter button's count). */
+    /**
+     * The filters that differ from the default view, without search and sort (the filter button's
+     * count); the *Kräutertee* chip counts, „Pur" and Umami don't in its view (SCR-19).
+     */
     val changedFilters: Int
         get() = listOf(
             types.isNotEmpty(),
             origins.isNotEmpty(),
             organicOnly,
-            flavour != FlavourFilter.PURE,
-            minUmami != null,
+            !herbal && flavour != FlavourFilter.PURE,
+            !herbal && minUmami != null,
             ownedOnly,
             !availableOnly,
             newOnly,
+            herbal,
         ).count { it }
 
-    /** These filters without any: every tea of the current range, same search and sort. */
+    /** These filters without any: every tea of the current range (green or herbal), same search and sort. */
     fun withoutFilters(): CatalogFilter = CatalogFilter(
         search = search,
         flavour = FlavourFilter.ALL,
         availableOnly = false,
         sort = sort,
+        herbal = herbal,
     )
+
+    /**
+     * The *Kräutertee* chip (SCR-19, D-093): the Kräutertees ([herbal]) or the green teas; the
+     * *Sorten* chosen belong to the other kind and are dropped, the rest is kept.
+     */
+    fun withHerbal(herbal: Boolean): CatalogFilter =
+        if (herbal == this.herbal) this else copy(herbal = herbal, types = emptySet())
 
     companion object {
         /** The list's default view (D-073). */
@@ -62,11 +77,15 @@ data class CatalogSection(val teaType: String?, val teas: List<CatalogTeaSummary
  *
  * @property sections the teas that match, in order; one section per *Sorte* when grouped, else one.
  * @property grouped the sections are *Sorten* (sort by type).
- * @property totalCount every tea of the current range, for the header („274 Grüntees", CAT-07 AC6).
- * @property hiddenMatches search hits the filters hide („searchable but hidden", D-073); 0 without a search.
- * @property types every *Sorte* of the catalog, for the filter sheet.
- * @property origins every growing country of the catalog, for the filter sheet.
+ * @property totalCount every tea of the current range of the shown kind (green or herbal), for the
+ *   header („274 Grüntees", „38 Kräutertees", CAT-07 AC6).
+ * @property hiddenMatches search hits the filters hide („searchable but hidden", D-073), those of the
+ *   other kind included (CAT-10); 0 without a search.
+ * @property types every *Sorte* of the shown kind, for the filter sheet.
+ * @property origins every growing country of the shown kind, for the filter sheet.
  * @property lastRefreshAtMillis when the last successful refresh finished (CAT-07 AC6).
+ * @property catalogCount every tea of the current range, green and herbal: none = never loaded.
+ * @property hiddenInOtherView the [hiddenMatches] of the other kind, shown by the other view.
  */
 data class CatalogListing(
     val sections: List<CatalogSection>,
@@ -76,6 +95,8 @@ data class CatalogListing(
     val types: List<String>,
     val origins: List<String>,
     val lastRefreshAtMillis: Long?,
+    val catalogCount: Int = totalCount,
+    val hiddenInOtherView: Int = 0,
 ) {
     val teas: List<CatalogTeaSummary> get() = sections.flatMap { it.teas }
 

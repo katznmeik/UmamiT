@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerDiagnostics
@@ -38,6 +39,7 @@ class FirstCueTest {
     private val scheduler = FakeScheduler()
     private val diagnostics = FakeTimerDiagnostics()
     private val clock = FakeClock()
+    private val settings = FakeSettingsRepository(UserSettings(preAlertSound = "zimbel"))
 
     /** Every load of a sound, in order. */
     private val loads = mutableListOf<AlertSound>()
@@ -57,7 +59,7 @@ class FirstCueTest {
         val playback = playback()
 
         playback.keepReady(true)
-        assertThat(loads).containsExactly(AlertSound.TICK, AlertSound.KLANGSCHALE).inOrder()
+        assertThat(loads).containsExactly(AlertSound.ZIMBEL, AlertSound.KLANGSCHALE).inOrder()
         loads.clear()
 
         playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed))
@@ -66,12 +68,32 @@ class FirstCueTest {
 
         idleAlertThread()
         playback.startAlert(ScheduledTime(TimerAlarmKind.DEADLINE, clock.elapsed), onFinished = {})
-        // Only the tick was loaded again, after its own cue; the alert started its loaded tone.
-        assertThat(loads).containsExactly(AlertSound.TICK)
+        // Only the pre-alert sound was loaded again, after its own cue; the alert started its loaded tone.
+        assertThat(loads).containsExactly(AlertSound.ZIMBEL)
         assertThat(sound.isPlaying).isTrue()
 
         val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>()
         assertThat(played.map { it.start?.soundLoaded }).containsExactly(true, true).inOrder()
+    }
+
+    @Test
+    fun aVorwarntonChangedDuringTheSessionIsLoadedAtOnceAndTheNextTickLoadsNothing() = runTest {
+        // SET-26: the PO changes the sound in the settings while a session runs; no turn comes in between.
+        val playback = playback()
+        playback.keepReady(true)
+        loads.clear()
+
+        settings.update { it.copy(preAlertSound = "klangstab") }
+        assertThat(loads).containsExactly(AlertSound.KLANGSTAB)
+        assertThat(sound.ready).containsExactly(AlertSound.KLANGSTAB, AlertSound.KLANGSCHALE)
+        loads.clear()
+
+        playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed))
+        assertThat(loads).isEmpty()
+        assertThat(sound.isPlaying).isTrue()
+        val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().single()
+        assertThat(played.tone).isEqualTo("klangstab")
+        assertThat(played.start?.soundLoaded).isTrue()
     }
 
     @Test
@@ -80,7 +102,7 @@ class FirstCueTest {
 
         playback.playPreAlert(ScheduledTime(TimerAlarmKind.PRE_ALERT, clock.elapsed))
 
-        assertThat(loads).containsExactly(AlertSound.TICK)
+        assertThat(loads).containsExactly(AlertSound.ZIMBEL)
         assertThat(sound.isPlaying).isTrue()
         val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().single()
         assertThat(played.start?.soundLoaded).isFalse()
@@ -94,7 +116,7 @@ class FirstCueTest {
         sound = sound,
         haptics = FakeHaptics(scheduler),
         scheduler = scheduler,
-        settings = FakeSettingsRepository().settings,
+        settings = settings.settings,
         scope = CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler)),
         diagnostics = diagnostics,
         clock = clock::reading,

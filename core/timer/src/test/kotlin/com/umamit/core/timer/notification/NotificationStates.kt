@@ -5,7 +5,6 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 
@@ -84,7 +83,7 @@ class NotificationStates(private val clock: FakeClock) {
         kettleTempC = null,
         demoted = false,
         finishWouldDiscard = false,
-        preAlert = PreAlertChoice.Inherit,
+        preAlertBaseSeconds = 10,
     )
 
     private fun base(phase: TimerPhase) = TimerUiState.Active(
@@ -103,7 +102,7 @@ class NotificationStates(private val clock: FakeClock) {
         kettleTempC = 60,
         demoted = false,
         finishWouldDiscard = false,
-        preAlert = PreAlertChoice.Inherit,
+        preAlertBaseSeconds = 10,
     )
 
     private fun List<TimerUiStep>.withCurrent(status: StepStatus) =

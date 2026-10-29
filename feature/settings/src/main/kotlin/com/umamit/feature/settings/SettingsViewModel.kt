@@ -22,7 +22,7 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25), the
+ * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25, 26), the
  * reliability checks (SET-24) and *Alarm testen* through the production player (SET-31, D-059).
  */
 @HiltViewModel
@@ -57,6 +57,9 @@ class SettingsViewModel @Inject constructor(
     /** *Anhören*: [toneKey] once. */
     fun previewTone(toneKey: String) = preview.play(toneKey)
 
+    /** *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once. */
+    fun previewPreAlertSound(preAlertKey: String) = preview.playPreAlert(preAlertKey)
+
     fun stopPreview() = preview.stop()
 
     private val failed = MutableStateFlow(false)
@@ -65,7 +68,7 @@ class SettingsViewModel @Inject constructor(
     val saveFailed: StateFlow<Boolean> = failed.asStateFlow()
 
     /**
-     * A row's change, written at once (SET-09…11, 14, 17, 25). A failed write never throws into
+     * A row's change, written at once (SET-09…11, 14, 17, 25, 26). A failed write never throws into
      * the app (a crash would take a running timer's process down): it is logged and shown.
      */
     fun change(transform: (UserSettings) -> UserSettings) {
