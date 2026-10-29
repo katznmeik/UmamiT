@@ -41,14 +41,24 @@ interface CatalogRepository {
     fun observeTea(key: String): Flow<CatalogTeaDetail?>
 }
 
-/** The catalog keys of the collection's teas („im Besitz", CAT-10): `tea.catalog_key` in `umamit.db` (05 §1.6). */
+/** The catalog keys of the collection's teas: `tea.catalog_key` in `umamit.db` (05 §1.6). */
 fun interface OwnedCatalogKeys {
+    /**
+     * The keys any collection tea links to, archived ones included: the refresher keeps a
+     * discontinued catalog tea for them (CAT-07 AC4).
+     */
     fun observe(): Flow<Set<String>>
+
+    /** The keys of the teas that are not archived: „im Besitz" (CAT-10, TEA-04). */
+    fun observeOwned(): Flow<Set<String>> = observe()
 }
 
 /** [OwnedCatalogKeys] from the collection's database. */
 class RoomOwnedCatalogKeys @Inject constructor(private val teas: TeaDao) : OwnedCatalogKeys {
     override fun observe(): Flow<Set<String>> = teas.observeCatalogKeys().map { it.toSet() }.distinctUntilChanged()
+
+    override fun observeOwned(): Flow<Set<String>> =
+        teas.observeOwnedCatalogKeys().map { it.toSet() }.distinctUntilChanged()
 }
 
 /** [CatalogRepository] on `catalog.db`, the photo files of `filesDir/catalog/` and the [owned] keys. */
@@ -60,7 +70,7 @@ class RoomCatalogRepository @Inject constructor(
     override fun observeCatalog(): Flow<CatalogOverview> = combine(
         dao.observeList(),
         dao.observeLastSuccess(),
-        owned.observe(),
+        owned.observeOwned(),
     ) { rows, last, ownedKeys ->
         CatalogOverview(
             teas = rows.map { row ->

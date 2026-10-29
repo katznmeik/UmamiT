@@ -16,6 +16,9 @@ interface TeaRepository {
     /** All teas, archived ones included, sorted by name (case-insensitive). */
     fun observeTeas(): Flow<List<TeaOverview>>
 
+    /** The teas that are not archived, sorted by name: Start and the tea picker (SCR-02, SCR-03, TEA-04). */
+    fun observeOwnedTeas(): Flow<List<TeaOverview>>
+
     fun observeTea(id: String): Flow<TeaOverview?>
 
     suspend fun getTea(id: String): Tea?

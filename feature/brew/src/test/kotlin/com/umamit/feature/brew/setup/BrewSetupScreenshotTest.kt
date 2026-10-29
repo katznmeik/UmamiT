@@ -8,6 +8,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -85,9 +89,11 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+    private fun capture(name: String, act: () -> Unit = {}, content: @androidx.compose.runtime.Composable () -> Unit) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { UmamiTheme(darkTheme = dark, reduceMotion = true) { content() } }
+        compose.waitForIdle()
+        act()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/${name}_$variant.png")
     }
@@ -172,6 +178,34 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun pickerEmpty() = capture("TeaPicker_empty") { PickerHost(TeaPickerUiState(loading = false)) }
+
+    /** A long press on a tea: its menu with *Aus Sammlung entfernen* (SCR-03, TEA-04). */
+    @Test
+    fun pickerMenu() = capture("TeaPicker_menu", act = { longPress("Bio Sencha Tanabata") }) {
+        PickerHost(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata), loading = false))
+    }
+
+    /** The tea of the active brew session: greyed out with „Erst die Sitzung beenden" (E15). */
+    @Test
+    fun pickerMenuBlocked() = capture("TeaPicker_menuBlocked", act = { longPress("Bio Sencha Tanabata") }) {
+        PickerHost(
+            TeaPickerUiState(
+                favorites = listOf(hisui),
+                all = listOf(hisui, tanabata.copy(removable = false)),
+                loading = false,
+            ),
+        )
+    }
+
+    /** Removed: the snackbar with *Rückgängig* (D-093 Q21). */
+    @Test
+    fun pickerRemoved() = capture("TeaPicker_removed") {
+        PickerHost(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
+    }
+
+    private fun longPress(name: String) {
+        compose.onAllNodesWithText(name).onLast().performTouchInput { longClick() }
+    }
 
     @androidx.compose.runtime.Composable
     private fun PickerHost(state: TeaPickerUiState) {

@@ -41,6 +41,7 @@ import com.umamit.core.testing.FakeExactPrices
 import com.umamit.core.testing.FakeGuideRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.catalogTea
 import com.umamit.feature.brew.picker.TEA_PICKER_TAG
@@ -152,7 +153,9 @@ class CatalogBrewFlowTest {
             homeViewModel = viewModel {
                 HomeViewModel(collection.teas, sessions.sessions, starter, clock, photos, FakeTimerReliability())
             },
-            pickerViewModel = viewModel { TeaPickerViewModel(collection.teas, sessions.sessions, photos) },
+            pickerViewModel = viewModel {
+                TeaPickerViewModel(collection.teas, sessions.sessions, FakeTeaArchive(sessions), photos)
+            },
         )
     }
 

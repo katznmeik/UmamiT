@@ -55,6 +55,10 @@ class FakeTeaRepository internal constructor(private val c: FakeCollection) : Te
 
     override fun observeTeas(): Flow<List<TeaOverview>> = overviews
 
+    override fun observeOwnedTeas(): Flow<List<TeaOverview>> = overviews.map { list ->
+        list.filter { !it.tea.isArchived }
+    }
+
     override fun observeTea(id: String): Flow<TeaOverview?> = overviews.map { list -> list.find { it.tea.id == id } }
 
     override suspend fun getTea(id: String): Tea? = c.teaRows.value[id]
