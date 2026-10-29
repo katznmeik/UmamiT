@@ -176,7 +176,9 @@ class ShopSessionTest {
 
         assertThat(session.fetch(session.resolve("/gone"))).isEqualTo(ShopFetch.Unavailable(404))
         assertThat(session.fetch(session.resolve(OTHER))).isEqualTo(ShopFetch.Unavailable(400))
-        assertThat(session.fetch(session.resolve(MOVED))).isEqualTo(ShopFetch.Unavailable(301))
+        // A redirect names its target, resolved against the page, for the job to judge (CAT-16).
+        assertThat(session.fetch(session.resolve(MOVED)))
+            .isEqualTo(ShopFetch.Unavailable(301, location = session.resolve(PAGE)))
         assertThat(session.fetch(session.resolve(PAGE))).isInstanceOf(ShopFetch.Fetched::class.java)
 
         assertThat(session.stopCause).isNull()
