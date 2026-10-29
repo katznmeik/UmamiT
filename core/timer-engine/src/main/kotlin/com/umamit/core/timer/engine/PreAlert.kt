@@ -27,11 +27,12 @@ internal const val PRE_ALERT_MIN_LEFT_MS = 1_000L
 /**
  * The pre-alert lead time of step [index] in milliseconds, or null when the
  * step has none: N = 0, a step shorter than N + 5 s, a rinse shorter than
- * 15 s, or a long step (TMR-23, 04 §5).
+ * 15 s, or a long step (TMR-23, 04 §5). N is the step's own: the explicit
+ * value, else the automatic rule (D-093).
  */
 internal fun TimerSession.preAlertLeadMs(index: Int): Long? {
-    val n = preAlert.effectiveSeconds
     val step = steps[index]
+    val n = preAlert.leadSecondsFor(step.plannedSeconds)
     val none = n == 0 ||
         step.plannedSeconds < n + PRE_ALERT_MIN_SPARE_SECONDS ||
         (step.kind == StepKind.RINSE && step.plannedSeconds < RINSE_MIN_SECONDS) ||

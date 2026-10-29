@@ -29,7 +29,8 @@ class PreAlertTest {
 
     @Test
     fun `N is the session override, else the recipe value, else the global setting`() {
-        // (settings, expected lead in seconds or null for none); a 60 s infusion starts at START_ELAPSED_MS.
+        // (settings, expected lead in seconds or null for none); a 90 s infusion starts at START_ELAPSED_MS.
+        // Its automatic third (30 s) never caps B here; PreAlertPerStepTest has the cap (D-093).
         val cases = listOf(
             PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 10) to 10,
             PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 25) to 25,
@@ -41,16 +42,17 @@ class PreAlertTest {
             PreAlertSettings(sessionOverrideSeconds = 0, inheritedSeconds = 20) to null,
         )
         cases.forEach { (settings, lead) ->
-            assertWithMessage("$settings").that(preAlertAfterStart(infusion(60), settings))
-                .isEqualTo(lead?.let { START_ELAPSED_MS + 60_000 - it * 1000L })
+            assertWithMessage("$settings").that(preAlertAfterStart(infusion(90), settings))
+                .isEqualTo(lead?.let { START_ELAPSED_MS + 90_000 - it * 1000L })
         }
     }
 
     @Test
     fun `a step has no pre-alert when it is too short, a short rinse or a long step (E7)`() {
-        val ten = PreAlertSettings.inherited(recipeSeconds = null, globalSeconds = 10)
-        val thirty = PreAlertSettings.inherited(recipeSeconds = 30, globalSeconds = 10)
-        val five = PreAlertSettings.inherited(recipeSeconds = 5, globalSeconds = 10)
+        // Explicit values: since v0.2.1 only they can meet the N + 5 s and the rinse rule (D-093).
+        val ten = PreAlertSettings(sessionOverrideSeconds = 10, inheritedSeconds = 10)
+        val thirty = PreAlertSettings(sessionOverrideSeconds = 30, inheritedSeconds = 10)
+        val five = PreAlertSettings(sessionOverrideSeconds = 5, inheritedSeconds = 10)
         // (step, settings, has a pre-alert)
         val cases = listOf(
             Triple(infusion(15), ten, true),
