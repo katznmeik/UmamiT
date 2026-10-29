@@ -13,7 +13,6 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.PlannedStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
@@ -36,16 +35,11 @@ import javax.inject.Singleton
 /**
  * What *Brühen starten* hands the controller (TMR-01, BRW-02): the session's
  * [snapshot] of tea, recipe and vessel, the planned [steps] (temperatures in
- * 5 °C steps), the recipe's pre-alert [recipePreAlertSeconds] (null: the
- * global setting; 0: off) and the Schritte-Sheet's [preAlert] choice for this
- * session only (SCR-31).
+ * 5 °C steps), each with its own pre-alert for this session only (TMR-23,
+ * SCR-31, D-093), and the recipe's pre-alert [recipePreAlertSeconds], the base B
+ * of the automatic rule (null: the global setting; 0: off).
  */
-data class BrewStart(
-    val snapshot: SessionSnapshot,
-    val steps: List<PlannedStep>,
-    val recipePreAlertSeconds: Int?,
-    val preAlert: PreAlertChoice = PreAlertChoice.Inherit,
-) {
+data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>, val recipePreAlertSeconds: Int?) {
     init {
         require(steps.isNotEmpty()) { "a session needs at least one step" }
     }
@@ -135,10 +129,9 @@ class BrewSessionController @Inject constructor(
         }
     }
 
-    /** A brew start whose pre-alert is frozen (04 §5); it reads the clocks when its turn handles it. */
+    /** A brew start whose pre-alert base B is frozen (04 §5); it reads the clocks when its turn handles it. */
     private inner class PendingStart(private val request: BrewStart, globalPreAlertSeconds: Int) {
-        private val preAlert =
-            PreAlertSettings.inherited(request.recipePreAlertSeconds, globalPreAlertSeconds).with(request.preAlert)
+        private val preAlert = PreAlertSettings.inherited(request.recipePreAlertSeconds, globalPreAlertSeconds)
         private val event = TimerEvent.StartSession(
             sessionId = UUID.randomUUID().toString(),
             steps = request.steps,
@@ -153,7 +146,7 @@ class BrewSessionController @Inject constructor(
                 id = event.sessionId,
                 snapshot = request.snapshot,
                 steps = request.steps,
-                preAlertSeconds = preAlert.effectiveSeconds,
+                preAlertSeconds = preAlert.inheritedSeconds,
                 startedAtMs = now.wallMs,
                 zoneId = now.zone.id,
             )
@@ -555,12 +548,3 @@ private fun endingEventOf(state: TimerState.Active): TimerEvent = when {
 private suspend fun SettingsRepository.current(): UserSettings = settings
     .catch { e -> if (e is IOException) emit(UserSettings()) else throw e }
     .first()
-
-/** These settings with the session's own pre-alert [choice] (*Wie Einstellung*, *Aus*, N s; D-048). */
-private fun PreAlertSettings.with(choice: PreAlertChoice): PreAlertSettings = copy(
-    sessionOverrideSeconds = when (choice) {
-        PreAlertChoice.Inherit -> null
-        PreAlertChoice.Off -> 0
-        is PreAlertChoice.Seconds -> choice.seconds
-    },
-)

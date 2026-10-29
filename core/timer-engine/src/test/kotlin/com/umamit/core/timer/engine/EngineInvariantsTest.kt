@@ -475,7 +475,7 @@ class EngineInvariantsTest {
         { _, _ -> TimerEvent.EndStepNow },
         { _, _ -> TimerEvent.SkipStep },
         { _, _ -> TimerEvent.AddStep },
-        { random, state -> TimerEvent.EditSteps(editedPlan(random, state), randomPreAlert(random)) },
+        { random, state -> TimerEvent.EditSteps(editedPlan(random, state)) },
         { random, _ -> if (random.nextBoolean()) TimerEvent.Cancel else TimerEvent.QuickTimerTimeout },
         { _, _ -> TimerEvent.Recover },
         { _, _ -> TimerEvent.Recover },
@@ -484,28 +484,35 @@ class EngineInvariantsTest {
 
     private fun randomEvent(random: Random, state: TimerState): TimerEvent = generators.random(random)(random, state)
 
-    /** Short steps, and now and then a long one (TMR-18). */
+    /** Short steps, and now and then a long one (TMR-18), each with its own pre-alert. */
     private fun randomPlan(random: Random): List<PlannedStep> = List(random.nextInt(1, 5)) {
         val seconds = if (random.nextInt(6) == 0) random.nextInt(600, 3600) else random.nextInt(5, 120)
-        PlannedStep(StepKind.entries.random(random), seconds, tempC = null)
+        PlannedStep(StepKind.entries.random(random), seconds, tempC = null, randomPreAlert(random))
     }
 
-    /** Mostly a valid edit (the current prefix plus new pending steps), sometimes a random plan. */
+    /**
+     * Mostly a valid edit (the ended steps as they are, the started step now and then with a new pre-alert, plus
+     * new pending steps), sometimes a random plan.
+     */
     private fun editedPlan(random: Random, state: TimerState): List<PlannedStep> {
         val steps = (state as? TimerState.Active)?.session?.steps
         return if (steps == null || random.nextInt(4) == 0) {
             randomPlan(random)
         } else {
-            steps.filter { it.status != StepStatus.PENDING }.map { it.planned } + List(random.nextInt(0, 3)) {
-                PlannedStep(StepKind.entries.random(random), random.nextInt(5, 120), tempC = 60)
+            steps.filter { it.status != StepStatus.PENDING }.map { step ->
+                val newChoice = step.status == StepStatus.STARTED && random.nextBoolean()
+                if (newChoice) step.planned.copy(preAlertSeconds = randomPreAlert(random)) else step.planned
+            } + List(random.nextInt(0, 3)) {
+                PlannedStep(StepKind.entries.random(random), random.nextInt(5, 120), tempC = 60, randomPreAlert(random))
             }
         }
     }
 
-    private fun randomPreAlert(random: Random): PreAlertChoice = when (random.nextInt(3)) {
-        0 -> PreAlertChoice.Inherit
-        1 -> PreAlertChoice.Off
-        else -> PreAlertChoice.Seconds(random.nextInt(1, 7) * 5)
+    /** A step's own pre-alert: *Automatisch* (null), *Aus* (0) or 5–30 s (TMR-23, D-093). */
+    private fun randomPreAlert(random: Random): Int? = when (random.nextInt(3)) {
+        0 -> null
+        1 -> 0
+        else -> random.nextInt(1, 7) * 5
     }
 
     private companion object {

@@ -77,7 +77,10 @@ data class BrewSessionEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
 
-/** Table `session_step` (05 §3.7); recorded values follow 04 §5.1. */
+/**
+ * Table `session_step` (05 §3.7); recorded values follow 04 §5.1. `pre_alert_seconds` (schema v2, D-093) is the
+ * step's pre-alert choice in this session: null *Automatisch*, 0 *Aus*, else 5–30 s.
+ */
 @Entity(
     tableName = "session_step",
     foreignKeys = [
@@ -107,6 +110,7 @@ data class SessionStepEntity(
     @ColumnInfo(name = "note") val note: String?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "pre_alert_seconds") val preAlertSeconds: Int?,
 )
 
 /**
@@ -147,7 +151,6 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "boot_count") val bootCount: Int,
     @ColumnInfo(name = "last_interaction_wall_ms") val lastInteractionWallMs: Long,
     @ColumnInfo(name = "demoted") val demoted: Boolean,
-    @ColumnInfo(name = "pre_alert_override_seconds") val preAlertOverrideSeconds: Int?,
     @ColumnInfo(name = "pre_alert_inherited_seconds") val preAlertInheritedSeconds: Int,
     @ColumnInfo(name = "zone_id") val zoneId: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,

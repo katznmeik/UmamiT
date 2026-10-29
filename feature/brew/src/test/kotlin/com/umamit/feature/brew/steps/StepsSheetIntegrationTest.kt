@@ -130,19 +130,22 @@ class StepsSheetIntegrationTest {
         compose.onNodeWithText("Fertig").performClick()
 
         val after = state.send(requireNotNull(done)) as TimerState.Running
-        assertThat(after.session.steps.take(2)).isEqualTo(before.session.steps.take(2))
+        // The done rinse stays as it was; the running infusion changes only its pre-alert (SCR-31, D-093).
+        assertThat(after.session.steps[0]).isEqualTo(before.session.steps[0])
+        assertThat(after.session.steps[1]).isEqualTo(before.session.steps[1].copy(preAlertSeconds = 0))
         assertThat(after.deadlineElapsedMs).isEqualTo(before.deadlineElapsedMs)
         assertThat(after.session.steps.drop(2).map { it.planned }).containsExactly(
-            PlannedStep(StepKind.INFUSION, 35, 65),
-            PlannedStep(StepKind.INFUSION, 45, 55),
-            PlannedStep(StepKind.INFUSION, 70, 55),
+            PlannedStep(StepKind.INFUSION, 35, 65, preAlertSeconds = 0),
+            PlannedStep(StepKind.INFUSION, 45, 55, preAlertSeconds = 0),
+            PlannedStep(StepKind.INFUSION, 70, 55, preAlertSeconds = 0),
         ).inOrder()
         assertThat(after.session.steps.drop(2).map { it.status }).containsExactly(
             StepStatus.PENDING,
             StepStatus.PENDING,
             StepStatus.PENDING,
         )
-        assertThat(after.session.preAlert.effectiveSeconds).isEqualTo(0)
+        assertThat(after.session.preAlert).isEqualTo(before.session.preAlert)
+        assertThat(BrewTimerEngine.dueTimes(after).preAlertAtElapsedMs).isNull()
     }
 
     @Test
@@ -157,25 +160,22 @@ class StepsSheetIntegrationTest {
         compose.onNodeWithText("Aufguss hinzufügen").performScrollTo().performClick()
         compose.onNodeWithText("Im Rezept speichern").performClick()
         val request = requireNotNull(saved)
-        recipes.replaceStepsAndPreAlert(
-            recipe.id,
-            request.recipeSteps,
-            request.recipePreAlertSeconds(recipe.preAlertSeconds),
-        )
+        recipes.replaceSteps(recipe.id, request.recipeSteps)
 
         val stored = requireNotNull(recipes.getRecipe("r1"))
         assertThat(stored.steps).isEqualTo(request.recipeSteps)
+        // The selector's 20 s goes into the steps that have not ended; the done one keeps its own (D-093).
         assertThat(stored.steps).containsExactly(
             RecipeStep(StepKind.INFUSION, 90, 70),
-            RecipeStep(StepKind.INFUSION, 35, 65),
-            RecipeStep(StepKind.INFUSION, 55, 65),
+            RecipeStep(StepKind.INFUSION, 35, 65, preAlertSeconds = 20),
+            RecipeStep(StepKind.INFUSION, 55, 65, preAlertSeconds = 20),
         ).inOrder()
-        assertThat(stored.preAlertSeconds).isEqualTo(20)
-        assertThat(stored.copy(steps = recipe.steps, preAlertSeconds = 5)).isEqualTo(recipe)
+        // The recipe's base B is not a step field and stays.
+        assertThat(stored.copy(steps = recipe.steps)).isEqualTo(recipe)
     }
 
     @Test
-    fun `Wie Einstellung keeps the recipe's own pre-alert`() = runTest {
+    fun `Wie Einstellung keeps the steps Automatisch and the recipe's own base`() = runTest {
         teas.saveTea(Tea(id = "t1", name = "Bio Sencha Hisui", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF))
         recipes.saveRecipe(recipe(preAlertSeconds = 15))
         val recipe = requireNotNull(recipes.getRecipe("r1"))
@@ -183,11 +183,7 @@ class StepsSheetIntegrationTest {
 
         compose.onNodeWithText("Im Rezept speichern").performClick()
         val request = requireNotNull(saved)
-        recipes.replaceStepsAndPreAlert(
-            recipe.id,
-            request.recipeSteps,
-            request.recipePreAlertSeconds(recipe.preAlertSeconds),
-        )
+        recipes.replaceSteps(recipe.id, request.recipeSteps)
 
         assertThat(recipes.getRecipe("r1")).isEqualTo(recipe)
     }
@@ -213,6 +209,7 @@ class StepsSheetIntegrationTest {
                 plannedSeconds = step.durationSeconds,
                 tempC = step.tempC,
                 status = if (index == 0) StepStatus.DONE else StepStatus.PENDING,
+                preAlertSeconds = step.preAlertSeconds,
             )
         },
         preAlert = preAlert,

@@ -23,8 +23,9 @@ import com.umamit.core.database.entity.VesselEntity
 import java.time.LocalDate
 
 /**
- * The personal database `umamit.db` (05 §1, §3), schema version 1. Every version change
- * ships a migration and a test; there is no destructive fallback (05 §9).
+ * The personal database `umamit.db` (05 §1, §3), schema version 2 (v0.2.1: the pre-alert per step,
+ * D-093). Every version change ships a migration and a test; there is no destructive fallback and no
+ * downgrade (05 §9, D-093 Q16).
  */
 @Database(
     entities = [
@@ -59,7 +60,7 @@ abstract class UmamiDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "umamit.db"
-        const val VERSION = 1
+        const val VERSION = 2
     }
 }
 

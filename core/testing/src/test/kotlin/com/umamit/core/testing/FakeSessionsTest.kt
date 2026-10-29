@@ -104,7 +104,6 @@ class FakeSessionsTest {
         bootCount = 1,
         lastInteractionWallMs = START,
         demoted = false,
-        preAlertOverrideSeconds = null,
         preAlertInheritedSeconds = 10,
         zoneId = "Europe/Berlin",
     )

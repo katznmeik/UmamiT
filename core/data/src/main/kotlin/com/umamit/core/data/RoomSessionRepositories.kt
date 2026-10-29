@@ -44,17 +44,11 @@ class RoomSessionRepository @Inject constructor(
         }
     }
 
-    override suspend fun replacePendingSteps(
-        sessionId: String,
-        fromIndex: Int,
-        steps: List<PlannedStep>,
-        preAlertSeconds: Int,
-    ) {
+    override suspend fun replacePendingSteps(sessionId: String, fromIndex: Int, steps: List<PlannedStep>) {
         val now = time.nowMs()
         db.withTransaction {
             sessions.deleteStepsFrom(sessionId, fromIndex)
             sessions.insertSteps(steps.mapIndexed { i, step -> step.toEntity(sessionId, fromIndex + i, now) })
-            sessions.setPreAlert(sessionId, preAlertSeconds, now)
         }
     }
 

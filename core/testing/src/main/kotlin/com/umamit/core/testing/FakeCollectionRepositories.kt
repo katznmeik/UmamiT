@@ -99,11 +99,10 @@ class FakeRecipeRepository internal constructor(private val c: FakeCollection) :
         }
     }
 
-    override suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?) =
-        c.recipeRows.update { map ->
-            val recipe = map[recipeId] ?: return@update map
-            map + (recipeId to recipe.copy(steps = steps.snapped(), preAlertSeconds = preAlertSeconds))
-        }
+    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) = c.recipeRows.update { map ->
+        val recipe = map[recipeId] ?: return@update map
+        map + (recipeId to recipe.copy(steps = steps.snapped()))
+    }
 
     override suspend fun deleteRecipe(id: String) = c.recipeRows.update { it - id }
 }

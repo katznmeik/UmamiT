@@ -57,9 +57,9 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
         dao.save(recipe.toEntity(createdAt, now), recipe.steps.toEntities(recipe.id, now))
     }
 
-    override suspend fun replaceStepsAndPreAlert(recipeId: String, steps: List<RecipeStep>, preAlertSeconds: Int?) {
+    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) {
         val now = time.nowMs()
-        dao.replaceStepsAndPreAlert(recipeId, steps.toEntities(recipeId, now), preAlertSeconds, now)
+        dao.replaceSteps(recipeId, steps.toEntities(recipeId, now), now)
     }
 
     override suspend fun deleteRecipe(id: String) = dao.delete(id)
