@@ -162,7 +162,7 @@ sealed interface TimerDiagnostic {
     /**
      * The alert player started [cue] with the [conditions] it read (ringer mode, call, Do Not
      * Disturb) and the [outputs] the ringer-mode matrix allowed then (04 §9.1, 06 §5.6), playing
-     * [tone] (the file key; `tick` for the pre-alert) for [length] (SET-14). [scheduled] is when
+     * [tone] (the file key; for the pre-alert its sound's, SET-26) for [length] (SET-14). [scheduled] is when
      * a step's tick or alert was due (null for *Alarm testen*): with [at], the moment the sound
      * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068). [start]
      * splits a step's cue into the time it was queued, waited for the settings and started its

@@ -50,6 +50,10 @@ val AlertSound.rawRes: Int
         AlertSound.GLOCKENSPIEL -> ContentR.raw.glockenspiel
         AlertSound.SANFT -> ContentR.raw.sanft
         AlertSound.TICK -> ContentR.raw.tick
+        AlertSound.ZIMBEL -> ContentR.raw.zimbel
+        AlertSound.GLOECKCHEN -> ContentR.raw.gloeckchen
+        AlertSound.KLANGSTAB -> ContentR.raw.klangstab
+        AlertSound.TIEFE_SCHALE -> ContentR.raw.tiefe_schale
     }
 
 /** Ringer mode from [AudioManager], calls from the audio mode, DND from the interruption filter. */

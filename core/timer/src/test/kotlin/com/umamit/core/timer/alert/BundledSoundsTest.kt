@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.model.UserSettings
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -37,8 +38,9 @@ class BundledSoundsTest {
     }
 
     @Test
-    fun theSixGeneratedFilesAreBundled() {
-        // scripts/sounds/generate.sh: five alert tones (SET-09) and the pre-alert tick (D-045, D-059).
+    fun theTenGeneratedFilesAreBundled() {
+        // scripts/sounds/generate.sh: five alert tones (SET-09), the pre-alert tick (D-045, D-059) and
+        // the four pre-alert sounds of v0.2.1 (SET-26, 04 §9.2, D-093).
         assertThat(AlertSound.entries.associate { it.key to it.lengthMs }).containsExactly(
             "klangschale", 3_500L,
             "glocke", 3_000L,
@@ -46,6 +48,10 @@ class BundledSoundsTest {
             "glockenspiel", 2_200L,
             "sanft", 3_000L,
             "tick", 800L,
+            "zimbel", 3_200L,
+            "gloeckchen", 3_000L,
+            "klangstab", 3_200L,
+            "tiefe_schale", 3_200L,
         )
     }
 
@@ -53,6 +59,35 @@ class BundledSoundsTest {
     fun theToneChoicesAreTheFiveAlertTonesWithTheKlangschaleFirst() {
         assertThat(AlertSound.TONES.map { it.key })
             .containsExactly("klangschale", "glocke", "holzblock", "glockenspiel", "sanft").inOrder()
+    }
+
+    @Test
+    fun thePreAlertChoicesAreTheFourNewSoundsThenTheTickStoredAsTing() {
+        // 05 §6: the stored keys of SET-26 (Vorwarnton); „Ting (leise)" plays today's tick.
+        assertThat(PreAlertSound.entries.map { it.key to it.sound }).containsExactly(
+            "zimbel" to AlertSound.ZIMBEL,
+            "gloeckchen" to AlertSound.GLOECKCHEN,
+            "klangstab" to AlertSound.KLANGSTAB,
+            "tiefe_schale" to AlertSound.TIEFE_SCHALE,
+            "ting" to AlertSound.TICK,
+        ).inOrder()
+    }
+
+    @Test
+    fun theDefaultPreAlertSoundIsTheZimbelAndAnUnknownKeyReadsAsIt() {
+        // Zimbel until the PO picks the default with the first v0.2.1 rc (D-093).
+        assertThat(PreAlertSound.of(UserSettings.DEFAULT_PRE_ALERT_SOUND)).isEqualTo(PreAlertSound.ZIMBEL)
+        assertThat(PreAlertSound.of("gong")).isEqualTo(PreAlertSound.ZIMBEL)
+        assertThat(PreAlertSound.of("tick")).isEqualTo(PreAlertSound.ZIMBEL)
+        assertThat(PreAlertSound.of("ting")).isEqualTo(PreAlertSound.TING)
+    }
+
+    @Test
+    fun everyPreAlertSoundEndsBeforeTheDeadline() {
+        // 04 §9.2, E7: at least 5 s lie between a pre-alert and its deadline.
+        PreAlertSound.entries.forEach {
+            assertWithMessage("${it.sound} length").that(it.sound.lengthMs).isLessThan(5_000L)
+        }
     }
 
     @Test

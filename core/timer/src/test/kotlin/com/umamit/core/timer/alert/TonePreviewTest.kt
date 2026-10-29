@@ -30,6 +30,27 @@ class TonePreviewTest {
     }
 
     @Test
+    fun `a Vorwarnton plays once by its stored key and lets the focus go when it has rung out`() {
+        // SET-26 *Anhören*: the sound alone, as long as it rings (04 §9.2).
+        preview.playPreAlert("klangstab")
+        scheduler.advanceBy(3_000L)
+        assertThat(sound.focusHeld).isTrue()
+        scheduler.advanceBy(200L)
+
+        assertThat(sound.plays(AlertSound.KLANGSTAB)).containsExactly(0L)
+        assertThat(sound.focusHeld).isFalse()
+    }
+
+    @Test
+    fun `Ting plays the tick, and an unknown Vorwarnton key the default`() {
+        preview.playPreAlert("ting")
+        assertThat(sound.playing).isEqualTo(AlertSound.TICK)
+
+        preview.playPreAlert("unknown")
+        assertThat(sound.playing).isEqualTo(PreAlertSound.DEFAULT.sound)
+    }
+
+    @Test
     fun `stop ends the preview at once`() {
         preview.play("sanft")
         preview.stop()

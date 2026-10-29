@@ -14,12 +14,14 @@ import com.umamit.core.timer.AlertPlayer
  *   next repeat. When the last cycle has run, the alert's `onFinished` runs
  *   once, whatever the outputs were (silent mode is still an alert); an alert
  *   that is stopped or replaced first never reports.
- * - **Pre-alert:** the tick and/or the short haptic once. It never cuts a
- *   playing alert: a pre-alert while an alert plays is ignored (rule 8).
+ * - **Pre-alert:** the chosen pre-alert sound (SET-26, „the tick") and/or the
+ *   short haptic once; the sound rings out to its end. It never cuts a
+ *   playing alert: a pre-alert while an alert plays is ignored, and an alert
+ *   cuts a pre-alert sound that still rings (rule 8).
  * - ***Alarm testen*** (SET-31, [testAlert]): the pre-alert, then the alert
- *   [TEST_ALERT_DELAY_MS] later, with the current settings and the same
- *   matrix. A test never interrupts a real alert or tick; a real one replaces
- *   a running test.
+ *   [TEST_PAUSE_MS] after the pre-alert sound's end ([testAlertDelayMs]), with
+ *   the current settings and the same matrix. A test never interrupts a real
+ *   alert or tick; a real one replaces a running test.
  * - **Audio focus:** transient with ducking while a sound plays; if it is
  *   refused or lost, this alert continues without sound (vibration only, if
  *   the matrix allows it).
@@ -45,14 +47,17 @@ class RingerModeAlertPlayer(
     private var onFinished: (() -> Unit)? = null
     private var scheduled = false
 
-    /** The pre-alert tick (TMR-23); ignored while an alert plays, so it never cuts one. */
+    /**
+     * The pre-alert tick (TMR-23) with the chosen sound (SET-26); ignored while an alert plays, so
+     * it never cuts one. The sound and the focus are released only after the sound has rung out.
+     */
     override fun playPreAlert() {
         if (mode == Mode.ALERT) return
         stopAlert()
         mode = Mode.PRE_ALERT
         current = settings()
         if (tick()) {
-            val releaseAfter = maxOf(AlertSound.TICK.lengthMs, Haptic.PRE_ALERT.lengthMs) + RELEASE_MARGIN_MS
+            val releaseAfter = maxOf(current.preAlert.lengthMs, Haptic.PRE_ALERT.lengthMs) + RELEASE_MARGIN_MS
             schedule(releaseAfter) { stopAlert() }
         } else {
             mode = Mode.IDLE
@@ -73,14 +78,17 @@ class RingerModeAlertPlayer(
         beginCycles(onFinished)
     }
 
-    /** *Alarm testen* (SET-31): the tick, then the alert; ignored while a real alert or tick plays. */
+    /**
+     * *Alarm testen* (SET-31): the tick, then the alert once the tick has rung out; ignored while a
+     * real alert or tick plays.
+     */
     fun testAlert() {
         if (mode == Mode.ALERT || mode == Mode.PRE_ALERT) return
         stopAlert()
         mode = Mode.TEST
         current = settings()
         tick()
-        schedule(TEST_ALERT_DELAY_MS) { beginCycles(onFinished = null) }
+        schedule(testAlertDelayMs(current.preAlert)) { beginCycles(onFinished = null) }
     }
 
     /** Stops a running *Alarm testen*; a real alert or tick plays on. */
@@ -99,11 +107,11 @@ class RingerModeAlertPlayer(
         outputs.releaseAll()
     }
 
-    /** The tick and/or short haptic per the matrix; true when something plays. */
+    /** The chosen pre-alert sound (SET-26) and/or the short haptic per the matrix; true when something plays. */
     private fun tick(): Boolean {
         val allowed = AlertMatrix.outputs(environment.conditions(), current.vibration)
         if (allowed.vibration) outputs.vibrate(Haptic.PRE_ALERT)
-        if (allowed.sound) outputs.play(AlertSound.TICK)
+        if (allowed.sound) outputs.play(current.preAlert)
         return outputs.active
     }
 
@@ -146,8 +154,14 @@ class RingerModeAlertPlayer(
         /** Extra time before the pre-alert releases the audio focus. */
         const val RELEASE_MARGIN_MS = 250L
 
-        /** *Alarm testen*: the alert starts this long after the tick (0.8 s tick, 0.7 s pause). */
-        const val TEST_ALERT_DELAY_MS = 1_500L
+        /** *Alarm testen*: the pause between the end of the pre-alert sound and the alert (D-059). */
+        const val TEST_PAUSE_MS = 700L
+
+        /**
+         * *Alarm testen*: the alert starts this long after the pre-alert [sound], once it has rung
+         * out (1.5 s for the 0.8 s tick, D-059; 3.9 s for a 3.2 s Vorwarnton, SET-26).
+         */
+        fun testAlertDelayMs(sound: AlertSound): Long = sound.lengthMs + TEST_PAUSE_MS
 
         /** Length of one alert cycle (tone + vibration) for [tone]. */
         fun cycleMs(tone: AlertSound): Long = maxOf(tone.lengthMs, Haptic.ALERT.lengthMs + MIN_PAUSE_MS)

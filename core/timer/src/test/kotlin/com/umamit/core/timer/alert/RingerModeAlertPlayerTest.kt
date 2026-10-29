@@ -15,7 +15,9 @@ class RingerModeAlertPlayerTest {
     private val environment = FakeEnvironment()
     private val sound = FakeSoundOutput(scheduler)
     private val haptics = FakeHaptics(scheduler)
-    private var settings = AlertSettings()
+
+    // „Ting (leise)", the tick of M1: the tests below keep its timing; the other sounds have their own tests (SET-26).
+    private var settings = AlertSettings(preAlert = AlertSound.TICK)
     private val player = RingerModeAlertPlayer(environment, sound, haptics, scheduler) { settings }
 
     // --- Alert: ringer-mode matrix -------------------------------------------
@@ -208,6 +210,39 @@ class RingerModeAlertPlayerTest {
     }
 
     @Test
+    fun preAlertPlaysTheChosenSoundAndLetsItRingOutBeforeReleasingTheFocus() {
+        // SET-26: the Vorwarnton rings for about 3 s (04 §9.2); nothing may cut it short.
+        ringer(RingerMode.NORMAL)
+        settings = AlertSettings(preAlert = AlertSound.KLANGSTAB)
+
+        player.playPreAlert()
+        assertThat(sound.events).containsExactly("requestFocus @ 0", "play KLANGSTAB @ 0").inOrder()
+
+        scheduler.advanceBy(3_200L)
+        assertThat(sound.playing).isEqualTo(AlertSound.KLANGSTAB)
+        assertThat(sound.focusHeld).isTrue()
+
+        scheduler.advanceBy(1_000L)
+        assertThat(sound.focusHeld).isFalse()
+        assertThat(sound.plays(AlertSound.KLANGSTAB)).containsExactly(0L)
+        assertThat(scheduler.pendingCount).isEqualTo(0)
+    }
+
+    @Test
+    fun theAlertCutsAPreAlertSoundThatStillRings() {
+        // Rule 8: a pre-alert played late (≥ 1 s before the deadline) never delays the alert.
+        ringer(RingerMode.NORMAL)
+        settings = AlertSettings(preAlert = AlertSound.TIEFE_SCHALE)
+        player.playPreAlert()
+        scheduler.advanceBy(1_000L)
+
+        player.startAlert()
+
+        assertThat(sound.events).containsAtLeast("stop @ 1000", "play KLANGSCHALE @ 1000").inOrder()
+        assertThat(sound.playing).isEqualTo(AlertSound.KLANGSCHALE)
+    }
+
+    @Test
     fun preAlertInVibrateModeOrInACallIsAShortHapticOnly() {
         ringer(RingerMode.VIBRATE)
         player.playPreAlert()
@@ -364,7 +399,7 @@ class RingerModeAlertPlayerTest {
     @Test
     fun testAlertPlaysTheTickThenTheAlertWithTheCurrentSettings() {
         ringer(RingerMode.NORMAL)
-        settings = AlertSettings(tone = AlertSound.GLOCKE, length = AlertLength.NORMAL, vibration = true)
+        settings = AlertSettings(tone = AlertSound.GLOCKE, length = AlertLength.NORMAL, preAlert = AlertSound.TICK)
 
         player.testAlert()
         scheduler.advanceBy(300_000L)
@@ -379,9 +414,24 @@ class RingerModeAlertPlayerTest {
     }
 
     @Test
+    fun testAlertLetsTheChosenPreAlertSoundRingOutThenPausesBeforeTheAlert() {
+        // SET-31 with SET-26: the PO judges the Vorwarnton's fall-off, so the alert waits for its
+        // end plus the pause of 0.7 s (the tick's 0.8 s + 0.7 s = 1.5 s, D-059).
+        ringer(RingerMode.NORMAL)
+        settings = AlertSettings(tone = AlertSound.GLOCKE, length = AlertLength.SHORT, preAlert = AlertSound.ZIMBEL)
+
+        player.testAlert()
+        scheduler.advanceBy(300_000L)
+
+        assertThat(sound.events.filter { it.startsWith("play") || it.startsWith("stop") })
+            .containsExactly("play ZIMBEL @ 0", "play GLOCKE @ 3900", "stop @ 6900").inOrder()
+        assertThat(haptics.plays(Haptic.ALERT)).containsExactly(3_900L)
+    }
+
+    @Test
     fun testAlertFollowsTheRingerModeLikeARealAlert() {
         ringer(RingerMode.VIBRATE)
-        settings = AlertSettings(tone = AlertSound.SANFT, length = AlertLength.SHORT)
+        settings = AlertSettings(tone = AlertSound.SANFT, length = AlertLength.SHORT, preAlert = AlertSound.TICK)
 
         player.testAlert()
         scheduler.advanceBy(300_000L)
@@ -414,7 +464,7 @@ class RingerModeAlertPlayerTest {
     @Test
     fun aRealAlertOrTickReplacesARunningTest() {
         ringer(RingerMode.NORMAL)
-        settings = AlertSettings(tone = AlertSound.HOLZBLOCK)
+        settings = AlertSettings(tone = AlertSound.HOLZBLOCK, preAlert = AlertSound.TICK)
         player.testAlert()
         scheduler.advanceBy(2_000L)
 
