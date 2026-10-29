@@ -27,10 +27,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -194,51 +190,6 @@ private fun TeaPhoto(photo: Painter) {
             },
     )
 }
-
-@Composable
-private fun TimerTopBar(state: TimerUiState.Active, overlays: TimerOverlays, actions: TimerActions) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = UmamiSpacing.XXSmall),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = actions.back) {
-            Icon(painterResource(UmamiIcons.ArrowBack), contentDescription = stringResource(R.string.brew_timer_back))
-        }
-        Spacer(Modifier.weight(1f))
-        Box {
-            IconButton(onClick = overlays::openMenu) {
-                Icon(
-                    painterResource(UmamiIcons.MoreVert),
-                    contentDescription = stringResource(R.string.brew_timer_more),
-                )
-            }
-            // Not composed once the alert hides it: Material's menu would otherwise keep its popup for the
-            // exit animation over the first frames of the alert (rule 8). A normal close still animates.
-            if (overlays.menuComposable) {
-                DropdownMenu(expanded = overlays.menuShown, onDismissRequest = { overlays.menuOpen = false }) {
-                    state.menuItems().forEach { item ->
-                        DropdownMenuItem(text = { Text(stringResource(item.label)) }, onClick = { actions.menu(item) })
-                    }
-                }
-            }
-        }
-    }
-}
-
-private val TimerMenuItem.label: Int
-    get() = when (this) {
-        TimerMenuItem.AdjustBrew -> R.string.brew_timer_menu_adjust
-        TimerMenuItem.EndStepNow -> R.string.brew_timer_menu_end_step
-        TimerMenuItem.SkipStep -> R.string.brew_timer_menu_skip
-        TimerMenuItem.EditSteps -> R.string.brew_timer_menu_edit_steps
-        TimerMenuItem.AddStep -> R.string.brew_timer_menu_add_step
-        TimerMenuItem.FinishSession -> R.string.brew_timer_menu_finish
-        TimerMenuItem.DiscardSession -> R.string.brew_timer_menu_discard
-        TimerMenuItem.TimerSettings -> R.string.brew_timer_menu_settings
-        TimerMenuItem.CancelQuickTimer -> R.string.brew_quick_cancel
-    }
 
 /** Tea name, „55 °C · Aufguss 1 von 3" and the step dots (TMR-02). */
 @Composable
