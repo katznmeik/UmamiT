@@ -2,7 +2,6 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.flow.first
@@ -57,14 +56,17 @@ class SessionDataTest {
     }
 
     @Test
-    fun `the Schritte-Sheet's Aus at the start turns the pre-alert off for this session`() = runTest {
-        h.controller.startSession(brewStart(infusion(60)).copy(preAlert = PreAlertChoice.Off))
+    fun `the Schritte-Sheet's Aus at the start turns the step's pre-alert off for this session`() = runTest {
+        h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(60)
 
         assertThat(h.alert.ticks).isEqualTo(0)
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
-        assertThat(h.sessions.getSession(h.sessionId)!!.preAlertSeconds).isEqualTo(0)
+        val session = h.sessions.getSession(h.sessionId)!!
+        assertThat(session.steps.single().preAlertSeconds).isEqualTo(0)
+        // The session keeps B, the global setting frozen at the start (umamit.db v2, D-093).
+        assertThat(session.preAlertSeconds).isEqualTo(10)
     }
 
     @Test
@@ -74,8 +76,7 @@ class SessionDataTest {
 
         val outcome = h.controller.send(
             TimerEvent.EditSteps(
-                listOf(infusion(60), infusion(45, tempC = 70), infusion(90)),
-                PreAlertChoice.Seconds(5),
+                listOf(infusion(60, preAlert = 5), infusion(45, tempC = 70, preAlert = 5), infusion(90, preAlert = 5)),
             ),
         )
 
@@ -84,7 +85,9 @@ class SessionDataTest {
         assertThat(session.steps.map { it.plannedSeconds to it.tempC })
             .containsExactly(60 to 60, 45 to 70, 90 to 60)
             .inOrder()
-        assertThat(session.preAlertSeconds).isEqualTo(5)
+        // Each step keeps its choice, the running one's included; the session keeps B (D-093).
+        assertThat(session.steps.map { it.preAlertSeconds }).containsExactly(5, 5, 5)
+        assertThat(session.preAlertSeconds).isEqualTo(10)
         assertThat(h.active.steps.map { it.plannedSeconds }).containsExactly(60, 45, 90).inOrder()
     }
 

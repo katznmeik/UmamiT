@@ -12,7 +12,7 @@ import com.umamit.core.timer.engine.StepStatus
  * kept, so a configuration change never shows it again.
  *
  * Encoding: `[hasRecipe, baseTempC?, preAlert, appliedPreAlert, stepCount,
- * (kind, seconds, tempC?, status)*, (applied kind, seconds, tempC?)*]`.
+ * (kind, seconds, tempC?, status, preAlertSeconds?)*, (applied kind, seconds, tempC?, preAlertSeconds?)*]`.
  */
 internal val StepsSheetStateSaver: Saver<StepsSheetState, Any> = Saver(
     save = { state -> encode(state) },
@@ -24,8 +24,8 @@ private const val PRE_ALERT_INDEX = 2
 private const val APPLIED_PRE_ALERT_INDEX = 3
 private const val STEP_COUNT_INDEX = 4
 private const val HEADER_SIZE = 5
-private const val STEP_SIZE = 4
-private const val APPLIED_STEP_SIZE = 3
+private const val STEP_SIZE = 5
+private const val APPLIED_STEP_SIZE = 4
 
 private fun PreAlertChoice.code(): Int = when (this) {
     PreAlertChoice.Inherit -> INHERIT_CODE
@@ -50,11 +50,13 @@ private fun encode(state: StepsSheetState): List<Int?> = buildList {
         add(step.plannedSeconds)
         add(step.tempC)
         add(step.status.ordinal)
+        add(step.preAlertSeconds)
     }
     state.appliedSteps.forEach { step ->
         add(step.kind.ordinal)
         add(step.plannedSeconds)
         add(step.tempC)
+        add(step.preAlertSeconds)
     }
 }
 
@@ -68,10 +70,11 @@ private fun decode(value: Any): StepsSheetState {
             plannedSeconds = requireNotNull(step[1]),
             tempC = step[2],
             status = StepStatus.entries[requireNotNull(step[3])],
+            preAlertSeconds = step[4],
         )
     }
     val applied = codes.subList(stepsEnd, codes.size).chunked(APPLIED_STEP_SIZE).map { step ->
-        PlannedStep(StepKind.entries[requireNotNull(step[0])], requireNotNull(step[1]), step[2])
+        PlannedStep(StepKind.entries[requireNotNull(step[0])], requireNotNull(step[1]), step[2], step[3])
     }
     val input = StepsSheetInput(
         steps = steps,

@@ -28,7 +28,7 @@ class QuickTimerTest {
             .containsExactly(SessionStep(StepKind.INFUSION, 90, tempC = null, StepStatus.PENDING, record = null))
         assertThat(
             ready.session.preAlert,
-        ).isEqualTo(PreAlertSettings(sessionOverrideSeconds = null, inheritedSeconds = 15))
+        ).isEqualTo(PreAlertSettings(inheritedSeconds = 15))
         assertThat(ready.session.zone).isEqualTo(BERLIN)
         assertThat(effects).containsExactly(
             Persist,
@@ -109,7 +109,7 @@ class QuickTimerTest {
             TimerEvent.FinishSession,
             TimerEvent.Discard,
             TimerEvent.AddStep,
-            TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Off),
+            editSteps(PreAlertChoice.Off, infusion(60)),
         )
         val drivers = listOf(
             quick(60),

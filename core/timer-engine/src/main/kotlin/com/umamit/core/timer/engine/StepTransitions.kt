@@ -33,7 +33,9 @@ internal fun accepted(
 internal fun startSession(event: TimerEvent.StartSession, now: ClockReading): TimerTransition {
     val session = TimerSession(
         kind = SessionKind.Brew(event.sessionId),
-        steps = event.steps.map { SessionStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, null) },
+        steps = event.steps.map {
+            SessionStep(it.kind, it.plannedSeconds, it.tempC, StepStatus.PENDING, null, it.preAlertSeconds)
+        },
         preAlert = event.preAlert,
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,

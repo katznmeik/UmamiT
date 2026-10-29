@@ -24,7 +24,7 @@ class IgnoredEventsTest {
         TimerEvent.Discard,
         TimerEvent.StartQuickTimer(60, globalPreAlertSeconds = 10),
         TimerEvent.AddStep,
-        TimerEvent.EditSteps(listOf(infusion(60), infusion(25)), PreAlertChoice.Inherit),
+        TimerEvent.EditSteps(listOf(infusion(60), infusion(25))),
         TimerEvent.Cancel,
         TimerEvent.QuickTimerTimeout,
         TimerEvent.PreAlertReached,
@@ -38,7 +38,7 @@ class IgnoredEventsTest {
         TimerEvent.FinishSession,
         TimerEvent.Discard,
         TimerEvent.AddStep,
-        TimerEvent.EditSteps(emptyList(), PreAlertChoice.Inherit),
+        TimerEvent.EditSteps(emptyList()),
     )
 
     private class Case(val name: String, val driver: () -> EngineDriver, val allowed: Set<Class<out TimerEvent>>)

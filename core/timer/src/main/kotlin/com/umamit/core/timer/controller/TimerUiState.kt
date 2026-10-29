@@ -10,8 +10,17 @@ import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerDisplay
 import com.umamit.core.timer.engine.TimerState
 
-/** One step of the plan as the timer screen, the step dots and the Live Update segments show it. */
-data class TimerUiStep(val kind: StepKind, val plannedSeconds: Int, val tempC: Int?, val status: StepStatus)
+/**
+ * One step of the plan as the timer screen, the step dots, the Live Update segments and the Schritte-Sheet show
+ * it, with its own pre-alert choice [preAlertSeconds] (null *Automatisch*, 0 *Aus*; TMR-23, D-093).
+ */
+data class TimerUiStep(
+    val kind: StepKind,
+    val plannedSeconds: Int,
+    val tempC: Int?,
+    val status: StepStatus,
+    val preAlertSeconds: Int? = null,
+)
 
 /**
  * What the timer screen, the active brew bar and the notifications show
@@ -43,6 +52,8 @@ sealed interface TimerUiState {
      * @property kettleTempC the current step's temperature for the kettle hint (BRW-10); null in FINISHED.
      * @property demoted the session went quiet after 30 min (TMR-14): no service, regular notification.
      * @property finishWouldDiscard *Sitzung beenden* would discard the session; the UI asks first (TMR-12).
+     * @property preAlert what the Schritte-Sheet's single pre-alert selector shows until #92: the choice of the
+     *   first step that has not ended (*Wie Einstellung* when none is left; D-093).
      * @property iceBrew the session is an ice brew (`ICE_BREW`): a cold step's kettle hint reads „Eiswürfel",
      *   not „Kaltes Wasser" (BRW-10).
      */
@@ -112,7 +123,9 @@ private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, iceBrew: Boolean = false): TimerUiState {
     if (state !is TimerState.Active) return TimerUiState.Idle
     val stepIndex = (state as? TimerState.OnStep)?.stepIndex ?: state.session.steps.size
-    val steps = state.session.steps.map { TimerUiStep(it.kind, it.plannedSeconds, it.tempC, it.status) }
+    val steps = state.session.steps.map {
+        TimerUiStep(it.kind, it.plannedSeconds, it.tempC, it.status, it.preAlertSeconds)
+    }
     return TimerUiState.Active(
         kind = state.session.kind,
         teaName = teaName,
@@ -136,7 +149,10 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, i
         kettleTempC = steps.getOrNull(stepIndex)?.tempC,
         demoted = state.session.demoted,
         finishWouldDiscard = BrewTimerEngine.finishWouldDiscard(state),
-        preAlert = PreAlertChoice.of(state.session.preAlert),
+        preAlert = PreAlertChoice.of(
+            state.session.steps.firstOrNull { it.status == StepStatus.PENDING || it.status == StepStatus.STARTED }
+                ?.preAlertSeconds,
+        ),
         iceBrew = iceBrew,
     )
 }

@@ -34,12 +34,15 @@ class TimerUiStateTest {
     private fun ui(state: TimerState) = uiStateOf(state, "Gyokuro", now) as TimerUiState.Active
 
     @Test
-    fun `the session's own pre-alert option is published for the Schritte-Sheet (SCR-31)`() {
+    fun `each step's own pre-alert and the selector's choice are published for the Schritte-Sheet (SCR-31)`() {
         assertThat(ui(ready).preAlert).isEqualTo(PreAlertChoice.Inherit)
 
-        val edited = ready.on(TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Seconds(20)))
+        val edited = ready.on(TimerEvent.EditSteps(listOf(infusion(60, preAlert = 20), infusion(30, preAlert = 0))))
 
+        assertThat(ui(edited).steps.map { it.preAlertSeconds }).containsExactly(20, 0).inOrder()
+        // The single selector until #92 shows the first step that has not ended.
         assertThat(ui(edited).preAlert).isEqualTo(PreAlertChoice.Seconds(20))
+        assertThat(ui(edited.on(TimerEvent.SkipStep)).preAlert).isEqualTo(PreAlertChoice.Off)
     }
 
     @Test

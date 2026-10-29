@@ -65,9 +65,6 @@ interface SessionDao {
     /** Deletes the rows that were never started, i.e. carry no recorded values (05 §3.7, TMR-12). */
     @Query("DELETE FROM session_step WHERE session_id = :sessionId AND actual_seconds IS NULL")
     suspend fun deleteUnrecordedSteps(sessionId: String)
-
-    @Query("UPDATE brew_session SET pre_alert_seconds = :preAlertSeconds, updated_at = :now WHERE id = :id")
-    suspend fun setPreAlert(id: String, preAlertSeconds: Int, now: Long)
 }
 
 /** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */

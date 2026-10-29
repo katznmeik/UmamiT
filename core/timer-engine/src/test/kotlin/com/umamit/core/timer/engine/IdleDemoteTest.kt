@@ -122,7 +122,7 @@ class IdleDemoteTest {
             Triple(
                 "Paused + EditSteps",
                 demoted(paused()),
-                TimerEvent.EditSteps(listOf(infusion(60)), PreAlertChoice.Off),
+                editSteps(PreAlertChoice.Off, infusion(60)),
             ),
             Triple("Finished + AddStep", demoted(finished()), TimerEvent.AddStep),
         )

@@ -145,11 +145,13 @@ sealed interface TimerEvent {
 
     /**
      * *Fertig* in the Schritte-Sheet (any active state of a brew session;
-     * TMR-11, SCR-31): the whole plan [steps] and the session's [preAlert]
-     * choice. Only the pending steps may differ from the current plan; a
-     * request that changes, removes or reorders a started or ended step is
-     * rejected with [RejectionReason.StartedStepChanged], one without a
-     * non-rinse step with [RejectionReason.NoBrewStepLeft].
+     * TMR-11, SCR-31): the whole plan [steps], each with its own pre-alert
+     * choice ([PlannedStep.preAlertSeconds]; TMR-23, D-093). Only the pending
+     * steps may differ from the current plan, and the started step only in its
+     * pre-alert; a request that changes, removes or reorders an ended step or
+     * changes anything else of the started one is rejected with
+     * [RejectionReason.StartedStepChanged], one without a non-rinse step with
+     * [RejectionReason.NoBrewStepLeft].
      */
-    data class EditSteps(val steps: List<PlannedStep>, val preAlert: PreAlertChoice) : TimerEvent
+    data class EditSteps(val steps: List<PlannedStep>) : TimerEvent
 }
