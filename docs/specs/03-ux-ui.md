@@ -853,8 +853,8 @@ of stock, and a note explaining „≈" when an estimate is shown (D-081). A tea
 no longer in the range, kept for a collection tea (CAT-07 AC4), carries the
 tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 A tea whose sizes are all unavailable (sold out, kept by CAT-16 or fetched
-from a link by CAT-17, D-094) shows „nicht vorrätig" for each size and can
-still be added (*In Sammlung aufnehmen* / *Nachkauf erfassen*).
+from a link by CAT-17, D-094) shows „nicht vorrätig" for the page's own
+size, the only one whose stock the page tells (D-096), and can still be added (*In Sammlung aufnehmen* / *Nachkauf erfassen*).
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
