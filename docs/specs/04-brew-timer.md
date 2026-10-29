@@ -9,7 +9,8 @@
 > sound, D-068, 2026-10-23; sounds loaded ahead, the alert player's own
 > thread, D-092, 2026-10-26; pre-alert per step and new pre-alert sounds
 > for v0.2.1, quick timers alongside a brew planned for v0.3.0, D-093,
-> 2026-10-26)
+> 2026-10-26; loads ahead on a loader thread, a late pre-alert sound cut by
+> the alert, D-096, 2026-10-29)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time
@@ -757,8 +758,13 @@ ongoing notification** (Live Update):
   logged with its file key. A tone or pre-alert sound changed in the
   settings while a timer is active is loaded at once (the old one released),
   not only at the controller's next turn, so the next cue still finds it
-  loaded (#84). The pre-alert releases its sound and focus only after the
-  sound has rung out; an alert still cuts it at once.
+  loaded (#84). The loads ahead (and the release of unused players) run on a
+  loader thread of their own (`UmamiTAlertLoad`), never on `UmamiTAlert`, so
+  no load ever sits ahead of a cue: a pre-alert or alert that comes while a
+  changed sound loads starts at once, and a cue whose own sound has not
+  loaded yet loads it on the spot as above (D-096). The pre-alert releases
+  its sound and focus only after the sound has rung out; an alert still cuts
+  it at once.
 
 ### 9.2 Sounds
 
@@ -805,9 +811,14 @@ via *Alarm testen* on the first v0.2.1 release candidate (each sound can be
 heard with *Anhören* in SET-26); until then the default is Zimbel. The
 chosen sound is the pre-alert's sound everywhere the tick was: the matrix of
 §9.1, *Alarm testen* and the loading ahead of D-092 (it replaces the tick
-there). A pre-alert sound still never cuts a playing alert, and it ends
-before the step's deadline: with at least 5 s between pre-alert and
-deadline (E7), a sound of about 3 s always fits.
+there). A pre-alert sound still never cuts a playing alert, but an alert
+always cuts a pre-alert sound that still rings (§9.1). On time, a pre-alert
+comes at least 5 s before the deadline (E7), so a sound of about 3 s has
+rung out by then; a late one plays while at least 1 s is left (§5, D-053),
+and the alert then cuts it at the deadline. A pre-alert sound still ringing
+after *Pause*, *Aufguss jetzt beenden*, *Schritt überspringen*, *Sitzung
+beenden* or *Sitzung verwerfen* rings out (at most about 3.5 s: the sound,
+then the audio focus 250 ms later), since only an alert stops it.
 
 Each pre-alert sound starts with its strike in the first milliseconds (no
 leading silence) and is in phase at the strike, so it is loudest at its

@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-29 (*Link einfügen* and the share target as built, #98; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (*Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -567,7 +567,17 @@ seal's centre sits on its lower edge whatever the status bar's height. The
 quick timer shows the band without a seal; its content starts at the band's
 lower edge, before *Start* as while it runs (SCR-07). On the
 alert surface both are hidden and their space stays. (Until v0.2.0 the tea
-photo itself filled the top, with A4 as fallback.)
+photo itself filled the top, with A4 as fallback.) On a short screen or at a
+large font a brew's band gives way: it gets shorter, down to the status bar
+and ← ⋮, until the primary control (*Start*, *Pause*, *Weiter*,
+*Abgegossen*) and the bottom margin lie on the screen without scrolling,
+e.g. at 384 × 832 dp with font scale 2.0 and a two-line tea name. The seal
+stays on its lower edge. The band's height follows only the screen, the
+font and the content above the control, so nothing moves when the alert
+starts; what still does not fit, and the banner below the control, scroll
+(rule 8, [D-096](10-open-questions-and-decisions.md#d-096)). The quick
+timer's band keeps its height: without a seal and with a one-line title its
+*Fertig* fits.
 
 **Top-bar icons (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
 Tea photos often have a white background, so ← and ⋮ each sit on a filled

@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -19,7 +20,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
@@ -46,7 +50,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * SCR-05's layout and colours: the pill stays where the finger is (spatial
  * consistency, TMR-03), the ink-wash band and the tea seal (D-095) leave the
- * alert surface without moving anything, overlays survive a configuration
+ * alert surface without moving anything, on a short screen the band gives way
+ * so *Abgegossen* lies on the screen (D-096), overlays survive a configuration
  * change (GEN-07), and the paused ring keeps its text readable (03 §6).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -209,6 +214,71 @@ class TimerScreenLayoutTest {
         assertThat(listOf(running, alert, prominent)).containsExactly(ready, ready, ready)
     }
 
+    /**
+     * Rule 8: on a short screen at the largest font, the band and the seal give way so that the
+     * alert's *Abgegossen* lies whole on the screen without scrolling, and still nothing moves when
+     * the alert starts (D-058, D-096).
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the alert's pill is on the screen`() =
+        alertPillOnScreen(teaName = "Bio Uji Gyokuro Gokō", titleLines = 1)
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 with a two-line tea name the alert's pill is on the screen`() =
+        alertPillOnScreen(teaName = TWO_LINE_NAME, titleLines = 2)
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi")
+    fun `on a 411 x 800 dp screen with a two-line tea name the alert's pill is on the screen`() =
+        alertPillOnScreen(teaName = TWO_LINE_NAME, titleLines = 2)
+
+    private fun alertPillOnScreen(teaName: String, titleLines: Int) {
+        show(TimerStates.ready().copy(teaName = teaName))
+        assertThat(titleLineCount(teaName)).isEqualTo(titleLines)
+        val ready = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Start"))
+
+        state = TimerStates.running().copy(teaName = teaName)
+        compose.waitForIdle()
+        val running = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Pause"))
+        // The band gave way, and the seal still sits on its lower edge (D-095).
+        val band = band().getUnclippedBoundsInRoot()
+        val seal = seal().getUnclippedBoundsInRoot()
+        assertThat((seal.top + seal.bottom) / 2).isEqualTo(band.bottom)
+
+        state = TimerStates.alerting(overtimeMs = 7_000).copy(teaName = teaName)
+        compose.waitForIdle()
+        val alert = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Abgegossen"))
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        val pill = compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()
+        assertThat(pill.top).isAtLeast(screen.top)
+        assertThat(pill.bottom).isAtMost(screen.bottom)
+
+        compose.mainClock.advanceTimeBy(8_000)
+        compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
+        assertThat(compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()).isEqualTo(pill)
+
+        assertThat(listOf(running, alert)).containsExactly(ready, ready)
+    }
+
+    /** The quick timer has no seal and a one-line title: its *Fertig* fits as it is (SCR-07). */
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's Fertig is on the screen`() {
+        photo = null
+        show(TimerStates.quick(TimerPhase.ALERTING))
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        val pill = compose.onNodeWithText("Fertig").getUnclippedBoundsInRoot()
+        assertThat(pill.bottom).isAtMost(screen.bottom)
+    }
+
+    private fun titleLineCount(text: String): Int {
+        val layouts = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(text).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        return layouts.single().lineCount
+    }
+
     @Test
     fun `the discard question and the Schritte-Sheet survive a configuration change`() {
         val restoration = StateRestorationTester(compose)
@@ -269,5 +339,10 @@ class TimerScreenLayoutTest {
         assertThat(dimmedBrightness(systemLevel = 0.8f)).isEqualTo(DIMMED_BRIGHTNESS)
         assertThat(dimmedBrightness(systemLevel = 0.05f)).isEqualTo(0.05f)
         assertThat(dimmedBrightness(systemLevel = null)).isEqualTo(DIMMED_BRIGHTNESS)
+    }
+
+    private companion object {
+        /** A synthetic tea name (D-016) that takes two lines of the title. */
+        const val TWO_LINE_NAME = "Bio Japan Sencha Kagoshima Asatsuyu"
     }
 }
