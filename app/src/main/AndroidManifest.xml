@@ -44,6 +44,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- The share target (CAT-17 AC1, 06 §5.7, D-094): UmamiT in the browser's Teilen sheet.
+             Exported for ACTION_SEND with text/plain only and no new permission; it shows
+             nothing, hands the untrusted text to MainActivity in the app's own task and finishes. -->
+        <activity
+            android:name=".ShareTeaLinkActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

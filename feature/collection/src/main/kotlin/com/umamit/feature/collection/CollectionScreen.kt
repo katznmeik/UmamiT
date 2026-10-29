@@ -23,7 +23,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
  * *Katalog* is [catalogContent] (`feature:catalog`, wired by the app, since a feature never
  * depends on another, 06 §3), which fills the rest of the screen and scrolls itself; it gets
  * the [scrollToTopRequest] counter (03 §2.2, D-049). On *Katalog* the ⋮ menu offers
- * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07).
+ * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
+ * ([onPasteLink], a tea from a shop link, CAT-17).
  */
 @Composable
 fun CollectionScreen(
@@ -34,12 +35,12 @@ fun CollectionScreen(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     onRefreshCatalog: () -> Unit = {},
+    onPasteLink: () -> Unit = {},
 ) {
     val refreshLabel = stringResource(R.string.collection_catalog_refresh)
-    val menuItems = if (segment ==
-        CollectionSegment.Catalog
-    ) {
-        listOf(OverflowItem(refreshLabel, onRefreshCatalog))
+    val pasteLabel = stringResource(R.string.collection_catalog_paste_link)
+    val menuItems = if (segment == CollectionSegment.Catalog) {
+        listOf(OverflowItem(refreshLabel, onRefreshCatalog), OverflowItem(pasteLabel, onPasteLink))
     } else {
         emptyList()
     }

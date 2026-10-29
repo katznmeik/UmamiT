@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-29 (the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-29 (a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -227,7 +227,46 @@ the prose, whose years are travel reports, founding years and link texts
    item 3, and stores a green or herbal tea as a regular catalog entry; a
    tea out of scope is not stored and not added to `catalog_skip`. A link to
    a tea already in the catalog refreshes that entry. Not while a refresh
-   runs. Network use (d) of GEN-01.
+   runs. Network use (d) of GEN-01. As built (#98):
+   - **The link** (`TeaLinks`, `core:catalog-parser`), strict and refused in
+     doubt:
+     - `https://` and exactly the host, scheme and host in any case; no port,
+       no userinfo, no trailing dot;
+     - a path of exactly two segments of ASCII letters, digits and hyphens: no
+       query, no fragment, no percent-encoding, no trailing slash, not
+       `/tee-info/`;
+     - the second segment an article number (§2.2), its suffix only
+       `-<grams>`;
+     - at most 300 characters.
+     A share may carry text around the link (a title): the text, at most 2,000
+     characters, is split at whitespace and must hold exactly one link (the
+     same link twice counts once). A set or sale duplicate number
+     (`…SET`, `…SALE`) is out of scope without a request.
+   - **The request:** the link's path is resolved against the shop's own base
+     URL. The session doesn't retry (like the exact price), sends at most
+     robots.txt, the page and its photo, and never follows a redirect.
+   - **The page must be that product:** its canonical and its own number name
+     the link's number, judged as the re-check of item 5 judges it
+     (`ShopProduct`). Otherwise, as for a 404/410, a 3xx or another 4xx, no
+     tea is at the link. robots.txt disallowing it, an answer over the body
+     limit or a page without breadcrumb can't be read. Nothing is stored
+     either way.
+   - **Stored** like a tea item 5 keeps with its page: the page's own size
+     (price and stock) and the configurator's sizes (no stock known, no
+     `variant_url`), so a sold-out page shows „nicht vorrätig" for its own
+     size. Style, recipes and content hash are derived as by a refresh. The
+     photo follows SET-22: it is not fetched when the catalog already has the
+     photo from that URL, nor when it failed for good before; one that fails
+     for good now is remembered (D-091). A tea seen before keeps its
+     `first_seen_at`; a new one gets the link's time, so neither is „Neu".
+     A tea „Nicht mehr im Sortiment" whose page is in scope is back in the range.
+   - **A number merged into another tea** (item 7) opens that tea without a
+     request.
+   - **A stop** (challenge, 429, `Retry-After`, 401/403/5xx, offline), also on
+     the photo, stores nothing.
+   - **With the refresh:** the two take turns (06 §4). Until the first
+     successful refresh, a refresh's sanity check counts as a first import
+     (§2.9), whatever a link stored before.
 
 Request budget at the default rate limit (2 requests/s, all requests
 including images):
@@ -549,7 +588,7 @@ swapped with the teas (05 §4.5), so a failed refresh keeps the old ones.
 ### 2.9 Sanity thresholds (CAT-07 AC5)
 
 Abort without changes if: fewer than 50 % of the previous green product count
-(or < 150 on first import) are parsed; or > 30 % of products lack name, price
+(or < 150 on first import, i.e. before the first successful refresh, #98) are parsed; or > 30 % of products lack name, price
 or article number; or > 50 % lack a brewing grid **and** brewing prose
 (selector broke). Out-of-stock products have a price but no availability and
 count as valid. Pages that gave no product or no breadcrumb count among the

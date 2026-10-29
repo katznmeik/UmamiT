@@ -7,6 +7,7 @@ import com.umamit.feature.catalog.CatalogRoute
 import com.umamit.feature.catalog.CatalogUiState
 import com.umamit.feature.catalog.GuideArticleRoute
 import com.umamit.feature.catalog.GuideListRoute
+import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
 
 /**
@@ -18,6 +19,8 @@ import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
  * @property openTea opens a catalog tea's detail (SCR-21) by its key, in the Sammlung tab's stack.
  * @property refreshRequest the ⋮ menu's *Katalog aktualisieren* counter (CAT-07, D-049).
  * @property openGuides opens the *Ratgeber* (CAT-09), in the Sammlung tab's stack.
+ * @property pasteLinkRequest the ⋮ menu's *Link einfügen* counter (CAT-17).
+ * @property sharedLink a link shared to the app, not taken yet (CAT-17); [onTakeSharedLink] takes it.
  */
 internal data class CatalogTab(
     val modifier: Modifier,
@@ -26,9 +29,15 @@ internal data class CatalogTab(
     val refreshRequest: Int = 0,
     val openTea: (String) -> Unit = {},
     val openGuides: () -> Unit = {},
+    val pasteLinkRequest: Int = 0,
+    val sharedLink: TeaLinkShare? = null,
+    val onTakeSharedLink: (Long) -> Unit = {},
 )
 
-/** The catalog segment with its view model and the refresh (#64, #65); a row opens the tea's detail (#66). */
+/**
+ * The catalog segment with its view model and the refresh (#64, #65); a row opens the tea's
+ * detail (#66), and so does a tea from a pasted or shared shop link (#98).
+ */
 @Composable
 internal fun CatalogTabContent(tab: CatalogTab) {
     CatalogRoute(
@@ -38,6 +47,9 @@ internal fun CatalogTabContent(tab: CatalogTab) {
         modifier = tab.modifier,
         scrollToTopRequest = tab.scrollToTopRequest,
         refreshRequest = tab.refreshRequest,
+        pasteLinkRequest = tab.pasteLinkRequest,
+        sharedLink = tab.sharedLink,
+        onTakeSharedLink = tab.onTakeSharedLink,
     )
 }
 

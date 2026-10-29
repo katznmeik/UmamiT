@@ -6,7 +6,8 @@ import java.io.IOException
 /**
  * The catalog's photo files (CAT-08, 05 §4.1, D-076): `<key>.webp` (≤ 1200 px) and the list
  * thumbnail `<key>_thumb.webp` in app-private `filesDir/catalog/`, which no backup includes
- * (05 §8). Only the catalog refresh writes them.
+ * (05 §8). Only the catalog refresh and a tea from a shop link (CAT-17) write them; the two
+ * never run together ([CatalogJobs]).
  */
 class CatalogPhotoFiles(val dir: File) {
     /** The guides' images, in their own folder inside [dir] (CAT-09, D-087); [retainOnly] never touches it. */
@@ -27,6 +28,12 @@ class CatalogPhotoFiles(val dir: File) {
         if (!dir.isDirectory && !dir.mkdirs()) throw IOException("cannot create $dir")
         writeAtomically(thumbnail(key), thumbnail)
         writeAtomically(photo(key), photo)
+    }
+
+    /** Deletes tea [key]'s photo and thumbnail, if any. */
+    fun delete(key: String) {
+        thumbnail(key).delete()
+        photo(key).delete()
     }
 
     /** Deletes the photos and thumbnails (and leftover temporary files) of every tea not in [keys]. */
