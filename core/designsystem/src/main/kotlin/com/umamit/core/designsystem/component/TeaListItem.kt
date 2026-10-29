@@ -3,6 +3,7 @@ package com.umamit.core.designsystem.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +28,9 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,9 @@ private const val TITLE_MAX_LINES = 2
  * is one line under the title, cut off when longer (e.g. a catalog tea's secondary name, CAT-10).
  * [badges] are chips below the meta line, wrapping when they don't fit (e.g. the catalog's „Neu",
  * Bio, „im Besitz" and [CheckRecipeBadge]; SCR-19, CAT-10).
+ * [onLongClick] (with a haptic tick, read by TalkBack as [onLongClickLabel]) opens a row's menu,
+ * and [customActions] offer its actions to TalkBack directly (e.g. the tea picker's *Aus Sammlung
+ * entfernen*, SCR-03).
  */
 @Composable
 fun TeaListItem(
@@ -63,12 +69,29 @@ fun TeaListItem(
     showDivider: Boolean = true,
     subtitle: String? = null,
     badges: (@Composable FlowRowScope.() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
+    customActions: List<CustomAccessibilityAction> = emptyList(),
 ) {
     Column(modifier = modifier) {
         Row(
             modifier = Modifier
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .semantics(mergeDescendants = true) {}
+                .then(
+                    when {
+                        onLongClick != null -> Modifier.combinedClickable(
+                            onLongClickLabel = onLongClickLabel,
+                            onLongClick = onLongClick,
+                            onClick = onClick ?: {},
+                        )
+
+                        onClick != null -> Modifier.clickable(onClick = onClick)
+
+                        else -> Modifier
+                    },
+                )
+                .semantics(mergeDescendants = true) {
+                    if (customActions.isNotEmpty()) this.customActions = customActions
+                }
                 .defaultMinSize(minHeight = 72.dp)
                 .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Small),
             verticalAlignment = Alignment.CenterVertically,

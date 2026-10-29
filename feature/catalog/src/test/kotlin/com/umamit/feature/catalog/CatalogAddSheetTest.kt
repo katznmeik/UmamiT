@@ -36,6 +36,7 @@ import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeExactPrices
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -241,6 +242,31 @@ class CatalogAddSheetTest {
         assertThat(add.purchases.single().grams).isEqualTo(250.0)
         assertThat(added).containsExactly("own")
         assertThat(collection.teas.let { runBlocking { it.getTea("tea-${SENCHA.key}") } }).isNull()
+    }
+
+    @Test
+    fun aRemovedTeaIsOfferedAgainAndAddingItBringsBackTheSameTea() {
+        // TEA-04, D-093 Q6: an archived tea owns nothing, so the detail offers *In Sammlung aufnehmen*.
+        runBlocking {
+            collection.teas.saveTea(
+                Tea(id = "own", name = "Mein Sencha", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF)
+                    .copy(catalogKey = SENCHA.key, isArchived = true),
+            )
+            collection.stock.addEvent(InventoryEvent("a", "own", InventoryEventType.INITIAL, 100.0, 1))
+        }
+        show()
+        compose.onNodeWithTag(CATALOG_TEA_ADD_TAG).assertTextContains(str(R.string.catalog_tea_add))
+
+        openSheet()
+
+        compose.onNode(isHeading() and hasText(str(R.string.catalog_add_title))).assertIsDisplayed()
+        save()
+        assertThat(added).containsExactly("own")
+        val tea = runBlocking { collection.teas.getTea("own") }!!
+        assertThat(tea.isArchived).isFalse()
+        val events = runBlocking { collection.stock.observeEvents("own").first() }
+        assertThat(events.map { it.type }).containsExactly(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
+        compose.onNodeWithTag(CATALOG_TEA_ADD_TAG).assertTextContains(str(R.string.catalog_tea_repurchase))
     }
 
     @Test

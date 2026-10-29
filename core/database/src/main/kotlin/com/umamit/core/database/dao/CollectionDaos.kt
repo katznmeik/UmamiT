@@ -42,6 +42,11 @@ interface TeaDao {
     @Query("SELECT * FROM tea ORDER BY name")
     fun observeAll(): Flow<List<TeaWithDetails>>
 
+    /** The teas that are not archived: Start and the tea picker (SCR-02, SCR-03, TEA-04). */
+    @Transaction
+    @Query("SELECT * FROM tea WHERE is_archived = 0 ORDER BY name")
+    fun observeOwned(): Flow<List<TeaWithDetails>>
+
     @Transaction
     @Query("SELECT * FROM tea WHERE id = :id")
     fun observe(id: String): Flow<TeaWithDetails?>
@@ -49,12 +54,20 @@ interface TeaDao {
     @Query("SELECT * FROM tea WHERE id = :id")
     suspend fun get(id: String): TeaEntity?
 
-    /** The catalog keys the collection's teas link to („im Besitz", CAT-10; 05 §1.6 soft link). */
+    /** The catalog keys the collection's teas link to, archived ones included (05 §1.6 soft link). */
     @Query("SELECT DISTINCT catalog_key FROM tea WHERE catalog_key IS NOT NULL")
     fun observeCatalogKeys(): Flow<List<String>>
 
+    /** The catalog keys of the teas that are not archived („im Besitz", CAT-10, TEA-04). */
+    @Query("SELECT DISTINCT catalog_key FROM tea WHERE catalog_key IS NOT NULL AND is_archived = 0")
+    fun observeOwnedCatalogKeys(): Flow<List<String>>
+
     @Upsert
     suspend fun upsert(tea: TeaEntity)
+
+    /** *Aus Sammlung entfernen* and its undo (TEA-04): returns the number of rows changed (0: no such tea). */
+    @Query("UPDATE tea SET is_archived = :archived, updated_at = :now WHERE id = :id")
+    suspend fun setArchived(id: String, archived: Boolean, now: Long): Int
 
     /** Whether the database holds any tea, vessel or session, e.g. after a device restore (M1-07). */
     @Query(
@@ -83,15 +96,18 @@ interface TeaDao {
     suspend fun photo(id: String): PhotoEntity?
 
     /**
-     * The collection tea linked to catalog tea [catalogKey] (05 §1.6 soft link; the duplicate
-     * guard of CAT-12): a tea not archived first, then the oldest; null when none is.
+     * The collection tea that owns catalog tea [catalogKey] (05 §1.6 soft link): the oldest one
+     * not archived; null when there is none, so the detail offers *In Sammlung aufnehmen* (TEA-04).
      */
     @Query(
-        "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
+        "SELECT id FROM tea WHERE catalog_key = :catalogKey AND is_archived = 0 ORDER BY created_at, id LIMIT 1",
     )
     fun observeIdByCatalogKey(catalogKey: String): Flow<String?>
 
-    /** [observeIdByCatalogKey], read once. */
+    /**
+     * The collection tea linked to catalog tea [catalogKey] (the duplicate guard of CAT-12): a tea
+     * not archived first, then the oldest; null when none is. An archived one is brought back (D-085).
+     */
     @Query(
         "SELECT id FROM tea WHERE catalog_key = :catalogKey ORDER BY is_archived, created_at, id LIMIT 1",
     )

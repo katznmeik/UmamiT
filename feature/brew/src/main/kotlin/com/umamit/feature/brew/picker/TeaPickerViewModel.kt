@@ -2,8 +2,10 @@ package com.umamit.feature.brew.picker
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
+import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.TeaOverview
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,12 +17,23 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.text.Normalizer
 import java.util.Locale
 import javax.inject.Inject
 
-/** A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5). */
-data class PickerTea(val id: String, val name: String, val teaType: String?, val photoPath: String?)
+/**
+ * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
+ * [removable] is false for the tea of the active brew session: *Aus Sammlung entfernen* is greyed
+ * out with „Erst die Sitzung beenden" (TEA-04, E15).
+ */
+data class PickerTea(
+    val id: String,
+    val name: String,
+    val teaType: String?,
+    val photoPath: String?,
+    val removable: Boolean = true,
+)
 
 /**
  * What the tea picker (SCR-03) shows.
@@ -30,6 +43,7 @@ data class PickerTea(val id: String, val name: String, val teaType: String?, val
  * @property all *Alle*: every tea of the collection that is not archived, by name.
  * @property query the search text as typed.
  * @property results the search hits; null while no search is active (then the sections show).
+ * @property removed the tea removed last, while its snackbar with *Rückgängig* shows (TEA-04, D-093 Q21).
  */
 data class TeaPickerUiState(
     val recent: List<PickerTea> = emptyList(),
@@ -38,6 +52,7 @@ data class TeaPickerUiState(
     val query: String = "",
     val results: List<PickerTea>? = null,
     val loading: Boolean = true,
+    val removed: PickerTea? = null,
 ) {
     /** The collection has no tea to brew (GEN-09); only *Ohne Tee (Schnelltimer)* is left. */
     val isEmpty: Boolean get() = !loading && all.isEmpty()
@@ -46,36 +61,42 @@ data class TeaPickerUiState(
 /**
  * The tea picker's view model (SCR-03, BRW-01): the non-archived teas of the
  * collection in three sections, and an instant local search (GEN-10:
- * case- and diacritics-insensitive word prefixes, debounced 150 ms).
+ * case- and diacritics-insensitive word prefixes, debounced 150 ms). A long
+ * press removes a tea from the collection: archived, with undo, except the
+ * active brew session's (TEA-04, E15).
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class TeaPickerViewModel @Inject constructor(
     teas: TeaRepository,
     sessions: SessionRepository,
+    private val archive: TeaArchive,
     private val photos: PhotoFiles,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
+    private val removed = MutableStateFlow<PickerTea?>(null)
+
+    private val input = combine(query.asStateFlow(), query.debounce(SEARCH_DEBOUNCE_MS), removed, ::Input)
 
     val state: StateFlow<TeaPickerUiState> = combine(
-        teas.observeTeas(),
+        teas.observeOwnedTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
-        query.asStateFlow(),
-        query.debounce(SEARCH_DEBOUNCE_MS),
-    ) { overviews, recentSessions, typed, search ->
-        val owned = overviews.filter { !it.tea.isArchived }
-        val byId = owned.associateBy { it.tea.id }
-        val all = owned.map { it.toPickerTea() }
-        val term = normalized(search.trim())
+        archive.observeActiveTeaId(),
+        input,
+    ) { owned, recentSessions, activeTeaId, input ->
+        val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId) }
+        val byId = all.associateBy { it.id }
+        val term = normalized(input.search.trim())
         TeaPickerUiState(
             recent = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
-                .mapNotNull { byId[it]?.toPickerTea() }
+                .mapNotNull { byId[it] }
                 .take(RECENT_TEAS),
-            favorites = owned.filter { it.tea.isFavorite }.map { it.toPickerTea() },
+            favorites = owned.filter { it.tea.isFavorite }.mapNotNull { byId[it.tea.id] },
             all = all,
-            query = typed,
-            results = if (term.isEmpty() || typed.isBlank()) null else all.filter { it.matches(term) },
+            query = input.typed,
+            results = if (term.isEmpty() || input.typed.isBlank()) null else all.filter { it.matches(term) },
             loading = false,
+            removed = input.removed,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, TeaPickerUiState())
 
@@ -83,12 +104,38 @@ class TeaPickerViewModel @Inject constructor(
         query.value = text
     }
 
-    private fun TeaOverview.toPickerTea() = PickerTea(
+    /**
+     * *Aus Sammlung entfernen* (TEA-04, SCR-03): archives the tea at once, without a dialog; the
+     * snackbar then offers *Rückgängig*. The active brew session's tea is refused and stays (E15).
+     */
+    fun remove(teaId: String) {
+        val tea = state.value.all.firstOrNull { it.id == teaId }?.takeIf { it.removable } ?: return
+        viewModelScope.launch {
+            if (archive.archive(teaId) == ArchiveResult.Archived) removed.value = tea
+        }
+    }
+
+    /** *Rückgängig*: the tea removed last is back where it was. */
+    fun undoRemove() {
+        val tea = removed.value ?: return
+        removed.value = null
+        viewModelScope.launch { archive.restore(tea.id) }
+    }
+
+    /** The snackbar timed out, or the picker closed: the tea stays removed (the catalog brings it back). */
+    fun dismissRemoved() {
+        removed.value = null
+    }
+
+    private fun TeaOverview.toPickerTea(removable: Boolean) = PickerTea(
         id = tea.id,
         name = tea.name,
         teaType = tea.teaType,
         photoPath = coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path,
+        removable = removable,
     )
+
+    private data class Input(val typed: String, val search: String, val removed: PickerTea?)
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 150L

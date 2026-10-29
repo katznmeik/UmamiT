@@ -21,6 +21,9 @@ import javax.inject.Inject
 class RoomTeaRepository @Inject constructor(private val dao: TeaDao, private val time: WallClock) : TeaRepository {
     override fun observeTeas(): Flow<List<TeaOverview>> = dao.observeAll().map { rows -> rows.map { it.toOverview() } }
 
+    override fun observeOwnedTeas(): Flow<List<TeaOverview>> =
+        dao.observeOwned().map { rows -> rows.map { it.toOverview() } }
+
     override fun observeTea(id: String): Flow<TeaOverview?> = dao.observe(id).map { it?.toOverview() }
 
     override suspend fun getTea(id: String): Tea? = dao.get(id)?.toModel()

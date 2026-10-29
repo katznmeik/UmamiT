@@ -93,4 +93,15 @@ interface ActiveBrewDao {
 
     @Query("DELETE FROM active_brew")
     suspend fun clear()
+
+    /** The tea of the active brew session; null without one, for the quick timer or a session without a tea (E15). */
+    @Query(ACTIVE_TEA_ID)
+    fun observeActiveTeaId(): Flow<String?>
+
+    /** [observeActiveTeaId], read once. */
+    @Query(ACTIVE_TEA_ID)
+    suspend fun activeTeaId(): String?
 }
+
+private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +
+    "JOIN brew_session ON brew_session.id = active_brew.session_id"

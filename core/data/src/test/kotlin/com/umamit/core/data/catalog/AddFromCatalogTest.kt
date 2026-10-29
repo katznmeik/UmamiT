@@ -6,7 +6,9 @@ import android.graphics.Color
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.RoomTeaArchive
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.TestClocks
@@ -271,6 +273,44 @@ class AddFromCatalogTest {
         assertThat(hisui.priceCents).isNull()
         // The seed tea itself is not touched (CAT-13).
         assertThat(data.teas.getTea(SeedData.HISUI_TEA_ID)).isEqualTo(SeedData.hisui)
+    }
+
+    @Test
+    fun `a removed tea is no longer im Besitz and the catalog offers to add it again`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+        val owned = RoomOwnedCatalogKeys(data.db.teaDao())
+        val listed = RoomCatalogRepository(catalogDb.catalogDao(), catalogPhotos, owned)
+        assertThat(listed.observeCatalog().first().teas.single().owned).isTrue()
+
+        assertThat(RoomTeaArchive(data.db, data.time).archive(teaId)).isEqualTo(ArchiveResult.Archived)
+
+        // No „im Besitz" badge or filter hit, and the detail offers *In Sammlung aufnehmen* (TEA-04, CAT-10).
+        assertThat(listed.observeCatalog().first().teas.single().owned).isFalse()
+        assertThat(owned.observeOwned().first()).isEmpty()
+        assertThat(add.observeOwner(KEY).first()).isNull()
+        // The refresher still keeps a discontinued catalog tea for it (CAT-07 AC4): it stays linked.
+        assertThat(owned.observe().first()).containsExactly(KEY)
+    }
+
+    @Test
+    fun `adding a removed tea again brings back the same tea with a purchase, never a second one`() = runTest {
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+        RoomTeaArchive(data.db, data.time).archive(teaId)
+
+        val again = add.add(purchase(grams = 250.0, priceCents = 2990))
+
+        // D-085, D-093 Q6: un-archived, its package a PURCHASE; recipes and earlier stock stay.
+        assertThat(again).isEqualTo(AddFromCatalogResult.Repurchased(teaId))
+        assertThat(data.teas.observeTeas().first().map { it.tea.id }).containsExactly(teaId)
+        assertThat(data.teas.getTea(teaId)!!.isArchived).isFalse()
+        assertThat(data.teas.observeOwnedTeas().first().map { it.tea.id }).containsExactly(teaId)
+        assertThat(data.stock.observeEvents(teaId).first().map { it.type })
+            .containsExactly(InventoryEventType.INITIAL, InventoryEventType.PURCHASE)
+        assertThat(data.stock.observeStock(teaId).first().remainingGrams).isEqualTo(350.0)
+        assertThat(data.recipes.observeRecipes(teaId).first()).hasSize(2)
+        assertThat(add.observeOwner(KEY).first()).isEqualTo(teaId)
     }
 
     @Test

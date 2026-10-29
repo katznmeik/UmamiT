@@ -1,6 +1,7 @@
 package com.umamit.feature.brew.picker
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.common.ClockReading
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
@@ -11,8 +12,13 @@ import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
+import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -26,6 +32,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.ZoneOffset
 
 /** The tea picker (SCR-03): *Zuletzt*, *Favoriten*, *Alle* and the search (GEN-10). */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -70,8 +77,27 @@ class TeaPickerViewModelTest {
         sessions.sessions.completeSession(sessionId, autoFinished = false)
     }
 
+    private val archive = FakeTeaArchive(sessions)
+
     private fun viewModel() =
-        TeaPickerViewModel(collection.teas, sessions.sessions, PhotoFiles(folder.newFolder("photos")))
+        TeaPickerViewModel(collection.teas, sessions.sessions, archive, PhotoFiles(folder.newFolder("photos")))
+
+    /** A brew session of [teaId] waits in READY: the active session (E15). */
+    private suspend fun activeSession(teaId: String, name: String) {
+        val snapshot = SessionSnapshot(
+            teaId, name, null, null, null, null, null, null, BrewMethod.KYUSU, null, null, 5.0, 250, 65,
+        )
+        val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 65))
+        val start = TimerEvent.StartSession(
+            "active",
+            steps,
+            PreAlertSettings.inherited(null, 10),
+            longStepsOnly = false,
+        )
+        val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
+        sessions.sessions.startSession(SessionStart("active", snapshot, steps, 10, 1_000, "UTC"))
+        sessions.activeBrew.persist(BrewTimerEngine.snapshot(ready))
+    }
 
     private suspend fun seed() {
         collection.teas.saveTea(tea("h", "Bio Sencha Hisui", favorite = true))
@@ -130,5 +156,66 @@ class TeaPickerViewModelTest {
         advanceUntilIdle()
 
         assertThat(vm.state.value.isEmpty).isTrue()
+    }
+
+    @Test
+    fun `removing a tea archives it, it leaves every section and undo brings it back`() = runTest(dispatcher) {
+        seed()
+        brewed("s1", "h", "Bio Sencha Hisui", at = 1_000)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.remove("h")
+        advanceUntilIdle()
+
+        val removed = vm.state.value
+        assertThat(archive.archived).containsExactly("h")
+        assertThat(removed.all.map { it.id }).containsExactly("t", "k").inOrder()
+        assertThat(removed.recent).isEmpty()
+        assertThat(removed.favorites).isEmpty()
+        // The snackbar „Bio Sencha Hisui aus der Sammlung entfernt" · *Rückgängig* (SCR-03, D-093 Q21).
+        assertThat(removed.removed?.name).isEqualTo("Bio Sencha Hisui")
+
+        vm.undoRemove()
+        advanceUntilIdle()
+
+        val restored = vm.state.value
+        assertThat(restored.all.map { it.id }).containsExactly("h", "t", "k").inOrder()
+        assertThat(restored.recent.map { it.id }).containsExactly("h")
+        assertThat(restored.favorites.map { it.id }).containsExactly("h")
+        assertThat(restored.removed).isNull()
+    }
+
+    @Test
+    fun `the snackbar goes when it times out, and the tea stays removed`() = runTest(dispatcher) {
+        seed()
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.remove("t")
+        advanceUntilIdle()
+
+        vm.dismissRemoved()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.removed).isNull()
+        assertThat(vm.state.value.all.map { it.id }).containsExactly("h", "k").inOrder()
+    }
+
+    @Test
+    fun `the tea of the active brew session can't be removed`() = runTest(dispatcher) {
+        seed()
+        activeSession("t", "Bio Sencha Tanabata")
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.all.associate { it.id to it.removable })
+            .containsExactly("h", true, "t", false, "k", true)
+
+        vm.remove("t")
+        advanceUntilIdle()
+
+        assertThat(archive.archived).isEmpty()
+        assertThat(vm.state.value.all.map { it.id }).contains("t")
+        assertThat(vm.state.value.removed).isNull()
     }
 }
