@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -23,13 +24,16 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -171,6 +175,43 @@ class TimerScreenTest {
 
         assertThat(events).containsExactly(TimerEvent.FinishSession, TimerEvent.AddStep).inOrder()
         compose.onNodeWithText("Schritte für diese Sitzung").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the timer's Schritte-Sheet shows each step's lead from the session's B, the running step's is editable`() {
+        // SCR-31, TMR-23, #92. B = 20 s: 1:00 → 20 s, 0:20 → 5 s, 0:40 → 10 s.
+        show(TimerStates.running().copy(preAlertBaseSeconds = 20))
+        openMenu()
+        compose.onNodeWithText("Schritte bearbeiten").performClick()
+
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt 2: Automatisch, 5 Sekunden vorher. Ändern")
+            .assertExists()
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt 3: Automatisch, 10 Sekunden vorher. Ändern")
+            .assertExists()
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt 1: Automatisch, 20 Sekunden vorher. Ändern")
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText("Aus").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+
+        // Only the running step's pre-alert changes; its time and temperature stay (SCR-31, D-093).
+        assertThat(events).containsExactly(
+            TimerEvent.EditSteps(
+                listOf(
+                    PlannedStep(StepKind.INFUSION, 60, 55, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 20, 60),
+                    PlannedStep(StepKind.INFUSION, 40, 60),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `in a cold or ice brew the timer's Schritte-Sheet shows no pre-alert, however short a step`() {
+        show(TimerStates.ready().copy(longStepsOnly = true))
+        openMenu()
+        compose.onNodeWithText("Schritte bearbeiten").performClick()
+
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt 1: Automatisch, keine. Ändern").assertExists()
     }
 
     @Test

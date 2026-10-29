@@ -101,8 +101,9 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
     @Test
     fun runningOnDarkPhoto() = capture("Running_darkPhoto", TimerStates.running(), photoColor = Color(0xFF101010))
 
+    /** Step 2 (0:20) after its pre-alert: the automatic rule gives it 5 s (TMR-23), so 0:04 is left. */
     @Test
-    fun preAlert() = capture("PreAlert", TimerStates.running(remainingMs = 8_000, preAlertPlayed = true, stepIndex = 1))
+    fun preAlert() = capture("PreAlert", TimerStates.running(remainingMs = 4_000, preAlertPlayed = true, stepIndex = 1))
 
     @Test
     fun paused() = capture("Paused", TimerStates.paused())

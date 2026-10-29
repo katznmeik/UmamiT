@@ -4,16 +4,32 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.engine.BrewTimerEngine
+import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 
 /**
  * Fake controller states for the timer screen tests (spec #40 seam 4): a
  * three-step Gyokuro session, built per phase at the monotonic time [NOW].
+ * Each step's pre-alert lead follows the automatic rule with the global
+ * default B = 10 s (TMR-23, D-093): 1:00 → 10 s, 0:20 → 5 s, 0:40 → 10 s.
  */
 internal object TimerStates {
     const val NOW = 1_000_000L
+
+    /** The session's pre-alert base B: the global default (SET-10). */
+    private const val BASE = PreAlertSettings.DEFAULT_GLOBAL_SECONDS
+
+    /** The lead the engine gives [step] (null: none, e.g. a long step), as the controller publishes it. */
+    private fun leadOf(step: TimerUiStep?, longStepsOnly: Boolean = false): Int? = step?.let {
+        BrewTimerEngine.stepPreAlertLeadSeconds(
+            PlannedStep(it.kind, it.plannedSeconds, it.tempC, it.preAlertSeconds),
+            BASE,
+            longStepsOnly,
+        )
+    }
 
     private val plan = listOf(
         TimerUiStep(StepKind.INFUSION, 60, 55, StepStatus.PENDING),
@@ -41,27 +57,32 @@ internal object TimerStates {
             deadlineElapsedMs = null,
             deadlineWallMs = null,
             pausedRemainingMs = null,
-            preAlertLeadSeconds = 10,
+            preAlertLeadSeconds = leadOf(plan.getOrNull(stepIndex)),
             preAlertAtElapsedMs = null,
             preAlertPlayed = false,
             longStep = false,
             kettleTempC = plan.getOrNull(stepIndex)?.tempC,
             demoted = false,
             finishWouldDiscard = stepIndex == 0,
-            preAlert = PreAlertChoice.Inherit,
+            preAlertBaseSeconds = BASE,
         )
 
     /** READY for [stepIndex] (the first step by default: nothing brewed yet). */
     fun ready(stepIndex: Int = 0) = base(TimerPhase.READY, stepIndex, StepStatus.PENDING)
 
-    /** RUNNING step 1 (60 s) with [remainingMs] left at [NOW]; the pre-alert is due 10 s before the end. */
+    /**
+     * RUNNING step [stepIndex] (step 1, 60 s, by default) with [remainingMs] left at [NOW]; the pre-alert is due
+     * its lead before the end (10 s for step 1, 5 s for the 0:20 of step 2).
+     */
     fun running(remainingMs: Long = 48_000, preAlertPlayed: Boolean = false, stepIndex: Int = 0) =
         base(TimerPhase.RUNNING, stepIndex, StepStatus.STARTED).let {
             val deadline = NOW + remainingMs
             it.copy(
                 deadlineElapsedMs = deadline,
                 deadlineWallMs = 1_700_000_000_000 + remainingMs,
-                preAlertAtElapsedMs = if (preAlertPlayed) null else deadline - 10_000,
+                preAlertAtElapsedMs = it.preAlertLeadSeconds?.takeIf { !preAlertPlayed }?.let { lead ->
+                    deadline - lead * 1_000L
+                },
                 preAlertPlayed = preAlertPlayed,
             )
         }
@@ -122,14 +143,20 @@ internal object TimerStates {
                 else -> null
             },
             pausedRemainingMs = if (phase == TimerPhase.PAUSED) remainingMs else null,
-            preAlertLeadSeconds = 10,
-            preAlertAtElapsedMs = if (phase == TimerPhase.RUNNING) NOW + remainingMs - 10_000 else null,
+            // The quick timer's automatic rule with the global B (TMR-22): 1:30 → 10 s.
+            preAlertLeadSeconds = leadOf(TimerUiStep(StepKind.INFUSION, seconds, null, StepStatus.PENDING)),
+            preAlertAtElapsedMs = if (phase == TimerPhase.RUNNING) {
+                leadOf(TimerUiStep(StepKind.INFUSION, seconds, null, StepStatus.PENDING))
+                    ?.let { NOW + remainingMs - it * 1_000L }
+            } else {
+                null
+            },
             preAlertPlayed = false,
             longStep = false,
             kettleTempC = null,
             demoted = false,
             finishWouldDiscard = false,
-            preAlert = PreAlertChoice.Inherit,
+            preAlertBaseSeconds = BASE,
         )
 
     /** A cold step (5 °C) waiting in READY: a cold brew, or an ice brew with [iceBrew]. */
@@ -138,5 +165,5 @@ internal object TimerStates {
         0,
         StepStatus.PENDING,
         plan = listOf(TimerUiStep(StepKind.INFUSION, 2 * 3_600, 5, StepStatus.PENDING)),
-    ).copy(longStep = true, iceBrew = iceBrew)
+    ).copy(longStep = true, longStepsOnly = true, iceBrew = iceBrew)
 }

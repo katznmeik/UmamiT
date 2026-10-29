@@ -8,7 +8,6 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
@@ -49,7 +48,7 @@ class TimerAppWiringTest {
             kettleTempC = 70,
             demoted = false,
             finishWouldDiscard = true,
-            preAlert = PreAlertChoice.Inherit,
+            preAlertBaseSeconds = 10,
         )
 
     @Test

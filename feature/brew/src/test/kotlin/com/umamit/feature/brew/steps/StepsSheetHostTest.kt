@@ -24,7 +24,6 @@ import androidx.test.espresso.Espresso
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import org.junit.Rule
@@ -50,9 +49,9 @@ class StepsSheetHostTest {
             StepsSheetStep(StepKind.INFUSION, 60, 60, StepStatus.DONE),
             StepsSheetStep(StepKind.INFUSION, 30, 60, StepStatus.PENDING),
         ),
-        preAlert = PreAlertChoice.Inherit,
         hasRecipe = true,
         baseTempC = 60,
+        preAlertBaseSeconds = 10,
     )
 
     private var visible by mutableStateOf(true)
@@ -327,6 +326,35 @@ class StepsSheetHostTest {
         assertThat(dismissals).isEqualTo(1)
     }
 
+    /** Picks [option] in step [number]'s pre-alert menu, opened through its TalkBack click action. */
+    private fun choosePreAlert(number: Int, spoken: String, option: String) {
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt $number: $spoken. Ändern")
+            .performScrollTo()
+            .performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText(option).performClick()
+        // The menu's exit has ended, so a back press reaches the sheet.
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun `a changed pre-alert is an unsaved edit, and set back by hand it is none`() {
+        showHost()
+        choosePreAlert(2, "Automatisch, 10 Sekunden vorher", "Aus")
+
+        Espresso.pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithText(discardTitle).assertIsDisplayed()
+        compose.onNodeWithText("Weiter bearbeiten").performClick()
+        compose.waitForIdle()
+        choosePreAlert(2, "Aus", "Automatisch · 10 s")
+        Espresso.pressBack()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(discardTitle).assertDoesNotExist()
+        assertThat(dismissals).isEqualTo(1)
+        assertThat(done).isEmpty()
+    }
+
     @Test
     fun `Fertig with edits closes without asking`() {
         showHost()
@@ -372,5 +400,40 @@ class StepsSheetHostTest {
         compose.onNodeWithText("Fertig").performClick()
 
         assertThat(done.single().steps.last().plannedSeconds).isEqualTo(35)
+    }
+
+    @Test
+    fun `each step's pre-alert and the session's B survive a configuration change`() {
+        // B = 5 s: the 0:30 step shows „Auto · 5 s", not the 10 s a default would give.
+        val restoration = StateRestorationTester(compose)
+        val input = input.copy(preAlertBaseSeconds = 5)
+        restoration.setContent {
+            UmamiTheme(reduceMotion = true) {
+                StepsSheetContent(state = rememberStepsSheetState(input), onDone = { done += it }, onSaveToRecipe = {})
+            }
+        }
+        choosePreAlert(2, "Automatisch, 5 Sekunden vorher", "15 s")
+
+        restoration.emulateSavedInstanceStateRestore()
+        compose.onNodeWithText("15 s", useUnmergedTree = true).assertIsDisplayed()
+        choosePreAlert(2, "15 Sekunden vorher", "Automatisch · 5 s")
+        compose.onNodeWithText("Fertig").performClick()
+
+        assertThat(done.single().steps.map { it.preAlertSeconds }).containsExactly(null, null).inOrder()
+    }
+
+    @Test
+    fun `a cold brew's long steps survive a configuration change`() {
+        val restoration = StateRestorationTester(compose)
+        val input = input.copy(longStepsOnly = true)
+        restoration.setContent {
+            UmamiTheme(reduceMotion = true) {
+                StepsSheetContent(state = rememberStepsSheetState(input), onDone = { done += it }, onSaveToRecipe = {})
+            }
+        }
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithContentDescription("Vorwarnung, Schritt 2: Automatisch, keine. Ändern").assertExists()
     }
 }

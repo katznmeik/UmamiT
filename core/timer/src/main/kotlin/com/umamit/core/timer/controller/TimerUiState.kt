@@ -4,7 +4,6 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.BrewTimerEngine
-import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerDisplay
@@ -52,8 +51,9 @@ sealed interface TimerUiState {
      * @property kettleTempC the current step's temperature for the kettle hint (BRW-10); null in FINISHED.
      * @property demoted the session went quiet after 30 min (TMR-14): no service, regular notification.
      * @property finishWouldDiscard *Sitzung beenden* would discard the session; the UI asks first (TMR-12).
-     * @property preAlert what the Schritte-Sheet's single pre-alert selector shows until #92: the choice of the
-     *   first step that has not ended (*Wie Einstellung* when none is left; D-093).
+     * @property preAlertBaseSeconds the session's pre-alert base B (recipe ?: global, frozen at the start), from which
+     *   the Schritte-Sheet shows each *Automatisch* step's lead, „Auto · 5 s" (SCR-31, TMR-23, D-093).
+     * @property longStepsOnly a cold or ice brew: every step is a long step without a pre-alert (TMR-18).
      * @property iceBrew the session is an ice brew (`ICE_BREW`): a cold step's kettle hint reads „Eiswürfel",
      *   not „Kaltes Wasser" (BRW-10).
      */
@@ -73,7 +73,8 @@ sealed interface TimerUiState {
         val kettleTempC: Int?,
         val demoted: Boolean,
         val finishWouldDiscard: Boolean,
-        val preAlert: PreAlertChoice,
+        val preAlertBaseSeconds: Int,
+        val longStepsOnly: Boolean = false,
         val iceBrew: Boolean = false,
     ) : TimerUiState {
         /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051). */
@@ -149,10 +150,8 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, i
         kettleTempC = steps.getOrNull(stepIndex)?.tempC,
         demoted = state.session.demoted,
         finishWouldDiscard = BrewTimerEngine.finishWouldDiscard(state),
-        preAlert = PreAlertChoice.of(
-            state.session.steps.firstOrNull { it.status == StepStatus.PENDING || it.status == StepStatus.STARTED }
-                ?.preAlertSeconds,
-        ),
+        preAlertBaseSeconds = state.session.preAlert.inheritedSeconds,
+        longStepsOnly = state.session.longStepsOnly,
         iceBrew = iceBrew,
     )
 }

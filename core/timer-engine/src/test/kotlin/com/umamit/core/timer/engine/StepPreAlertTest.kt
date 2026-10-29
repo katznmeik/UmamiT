@@ -120,6 +120,47 @@ class StepPreAlertTest {
     }
 
     @Test
+    fun `a planned step's lead, as the Schritte-Sheet and the setup show it, is the one the session gives it`() {
+        // B = 10 s. (step, expected lead or null), from TMR-23 and 04 §5 (#92).
+        val plan = listOf(
+            infusion(60) to 10,
+            infusion(20) to 5,
+            infusion(14) to null,
+            infusion(30).withPreAlert(0) to null,
+            infusion(19).withPreAlert(15) to null, // E7: shorter than N + 5 s
+            infusion(35).withPreAlert(30) to 30,
+            rinse(10).withPreAlert(5) to null, // a rinse under 15 s
+            infusion(599) to 10,
+            infusion(600) to null, // long step (TMR-18)
+            infusion(600).withPreAlert(10) to null,
+        )
+
+        val leads = plan.map { (step, _) ->
+            BrewTimerEngine.stepPreAlertLeadSeconds(step, inheritedSeconds = 10, longStepsOnly = false)
+        }
+
+        assertWithMessage("leads").that(leads).isEqualTo(plan.map { it.second })
+        val driver = EngineDriver().apply {
+            send(TimerEvent.StartSession(SESSION_ID, plan.map { it.first }, PRE_ALERT, longStepsOnly = false))
+        }
+        assertWithMessage("as in the session").that(leadsOfPlan(driver)).isEqualTo(leads)
+    }
+
+    @Test
+    fun `in a cold or ice brew no planned step has a lead, and every step is a long step`() {
+        val steps = listOf(infusion(60), infusion(60).withPreAlert(10), infusion(4 * 3_600))
+
+        steps.forEach { step ->
+            assertWithMessage("$step: lead")
+                .that(BrewTimerEngine.stepPreAlertLeadSeconds(step, inheritedSeconds = 10, longStepsOnly = true))
+                .isNull()
+            assertWithMessage("$step: long").that(BrewTimerEngine.isLongStep(step, longStepsOnly = true)).isTrue()
+        }
+        assertWithMessage("9:59").that(BrewTimerEngine.isLongStep(infusion(599), longStepsOnly = false)).isFalse()
+        assertWithMessage("10:00").that(BrewTimerEngine.isLongStep(infusion(600), longStepsOnly = false)).isTrue()
+    }
+
+    @Test
     fun `an added step starts as Automatisch, whatever the other steps have`() {
         val driver = EngineDriver().apply {
             send(TimerEvent.StartSession(SESSION_ID, listOf(infusion(60).withPreAlert(30)), PRE_ALERT, false))
