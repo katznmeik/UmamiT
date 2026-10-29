@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -94,7 +95,7 @@ private fun StockSheetContent(currentGrams: Double, onSave: (Double) -> Unit, on
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
-        Spacer(Modifier.padding(top = UmamiSpacing.Medium))
+        Spacer(Modifier.height(UmamiSpacing.Medium))
         Row(verticalAlignment = Alignment.Top) {
             IconButton(
                 onClick = { StockInput.step(value.text, up = false)?.let(setText) },
@@ -138,7 +139,7 @@ private fun StockSheetContent(currentGrams: Double, onSave: (Double) -> Unit, on
                 )
             }
         }
-        Spacer(Modifier.padding(top = UmamiSpacing.Small))
+        Spacer(Modifier.height(UmamiSpacing.Small))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End,
