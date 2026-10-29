@@ -12,10 +12,12 @@ class FakeSettingsRepository(
     initial: UserSettings = UserSettings(),
     seeded: Boolean = false,
     seedPhotosAttempted: Boolean = false,
+    seedVesselsV2Added: Boolean = false,
 ) : SettingsRepository {
     private val state = MutableStateFlow(initial)
     private val seedMarker = MutableStateFlow(seeded)
     private val seedPhotoMarker = MutableStateFlow(seedPhotosAttempted)
+    private val seedVesselsV2Marker = MutableStateFlow(seedVesselsV2Added)
 
     override val settings: Flow<UserSettings> = state
 
@@ -37,5 +39,11 @@ class FakeSettingsRepository(
 
     override suspend fun markSeedPhotosAttempted() {
         seedPhotoMarker.value = true
+    }
+
+    override val seedVesselsV2Added: Flow<Boolean> = seedVesselsV2Marker
+
+    override suspend fun markSeedVesselsV2Added() {
+        seedVesselsV2Marker.value = true
     }
 }

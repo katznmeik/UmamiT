@@ -136,7 +136,7 @@ v0.2.1 changes timer code (per-step pre-alert, sounds), so every
 - [ ] Schritte-Sheet: set step 2's pre-alert to 10 s → „zu kurz" (0:10 < 10 + 5 s); set it to 5 s → it sounds 5 s before the end of step 2. Without *Im Rezept speichern* the next session of that recipe is back to „Auto"; with *Im Rezept speichern* the next session shows 5 s.
 - [ ] *Alarm testen* with each of the four new pre-alert sounds and „Ting (leise)": each is much louder than the old tick and rings out for about 3 s; the PO names the default (SET-26).
 - [ ] Pre-alert follows the notification volume: lowering it makes the pre-alert quieter; ringer on vibrate → a short vibration only; silent → nothing (04 §9.1).
-- [ ] The vessel picker offers Kyusu 120, 180, 300, 360 ml and Becher 250, 300, 350 ml next to „Kyusu" and „Becher mit Sieb", each once; choosing one rescales the leaf (WARE-03, WARE-06).
+- [ ] The vessel picker offers Kyusu 120, 180, 300, 360 ml and Becher 250, 300, 350 ml next to „Kyusu 250 ml" and „Becher mit Sieb 400 ml" (the M1 vessels, renamed while unchanged, D-093 Q18), each once; choosing one rescales the leaf (WARE-03, WARE-06).
 - [ ] Brew setup: tap „… g übrig", enter the new total 23,5 g, *Speichern* → „23,5 g übrig"; after brewing 5 g it shows 18,5 g. Entering 0 shows the tea as leer (INV-03, INV-05).
 - [ ] Tea picker: long press a tea → *Aus Sammlung entfernen* → it is gone from the picker and from Start's *Nochmal brühen*; *Rückgängig* brings it back. Remove it again: its journal entries still show its name and photo (TEA-04).
 - [ ] During a brew, long press that session's tea in the picker: *Aus Sammlung entfernen* is greyed out with „Erst die Sitzung beenden" (E15).

@@ -543,7 +543,9 @@ and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
   usable volume: „Kyusu 120 ml", „Kyusu 180 ml", „Kyusu 300 ml", „Kyusu
   360 ml" (KYUSU; capacity 150, 220, 350, 420 ml) and „Becher 250 ml",
   „Becher 300 ml", „Becher 350 ml" (MUG_INFUSER; capacity 300, 350,
-  400 ml). The two M1 vessels stay unchanged. A fresh install seeds all
+  400 ml). The two M1 vessels stay; they are named „Kyusu 250 ml" and
+  „Becher mit Sieb 400 ml", renamed on an existing install only while
+  they still carry their M1 names (Q18). A fresh install seeds all
   nine; an existing install gets the seven added once at the first start of
   v0.2.1 (fixed IDs, inserted only when absent, 05 §6
   `seedVesselsV2Added`). Free-size vessels come with M3's editor (WARE-01).

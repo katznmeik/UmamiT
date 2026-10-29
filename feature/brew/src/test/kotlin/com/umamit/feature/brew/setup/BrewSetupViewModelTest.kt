@@ -94,13 +94,13 @@ class BrewSetupViewModelTest {
         val vm = viewModel()
         val steps = vm.ready.steps
 
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
         assertThat(vm.ready.waterMl).isEqualTo(400)
         assertThat(vm.ready.leafGrams).isEqualTo(8.0)
         assertThat(vm.ready.steps).isEqualTo(steps)
         assertThat(vm.ready.kettle.tempC).isEqualTo(65)
 
-        vm.selectVessel(vm.ready.vessel("Kyusu"))
+        vm.selectVessel(vm.ready.vessel("Kyusu 250 ml"))
         assertThat(vm.ready.waterMl).isEqualTo(250)
         assertThat(vm.ready.leafGrams).isEqualTo(5.0)
     }
@@ -113,7 +113,7 @@ class BrewSetupViewModelTest {
         assertThat(vm.ready.leafGrams).isEqualTo(4.0)
         assertThat(vm.ready.waterMl).isEqualTo(400)
 
-        vm.selectVessel(vm.ready.vessel("Kyusu"))
+        vm.selectVessel(vm.ready.vessel("Kyusu 250 ml"))
         assertThat(vm.ready.leafGrams).isEqualTo(2.5)
         assertThat(vm.ready.steps).containsExactly(
             PlannedStep(StepKind.INFUSION, 60, 70),
@@ -145,7 +145,7 @@ class BrewSetupViewModelTest {
         val vm = viewModel()
         assertThat(vm.ready.canSaveToRecipe).isFalse()
 
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
         assertThat(vm.ready.canSaveToRecipe).isTrue()
 
         vm.saveToRecipe()
@@ -197,7 +197,7 @@ class BrewSetupViewModelTest {
     @Test
     fun `Bruehen starten hands the controller the snapshot and the plan, then opens the timer (TMR-01)`() = runTest {
         val vm = viewModel()
-        vm.selectVessel(vm.ready.vessel("Becher mit Sieb"))
+        vm.selectVessel(vm.ready.vessel("Becher mit Sieb 400 ml"))
 
         vm.startBrew()
 
@@ -205,7 +205,7 @@ class BrewSetupViewModelTest {
         assertThat(start.snapshot.teaId).isEqualTo(SeedData.HISUI_TEA_ID)
         assertThat(start.snapshot.teaName).isEqualTo("Bio Sencha Hisui")
         assertThat(start.snapshot.profileName).isEqualTo("Kyusu")
-        assertThat(start.snapshot.vesselName).isEqualTo("Becher mit Sieb")
+        assertThat(start.snapshot.vesselName).isEqualTo("Becher mit Sieb 400 ml")
         assertThat(start.snapshot.leafGrams).isEqualTo(8.0)
         assertThat(start.snapshot.waterMl).isEqualTo(400)
         assertThat(start.snapshot.baseTempC).isEqualTo(65)

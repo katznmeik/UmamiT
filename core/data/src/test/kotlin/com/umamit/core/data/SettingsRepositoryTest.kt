@@ -31,6 +31,18 @@ class SettingsRepositoryTest {
         assertThat(repository.settings.first()).isEqualTo(UserSettings())
         assertThat(repository.seedDataCreated.first()).isFalse()
         assertThat(repository.seedPhotosAttempted.first()).isFalse()
+        assertThat(repository.seedVesselsV2Added.first()).isFalse()
+    }
+
+    @Test
+    fun seedVesselsV2MarkerStaysSetAfterOtherChanges() = runTest {
+        // WARE-06 (D-093): the seven v0.2.1 vessels are added once; a settings change must never undo the marker.
+        val repository = repository()
+        repository.markSeedVesselsV2Added()
+        repository.update { it.copy(onboardingCompleted = true) }
+
+        assertThat(repository.seedVesselsV2Added.first()).isTrue()
+        assertThat(repository.seedDataCreated.first()).isFalse()
     }
 
     @Test
