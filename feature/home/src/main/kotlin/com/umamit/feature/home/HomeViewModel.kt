@@ -113,7 +113,9 @@ class HomeViewModel @Inject constructor(
     ) { overviews, recentSessions, timer, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
         val byId = owned.associateBy { it.tea.id }
-        val photoOf = { id: String -> byId[id]?.coverPhoto?.path() }
+        // A session row keeps its tea's photo when the tea was removed, as in the journal (D-093 Q13).
+        val covers = overviews.associate { it.tea.id to it.coverPhoto }
+        val photoOf = { id: String -> covers[id]?.path() }
         HomeUiState(
             loading = false,
             collectionEmpty = owned.isEmpty(),
