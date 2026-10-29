@@ -210,6 +210,7 @@ fun CatalogContent(
             CatalogList(
                 state = state,
                 actions = ListActions(
+                    onLoad = onLoad,
                     onShowProgress = onShowProgress,
                     onOpenTea = onOpenTea,
                     onOpenGuides = onOpenGuides,
@@ -235,6 +236,7 @@ fun CatalogContent(
 
 /** What the list's rows and controls do. */
 private class ListActions(
+    val onLoad: () -> Unit,
     val onShowProgress: () -> Unit,
     val onOpenTea: (String) -> Unit,
     val onOpenGuides: () -> Unit,
@@ -302,10 +304,15 @@ private fun CatalogList(
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
         item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
-        if (listing.sections.isEmpty()) {
+        // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
+        val herbalHint = filter.herbal && state.herbalPending
+        if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
+        if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
             item(key = "no_match") {
                 NoticeRow(stringResource(R.string.catalog_no_match), stringResource(R.string.catalog_reset_filters)) {
-                    actions.onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort) }
+                    actions.onFilterChange {
+                        CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, herbal = it.herbal)
+                    }
                 }
             }
         }
@@ -387,6 +394,19 @@ private fun GuidesRow(count: Int, onOpenGuides: () -> Unit) {
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * The *Kräutertee* view's hint before the first refresh after the update (SCR-19, D-093 Q20):
+ * *Jetzt laden* starts the refresh, or, while one runs, *Fortschritt anzeigen* opens its sheet.
+ */
+@Composable
+private fun HerbalPendingRow(refreshing: Boolean, actions: ListActions) {
+    NoticeRow(
+        text = stringResource(R.string.catalog_herbal_pending),
+        action = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_herbal_load_now),
+        onAction = if (refreshing) actions.onShowProgress else actions.onLoad,
+    )
 }
 
 /** A short notice in the list with one action: no match, or search hits the filters hide. */

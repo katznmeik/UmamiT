@@ -36,6 +36,11 @@ class FakeCatalogRepository(
     override fun observeLastRefresh(): Flow<Long?> = catalog.map { it.lastRefreshAtMillis }
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = details.map { it[key] }
+
+    /** The Kräutertees still to come (D-093 Q20); tests set it. */
+    val herbalPending = MutableStateFlow(false)
+
+    override fun observeHerbalPending(): Flow<Boolean> = herbalPending
 }
 
 /** In-memory [CatalogRefreshRunner]: counts the calls; tests drive [state]. */

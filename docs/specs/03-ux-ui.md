@@ -742,7 +742,18 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
   Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
   the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
-  to the default view and keeps the search.
+  to the default view and keeps the search. In the Kräutertee view (v0.2.1,
+  D-093 Q19) *Aroma* and *Umami* are left out (*Sortierung*, *Sorte*,
+  *Herkunft* and the switches Vorrätig, Bio, Neu, Im Besitz stay), and
+  *Zurücksetzen* as well as „Filter zurücksetzen" reset the filters but stay
+  in the Kräutertee view (#91).
+- **Kräutertee hint (v0.2.1, D-093 Q20):** until the first successful refresh
+  after the update (the last one ran a parser from before the Kräutertees),
+  the Kräutertee view shows „Kräutertees kommen mit dem nächsten Abruf
+  (≈ 16 min, einmalig)" with *Jetzt laden*, which starts the refresh and
+  opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
+  empty it takes the no-match notice's place; the header still reads
+  „… · 0 Kräutertees · …".
 - **Default view** (D-073): grouped by *Sorte* under a section header per
   *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
   on, so flavoured teas are one tap away. Sorted by name or price the list
