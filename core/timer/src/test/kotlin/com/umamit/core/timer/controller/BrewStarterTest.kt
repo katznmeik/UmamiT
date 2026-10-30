@@ -231,6 +231,53 @@ class BrewStarterTest {
     }
 
     @Test
+    fun `a brew's timer carries the session's leaf and water through its steps and every recovery (BRW-11, D-097)`() =
+        runTest {
+            harness.teaWithStock()
+            starter.startSession(brewStart(infusion(30), infusion(20), leafGrams = 4.0, waterMl = 250))
+            assertThat(harness.active.leafGrams).isEqualTo(4.0)
+            assertThat(harness.active.waterMl).isEqualTo(250)
+
+            harness.controller.send(TimerEvent.Start)
+            assertThat(harness.active.leafGrams).isEqualTo(4.0)
+            harness.advanceSeconds(30)
+            harness.controller.send(TimerEvent.Poured)
+            assertThat(harness.active.phase).isEqualTo(TimerPhase.READY)
+            assertThat(harness.active.stepIndex).isEqualTo(1)
+            assertThat(harness.active.leafGrams).isEqualTo(4.0)
+            assertThat(harness.active.waterMl).isEqualTo(250)
+
+            val restarted = harness.processRestarted()
+            restarted.controller.recover(RecoveryTrigger.APP_START)
+            assertThat(restarted.active.leafGrams).isEqualTo(4.0)
+            assertThat(restarted.active.waterMl).isEqualTo(250)
+        }
+
+    @Test
+    fun `a brew without water or without leaf carries only what it has (BRW-11, D-097)`() = runTest {
+        harness.teaWithStock()
+        starter.startSession(brewStart(infusion(30), leafGrams = 4.5, waterMl = null))
+        assertThat(harness.active.leafGrams).isEqualTo(4.5)
+        assertThat(harness.active.waterMl).isNull()
+
+        starter.finishActiveAndStart(brewStart(infusion(30), leafGrams = null, waterMl = 300))
+        assertThat(harness.active.leafGrams).isNull()
+        assertThat(harness.active.waterMl).isEqualTo(300)
+    }
+
+    @Test
+    fun `the quick timer carries no leaf and no water, also after a brew (BRW-11, D-097)`() = runTest {
+        harness.teaWithStock()
+        starter.startSession(brewStart(infusion(30), leafGrams = 4.0, waterMl = 250))
+
+        starter.finishActiveAndStartQuickTimer(60)
+
+        assertThat(harness.active.kind).isEqualTo(SessionKind.Quick)
+        assertThat(harness.active.leafGrams).isNull()
+        assertThat(harness.active.waterMl).isNull()
+    }
+
+    @Test
     fun `a cold brew and the quick timer are no ice brew`() = runTest {
         harness.teaWithStock()
         starter.startSession(brewStart(PlannedStep(StepKind.INFUSION, 7_200, 5), method = BrewMethod.COLD_BREW))

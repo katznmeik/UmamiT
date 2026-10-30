@@ -30,7 +30,7 @@ class TimerUiStateTest {
         ),
     )
 
-    private fun ui(state: TimerState) = uiStateOf(state, "Gyokuro", now) as TimerUiState.Active
+    private fun ui(state: TimerState) = uiStateOf(state, SessionDetails("Gyokuro"), now) as TimerUiState.Active
 
     @Test
     fun `each step's own pre-alert, the session's B and its long steps are published for the Schritte-Sheet`() {

@@ -3,7 +3,6 @@ package com.umamit.core.timer.controller
 import com.umamit.core.common.ClockReading
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.SessionRepository
-import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -26,8 +25,11 @@ internal class PersistedTimer(
     private val ports: TimerPorts,
     private val effects: TransitionEffects,
 ) {
-    /** The restored state ([TimerState.Idle] for none), the tea of its brew session and whether it is an ice brew. */
-    data class Restored(val state: TimerState, val teaName: String?, val iceBrew: Boolean = false)
+    /**
+     * The restored state ([TimerState.Idle] for none) and what the UI shows of its brew session's row (its tea, ice
+     * brew, leaf and water); null for the quick timer, idle or an unreadable row.
+     */
+    data class Restored(val state: TimerState, val details: SessionDetails?)
 
     /**
      * The persisted state at [now]. A snapshot `restore` refuses is cleared
@@ -46,7 +48,7 @@ internal class PersistedTimer(
             TimerState.Idle
         }
         val session = snapshotOf(state, now)
-        return Restored(state, session?.teaName, session?.method == BrewMethod.ICE_BREW)
+        return Restored(state, session?.let(SessionDetails::of))
     }
 
     private suspend fun readWithRetries(now: ClockReading): Read<TimerSnapshot?>? {
