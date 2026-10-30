@@ -378,14 +378,19 @@ private fun NavHostController.openCatalogRefresh(
         navigate(route) { launchSingleTop = true }
         return
     }
-    val stack = currentBackStack.value
-    val older = stack.indexOfLast { it.destination.hasRoute<CatalogRefreshRoute>() }
-    if (older >= 0) {
-        val timerAbove = stack.drop(older + 1).any { it.destination.hasRoute<TimerRoute>() }
-        popBackStack<CatalogRefreshRoute>(inclusive = true)
-        if (timerAbove) navigate(TimerRoute) { launchSingleTop = true }
-    }
+    val timerBefore = hasTimer()
+    // An older refresh shell leaves with what was opened above it; a timer among that comes back.
+    val replaced = popBackStack<CatalogRefreshRoute>(inclusive = true)
+    if (replaced && timerBefore && !hasTimer()) navigate(TimerRoute) { launchSingleTop = true }
     navigateAbove(route) { launchSingleTop = true }
+}
+
+/** Whether the timer is on the back stack (its public check throws when it is not). */
+private fun NavHostController.hasTimer(): Boolean = try {
+    getBackStackEntry<TimerRoute>()
+    true
+} catch (_: IllegalArgumentException) {
+    false
 }
 
 /** What [rememberTimerFirst] gives the root. */
