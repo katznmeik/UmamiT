@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -43,7 +43,7 @@
 | **M2** | **Tee-Kontor catalog** | Re-check selectors (V-01 done), parser + synthetic fixtures, variant merge, style mapping, recipe derivation, refresh worker with progress, photos, catalog list/detail, *In Sammlung aufnehmen* / *Nachkauf erfassen* and the picker flow, *Rezept passt*, guides (last slice), „Rezept prüfen", small #58 items (D-073) | CAT-*, ONB-03, SET-22/23 | v0.2.0 |
 | **v0.2.1** | **Feedback on v0.2.0-rc.1** (D-093, #79; points 2–9) | Legible ← and ⋮ on bright tea photos; pre-alert per infusion with the automatic rule, into the recipe via *Im Rezept speichern* (umamit.db v2 with a tested migration); four new, much louder pre-alert sounds with a ≈ 3 s fall-off and *Vorwarnton*; each rc needs the accuracy run (§4a; timer code changes); seven more seed vessels, added once to existing installs; stock correction from „… g übrig"; *Aus Sammlung entfernen* from the tea picker (archive, undo); Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*); sold-out teas missing from the sitemap stay in the catalog, and a tea can be added from a shared or pasted shop link (D-094, #97, #98) | SCR-05, TMR-23, SCR-31, PRF-03 (pre-alert per step), SET-26, WARE-06, INV-03 (correction only), BRW-02, TEA-04 (archive from the picker only), CAT-01, CAT-10, CAT-16, CAT-17, GEN-01 (d), NFR-PERF-11 | v0.2.1 |
 | **v0.2.2** | **Feedback on v0.2.1** (D-097; seven points) | Leaf and water on every READY; the catalog's notifications open the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker; the quick timer's silent pre-alert fixed, its own *Vorwarnung* selector and an 8:00 chip; *Merken* for catalog teas (umamit.db v3 with a tested migration); each rc needs the accuracy run (§4a; timer code changes) | BRW-11, BRW-08 (marker only), SCR-03, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18 | v0.2.2 |
-| **v0.3** | **Quick timers alongside a brew** (D-093, #79; point 1; planned) | One brew session as today plus quick timers that can always start alongside it: engine, `active_brew`, alarms, service, Live Update and alert player for two timers, with the timer tests of 04 §12 extended (rule 8); its own plan before building | TMR-21, TMR-22 | v0.3.0 |
+| **v0.3.0** | **Quick timer alongside a brew, long hot steps, feedback on v0.2.2-rc.1** (D-098; spec #124, tickets #125–#139; #122, #123; plan `docs/plans/v0.3.0.md`) | One brew session and one quick timer at once in two controller slots, the brew alarm first with a held quick alert, a row for the other timer on each timer screen and both in the bar, the Live Update for the timer due next (umamit.db v4 with a tested migration); hot steps of 10–59 min with countdown and Vorwarnung (long steps from 60 min); Vorwarnung and alarm on the alarm volume with *Lautstärke* and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder; foldable *Sorte* groups; stock on READY; two SCR-07 polish items; each rc needs both accuracy variants (§4a) | TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-02, BRW-11, INV-07, INV-11, CAT-10, SET-24, SET-27–SET-29, SET-31 | v0.3.0 |
 | **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.4.0 |
 | **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.5.0 |
 | **M5** | **Data & polish → 1.0** | Device backup verification (rules exist since M1), simple manual export (no in-app restore, D-036), reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log extended to the catalog, final illustrations | BAK-01, BAK-05, BAK-06, SET-*, NFR-* | **v1.0.0** |
@@ -164,11 +164,29 @@ v0.2.2 changes timer code (the quick timer's start and pre-alert), so every
 - [ ] The Schnelltimer chips include 8:00; all chips are readable at the largest font, wrapping onto a second row.
 - [ ] Catalog: mark two teas with the bookmark (one on its row, one on its detail); the chip *Gemerkt* shows both and only those; add one to the Sammlung → it leaves the Merkliste; the marks survive *Katalog aktualisieren* and an app restart (CAT-18).
 
-### v0.3 — Quick timers alongside a brew (planned, D-093)
+### v0.3.0 — Quick timer alongside a brew, long hot steps, feedback on v0.2.2-rc.1 (D-098)
 
-The checklist is written with v0.3.0's plan; at least: a quick timer started
-during a running brew step, both alerting on time with the screen off, and
-each acknowledged on its own.
+v0.3.0 changes timer code throughout, so every `v0.3.0-rc.N` needs a PASS of
+**both** accuracy variants first (§4a).
+
+- [ ] `v0.3.0-rc.1` installs over `v0.2.2` without losing data (umamit.db v3 → v4): journal, teas, recipes, photos, stock, Merkliste and settings are all there; a brew session running during the update still alerts on time, and so does a Schnelltimer started before the update.
+- [ ] Brew a tea and start step 1 (2:00). From Start start a Schnelltimer of 1:00 while it runs: no question. The brew timer shows the row „⏱ Schnelltimer 0:58"; a tap opens the Schnelltimer, which shows „🍃 <Tee> · Aufguss 1 · …"; back returns to the brew. The bar on Start, Journal, Sammlung and Statistik shows both countdowns; a tap on each opens its timer (TMR-22).
+- [ ] *Pause* in the Schnelltimer row pauses only the Schnelltimer; *Weiter* resumes it. Pausing the brew leaves the Schnelltimer running.
+- [ ] Screen off, both running: the Schnelltimer (ending first) alerts on time with sound and full-screen alert; *Fertig*. Then the brew alerts on time. On the lock screen the Live Update showed the Schnelltimer first, then the brew; the other timer was a quiet notification (04 §8.3).
+- [ ] Both due together: start a 1:00 brew step and a 1:00 Schnelltimer within a second. Only the brew alarm sounds; after *Abgegossen* the Schnelltimer alarm rings at once with its overtime. Never two sounds at once.
+- [ ] Held for long: a 0:30 Schnelltimer during a brew step that ends first; leave the brew alarm unanswered for about 2 min. After *Abgegossen* the Schnelltimer rings with „+2:…"; it ends silently only 10 min after it started ringing (S1).
+- [ ] Preemption: a Schnelltimer alarm ringing when a brew step ends stops at once; the brew alarm rings; after *Abgegossen* the Schnelltimer alarm comes back.
+- [ ] A second Schnelltimer asks „Schnelltimer beenden und neu starten?"; *Beenden & neu starten* replaces only the Schnelltimer, the brew runs on. A second brew still asks „Erst die …-Sitzung beenden?" and leaves the Schnelltimer running. *Sitzung beenden* leaves the Schnelltimer running; *Abbrechen* of the Schnelltimer leaves the brew running.
+- [ ] Swipe the app away with both running, phone locked: both alert on time, brew first when due together. Restart the phone during a long cold-brew step with a Schnelltimer running: after unlocking both are back.
+- [ ] A hot step of 15 min (Schritte-Sheet): the setup and the sheet show „Auto · 10 s"; it counts down with „Gleich fertig …" and the Vorwarnton at 0:10. A 60-min hot step and a cold brew show „· keine" and „Fertig um …" (TMR-18).
+- [ ] Turn the phone's notification volume down and the alarm volume up: Vorwarnung and alarm are loud. *Einstellungen › Timer & Alarm › Lautstärke* at 30 %: *Alarm testen* is quieter; back to 100 %. The slider stops at 10 %.
+- [ ] Vibrate mode: vibration only; silent mode: visual only. DND „Nur Alarme": Vorwarnung and alarm ring. DND total silence (if offered): visual only.
+- [ ] Alarm volume at 0: Start and the settings show „Alarmlautstärke ist aus"; *Beheben* opens the sound settings; raising it clears the warning.
+- [ ] Brew setup of a catalog tea: ⋮ › *Im Katalog ansehen* opens its catalog page; back returns to the setup with every value as before. A tea without a catalog entry has no ⋮.
+- [ ] *Einstellungen › Brühen & Vorrat*: „Tägliche Vorrats-Erinnerung" on, „Uhrzeit 18:00". Set the time a few minutes ahead with a *Knapp* tea and a hidden (*Ausblenden*) one: one quiet notification „2 Tees werden knapp" lists both, without sound; a tap opens Start. A removed tea never appears. Off: no notification the next day.
+- [ ] *Sammlung › Katalog*: tap „Bancha · …" to fold it; the chevron turns; fold another; after an app restart both stay folded; the Kräutertee view keeps its own. A search finds teas in folded groups; clearing it folds them again. ⋮ *Alle einklappen* / *Alle ausklappen* work. TalkBack reads „Bancha, 12 Tees, eingeklappt".
+- [ ] *Nochmal brühen* on a tea with 38 g: READY shows „38 g übrig" under „4,0 g Tee · 250 ml Wasser"; a tea at the threshold shows „· knapp"; the Schnelltimer shows no stock line.
+- [ ] Schnelltimer screen: changing *Vorwarnung* (Auto, Aus, 20 s) does not move the word „Vorwarnung"; at the largest font the ring does not move at *Start*.
 
 ### M3 — Collection
 
@@ -214,6 +232,14 @@ step, and *Abgegossen* / *Start* / *Sitzung beenden* are tapped in the
 notifications between steps. It takes about an hour per API level. The
 regular CI emulator job skips this test.
 
+**Two variants (v0.3.0, D-098, #137).** From v0.3.0 the workflow has the input
+`variant`: `standard` (the run above) or `alongside`, which runs the same brew
+steps with a quick timer running alongside (restarted so it overlaps the
+steps) and measures both timers' pre-alerts and alerts against the same
+targets; its report lists both timers. **Every v0.3.0 rc and the final
+`v0.3.0` need a PASS of both variants** on their commit; from then on every
+rc that touches timer code does.
+
 **Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
 `accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
 
@@ -223,6 +249,7 @@ regular CI emulator job skips this test.
 | `api-level` | `36` | `36`, `35` or `both` (one job per level, in parallel) |
 | `steps` | `50` | `50` for the rc gate; fewer only to try the workflow |
 | `inject-delay-ms` | `0` | Gate check only: every pre-alert and alert this many ms late; such a run must **fail** |
+| `variant` (v0.3.0) | `standard` | `standard` or `alongside` (a quick timer running alongside the brew steps) |
 
 With the `gh` CLI the same dispatch is
 `gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.

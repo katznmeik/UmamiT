@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -267,7 +267,8 @@ change.
 
 ### 3.12 ActiveBrew
 
-Single-row table `active_brew` (`id` = 1). Together with the session's
+Single-row table `active_brew` (`id` = 1) until v3; from **v4** (v0.3.0,
+D-098) one row per slot, keyed by `slot` (see below). Together with the session's
 `session_step` rows it holds the timer engine's state without loss; the
 plain model type is `ActiveBrewSnapshot` in `core:model`, and the engine maps
 it with `snapshot(state)` / `restore(snapshot)`
@@ -304,6 +305,19 @@ are nullable (#30). A device restore clears the row (§8).
 | `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off); from v2 the base B of the automatic rule (04 §5) |
 | `zone_id` | TEXT | the session's time zone (IANA id); needed for the quick timer, which has no `brew_session` row |
 | `quick_pre_alert_seconds` | INTEGER | **v3** (v0.2.2, D-097): the quick timer's pre-alert choice; null = *Automatisch* (B = `pre_alert_inherited_seconds`), 0 = *Aus*, 5–30 explicit; always null for a brew session |
+
+**v4: one row per slot (v0.3.0, D-098).** The controller runs two slots
+(04 §3.3), so the table holds up to two rows:
+
+| Column | Type | Notes |
+|---|---|---|
+| `slot` | TEXT | **PK**, replaces `id`: `BREW` (a brew session, `is_quick_timer` 0) or `QUICK` (a quick timer, `is_quick_timer` 1). A row whose `slot` and `is_quick_timer` disagree makes the snapshot invalid |
+| `alert_ringing_since_elapsed_ms`, `alert_ringing_since_wall_ms` | INTEGER | ALERTING only: when the alert last started ringing (`ringingSince`, 04 §9.3); null = held (a quick alert waiting for the brew's) or not alerting. A brew row in ALERTING always has it. The quick slot's overtime timeout is 10 min after it; the wall value rebases it after a reboot |
+
+All other columns stay as above, per row. `ActiveBrewStore` reads and writes
+the snapshot per slot: a write touches only its slot's row (and, for the
+brew slot, its session's step rows), clearing a slot deletes only its row,
+and a device restore clears both (§8).
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
@@ -476,6 +490,11 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockGrams` | Double | **15.0** (v0.2.2; was 10.0) | SET-16; snapped to 5 g, clamped to 0…500. Settings `schemaVersion` 2 (v0.2.2, D-097) turns a stored 10.0 into 15.0 once, since no settings row existed before |
 | `quickTimerPreAlert` | Int? (null, 0, 5…30) | null (*Automatisch*) | TMR-22 (v0.2.2, D-097): the last choice on SCR-07 |
 | `lowStockHidden` | Set<String> | ∅ | INV-10 (v0.2.2, D-097): `<tea id>/<event id>` of the latest INITIAL/PURCHASE event when *Ausblenden* was tapped; a newer purchase shows the card again |
+| `alertVolumePercent` | Int (10…100) | 100 | SET-27 (v0.3.0, D-098): the gain of Vorwarnung and alarm on the alarm stream; a written value is snapped to 10 and clamped to 10…100, so the app itself can never silence a cue |
+| `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
+| `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
+| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last posted reminder, so a day gets at most one; not shown |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |
@@ -493,7 +512,9 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `seedTeaLinksDone` | Set<String> | ∅ | CAT-15: the done parts of the seed teas' link, `<tea id>/description` and `<tea id>/cover`; each added once, never removed (D-086, D-090) |
 
 The catalog list's search, filters and sort are not stored: it opens in its
-default view each time (D-073, D-083).
+default view each time (D-073, D-083). Only the folded groups are
+(`catalogFolded`, v0.3.0). The v0.3.0 keys need no settings migration: a
+missing key reads as its default (`schemaVersion` stays 2).
 
 The settings are one JSON file, `files/datastore/settings.json`. A missing
 key reads as its default, an unknown enum name falls back to the default,
@@ -645,6 +666,27 @@ quick timer's own pre-alert, `MIGRATION_2_3` in `UMAMI_MIGRATIONS`:
   `SchemaVersionsTest` with v1–v3; v1 and v2 JSON unchanged
   (`check-frozen-schemas.sh`). The v0.2.2 rc checklist installs it over
   v0.2.1 (09 §4).
+
+**umamit.db v4 (v0.3.0, D-098).** One schema step for the two timer slots,
+`MIGRATION_3_4` in `UMAMI_MIGRATIONS`:
+- `active_brew` is recreated with `slot` (TEXT, PK) in place of `id` and the
+  two `alert_ringing_since_*` columns (§3.12): create the new table, copy,
+  drop the old one, rename, as Room does for a key change.
+- The existing row, if any, goes to the slot of its kind:
+  `slot = CASE is_quick_timer WHEN 1 THEN 'QUICK' ELSE 'BREW' END`, every
+  other value as it was. An ALERTING row gets both `alert_ringing_since_*`
+  set to its deadline values (it rang from its deadline in v3), every other
+  row null. So a timer running, waiting or alerting during the update keeps
+  its state, and recovery alerts on time (rule 8; 04 §7.5).
+- `session_step` and every other table are unchanged; the FK from
+  `active_brew.session_id` stays (CASCADE).
+- One transaction, never destructive. Tests: `Migration3To4Test` from a
+  populated v3 database: a running brew session in one case, a running
+  quick timer with a pre-alert choice in another, an alerting one in a
+  third; every row and value checked, then opened with the production
+  builder. `SchemaVersionsTest` opens v1–v4; the v1, v2 and v3 JSON stay
+  byte-identical (`check-frozen-schemas.sh`). The v0.3.0 rc checklist
+  installs it over v0.2.2 (09 §4).
 
 ## 10. Volume assumptions
 

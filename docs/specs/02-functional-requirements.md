@@ -1,6 +1,9 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.2.2 from the PO's
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: quick timer
+> alongside a brew, long steps from 60 min, alarm volume and *Lautstärke*,
+> daily low-stock reminder INV-11, foldable catalog groups, stock on READY,
+> D-098; v0.2.2 from the PO's
 > feedback on v0.2.1: BRW-11, BRW-08, INV-05, INV-10, SET-16, TMR-22, CAT-18,
 > D-097; 2026-10-28: sold-out teas and
 > adding a tea from a shop link, CAT-16, CAT-17, D-094; 2026-10-26: v0.2.1
@@ -283,6 +286,15 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   green teas. The *Pur* filter does not apply in the Kräutertee view; the
   other filters still do. Search hits among the hidden kind count as hidden
   by the filters.
+- **Foldable groups (v0.3.0, D-098).** In the grouped default and
+  Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
+  header shows a chevron and the count („Bancha · 12").
+  - AC1: Folded groups are remembered across app starts, separately for the
+    green and the Kräutertee view (setting `catalogFolded`).
+  - AC2: A non-empty search shows every hit unfolded; clearing it restores
+    the folding.
+  - AC3: The catalog's ⋮ offers *Alle einklappen* and *Alle ausklappen*.
+  - AC4: *Gemerkt* and the flat sort orders (name, price) have no folding.
 
 **CAT-11 — Catalog tea detail** `Must`
 SCR-21 shows photo, names, type, origin details, organic/flavoured,
@@ -592,6 +604,11 @@ session (only while no step has started). A known tea starts in **2 taps**
   shows the session's leaf and water next to the kettle hint („4,0 g Tee ·
   250 ml Wasser"), so a tea started from *Nochmal brühen* shows how much to
   weigh without opening the setup (SCR-05).
+- **Stock on READY (v0.3.0, D-098).** Under that line every READY of a brew
+  shows the tea's stock as in the setup (INV-05): „38 g übrig", „14 g übrig ·
+  knapp" or „Leer". No line for the quick timer, a session whose tea is not
+  in the collection, or when the stock can't be read; reading it never
+  delays the timer (rule 8).
 
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
@@ -602,6 +619,8 @@ step's pre-alert (TMR-23, D-093).
   sheet „Wie viel ist noch da?" where the new total is entered in g (0,1 g
   steps; 0 allowed = leer); *Speichern* stores the difference as a
   correction (INV-03) and the setup shows the new amount.
+- **Im Katalog ansehen (v0.3.0, D-098):** for a tea with a catalog entry
+  the top bar's ⋮ opens its SCR-21; back returns to the unchanged setup.
 
 **BRW-03 — Ratio scaling** `Must`
 With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
@@ -734,6 +753,15 @@ alert, on any touch, and in READY/PAUSED/FINISHED.
 Steps ≥ 10 min (always including cold and ice brew) use exact alarms
 without keeping a service running; no pre-alert; the Live Update shows
 „Fertig um 14:30".
+- **v0.3.0 (D-098, #122):** a long step is every step of a cold or ice brew
+  and any step of **60 min or more** (threshold 3600 s, was 600 s). Hot
+  steps of 10–59 min are short steps: ring countdown, the service kept,
+  the countdown Live Update and the Vorwarnung (TMR-23).
+  - AC1: A 15-min hot step plays its automatic Vorwarnung („Auto · 10 s")
+    and shows „Gleich fertig …"; a 60-min hot step and a cold brew show
+    „Fertig um …" and have none.
+  - AC2: The duration rounding of PRF-04 (5 s below 10 min, whole minutes
+    from 10 min) does not change.
 
 **TMR-19 — Whisk steps** `Must` („Zügig in M/W-Form aufschlagen").
 
@@ -743,10 +771,16 @@ without keeping a service running; no pre-alert; the Live Update shows
 **TMR-21 — Second session** `Must`
 Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
 (*Beenden & neu starten* / *Abbrechen*).
-- **Planned for v0.3.0 (D-093):** one brew session at a time stays, but a
-  quick timer (TMR-22) can always start alongside it, without this dialog.
-  Starting a second brew session still asks. Until v0.3.0 (v0.2.1
-  included) one timer at a time, as above.
+- **v0.3.0 (D-093, D-098):** one active brew session and one active quick
+  timer (TMR-22) may run at the same time; either starts while the other
+  runs, without this dialog. Only a second brew session asks as above; it
+  never touches the quick timer. Until v0.3.0 one timer at a time.
+  - AC1: *Aufguss starten*, *Nochmal brühen* and the setup start a brew
+    while a quick timer runs, without a question.
+  - AC2: *Sitzung beenden*, *Sitzung verwerfen* and every step action leave
+    the quick timer running; its *Abbrechen* leaves the brew running.
+  - AC3: Both survive swiping the app away, process death, a reboot and an
+    app update (04 §7).
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
@@ -759,8 +793,23 @@ automatic rule of TMR-23) and Live Update; not logged.
   - AC1: A 2:00 quick timer with *Vorwarnung* 10 s and *Automatisch* shows
     the mark at 0:10 while it runs and plays the Vorwarnton at 0:10 left,
     screen on or off (fixes the silent pre-alert the PO found in v0.2.1).
-- **Planned for v0.3.0 (D-093):** quick timers run alongside one brew
-  session (TMR-21).
+- **Alongside a brew (v0.3.0, D-093, D-098).** A quick timer starts from
+  Start's *Schnelltimer* while a brew runs, without a question (not from the
+  timer's ⋮ or a notification). A second quick timer asks „Schnelltimer
+  beenden und neu starten?" (*Beenden & neu starten* / *Abbrechen*); the
+  brew is never touched.
+  - AC1: Each timer screen shows the other active timer in a slim row
+    („⏱ Schnelltimer 2:14", „🍃 Tanabata · Aufguss 2 · 0:48") with its own
+    *Pause*/*Weiter*; a tap opens it, back returns (SCR-05, SCR-07).
+  - AC2: The active brew bar shows both countdowns (SCR-02).
+  - AC3: The lock screen's Live Update shows the timer that ends next; the
+    other is a quiet notification (04 §8.3).
+  - AC4: **Alarm order.** The brew alarm comes first. A quick alarm due
+    while the brew alarm is on waits; a ringing quick alarm gives way at
+    once to a brew alarm. The waiting one rings right after *Abgegossen*
+    with its overtime („+12:00"), however long it waited, and ends silently
+    only 10 min after it started ringing. Two sounds never play at once
+    (04 §9.3).
 
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
@@ -777,9 +826,13 @@ step so the kyusu can be picked up.
   0:10 → none, 0:20 → 5 s, 0:30 and longer → 10 s.
 - Skipped if the step is shorter than N + 5 s (only an explicit value can
   hit this), for RINSE steps shorter than 15 s, and for long steps
-  (≥ 10 min, TMR-18).
+  (≥ 10 min, TMR-18; from v0.3.0 cold or ice brew, or ≥ 60 min, D-098).
 - The tick follows the ringer mode like the alert (vibrate mode → short
-  vibration only).
+  vibration only). From v0.3.0 both play on the alarm volume with the
+  *Lautstärke* of SET-27 (04 §9.1, D-098).
+- **Two timers (v0.3.0, D-098).** A Vorwarnung never cuts an alarm. One due
+  while the other timer's alarm or Vorwarnung sounds plays after it, only
+  if at least 1 s of its step is left.
 - The Live Update / timer caption switches to „Gleich fertig…" at the
   pre-alert.
 
@@ -794,6 +847,9 @@ If notifications are blocked, Live Updates are not allowed
 exact alarms are unavailable, the timer and Home show „Der Timer ist
 eventuell unzuverlässig – *Beheben*" deep-linking to the relevant setting.
 Now Bar presence is not checked (best effort, TMR-41).
+- **Alarm volume (v0.3.0, D-098):** the phone's alarm volume at 0 is a check
+  of its own: „Alarmlautstärke ist aus" with *Beheben* (the system's sound
+  settings), in the banner and in SET-24.
 
 **TMR-41 — Live Update** `Must`
 On Android 16, the active timer is a promoted ongoing notification (Live
@@ -880,6 +936,8 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
 
 **INV-07 — Low stock & freshness reminders** `Could`
 Weekly digest notification (off by default).
+- **v0.3.0 (D-098):** low stock has its own daily reminder (INV-11); this
+  digest keeps only freshness.
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
@@ -913,6 +971,21 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
   PURCHASE event; then the next most urgent tea, if any, shows.
 - AC3: The card is part of the Start list; it never covers or delays an
   alert.
+
+**INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
+Once a day at the time of SET-29 (default 18:00) one quiet notification
+lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
+with lines „Tanabata · 14 g", „Hisui · leer". A tap opens Start.
+- AC1: Teas hidden with *Ausblenden* (INV-10) are included until their next
+  INITIAL or PURCHASE event; archived teas and teas without stock events
+  never.
+- AC2: No notification on a day without such a tea; never a sound,
+  vibration or full-screen intent (channel „Vorrat", low importance).
+- AC3: Switched off with SET-28 (default on); no per-tea switch (removing
+  the tea stops it).
+- AC4: Inexact by design (within about 15 min); it never wakes the phone
+  with an exact alarm and never disturbs a running timer or its alert
+  (rule 8).
 
 ---
 
@@ -957,26 +1030,30 @@ Every chart has an accessible table alternative.
 | SET-06 | Hintergrundfarben verwenden (dynamic colour) | aus | Could |
 | SET-09 | Alarmton | Bundled tones (Klangschale, Glocke, Holzblock, Glockenspiel, Sanft; synthesised, D-036) — Klangschale | Must |
 | SET-10 | Vorwarnung (pre-alert; the base B of TMR-23's automatic rule) | Aus, 5, 10, 15, 20, 25, 30 s — **10 s** | Must |
-| SET-26 | Vorwarnton (pre-alert sound, with *Anhören*; v0.2.1, D-093) | Four new synthesised sounds, mastered much louder with a fall-off of ≈ 3 s, still at the notification volume (Zimbel, Glöckchen, Klangstab, Tiefe Schale; 04 §9.2) and today's tick „Ting (leise)" — default chosen by the PO via *Alarm testen* on the first v0.2.1 rc (until then Zimbel) | Must |
+| SET-26 | Vorwarnton (pre-alert sound, with *Anhören*; v0.2.1, D-093) | Four new synthesised sounds, mastered much louder with a fall-off of ≈ 3 s, at the notification volume until v0.2.2, on the alarm volume from v0.3.0 (D-098) (Zimbel, Glöckchen, Klangstab, Tiefe Schale; 04 §9.2) and today's tick „Ting (leise)" — default chosen by the PO via *Alarm testen* on the first v0.2.1 rc (until then Zimbel) | Must |
+| SET-27 | Lautstärke (Vorwarnung and alarm, on top of the phone's alarm volume; v0.3.0, D-098) | 10–100 % in 10 % steps — **100 %**; *Alarm testen* plays at it | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
+| SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
+| SET-29 | Erinnerung um (INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |
-| SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07) | aus | Could |
+| SET-19 | Wöchentliche Vorrats-Erinnerung (INV-07; freshness only from v0.3.0, D-098) | aus | Could |
 | SET-20 | Backup-Erinnerung (manual export) | Aus / Monatlich — Monatlich | Should |
 | SET-22 | Katalog: Fotos laden | an | Should |
 | SET-23 | Katalog: letzter Abruf, *Jetzt aktualisieren* | — | Must |
-| SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm with *Beheben* links) | — | Must |
+| SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm, and from v0.3.0 the alarm volume, with *Beheben* links) | — | Must |
 
 **SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
 *Teegeschirr* (→ SCR-13), *Darstellung*, *Daten* (→ SCR-26, Alle Daten
 löschen), *Über* (→ SCR-27).
 
 **SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert
-(the chosen *Vorwarnton*, SET-26, from v0.2.1).
+(the chosen *Vorwarnton*, SET-26, from v0.2.1; from v0.3.0 on the alarm
+volume at the *Lautstärke* of SET-27, D-098).
 
 **SET-33 — Delete all data** `Must` (type „LÖSCHEN" to confirm).
 
@@ -1011,7 +1088,8 @@ new sessions since the last export.
 
 **NOT-01 — Channels** `Must`: Brühtimer (live/ongoing, silent), Aufguss
 fertig (high), Sitzungen (low), Erinnerungen (low), Katalog (low, refresh
-progress/result).
+progress/result); from v0.3.0 (D-098) Weiterer Timer (low, silent: the
+active timer not shown as the Live Update) and Vorrat (low, silent: INV-11).
 
 **NOT-02 — Actions** `Must`: READY → *Start*; RUNNING → *Pause*; PAUSED →
 *Weiter*; ALERTING → *Abgegossen*; FINISHED → *Sitzung beenden*. Tapping opens
@@ -1038,10 +1116,10 @@ SCR-05.
 | ONB-02 (v0.1), ONB-04/05 (v0.1) | Unit selection, sample teas | German/metric only; catalog replaces samples (IDs reused for new meaning in v0.2 — no code existed) |
 | TMR-04 | −10 s / +10 s buttons | PO wants a calm running screen (Pause only) |
 | TMR-24/25 | Spoken countdown, tabletop layout | Not needed |
-| TMR-40 | Multiple concurrent timers | One at a time; partly revived for v0.3.0: quick timers alongside one brew session (TMR-21, TMR-22, D-093) |
+| TMR-40 | Multiple concurrent timers | One at a time until v0.2.2; partly revived in v0.3.0: one quick timer alongside one brew session, never more (TMR-21, TMR-22, D-093, D-098) |
 | SET-01…04, SET-07, SET-08 | Units, teaspoons, language, leaf precision | German/metric only |
 | SET-12 | Start first step immediately | Always wait for the user |
-| SET-13 | Alarm stream choice | Alert always follows ringer mode |
+| SET-13 | Alarm stream choice | Alert always follows ringer mode; from v0.3.0 always the alarm stream, with *Lautstärke* (SET-27, D-098) |
 | SET-21 | Precise reminders permission | Exact alarms always available (`USE_EXACT_ALARM`, no store review) |
 | BRW-04, BRW-05, BRW-07 | Teaspoons, cooling helper, checklist | Kettle with 5 °C steps |
 | LRN-01…07 | Learn tab, own guides, calculators, tip of the day | Replaced by Tee-Kontor guides (CAT-09); Stats takes the tab |
