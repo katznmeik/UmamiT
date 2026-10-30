@@ -7,7 +7,6 @@ import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
-import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -80,11 +79,11 @@ class BrewSessionController @Inject constructor(
     /** The engine state; read and written only inside [lock]. */
     private var timer: TimerState = TimerState.Idle
 
-    /** The tea of the active session, for the UI and the notifications; read and written inside [lock]. */
-    private var teaName: String? = null
-
-    /** The active session is an ice brew, for the kettle hint (BRW-10); read and written inside [lock]. */
-    private var iceBrew = false
+    /**
+     * What the UI and the notifications show of the active session's row: its tea, ice brew (BRW-10), leaf and
+     * water (BRW-11); null for the quick timer. Read and written inside [lock].
+     */
+    private var details: SessionDetails? = null
 
     /** The timer as the UI shows it; updated on every accepted transition, after it is persisted. */
     val state: StateFlow<TimerUiState> = effects.state
@@ -150,7 +149,7 @@ class BrewSessionController @Inject constructor(
                 startedAtMs = now.wallMs,
                 zoneId = now.zone.id,
             )
-            return handle(event, now, EventSource.APP, start, request.snapshot.teaName)
+            return handle(event, now, EventSource.APP, start)
         }
     }
 
@@ -343,8 +342,7 @@ class BrewSessionController @Inject constructor(
                     TimerEvent.Recover,
                     now,
                     EventSource.RECOVERY,
-                    startTeaName = persisted.teaName,
-                    startIceBrew = persisted.iceBrew,
+                    startDetails = persisted.details,
                 )
                 val rebooted = restored.session.bootCount != now.bootCount
                 effects.record(
@@ -420,8 +418,7 @@ class BrewSessionController @Inject constructor(
         now: ClockReading,
         source: EventSource,
         start: SessionStart? = null,
-        startTeaName: String? = null,
-        startIceBrew: Boolean? = start?.snapshot?.method?.let { it == BrewMethod.ICE_BREW },
+        startDetails: SessionDetails? = start?.snapshot?.let(SessionDetails::of),
         savedSheetAsNotification: Boolean = false,
     ): TransitionOutcome {
         val before = timer
@@ -442,9 +439,8 @@ class BrewSessionController @Inject constructor(
             if (source != EventSource.RECOVERY) recovery.restoredForAlarmLog = null
             timer = transition.state
             val active = transition.state is TimerState.Active
-            teaName = if (active) startTeaName ?: teaName else null
-            iceBrew = active && (startIceBrew ?: iceBrew)
-            effects.run(transition, now, start, teaName, iceBrew, savedSheetAsNotification, scheduled = due)
+            details = if (active) startDetails ?: details else null
+            effects.run(transition, now, start, details, savedSheetAsNotification, scheduled = due)
         }
         rearmWakeUp()
         return transition.outcome

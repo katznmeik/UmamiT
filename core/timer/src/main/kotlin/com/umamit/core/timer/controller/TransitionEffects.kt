@@ -74,7 +74,7 @@ internal class TransitionEffects(
 
     /**
      * Runs the effects of the accepted [transition] at [now]. [start] is the
-     * request of a `CreateSession`; [teaName] the session's tea for the UI, [iceBrew] whether it is an ice brew.
+     * request of a `CreateSession`; [details] what the UI shows of the session's row (null: the quick timer).
      * [savedSheetAsNotification]: a `ShowSavedSheet` is executed as
      * `NotifySessionSaved` (*Beenden & neu starten*, D-054). [scheduled]: when the time-based
      * event of the transition was due, which the pre-alert tick passes to the player's log (D-068).
@@ -83,14 +83,13 @@ internal class TransitionEffects(
         transition: TimerTransition,
         now: ClockReading,
         start: SessionStart?,
-        teaName: String?,
-        iceBrew: Boolean = false,
+        details: SessionDetails?,
         savedSheetAsNotification: Boolean = false,
         scheduled: ScheduledTime? = null,
     ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
         persist(transition.effects.take(persistAt), transition.state, start, now)
-        val ui = uiStateOf(transition.state, teaName, now, iceBrew)
+        val ui = uiStateOf(transition.state, details, now)
         mutableState.value = ui
         val fullScreen = TimerEffect.StartAlert in transition.effects
         val preAlertDue = scheduled?.takeIf { it.kind == TimerAlarmKind.PRE_ALERT }
