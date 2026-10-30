@@ -7,6 +7,8 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.model.Tea
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaOverview
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -23,9 +25,30 @@ import java.util.Locale
 import javax.inject.Inject
 
 /**
+ * A tea's kind, the picker's group (SCR-03, D-097), in the order the groups show: every green
+ * style is a „Grüntee", style `herbal` a „Kräutertee". M3's own teas will add more kinds.
+ */
+enum class TeaKind {
+    GREEN,
+    HERBAL,
+    ;
+
+    companion object {
+        /** The kind from the tea's style; a tea without a style counts by its category. */
+        fun of(tea: Tea): TeaKind = when {
+            tea.styleKey == HERBAL_STYLE -> HERBAL
+            tea.styleKey == null && tea.category == TeaCategory.HERBAL -> HERBAL
+            else -> GREEN
+        }
+
+        private const val HERBAL_STYLE = "herbal"
+    }
+}
+
+/**
  * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
  * [removable] is false for the tea of the active brew session: *Aus Sammlung entfernen* is greyed
- * out with „Erst die Sitzung beenden" (TEA-04, E15).
+ * out with „Erst die Sitzung beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
  */
 data class PickerTea(
     val id: String,
@@ -33,7 +56,17 @@ data class PickerTea(
     val teaType: String?,
     val photoPath: String?,
     val removable: Boolean = true,
+    val kind: TeaKind = TeaKind.GREEN,
 )
+
+/** The teas of one [kind] in *Alle* or the search results, in their order (A–Z; SCR-03, D-097). */
+data class PickerGroup(val kind: TeaKind, val teas: List<PickerTea>)
+
+/** The teas split by kind: groups in [TeaKind] order, empty ones left out, each keeping the teas' order. */
+internal fun List<PickerTea>.groupedByKind(): List<PickerGroup> {
+    val byKind = groupBy { it.kind }
+    return TeaKind.entries.mapNotNull { kind -> byKind[kind]?.let { PickerGroup(kind, it) } }
+}
 
 /**
  * What the tea picker (SCR-03) shows.
@@ -56,6 +89,18 @@ data class TeaPickerUiState(
 ) {
     /** The collection has no tea to brew (GEN-09); only *Ohne Tee (Schnelltimer)* is left. */
     val isEmpty: Boolean get() = !loading && all.isEmpty()
+
+    /** *Alle* split by the teas' kind (D-097). */
+    val allGroups: List<PickerGroup> get() = all.groupedByKind()
+
+    /** [results] split the same way; null while no search is active. */
+    val resultGroups: List<PickerGroup>? get() = results?.groupedByKind()
+
+    /** *Alle* shows its group headers only when it holds teas of more than one kind (D-097). */
+    val showGroupHeaders: Boolean get() = allGroups.size > 1
+
+    /** The search results show group headers only when they hold teas of more than one kind (D-097). */
+    val showResultHeaders: Boolean get() = (resultGroups?.size ?: 0) > 1
 }
 
 /**
@@ -133,6 +178,7 @@ class TeaPickerViewModel @Inject constructor(
         teaType = tea.teaType,
         photoPath = coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path,
         removable = removable,
+        kind = TeaKind.of(tea),
     )
 
     private data class Input(val typed: String, val search: String, val removed: PickerTea?)
