@@ -172,7 +172,6 @@ class CatalogNotificationTapTest {
         assertThat(requests.pending).isEqualTo(0L)
     }
 
-
     @Test
     fun theProgressNotificationOpensTheCatalogWithTheSheetShowingTheProgress() {
         runner.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(120, 1560, 40))

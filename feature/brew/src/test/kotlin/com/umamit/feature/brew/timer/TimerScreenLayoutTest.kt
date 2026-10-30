@@ -209,8 +209,7 @@ class TimerScreenLayoutTest {
      */
     @Test
     @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
-    fun `on a 384 x 832 dp screen at font scale 2_0 the pill does not move, not even into FINISHED`() =
-        pillStaysPut()
+    fun `on a 384 x 832 dp screen at font scale 2_0 the pill does not move, not even into FINISHED`() = pillStaysPut()
 
     /** READY → RUNNING → ALERTING (overtime turning large) → the last step's ALERTING → FINISHED. */
     private fun pillStaysPut() {

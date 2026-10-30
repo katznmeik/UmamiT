@@ -86,8 +86,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   (SCR-22, D-097); 0 for none. The root opens Sammlung › Katalog with the refresh sheet above what
  *   is shown ([CatalogRefreshRoute], at most one, replacing an older one), so back returns there;
  *   during an alert it waits until the alert has ended (rule 8). Before the first-start setup is done,
- *   or while a setup is shown, the tap
- *   opens the app where it was (ONB-03). Either way [onConsumeCatalogRefreshRequest] gets the token.
+ *   or while a setup is shown, the tap opens the app where it was (ONB-03). Either way
+ *   [onConsumeCatalogRefreshRequest] gets the token.
  */
 @Composable
 internal fun UmamitRoot(
