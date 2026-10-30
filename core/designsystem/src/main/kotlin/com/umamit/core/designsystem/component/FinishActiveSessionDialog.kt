@@ -13,8 +13,8 @@ import com.umamit.core.designsystem.R
 
 /**
  * The second-session question (TMR-21, 03 §5): „Erst die *Hisui*-Sitzung
- * beenden?" with *Beenden & neu starten* and *Abbrechen*; for an active quick
- * timer ([teaName] null) „Erst den Schnelltimer beenden?". Back and a tap
+ * beenden?" with *Beenden & neu starten* and *Abbrechen*; for a second quick
+ * timer ([teaName] null) „Schnelltimer beenden und neu starten?" (D-098). Back and a tap
  * outside cancel. Hosts remove it at once when an alert starts (rule 8).
  */
 @Composable

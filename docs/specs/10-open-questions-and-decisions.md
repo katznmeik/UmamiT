@@ -655,6 +655,81 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
 - **Unchanged:** notification IDs (by role), the diagnostics log format (no
   slot in `AlarmReceived` yet), the UI.
 
+**Build notes (Claude, 2026-10-30, #134: brew and quick timer together).**
+- **Ringing start.** A quick alert that rings at its deadline rings since its
+  deadline (`ringingSince` = the deadline, as the migration sets it), so its
+  silent end stays deadline + 10 min as in v0.2.2, also when recovery finds
+  it late; only a release rings since „now". A brew row stored without a
+  ringing start (rows the interim builds of v0.3.0 wrote) rings since its
+  deadline; a quick one is held. `restore` refuses a held alert reported
+  played and a ringing start with only one of its two clocks.
+- **A third controller event, `RecoverHeld`.** `recover` of the quick slot
+  while the brew slot is ALERTING after its own recovery: a quick timer past
+  its deadline is held however late (never ended silently), a ringing one is
+  held again without a sound of its own; anything else recovers as by
+  `recover`. A held alert recovered by plain `recover` stays held, and the
+  arbitration releases it in the same turn. The engine ignores `alertHold`,
+  `alertRingStart` and `RecoverHeld`'s hold for a brew session.
+- **The rules are pure.** `AlertArbitration` (the quick slot's deadline and
+  recovery while the brew alerts become `alertHold` / `RecoverHeld`; after
+  every accepted event `settle` holds a ringing quick alert while the brew
+  alerts, releases a held one when it no longer does) and `PlayerSound` (the
+  one player's sound) live in `core:timer-engine`, so the seeded two-slot test
+  (`TwoSlotInvariantsTest`) runs the controller's rules in pure JVM. The
+  controller applies them; the alert player's own code is unchanged.
+- **Preemption by state.** At most one slot rings: a brew deadline holds the
+  quick alert also when its sound has already run its cycle, and every
+  release plays the full alert length (SET-14) again.
+- **A stop belongs to its slot.** A `StopAlert` reaches the player only when
+  the other slot does not own its sound (so the preempted quick alert's stop
+  never silences the brew's, and *Fertig* on a held alert never cuts a
+  pre-alert); the engine emits none for a held alert.
+- **Waiting pre-alert.** The engine marks it played at its due time (at most
+  once; „Gleich fertig …" shows on time); the controller holds only its
+  sound and plays it when the blocking sound ends, with at least 1 s left,
+  else drops it. The end of an alert is the player's report or the alert's
+  stop; the end of a pre-alert, which the player does not report, is taken as
+  the longest pre-alert sound plus the player's 250 ms release (3.45 s), and
+  a wake-up comes then. A waiting pre-alert whose step no longer counts down
+  to the same deadline (paused, ended) is dropped; one waiting when the
+  process dies does not come back.
+- **The screens' timer.** `state` is the ringing alert's timer (the brew's
+  first), else the timer the user started or used last in the app (a
+  notification action does not move it), else the other active one;
+  `state(slot)` gives each slot's. Every user event names its slot: the timer
+  screen sends the slot of the state it shows, a notification action carries
+  it („…NOTIFICATION.QUICK.<EVENT>", request codes 420+; an action without a
+  slot, as v0.2.2 posted, reads as the brew slot's). `send(event)` without a
+  slot remains as an extension for one-timer callers (tests).
+- **Notifications until v0.3.0-04 (`NotificationRoles`).** The lead slot is
+  the ringing one, else the first (brew before quick) that runs with the
+  service, else the first active one; its notification is the service's (1,
+  2) or the quiet 4 as with one timer, and the other active timer is
+  notification 5 on the new channel `timer_other` (LOW; created here), a held
+  quick alert as „Fertig, wartet auf den Aufguss" without a full-screen
+  intent. The service stops only when neither slot needs it; its wake lock is
+  the longer of both (notification 5's need is added, and the service's last
+  notification is sent again, only-alert-once, when it grows). After
+  *Abgegossen* the brew's Live Update replaces its alert first, so a released
+  quick alert is a fresh notification 2 with its full-screen intent; when the
+  brew session is ended or discarded during its own alert, the quick alert
+  updates notification 2 in place. #135 replaces the lead rule by the timer
+  due next and checks the full-screen intent of that update on the device.
+- **Store.** The controller reads, writes and clears each slot through
+  `ActiveBrewStore`'s slot methods; a row whose slot and kind disagree is
+  refused like an unrestorable snapshot (cleared, logged).
+- **Diagnostics.** The log names the event the engine got (`AlertHold`,
+  `AlertRingStart`, `RecoverHeld`), from the new source `ARBITRATION` where
+  the controller sent it, and recovery's new decision `alert held`. Still no
+  slot in the log lines; the accuracy run's `alongside` variant (#137) adds
+  what it needs.
+- **UI reachability.** Start's *Schnelltimer* starts alongside a running or
+  alerting brew (the timer then opens on the brew's alert); the setup and
+  *Nochmal brühen* start a brew alongside a quick timer. A second brew asks
+  TMR-21's question with the brew's tea; a second quick timer asks
+  „Schnelltimer beenden und neu starten?", and its *Beenden & neu starten*
+  ends the quick timer only.
+
 **Build notes (Claude, 2026-10-30, #130: daily low-stock reminder, INV-11).**
 - **When it runs** (`LowStockReminderSchedule`, on the clock of the
   device's zone, so DST keeps „18:00"). The next run is today's set time

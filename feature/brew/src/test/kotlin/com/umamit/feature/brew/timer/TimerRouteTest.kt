@@ -7,6 +7,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -41,7 +42,7 @@ class TimerRouteTest {
         override val state = MutableStateFlow(initial)
         override val recovered = MutableStateFlow(recovered)
 
-        override suspend fun send(event: TimerEvent): TransitionOutcome = TransitionOutcome.Accepted
+        override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome = TransitionOutcome.Accepted
     }
 
     private val clock = object : MonotonicClock {

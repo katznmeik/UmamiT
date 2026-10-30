@@ -20,6 +20,20 @@ internal fun isOvertimeTimedOut(deadlineElapsedMs: Long, now: ClockReading) =
     now.elapsedMs >= deadlineElapsedMs + OVERTIME_TIMEOUT_MS
 
 /**
+ * When the silent end of [this] alert comes (04 §3.2, §9.3; D-098): a brew alert 10 min after its deadline; a
+ * quick alert 10 min after it last started ringing, and never while it is held.
+ */
+internal val TimerState.Alerting.overtimeTimeoutAtElapsedMs: Long?
+    get() = when (session.kind) {
+        is SessionKind.Brew -> deadlineElapsedMs + OVERTIME_TIMEOUT_MS
+        SessionKind.Quick -> ringingSinceElapsedMs?.plus(OVERTIME_TIMEOUT_MS)
+    }
+
+/** True when the silent end of [this] alert has come at [now]. */
+internal fun TimerState.Alerting.isTimedOut(now: ClockReading): Boolean =
+    overtimeTimeoutAtElapsedMs?.let { now.elapsedMs >= it } ?: false
+
+/**
  * The overtime timeout (04 §3.2 `overtimeTimeout`): a step left unacknowledged
  * for 10 min after its deadline counts as poured on time, with the auto-ack
  * flag, and the session waits for the next step. Not an interaction, and

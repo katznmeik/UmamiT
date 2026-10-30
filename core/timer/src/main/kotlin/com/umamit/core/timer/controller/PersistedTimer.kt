@@ -41,6 +41,8 @@ internal class PersistedTimer(
         val snapshots = readWithRetries(now) ?: return null
         return snapshots.value.mapValues { (slot, snapshot) ->
             val state = try {
+                // A damaged row of the other kind in this slot is refused like any snapshot restore refuses.
+                require(snapshot == null || snapshot.activeBrew.slot == slot) { "a $slot row of the other kind" }
                 BrewTimerEngine.restore(snapshot)
             } catch (e: IllegalArgumentException) {
                 effects.record(TimerDiagnostic.SnapshotUnreadable(now, e))

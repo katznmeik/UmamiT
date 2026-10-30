@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.TimerHost
 import com.umamit.core.timer.engine.TimerEvent
@@ -29,11 +30,11 @@ class TimerActionReceiver : BroadcastReceiver() {
         if (dismissed != null) {
             LiveUpdateDismissal.dismissedKey = dismissed
         } else {
-            eventOf(intent)?.let { send(context, it) }
+            eventOf(intent)?.let { send(context, slotOf(intent), it) }
         }
     }
 
-    private fun send(context: Context, event: TimerEvent) {
+    private fun send(context: Context, slot: TimerSlot, event: TimerEvent) {
         val inputs = (context.applicationContext as? TimerHost)?.timerInputs
         if (inputs == null) {
             Log.e(TAG, "Notification action $event dropped: the app does not hand over its timer controller")
@@ -44,7 +45,7 @@ class TimerActionReceiver : BroadcastReceiver() {
             try {
                 // Within the tap's exemption the controller's turn also sends a start Android
                 // refused earlier once more, built from the state of now (D-063).
-                inputs.send(event, EventSource.NOTIFICATION)
+                inputs.send(slot, event, EventSource.NOTIFICATION)
             } finally {
                 pending.finish()
             }
@@ -70,10 +71,15 @@ class TimerActionReceiver : BroadcastReceiver() {
             "CANCEL" to TimerEvent.Cancel,
         )
 
-        /** The broadcast of the action that sends [event]; one per event, so each has its own PendingIntent. */
-        fun intent(context: Context, event: TimerEvent): Intent {
+        /**
+         * The broadcast of the action that sends [event] to [slot]'s timer (04 §3.3: every user event names its
+         * slot); one per slot and event, so each has its own PendingIntent. The brew slot's keep the actions of
+         * v0.2.2; an action without a slot reads as the brew slot's.
+         */
+        fun intent(context: Context, event: TimerEvent, slot: TimerSlot = TimerSlot.BREW): Intent {
             val name = EVENTS.entries.first { it.value == event }.key
-            return Intent(context, TimerActionReceiver::class.java).setAction(ACTION_PREFIX + name)
+            val action = ACTION_PREFIX + (if (slot == TimerSlot.QUICK) QUICK_PREFIX else "") + name
+            return Intent(context, TimerActionReceiver::class.java).setAction(action)
         }
 
         /** The delete intent of a notification that shows the state of [key]. */
@@ -81,16 +87,23 @@ class TimerActionReceiver : BroadcastReceiver() {
             Intent(context, TimerActionReceiver::class.java).setAction(ACTION_DISMISSED).putExtra(EXTRA_KEY, key)
 
         /** The event of an action broadcast made by [intent]; null for any other intent. */
-        fun eventOf(intent: Intent): TimerEvent? =
-            intent.action?.takeIf { it.startsWith(ACTION_PREFIX) }?.let { EVENTS[it.removePrefix(ACTION_PREFIX)] }
+        fun eventOf(intent: Intent): TimerEvent? = intent.action?.takeIf { it.startsWith(ACTION_PREFIX) }
+            ?.let { EVENTS[it.removePrefix(ACTION_PREFIX).removePrefix(QUICK_PREFIX)] }
+
+        /** The slot of an action broadcast made by [intent]: the quick slot's, else the brew slot's. */
+        fun slotOf(intent: Intent): TimerSlot =
+            if (intent.action?.startsWith(ACTION_PREFIX + QUICK_PREFIX) == true) TimerSlot.QUICK else TimerSlot.BREW
 
         /** The state key of a dismissal made by [dismissIntent]; null for any other intent. */
         fun dismissedKeyOf(intent: Intent): String? =
             intent.takeIf { it.action == ACTION_DISMISSED }?.getStringExtra(EXTRA_KEY)
 
-        /** The request code of [event]'s PendingIntent (400 + its index). */
-        internal fun requestCodeOf(event: TimerEvent): Int = REQUEST_CODE_BASE + EVENTS.values.indexOf(event)
+        /** The request code of [event]'s PendingIntent in [slot]: 400 + its index, 420 + it for the quick slot. */
+        internal fun requestCodeOf(event: TimerEvent, slot: TimerSlot = TimerSlot.BREW): Int =
+            REQUEST_CODE_BASE + (if (slot == TimerSlot.QUICK) QUICK_CODE_OFFSET else 0) + EVENTS.values.indexOf(event)
 
         private const val REQUEST_CODE_BASE = 400
+        private const val QUICK_CODE_OFFSET = 20
+        private const val QUICK_PREFIX = "QUICK."
     }
 }

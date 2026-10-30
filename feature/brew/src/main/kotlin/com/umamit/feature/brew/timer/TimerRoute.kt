@@ -45,7 +45,8 @@ fun BrewTimerRoute(
         is TimerUiState.Active -> TimerScreen(
             state = active,
             nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
-            onEvent = viewModel::send,
+            // Every tap acts on the timer the screen shows (04 §3.3, D-098).
+            onEvent = { event -> viewModel.send(active.slot, event) },
             onBack = onClose,
             onAdjustBrew = { active.sessionId?.let(onAdjustBrew) },
             onOpenTimerSettings = onOpenTimerSettings,

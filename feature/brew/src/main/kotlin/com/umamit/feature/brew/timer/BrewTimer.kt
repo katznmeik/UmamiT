@@ -1,5 +1,6 @@
 package com.umamit.feature.brew.timer
 
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.ControllerBrewStarter
@@ -26,8 +27,8 @@ interface BrewTimer {
      */
     val recovered: StateFlow<Boolean> get() = ALWAYS_RECOVERED
 
-    /** A user event from the app ([BrewSessionController.send]). */
-    suspend fun send(event: TimerEvent): TransitionOutcome
+    /** A user event of [slot]'s timer from the app ([BrewSessionController.send]): the timer the screen shows. */
+    suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome
 }
 
 private val ALWAYS_RECOVERED: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
@@ -40,5 +41,5 @@ class ControllerBrewTimer @Inject constructor(private val controller: BrewSessio
 
     override val recovered: StateFlow<Boolean> get() = controller.recovered
 
-    override suspend fun send(event: TimerEvent): TransitionOutcome = controller.send(event)
+    override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome = controller.send(slot, event)
 }

@@ -17,8 +17,12 @@ import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerClocks
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.brewStart
 import com.umamit.core.timer.controller.infusion
+import com.umamit.core.timer.controller.send
+import com.umamit.core.timer.controller.state
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.service.BrewTimerService
 import com.umamit.core.timer.service.BrewTimerServicePort
@@ -122,6 +126,59 @@ class AlertAloneTest {
         deliver()
 
         assertAlertAlone()
+    }
+
+    @Test
+    fun `a quick alert beside a brew is the only loud notification, the brew is notification 5 (D-098)`() =
+        runBlocking<Unit> {
+            harness.controller.startSession(brewStart(infusion(120)))
+            harness.controller.send(TimerSlot.BREW, TimerEvent.Start)
+            harness.controller.startQuickTimer(30, preAlertSeconds = 0, run = true)
+            deliver()
+            assertThat(foregroundId()).isEqualTo(TimerNotifications.ID_LIVE_UPDATE)
+            assertThat(posted(TimerNotifications.ID_OTHER)?.channelId).isEqualTo(TimerNotifications.CHANNEL_TIMER_OTHER)
+
+            harness.advanceSeconds(30)
+            deliver()
+
+            assertThat(foregroundId()).isEqualTo(TimerNotifications.ID_ALERT)
+            assertThat(posted(TimerNotifications.ID_ALERT)?.fullScreenIntent).isNotNull()
+            assertThat(activeIds()).containsExactly(TimerNotifications.ID_ALERT, TimerNotifications.ID_OTHER)
+            assertOnlyTheAlertIsLoud()
+        }
+
+    @Test
+    fun `a quick alert held behind the brew's is a quiet notification 5, and rings full screen after it`() =
+        runBlocking<Unit> {
+            harness.controller.startSession(brewStart(infusion(60)))
+            harness.controller.send(TimerSlot.BREW, TimerEvent.Start)
+            harness.controller.startQuickTimer(61, preAlertSeconds = 0, run = true)
+            harness.advanceSeconds(61)
+            deliver()
+
+            assertThat(harness.controller.state(TimerSlot.QUICK).value.let { it as? TimerUiState.Active }?.alertHeld)
+                .isTrue()
+            assertThat(activeIds()).containsExactly(TimerNotifications.ID_ALERT, TimerNotifications.ID_OTHER)
+            assertThat(posted(TimerNotifications.ID_OTHER)?.fullScreenIntent).isNull()
+            assertOnlyTheAlertIsLoud()
+
+            harness.controller.send(TimerSlot.BREW, TimerEvent.Poured)
+            deliver()
+
+            assertThat(harness.active.kind).isEqualTo(SessionKind.Quick)
+            assertThat(foregroundId()).isEqualTo(TimerNotifications.ID_ALERT)
+            assertThat(posted(TimerNotifications.ID_ALERT)?.fullScreenIntent).isNotNull()
+            assertThat(activeIds()).containsExactly(TimerNotifications.ID_ALERT, TimerNotifications.ID_OTHER)
+            assertOnlyTheAlertIsLoud()
+        }
+
+    /** D-044 with two timers: every timer notification but the alert is on a channel below DEFAULT. */
+    private fun assertOnlyTheAlertIsLoud() {
+        notificationManager.activeNotifications.filter { it.id != TimerNotifications.ID_ALERT }.forEach {
+            val importance = notificationManager.getNotificationChannel(it.notification.channelId).importance
+            assertWithMessage("importance of notification ${it.id}").that(importance)
+                .isLessThan(NotificationManager.IMPORTANCE_DEFAULT)
+        }
     }
 
     private fun assertAlertAlone(of: ControllerHarness = harness) {

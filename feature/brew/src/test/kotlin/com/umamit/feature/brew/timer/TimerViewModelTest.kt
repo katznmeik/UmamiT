@@ -12,6 +12,7 @@ import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
@@ -44,10 +45,10 @@ class TimerViewModelTest {
 
     private class FakeBrewTimer(initial: TimerUiState) : BrewTimer {
         override val state = MutableStateFlow(initial)
-        val sent = mutableListOf<TimerEvent>()
+        val sent = mutableListOf<Pair<TimerSlot, TimerEvent>>()
 
-        override suspend fun send(event: TimerEvent): TransitionOutcome {
-            sent += event
+        override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome {
+            sent += slot to event
             return TransitionOutcome.Accepted
         }
     }
@@ -120,10 +121,10 @@ class TimerViewModelTest {
     fun `the state is the controller's state and events go to the controller`() {
         val vm = viewModel()
 
-        vm.send(TimerEvent.Pause)
+        vm.send(TimerSlot.QUICK, TimerEvent.Pause)
         timer.state.value = TimerUiState.Idle
 
-        assertThat(timer.sent).containsExactly(TimerEvent.Pause)
+        assertThat(timer.sent).containsExactly(TimerSlot.QUICK to TimerEvent.Pause)
         assertThat(vm.state.value).isEqualTo(TimerUiState.Idle)
         assertThat(vm.nowElapsedMs()).isEqualTo(42L)
     }

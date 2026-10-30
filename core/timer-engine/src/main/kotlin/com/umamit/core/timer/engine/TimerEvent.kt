@@ -58,6 +58,31 @@ sealed interface TimerEvent {
      */
     data object Recover : TimerEvent
 
+    /**
+     * [Recover] while the brew slot alerts (04 §7.2 two slots, D-098): the controller sends it to the quick slot
+     * in place of `recover` when the brew slot is ALERTING after its own recovery. A quick timer past its
+     * deadline is then held ([AlertHold]), however long ago its deadline was, and a ringing quick alert goes
+     * back to held, without a sound of its own; every other state recovers as by [Recover]. A brew session
+     * recovers as by [Recover] (the brew is never held). Not a user interaction.
+     */
+    data object RecoverHeld : TimerEvent
+
+    /**
+     * The controller holds the quick timer's alert because the brew alerts (04 §3.3, §9.3; D-098): at a due
+     * deadline (in place of [DeadlineReached], however late) the quick timer goes ALERTING held, without a sound,
+     * an alert notification or a silent end; a ringing quick alert stops its sound and is held again
+     * (preemption), not reported played. Ignored for a brew session (the brew is never held), for a held alert,
+     * before the deadline and in every other state. Not a user interaction.
+     */
+    data object AlertHold : TimerEvent
+
+    /**
+     * The controller releases a held quick alert (04 §9.3, D-098): the brew slot left ALERTING. The alert rings
+     * now, with its overtime from its own deadline, and its silent end comes 10 min from now. Ignored unless the
+     * state is a held alert. Not a user interaction.
+     */
+    data object AlertRingStart : TimerEvent
+
     /** *Start*: the water is in; the countdown begins (Ready). */
     data object Start : TimerEvent
 

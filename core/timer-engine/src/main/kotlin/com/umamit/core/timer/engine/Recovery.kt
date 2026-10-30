@@ -16,20 +16,33 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
  * without it (D-053).
  */
 
-internal fun recover(state: TimerState.Active, now: ClockReading): TimerTransition {
+internal fun recover(state: TimerState.Active, now: ClockReading, holdAlert: Boolean = false): TimerTransition {
     val rebased = state.rebasedTo(now)
     return when (rebased) {
         is TimerState.Waiting -> recoverWaiting(rebased, now)
 
         is TimerState.Running -> when {
             now.elapsedMs < rebased.deadlineElapsedMs -> restored(rebased)
+
+            // The brew alerts (04 §7.2 two slots): the quick timer waits for it, however late (D-098).
+            holdAlert -> holdAtDeadline(rebased)
+
             isOvertimeTimedOut(rebased.deadlineElapsedMs, now) -> overtimeTimedOut(rebased, now)
+
             else -> deadlineReached(rebased)
         }
 
         is TimerState.Alerting -> when {
-            isOvertimeTimedOut(rebased.deadlineElapsedMs, now) -> overtimeTimedOut(rebased, now)
-            rebased.alertPlayed -> restored(rebased)
+            holdAlert && !rebased.held -> accepted(
+                rebased.copy(alertPlayed = false, ringingSinceElapsedMs = null, ringingSinceWallMs = null),
+                side = listOf(StartForeground, UpdateNotification),
+            )
+
+            rebased.isTimedOut(now) -> overtimeTimedOut(rebased, now)
+
+            // A held alert stays held; the controller releases it once the brew no longer alerts (04 §9.3).
+            rebased.alertPlayed || rebased.held -> restored(rebased)
+
             else -> accepted(rebased, side = listOf(StartForeground, StartAlert, UpdateNotification))
         }
     }
@@ -88,14 +101,21 @@ private fun TimerState.Active.rebasedTo(now: ClockReading): TimerState.Active {
 
         is TimerState.Paused -> copy(session = session, pausedSinceElapsedMs = minOf(elapsedAt(pausedSinceWallMs), 0))
 
-        is TimerState.Alerting -> copy(session = session, deadlineElapsedMs = minOf(elapsedAt(deadlineWallMs), 0))
+        is TimerState.Alerting -> copy(
+            session = session,
+            deadlineElapsedMs = minOf(elapsedAt(deadlineWallMs), 0),
+            ringingSinceElapsedMs = ringingSinceWallMs?.let { minOf(elapsedAt(it), 0) },
+        )
     }
 }
 
-/** False for elapsed values no state of this elapsed clock can have: a time after now, more than planned left. */
+/**
+ * False for elapsed values no state of this elapsed clock can have: a time after now (a deadline, a pause, a
+ * ringing start), more than planned left.
+ */
 private fun TimerState.Active.isPossibleAt(now: ClockReading): Boolean = when (this) {
     is TimerState.Running -> deadlineElapsedMs - now.elapsedMs <= plannedMs
     is TimerState.Paused -> pausedSinceElapsedMs <= now.elapsedMs
-    is TimerState.Alerting -> deadlineElapsedMs <= now.elapsedMs
+    is TimerState.Alerting -> deadlineElapsedMs <= now.elapsedMs && (ringingSinceElapsedMs ?: 0) <= now.elapsedMs
     is TimerState.Ready, is TimerState.Finished -> true
 }

@@ -13,7 +13,8 @@ import java.time.ZoneId
  *
  * @property preAlertAtElapsedMs the pre-alert tick of the running step, until it played.
  * @property deadlineElapsedMs the deadline of the running step.
- * @property overtimeTimeoutAtElapsedMs the overtime timeout of the alerting step, 10 min after its deadline.
+ * @property overtimeTimeoutAtElapsedMs the overtime timeout of the alerting step, 10 min after its deadline; for a
+ *   quick timer 10 min after its alert last started ringing, none while it is held (D-098).
  * @property idleDemoteAtWallMs the idle demote of a waiting brew session (Ready, Paused, Finished) that is not
  *   demoted yet, 30 min after it became idle (TMR-14).
  * @property midnightAtWallMs the midnight timeout of a waiting brew session, demoted or not: the first local
@@ -69,7 +70,7 @@ internal fun dueTimesOf(state: TimerState): DueTimes = when (state) {
         deadlineElapsedMs = state.deadlineElapsedMs,
     )
 
-    is TimerState.Alerting -> DueTimes(overtimeTimeoutAtElapsedMs = state.deadlineElapsedMs + OVERTIME_TIMEOUT_MS)
+    is TimerState.Alerting -> DueTimes(overtimeTimeoutAtElapsedMs = state.overtimeTimeoutAtElapsedMs)
 
     is TimerState.Waiting -> when (state.session.kind) {
         SessionKind.Quick -> DueTimes(quickCancelAtWallMs = quickCancelAt(state.session))

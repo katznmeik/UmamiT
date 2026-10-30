@@ -167,7 +167,7 @@ class ProcessRestartTest {
         val id = before.sessionId
 
         val after = before.processRestarted()
-        val outcome = after.controller.startQuickTimer(60)
+        val outcome = after.controller.startSession(brewStart(infusion(30)))
 
         assertThat(outcome)
             .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(id))))

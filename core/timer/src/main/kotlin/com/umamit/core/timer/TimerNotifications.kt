@@ -20,6 +20,12 @@ object TimerNotifications {
     /** „Sitzung gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
     const val CHANNEL_SESSIONS = "sessions"
 
+    /**
+     * The other active timer, notification [ID_OTHER] (04 §8.1, D-098): importance LOW, silent, never promoted,
+     * so the alert stays the app's only notification of importance DEFAULT or higher (D-044).
+     */
+    const val CHANNEL_TIMER_OTHER = "timer_other"
+
     /** Live Update; the foreground service notification except while alerting. */
     const val ID_LIVE_UPDATE = 1
 
@@ -46,6 +52,12 @@ object TimerNotifications {
      */
     const val ID_QUIET = 4
 
+    /**
+     * The other active timer (04 §8.2, D-098): with a brew session and a quick timer at once, the one whose
+     * notification the service does not show, on [CHANNEL_TIMER_OTHER]; posted directly, never by the service.
+     */
+    const val ID_OTHER = 5
+
     private const val TAG = "UmamiTTimer"
 
     /** Creates (or updates the names of) the timer channels; idempotent. */
@@ -70,6 +82,13 @@ object TimerNotifications {
                 NotificationChannelCompat.Builder(CHANNEL_SESSIONS, NotificationManagerCompat.IMPORTANCE_LOW)
                     .setName(context.getString(R.string.timer_channel_sessions_name))
                     .setDescription(context.getString(R.string.timer_channel_sessions_description))
+                    .setSound(null, null)
+                    .setVibrationEnabled(false)
+                    .setShowBadge(false)
+                    .build(),
+                NotificationChannelCompat.Builder(CHANNEL_TIMER_OTHER, NotificationManagerCompat.IMPORTANCE_LOW)
+                    .setName(context.getString(R.string.timer_channel_other_name))
+                    .setDescription(context.getString(R.string.timer_channel_other_description))
                     .setSound(null, null)
                     .setVibrationEnabled(false)
                     .setShowBadge(false)

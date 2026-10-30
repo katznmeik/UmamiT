@@ -5,6 +5,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
@@ -62,6 +63,8 @@ sealed interface TimerUiState {
      *   (BRW-11, D-097); null without one and for the quick timer.
      * @property waterMl the session's planned water in ml, from its session row, for READY's „250 ml Wasser"
      *   (BRW-11, D-097); null without one (*Ohne Gefäß*) and for the quick timer.
+     * @property alertHeld ALERTING: the quick timer's alert waits for the brew's (04 §9.3, D-098): no sound, no alert
+     *   notification; it rings once the brew's alert is acknowledged.
      */
     data class Active(
         val kind: SessionKind,
@@ -84,9 +87,16 @@ sealed interface TimerUiState {
         val iceBrew: Boolean = false,
         val leafGrams: Double? = null,
         val waterMl: Int? = null,
+        val alertHeld: Boolean = false,
     ) : TimerUiState {
-        /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051). */
+        /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051); also while it is held. */
         val alerting: Boolean get() = phase == TimerPhase.ALERTING
+
+        /** The step ended and its alert rings, not held (04 §9.3). */
+        val ringing: Boolean get() = alerting && !alertHeld
+
+        /** The controller slot of this timer (04 §3.3): its user events go there. */
+        val slot: TimerSlot get() = slotOf(kind)
 
         /** The journal row; null for the quick timer. */
         val sessionId: String? get() = (kind as? SessionKind.Brew)?.sessionId
@@ -115,7 +125,7 @@ sealed interface TimerUiState {
  * when none plays. Each alert has its own: an overlay or a route opened during
  * one alert never stays over the next (rule 8, D-058).
  */
-fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { it.alerting }?.let {
+fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { it.ringing }?.let {
     "${it.sessionId ?: "quick"}:${it.stepIndex}:${it.deadlineWallMs}"
 }
 
@@ -184,5 +194,6 @@ internal fun uiStateOf(state: TimerState, details: SessionDetails?, now: ClockRe
         iceBrew = details?.iceBrew ?: false,
         leafGrams = details?.leafGrams,
         waterMl = details?.waterMl,
+        alertHeld = (state as? TimerState.Alerting)?.held ?: false,
     )
 }

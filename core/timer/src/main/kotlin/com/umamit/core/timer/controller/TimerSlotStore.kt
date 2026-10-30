@@ -21,17 +21,14 @@ internal interface TimerSlotStore {
 }
 
 /**
- * [TimerSlotStore] on the single-timer methods of [ActiveBrewStore], which umamit.db v4 keeps for a
- * controller that runs one timer at a time (D-098, #126): the table holds the one active timer, in the slot
- * of its kind, and a write clears the other slot, as v3 replaced its single row. Only one timer is active
- * across both slots until v0.3.0-03, so [read] gives the row to the slot of its kind only, and a write or a
- * clear always meets that slot's row or none. v0.3.0-03 moves this to the store's slot methods.
+ * [TimerSlotStore] on the slot methods of [ActiveBrewStore] (umamit.db v4, D-098): each slot's row is read,
+ * written and cleared on its own, so a transition of one timer never touches the other's row. The read row is
+ * returned as stored; the controller refuses a row whose slot and kind disagree ([PersistedTimer]).
  */
-internal class SingleTimerSlotStore(private val activeBrew: ActiveBrewStore) : TimerSlotStore {
-    override suspend fun read(slot: TimerSlot): TimerSnapshot? =
-        activeBrew.read()?.takeIf { it.activeBrew.slot == slot }
+internal class ActiveBrewSlotStore(private val activeBrew: ActiveBrewStore) : TimerSlotStore {
+    override suspend fun read(slot: TimerSlot): TimerSnapshot? = activeBrew.read(slot)
 
-    override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) = activeBrew.persist(snapshot)
+    override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) = activeBrew.persist(slot, snapshot)
 
-    override suspend fun clear(slot: TimerSlot) = activeBrew.clear()
+    override suspend fun clear(slot: TimerSlot) = activeBrew.clear(slot)
 }
