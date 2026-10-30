@@ -3,6 +3,7 @@ package com.umamit.feature.brew.setup
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
+import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.PlannedStep
 
 /** What the setup (SCR-04) shows. */
@@ -23,6 +24,7 @@ sealed interface BrewSetupUiState {
      * @property canSaveToRecipe something differs from the selected recipe (BRW-02).
      * @property question „Erst die … -Sitzung beenden?" is open (TMR-21).
      * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
+     * @property stockLevel the stock's INV-05 status: *Knapp* reads „14 g übrig · knapp" (BRW-08, D-097).
      * @property sessionLeafGrams the leaf an active session of this tea still deducts at *Sitzung beenden*
      *   (INV-03, D-096), or null: „Wie viel ist noch da?" says so, and the arithmetic stays as it is.
      */
@@ -48,6 +50,7 @@ sealed interface BrewSetupUiState {
         val question: ActiveSessionQuestion?,
         val alertKey: String?,
         val sessionLeafGrams: Double? = null,
+        val stockLevel: StockLevel? = null,
     ) : BrewSetupUiState
 }
 

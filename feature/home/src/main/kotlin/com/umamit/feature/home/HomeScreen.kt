@@ -118,6 +118,15 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
+                // The single nudge slot (SCR-02): the low-stock card takes it before the other nudges.
+                state.lowStock?.let { card ->
+                    LowStockNudge(
+                        card = card,
+                        onReorder = actions.reorder,
+                        onHide = actions.hideLowStock,
+                        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+                    )
+                }
                 Lists(state, actions)
             }
         }

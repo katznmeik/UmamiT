@@ -22,6 +22,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSavedSheet
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerAlarms
@@ -147,6 +148,7 @@ class BrewAgainOnControllerTest {
                     clock,
                     PhotoFiles(File(context.cacheDir, "photos")),
                     FakeTimerReliability(),
+                    FakeLowStockRepository(),
                 )
             }
         }

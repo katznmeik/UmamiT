@@ -1,15 +1,19 @@
 package com.umamit.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -18,12 +22,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
 import com.umamit.core.timer.alert.AlertSound
 import com.umamit.core.timer.alert.PreAlertSound
+import kotlin.math.roundToInt
 
 /** The SET-10 choices: off, then 5 to 30 s in steps of 5. */
 private val PRE_ALERT_CHOICES = listOf(0, 5, 10, 15, 20, 25, 30)
@@ -166,3 +178,69 @@ private fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit, det
         }
     }
 }
+
+/** SET-16's range: 0–500 g in steps of 5 (D-097). */
+private const val LOW_STOCK_STEP_GRAMS = 5
+private const val LOW_STOCK_MAX_GRAMS = 500
+
+/**
+ * „Knapp ab" (SET-16, D-097): the threshold below which a tea is *Knapp* (INV-05), with − and + in steps of
+ * 5 g between 0 and 500 g; each step is stored at once, like the other pickers.
+ */
+@Composable
+internal fun LowStockDialog(grams: Double, onChange: (Double) -> Unit, onDismiss: () -> Unit) {
+    // On the 5 g grid, as the repository stores it (SET-16).
+    val current = ((grams / LOW_STOCK_STEP_GRAMS).roundToInt() * LOW_STOCK_STEP_GRAMS).coerceIn(0, LOW_STOCK_MAX_GRAMS)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_low_stock)) },
+        text = {
+            Column {
+                Text(
+                    stringResource(R.string.settings_low_stock_detail),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = UmamiSpacing.Small),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = { onChange((current - LOW_STOCK_STEP_GRAMS).coerceAtLeast(0).toDouble()) },
+                        enabled = current > 0,
+                    ) {
+                        Icon(
+                            painterResource(UmamiIcons.Remove),
+                            contentDescription = stringResource(R.string.settings_low_stock_less),
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.settings_low_stock_grams, current),
+                        modifier = Modifier
+                            .widthIn(min = LOW_STOCK_VALUE_MIN_WIDTH)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                    )
+                    IconButton(
+                        onClick = {
+                            onChange((current + LOW_STOCK_STEP_GRAMS).coerceAtMost(LOW_STOCK_MAX_GRAMS).toDouble())
+                        },
+                        enabled = current < LOW_STOCK_MAX_GRAMS,
+                    ) {
+                        Icon(
+                            painterResource(UmamiIcons.Add),
+                            contentDescription = stringResource(R.string.settings_low_stock_more),
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_done)) } },
+    )
+}
+
+private val LOW_STOCK_VALUE_MIN_WIDTH = 96.dp

@@ -1,5 +1,6 @@
 package com.umamit.core.database.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Insert
@@ -183,8 +184,41 @@ interface VesselDao {
     suspend fun delete(id: String)
 }
 
+/** A tea's stock as [InventoryDao.observeStockLevels] reads it (INV-05, INV-10). */
+data class TeaStockLevel(
+    @ColumnInfo(name = "tea_id") val teaId: String,
+    @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "style_key") val styleKey: String?,
+    @ColumnInfo(name = "catalog_key") val catalogKey: String?,
+    @ColumnInfo(name = "product_url") val productUrl: String?,
+    @ColumnInfo(name = "low_stock_grams") val lowStockGrams: Double?,
+    @ColumnInfo(name = "remaining_grams") val remainingGrams: Double,
+    @ColumnInfo(name = "last_purchase_id") val lastPurchaseId: String?,
+)
+
 @Dao
 abstract class InventoryDao {
+    /**
+     * Every non-archived tea that has stock events, with its remaining stock and the id of its latest INITIAL
+     * or PURCHASE event (INV-05, INV-10): what Start's low-stock card is chosen from. Least stock first,
+     * then by name.
+     */
+    @Query(
+        """
+        SELECT t.id AS tea_id, t.name AS name, t.style_key AS style_key, t.catalog_key AS catalog_key,
+            t.product_url AS product_url, t.low_stock_grams AS low_stock_grams,
+            SUM(e.delta_grams) AS remaining_grams,
+            (SELECT p.id FROM inventory_event p
+                WHERE p.tea_id = t.id AND p.type IN ('INITIAL', 'PURCHASE')
+                ORDER BY p.occurred_at DESC, p.created_at DESC, p.id DESC LIMIT 1) AS last_purchase_id
+        FROM tea t JOIN inventory_event e ON e.tea_id = t.id
+        WHERE t.is_archived = 0
+        GROUP BY t.id
+        ORDER BY remaining_grams, t.name
+        """,
+    )
+    abstract fun observeStockLevels(): Flow<List<TeaStockLevel>>
+
     @Query("SELECT * FROM inventory_event WHERE tea_id = :teaId ORDER BY occurred_at, created_at")
     abstract fun observeForTea(teaId: String): Flow<List<InventoryEventEntity>>
 

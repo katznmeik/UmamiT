@@ -1,15 +1,21 @@
 package com.umamit.core.datastore
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import javax.inject.Inject
@@ -21,6 +27,10 @@ import javax.inject.Inject
  */
 @Serializable
 data class StoredSettings(
+    /**
+     * A file without the key predates the versioning, so it reads as 1; [SchemaV2Migration] moves every
+     * file of version 1 to [UserSettings.CURRENT_SCHEMA_VERSION] once, a fresh install's defaults included.
+     */
     val schemaVersion: Int = 1,
     val onboardingCompleted: Boolean = false,
     val theme: String = ThemeMode.SYSTEM.name,
@@ -31,7 +41,8 @@ data class StoredSettings(
     val vibration: Boolean = true,
     val alertLength: String = AlertLength.NORMAL.name,
     val deductStock: Boolean = true,
-    val lowStockGrams: Double = 10.0,
+    val lowStockGrams: Double = UserSettings.DEFAULT_LOW_STOCK_GRAMS,
+    val lowStockHidden: Set<String> = emptySet(),
     val keepScreenOn: Boolean = true,
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
@@ -70,6 +81,42 @@ object SettingsSerializer : Serializer<StoredSettings> {
         output.write(json.encodeToString(StoredSettings.serializer(), t).encodeToByteArray())
     }
 }
+
+/**
+ * Settings `schemaVersion` 1 → 2 (v0.2.2, SET-16, D-097): SET-16 had no settings row before, so a stored
+ * 10,0 g is the old default, never the user's choice, and becomes the new 15,0 g; any other value stays.
+ * DataStore runs it before the first read, and only while the file is at version 1, so exactly once.
+ */
+internal object SchemaV2Migration : DataMigration<StoredSettings> {
+    private const val OLD_DEFAULT_LOW_STOCK_GRAMS = 10.0
+
+    override suspend fun shouldMigrate(currentData: StoredSettings): Boolean = currentData.schemaVersion < 2
+
+    override suspend fun migrate(currentData: StoredSettings): StoredSettings = currentData.copy(
+        schemaVersion = 2,
+        lowStockGrams = if (currentData.lowStockGrams == OLD_DEFAULT_LOW_STOCK_GRAMS) {
+            UserSettings.DEFAULT_LOW_STOCK_GRAMS
+        } else {
+            currentData.lowStockGrams
+        },
+    )
+
+    override suspend fun cleanUp() = Unit
+}
+
+/**
+ * The settings DataStore on the file of [produceFile], with the settings migrations (05 §6). The app
+ * and the tests open it here, so both run the same migrations.
+ */
+fun settingsDataStore(
+    scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    produceFile: () -> File,
+): DataStore<StoredSettings> = DataStoreFactory.create(
+    serializer = SettingsSerializer,
+    migrations = listOf(SchemaV2Migration),
+    scope = scope,
+    produceFile = produceFile,
+)
 
 /** The settings of 05 §6 (M1 subset) and the seed marker, backed by DataStore. */
 class SettingsDataSource @Inject constructor(private val dataStore: DataStore<StoredSettings>) {
@@ -121,6 +168,7 @@ private fun StoredSettings.toModel() = UserSettings(
     alertLength = enumOrDefault(alertLength, AlertLength.NORMAL),
     deductStock = deductStock,
     lowStockGrams = lowStockGrams,
+    lowStockHidden = lowStockHidden,
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
@@ -139,6 +187,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     alertLength = alertLength.name,
     deductStock = deductStock,
     lowStockGrams = lowStockGrams,
+    lowStockHidden = lowStockHidden,
     keepScreenOn = keepScreenOn,
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,

@@ -25,6 +25,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.feature.brew.picker.PickerTea
 import com.umamit.feature.brew.picker.TeaPickerSheet
@@ -172,6 +173,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         },
     ) {
         BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
+    }
+
+    /** A *Knapp* tea: „14 g übrig · knapp" (BRW-08, INV-05, D-097). */
+    @Test
+    fun setupLowStock() = capture("BrewSetup_lowStock") {
+        BrewSetupScreen(kyusu.copy(stockGrams = 14.0, stockLevel = StockLevel.LOW))
     }
 
     /** At 0 g the header reads „Leer" (INV-05). */

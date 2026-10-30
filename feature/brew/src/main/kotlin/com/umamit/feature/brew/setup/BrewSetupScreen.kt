@@ -53,8 +53,10 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
+import com.umamit.core.designsystem.text.stockGramsText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
@@ -237,18 +239,23 @@ private fun TeaHeader(state: BrewSetupUiState.Ready, onStock: () -> Unit) {
                     modifier = Modifier.align(Alignment.CenterVertically),
                 )
             }
-            state.stockGrams?.let { StockButton(it, onStock, Modifier.align(Alignment.CenterVertically)) }
+            state.stockGrams?.let {
+                StockButton(it, state.stockLevel, onStock, Modifier.align(Alignment.CenterVertically))
+            }
         }
     }
 }
 
-/** „38,0 g übrig", or „Leer" at 0 g and below (INV-05), with a pencil: opens the stock sheet (BRW-02, INV-03). */
+/**
+ * „38 g übrig", „14 g übrig · knapp" for a *Knapp* tea (BRW-08, D-097) or „Leer" at 0 g and below (INV-05),
+ * with a pencil: opens the stock sheet (BRW-02, INV-03).
+ */
 @Composable
-private fun StockButton(grams: Double, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val text = if (grams < EMPTY_BELOW_GRAMS) {
-        stringResource(R.string.brew_setup_stock_empty)
-    } else {
-        stringResource(R.string.brew_setup_stock, grams(grams))
+private fun StockButton(grams: Double, level: StockLevel?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val text = when {
+        grams < StockLevel.EMPTY_BELOW_GRAMS -> stringResource(R.string.brew_setup_stock_empty)
+        level == StockLevel.LOW -> stringResource(R.string.brew_setup_stock_low, stockGramsText(grams))
+        else -> stringResource(R.string.brew_setup_stock, stockGramsText(grams))
     }
     Row(
         modifier = modifier
@@ -272,8 +279,6 @@ private fun StockButton(grams: Double, onClick: () -> Unit, modifier: Modifier =
     }
 }
 
-/** Below this the stock reads „Leer": it shows as „0,0 g" (INV-05: Leer ≤ 0 g). */
-private const val EMPTY_BELOW_GRAMS = 0.05
 private val STOCK_ICON_SIZE = 16.dp
 
 @OptIn(ExperimentalLayoutApi::class)

@@ -55,16 +55,18 @@ import com.umamit.core.timer.reliability.ReliabilityCheck
 import com.umamit.core.timer.reliability.ReliabilityStatus
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberNotificationPermissionAction
+import kotlin.math.roundToInt
 
 /** Test tags of SCR-25. */
 object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
+    const val LOW_STOCK = "SettingsLowStock"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
-internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength }
+internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock }
 
 /** What the rows of SCR-25 do. */
 class SettingsActions(
@@ -83,6 +85,8 @@ class SettingsActions(
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
+    val setLowStock: (Double) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -151,6 +155,7 @@ fun SettingsRoute(
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
@@ -163,7 +168,10 @@ fun SettingsRoute(
     )
 }
 
-/** SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Katalog* and *Über* (SET-30). */
+/**
+ * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog* and
+ * *Über* (SET-30).
+ */
 @Composable
 fun SettingsScreen(
     settings: UserSettings,
@@ -200,6 +208,13 @@ fun SettingsScreen(
         ReliabilityCard(status = status, onFix = actions.fix)
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
+        SectionHeader(title = stringResource(R.string.settings_section_brewing), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_low_stock),
+            value = stringResource(R.string.settings_low_stock_grams, settings.lowStockGrams.roundToInt()),
+            onClick = { if (!alerting) dialog = SettingsDialog.LowStock },
+            modifier = Modifier.testTag(SettingsTags.LOW_STOCK),
+        )
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
         CatalogSection(catalog, onRefresh = actions.refreshCatalog)
         SwitchRow(
@@ -223,6 +238,8 @@ fun SettingsScreen(
             SettingsDialog.PreAlert -> PreAlertDialog(settings.preAlertSeconds, actions.setPreAlert) { dialog = null }
 
             SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions) { dialog = null }
+
+            SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock) { dialog = null }
 
             SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength) {
                 dialog =

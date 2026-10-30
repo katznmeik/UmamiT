@@ -14,6 +14,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.Vessel
@@ -229,7 +230,7 @@ class BrewSetupViewModel @Inject constructor(
                         recipes.observeRecipes(teaId),
                         vessels.observeVessels(),
                         stock.observeStock(teaId).map { it.remainingGrams },
-                        settings.settings.map { it.preAlertSeconds },
+                        settings.settings.map { Globals(it.preAlertSeconds, it.lowStockGrams) }.distinctUntilChanged(),
                         sessionLeaf(teaId),
                     ) { r, v, grams, global, leaf -> Source(overview, r, v, grams, global, session, leaf) },
                 )
@@ -258,6 +259,8 @@ class BrewSetupViewModel @Inject constructor(
             teaName = s.tea.tea.name,
             secondaryName = s.tea.tea.secondaryName,
             stockGrams = s.stockGrams,
+            // BRW-08 (D-097): „14 g übrig · knapp"; the tea's own threshold wins over SET-16's (INV-05).
+            stockLevel = StockLevel.of(s.stockGrams, s.tea.tea.lowStockGrams ?: s.globals.lowStockGrams),
             recipeCheckReason = s.tea.tea.recipeCheckReason,
             recipes = s.recipes.map { RecipeChip(it.id, it.name) },
             selectedRecipeId = e.recipeId,
@@ -274,7 +277,7 @@ class BrewSetupViewModel @Inject constructor(
             kettle = Kettle(firstTemp, KettleWater.of(firstTemp, iceBrew = e.method == BrewMethod.ICE_BREW)),
             steps = e.steps,
             // The B that startRequest hands the controller with the recipe's value (04 §5, TMR-23).
-            preAlertBaseSeconds = PreAlertSettings.inherited(recipe?.preAlertSeconds, s.globalPreAlertSeconds)
+            preAlertBaseSeconds = PreAlertSettings.inherited(recipe?.preAlertSeconds, s.globals.preAlertSeconds)
                 .inheritedSeconds,
             canSaveToRecipe = recipe != null && e.differsFrom(recipe),
             question = p?.question,
@@ -309,13 +312,16 @@ class BrewSetupViewModel @Inject constructor(
         )
     }
 
-    /** What the setup is built from: the tea, its recipes, the vessels, the stock and the global pre-alert. */
+    /** The global settings the setup reads: the pre-alert base (SET-10) and „Knapp ab" (SET-16). */
+    private data class Globals(val preAlertSeconds: Int, val lowStockGrams: Double)
+
+    /** What the setup is built from: the tea, its recipes, the vessels, the stock and the global settings. */
     private class Source(
         val tea: TeaOverview,
         val recipes: List<Recipe>,
         val vessels: List<Vessel>,
         val stockGrams: Double,
-        val globalPreAlertSeconds: Int,
+        val globals: Globals,
         val session: BrewSession?,
         val sessionLeafGrams: Double?,
     ) {

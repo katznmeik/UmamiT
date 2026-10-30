@@ -4,10 +4,12 @@ import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.Photo
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.controller.BrewStart
@@ -26,8 +28,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -63,6 +67,7 @@ data class HomeQuestion(val teaName: String?)
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner (TMR-31).
+ * @property lowStock the nudge slot's low-stock card (INV-10), or null.
  */
 data class HomeUiState(
     val loading: Boolean = true,
@@ -74,6 +79,7 @@ data class HomeUiState(
     val question: HomeQuestion? = null,
     val alertKey: String? = null,
     val reliabilityProblem: Boolean = false,
+    val lowStock: LowStockCard? = null,
 )
 
 /** What Start asks its host to do once. */
@@ -96,6 +102,7 @@ class HomeViewModel @Inject constructor(
     private val clock: MonotonicClock,
     private val photos: PhotoFiles,
     private val reliability: TimerReliability,
+    private val lowStock: LowStockRepository,
 ) : ViewModel() {
     private val pending = MutableStateFlow<Pending?>(null)
     private val reliabilityProblem = MutableStateFlow(reliability.hasProblem())
@@ -132,6 +139,13 @@ class HomeViewModel @Inject constructor(
             alertKey = timer.alertKey(),
             reliabilityProblem = problem,
         )
+    }.combine(
+        // The card never holds back or breaks Start's state, which carries the alert (rule 8): none until
+        // the stock is read, and none after a read error.
+        lowStock.observeCard().onStart { emit(null) }.catch { emit(null) },
+    ) { home, card ->
+        // A plain card of the list (rule 8: never over an alert); only with teas to remind of.
+        home.copy(lowStock = card.takeUnless { home.collectionEmpty })
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 
     init {
@@ -151,6 +165,12 @@ class HomeViewModel @Inject constructor(
 
     /** The banner's *Beheben*: the pages of the first missing check, for Start to start. */
     fun fixReliability(): List<Intent> = reliability.firstMissingIntents()
+
+    /** *Ausblenden* on the low-stock card: hidden until the tea's next purchase (INV-10 AC2). */
+    fun hideLowStock() {
+        val card = state.value.lowStock ?: return
+        viewModelScope.launch { lowStock.hide(card) }
+    }
 
     /** The monotonic clock of the deadlines, for the live countdown of *Aufguss fortsetzen*. */
     fun nowElapsedMs(): Long = clock.elapsedMs()

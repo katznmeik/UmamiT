@@ -105,7 +105,7 @@ class BrewSetupStockTest {
     @Test
     fun `the new total 23,5 g is stored as one correction and the setup shows it at once (INV-03)`() {
         show()
-        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("100,0 g übrig")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("100 g übrig")
 
         openSheet()
         // It opens on the current stock.
@@ -133,6 +133,48 @@ class BrewSetupStockTest {
     }
 
     @Test
+    fun `a Knapp tea is marked knapp, at 16 g it is not (BRW-08, INV-05, D-097)`() {
+        show()
+
+        correctTo("14")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("14\u00A0g übrig · knapp")
+        correctTo("15")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("15\u00A0g übrig · knapp")
+        correctTo("16")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("16\u00A0g übrig")
+    }
+
+    @Test
+    fun `a higher Knapp ab makes an 18 g tea knapp (SET-16)`() {
+        show()
+        correctTo("18")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("18\u00A0g übrig")
+
+        runBlocking { settings.update { it.copy(lowStockGrams = 20.0) } }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("18\u00A0g übrig · knapp")
+    }
+
+    @Test
+    fun `the tea's own threshold wins over the setting`() {
+        runBlocking {
+            collection.teas.saveTea(collection.teas.getTea(SeedData.HISUI_TEA_ID)!!.copy(lowStockGrams = 5.0))
+        }
+        show()
+        correctTo("14")
+
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("14\u00A0g übrig")
+    }
+
+    private fun correctTo(grams: String) {
+        openSheet()
+        field().performTextReplacement(grams)
+        save().performClick()
+        compose.waitForIdle()
+    }
+
+    @Test
     fun `the steppers change the total by 0,1 g, never below 0`() {
         show()
         openSheet()
@@ -151,11 +193,11 @@ class BrewSetupStockTest {
         show()
         openSheet()
 
-        field().performTextReplacement("12.5")
+        field().performTextReplacement("22.5")
         save().performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("12,5 g übrig")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("22,5 g übrig")
     }
 
     @Test
@@ -184,7 +226,7 @@ class BrewSetupStockTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Wie viel ist noch da?").assertDoesNotExist()
-        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("100,0 g übrig")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("100 g übrig")
         assertThat(hisuiEvents().map { it.type }).doesNotContain(InventoryEventType.ADJUSTMENT)
     }
 
