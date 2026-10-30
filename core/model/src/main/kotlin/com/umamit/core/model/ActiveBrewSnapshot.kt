@@ -27,6 +27,9 @@ package com.umamit.core.model
  * @property preAlertInheritedSeconds the recipe ?: global pre-alert, frozen at the start (0: off): the base B of
  *   the automatic rule; each step's own choice is in its [SessionStepRow] (umamit.db v2, D-093).
  * @property zoneId the session's time zone (IANA id), also for the quick timer, which has no session row.
+ * @property quickPreAlertSeconds the quick timer's own pre-alert choice (umamit.db v3, TMR-22, D-097): null
+ *   *Automatisch* (B = [preAlertInheritedSeconds]), 0 *Aus*, else 5–30 s; always null for a brew session. The
+ *   engine does not set or read it yet (v0.2.2-03, #116), so a quick timer runs as *Automatisch*, as in v0.2.1.
  */
 data class ActiveBrewSnapshot(
     val sessionId: String?,
@@ -50,6 +53,7 @@ data class ActiveBrewSnapshot(
     val demoted: Boolean,
     val preAlertInheritedSeconds: Int,
     val zoneId: String,
+    val quickPreAlertSeconds: Int? = null,
 )
 
 /**
