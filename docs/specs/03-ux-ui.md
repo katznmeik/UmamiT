@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-29 (*Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -128,7 +128,7 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 |---|---|
 | Timer notification / Live Update / alert | SCR-05 |
 | „Sitzung gespeichert" notification | SCR-16 |
-| Catalog refresh progress and result notifications | The app where it was, like its launcher icon (D-079) |
+| Catalog refresh progress and result notifications | Sammlung › Katalog with SCR-22 open: the progress while the refresh runs, its summary after it (v0.2.2, D-097; until v0.2.1 the app where it was, D-079). Before the setup is finished: the app where it was |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
 | Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
 
@@ -475,6 +475,11 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
 - At most one nudge card (knapper Vorrat, Backup, Katalog nie geladen).
+  From v0.2.2 the low-stock card (INV-10, D-097): „*Tanabata* wird knapp ·
+  14 g übrig" (or „*Tanabata* ist leer") in the body style, a small leaf
+  in the tea's style colour, text buttons *Nachbestellen* (only when INV-09
+  offers the link) and *Ausblenden*; no accent fill, no badge: a reminder,
+  not an alarm. It takes the slot before the other nudges.
 - Empty state: „Deine Sammlung ist leer" · *Katalog öffnen* · *Schnelltimer*.
 - Details (lists, row format, live countdown): [D-062](10-open-questions-and-decisions.md#d-062).
 
@@ -499,6 +504,13 @@ entfernt" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
 same action as a custom action on the row.
+
+**Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
+*Alle* is split by the tea's kind, each group under a small section header
+(„Grüntees", „Kräutertees"; later more kinds with M3's own teas), A–Z
+within a group, groups in that order. Search results are grouped the same
+way. *Zuletzt* and *Favoriten* stay ungrouped above. With teas of only one
+kind the list has no group headers, as before.
 
 ### SCR-04 Brühen (setup)
 
@@ -539,6 +551,8 @@ v0.2.1 ([D-093](10-open-questions-and-decisions.md#d-093)):
   *Brühen anpassen*), a line under the field says „Die laufende Sitzung zieht
   beim Beenden noch 5,0 g ab." (its leaf; deducted at *Sitzung beenden* as
   always, D-096). Like every sheet, it never covers an alert.
+- A *Knapp* tea (INV-05, from v0.2.2 ≤ 15 g) reads „14 g übrig · knapp" (D-097),
+  *Leer* reads „Leer"; the button stays the same.
 
 ### SCR-05 Timer
 
@@ -607,7 +621,7 @@ container colour instead.
 
 | State | Ring | Caption | Primary control |
 |---|---|---|---|
-| READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
+| READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „4,0 g Tee · 250 ml Wasser" (v0.2.2, BRW-11, D-097; only what the session has) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
 | ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055) | **Abgegossen** (*Weggegossen* for rinse) |
@@ -649,7 +663,7 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 
 ### SCR-07 Schnelltimer
 
-Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00; tap time for a duration picker; *Start*;
+Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); tap time for a duration picker; *Start*;
 while running *Pause*/*Weiter*; on alert *Fertig*; overflow *Abbrechen*
 ([04 §10](04-brew-timer.md#10-quick-timer)).
 
@@ -662,6 +676,13 @@ PRF-04's increments). Once it runs, the timer screen shows it with the title
 active asks first (TMR-21). Never over an alert: the screen gives way to the
 timer, the picker and the question close (rule 8,
 [D-065](10-open-questions-and-decisions.md#d-065)).
+
+**Vorwarnung (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
+Below the chips a *Vorwarnung* row with the selector of SCR-31
+(„Auto · 10 s", *Aus*, 5–30 s, „· zu kurz" when the duration is too short),
+remembered for the next quick timer. The ring before *Start* shows the
+pre-alert mark for the chosen duration and lead; while it runs the mark
+and the Vorwarnton work as on a brew step (TMR-22 AC1).
 
 ### SCR-08 Sammlung › Meine Tees
 
@@ -771,6 +792,14 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
   empty it takes the no-match notice's place; the header still reads
   „… · 0 Kräutertees · …".
+- **Merken (v0.2.2, CAT-18, [D-097](10-open-questions-and-decisions.md#d-097)):**
+  each row of a tea not in the collection ends with a bookmark toggle
+  (48 dp target, outlined / filled, TalkBack „Merken" / „Gemerkt"; a short
+  haptic tick). The chip „Gemerkt" sits after *Filter*: on, the list shows
+  every marked tea, green and herbal, sold out or discontinued, grouped as
+  the default view; the other chips are hidden and only the search applies;
+  the header reads „… · 4 gemerkt · …". Empty: „Noch nichts gemerkt ·
+  Tippe bei einem Tee auf 🔖".
 - **Default view** (D-073): grouped by *Sorte* under a section header per
   *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
   on, so flavoured teas are one tap away. Sorted by name or price the list
@@ -870,6 +899,10 @@ tag „Nicht mehr im Sortiment" first and has no *Im Shop öffnen* (D-086).
 A tea whose sizes are all unavailable (sold out, kept by CAT-16 or fetched
 from a link by CAT-17, D-094) shows „nicht vorrätig" for the page's own
 size, the only one whose stock the page tells (D-096), and can still be added (*In Sammlung aufnehmen* / *Nachkauf erfassen*).
+From v0.2.2 a tea not in the collection has *Merken* (bookmark icon button
+next to *Im Shop öffnen*; „Gemerkt" when marked) (CAT-18, D-097); adding it
+removes the mark. A marked tea no longer in the range is kept and tagged
+„Nicht mehr im Sortiment" like an owned one.
 
 ### SCR-22 Katalog aktualisieren (sheet)
 
@@ -882,7 +915,8 @@ keine Änderungen" for a later refresh without change, „274 Tees ·
 error state with *Details kopieren* for the developer. Closing the sheet never
 stops a refresh, nor does locking the phone (its progress notification offers
 *Abbrechen* too, D-079); while one runs, the empty catalog offers *Fortschritt
-anzeigen*. Opened by *Katalog laden* and by *Katalog aktualisieren* in the ⋮
+anzeigen*. From v0.2.2 a tap on the progress or the result notification
+opens it over Sammlung › Katalog (D-097). Opened by *Katalog laden* and by *Katalog aktualisieren* in the ⋮
 menu. The sheet never covers an alert: an alert removes it in the same
 frame and it stays closed (rule 8, D-077).
 
@@ -913,7 +947,9 @@ Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 between them: „Letzter Abruf" with the date of the last successful refresh
 („21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
 switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"). v0.2.1 adds
-*Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093).
+*Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093). v0.2.2 adds
+the section *Brühen & Vorrat* between *Timer & Alarm* and *Katalog* with
+„Knapp ab" (SET-16, 0–500 g in 5 g steps, „15 g"; D-097).
 
 ### SCR-26 Daten & Sicherung
 

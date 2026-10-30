@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (Merkliste, Knapp, D-097)
 
 ## Tea terms
 
@@ -50,6 +50,8 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | Soft tick a configurable number of seconds before a steep ends. |
+| **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
+| **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2); *Leer* at 0 g (INV-05). |
 | **Pre-alert glow** | Signature motion: the pre-alert marker on the timer ring glows gently in sync with the pre-alert tick (03 §3.6, D-041). |
 | **Liquor fill** | Signature motion: while a step runs, the inside of the timer ring fills in the tea's liquor colour (03 §3.6, D-041). |
 | **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip and on the lock screen; on One UI also in Samsung's Now Bar (best effort). |

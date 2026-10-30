@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -303,12 +303,28 @@ are nullable (#30). A device restore clears the row (§8).
 | `pre_alert_override_seconds` | INTEGER | the session's own pre-alert (Schritte-Sheet); null = *Wie Einstellung*, 0 = *Aus*. **Dropped in v2** (D-093): the choice is per step (`session_step.pre_alert_seconds`) |
 | `pre_alert_inherited_seconds` | INTEGER | recipe ?: global pre-alert, frozen at the start (0 = off); from v2 the base B of the automatic rule (04 §5) |
 | `zone_id` | TEXT | the session's time zone (IANA id); needed for the quick timer, which has no `brew_session` row |
+| `quick_pre_alert_seconds` | INTEGER | **v3** (v0.2.2, D-097): the quick timer's pre-alert choice; null = *Automatisch* (B = `pre_alert_inherited_seconds`), 0 = *Aus*, 5–30 explicit; always null for a brew session |
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
 the state (D-048). Whether every step is a long step (cold or ice brew) is not
 a column either: the active brew store reads it from
 `brew_session.method` into `TimerSnapshot.longStepsOnly` (D-053).
+
+### 3.13 CatalogBookmark
+
+Table `catalog_bookmark` (umamit.db **v3**, v0.2.2, CAT-18, D-097): the
+Merkliste. Personal data, so it lives here and not in the rebuilt
+`catalog.db`; a refresh never touches it.
+
+| Column | Type | Req. | Notes |
+|---|---|---|---|
+| `catalog_key` | TEXT | ✓ | PK; the catalog tea's key (`catalog_tea.catalog_key`), no FK across databases |
+| `created_at` | INTEGER | ✓ | when it was marked; the list is not sorted by it |
+
+Adding the tea to the collection (SCR-23) deletes its row in the same
+transaction. A row whose catalog tea is gone (never expected, since the
+refresh keeps marked teas, CAT-18 AC3) is ignored in the list.
 
 ## 4. Catalog tables (rebuilt by each refresh)
 
@@ -457,7 +473,9 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `vibration` | Boolean | true | SET-11 |
 | `alertLength` | SHORT/NORMAL/LONG | NORMAL | SET-14 |
 | `deductStock` | Boolean | true | SET-15 |
-| `lowStockGrams` | Double | 10.0 | SET-16 |
+| `lowStockGrams` | Double | **15.0** (v0.2.2; was 10.0) | SET-16; snapped to 5 g, clamped to 0…500. Settings `schemaVersion` 2 (v0.2.2, D-097) turns a stored 10.0 into 15.0 once, since no settings row existed before |
+| `quickTimerPreAlert` | Int? (null, 0, 5…30) | null (*Automatisch*) | TMR-22 (v0.2.2, D-097): the last choice on SCR-07 |
+| `lowStockHidden` | Set<String> | ∅ | INV-10 (v0.2.2, D-097): `<tea id>/<event id>` of the latest INITIAL/PURCHASE event when *Ausblenden* was tapped; a newer purchase shows the card again |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |
@@ -510,7 +528,8 @@ Time rounding for derived recipes: nearest 5 s (half up).
   entries.
 - `data.json`: arrays for teas, brewProfiles, brewSteps, vessels, tags,
   teaTags, sessions, sessionSteps, customDescriptors, sessionDescriptors,
-  inventoryEvents, photos (camelCase fields mirroring §3).
+  inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
+  fields mirroring §3).
 - **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
   restore validation covers ZIP limits and zip-slip protection,
   manifest/version check, checksums, types/enums, constraints, referential
@@ -613,6 +632,19 @@ rows, and Kräutertees in `catalog.db` are told apart by their style key
 `herbal`. Only `catalog_skip`'s `NOT_GREEN` rows are deleted once (by a
 `catalog.db` migration or at the first refresh of v0.2.1), so herbal
 products are classified again (08 §2.4).
+
+**umamit.db v3 (v0.2.2, D-097).** One schema step for the Merkliste and the
+quick timer's own pre-alert, `MIGRATION_2_3` in `UMAMI_MIGRATIONS`:
+- `CREATE TABLE catalog_bookmark` (§3.13), empty;
+- `ALTER TABLE active_brew ADD COLUMN quick_pre_alert_seconds INTEGER`
+  (nullable, last column): a quick timer running during the update reads as
+  *Automatisch*, as it ran in v0.2.1, so its lead does not change (rule 8).
+- One transaction, never destructive. Tests: `Migration2To3Test` from a
+  populated v2 database (incl. a running quick timer and a running brew
+  session) to v3, then opened with the production builder;
+  `SchemaVersionsTest` with v1–v3; v1 and v2 JSON unchanged
+  (`check-frozen-schemas.sh`). The v0.2.2 rc checklist installs it over
+  v0.2.1 (09 §4).
 
 ## 10. Volume assumptions
 

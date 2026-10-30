@@ -1,6 +1,8 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (sold-out teas and
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.2.2 from the PO's
+> feedback on v0.2.1: BRW-11, BRW-08, INV-05, INV-10, SET-16, TMR-22, CAT-18,
+> D-097; 2026-10-28: sold-out teas and
 > adding a tea from a shop link, CAT-16, CAT-17, D-094; 2026-10-26: v0.2.1
 > and v0.3 from the PO's feedback on `v0.2.0-rc.1`, D-093)
 > v0.2 incorporates the PO interview of 2026-10-21. Requirements dropped in
@@ -381,6 +383,20 @@ its shop link. This is network use (d) of GEN-01.
 - AC8: A tea fetched this way that is not in the sitemap is kept by the
   re-check of CAT-16 on later refreshes.
 
+**CAT-18 — Merkliste** `Should` (v0.2.2, D-097)
+A catalog tea can be marked for later without adding it to the collection:
+*Merken* (bookmark icon) on its detail (SCR-21) and on its catalog row
+(SCR-19).
+- AC1: The chip *Gemerkt* in the catalog shows every marked tea, green and
+  herbal, sold out or discontinued; with it on, the other chips are hidden
+  and only the search applies.
+- AC2: Adding the tea to the collection (SCR-23) removes its mark. A tea in
+  the collection offers no *Merken*; a removed (archived) one does.
+- AC3: A marked tea is kept by the refresh when it leaves the range, like
+  an owned one (CAT-07 AC4), and shows „Nicht mehr im Sortiment".
+- AC4: Marks are personal data in umamit.db (`catalog_bookmark`, v3) and in
+  the backup; a catalog refresh never touches them.
+
 ---
 
 ## 4. Collection — my teas (TEA) — SCR-08 … SCR-11
@@ -572,6 +588,10 @@ water, temperatures, step durations as planned). The kettle hint shows the
 temperature. Timer ⋮ › *Brühen anpassen* opens the setup screen for this
 session (only while no step has started). A known tea starts in **2 taps**
 (tea → *Start*).
+- **Leaf and water on READY (v0.2.2, D-097).** Every READY state of a brew
+  shows the session's leaf and water next to the kettle hint („4,0 g Tee ·
+  250 ml Wasser"), so a tea started from *Nochmal brühen* shows how much to
+  weigh without opening the setup (SCR-05).
 
 **BRW-02 — Setup screen** `Must`
 Shows tea, recipe chips, vessel, water, leaf, ratio lock, base temperature,
@@ -593,6 +613,8 @@ parameters.
 
 **BRW-08 — Stock warning** `Should`
 „Nur noch 3 g übrig" if stock is below the leaf amount.
+- **v0.2.2 (D-097):** the setup's stock line marks a *Knapp* tea (INV-05):
+  „14 g übrig · knapp"; the warning above is still M3.
 
 **BRW-09 — Freshness hint** `Could`
 
@@ -727,9 +749,16 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
   included) one timer at a time, as above.
 
 **TMR-22 — Quick timer** `Should`
-SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00 and
-custom; same alert, pre-alert (global setting, automatic rule of TMR-23) and
-Live Update; not logged.
+SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
+8:00 (from v0.2.2, D-097) and custom; same alert, pre-alert (global setting,
+automatic rule of TMR-23) and Live Update; not logged.
+- **Pre-alert (v0.2.2, D-097).** The screen before *Start* has the
+  *Vorwarnung* selector of the brew setup (*Automatisch*, *Aus*, 5–30 s),
+  remembered for the next quick timer, and its ring shows the pre-alert
+  mark. The pre-alert sounds and shows like a brew step's.
+  - AC1: A 2:00 quick timer with *Vorwarnung* 10 s and *Automatisch* shows
+    the mark at 0:10 while it runs and plays the Vorwarnton at 0:10 left,
+    screen on or off (fixes the silent pre-alert the PO found in v0.2.1).
 - **Planned for v0.3.0 (D-093):** quick timers run alongside one brew
   session (TMR-21).
 
@@ -837,7 +866,8 @@ history list (SCR-29).
 **INV-04 — Session edits** `Must` update the linked deduction.
 
 **INV-05 — Stock status** `Must`
-Leer (≤ 0 g), Knapp (≤ threshold, default 10 g), Vorrätig. Empty teas stay
+Leer (≤ 0 g), Knapp (≤ threshold, default **15 g** from v0.2.2, D-097; was
+10 g), Vorrätig. Empty teas stay
 in *Meine Tees* with a „Leer" chip and are sorted to the bottom in every sort
 order; they are never archived automatically.
 
@@ -871,6 +901,18 @@ offered, it opens the product page (`product_url`).
   AC4), show no link.
 - **AC3:** the app makes no request itself; the browser opens the page
   (GEN-01).
+
+**INV-10 — Low-stock card on Start** `Should` (v0.2.2, D-097)
+When a tea's stock is *Knapp* or *Leer* (INV-05), Start's nudge slot (SCR-02)
+shows a quiet card: „*Tanabata* wird knapp · 14 g übrig" („*Tanabata* ist
+leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
+*Ausblenden*.
+- AC1: One card at a time; with several such teas the one with the least
+  stock. Archived teas and teas without stock events never show.
+- AC2: *Ausblenden* hides the card for that tea until its next INITIAL or
+  PURCHASE event; then the next most urgent tea, if any, shows.
+- AC3: The card is part of the Start list; it never covers or delays an
+  alert.
 
 ---
 
@@ -919,7 +961,7 @@ Every chart has an accessible table alternative.
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
-| SET-16 | Schwelle „knapp" | 0–500 g — 10 g | Should |
+| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |

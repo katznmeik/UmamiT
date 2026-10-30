@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-28
+> Status: **Living document** · Last updated: 2026-10-30
 
 ## Open questions
 
@@ -301,6 +301,104 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-097"></a>
+### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
+
+**Context.** After using v0.2.1 the PO sent seven points (2026-10-30). They
+ship as **v0.2.2**, before v0.3.0 (quick timers alongside a brew, D-093
+point 1), which stays as planned.
+
+**Decisions (PO).**
+1. **Grams on READY (BRW-11, SCR-05).** Every READY state of a brew shows,
+   next to the kettle hint, the leaf and water of the session: „4,0 g Tee ·
+   250 ml Wasser", however the timer was reached (*Nochmal brühen*, setup,
+   *Weiterer Aufguss*). The quick timer has no tea and shows none.
+2. **Catalog notifications open the catalog (SCR-22, 03 §2.4; amends
+   D-079).** A tap on the refresh's progress notification opens *Sammlung ›
+   Katalog* with the *Katalog aktualisieren* sheet showing the progress; a
+   tap on the result notification opens the same screen with the sheet
+   showing the summary.
+3. **Tea groups in the picker (SCR-03).** *Zuletzt* and *Favoriten* stay on
+   top; *Alle* is split into groups under a heading each, „Grüntees" and
+   „Kräutertees" (later more, e.g. own teas of other kinds in M3), A–Z
+   within a group. Search results are grouped the same way.
+4. **Low-stock reminder (INV-05, INV-10, SET-16, SCR-02, SCR-04).** *Knapp*
+   starts at **15 g** (was 10 g), changeable in the settings. Start shows a
+   quiet card „*Tanabata* wird knapp · 14 g übrig" with *Nachbestellen*
+   (INV-09's link) and *Ausblenden* (hidden until the tea's next purchase);
+   the brew setup marks „14 g übrig · knapp".
+5. **Pre-alert of the quick timer (TMR-22, SCR-07).** The PO saw no
+   pre-alert mark on a running quick timer of 2:00 and more and heard no
+   pre-alert, with *Vorwarnung* set to a value: a bug, to be reproduced on
+   the real path and fixed. The engine computes and schedules the lead
+   correctly (a probe test on 2026-10-30: 2:00 with B = 10 → lead 10 s, due
+   at 1:50), so the fault lies between the controller, the alarms, the
+   screen and the alert player. In addition the screen before *Start* gets
+   the *Vorwarnung* selector of the brew setup (*Automatisch*, *Aus*, 5–30 s)
+   with the mark on its ring, and remembers the last choice.
+6. **8 minutes (TMR-22, SCR-07).** The chips become 0:30 · 1:00 · 1:30 · 2:00
+   · 3:00 · 5:00 · 8:00; they wrap onto a second row when needed.
+7. **Merkliste (CAT-18, SCR-19, SCR-21).** Catalog teas can be marked for
+   later without adding them: *Merken* with a bookmark icon (not „Favorit",
+   which belongs to the own teas). A *Gemerkt* chip in the catalog shows
+   them; nothing new on Start. The mark goes away when the tea is added to
+   the collection. A marked tea that leaves the range stays, marked „Nicht
+   mehr im Sortiment". The marks are personal data (umamit.db, backup).
+
+**Details (Claude).**
+- **Grams line.** The line shows the session's leaf and water as planned;
+  a session without water (*Ohne Gefäß*) shows only the leaf, one without
+  leaf only the water, one without either nothing. Matcha shows the same
+  line. On a short screen it counts as content above the control (D-096),
+  so the band gives way first.
+- **Notification taps.** The tap opens the catalog on the Sammlung tab
+  above whatever was shown; back returns there. An alert still wins (the
+  sheet stays closed during it, D-077) and a timer on screen stays where it
+  is in the back stack. Before the setup is finished (ONB-03), the tap opens
+  the app where it was, as before. A result notification tapped after the
+  app was closed shows the summary of the last refresh from the refresh log.
+- **Picker groups.** A group is the tea's kind from its style: `herbal` →
+  „Kräutertees", every green style → „Grüntees". A heading only shows when
+  the picker holds teas of more than one group; with one group the list
+  looks as before. *Zuletzt* and *Favoriten* stay ungrouped.
+- **Threshold 15 g.** SET-16 had no settings row before v0.2.2, so a stored
+  10,0 g is the old default, never the PO's choice: the first start of
+  v0.2.2 changes a stored 10,0 to 15,0 once (settings `schemaVersion` 1 → 2).
+  The row sits in the settings section *Brühen & Vorrat* (SET-30), new in
+  v0.2.2: „Knapp ab" 0–500 g in 5 g steps.
+  A tea's own `low_stock_grams` (M3) still wins over it.
+- **Low-stock card.** One card at a time (SCR-02's single nudge slot); when
+  several teas are *Knapp*, the one with the least stock left. Empty teas
+  (*Leer*) count too („*Tanabata* ist leer"). Only teas with stock events and
+  not archived. *Nachbestellen* only when INV-09 offers the link (a catalog
+  tea still in the range); otherwise the card offers only *Ausblenden*.
+  *Ausblenden* stores the tea with its latest INITIAL/PURCHASE event (setting
+  `lowStockHidden`); a newer purchase shows it again, and meanwhile the next
+  most urgent tea takes the slot. The card never covers or delays an alert; it is a plain card in the
+  list.
+- **Quick timer selector.** The engine's `startQuickTimer` takes the step's
+  choice (null = *Automatisch* with B = the global setting, 0 = *Aus*, an
+  explicit 5–30 s as set, with the skip rules of 04 §5). The choice is stored
+  in a new `active_brew` column so a restore keeps it, and the last choice
+  in the setting `quickTimerPreAlert`. The ring before *Start* shows the mark
+  for the chosen lead; the selector's labels follow SCR-31 („Auto · 10 s",
+  „20 s", „Aus", „· zu kurz").
+- **Merkliste.** A table `catalog_bookmark` (catalog key, created at) in
+  umamit.db **v3**, in the backup's `data.json`. *Merken* is offered on
+  every catalog tea not in the collection (an archived tea counts as not in
+  it); adding it (SCR-23) deletes its mark in the same transaction. The
+  refresh keeps a discontinued catalog tea while it is marked, as it does
+  for an owned one (CAT-07 AC4). With *Gemerkt* on, the list shows every
+  marked tea, green and herbal, sold out or discontinued, grouped as the
+  default view; the other chips are hidden and only the search applies.
+  Empty: „Noch nichts gemerkt · Tippe bei einem Tee auf 🔖".
+- **One schema step.** The new `active_brew` column and `catalog_bookmark`
+  share one migration, v2 → v3, with a test on a populated v2 database;
+  v1 and v2 stay frozen (D-054).
+- **Timer code changes** (quick timer start, its pre-alert), so every
+  `v0.2.2-rc.N` needs a passing accuracy run (09 §4a), and the 04 §12 tests
+  are extended by the quick timer's pre-alert (rule 8).
 
 <a id="d-096"></a>
 ### D-096 — v0.2.1 build decisions (#83–#92, #97, #98, #100, #102; TMR-23, SET-26, PRF-03, SCR-04, SCR-05, SCR-07, SCR-19, SCR-31, CAT-10, CAT-16, CAT-17, TEA-04, INV-03, WARE-06) · *Accepted* (Claude, 2026-10-29)
@@ -3927,6 +4025,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-30 | D-097: v0.2.2, the PO's feedback on v0.2.1 — grams and water on every READY; catalog notifications open the catalog with the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker (INV-10); the quick timer's silent pre-alert as a bug, plus a *Vorwarnung* selector and 8:00 chip; *Merken* for catalog teas (CAT-18, umamit.db v3). 02, 03, 04, 05, 09 updated. |
 | 2026-10-29 | D-096: v0.2.1 build decisions (#83–#92, #97, #98, #100, #102): per-step pre-alert details and migration of a running session, *Alarm testen* waits for the Vorwarnton, sounds load at once on change, timer band and seal details, Kräutertee scope (Mate/Lapacho), one-time reset by parser version, herbal view rules, sold-out re-check incl. owned discontinued teas, redirect and page rules, the strict shop-link grammar and its messages, `CatalogJobs` ordering, vessel seed, stock input, archiving rules. 09 §4 updated. |
 | 2026-10-28 | D-095: timer top as an ink-wash band (new asset A13, dark) with the tea photo as a small round seal on a washi disc (multiply blend, type leaf as fallback); the quick timer gets the band without a seal; A4 retires; in v0.2.1 as #102. 03 SCR-05, SCR-07, 09 §4 and `docs/design/assets.md` updated. |
 | 2026-10-28 | D-094: sold-out teas and adding a tea from a shop link (#97, #98) — the shop's sitemap leaves sold-out products out, so known teas missing from it are re-checked once per refresh and kept while their page is still a green or herbal product (CAT-16), and a tea can be fetched from a shop link shared to the app or pasted via *Link einfügen* (CAT-17, share target `ACTION_SEND` `text/plain`); GEN-01 now has four network uses; paginated listings rejected (robots `*/?`). 02, 03, 06, 07, 08, 09 and CLAUDE.md rule 7 updated. |
