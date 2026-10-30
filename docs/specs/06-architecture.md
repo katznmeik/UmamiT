@@ -290,6 +290,26 @@ As built (#98):
 - **Checks:** `ShareTargetTest` checks the merged manifest; the permission
   list and `checkManifestPermissions` are unchanged.
 
+**Catalog refresh tap (v0.2.2, SCR-22, D-097; #113, #121).** The refresh's
+progress and result notifications open Sammlung › Katalog with the refresh
+sheet, and only this app's own intents may do so:
+- **`CatalogRefreshTapActivity`** (`app`) is the notifications' content
+  intent: `android:exported="false"`, no intent filter, `Theme.NoDisplay`,
+  `noHistory`, `excludeFromRecents` and an empty `taskAffinity`, so no other
+  app can start it and its own short task never shows in the recent apps.
+  `core:data` names it by class name (`CatalogRefreshIntents.TAP_ACTIVITY`;
+  the app's tests pin it to the class).
+- **Hand-over:** it shows nothing; it passes a random one-time ticket in the
+  app's process (`CatalogRefreshTapGate`) and starts `MainActivity` with the
+  action and that ticket (`NEW_TASK | SINGLE_TOP`), then finishes.
+  `MainActivity`, exported only as the launcher, takes the action only with
+  the ticket passed last, once; the action alone, a guessed ticket or a task
+  reopened from the recent apps opens nothing. The trampoline and
+  `MainActivity` run in the same process, also when a tap on the result
+  notification starts a new one, so nothing has to outlive it.
+- **Checks:** `CatalogNotificationTapTest`; no permission is added, and
+  `checkManifestPermissions` is unchanged.
+
 The build enforces this list (`./gradlew checkManifestPermissions`, in CI,
 M1-02): the merged **release** manifest may request only the permissions
 above. Two deliberate exceptions, both in `ManifestPermissions.kt` in

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -254,6 +255,29 @@ class QuickTimerScreenTest {
         compose.mainClock.autoAdvance = true
         state = state.copy(alertKey = null)
         compose.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the Vorwarnung menu at once, and it stays closed (rule 8)`() {
+        show(QuickTimerUiState(durationSeconds = 120))
+        compose.onNodeWithContentDescription("Vorwarnung: Automatisch, 10 Sekunden vorher. Ändern")
+            .performScrollTo().performClick()
+        compose.onNode(isPopup()).assertExists()
+
+        compose.mainClock.autoAdvance = false
+        state = state.copy(alertKey = "s1:0:1")
+        // The same two frames the timer's own overlays are checked in (TimerScreenTest).
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+
+        compose.onNode(isPopup()).assertDoesNotExist()
+        compose.onNodeWithText("Automatisch · ${sec(10)}").assertDoesNotExist()
+        // It stays closed after the alert.
+        compose.mainClock.autoAdvance = true
+        state = state.copy(alertKey = null)
+        compose.onNode(isPopup()).assertDoesNotExist()
     }
 
     @Test

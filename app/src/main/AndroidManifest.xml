@@ -59,6 +59,17 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!-- The catalog refresh notifications' tap (SCR-22, 06 §5.7, #121): not exported and
+             without an intent filter, so only the app's own notification starts it. It shows
+             nothing, lets the tap through to MainActivity in this process and finishes, in a
+             task of its own that never shows in the recent apps. -->
+        <activity
+            android:name=".CatalogRefreshTapActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.NoDisplay" />
     </application>
 
 </manifest>

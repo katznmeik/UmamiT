@@ -126,7 +126,12 @@ class TimerScreenLayoutTest {
         assertThat(alert).isEqualTo(ready)
     }
 
+    /**
+     * On a screen where everything fits under the full band, FINISHED's reserved *Weiterer Aufguss* included
+     * (the 411 × 891 dp default misses that by half a dp without insets).
+     */
     @Test
+    @Config(qualifiers = "w411dp-h915dp-xhdpi")
     fun `the seal is 88 dp, centred, and half over the band's lower edge`() {
         show(TimerStates.running())
         val band = band().getUnclippedBoundsInRoot()
@@ -198,6 +203,15 @@ class TimerScreenLayoutTest {
     @Config(fontScale = 2.0f)
     fun `the pill does not move at font scale 2_0 either (non-linear font scaling)`() = pillStaysPut()
 
+    /**
+     * D-058 on a short screen at the largest font, where the band gives way (D-096): FINISHED's *Weiterer
+     * Aufguss* below the pill must not lift it at the last *Abgegossen*.
+     */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the pill does not move, not even into FINISHED`() = pillStaysPut()
+
+    /** READY → RUNNING → ALERTING (overtime turning large) → the last step's ALERTING → FINISHED. */
     private fun pillStaysPut() {
         show(TimerStates.ready())
         val ready = top("Start")
@@ -214,7 +228,17 @@ class TimerScreenLayoutTest {
         compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
         val prominent = top("Abgegossen")
 
-        assertThat(listOf(running, alert, prominent)).containsExactly(ready, ready, ready)
+        // The last *Abgegossen* ends the brew: FINISHED's *Sitzung beenden* takes the pill's place.
+        state = TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2)
+        compose.waitForIdle()
+        val lastAlert = top("Abgegossen")
+
+        state = TimerStates.finished()
+        compose.waitForIdle()
+        val finished = top("Sitzung beenden")
+
+        assertThat(listOf(running, alert, prominent, lastAlert, finished))
+            .containsExactly(ready, ready, ready, ready, ready)
     }
 
     /**
@@ -281,7 +305,29 @@ class TimerScreenLayoutTest {
     @Test
     @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
     fun `on a 384 x 832 dp screen at font scale 2_0 FINISHED's Weiterer Aufguss and the margin are on the screen`() =
-        finishedFits(TimerStates.finished().copy(teaName = TWO_LINE_NAME))
+        finishedFits(TimerStates.finished())
+
+    /**
+     * The tightest case: a two-line name on a short screen at the largest font, where the band is down to the top
+     * bar already. The pill keeps its place from the last *Abgegossen* (D-058, rule 8), so *Weiterer Aufguss*
+     * lies whole on the screen, above the bottom inset, but with less than the full margin; the page scrolls by
+     * the rest.
+     */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 with a two-line tea name Weiterer Aufguss is on the screen`() {
+        show(TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2).copy(teaName = TWO_LINE_NAME))
+        val lastAlert = top("Abgegossen")
+
+        state = TimerStates.finished().copy(teaName = TWO_LINE_NAME)
+        compose.waitForIdle()
+
+        assertThat(top("Sitzung beenden")).isEqualTo(lastAlert)
+        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        assertThat(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot().bottom)
+            .isAtMost(screen.bottom)
+    }
 
     private fun finishedFits(finished: TimerUiState.Active) {
         show(finished)

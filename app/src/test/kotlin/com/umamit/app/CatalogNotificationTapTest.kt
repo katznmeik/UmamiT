@@ -2,6 +2,7 @@ package com.umamit.app
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
@@ -35,7 +36,9 @@ import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -102,9 +105,16 @@ class CatalogNotificationTapTest {
 
     /** The notification's content intent, as MainActivity gets it in `onCreate` or `onNewIntent`. */
     private fun tapNotification() {
-        val intent = CatalogRefreshIntents.openRefresh(compose.activity)
+        val intent = throughTrampoline(CatalogRefreshIntents.openRefresh(compose.activity))
         compose.runOnUiThread { assertThat(requests.offer(intent)).isTrue() }
         compose.waitForIdle()
+    }
+
+    /** What the notification's non-exported trampoline starts MainActivity with for [tap] (#121). */
+    private fun throughTrampoline(tap: Intent): Intent {
+        val trampoline = Robolectric.buildActivity(CatalogRefreshTapActivity::class.java, tap).create().get()
+        assertThat(trampoline.isFinishing).isTrue()
+        return requireNotNull(shadowOf(trampoline).nextStartedActivity)
     }
 
     private fun sheet() = compose.onNodeWithTag(CATALOG_REFRESH_SHEET_TAG)
@@ -120,11 +130,46 @@ class CatalogNotificationTapTest {
     }
 
     @Test
-    fun theIntentNamesTheAppsOwnActivity() {
+    fun theIntentNamesTheAppsOwnNonExportedTrampoline() {
         val intent = CatalogRefreshIntents.openRefresh(compose.activity)
+        val trampoline = ComponentName(compose.activity, CatalogRefreshTapActivity::class.java)
 
-        assertThat(intent.component).isEqualTo(ComponentName(compose.activity, MainActivity::class.java))
+        assertThat(intent.component).isEqualTo(trampoline)
         assertThat(intent.`package`).isEqualTo(compose.activity.packageName)
+        // No other app can start it, and no intent filter answers the action (#113 AC, #121).
+        val packages = compose.activity.packageManager
+        assertThat(packages.getActivityInfo(trampoline, 0).exported).isFalse()
+        val byAction = Intent(CatalogRefreshIntents.ACTION_OPEN_REFRESH).setPackage(compose.activity.packageName)
+        assertThat(packages.queryIntentActivities(byAction, PackageManager.MATCH_ALL)).isEmpty()
+    }
+
+    @Test
+    fun theTrampolineHandsTheTapToMainActivityInTheAppsTask() {
+        val started = throughTrampoline(CatalogRefreshIntents.openRefresh(compose.activity))
+
+        assertThat(started.component).isEqualTo(ComponentName(compose.activity, MainActivity::class.java))
+        assertThat(CatalogRefreshIntents.isOpenRefresh(started)).isTrue()
+        assertThat(started.flags and Intent.FLAG_ACTIVITY_NEW_TASK).isNotEqualTo(0)
+        assertThat(started.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP).isNotEqualTo(0)
+    }
+
+    @Test
+    fun anotherAppsIntentWithTheActionAloneOpensNothing() {
+        // MainActivity is exported as the launcher: anyone can send it the action, with any extras.
+        val external = Intent(compose.activity, MainActivity::class.java)
+            .setAction(CatalogRefreshIntents.ACTION_OPEN_REFRESH)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val guessed = Intent(external).putExtra(CatalogRefreshRequests.EXTRA_TICKET, 1L)
+        // Not even right after the app's own tap went through, and not with that tap's intent again.
+        val own = throughTrampoline(CatalogRefreshIntents.openRefresh(compose.activity))
+
+        assertThat(requests.offer(external)).isFalse()
+        assertThat(requests.offer(guessed)).isFalse()
+        assertThat(requests.pending).isEqualTo(0L)
+        assertThat(requests.offer(own)).isTrue()
+        requests.handled(requests.pending)
+        assertThat(requests.offer(own)).isFalse()
+        assertThat(requests.pending).isEqualTo(0L)
     }
 
     @Test
@@ -156,7 +201,9 @@ class CatalogNotificationTapTest {
 
     @Test
     fun afterTheAppWasClosedTheSummaryComesFromTheRefreshLog() {
-        // A new process: the runner holds nothing, the log has the last refresh.
+        // A new process: the runner holds nothing, the log has the last refresh. The tap starts the
+        // trampoline first, in that process, and it lets the tap through to MainActivity there: nothing from
+        // before the process was killed is needed (#121).
         runner.lastResult = SUCCESS
         show()
 
@@ -204,6 +251,68 @@ class CatalogNotificationTapTest {
         assertThat(runner.cancels).isEqualTo(0)
         // The running refresh goes on behind the closed sheet.
         assertThat(runner.state.value).isInstanceOf(CatalogRefreshState.Running::class.java)
+    }
+
+    /**
+     * #121: an older refresh shell lower in the back stack must not take a newer tap's token when back
+     * returns to it (its sheet again, its tabs reset), and the shells do not pile up: the new tap replaces
+     * the older shell, and a timer opened from it stays below the new one.
+     */
+    @Test
+    fun aNewTapReplacesAnOlderRefreshShellAndKeepsTheTimerAboveIt() {
+        brew.value = RUNNING
+        runner.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(3, 10, 2))
+        show()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        tapNotification()
+        sheet().assertIsDisplayed()
+        // From inside the refresh shell: the timer, through the active brew bar.
+        compose.onNodeWithText("Hisui", useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+
+        runner.state.value = CatalogRefreshState.Finished(SUCCESS)
+        tapNotification()
+        catalogShown()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(SUMMARY)
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        back()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+        back()
+        // The app's shell as it was, not an older refresh shell taking the newer tap again.
+        compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
+        sheet().assertDoesNotExist()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSecondTapWhileTheRefreshShellShowsTurnsItBackToTheCatalogWithTheSheet() {
+        runner.state.value = CatalogRefreshState.Finished(SUCCESS)
+        // Seen once with *Fertig*, the result is still in the refresh log for the second tap.
+        runner.lastResult = SUCCESS
+        show()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        tapNotification()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+        // Inside the refresh shell, another tab.
+        compose.onNodeWithTag(tabTag(Tab.Stats)).performClick()
+        compose.waitForIdle()
+
+        tapNotification()
+
+        catalogShown()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(SUMMARY)
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+        // One refresh shell: one back returns to the app's shell as it was.
+        back()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
+        sheet().assertDoesNotExist()
     }
 
     @Test
@@ -263,10 +372,12 @@ class CatalogNotificationTapTest {
 
     @Test
     fun onlyTheAppsOwnFreshIntentIsARequest() {
-        val own = CatalogRefreshIntents.openRefresh(compose.activity)
+        val own = throughTrampoline(CatalogRefreshIntents.openRefresh(compose.activity))
 
         assertThat(requests.offer(Intent(Intent.ACTION_MAIN))).isFalse()
         assertThat(requests.offer(null)).isFalse()
+        // The notification's own intent is the trampoline's, never MainActivity's.
+        assertThat(requests.offer(CatalogRefreshIntents.openRefresh(compose.activity))).isFalse()
         // A task reopened from the recent apps brings its first intent again: no new sheet.
         assertThat(requests.offer(Intent(own).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY))).isFalse()
         assertThat(requests.pending).isEqualTo(0L)
@@ -276,7 +387,7 @@ class CatalogNotificationTapTest {
 
     @Test
     fun aPendingTapSurvivesTheActivitysRecreation() {
-        requests.offer(CatalogRefreshIntents.openRefresh(compose.activity))
+        requests.offer(throughTrampoline(CatalogRefreshIntents.openRefresh(compose.activity)))
         val state = Bundle().also(requests::save)
 
         val recreated = CatalogRefreshRequests()
