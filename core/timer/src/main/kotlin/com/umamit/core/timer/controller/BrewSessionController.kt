@@ -7,7 +7,6 @@ import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
-import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -80,11 +79,11 @@ class BrewSessionController @Inject constructor(
     /** The engine state; read and written only inside [lock]. */
     private var timer: TimerState = TimerState.Idle
 
-    /** The tea of the active session, for the UI and the notifications; read and written inside [lock]. */
-    private var teaName: String? = null
-
-    /** The active session is an ice brew, for the kettle hint (BRW-10); read and written inside [lock]. */
-    private var iceBrew = false
+    /**
+     * What the UI and the notifications show of the active session's row: its tea, ice brew (BRW-10), leaf and
+     * water (BRW-11); null for the quick timer. Read and written inside [lock].
+     */
+    private var details: SessionDetails? = null
 
     /** The timer as the UI shows it; updated on every accepted transition, after it is persisted. */
     val state: StateFlow<TimerUiState> = effects.state
@@ -150,25 +149,28 @@ class BrewSessionController @Inject constructor(
                 startedAtMs = now.wallMs,
                 zoneId = now.zone.id,
             )
-            return handle(event, now, EventSource.APP, start, request.snapshot.teaName)
+            return handle(event, now, EventSource.APP, start)
         }
     }
 
     /**
-     * *Schnelltimer* (TMR-22, 04 §10): one infusion of [durationSeconds] with the
-     * global pre-alert, waiting in READY; nothing is recorded. Returns
-     * `Rejected(ActiveTimerExists)` while a timer is active (TMR-21) and
-     * `Rejected(InvalidQuickTimer)` for a duration outside 5 s – 24 h. With
+     * *Schnelltimer* (TMR-22, 04 §10): one infusion of [durationSeconds] with
+     * SCR-07's *Vorwarnung* [preAlertSeconds] (D-097: null *Automatisch* with
+     * B = the global pre-alert, read now; 0 *Aus*; else 5–30 s as set), waiting
+     * in READY; nothing is recorded. Returns `Rejected(ActiveTimerExists)` while
+     * a timer is active (TMR-21) and `Rejected(InvalidQuickTimer)` for a
+     * duration outside 5 s – 24 h or a choice other than 0 or 5–30 s. With
      * [run], its step starts in the same turn (SCR-07's *Start*). With
      * [finishActive] it is *Beenden & neu starten* (TMR-21, D-054, D-065): in the
      * same turn the active timer first ends as in [finishActiveAndStart].
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
+        preAlertSeconds: Int? = null,
         run: Boolean = false,
         finishActive: Boolean = false,
     ): TransitionOutcome {
-        val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds)
+        val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
             if (finishActive) {
                 (timer as? TimerState.Active)?.let { active ->
@@ -340,8 +342,7 @@ class BrewSessionController @Inject constructor(
                     TimerEvent.Recover,
                     now,
                     EventSource.RECOVERY,
-                    startTeaName = persisted.teaName,
-                    startIceBrew = persisted.iceBrew,
+                    startDetails = persisted.details,
                 )
                 val rebooted = restored.session.bootCount != now.bootCount
                 effects.record(
@@ -417,8 +418,7 @@ class BrewSessionController @Inject constructor(
         now: ClockReading,
         source: EventSource,
         start: SessionStart? = null,
-        startTeaName: String? = null,
-        startIceBrew: Boolean? = start?.snapshot?.method?.let { it == BrewMethod.ICE_BREW },
+        startDetails: SessionDetails? = start?.snapshot?.let(SessionDetails::of),
         savedSheetAsNotification: Boolean = false,
     ): TransitionOutcome {
         val before = timer
@@ -439,9 +439,8 @@ class BrewSessionController @Inject constructor(
             if (source != EventSource.RECOVERY) recovery.restoredForAlarmLog = null
             timer = transition.state
             val active = transition.state is TimerState.Active
-            teaName = if (active) startTeaName ?: teaName else null
-            iceBrew = active && (startIceBrew ?: iceBrew)
-            effects.run(transition, now, start, teaName, iceBrew, savedSheetAsNotification, scheduled = due)
+            details = if (active) startDetails ?: details else null
+            effects.run(transition, now, start, details, savedSheetAsNotification, scheduled = due)
         }
         rearmWakeUp()
         return transition.outcome

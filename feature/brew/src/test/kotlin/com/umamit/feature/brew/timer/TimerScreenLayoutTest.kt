@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -32,9 +33,11 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.TimerRingColors
 import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.quick.QUICK_RING_TAG
 import com.umamit.feature.brew.quick.QuickTimerActions
 import com.umamit.feature.brew.quick.QuickTimerScreen
@@ -123,7 +126,12 @@ class TimerScreenLayoutTest {
         assertThat(alert).isEqualTo(ready)
     }
 
+    /**
+     * On a screen where everything fits under the full band, FINISHED's reserved *Weiterer Aufguss* included
+     * (the 411 × 891 dp default misses that by half a dp without insets).
+     */
     @Test
+    @Config(qualifiers = "w411dp-h915dp-xhdpi")
     fun `the seal is 88 dp, centred, and half over the band's lower edge`() {
         show(TimerStates.running())
         val band = band().getUnclippedBoundsInRoot()
@@ -195,6 +203,15 @@ class TimerScreenLayoutTest {
     @Config(fontScale = 2.0f)
     fun `the pill does not move at font scale 2_0 either (non-linear font scaling)`() = pillStaysPut()
 
+    /**
+     * D-058 on a short screen at the largest font, where the band gives way (D-096): FINISHED's *Weiterer
+     * Aufguss* below the pill must not lift it at the last *Abgegossen*.
+     */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the pill does not move, not even into FINISHED`() = pillStaysPut()
+
+    /** READY → RUNNING → ALERTING (overtime turning large) → the last step's ALERTING → FINISHED. */
     private fun pillStaysPut() {
         show(TimerStates.ready())
         val ready = top("Start")
@@ -211,13 +228,24 @@ class TimerScreenLayoutTest {
         compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
         val prominent = top("Abgegossen")
 
-        assertThat(listOf(running, alert, prominent)).containsExactly(ready, ready, ready)
+        // The last *Abgegossen* ends the brew: FINISHED's *Sitzung beenden* takes the pill's place.
+        state = TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2)
+        compose.waitForIdle()
+        val lastAlert = top("Abgegossen")
+
+        state = TimerStates.finished()
+        compose.waitForIdle()
+        val finished = top("Sitzung beenden")
+
+        assertThat(listOf(running, alert, prominent, lastAlert, finished))
+            .containsExactly(ready, ready, ready, ready, ready)
     }
 
     /**
-     * Rule 8: on a short screen at the largest font, the band and the seal give way so that the
-     * alert's *Abgegossen* lies whole on the screen without scrolling, and still nothing moves when
-     * the alert starts (D-058, D-096).
+     * Rule 8: on a short screen at the largest font, the band and the seal give way so that READY's
+     * *Start*, with the session's leaf and water above it (BRW-11, D-097), and the alert's *Abgegossen*
+     * lie whole on the screen without scrolling, with the bottom margin below them, and still nothing
+     * moves when the alert starts (D-058, D-096).
      */
     @Test
     @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
@@ -237,7 +265,9 @@ class TimerScreenLayoutTest {
     private fun alertPillOnScreen(teaName: String, titleLines: Int) {
         show(TimerStates.ready().copy(teaName = teaName))
         assertThat(titleLineCount(teaName)).isEqualTo(titleLines)
+        compose.onNodeWithText("4,0\u00A0g Tee · 250\u00A0ml Wasser").assertIsDisplayed()
         val ready = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Start"))
+        assertWithMargin(compose.onNodeWithText("Start").getUnclippedBoundsInRoot())
 
         state = TimerStates.running().copy(teaName = teaName)
         compose.waitForIdle()
@@ -253,13 +283,63 @@ class TimerScreenLayoutTest {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val pill = compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()
         assertThat(pill.top).isAtLeast(screen.top)
-        assertThat(pill.bottom).isAtMost(screen.bottom)
+        assertWithMargin(pill)
 
         compose.mainClock.advanceTimeBy(8_000)
         compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
         assertThat(compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()).isEqualTo(pill)
 
         assertThat(listOf(running, alert)).containsExactly(ready, ready)
+    }
+
+    /**
+     * D-096 for FINISHED: the band gives way until *Sitzung beenden*, *Weiterer Aufguss* below it and the bottom
+     * margin lie on the screen, so the secondary never sits on the gesture handle (BRW-11's line makes the page
+     * taller).
+     */
+    @Test
+    @Config(fontScale = 2.0f)
+    fun `at font scale 2_0 FINISHED's Weiterer Aufguss and the bottom margin are on the screen`() =
+        finishedFits(TimerStates.finished())
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 FINISHED's Weiterer Aufguss and the margin are on the screen`() =
+        finishedFits(TimerStates.finished())
+
+    /**
+     * The tightest case: a two-line name on a short screen at the largest font, where the band is down to the top
+     * bar already. The pill keeps its place from the last *Abgegossen* (D-058, rule 8), so *Weiterer Aufguss*
+     * lies whole on the screen, above the bottom inset, but with less than the full margin; the page scrolls by
+     * the rest.
+     */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 with a two-line tea name Weiterer Aufguss is on the screen`() {
+        show(TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2).copy(teaName = TWO_LINE_NAME))
+        val lastAlert = top("Abgegossen")
+
+        state = TimerStates.finished().copy(teaName = TWO_LINE_NAME)
+        compose.waitForIdle()
+
+        assertThat(top("Sitzung beenden")).isEqualTo(lastAlert)
+        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        assertThat(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot().bottom)
+            .isAtMost(screen.bottom)
+    }
+
+    private fun finishedFits(finished: TimerUiState.Active) {
+        show(finished)
+        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        assertWithMargin(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot())
+    }
+
+    /** The primary control lies on the screen with the bottom margin below it (D-096). */
+    private fun assertWithMargin(pill: DpRect) {
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        assertThat(pill.top).isAtLeast(screen.top)
+        assertThat(pill.bottom + UmamiSpacing.Large).isAtMost(screen.bottom)
     }
 
     /** The quick timer has no seal and a one-line title: its *Fertig* fits as it is (SCR-07). */
@@ -271,6 +351,32 @@ class TimerScreenLayoutTest {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val pill = compose.onNodeWithText("Fertig").getUnclippedBoundsInRoot()
         assertThat(pill.bottom).isAtMost(screen.bottom)
+    }
+
+    /**
+     * Rule 8 before *Start* too: with the *Vorwarnung* row (D-097) SCR-07's *Start* lies whole on a short screen at
+     * the largest font, for every kind of label, without scrolling.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's Start is on the screen`() {
+        var quick by mutableStateOf(QuickTimerUiState(durationSeconds = 120))
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) { QuickTimerScreen(state = quick, actions = QuickTimerActions()) }
+        }
+        val states = listOf(
+            QuickTimerUiState(durationSeconds = 120),
+            QuickTimerUiState(durationSeconds = 20, preAlertChoice = PreAlertChoice.Seconds(20)),
+            QuickTimerUiState(durationSeconds = 4_500, preAlertChoice = PreAlertChoice.Seconds(20)),
+        )
+        states.forEach { shown ->
+            quick = shown
+            compose.waitForIdle()
+            val screen = compose.onRoot().getUnclippedBoundsInRoot()
+            val pill = compose.onNodeWithText("Start").getUnclippedBoundsInRoot()
+            assertThat(pill.top).isAtLeast(screen.top)
+            assertThat(pill.bottom).isAtMost(screen.bottom)
+        }
     }
 
     private fun titleLineCount(text: String): Int {

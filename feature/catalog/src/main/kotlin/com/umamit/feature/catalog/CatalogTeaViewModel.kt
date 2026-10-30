@@ -7,6 +7,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.catalog.AddFromCatalog
 import com.umamit.core.data.catalog.AddFromCatalogResult
+import com.umamit.core.data.catalog.CatalogBookmarkRepository
 import com.umamit.core.data.catalog.CatalogPurchase
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.data.catalog.ExactPriceSession
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -46,6 +49,7 @@ import javax.inject.Inject
  * @property ownedTeaId the collection tea linked to this catalog tea, if any: the primary action
  *   is then *Nachkauf erfassen* instead of *In Sammlung aufnehmen* (CAT-12).
  * @property lastBoughtGrams the size of the owned tea's latest INITIAL or PURCHASE event.
+ * @property marked on the Merkliste (CAT-18): *Merken* shows „Gemerkt".
  */
 data class CatalogTeaUiState(
     val loading: Boolean = true,
@@ -53,6 +57,7 @@ data class CatalogTeaUiState(
     val shopUrl: String? = null,
     val ownedTeaId: String? = null,
     val lastBoughtGrams: Double? = null,
+    val marked: Boolean = false,
 )
 
 /**
@@ -74,6 +79,7 @@ class CatalogTeaViewModel @Inject constructor(
     private val add: AddFromCatalog,
     private val exactPrices: ExactPrices,
     private val clock: WallClock,
+    private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
 ) : ViewModel() {
     private val key: String = checkNotNull(savedState[KEY]) { "no catalog key" }
 
@@ -81,18 +87,25 @@ class CatalogTeaViewModel @Inject constructor(
         if (tea == null) {
             flowOf(CatalogTeaUiState(loading = false))
         } else {
-            add.observeOwner(tea.key).flatMapLatest { owner -> ownedEvents(owner).map { owner to it } }
-                .map { (owner, events) ->
-                    CatalogTeaUiState(
-                        loading = false,
-                        tea = tea,
-                        shopUrl = ShopLink.url(tea.productUrl, tea.packages, events),
-                        ownedTeaId = owner,
-                        lastBoughtGrams = events?.lastBought()?.deltaGrams,
-                    )
-                }
+            val owned = add.observeOwner(tea.key).flatMapLatest { owner -> ownedEvents(owner).map { owner to it } }
+            val marked = bookmarks.observeMarked().map { tea.key in it }.distinctUntilChanged()
+            combine(owned, marked) { (owner, events), isMarked ->
+                CatalogTeaUiState(
+                    loading = false,
+                    tea = tea,
+                    shopUrl = ShopLink.url(tea.productUrl, tea.packages, events),
+                    ownedTeaId = owner,
+                    lastBoughtGrams = events?.lastBought()?.deltaGrams,
+                    marked = isMarked,
+                )
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogTeaUiState())
+
+    /** *Merken* / „Gemerkt" (CAT-18): marks or unmarks this tea. */
+    fun toggleMark(marked: Boolean) {
+        viewModelScope.launch { if (marked) bookmarks.mark(key) else bookmarks.unmark(key) }
+    }
 
     private val sheetState = MutableStateFlow<AddSheetState?>(null)
 

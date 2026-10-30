@@ -23,4 +23,8 @@ class HomeActions(
     val dismissQuestion: () -> Unit = {},
     /** The reliability banner's *Beheben* (TMR-31). */
     val fixReliability: () -> Unit = {},
+    /** The low-stock card's *Nachbestellen*: INV-09's shop page in the browser (INV-10). */
+    val reorder: (url: String) -> Unit = {},
+    /** The low-stock card's *Ausblenden* (INV-10 AC2). */
+    val hideLowStock: () -> Unit = {},
 )

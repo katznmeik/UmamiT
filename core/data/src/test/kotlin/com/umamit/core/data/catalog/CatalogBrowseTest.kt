@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.TestDatabase
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
@@ -44,10 +45,18 @@ class CatalogBrowseTest {
         .build()
     private val dao = db.catalogDao()
     private val owned = FakeOwnedCatalogKeys()
-    private val repository by lazy { RoomCatalogRepository(dao, CatalogPhotoFiles(folder.newFolder()), owned) }
+
+    /** `umamit.db` with the Merkliste (CAT-18), in memory too. */
+    private val umami = TestDatabase()
+    private val repository by lazy {
+        RoomCatalogRepository(dao, CatalogPhotoFiles(folder.newFolder()), owned, umami.bookmarks)
+    }
 
     @After
-    fun tearDown() = db.close()
+    fun tearDown() {
+        db.close()
+        umami.close()
+    }
 
     private class FakeOwnedCatalogKeys : OwnedCatalogKeys {
         val keys = MutableStateFlow(emptySet<String>())
@@ -375,6 +384,92 @@ class CatalogBrowseTest {
         assertThat(listing.catalogCount).isEqualTo(0)
         assertThat(listing.sections).isEmpty()
         assertThat(listing.lastRefreshAtMillis).isNull()
+    }
+
+    /** The catalog of the Merkliste tests: a later refresh found every tea but Nebelhang, kept for its mark. */
+    private suspend fun merklisteCatalog() {
+        val nebelhang = tea("XY0170", "Nebelhang", "Sencha")
+        val teas = arrayOf(
+            tea("XY0100", "Nebelmorgen", "Sencha"),
+            tea("XY0200", "Abendrot", "Gyokuro"),
+            tea("XY0400", "Kirschduft", "Sencha", flavored = true),
+            tea("XY0500", "Stiller See", "Gyokuro", available = false),
+            tea("XK0300", "Wiesenzauber", "Mischungen", country = null, style = HERBAL),
+        )
+        refresh(*teas, nebelhang)
+        teas.forEach { dao.stage(StagedCatalogTeaEntity(it.copy(firstSeenAt = 1_000, lastSeenAt = 2_000))) }
+        dao.swap(
+            emptyList(),
+            CatalogRefreshLogEntity(
+                startedAt = 2_000,
+                finishedAt = 2_001,
+                status = CatalogRefreshStatus.SUCCESS,
+                newCount = 0,
+                changedCount = 0,
+                discontinuedCount = 1,
+                flaggedCount = 0,
+                photosCount = 0,
+                parserVersion = 1,
+                errorSummary = null,
+            ),
+            discontinued = listOf("XY0170"),
+        )
+    }
+
+    @Test
+    fun gemerktShowsEveryMarkedTeaWhateverTheFilters() = runTest {
+        // CAT-18 AC1: green and herbal, flavoured, sold out and „Nicht mehr im Sortiment", grouped by Sorte.
+        merklisteCatalog()
+        listOf("XY0170", "XY0200", "XY0400", "XY0500", "XK0300").forEach { umami.bookmarks.mark(it) }
+        // A filter set before the chip doesn't apply in its view.
+        val filter = CatalogFilter(organicOnly = true, types = setOf("Sencha"), marked = true)
+
+        val listing = browse(filter)
+
+        assertThat(listing.grouped).isTrue()
+        assertThat(listing.sections.map { it.teaType to it.teas.map { tea -> tea.name } }).containsExactly(
+            "Gyokuro" to listOf("Abendrot", "Stiller See"),
+            "Mischungen" to listOf("Wiesenzauber"),
+            "Sencha" to listOf("Kirschduft", "Nebelhang"),
+        ).inOrder()
+        assertThat(listing.teas.all { it.marked }).isTrue()
+        assertThat(listing.teas.single { it.key == "XY0170" }.discontinued).isTrue()
+        // The header's count („… · 5 gemerkt · …"); nothing is hidden in this view.
+        assertThat(listing.totalCount).isEqualTo(5)
+        assertThat(listing.hiddenMatches).isEqualTo(0)
+        // Outside the view the discontinued tea stays hidden and the rows know their marks.
+        val default = browse()
+        assertThat(default.teas.map { it.name }).containsExactly("Abendrot", "Nebelmorgen").inOrder()
+        assertThat(default.teas.map { it.key to it.marked }).containsExactly("XY0200" to true, "XY0100" to false)
+            .inOrder()
+        assertThat(browse(all).totalCount).isEqualTo(4)
+    }
+
+    @Test
+    fun theSearchNarrowsGemerkt() = runTest {
+        merklisteCatalog()
+        listOf("XY0170", "XY0200", "XK0300").forEach { umami.bookmarks.mark(it) }
+
+        val listing = browse(CatalogFilter(search = "nebel", marked = true))
+
+        // Nebelmorgen matches too, but it isn't marked: it is no hidden hit of this view.
+        assertThat(listing.teas.map { it.name }).containsExactly("Nebelhang")
+        assertThat(listing.totalCount).isEqualTo(3)
+        assertThat(listing.hiddenMatches).isEqualTo(0)
+        assertThat(browse(CatalogFilter(search = "Nirgendwo", marked = true)).teas).isEmpty()
+    }
+
+    @Test
+    fun nothingMarkedLeavesGemerktEmpty() = runTest {
+        merklisteCatalog()
+        // A mark whose tea is gone (never expected, 05 §3.13) is ignored.
+        umami.bookmarks.mark("ZZ9999")
+
+        val listing = browse(CatalogFilter(marked = true))
+
+        assertThat(listing.sections).isEmpty()
+        assertThat(listing.totalCount).isEqualTo(0)
+        assertThat(listing.catalogCount).isEqualTo(5)
     }
 
     private companion object {

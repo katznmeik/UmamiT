@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,18 +76,25 @@ sealed interface StepPreAlert {
 fun StepsSheetState.preAlertShown(index: Int, choice: PreAlertChoice = steps[index].preAlert): StepPreAlert {
     val step = steps[index].planned.copy(preAlertSeconds = choice.explicitSeconds)
     val lead = BrewTimerEngine.stepPreAlertLeadSeconds(step, preAlertBaseSeconds, longStepsOnly)
-    return when (choice) {
-        PreAlertChoice.Inherit -> StepPreAlert.Auto(lead)
+    return stepPreAlertOf(choice, lead, longStep = BrewTimerEngine.isLongStep(step, longStepsOnly))
+}
+
+/**
+ * What a *Vorwarnung* selector shows for [choice] on a step that gets the lead [leadSeconds] from the engine (null:
+ * none) and is a [longStep] or not: the one mapping of the Schritte-Sheet (SCR-31) and SCR-07 (D-097).
+ */
+internal fun stepPreAlertOf(choice: PreAlertChoice, leadSeconds: Int?, longStep: Boolean): StepPreAlert =
+    when (choice) {
+        PreAlertChoice.Inherit -> StepPreAlert.Auto(leadSeconds)
 
         PreAlertChoice.Off -> StepPreAlert.Off
 
         is PreAlertChoice.Seconds -> when {
-            lead != null -> StepPreAlert.Lead(choice.seconds)
-            BrewTimerEngine.isLongStep(step, longStepsOnly) -> StepPreAlert.LongStep(choice.seconds)
+            leadSeconds != null -> StepPreAlert.Lead(choice.seconds)
+            longStep -> StepPreAlert.LongStep(choice.seconds)
             else -> StepPreAlert.TooShort(choice.seconds)
         }
     }
-}
 
 /**
  * Step [index]'s *Vorwarnung* selector (SCR-31, TMR-23, D-093): *Automatisch* with the lead it will use
@@ -95,7 +103,6 @@ fun StepsSheetState.preAlertShown(index: Int, choice: PreAlertChoice = steps[ind
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun StepPreAlertRow(state: StepsSheetState, index: Int) {
-    var expanded by remember { mutableStateOf(false) }
     val selected = state.steps[index].preAlert
     val shown = state.preAlertShown(index)
     val description = stringResource(R.string.brew_steps_pre_alert_description, index + 1, preAlertSpoken(shown))
@@ -112,45 +119,93 @@ internal fun StepPreAlertRow(state: StepsSheetState, index: Int) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(end = UmamiSpacing.XSmall),
         )
-        Box {
-            TextButton(
-                onClick = { expanded = true },
-                // One TalkBack element with the step, the spoken value, a button role and a click action.
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = description
-                    role = Role.Button
-                    onClick {
-                        expanded = true
-                        true
+        PreAlertDropdown(
+            shown = shown,
+            selected = selected,
+            description = description,
+            optionShown = { state.preAlertShown(index, it) },
+            onSelect = { state.setPreAlert(index, it) },
+        )
+    }
+}
+
+/**
+ * A *Vorwarnung* selector's button and its menu (SCR-31, SCR-07): the button shows [shown] („Auto · 10 s", „Aus",
+ * „20 s", „20 s · zu kurz") and is one TalkBack element read as [description]; the menu lists [PreAlertOptions],
+ * each as [optionShown] gives it, with a check at [selected].
+ *
+ * **Alerts first (rule 8):** the menu remembers the [alertKey] it was opened in; another alert removes it in its
+ * first frame, without its exit animation, and it stays closed (as SCR-07's duration picker).
+ */
+@Composable
+internal fun PreAlertDropdown(
+    shown: StepPreAlert,
+    selected: PreAlertChoice,
+    description: String,
+    optionShown: (PreAlertChoice) -> StepPreAlert,
+    onSelect: (PreAlertChoice) -> Unit,
+    modifier: Modifier = Modifier,
+    alertKey: String? = null,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var openedIn by remember { mutableStateOf<String?>(null) }
+    val covered = alertKey != null && alertKey != openedIn
+    // A new alert closes the menu for good; it is already gone in the frame the alert started.
+    LaunchedEffect(covered) { if (covered) expanded = false }
+    val open = {
+        openedIn = alertKey
+        expanded = true
+    }
+    Box(modifier = modifier) {
+        TextButton(
+            onClick = open,
+            // One TalkBack element with the step, the spoken value, a button role and a click action.
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = description
+                role = Role.Button
+                onClick {
+                    open()
+                    true
+                }
+            },
+        ) {
+            Text(preAlertLabel(shown), style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.width(UmamiSpacing.XXSmall))
+            Icon(
+                painterResource(R.drawable.ic_expand_more),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        // Out of the composition under an alert: an expanded = false would still animate the popup out.
+        if (!covered) PreAlertMenu(expanded, selected, optionShown, onSelect, onClose = { expanded = false })
+    }
+}
+
+@Composable
+private fun PreAlertMenu(
+    expanded: Boolean,
+    selected: PreAlertChoice,
+    optionShown: (PreAlertChoice) -> StepPreAlert,
+    onSelect: (PreAlertChoice) -> Unit,
+    onClose: () -> Unit,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onClose) {
+        PreAlertOptions.forEach { option ->
+            DropdownMenuItem(
+                text = { Text(preAlertOptionLabel(optionShown(option))) },
+                onClick = {
+                    onSelect(option)
+                    onClose()
+                },
+                leadingIcon = {
+                    if (option == selected) {
+                        Icon(painterResource(UmamiIcons.Check), contentDescription = null)
+                    } else {
+                        Spacer(Modifier.size(24.dp))
                     }
                 },
-            ) {
-                Text(preAlertLabel(shown), style = MaterialTheme.typography.labelLarge)
-                Spacer(Modifier.width(UmamiSpacing.XXSmall))
-                Icon(
-                    painterResource(R.drawable.ic_expand_more),
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                PreAlertOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(preAlertOptionLabel(state.preAlertShown(index, option))) },
-                        onClick = {
-                            state.setPreAlert(index, option)
-                            expanded = false
-                        },
-                        leadingIcon = {
-                            if (option == selected) {
-                                Icon(painterResource(UmamiIcons.Check), contentDescription = null)
-                            } else {
-                                Spacer(Modifier.size(24.dp))
-                            }
-                        },
-                    )
-                }
-            }
+            )
         }
     }
 }
@@ -182,7 +237,7 @@ private fun secondsLabel(seconds: Int): String = stringResource(R.string.brew_st
 
 /** What TalkBack says for the selector's value, as [preAlertLabel] in words („Automatisch, 5 Sekunden vorher"). */
 @Composable
-private fun preAlertSpoken(shown: StepPreAlert): String = when (shown) {
+internal fun preAlertSpoken(shown: StepPreAlert): String = when (shown) {
     is StepPreAlert.Auto -> stringResource(
         R.string.brew_steps_pre_alert_auto_description,
         shown.leadSeconds?.let { spokenLead(it) } ?: stringResource(R.string.brew_steps_pre_alert_none),

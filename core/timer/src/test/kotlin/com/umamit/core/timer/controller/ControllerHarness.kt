@@ -147,12 +147,13 @@ class ControllerHarness(
     }
 }
 
-/** The request of *Brühen starten* for tea „t1" with 4 g in the „Kyusu" recipe. */
+/** The request of *Brühen starten* for tea „t1" with 4 g and 200 ml in the „Kyusu" recipe. */
 fun brewStart(
     vararg steps: PlannedStep,
     recipePreAlertSeconds: Int? = null,
     method: BrewMethod = BrewMethod.KYUSU,
     leafGrams: Double? = 4.0,
+    waterMl: Int? = 200,
 ) = BrewStart(
     snapshot = SessionSnapshot(
         teaId = ControllerHarness.TEA_ID,
@@ -167,7 +168,7 @@ fun brewStart(
         vesselId = null,
         vesselName = "Kyusu",
         leafGrams = leafGrams,
-        waterMl = 200,
+        waterMl = waterMl,
         baseTempC = 60,
     ),
     steps = steps.toList(),

@@ -316,6 +316,61 @@ class CatalogRefreshRunnerTest {
         assertThat(port.state.value).isEqualTo(finished)
     }
 
+    // A refresh notification tapped after the app was closed (SCR-22, D-097).
+    @Test
+    fun aNewProcessRecallsTheLastResultFromTheLog() = runTest {
+        val last = CatalogRefreshOutcome.Success(teas = 276, newTeas = 12)
+        val runner = AppCatalogRefreshRunner(
+            refresh = { CatalogRefreshOutcome.Cancelled },
+            foreground = foreground,
+            diagnostics = diagnostics,
+            clock = clock,
+            context = StandardTestDispatcher(testScheduler),
+            lastOutcome = { last },
+        )
+
+        runner.recallLastResult()
+
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Finished(last))
+        // Seen in the sheet, it goes as any result does.
+        runner.acknowledge()
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Idle)
+    }
+
+    @Test
+    fun aRunningRefreshOrAHeldResultIsNeverReplacedByTheLog() = runTest {
+        val logged = CatalogRefreshOutcome.Success(teas = 1, newTeas = 0)
+        val gate = CompletableDeferred<CatalogRefreshOutcome>()
+        val runner = AppCatalogRefreshRunner(
+            refresh = { gate.await() },
+            foreground = foreground,
+            diagnostics = diagnostics,
+            clock = clock,
+            context = StandardTestDispatcher(testScheduler),
+            lastOutcome = { logged },
+        )
+        runner.start()
+        testScheduler.runCurrent()
+
+        runner.recallLastResult()
+        assertThat(runner.state.value).isInstanceOf(CatalogRefreshState.Running::class.java)
+
+        val fresh = CatalogRefreshOutcome.Success(teas = 2, newTeas = 1)
+        gate.complete(fresh)
+        testScheduler.advanceUntilIdle()
+        runner.recallLastResult()
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Finished(fresh))
+    }
+
+    @Test
+    fun nothingToRecallLeavesTheRunnerIdle() = runTest {
+        val runner = runner()
+
+        runner.recallLastResult()
+
+        assertThat(runner.state.value).isEqualTo(CatalogRefreshState.Idle)
+    }
+
     private fun ok(body: String) = MockResponse.Builder().body(Buffer().writeUtf8(body)).build()
 
     private companion object {

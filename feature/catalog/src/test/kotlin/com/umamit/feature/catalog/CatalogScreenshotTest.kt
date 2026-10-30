@@ -75,7 +75,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             catalogTea("XY0100", "Morgennebel Sencha", thumbnailPath = "sencha", secondaryName = "朝霧")
                 .copy(originCountry = "Japan", isOrganic = true, owned = true),
             catalogTea("XY0200", "Tautropfen Gyokuro", "Gyokuro", 3600, thumbnailPath = "gyokuro")
-                .copy(secondaryName = "Tamatsuyu", originCountry = "Japan", isNew = true),
+                .copy(secondaryName = "Tamatsuyu", originCountry = "Japan", isNew = true, marked = true),
             catalogTea("XY0300", "Frühlingshauch Shincha 2026 aus dem ersten Austrieb", "Shincha", 2190).copy(
                 // The worst case: a secondary name longer than one line is cut off (CAT-10, D-090).
                 secondaryName = "Haru no ibuki ichiban-cha aus dem Hochland von Kagoshima",
@@ -89,11 +89,14 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
             catalogTea("XY0600", "Sonnenhang Bancha", "Bancha", null).copy(originCountry = "Japan, Korea"),
             catalogTea("XY0700", "Bergquelle Sencha", basePriceCentsPer100g = 990).copy(originCountry = "China"),
             catalogTea("XY0800", "Kirsch Sencha", basePriceCentsPer100g = 1090).copy(isFlavored = true),
-            catalogTea("XY0900", "Stiller See Gyokuro", "Gyokuro", 4400).copy(available = false),
+            catalogTea("XY0900", "Stiller See Gyokuro", "Gyokuro", 4400).copy(available = false, marked = true),
             catalogTea("XY1000", "Ohne Sorte", teaType = null, basePriceCentsPer100g = 1500),
+            // Kept for its mark after it left the range (CAT-18 AC3): only in the *Gemerkt* view.
+            catalogTea("XY0170", "Nebelhang Sencha", basePriceCentsPer100g = 1390)
+                .copy(originCountry = "Japan", discontinued = true, marked = true),
             // Kräutertees (v0.2.1, D-093): only in the Kräutertee view.
             catalogTea("XK1100", "Wiesenzauber", "Kräutermischungen", 890, thumbnailPath = "wiese")
-                .copy(isHerbal = true, isOrganic = true, isNew = true),
+                .copy(isHerbal = true, isOrganic = true, isNew = true, marked = true),
             catalogTea("XK1200", "Zitronenwiese mit Apfelstückchen", "Kräutermischungen", 790)
                 .copy(isHerbal = true, isFlavored = true, owned = true),
             catalogTea("XK1300", "Bergminze", "Einzelkräuter", 1190, thumbnailPath = "minze")
@@ -305,6 +308,42 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /**
+     * The *Gemerkt* view (v0.2.2, #117, CAT-18): every marked tea by Sorte, green and herbal, sold
+     * out and „Nicht mehr im Sortiment"; only its chip, the header's count.
+     */
+    @Test
+    fun listMarked() = capture("listMarked") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT.copy(marked = true)),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The *Gemerkt* view without a mark (CAT-18): „Noch nichts gemerkt · Tippe bei einem Tee auf das Lesezeichen.". */
+    @Test
+    fun listMarkedEmpty() = capture("listMarkedEmpty") {
+        val filter = CatalogFilter.DEFAULT.copy(marked = true)
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(
+                    TEAS.map { it.copy(marked = false) },
+                    filter,
+                    null,
+                    FakeClock.DEFAULT_WALL_MS,
+                ),
+                filter = filter,
+                loading = false,
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+        )
+    }
+
     /** The Kräutertee view's filter sheet (v0.2.1, #91, D-093 Q19): no Aroma, no Umami; font scale 1.0 only. */
     @Test
     fun filterSheetHerbal() {
@@ -382,14 +421,19 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         }
     }
 
+    /** The detail of a marked tea (CAT-18): „Gemerkt", the bookmark filled. */
+    @Test
+    fun detailMarked() = capture("detailMarked") { Detail(marked = true) }
+
     @Composable
-    private fun Detail(tea: CatalogTeaDetail = DETAIL, owned: Boolean = false) {
+    private fun Detail(tea: CatalogTeaDetail = DETAIL, owned: Boolean = false, marked: Boolean = false) {
         CatalogTeaScreen(
             state = CatalogTeaUiState(
                 loading = false,
                 tea = tea,
                 shopUrl = tea.productUrl,
                 ownedTeaId = "own".takeIf { owned },
+                marked = marked,
             ),
             onBack = {},
             onOpenShop = {},

@@ -88,7 +88,8 @@ import javax.inject.Inject
  *    run with its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
  *    read stays as it was, and so does one missing from the sitemap whose page couldn't be read
  *    this once; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
- *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
+ *    while a collection tea links to it ([OwnedCatalogKeys]) or it is marked ([CatalogBookmarkRepository],
+ *    CAT-18 AC3; both read before the swap: the two
  *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
  *    photos of teas and the images of guides no longer in the catalog are deleted and the
  *    seed teas are linked ([CatalogSeedLinker], CAT-15; each part once, D-090).
@@ -122,6 +123,7 @@ class CatalogRefresher(
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
     guideLimits: GuideLimits = GuideLimits.DEFAULT,
     private val jobs: CatalogJobs = CatalogJobs(),
+    private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
 ) {
     @Inject
     constructor(
@@ -134,6 +136,7 @@ class CatalogRefresher(
         owned: OwnedCatalogKeys,
         seedTeas: CatalogSeedLinker,
         jobs: CatalogJobs,
+        bookmarks: CatalogBookmarkRepository,
     ) : this(
         client,
         dao,
@@ -148,6 +151,7 @@ class CatalogRefresher(
         seedTeas,
         GuideLimits.DEFAULT,
         jobs,
+        bookmarks,
     )
 
     private val guides =
@@ -160,6 +164,29 @@ class CatalogRefresher(
      */
     suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome =
         jobs.refresh { refreshInTurn(onProgress) }
+
+    /**
+     * The last finished refresh as its outcome, from `catalog_refresh_log` (SCR-22, D-097): the
+     * result notification tapped after the app was closed shows it. A success counts the teas the
+     * catalog holds in the range now; a failure keeps its kind and the logged line as its details.
+     * Null before the first refresh and after a cancelled one (no result to show).
+     */
+    suspend fun lastOutcome(): CatalogRefreshOutcome? {
+        val entry = dao.lastRefresh() ?: return null
+        return when (entry.status) {
+            CatalogRefreshStatus.CANCELLED -> null
+
+            CatalogRefreshStatus.SUCCESS -> CatalogRefreshOutcome.Success(
+                teas = dao.countCurrent(),
+                newTeas = entry.newCount,
+                changedTeas = entry.changedCount,
+                discontinuedTeas = entry.discontinuedCount,
+                recipesToCheck = entry.flaggedCount,
+            )
+
+            CatalogRefreshStatus.FAILED -> failureOf(entry.errorSummary.orEmpty())
+        }
+    }
 
     private suspend fun refreshInTurn(onProgress: (CatalogRefreshProgress) -> Unit): CatalogRefreshOutcome {
         val run = Run(startedAt = clock.nowMs(), onProgress = onProgress)
@@ -346,7 +373,7 @@ class CatalogRefresher(
 
         /** Technical English for *Details kopieren* (CAT-07 AC5): counts and article numbers, no shop content. */
         fun details(reason: String): String = buildString {
-            appendLine("UmamiT catalog refresh: $reason")
+            appendLine("$DETAILS_PREFIX$reason")
             appendLine("client: ${client.userAgent}")
             appendLine("parser: v${TeeKontorParser.PARSER_VERSION}")
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
@@ -849,8 +876,9 @@ class CatalogRefresher(
          * Once the swap is in, the run is a success: nothing after it cancels or fails it.
          */
         private suspend fun swap(): CatalogRefreshOutcome.Success {
-            // Read before the swap: umamit.db and catalog.db share no transaction (D-076).
-            val ownedKeys = owned.observe().first()
+            // Read before the swap: umamit.db and catalog.db share no transaction (D-076). A marked
+            // tea is kept exactly as an owned one (CAT-18 AC3); the marks themselves stay untouched.
+            val keptKeys = owned.observe().first() + bookmarks.observeMarked().first()
             val unchanged = mutableListOf<String>()
             val discontinued = mutableListOf<String>()
             var gone = 0
@@ -862,7 +890,7 @@ class CatalogRefresher(
 
                     else -> {
                         if (!before.discontinued) gone++
-                        if (key in ownedKeys) discontinued += key
+                        if (key in keptKeys) discontinued += key
                     }
                 }
             }
@@ -1055,4 +1083,28 @@ internal fun ShopFetch.TooLarge.line(url: HttpUrl): String =
 
 /** The first line of a failure's details: the log's error summary. */
 private fun CatalogRefreshOutcome.Failure.summary(): String =
-    details.lineSequence().first().removePrefix("UmamiT catalog refresh: ")
+    details.lineSequence().first().removePrefix(DETAILS_PREFIX)
+
+private const val DETAILS_PREFIX = "UmamiT catalog refresh: "
+
+/**
+ * The failure a logged error summary ([summary]) was written for: its kind from the line's own
+ * start, as [CatalogRefresher] writes it („stopped: <cause> at …", „storage error: …", „photo
+ * storage error: …"; anything else ended as shop changed), with the line as its details.
+ */
+internal fun failureOf(summary: String): CatalogRefreshOutcome.Failure {
+    val stopped = summary.removePrefix("stopped: ").takeIf { it != summary }?.substringBefore(' ')
+    val block = BlockCause.entries.firstOrNull { it.name == stopped }
+    return when {
+        stopped == StopCause.NETWORK.name -> CatalogRefreshOutcome.Offline(summary)
+
+        stopped == StopCause.HTTP_ERROR.name -> CatalogRefreshOutcome.ShopUnavailable(summary)
+
+        block != null -> CatalogRefreshOutcome.Blocked(block, summary)
+
+        summary.startsWith("storage error") || summary.startsWith("photo storage error") ->
+            CatalogRefreshOutcome.StorageFailed(summary)
+
+        else -> CatalogRefreshOutcome.ShopChanged(summary)
+    }
+}

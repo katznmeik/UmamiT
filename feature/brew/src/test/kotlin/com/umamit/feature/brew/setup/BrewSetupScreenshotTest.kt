@@ -25,8 +25,10 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.feature.brew.picker.PickerTea
+import com.umamit.feature.brew.picker.TeaKind
 import com.umamit.feature.brew.picker.TeaPickerSheet
 import com.umamit.feature.brew.picker.TeaPickerUiState
 import org.junit.Rule
@@ -59,6 +61,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         private const val LONG_NAME = "Bio Gyokuro Asahi Premium aus Yame, Frühjahrsernte"
         private val longTea = PickerTea("l", LONG_NAME, "Gyokuro", null)
         private val tanabata = PickerTea("t", "Bio Sencha Tanabata", "Sencha", null)
+        private val minze = PickerTea("m", "Minze Zitrone", "Kräutertee", null, kind = TeaKind.HERBAL)
 
         val kyusu = BrewSetupUiState.Ready(
             teaName = "Bio Sencha Hisui",
@@ -174,6 +177,12 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         BrewSetupScreen(kyusu.copy(stockGrams = 38.0))
     }
 
+    /** A *Knapp* tea: „14 g übrig · knapp" (BRW-08, INV-05, D-097). */
+    @Test
+    fun setupLowStock() = capture("BrewSetup_lowStock") {
+        BrewSetupScreen(kyusu.copy(stockGrams = 14.0, stockLevel = StockLevel.LOW))
+    }
+
     /** At 0 g the header reads „Leer" (INV-05). */
     @Test
     fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
@@ -194,6 +203,19 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 recent = listOf(tanabata),
                 favorites = listOf(hisui),
                 all = listOf(hisui, tanabata),
+                loading = false,
+            ),
+        )
+    }
+
+    /** Two kinds: *Alle* as „Grüntees" and „Kräutertees", *Zuletzt* and *Favoriten* ungrouped (D-097). */
+    @Test
+    fun pickerGroups() = capture("TeaPicker_groups") {
+        PickerHost(
+            TeaPickerUiState(
+                recent = listOf(minze),
+                favorites = listOf(hisui),
+                all = listOf(hisui, tanabata, minze),
                 loading = false,
             ),
         )

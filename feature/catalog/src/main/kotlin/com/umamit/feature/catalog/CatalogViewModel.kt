@@ -2,6 +2,7 @@ package com.umamit.feature.catalog
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.data.catalog.CatalogBookmarkRepository
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
@@ -75,6 +76,7 @@ class CatalogViewModel @Inject constructor(
     private val refresh: CatalogRefreshRunner,
     guides: GuideRepository = GuideRepository.NONE,
     private val links: TeaLinkLoader = TeaLinkLoader.NONE,
+    private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
 ) : ViewModel() {
     private val filter = MutableStateFlow(CatalogFilter.DEFAULT)
 
@@ -107,6 +109,11 @@ class CatalogViewModel @Inject constructor(
     /** A changed search, filter or sort. */
     fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update(transform)
 
+    /** A row's bookmark toggle (CAT-18): marks or unmarks the tea [key]. */
+    fun toggleMark(key: String, marked: Boolean) {
+        viewModelScope.launch { if (marked) bookmarks.mark(key) else bookmarks.unmark(key) }
+    }
+
     /** *Katalog laden*. */
     fun startRefresh() = refresh.start()
 
@@ -115,6 +122,12 @@ class CatalogViewModel @Inject constructor(
 
     /** The result sheet was closed. */
     fun acknowledgeResult() = refresh.acknowledge()
+
+    /** A refresh notification was tapped: the last result from the log when nothing is held (SCR-22, D-097). */
+    suspend fun recallRefreshResult() = refresh.recallLastResult()
+
+    /** Whether the refresh sheet has something to show: a running refresh or a result. */
+    fun refreshShowing(): Boolean = refresh.state.value != CatalogRefreshState.Idle
 
     /** *Link einfügen*: the paste sheet, empty (CAT-17 AC1). */
     fun openLinkSheet() {

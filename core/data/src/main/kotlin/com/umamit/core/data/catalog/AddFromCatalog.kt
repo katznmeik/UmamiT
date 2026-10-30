@@ -69,6 +69,8 @@ sealed interface AddFromCatalogResult {
  *   its derived recipes (the style's when the catalog has none) and its „Rezept prüfen" reason,
  *   an INITIAL stock event and the catalog photo copied as the tea's own JPEG cover. The tea is
  *   at once in the tea picker and brewable with stock deduction.
+ * - **Merkliste:** the add and the repurchase delete the tea's mark (`catalog_bookmark`) in their
+ *   transaction (CAT-18 AC2, 05 §3.13); a failed add keeps it.
  */
 interface AddFromCatalog {
     /**
@@ -143,6 +145,8 @@ class RoomAddFromCatalog @Inject constructor(
         var result: AddFromCatalogResult = AddFromCatalogResult.Failed
         try {
             result = db.withTransaction {
+                // The tea leaves the Merkliste with the add, in its transaction: a failed add keeps the mark (CAT-18).
+                db.catalogBookmarkDao().delete(entry.key)
                 // Read again inside the transaction: a tea added meanwhile turns this into a repurchase.
                 val owner = db.teaDao().idByCatalogKey(entry.key)
                 if (owner != null) {

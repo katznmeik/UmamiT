@@ -25,6 +25,15 @@
     <string name="home_active_finished">%1$s · alle Aufgüsse fertig</string>
     <string name="home_active_quick">Schnelltimer</string>
 
+    <!-- The low-stock card of the nudge slot (INV-10, D-097); %1$s is the tea's name, %2$s its stock in g („14", „12,5"). -->
+    <string name="home_low_stock_low">%1$s wird knapp · %2$s\u00A0g übrig</string>
+    <string name="home_low_stock_empty">%1$s ist leer</string>
+    <!-- Opens the shop page of the size bought last (INV-09). -->
+    <string name="home_low_stock_reorder">Nachbestellen</string>
+    <string name="home_low_stock_hide">Ausblenden</string>
+    <!-- No browser can open the shop page. -->
+    <string name="home_low_stock_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+
     <!-- Empty state (SCR-02, GEN-09) -->
     <string name="home_empty_title">Deine Sammlung ist leer</string>
     <string name="home_empty_body">Hol dir Tees aus dem Katalog – oder starte einfach den Schnelltimer.</string>

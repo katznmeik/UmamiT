@@ -2,7 +2,6 @@ package com.umamit.core.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.dataStoreFile
 import dagger.Module
 import dagger.Provides
@@ -20,5 +19,5 @@ object DataStoreModule {
     @Provides
     @Singleton
     fun settingsDataStore(@ApplicationContext context: Context): DataStore<StoredSettings> =
-        DataStoreFactory.create(SettingsSerializer) { context.dataStoreFile(SETTINGS_FILE) }
+        settingsDataStore { context.dataStoreFile(SETTINGS_FILE) }
 }

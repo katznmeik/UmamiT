@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -45,13 +46,19 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.steps.PreAlertDropdown
+import com.umamit.feature.brew.steps.preAlertSpoken
 import com.umamit.feature.brew.timer.CircledIconButton
 import com.umamit.feature.brew.timer.TimerBand
 import com.umamit.feature.brew.timer.TimerBandPage
 
 /** Test tag of SCR-07's ring: a tap opens the duration picker. */
 const val QUICK_RING_TAG = "quick_ring"
+
+/** The pre-alert mark on SCR-07's ring as a fraction of the duration, null without one (for tests; D-097). */
+internal val PreAlertMarkKey = SemanticsPropertyKey<Float?>("PreAlertMark")
 
 private val PillMinHeight = 72.dp
 private val PillMinWidth = 200.dp
@@ -63,6 +70,7 @@ private const val CHIP_BORDER_ALPHA = 0.6f
 class QuickTimerActions(
     val back: () -> Unit = {},
     val select: (seconds: Int) -> Unit = {},
+    val selectPreAlert: (PreAlertChoice) -> Unit = {},
     val start: () -> Unit = {},
     val confirmRestart: () -> Unit = {},
     val dismissQuestion: () -> Unit = {},
@@ -70,12 +78,13 @@ class QuickTimerActions(
 
 /**
  * The quick timer before its *Start* (SCR-07, TMR-22): dark like SCR-05 with
- * its ink-wash band and no seal (D-095), the ring with the chosen duration, the chips 0:30 … 5:00 and *Start*. A tap on
+ * its ink-wash band and no seal (D-095), the ring with the chosen duration and its pre-alert mark, the chips
+ * 0:30 … 5:00, the *Vorwarnung* selector (D-097) and *Start*. A tap on
  * the ring opens the duration picker (5 s – 24 h, PRF-04 increments). Once it
  * runs, the timer screen shows it (*Pause* / *Weiter*, *Fertig*, overflow
  * *Abbrechen*), as the notification and the full-screen alert open it.
  *
- * **Alerts first (rule 8):** the picker and the second-timer question
+ * **Alerts first (rule 8):** the picker, the *Vorwarnung* menu and the second-timer question
  * remember the alert they were opened in; another alert removes them in its
  * first frame, without animation (the host then gives way to the timer).
  * Nothing on this screen animates except Material's chip colour and the
@@ -125,9 +134,11 @@ fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modif
 @Composable
 private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions, openPicker: () -> Unit) {
     // The ink-wash band without a seal, laid out like the running quick timer, so nothing moves at *Start* (D-095).
-    // Its band keeps its height, as the running quick timer's does (D-096).
+    // With the *Vorwarnung* row (D-097) the content no longer fits a short screen at the largest font: there the band
+    // gives way as a brew's does, so *Start* lies on the screen (rule 8, D-096); wherever it fits it keeps its height.
     TimerBandPage(
         withSeal = false,
+        adaptive = true,
         controlHeight = PillMinHeight,
         band = { TimerBand() },
         topBar = {
@@ -154,7 +165,7 @@ private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions,
     )
 }
 
-/** The title, the ring and the chips, above *Start*. */
+/** The title, the ring, the chips and the *Vorwarnung* row, above *Start*. */
 @Composable
 private fun ColumnScope.QuickTimerContent(
     state: QuickTimerUiState,
@@ -172,14 +183,18 @@ private fun ColumnScope.QuickTimerContent(
             .semantics { heading() },
     )
     Spacer(Modifier.height(UmamiSpacing.Large))
+    val mark = state.preAlertPosition()
     TimerRing(
         progress = { 0f },
         remainingSeconds = state.durationSeconds,
         caption = stringResource(R.string.brew_quick_caption),
         liquorColor = UmamiTheme.extendedColors.liquor.green,
         stepDescription = title,
+        // Where the running quick timer shows it, so it does not move at *Start* (D-097).
+        preAlertPosition = mark,
         modifier = Modifier
             .testTag(QUICK_RING_TAG)
+            .semantics { this[PreAlertMarkKey] = mark }
             .clickable(
                 interactionSource = null,
                 // Round like the ring: the bounded default flashes a square around it (A2).
@@ -190,13 +205,45 @@ private fun ColumnScope.QuickTimerContent(
     )
     Spacer(Modifier.height(UmamiSpacing.Medium))
     DurationChips(selected = state.durationSeconds, onSelect = actions.select)
-    Spacer(Modifier.height(UmamiSpacing.Large))
+    QuickPreAlertRow(state = state, onSelect = actions.selectPreAlert)
+    Spacer(Modifier.height(UmamiSpacing.Medium))
 }
 
 /**
- * The chips 0:30 … 5:00 (TMR-22). No check mark on the selected one: it would
- * widen the chip and shift its neighbours under the finger; the colour and the
- * selected state (TalkBack) mark it.
+ * The *Vorwarnung* row below the chips (SCR-07, TMR-22, D-097): the selector of SCR-31 with the lead this quick
+ * timer will get („Auto · 10 s", „Aus", „20 s", „20 s · zu kurz"), remembered for the next quick timer.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuickPreAlertRow(state: QuickTimerUiState, onSelect: (PreAlertChoice) -> Unit) {
+    val shown = state.preAlertShown()
+    FlowRow(
+        modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
+        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall, Alignment.CenterHorizontally),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.brew_steps_pre_alert),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        PreAlertDropdown(
+            shown = shown,
+            selected = state.preAlertChoice,
+            description = stringResource(R.string.brew_quick_pre_alert_description, preAlertSpoken(shown)),
+            optionShown = { state.preAlertShown(it) },
+            onSelect = onSelect,
+            // Never over an alert (rule 8), as the duration picker.
+            alertKey = state.alertKey,
+        )
+    }
+}
+
+/**
+ * The chips 0:30 … 8:00 (TMR-22), wrapping onto a second line at narrow widths
+ * and large fonts. No check mark on the selected one: it would widen the chip
+ * and shift its neighbours under the finger; the colour and the selected state
+ * (TalkBack) mark it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

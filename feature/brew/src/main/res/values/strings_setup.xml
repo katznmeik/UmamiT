@@ -6,6 +6,9 @@
     <string name="brew_picker_recent">Zuletzt</string>
     <string name="brew_picker_favorites">Favoriten</string>
     <string name="brew_picker_all">Alle</string>
+    <!-- Group headers of the tea picker's Alle and search results (SCR-03, D-097). -->
+    <string name="brew_picker_group_green">Grüntees</string>
+    <string name="brew_picker_group_herbal">Kräutertees</string>
     <!-- SCR-03 footer (D-073): to the catalog, the add sheet and back to the setup of the new tea. -->
     <string name="brew_picker_catalog">Aus dem Katalog</string>
     <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>
@@ -24,6 +27,8 @@
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
+    <!-- BRW-08, INV-05 (D-097): the stock is at or below „Knapp ab"; %1$s is the stock in g („14"). -->
+    <string name="brew_setup_stock_low">%1$s\u00A0g übrig · knapp</string>
     <!-- INV-05: the stock is 0 g or less. -->
     <string name="brew_setup_stock_empty">Leer</string>
     <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->

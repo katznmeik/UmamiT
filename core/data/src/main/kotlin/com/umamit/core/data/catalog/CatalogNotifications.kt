@@ -5,7 +5,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import com.umamit.core.data.R
@@ -144,25 +143,19 @@ internal object CatalogNotifications {
         .setSmallIcon(R.drawable.ic_stat_catalog)
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setShowWhen(false)
-        .setContentIntent(openApp(context))
+        .setContentIntent(openRefresh(context))
 
     /**
-     * A tap opens the app where it was, as its launcher icon does. Never the timer's intent, and
-     * no navigation of its own: the app's root decides what shows, alerts first (rule 8).
+     * A tap opens Sammlung › Katalog with the refresh sheet (SCR-22, 03 §2.4, D-097), the same
+     * for the progress and the result. Never the timer's intent, and no navigation of its own:
+     * the app's root decides when it shows, alerts first (rule 8).
      */
-    private fun openApp(context: Context): PendingIntent {
-        val launch = Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_LAUNCHER)
-            .setPackage(context.packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-        context.packageManager.getLaunchIntentForPackage(context.packageName)?.component?.let(launch::setComponent)
-        return PendingIntent.getActivity(
-            context,
-            REQUEST_OPEN,
-            launch,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-    }
+    private fun openRefresh(context: Context): PendingIntent = PendingIntent.getActivity(
+        context,
+        REQUEST_OPEN,
+        CatalogRefreshIntents.openRefresh(context),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
 
     @StringRes
     private fun CatalogRefreshOutcome.Failure.reason(): Int = when (this) {

@@ -39,3 +39,45 @@ data class StockSummary(val remainingGrams: Double, val costPerGramCents: Double
         }
     }
 }
+
+/** INV-05's stock status of a tea: *Leer*, *Knapp* or *Vorrätig*. */
+enum class StockLevel {
+    EMPTY,
+    LOW,
+    AVAILABLE,
+    ;
+
+    companion object {
+        /** Below this a stock reads „Leer": it shows as „0,0 g" (INV-05: Leer ≤ 0 g). */
+        const val EMPTY_BELOW_GRAMS = 0.05
+
+        /** Sums of 0,1 g steps in doubles differ from the threshold only by rounding noise. */
+        private const val SAME_GRAMS = 1e-6
+
+        /** The status of [remainingGrams] with the „Knapp ab" [thresholdGrams] (the tea's own, else SET-16's). */
+        fun of(remainingGrams: Double, thresholdGrams: Double): StockLevel = when {
+            remainingGrams < EMPTY_BELOW_GRAMS -> EMPTY
+            remainingGrams <= thresholdGrams + SAME_GRAMS -> LOW
+            else -> AVAILABLE
+        }
+    }
+}
+
+/**
+ * Start's low-stock card (INV-10, SCR-02, D-097): „*[teaName]* wird knapp · 14 g übrig", or „… ist leer".
+ *
+ * @property styleKey the tea's style, for the leaf's colour.
+ * @property reorderUrl INV-09's link for *Nachbestellen*, or null when INV-09 offers none.
+ * @property hideKey what *Ausblenden* stores in `lowStockHidden`: `<tea id>/<latest INITIAL or PURCHASE event id>`.
+ */
+data class LowStockCard(
+    val teaId: String,
+    val teaName: String,
+    val styleKey: String?,
+    val remainingGrams: Double,
+    val reorderUrl: String?,
+    val hideKey: String,
+) {
+    /** *Leer* (INV-05): „*Tanabata* ist leer". */
+    val isEmpty: Boolean get() = remainingGrams < StockLevel.EMPTY_BELOW_GRAMS
+}

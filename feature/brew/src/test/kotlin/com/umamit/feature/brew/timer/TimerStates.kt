@@ -15,9 +15,14 @@ import com.umamit.core.timer.engine.StepStatus
  * three-step Gyokuro session, built per phase at the monotonic time [NOW].
  * Each step's pre-alert lead follows the automatic rule with the global
  * default B = 10 s (TMR-23, D-093): 1:00 → 10 s, 0:20 → 5 s, 0:40 → 10 s.
+ * The session has 4,0 g of leaf and 250 ml of water (BRW-11, D-097).
  */
 internal object TimerStates {
     const val NOW = 1_000_000L
+
+    /** The session's planned leaf and water (BRW-11, D-097). */
+    const val LEAF_GRAMS = 4.0
+    const val WATER_ML = 250
 
     /** The session's pre-alert base B: the global default (SET-10). */
     private const val BASE = PreAlertSettings.DEFAULT_GLOBAL_SECONDS
@@ -65,6 +70,8 @@ internal object TimerStates {
             demoted = false,
             finishWouldDiscard = stepIndex == 0,
             preAlertBaseSeconds = BASE,
+            leafGrams = LEAF_GRAMS,
+            waterMl = WATER_ML,
         )
 
     /** READY for [stepIndex] (the first step by default: nothing brewed yet). */

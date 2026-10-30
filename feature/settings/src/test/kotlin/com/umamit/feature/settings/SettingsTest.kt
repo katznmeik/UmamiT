@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -233,6 +234,38 @@ class SettingsTest {
         assertThat(stored().preAlertSeconds).isEqualTo(20)
         assertThat(stored().alertLength).isEqualTo(AlertLength.LONG)
         compose.onNodeWithText("20 s vorher").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Knapp ab in Bruehen und Vorrat reads 15 g and steps by 5 g (SET-16)`() {
+        show()
+        compose.onNodeWithText("15 g").performScrollTo().assertIsDisplayed()
+
+        clickRow("Knapp ab")
+        compose.onNodeWithContentDescription("5 g mehr").performClick()
+        compose.waitForIdle()
+        assertThat(stored().lowStockGrams).isEqualTo(20.0)
+        compose.onNodeWithContentDescription("5 g weniger").performClick()
+        compose.onNodeWithContentDescription("5 g weniger").performClick()
+        compose.waitForIdle()
+        assertThat(stored().lowStockGrams).isEqualTo(10.0)
+        compose.onNodeWithText("Fertig").performClick()
+
+        compose.onNodeWithText("10 g").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Knapp ab stops at 0 and 500 g`() {
+        runBlocking { settings.update { it.copy(lowStockGrams = 500.0) } }
+        show()
+
+        clickRow("Knapp ab")
+        compose.onNodeWithContentDescription("5 g mehr").assertIsNotEnabled()
+        compose.onNodeWithText("Fertig").performClick()
+        runBlocking { settings.update { it.copy(lowStockGrams = 0.0) } }
+        clickRow("Knapp ab")
+        compose.onNodeWithContentDescription("5 g weniger").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("5 g mehr").assertIsEnabled()
     }
 
     @Test

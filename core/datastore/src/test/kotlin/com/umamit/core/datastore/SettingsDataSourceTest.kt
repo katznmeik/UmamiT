@@ -1,6 +1,5 @@
 package com.umamit.core.datastore
 
-import androidx.datastore.core.DataStoreFactory
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.ThemeMode
@@ -23,14 +22,14 @@ class SettingsDataSourceTest {
     val folder = TemporaryFolder()
 
     private fun TestScope.dataSource(file: File = File(folder.root, "settings.json")) =
-        SettingsDataSource(DataStoreFactory.create(SettingsSerializer, scope = backgroundScope) { file })
+        SettingsDataSource(settingsDataStore(backgroundScope) { file })
 
     @Test
     fun freshInstallReadsTheSpecDefaults() = runTest {
         val source = dataSource()
         val settings = source.settings.first()
 
-        assertThat(settings.schemaVersion).isEqualTo(1)
+        assertThat(settings.schemaVersion).isEqualTo(2)
         assertThat(settings.onboardingCompleted).isFalse()
         assertThat(settings.theme).isEqualTo(ThemeMode.SYSTEM)
         assertThat(settings.dynamicColor).isFalse()
@@ -40,11 +39,13 @@ class SettingsDataSourceTest {
         assertThat(settings.vibration).isTrue()
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
         assertThat(settings.deductStock).isTrue()
-        assertThat(settings.lowStockGrams).isEqualTo(10.0)
+        assertThat(settings.lowStockGrams).isEqualTo(15.0)
+        assertThat(settings.lowStockHidden).isEmpty()
         assertThat(settings.keepScreenOn).isTrue()
         assertThat(settings.dimWhileSteeping).isTrue()
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(settings.catalogDownloadPhotos).isTrue()
+        assertThat(settings.quickTimerPreAlert).isNull()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -78,15 +79,17 @@ class SettingsDataSourceTest {
             vibration = false,
             alertLength = AlertLength.LONG,
             deductStock = false,
-            lowStockGrams = 25.5,
+            lowStockGrams = 25.0,
+            lowStockHidden = setOf("tanabata/e1"),
             keepScreenOn = false,
             dimWhileSteeping = false,
             dismissedHints = setOf("swipe", "stock"),
             catalogDownloadPhotos = false,
+            quickTimerPreAlert = 20,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
-        val writer = SettingsDataSource(DataStoreFactory.create(SettingsSerializer, scope = writerScope) { file })
+        val writer = SettingsDataSource(settingsDataStore(writerScope) { file })
         writer.update { changed }
         writer.markSeedDataCreated()
         writer.markSeedPhotosAttempted()
@@ -126,6 +129,61 @@ class SettingsDataSourceTest {
         assertThat(settings.alertSound).isEqualTo("sanft")
         assertThat(settings.preAlertSeconds).isEqualTo(20)
         assertThat(source.seedDataCreated.first()).isTrue()
+    }
+
+    @Test
+    fun theQuickTimersChoiceKeepsAusApartFromAutomatischAcrossARestart() = runTest {
+        // TMR-22 (v0.2.2, D-097): null is *Automatisch*, 0 is *Aus*; a file of v0.2.1 has no key and reads null.
+        val v021 = """{"preAlertSeconds":20,"seedDataCreated":true}"""
+        val old = File(folder.root, "quick-v021.json").apply { writeText(v021) }
+        assertThat(dataSource(old).settings.first().quickTimerPreAlert).isNull()
+
+        listOf(0, null, 30).forEach { choice ->
+            val file = File(folder.root, "quick-$choice.json").apply { writeText(v021) }
+            val writerScope = CoroutineScope(coroutineContext + Job())
+            val writer = SettingsDataSource(settingsDataStore(writerScope) { file })
+            writer.update { it.copy(quickTimerPreAlert = choice) }
+            writerScope.cancel()
+            writerScope.coroutineContext.job.join()
+
+            val reader = dataSource(file)
+            assertThat(reader.settings.first().quickTimerPreAlert).isEqualTo(choice)
+            assertThat(reader.settings.first().preAlertSeconds).isEqualTo(20)
+            assertThat(reader.seedDataCreated.first()).isTrue()
+        }
+    }
+
+    @Test
+    fun theOldDefaultOf10GramsBecomes15Once() = runTest {
+        // SET-16 had no settings row before v0.2.2, so a stored 10,0 g is the old default (D-097).
+        val file = File(folder.root, "v021.json")
+        file.writeText("""{"schemaVersion":1,"lowStockGrams":10.0,"preAlertSeconds":20,"seedDataCreated":true}""")
+        val firstStart = CoroutineScope(coroutineContext + Job())
+        val source = SettingsDataSource(settingsDataStore(firstStart) { file })
+
+        val migrated = source.settings.first()
+        assertThat(migrated.lowStockGrams).isEqualTo(15.0)
+        assertThat(migrated.schemaVersion).isEqualTo(2)
+        assertThat(migrated.preAlertSeconds).isEqualTo(20)
+        assertThat(source.seedDataCreated.first()).isTrue()
+
+        // The PO then picks 10 g on purpose: the next start keeps it.
+        source.update { it.copy(lowStockGrams = 10.0) }
+        firstStart.cancel()
+        firstStart.coroutineContext.job.join()
+
+        assertThat(dataSource(file).settings.first().lowStockGrams).isEqualTo(10.0)
+    }
+
+    @Test
+    fun anyOtherStoredThresholdStays() = runTest {
+        val file = File(folder.root, "v021-20.json")
+        file.writeText("""{"schemaVersion":1,"lowStockGrams":20.0}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.lowStockGrams).isEqualTo(20.0)
+        assertThat(settings.schemaVersion).isEqualTo(2)
     }
 
     @Test

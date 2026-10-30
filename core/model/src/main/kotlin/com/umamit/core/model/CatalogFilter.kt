@@ -16,6 +16,9 @@ enum class FlavourFilter { ALL, PURE, FLAVOURED }
  * @property minUmami only teas whose umami scale reaches this level; null = no umami filter.
  * @property herbal the *Kräutertee* view (v0.2.1, D-093): the Kräutertees instead of the green
  *   teas. [flavour] („Pur", Q14) and [minUmami] (Q19) don't apply in it.
+ * @property marked the *Gemerkt* view (v0.2.2, CAT-18, D-097): every marked tea, green and herbal,
+ *   sold out or no longer in the range, grouped by *Sorte*; only [search] applies in it. The other
+ *   filters are kept for when the view is left.
  */
 data class CatalogFilter(
     val search: String = "",
@@ -29,6 +32,7 @@ data class CatalogFilter(
     val newOnly: Boolean = false,
     val sort: CatalogSort = CatalogSort.TYPE,
     val herbal: Boolean = false,
+    val marked: Boolean = false,
 ) {
     /**
      * The filters that differ from the default view, without search and sort (the filter button's

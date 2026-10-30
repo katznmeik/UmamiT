@@ -3,6 +3,7 @@ package com.umamit.core.data.catalog
 import android.content.Context
 import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.database.dao.CatalogDao
+import com.umamit.core.database.dao.CatalogListRow
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
@@ -69,50 +70,63 @@ class RoomOwnedCatalogKeys @Inject constructor(private val teas: TeaDao) : Owned
         teas.observeOwnedCatalogKeys().map { it.toSet() }.distinctUntilChanged()
 }
 
-/** [CatalogRepository] on `catalog.db`, the photo files of `filesDir/catalog/` and the [owned] keys. */
+/**
+ * [CatalogRepository] on `catalog.db`, the photo files of `filesDir/catalog/`, the [owned] keys
+ * and the Merkliste's [bookmarks] (CAT-18).
+ */
 class RoomCatalogRepository @Inject constructor(
     private val dao: CatalogDao,
     private val photos: CatalogPhotoFiles,
     private val owned: OwnedCatalogKeys = OwnedCatalogKeys { flowOf(emptySet()) },
+    private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
 ) : CatalogRepository {
     override fun observeCatalog(): Flow<CatalogOverview> = combine(
         dao.observeList(),
         dao.observeLastSuccess(),
         owned.observeOwned(),
-    ) { rows, last, ownedKeys ->
-        CatalogOverview(
-            teas = rows.map { row ->
-                CatalogTeaSummary(
-                    key = row.key,
-                    name = row.name ?: row.key,
-                    secondaryName = row.secondaryName,
-                    teaType = row.teaType,
-                    basePriceCentsPer100g = row.basePriceCentsPer100g,
-                    available = row.available,
-                    thumbnailPath = row.photoFile?.let { photos.thumbnail(row.key).path },
-                    originCountry = row.originCountry,
-                    isOrganic = row.isOrganic,
-                    isFlavored = row.isFlavored,
-                    umamiLeaves = CatalogColumns.tasteScales(row.tasteScalesJson)
-                        .firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
-                    recipeCheckReason = row.recipeCheckReason,
-                    isNew = row.isNew,
-                    owned = row.key in ownedKeys,
-                    isHerbal = row.styleKey == HERBAL_STYLE,
-                )
-            },
-            lastRefreshAtMillis = last,
-        )
+        bookmarks.observeMarked(),
+    ) { rows, last, ownedKeys, marked ->
+        CatalogOverview(teas = rows.map { it.toSummary(ownedKeys, marked) }, lastRefreshAtMillis = last)
     }.distinctUntilChanged()
 
     override fun observeListing(filter: CatalogFilter): Flow<CatalogListing> {
         val hits: Flow<Set<String>?> = CatalogBrowser.ftsQuery(filter.search)
             ?.let { match -> dao.observeSearch(match).map { it.toSet() } }
             ?: flowOf(null)
-        return combine(observeCatalog(), hits) { catalog, found ->
-            CatalogBrowser.listing(catalog.teas, filter, found, catalog.lastRefreshAtMillis)
+        // The teas kept as „Nicht mehr im Sortiment" count only in the *Gemerkt* view (CAT-18 AC1).
+        val kept: Flow<List<CatalogTeaSummary>> = if (filter.marked) {
+            combine(dao.observeDiscontinuedList(), owned.observeOwned(), bookmarks.observeMarked()) { rows, o, m ->
+                rows.map { it.toSummary(o, m, discontinued = true) }
+            }
+        } else {
+            flowOf(emptyList())
+        }
+        return combine(observeCatalog(), kept, hits) { catalog, discontinued, found ->
+            CatalogBrowser.listing(catalog.teas + discontinued, filter, found, catalog.lastRefreshAtMillis)
         }.distinctUntilChanged()
     }
+
+    private fun CatalogListRow.toSummary(ownedKeys: Set<String>, marked: Set<String>, discontinued: Boolean = false) =
+        CatalogTeaSummary(
+            key = key,
+            name = name ?: key,
+            secondaryName = secondaryName,
+            teaType = teaType,
+            basePriceCentsPer100g = basePriceCentsPer100g,
+            available = available,
+            thumbnailPath = photoFile?.let { photos.thumbnail(key).path },
+            originCountry = originCountry,
+            isOrganic = isOrganic,
+            isFlavored = isFlavored,
+            umamiLeaves = CatalogColumns.tasteScales(tasteScalesJson)
+                .firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
+            recipeCheckReason = recipeCheckReason,
+            isNew = isNew,
+            owned = key in ownedKeys,
+            isHerbal = styleKey == HERBAL_STYLE,
+            marked = key in marked,
+            discontinued = discontinued,
+        )
 
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */

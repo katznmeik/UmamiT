@@ -276,12 +276,14 @@ private class TeaRowActions(val pick: (teaId: String) -> Unit, val remove: (teaI
 
 @Composable
 private fun PickerLists(state: TeaPickerUiState, actions: TeaRowActions) {
-    val results = state.results
+    val results = state.resultGroups
     when {
         results != null -> if (results.isEmpty()) {
             Hint(stringResource(R.string.brew_picker_no_results, state.query.trim()))
+        } else if (state.showResultHeaders) {
+            results.forEach { Section(it.kind.title(), it.teas, actions) }
         } else {
-            Section(null, results, actions)
+            Section(null, state.results.orEmpty(), actions)
         }
 
         state.isEmpty -> Hint(stringResource(R.string.brew_picker_empty))
@@ -289,10 +291,24 @@ private fun PickerLists(state: TeaPickerUiState, actions: TeaRowActions) {
         else -> {
             Section(stringResource(R.string.brew_picker_recent), state.recent, actions)
             Section(stringResource(R.string.brew_picker_favorites), state.favorites, actions)
-            Section(stringResource(R.string.brew_picker_all), state.all, actions)
+            // With more than one kind, *Alle* is told by its groups' headers (D-097).
+            if (state.showGroupHeaders) {
+                state.allGroups.forEach { Section(it.kind.title(), it.teas, actions) }
+            } else {
+                Section(stringResource(R.string.brew_picker_all), state.all, actions)
+            }
         }
     }
 }
+
+/** The header of a kind's group (SCR-03, D-097). */
+@Composable
+private fun TeaKind.title(): String = stringResource(
+    when (this) {
+        TeaKind.GREEN -> R.string.brew_picker_group_green
+        TeaKind.HERBAL -> R.string.brew_picker_group_herbal
+    },
+)
 
 @Composable
 private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowActions) {

@@ -8,8 +8,8 @@ package com.umamit.feature.brew.quick
  * bounds is not offered.
  */
 object QuickDuration {
-    /** 0:30, 1:00, 1:30, 2:00, 3:00, 5:00. */
-    val CHIPS: List<Int> = listOf(30, 60, 90, 120, 180, 300)
+    /** 0:30, 1:00, 1:30, 2:00, 3:00, 5:00, 8:00. */
+    val CHIPS: List<Int> = listOf(30, 60, 90, 120, 180, 300, 480)
 
     /** What SCR-07 opens with: 1:00. */
     const val DEFAULT_SECONDS = 60

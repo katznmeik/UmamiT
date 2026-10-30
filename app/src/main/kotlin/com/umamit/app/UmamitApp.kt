@@ -34,9 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -95,6 +97,8 @@ private const val SLIDE_FRACTION = 12
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
+ * @param opening how this shell opens: the app's shell on Start, or the shell a catalog refresh
+ *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
  * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
@@ -120,10 +124,11 @@ internal fun UmamitApp(
     settings: SettingsScreens = SettingsScreens(),
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
+    opening: ShellOpening = ShellOpening.Start,
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
-    var selected by rememberSaveable { mutableStateOf(Tab.Start) }
-    var segment by rememberSaveable { mutableStateOf(CollectionSegment.MyTeas) }
+    var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
+    var segment by rememberSaveable { mutableStateOf(opening.firstSegment) }
     val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
     // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
@@ -136,6 +141,13 @@ internal fun UmamitApp(
             segment = CollectionSegment.Catalog
             selected = Tab.Collection
         }
+    }
+    // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
+    OnNewRefreshSheet(opening.sheetToken) {
+        brewFlow.leaveFor(Tab.Collection)
+        controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
+        segment = CollectionSegment.Catalog
+        selected = Tab.Collection
     }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
@@ -154,7 +166,8 @@ internal fun UmamitApp(
             transitionState.animateTo(selected)
         }
     }
-    PredictiveBackHandler(enabled = selected != Tab.Start) { progress ->
+    // The refresh notification's shell leaves on back, to what was shown before (D-097).
+    PredictiveBackHandler(enabled = opening.backReturnsToStart(selected)) { progress ->
         try {
             progress.collect { transitionState.seekTo(it.progress, Tab.Start) }
             // Back from the picker's catalog flow returns to the picker.
@@ -237,6 +250,7 @@ internal fun UmamitApp(
                                         pasteLinkRequest = catalogPasteRequest,
                                         sharedLink = teaLinkShare,
                                         onTakeSharedLink = onTakeTeaLinkShare,
+                                        refreshSheetRequest = opening.sheetToken,
                                     ),
                                 )
                             },
@@ -306,6 +320,55 @@ internal fun UmamitApp(
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.End)
                 },
             )
+        }
+    }
+}
+
+/** How a shell opens. */
+internal sealed interface ShellOpening {
+    val firstTab: Tab
+    val firstSegment: CollectionSegment
+
+    /** The token of the refresh sheet to show (SCR-22); 0 for none. */
+    val sheetToken: Long
+
+    /** Whether back from a tab's root leaves this shell instead of returning to Start (D-097). */
+    val backLeaves: Boolean
+
+    /** Whether back on [selected] turns this shell to Start (03 §2.3); else it leaves the shell or the app. */
+    fun backReturnsToStart(selected: Tab): Boolean = selected != Tab.Start && !backLeaves
+
+    /** The app's shell, on Start. */
+    data object Start : ShellOpening {
+        override val firstTab = Tab.Start
+        override val firstSegment = CollectionSegment.MyTeas
+        override val sheetToken = 0L
+        override val backLeaves = false
+    }
+
+    /**
+     * Above what was shown, from a tap on a catalog refresh notification (SCR-22, D-097): on
+     * Sammlung › Katalog with the refresh sheet for [sheetToken]; back leaves the shell.
+     */
+    data class CatalogRefresh(override val sheetToken: Long) : ShellOpening {
+        override val firstTab = Tab.Collection
+        override val firstSegment = CollectionSegment.Catalog
+        override val backLeaves = true
+    }
+}
+
+/**
+ * Runs [show] for each new refresh sheet [token] after the one this shell opened with, once each,
+ * also across a recreation.
+ */
+@Composable
+private fun OnNewRefreshSheet(token: Long, show: () -> Unit) {
+    var shown by rememberSaveable { mutableLongStateOf(token) }
+    val currentShow by rememberUpdatedState(show)
+    LaunchedEffect(token) {
+        if (token != 0L && token != shown) {
+            shown = token
+            currentShow()
         }
     }
 }
