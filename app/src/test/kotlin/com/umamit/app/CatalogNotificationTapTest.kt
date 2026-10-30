@@ -206,6 +206,68 @@ class CatalogNotificationTapTest {
         assertThat(runner.state.value).isInstanceOf(CatalogRefreshState.Running::class.java)
     }
 
+    /**
+     * #121: an older refresh shell lower in the back stack must not take a newer tap's token when back
+     * returns to it (its sheet again, its tabs reset), and the shells do not pile up: the new tap replaces
+     * the older shell, and a timer opened from it stays below the new one.
+     */
+    @Test
+    fun aNewTapReplacesAnOlderRefreshShellAndKeepsTheTimerAboveIt() {
+        brew.value = RUNNING
+        runner.state.value = CatalogRefreshState.Running(CatalogRefreshProgress(3, 10, 2))
+        show()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        tapNotification()
+        sheet().assertIsDisplayed()
+        // From inside the refresh shell: the timer, through the active brew bar.
+        compose.onNodeWithText("Hisui", useUnmergedTree = true).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+
+        runner.state.value = CatalogRefreshState.Finished(SUCCESS)
+        tapNotification()
+        catalogShown()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(SUMMARY)
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+
+        back()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+        back()
+        // The app's shell as it was, not an older refresh shell taking the newer tap again.
+        compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
+        sheet().assertDoesNotExist()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSecondTapWhileTheRefreshShellShowsTurnsItBackToTheCatalogWithTheSheet() {
+        runner.state.value = CatalogRefreshState.Finished(SUCCESS)
+        // Seen once with *Fertig*, the result is still in the refresh log for the second tap.
+        runner.lastResult = SUCCESS
+        show()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).performClick()
+        compose.waitForIdle()
+        tapNotification()
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+        // Inside the refresh shell, another tab.
+        compose.onNodeWithTag(tabTag(Tab.Stats)).performClick()
+        compose.waitForIdle()
+
+        tapNotification()
+
+        catalogShown()
+        compose.onNodeWithTag(CATALOG_REFRESH_SUMMARY_TAG).assertTextEquals(SUMMARY)
+        compose.onNodeWithText("Fertig").performClick()
+        compose.waitForIdle()
+        // One refresh shell: one back returns to the app's shell as it was.
+        back()
+        compose.onNodeWithTag(tabTag(Tab.Journal)).assertIsSelected()
+        sheet().assertDoesNotExist()
+    }
+
     @Test
     fun duringAnAlertNoSheetOpensAndTheCatalogShowsAfterIt() {
         brew.value = RUNNING.copy(alerting = true)

@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.timer.BrewTimerRoute
@@ -83,8 +84,9 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   the tabs is closed for it: while the timer or another full-screen route is shown, it waits (rule 8).
  * @param catalogRefreshRequest a new non-zero token for each tap on a catalog refresh notification
  *   (SCR-22, D-097); 0 for none. The root opens Sammlung › Katalog with the refresh sheet above what
- *   is shown ([CatalogRefreshRoute]), so back returns there; during an alert it waits until the alert
- *   has ended (rule 8). Before the first-start setup is done, or while a setup is shown, the tap
+ *   is shown ([CatalogRefreshRoute], at most one, replacing an older one), so back returns there;
+ *   during an alert it waits until the alert has ended (rule 8). Before the first-start setup is done,
+ *   or while a setup is shown, the tap
  *   opens the app where it was (ONB-03). Either way [onConsumeCatalogRefreshRequest] gets the token.
  */
 @Composable
@@ -135,7 +137,7 @@ internal fun UmamitRoot(
     val alert by alertKey.collectAsStateWithLifecycle()
     val currentAlerting by rememberUpdatedState(alert != null)
     val timerFirst = rememberTimerFirst(navController, alert, timerRequest, onConsumeTimerRequest)
-    val catalogSheet = rememberCatalogRefreshTaps(
+    CatalogRefreshTaps(
         navController = navController,
         alert = alert,
         setupDone = completed == true,
@@ -237,7 +239,9 @@ internal fun UmamitRoot(
                 )
             }
             // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
-            composable<CatalogRefreshRoute> {
+            composable<CatalogRefreshRoute> { entry ->
+                // The token this entry shows, never a later tap's (#121).
+                val sheetToken = entry.toRoute<CatalogRefreshRoute>().sheetToken
                 UmamitApp(
                     activeBrewSource = activeBrewSource,
                     journalSources = journalSources,
@@ -251,7 +255,7 @@ internal fun UmamitRoot(
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
-                    opening = ShellOpening.CatalogRefresh(catalogSheet),
+                    opening = ShellOpening.CatalogRefresh(sheetToken),
                 )
             }
             composable<OnboardingRoute> { onboardingScreen(finishSetup) }
@@ -329,22 +333,25 @@ internal fun UmamitRoot(
 /**
  * The taps on a catalog refresh notification (SCR-22, 03 §2.4, D-097), each once: with the setup
  * done and no setup on screen, Sammlung › Katalog opens with the refresh sheet above what is shown
- * ([CatalogRefreshRoute], reused when it is on top already); during an alert the tap waits until
- * the alert has ended, so neither covers the timer (rule 8). Before the setup is done the tap is
- * let go: the app opens where it was (ONB-03). Returns the token of the sheet to show, which
- * survives a configuration change.
+ * ([CatalogRefreshRoute]); during an alert the tap waits until the alert has ended, so neither
+ * covers the timer (rule 8). Before the setup is done the tap is let go: the app opens where it
+ * was (ONB-03).
+ *
+ * There is at most one refresh shell, and it shows its own tap's token (#121): on top already, it
+ * takes the new token in place; lower in the back stack, it leaves with what was opened above it,
+ * and the new one opens above what was below it. A timer opened from the older shell stays, below
+ * the new one, so back returns to it.
  */
 @Composable
 @Suppress("LongParameterList") // the navigation, the two gates, the request and its consumer
-private fun rememberCatalogRefreshTaps(
+private fun CatalogRefreshTaps(
     navController: NavHostController,
     alert: String?,
     setupDone: Boolean,
     request: StateFlow<Long>,
     onConsume: (Long) -> Unit,
     navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
-): Long {
-    var sheetToken by rememberSaveable { mutableLongStateOf(0L) }
+) {
     var handled by rememberSaveable { mutableLongStateOf(0L) }
     val token by request.collectAsStateWithLifecycle()
     val currentOnConsume by rememberUpdatedState(onConsume)
@@ -354,15 +361,31 @@ private fun rememberCatalogRefreshTaps(
         val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
         if (setupDone && !inSetup) {
             if (alert != null) return@LaunchedEffect
-            if (navController.currentDestination?.hasRoute<CatalogRefreshRoute>() != true) {
-                currentNavigateAbove(CatalogRefreshRoute) { launchSingleTop = true }
-            }
-            sheetToken = token
+            navController.openCatalogRefresh(CatalogRefreshRoute(token), currentNavigateAbove)
         }
         handled = token
         currentOnConsume(token)
     }
-    return sheetToken
+}
+
+/** Opens [route], replacing the refresh shell on the back stack, if any (see [CatalogRefreshTaps]). */
+private fun NavHostController.openCatalogRefresh(
+    route: CatalogRefreshRoute,
+    navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
+) {
+    if (currentDestination?.hasRoute<CatalogRefreshRoute>() == true) {
+        // The same entry with the new token: its shell turns to the catalog and shows the sheet.
+        navigate(route) { launchSingleTop = true }
+        return
+    }
+    val stack = currentBackStack.value
+    val older = stack.indexOfLast { it.destination.hasRoute<CatalogRefreshRoute>() }
+    if (older >= 0) {
+        val timerAbove = stack.drop(older + 1).any { it.destination.hasRoute<TimerRoute>() }
+        popBackStack<CatalogRefreshRoute>(inclusive = true)
+        if (timerAbove) navigate(TimerRoute) { launchSingleTop = true }
+    }
+    navigateAbove(route) { launchSingleTop = true }
 }
 
 /** What [rememberTimerFirst] gives the root. */
