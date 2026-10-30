@@ -156,6 +156,7 @@ fun CatalogRoute(
         onOpenTea = onOpenTea,
         onOpenGuides = onOpenGuides,
         onFilterChange = viewModel::changeFilter,
+        onToggleMark = viewModel::toggleMark,
         alerting = alerting,
         scrollToTopRequest = scrollToTopRequest,
     )
@@ -186,7 +187,8 @@ fun CatalogRoute(
  * The stateless catalog content (SCR-19): nothing until the catalog was read, then the empty
  * state or the list. [onLoad] is *Katalog laden*; [onShowProgress] reopens the sheet of a
  * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key; [onFilterChange] takes
- * a changed search, filter or sort (CAT-10); [onOpenGuides] opens the *Ratgeber* (CAT-09). The
+ * a changed search, filter or sort (CAT-10); [onOpenGuides] opens the *Ratgeber* (CAT-09);
+ * [onToggleMark] marks or unmarks a tea by its key from its row (CAT-18). The
  * filter sheet is never composed while [alerting] (rule 8). [scrollToTopRequest] is a counter;
  * every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
  */
@@ -200,6 +202,7 @@ fun CatalogContent(
     onOpenTea: (String) -> Unit = {},
     onOpenGuides: () -> Unit = {},
     onFilterChange: (FilterChange) -> Unit = {},
+    onToggleMark: (key: String, marked: Boolean) -> Unit = { _, _ -> },
     alerting: Boolean = false,
     scrollToTopRequest: Int = 0,
     zone: ZoneId = ZoneId.systemDefault(),
@@ -222,6 +225,7 @@ fun CatalogContent(
                     onOpenGuides = onOpenGuides,
                     onFilterChange = onFilterChange,
                     onOpenFilters = { if (!alerting) filterSheetOpen = true },
+                    onToggleMark = onToggleMark,
                 ),
                 scrollToTopRequest = scrollToTopRequest,
                 zone = zone,
@@ -248,6 +252,7 @@ private class ListActions(
     val onOpenGuides: () -> Unit,
     val onFilterChange: (FilterChange) -> Unit,
     val onOpenFilters: () -> Unit,
+    val onToggleMark: (key: String, marked: Boolean) -> Unit,
 )
 
 @Composable
@@ -306,24 +311,31 @@ private fun CatalogList(
             .testTag(CATALOG_LIST_TAG),
         state = listState,
     ) {
-        item(key = "header") { Header(listing, filter.herbal, zone) }
+        item(key = "header") { Header(listing, filter, zone) }
         if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
         item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
-        // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
-        val herbalHint = filter.herbal && state.herbalPending
-        if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
-        if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
-            item(key = "no_match") {
-                NoticeRow(stringResource(R.string.catalog_no_match), stringResource(R.string.catalog_reset_filters)) {
-                    actions.onFilterChange {
-                        CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, herbal = it.herbal)
+        if (filter.marked) {
+            markedNotices(listing)
+        } else {
+            // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
+            val herbalHint = filter.herbal && state.herbalPending
+            if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
+            if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
+                item(key = "no_match") {
+                    NoticeRow(
+                        stringResource(R.string.catalog_no_match),
+                        stringResource(R.string.catalog_reset_filters),
+                    ) {
+                        actions.onFilterChange {
+                            CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, herbal = it.herbal)
+                        }
                     }
                 }
             }
         }
-        teaRows(listing, actions.onOpenTea, thumbnail)
+        teaRows(listing, actions.onOpenTea, actions.onToggleMark, thumbnail)
         if (listing.hiddenMatches > 0) {
             item(key = "hidden") {
                 NoticeRow(
@@ -348,9 +360,14 @@ internal fun showAll(filter: CatalogFilter, listing: CatalogListing): CatalogFil
     return if (listing.hiddenMatches == listing.hiddenInOtherView) all.withHerbal(!filter.herbal) else all
 }
 
+/** „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." („38 Kräutertees", „4 gemerkt" in their views). */
 @Composable
-private fun Header(listing: CatalogListing, herbal: Boolean, zone: ZoneId) {
-    val plurals = if (herbal) R.plurals.catalog_herbal_count else R.plurals.catalog_tea_count
+private fun Header(listing: CatalogListing, filter: CatalogFilter, zone: ZoneId) {
+    val plurals = when {
+        filter.marked -> R.plurals.catalog_marked_count
+        filter.herbal -> R.plurals.catalog_herbal_count
+        else -> R.plurals.catalog_tea_count
+    }
     val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis
     Text(

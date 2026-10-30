@@ -19,10 +19,14 @@ object CatalogBrowser {
         .thenBy { it.key }
 
     /**
-     * The list of [teas] (the current range) as [filter] shows it: the green teas, or in the
-     * *Kräutertee* view the Kräutertees (v0.2.1, D-093); search hits of the other kind count as
-     * hidden (CAT-10).
+     * The list of [teas] as [filter] shows it: the green teas of the current range, or in the
+     * *Kräutertee* view its Kräutertees (v0.2.1, D-093); search hits of the other kind count as
+     * hidden (CAT-10). In the *Gemerkt* view (CAT-18, D-097) every marked tea, of either kind and
+     * whatever its stock, the discontinued ones included, grouped by *Sorte*; only the search
+     * applies there, and nothing counts as hidden.
      *
+     * @param teas the catalog's teas: the current range, and the teas kept as „Nicht mehr im
+     *   Sortiment" ([CatalogTeaSummary.discontinued]), which only the *Gemerkt* view shows.
      * @param searchHits the keys the search found, or null without a search ([CatalogFilter.search] blank).
      */
     fun listing(
@@ -31,14 +35,14 @@ object CatalogBrowser {
         searchHits: Set<String>?,
         lastRefreshAtMillis: Long?,
     ): CatalogListing {
-        val range = teas.filter { it.isHerbal == filter.herbal }
-        val found = if (searchHits == null) teas else teas.filter { it.key in searchHits }
+        val current = teas.filterNot { it.discontinued }
+        if (filter.marked) return markedListing(teas, current, filter, searchHits, lastRefreshAtMillis)
+        val range = current.filter { it.isHerbal == filter.herbal }
+        val found = if (searchHits == null) current else current.filter { it.key in searchHits }
         val shown = found.filter { it.isHerbal == filter.herbal && filter.admits(it) }
         val grouped = filter.sort == CatalogSort.TYPE
         val sections = when (filter.sort) {
-            CatalogSort.TYPE -> shown.groupBy { it.teaType }
-                .toSortedMap(nullsLast(Comparator { a: String, b: String -> collator.compare(a, b) }))
-                .map { (type, members) -> CatalogSection(type, members.sortedWith(byName)) }
+            CatalogSort.TYPE -> bySorte(shown)
 
             CatalogSort.NAME -> listOf(CatalogSection(null, shown.sortedWith(byName)))
 
@@ -57,10 +61,38 @@ object CatalogBrowser {
             types = range.mapNotNull { it.teaType }.distinct().sortedWith(collator),
             origins = range.flatMap { it.originCountries }.distinct().sortedWith(collator),
             lastRefreshAtMillis = lastRefreshAtMillis,
-            catalogCount = teas.size,
+            catalogCount = current.size,
             hiddenInOtherView = if (searchHits == null) 0 else found.count { it.isHerbal != filter.herbal },
         )
     }
+
+    /** The *Gemerkt* view: the marked [teas], green and herbal, grouped as the default view (D-073). */
+    private fun markedListing(
+        teas: List<CatalogTeaSummary>,
+        current: List<CatalogTeaSummary>,
+        filter: CatalogFilter,
+        searchHits: Set<String>?,
+        lastRefreshAtMillis: Long?,
+    ): CatalogListing {
+        val marked = teas.filter { it.marked }
+        val shown = if (searchHits == null) marked else marked.filter { it.key in searchHits }
+        val range = current.filter { it.isHerbal == filter.herbal }
+        return CatalogListing(
+            sections = bySorte(shown),
+            grouped = true,
+            totalCount = marked.size,
+            hiddenMatches = 0,
+            types = range.mapNotNull { it.teaType }.distinct().sortedWith(collator),
+            origins = range.flatMap { it.originCountries }.distinct().sortedWith(collator),
+            lastRefreshAtMillis = lastRefreshAtMillis,
+            catalogCount = current.size,
+        )
+    }
+
+    /** [teas] under a section per *Sorte* by name, teas without one last (D-073). */
+    private fun bySorte(teas: List<CatalogTeaSummary>): List<CatalogSection> = teas.groupBy { it.teaType }
+        .toSortedMap(nullsLast(Comparator { a: String, b: String -> collator.compare(a, b) }))
+        .map { (type, members) -> CatalogSection(type, members.sortedWith(byName)) }
 
     /**
      * The FTS4 query for the search text [search] (CAT-10): every word as a prefix, all of them

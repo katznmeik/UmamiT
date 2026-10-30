@@ -162,7 +162,7 @@ v0.2.2 changes timer code (the quick timer's start and pre-alert), so every
 - [ ] *Einstellungen › Brühen & Vorrat*: „Knapp ab 15 g". Correct a tea's stock to 14 g: Start shows „… wird knapp · 14 g übrig" with *Nachbestellen* (opens the shop page of the size bought last) and *Ausblenden*; the brew setup reads „14 g übrig · knapp". *Ausblenden* hides the card; a recorded purchase brings it back when the stock is still low (INV-10).
 - [ ] Schnelltimer 2:00 with *Vorwarnung* „Auto · 10 s": the ring shows the mark before *Start* and while it runs; the Vorwarnton plays at 0:10 left, once with the screen on and once with the screen off. Choose 20 s: it plays at 0:20; the next Schnelltimer opens with 20 s; *Aus* plays none (TMR-22).
 - [ ] The Schnelltimer chips include 8:00; all chips are readable at the largest font, wrapping onto a second row.
-- [ ] Catalog: mark two teas with 🔖 (one on its row, one on its detail); the chip *Gemerkt* shows both and only those; add one to the Sammlung → it leaves the Merkliste; the marks survive *Katalog aktualisieren* and an app restart (CAT-18).
+- [ ] Catalog: mark two teas with the bookmark (one on its row, one on its detail); the chip *Gemerkt* shows both and only those; add one to the Sammlung → it leaves the Merkliste; the marks survive *Katalog aktualisieren* and an app restart (CAT-18).
 
 ### v0.3 — Quick timers alongside a brew (planned, D-093)
 
