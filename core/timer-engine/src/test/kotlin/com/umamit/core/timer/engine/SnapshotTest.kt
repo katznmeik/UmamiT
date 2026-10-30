@@ -18,7 +18,7 @@ import java.time.ZoneId
 class SnapshotTest {
 
     /** Every kind of reachable state, by name. */
-    private fun reachableStates(): Map<String, TimerState> = stepStates() + sessionStates()
+    private fun reachableStates(): Map<String, TimerState> = stepStates() + sessionStates() + quickChoiceStates()
 
     /** The states of the step lifecycle. */
     private fun stepStates(): Map<String, TimerState> = buildMap {
@@ -90,6 +90,27 @@ class SnapshotTest {
                 send(TimerEvent.Start)
                 clocks.advanceSeconds(90)
                 send(TimerEvent.DeadlineReached)
+            }.state,
+        )
+    }
+
+    /** Quick timers with the choice of SCR-07 (TMR-22, D-097): *Aus*, explicit, and one too short for the timer. */
+    private fun quickChoiceStates(): Map<String, TimerState> = buildMap {
+        put("Quick timer with Aus, Ready", quick(choice = 0).state)
+        put("Quick timer with 20 s, Running", quick(choice = 20).apply { send(TimerEvent.Start) }.state)
+        put(
+            "Quick timer with 20 s, Paused after its pre-alert",
+            quick(choice = 20).apply {
+                send(TimerEvent.Start)
+                clocks.advanceSeconds(70)
+                send(TimerEvent.PreAlertReached)
+                send(TimerEvent.Pause)
+            }.state,
+        )
+        put(
+            "Quick timer of 0:20 with 20 s (too short), Running",
+            quick(20, choice = 20).apply {
+                send(TimerEvent.Start)
             }.state,
         )
     }
@@ -171,6 +192,26 @@ class SnapshotTest {
         assertThat(snapshot.activeBrew.sessionId).isNull()
         assertThat(snapshot.activeBrew.isQuickTimer).isTrue()
         assertThat(snapshot.activeBrew.quickDurationSeconds).isEqualTo(90)
+        assertThat(snapshot.activeBrew.quickPreAlertSeconds).isNull()
+    }
+
+    @Test
+    fun `the quick timer's choice is in quick_pre_alert_seconds, a brew session's is null (D-097)`() {
+        val choices = mapOf(
+            null to quick(),
+            0 to quick(choice = 0),
+            20 to quick(choice = 20).apply {
+                send(TimerEvent.Start)
+            },
+        )
+        choices.forEach { (choice, driver) ->
+            val snapshot = BrewTimerEngine.snapshot(driver.state)!!
+
+            assertWithMessage("choice $choice").that(snapshot.activeBrew.quickPreAlertSeconds).isEqualTo(choice)
+            assertWithMessage("choice $choice").that(snapshot.activeBrew.preAlertInheritedSeconds).isEqualTo(15)
+        }
+        val brew = sessionWith(infusion(60).withPreAlert(20)).apply { send(TimerEvent.Start) }
+        assertThat(BrewTimerEngine.snapshot(brew.state)!!.activeBrew.quickPreAlertSeconds).isNull()
     }
 
     @Test
@@ -184,6 +225,16 @@ class SnapshotTest {
                 quick.copy(activeBrew = quick.activeBrew.copy(quickDurationSeconds = null)),
             "a quick timer with step rows" to quick.copy(steps = brew.steps),
             "a quick timer as a cold brew" to quick.copy(longStepsOnly = true),
+            // A brew session's pre-alerts are per step; a quick-timer choice on it is a value the engine never
+            // writes (D-097).
+            "a brew session with a quick-timer choice" to
+                brew.copy(activeBrew = brew.activeBrew.copy(quickPreAlertSeconds = 20)),
+            "a brew session with a quick-timer choice Aus" to
+                brew.copy(activeBrew = brew.activeBrew.copy(quickPreAlertSeconds = 0)),
+            "a quick timer with a negative choice" to
+                quick.copy(activeBrew = quick.activeBrew.copy(quickPreAlertSeconds = -5)),
+            "a quick timer with a choice SCR-07 never offers" to
+                quick.copy(activeBrew = quick.activeBrew.copy(quickPreAlertSeconds = 35)),
             "a brew session without step rows" to brew.copy(steps = emptyList()),
             "a running step without a deadline" to
                 brew.copy(activeBrew = brew.activeBrew.copy(deadlineElapsedMs = null)),
@@ -266,7 +317,8 @@ class SnapshotTest {
         send(TimerEvent.Poured)
     }
 
-    private fun quick() = EngineDriver().apply { send(TimerEvent.StartQuickTimer(90, globalPreAlertSeconds = 15)) }
+    private fun quick(seconds: Int = 90, choice: Int? = null) =
+        EngineDriver().apply { send(TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = 15, choice)) }
 
     /** A running 60 s step whose pre-alert played, through the reducer. */
     private fun preAlertPlayed() = running().apply {

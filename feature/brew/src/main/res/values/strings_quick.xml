@@ -24,4 +24,6 @@
     <!-- TalkBack -->
     <string name="brew_quick_back">Zurück</string>
     <string name="brew_quick_ring_label">Dauer wählen</string>
+    <!-- The Vorwarnung selector below the chips (TMR-22, D-097): its spoken value, e.g. „Automatisch, 10 Sekunden vorher". -->
+    <string name="brew_quick_pre_alert_description">Vorwarnung: %1$s. Ändern</string>
 </resources>

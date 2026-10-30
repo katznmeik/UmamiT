@@ -178,6 +178,16 @@ object BrewTimerEngine {
         )
 
     /**
+     * The pre-alert lead N in seconds that a quick timer of [durationSeconds] gets with the global pre-alert
+     * [globalPreAlertSeconds] (B) and SCR-07's choice [preAlertSeconds] (null *Automatisch*, 0 *Aus*, else as set):
+     * what [preAlertLeadSeconds] gives once it is started (TMR-22, 04 §5, §10; D-097). Null when it has none, and
+     * for a quick timer [TimerEvent.StartQuickTimer] would reject. SCR-07's ring mark and selector before *Start*
+     * and the diagnostics log use it, so neither re-implements the rules.
+     */
+    fun quickTimerPreAlertLeadSeconds(durationSeconds: Int, globalPreAlertSeconds: Int, preAlertSeconds: Int?): Int? =
+        quickTimerPreAlertLeadOf(durationSeconds, globalPreAlertSeconds, preAlertSeconds)
+
+    /**
      * True when a planned [step] is a long step (≥ 10 min, or any step when [longStepsOnly]; TMR-18), which never
      * has a pre-alert, whatever its choice: the Schritte-Sheet tells it apart from a step too short for its value.
      */

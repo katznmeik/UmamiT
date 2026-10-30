@@ -54,6 +54,8 @@ internal fun snapshotOf(state: TimerState): TimerSnapshot? {
         demoted = session.demoted,
         preAlertInheritedSeconds = session.preAlert.inheritedSeconds,
         zoneId = session.zone.id,
+        // The quick timer's choice of SCR-07 (umamit.db v3, D-097); a brew session's are in its step rows.
+        quickPreAlertSeconds = if (quick) session.steps.single().preAlertSeconds else null,
     )
     val activeBrew = when (state) {
         is TimerState.Ready -> base.copy(readySinceWallMs = state.readySinceWallMs)
@@ -196,10 +198,23 @@ private fun sessionOf(snapshot: TimerSnapshot): TimerSession {
     val started = row.phase in STARTED_PHASES
     val steps = if (row.isQuickTimer) {
         require(snapshot.steps.isEmpty()) { "the quick timer has no step rows" }
+        require(row.quickPreAlertSeconds?.let(::isQuickPreAlert) ?: true) {
+            "a quick timer's pre-alert choice is 0 or 5–30 s, was ${row.quickPreAlertSeconds}"
+        }
         val status = if (started) StepStatus.STARTED else StepStatus.PENDING
-        listOf(SessionStep(StepKind.INFUSION, required(row.quickDurationSeconds), null, status, null))
+        listOf(
+            SessionStep(
+                StepKind.INFUSION,
+                required(row.quickDurationSeconds),
+                null,
+                status,
+                null,
+                row.quickPreAlertSeconds,
+            ),
+        )
     } else {
         require(row.quickDurationSeconds == null && snapshot.steps.isNotEmpty()) { "a brew session has step rows" }
+        require(row.quickPreAlertSeconds == null) { "a brew session's pre-alerts are in its step rows" }
         snapshot.steps.mapIndexed { index, step ->
             require(step.position == index) { "step rows in position order 0..n-1, was ${step.position} at $index" }
             stepOf(step, current = started && index == row.stepIndex)
