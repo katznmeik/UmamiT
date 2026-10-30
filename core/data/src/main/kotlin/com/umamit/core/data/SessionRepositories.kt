@@ -80,9 +80,9 @@ interface SessionRepository {
  * temperatures are multiples of 5 °C reads back equal. From umamit.db v4 (D-098) the table holds one
  * row per slot: the brew slot a brew session's, the quick slot the quick timer's.
  *
- * The slot methods act on their slot only. The methods without a slot serve a controller that runs
- * one timer at a time (until v0.3.0-03): they treat the table as the one active timer, in the slot of
- * its kind.
+ * The slot methods act on their slot only; the controller uses only these from v0.3.0-03 (#134). The
+ * methods without a slot treat the table as one active timer, in the slot of its kind, as the
+ * controller of v0.3.0-01 did; tests read the stored timer through them.
  */
 interface ActiveBrewStore {
     /**

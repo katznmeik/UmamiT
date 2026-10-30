@@ -53,6 +53,36 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
     fun build(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading): Notification =
         if (state.alerting) alert(state, fullScreen) else liveUpdate(state, now)
 
+    /**
+     * Notification 5, the other active timer (04 §8.2, D-098), on `timer_other` (LOW, silent, never promoted):
+     * the title and text of its phase, a countdown while it runs, its own actions; a held quick alert reads
+     * „Fertig, wartet auf den Aufguss" and has no full-screen intent. It opens the timer.
+     */
+    fun other(state: TimerUiState.Active, now: ClockReading): Notification {
+        val countdown = state.phase == TimerPhase.RUNNING && !state.longStep
+        val text = when {
+            state.alertHeld -> context.getString(R.string.timer_text_quick_held)
+            state.alerting -> texts.alertText(state)
+            else -> texts.text(state, now)
+        }
+        return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_TIMER_OTHER)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
+            .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
+            .setContentTitle(texts.title(state))
+            .setContentText(text)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setShowWhen(countdown)
+            .setUsesChronometer(countdown)
+            .apply { if (countdown) setWhen(checkNotNull(state.deadlineWallMs)).setChronometerCountDown(true) }
+            .setContentIntent(openTimerIntent(RC_OTHER))
+            .apply { actions.of(state).forEach(::addAction) }
+            .build()
+    }
+
     /** „Sitzung gespeichert" (ID 3, `sessions`, TMR-14) for the session of [teaName]. */
     fun sessionSaved(teaName: String?): Notification =
         NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
@@ -155,5 +185,6 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         const val RC_DISMISS = 303
         const val RC_SESSION_SAVED = 304
         const val RC_RESUMED = 305
+        const val RC_OTHER = 306
     }
 }

@@ -20,6 +20,9 @@ enum class RecoveryDecision {
     /** The deadline passed less than 10 min ago, or the alert had not run its cycle: replayed. */
     ALERT_REPLAYED,
 
+    /** A quick timer's alert waits for the brew's (04 §7.2 two slots, §9.3; D-098): held, it rings after it. */
+    ALERT_HELD,
+
     /** The deadline passed 10 min or more ago: poured on time, silently (`overtimeAutoAck`). */
     OVERTIME_ACKNOWLEDGED,
 
@@ -49,6 +52,9 @@ enum class EventSource {
 
     /** The controller's first turn in a process: `recover` from the persisted state (04 §7.2). */
     RECOVERY,
+
+    /** The controller's alert arbitration between its two slots: a quick alert held or released (04 §9.3). */
+    ARBITRATION,
 }
 
 /**

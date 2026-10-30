@@ -64,6 +64,9 @@ data class ServiceStartRetried(val phase: TimerPhase, val fullScreen: Boolean) :
 
 data class NotificationShown(val phase: TimerPhase, val fullScreen: Boolean) : PortCall
 
+/** Notification 5, the other active timer, shows [slot]'s timer in [phase] ([held]: a held alert); null: removed. */
+data class OtherNotificationShown(val slot: TimerSlot?, val phase: TimerPhase?, val held: Boolean = false) : PortCall
+
 data class SessionSavedNotified(val sessionId: String) : PortCall
 
 /** „Dein …-Timer läuft weiter" after a reboot (04 §7.3) for a session in [phase]. */
@@ -179,11 +182,16 @@ class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerSe
 }
 
 /**
- * Fake [TimerNotifierPort]: [shown] is the last posted timer notification's state; [sessionsSaved] notification 3;
+ * Fake [TimerNotifierPort]: [shown] is the last posted timer notification's state; [other] notification 5;
+ * [sessionsSaved] notification 3;
  * [timersResumed] the reboot notices.
  */
 class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerNotifierPort {
     var shown: TimerUiState.Active? = null
+        private set
+
+    /** Notification 5, the other active timer; null when it is not posted. */
+    var other: TimerUiState.Active? = null
         private set
     val sessionsSaved = mutableListOf<String>()
     val timersResumed = mutableListOf<TimerUiState.Active>()
@@ -191,6 +199,11 @@ class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerN
     override fun update(state: TimerUiState.Active, fullScreen: Boolean) {
         shown = state
         log.record(NotificationShown(state.phase, fullScreen))
+    }
+
+    override fun showOther(state: TimerUiState.Active?) {
+        other = state
+        log.record(OtherNotificationShown(state?.slot, state?.phase, state?.alertHeld ?: false))
     }
 
     override fun notifySessionSaved(sessionId: String) {

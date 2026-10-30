@@ -6,6 +6,7 @@ import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.SessionKind
@@ -67,7 +68,7 @@ class TimerAppWiringTest {
     private class FakeTimer(initial: TimerUiState) : BrewTimer {
         override val state = MutableStateFlow(initial)
 
-        override suspend fun send(event: TimerEvent) = TransitionOutcome.Ignored
+        override suspend fun send(slot: TimerSlot, event: TimerEvent) = TransitionOutcome.Ignored
     }
 
     private fun TestScope.clock() = object : MonotonicClock {

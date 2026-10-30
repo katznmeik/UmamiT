@@ -154,9 +154,10 @@ class QuickTimerScreenTest {
     }
 
     @Test
-    fun `while a session is active, Start asks first (TMR-21)`() {
-        show(QuickTimerUiState(question = ActiveSessionQuestion("Bio Sencha Hisui")))
+    fun `while another quick timer is active, Start asks Schnelltimer beenden und neu starten (D-098)`() {
+        show(QuickTimerUiState(question = ActiveSessionQuestion(teaName = null)))
 
+        compose.onNodeWithText("Schnelltimer beenden und neu starten?").assertExists()
         compose.onNodeWithText("Beenden & neu starten").performClick()
 
         assertThat(calls).containsExactly("restart")

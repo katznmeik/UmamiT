@@ -17,6 +17,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.Vessel
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
@@ -161,7 +162,7 @@ class BrewSetupViewModel @Inject constructor(
     fun startBrew() = launchWithSource { s ->
         val current = edits.value ?: return@launchWithSource
         val request = current.startRequest(s)
-        val timer = starter.state.value as? TimerUiState.Active
+        val timer = starter.activeIn(TimerSlot.BREW)
         val outcome = if (timer != null && timer.isAdjustable()) {
             starter.finishActiveAndStart(request)
         } else {
@@ -192,7 +193,8 @@ class BrewSetupViewModel @Inject constructor(
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(BrewSetupEvent.OpenTimer)
                 } else {
-                    val active = timer as? TimerUiState.Active
+                    // The brew session that refused it (a quick timer never does, D-098).
+                    val active = starter.activeIn(TimerSlot.BREW)
                     pending.value = PendingStart(request, ActiveSessionQuestion(active?.teaName), null)
                 }
             }

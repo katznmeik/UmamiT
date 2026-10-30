@@ -14,7 +14,8 @@ import javax.inject.Singleton
  * The controller's notifier (04 §8.2, §8.3; M1-11, D-064):
  *
  * - `UpdateNotification` goes to the [BrewTimerServicePort], the one place that shows the
- *   timer's notifications 1, 2 and the quiet one. While the service runs, the notification
+ *   timer's notifications 1, 2 and the quiet one, and so does notification 5, the other active timer
+ *   (D-098), whose wake-lock need the service adds to its own. While the service runs, the notification
  *   changes only through the service, so the alert is never posted next to the Live Update
  *   (D-044, D-057).
  * - `NotifySessionSaved` posts „Sitzung gespeichert" (ID 3, channel `sessions`, LOW) with the
@@ -35,6 +36,11 @@ class AndroidTimerNotifier @Inject constructor(
     override fun update(state: TimerUiState.Active, fullScreen: Boolean) {
         state.sessionId?.let { lastSession = it to state.teaName }
         service.show(state, fullScreen)
+    }
+
+    override fun showOther(state: TimerUiState.Active?) {
+        state?.sessionId?.let { lastSession = it to state.teaName }
+        service.showOther(state)
     }
 
     override fun notifySessionSaved(sessionId: String) {

@@ -79,7 +79,7 @@
 
     <!-- Second session (TMR-21, 03 §5): „Erst die *Sencha*-Sitzung beenden?" -->
     <string name="ds_finish_active_title">Erst die %1$s-Sitzung beenden?</string>
-    <string name="ds_finish_active_quick_title">Erst den Schnelltimer beenden?</string>
+    <string name="ds_finish_active_quick_title">Schnelltimer beenden und neu starten?</string>
     <string name="ds_finish_active_restart">Beenden &amp; neu starten</string>
     <string name="ds_finish_active_cancel">Abbrechen</string>
 

@@ -97,6 +97,15 @@ interface TimerNotifierPort {
     fun update(state: TimerUiState.Active, fullScreen: Boolean)
 
     /**
+     * Notification 5 (channel `timer_other`, importance LOW, silent; 04 §8.2, D-098): the active timer of the
+     * other slot while the service shows the first one, with its own actions; a held quick alert as „Fertig,
+     * wartet auf den Aufguss" without a full-screen intent. Null removes it. Its LOW importance keeps the alert
+     * the app's only notification of importance DEFAULT or higher (D-044). The service also keeps the process
+     * awake for it while it runs a short step (04 §6.1 two slots).
+     */
+    fun showOther(state: TimerUiState.Active?)
+
+    /**
      * „Sitzung gespeichert" (ID 3, channel `sessions`) for session [sessionId]: the midnight
      * timeout (TMR-14) and *Beenden & neu starten* (TMR-21, D-054).
      */

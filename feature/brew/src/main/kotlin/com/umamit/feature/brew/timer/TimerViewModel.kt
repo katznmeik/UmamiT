@@ -8,6 +8,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.reliability.ReliabilityProblem
@@ -92,12 +93,12 @@ class TimerViewModel @Inject constructor(
     fun nowElapsedMs(): Long = clock.elapsedMs()
 
     /**
-     * Sends a user event to the controller. The controller finishes a turn
-     * once it has started, so leaving the screen right after a tap never
-     * drops an *Abgegossen* (D-056).
+     * Sends a user event of [slot]'s timer, the one the screen showed when it was tapped (04 §3.3, D-098), to
+     * the controller. The controller finishes a turn once it has started, so leaving the screen right after a
+     * tap never drops an *Abgegossen* (D-056).
      */
-    fun send(event: TimerEvent) {
-        viewModelScope.launch { timer.send(event) }
+    fun send(slot: TimerSlot, event: TimerEvent) {
+        viewModelScope.launch { timer.send(slot, event) }
     }
 
     /** Reads the checks again; the screen calls it on every resume (the user may come back from the settings). */

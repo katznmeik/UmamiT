@@ -7,6 +7,7 @@ import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
@@ -266,6 +267,20 @@ class BrewSetupViewModelTest {
         assertThat(vm.ready.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
         assertThat(starter.starts.single().snapshot.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+    }
+
+    @Test
+    fun `the setup starts a brew while a quick timer runs, without asking (TMR-21 AC1, D-098)`() = runTest {
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+
+        vm.startBrew()
+
+        assertThat(vm.ready.question).isNull()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
         assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
     }
 

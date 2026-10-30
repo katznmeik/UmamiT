@@ -198,8 +198,11 @@ share the controller's event lock, the turn order and the alert player.
   arbitration of §9.3 across both.
 - **Held alert in the engine.** ALERTING carries `ringingSince` (elapsed and
   wall; null = held). The controller sends `alertHold` (preemption, or a
-  deadline while the brew alerts) and `alertRingStart` (release); neither is
-  an interaction. `dueTimes.overtimeTimeoutAt` of the quick slot is
+  deadline while the brew alerts), `alertRingStart` (release) and, in place
+  of `recover` while the brew alerts after its own recovery, `recoverHeld`
+  (§7.2); none is an interaction, and the engine ignores the hold for a brew
+  session. A quick alert that rings at its deadline rings since its deadline,
+  as before v0.3.0 (#134 build notes in D-098). `dueTimes.overtimeTimeoutAt` of the quick slot is
   `ringingSince` + 10 min and has no value while held; the brew slot is
   never held and keeps deadline + 10 min. `deadlineReached` at or after
   deadline + 10 min applies `overtimeTimeout` only for a timer that could
@@ -636,8 +639,9 @@ any notification the old process left (D-057, D-063).
 
 **Two slots (v0.3.0, D-098).** The first turn restores both rows and runs
 `recover` for the brew slot first, then for the quick slot. If the brew slot
-is then ALERTING, a quick timer past its deadline becomes held (no sound, no
-overtime timeout), however long ago its deadline was; it rings when the
+is then ALERTING, the quick slot gets `recoverHeld`: a quick timer past its
+deadline becomes held (no sound, no overtime timeout), however long ago its
+deadline was, and a ringing one is held again; it rings when the
 brew slot leaves ALERTING (§9.3). Otherwise the quick slot follows the table
 above, with its overtime timeout counted from `ringingSince` when it had
 already rung. A held alert survives process death, a reboot and an app
@@ -983,6 +987,10 @@ sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
 | A pre-alert due while the other slot's alert sound plays or its pre-alert rings | Waits until that sound ends; played if ≥ 1 s of its step is left, else consumed (§5). |
 | An alert due while the other slot's pre-alert rings | The alert cuts it at once (as within one slot). |
 
+- **Waiting for a pre-alert's end:** the player does not report it, so the
+  controller counts a pre-alert as ringing for the longest pre-alert sound
+  plus the player's 250 ms release (3.45 s); a pre-alert waiting for an alert
+  plays when the player reports the alert's end or the alert is stopped.
 - **Overtime timeout of a quick alert:** 10 min after it last started
   ringing (S1). Every release restarts the alert length (SET-14) and the
   10 min, so a held alert always rings in full before it ends silently.

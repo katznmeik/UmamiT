@@ -14,6 +14,7 @@ import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeLowStockRepository
@@ -320,6 +321,21 @@ class HomeViewModelTest {
         assertThat(vm.state.value.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
         assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+    }
+
+    @Test
+    fun `brewing again while a quick timer runs starts alongside without asking (TMR-21 AC1, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.QUICK)?.steps?.single()?.plannedSeconds).isEqualTo(90)
     }
 
     @Test
