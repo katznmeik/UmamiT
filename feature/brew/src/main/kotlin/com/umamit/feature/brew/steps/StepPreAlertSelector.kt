@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -132,6 +133,9 @@ internal fun StepPreAlertRow(state: StepsSheetState, index: Int) {
  * A *Vorwarnung* selector's button and its menu (SCR-31, SCR-07): the button shows [shown] („Auto · 10 s", „Aus",
  * „20 s", „20 s · zu kurz") and is one TalkBack element read as [description]; the menu lists [PreAlertOptions],
  * each as [optionShown] gives it, with a check at [selected].
+ *
+ * **Alerts first (rule 8):** the menu remembers the [alertKey] it was opened in; another alert removes it in its
+ * first frame, without its exit animation, and it stays closed (as SCR-07's duration picker).
  */
 @Composable
 internal fun PreAlertDropdown(
@@ -141,17 +145,26 @@ internal fun PreAlertDropdown(
     optionShown: (PreAlertChoice) -> StepPreAlert,
     onSelect: (PreAlertChoice) -> Unit,
     modifier: Modifier = Modifier,
+    alertKey: String? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var openedIn by remember { mutableStateOf<String?>(null) }
+    val covered = alertKey != null && alertKey != openedIn
+    // A new alert closes the menu for good; it is already gone in the frame the alert started.
+    LaunchedEffect(covered) { if (covered) expanded = false }
+    val open = {
+        openedIn = alertKey
+        expanded = true
+    }
     Box(modifier = modifier) {
         TextButton(
-            onClick = { expanded = true },
+            onClick = open,
             // One TalkBack element with the step, the spoken value, a button role and a click action.
             modifier = Modifier.clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
                 onClick {
-                    expanded = true
+                    open()
                     true
                 }
             },
@@ -164,23 +177,35 @@ internal fun PreAlertDropdown(
                 modifier = Modifier.size(20.dp),
             )
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            PreAlertOptions.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(preAlertOptionLabel(optionShown(option))) },
-                    onClick = {
-                        onSelect(option)
-                        expanded = false
-                    },
-                    leadingIcon = {
-                        if (option == selected) {
-                            Icon(painterResource(UmamiIcons.Check), contentDescription = null)
-                        } else {
-                            Spacer(Modifier.size(24.dp))
-                        }
-                    },
-                )
-            }
+        // Out of the composition under an alert: an expanded = false would still animate the popup out.
+        if (!covered) PreAlertMenu(expanded, selected, optionShown, onSelect, onClose = { expanded = false })
+    }
+}
+
+@Composable
+private fun PreAlertMenu(
+    expanded: Boolean,
+    selected: PreAlertChoice,
+    optionShown: (PreAlertChoice) -> StepPreAlert,
+    onSelect: (PreAlertChoice) -> Unit,
+    onClose: () -> Unit,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onClose) {
+        PreAlertOptions.forEach { option ->
+            DropdownMenuItem(
+                text = { Text(preAlertOptionLabel(optionShown(option))) },
+                onClick = {
+                    onSelect(option)
+                    onClose()
+                },
+                leadingIcon = {
+                    if (option == selected) {
+                        Icon(painterResource(UmamiIcons.Check), contentDescription = null)
+                    } else {
+                        Spacer(Modifier.size(24.dp))
+                    }
+                },
+            )
         }
     }
 }

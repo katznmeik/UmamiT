@@ -84,7 +84,7 @@ class QuickTimerActions(
  * runs, the timer screen shows it (*Pause* / *Weiter*, *Fertig*, overflow
  * *Abbrechen*), as the notification and the full-screen alert open it.
  *
- * **Alerts first (rule 8):** the picker and the second-timer question
+ * **Alerts first (rule 8):** the picker, the *Vorwarnung* menu and the second-timer question
  * remember the alert they were opened in; another alert removes them in its
  * first frame, without animation (the host then gives way to the timer).
  * Nothing on this screen animates except Material's chip colour and the
@@ -233,6 +233,8 @@ private fun QuickPreAlertRow(state: QuickTimerUiState, onSelect: (PreAlertChoice
             description = stringResource(R.string.brew_quick_pre_alert_description, preAlertSpoken(shown)),
             optionShown = { state.preAlertShown(it) },
             onSelect = onSelect,
+            // Never over an alert (rule 8), as the duration picker.
+            alertKey = state.alertKey,
         )
     }
 }
