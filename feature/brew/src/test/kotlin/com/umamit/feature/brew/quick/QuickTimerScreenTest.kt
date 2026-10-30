@@ -84,6 +84,18 @@ class QuickTimerScreenTest {
     }
 
     @Test
+    fun `the 8_00 chip is shown, selects 480 s and is spoken like the others (TMR-22)`() {
+        show()
+
+        compose.onNodeWithText("8:00").assertIsDisplayed()
+        compose.onNodeWithContentDescription("8 Minuten").performClick()
+        compose.onNodeWithText("8:00").assertIsSelected()
+        compose.onNodeWithText("Start").performClick()
+
+        assertThat(calls).containsExactly("select 480", "start").inOrder()
+    }
+
+    @Test
     fun `the ring shows the chosen duration and offers the picker`() {
         show(QuickTimerUiState(durationSeconds = 90))
 
