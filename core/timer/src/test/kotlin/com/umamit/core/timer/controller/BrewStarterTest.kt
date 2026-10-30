@@ -7,6 +7,7 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
@@ -173,7 +174,7 @@ class BrewStarterTest {
 
         assertThat(harness.active.iceBrew).isTrue()
         val after = harness.processRestarted()
-        after.controller.onAlarm(TimerAlarmKind.IDLE_DEMOTE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.IDLE_DEMOTE)
         assertThat(after.active.iceBrew).isTrue()
     }
 

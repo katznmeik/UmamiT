@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.ForegroundStart
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
@@ -43,7 +44,7 @@ class RefusedServiceStartTest {
         h.service.refusing = false
 
         // The deadline alarm right after: nothing is due, but it may start the service.
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(h.service.retried.last()).isEqualTo(ForegroundStart(TimerPhase.READY, fullScreen = false))
         assertThat(h.service.foreground?.phase).isEqualTo(TimerPhase.READY)
@@ -58,7 +59,7 @@ class RefusedServiceStartTest {
         h.advanceSeconds(60)
         h.service.refusing = false
 
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(h.service.retried).containsExactly(ForegroundStart(TimerPhase.ALERTING, fullScreen = true))
         assertThat(h.service.foreground?.phase).isEqualTo(TimerPhase.ALERTING)
@@ -89,7 +90,7 @@ class RefusedServiceStartTest {
         after.service.refusing = true
         after.clock.advanceBy(60_000)
 
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(after.service.starts).containsExactly(ForegroundStart(TimerPhase.ALERTING, fullScreen = true))
         assertThat(after.service.retried).isEmpty()

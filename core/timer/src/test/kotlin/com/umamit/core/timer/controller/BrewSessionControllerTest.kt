@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -101,7 +102,7 @@ class BrewSessionControllerTest {
         assertThat(h.alert.started.map { it.stepIndex }).containsExactly(0, 1, 2).inOrder()
         assertThat(h.savedSheet.shown).containsExactly(id)
         assertThat(h.service.running).isFalse()
-        assertThat(h.alarms.armed).isEqualTo(DueTimes.NONE)
+        assertThat(h.alarms.armed(TimerSlot.BREW)).isEqualTo(DueTimes.NONE)
         assertThat(h.wakeUp.dueAtElapsedMs).isNull()
     }
 }

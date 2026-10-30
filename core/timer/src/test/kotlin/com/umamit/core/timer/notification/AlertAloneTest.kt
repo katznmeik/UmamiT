@@ -9,6 +9,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeTimerDiagnostics
 import com.umamit.core.testing.FakeTimerWakeUp
 import com.umamit.core.timer.TimerNotifications
@@ -102,7 +103,7 @@ class AlertAloneTest {
 
         val after = harness.processRestarted()
         after.clock.advanceBy(5_000)
-        after.controller.onAlarm(TimerAlarmKind.OVERTIME_TIMEOUT)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.OVERTIME_TIMEOUT)
         deliver()
 
         assertAlertAlone(after)

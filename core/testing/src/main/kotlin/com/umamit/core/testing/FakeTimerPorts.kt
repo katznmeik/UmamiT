@@ -1,6 +1,7 @@
 package com.umamit.core.testing
 
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.SavedSheetPort
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.StepAlert
@@ -39,14 +40,14 @@ class TimerPortLog {
     }
 }
 
-/** `ScheduleAlarms` with the full due set. */
-data class AlarmsReconciled(val due: DueTimes) : PortCall
+/** `ScheduleAlarms` of [slot] with its full due set. */
+data class AlarmsReconciled(val slot: TimerSlot, val due: DueTimes) : PortCall
 
-/** The alarm of [kind] set again at [atMs] on its clock (a turn that could not read the timer). */
-data class AlarmRetried(val kind: TimerAlarmKind, val atMs: Long) : PortCall
+/** The alarm of [kind] in [slot] set again at [atMs] on its clock (a turn that could not read the timer). */
+data class AlarmRetried(val slot: TimerSlot, val kind: TimerAlarmKind, val atMs: Long) : PortCall
 
-/** The alert watchdog alarm set at [atElapsedMs], or cancelled (null). */
-data class AlertWatchdogSet(val atElapsedMs: Long?) : PortCall
+/** The alert watchdog alarm of [slot] set at [atElapsedMs], or cancelled (null). */
+data class AlertWatchdogSet(val slot: TimerSlot, val atElapsedMs: Long?) : PortCall
 
 data class ServiceStarted(val phase: TimerPhase) : PortCall
 
@@ -77,33 +78,37 @@ data object AlertStopped : PortCall
 data class SavedSheetShown(val sessionId: String) : PortCall
 
 /**
- * Fake [TimerAlarmPort]: [armed] is the due set of the last reconcile, as the alarm manager would hold it;
- * [retries] the alarms set again; [watchdogAtElapsedMs] the alert watchdog alarm, [watchdogCancelled]
- * whether the last call cancelled it.
+ * Fake [TimerAlarmPort], per slot as the alarm manager holds them under each slot's request codes:
+ * [armed] is a slot's due set of its last reconcile; [retries] the alarms set again; [watchdogAtElapsedMs]
+ * a slot's alert watchdog alarm, [watchdogCancelled] whether the slot's last call cancelled it.
  */
 class FakeTimerAlarms(private val log: TimerPortLog = TimerPortLog()) : TimerAlarmPort {
-    var armed: DueTimes = DueTimes.NONE
-        private set
+    private val armedBySlot = mutableMapOf<TimerSlot, DueTimes>()
+    private val watchdogs = mutableMapOf<TimerSlot, Long?>()
     val retries = mutableListOf<AlarmRetried>()
-    var watchdogAtElapsedMs: Long? = null
-        private set
-    var watchdogCancelled = false
-        private set
 
-    override fun reconcile(due: DueTimes) {
-        armed = due
-        log.record(AlarmsReconciled(due))
+    /** The due set the alarms of [slot] hold: that of its last reconcile; none before the first. */
+    fun armed(slot: TimerSlot): DueTimes = armedBySlot[slot] ?: DueTimes.NONE
+
+    /** When the alert watchdog of [slot] comes; null when it is not set. */
+    fun watchdogAtElapsedMs(slot: TimerSlot): Long? = watchdogs[slot]
+
+    /** The last watchdog call of [slot] cancelled it. */
+    fun watchdogCancelled(slot: TimerSlot): Boolean = slot in watchdogs && watchdogs[slot] == null
+
+    override fun reconcile(slot: TimerSlot, due: DueTimes) {
+        armedBySlot[slot] = due
+        log.record(AlarmsReconciled(slot, due))
     }
 
-    override fun retry(kind: TimerAlarmKind, atMs: Long) {
-        retries += AlarmRetried(kind, atMs)
-        log.record(AlarmRetried(kind, atMs))
+    override fun retry(slot: TimerSlot, kind: TimerAlarmKind, atMs: Long) {
+        retries += AlarmRetried(slot, kind, atMs)
+        log.record(AlarmRetried(slot, kind, atMs))
     }
 
-    override fun watchAlert(atElapsedMs: Long?) {
-        watchdogAtElapsedMs = atElapsedMs
-        watchdogCancelled = atElapsedMs == null
-        log.record(AlertWatchdogSet(atElapsedMs))
+    override fun watchAlert(slot: TimerSlot, atElapsedMs: Long?) {
+        watchdogs[slot] = atElapsedMs
+        log.record(AlertWatchdogSet(slot, atElapsedMs))
     }
 }
 

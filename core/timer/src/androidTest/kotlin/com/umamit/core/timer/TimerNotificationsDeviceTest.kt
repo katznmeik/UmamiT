@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.TimerClocks
@@ -291,8 +292,8 @@ class TimerNotificationsDeviceTest {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
         val cancelAlarms = {
-            alarms.reconcile(DueTimes.NONE)
-            alarms.watchAlert(null)
+            TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+            TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         }
         cancelAlarms()
         activityManager.appTasks.forEach { it.finishAndRemoveTask() }
