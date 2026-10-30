@@ -13,6 +13,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
@@ -127,6 +129,10 @@ class SettingsTest {
     private fun stored(): UserSettings = runBlocking { settings.settings.first() }
 
     private fun clickRow(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
+
+    /** A tap on [hour] on the time picker's 24 h dial (its items carry the hour as content description). */
+    private fun pickHour(hour: Int) =
+        compose.onNode(hasContentDescription("$hour ", substring = true) and hasClickAction()).performClick()
 
     @Test
     fun `the switches persist vibration, the screen kept on and the dimming`() {
@@ -262,6 +268,72 @@ class SettingsTest {
         compose.onNodeWithText("Fertig").performClick()
 
         compose.onNodeWithText("10 g").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `the daily reminder is on at 18 00 and switching it off hides its time (SET-28, SET-29)`() {
+        show()
+        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).performScrollTo().assertIsOn()
+        compose.onNodeWithText("Listet jeden Tag alle knappen und leeren Tees.").assertIsDisplayed()
+        compose.onNodeWithText("Uhrzeit").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("18:00").assertIsDisplayed()
+
+        clickRow("Tägliche Vorrats-Erinnerung")
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(lowStockReminder = false))
+        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).assertIsOff()
+        compose.onNodeWithText("Uhrzeit").assertDoesNotExist()
+
+        clickRow("Tägliche Vorrats-Erinnerung")
+        compose.waitForIdle()
+        assertThat(stored().lowStockReminder).isTrue()
+        compose.onNodeWithText("18:00").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Uhrzeit opens the 24 h time picker and stores the time picked`() {
+        show()
+
+        clickRow("Uhrzeit")
+        pickHour(21)
+        compose.onNodeWithText("OK").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().lowStockReminderTime).isEqualTo(21 * 60)
+        compose.onNodeWithText("21:00").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Abbrechen in the time picker keeps the time`() {
+        show()
+
+        clickRow("Uhrzeit")
+        pickHour(21)
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().lowStockReminderTime).isEqualTo(18 * 60)
+    }
+
+    @Test
+    fun `the reminder time reads in the German 24 h format`() {
+        runBlocking { settings.update { it.copy(lowStockReminderTime = 7 * 60 + 5) } }
+        show()
+
+        compose.onNodeWithText("07:05").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `an alert closes the time picker`() {
+        show()
+        clickRow("Uhrzeit")
+        compose.onNodeWithText("OK").assertIsDisplayed()
+
+        alertKey = "session-1:0"
+        compose.waitForIdle()
+
+        compose.onNodeWithText("OK").assertDoesNotExist()
     }
 
     @Test

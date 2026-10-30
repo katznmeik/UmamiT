@@ -88,6 +88,10 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   during an alert it waits until the alert has ended (rule 8). Before the first-start setup is done,
  *   or while a setup is shown, the tap opens the app where it was (ONB-03). Either way
  *   [onConsumeCatalogRefreshRequest] gets the token.
+ * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098); 0 for
+ *   none. The root closes everything above the shell (the timer keeps running) and shows Start at its root;
+ *   during an alert it waits until the alert has ended (rule 8). Before the first-start setup is done, or while
+ *   a setup is shown, the tap is let go (ONB-03). Either way [onConsumeStartRequest] gets the token.
  */
 @Composable
 internal fun UmamitRoot(
@@ -123,6 +127,8 @@ internal fun UmamitRoot(
     onTakeTeaLinkShare: (Long) -> Unit = {},
     catalogRefreshRequest: StateFlow<Long> = NO_CATALOG_REFRESH_REQUEST,
     onConsumeCatalogRefreshRequest: (Long) -> Unit = {},
+    startRequest: StateFlow<Long> = NO_START_REQUEST,
+    onConsumeStartRequest: (Long) -> Unit = {},
 ) {
     val navController = rememberNavController()
     val share by teaLinkShare.collectAsStateWithLifecycle()
@@ -144,6 +150,13 @@ internal fun UmamitRoot(
         request = catalogRefreshRequest,
         onConsume = onConsumeCatalogRefreshRequest,
         navigateAbove = timerFirst.navigateAbove,
+    )
+    val showStart = startTaps(
+        navController = navController,
+        alert = alert,
+        setupDone = completed == true,
+        request = startRequest,
+        onConsume = onConsumeStartRequest,
     )
 
     val entry by navController.currentBackStackEntryAsState()
@@ -236,6 +249,7 @@ internal fun UmamitRoot(
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
+                    startRequest = showStart,
                 )
             }
             // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
@@ -368,6 +382,40 @@ private fun CatalogRefreshTaps(
     }
 }
 
+/**
+ * The taps on the daily low-stock reminder (INV-11, 03 §2.4, D-098), each once: with the setup done and no
+ * setup on screen, everything above the app's shell closes (a timer keeps running behind the active brew bar)
+ * and the shell shows Start at its root, for the token returned; during an alert the tap waits until the
+ * alert has ended (rule 8). Before the setup is done the tap is let go (ONB-03).
+ *
+ * @return the token of the last tap shown, for the shell; 0 before the first.
+ */
+@Composable
+private fun startTaps(
+    navController: NavHostController,
+    alert: String?,
+    setupDone: Boolean,
+    request: StateFlow<Long>,
+    onConsume: (Long) -> Unit,
+): Long {
+    var handled by rememberSaveable { mutableLongStateOf(0L) }
+    var shown by rememberSaveable { mutableLongStateOf(0L) }
+    val token by request.collectAsStateWithLifecycle()
+    val currentOnConsume by rememberUpdatedState(onConsume)
+    LaunchedEffect(token, alert, setupDone) {
+        if (token == 0L || token == handled) return@LaunchedEffect
+        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
+        if (setupDone && !inSetup) {
+            if (alert != null) return@LaunchedEffect
+            navController.popBackStack<ShellRoute>(inclusive = false)
+            shown = token
+        }
+        handled = token
+        currentOnConsume(token)
+    }
+    return shown
+}
+
 /** Opens [route], replacing the refresh shell on the back stack, if any (see [CatalogRefreshTaps]). */
 private fun NavHostController.openCatalogRefresh(
     route: CatalogRefreshRoute,
@@ -481,6 +529,9 @@ private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
 
 /** No catalog refresh notification is ever tapped. */
 private val NO_CATALOG_REFRESH_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
+
+/** The daily low-stock reminder is never tapped. */
+private val NO_START_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
 
 /** No link is ever shared. */
 private val NO_TEA_LINK_SHARE: StateFlow<TeaLinkShare?> = MutableStateFlow(null)

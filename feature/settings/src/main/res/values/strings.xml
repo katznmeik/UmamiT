@@ -63,6 +63,14 @@
     <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>
     <string name="settings_low_stock_less">5 g weniger</string>
     <string name="settings_low_stock_more">5 g mehr</string>
+    <!-- The daily low-stock reminder (SET-28, SET-29, INV-11; D-098). -->
+    <string name="settings_low_stock_reminder">Tägliche Vorrats-Erinnerung</string>
+    <string name="settings_low_stock_reminder_detail">Listet jeden Tag alle knappen und leeren Tees.</string>
+    <string name="settings_low_stock_reminder_time">Uhrzeit</string>
+    <!-- 24 h, as German clocks read: „18:00", „07:05". -->
+    <string name="settings_low_stock_reminder_time_value">%1$02d:%2$02d</string>
+    <string name="settings_time_confirm">OK</string>
+    <string name="settings_time_cancel">Abbrechen</string>
 
     <!-- Katalog (SET-30; SET-23; SET-22: CAT-08, D-073, about 25–35 MB for the whole catalog). -->
     <string name="settings_section_catalog">Katalog</string>

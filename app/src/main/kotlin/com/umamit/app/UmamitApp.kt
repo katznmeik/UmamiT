@@ -99,6 +99,8 @@ private const val SLIDE_FRACTION = 12
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
  * @param opening how this shell opens: the app's shell on Start, or the shell a catalog refresh
  *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
+ * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098): the
+ *   shell turns to Start at its root; the picker's catalog flow ends quietly.
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
  * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
@@ -125,6 +127,7 @@ internal fun UmamitApp(
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
     opening: ShellOpening = ShellOpening.Start,
+    startRequest: Long = 0L,
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
@@ -143,11 +146,17 @@ internal fun UmamitApp(
         }
     }
     // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
-    OnNewRefreshSheet(opening.sheetToken) {
+    OnNewToken(opening.sheetToken) {
         brewFlow.leaveFor(Tab.Collection)
         controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
         segment = CollectionSegment.Catalog
         selected = Tab.Collection
+    }
+    // The daily low-stock reminder's tap (INV-11): Start at its root.
+    OnNewToken(startRequest) {
+        brewFlow.quit()
+        controllers.getValue(Tab.Start).popToRoot(Tab.Start)
+        selected = Tab.Start
     }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
@@ -358,11 +367,11 @@ internal sealed interface ShellOpening {
 }
 
 /**
- * Runs [show] for each new refresh sheet [token] after the one this shell opened with, once each,
- * also across a recreation.
+ * Runs [show] for each new [token] (a refresh sheet, a tap on the reminder) after the one this shell was
+ * composed with, once each, also across a recreation.
  */
 @Composable
-private fun OnNewRefreshSheet(token: Long, show: () -> Unit) {
+private fun OnNewToken(token: Long, show: () -> Unit) {
     var shown by rememberSaveable { mutableLongStateOf(token) }
     val currentShow by rememberUpdatedState(show)
     LaunchedEffect(token) {
@@ -400,6 +409,11 @@ private class CatalogBrewFlow(
         if (!active) return
         end(toPicker = false)
         then()
+    }
+
+    /** The flow ends quietly, without the picker (the reminder's tap, INV-11). */
+    fun quit() {
+        if (active) end(toPicker = false)
     }
 
     /**

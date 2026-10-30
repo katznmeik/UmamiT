@@ -494,7 +494,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `alertVolumePercent` | Int (10…100) | 100 | SET-27 (v0.3.0, D-098): the gain of Vorwarnung and alarm on the alarm stream; a written value is snapped to 10 and clamped to 10…100, so the app itself can never silence a cue |
 | `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
-| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last posted reminder, so a day gets at most one; not shown |
+| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
 | `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
