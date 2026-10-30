@@ -167,6 +167,7 @@ sealed interface TimerDiagnostic {
      * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068). [start]
      * splits a step's cue into the time it was queued, waited for the settings and started its
      * outputs, and says whether its sound was loaded before (D-092; null for *Alarm testen*).
+     * [volumePercent] is the *Lautstärke* its sound played at on the alarm stream (SET-27, D-098).
      */
     data class AlertPlayed(
         override val at: ClockReading,
@@ -177,6 +178,7 @@ sealed interface TimerDiagnostic {
         val length: AlertLength,
         val scheduled: ScheduledTime? = null,
         val start: CueStart? = null,
+        val volumePercent: Int = 100,
     ) : TimerDiagnostic
 
     /**

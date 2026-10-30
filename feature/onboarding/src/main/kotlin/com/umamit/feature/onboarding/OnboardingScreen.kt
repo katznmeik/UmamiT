@@ -517,6 +517,9 @@ private fun ReliabilityCheck.texts(): CheckTexts = when (this) {
     )
 
     ReliabilityCheck.ExactAlarms -> error("exact alarms are always granted and not on the setup page")
+
+    // A phone setting, not a permission: the banner and the settings card warn about it (TMR-31, D-098).
+    ReliabilityCheck.AlarmVolume -> error("the alarm volume is not on the setup page")
 }
 
 private fun CheckState.toStatusCheck(): StatusCheck = when (this) {

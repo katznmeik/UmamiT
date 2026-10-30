@@ -35,6 +35,7 @@ class SettingsDataSourceTest {
         assertThat(settings.dynamicColor).isFalse()
         assertThat(settings.alertSound).isEqualTo("klangschale")
         assertThat(settings.preAlertSound).isEqualTo("zimbel")
+        assertThat(settings.alertVolumePercent).isEqualTo(100)
         assertThat(settings.preAlertSeconds).isEqualTo(10)
         assertThat(settings.vibration).isTrue()
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
@@ -75,6 +76,7 @@ class SettingsDataSourceTest {
             dynamicColor = true,
             alertSound = "glocke",
             preAlertSound = "klangstab",
+            alertVolumePercent = 30,
             preAlertSeconds = 0,
             vibration = false,
             alertLength = AlertLength.LONG,
@@ -151,6 +153,22 @@ class SettingsDataSourceTest {
             assertThat(reader.settings.first().preAlertSeconds).isEqualTo(20)
             assertThat(reader.seedDataCreated.first()).isTrue()
         }
+    }
+
+    @Test
+    fun aFileOfVersion022WithoutALautstaerkeReadsHundredPercentWithoutAMigration() = runTest {
+        // SET-27 is new in v0.3.0 (D-098): a missing key reads as its default, `schemaVersion` stays 2 (05 §6).
+        val file = File(folder.root, "v022.json")
+        file.writeText("""{"schemaVersion":2,"alertSound":"glocke","lowStockGrams":20.0,"seedDataCreated":true}""")
+        val source = dataSource(file)
+
+        val settings = source.settings.first()
+
+        assertThat(settings.alertVolumePercent).isEqualTo(100)
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertSound).isEqualTo("glocke")
+        assertThat(settings.lowStockGrams).isEqualTo(20.0)
+        assertThat(source.seedDataCreated.first()).isTrue()
     }
 
     @Test

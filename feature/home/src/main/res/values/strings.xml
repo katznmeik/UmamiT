@@ -4,6 +4,8 @@
     <string name="home_title">UmamiT</string>
     <!-- Reliability banner (TMR-31). -->
     <string name="home_reliability">Der Timer ist eventuell unzuverlässig</string>
+    <!-- The phone's alarm volume at 0 (v0.3.0, TMR-31, D-098): the cues play on the alarm stream. -->
+    <string name="home_reliability_alarm_volume">Alarmlautstärke ist aus</string>
     <string name="home_start_brew">Aufguss starten</string>
     <string name="home_start_brew_subtitle">Tee wählen und los</string>
     <string name="home_continue_brew">Aufguss fortsetzen</string>

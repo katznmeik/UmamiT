@@ -62,6 +62,7 @@ import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.setup.grams
 
@@ -81,7 +82,7 @@ internal class TimerBodyArgs(
     val nowElapsedMs: () -> Long,
     val overlays: TimerOverlays,
     val actions: TimerActions,
-    val reliabilityProblem: Boolean,
+    val reliabilityProblem: ReliabilityProblem?,
     val onFixReliability: () -> Unit,
     val teaPhoto: Painter?,
     val teaStyleKey: String?,
@@ -123,9 +124,15 @@ internal fun TimerBody(args: TimerBodyArgs) {
         controls = { TimerControls(state, actions) },
         afterControls = {
             // Below the controls, so it never moves them; hidden during the alert.
-            if (args.reliabilityProblem && !state.alerting) {
+            val problem = args.reliabilityProblem
+            if (problem != null && !state.alerting) {
                 ReliabilityBanner(
-                    message = stringResource(R.string.brew_timer_reliability),
+                    message = stringResource(
+                        when (problem) {
+                            ReliabilityProblem.Unreliable -> R.string.brew_timer_reliability
+                            ReliabilityProblem.AlarmVolumeOff -> R.string.brew_timer_reliability_alarm_volume
+                        },
+                    ),
                     onFix = args.onFixReliability,
                     modifier = Modifier.padding(
                         top = UmamiSpacing.Large,

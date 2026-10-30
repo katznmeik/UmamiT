@@ -11,7 +11,7 @@ fun interface AlertEnvironment {
     fun conditions(): AlertConditions
 }
 
-/** Plays bundled sounds with notification-event audio attributes and holds the audio focus. */
+/** Plays bundled sounds with alarm audio attributes (D-098) and holds the audio focus. */
 interface AlertSoundOutput {
     /**
      * Requests transient audio focus with ducking; true when granted.
@@ -34,16 +34,17 @@ interface AlertSoundOutput {
     val ready: Set<AlertSound>
 
     /**
-     * Plays [sound] once from the start, replacing anything playing: a loaded one is only
-     * started, any other is loaded first. Must not throw.
+     * Plays [sound] once from the start at [gain] (the player's volume on top of the alarm stream,
+     * 0.1–1, SET-27), replacing anything playing: a loaded one is only started, any other is loaded
+     * first. Must not throw.
      */
-    fun play(sound: AlertSound)
+    fun play(sound: AlertSound, gain: Float)
 
     /** Stops and releases the playing sound, if any. */
     fun stop()
 }
 
-/** Vibrates with notification vibration attributes. */
+/** Vibrates with alarm vibration attributes (D-098). */
 interface AlertHaptics {
     fun play(haptic: Haptic)
 

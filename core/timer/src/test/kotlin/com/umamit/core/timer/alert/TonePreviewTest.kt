@@ -15,7 +15,7 @@ class TonePreviewTest {
 
     @Test
     fun `the tone plays once and lets the audio focus go when it ends`() {
-        preview.play("glockenspiel")
+        preview.play("glockenspiel", volumePercent = 100)
         scheduler.advanceBy(AlertSound.GLOCKENSPIEL.lengthMs)
 
         assertThat(sound.plays(AlertSound.GLOCKENSPIEL)).containsExactly(0L)
@@ -24,7 +24,7 @@ class TonePreviewTest {
 
     @Test
     fun `an unknown key previews the Klangschale`() {
-        preview.play("unknown")
+        preview.play("unknown", volumePercent = 100)
 
         assertThat(sound.playing).isEqualTo(AlertSound.KLANGSCHALE)
     }
@@ -32,7 +32,7 @@ class TonePreviewTest {
     @Test
     fun `a Vorwarnton plays once by its stored key and lets the focus go when it has rung out`() {
         // SET-26 *Anhören*: the sound alone, as long as it rings (04 §9.2).
-        preview.playPreAlert("klangstab")
+        preview.playPreAlert("klangstab", volumePercent = 100)
         scheduler.advanceBy(3_000L)
         assertThat(sound.focusHeld).isTrue()
         scheduler.advanceBy(200L)
@@ -43,16 +43,16 @@ class TonePreviewTest {
 
     @Test
     fun `Ting plays the tick, and an unknown Vorwarnton key the default`() {
-        preview.playPreAlert("ting")
+        preview.playPreAlert("ting", volumePercent = 100)
         assertThat(sound.playing).isEqualTo(AlertSound.TICK)
 
-        preview.playPreAlert("unknown")
+        preview.playPreAlert("unknown", volumePercent = 100)
         assertThat(sound.playing).isEqualTo(PreAlertSound.DEFAULT.sound)
     }
 
     @Test
     fun `stop ends the preview at once`() {
-        preview.play("sanft")
+        preview.play("sanft", volumePercent = 100)
         preview.stop()
 
         assertThat(sound.playing).isNull()
@@ -60,15 +60,25 @@ class TonePreviewTest {
     }
 
     @Test
-    fun `in vibrate or silent mode, in a call or under Do Not Disturb the preview stays silent`() {
+    fun `the preview plays at the Lautstaerke it is given`() {
+        // SET-27: Anhören sounds like the cue would, at the stored Lautstärke on the alarm stream (D-098).
+        preview.play("glocke", volumePercent = 40)
+        preview.playPreAlert("ting", volumePercent = 100)
+        preview.play("sanft", volumePercent = 0)
+
+        assertThat(sound.gains).containsExactly("GLOCKE 0.4 @ 0", "TICK 1.0 @ 0", "SANFT 0.1 @ 0").inOrder()
+    }
+
+    @Test
+    fun `in vibrate or silent mode, in a call or under Do Not Disturb total silence the preview stays silent`() {
         listOf(
             AlertConditions(RingerMode.VIBRATE),
             AlertConditions(RingerMode.SILENT),
             AlertConditions(RingerMode.NORMAL, inCall = true),
-            AlertConditions(RingerMode.NORMAL, dndBlocksAlerts = true),
+            AlertConditions(RingerMode.NORMAL, dnd = DoNotDisturb.TOTAL_SILENCE),
         ).forEach {
             environment.conditions = it
-            preview.play("glocke")
+            preview.play("glocke", volumePercent = 100)
         }
 
         assertThat(sound.plays(AlertSound.GLOCKE)).isEmpty()

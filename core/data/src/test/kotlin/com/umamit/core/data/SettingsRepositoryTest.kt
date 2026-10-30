@@ -91,6 +91,20 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun lautstaerkeIsKeptInTenToHundredInStepsOfTen() = runTest {
+        // SET-27 (D-098): never below 10 %, so the app itself can never silence a cue (05 §6).
+        val repository = repository()
+        assertThat(repository.settings.first().alertVolumePercent).isEqualTo(100)
+
+        val stored = listOf(30, 44, 45, 0, -20, 5, 150, 100, 10).map { percent ->
+            repository.update { it.copy(alertVolumePercent = percent) }
+            repository.settings.first().alertVolumePercent
+        }
+
+        assertThat(stored).containsExactly(30, 40, 50, 10, 10, 10, 100, 100, 10).inOrder()
+    }
+
+    @Test
     fun lowStockThresholdIsKeptInZeroToFiveHundredInStepsOfFive() = runTest {
         // SET-16 „Knapp ab" (D-097): 0–500 g in 5 g steps.
         val repository = repository()

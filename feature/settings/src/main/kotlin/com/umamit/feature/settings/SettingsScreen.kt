@@ -14,6 +14,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,8 +24,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -35,6 +38,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,6 +67,9 @@ object SettingsTags {
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val LOW_STOCK = "SettingsLowStock"
+
+    /** The *Lautstärke* slider (SET-27). */
+    const val VOLUME = "SettingsVolume"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
@@ -81,6 +88,8 @@ class SettingsActions(
     val setPreAlertSound: (String) -> Unit = {},
     /** *Anhören* in the *Vorwarnton* picker: the picked sound once (SET-26). */
     val previewPreAlertSound: () -> Unit = {},
+    /** SET-27 *Lautstärke* in % (10–100 in steps of 10), written once a drag ends. */
+    val setVolume: (Int) -> Unit = {},
     val setVibration: (Boolean) -> Unit = {},
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
@@ -151,6 +160,7 @@ fun SettingsRoute(
             setPreAlert = { seconds -> viewModel.change { it.copy(preAlertSeconds = seconds) } },
             setPreAlertSound = { key -> viewModel.change { it.copy(preAlertSound = key) } },
             previewPreAlertSound = { viewModel.previewPreAlertSound((settings ?: UserSettings()).preAlertSound) },
+            setVolume = { percent -> viewModel.change { it.copy(alertVolumePercent = percent) } },
             setVibration = { on -> viewModel.change { it.copy(vibration = on) } },
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
@@ -277,11 +287,18 @@ private fun ReliabilityCard(status: ReliabilityStatus, onFix: (ReliabilityCheck)
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ReliabilityCheck.entries.forEach { check ->
+                val state = status.stateOf(check)
                 StatusCheckRow(
                     label = stringResource(check.label()),
-                    state = status.stateOf(check).toStatusCheck(),
+                    state = state.toStatusCheck(),
                     actionLabel = stringResource(R.string.settings_fix),
                     onAction = { onFix(check) },
+                    // „Alarmlautstärke · Ist aus" (D-098): the phone's setting, not a missing permission.
+                    explanation = if (check == ReliabilityCheck.AlarmVolume && state == CheckState.Missing) {
+                        stringResource(R.string.settings_check_alarm_volume_off)
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -306,6 +323,7 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
             value = stringResource(PreAlertSound.of(settings.preAlertSound).sound.label()),
             onClick = { openDialog(SettingsDialog.PreAlertSound) },
         )
+        VolumeRow(percent = settings.alertVolumePercent, onChange = actions.setVolume)
         SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, actions.setVibration)
         SettingsRow(
             title = stringResource(R.string.settings_alert_length),
@@ -337,6 +355,63 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
         HorizontalDivider(modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin))
     }
 }
+
+/**
+ * SET-27 *Lautstärke* (SCR-25, D-098): the title with the value („100 %"), a slider of 10–100 % in 10 % steps
+ * and the hint. While a finger drags, the slider and the value follow it; the setting is written once, when the
+ * drag ends (TalkBack's adjustments end at once), so a drag is one write, not ten. A stored value outside
+ * 10–100 shows clamped, as the player plays it.
+ */
+@Composable
+private fun VolumeRow(percent: Int, onChange: (Int) -> Unit) {
+    var dragged by remember { mutableStateOf<Float?>(null) }
+    val shown = dragged?.roundToInt() ?: percent.coerceIn(MIN_VOLUME, MAX_VOLUME)
+    val valueText = stringResource(R.string.settings_volume_percent, shown)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.settings_volume),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = dragged ?: shown.toFloat(),
+            onValueChange = { dragged = it },
+            onValueChangeFinished = {
+                dragged?.let { onChange(it.roundToInt()) }
+                dragged = null
+            },
+            valueRange = MIN_VOLUME.toFloat()..MAX_VOLUME.toFloat(),
+            steps = VOLUME_STEPS,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(SettingsTags.VOLUME)
+                .semantics { stateDescription = valueText },
+        )
+        Text(
+            text = stringResource(R.string.settings_volume_detail),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private const val MIN_VOLUME = UserSettings.MIN_ALERT_VOLUME_PERCENT
+private const val MAX_VOLUME = UserSettings.MAX_ALERT_VOLUME_PERCENT
+
+/** The values between the ends: 20, 30 … 90 (SET-27). */
+private const val VOLUME_STEPS = (MAX_VOLUME - MIN_VOLUME) / UserSettings.ALERT_VOLUME_STEP_PERCENT - 1
 
 /** A row that opens something: [title], the current [value] below it, a chevron for a page. */
 @Composable
@@ -415,6 +490,7 @@ private fun ReliabilityCheck.label(): Int = when (this) {
     ReliabilityCheck.FullScreenAlert -> R.string.settings_check_full_screen
     ReliabilityCheck.Battery -> R.string.settings_check_battery
     ReliabilityCheck.ExactAlarms -> R.string.settings_check_exact_alarms
+    ReliabilityCheck.AlarmVolume -> R.string.settings_check_alarm_volume
 }
 
 private fun CheckState.toStatusCheck(): StatusCheck = when (this) {

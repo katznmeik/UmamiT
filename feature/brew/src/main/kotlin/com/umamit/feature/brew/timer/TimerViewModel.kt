@@ -10,9 +10,10 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.core.timer.reliability.firstMissingIntents
-import com.umamit.core.timer.reliability.hasProblem
+import com.umamit.core.timer.reliability.problem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,10 +83,10 @@ class TimerViewModel @Inject constructor(
         .map { TimerScreenSettings(keepScreenOn = it.keepScreenOn, dimWhileSteeping = it.dimWhileSteeping) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, TimerScreenSettings())
 
-    private val problem = MutableStateFlow(reliability.hasProblem())
+    private val problem = MutableStateFlow(reliability.problem())
 
-    /** A reliability check fails: the screen shows the banner (TMR-31). */
-    val reliabilityProblem: StateFlow<Boolean> = problem.asStateFlow()
+    /** A reliability check fails: the screen shows the banner with this message (TMR-31); null: none. */
+    val reliabilityProblem: StateFlow<ReliabilityProblem?> = problem.asStateFlow()
 
     /** The monotonic clock (`elapsedRealtime`). */
     fun nowElapsedMs(): Long = clock.elapsedMs()
@@ -101,7 +102,7 @@ class TimerViewModel @Inject constructor(
 
     /** Reads the checks again; the screen calls it on every resume (the user may come back from the settings). */
     fun refreshReliability() {
-        problem.value = reliability.hasProblem()
+        problem.value = reliability.problem()
     }
 
     /** The banner's *Beheben*: the pages of the first missing check, for the screen to start. */

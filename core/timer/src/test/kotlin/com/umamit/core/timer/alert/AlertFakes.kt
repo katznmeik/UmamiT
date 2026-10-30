@@ -51,8 +51,12 @@ class FakeSoundOutput(private val clock: FakeScheduler) : AlertSoundOutput {
         onLost = null
     }
 
-    override fun play(sound: AlertSound) {
+    /** The gain of every play, in order, e.g. `KLANGSCHALE 0.5 @ 3500` (SET-27; kept apart from [events]). */
+    val gains = mutableListOf<String>()
+
+    override fun play(sound: AlertSound, gain: Float) {
         events += "play $sound @ ${clock.now}"
+        gains += "$sound $gain @ ${clock.now}"
         if (sound !in wanted) loadedOnPlay += sound
         playing = sound
     }

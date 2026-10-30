@@ -4,6 +4,7 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
+import com.umamit.core.timer.alert.DoNotDisturb
 import com.umamit.core.timer.controller.AlarmClock
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerDiagnostic
@@ -72,8 +73,9 @@ object TimerDiagnosticFormat {
 
         is TimerDiagnostic.AlertPlayed ->
             "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
-                "DND blocks ${yesNo(entry.conditions.dndBlocksAlerts)} -> ${outputs(entry.outputs)} | " +
-                "tone ${entry.tone}, length ${entry.length} | " +
+                "DND ${dnd(entry.conditions.dnd)}, alarm volume ${if (entry.conditions.alarmVolumeOff) "0" else "on"}" +
+                " -> ${outputs(entry.outputs)} | " +
+                "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} % | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
@@ -81,7 +83,8 @@ object TimerDiagnosticFormat {
             "process start: notifications ${yesNo(notifications)}, " +
                 "live updates ${promotedNotifications?.let(::yesNo) ?: "n/a"}, " +
                 "full-screen alert ${yesNo(fullScreenIntent)}, exact alarms ${yesNo(exactAlarms)}, " +
-                "battery unrestricted ${yesNo(batteryUnrestricted)} | ${clocks(entry.at)}"
+                "battery unrestricted ${yesNo(batteryUnrestricted)}, " +
+                "alarm volume ${if (alarmVolumeOn) "on" else "0"} | ${clocks(entry.at)}"
         }
 
         is TimerDiagnostic.RecoveryRequested ->
@@ -136,6 +139,8 @@ object TimerDiagnosticFormat {
     }
 
     private fun yesNo(value: Boolean) = if (value) "yes" else "no"
+
+    private fun dnd(dnd: DoNotDisturb): String = dnd.name.lowercase().replace('_', ' ')
 
     private fun outputs(outputs: AlertOutputs): String = when {
         outputs.sound && outputs.vibration -> "sound + vibration"
