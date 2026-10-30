@@ -194,6 +194,7 @@ internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = Act
     zoneId = zoneId,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    quickPreAlertSeconds = quickPreAlertSeconds,
 )
 
 internal fun ActiveBrewEntity.toSnapshot() = ActiveBrewSnapshot(
@@ -218,4 +219,5 @@ internal fun ActiveBrewEntity.toSnapshot() = ActiveBrewSnapshot(
     demoted = demoted,
     preAlertInheritedSeconds = preAlertInheritedSeconds,
     zoneId = zoneId,
+    quickPreAlertSeconds = quickPreAlertSeconds,
 )

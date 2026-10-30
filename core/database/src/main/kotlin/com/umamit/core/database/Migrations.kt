@@ -31,8 +31,25 @@ internal val MIGRATION_1_2: Migration = object : Migration(1, 2) {
 }
 
 /**
+ * Schema 2 → 3 (v0.2.2, CAT-18, TMR-22, D-097): the one schema step of v0.2.2. The Merkliste `catalog_bookmark`
+ * (05 §3.13) is created empty, and `active_brew` gains `quick_pre_alert_seconds` as its last column (null =
+ * *Automatisch*), so a quick timer running during the update keeps the lead it ran with in v0.2.1, the automatic
+ * rule on its frozen B (rule 8). No row changes. Room runs it in one transaction: it applies whole or not at all,
+ * and the database is never opened destructively (05 §9).
+ */
+internal val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `catalog_bookmark` (`catalog_key` TEXT NOT NULL, " +
+                "`created_at` INTEGER NOT NULL, PRIMARY KEY(`catalog_key`))",
+        )
+        db.execSQL("ALTER TABLE `active_brew` ADD COLUMN `quick_pre_alert_seconds` INTEGER")
+    }
+}
+
+/**
  * Every migration of `umamit.db` (05 §9). [umamiDatabaseBuilder] registers exactly these, and
  * `SchemaVersionsTest` opens a database of every committed schema version with that builder,
  * so a version bump whose migration is missing here fails the unit tests.
  */
-internal val UMAMI_MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2)
+internal val UMAMI_MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3)

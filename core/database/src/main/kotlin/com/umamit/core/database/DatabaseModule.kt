@@ -33,6 +33,10 @@ object DatabaseModule {
     @Provides
     fun activeBrewDao(db: UmamiDatabase) = db.activeBrewDao()
 
+    /** The Merkliste (05 §3.13, CAT-18): personal data in `umamit.db`, not in the rebuilt catalog. */
+    @Provides
+    fun catalogBookmarkDao(db: UmamiDatabase) = db.catalogBookmarkDao()
+
     /** The catalog database `catalog.db` (05 §4): separate from the personal data, never backed up. */
     @Provides
     @Singleton
