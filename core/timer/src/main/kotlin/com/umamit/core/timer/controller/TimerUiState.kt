@@ -1,6 +1,8 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -56,6 +58,10 @@ sealed interface TimerUiState {
      * @property longStepsOnly a cold or ice brew: every step is a long step without a pre-alert (TMR-18).
      * @property iceBrew the session is an ice brew (`ICE_BREW`): a cold step's kettle hint reads „Eiswürfel",
      *   not „Kaltes Wasser" (BRW-10).
+     * @property leafGrams the session's planned leaf in g, from its session row, for READY's „4,0 g Tee"
+     *   (BRW-11, D-097); null without one and for the quick timer.
+     * @property waterMl the session's planned water in ml, from its session row, for READY's „250 ml Wasser"
+     *   (BRW-11, D-097); null without one (*Ohne Gefäß*) and for the quick timer.
      */
     data class Active(
         val kind: SessionKind,
@@ -76,6 +82,8 @@ sealed interface TimerUiState {
         val preAlertBaseSeconds: Int,
         val longStepsOnly: Boolean = false,
         val iceBrew: Boolean = false,
+        val leafGrams: Double? = null,
+        val waterMl: Int? = null,
     ) : TimerUiState {
         /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051). */
         val alerting: Boolean get() = phase == TimerPhase.ALERTING
@@ -118,10 +126,31 @@ private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND -
 private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 
 /**
- * The UI state of engine [state] for a session of [teaName] ([iceBrew]: an ice brew), at [now] (the reading of
- * its transition).
+ * What the timer shows of a brew session's row besides its timing (the session's snapshot, never the engine's
+ * state): its tea's name, whether it is an ice brew (BRW-10), and its planned leaf and water (BRW-11, D-097).
+ * The quick timer has none.
  */
-internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, iceBrew: Boolean = false): TimerUiState {
+internal data class SessionDetails(
+    val teaName: String?,
+    val iceBrew: Boolean = false,
+    val leafGrams: Double? = null,
+    val waterMl: Int? = null,
+) {
+    companion object {
+        fun of(snapshot: SessionSnapshot): SessionDetails = SessionDetails(
+            teaName = snapshot.teaName,
+            iceBrew = snapshot.method == BrewMethod.ICE_BREW,
+            leafGrams = snapshot.leafGrams,
+            waterMl = snapshot.waterMl,
+        )
+    }
+}
+
+/**
+ * The UI state of engine [state] for a session with [details] (null: the quick timer, or a session whose row could
+ * not be read), at [now] (the reading of its transition).
+ */
+internal fun uiStateOf(state: TimerState, details: SessionDetails?, now: ClockReading): TimerUiState {
     if (state !is TimerState.Active) return TimerUiState.Idle
     val stepIndex = (state as? TimerState.OnStep)?.stepIndex ?: state.session.steps.size
     val steps = state.session.steps.map {
@@ -129,7 +158,7 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, i
     }
     return TimerUiState.Active(
         kind = state.session.kind,
-        teaName = teaName,
+        teaName = details?.teaName,
         phase = state.phase,
         stepIndex = stepIndex,
         steps = steps,
@@ -152,6 +181,8 @@ internal fun uiStateOf(state: TimerState, teaName: String?, now: ClockReading, i
         finishWouldDiscard = BrewTimerEngine.finishWouldDiscard(state),
         preAlertBaseSeconds = state.session.preAlert.inheritedSeconds,
         longStepsOnly = state.session.longStepsOnly,
-        iceBrew = iceBrew,
+        iceBrew = details?.iceBrew ?: false,
+        leafGrams = details?.leafGrams,
+        waterMl = details?.waterMl,
     )
 }

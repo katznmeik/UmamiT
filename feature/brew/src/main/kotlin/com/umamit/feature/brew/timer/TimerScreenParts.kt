@@ -63,6 +63,7 @@ import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.setup.grams
 
 private val TimerPillMinHeight = 72.dp
 private val TimerPillMinWidth = 200.dp
@@ -71,6 +72,7 @@ private const val PAUSED_RING_ALPHA = 0.6f
 private const val PLACEHOLDER_TEMPERATURE = 100
 private const val PLACEHOLDER_STEP = 10
 private const val PLACEHOLDER_SECONDS = 600
+private const val TENTHS_PER_GRAM = 10L
 
 /** What the timer's body shows; one value, so the body can move between the two surfaces. */
 internal class TimerBodyArgs(
@@ -106,15 +108,20 @@ internal fun TimerBody(args: TimerBodyArgs) {
             TimerRingArea(state, now, args.nowElapsedMs, actions)
             Spacer(Modifier.height(UmamiSpacing.Medium))
             // One fixed slot for the kettle hint and the overtime: the pill below never moves under the
-            // finger, not at *Start*, not when the alert starts, not when the overtime turns large.
+            // finger, not at *Start*, not when the alert starts, not when the overtime turns large. The
+            // session's leaf and water never change while it runs, so neither does the slot (BRW-11).
+            val leafAndWater = leafAndWater(state)
             Box(contentAlignment = Alignment.Center) {
-                BelowRingSpace()
-                TimerBelowRing(state, now)
+                BelowRingSpace(leafAndWater)
+                TimerBelowRing(state, now, leafAndWater)
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
         },
-        controls = {
-            TimerControls(state, actions)
+        // FINISHED's *Weiterer Aufguss* fits with *Sitzung beenden* and the bottom margin (D-096); the step phases
+        // keep the fixed pill height, so nothing moves at *Start* or when the alert starts.
+        fitControls = state.phase == TimerPhase.FINISHED,
+        controls = { TimerControls(state, actions) },
+        afterControls = {
             // Below the controls, so it never moves them; hidden during the alert.
             if (args.reliabilityProblem && !state.alerting) {
                 ReliabilityBanner(
@@ -132,12 +139,13 @@ internal fun TimerBody(args: TimerBodyArgs) {
 }
 
 /**
- * Invisible copies of the slot's two tallest contents, a two-line kettle hint
- * and the large overtime: the slot is as tall as they are at any font scale,
- * so the pill below never moves (D-058).
+ * Invisible copies of the slot's two tallest contents, the kettle hint with
+ * its detail and the session's [leafAndWater], and the large overtime: the
+ * slot is as tall as they are at any font scale, so the pill below never
+ * moves (D-058, BRW-11).
  */
 @Composable
-private fun BelowRingSpace() {
+private fun BelowRingSpace(leafAndWater: LeafAndWater?) {
     Box(
         modifier = Modifier
             .alpha(0f)
@@ -152,6 +160,7 @@ private fun BelowRingSpace() {
                 PLACEHOLDER_STEP,
                 clockText(PLACEHOLDER_SECONDS),
             ),
+            amount = leafAndWater?.text,
         )
         Overtime(PLACEHOLDER_SECONDS)
     }
@@ -293,9 +302,50 @@ internal fun TimerRingColors.dimmed(factor: Float): TimerRingColors = if (factor
     )
 }
 
-/** READY: the kettle hint and the next step; ALERTING: the overtime. */
+/** The session's leaf and water as READY shows them (BRW-11, D-097), and as TalkBack reads them. */
+private class LeafAndWater(val text: String, val description: String)
+
+/**
+ * „4,0 g Tee · 250 ml Wasser" of a brew session, only the parts it has; null without either and for the quick
+ * timer (BRW-11, D-097). TalkBack reads „4 Komma 0 Gramm Tee, 250 Milliliter Wasser".
+ */
 @Composable
-private fun TimerBelowRing(state: TimerUiState.Active, now: Long) {
+private fun leafAndWater(state: TimerUiState.Active): LeafAndWater? {
+    if (state.isQuick) return null
+    val leaf = state.leafGrams?.let { grams ->
+        val tenths = Math.round(grams * TENTHS_PER_GRAM)
+        LeafAndWater(
+            text = stringResource(R.string.brew_timer_leaf, grams(grams)),
+            description = stringResource(
+                R.string.brew_timer_leaf_description,
+                (tenths / TENTHS_PER_GRAM).toInt(),
+                (tenths % TENTHS_PER_GRAM).toInt(),
+            ),
+        )
+    }
+    val water = state.waterMl?.let { ml ->
+        LeafAndWater(
+            text = stringResource(R.string.brew_timer_water, ml),
+            description = stringResource(R.string.brew_timer_water_description, ml),
+        )
+    }
+    return when {
+        leaf != null && water != null -> LeafAndWater(
+            text = stringResource(R.string.brew_timer_leaf_and_water, leaf.text, water.text),
+            description = stringResource(
+                R.string.brew_timer_leaf_and_water_description,
+                leaf.description,
+                water.description,
+            ),
+        )
+
+        else -> leaf ?: water
+    }
+}
+
+/** READY: the kettle hint, the session's [leafAndWater] and the next step; ALERTING: the overtime. */
+@Composable
+private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: LeafAndWater?) {
     when (state.phase) {
         TimerPhase.READY -> {
             val step = state.currentStep ?: return
@@ -315,9 +365,21 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long) {
                     temperatureCelsius = kettle,
                     detail = detail,
                     water = water,
+                    amount = leafAndWater?.text,
+                    amountDescription = leafAndWater?.description,
                 )
 
-                else -> Text(detail, style = MaterialTheme.typography.bodyLarge)
+                else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    leafAndWater?.let {
+                        Text(
+                            text = it.text,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.semantics { contentDescription = it.description },
+                        )
+                    }
+                    Text(detail, style = MaterialTheme.typography.bodyLarge)
+                }
             }
         }
 
