@@ -621,6 +621,40 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   neighbours when the volume is up and „Ist aus" with *Beheben* when it is
   0; the setup page (ONB-02) does not list it.
 
+**Build notes (Claude, 2026-10-30, #125: timer slots in the controller).**
+- **Slots.** `BrewSessionController` holds a `ControllerSlot` per `TimerSlot`
+  (engine state, session details, alert watchdog, the state recovery
+  restored); the engine is unchanged. One timer is still active across both:
+  the admission (`Admission`, `ControllerSlots.blocking`) refuses a start
+  while the other slot is active as `ActiveTimerExists(<its kind>)`, logged
+  as before, and *Beenden & neu starten* ends the active timer in whichever
+  slot it is. v0.3.0-03 changes only these rules. A user event (`send`) goes
+  to the slot of the active timer, the brew slot while none is; the screens
+  and notifications name no slot yet (#134–#136). `state` is the active
+  timer's UI state.
+- **Request codes and broadcasts.** `TimerAlarmKind.requestCodeIn(slot)`:
+  100 or 200 plus 1–7. The brew slot keeps the broadcast of v0.2.2
+  („…TIMER_ALARM.DEADLINE"), so its alarms replace and cancel those v0.2.2
+  left; the quick slot's is „…TIMER_ALARM.QUICK.DEADLINE". The receiver reads
+  an alarm of v0.2.2 as the brew slot's; `TimerInputs.onAlarm(slot, kind)`.
+- **An alarm runs both slots.** `onAlarm` runs every due event of both slots,
+  the brew slot first (so an old alarm of a quick timer, read as the brew
+  slot's, still delivers its event); the slot names the alarm's log entry, its
+  retry and its watchdog. The in-process wake-up comes for the earliest due
+  time of either slot.
+- **Recovery** reads both slots in each try (a failed read of either fails the
+  try), recovers the brew slot first, then cancels the alarms of every slot
+  without a timer (`reconcile(slot, NONE)`), which moves a quick timer of
+  v0.2.2 from 101–106 to 201–206; its watchdog 107 goes with the brew
+  slot's first watchdog turn.
+- **Store seam.** The controller writes through `TimerSlotStore`
+  (`read`/`persist`/`clear` per slot), today on the single-timer methods of
+  `ActiveBrewStore` (`SingleTimerSlotStore`), so a write still clears the other
+  slot as v3 replaced its row. v0.3.0-03 moves it to the slot methods,
+  including the refusal of a row whose slot and kind disagree.
+- **Unchanged:** notification IDs (by role), the diagnostics log format (no
+  slot in `AlarmReceived` yet), the UI.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

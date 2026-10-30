@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import android.util.Log
 import com.umamit.core.common.ClockReading
+import com.umamit.core.model.TimerSlot
 
 /**
  * The alert watchdog alarm ([TimerAlarmKind.ALERT_WATCHDOG], 04 §6.2, §7.2; D-063, D-068). Its
@@ -17,9 +18,9 @@ import com.umamit.core.common.ClockReading
  *
  * In a live process it finds nothing due: the deadline turn has already replaced the guard by
  * the alert cadence, and `StartAlert` never restarts the playing alert. Otherwise it is
- * cancelled. Used inside the controller's event lock.
+ * cancelled. Each [slot] has its own (107, 207; D-098). Used inside the controller's event lock.
  */
-internal class AlertWatchdog(private val alarms: TimerAlarmPort) {
+internal class AlertWatchdog(private val alarms: TimerAlarmPort, private val slot: TimerSlot) {
     /** When the watchdog alarm is set (elapsed); null when it is not. */
     private var atMs: Long? = null
 
@@ -50,7 +51,7 @@ internal class AlertWatchdog(private val alarms: TimerAlarmPort) {
         atMs = wanted
         forAlert = playing
         known = true
-        attempt { alarms.watchAlert(wanted) }?.let { Log.e(TAG, "alert watchdog not set to $wanted", it) }
+        attempt { alarms.watchAlert(slot, wanted) }?.let { Log.e(TAG, "$slot alert watchdog not set to $wanted", it) }
     }
 
     companion object {

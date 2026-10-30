@@ -6,6 +6,7 @@ import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.brewStart
@@ -50,9 +51,9 @@ class ControllerDiagnosticsLogTest {
 
         // The pre-alert (10 s before the end) arrives 80 ms late, the deadline 40 ms late.
         h.clock.advanceBy(50_080)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
         h.clock.advanceBy(9_960)
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         val entries = log.entries()
         assertThat(entries.messageOf("event PreAlertReached")).isEqualTo(

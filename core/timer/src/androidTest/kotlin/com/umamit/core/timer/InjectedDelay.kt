@@ -1,6 +1,7 @@
 package com.umamit.core.timer
 
 import android.content.Context
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerAlarmPort
 import com.umamit.core.timer.controller.TimerWakeUpPort
@@ -22,17 +23,18 @@ object InjectedDelay {
 
 /** [alarms] with the pre-alert and the deadline [delayMs] late. */
 class DelayedAlarms(private val alarms: TimerAlarmPort, private val delayMs: Long) : TimerAlarmPort {
-    override fun reconcile(due: DueTimes) = alarms.reconcile(
+    override fun reconcile(slot: TimerSlot, due: DueTimes) = alarms.reconcile(
+        slot,
         due.copy(
             preAlertAtElapsedMs = due.preAlertAtElapsedMs?.plus(delayMs),
             deadlineElapsedMs = due.deadlineElapsedMs?.plus(delayMs),
         ),
     )
 
-    override fun retry(kind: TimerAlarmKind, atMs: Long) =
-        alarms.retry(kind, if (kind in DELAYED) atMs + delayMs else atMs)
+    override fun retry(slot: TimerSlot, kind: TimerAlarmKind, atMs: Long) =
+        alarms.retry(slot, kind, if (kind in DELAYED) atMs + delayMs else atMs)
 
-    override fun watchAlert(atElapsedMs: Long?) = alarms.watchAlert(atElapsedMs)
+    override fun watchAlert(slot: TimerSlot, atElapsedMs: Long?) = alarms.watchAlert(slot, atElapsedMs)
 
     private companion object {
         val DELAYED = setOf(TimerAlarmKind.PRE_ALERT, TimerAlarmKind.DEADLINE)

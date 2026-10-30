@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.RejectionReason
@@ -37,13 +38,13 @@ class QuickTimerPreAlertTest {
         val deadline = h.active.deadlineElapsedMs!!
         assertThat(h.active.preAlertLeadSeconds).isEqualTo(10)
         assertThat(h.active.preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
         h.advanceSeconds(109)
         assertThat(h.alert.ticks).isEqualTo(0)
         h.advanceSeconds(1)
         assertThat(h.alert.ticks).isEqualTo(1)
         assertThat(h.active.preAlertPlayed).isTrue()
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isNull()
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isNull()
         h.advanceSeconds(10)
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(h.alert.ticks).isEqualTo(1)
@@ -57,13 +58,13 @@ class QuickTimerPreAlertTest {
         // The process dies; nothing in-process wakes it, only the exact alarm at 0:10 left (04 §6.2, E3).
         h.clock.advanceBy(110_000)
         val after = h.processRestarted()
-        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        after.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.PRE_ALERT)
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.active.preAlertLeadSeconds).isEqualTo(10)
         assertThat(after.alert.ticks).isEqualTo(1)
         assertThat(after.alert.scheduled.single()?.atMs).isEqualTo(deadline - 10_000)
-        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        after.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.PRE_ALERT)
         assertThat(after.alert.ticks).isEqualTo(1)
     }
 
@@ -73,7 +74,7 @@ class QuickTimerPreAlertTest {
         ControllerBrewStarter(h.controller).startQuickTimer(120)
 
         assertThat(h.active.preAlertLeadSeconds).isNull()
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isNull()
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isNull()
         h.advanceSeconds(120)
         assertThat(h.alert.ticks).isEqualTo(0)
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
@@ -86,7 +87,7 @@ class QuickTimerPreAlertTest {
         val deadline = h.active.deadlineElapsedMs!!
         assertThat(h.active.preAlertLeadSeconds).isEqualTo(20)
         assertThat(h.active.preAlertAtElapsedMs).isEqualTo(deadline - 20_000)
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 20_000)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isEqualTo(deadline - 20_000)
         h.advanceSeconds(99)
         assertThat(h.alert.ticks).isEqualTo(0)
         h.advanceSeconds(1)
@@ -104,7 +105,7 @@ class QuickTimerPreAlertTest {
 
         h.clock.advanceBy(100_000)
         val after = h.processRestarted()
-        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        after.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.PRE_ALERT)
 
         assertThat(after.active.preAlertLeadSeconds).isEqualTo(20)
         assertThat(after.alert.ticks).isEqualTo(1)
@@ -115,7 +116,7 @@ class QuickTimerPreAlertTest {
     fun `Aus as the choice plays none even with a global Vorwarnung, and Automatisch follows B`() = runTest {
         ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = 0)
         assertThat(h.active.preAlertLeadSeconds).isNull()
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isNull()
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isNull()
         h.advanceSeconds(120)
         assertThat(h.alert.ticks).isEqualTo(0)
         h.controller.send(TimerEvent.Poured)
