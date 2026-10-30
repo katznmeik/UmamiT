@@ -11,6 +11,7 @@ import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.brewStart
 import com.umamit.core.timer.controller.infusion
+import com.umamit.core.timer.controller.send
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
@@ -95,18 +96,17 @@ class ControllerDiagnosticsLogTest {
         h.controller.startSession(brewStart(infusion(60)))
 
         h.controller.send(TimerEvent.Pause)
-        h.controller.startQuickTimer(60)
+        h.controller.startSession(brewStart(infusion(30)))
 
         val entries = log.entries()
-        assertThat(entries.messageOf("event StartSession")).isEqualTo(
+        assertThat(entries.last { it.message.startsWith("event StartSession") }.message).isEqualTo(
             "event StartSession (1 step) from APP: IDLE -> READY accepted | mono 5000000 boot 1",
         )
         assertThat(entries.messageOf("event Pause")).isEqualTo(
             "event Pause from APP: READY -> READY ignored | mono 5000000 boot 1",
         )
-        assertThat(entries.messageOf("event StartQuickTimer")).isEqualTo(
-            "event StartQuickTimer (60 s, pre-alert auto, base 10 s, lead 10 s) from APP: " +
-                "READY -> READY rejected: ActiveTimerExists | mono 5000000 boot 1",
+        assertThat(entries.first { it.message.startsWith("event StartSession") }.message).isEqualTo(
+            "event StartSession (1 step) from APP: READY -> READY rejected: ActiveTimerExists | mono 5000000 boot 1",
         )
     }
 

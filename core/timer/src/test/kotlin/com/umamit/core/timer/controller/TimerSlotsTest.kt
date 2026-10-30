@@ -23,7 +23,8 @@ import org.robolectric.annotation.Config
 /**
  * The controller's two slots (04 §3.3, §6.2; D-098, #125): a brew session runs in the brew slot and
  * the quick timer in the quick slot, each with its own alarms and alert watchdog, and neither ever
- * touches the other slot's. Only one timer is active across both, as before v0.3.0 (TMR-21).
+ * touches the other slot's. From v0.3.0 the two run side by side; only a second start in the same slot is
+ * refused, and *Beenden & neu starten* acts within its slot (TMR-21, TMR-22, D-098).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -90,39 +91,35 @@ class TimerSlotsTest {
     }
 
     @Test
-    fun `a quick timer cannot start while a brew session is active, and the brew is untouched`() = runTest {
+    fun `a quick timer starts while a brew step runs, and the brew is untouched (TMR-22, D-098)`() = runTest {
         h.controller.startSession(brewStart(infusion(60)))
-        val id = h.sessionId
         h.controller.send(TimerEvent.Start)
         val brew = h.active
-        h.log.clear()
+        val brewAlarms = h.alarms.armed(TimerSlot.BREW)
 
         val outcome = h.controller.startQuickTimer(90, run = true)
 
-        assertThat(outcome)
-            .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(id))))
-        assertThat(h.active).isEqualTo(brew)
-        assertThat(h.store.storedPhase()).isEqualTo(TimerPhase.RUNNING)
-        assertThat(h.log.calls).isEmpty()
+        assertThat(outcome).isEqualTo(TransitionOutcome.Accepted)
+        assertThat(h.controller.state(TimerSlot.BREW).value).isEqualTo(brew)
+        assertThat(h.store.storedPhase(TimerSlot.BREW)).isEqualTo(TimerPhase.RUNNING)
+        assertThat(h.store.storedPhase(TimerSlot.QUICK)).isEqualTo(TimerPhase.RUNNING)
+        assertThat(h.alarms.armed(TimerSlot.BREW)).isEqualTo(brewAlarms)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).deadlineElapsedMs).isEqualTo(h.clock.elapsed + 90_000)
+        // The screens show the quick timer just started; the brew runs on beside it.
+        assertThat(h.active.kind).isEqualTo(SessionKind.Quick)
     }
 
     @Test
-    fun `a brew session cannot start while a quick timer is active, and nothing of it is written`() = runTest {
+    fun `a brew session starts while a quick timer runs, and the quick timer is untouched (TMR-21 AC1)`() = runTest {
         h.controller.startQuickTimer(90, run = true)
         val quick = h.active
-        h.log.clear()
 
         val outcome = h.controller.startSession(brewStart(infusion(60)))
 
-        assertThat(outcome).isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Quick)))
-        assertThat(h.active).isEqualTo(quick)
-        assertThat(h.sessions.inProgressSessionIds()).isEmpty()
-        assertThat(h.log.calls).isEmpty()
-        // The refusal is logged as before v0.3.0: the active quick timer refused it.
-        val refused = h.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().last()
-        assertThat(refused.event).isInstanceOf(TimerEvent.StartSession::class.java)
-        assertThat(refused.outcome).isEqualTo(outcome)
-        assertThat(refused.from to refused.to).isEqualTo(TimerPhase.RUNNING to TimerPhase.RUNNING)
+        assertThat(outcome).isEqualTo(TransitionOutcome.Accepted)
+        assertThat(h.active.kind).isInstanceOf(SessionKind.Brew::class.java)
+        assertThat(h.controller.state(TimerSlot.QUICK).value).isEqualTo(quick)
+        assertThat(h.sessions.inProgressSessionIds()).hasSize(1)
     }
 
     @Test
@@ -136,16 +133,50 @@ class TimerSlotsTest {
     }
 
     @Test
-    fun `Beenden und neu starten moves the one active timer from the quick to the brew slot`() = runTest {
+    fun `a second brew session is refused by the active one, beside a quick timer, and writes nothing`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        val id = h.sessionId
         h.controller.startQuickTimer(90, run = true)
+        h.log.clear()
+
+        val outcome = h.controller.startSession(brewStart(infusion(30)))
+
+        assertThat(outcome)
+            .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(id))))
+        assertThat(h.sessions.inProgressSessionIds()).containsExactly(id)
+        assertThat(h.log.calls).isEmpty()
+    }
+
+    @Test
+    fun `Beenden und neu starten of a brew ends only the brew and leaves the quick timer running`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        val first = h.sessionId
+        h.controller.startQuickTimer(90, run = true)
+        val quick = h.controller.state(TimerSlot.QUICK).value
 
         h.controller.finishActiveAndStart(brewStart(infusion(45)))
-        h.controller.send(TimerEvent.Start)
 
+        assertThat(h.sessions.inProgressSessionIds()).doesNotContain(first)
         assertThat(h.active.kind).isInstanceOf(SessionKind.Brew::class.java)
-        assertThat(h.alarms.armed(TimerSlot.QUICK)).isEqualTo(DueTimes.NONE)
-        assertThat(h.alarms.watchdogCancelled(TimerSlot.QUICK)).isTrue()
-        assertThat(h.alarms.armed(TimerSlot.BREW).deadlineElapsedMs).isEqualTo(h.active.deadlineElapsedMs)
+        assertThat(h.active.sessionId).isNotEqualTo(first)
+        assertThat(h.controller.state(TimerSlot.QUICK).value).isEqualTo(quick)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).deadlineElapsedMs).isNotNull()
+    }
+
+    @Test
+    fun `Schnelltimer beenden und neu starten ends only the quick timer and never touches the brew`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        h.controller.send(TimerEvent.Start)
+        val brew = h.controller.state(TimerSlot.BREW).value
+        h.controller.startQuickTimer(90, run = true)
+
+        val outcome = h.controller.startQuickTimer(30, run = true, finishActive = true)
+
+        assertThat(outcome).isEqualTo(TransitionOutcome.Accepted)
+        assertThat((h.controller.state(TimerSlot.QUICK).value as TimerUiState.Active).steps.single().plannedSeconds)
+            .isEqualTo(30)
+        assertThat(h.controller.state(TimerSlot.BREW).value).isEqualTo(brew)
+        assertThat(h.notifier.sessionsSaved).isEmpty()
     }
 
     /** The alarm port calls of [slot] in the shared log. */

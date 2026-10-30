@@ -19,7 +19,7 @@ import com.umamit.core.timer.engine.TimerEvent
  */
 internal class TimerNotificationActions(private val context: Context) {
 
-    fun of(state: TimerUiState.Active): List<NotificationCompat.Action> = actionsOf(state).map(::action)
+    fun of(state: TimerUiState.Active): List<NotificationCompat.Action> = actionsOf(state).map { action(it, state) }
 
     private fun actionsOf(state: TimerUiState.Active): List<Action> {
         val primary = when (state.phase) {
@@ -52,11 +52,12 @@ internal class TimerNotificationActions(private val context: Context) {
         else -> R.string.timer_action_poured
     }
 
-    private fun action(action: Action): NotificationCompat.Action {
+    /** [action] for the slot of [state]: each action sends its event to its own timer (04 §3.3, D-098). */
+    private fun action(action: Action, state: TimerUiState.Active): NotificationCompat.Action {
         val intent = PendingIntent.getBroadcast(
             context,
-            TimerActionReceiver.requestCodeOf(action.event),
-            TimerActionReceiver.intent(context, action.event),
+            TimerActionReceiver.requestCodeOf(action.event, state.slot),
+            TimerActionReceiver.intent(context, action.event, state.slot),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Action.Builder(null, context.getString(action.label), intent).build()

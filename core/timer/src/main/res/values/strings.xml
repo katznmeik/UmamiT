@@ -7,6 +7,9 @@
     <string name="timer_channel_steep_finished_description">Alarm am Ende eines Aufgusses</string>
     <string name="timer_channel_sessions_name">Sitzungen</string>
     <string name="timer_channel_sessions_description">Automatisch gespeicherte Sitzungen</string>
+    <string name="timer_channel_other_name">Weiterer Timer</string>
+    <string name="timer_channel_other_description">Der zweite laufende Timer, still neben dem Aufguss</string>
+    <string name="timer_text_quick_held">Fertig, wartet auf den Aufguss</string>
 
     <!-- Timer notifications and Live Update (04 §8.2, §8.3; M1-11). The step word follows
          the step kind, as on the timer screen (D-058). -->

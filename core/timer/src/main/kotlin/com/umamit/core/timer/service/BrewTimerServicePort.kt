@@ -88,6 +88,9 @@ class BrewTimerServicePort internal constructor(
     /** The state and full-screen flag last sent or posted, so the same update is not sent twice. Guarded by [lock]. */
     private var lastShown: Pair<TimerUiState.Active, Boolean>? = null
 
+    /** Notification 5, the other active timer (D-098); its wake-lock need adds to the service's. Guarded by [lock]. */
+    private var other: TimerUiState.Active? = null
+
     init {
         ForegroundServiceState.reporter = { report ->
             val now = clocks.read()
@@ -159,6 +162,29 @@ class BrewTimerServicePort internal constructor(
         if (state.runsWithService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
     }
 
+    /**
+     * Notification 5 (04 §8.2, D-098): posts the other active timer's notification [state] on `timer_other`,
+     * or removes it (null). A short step running there needs the wake lock as the service's own does (04 §6.1
+     * two slots): when its need grows, the service's last notification is sent again with the longer wake lock,
+     * without alerting again.
+     */
+    fun showOther(state: TimerUiState.Active?) = synchronized(lock) {
+        val now = clocks.read()
+        val before = other
+        other = state
+        if (state == null) {
+            TimerNotifications.cancel(context, TimerNotifications.ID_OTHER)
+        } else if (state != before) {
+            TimerNotifications.ensureChannels(context)
+            TimerNotifications.post(context, TimerNotifications.ID_OTHER, notifications.other(state, now))
+        }
+        val shown = lastShown
+        val grows = state != null && wakeLockMs(state, now) > (before?.let { wakeLockMs(it, now) } ?: 0L)
+        if (grows && shown != null && ForegroundServiceState.isForeground) {
+            send(shown.first, shown.second, now, again = true)
+        }
+    }
+
     /** Posts the notification of [state] without the service; the other timer notifications go first (D-044). */
     private fun post(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
         lastShown = state to fullScreen
@@ -197,7 +223,8 @@ class BrewTimerServicePort internal constructor(
         val id = notifications.idFor(state)
         val notification = notifications.build(state, fullScreen, now)
         if (again) notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
-        val wakeLockMs = wakeLockMs(state, now)
+        // The longer of the two timers' needs (04 §6.1 two slots, D-098).
+        val wakeLockMs = maxOf(wakeLockMs(state, now), other?.let { wakeLockMs(it, now) } ?: 0L)
         ForegroundServiceState.holdHandover(context)
         if (ForegroundServiceState.isForeground && sendToRunning(id, notification, wakeLockMs)) return
         val command = BrewTimerService.command(context, id, notification, wakeLockMs, foregroundRequired = true)

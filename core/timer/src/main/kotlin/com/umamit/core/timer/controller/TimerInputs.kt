@@ -16,8 +16,8 @@ interface TimerInputs {
      */
     suspend fun onAlarm(slot: TimerSlot, kind: TimerAlarmKind)
 
-    /** A user event from the app or a notification ([source]); see [BrewSessionController.send]. */
-    suspend fun send(event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome
+    /** A user event of [slot]'s timer from the app or a notification ([source]); see [BrewSessionController.send]. */
+    suspend fun send(slot: TimerSlot, event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome
 
     /**
      * The process should hold the persisted timer now ([trigger], 04 §7.2): one controller turn

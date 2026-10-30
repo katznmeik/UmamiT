@@ -21,13 +21,17 @@ class TestTimerHost :
     TimerHost {
     val alarms = LinkedBlockingQueue<TimerAlarm>()
     val events = LinkedBlockingQueue<Pair<TimerEvent, EventSource>>()
+
+    /** The slot of each of [events], in the same order. */
+    val slots = LinkedBlockingQueue<TimerSlot>()
     val recoveries = LinkedBlockingQueue<RecoveryTrigger>()
 
     override val timerInputs: TimerInputs = object : TimerInputs {
         override suspend fun onAlarm(slot: TimerSlot, kind: TimerAlarmKind) = alarms.put(TimerAlarm(slot, kind))
 
-        override suspend fun send(event: TimerEvent, source: EventSource): TransitionOutcome {
+        override suspend fun send(slot: TimerSlot, event: TimerEvent, source: EventSource): TransitionOutcome {
             events.put(event to source)
+            slots.put(slot)
             return TransitionOutcome.Accepted
         }
 

@@ -29,7 +29,7 @@ internal class ControllerSlot(val id: TimerSlot, alarms: TimerAlarmPort) {
 
 /**
  * The controller's two slots, the brew slot first: the order of recovery and of due events (04 §3.3, §7.2).
- * Until v0.3.0-03 admits a timer per slot, only one timer is active across both, as before v0.3.0.
+ * From v0.3.0 each admits its own timer (D-098): a brew session and a quick timer run side by side.
  */
 internal class ControllerSlots(alarms: TimerAlarmPort) : Iterable<ControllerSlot> {
     private val slots = TimerSlot.entries.map { ControllerSlot(it, alarms) }
@@ -38,20 +38,11 @@ internal class ControllerSlots(alarms: TimerAlarmPort) : Iterable<ControllerSlot
 
     override fun iterator(): Iterator<ControllerSlot> = slots.iterator()
 
-    /**
-     * The slot whose timer is active, which the screens and the notifications show and a user event goes
-     * to; the brew slot while none is (an event there is ignored, as on Idle).
-     */
-    val current: ControllerSlot get() = slots.firstOrNull { it.active != null } ?: get(TimerSlot.BREW)
+    /** The brew slot's engine state. */
+    val brew: TimerState get() = get(TimerSlot.BREW).timer
 
-    /**
-     * The active timer that refuses a start in slot [id] (TMR-21): the other slot's. One timer across both
-     * slots, as before v0.3.0, until v0.3.0-03 drops this rule (D-098); a timer active in slot [id] itself
-     * is refused by the engine.
-     */
-    fun blocking(id: TimerSlot): TimerState.Active? = slots.firstNotNullOfOrNull { slot ->
-        slot.active?.takeIf { slot.id != id }
-    }
+    /** The quick slot's engine state. */
+    val quick: TimerState get() = get(TimerSlot.QUICK).timer
 }
 
 /** The slot of a timer of [kind] (04 §3.3): a brew session's or the quick timer's. */
