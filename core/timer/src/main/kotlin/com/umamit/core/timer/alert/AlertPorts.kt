@@ -9,6 +9,13 @@ package com.umamit.core.timer.alert
 /** Reads the ringer mode, call state and Do Not Disturb (AudioManager, NotificationManager). */
 fun interface AlertEnvironment {
     fun conditions(): AlertConditions
+
+    /**
+     * The phone's alarm volume is 0 (TMR-31, D-098). The cue still runs (its vibration and visual alert are
+     * not muted), so this is read only for its log line, after the outputs have started: never a binder call
+     * ahead of a cue's sound (rule 8).
+     */
+    fun alarmVolumeOff(): Boolean = false
 }
 
 /** Plays bundled sounds with alarm audio attributes (D-098) and holds the audio focus. */

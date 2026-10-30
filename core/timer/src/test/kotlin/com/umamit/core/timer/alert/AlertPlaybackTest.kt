@@ -394,6 +394,24 @@ class AlertPlaybackTest {
     }
 
     @Test
+    fun atAlarmVolumeZeroTheCueStillRunsAndItsLogSaysSo() = runTest {
+        // TMR-31, E18 (D-098): the outputs run as the matrix allows; the volume is read for the log only.
+        environment.alarmVolumeOff = true
+        settings.update { it.copy(alertLength = AlertLength.SHORT) }
+        val playback = playback(settings.settings)
+
+        playback.startAlert(onFinished = {})
+        environment.alarmVolumeOff = false
+        playback.playPreAlert()
+
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L)
+        assertThat(haptics.plays(Haptic.ALERT)).containsExactly(0L)
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.alarmVolumeOff })
+            .containsExactly(true, false)
+            .inOrder()
+    }
+
+    @Test
     fun aStoredLautstaerkeBelowTenPercentStillPlaysAtTenPercent() = runTest {
         // Rule 8: the app itself never silences a cue, whatever the file holds (05 §6).
         settings.update { it.copy(alertVolumePercent = 0) }

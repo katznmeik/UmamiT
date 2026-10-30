@@ -301,6 +301,8 @@ class AlertPlayback internal constructor(
                     scheduled = scheduled,
                     start = timing?.cueStart(at.elapsedMs, outputs.sound),
                     volumePercent = current.volumePercent,
+                    // Read here, after the outputs started: never ahead of a cue's sound (rule 8).
+                    alarmVolumeOff = environment.alarmVolumeOff(),
                 ),
             )
         } catch (e: CancellationException) {

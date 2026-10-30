@@ -109,10 +109,11 @@ class TimerDiagnosticFormatTest {
             TimerDiagnostic.AlertPlayed(
                 now,
                 AlertCue.ALERT,
-                AlertConditions(RingerMode.SILENT, dnd = dnd, alarmVolumeOff = alarmVolumeOff),
+                AlertConditions(RingerMode.SILENT, dnd = dnd),
                 AlertOutputs.NONE,
                 tone = "klangschale",
                 length = AlertLength.NORMAL,
+                alarmVolumeOff = alarmVolumeOff,
             ),
         )
 

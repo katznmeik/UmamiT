@@ -610,8 +610,11 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
 - **The check.** `ReliabilityCheck.AlarmVolume`, last in the card's order,
   so a missing permission's *Beheben* comes first; `PermissionStates` gains
   `alarmVolumeOn` (`getStreamVolume(STREAM_ALARM) > 0`; 0 also for a muted
-  stream), logged at process start. The banner says „Alarmlautstärke ist
-  aus" only when the volume is the first missing check (the one *Beheben*
+  stream), logged at process start. The player reads the alarm volume only
+  for a cue's log line, after its outputs started, so no binder call is
+  added ahead of a cue's sound; at 0 the cue still runs (E18). The banner
+  says „Alarmlautstärke ist aus" only when the volume is the first missing
+  check (the one *Beheben*
   opens), else the general message. *Beheben* opens
   `Settings.ACTION_SOUND_SETTINGS`, then the settings (not the app's
   details, which have no volume). The card's row shows ✓ like its

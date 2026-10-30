@@ -31,14 +31,11 @@ enum class DoNotDisturb {
  * @property inCall a call is ringing or active (incl. VoIP): vibrate only (04 §9.1).
  * @property dnd Do Not Disturb (04 §9.1, D-098): *total silence* keeps the cue visual; *alarms
  *   only* and priority mode play as the ringer mode ([AlertMatrix]).
- * @property alarmVolumeOff the phone's alarm volume is 0 (TMR-31, D-098): the cue still runs (its
- *   sound is inaudible, the vibration and the visual alert are not); it is only logged.
  */
 data class AlertConditions(
     val ringerMode: RingerMode,
     val inCall: Boolean = false,
     val dnd: DoNotDisturb = DoNotDisturb.OFF,
-    val alarmVolumeOff: Boolean = false,
 )
 
 /** What the player starts, for the diagnostics log (06 §5.6): the pre-alert tick, a step's alert, *Alarm testen*. */

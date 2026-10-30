@@ -3,7 +3,12 @@ package com.umamit.core.timer.alert
 // Test doubles for the seams of RingerModeAlertPlayer (fakes, no mocks).
 
 class FakeEnvironment(var conditions: AlertConditions = AlertConditions(RingerMode.NORMAL)) : AlertEnvironment {
+    /** The phone's alarm volume is 0 (TMR-31). */
+    var alarmVolumeOff = false
+
     override fun conditions(): AlertConditions = conditions
+
+    override fun alarmVolumeOff(): Boolean = alarmVolumeOff
 }
 
 /** Records every call as text, e.g. `play KLANGSCHALE @ 3500`, with the scheduler's virtual time. */

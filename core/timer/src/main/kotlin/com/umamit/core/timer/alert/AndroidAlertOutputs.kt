@@ -85,13 +85,11 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
             // INTERRUPTION_FILTER_ALL, or UNKNOWN: as the ringer mode, never silenced by a guess (rule 8).
             else -> DoNotDisturb.OFF
         }
-        return AlertConditions(
-            ringerMode = ringerMode,
-            inCall = audioManager?.mode in CALL_MODES,
-            dnd = dnd,
-            alarmVolumeOff = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) == 0,
-        )
+        return AlertConditions(ringerMode = ringerMode, inCall = audioManager?.mode in CALL_MODES, dnd = dnd)
     }
+
+    /** `getStreamVolume` answers 0 for a muted stream too. */
+    override fun alarmVolumeOff(): Boolean = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) == 0
 
     private companion object {
         /** Ringing, in a call, in a VoIP call, call screening or redirected calls. */

@@ -2,7 +2,6 @@ package com.umamit.core.timer.diagnostics
 
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
-import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.controller.AlarmClock
@@ -72,7 +71,7 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->
-            "alert ${entry.cue}: ${entry.conditions.text()} -> ${outputs(entry.outputs)} | " +
+            "alert ${entry.cue}: ${entry.readings()} -> ${outputs(entry.outputs)} | " +
                 "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} % | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
@@ -187,5 +186,7 @@ private fun CueStart.text(): String {
  * as `off`, `priority`, `alarms only` or `total silence`, so the PO's phone shows how One UI reports the ringer
  * mode under each (D-098).
  */
-private fun AlertConditions.text(): String = "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +
-    "DND ${dnd.name.lowercase().replace('_', ' ')}, alarm volume ${if (alarmVolumeOff) "0" else "on"}"
+private fun TimerDiagnostic.AlertPlayed.readings(): String = with(conditions) {
+    "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +
+        "DND ${dnd.name.lowercase().replace('_', ' ')}, alarm volume ${if (alarmVolumeOff) "0" else "on"}"
+}

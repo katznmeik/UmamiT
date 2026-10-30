@@ -47,8 +47,6 @@ class AndroidAlertOutputsTest {
     @Test
     fun environmentReadsRingerModeCallStateAndDoNotDisturb() {
         val environment = AndroidAlertEnvironment(context)
-        // Robolectric starts every stream at 0; a phone's alarm volume is above it.
-        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, 5, 0)
 
         audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
         assertThat(environment.conditions()).isEqualTo(AlertConditions(RingerMode.NORMAL))
@@ -81,10 +79,10 @@ class AndroidAlertOutputsTest {
         val environment = AndroidAlertEnvironment(context)
 
         audioManager.setStreamVolume(AudioManager.STREAM_ALARM, 0, 0)
-        assertThat(environment.conditions().alarmVolumeOff).isTrue()
+        assertThat(environment.alarmVolumeOff()).isTrue()
 
         audioManager.setStreamVolume(AudioManager.STREAM_ALARM, 3, 0)
-        assertThat(environment.conditions().alarmVolumeOff).isFalse()
+        assertThat(environment.alarmVolumeOff()).isFalse()
     }
 
     @Test
