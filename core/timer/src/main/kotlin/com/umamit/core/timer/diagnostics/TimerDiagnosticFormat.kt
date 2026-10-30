@@ -7,6 +7,7 @@ import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.controller.AlarmClock
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerDiagnostic
+import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import java.time.Instant
@@ -108,7 +109,7 @@ object TimerDiagnosticFormat {
     private fun eventName(event: TimerEvent): String = when (event) {
         is TimerEvent.StartSession -> "StartSession (${steps(event.steps.size)})"
         is TimerEvent.EditSteps -> "EditSteps (${steps(event.steps.size)})"
-        is TimerEvent.StartQuickTimer -> "StartQuickTimer (${event.durationSeconds} s)"
+        is TimerEvent.StartQuickTimer -> "StartQuickTimer (${event.durationSeconds} s, ${event.preAlertText()})"
         else -> event::class.simpleName.orEmpty()
     }
 
@@ -154,6 +155,20 @@ object TimerDiagnosticFormat {
 
     private const val MAX_ERROR_CHARS = 200
     private const val MS_PER_SECOND = 1_000L
+}
+
+/**
+ * A quick timer's effective *Vorwarnung* (TMR-22, D-097): SCR-07's choice, the global B and the lead it gives,
+ * e.g. `pre-alert auto, base 10 s, lead 10 s` or `pre-alert off, base 10 s, lead none`.
+ */
+private fun TimerEvent.StartQuickTimer.preAlertText(): String {
+    val choice = when (val seconds = preAlertSeconds) {
+        null -> "auto"
+        0 -> "off"
+        else -> "$seconds s"
+    }
+    val lead = BrewTimerEngine.quickTimerPreAlertLeadSeconds(durationSeconds, globalPreAlertSeconds, preAlertSeconds)
+    return "pre-alert $choice, base $globalPreAlertSeconds s, lead ${lead?.let { "$it s" } ?: "none"}"
 }
 
 /** Where a cue's start spent the time (D-092), e.g. `queued 2 ms, settings 0 ms, outputs 15 ms, sound ready`. */

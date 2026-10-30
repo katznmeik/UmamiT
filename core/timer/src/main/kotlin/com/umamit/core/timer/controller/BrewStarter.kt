@@ -33,15 +33,17 @@ interface BrewStarter {
 
     /**
      * *Start* on the quick timer (SCR-07, TMR-22, 04 §10): one infusion of
-     * [durationSeconds] with the global pre-alert, running at once (SCR-07's
-     * *Start* is the start of its one step). Nothing is recorded. Returns
-     * `Rejected(ActiveTimerExists)` while another timer is active (TMR-21) and
-     * `Rejected(InvalidQuickTimer)` outside 5 s – 24 h.
+     * [durationSeconds] with the *Vorwarnung* chosen on SCR-07, [preAlertSeconds]
+     * (D-097: null *Automatisch* with B = the global pre-alert, 0 *Aus*, else
+     * 5–30 s as set), running at once (SCR-07's *Start* is the start of its one
+     * step). Nothing is recorded. Returns `Rejected(ActiveTimerExists)` while
+     * another timer is active (TMR-21) and `Rejected(InvalidQuickTimer)` outside
+     * 5 s – 24 h or for a choice other than 0 or 5–30 s.
      */
-    suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome
+    suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 
     /** *Beenden & neu starten* (TMR-21) for the quick timer: the active timer ends as above, then it runs. */
-    suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome
+    suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 }
 
 /**
@@ -57,11 +59,13 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
     override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome =
         controller.finishActiveAndStart(request)
 
-    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome =
-        controller.startQuickTimer(durationSeconds, run = true)
+    override suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome =
+        controller.startQuickTimer(durationSeconds, preAlertSeconds, run = true)
 
-    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome =
-        controller.startQuickTimer(durationSeconds, run = true, finishActive = true)
+    override suspend fun finishActiveAndStartQuickTimer(
+        durationSeconds: Int,
+        preAlertSeconds: Int?,
+    ): TransitionOutcome = controller.startQuickTimer(durationSeconds, preAlertSeconds, run = true, finishActive = true)
 }
 
 /**

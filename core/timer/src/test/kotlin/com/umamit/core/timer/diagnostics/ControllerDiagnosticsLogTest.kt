@@ -104,7 +104,41 @@ class ControllerDiagnosticsLogTest {
             "event Pause from APP: READY -> READY ignored | mono 5000000 boot 1",
         )
         assertThat(entries.messageOf("event StartQuickTimer")).isEqualTo(
-            "event StartQuickTimer (60 s) from APP: READY -> READY rejected: ActiveTimerExists | mono 5000000 boot 1",
+            "event StartQuickTimer (60 s, pre-alert auto, base 10 s, lead 10 s) from APP: " +
+                "READY -> READY rejected: ActiveTimerExists | mono 5000000 boot 1",
+        )
+    }
+
+    /**
+     * A quick timer's start records its effective *Vorwarnung* (TMR-22, D-097, #109, #116): SCR-07's choice, the
+     * global B and the resulting lead, so a report of a silent pre-alert can be settled from *Diagnose*.
+     */
+    @Test
+    fun `a quick timer's start is logged with its choice, the global Vorwarnung and the resulting lead`() = runTest {
+        val starts = listOf(
+            Triple(120, null, 10),
+            Triple(120, 0, 10),
+            Triple(120, 20, 10),
+            Triple(20, 20, 10),
+            Triple(120, null, 0),
+        )
+        starts.forEach { (seconds, choice, base) ->
+            h.settings.update { it.copy(preAlertSeconds = base) }
+            h.controller.startQuickTimer(seconds, choice)
+            h.controller.send(TimerEvent.Cancel)
+        }
+
+        assertThat(log.entries().map { it.message }.filter { it.startsWith("event StartQuickTimer") }).containsExactly(
+            "event StartQuickTimer (120 s, pre-alert auto, base 10 s, lead 10 s) from APP: IDLE -> READY accepted | " +
+                "mono 5000000 boot 1",
+            "event StartQuickTimer (120 s, pre-alert off, base 10 s, lead none) from APP: IDLE -> READY accepted | " +
+                "mono 5000000 boot 1",
+            "event StartQuickTimer (120 s, pre-alert 20 s, base 10 s, lead 20 s) from APP: IDLE -> READY accepted | " +
+                "mono 5000000 boot 1",
+            "event StartQuickTimer (20 s, pre-alert 20 s, base 10 s, lead none) from APP: IDLE -> READY accepted | " +
+                "mono 5000000 boot 1",
+            "event StartQuickTimer (120 s, pre-alert auto, base 0 s, lead none) from APP: IDLE -> READY accepted | " +
+                "mono 5000000 boot 1",
         )
     }
 

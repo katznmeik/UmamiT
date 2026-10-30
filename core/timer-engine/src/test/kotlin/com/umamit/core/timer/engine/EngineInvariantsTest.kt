@@ -39,8 +39,13 @@ class EngineInvariantsTest {
             RejectionReason.StartedStepChanged,
             RejectionReason.NoBrewStepLeft,
             RejectionReason.ActiveTimerExists(SessionKind.Quick),
+            RejectionReason.InvalidQuickTimer,
         )
+        // Quick timers ran with every kind of choice (D-097).
+        assertWithMessage("quick-timer choices").that(quickChoices).containsAtLeast(null, 0, 5, 30)
     }
+
+    private val quickChoices = mutableSetOf<Int?>()
 
     private val accepted = mutableSetOf<Class<out TimerEvent>>()
     private val rejections = mutableSetOf<RejectionReason>()
@@ -76,6 +81,7 @@ class EngineInvariantsTest {
                 recorded.clear()
                 preAlertsPlayed.clear()
             }
+            if (event is TimerEvent.StartQuickTimer) quickChoices += event.preAlertSeconds
             checkEffectOrder(label, transition)
             checkAlertEdges(label, before, event, transition)
             checkService(label, before, event, transition)
@@ -84,6 +90,9 @@ class EngineInvariantsTest {
             checkPlanShape(label, transition.state)
             checkPendingRows(label, transition)
             checkQuickTimer(label, before, transition)
+            quickStart =
+                if (event is TimerEvent.StartQuickTimer) event else quickStart.takeIf { driver.state.isQuick() }
+            quickStart?.let { checkQuickLead(label, it, transition.state) }
             checkSnapshot(label, transition.state)
             checkNothingOverdue(label, transition.state, driver)
         }
@@ -351,6 +360,23 @@ class EngineInvariantsTest {
 
     private fun TimerState.isQuick() = this is TimerState.Active && session.kind == SessionKind.Quick
 
+    /** The start of the quick timer active in this run, if one is. */
+    private var quickStart: TimerEvent.StartQuickTimer? = null
+
+    /**
+     * A quick timer's lead follows the choice it started with for as long as it lives (TMR-22, D-097), against an
+     * independent oracle of 04 §5: *Automatisch* min(B, 5 · ⌊d / 15⌋), *Aus* none, an explicit value as set; none
+     * when it is 0, when d < N + 5 s, or on a long step.
+     */
+    private fun checkQuickLead(label: String, start: TimerEvent.StartQuickTimer, state: TimerState) {
+        if (state !is TimerState.OnStep) return
+        val d = start.durationSeconds
+        val n = start.preAlertSeconds ?: minOf(start.globalPreAlertSeconds, 5 * (d / 15))
+        val expected = n.takeUnless { it == 0 || d < it + 5 || d >= LONG_SECONDS }
+        assertWithMessage("$label: the quick timer's lead follows its choice")
+            .that(BrewTimerEngine.preAlertLeadSeconds(state)).isEqualTo(expected)
+    }
+
     /** Every accepted state survives the persistence round trip (05 §3.12). */
     private fun checkSnapshot(label: String, state: TimerState) {
         val restored = try {
@@ -458,7 +484,7 @@ class EngineInvariantsTest {
                 random.nextInt(8) == 0,
             )
         },
-        { random, _ -> TimerEvent.StartQuickTimer(random.nextInt(5, 120), globalPreAlertSeconds = 10) },
+        { random, _ -> randomQuickTimer(random) },
         { _, _ -> TimerEvent.Start },
         { _, _ -> TimerEvent.Start },
         { _, _ -> TimerEvent.Pause },
@@ -513,6 +539,17 @@ class EngineInvariantsTest {
         0 -> null
         1 -> 0
         else -> random.nextInt(1, 7) * 5
+    }
+
+    /**
+     * SCR-07's *Start* (TMR-22, D-097): mostly a short timer, now and then a long one; a global *Vorwarnung* B of
+     * *Aus* or 5–30 s; the selector's choice, and now and then a value it never offers (rejected).
+     */
+    private fun randomQuickTimer(random: Random): TimerEvent.StartQuickTimer {
+        val seconds = if (random.nextInt(8) == 0) random.nextInt(LONG_SECONDS, 900) else random.nextInt(5, 120)
+        val base = random.nextInt(0, 7) * 5
+        val choice = if (random.nextInt(10) == 0) listOf(-5, 3, 35).random(random) else randomPreAlert(random)
+        return TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = base, preAlertSeconds = choice)
     }
 
     private companion object {
