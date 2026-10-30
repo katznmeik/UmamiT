@@ -18,6 +18,8 @@ internal fun dispatch(state: TimerState, event: TimerEvent, now: ClockReading): 
 
         event == TimerEvent.Recover -> recover(state, now)
 
+        event == TimerEvent.RecoverHeld -> recover(state, now, holdAlert = state.session.kind == SessionKind.Quick)
+
         event.isStart -> null
 
         state.session.bootCount != now.bootCount ->
@@ -63,7 +65,8 @@ private fun onStepEvent(state: TimerState.Active, event: TimerEvent, now: ClockR
     is TimerState.Paused -> if (event == TimerEvent.Resume) resume(state, now) else null
 
     is TimerState.Alerting -> when {
-        event == TimerEvent.AlertCompleted && !state.alertPlayed -> alertCompleted(state)
+        // A held alert plays nothing, so it is never reported completed (04 §9.3).
+        event == TimerEvent.AlertCompleted && !state.alertPlayed && !state.held -> alertCompleted(state)
 
         event == TimerEvent.OvertimeTimeout && isDue(dueTimesOf(state).overtimeTimeoutAtElapsedMs, now) ->
             overtimeTimedOut(state, now)

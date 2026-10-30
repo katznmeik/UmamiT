@@ -101,6 +101,11 @@ sealed interface TimerState {
      *
      * @property alertPlayed the alert ran its full cycle ([TimerEvent.AlertCompleted], `alert_played`).
      *   The alert is at-least-once: recovery replays `StartAlert` while this is false (04 §7.2).
+     * @property ringingSinceElapsedMs when the alert last started ringing (`ringingSince`, 04 §3.3, §9.3; D-098);
+     *   null while a quick timer's alert is held because the brew alerts ([held]). A brew alert is never held
+     *   and rings since its deadline; so does a quick alert that rang at its deadline. A held quick alert rings
+     *   from its release ([TimerEvent.AlertRingStart]), and its silent end counts from then.
+     * @property ringingSinceWallMs the same on the wall clock, for reboot recovery; null with it.
      */
     data class Alerting(
         override val session: TimerSession,
@@ -110,8 +115,13 @@ sealed interface TimerState {
         override val deadlineElapsedMs: Long,
         override val deadlineWallMs: Long,
         val alertPlayed: Boolean,
+        val ringingSinceElapsedMs: Long?,
+        val ringingSinceWallMs: Long?,
     ) : WithDeadline {
         override val phase: TimerPhase get() = TimerPhase.ALERTING
+
+        /** A quick alert waiting for the brew's: no sound, no alert notification, no silent end (04 §9.3). */
+        val held: Boolean get() = ringingSinceElapsedMs == null
     }
 
     /** No pending step left; waiting for *Sitzung beenden* or *Weiterer Aufguss*. */
