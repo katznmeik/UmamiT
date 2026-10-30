@@ -237,7 +237,7 @@ class CatalogRefresherTest {
 
         val outcome = refresher().refresh()
 
-        assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 3, newTeas = 1))
+        assertThat((outcome as CatalogRefreshOutcome.Success).newTeas).isEqualTo(1)
         assertThat(paths()).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA, GYOKURO, NEW_TEA).inOrder()
         assertThat(names())
             .containsExactly("Frühlingshauch Shincha", "Morgennebel Sencha", "Tautropfen Gyokuro").inOrder()
@@ -442,6 +442,52 @@ class CatalogRefresherTest {
         // is dropped, and nothing after it is asked for.
         assertThat(paths().take(4)).containsExactly(ROBOTS, SITEMAP, SITEMAP_GZ, SENCHA).inOrder()
         assertThat(paths().drop(4)).isIn(listOf(emptyList(), listOf(GYOKURO)))
+    }
+
+    // The result notification tapped after the app was closed shows the last refresh from the log (SCR-22, D-097).
+    @Test
+    fun theLastSuccessIsReadBackFromTheLogWithItsSummary() = runTest {
+        assertThat(refresher().lastOutcome()).isNull()
+        previousCatalog()
+        product(NEW_TEA, "Frühlingshauch Shincha – 100g", "XY0600", SHINCHA_PATH)
+        val outcome = refresher().refresh()
+
+        // A new process: a refresher that never ran reads it from catalog.db.
+        assertThat(refresher().lastOutcome()).isEqualTo(outcome)
+        assertThat((outcome as CatalogRefreshOutcome.Success).newTeas).isEqualTo(1)
+    }
+
+    @Test
+    fun aFailureIsReadBackFromTheLogAsTheSameKindOfFailure() = runTest {
+        previousCatalog()
+        val answers = listOf(
+            { MockResponse.Builder().code(503).build() },
+            { MockResponse.Builder().code(429).build() },
+            { MockResponse.Builder().code(403).addHeader("cf-mitigated", "challenge").build() },
+            { MockResponse.Builder().onResponseStart(SocketEffect.CloseSocket()).build() },
+        )
+        for (answer in answers) {
+            routes[GYOKURO] = answer
+            val outcome = refresher().refresh() as CatalogRefreshOutcome.Failure
+
+            val read = refresher().lastOutcome() as CatalogRefreshOutcome.Failure
+
+            assertThat(read.javaClass).isEqualTo(outcome.javaClass)
+            if (outcome is CatalogRefreshOutcome.Blocked) {
+                assertThat((read as CatalogRefreshOutcome.Blocked).cause).isEqualTo(outcome.cause)
+            }
+            // *Details kopieren* gets the line the log kept.
+            assertThat(outcome.details).startsWith("UmamiT catalog refresh: ${read.details}")
+        }
+    }
+
+    @Test
+    fun aCancelledLastRefreshHasNoResultToShow() = runTest {
+        previousCatalog()
+        val run = async { refresher().refresh { if (it.pagesDone == 1) this@async.cancel() } }
+        runCatching { run.await() }
+
+        assertThat(refresher().lastOutcome()).isNull()
     }
 
     @Test

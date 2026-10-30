@@ -1,6 +1,7 @@
 package com.umamit.core.testing
 
 import com.umamit.core.data.catalog.CatalogBookmarkRepository
+import com.umamit.core.data.catalog.CatalogRefreshOutcome
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
@@ -79,6 +80,12 @@ class FakeCatalogRefreshRunner(initial: CatalogRefreshState = CatalogRefreshStat
     var acknowledgements = 0
         private set
 
+    /** What [recallLastResult] reads from the refresh log; null for nothing to recall. */
+    var lastResult: CatalogRefreshOutcome? = null
+
+    var recalls = 0
+        private set
+
     override fun start() {
         starts++
     }
@@ -90,6 +97,12 @@ class FakeCatalogRefreshRunner(initial: CatalogRefreshState = CatalogRefreshStat
     override fun acknowledge() {
         acknowledgements++
         if (state.value is CatalogRefreshState.Finished) state.value = CatalogRefreshState.Idle
+    }
+
+    override suspend fun recallLastResult() {
+        recalls++
+        val last = lastResult ?: return
+        if (state.value == CatalogRefreshState.Idle) state.value = CatalogRefreshState.Finished(last)
     }
 }
 

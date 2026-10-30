@@ -43,6 +43,9 @@ import javax.inject.Inject
  * A link shared to the app reaches it from [ShareTeaLinkActivity] ([openTeaLink], CAT-17): the
  * shell shows Sammlung › Katalog, which loads it. The timer is never covered for it: while the
  * timer or another screen above the tabs is shown, the share waits until the tabs are back (rule 8).
+ *
+ * The catalog refresh's notifications open it with [CatalogRefreshRequests] (SCR-22, D-097): the
+ * root shows Sammlung › Katalog with the refresh sheet above what was shown, never over an alert.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -66,6 +69,9 @@ class MainActivity : ComponentActivity() {
     /** Links shared to the app (CAT-17); a pending one survives a recreation. */
     private val teaLinkShares = TeaLinkShares()
 
+    /** Taps on the catalog refresh's notifications (SCR-22, D-097); a pending one survives a recreation. */
+    private val catalogRefreshRequests = CatalogRefreshRequests()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -73,9 +79,11 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) {
             openTimerIfAsked(intent)
             teaLinkShares.offer(intent)
+            catalogRefreshRequests.offer(intent)
         } else {
             if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
             teaLinkShares.restore(savedInstanceState)
+            catalogRefreshRequests.restore(savedInstanceState)
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
@@ -99,6 +107,8 @@ class MainActivity : ComponentActivity() {
                     onTimerVisibleChange = { timerVisible.value = it },
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
+                    catalogRefreshRequest = catalogRefreshRequests.token,
+                    onConsumeCatalogRefreshRequest = catalogRefreshRequests::handled,
                     startScreen = { StartTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
                 )
@@ -111,12 +121,14 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         openTimerIfAsked(intent)
         teaLinkShares.offer(intent)
+        catalogRefreshRequests.offer(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         timerRequests.save(outState)
         teaLinkShares.save(outState)
+        catalogRefreshRequests.save(outState)
     }
 
     private fun openTimerIfAsked(intent: Intent?) {
