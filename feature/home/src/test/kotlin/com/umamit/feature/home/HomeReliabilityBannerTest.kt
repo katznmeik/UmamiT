@@ -12,6 +12,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.reliability.CheckState
@@ -71,6 +72,7 @@ class HomeReliabilityBannerTest {
             },
             PhotoFiles(folder.newFolder("photos")),
             reliability,
+            FakeLowStockRepository(),
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {

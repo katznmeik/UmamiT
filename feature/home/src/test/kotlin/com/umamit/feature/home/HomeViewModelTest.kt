@@ -2,10 +2,12 @@ package com.umamit.feature.home
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.MonotonicClock
+import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
@@ -14,8 +16,10 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTimerReliability
+import com.umamit.core.testing.lowStockCard
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.engine.PlannedStep
@@ -26,7 +30,10 @@ import com.umamit.core.timer.reliability.ReliabilityCheck
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -36,6 +43,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.IOException
 
 /** Start's view model (SCR-02; BRW-11, TMR-21, GEN-06, GEN-09) with fake repositories and a fake controller. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,6 +55,7 @@ class HomeViewModelTest {
     private val sessions = FakeSessions(collection)
     private val starter = FakeBrewStarter()
     private val reliability = FakeTimerReliability()
+    private val lowStock = FakeLowStockRepository()
     private var now = 5_000L
     private val clock = object : MonotonicClock {
         override fun elapsedMs() = now
@@ -110,6 +119,7 @@ class HomeViewModelTest {
         clock,
         PhotoFiles(folder.newFolder("photos")),
         reliability,
+        lowStock,
     )
 
     @Test
@@ -162,11 +172,70 @@ class HomeViewModelTest {
         brewed("s1", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 1_000, 45)
         collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
 
-        val state = HomeViewModel(collection.teas, sessions.sessions, starter, clock, photos, reliability).state.value
+        val state = HomeViewModel(
+            collection.teas,
+            sessions.sessions,
+            starter,
+            clock,
+            photos,
+            reliability,
+            lowStock,
+        ).state.value
 
         assertThat(state.brewAgain).isEmpty()
         assertThat(state.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
         assertThat(state.recent.single().photoPath).isEqualTo(photos.file("cover").path)
+    }
+
+    @Test
+    fun `a Knapp tea fills the nudge slot and Ausblenden hides it (INV-10)`() = runTest {
+        seed()
+        val card = lowStockCard(grams = 14.0)
+        lowStock.card.value = card
+        val vm = viewModel()
+
+        assertThat(vm.state.value.lowStock).isEqualTo(card)
+
+        vm.hideLowStock()
+
+        assertThat(lowStock.hidden).containsExactly(card)
+        assertThat(vm.state.value.lowStock).isNull()
+    }
+
+    @Test
+    fun `a stock read that hangs or fails never holds back Start or its alert (rule 8)`() = runTest {
+        seed()
+        val hanging = object : LowStockRepository {
+            override fun observeCard(): Flow<LowStockCard?> = flow { awaitCancellation() }
+
+            override suspend fun hide(card: LowStockCard) = Unit
+        }
+        val failing = object : LowStockRepository {
+            override fun observeCard(): Flow<LowStockCard?> = flow { throw IOException("synthetic") }
+
+            override suspend fun hide(card: LowStockCard) = Unit
+        }
+        listOf(hanging, failing).forEach { repository ->
+            val vm = HomeViewModel(
+                collection.teas,
+                sessions.sessions,
+                starter,
+                clock,
+                PhotoFiles(folder.newFolder()),
+                reliability,
+                repository,
+            )
+
+            assertThat(vm.state.value.loading).isFalse()
+            assertThat(vm.state.value.lowStock).isNull()
+        }
+    }
+
+    @Test
+    fun `no Knapp tea leaves the nudge slot empty`() = runTest {
+        seed()
+
+        assertThat(viewModel().state.value.lowStock).isNull()
     }
 
     @Test

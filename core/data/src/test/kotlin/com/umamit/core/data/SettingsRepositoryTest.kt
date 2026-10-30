@@ -1,9 +1,8 @@
 package com.umamit.core.data
 
-import androidx.datastore.core.DataStoreFactory
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.datastore.SettingsDataSource
-import com.umamit.core.datastore.SettingsSerializer
+import com.umamit.core.datastore.settingsDataStore
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
@@ -20,7 +19,7 @@ class SettingsRepositoryTest {
 
     private fun TestScope.repository() = DataStoreSettingsRepository(
         SettingsDataSource(
-            DataStoreFactory.create(SettingsSerializer, scope = backgroundScope) { File(folder.root, "s.json") },
+            settingsDataStore(backgroundScope) { File(folder.root, "s.json") },
         ),
     )
 
@@ -89,5 +88,20 @@ class SettingsRepositoryTest {
         }
 
         assertThat(stored).containsExactly(20, 10, 30, 0, 0, null).inOrder()
+    }
+
+    @Test
+    fun lowStockThresholdIsKeptInZeroToFiveHundredInStepsOfFive() = runTest {
+        // SET-16 „Knapp ab" (D-097): 0–500 g in 5 g steps.
+        val repository = repository()
+
+        repository.update { it.copy(lowStockGrams = 17.4) }
+        assertThat(repository.settings.first().lowStockGrams).isEqualTo(15.0)
+        repository.update { it.copy(lowStockGrams = 18.0) }
+        assertThat(repository.settings.first().lowStockGrams).isEqualTo(20.0)
+        repository.update { it.copy(lowStockGrams = 900.0) }
+        assertThat(repository.settings.first().lowStockGrams).isEqualTo(500.0)
+        repository.update { it.copy(lowStockGrams = -10.0) }
+        assertThat(repository.settings.first().lowStockGrams).isEqualTo(0.0)
     }
 }

@@ -7,6 +7,7 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.testing.lowStockCard
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.SessionKind
@@ -114,6 +115,20 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
             ),
         )
     }
+
+    /** The quiet low-stock card in the nudge slot (INV-10, D-097), with a long name that wraps. */
+    @Test
+    fun lowStock() = capture(
+        "lowStock",
+        seeded.copy(lowStock = lowStockCard(teaName = "Bio Sencha Tanabata", grams = 14.0)),
+    )
+
+    /** An empty tea without INV-09's link: only *Ausblenden*. */
+    @Test
+    fun lowStockEmpty() = capture(
+        "lowStockEmpty",
+        seeded.copy(lowStock = lowStockCard(teaName = "Bio Sencha Tanabata", grams = 0.0, reorderUrl = null)),
+    )
 
     @Test
     fun empty() = capture("empty", HomeUiState(loading = false, collectionEmpty = true))
