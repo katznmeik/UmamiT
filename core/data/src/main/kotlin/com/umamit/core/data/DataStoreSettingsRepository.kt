@@ -82,8 +82,14 @@ internal fun settingsRetryDelayMs(attempt: Long): Long {
     return (FIRST_SETTINGS_RETRY_MS shl doublings).coerceAtMost(MAX_SETTINGS_RETRY_MS)
 }
 
-/** Keeps the pre-alert in 0, 5…30 (SET-10) and „Knapp ab" in 0…500 g in steps of 5 (SET-16). */
+/**
+ * Keeps the pre-alert (SET-10) and the quick timer's choice (TMR-22, D-097; null stays *Automatisch*) in 0, 5…30
+ * and „Knapp ab" in 0…500 g in steps of 5 (SET-16).
+ */
 internal fun UserSettings.normalized(): UserSettings = copy(
-    preAlertSeconds = snap5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS),
+    preAlertSeconds = preAlertOf(preAlertSeconds),
+    quickTimerPreAlert = quickTimerPreAlert?.let(::preAlertOf),
     lowStockGrams = snap5(lowStockGrams).coerceIn(0, MAX_LOW_STOCK_GRAMS).toDouble(),
 )
+
+private fun preAlertOf(seconds: Int): Int = snap5(seconds).coerceIn(0, MAX_PRE_ALERT_SECONDS)

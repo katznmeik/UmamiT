@@ -682,7 +682,10 @@ Below the chips a *Vorwarnung* row with the selector of SCR-31
 („Auto · 10 s", *Aus*, 5–30 s, „· zu kurz" when the duration is too short),
 remembered for the next quick timer. The ring before *Start* shows the
 pre-alert mark for the chosen duration and lead; while it runs the mark
-and the Vorwarnton work as on a brew step (TMR-22 AC1).
+and the Vorwarnton work as on a brew step (TMR-22 AC1). With the row, on a
+short screen at a large font the band before *Start* gives way as a brew's
+does, so *Start* lies on the screen (e.g. 411 × 800 dp, font 2.0); where
+everything fits it keeps its height and nothing moves at *Start* (rule 8).
 
 ### SCR-08 Sammlung › Meine Tees
 

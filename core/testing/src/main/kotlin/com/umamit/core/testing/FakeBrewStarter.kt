@@ -18,12 +18,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * start while a timer is active is refused, otherwise the session waits in
  * READY with the request's steps; *Beenden & neu starten* replaces the active
  * one. [starts] records every accepted request in order, [quickStarts] every
- * accepted quick timer's duration; a quick timer runs at once.
+ * accepted quick timer's duration and [quickPreAlerts] its *Vorwarnung* choice
+ * (null *Automatisch*, 0 *Aus*, else 5–30 s; D-097); a quick timer runs at once.
  */
 class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     override val state = MutableStateFlow(initial)
     val starts = mutableListOf<BrewStart>()
     val quickStarts = mutableListOf<Int>()
+    val quickPreAlerts = mutableListOf<Int?>()
 
     /** How many times *Beenden & neu starten* replaced an active timer. */
     var replaced = 0
@@ -42,26 +44,31 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
         return TransitionOutcome.Accepted
     }
 
-    override suspend fun startQuickTimer(durationSeconds: Int): TransitionOutcome {
+    override suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome {
         val active = state.value as? TimerUiState.Active
         return when {
             active != null -> TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(active.kind))
 
-            durationSeconds !in QUICK_MIN_SECONDS..QUICK_MAX_SECONDS ->
+            durationSeconds !in QUICK_MIN_SECONDS..QUICK_MAX_SECONDS ||
+                (preAlertSeconds != null && preAlertSeconds != 0 && preAlertSeconds !in QUICK_PRE_ALERT_SECONDS) ->
                 TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer)
 
-            else -> acceptQuick(durationSeconds)
+            else -> acceptQuick(durationSeconds, preAlertSeconds)
         }
     }
 
-    override suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int): TransitionOutcome {
+    override suspend fun finishActiveAndStartQuickTimer(
+        durationSeconds: Int,
+        preAlertSeconds: Int?,
+    ): TransitionOutcome {
         if (state.value is TimerUiState.Active) replaced++
         state.value = TimerUiState.Idle
-        return startQuickTimer(durationSeconds)
+        return startQuickTimer(durationSeconds, preAlertSeconds)
     }
 
-    private fun acceptQuick(durationSeconds: Int): TransitionOutcome {
+    private fun acceptQuick(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome {
         quickStarts += durationSeconds
+        quickPreAlerts += preAlertSeconds
         state.value = quickRunningState(durationSeconds)
         return TransitionOutcome.Accepted
     }
@@ -74,6 +81,7 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     companion object {
         private const val QUICK_MIN_SECONDS = 5
         private const val QUICK_MAX_SECONDS = 86_400
+        private val QUICK_PRE_ALERT_SECONDS = 5..30
 
         /** A quick timer of [durationSeconds] just started (it runs at once); no deadline, as the fake has no clock. */
         fun quickRunningState(durationSeconds: Int) = TimerUiState.Active(

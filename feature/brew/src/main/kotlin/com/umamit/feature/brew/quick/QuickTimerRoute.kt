@@ -34,6 +34,7 @@ fun QuickTimerRoute(
         QuickTimerActions(
             back = onBack,
             select = viewModel::select,
+            selectPreAlert = viewModel::selectPreAlert,
             start = viewModel::start,
             confirmRestart = viewModel::confirmRestart,
             dismissQuestion = viewModel::dismissQuestion,

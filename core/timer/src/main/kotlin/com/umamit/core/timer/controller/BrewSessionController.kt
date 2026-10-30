@@ -155,20 +155,23 @@ class BrewSessionController @Inject constructor(
     }
 
     /**
-     * *Schnelltimer* (TMR-22, 04 §10): one infusion of [durationSeconds] with the
-     * global pre-alert, waiting in READY; nothing is recorded. Returns
-     * `Rejected(ActiveTimerExists)` while a timer is active (TMR-21) and
-     * `Rejected(InvalidQuickTimer)` for a duration outside 5 s – 24 h. With
+     * *Schnelltimer* (TMR-22, 04 §10): one infusion of [durationSeconds] with
+     * SCR-07's *Vorwarnung* [preAlertSeconds] (D-097: null *Automatisch* with
+     * B = the global pre-alert, read now; 0 *Aus*; else 5–30 s as set), waiting
+     * in READY; nothing is recorded. Returns `Rejected(ActiveTimerExists)` while
+     * a timer is active (TMR-21) and `Rejected(InvalidQuickTimer)` for a
+     * duration outside 5 s – 24 h or a choice other than 0 or 5–30 s. With
      * [run], its step starts in the same turn (SCR-07's *Start*). With
      * [finishActive] it is *Beenden & neu starten* (TMR-21, D-054, D-065): in the
      * same turn the active timer first ends as in [finishActiveAndStart].
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
+        preAlertSeconds: Int? = null,
         run: Boolean = false,
         finishActive: Boolean = false,
     ): TransitionOutcome {
-        val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds)
+        val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
             if (finishActive) {
                 (timer as? TimerState.Active)?.let { active ->

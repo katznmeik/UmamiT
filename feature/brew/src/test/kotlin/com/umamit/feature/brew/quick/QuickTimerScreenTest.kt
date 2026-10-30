@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,8 +18,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.setup.ActiveSessionQuestion
 import org.junit.Rule
 import org.junit.Test
@@ -28,8 +31,9 @@ import org.robolectric.annotation.Config
 
 /**
  * SCR-07 before its *Start* with fake state (spec #40 seam 4): chips, the
- * duration picker's bounds and increments, *Start*, the second-timer question,
- * and nothing of it over an alert (rule 8).
+ * duration picker's bounds and increments, the *Vorwarnung* selector and the
+ * ring's mark (TMR-22, D-097), *Start*, the second-timer question, and nothing
+ * of it over an alert (rule 8).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -52,6 +56,10 @@ class QuickTimerScreenTest {
                         select = {
                             calls += "select $it"
                             state = state.copy(durationSeconds = it)
+                        },
+                        selectPreAlert = {
+                            calls += "pre-alert ${it.explicitSeconds}"
+                            state = state.copy(preAlertChoice = it)
                         },
                         start = { calls += "start" },
                         confirmRestart = { calls += "restart" },
@@ -142,6 +150,73 @@ class QuickTimerScreenTest {
     }
 
     @Test
+    fun `the Vorwarnung row shows the choice with the lead the quick timer gets (SCR-31 labels)`() {
+        // (duration, choice, label) with the global Vorwarnung 10 s.
+        val cases = listOf(
+            Triple(120, PreAlertChoice.Inherit, "Auto · ${sec(10)}"),
+            Triple(20, PreAlertChoice.Inherit, "Auto · ${sec(5)}"),
+            Triple(10, PreAlertChoice.Inherit, "Auto · keine"),
+            Triple(120, PreAlertChoice.Off, "Aus"),
+            Triple(120, PreAlertChoice.Seconds(20), sec(20)),
+            Triple(20, PreAlertChoice.Seconds(20), "${sec(20)} · zu kurz"),
+            Triple(4_500, PreAlertChoice.Seconds(20), "${sec(20)} · keine"),
+        )
+        show()
+        cases.forEach { (seconds, choice, label) ->
+            state = QuickTimerUiState(durationSeconds = seconds, preAlertChoice = choice)
+            compose.onNodeWithText(label, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `Automatisch follows the global Vorwarnung, and Aus there gives none`() {
+        show(QuickTimerUiState(durationSeconds = 120, preAlertBaseSeconds = 15))
+        compose.onNodeWithText("Auto · ${sec(15)}", useUnmergedTree = true).assertExists()
+
+        state = state.copy(preAlertBaseSeconds = 0)
+
+        compose.onNodeWithText("Auto · keine", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `the menu offers Automatisch, Aus and 5 to 30 s, and a tap chooses one`() {
+        show(QuickTimerUiState(durationSeconds = 120))
+
+        compose.onNodeWithContentDescription("Vorwarnung: Automatisch, 10 Sekunden vorher. Ändern")
+            .performScrollTo().performClick()
+        compose.onNodeWithText("Automatisch · ${sec(10)}").assertIsDisplayed()
+        compose.onNodeWithText("Aus").assertIsDisplayed()
+        compose.onNodeWithText(sec(30)).assertExists()
+        compose.onNodeWithText(sec(20)).performClick()
+
+        assertThat(calls).containsExactly("pre-alert 20")
+        compose.onNodeWithContentDescription("Vorwarnung: 20 Sekunden vorher. Ändern").assertExists()
+    }
+
+    @Test
+    fun `the ring's mark before Start moves with the duration and the choice`() {
+        show(QuickTimerUiState(durationSeconds = 120))
+        assertThat(markPosition()).isWithin(EPSILON).of(1f - 10f / 120f)
+
+        state = state.copy(durationSeconds = 60)
+        assertThat(markPosition()).isWithin(EPSILON).of(1f - 10f / 60f)
+
+        state = state.copy(preAlertChoice = PreAlertChoice.Seconds(20))
+        assertThat(markPosition()).isWithin(EPSILON).of(1f - 20f / 60f)
+
+        state = state.copy(preAlertChoice = PreAlertChoice.Off)
+        assertThat(markPosition()).isNull()
+
+        state = state.copy(durationSeconds = 20, preAlertChoice = PreAlertChoice.Seconds(20))
+        assertThat(markPosition()).isNull()
+    }
+
+    private fun markPosition(): Float? {
+        compose.waitForIdle()
+        return compose.onNodeWithTag(QUICK_RING_TAG).fetchSemanticsNode().config.getOrNull(PreAlertMarkKey)
+    }
+
+    @Test
     fun `back leaves the screen`() {
         show()
         compose.onNodeWithContentDescription("Zurück").performClick()
@@ -174,5 +249,12 @@ class QuickTimerScreenTest {
         show(QuickTimerUiState(question = ActiveSessionQuestion(null), alertKey = "s1:0:1"))
 
         compose.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    private companion object {
+        const val EPSILON = 1e-6f
+
+        /** „20 s" as the labels write it, with a no-break space (`brew_steps_pre_alert_seconds`). */
+        fun sec(seconds: Int) = "$seconds\u00A0s"
     }
 }

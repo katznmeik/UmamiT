@@ -77,6 +77,20 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun theQuickTimersChoiceIsKeptInAutomatischAusOrFiveToThirty() = runTest {
+        // TMR-22 (v0.2.2, D-097): like SET-10, snapped to 5 s and clamped to 0 or 5…30; null stays *Automatisch*.
+        val repository = repository()
+        assertThat(repository.settings.first().quickTimerPreAlert).isNull()
+
+        val stored = listOf(20, 12, 45, -5, 0, null).map { choice ->
+            repository.update { it.copy(quickTimerPreAlert = choice) }
+            repository.settings.first().quickTimerPreAlert
+        }
+
+        assertThat(stored).containsExactly(20, 10, 30, 0, 0, null).inOrder()
+    }
+
+    @Test
     fun lowStockThresholdIsKeptInZeroToFiveHundredInStepsOfFive() = runTest {
         // SET-16 „Knapp ab" (D-097): 0–500 g in 5 g steps.
         val repository = repository()

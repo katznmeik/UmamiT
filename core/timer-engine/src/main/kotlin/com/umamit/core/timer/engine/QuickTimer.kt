@@ -14,17 +14,38 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
  * finishSession and discard do not apply.
  */
 
-/** Global pre-alert values the settings offer (SET-10): off, or 5–30 s. */
+/** Pre-alert leads the settings (SET-10) and SCR-07's selector offer, besides 0 (off): 5–30 s. */
 private val PRE_ALERT_SECONDS = 5..30
 
+/** [seconds] is a pre-alert the settings or SCR-07's selector can hold: 0 (*Aus*) or 5–30 s. */
+internal fun isQuickPreAlert(seconds: Int): Boolean = seconds == 0 || seconds in PRE_ALERT_SECONDS
+
+/** A quick timer of [durationSeconds], global [globalSeconds] and choice [choiceSeconds] may start (04 §10). */
+private fun isValidQuickTimer(durationSeconds: Int, globalSeconds: Int, choiceSeconds: Int?): Boolean =
+    durationSeconds in MIN_STEP_SECONDS..MAX_STEP_SECONDS &&
+        isQuickPreAlert(globalSeconds) &&
+        (choiceSeconds?.let(::isQuickPreAlert) ?: true)
+
+/** [BrewTimerEngine.quickTimerPreAlertLeadSeconds]: the lead of the one step [startQuickTimer] would plan. */
+internal fun quickTimerPreAlertLeadOf(durationSeconds: Int, globalSeconds: Int, choiceSeconds: Int?): Int? =
+    if (isValidQuickTimer(durationSeconds, globalSeconds, choiceSeconds)) {
+        val step = PlannedStep(StepKind.INFUSION, durationSeconds, tempC = null, choiceSeconds)
+        preAlertLeadSecondsOf(
+            step,
+            PreAlertSettings(globalSeconds),
+            isLongStepOf(durationSeconds, longStepsOnly = false),
+        )
+    } else {
+        null
+    }
+
 /**
- * Starts the quick timer, or rejects a duration outside 5 s – 24 h or a
- * global pre-alert other than 0 or 5–30 s with [RejectionReason.InvalidQuickTimer].
+ * Starts the quick timer, or rejects a duration outside 5 s – 24 h, or a
+ * global pre-alert or a choice other than 0 or 5–30 s, with
+ * [RejectionReason.InvalidQuickTimer] (04 §10, D-097).
  */
 internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReading): TimerTransition {
-    val valid = event.durationSeconds in MIN_STEP_SECONDS..MAX_STEP_SECONDS &&
-        (event.globalPreAlertSeconds == 0 || event.globalPreAlertSeconds in PRE_ALERT_SECONDS)
-    if (!valid) {
+    if (!isValidQuickTimer(event.durationSeconds, event.globalPreAlertSeconds, event.preAlertSeconds)) {
         return TimerTransition(
             TimerState.Idle,
             emptyList(),
@@ -33,8 +54,17 @@ internal fun startQuickTimer(event: TimerEvent.StartQuickTimer, now: ClockReadin
     }
     val session = TimerSession(
         kind = SessionKind.Quick,
-        steps = listOf(SessionStep(StepKind.INFUSION, event.durationSeconds, null, StepStatus.PENDING, null)),
-        // Its one step is *Automatisch* with B = the global setting (TMR-22, D-093).
+        // Its one step carries the choice of SCR-07; *Automatisch* uses B = the global setting (TMR-22, D-097).
+        steps = listOf(
+            SessionStep(
+                StepKind.INFUSION,
+                event.durationSeconds,
+                null,
+                StepStatus.PENDING,
+                null,
+                event.preAlertSeconds,
+            ),
+        ),
         preAlert = PreAlertSettings(inheritedSeconds = event.globalPreAlertSeconds),
         zone = now.zone,
         lastInteractionWallMs = now.wallMs,

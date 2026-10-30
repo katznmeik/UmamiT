@@ -4,6 +4,9 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.timer.engine.RejectionReason
+import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Test
@@ -14,7 +17,8 @@ import org.robolectric.annotation.Config
 /**
  * The quick timer's pre-alert on the controller's real path (TMR-22, 04 §10, §12; D-097 point 5, #109): SCR-07's
  * *Start* through the [BrewStarter] the app binds, with the global *Vorwarnung* B. Characterizes the acceptance
- * criteria of #109; on the code of v0.2.1 these pass, so they did not reproduce the PO's silent pre-alert.
+ * criteria of #109; on the code of v0.2.1 these pass, so they did not reproduce the PO's silent pre-alert. From
+ * v0.2.2 SCR-07's choice (*Automatisch*, *Aus*, 5–30 s) comes with the start and survives process death (#116).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -73,6 +77,60 @@ class QuickTimerPreAlertTest {
         h.advanceSeconds(120)
         assertThat(h.alert.ticks).isEqualTo(0)
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
+    }
+
+    @Test
+    fun `a quick timer started with 20 s schedules its pre-alert at deadline - 20 s and plays it (D-097)`() = runTest {
+        ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = 20)
+
+        val deadline = h.active.deadlineElapsedMs!!
+        assertThat(h.active.preAlertLeadSeconds).isEqualTo(20)
+        assertThat(h.active.preAlertAtElapsedMs).isEqualTo(deadline - 20_000)
+        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 20_000)
+        h.advanceSeconds(99)
+        assertThat(h.alert.ticks).isEqualTo(0)
+        h.advanceSeconds(1)
+        assertThat(h.alert.ticks).isEqualTo(1)
+        assertThat(h.active.preAlertPlayed).isTrue()
+        h.advanceSeconds(20)
+        assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(h.alert.ticks).isEqualTo(1)
+    }
+
+    @Test
+    fun `the choice survives process death through umamit_db, and the alarm plays the tick at 0_20`() = runTest {
+        ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = 20)
+        val deadline = h.active.deadlineElapsedMs!!
+
+        h.clock.advanceBy(100_000)
+        val after = h.processRestarted()
+        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+
+        assertThat(after.active.preAlertLeadSeconds).isEqualTo(20)
+        assertThat(after.alert.ticks).isEqualTo(1)
+        assertThat(after.alert.scheduled.single()?.atMs).isEqualTo(deadline - 20_000)
+    }
+
+    @Test
+    fun `Aus as the choice plays none even with a global Vorwarnung, and Automatisch follows B`() = runTest {
+        ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = 0)
+        assertThat(h.active.preAlertLeadSeconds).isNull()
+        assertThat(h.alarms.armed.preAlertAtElapsedMs).isNull()
+        h.advanceSeconds(120)
+        assertThat(h.alert.ticks).isEqualTo(0)
+        h.controller.send(TimerEvent.Poured)
+
+        settings.update { it.copy(preAlertSeconds = 15) }
+        ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = null)
+        assertThat(h.active.preAlertLeadSeconds).isEqualTo(15)
+    }
+
+    @Test
+    fun `an invalid choice is refused and nothing runs`() = runTest {
+        val outcome = ControllerBrewStarter(h.controller).startQuickTimer(120, preAlertSeconds = 35)
+
+        assertThat(outcome).isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
+        assertThat(h.controller.state.value).isEqualTo(TimerUiState.Idle)
     }
 
     @Test

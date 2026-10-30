@@ -35,6 +35,7 @@ import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.TimerClocks
 import com.umamit.core.timer.controller.TimerPorts
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.brew.timer.ControllerBrewTimer
 import com.umamit.feature.brew.timer.TIMER_RING_TAG
@@ -55,7 +56,8 @@ import org.robolectric.annotation.Config
  * [QuickTimerViewModel] starts the quick timer on the real controller (Room, fakes at its ports) behind
  * [ControllerBrewTimer], and the timer route shows it. With the global *Vorwarnung* 10 s, a 2:00 quick timer has
  * its mark at 0:10 on the ring, its tick at 0:10 left and the caption „Gleich fertig …". On the code of v0.2.1
- * this passes: it did not reproduce the PO's silent pre-alert.
+ * this passes: it did not reproduce the PO's silent pre-alert. From v0.2.2 SCR-07's *Vorwarnung* choice reaches the
+ * timer the same way (#116).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -96,7 +98,7 @@ class QuickTimerPreAlertFlowTest {
 
     @Test
     fun `a 2_00 quick timer started on SCR-07 shows its mark and warns at 0_10 on the timer screen`() {
-        val quick = QuickTimerViewModel(SavedStateHandle(), timer)
+        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
         quick.select(120)
         quick.start()
         awaitActive()
@@ -109,6 +111,30 @@ class QuickTimerPreAlertFlowTest {
         ring().assert(hasContentDescription("Zieht …", substring = true))
 
         runBlocking { wakeUp.advanceBy(110_000) }
+        compose.waitForIdle()
+
+        assertThat(alert.ticks).isEqualTo(1)
+        ring().assert(hasContentDescription("Gleich fertig …", substring = true))
+    }
+
+    @Test
+    fun `a 2_00 quick timer with Vorwarnung 20 s on SCR-07 shows its mark and warns at 0_20 (D-097)`() {
+        val quick = QuickTimerViewModel(SavedStateHandle(), timer, settings)
+        quick.select(120)
+        quick.selectPreAlert(PreAlertChoice.Seconds(20))
+        quick.start()
+        awaitActive()
+        showTimer()
+
+        val running = controller.state.value as TimerUiState.Active
+        assertThat(running.preAlertLeadSeconds).isEqualTo(20)
+        assertThat(running.preAlertPosition()).isWithin(EPSILON).of(1f - 20f / 120f)
+
+        runBlocking { wakeUp.advanceBy(99_000) }
+        compose.waitForIdle()
+        assertThat(alert.ticks).isEqualTo(0)
+        ring().assert(hasContentDescription("Zieht …", substring = true))
+        runBlocking { wakeUp.advanceBy(1_000) }
         compose.waitForIdle()
 
         assertThat(alert.ticks).isEqualTo(1)

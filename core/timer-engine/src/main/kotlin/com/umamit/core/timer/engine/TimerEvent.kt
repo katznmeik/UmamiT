@@ -34,11 +34,18 @@ sealed interface TimerEvent {
     /**
      * *Schnelltimer* (TMR-22, 04 §10), only in Idle (else rejected with
      * [RejectionReason.ActiveTimerExists]): one INFUSION step of
-     * [durationSeconds] with the global pre-alert [globalPreAlertSeconds];
-     * nothing is recorded. A duration outside 5 s – 24 h or a pre-alert other
-     * than 0 or 5–30 s is rejected with [RejectionReason.InvalidQuickTimer].
+     * [durationSeconds] with the *Vorwarnung* chosen on SCR-07,
+     * [preAlertSeconds] (v0.2.2, D-097): null *Automatisch* with B = the global
+     * pre-alert [globalPreAlertSeconds], 0 *Aus*, else an explicit lead as set,
+     * with the skip rules of 04 §5. Nothing is recorded. A duration outside
+     * 5 s – 24 h, or a global pre-alert or a choice other than 0 or 5–30 s, is
+     * rejected with [RejectionReason.InvalidQuickTimer].
      */
-    data class StartQuickTimer(val durationSeconds: Int, val globalPreAlertSeconds: Int) : TimerEvent
+    data class StartQuickTimer(
+        val durationSeconds: Int,
+        val globalPreAlertSeconds: Int,
+        val preAlertSeconds: Int? = null,
+    ) : TimerEvent
 
     /**
      * The process started with a persisted active state (any active state;
