@@ -5,7 +5,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.util.Log
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.AlarmClock
+import com.umamit.core.timer.controller.TimerAlarm
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerAlarmPort
 import com.umamit.core.timer.controller.TimerClocks
@@ -17,8 +19,9 @@ import javax.inject.Inject
 
 /**
  * The controller's alarm port on [AlarmManager] (04 §6.2, D-057): one alarm per
- * [TimerAlarmKind], each with its fixed request code, delivered to the
- * non-exported [TimerAlarmReceiver].
+ * [TimerAlarmKind] and slot, each with its fixed request code (101–107 in the
+ * brew slot, 201–207 in the quick slot; D-098), delivered to the non-exported
+ * [TimerAlarmReceiver].
  *
  * - The exact kinds use `setExactAndAllowWhileIdle`: `ELAPSED_REALTIME_WAKEUP`
  *   for the pre-alert, the deadline and the overtime timeout, so a wall-clock
@@ -39,34 +42,35 @@ class AndroidTimerAlarms @Inject constructor(
     private val appContext = context.applicationContext
     private val alarmManager = checkNotNull(appContext.getSystemService(AlarmManager::class.java))
 
-    override fun reconcile(due: DueTimes) {
+    override fun reconcile(slot: TimerSlot, due: DueTimes) {
         TimerAlarmKind.DUE.forEach { kind ->
             val at = kind.timeIn(due)
-            if (at == null) cancel(kind) else schedule(kind, at)
+            if (at == null) cancel(TimerAlarm(slot, kind)) else schedule(TimerAlarm(slot, kind), at)
         }
     }
 
-    override fun retry(kind: TimerAlarmKind, atMs: Long) = schedule(kind, atMs)
+    override fun retry(slot: TimerSlot, kind: TimerAlarmKind, atMs: Long) = schedule(TimerAlarm(slot, kind), atMs)
 
-    override fun watchAlert(atElapsedMs: Long?) {
-        val kind = TimerAlarmKind.ALERT_WATCHDOG
-        if (atElapsedMs == null) cancel(kind) else schedule(kind, atElapsedMs)
+    override fun watchAlert(slot: TimerSlot, atElapsedMs: Long?) {
+        val alarm = TimerAlarm(slot, TimerAlarmKind.ALERT_WATCHDOG)
+        if (atElapsedMs == null) cancel(alarm) else schedule(alarm, atElapsedMs)
     }
 
     /**
-     * Sets the alarm of [kind] at [atMs] on its clock, replacing the earlier one
-     * (same request code and intent).
+     * Sets [alarm] at [atMs] on its clock, replacing the earlier one (same request
+     * code and intent).
      *
      * Lint's MissingPermission check only knows `SCHEDULE_EXACT_ALARM`; the app
      * holds `USE_EXACT_ALARM` (D-013), checks `canScheduleExactAlarms()` and
      * catches the `SecurityException`.
      */
     @SuppressLint("MissingPermission")
-    private fun schedule(kind: TimerAlarmKind, atMs: Long) {
+    private fun schedule(alarm: TimerAlarm, atMs: Long) {
+        val kind = alarm.kind
         val operation = PendingIntent.getBroadcast(
             appContext,
-            kind.requestCode,
-            TimerAlarmReceiver.intent(appContext, kind),
+            alarm.requestCode,
+            TimerAlarmReceiver.intent(appContext, alarm.slot, kind),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val type = kind.alarmType()
@@ -79,18 +83,18 @@ class AndroidTimerAlarms @Inject constructor(
                 alarmManager.setExactAndAllowWhileIdle(type, atMs, operation)
                 return
             } catch (e: SecurityException) {
-                Log.w(TAG, "Exact alarm $kind refused; falling back to an inexact alarm", e)
+                Log.w(TAG, "Exact alarm $alarm refused; falling back to an inexact alarm", e)
             }
         }
         alarmManager.setAndAllowWhileIdle(type, atMs, operation)
         diagnostics.record(TimerDiagnostic.AlarmNotExact(clocks.read(), kind))
     }
 
-    private fun cancel(kind: TimerAlarmKind) {
+    private fun cancel(alarm: TimerAlarm) {
         val operation = PendingIntent.getBroadcast(
             appContext,
-            kind.requestCode,
-            TimerAlarmReceiver.intent(appContext, kind),
+            alarm.requestCode,
+            TimerAlarmReceiver.intent(appContext, alarm.slot, alarm.kind),
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
         ) ?: return
         alarmManager.cancel(operation)

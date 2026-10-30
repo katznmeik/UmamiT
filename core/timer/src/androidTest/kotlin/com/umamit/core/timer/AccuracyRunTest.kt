@@ -16,6 +16,7 @@ import com.umamit.core.common.SystemWallClock
 import com.umamit.core.data.diagnostics.DiagnosticsEntry
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.TimerAlarmKind
@@ -262,16 +263,16 @@ class AccuracyRunTest {
     private fun resetTimer() {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         activityManager.appTasks.forEach { it.finishAndRemoveTask() }
         killTimerProcess()
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         context.deleteDatabase(UmamiDatabase.NAME)
         killTimerProcess()
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         TimerTestActivity.outcomeFile(context).delete()
         notificationManager.cancelAll()
     }

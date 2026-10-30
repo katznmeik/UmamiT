@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.util.Log
+import com.umamit.core.model.TimerSlot
+import com.umamit.core.timer.controller.TimerAlarm
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerHost
 import kotlinx.coroutines.CoroutineScope
@@ -26,16 +28,16 @@ import kotlinx.coroutines.launch
  */
 class TimerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val kind = kindOf(intent) ?: return
+        val alarm = alarmOf(intent) ?: return
         val inputs = (context.applicationContext as? TimerHost)?.timerInputs
         if (inputs == null) {
-            unwired(context, kind)
+            unwired(context, alarm)
             return
         }
         val pending = goAsync()
         scope.launch {
             try {
-                inputs.onAlarm(kind)
+                inputs.onAlarm(alarm.slot, alarm.kind)
             } finally {
                 pending.finish()
             }
@@ -46,8 +48,8 @@ class TimerAlarmReceiver : BroadcastReceiver() {
      * The app schedules timer alarms but does not hand over its controller: every alert
      * after a kill would be lost. A debuggable build fails at once; a release build logs it.
      */
-    private fun unwired(context: Context, kind: TimerAlarmKind) {
-        val message = "Alarm $kind dropped: the app does not hand the receiver its timer controller (TimerHost)"
+    private fun unwired(context: Context, alarm: TimerAlarm) {
+        val message = "Alarm $alarm dropped: the app does not hand the receiver its timer controller (TimerHost)"
         check(context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) { message }
         Log.e(TAG, message)
     }
@@ -59,12 +61,26 @@ class TimerAlarmReceiver : BroadcastReceiver() {
         /** Runs the controller turns of delivered alarms; they outlive `onReceive` (`goAsync`). */
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-        /** The broadcast of the alarm of [kind]; its action names the kind (`dumpsys alarm` shows it as the tag). */
-        fun intent(context: Context, kind: TimerAlarmKind): Intent =
-            Intent(context, TimerAlarmReceiver::class.java).setAction(ACTION_PREFIX + kind.name)
+        /**
+         * The broadcast of the alarm of [kind] in [slot]; its action names both (`dumpsys alarm` shows it as
+         * the tag). The brew slot's is the broadcast of v0.2.2 („…TIMER_ALARM.DEADLINE"), so its alarms
+         * replace and cancel those the old version set; the quick slot's adds „QUICK." (D-098).
+         */
+        fun intent(context: Context, slot: TimerSlot, kind: TimerAlarmKind): Intent =
+            Intent(context, TimerAlarmReceiver::class.java).setAction(actionOf(slot, kind))
 
-        /** The kind of an alarm broadcast made by [intent]; null for any other intent. */
-        fun kindOf(intent: Intent): TimerAlarmKind? =
-            TimerAlarmKind.entries.firstOrNull { ACTION_PREFIX + it.name == intent.action }
+        /**
+         * The alarm of a broadcast made by [intent]; null for any other intent. An alarm v0.2.2 set, for a
+         * brew or a quick timer, reads as the brew slot's (04 §6.2): the controller handles every event due
+         * in either slot.
+         */
+        fun alarmOf(intent: Intent): TimerAlarm? = TimerSlot.entries.firstNotNullOfOrNull { slot ->
+            TimerAlarmKind.entries.firstOrNull { actionOf(slot, it) == intent.action }?.let { TimerAlarm(slot, it) }
+        }
+
+        private fun actionOf(slot: TimerSlot, kind: TimerAlarmKind): String = when (slot) {
+            TimerSlot.BREW -> ACTION_PREFIX + kind.name
+            TimerSlot.QUICK -> ACTION_PREFIX + "QUICK." + kind.name
+        }
     }
 }

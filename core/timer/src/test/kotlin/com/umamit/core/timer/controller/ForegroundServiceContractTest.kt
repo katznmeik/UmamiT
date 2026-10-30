@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.ForegroundStart
 import com.umamit.core.testing.ServiceStarted
 import com.umamit.core.testing.ServiceStopped
@@ -70,7 +71,7 @@ class ForegroundServiceContractTest {
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(60)
         // The deadline alarm after the wake-up, the end of the alert and Abgegossen start nothing full screen.
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         h.controller.alertCompleted(checkNotNull(h.alert.playing))
         h.controller.send(TimerEvent.Poured)
         h.controller.send(TimerEvent.Start)

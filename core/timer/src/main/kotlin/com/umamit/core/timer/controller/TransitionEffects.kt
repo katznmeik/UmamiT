@@ -2,10 +2,10 @@ package com.umamit.core.timer.controller
 
 import android.util.Log
 import com.umamit.core.common.ClockReading
-import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.TimerEffect
 import com.umamit.core.timer.engine.TimerState
@@ -19,24 +19,32 @@ import kotlinx.coroutines.flow.asStateFlow
  * Executes the effects of accepted transitions for the [BrewSessionController]
  * (04 §4, §7.1; D-047, D-054), always inside the controller's event lock:
  *
- * 1. the data effects and `Persist` in one database transaction; if it fails,
- *    the failure is logged and `Persist` alone is retried once;
+ * 1. the data effects and `Persist` of the transition's slot in one database
+ *    transaction; if it fails, the failure is logged and `Persist` alone is
+ *    retried once;
  * 2. the new [state] for the UI;
- * 3. `ScheduleAlarms` and the side effects through the [ports], each on its
- *    own, so a port that throws is logged and the next effect still runs.
+ * 3. `ScheduleAlarms` of the slot and the side effects through the [ports],
+ *    each on its own, so a port that throws is logged and the next effect
+ *    still runs.
  *
  * Nothing here throws on a storage or port error: rule 8 lets nothing keep
- * `StartAlert` from running.
+ * `StartAlert` from running. Both slots share the one alert player (04 §3.3).
  */
 internal class TransitionEffects(
     private val sessions: SessionRepository,
-    private val activeBrew: ActiveBrewStore,
+    private val store: TimerSlotStore,
     private val transactions: DatabaseTransactions,
     private val ports: TimerPorts,
 ) {
     private val mutableState = MutableStateFlow<TimerUiState>(TimerUiState.Idle)
 
-    /** The UI state of the last accepted transition, published after its persist. */
+    /** Each slot's UI state of its last accepted transition. */
+    private val slotStates = mutableMapOf<TimerSlot, TimerUiState>()
+
+    /**
+     * The UI state of the last accepted transition, published after its persist: the active timer's, of
+     * whichever slot holds it (one timer across both slots until v0.3.0-03), else Idle.
+     */
     val state: StateFlow<TimerUiState> = mutableState.asStateFlow()
 
     /** The alert the player plays, between `StartAlert` and its end or `StopAlert`. */
@@ -45,8 +53,11 @@ internal class TransitionEffects(
     /** The current turn sent the service a command (`StartForeground`, `StopForeground`). */
     private var serviceCommanded = false
 
-    /** An alert plays: `StartAlert` started it and nothing ended it yet (the alert watchdog follows it). */
-    val alertPlaying: Boolean get() = playingAlert != null
+    /**
+     * The slot whose alert plays: `StartAlert` started it and nothing ended it yet (its watchdog follows it);
+     * null while none plays.
+     */
+    val alertPlayingIn: TimerSlot? get() = playingAlert?.let { slotOf(it.kind) }
 
     /** True while the alert of the alerting [state] plays. */
     fun isPlaying(state: TimerState.Alerting): Boolean = playingAlert == stepAlertOf(state)
@@ -73,13 +84,14 @@ internal class TransitionEffects(
     }
 
     /**
-     * Runs the effects of the accepted [transition] at [now]. [start] is the
+     * Runs the effects of the accepted [transition] of [slot] at [now]. [start] is the
      * request of a `CreateSession`; [details] what the UI shows of the session's row (null: the quick timer).
      * [savedSheetAsNotification]: a `ShowSavedSheet` is executed as
      * `NotifySessionSaved` (*Beenden & neu starten*, D-054). [scheduled]: when the time-based
      * event of the transition was due, which the pre-alert tick passes to the player's log (D-068).
      */
     suspend fun run(
+        slot: TimerSlot,
         transition: TimerTransition,
         now: ClockReading,
         start: SessionStart?,
@@ -88,15 +100,17 @@ internal class TransitionEffects(
         scheduled: ScheduledTime? = null,
     ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
-        persist(transition.effects.take(persistAt), transition.state, start, now)
+        persist(slot, transition.effects.take(persistAt), transition.state, start, now)
         val ui = uiStateOf(transition.state, details, now)
-        mutableState.value = ui
-        val fullScreen = TimerEffect.StartAlert in transition.effects
+        slotStates[slot] = ui
+        mutableState.value = ui.takeIf { it is TimerUiState.Active }
+            ?: slotStates.values.firstOrNull { it is TimerUiState.Active }
+            ?: TimerUiState.Idle
         val preAlertDue = scheduled?.takeIf { it.kind == TimerAlarmKind.PRE_ALERT }
         transition.effects.drop(persistAt + 1)
             .map { if (savedSheetAsNotification && it is TimerEffect.ShowSavedSheet) it.asNotification() else it }
             .forEach { effect ->
-                attempt { executeSide(effect, transition.state, ui, fullScreen, preAlertDue) }
+                attempt { executeSide(slot, effect, transition, ui, preAlertDue) }
                     ?.let { record(TimerDiagnostic.EffectFailed(now, effect, it)) }
             }
     }
@@ -116,11 +130,11 @@ internal class TransitionEffects(
     }
 
     /**
-     * „Dein …-Timer läuft weiter" (04 §7.3) for the session that survived a reboot, after its
+     * „Dein …-Timer läuft weiter" (04 §7.3) for the timer of [slot] that survived a reboot, after its
      * recovery; not while alerting, where the alert is the notice (D-044).
      */
-    fun notifyResumedAfterReboot() {
-        val active = (state.value as? TimerUiState.Active)?.takeUnless { it.alerting } ?: return
+    fun notifyResumedAfterReboot(slot: TimerSlot) {
+        val active = (slotStates[slot] as? TimerUiState.Active)?.takeUnless { it.alerting } ?: return
         attempt { ports.notifier.notifyTimerResumed(active) }?.let { Log.w(TAG, "reboot notice not posted", it) }
     }
 
@@ -130,22 +144,28 @@ internal class TransitionEffects(
     }
 
     /**
-     * The [data] effects and `Persist` of [state] in one transaction (04 §7.1).
+     * The [data] effects and `Persist` of [state] in [slot] in one transaction (04 §7.1).
      * If it fails, the failure is logged and `Persist` alone is retried once;
      * if that fails too, the previous row stays until a later transition
      * persists again (D-054). The store's write also brings the step rows to
      * the plan, so a retried persist still records an ended step (D-052).
      */
-    private suspend fun persist(data: List<TimerEffect>, state: TimerState, start: SessionStart?, now: ClockReading) {
+    private suspend fun persist(
+        slot: TimerSlot,
+        data: List<TimerEffect>,
+        state: TimerState,
+        start: SessionStart?,
+        now: ClockReading,
+    ) {
         val snapshot = BrewTimerEngine.snapshot(state)
         val failure = attempt {
             transactions.inTransaction {
                 data.forEach { executeData(it, start) }
-                activeBrew.persist(snapshot)
+                store.persist(slot, snapshot)
             }
         } ?: return
         record(TimerDiagnostic.PersistFailed(now, retry = false, error = failure))
-        attempt { activeBrew.persist(snapshot) }
+        attempt { store.persist(slot, snapshot) }
             ?.let { record(TimerDiagnostic.PersistFailed(now, retry = true, error = it)) }
     }
 
@@ -166,19 +186,24 @@ internal class TransitionEffects(
         }
     }
 
+    /**
+     * One side [effect] of [transition] in [slot]. The alert's notification is full screen only when the
+     * alert starts in the same transition (D-057).
+     */
     private fun executeSide(
+        slot: TimerSlot,
         effect: TimerEffect,
-        newState: TimerState,
+        transition: TimerTransition,
         ui: TimerUiState,
-        fullScreen: Boolean,
         preAlertDue: ScheduledTime?,
     ) {
+        val fullScreen = TimerEffect.StartAlert in transition.effects
         when (effect) {
-            is TimerEffect.ScheduleAlarms -> ports.alarms.reconcile(effect.due)
+            is TimerEffect.ScheduleAlarms -> ports.alarms.reconcile(slot, effect.due)
 
             TimerEffect.PlayPreAlert -> ports.alert.playPreAlert(preAlertDue)
 
-            TimerEffect.StartAlert -> startAlert(newState)
+            TimerEffect.StartAlert -> startAlert(transition.state)
 
             TimerEffect.StopAlert -> {
                 playingAlert = null

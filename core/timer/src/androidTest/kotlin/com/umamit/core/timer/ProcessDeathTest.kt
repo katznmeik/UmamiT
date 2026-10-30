@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.alarm.TimerAlarmReceiver
 import com.umamit.core.timer.controller.AndroidMonotonicClock
@@ -242,16 +243,16 @@ class ProcessDeathTest {
     private fun resetTimer() {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         activityManager.appTasks.forEach { it.finishAndRemoveTask() }
         killTimerProcess()
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         context.deleteDatabase(UmamiDatabase.NAME)
         killTimerProcess()
-        alarms.reconcile(DueTimes.NONE)
-        alarms.watchAlert(null)
+        TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+        TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         TimerTestActivity.outcomeFile(context).delete()
         TimerTestActivity.deadlineFile(context).delete()
         TimerStateActivity.stateFile(context).delete()
@@ -277,7 +278,7 @@ class ProcessDeathTest {
     }
 
     private fun deadlineAlarm(): String? {
-        val action = checkNotNull(TimerAlarmReceiver.intent(context, TimerAlarmKind.DEADLINE).action)
+        val action = checkNotNull(TimerAlarmReceiver.intent(context, TimerSlot.BREW, TimerAlarmKind.DEADLINE).action)
         return shell("dumpsys alarm").lines().firstOrNull { it.contains("tag=") && it.contains(action) }
     }
 

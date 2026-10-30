@@ -8,11 +8,13 @@ import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertSettings
+import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
@@ -46,15 +48,20 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
 
 /**
  * The single owner of the timer state (04 §2.1, §4; D-056): every brew
- * session and quick timer goes through it. Each input runs in one turn of one
+ * session and quick timer goes through it. It runs two slots (04 §3.3,
+ * D-098), the brew slot for brew sessions and the quick slot for the quick
+ * timer, each with its own engine state, alarms, alert watchdog and stored
+ * row ([ControllerSlots], [TimerSlotStore]); only one timer is active across
+ * both until v0.3.0-03, as before v0.3.0. Each input runs in one turn of one
  * event lock: the clocks are read inside the lock, once per reduce (D-054);
  * the engine's effects then run in the order of D-047 ([TransitionEffects]):
  * the data effects and `Persist` in one database transaction, then
  * `ScheduleAlarms`, then the side effects through the [TimerPorts]. After
  * every event and at the end of every turn the in-process wake-up is re-armed
- * for the next due time, and the alert watchdog follows the playing alert
- * (D-063) or guards the running step's deadline (D-068). [state] is the UI
- * state of the screens, the active brew bar and the notifications.
+ * for the next due time of either slot, and each slot's alert watchdog follows
+ * its playing alert (D-063) or guards its running step's deadline (D-068).
+ * [state] is the UI state of the screens, the active brew bar and the
+ * notifications.
  *
  * The first turn of every process recovers the persisted state before its
  * own input (04 §7.2, D-057): a process an alarm started after the old one was
@@ -71,19 +78,14 @@ class BrewSessionController @Inject constructor(
     private val ports: TimerPorts,
 ) : TimerInputs {
     private val lock = Mutex()
-    private val effects = TransitionEffects(sessions, activeBrew, transactions, ports)
-    private val persistedTimer = PersistedTimer(activeBrew, sessions, ports, effects)
+    private val store: TimerSlotStore = SingleRowSlotStore(activeBrew)
+    private val effects = TransitionEffects(sessions, store, transactions, ports)
+    private val persistedTimer = PersistedTimer(store, sessions, ports, effects)
     private val recovery = ProcessRecovery()
-    private val watchdog = AlertWatchdog(ports.alarms)
+    private val admission = Admission()
 
-    /** The engine state; read and written only inside [lock]. */
-    private var timer: TimerState = TimerState.Idle
-
-    /**
-     * What the UI and the notifications show of the active session's row: its tea, ice brew (BRW-10), leaf and
-     * water (BRW-11); null for the quick timer. Read and written inside [lock].
-     */
-    private var details: SessionDetails? = null
+    /** The brew and the quick slot; read and written only inside [lock]. */
+    private val slots = ControllerSlots(ports.alarms)
 
     /** The timer as the UI shows it; updated on every accepted transition, after it is persisted. */
     val state: StateFlow<TimerUiState> = effects.state
@@ -121,9 +123,7 @@ class BrewSessionController @Inject constructor(
     suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome {
         val start = PendingStart(request, settings.current().preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            (timer as? TimerState.Active)?.let { active ->
-                handle(endingEventOf(active), clocks.read(), EventSource.APP, savedSheetAsNotification = true)
-            }
+            admission.endActive()
             start.handle()
         }
     }
@@ -138,7 +138,7 @@ class BrewSessionController @Inject constructor(
             longStepsOnly = BrewTimerEngine.longStepsOnly(request.snapshot.method),
         )
 
-        /** Inside a turn: the start at the current clocks. */
+        /** Inside a turn: the start in the brew slot at the current clocks. */
         suspend fun handle(): TransitionOutcome {
             val now = clocks.read()
             val start = SessionStart(
@@ -149,7 +149,7 @@ class BrewSessionController @Inject constructor(
                 startedAtMs = now.wallMs,
                 zoneId = now.zone.id,
             )
-            return handle(event, now, EventSource.APP, start)
+            return admission.start(TimerSlot.BREW, event, now, start)
         }
     }
 
@@ -172,16 +172,12 @@ class BrewSessionController @Inject constructor(
     ): TransitionOutcome {
         val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            if (finishActive) {
-                (timer as? TimerState.Active)?.let { active ->
-                    handle(endingEventOf(active), clocks.read(), EventSource.APP, savedSheetAsNotification = true)
-                }
-            }
-            val outcome = handle(event, clocks.read(), EventSource.APP)
+            if (finishActive) admission.endActive()
+            val outcome = admission.start(TimerSlot.QUICK, event, clocks.read())
             // SCR-07's *Start* (D-065): READY and running in one turn, so no input lands between them and a
             // cancelled caller never leaves a waiting quick timer behind.
             if (run && outcome == TransitionOutcome.Accepted) {
-                handle(TimerEvent.Start, clocks.read(), EventSource.APP)
+                handle(TimerSlot.QUICK, TimerEvent.Start, clocks.read(), EventSource.APP)
             } else {
                 outcome
             }
@@ -192,32 +188,36 @@ class BrewSessionController @Inject constructor(
      * A user event from the app or a notification ([source]): every event of
      * 04 §3.2 and §10 except the starts ([startSession], [startQuickTimer]) and
      * the events the controller produces itself (`recover`, `alertCompleted`,
-     * the time-based events), which throw [IllegalArgumentException]. Returns
-     * the engine's outcome; a rejected or ignored event changes nothing (E5).
+     * the time-based events), which throw [IllegalArgumentException]. It goes to
+     * the slot of the active timer (one across both slots). Returns the engine's
+     * outcome; a rejected or ignored event changes nothing (E5).
      */
     override suspend fun send(event: TimerEvent, source: EventSource): TransitionOutcome {
         require(event in USER_EVENTS || event is TimerEvent.EditSteps) { "not a user event: $event" }
-        return inTurn(serviceStartAllowed = true) { handle(event, clocks.read(), source) }
+        return inTurn(serviceStartAllowed = true) { handle(slots.current.id, event, clocks.read(), source) }
     }
 
     /**
-     * The alarm of [kind] arrived (04 §6.2; from the alarm receiver): every
-     * time-based event due now is sent, not only the kind's own, so a late or
-     * early alarm is harmless (04 §3.2 guards, §4).
+     * The alarm of [kind] in [slot] arrived (04 §6.2; from the alarm receiver):
+     * every time-based event due now in either slot is sent, not only the kind's
+     * own, so a late or early alarm is harmless (04 §3.2 guards, §4), and an
+     * alarm v0.2.2 set for a quick timer under the brew slot's codes still
+     * delivers its event (D-098).
      */
-    override suspend fun onAlarm(kind: TimerAlarmKind) {
+    override suspend fun onAlarm(slot: TimerSlot, kind: TimerAlarmKind) {
         inTurn(serviceStartAllowed = true) {
             val now = clocks.read()
+            val inSlot = slots[slot]
             // An alarm that started the process was due in the state it recovered (06 §5.6).
             val scheduled = if (kind == TimerAlarmKind.ALERT_WATCHDOG) {
-                watchdog.scheduled
+                inSlot.watchdog.scheduled
             } else {
-                scheduled(timer, kind) ?: recovery.restoredForAlarmLog?.let { scheduled(it, kind) }
+                scheduled(inSlot.timer, kind) ?: inSlot.restoredForAlarmLog?.let { scheduled(it, kind) }
             }
-            recovery.restoredForAlarmLog = null
+            slots.forEach { it.restoredForAlarmLog = null }
             effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled))
             // The persisted timer could not be read: the alarm comes again, in case it was the only one.
-            if (recovery.retrying) recovery.retryAlarm(kind, now)
+            if (recovery.retrying) recovery.retryAlarm(slot, kind, now)
             handleDue(EventSource.ALARM)
         }
     }
@@ -230,7 +230,7 @@ class BrewSessionController @Inject constructor(
     suspend fun alertCompleted(alert: StepAlert): TransitionOutcome = inTurn {
         val now = clocks.read()
         if (effects.alertEnded(alert, now)) {
-            handle(TimerEvent.AlertCompleted, now, EventSource.ALERT_PLAYER)
+            handle(slotOf(alert.kind), TimerEvent.AlertCompleted, now, EventSource.ALERT_PLAYER)
         } else {
             TransitionOutcome.Ignored
         }
@@ -272,17 +272,19 @@ class BrewSessionController @Inject constructor(
             onLocked()
             recovery.once()
             block().also {
-                if (serviceStartAllowed) effects.retryRefusedStart(timer, clocks.read())
+                if (serviceStartAllowed) effects.retryRefusedStart(slots.current.timer, clocks.read())
                 rearmWakeUp()
                 // Until the stored timer is read, nothing is known to play: a watchdog set again stays.
                 if (recovery.done) {
                     val now = clocks.read()
-                    watchdog.follow(effects.alertPlaying, deadlineGuardAt(timer, now), now)
+                    slots.forEach {
+                        it.watchdog.follow(effects.alertPlayingIn == it.id, deadlineGuardAt(it.timer, now), now)
+                    }
                 }
                 // After the turn's own cues: while a timer is active, the sounds of its next tick and
                 // alert stay loaded, so they start without loading (D-092). A port that throws is
                 // logged; each cue then loads its own sound.
-                attempt { ports.alert.keepReady(timer is TimerState.Active) }
+                attempt { ports.alert.keepReady(slots.any { it.active != null }) }
                     ?.let { Log.w(TAG, "alert sounds not kept ready", it) }
             }
         }
@@ -296,13 +298,6 @@ class BrewSessionController @Inject constructor(
         /** This process has read the persisted state and sent `recover`. */
         var done = false
             private set
-
-        /**
-         * The state recovery restored, until the first alarm or transition of the process: an
-         * alarm that started the process was due in it, also when the app start's recovery took
-         * the lock first (06 §5.6).
-         */
-        var restoredForAlarmLog: TimerState.Active? = null
 
         /** How soon the next try comes while reads fail ([RecoveryBackoff]); alarm and wake-up alike. */
         var retryDelayMs = 0L
@@ -318,10 +313,12 @@ class BrewSessionController @Inject constructor(
         private var failingSinceMs: Long? = null
 
         /**
-         * In the first turn of the process: the persisted state is restored and `recover`
-         * applied once, so its alarms, service, notification and an unplayed alert come back;
-         * then the sessions a device restore left in progress are ended (E11). A read that
-         * fails is tried again in a later turn, less and less often ([RecoveryBackoff]).
+         * In the first turn of the process: the persisted state of each slot is restored and
+         * `recover` applied once, the brew slot first (04 §7.2, D-098), so its alarms, service,
+         * notification and an unplayed alert come back; then the alarms of every slot without a
+         * timer are cancelled (a quick timer of v0.2.2 set its alarms under the brew slot's codes,
+         * 04 §6.2), and the sessions a device restore left in progress are ended (E11). A read
+         * that fails is tried again in a later turn, less and less often ([RecoveryBackoff]).
          */
         suspend fun once() {
             if (done) return
@@ -333,46 +330,50 @@ class BrewSessionController @Inject constructor(
                 return
             }
             done = true
-            val restored = persisted.state as? TimerState.Active
             val now = clocks.read()
-            if (restored != null) {
-                timer = restored
-                restoredForAlarmLog = restored
-                handle(
-                    TimerEvent.Recover,
-                    now,
-                    EventSource.RECOVERY,
-                    startDetails = persisted.details,
-                )
-                val rebooted = restored.session.bootCount != now.bootCount
-                effects.record(
-                    TimerDiagnostic.Recovered(
-                        at = now,
-                        from = restored.phase,
-                        to = (timer as? TimerState.Active)?.phase,
-                        rebooted = rebooted,
-                        decision = recoveryDecision(restored, timer, effects::isPlaying),
-                        service = BrewTimerEngine.needsService(timer),
-                    ),
-                )
-                if (rebooted) effects.notifyResumedAfterReboot()
+            persisted.forEach { (slot, restored) -> recoverSlot(slots[slot], restored, now) }
+            persisted.filterValues { it.state !is TimerState.Active }.keys.forEach { idle ->
+                attempt { ports.alarms.reconcile(idle, DueTimes.NONE) }
+                    ?.let { Log.w(TAG, "alarms of the idle $idle slot not cancelled", it) }
             }
             // After the recovered state is published: the screens may now trust Idle.
             mutableRecovered.value = true
             // After the timer and its alert: the sessions a device restore (E11) left in progress.
-            persistedTimer.endOrphans((restored?.session?.kind as? SessionKind.Brew)?.sessionId, now)
+            val restoredBrew = persisted[TimerSlot.BREW]?.state as? TimerState.Active
+            persistedTimer.endOrphans((restoredBrew?.session?.kind as? SessionKind.Brew)?.sessionId, now)
+        }
+
+        /** Restores [restored] into [slot] and sends it `recover` (04 §7.2); a slot without a timer stays idle. */
+        private suspend fun recoverSlot(slot: ControllerSlot, restored: PersistedTimer.Restored, now: ClockReading) {
+            val active = restored.state as? TimerState.Active ?: return
+            slot.timer = active
+            slot.restoredForAlarmLog = active
+            handle(slot.id, TimerEvent.Recover, now, EventSource.RECOVERY, startDetails = restored.details)
+            val rebooted = active.session.bootCount != now.bootCount
+            effects.record(
+                TimerDiagnostic.Recovered(
+                    at = now,
+                    from = active.phase,
+                    to = slot.active?.phase,
+                    rebooted = rebooted,
+                    decision = recoveryDecision(active, slot.timer, effects::isPlaying),
+                    service = BrewTimerEngine.needsService(slot.timer),
+                ),
+            )
+            if (rebooted) effects.notifyResumedAfterReboot(slot.id)
         }
 
         /**
-         * Sets the alarm of [kind] again [retryDelayMs] after [now]: its turn could not read
-         * the persisted timer, and it may have been the step's only alarm (D-057).
+         * Sets the alarm of [kind] in [slot] again [retryDelayMs] after [now]: its turn could not
+         * read the persisted timer, and it may have been the step's only alarm (D-057).
          */
-        fun retryAlarm(kind: TimerAlarmKind, now: ClockReading) {
+        fun retryAlarm(slot: TimerSlot, kind: TimerAlarmKind, now: ClockReading) {
             val at = retryDelayMs + when (kind.clock) {
                 AlarmClock.ELAPSED -> now.elapsedMs
                 AlarmClock.WALL -> now.wallMs
             }
-            attempt { ports.alarms.retry(kind, at) }?.let { Log.e(TAG, "alarm $kind could not be set again", it) }
+            attempt { ports.alarms.retry(slot, kind, at) }
+                ?.let { Log.e(TAG, "alarm $kind of the $slot slot could not be set again", it) }
         }
 
         /**
@@ -398,22 +399,79 @@ class BrewSessionController @Inject constructor(
     }
 
     /**
-     * Every time-based event due now, in the engine's order (04 §4); one made
-     * obsolete by an earlier one is ignored.
+     * The admission of a start to its slot (04 §3.3, TMR-21; D-098), used only inside [lock]. Until
+     * v0.3.0-03 only one timer is active across both slots, as before v0.3.0: a start is refused while
+     * the other slot is active ([ControllerSlots.blocking]), and *Beenden & neu starten* ends the
+     * active timer in whichever slot it is. v0.3.0-03 changes both rules here.
      */
-    private suspend fun handleDue(source: EventSource) {
-        val due = BrewTimerEngine.dueEvents(timer, clocks.read())
-        due.forEach { handle(it, clocks.read(), source) }
-        // Nothing was due (a stale alarm, a wake-up that drifted): wait for the rest.
-        if (due.isEmpty()) rearmWakeUp()
+    private inner class Admission {
+        /**
+         * *Beenden & neu starten* (TMR-21, D-054): the active timer ends as by *Sitzung beenden*,
+         * *Abgegossen* or *Abbrechen* ([endingEventOf]).
+         */
+        suspend fun endActive() {
+            slots.forEach { slot ->
+                slot.active?.let {
+                    handle(slot.id, endingEventOf(it), clocks.read(), EventSource.APP, savedSheetAsNotification = true)
+                }
+            }
+        }
+
+        /**
+         * A start ([TimerEvent.StartSession], [TimerEvent.StartQuickTimer]) in [slot] at [now] from the app.
+         * While the other slot holds the active timer it is refused as `ActiveTimerExists`: nothing is
+         * written and the refusal is logged as the engine's own (a start in an active slot).
+         */
+        suspend fun start(
+            slot: TimerSlot,
+            event: TimerEvent,
+            now: ClockReading,
+            start: SessionStart? = null,
+        ): TransitionOutcome {
+            val blocking = slots.blocking(slot) ?: return handle(slot, event, now, EventSource.APP, start)
+            return refuse(event, blocking, now)
+        }
+
+        private fun refuse(event: TimerEvent, blocking: TimerState.Active, now: ClockReading): TransitionOutcome {
+            val outcome = TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(blocking.session.kind))
+            effects.record(
+                TimerDiagnostic.EventHandled(
+                    at = now,
+                    event = event,
+                    source = EventSource.APP,
+                    outcome = outcome,
+                    from = blocking.phase,
+                    to = blocking.phase,
+                    scheduled = null,
+                ),
+            )
+            rearmWakeUp()
+            return outcome
+        }
     }
 
     /**
-     * One event in the current lock turn at [now]; the wake-up is re-armed after it, accepted or
-     * not. [savedSheetAsNotification]: the transition's saved sheet is posted as „Sitzung
-     * gespeichert" instead (D-054).
+     * Every time-based event due now in either slot, the brew slot first, each slot's in the
+     * engine's order (04 §4); one made obsolete by an earlier one is ignored.
+     */
+    private suspend fun handleDue(source: EventSource) {
+        var anyDue = false
+        slots.forEach { slot ->
+            val due = BrewTimerEngine.dueEvents(slot.timer, clocks.read())
+            due.forEach { handle(slot.id, it, clocks.read(), source) }
+            anyDue = anyDue || due.isNotEmpty()
+        }
+        // Nothing was due (a stale alarm, a wake-up that drifted): wait for the rest.
+        if (!anyDue) rearmWakeUp()
+    }
+
+    /**
+     * One event of [slot] in the current lock turn at [now]; the wake-up is re-armed after it, accepted or
+     * not. [savedSheetAsNotification]: the transition's saved sheet is posted as „Sitzung gespeichert"
+     * instead (D-054).
      */
     private suspend fun handle(
+        slot: TimerSlot,
         event: TimerEvent,
         now: ClockReading,
         source: EventSource,
@@ -421,7 +479,8 @@ class BrewSessionController @Inject constructor(
         startDetails: SessionDetails? = start?.snapshot?.let(SessionDetails::of),
         savedSheetAsNotification: Boolean = false,
     ): TransitionOutcome {
-        val before = timer
+        val inSlot = slots[slot]
+        val before = inSlot.timer
         val transition = BrewTimerEngine.reduce(before, event, now)
         val due = TimerAlarmKind.of(event)?.let { scheduled(before, it) }
         effects.record(
@@ -436,28 +495,32 @@ class BrewSessionController @Inject constructor(
             ),
         )
         if (transition.outcome == TransitionOutcome.Accepted) {
-            if (source != EventSource.RECOVERY) recovery.restoredForAlarmLog = null
-            timer = transition.state
+            if (source != EventSource.RECOVERY) inSlot.restoredForAlarmLog = null
+            inSlot.timer = transition.state
             val active = transition.state is TimerState.Active
-            details = if (active) startDetails ?: details else null
-            effects.run(transition, now, start, details, savedSheetAsNotification, scheduled = due)
+            inSlot.details = if (active) startDetails ?: inSlot.details else null
+            effects.run(slot, transition, now, start, inSlot.details, savedSheetAsNotification, scheduled = due)
         }
         rearmWakeUp()
         return transition.outcome
     }
 
     /**
-     * Arms the wake-up for the earliest due time of the current state, or
+     * Arms the wake-up for the earliest due time of either slot's current state, or
      * disarms it when nothing is due; only from a state of the current boot
      * (04 §4: after `recover`). While the persisted state could not be read,
      * it comes back to read it again, with the backoff (D-057, D-063).
      */
     private fun rearmWakeUp() {
         val now = clocks.read()
-        val active = (timer as? TimerState.Active)?.takeIf { it.session.bootCount == now.bootCount }
         val delay = when {
-            recovery.done -> nextDueDelayMs(active?.let { BrewTimerEngine.dueTimes(it) } ?: DueTimes.NONE, now)
+            recovery.done -> slots.mapNotNull { slot ->
+                slot.active?.takeIf { it.session.bootCount == now.bootCount }
+                    ?.let { nextDueDelayMs(BrewTimerEngine.dueTimes(it), now) }
+            }.minOrNull()
+
             recovery.retrying -> recovery.retryDelayMs
+
             else -> null
         }
         if (delay == null) {

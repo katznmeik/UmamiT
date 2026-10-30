@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.AlarmsReconciled
 import com.umamit.core.testing.AlertStarted
 import com.umamit.core.testing.AlertStopped
@@ -54,6 +55,7 @@ class EffectOrderTest {
             assertThat(h.log.calls).containsExactly(
                 Persisted(TimerPhase.RUNNING),
                 AlarmsReconciled(
+                    TimerSlot.BREW,
                     DueTimes(
                         preAlertAtElapsedMs = startElapsed + 50_000,
                         deadlineElapsedMs =
@@ -63,7 +65,7 @@ class EffectOrderTest {
                 ServiceStarted(TimerPhase.RUNNING),
                 NotificationShown(TimerPhase.RUNNING, fullScreen = false),
                 // After the turn: the deadline guard, 90 s after the deadline (D-068).
-                AlertWatchdogSet(startElapsed + 60_000 + 90_000),
+                AlertWatchdogSet(TimerSlot.BREW, startElapsed + 60_000 + 90_000),
             ).inOrder()
         }
 
@@ -80,12 +82,15 @@ class EffectOrderTest {
             val alert = StepAlert(SessionKind.Brew(h.sessionId), stepIndex = 0, deadlineWallMs = h.clock.wall)
             assertThat(h.log.calls).containsExactly(
                 Persisted(TimerPhase.ALERTING),
-                AlarmsReconciled(DueTimes(overtimeTimeoutAtElapsedMs = startElapsed + 60_000 + 600_000)),
+                AlarmsReconciled(
+                    TimerSlot.BREW,
+                    DueTimes(overtimeTimeoutAtElapsedMs = startElapsed + 60_000 + 600_000),
+                ),
                 ServiceStarted(TimerPhase.ALERTING),
                 AlertStarted(alert),
                 NotificationShown(TimerPhase.ALERTING, fullScreen = true),
                 // After the turn: the alert is watched while it plays (D-063).
-                AlertWatchdogSet(h.clock.elapsed + 30_000),
+                AlertWatchdogSet(TimerSlot.BREW, h.clock.elapsed + 30_000),
             ).inOrder()
         }
 
@@ -99,7 +104,7 @@ class EffectOrderTest {
 
         assertThat(h.log.calls).containsExactly(
             Persisted(TimerPhase.RUNNING),
-            AlarmsReconciled(DueTimes(deadlineElapsedMs = startElapsed + 60_000)),
+            AlarmsReconciled(TimerSlot.BREW, DueTimes(deadlineElapsedMs = startElapsed + 60_000)),
             ServiceStarted(TimerPhase.RUNNING),
             PreAlertPlayed,
             NotificationShown(TimerPhase.RUNNING, fullScreen = false),
@@ -119,10 +124,13 @@ class EffectOrderTest {
         val midnight = ZonedDateTime.of(2026, 10, 23, 0, 0, 0, 0, FakeClock.BERLIN).toInstant().toEpochMilli()
         assertThat(h.log.calls).containsExactly(
             Persisted(TimerPhase.PAUSED),
-            AlarmsReconciled(DueTimes(idleDemoteAtWallMs = h.clock.wall + 30 * 60_000, midnightAtWallMs = midnight)),
+            AlarmsReconciled(
+                TimerSlot.BREW,
+                DueTimes(idleDemoteAtWallMs = h.clock.wall + 30 * 60_000, midnightAtWallMs = midnight),
+            ),
             NotificationShown(TimerPhase.PAUSED, fullScreen = false),
             // No step runs: the deadline guard goes (D-068).
-            AlertWatchdogSet(null),
+            AlertWatchdogSet(TimerSlot.BREW, null),
         ).inOrder()
     }
 
@@ -139,7 +147,7 @@ class EffectOrderTest {
         assertThat(h.log.calls.drop(2)).containsExactly(
             AlertStopped,
             NotificationShown(TimerPhase.READY, fullScreen = false),
-            AlertWatchdogSet(null),
+            AlertWatchdogSet(TimerSlot.BREW, null),
         ).inOrder()
         assertThat(h.sessions.getSession(h.sessionId)!!.steps[0].overtimeSeconds).isEqualTo(2)
     }
@@ -157,7 +165,7 @@ class EffectOrderTest {
 
             assertThat(h.log.calls).containsExactly(
                 Persisted(null),
-                AlarmsReconciled(DueTimes.NONE),
+                AlarmsReconciled(TimerSlot.BREW, DueTimes.NONE),
                 ServiceStopped,
                 SavedSheetShown(h.savedSheet.shown.single()),
             ).inOrder()

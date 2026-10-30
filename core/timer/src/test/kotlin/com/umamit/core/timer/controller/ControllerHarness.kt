@@ -50,6 +50,8 @@ class ControllerHarness(
     diagnosticsPort: TimerDiagnosticsPort? = null,
     /** The service and notifier ports; the default is [service] and [notifier]. The Android adapters for M1-11. */
     private val notificationPorts: (ControllerHarness.() -> Pair<TimerServicePort, TimerNotifierPort>)? = null,
+    /** The alarm port; the default is [alarms]. The Android adapter for the alarms' request codes (D-098). */
+    alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null,
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettingsRepository = FakeSettingsRepository(),
     val db: UmamiDatabase = Room
@@ -85,7 +87,7 @@ class ControllerHarness(
         transactions = RoomDatabaseTransactions(db),
         settings = settings,
         ports = TimerPorts(
-            alarms = alarms,
+            alarms = alarmPort?.invoke(this) ?: alarms,
             service = shownBy?.first ?: service,
             notifier = shownBy?.second ?: notifier,
             alert = alertPort?.invoke(this) ?: alert,
@@ -122,10 +124,17 @@ class ControllerHarness(
 
     /**
      * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
-     * on the same database, settings and clocks. Close only one of the two harnesses.
+     * on the same database, settings and clocks, its alarms on [alarmPort] (the default: a fake).
+     * Close only one of the two harnesses.
      */
-    fun processRestarted(): ControllerHarness =
-        ControllerHarness(clock = clock, settings = settings, db = db, notificationPorts = notificationPorts)
+    fun processRestarted(alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null): ControllerHarness =
+        ControllerHarness(
+            clock = clock,
+            settings = settings,
+            db = db,
+            notificationPorts = notificationPorts,
+            alarmPort = alarmPort,
+        )
 
     /**
      * The database came to a new phone (or a reset one) in a device backup (E11, 05 §8): restore
