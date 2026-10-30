@@ -35,6 +35,7 @@ import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.feature.brew.quick.QUICK_RING_TAG
 import com.umamit.feature.brew.quick.QuickTimerActions
 import com.umamit.feature.brew.quick.QuickTimerScreen
@@ -271,6 +272,32 @@ class TimerScreenLayoutTest {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val pill = compose.onNodeWithText("Fertig").getUnclippedBoundsInRoot()
         assertThat(pill.bottom).isAtMost(screen.bottom)
+    }
+
+    /**
+     * Rule 8 before *Start* too: with the *Vorwarnung* row (D-097) SCR-07's *Start* lies whole on a short screen at
+     * the largest font, for every kind of label, without scrolling.
+     */
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's Start is on the screen`() {
+        var quick by mutableStateOf(QuickTimerUiState(durationSeconds = 120))
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) { QuickTimerScreen(state = quick, actions = QuickTimerActions()) }
+        }
+        val states = listOf(
+            QuickTimerUiState(durationSeconds = 120),
+            QuickTimerUiState(durationSeconds = 20, preAlertChoice = PreAlertChoice.Seconds(20)),
+            QuickTimerUiState(durationSeconds = 4_500, preAlertChoice = PreAlertChoice.Seconds(20)),
+        )
+        states.forEach { shown ->
+            quick = shown
+            compose.waitForIdle()
+            val screen = compose.onRoot().getUnclippedBoundsInRoot()
+            val pill = compose.onNodeWithText("Start").getUnclippedBoundsInRoot()
+            assertThat(pill.top).isAtLeast(screen.top)
+            assertThat(pill.bottom).isAtMost(screen.bottom)
+        }
     }
 
     private fun titleLineCount(text: String): Int {
