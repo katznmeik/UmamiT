@@ -4,7 +4,10 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -33,6 +36,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.testing.FakeAddFromCatalog
+import com.umamit.core.testing.FakeCatalogBookmarkRepository
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
@@ -59,6 +63,7 @@ class CatalogTeaScreenTest {
 
     private val collection = FakeCollection()
     private val catalog = FakeCatalogRepository(details = listOf(SENCHA))
+    private val bookmarks = FakeCatalogBookmarkRepository()
     private var backs = 0
 
     private fun str(@StringRes id: Int, vararg args: Any): String =
@@ -72,6 +77,7 @@ class CatalogTeaScreenTest {
             FakeAddFromCatalog(collection),
             FakeExactPrices(),
             FakeClock(),
+            bookmarks,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -266,6 +272,68 @@ class CatalogTeaScreenTest {
         shown("Morgennebel Sencha")
         compose.onNodeWithTag(CATALOG_TEA_OPEN_SHOP_TAG).assertDoesNotExist()
         compose.onNodeWithText(str(R.string.catalog_tea_out_of_stock)).assertDoesNotExist()
+    }
+
+    @Test
+    fun merkenNextToImShopOeffnenMarksAndUnmarksTheTea() {
+        // CAT-18, SCR-21: the bookmark icon button, read as „Merken" / „Gemerkt".
+        show()
+        val mark = compose.onNodeWithTag(CATALOG_TEA_MARK_TAG).performScrollTo()
+        mark.assertIsOff().assertContentDescriptionEquals(str(R.string.catalog_mark))
+
+        mark.performClick()
+        compose.waitForIdle()
+
+        assertThat(bookmarks.marked.value).containsExactly(SENCHA.key)
+        mark.assertIsOn().assertContentDescriptionEquals(str(R.string.catalog_marked))
+
+        mark.performClick()
+        compose.waitForIdle()
+
+        assertThat(bookmarks.marked.value).isEmpty()
+        mark.assertIsOff()
+    }
+
+    @Test
+    fun aMarkedTeaShowsGemerkt() {
+        bookmarks.marked.value = setOf(SENCHA.key)
+        show()
+
+        compose.onNodeWithTag(CATALOG_TEA_MARK_TAG).performScrollTo().assertIsOn()
+            .assertContentDescriptionEquals(str(R.string.catalog_marked))
+    }
+
+    @Test
+    fun aTeaInTheCollectionOffersNoMerkenButARemovedOneDoes() {
+        // CAT-18 AC2: *Merken* is for teas not in the collection; a removed (archived) tea is not in it.
+        val own = Tea(
+            id = "own",
+            name = "Mein Sencha",
+            category = TeaCategory.GREEN,
+            form = TeaForm.LOOSE_LEAF,
+            catalogKey = SENCHA.key,
+        )
+        runBlocking { collection.teas.saveTea(own) }
+        show()
+        shown(str(R.string.catalog_tea_repurchase))
+        compose.onNodeWithTag(CATALOG_TEA_MARK_TAG).assertDoesNotExist()
+
+        runBlocking { collection.teas.saveTea(own.copy(isArchived = true)) }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(CATALOG_TEA_MARK_TAG).performScrollTo().assertIsOff()
+    }
+
+    @Test
+    fun aMarkedTeaNoLongerInTheRangeKeepsItsMark() {
+        // CAT-18 AC3: kept for its mark, „Nicht mehr im Sortiment", no shop page, still *Gemerkt*.
+        catalog.details.value = mapOf(SENCHA.key to SENCHA.copy(discontinued = true, available = false))
+        bookmarks.marked.value = setOf(SENCHA.key)
+        show()
+
+        shown(str(R.string.catalog_tea_discontinued))
+        compose.onNodeWithTag(CATALOG_TEA_OPEN_SHOP_TAG).assertDoesNotExist()
+        compose.onNodeWithTag(CATALOG_TEA_MARK_TAG).performScrollTo().assertIsOn()
     }
 
     @Test

@@ -17,6 +17,9 @@ package com.umamit.core.model
  * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
  * @property isHerbal one of the shop's Kräutertees (style `herbal`, v0.2.1, D-093): shown in the
  *   *Kräutertee* view only.
+ * @property marked on the Merkliste (*Merken*, CAT-18, D-097).
+ * @property discontinued no longer in the range, kept for a collection tea or a mark (CAT-07 AC4,
+ *   CAT-18 AC3): shown in the *Gemerkt* view only, as „Nicht mehr im Sortiment".
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -34,6 +37,8 @@ data class CatalogTeaSummary(
     val isNew: Boolean = false,
     val owned: Boolean = false,
     val isHerbal: Boolean = false,
+    val marked: Boolean = false,
+    val discontinued: Boolean = false,
 ) {
     /** The growing countries one by one (the shop joins several with „, "). */
     val originCountries: List<String>

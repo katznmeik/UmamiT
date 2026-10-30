@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -94,6 +96,7 @@ fun CatalogTeaRoute(
         onOpenShop = context::openInBrowser,
         onAdd = { if (!alerting) viewModel.openSheet() },
         modifier = modifier,
+        onToggleMark = viewModel::toggleMark,
     )
     val open = sheet
     if (open != null && !alerting && state.tea != null) {
@@ -117,16 +120,19 @@ fun CatalogTeaRoute(
  * erfassen* ([onAdd], CAT-12) and *Im Shop öffnen* (not for a tea no longer in the range, which
  * says „Nicht mehr im Sortiment", CAT-07 AC4); then the facts, the shop's taste scales, aroma
  * and taste, the description, the shop's brewing grid and text, verbatim, and the package sizes
- * with their prices. [photo] is the
+ * with their prices. A tea not in the collection has *Merken* next to *Im Shop öffnen*
+ * ([onToggleMark] with the new state, CAT-18). [photo] is the
  * tea's photo; tests pass a placeholder image.
  */
 @Composable
+@Suppress("LongParameterList") // the state, its four actions and the photo
 fun CatalogTeaScreen(
     state: CatalogTeaUiState,
     onBack: () -> Unit,
     onOpenShop: (String) -> Unit,
     modifier: Modifier = Modifier,
     onAdd: () -> Unit = {},
+    onToggleMark: (Boolean) -> Unit = {},
     photo: Painter? = rememberPhotoPainter(state.tea?.photoPath),
 ) {
     val tea = state.tea
@@ -146,21 +152,29 @@ fun CatalogTeaScreen(
             tea = tea,
             shopUrl = state.shopUrl ?: tea.productUrl,
             owned = state.ownedTeaId != null,
+            marked = state.marked,
             photo = photo,
-            actions = DetailActions(onBack, onOpenShop, onAdd),
+            actions = DetailActions(onBack, onOpenShop, onAdd, onToggleMark),
             modifier = modifier,
         )
     }
 }
 
-/** The detail's actions: back, *Im Shop öffnen*, *In Sammlung aufnehmen* / *Nachkauf erfassen*. */
-private class DetailActions(val onBack: () -> Unit, val onOpenShop: (String) -> Unit, val onAdd: () -> Unit)
+/** The detail's actions: back, *Im Shop öffnen*, *In Sammlung aufnehmen* / *Nachkauf erfassen*, *Merken*. */
+private class DetailActions(
+    val onBack: () -> Unit,
+    val onOpenShop: (String) -> Unit,
+    val onAdd: () -> Unit,
+    val onToggleMark: (Boolean) -> Unit,
+)
 
 @Composable
+@Suppress("LongParameterList") // the tea, its link, its two states, the photo and the actions
 private fun Detail(
     tea: CatalogTeaDetail,
     shopUrl: String,
     owned: Boolean,
+    marked: Boolean,
     photo: Painter?,
     actions: DetailActions,
     modifier: Modifier = Modifier,
@@ -184,18 +198,7 @@ private fun Detail(
                         .fillMaxWidth()
                         .testTag(CATALOG_TEA_ADD_TAG),
                 )
-                // A tea no longer in the range has no shop page to open (CAT-07 AC4, as INV-09 AC2).
-                if (!tea.discontinued) {
-                    Spacer(Modifier.height(UmamiSpacing.XSmall))
-                    OutlinedButton(
-                        onClick = { actions.onOpenShop(shopUrl) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
-                    ) {
-                        Text(stringResource(R.string.catalog_tea_open_shop))
-                    }
-                }
+                SecondaryActions(tea, shopUrl, owned, marked, actions)
             }
             Facts(tea)
             Taste(tea)
@@ -214,6 +217,41 @@ private fun Detail(
                 .padding(UmamiSpacing.XSmall),
         ) {
             BackAction(actions.onBack)
+        }
+    }
+}
+
+/**
+ * *Im Shop öffnen* (not for a tea no longer in the range: it has no shop page, CAT-07 AC4, as
+ * INV-09 AC2) and, for a tea not in the collection, *Merken* beside it (CAT-18, D-097).
+ */
+@Composable
+private fun SecondaryActions(
+    tea: CatalogTeaDetail,
+    shopUrl: String,
+    owned: Boolean,
+    marked: Boolean,
+    actions: DetailActions,
+) {
+    if (tea.discontinued && owned) return
+    Row(modifier = Modifier.padding(top = UmamiSpacing.XSmall), verticalAlignment = Alignment.CenterVertically) {
+        if (!tea.discontinued) {
+            OutlinedButton(
+                onClick = { actions.onOpenShop(shopUrl) },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(CATALOG_TEA_OPEN_SHOP_TAG),
+            ) {
+                Text(stringResource(R.string.catalog_tea_open_shop))
+            }
+        }
+        if (!owned) {
+            if (!tea.discontinued) Spacer(Modifier.width(UmamiSpacing.XSmall))
+            BookmarkToggle(
+                marked = marked,
+                onToggle = actions.onToggleMark,
+                modifier = Modifier.testTag(CATALOG_TEA_MARK_TAG),
+            )
         }
     }
 }

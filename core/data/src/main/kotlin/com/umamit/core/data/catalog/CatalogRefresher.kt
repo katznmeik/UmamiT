@@ -88,7 +88,8 @@ import javax.inject.Inject
  *    run with its summary (05 §4.5, CAT-07 AC3). A known tea still in the sitemap whose page couldn't be
  *    read stays as it was, and so does one missing from the sitemap whose page couldn't be read
  *    this once; a tea that left the range stays hidden as „Nicht mehr im Sortiment"
- *    while a collection tea links to it ([OwnedCatalogKeys], read before the swap: the two
+ *    while a collection tea links to it ([OwnedCatalogKeys]) or it is marked ([CatalogBookmarkRepository],
+ *    CAT-18 AC3; both read before the swap: the two
  *    databases share no transaction, D-076) and is deleted otherwise (CAT-07 AC4). Then the
  *    photos of teas and the images of guides no longer in the catalog are deleted and the
  *    seed teas are linked ([CatalogSeedLinker], CAT-15; each part once, D-090).
@@ -122,6 +123,7 @@ class CatalogRefresher(
     private val seedTeas: CatalogSeedLinker = CatalogSeedLinker { emptyList() },
     guideLimits: GuideLimits = GuideLimits.DEFAULT,
     private val jobs: CatalogJobs = CatalogJobs(),
+    private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
 ) {
     @Inject
     constructor(
@@ -134,6 +136,7 @@ class CatalogRefresher(
         owned: OwnedCatalogKeys,
         seedTeas: CatalogSeedLinker,
         jobs: CatalogJobs,
+        bookmarks: CatalogBookmarkRepository,
     ) : this(
         client,
         dao,
@@ -148,6 +151,7 @@ class CatalogRefresher(
         seedTeas,
         GuideLimits.DEFAULT,
         jobs,
+        bookmarks,
     )
 
     private val guides =
@@ -849,8 +853,9 @@ class CatalogRefresher(
          * Once the swap is in, the run is a success: nothing after it cancels or fails it.
          */
         private suspend fun swap(): CatalogRefreshOutcome.Success {
-            // Read before the swap: umamit.db and catalog.db share no transaction (D-076).
-            val ownedKeys = owned.observe().first()
+            // Read before the swap: umamit.db and catalog.db share no transaction (D-076). A marked
+            // tea is kept exactly as an owned one (CAT-18 AC3); the marks themselves stay untouched.
+            val keptKeys = owned.observe().first() + bookmarks.observeMarked().first()
             val unchanged = mutableListOf<String>()
             val discontinued = mutableListOf<String>()
             var gone = 0
@@ -862,7 +867,7 @@ class CatalogRefresher(
 
                     else -> {
                         if (!before.discontinued) gone++
-                        if (key in ownedKeys) discontinued += key
+                        if (key in keptKeys) discontinued += key
                     }
                 }
             }

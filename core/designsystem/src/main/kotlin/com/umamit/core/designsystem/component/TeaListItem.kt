@@ -55,7 +55,8 @@ private const val TITLE_MAX_LINES = 2
  * Bio, „im Besitz" and [CheckRecipeBadge]; SCR-19, CAT-10).
  * [onLongClick] (with a haptic tick, read by TalkBack as [onLongClickLabel]) opens a row's menu,
  * and [customActions] offer its actions to TalkBack directly (e.g. the tea picker's *Aus Sammlung
- * entfernen*, SCR-03).
+ * entfernen*, SCR-03). [trailing] is a control of its own at the row's end, before the chevron
+ * (e.g. the catalog's bookmark toggle, CAT-18); TalkBack reads it apart from the row.
  */
 @Composable
 fun TeaListItem(
@@ -72,6 +73,7 @@ fun TeaListItem(
     onLongClick: (() -> Unit)? = null,
     onLongClickLabel: String? = null,
     customActions: List<CustomAccessibilityAction> = emptyList(),
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -135,6 +137,7 @@ fun TeaListItem(
                 Spacer(Modifier.width(UmamiSpacing.Small))
                 Rating(rating)
             }
+            trailing?.invoke()
             if (onClick != null) {
                 Spacer(Modifier.width(UmamiSpacing.XSmall))
                 Icon(

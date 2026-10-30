@@ -19,6 +19,11 @@
         <item quantity="one">%1$d Kräutertee</item>
         <item quantity="other">%1$d Kräutertees</item>
     </plurals>
+    <!-- The header's count in the Gemerkt view (v0.2.2, CAT-18): „… · 4 gemerkt · …". -->
+    <plurals name="catalog_marked_count">
+        <item quantity="one">%1$d gemerkt</item>
+        <item quantity="other">%1$d gemerkt</item>
+    </plurals>
     <!-- A row's price (CAT-10): „15,90 €/100 g". -->
     <string name="catalog_price_per_100g">%1$s €/100 g</string>
     <!-- Between the parts of a row's meta line; quoted to keep the spaces. -->
@@ -39,6 +44,8 @@
     <string name="catalog_filter_organic">Bio</string>
     <string name="catalog_filter_new">Neu</string>
     <string name="catalog_filter_owned">Im Besitz</string>
+    <!-- The Merkliste's chip after Filter (v0.2.2, CAT-18, D-097). -->
+    <string name="catalog_filter_marked">Gemerkt</string>
     <string name="catalog_filter_sheet_title">Filter und Sortierung</string>
     <string name="catalog_filter_sort">Sortierung</string>
     <string name="catalog_sort_type">Sorte</string>
@@ -62,6 +69,14 @@
     <string name="catalog_group_untyped">Ohne Sorte</string>
     <string name="catalog_no_match">Kein Tee passt zu deiner Suche und den Filtern.</string>
     <string name="catalog_reset_filters">Filter zurücksetzen</string>
+    <!-- The Gemerkt view without any mark (SCR-19, CAT-18). -->
+    <string name="catalog_marked_empty_title">Noch nichts gemerkt</string>
+    <string name="catalog_marked_empty_body">Tippe bei einem Tee auf 🔖</string>
+    <!-- The Gemerkt view when the search matches none of the marked teas. -->
+    <string name="catalog_marked_no_match">Kein gemerkter Tee passt zu deiner Suche.</string>
+    <!-- The bookmark toggle of a row and of the detail (SCR-19, SCR-21, CAT-18): TalkBack and the detail's label. -->
+    <string name="catalog_mark">Merken</string>
+    <string name="catalog_marked">Gemerkt</string>
     <!-- The Kräutertee view before the first refresh after the update (SCR-19, D-093 Q20). -->
     <string name="catalog_herbal_pending">Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)</string>
     <string name="catalog_herbal_load_now">Jetzt laden</string>

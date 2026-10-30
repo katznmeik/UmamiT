@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -27,6 +28,19 @@ interface CatalogBookmarkRepository {
 
     /** Removes the tea's mark; a tea without one is ignored. */
     suspend fun unmark(catalogKey: String)
+
+    companion object {
+        /** No Merkliste: nothing is marked and marks are dropped (the default where none is wired). */
+        val NONE: CatalogBookmarkRepository = object : CatalogBookmarkRepository {
+            override fun observeMarked(): Flow<Set<String>> = flowOf(emptySet())
+
+            override suspend fun isMarked(catalogKey: String): Boolean = false
+
+            override suspend fun mark(catalogKey: String) = Unit
+
+            override suspend fun unmark(catalogKey: String) = Unit
+        }
+    }
 }
 
 /** [CatalogBookmarkRepository] on `catalog_bookmark`, marked at the [clock]'s time. */
