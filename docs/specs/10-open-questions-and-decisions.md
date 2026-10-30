@@ -302,6 +302,244 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-098"></a>
+### D-098 — v0.3.0: quick timer alongside a brew, long hot steps, the PO's feedback on v0.2.2-rc.1 (TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-11, INV-07, INV-11, CAT-10, SET-27–SET-29, SCR-02, SCR-04, SCR-05, SCR-07, SCR-19, SCR-25; amends D-093 point 1 and Q2, TMR-18, 04 §9.1) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q8, R2-Q1–R2-Q3 and scenarios S1–S4; details marked „Claude" are Claude's)
+
+**Context.** v0.3.0 bundles three sources (spec #124, tickets #125–#139):
+- D-093 point 1: quick timers alongside a brew session;
+- #122: hot steps of 10 min and more lost their Vorwarnung, because TMR-18
+  treated every step ≥ 10 min as a long step (written for cold brew);
+- #123: the PO's five points after passing the v0.2.2-rc.1 checklist (alarm
+  volume, setup → catalog, daily low-stock reminder, foldable catalog
+  groups, stock on READY).
+
+The PO's animation review of v0.2.2 adds two polish items. The glossary
+(„Active timer", „Quick timer", „Short / long step", „Low-stock card /
+reminder") was updated with the grilling.
+
+**Amends.**
+- **D-093 point 1 and the „one active timer" rule** of M1 (D-047, D-048,
+  D-054, 04 §10): from v0.3.0 at most one active brew session **and** at
+  most one active quick timer.
+- **D-093 Q2:** the Vorwarnung and the alarm no longer play on the
+  notification volume (`USAGE_NOTIFICATION_EVENT`, 04 §9.1, §9.2) but on
+  the alarm volume (`USAGE_ALARM`).
+- **TMR-18 and 04 §1:** the long-step threshold moves from 10 min (600 s) to
+  60 min (3600 s); cold and ice brew stay long steps.
+- **04 §9.1:** the Do Not Disturb rows change (see the DND matrix below).
+
+**Decisions (PO).**
+1. **Two active timers (Q1, R2-Q1).** At most one active brew session and
+   one active quick timer at the same time. Either starts while the other
+   runs, without a question.
+2. **Alarm order (Q2, R2-Q2, S1).** When both are due, the brew alarm comes
+   first. The quick timer's alarm waits and rings after *Abgegossen*, with
+   its overtime. A quick alarm that is ringing when a brew step ends gives
+   way at once and comes back after *Abgegossen*. Never two sounds at once.
+   A waiting quick alarm always rings; its 10-min silent end counts from
+   when it starts ringing.
+3. **Seeing both (Q3).** The brew timer shows a slim row „⏱ Schnelltimer
+   2:14" with its own *Pause*; a tap switches screens. The bar on the other
+   screens shows both timers.
+4. **Starting alongside (Q4).** A quick timer starts alongside a brew only
+   from Start's *Schnelltimer* (and its pre-start screen), not from the
+   timer's ⋮ and not from a notification.
+5. **Second quick timer (R2-Q3).** Asks „Schnelltimer beenden und neu
+   starten?"; the brew is never touched. A second brew session still asks
+   as TMR-21 does.
+6. **Lock screen (Q5).** One Live Update, for the timer due next; the other
+   timer is a quiet normal notification.
+7. **Long steps (Q6, #122).** Hot steps of 10–59 min behave like every
+   short step: countdown, running service, automatic or explicit
+   Vorwarnung. Cold and ice brew, and steps of 60 min and more, stay long
+   steps: „Fertig um 14:30", no Vorwarnung.
+8. **Sound (Q7, Q8, S2, S3; #123 point 1).** Vorwarnung and alarm play on the
+   phone's alarm volume. One in-app *Lautstärke* setting for both, 10–100 %,
+   default 100 %, heard with *Alarm testen*. Silent and vibrate mode still
+   silence both. DND „alarms only" lets both ring. When the phone's alarm
+   volume is 0, the reliability banner and the settings warn
+   „Alarmlautstärke ist aus" with *Beheben*.
+9. **Setup → catalog (#123 point 2).** A ⋮ in the brew setup's top bar with
+   *Im Katalog ansehen*, which opens the tea's SCR-21; back returns to the
+   unchanged setup. Only for teas with a catalog entry.
+10. **Daily low-stock reminder (#123 point 3, S4).** Once a day at a set
+    time (default 18:00) one quiet notification lists every *Knapp* or
+    *Leer* tea, including teas hidden with *Ausblenden* until restocked.
+    Removed (archived) teas never; no per-tea switch. On/off and time in
+    *Einstellungen › Brühen & Vorrat*, default on. A tap opens Start.
+11. **Foldable catalog groups (#123 point 4).** A tap on a *Sorte* header
+    folds it („Bancha · 12" with a chevron); remembered; a search shows
+    everything unfolded; ⋮ *Alle einklappen* / *Alle ausklappen*.
+12. **Stock on READY (#123 point 5).** „38 g übrig" (or „· knapp", „Leer")
+    under „4,0 g Tee · 250 ml Wasser" on every READY of a brew.
+
+**Details (Claude).**
+- **Two controller slots.** The pure engine stays a single-timer state
+  machine. The controller runs two slots, `BREW` and `QUICK`, each with its
+  own engine state, due times, exact alarms, snapshot and watchdog, under
+  one event lock. A slot accepts only its own kind: `startSession` meets the
+  brew slot, `startQuickTimer` the quick slot. `ActiveTimerExists` is raised
+  only by a second start in the same slot, and *Beenden & neu starten* acts
+  within that slot only (TMR-21 for the brew, „Schnelltimer beenden und neu
+  starten?" for the quick timer). Every user event names its slot (screen,
+  notification action, bar); a time-based event comes from its slot's
+  alarm.
+- **Request codes.** The brew slot keeps 101–107 (04 §6.2). The quick slot
+  uses 201–207 for the same fields. A quick timer running during the update
+  from v0.2.2 holds alarms under 101–107: the first turn of v0.3.0 restores
+  it into the quick slot, and the per-slot reconcile cancels the brew
+  codes (no brew is active) and schedules 201–207. An old alarm that fires
+  first reaches `onAlarm` as today, whose recovery runs before it, so it is
+  harmless (§3.2 guards).
+- **Notification IDs.** By role, not by slot: 1 the Live Update (the FGS
+  notification), 2 the alert, 4 the quiet notification without the service,
+  and **5** the other timer's notification (new). Each carries its slot in
+  its actions. Moving the Live Update to the other slot updates 1 and 5 in
+  one turn; the service never switches its foreground ID for it. This
+  refines #125's „notification ids per slot".
+- **Alert arbitration (one alert player).** The controller decides which
+  slot may sound:
+  - **Priority:** brew over quick. A brew alert never waits.
+  - **Held quick alert:** a quick deadline reached while the brew alerts
+    (from its deadline until the brew slot leaves ALERTING: *Abgegossen*,
+    *Sitzung beenden*, *verwerfen* or the brew's own overtime timeout) puts
+    the quick slot into ALERTING **held**: no sound, no alert notification,
+    no full-screen intent. Its overtime runs from its own deadline.
+  - **Release:** when the brew slot leaves ALERTING, a held quick alert
+    starts ringing in the same turn (sound, notification 2, full-screen
+    intent to its screen), showing its overtime („+12:00").
+  - **Preemption:** a brew deadline while the quick alert rings stops the
+    quick sound and starts the brew alert in the same turn; the quick slot
+    goes back to held.
+  - **Silent end:** the quick slot's overtime timeout is 10 min after it
+    **last started ringing** (`ringingSince`), not after its deadline. While
+    held it has none, so a held alert can wait any length and still rings.
+    The brew slot is never held, so its timeout stays 10 min after the
+    deadline.
+  - **Vorwarnung:** a Vorwarnung never cuts an alarm (unchanged). One due
+    while the other slot's alert sound plays, or while the other slot's
+    Vorwarnung still rings, waits until that sound ends and plays only if at
+    least 1 s of its step is left, else it is consumed silently (04 §5). An
+    alarm cuts the other slot's ringing Vorwarnung, as it cuts its own.
+  - The engine gets the held state as data: ALERTING carries `ringingSince`
+    (null = held) and two controller events, `alertHold` and
+    `alertRingStart`, which are not interactions. `alertCompleted` and the
+    at-least-once replay (D-047) apply per slot; a held alert is never
+    reported completed.
+- **Recovery with two slots.** Both snapshots are restored in the first
+  turn; the brew slot's `recover` runs first. If the brew slot is then
+  ALERTING, a quick timer past its deadline becomes held, however long ago
+  its deadline was. Otherwise a quick timer follows 04 §7.2, with its
+  timeout counted from `ringingSince` when it had rung. A held alert
+  survives process death, reboot and app update.
+- **umamit.db v4 (per-slot `active_brew`).** The table's key becomes
+  `slot` (TEXT, `BREW` or `QUICK`) in place of `id` = 1; two columns are
+  added, `alert_ringing_since_elapsed_ms` and `alert_ringing_since_wall_ms`
+  (null = held or not alerting; the wall value rebases it after a reboot).
+  `MIGRATION_3_4` recreates the table in one transaction and copies the
+  existing row into the slot of its kind (`is_quick_timer` 1 → `QUICK`, else
+  `BREW`), every value kept; an ALERTING row gets `ringing_since` = its
+  deadline, which is how it rang in v0.2.2. A running timer keeps running
+  and alerts on time. v1–v3 stay frozen (D-054).
+- **Service and background.** One foreground service while any slot is
+  active. The partial wake lock is held while either slot needs it (a
+  running short step or an alert), with the longer of the two timeouts. Idle
+  demote (TMR-14) and the midnight timeout apply to the brew slot only; a
+  demoted brew does not stop the service while the quick slot needs it, it
+  only becomes notification 5. The quick timer keeps its 30-min cancel.
+- **Live Update for the next due slot.** Notification 1 shows the slot that
+  ends next: a running slot beats a waiting one; of two running, the earlier
+  deadline; of two waiting, the brew. It switches whenever that order
+  changes (start, pause, resume, a step's end, a timer's end). The other
+  slot is notification 5 on a new channel `timer_other` („Weiterer Timer",
+  importance LOW, silent, never promoted), with its own actions
+  (*Pause*/*Weiter*, *Abbrechen* or *Sitzung beenden* as by state). LOW keeps
+  it out of the importance section of the alert, so the alert stays the
+  app's only notification of importance DEFAULT or higher (D-044). While a
+  slot alerts, notification 2 belongs to it; the other slot shows only as
+  notification 5 until the alert ends. A held quick alert shows as
+  notification 5 („Schnelltimer · Fertig, wartet auf den Aufguss") without full-screen intent.
+- **Long-step threshold 3600 s.** `isLongStep` = cold or ice brew, or
+  planned ≥ 3600 s; one pure function in `core:timer-engine`, which the
+  Schritte-Sheet and the setup call (the sheet's own copy goes). The
+  duration rounding of PRF-04 and TMR-10 (5 s below 10 min, whole minutes
+  from 10 min) is a separate constant and does not move. A hot step of
+  10–59 min now keeps the service and the wake lock for its length; the ring
+  updates per frame like any short step.
+- **USAGE_ALARM and gain.** Both cues use `AudioAttributes.USAGE_ALARM`
+  (alarm stream) and `VibrationAttributes.USAGE_ALARM`. The player's gain is
+  *Lautstärke* / 100 (setting `alertVolumePercent`, 10–100 in steps of 10,
+  default 100; a stored value outside is clamped), applied as the player
+  volume on top of the alarm stream; it is read with the other settings at
+  the start of every cue, so a change applies to the next cue. The app
+  never changes the system volume. *Alarm testen* plays with the same usage
+  and gain. Loading ahead (D-092, D-096) is unchanged.
+- **Ringer and DND matrix.** The app keeps reading the ringer mode on every
+  cycle, since the alarm stream ignores it: normal → sound (+ vibration per
+  SET-11); vibrate → vibration only; silent → visual only. Do Not Disturb:
+  „alarms only" and priority mode → as the ringer mode (alarms pass);
+  „total silence" → visual only. A call still means vibration only.
+- **Alarm volume 0.** A new reliability check (TMR-31):
+  `AudioManager.getStreamVolume(STREAM_ALARM) == 0` → „Alarmlautstärke ist
+  aus" with *Beheben* (`Settings.ACTION_SOUND_SETTINGS`), in the banner on
+  Start and the timer and as a row of the settings' *Timer-Zuverlässigkeit*
+  card. It is read whenever the other checks are (app start, resume, each
+  session start); it never blocks a timer.
+- **Daily reminder (INV-11).** A unique WorkManager one-time job
+  (`LowStockReminderWorker`), enqueued for the next set time and enqueued
+  again by each run, at app start, after a change of the setting and after
+  an app update; WorkManager re-arms it after a reboot. Inexact by design
+  (up to about 15 min late; no exact alarm, no wake-up of its own). A run
+  posts at most once per local date (`lowStockReminderLastDate`) and, when
+  it runs more than 30 min before the set time (a clock or DST change),
+  only re-enqueues. The query uses the Start card's stock levels and
+  thresholds (a tea's own threshold first), non-archived teas with stock
+  events, without the `lowStockHidden` filter, least stock first. Nothing is
+  posted when the list is empty. The notification is ID 12 on the new
+  channel `stock` („Vorrat", importance LOW, no sound, no vibration, no
+  full-screen intent): title „3 Tees werden knapp" („Tanabata wird knapp"
+  for one), inbox lines „Tanabata · 14 g" / „Hisui · leer". Its tap opens
+  Start through the launcher activity (`com.umamit.action.OPEN_START`, no
+  intent filter); during an alert the tap waits like the catalog tap
+  (D-097). Switching the setting off cancels the job and the notification.
+- **WorkManager in the manifest.** This is the app's first WorkManager job.
+  Its library manifest adds `ACCESS_NETWORK_STATE`, which 06 §5.7 does not
+  allow: it is removed with `tools:node="remove"` (the job has no network
+  constraint), so `checkManifestPermissions` stays unchanged.
+  `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK` and `FOREGROUND_SERVICE` are already
+  on the list.
+- **Foldable groups setting.** `catalogFolded` (Set<String>, entries
+  `<view>/<sorte key>`, view `green` or `herbal`; „Ohne Sorte" is
+  `<view>/-`). A key whose *Sorte* no longer exists is ignored. Folding
+  applies only to the grouped default and Kräutertee views; *Gemerkt* and
+  the flat sort orders have none; a non-empty search ignores it. No fold
+  animation: the chevron turns, the content snaps.
+- **READY stock from inventory in the UI layer.** The timer view model reads
+  the session tea's stock (amount, *Knapp*/*Leer* by `StockLevel`, the tea's
+  own threshold first) as a flow from the inventory repository and adds it to
+  the UI state; never through the engine, the controller or the alarm path.
+  Null for the quick timer, a tea not in the collection and a failed read,
+  which shows no line and is logged. The line counts as content above the
+  control in the reserved space (D-096, D-097).
+- **Setup ⋮.** Shown only when the tea has a `catalog_key` whose catalog tea
+  exists (discontinued counts); otherwise no ⋮ at all. It navigates to SCR-21
+  above the setup; the setup's state survives in its back-stack entry.
+- **Polish from the v0.2.2 animation review.**
+  1. SCR-07's *Vorwarnung* row is anchored at its label: „Vorwarnung" keeps
+     its x position for every choice and the selector grows to its right.
+  2. The quick timer's screen before *Start* reserves the running screen's
+     band and control height (as the brew timer's `reservedControls`), so on
+     a short screen at a large font (384 × 832 dp, font 2.0) the ring and the
+     pill do not move at *Start*.
+- **Release.** `v0.3.0-rc.N` = versionCode 30001 …, `v0.3.0` = 30099. Timer
+  code changes, so every rc and the final release need a PASS of both
+  accuracy variants, the standard run and `alongside` (a quick timer
+  running alongside the brew steps; 09 §4a).
+
+**Out of scope.** More than one quick timer or two brew sessions; logging the
+quick timer; a per-tea reminder switch; reminders other than low stock;
+changing the system alarm volume from the app; M3 (now v0.4.0).
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
@@ -4089,6 +4327,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-30 | D-098: v0.3.0 (spec #124, grilling Q1–Q8, R2-Q1–Q3, S1–S4) — one brew session and one quick timer at once in two controller slots, brew alarm first with a held quick alert, one Live Update for the timer due next, umamit.db v4 (`active_brew` per slot); long steps from 60 min (hot 10–59 min get countdown and Vorwarnung); Vorwarnung and alarm on the alarm volume (`USAGE_ALARM`) with *Lautstärke* 10–100 %, DND „alarms only" rings, „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; daily low-stock reminder (INV-11, channel „Vorrat"); foldable catalog groups; stock on READY; two SCR-07 polish items. Amends D-093 point 1 and Q2, TMR-18, 04 §9.1. 02, 03, 04, 05, 06, 09 updated; plan `docs/plans/v0.3.0.md`. |
 | 2026-10-30 | D-097: v0.2.2, the PO's feedback on v0.2.1 — grams and water on every READY; catalog notifications open the catalog with the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker (INV-10); the quick timer's silent pre-alert as a bug, plus a *Vorwarnung* selector and 8:00 chip; *Merken* for catalog teas (CAT-18, umamit.db v3). 02, 03, 04, 05, 09 updated. |
 | 2026-10-29 | D-096: v0.2.1 build decisions (#83–#92, #97, #98, #100, #102): per-step pre-alert details and migration of a running session, *Alarm testen* waits for the Vorwarnton, sounds load at once on change, timer band and seal details, Kräutertee scope (Mate/Lapacho), one-time reset by parser version, herbal view rules, sold-out re-check incl. owned discontinued teas, redirect and page rules, the strict shop-link grammar and its messages, `CatalogJobs` ordering, vessel seed, stock input, archiving rules. 09 §4 updated. |
 | 2026-10-28 | D-095: timer top as an ink-wash band (new asset A13, dark) with the tea photo as a small round seal on a washi disc (multiply blend, type leaf as fallback); the quick timer gets the band without a seal; A4 retires; in v0.2.1 as #102. 03 SCR-05, SCR-07, 09 §4 and `docs/design/assets.md` updated. |

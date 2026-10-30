@@ -3,18 +3,18 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-30 (v0.2.2 specified: spec #108, tickets #109–#119, D-097)
+**Last updated:** 2026-10-30 (v0.3.0 specified: spec #124, tickets #125–#139, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 merged as c499263)
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.2.2 — the PO's feedback on v0.2.1: building** (go: the PO's `/implement-spec #108`, 2026-10-30; spec #108, tickets #109–#119, D-097, plan `docs/plans/v0.2.2.md`). Before it: v0.2.1 done (2026-10-29, PR #106). **After it: v0.3.0**, quick timers alongside a brew session (D-093 point 1; needs grilling, spec and tickets); then M3 → v0.4.0, M4 → v0.5.0 |
+| Current milestone | **v0.2.2 — released pending:** the PO approved rc.1 and the design review (#118); PR #121 merged into `main` as c499263; the final `v0.2.2` release from `main` (accuracy run, `release.yml`) is in progress. **Next: v0.3.0 — specified, waiting for the PO's go** (`/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105 |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29), #121 (v0.2.2, 2026-10-30); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105 |
 | Open PR | none |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | [`v0.2.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.1) (full release, versionCode 20199, from `main` 9a73b19; accuracy PASS on `main`: pre-alert p95 51 ms / max 64 ms, alert p95 27 ms / max 76 ms) |
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.2.2:** `v0.2.2-rc.1` is out (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms); the PO tests it with the checklist on #118 and judges `docs/design/review/v0.2.2/`. Then v0.3.0 (also the Vorwarnung for hot steps ≥ 10 min, PO 2026-10-30, issue #122): grill and spec quick timers alongside a brew (D-093 point 1).
+1. **v0.3.0:** the PO approves tickets #125–#139 and gives the go with `/implement-spec #124` (D-098, plan `docs/plans/v0.3.0.md`). v0.2.2 needs nothing more from the PO: rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
@@ -64,6 +64,18 @@
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps
+
+### v0.3.0 specified (2026-10-30)
+
+- The PO grilled v0.3.0 (Q1–Q8, R2-Q1–R2-Q3, scenarios S1–S4), recorded as **D-098**: one brew session and one Schnelltimer
+  at once (two controller slots), the brew alarm first and a held Schnelltimer alarm that rings after *Abgegossen*, a row for
+  the other timer and both in the bar, one Live Update for the timer due next, umamit.db v4 (`active_brew` per slot); long
+  steps only for cold/ice brew and ≥ 60 min; Vorwarnung and alarm on the alarm volume (`USAGE_ALARM`) with *Lautstärke*
+  10–100 % and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder (INV-11,
+  channel „Vorrat", WorkManager); foldable catalog groups; stock on READY; two SCR-07 polish items.
+- Spec #124, tickets #125–#139, plan `docs/plans/v0.3.0.md`. Specs 02, 03, 04, 05, 06, 09 updated (11 before).
+- **Waiting for the PO's go** (`/implement-spec #124`, after the PO approves the tickets) and for the final `v0.2.2`.
+- **Decision numbers:** up to D-098 used; the next free is **D-099**.
 
 ### v0.2.2 specified (2026-10-30)
 

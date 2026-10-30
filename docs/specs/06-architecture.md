@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-29 (the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -246,7 +246,32 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 |---|---|
 | `CatalogRefreshService` (own `dataSync` FGS, not WorkManager) | User action only |
 | `OrphanFileSweepWorker` | Daily, idle; also once after a device restore |
-| `ReminderWorker` | Daily check (backup, stock digest) |
+| `ReminderWorker` | Daily check (backup, freshness digest; not built yet) |
+| `LowStockReminderWorker` (v0.3.0, INV-11, D-098) | A unique one-time job (`low-stock-reminder`, policy REPLACE) for the next `lowStockReminderTime`, enqueued again by each run, at app start, after a change of SET-28/SET-29 and after an app update; WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is off |
+
+**Daily low-stock reminder (v0.3.0, INV-11, D-098).** The app's first
+WorkManager job (Hilt `HiltWorkerFactory`, initialised on demand through
+`Configuration.Provider` instead of the default initializer):
+- **Run:** if it is more than 30 min before the set time (a clock or DST
+  change), it only enqueues itself again. Otherwise, once per local date
+  (`lowStockReminderLastDate`), it queries non-archived teas with stock
+  events whose stock is *Knapp* or *Leer* by the Start card's rules (a tea's
+  own threshold first), ignoring `lowStockHidden`, least stock first, and
+  posts notification 12 on the channel `stock` („Vorrat", importance LOW,
+  no sound, no vibration, no full-screen intent; `InboxStyle`). An empty
+  list posts nothing. Then it enqueues the next day.
+- **Rule 8:** it runs off the timer's threads and channels; LOW importance
+  keeps it out of the alert's section (D-044), and it never starts a
+  service, wakes the phone with an exact alarm or touches `active_brew`.
+- **Tap:** the content intent names the launcher activity explicitly with
+  `com.umamit.action.OPEN_START` (no intent filter), like the timer's
+  `OPEN_TIMER`; the app opens Start at its root, after a running alert.
+- **Tests:** the query on an in-memory Room database, the schedule with
+  WorkManager's test driver, the empty day and a three-tea run (Robolectric).
+
+**The timer's second channel (v0.3.0, D-098).** `timer_other` („Weiterer
+Timer", LOW, silent) carries the active timer that is not the Live Update
+(04 §8.1, §8.2).
 
 ### 5.5 Edge-to-edge, predictive back, insets — required (target SDK 36).
 
@@ -265,6 +290,16 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Reliability setup |
 
 No storage, camera, location or contacts permissions.
+
+**WorkManager (v0.3.0, INV-11, D-098).** The daily reminder brings
+`androidx.work` into the app. Its library manifest adds its own non-exported
+receivers (reboot, time change, constraint proxies), `SystemJobService`
+(exported, protected by `BIND_JOB_SERVICE`) and `SystemAlarmService`, and
+the permissions `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED` and
+`FOREGROUND_SERVICE` (all above) plus `ACCESS_NETWORK_STATE`, which is not
+on the list: the app removes it with `tools:node="remove"`, since the job has
+no network constraint. `checkManifestPermissions` stays unchanged; if a
+WorkManager version ever needs the permission, it is recorded here first.
 
 **Share target (v0.2.1, CAT-17, D-094).** One activity (or activity alias)
 has an intent filter for `android.intent.action.SEND` with MIME type

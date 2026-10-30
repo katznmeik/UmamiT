@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -126,11 +126,12 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 
 | Source | Target |
 |---|---|
-| Timer notification / Live Update / alert | SCR-05 |
+| Timer notification / Live Update / alert | SCR-05; from v0.3.0 (D-098) the screen of the notification's timer: SCR-05 for the brew, SCR-07 for the quick timer |
 | „Sitzung gespeichert" notification | SCR-16 |
 | Catalog refresh progress and result notifications | Sammlung › Katalog with SCR-22 open: the progress while the refresh runs, its summary after it (v0.2.2, D-097; until v0.2.1 the app where it was, D-079). Before the setup is finished: the app where it was |
 | Reminder notification | SCR-08 (filtered) or SCR-26 |
-| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`) |
+| Daily low-stock reminder (v0.3.0, INV-11, D-098) | Start (SCR-02) at its root; during an alert the tap waits until it ends (as the catalog tap, D-097); before the setup is finished it is discarded |
+| Reliability banner *Beheben* | System settings page (notifications, battery, Live Updates `ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS`, full-screen alerts `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT`; from v0.3.0 alarm volume `ACTION_SOUND_SETTINGS`, D-098) |
 
 ### 2.5 Layout
 
@@ -275,9 +276,10 @@ below.
      tea's liquor colour (§3.1: green, gyokuro, hōjicha).
   2. **Pre-alert glow:** the pre-alert marker on the ring glows gently, in
      sync with the pre-alert tick.
-- **Long steps** (≥ `LONG_STEP_THRESHOLD`, 10 min): ring and liquor fill
-  update in coarse steps (about every 10 s) with a short glide instead of
-  per frame, to save battery.
+- **Long steps** (≥ `LONG_STEP_THRESHOLD`, 10 min; from v0.3.0 cold or ice
+  brew, or ≥ 60 min, D-098): ring and liquor fill update in coarse steps
+  (about every 10 s) with a short glide instead of per frame, to save
+  battery.
 - **Alerting** deliberately breaks the calm style. A strong, slow pulse of
   the whole surface (washi → matcha green) at about a 1–2 s rhythm, with high
   contrast and **no flashing**. It must be unmistakable from across the
@@ -420,7 +422,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
-| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055) |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
 | `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
@@ -474,6 +476,16 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
+- **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
+  opens SCR-07 and starts a quick timer alongside it, without a question;
+  while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
+  brew alongside it. With a quick timer already active, *Start* on SCR-07
+  asks „Schnelltimer beenden und neu starten?" (*Beenden & neu starten* /
+  *Abbrechen*; §5). The active brew bar above the navigation bar shows both
+  timers (§3.8).
+- **Alarm volume (v0.3.0, D-098).** The reliability banner also shows
+  „Alarmlautstärke ist aus" with *Beheben* (the system's sound settings)
+  when the phone's alarm volume is 0 (TMR-31).
 - At most one nudge card (knapper Vorrat, Backup, Katalog nie geladen).
   From v0.2.2 the low-stock card (INV-10, D-097): „*Tanabata* wird knapp ·
   14 g übrig" (or „*Tanabata* ist leer") in the body style, a small leaf
@@ -554,6 +566,17 @@ v0.2.1 ([D-093](10-open-questions-and-decisions.md#d-093)):
 - A *Knapp* tea (INV-05, from v0.2.2 ≤ 15 g) reads „14 g übrig · knapp" (D-097),
   *Leer* reads „Leer"; the button stays the same.
 
+v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
+- **⋮ › Im Katalog ansehen.** The top bar gets a ⋮ (48 dp target) with one
+  item, *Im Katalog ansehen*, only when the tea has a `catalog_key` whose
+  catalog tea exists (discontinued counts); otherwise there is no ⋮. It
+  opens the tea's SCR-21 above the setup; back returns to the setup with
+  recipe, vessel, leaf, water and steps unchanged. Like every menu it never
+  covers an alert: an alert removes it in its first frame (rule 8).
+- **Long hot steps.** A hot step of 10–59 min shows its Vorwarnung like any
+  other („Auto · 10 s"); „–" / „· keine" stays for cold and ice brew and
+  steps of 60 min and more (TMR-18).
+
 ### SCR-05 Timer
 
 Always dark ("Steeping"), edge-to-edge, keeps the screen on. At the end of a
@@ -621,7 +644,7 @@ container colour instead.
 
 | State | Ring | Caption | Primary control |
 |---|---|---|---|
-| READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „4,0 g Tee · 250 ml Wasser" (v0.2.2, BRW-11, D-097; only what the session has) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
+| READY | empty | KettleHint „Wasserkocher auf 60 °C" (≤ 10 °C: „Kaltes Wasser" / „Eiswürfel", BRW-10) + „4,0 g Tee · 250 ml Wasser" (v0.2.2, BRW-11, D-097; only what the session has) + from v0.3.0 the stock below it, „38 g übrig" / „14 g übrig · knapp" / „Leer" (BRW-11, D-098; only for a tea in the collection) + „Aufguss 2 · 0:20" | **Start** (ring tappable too) |
 | RUNNING | progress | „Zieht …" → „Gleich fertig …" after pre-alert | **Pause** |
 | PAUSED | frozen, dimmed | „Pausiert" | **Weiter** |
 | ALERTING | full, slow pulse | „Jetzt abgießen!" + overtime „+0:07"; from 15 s overtime: large „+2:30 überzogen" in the alert content ink, marked with a small warm-accent `#D9A35F` dot (never warm-accent text, D-055) | **Abgegossen** (*Weggegossen* for rinse) |
@@ -644,6 +667,32 @@ open the Schritte-Sheet, which never covers the alert (D-051, rule 8). They are
 back after *Abgegossen* (D-055).
 
 TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
+
+**Two timers (v0.3.0, [D-098](10-open-questions-and-decisions.md#d-098)).**
+- **Row for the quick timer.** While a quick timer is active, a slim row
+  sits below the band (above the tea name): „⏱ Schnelltimer 2:14" in the
+  body style, its countdown ticking, and a small text button *Pause* /
+  *Weiter* for the quick timer only. A tap on the row opens SCR-07; back
+  returns to this screen. Paused: „⏱ Schnelltimer · Pausiert 2:14".
+- **Space.** The row's height is reserved in every phase of a brew while a
+  quick timer is active, so the pill never moves when the row comes or goes
+  within a phase; when the quick timer starts or ends, the band gives way
+  by the row's height (D-096). On a short screen at a large font the band
+  gives way first; *Start* stays on the screen.
+- **Alerts (rule 8).** On the brew's alert surface the row is hidden and its
+  space kept; a held quick alert shows nothing here. After *Abgegossen* a
+  held quick alert rings at once and its alert surface (SCR-07) comes to the
+  front with its overtime („+12:00"); *Fertig* there returns to this screen.
+  A quick alert that rings while this screen is shown brings SCR-07's alert
+  surface to the front the same way; a brew deadline during it brings this
+  screen's alert back at once.
+- **Stock line (BRW-11).** The READY stock line uses the caption style below
+  the amount line; it counts as content above the control (D-096, D-097),
+  so the pill never moves at *Start*.
+- **⋮.** The brew's ⋮ has no quick-timer items; *Sitzung beenden* and
+  *Sitzung verwerfen* never touch the quick timer.
+- **Motion.** None new: the row's countdown ticks, the button has the usual
+  press feedback.
 
 ### SCR-06 „Gespeichert" sheet
 
@@ -673,7 +722,9 @@ ring opens „Dauer wählen" (hours, minutes, seconds with − / +; 5 s – 24 h
 PRF-04's increments). Once it runs, the timer screen shows it with the title
 „Schnelltimer" and no step label or kettle hint; its overflow holds
 *Abbrechen* (not on the alert) and *Timer-Einstellungen*. A session already
-active asks first (TMR-21). Never over an alert: the screen gives way to the
+active asks first (TMR-21); from v0.3.0 it starts alongside a brew without a
+question, and only an active quick timer asks „Schnelltimer beenden und neu
+starten?" (D-098). Never over an alert: the screen gives way to the
 timer, the picker and the question close (rule 8,
 [D-065](10-open-questions-and-decisions.md#d-065)).
 
@@ -686,6 +737,24 @@ and the Vorwarnton work as on a brew step (TMR-22 AC1). With the row, on a
 short screen at a large font the band before *Start* gives way as a brew's
 does, so *Start* lies on the screen (e.g. 411 × 800 dp, font 2.0); where
 everything fits it keeps its height and nothing moves at *Start* (rule 8).
+
+**v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)).**
+- **Row for the brew.** While a brew session is active, the running quick
+  timer shows the same kind of row as SCR-05 for the brew: „🍃 Tanabata ·
+  Aufguss 2 · 0:48" (READY: „· bereit", FINISHED: „· fertig"), with
+  *Pause*/*Weiter* for a running or paused step. A tap opens SCR-05; back
+  returns. Hidden on the alert surface, space kept (rule 8).
+- **Held alert.** A quick timer that ends while the brew alerts waits
+  silently; its alert surface shows after the brew's *Abgegossen*, with
+  the overtime from its own deadline („+12:00").
+- **Polish 1: calm *Vorwarnung* row.** The row is anchored at its label:
+  „Vorwarnung" keeps its x position for every choice (*Automatisch*, *Aus*,
+  20 s, „· zu kurz"), and the selector grows to its right (#133).
+- **Polish 2: the ring stays at *Start*.** The screen before *Start*
+  reserves the running screen's band and control height, as the brew
+  timer's reserved controls do, so on a short screen at a large font
+  (384 × 832 dp, font 2.0) the ring's centre and the pill's top are the same
+  before and after *Start*. Elsewhere nothing changes; no new animation.
 
 ### SCR-08 Sammlung › Meine Tees
 
@@ -807,13 +876,26 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
   on, so flavoured teas are one tap away. Sorted by name or price the list
   is flat and each row names its *Sorte*.
+- **Foldable groups (v0.3.0, CAT-10, [D-098](10-open-questions-and-decisions.md#d-098)):**
+  in the grouped default and Kräutertee views each *Sorte* header is a
+  toggle: „Bancha · 12" with a chevron (down = open, right = folded; the
+  count is the group's teas under the current filters). A tap folds or
+  unfolds the group; the state is remembered across app starts, separately
+  for the green and the Kräutertee view. A non-empty search shows every hit
+  unfolded; clearing it restores the folding. *Gemerkt* and the flat sort
+  orders have no folding. TalkBack reads „Bancha, 12 Tees, eingeklappt"
+  („ausgeklappt") with the click action „Ausklappen" / „Einklappen". No
+  fold animation: the chevron turns and the content snaps (the list is
+  browsed often).
 - Search hits the filters hide are counted below the list („2 weitere
   Treffer sind durch die Filter ausgeblendet." · *Alle zeigen*); with no
   match at all: „Kein Tee passt zu deiner Suche und den Filtern." · *Filter
   zurücksetzen*.
 
 „Rezept prüfen" is a badge of the row, not a filter (CAT-10). Overflow:
-*Katalog aktualisieren*, and from v0.2.1 *Link einfügen* (CAT-17, D-094).
+*Katalog aktualisieren*, and from v0.2.1 *Link einfügen* (CAT-17, D-094);
+from v0.3.0 *Alle einklappen* and *Alle ausklappen* (only in a grouped view,
+D-098).
 
 **Link einfügen (sheet, v0.2.1, CAT-17, D-094).** Title „Tee per Link
 hinzufügen", a paste field („Link zur Tee-Seite bei Tee-Kontor Kiel") filled
@@ -953,6 +1035,17 @@ switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"). v0.2.1 adds
 *Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093). v0.2.2 adds
 the section *Brühen & Vorrat* between *Timer & Alarm* and *Katalog* with
 „Knapp ab" (SET-16, 0–500 g in 5 g steps, „15 g"; D-097).
+v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
+- *Timer & Alarm* gets *Lautstärke* (SET-27) below *Vorwarnton*: a slider
+  10–100 % in 10 % steps with the value („100 %"), and the hint „Wirkt auf
+  die Alarmlautstärke des Handys". *Alarm testen* plays at it.
+- The *Timer-Zuverlässigkeit* card gets the row „Alarmlautstärke" („Ist
+  aus" with *Beheben*, which opens the system's sound settings; „OK"
+  otherwise).
+- *Brühen & Vorrat* gets the switch „Tägliche Vorrats-Erinnerung" (SET-28,
+  on) with „Listet jeden Tag alle knappen und leeren Tees." and, while it is
+  on, „Uhrzeit" with the time („18:00", SET-29), which opens Material 3's
+  time picker (24 h).
 
 ### SCR-26 Daten & Sicherung
 
@@ -1007,7 +1100,10 @@ editable before *Start*). Never from ALERTING: both entries appear after
   Each pending step, and the running one, has a *Vorwarnung* selector:
   *Automatisch* (shows its value, „Auto · 5 s", or „Auto · keine") / *Aus* /
   5–30 s in 5 s steps. An explicit value the step is too short for
-  (d < N + 5 s) shows „zu kurz" and has no pre-alert. The running step's
+  (d < N + 5 s) shows „zu kurz" and has no pre-alert. From v0.3.0 a hot
+  step of 10–59 min has a selector like any short step („Auto · 10 s"); only
+  long steps (cold or ice brew, ≥ 60 min) show „Auto · keine", from the
+  engine's one long-step function (TMR-18, D-098). The running step's
   selector is its only editable field. The session-wide selector of v0.2.0
   is gone.
 - A changed pre-alert applies to **this session** only, like every other
@@ -1041,6 +1137,9 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Unsaved changes | „Änderungen verwerfen?" · Weiter bearbeiten / Verwerfen |
 | Delete tea | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
 | Another session | „Erst die *Sencha*-Sitzung beenden?" · Beenden & neu starten / Abbrechen |
+| Another quick timer (v0.3.0, D-098) | „Schnelltimer beenden und neu starten?" · Beenden & neu starten / Abbrechen |
+| Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp"; lines „Tanabata · 14 g", „Hisui · leer" |
+| Alarm volume 0 (v0.3.0, TMR-31) | „Alarmlautstärke ist aus" · Beheben |
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
 | Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
