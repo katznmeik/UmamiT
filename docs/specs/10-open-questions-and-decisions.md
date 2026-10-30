@@ -440,8 +440,20 @@ point 1), which stays as planned.
   open removes it, and it does not reopen. During the first-start setup the
   tap is discarded. After a restart a failure's kind comes from the first
   line of the logged error (*Details kopieren* copies that line); a cancelled
-  last refresh shows no sheet. The intent names the launcher activity and
-  carries only its action, so another app can at most open the sheet.
+  last refresh shows no sheet. The notification's tap goes through a
+  non-exported trampoline activity (`CatalogRefreshTapActivity`, no intent
+  filter, no UI) that hands the main activity a one-time in-process ticket;
+  without it the action opens nothing, so no other app can open the sheet
+  (06 §5.7). There is at most one refresh shell: a new tap updates the one on
+  top, or pops an older one lower down (a timer above it comes back; a setup
+  or settings opened from it closes), and each shell keeps its own tap.
+- **Review fixes (PR #121).** A failed *Ausblenden* write is caught and
+  logged, never thrown (rule 8). Every brew phase reserves FINISHED's two
+  controls and FINISHED keeps the last step's header line invisibly, so the
+  pill never moves at the last *Abgegossen* (D-058). On the 384 × 832 dp
+  screen at font 2.0 with a two-line name, *Weiterer Aufguss* keeps 15,5 of
+  its 24 dp margin and the page scrolls by the rest (D-096). An alert removes
+  SCR-07's *Vorwarnung* menu in its first frame.
 - **Picker groups (#114).** With two or more kinds the group headers replace
   the *Alle* header. Kräutertee = style `herbal`, or no style and category
   herbal; every other tea is under „Grüntees".
