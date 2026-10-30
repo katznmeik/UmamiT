@@ -74,10 +74,11 @@ fun KettleHint(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (amount != null) {
+                // As clear as the hint itself: the leaf to weigh matters as much as the water's heat (D-097).
                 Text(
                     text = amount,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             if (detail != null) {

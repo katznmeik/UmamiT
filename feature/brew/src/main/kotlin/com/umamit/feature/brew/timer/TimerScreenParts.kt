@@ -370,8 +370,8 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: 
                     leafAndWater?.let {
                         Text(
                             text = it.text,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.semantics { contentDescription = it.description },
                         )
                     }
