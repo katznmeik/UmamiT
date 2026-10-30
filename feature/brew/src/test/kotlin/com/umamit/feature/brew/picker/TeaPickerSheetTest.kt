@@ -8,7 +8,9 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
@@ -33,6 +35,7 @@ class TeaPickerSheetTest {
 
     private val hisui = PickerTea("h", "Bio Sencha Hisui", "Sencha", null)
     private val tanabata = PickerTea("t", "Bio Sencha Tanabata", "Sencha", null)
+    private val minze = PickerTea("m", "Minze Zitrone", "Kräutertee", null, kind = TeaKind.HERBAL)
     private val picked = mutableListOf<String>()
     private var quick = 0
     private var catalog = 0
@@ -263,5 +266,56 @@ class TeaPickerSheetTest {
 
         assertThat(snackbarGone).isEqualTo(1)
         assertThat(undone).isEqualTo(0)
+    }
+
+    private fun header(title: String) = compose.onNode(isHeading() and hasContentDescription(title))
+
+    private fun top(title: String) = header(title).fetchSemanticsNode().boundsInRoot.top
+
+    @Test
+    fun `Alle with two kinds shows Gruentees, then Kraeutertees, as headings (D-097)`() {
+        show(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata, minze), loading = false))
+
+        header("Favoriten").assertIsDisplayed()
+        header("Grüntees").assertIsDisplayed()
+        header("Kräutertees").assertIsDisplayed()
+        assertThat(top("Favoriten")).isLessThan(top("Grüntees"))
+        assertThat(top("Grüntees")).isLessThan(top("Kräutertees"))
+        val minzeTop = compose.onNodeWithText("Minze Zitrone").fetchSemanticsNode().boundsInRoot.top
+        assertThat(minzeTop).isGreaterThan(top("Kräutertees"))
+    }
+
+    @Test
+    fun `Alle with green teas only shows no group headers, as before`() {
+        show(TeaPickerUiState(all = listOf(hisui, tanabata), loading = false))
+
+        header("Alle").assertIsDisplayed()
+        header("Grüntees").assertDoesNotExist()
+        header("Kräutertees").assertDoesNotExist()
+    }
+
+    @Test
+    fun `search results with two kinds are grouped, with one kind they are not`() {
+        show(TeaPickerUiState(all = listOf(hisui, minze), query = "z", results = listOf(hisui, minze), loading = false))
+        header("Grüntees").assertIsDisplayed()
+        header("Kräutertees").assertIsDisplayed()
+    }
+
+    @Test
+    fun `search results of green teas only show no header`() {
+        show(TeaPickerUiState(all = listOf(hisui, minze), query = "bio", results = listOf(hisui), loading = false))
+
+        compose.onNodeWithText("Bio Sencha Hisui").assertIsDisplayed()
+        header("Grüntees").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a long press in a group still removes the tea`() {
+        showRemovable(TeaPickerUiState(all = listOf(hisui, minze), loading = false))
+
+        compose.onNodeWithText("Minze Zitrone").performTouchInput { longClick() }
+        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+
+        assertThat(removedTeas).containsExactly("m")
     }
 }
