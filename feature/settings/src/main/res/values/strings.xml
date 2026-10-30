@@ -49,6 +49,14 @@
     <string name="settings_test_stop">Stopp</string>
     <string name="settings_save_failed">Konnte nicht gespeichert werden. Versuch es gleich noch einmal; ist der Speicher voll?</string>
 
+    <!-- Brühen & Vorrat (SET-30, v0.2.2, D-097): „Knapp ab" (SET-16, INV-05), 0–500 g in 5 g steps. -->
+    <string name="settings_section_brewing">Brühen &amp; Vorrat</string>
+    <string name="settings_low_stock">Knapp ab</string>
+    <string name="settings_low_stock_grams">%1$d g</string>
+    <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>
+    <string name="settings_low_stock_less">5 g weniger</string>
+    <string name="settings_low_stock_more">5 g mehr</string>
+
     <!-- Katalog (SET-30; SET-23; SET-22: CAT-08, D-073, about 25–35 MB for the whole catalog). -->
     <string name="settings_section_catalog">Katalog</string>
     <string name="settings_catalog_last_refresh">Letzter Abruf</string>

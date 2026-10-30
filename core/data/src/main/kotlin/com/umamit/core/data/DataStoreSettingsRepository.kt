@@ -38,6 +38,7 @@ class DataStoreSettingsRepository @Inject constructor(private val source: Settin
 
 private const val TAG = "UmamiTSettings"
 private const val MAX_PRE_ALERT_SECONDS = 30
+private const val MAX_LOW_STOCK_GRAMS = 500
 
 /** The first wait before an unreadable settings file is read again; it doubles up to [MAX_SETTINGS_RETRY_MS]. */
 internal const val FIRST_SETTINGS_RETRY_MS = 1_000L
@@ -81,6 +82,8 @@ internal fun settingsRetryDelayMs(attempt: Long): Long {
     return (FIRST_SETTINGS_RETRY_MS shl doublings).coerceAtMost(MAX_SETTINGS_RETRY_MS)
 }
 
-/** Keeps the pre-alert in 0, 5…30 (SET-10). */
-internal fun UserSettings.normalized(): UserSettings =
-    copy(preAlertSeconds = snap5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS))
+/** Keeps the pre-alert in 0, 5…30 (SET-10) and „Knapp ab" in 0…500 g in steps of 5 (SET-16). */
+internal fun UserSettings.normalized(): UserSettings = copy(
+    preAlertSeconds = snap5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS),
+    lowStockGrams = snap5(lowStockGrams).coerceIn(0, MAX_LOW_STOCK_GRAMS).toDouble(),
+)

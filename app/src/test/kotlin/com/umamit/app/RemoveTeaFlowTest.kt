@@ -25,6 +25,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.testing.FakeTimerReliability
@@ -98,6 +99,7 @@ class RemoveTeaFlowTest {
                                     clock,
                                     photos,
                                     FakeTimerReliability(),
+                                    FakeLowStockRepository(),
                                 )
                             },
                             pickerViewModel = viewModel {

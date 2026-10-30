@@ -39,6 +39,7 @@ import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeExactPrices
 import com.umamit.core.testing.FakeGuideRepository
+import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
@@ -151,7 +152,15 @@ class CatalogBrewFlowTest {
         StartTabContent(
             tab = tab,
             homeViewModel = viewModel {
-                HomeViewModel(collection.teas, sessions.sessions, starter, clock, photos, FakeTimerReliability())
+                HomeViewModel(
+                    collection.teas,
+                    sessions.sessions,
+                    starter,
+                    clock,
+                    photos,
+                    FakeTimerReliability(),
+                    FakeLowStockRepository(),
+                )
             },
             pickerViewModel = viewModel {
                 TeaPickerViewModel(collection.teas, sessions.sessions, FakeTeaArchive(sessions), photos)

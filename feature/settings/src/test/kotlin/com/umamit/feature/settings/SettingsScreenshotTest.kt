@@ -120,6 +120,31 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
+    /** *Brühen & Vorrat* between *Timer & Alarm* and *Katalog*: „Knapp ab" 15 g (SET-16, SET-30, D-097). */
+    @Test
+    fun settingsBrewing() = capture("Settings_brewing", scrollToText = "Knapp ab") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** The „Knapp ab" stepper at 15 g. */
+    @Test
+    fun settingsLowStockDialog() = capture("Settings_lowStock", clickText = "Knapp ab") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
     @Test
     fun about() = capture("About") {
         AboutScreen(versionName = "0.1.0-rc.1", onBack = {}, onRerunSetup = {}, onOpenDiagnostics = {})
