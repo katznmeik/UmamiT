@@ -240,10 +240,11 @@ class CatalogRefreshServiceTest {
             assertThat(tap.flags and PendingIntent.FLAG_IMMUTABLE).isNotEqualTo(0)
             val intent = tap.savedIntent
             assertThat(CatalogRefreshIntents.isOpenRefresh(intent)).isTrue()
-            // Only this app's own activity: never an intent another app could answer.
+            // Only this app's own non-exported trampoline: never an intent another app could answer (#121).
             assertThat(intent.`package`).isEqualTo(app.packageName)
+            assertThat(intent.component?.packageName).isEqualTo(app.packageName)
+            assertThat(intent.component?.className).isEqualTo(CatalogRefreshIntents.TAP_ACTIVITY)
             assertThat(intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK).isNotEqualTo(0)
-            assertThat(intent.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP).isNotEqualTo(0)
         }
         // *Abbrechen* still goes to the service.
         assertThat(shadowOf(progress.actions.single().actionIntent).isService).isTrue()
