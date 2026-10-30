@@ -20,9 +20,10 @@ import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.controller.brewAgainStart
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.core.timer.reliability.firstMissingIntents
-import com.umamit.core.timer.reliability.hasProblem
+import com.umamit.core.timer.reliability.problem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -68,7 +69,7 @@ data class HomeQuestion(val teaName: String?)
  * @property active the active session or quick timer: *Aufguss fortsetzen* with a live countdown (GEN-06).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
- * @property reliabilityProblem a reliability check is missing: the banner (TMR-31).
+ * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
  * @property lowStock the nudge slot's low-stock card (INV-10), or null.
  */
 data class HomeUiState(
@@ -80,7 +81,7 @@ data class HomeUiState(
     val favorites: List<HomeTea> = emptyList(),
     val question: HomeQuestion? = null,
     val alertKey: String? = null,
-    val reliabilityProblem: Boolean = false,
+    val reliabilityProblem: ReliabilityProblem? = null,
     val lowStock: LowStockCard? = null,
 )
 
@@ -107,7 +108,7 @@ class HomeViewModel @Inject constructor(
     private val lowStock: LowStockRepository,
 ) : ViewModel() {
     private val pending = MutableStateFlow<Pending?>(null)
-    private val reliabilityProblem = MutableStateFlow(reliability.hasProblem())
+    private val reliabilityProblem = MutableStateFlow(reliability.problem())
     private val navigation = Channel<HomeEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host. */
@@ -162,7 +163,7 @@ class HomeViewModel @Inject constructor(
 
     /** Reads the reliability checks again; Start calls it on every resume (TMR-31). */
     fun refreshReliability() {
-        reliabilityProblem.value = reliability.hasProblem()
+        reliabilityProblem.value = reliability.problem()
     }
 
     /** The banner's *Beheben*: the pages of the first missing check, for Start to start. */

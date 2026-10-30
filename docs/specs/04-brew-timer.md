@@ -841,9 +841,12 @@ ongoing notification** (Live Update):
 
   The app reads DND with `NotificationManager.getCurrentInterruptionFilter()`
   (`INTERRUPTION_FILTER_NONE` = total silence) next to the user's ringer mode
-  (`getRingerMode()`). How One UI reports the ringer mode under each DND mode
-  is checked by #128 on SDK 36 and the PO's phone; the table above is the
-  target, and the result goes into D-098's build notes.
+  (`getRingerMode()`). Under „alarms only" AOSP reports the ringer as silent
+  whatever the user chose, so a silent report there is read as normal (both
+  cues ring); priority mode uses the ringer mode as reported (D-098 build
+  notes, #128). Each cue's *Diagnose* line names the ringer mode, the DND
+  mode, the alarm volume and the gain, so the PO's phone shows how One UI
+  reports them (09 §4).
 
 - **Alarm volume 0:** `getStreamVolume(STREAM_ALARM) == 0` is a reliability
   check (TMR-31): „Alarmlautstärke ist aus" with *Beheben*

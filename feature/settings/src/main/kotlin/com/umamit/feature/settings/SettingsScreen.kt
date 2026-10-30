@@ -63,6 +63,9 @@ object SettingsTags {
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val LOW_STOCK = "SettingsLowStock"
+
+    /** The *Lautstärke* slider (SET-27). */
+    const val VOLUME = "SettingsVolume"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
@@ -81,6 +84,8 @@ class SettingsActions(
     val setPreAlertSound: (String) -> Unit = {},
     /** *Anhören* in the *Vorwarnton* picker: the picked sound once (SET-26). */
     val previewPreAlertSound: () -> Unit = {},
+    /** SET-27 *Lautstärke* in % (10–100 in steps of 10), written once a drag ends. */
+    val setVolume: (Int) -> Unit = {},
     val setVibration: (Boolean) -> Unit = {},
     val setAlertLength: (AlertLength) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
@@ -151,6 +156,7 @@ fun SettingsRoute(
             setPreAlert = { seconds -> viewModel.change { it.copy(preAlertSeconds = seconds) } },
             setPreAlertSound = { key -> viewModel.change { it.copy(preAlertSound = key) } },
             previewPreAlertSound = { viewModel.previewPreAlertSound((settings ?: UserSettings()).preAlertSound) },
+            setVolume = { percent -> viewModel.change { it.copy(alertVolumePercent = percent) } },
             setVibration = { on -> viewModel.change { it.copy(vibration = on) } },
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
@@ -277,11 +283,18 @@ private fun ReliabilityCard(status: ReliabilityStatus, onFix: (ReliabilityCheck)
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ReliabilityCheck.entries.forEach { check ->
+                val state = status.stateOf(check)
                 StatusCheckRow(
                     label = stringResource(check.label()),
-                    state = status.stateOf(check).toStatusCheck(),
+                    state = state.toStatusCheck(),
                     actionLabel = stringResource(R.string.settings_fix),
                     onAction = { onFix(check) },
+                    // „Alarmlautstärke · Ist aus" (D-098): the phone's setting, not a missing permission.
+                    explanation = if (check == ReliabilityCheck.AlarmVolume && state == CheckState.Missing) {
+                        stringResource(R.string.settings_check_alarm_volume_off)
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -306,6 +319,7 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
             value = stringResource(PreAlertSound.of(settings.preAlertSound).sound.label()),
             onClick = { openDialog(SettingsDialog.PreAlertSound) },
         )
+        VolumeRow(percent = settings.alertVolumePercent, onChange = actions.setVolume)
         SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, actions.setVibration)
         SettingsRow(
             title = stringResource(R.string.settings_alert_length),
@@ -415,6 +429,7 @@ private fun ReliabilityCheck.label(): Int = when (this) {
     ReliabilityCheck.FullScreenAlert -> R.string.settings_check_full_screen
     ReliabilityCheck.Battery -> R.string.settings_check_battery
     ReliabilityCheck.ExactAlarms -> R.string.settings_check_exact_alarms
+    ReliabilityCheck.AlarmVolume -> R.string.settings_check_alarm_volume
 }
 
 private fun CheckState.toStatusCheck(): StatusCheck = when (this) {

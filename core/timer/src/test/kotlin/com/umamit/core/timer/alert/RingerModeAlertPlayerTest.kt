@@ -3,6 +3,7 @@ package com.umamit.core.timer.alert
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.UserSettings
 import org.junit.Test
 
 /**
@@ -65,14 +66,30 @@ class RingerModeAlertPlayerTest {
     }
 
     @Test
-    fun doNotDisturbBlockingAlertsKeepsTheAlertVisual() {
-        environment.conditions = AlertConditions(RingerMode.NORMAL, dndBlocksAlerts = true)
+    fun doNotDisturbTotalSilenceKeepsTheAlertAndTheTickVisual() {
+        environment.conditions = AlertConditions(RingerMode.NORMAL, dnd = DoNotDisturb.TOTAL_SILENCE)
 
         player.startAlert()
         player.playPreAlert()
 
         assertThat(sound.events).isEmpty()
         assertThat(haptics.events).isEmpty()
+    }
+
+    @Test
+    fun doNotDisturbAlarmsOnlyAndPriorityLetTheAlertRingAsTheRingerMode() {
+        // D-098: the cues play on the alarm stream, which „alarms only" and priority mode let through.
+        listOf(DoNotDisturb.ALARMS_ONLY, DoNotDisturb.PRIORITY).forEach { dnd ->
+            val fresh = FreshPlayer(AlertConditions(RingerMode.NORMAL, dnd = dnd), settings)
+
+            fresh.player.playPreAlert()
+            fresh.scheduler.advanceBy(5_000L)
+            fresh.player.startAlert()
+
+            assertWithMessage("$dnd").that(fresh.sound.plays(AlertSound.TICK)).containsExactly(0L)
+            assertWithMessage("$dnd").that(fresh.sound.plays(AlertSound.KLANGSCHALE)).containsExactly(5_000L)
+            assertWithMessage("$dnd").that(fresh.haptics.plays(Haptic.ALERT)).containsExactly(5_000L)
+        }
     }
 
     @Test
@@ -86,9 +103,55 @@ class RingerModeAlertPlayerTest {
         assertThat(haptics.events).isEmpty()
     }
 
+    // --- Lautstärke (SET-27, D-098) ------------------------------------------
+
+    @Test
+    fun theTickAndEveryAlertCyclePlayAtTheLautstaerkeAsGain() {
+        listOf(10 to 0.1f, 50 to 0.5f, 100 to 1f).forEach { (percent, gain) ->
+            val fresh = FreshPlayer(
+                AlertConditions(RingerMode.NORMAL),
+                AlertSettings(preAlert = AlertSound.TICK, volumePercent = percent),
+            )
+
+            fresh.player.playPreAlert()
+            fresh.scheduler.advanceBy(5_000L)
+            fresh.player.startAlert()
+            fresh.scheduler.advanceBy(60_000L)
+
+            assertWithMessage("$percent %").that(fresh.sound.gains).containsExactly(
+                "TICK $gain @ 0",
+                "KLANGSCHALE $gain @ 5000",
+                "KLANGSCHALE $gain @ 8500",
+                "KLANGSCHALE $gain @ 12000",
+                "KLANGSCHALE $gain @ 15500",
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun alarmTestenPlaysAtTheLautstaerke() {
+        settings = AlertSettings(AlertSound.GLOCKE, AlertLength.SHORT, preAlert = AlertSound.TICK, volumePercent = 30)
+
+        player.testAlert()
+        scheduler.advanceBy(60_000L)
+
+        assertThat(sound.gains).containsExactly("TICK 0.3 @ 0", "GLOCKE 0.3 @ 1500").inOrder()
+    }
+
+    @Test
+    fun aLautstaerkeOutsideTenToHundredIsClampedSoTheAppNeverSilencesACue() {
+        // 05 §6: a stored value outside 10…100 (a damaged or hand-edited file) is clamped (rule 8).
+        assertThat(AlertSettings.of(UserSettings(alertVolumePercent = 0)).volumePercent).isEqualTo(10)
+        assertThat(AlertSettings.of(UserSettings(alertVolumePercent = -40)).volumePercent).isEqualTo(10)
+        assertThat(AlertSettings.of(UserSettings(alertVolumePercent = 250)).volumePercent).isEqualTo(100)
+        assertThat(AlertSettings.of(UserSettings(alertVolumePercent = 70)).volumePercent).isEqualTo(70)
+        assertThat(AlertSettings.of(UserSettings()).gain).isEqualTo(1f)
+        assertThat(AlertSettings(volumePercent = 0).gain).isEqualTo(0.1f)
+    }
+
     @Test
     fun matrixTable() {
-        fun outputs(mode: RingerMode, inCall: Boolean = false, dnd: Boolean = false) =
+        fun outputs(mode: RingerMode, inCall: Boolean = false, dnd: DoNotDisturb = DoNotDisturb.OFF) =
             AlertMatrix.outputs(AlertConditions(mode, inCall, dnd))
 
         assertThat(outputs(RingerMode.NORMAL)).isEqualTo(AlertOutputs(sound = true, vibration = true))
@@ -97,7 +160,35 @@ class RingerModeAlertPlayerTest {
         assertThat(outputs(RingerMode.NORMAL, inCall = true)).isEqualTo(AlertOutputs(sound = false, vibration = true))
         assertThat(outputs(RingerMode.VIBRATE, inCall = true)).isEqualTo(AlertOutputs(sound = false, vibration = true))
         assertThat(outputs(RingerMode.SILENT, inCall = true)).isEqualTo(AlertOutputs.NONE)
-        RingerMode.entries.forEach { assertThat(outputs(it, dnd = true)).isEqualTo(AlertOutputs.NONE) }
+        RingerMode.entries.forEach {
+            assertThat(outputs(it, dnd = DoNotDisturb.TOTAL_SILENCE)).isEqualTo(AlertOutputs.NONE)
+        }
+    }
+
+    @Test
+    fun matrixTableUnderDoNotDisturb() {
+        fun outputs(mode: RingerMode, dnd: DoNotDisturb, inCall: Boolean = false) =
+            AlertMatrix.outputs(AlertConditions(mode, inCall, dnd))
+        val soundAndVibration = AlertOutputs(sound = true, vibration = true)
+        val vibrationOnly = AlertOutputs(sound = false, vibration = true)
+
+        // Priority mode (alarms allowed): as the ringer mode (04 §9.1, D-098).
+        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.PRIORITY)).isEqualTo(soundAndVibration)
+        assertThat(outputs(RingerMode.VIBRATE, DoNotDisturb.PRIORITY)).isEqualTo(vibrationOnly)
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY)).isEqualTo(AlertOutputs.NONE)
+        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.PRIORITY, inCall = true)).isEqualTo(vibrationOnly)
+
+        // „Alarms only": as the ringer mode; the platform reports the ringer as silent in this mode (AOSP's zen
+        // forces it), so a silent report here is not the user's silent mode and the alert rings.
+        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.ALARMS_ONLY)).isEqualTo(soundAndVibration)
+        assertThat(outputs(RingerMode.VIBRATE, DoNotDisturb.ALARMS_ONLY)).isEqualTo(vibrationOnly)
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.ALARMS_ONLY)).isEqualTo(soundAndVibration)
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.ALARMS_ONLY, inCall = true)).isEqualTo(vibrationOnly)
+
+        // Total silence: visual only, whatever the ringer mode.
+        RingerMode.entries.forEach {
+            assertThat(outputs(it, DoNotDisturb.TOTAL_SILENCE)).isEqualTo(AlertOutputs.NONE)
+        }
     }
 
     @Test
@@ -560,18 +651,32 @@ class RingerModeAlertPlayerTest {
                 vibration = false,
             ),
             MatrixCase(
-                "normal, DND",
-                AlertConditions(RingerMode.NORMAL, dndBlocksAlerts = true),
+                "normal, DND total silence",
+                AlertConditions(RingerMode.NORMAL, dnd = DoNotDisturb.TOTAL_SILENCE),
                 true,
                 sound = false,
                 vibration = false,
             ),
             MatrixCase(
-                "vibrate, DND",
-                AlertConditions(RingerMode.VIBRATE, dndBlocksAlerts = true),
+                "vibrate, DND total silence",
+                AlertConditions(RingerMode.VIBRATE, dnd = DoNotDisturb.TOTAL_SILENCE),
                 true,
                 sound = false,
                 vibration = false,
+            ),
+            MatrixCase(
+                "normal, DND alarms only",
+                AlertConditions(RingerMode.NORMAL, dnd = DoNotDisturb.ALARMS_ONLY),
+                true,
+                sound = true,
+                vibration = true,
+            ),
+            MatrixCase(
+                "vibrate, DND priority",
+                AlertConditions(RingerMode.VIBRATE, dnd = DoNotDisturb.PRIORITY),
+                true,
+                sound = false,
+                vibration = true,
             ),
         )
 

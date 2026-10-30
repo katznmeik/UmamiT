@@ -26,6 +26,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.delay
 
 /** Test tag of the TalkBack announcement node (a polite, while alerting assertive, live region). */
@@ -76,7 +77,7 @@ fun TimerScreen(
     onOpenTimerSettings: () -> Unit,
     modifier: Modifier = Modifier,
     settings: TimerScreenSettings = TimerScreenSettings(),
-    reliabilityProblem: Boolean = false,
+    reliabilityProblem: ReliabilityProblem? = null,
     onFixReliability: () -> Unit = {},
     teaPhoto: Painter? = null,
     teaStyleKey: String? = null,

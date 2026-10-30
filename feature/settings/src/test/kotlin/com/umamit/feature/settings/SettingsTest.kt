@@ -3,6 +3,10 @@ package com.umamit.feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
@@ -70,14 +75,19 @@ class SettingsTest {
     private class FakeTonePreview : TonePreview {
         val played = mutableListOf<String>()
         val preAlertsPlayed = mutableListOf<String>()
+
+        /** The *Lautstärke* of every preview, in order (SET-27). */
+        val volumes = mutableListOf<Int>()
         var stops = 0
 
-        override fun play(toneKey: String) {
+        override fun play(toneKey: String, volumePercent: Int) {
             played += toneKey
+            volumes += volumePercent
         }
 
-        override fun playPreAlert(preAlertKey: String) {
+        override fun playPreAlert(preAlertKey: String, volumePercent: Int) {
             preAlertsPlayed += preAlertKey
+            volumes += volumePercent
         }
 
         override fun stop() {
@@ -266,6 +276,76 @@ class SettingsTest {
         clickRow("Knapp ab")
         compose.onNodeWithContentDescription("5 g weniger").assertIsNotEnabled()
         compose.onNodeWithContentDescription("5 g mehr").assertIsEnabled()
+    }
+
+    @Test
+    fun `Lautstaerke below Vorwarnton reads 100 percent with its hint and stores a new value in steps of 10`() {
+        // SET-27 (D-098): 10–100 % in steps of 10, default 100 %.
+        show()
+        compose.onNodeWithTag(SettingsTags.VOLUME).performScrollTo()
+        compose.onNodeWithText("Lautstärke").assertIsDisplayed()
+        compose.onNodeWithText("100 %").assertIsDisplayed()
+        compose.onNodeWithText("Wirkt auf die Alarmlautstärke des Handys").assertIsDisplayed()
+        compose.onNodeWithTag(SettingsTags.VOLUME)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "100 %"))
+
+        compose.onNodeWithTag(SettingsTags.VOLUME).performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        compose.waitForIdle()
+
+        assertThat(stored().alertVolumePercent).isEqualTo(30)
+        compose.onNodeWithText("30 %").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Lautstaerke stops at 10 percent, so the app never silences a cue`() {
+        runBlocking { settings.update { it.copy(alertVolumePercent = 20) } }
+        show()
+        compose.onNodeWithTag(SettingsTags.VOLUME).performScrollTo()
+
+        compose.onNodeWithTag(SettingsTags.VOLUME).performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        compose.waitForIdle()
+
+        assertThat(stored().alertVolumePercent).isEqualTo(10)
+        compose.onNodeWithTag(SettingsTags.VOLUME)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "10 %"))
+        val range = compose.onNodeWithTag(SettingsTags.VOLUME).fetchSemanticsNode()
+            .config[SemanticsProperties.ProgressBarRangeInfo]
+        assertThat(range.range).isEqualTo(10f..100f)
+        assertThat(range.steps).isEqualTo(8)
+    }
+
+    @Test
+    fun `Anhoeren plays at the stored Lautstaerke`() {
+        runBlocking { settings.update { it.copy(alertVolumePercent = 40) } }
+        show()
+
+        clickRow("Alarmton")
+        compose.onNodeWithText("Anhören").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Anhören").performClick()
+
+        assertThat(preview.volumes).containsExactly(40, 40)
+    }
+
+    @Test
+    fun `the alarm volume at 0 shows its row with Ist aus and Beheben, which opens the sound settings`() {
+        // TMR-31, SET-24 (D-098).
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        val viewModel = show()
+
+        compose.onNodeWithText("Alarmlautstärke").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ist aus").assertIsDisplayed()
+        compose.onNodeWithText("Beheben").performClick()
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.AlarmVolume)
+
+        // Raised in the sound settings: back on the screen the row reads OK again.
+        reliability.grantAll()
+        viewModel.refresh()
+        compose.waitForIdle()
+        compose.onNodeWithText("Ist aus").assertDoesNotExist()
+        compose.onNodeWithText("Beheben").assertDoesNotExist()
+        compose.onNodeWithText("Alarmlautstärke").assertIsDisplayed()
     }
 
     @Test
