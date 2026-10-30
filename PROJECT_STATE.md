@@ -3,13 +3,13 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-30 (v0.3.0 specified: spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 released from `main` c499263)
+**Last updated:** 2026-10-30 (v0.3.0 build started; specified: spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 released from `main` c499263)
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.2.2 — done** ([`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2), 2026-10-30, from `main` c499263; spec #108, PR #121). **Next: v0.3.0 — specified, waiting for the PO's go** (`/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
+| Current milestone | **v0.2.2 — done** ([`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2), 2026-10-30, from `main` c499263; spec #108, PR #121). **Next: v0.3.0 — in progress** (go given 2026-10-30 with `/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.3.0:** the PO approves tickets #125–#139 and #141 and gives the go with `/implement-spec #124` (D-098, plan `docs/plans/v0.3.0.md`). v0.2.2 is released (2026-10-30). Its rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
+1. **v0.3.0:** go given on 2026-10-30 (`/implement-spec #124`); the build runs (D-098, plan `docs/plans/v0.3.0.md`). The PO tests `v0.3.0-rc.N` (#138). v0.2.2 is released (2026-10-30). Its rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
@@ -74,7 +74,7 @@
   10–100 % and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder (INV-11,
   channel „Vorrat", WorkManager); foldable catalog groups; stock on READY; two SCR-07 polish items.
 - Spec #124, tickets #125–#139 and #141, plan `docs/plans/v0.3.0.md`. Specs 02, 03, 04, 05, 06, 09 updated (11 before).
-- **Waiting for the PO's go** (`/implement-spec #124`, after the PO approves the tickets).
+- **Go given** on 2026-10-30 (`/implement-spec #124`); the build started with #125 and #126 (T4).
 - **Decision numbers:** up to D-098 used; the next free is **D-099**.
 
 ### v0.2.2 specified (2026-10-30)
