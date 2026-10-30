@@ -45,6 +45,13 @@ interface CatalogRefreshRunner {
 
     /** The result was seen: [CatalogRefreshState.Finished] becomes [CatalogRefreshState.Idle]. */
     fun acknowledge()
+
+    /**
+     * A tap on a refresh notification opens the sheet (SCR-22, D-097). With no refresh running and
+     * no result held (the app was closed since the refresh ended), the last finished refresh's
+     * result from the refresh log becomes [CatalogRefreshState.Finished]; otherwise nothing changes.
+     */
+    suspend fun recallLastResult()
 }
 
 /**
@@ -66,6 +73,7 @@ class AppCatalogRefreshRunner internal constructor(
     private val diagnostics: DiagnosticsLog,
     private val clock: WallClock,
     context: CoroutineContext,
+    private val lastOutcome: suspend () -> CatalogRefreshOutcome? = { null },
 ) : CatalogRefreshRunner,
     CatalogRefreshServicePort {
     @Inject
@@ -74,7 +82,7 @@ class AppCatalogRefreshRunner internal constructor(
         foreground: CatalogRefreshForeground,
         diagnostics: DiagnosticsLog,
         clock: WallClock,
-    ) : this(refresher::refresh, foreground, diagnostics, clock, Dispatchers.IO)
+    ) : this(refresher::refresh, foreground, diagnostics, clock, Dispatchers.IO, refresher::lastOutcome)
 
     private val scope = CoroutineScope(SupervisorJob() + context)
 
@@ -132,6 +140,13 @@ class AppCatalogRefreshRunner internal constructor(
     override fun acknowledge() {
         mutableState.update { if (it is CatalogRefreshState.Finished) CatalogRefreshState.Idle else it }
         foreground.clearResult()
+    }
+
+    override suspend fun recallLastResult() {
+        if (state.value != CatalogRefreshState.Idle) return
+        val outcome = lastOutcome() ?: return
+        // A refresh started meanwhile wins.
+        mutableState.compareAndSet(CatalogRefreshState.Idle, CatalogRefreshState.Finished(outcome))
     }
 
     override fun log(message: String) = diagnostics.append(clock.nowMs(), clock.zone(), message)

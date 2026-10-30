@@ -167,6 +167,10 @@ abstract class CatalogDao {
     @Query("SELECT * FROM catalog_refresh_log ORDER BY id")
     abstract suspend fun refreshLog(): List<CatalogRefreshLogEntity>
 
+    /** The last finished refresh, or null before the first one (SCR-22, D-097). */
+    @Query("SELECT * FROM catalog_refresh_log ORDER BY id DESC LIMIT 1")
+    abstract suspend fun lastRefresh(): CatalogRefreshLogEntity?
+
     /** The guides (*Ratgeber*, CAT-09, SCR-20). */
     @Query("SELECT * FROM catalog_guide")
     abstract fun observeGuides(): Flow<List<CatalogGuideEntity>>

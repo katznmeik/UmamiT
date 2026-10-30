@@ -81,6 +81,11 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param teaLinkShare a link shared to the app and not taken yet (CAT-17); the shell takes it to
  *   Sammlung › Katalog, which loads it and hands its token to [onTakeTeaLinkShare]. Nothing above
  *   the tabs is closed for it: while the timer or another full-screen route is shown, it waits (rule 8).
+ * @param catalogRefreshRequest a new non-zero token for each tap on a catalog refresh notification
+ *   (SCR-22, D-097); 0 for none. The root opens Sammlung › Katalog with the refresh sheet above what
+ *   is shown ([CatalogRefreshRoute]), so back returns there; during an alert it waits until the alert
+ *   has ended (rule 8). Before the first-start setup is done, or while a setup is shown, the tap
+ *   opens the app where it was (ONB-03). Either way [onConsumeCatalogRefreshRequest] gets the token.
  */
 @Composable
 internal fun UmamitRoot(
@@ -114,6 +119,8 @@ internal fun UmamitRoot(
     },
     teaLinkShare: StateFlow<TeaLinkShare?> = NO_TEA_LINK_SHARE,
     onTakeTeaLinkShare: (Long) -> Unit = {},
+    catalogRefreshRequest: StateFlow<Long> = NO_CATALOG_REFRESH_REQUEST,
+    onConsumeCatalogRefreshRequest: (Long) -> Unit = {},
 ) {
     val navController = rememberNavController()
     val share by teaLinkShare.collectAsStateWithLifecycle()
@@ -128,6 +135,14 @@ internal fun UmamitRoot(
     val alert by alertKey.collectAsStateWithLifecycle()
     val currentAlerting by rememberUpdatedState(alert != null)
     val timerFirst = rememberTimerFirst(navController, alert, timerRequest, onConsumeTimerRequest)
+    val catalogSheet = rememberCatalogRefreshTaps(
+        navController = navController,
+        alert = alert,
+        setupDone = completed == true,
+        request = catalogRefreshRequest,
+        onConsume = onConsumeCatalogRefreshRequest,
+        navigateAbove = timerFirst.navigateAbove,
+    )
 
     val entry by navController.currentBackStackEntryAsState()
     val timerOnTop = entry?.destination?.hasRoute<TimerRoute>() == true
@@ -221,6 +236,24 @@ internal fun UmamitRoot(
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
                 )
             }
+            // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
+            composable<CatalogRefreshRoute> {
+                UmamitApp(
+                    activeBrewSource = activeBrewSource,
+                    journalSources = journalSources,
+                    alerting = alert != null,
+                    onOpenTimer = openTimer,
+                    startNavigation = startNavigation,
+                    alertKey = alert,
+                    startScreen = startScreen,
+                    catalogScreen = catalogScreen,
+                    catalogScreens = catalogScreens,
+                    settings = settings.withRerunSetup(rerunSetup),
+                    teaLinkShare = share,
+                    onTakeTeaLinkShare = onTakeTeaLinkShare,
+                    opening = ShellOpening.CatalogRefresh(catalogSheet),
+                )
+            }
             composable<OnboardingRoute> { onboardingScreen(finishSetup) }
             composable<TimerRoute> {
                 timerScreen(
@@ -291,6 +324,45 @@ internal fun UmamitRoot(
             darkTheme = UmamiTheme.isDark,
         ),
     )
+}
+
+/**
+ * The taps on a catalog refresh notification (SCR-22, 03 §2.4, D-097), each once: with the setup
+ * done and no setup on screen, Sammlung › Katalog opens with the refresh sheet above what is shown
+ * ([CatalogRefreshRoute], reused when it is on top already); during an alert the tap waits until
+ * the alert has ended, so neither covers the timer (rule 8). Before the setup is done the tap is
+ * let go: the app opens where it was (ONB-03). Returns the token of the sheet to show, which
+ * survives a configuration change.
+ */
+@Composable
+@Suppress("LongParameterList") // the navigation, the two gates, the request and its consumer
+private fun rememberCatalogRefreshTaps(
+    navController: NavHostController,
+    alert: String?,
+    setupDone: Boolean,
+    request: StateFlow<Long>,
+    onConsume: (Long) -> Unit,
+    navigateAbove: (route: Any, options: NavOptionsBuilder.() -> Unit) -> Unit,
+): Long {
+    var sheetToken by rememberSaveable { mutableLongStateOf(0L) }
+    var handled by rememberSaveable { mutableLongStateOf(0L) }
+    val token by request.collectAsStateWithLifecycle()
+    val currentOnConsume by rememberUpdatedState(onConsume)
+    val currentNavigateAbove by rememberUpdatedState(navigateAbove)
+    LaunchedEffect(token, alert, setupDone) {
+        if (token == 0L || token == handled) return@LaunchedEffect
+        val inSetup = navController.currentDestination?.hasRoute<OnboardingRoute>() == true
+        if (setupDone && !inSetup) {
+            if (alert != null) return@LaunchedEffect
+            if (navController.currentDestination?.hasRoute<CatalogRefreshRoute>() != true) {
+                currentNavigateAbove(CatalogRefreshRoute) { launchSingleTop = true }
+            }
+            sheetToken = token
+        }
+        handled = token
+        currentOnConsume(token)
+    }
+    return sheetToken
 }
 
 /** What [rememberTimerFirst] gives the root. */
@@ -378,6 +450,9 @@ internal const val SHELL_COVER_TAG = "shell_cover"
 
 /** No request to open the timer ever comes. */
 private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
+
+/** No catalog refresh notification is ever tapped. */
+private val NO_CATALOG_REFRESH_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
 
 /** No link is ever shared. */
 private val NO_TEA_LINK_SHARE: StateFlow<TeaLinkShare?> = MutableStateFlow(null)

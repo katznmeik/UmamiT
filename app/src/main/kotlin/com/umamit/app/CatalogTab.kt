@@ -21,6 +21,7 @@ import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
  * @property openGuides opens the *Ratgeber* (CAT-09), in the Sammlung tab's stack.
  * @property pasteLinkRequest the ⋮ menu's *Link einfügen* counter (CAT-17).
  * @property sharedLink a link shared to the app, not taken yet (CAT-17); [onTakeSharedLink] takes it.
+ * @property refreshSheetRequest the token of a tap on a refresh notification (SCR-22, D-097); 0 for none.
  */
 internal data class CatalogTab(
     val modifier: Modifier,
@@ -32,6 +33,7 @@ internal data class CatalogTab(
     val pasteLinkRequest: Int = 0,
     val sharedLink: TeaLinkShare? = null,
     val onTakeSharedLink: (Long) -> Unit = {},
+    val refreshSheetRequest: Long = 0L,
 )
 
 /**
@@ -50,6 +52,7 @@ internal fun CatalogTabContent(tab: CatalogTab) {
         pasteLinkRequest = tab.pasteLinkRequest,
         sharedLink = tab.sharedLink,
         onTakeSharedLink = tab.onTakeSharedLink,
+        refreshSheetRequest = tab.refreshSheetRequest,
     )
 }
 

@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -84,6 +85,10 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
  * @param sharedLink a link shared to the app and not loaded yet; [onTakeSharedLink] gets its
  *   token once its load has started.
  * @param onOpenGuides opens the *Ratgeber* (CAT-09) from its row.
+ * @param refreshSheetRequest the token of a tap on a refresh notification (SCR-22, D-097); 0 for
+ *   none. Each new one opens the refresh sheet on what the refresh holds: its progress, its result,
+ *   or the last result from the refresh log when the app was closed since. Never during an alert:
+ *   the sheet opens once it has ended (rule 8).
  */
 @Composable
 @Suppress("LongParameterList") // the alert gate, the ways out, the shell's counters and the view model
@@ -97,6 +102,7 @@ fun CatalogRoute(
     pasteLinkRequest: Int = 0,
     sharedLink: TeaLinkShare? = null,
     onTakeSharedLink: (token: Long) -> Unit = {},
+    refreshSheetRequest: Long = 0L,
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -113,6 +119,12 @@ fun CatalogRoute(
             startRefresh()
         }
     }
+    OnRefreshSheetRequest(
+        request = refreshSheetRequest,
+        alerting = alerting,
+        recall = viewModel::recallRefreshResult,
+        showing = viewModel::refreshShowing,
+    ) { sheetOpen = it }
     // A tea from a shop link (CAT-17). Its sheet takes the refresh sheet's place; the refresh goes on.
     val link by viewModel.link.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current

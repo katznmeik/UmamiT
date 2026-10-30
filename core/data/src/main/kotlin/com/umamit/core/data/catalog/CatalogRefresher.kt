@@ -165,6 +165,29 @@ class CatalogRefresher(
     suspend fun refresh(onProgress: (CatalogRefreshProgress) -> Unit = {}): CatalogRefreshOutcome =
         jobs.refresh { refreshInTurn(onProgress) }
 
+    /**
+     * The last finished refresh as its outcome, from `catalog_refresh_log` (SCR-22, D-097): the
+     * result notification tapped after the app was closed shows it. A success counts the teas the
+     * catalog holds in the range now; a failure keeps its kind and the logged line as its details.
+     * Null before the first refresh and after a cancelled one (no result to show).
+     */
+    suspend fun lastOutcome(): CatalogRefreshOutcome? {
+        val entry = dao.lastRefresh() ?: return null
+        return when (entry.status) {
+            CatalogRefreshStatus.CANCELLED -> null
+
+            CatalogRefreshStatus.SUCCESS -> CatalogRefreshOutcome.Success(
+                teas = dao.countCurrent(),
+                newTeas = entry.newCount,
+                changedTeas = entry.changedCount,
+                discontinuedTeas = entry.discontinuedCount,
+                recipesToCheck = entry.flaggedCount,
+            )
+
+            CatalogRefreshStatus.FAILED -> failureOf(entry.errorSummary.orEmpty())
+        }
+    }
+
     private suspend fun refreshInTurn(onProgress: (CatalogRefreshProgress) -> Unit): CatalogRefreshOutcome {
         val run = Run(startedAt = clock.nowMs(), onProgress = onProgress)
         log("catalog refresh: started, parser v${TeeKontorParser.PARSER_VERSION}")
@@ -350,7 +373,7 @@ class CatalogRefresher(
 
         /** Technical English for *Details kopieren* (CAT-07 AC5): counts and article numbers, no shop content. */
         fun details(reason: String): String = buildString {
-            appendLine("UmamiT catalog refresh: $reason")
+            appendLine("$DETAILS_PREFIX$reason")
             appendLine("client: ${client.userAgent}")
             appendLine("parser: v${TeeKontorParser.PARSER_VERSION}")
             appendLine("started: ${Instant.ofEpochMilli(startedAt).atZone(clock.zone()).toOffsetDateTime()}")
@@ -1060,4 +1083,28 @@ internal fun ShopFetch.TooLarge.line(url: HttpUrl): String =
 
 /** The first line of a failure's details: the log's error summary. */
 private fun CatalogRefreshOutcome.Failure.summary(): String =
-    details.lineSequence().first().removePrefix("UmamiT catalog refresh: ")
+    details.lineSequence().first().removePrefix(DETAILS_PREFIX)
+
+private const val DETAILS_PREFIX = "UmamiT catalog refresh: "
+
+/**
+ * The failure a logged error summary ([summary]) was written for: its kind from the line's own
+ * start, as [CatalogRefresher] writes it („stopped: <cause> at …", „storage error: …", „photo
+ * storage error: …"; anything else ended as shop changed), with the line as its details.
+ */
+internal fun failureOf(summary: String): CatalogRefreshOutcome.Failure {
+    val stopped = summary.removePrefix("stopped: ").takeIf { it != summary }?.substringBefore(' ')
+    val block = BlockCause.entries.firstOrNull { it.name == stopped }
+    return when {
+        stopped == StopCause.NETWORK.name -> CatalogRefreshOutcome.Offline(summary)
+
+        stopped == StopCause.HTTP_ERROR.name -> CatalogRefreshOutcome.ShopUnavailable(summary)
+
+        block != null -> CatalogRefreshOutcome.Blocked(block, summary)
+
+        summary.startsWith("storage error") || summary.startsWith("photo storage error") ->
+            CatalogRefreshOutcome.StorageFailed(summary)
+
+        else -> CatalogRefreshOutcome.ShopChanged(summary)
+    }
+}
