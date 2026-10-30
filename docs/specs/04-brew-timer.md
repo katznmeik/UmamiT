@@ -10,7 +10,8 @@
 > thread, D-092, 2026-10-26; pre-alert per step and new pre-alert sounds
 > for v0.2.1, quick timers alongside a brew planned for v0.3.0, D-093,
 > 2026-10-26; loads ahead on a loader thread, a late pre-alert sound cut by
-> the alert, D-096, 2026-10-29)
+> the alert, D-096, 2026-10-29; the quick timer's own pre-alert choice and
+> the fix of its silent pre-alert for v0.2.2, D-097, 2026-10-30)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time
@@ -848,9 +849,10 @@ INFUSION step and these differences:
 The quick timer has no idle demote and no midnight timeout: its 30-min cancel
 comes first (D-053).
 
-`startQuickTimer(duration, globalPreAlert)` starts it in Ready; a duration
-outside 5 s – 24 h or a pre-alert other than 0 or 5–30 s is rejected as
-`InvalidQuickTimer`. It has no
+`startQuickTimer(duration, globalPreAlert, preAlertChoice)` starts it in
+Ready (the choice from v0.2.2, D-097: null = *Automatisch*, 0 = *Aus*, or an
+explicit 5–30 s); a duration outside 5 s – 24 h, or a global pre-alert or a
+choice other than 0 or 5–30 s, is rejected as `InvalidQuickTimer`. It has no
 `brew_session` row, so `CreateSession`, `RecordStep`, `ShowSavedSheet` and
 the other data effects never occur. Starting a session or another quick
 timer while one is active is rejected as `ActiveTimerExists` (TMR-21);
@@ -861,7 +863,15 @@ Uses the global pre-alert, the same alert and the Live Update
 `skipStep` or `addStep`; an unstarted or paused quick timer is cancelled after
 30 min without interaction. From v0.2.1 its pre-alert follows the automatic
 rule of §5 with B = the global setting (a 0:30 timer gets at most 10 s;
-D-093).
+D-093). From v0.2.2 its one step carries the choice made on SCR-07
+(*Automatisch* by default, the last choice remembered in the setting
+`quickTimerPreAlert`), with the step rules of §5: an explicit value as set,
+skipped when the duration is shorter than N + 5 s or a long step. The
+choice is part of the snapshot (`active_brew.quick_pre_alert_seconds`,
+05 §3.12), so recovery keeps it. The PO found the quick timer's pre-alert
+silent and unmarked in v0.2.1 although the engine schedules it; v0.2.2
+reproduces that on the real path (controller, alarms, screen, alert player)
+and fixes it (D-097).
 
 **Planned for v0.3.0 (TMR-21, TMR-22, D-093).** A quick timer can always
 start alongside one brew session; it is no longer rejected as
@@ -896,8 +906,10 @@ it (rule 8). Nothing of it is in v0.2.1.
 
 | Level | Tests |
 |---|---|
-| Unit | Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093); idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
-| Robolectric | Controller + Room; notification content per phase; alarm scheduling; ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
+| Unit | Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
+choice *Automatisch*, *Aus* and explicit, through snapshot and recovery,
+D-097); idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
+| Robolectric | Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
 | Instrumented (CI emulator job, API 35 and 36) | Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). A test that fails only now and then is repeated by the manually dispatched workflow `timer-stress.yml` (`scripts/stress-instrumented.sh`; for the kill during a step it can sweep the moment of the kill, D-084). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert, measured up to the moment the player started the sound (the „alert" entry), not the handling of the event (D-068). |
