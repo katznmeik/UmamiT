@@ -9,6 +9,7 @@ import com.umamit.core.catalog.parser.SanityCheck
 import com.umamit.core.catalog.parser.SyntheticShop
 import com.umamit.core.catalog.parser.SyntheticShop.Stock
 import com.umamit.core.data.SendTimes
+import com.umamit.core.data.TestDatabase
 import com.umamit.core.data.diagnostics.DiagnosticsLog
 import com.umamit.core.data.syntheticJpeg
 import com.umamit.core.database.CatalogDatabase
@@ -141,7 +142,7 @@ class CatalogRecheckTest {
         routes[photo.substringBefore('?')] = { jpeg() }
     }
 
-    private fun refresher() = CatalogRefresher(
+    private fun refresher(bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE) = CatalogRefresher(
         client = ShopClient.forTesting(baseUrl = server.url("/"), requestIntervalMillis = 0),
         dao = dao,
         clock = clock,
@@ -150,6 +151,7 @@ class CatalogRecheckTest {
         photos = photos,
         sanity = SanityCheck(firstImportMinimum = 1),
         owned = OwnedCatalogKeys { owned },
+        bookmarks = bookmarks,
     )
 
     private fun paths() = requests.map { it.url.encodedPath }
@@ -222,6 +224,33 @@ class CatalogRecheckTest {
         assertThat(photos.exists(SOLD_OUT_KEY)).isTrue()
         assertThat(RoomCatalogRepository(dao, photos).observeCatalog().first().teas.map { it.key })
             .doesNotContain(SOLD_OUT_KEY)
+    }
+
+    @Test
+    fun aMarkedTeaThatLeavesTheRangeStaysAsNichtMehrImSortimentWhileAnUnmarkedOneIsDeleted() = runTest {
+        // CAT-18 AC3, D-097: a mark keeps the tea exactly as an owned tea does (CAT-07 AC4).
+        val umami = TestDatabase()
+        try {
+            umami.bookmarks.mark(SOLD_OUT_KEY)
+            product(KABUSE, "Schattenblatt Kabusecha – 100g")
+            soldOutSinceTheFirstRefresh(teas = 4)
+            listed -= KABUSE
+            routes[SOLD_OUT] = { MockResponse.Builder().code(410).build() }
+            routes[KABUSE] = { MockResponse.Builder().code(410).build() }
+
+            val outcome = refresher(bookmarks = umami.bookmarks).refresh()
+
+            assertThat(outcome).isEqualTo(CatalogRefreshOutcome.Success(teas = 2, newTeas = 0, discontinuedTeas = 2))
+            val kept = requireNotNull(dao.tea(SOLD_OUT_KEY))
+            assertThat(kept.discontinued).isTrue()
+            assertThat(photos.exists(SOLD_OUT_KEY)).isTrue()
+            assertThat(dao.tea(KABUSE_KEY)).isNull()
+            assertThat(photos.exists(KABUSE_KEY)).isFalse()
+            // A refresh never touches the marks (CAT-18 AC4).
+            assertThat(umami.bookmarks.observeMarked().first()).containsExactly(SOLD_OUT_KEY)
+        } finally {
+            umami.close()
+        }
     }
 
     @Test

@@ -80,6 +80,7 @@ internal fun CatalogSearchField(filter: CatalogFilter, onFilterChange: (FilterCh
 
 /**
  * The frequent filters as chips (SCR-19, D-076): *Filter* opens the sheet with the rest, then
+ * *Gemerkt* (v0.2.2, CAT-18: the marked teas, the other chips hidden while it is on),
  * *Kräutertee* (v0.2.1, D-093: the Kräutertees instead of the green teas, and back), „Pur" (not
  * in the Kräutertee view, Q14), „Vorrätig" (both on in the default view, D-073), „Bio", „Neu"
  * and „Im Besitz".
@@ -99,6 +100,11 @@ internal fun CatalogFilterChips(
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // *Gemerkt* (CAT-18): on, only the search applies, so every other chip is hidden, *Filter* too.
+        if (filter.marked) {
+            MarkedChip(filter, onFilterChange)
+            return@Row
+        }
         val changed = filter.changedFilters
         CatalogChip(
             label = if (changed > 0) {
@@ -116,6 +122,7 @@ internal fun CatalogFilterChips(
                 )
             },
         )
+        MarkedChip(filter, onFilterChange)
         CatalogChip(stringResource(R.string.catalog_filter_herbal), filter.herbal) {
             onFilterChange { it.withHerbal(!it.herbal) }
         }
@@ -129,6 +136,14 @@ internal fun CatalogFilterChips(
         switches.forEach { option ->
             CatalogChip(option.label, option.selected) { onFilterChange(option.toggle) }
         }
+    }
+}
+
+/** *Gemerkt* (CAT-18, D-097): the Merkliste's view, and back to the view before it. */
+@Composable
+private fun MarkedChip(filter: CatalogFilter, onFilterChange: (FilterChange) -> Unit) {
+    CatalogChip(stringResource(R.string.catalog_filter_marked), filter.marked) {
+        onFilterChange { it.copy(marked = !it.marked) }
     }
 }
 

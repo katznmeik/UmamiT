@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import android.content.Context
+import android.database.SQLException
 import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.room.Room
@@ -10,6 +11,7 @@ import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RoomTeaArchive
 import com.umamit.core.data.SeedData
+import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.TestClocks
 import com.umamit.core.data.TestDatabase
@@ -28,6 +30,7 @@ import com.umamit.core.database.entity.StagedCatalogPackageEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.RecipeCheckReason
@@ -361,6 +364,56 @@ class AddFromCatalogTest {
         assertThat(add.add(purchase())).isEqualTo(AddFromCatalogResult.Failed)
         assertThat(data.teas.observeTeas().first()).isEmpty()
         assertThat(photoFiles.dir.listFiles().orEmpty()).isEmpty()
+    }
+
+    @Test
+    fun `adding a marked tea removes its mark`() = runTest {
+        // CAT-18 AC2, 05 §3.13: *In Sammlung aufnehmen* ends the Merkliste entry; other marks stay.
+        catalog(sencha() to packages(), sencha(key = "XY0200", name = "Abendrot Sencha") to emptyList())
+        data.bookmarks.mark(KEY)
+        data.bookmarks.mark("XY0200")
+
+        assertThat(add.add(purchase())).isInstanceOf(AddFromCatalogResult.Added::class.java)
+
+        assertThat(data.bookmarks.observeMarked().first()).containsExactly("XY0200")
+    }
+
+    @Test
+    fun `a failed add keeps the mark`() = runTest {
+        // The mark goes in the add's transaction: a failure after the tea was written rolls both back.
+        catalog(sencha() to packages())
+        data.bookmarks.mark(KEY)
+        val broken = object : StockRepository by data.stock {
+            override suspend fun addEvent(event: InventoryEvent) = throw SQLException("disk full")
+        }
+        val add = RoomAddFromCatalog(
+            db = data.db,
+            teas = data.teas,
+            recipes = data.recipes,
+            stock = broken,
+            catalog = catalogDb.catalogDao(),
+            catalogPhotos = catalogPhotos,
+            photoFiles = photoFiles,
+            time = clock,
+        )
+
+        assertThat(add.add(purchase())).isEqualTo(AddFromCatalogResult.Failed)
+
+        assertThat(data.teas.observeTeas().first()).isEmpty()
+        assertThat(data.bookmarks.isMarked(KEY)).isTrue()
+    }
+
+    @Test
+    fun `adding a removed tea that was marked again brings it back and removes the mark`() = runTest {
+        // A removed (archived) tea is not in the collection, so it can be marked (CAT-18 AC2).
+        catalog(sencha() to packages())
+        val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
+        RoomTeaArchive(data.db, data.time).archive(teaId)
+        data.bookmarks.mark(KEY)
+
+        assertThat(add.add(purchase())).isEqualTo(AddFromCatalogResult.Repurchased(teaId))
+
+        assertThat(data.bookmarks.isMarked(KEY)).isFalse()
     }
 
     @Test

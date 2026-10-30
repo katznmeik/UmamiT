@@ -392,7 +392,7 @@ point 1), which stays as planned.
   for an owned one (CAT-07 AC4). With *Gemerkt* on, the list shows every
   marked tea, green and herbal, sold out or discontinued, grouped as the
   default view; the other chips are hidden and only the search applies.
-  Empty: „Noch nichts gemerkt · Tippe bei einem Tee auf 🔖".
+  Empty: „Noch nichts gemerkt · Tippe bei einem Tee auf das Lesezeichen.".
 - **One schema step.** The new `active_brew` column and `catalog_bookmark`
   share one migration, v2 → v3, with a test on a populated v2 database;
   v1 and v2 stay frozen (D-054).

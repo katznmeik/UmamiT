@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.umamit.core.designsystem.component.CheckRecipeBadge
@@ -23,11 +24,13 @@ import com.umamit.core.model.CatalogTeaSummary
 
 /**
  * The list's teas (SCR-19): under a header per *Sorte* when grouped (D-073), else one flat list
- * whose rows name their *Sorte*.
+ * whose rows name their *Sorte*. Each tea not in the collection ends with its bookmark toggle
+ * ([onToggleMark] with its key and new state, CAT-18).
  */
 internal fun LazyListScope.teaRows(
     listing: CatalogListing,
     onOpenTea: (String) -> Unit,
+    onToggleMark: (key: String, marked: Boolean) -> Unit,
     thumbnail: @Composable (path: String?) -> Painter?,
 ) {
     listing.sections.forEach { section ->
@@ -44,6 +47,7 @@ internal fun LazyListScope.teaRows(
                 tea = tea,
                 showType = !listing.grouped,
                 onClick = { onOpenTea(tea.key) },
+                onToggleMark = { onToggleMark(tea.key, it) },
                 thumbnail = thumbnail(tea.thumbnailPath),
                 showDivider = index < section.teas.lastIndex,
             )
@@ -53,13 +57,16 @@ internal fun LazyListScope.teaRows(
 
 /**
  * A catalog tea's row (CAT-10): name, secondary name (one line, D-090), *Sorte* (when not grouped),
- * origin, price per 100 g and its badges.
+ * origin, price per 100 g and its badges; a tea not in the collection (an archived one included)
+ * ends with its bookmark toggle (CAT-18 AC2).
  */
 @Composable
+@Suppress("LongParameterList") // the tea, its layout, its two actions, the thumbnail and the divider
 private fun TeaRow(
     tea: CatalogTeaSummary,
     showType: Boolean,
     onClick: () -> Unit,
+    onToggleMark: (Boolean) -> Unit,
     thumbnail: Painter?,
     showDivider: Boolean,
 ) {
@@ -86,14 +93,30 @@ private fun TeaRow(
                 if (check) CheckRecipeBadge()
             }
         },
+        trailing = if (tea.owned) {
+            null
+        } else {
+            {
+                BookmarkToggle(
+                    marked = tea.marked,
+                    onToggle = onToggleMark,
+                    modifier = Modifier.testTag(catalogMarkTag(tea.key)),
+                )
+            }
+        },
     )
 }
 
-/** A badge of a catalog row (SCR-19, CAT-10): „Neu" stands out; „im Besitz", Bio and aromatisiert are plain tags. */
+/**
+ * A badge of a catalog row (SCR-19, CAT-10): „Neu" stands out; „Nicht mehr im Sortiment", „im
+ * Besitz", Bio and aromatisiert are plain tags.
+ */
 private data class Badge(val text: String, val prominent: Boolean = false)
 
 @Composable
 private fun rowBadges(tea: CatalogTeaSummary): List<Badge> = buildList {
+    // Only the *Gemerkt* view lists a tea no longer in the range (CAT-18 AC3).
+    if (tea.discontinued) add(Badge(stringResource(R.string.catalog_tea_discontinued)))
     if (tea.isNew) add(Badge(stringResource(R.string.catalog_badge_new), prominent = true))
     if (tea.owned) add(Badge(stringResource(R.string.catalog_badge_owned)))
     if (tea.isOrganic) add(Badge(stringResource(R.string.catalog_tea_organic)))

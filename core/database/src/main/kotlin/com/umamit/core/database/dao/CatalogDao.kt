@@ -20,6 +20,16 @@ import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.model.RecipeCheckReason
 import kotlinx.coroutines.flow.Flow
 
+/** The columns of a [CatalogListRow] from `catalog_tea`, with its „Neu" (CAT-10, D-083). */
+private const val LIST_ROW =
+    "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
+        "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, style_key, " +
+        "(first_seen_at = (SELECT l.started_at FROM catalog_refresh_log l WHERE l.status = 'SUCCESS' " +
+        "ORDER BY l.finished_at DESC, l.id DESC LIMIT 1) " +
+        "AND EXISTS (SELECT 1 FROM catalog_refresh_log e WHERE e.status = 'SUCCESS' " +
+        "AND e.started_at < catalog_tea.first_seen_at)) AS is_new " +
+        "FROM catalog_tea"
+
 /** A catalog list row (SCR-19): what the list shows of a tea. */
 data class CatalogListRow(
     @ColumnInfo(name = "key") val key: String,
@@ -75,17 +85,15 @@ abstract class CatalogDao {
      * D-083) when its first sighting is the start of the latest successful refresh and an earlier
      * successful refresh exists: the first refresh finds every tea, so none is new then.
      */
-    @Query(
-        "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
-            "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, style_key, " +
-            "(first_seen_at = (SELECT l.started_at FROM catalog_refresh_log l WHERE l.status = 'SUCCESS' " +
-            "ORDER BY l.finished_at DESC, l.id DESC LIMIT 1) " +
-            "AND EXISTS (SELECT 1 FROM catalog_refresh_log e WHERE e.status = 'SUCCESS' " +
-            "AND e.started_at < catalog_tea.first_seen_at)) AS is_new " +
-            "FROM catalog_tea " +
-            "WHERE discontinued = 0 ORDER BY name, key",
-    )
+    @Query("$LIST_ROW WHERE discontinued = 0 ORDER BY name, key")
     abstract fun observeList(): Flow<List<CatalogListRow>>
+
+    /**
+     * The teas kept as „Nicht mehr im Sortiment" for a collection tea or a mark (CAT-07 AC4,
+     * CAT-18 AC3), by name: the *Gemerkt* view shows the marked ones.
+     */
+    @Query("$LIST_ROW WHERE discontinued = 1 ORDER BY name, key")
+    abstract fun observeDiscontinuedList(): Flow<List<CatalogListRow>>
 
     /**
      * The keys of the teas whose name, secondary name, description, cultivar or region match

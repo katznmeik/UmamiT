@@ -55,6 +55,11 @@ object UmamiIcons {
 
     @DrawableRes val StarFilled = R.drawable.ic_star_filled
 
+    /** *Merken* (CAT-18): outlined while not marked, filled once marked. */
+    @DrawableRes val Bookmark = R.drawable.ic_bookmark
+
+    @DrawableRes val BookmarkFilled = R.drawable.ic_bookmark_filled
+
     // Custom line icons (placeholders, 03 §3.4)
     @DrawableRes val Leaf = R.drawable.ic_custom_leaf
 
