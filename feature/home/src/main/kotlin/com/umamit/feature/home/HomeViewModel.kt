@@ -13,6 +13,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.Photo
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
@@ -239,7 +240,8 @@ class HomeViewModel @Inject constructor(
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(HomeEvent.OpenTimer)
                 } else {
-                    pending.value = Pending(request, HomeQuestion((timer as? TimerUiState.Active)?.teaName), null)
+                    // The brew session that refused it (a quick timer never does, D-098).
+                    pending.value = Pending(request, HomeQuestion(starter.activeIn(TimerSlot.BREW)?.teaName), null)
                 }
             }
 
