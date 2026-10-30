@@ -57,7 +57,10 @@ val AlertSound.rawRes: Int
         AlertSound.TIEFE_SCHALE -> ContentR.raw.tiefe_schale
     }
 
-/** Ringer mode from [AudioManager], calls from the audio mode, DND from the interruption filter. */
+/**
+ * Ringer mode from [AudioManager], calls from the audio mode, DND from the interruption filter (04 §9.1,
+ * D-098), and whether the alarm stream is at 0 (TMR-31).
+ */
 internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
     private val audioManager = context.getSystemService(AudioManager::class.java)
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -72,14 +75,21 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
             // where vibrating beats silence.
             else -> RingerMode.VIBRATE
         }
-        val filter = notificationManager?.currentInterruptionFilter
-        return AlertConditions(
-            ringerMode = ringerMode,
-            inCall = audioManager?.mode in CALL_MODES,
-            dndBlocksAlerts = filter == NotificationManager.INTERRUPTION_FILTER_NONE ||
-                filter == NotificationManager.INTERRUPTION_FILTER_ALARMS,
-        )
+        val dnd = when (notificationManager?.currentInterruptionFilter) {
+            NotificationManager.INTERRUPTION_FILTER_PRIORITY -> DoNotDisturb.PRIORITY
+
+            NotificationManager.INTERRUPTION_FILTER_ALARMS -> DoNotDisturb.ALARMS_ONLY
+
+            NotificationManager.INTERRUPTION_FILTER_NONE -> DoNotDisturb.TOTAL_SILENCE
+
+            // INTERRUPTION_FILTER_ALL, or UNKNOWN: as the ringer mode, never silenced by a guess (rule 8).
+            else -> DoNotDisturb.OFF
+        }
+        return AlertConditions(ringerMode = ringerMode, inCall = audioManager?.mode in CALL_MODES, dnd = dnd)
     }
+
+    /** `getStreamVolume` answers 0 for a muted stream too. */
+    override fun alarmVolumeOff(): Boolean = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) == 0
 
     private companion object {
         /** Ringing, in a call, in a VoIP call, call screening or redirected calls. */
@@ -95,9 +105,10 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
 }
 
 /**
- * Plays with `USAGE_NOTIFICATION_EVENT` (notification volume, subject to Do
- * Not Disturb) and transient audio focus with ducking. One [MediaPlayer] per
- * play, released on completion, error or [stop].
+ * Plays with `USAGE_ALARM` (the phone's alarm volume, D-098; until v0.2.2
+ * `USAGE_NOTIFICATION_EVENT`) at the gain of each [play] (SET-27), and holds
+ * transient audio focus with ducking. One [MediaPlayer] per play, released on
+ * completion, error or [stop].
  *
  * [prepare] loads the players of the next cues ahead (D-092): loading
  * (`MediaPlayer.create`, which prepares synchronously through the media
@@ -165,10 +176,10 @@ internal class MediaPlayerSoundOutput(
 
     override fun prepare(sounds: Set<AlertSound>) = ahead.want(sounds)
 
-    override fun play(sound: AlertSound) {
+    override fun play(sound: AlertSound, gain: Float) {
         stop()
         val loaded = ahead.take(sound)
-        if (loaded == null || !start(loaded, sound, loadedAhead = true)) loadAndStart(sound)
+        if (loaded == null || !start(loaded, sound, gain, loadedAhead = true)) loadAndStart(sound, gain)
         // After the cue at hand has started, and on the loader thread (D-092, D-096).
         ahead.load(sound)
     }
@@ -177,22 +188,23 @@ internal class MediaPlayerSoundOutput(
         player?.let { release(it) }
     }
 
-    /** Loads [sound] now and starts it: the way every sound played before D-092. */
-    private fun loadAndStart(sound: AlertSound) {
+    /** Loads [sound] now and starts it at [gain]: the way every sound played before D-092. */
+    private fun loadAndStart(sound: AlertSound, gain: Float) {
         val created = loadOrNull(sound)
         if (created == null) {
             Log.w(TAG, "Cannot play $sound")
             return
         }
-        start(created, sound, loadedAhead = false)
+        start(created, sound, gain, loadedAhead = false)
     }
 
     /**
-     * Starts [mediaPlayer] as the playing sound; false when its start failed, and it is released.
-     * A player [loadedAhead] that reports an error while it plays is replaced once by one loaded
-     * now, so a player that went bad while it waited still sounds.
+     * Starts [mediaPlayer] as the playing sound at [gain] (SET-27, set on the player before its start,
+     * so a sound loaded ahead takes the cue's own gain); false when its start failed, and it is
+     * released. A player [loadedAhead] that reports an error while it plays is replaced once by one
+     * loaded now, so a player that went bad while it waited still sounds.
      */
-    private fun start(mediaPlayer: MediaPlayer, sound: AlertSound, loadedAhead: Boolean): Boolean {
+    private fun start(mediaPlayer: MediaPlayer, sound: AlertSound, gain: Float, loadedAhead: Boolean): Boolean {
         // A player that is no longer the playing one was already released when it was replaced or stopped:
         // its late report (posted from the loader thread) changes nothing.
         mediaPlayer.setOnCompletionListener { mp -> handler.runHere { if (player === mp) release(mp) } }
@@ -201,13 +213,14 @@ internal class MediaPlayerSoundOutput(
                 Log.w(TAG, "Playback error $what/$extra for $sound")
                 if (player === mp) {
                     release(mp)
-                    if (loadedAhead) loadAndStart(sound)
+                    if (loadedAhead) loadAndStart(sound, gain)
                 }
             }
             true
         }
         player = mediaPlayer
         return try {
+            mediaPlayer.setVolume(gain, gain)
             mediaPlayer.start()
             true
         } catch (e: IllegalStateException) {
@@ -237,9 +250,12 @@ internal class MediaPlayerSoundOutput(
     }
 
     companion object {
-        /** 04 §9.1: notification-event usage (notification volume, DND respected). */
+        /**
+         * 04 §9.1 (D-098): alarm usage, so the cues follow the phone's alarm volume, which One UI sets apart
+         * from the notification volume; the ringer mode and DND are applied by the player ([AlertMatrix]).
+         */
         val ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+            .setUsage(AudioAttributes.USAGE_ALARM)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
@@ -357,7 +373,7 @@ private fun Handler.runHere(block: () -> Unit) {
     if (Looper.myLooper() === looper) block() else post(block)
 }
 
-/** Vibrates through the default vibrator with `VibrationAttributes.USAGE_NOTIFICATION` (04 §9.1). */
+/** Vibrates through the default vibrator with `VibrationAttributes.USAGE_ALARM` (04 §9.1, D-098). */
 internal class VibratorHaptics(context: Context) : AlertHaptics {
     private val vibrator: Vibrator? = context.getSystemService(VibratorManager::class.java)?.defaultVibrator
 
@@ -374,7 +390,7 @@ internal class VibratorHaptics(context: Context) : AlertHaptics {
 
     companion object {
         private const val NO_REPEAT = -1
-        val ATTRIBUTES: VibrationAttributes = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_NOTIFICATION)
+        val ATTRIBUTES: VibrationAttributes = VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM)
     }
 }
 

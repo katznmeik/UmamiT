@@ -14,11 +14,17 @@ import javax.inject.Inject
  * length, and [stop] ends it at once.
  */
 interface TonePreview {
-    /** Plays the tone stored under [toneKey] once (an unknown key: the Klangschale), replacing a preview. */
-    fun play(toneKey: String)
+    /**
+     * Plays the tone stored under [toneKey] once (an unknown key: the Klangschale) at the *Lautstärke*
+     * [volumePercent] (SET-27, clamped to 10–100), replacing a preview.
+     */
+    fun play(toneKey: String, volumePercent: Int)
 
-    /** Plays the *Vorwarnton* stored under [preAlertKey] once (an unknown key: the default), replacing a preview. */
-    fun playPreAlert(preAlertKey: String)
+    /**
+     * Plays the *Vorwarnton* stored under [preAlertKey] once (an unknown key: the default) at the
+     * *Lautstärke* [volumePercent] (SET-27, clamped to 10–100), replacing a preview.
+     */
+    fun playPreAlert(preAlertKey: String, volumePercent: Int)
 
     /** Stops a playing preview; idempotent. */
     fun stop()
@@ -43,15 +49,16 @@ class RingerTonePreview internal constructor(
         scheduler = HandlerAlertScheduler(),
     )
 
-    override fun play(toneKey: String) = playOnce(AlertSound.tone(toneKey))
+    override fun play(toneKey: String, volumePercent: Int) = playOnce(AlertSound.tone(toneKey), volumePercent)
 
-    override fun playPreAlert(preAlertKey: String) = playOnce(PreAlertSound.of(preAlertKey).sound)
+    override fun playPreAlert(preAlertKey: String, volumePercent: Int) =
+        playOnce(PreAlertSound.of(preAlertKey).sound, volumePercent)
 
-    private fun playOnce(alertSound: AlertSound) {
+    private fun playOnce(alertSound: AlertSound, volumePercent: Int) {
         stop()
         if (!AlertMatrix.outputs(environment.conditions(), vibrationEnabled = false).sound) return
         if (!sound.requestFocus(onLost = ::stop)) return
-        sound.play(alertSound)
+        sound.play(alertSound, AlertSettings(volumePercent = volumePercent).gain)
         scheduler.schedule(alertSound.lengthMs) { sound.abandonFocus() }
     }
 

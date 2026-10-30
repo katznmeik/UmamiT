@@ -71,9 +71,8 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->
-            "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
-                "DND blocks ${yesNo(entry.conditions.dndBlocksAlerts)} -> ${outputs(entry.outputs)} | " +
-                "tone ${entry.tone}, length ${entry.length} | " +
+            "alert ${entry.cue}: ${entry.readings()} -> ${outputs(entry.outputs)} | " +
+                "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} % | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
@@ -81,7 +80,8 @@ object TimerDiagnosticFormat {
             "process start: notifications ${yesNo(notifications)}, " +
                 "live updates ${promotedNotifications?.let(::yesNo) ?: "n/a"}, " +
                 "full-screen alert ${yesNo(fullScreenIntent)}, exact alarms ${yesNo(exactAlarms)}, " +
-                "battery unrestricted ${yesNo(batteryUnrestricted)} | ${clocks(entry.at)}"
+                "battery unrestricted ${yesNo(batteryUnrestricted)}, " +
+                "alarm volume ${if (alarmVolumeOn) "on" else "0"} | ${clocks(entry.at)}"
         }
 
         is TimerDiagnostic.RecoveryRequested ->
@@ -179,4 +179,14 @@ private fun CueStart.text(): String {
         null -> "no sound"
     }
     return "queued $queuedMs ms, settings $settingsMs ms, outputs $outputsMs ms, $sound"
+}
+
+/**
+ * What the player read at a cue, e.g. `ringer SILENT, in call no, DND alarms only, alarm volume 0`: the DND mode
+ * as `off`, `priority`, `alarms only` or `total silence`, so the PO's phone shows how One UI reports the ringer
+ * mode under each (D-098).
+ */
+private fun TimerDiagnostic.AlertPlayed.readings(): String = with(conditions) {
+    "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +
+        "DND ${dnd.name.lowercase().replace('_', ' ')}, alarm volume ${if (alarmVolumeOff) "0" else "on"}"
 }

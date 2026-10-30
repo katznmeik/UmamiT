@@ -24,6 +24,7 @@ import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,13 +140,22 @@ class TimerViewModelTest {
     @Test
     fun `the reliability checks are read again on resume, and Beheben opens the failing setting (TMR-31)`() {
         val vm = viewModel()
-        assertThat(vm.reliabilityProblem.value).isFalse()
+        assertThat(vm.reliabilityProblem.value).isNull()
 
         reliability.set(ReliabilityCheck.FullScreenAlert, CheckState.Missing)
         vm.refreshReliability()
         vm.fixReliability()
 
-        assertThat(vm.reliabilityProblem.value).isTrue()
+        assertThat(vm.reliabilityProblem.value).isEqualTo(ReliabilityProblem.Unreliable)
         assertThat(reliability.opened).containsExactly(ReliabilityCheck.FullScreenAlert)
+
+        // D-098: the alarm volume at 0 has its own message; raising it clears the banner.
+        reliability.grantAll()
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        vm.refreshReliability()
+        assertThat(vm.reliabilityProblem.value).isEqualTo(ReliabilityProblem.AlarmVolumeOff)
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Ok)
+        vm.refreshReliability()
+        assertThat(vm.reliabilityProblem.value).isNull()
     }
 }

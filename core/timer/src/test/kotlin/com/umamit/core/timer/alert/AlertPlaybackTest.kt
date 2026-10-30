@@ -353,6 +353,76 @@ class AlertPlaybackTest {
     }
 
     @Test
+    fun theLautstaerkeIsReadAtTheStartOfEachCueSoAChangeDuringATimerAppliesToTheNextCue() = runTest {
+        // SET-27, 04 §9.1 (D-098): the gain is read with the other settings at the start of every cue.
+        settings.update { it.copy(alertVolumePercent = 100) }
+        val playback = playback(settings.settings)
+        playback.keepReady(true)
+        val prepares = sound.prepares.toList()
+
+        playback.startAlert(onFinished = {})
+        scheduler.advanceBy(2_000L)
+        settings.update { it.copy(alertVolumePercent = 40) }
+        scheduler.advanceBy(300_000L)
+        playback.playPreAlert()
+
+        assertThat(sound.gains).containsExactly(
+            "KLANGSCHALE 1.0 @ 0",
+            "KLANGSCHALE 1.0 @ 3500",
+            "KLANGSCHALE 1.0 @ 7000",
+            "KLANGSCHALE 1.0 @ 10500",
+            "TICK 0.4 @ 302000",
+        ).inOrder()
+        // A new Lautstärke loads nothing: the sounds stay loaded ahead, and the tick started without a load (D-092).
+        assertThat(sound.prepares).isEqualTo(prepares)
+        assertThat(sound.loadedOnPlay).isEmpty()
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.volumePercent })
+            .containsExactly(100, 40)
+            .inOrder()
+    }
+
+    @Test
+    fun alarmTestenPlaysAtTheStoredLautstaerke() = runTest {
+        settings.update { it.copy(alertSound = "glocke", alertLength = AlertLength.SHORT, alertVolumePercent = 20) }
+        val tester: AlertTester = playback(settings.settings)
+
+        tester.testAlert()
+        scheduler.advanceBy(300_000L)
+
+        assertThat(sound.gains).containsExactly("TICK 0.2 @ 0", "GLOCKE 0.2 @ 1500").inOrder()
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().single().volumePercent).isEqualTo(20)
+    }
+
+    @Test
+    fun atAlarmVolumeZeroTheCueStillRunsAndItsLogSaysSo() = runTest {
+        // TMR-31, E18 (D-098): the outputs run as the matrix allows; the volume is read for the log only.
+        environment.alarmVolumeOff = true
+        settings.update { it.copy(alertLength = AlertLength.SHORT) }
+        val playback = playback(settings.settings)
+
+        playback.startAlert(onFinished = {})
+        environment.alarmVolumeOff = false
+        playback.playPreAlert()
+
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L)
+        assertThat(haptics.plays(Haptic.ALERT)).containsExactly(0L)
+        assertThat(diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>().map { it.alarmVolumeOff })
+            .containsExactly(true, false)
+            .inOrder()
+    }
+
+    @Test
+    fun aStoredLautstaerkeBelowTenPercentStillPlaysAtTenPercent() = runTest {
+        // Rule 8: the app itself never silences a cue, whatever the file holds (05 §6).
+        settings.update { it.copy(alertVolumePercent = 0) }
+        val playback = playback(settings.settings)
+
+        playback.playPreAlert()
+
+        assertThat(sound.gains).containsExactly("TICK 0.1 @ 0")
+    }
+
+    @Test
     fun theSettingsRetryBacksOffUpToAMinute() {
         assertThat((0L..7L).map { AlertPlayback.retryDelayMs(it) })
             .containsExactly(1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 32_000L, 60_000L, 60_000L).inOrder()
@@ -453,8 +523,8 @@ private class SlowSoundOutput(
     private val clock: FakeClock,
     private val playMs: Long,
 ) : AlertSoundOutput by sound {
-    override fun play(sound: AlertSound) {
+    override fun play(sound: AlertSound, gain: Float) {
         clock.advanceBy(playMs)
-        this.sound.play(sound)
+        this.sound.play(sound, gain)
     }
 }

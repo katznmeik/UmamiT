@@ -83,13 +83,21 @@ internal fun settingsRetryDelayMs(attempt: Long): Long {
 }
 
 /**
- * Keeps the pre-alert (SET-10) and the quick timer's choice (TMR-22, D-097; null stays *Automatisch*) in 0, 5…30
- * and „Knapp ab" in 0…500 g in steps of 5 (SET-16).
+ * Keeps the pre-alert (SET-10) and the quick timer's choice (TMR-22, D-097; null stays *Automatisch*) in 0, 5…30,
+ * „Knapp ab" in 0…500 g in steps of 5 (SET-16) and *Lautstärke* in 10…100 % in steps of 10 (SET-27, D-098).
  */
 internal fun UserSettings.normalized(): UserSettings = copy(
     preAlertSeconds = preAlertOf(preAlertSeconds),
     quickTimerPreAlert = quickTimerPreAlert?.let(::preAlertOf),
     lowStockGrams = snap5(lowStockGrams).coerceIn(0, MAX_LOW_STOCK_GRAMS).toDouble(),
+    alertVolumePercent = volumeOf(alertVolumePercent),
 )
+
+/** The nearest 10 % step (half up), never below 10 %, so the app itself can never silence a cue (rule 8). */
+private fun volumeOf(percent: Int): Int {
+    val step = UserSettings.ALERT_VOLUME_STEP_PERCENT
+    return (Math.floorDiv(percent + step / 2, step) * step)
+        .coerceIn(UserSettings.MIN_ALERT_VOLUME_PERCENT, UserSettings.MAX_ALERT_VOLUME_PERCENT)
+}
 
 private fun preAlertOf(seconds: Int): Int = snap5(seconds).coerceIn(0, MAX_PRE_ALERT_SECONDS)

@@ -22,7 +22,7 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25, 26), the
+ * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25, 26, 27), the
  * reliability checks (SET-24) and *Alarm testen* through the production player (SET-31, D-059).
  */
 @HiltViewModel
@@ -54,11 +54,16 @@ class SettingsViewModel @Inject constructor(
     /** The screen closes: a running test stops; a real alert plays on (D-059). */
     fun stopTest() = tester.stopTestAlert()
 
-    /** *Anhören*: [toneKey] once. */
-    fun previewTone(toneKey: String) = preview.play(toneKey)
+    /** *Anhören*: [toneKey] once, at the stored *Lautstärke* (SET-27). */
+    fun previewTone(toneKey: String) = preview.play(toneKey, volumePercent())
 
-    /** *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once. */
-    fun previewPreAlertSound(preAlertKey: String) = preview.playPreAlert(preAlertKey)
+    /**
+     * *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once, at the stored
+     * *Lautstärke* (SET-27).
+     */
+    fun previewPreAlertSound(preAlertKey: String) = preview.playPreAlert(preAlertKey, volumePercent())
+
+    private fun volumePercent(): Int = (current.value ?: UserSettings()).alertVolumePercent
 
     fun stopPreview() = preview.stop()
 

@@ -11,6 +11,9 @@
     <string name="settings_check_full_screen">Vollbild-Alarm</string>
     <string name="settings_check_battery">Akku: Uneingeschränkt</string>
     <string name="settings_check_exact_alarms">Exakte Alarme</string>
+    <!-- The phone's alarm volume at 0 (v0.3.0, TMR-31, D-098): Beheben opens the sound settings. -->
+    <string name="settings_check_alarm_volume">Alarmlautstärke</string>
+    <string name="settings_check_alarm_volume_off">Ist aus</string>
     <string name="settings_fix">Beheben</string>
 
     <!-- Timer & Alarm (SET-30; SET-09, 10, 11, 14, 17, 25, 26, 31). -->
@@ -32,6 +35,10 @@
     <string name="settings_pre_alert_sound_klangstab">Klangstab</string>
     <string name="settings_pre_alert_sound_tiefe_schale">Tiefe Schale</string>
     <string name="settings_pre_alert_sound_ting">Ting (leise)</string>
+    <!-- Lautstärke (SET-27, v0.3.0, D-098): 10–100 % in 10 % steps on top of the phone's alarm volume. -->
+    <string name="settings_volume">Lautstärke</string>
+    <string name="settings_volume_percent">%1$d&#160;%%</string>
+    <string name="settings_volume_detail">Wirkt auf die Alarmlautstärke des Handys</string>
     <string name="settings_vibration">Vibration</string>
     <string name="settings_alert_length">Alarmdauer</string>
     <string name="settings_alert_length_short">Kurz</string>

@@ -38,6 +38,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.feature.brew.quick.QUICK_RING_TAG
 import com.umamit.feature.brew.quick.QuickTimerActions
 import com.umamit.feature.brew.quick.QuickTimerScreen
@@ -84,7 +85,7 @@ class TimerScreenLayoutTest {
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    reliabilityProblem = true,
+                    reliabilityProblem = ReliabilityProblem.Unreliable,
                     teaPhoto = photo,
                     teaStyleKey = "gyokuro",
                 )

@@ -302,7 +302,7 @@ class AccuracyReportTest {
     private fun played(cue: AlertCue, lateMs: Long?) = TimerDiagnostic.AlertPlayed(
         at = clock.reading(),
         cue = cue,
-        conditions = AlertConditions(RingerMode.NORMAL, inCall = false, dndBlocksAlerts = false),
+        conditions = AlertConditions(RingerMode.NORMAL, inCall = false),
         outputs = AlertOutputs(sound = true, vibration = true),
         tone = "klangschale",
         length = AlertLength.NORMAL,

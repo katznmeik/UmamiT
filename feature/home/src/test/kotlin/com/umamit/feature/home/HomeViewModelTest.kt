@@ -28,6 +28,7 @@ import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -389,14 +390,26 @@ class HomeViewModelTest {
     @Test
     fun `the banner follows the checks when read again, and Beheben asks for the missing one (TMR-31)`() {
         val vm = viewModel()
-        assertThat(vm.state.value.reliabilityProblem).isFalse()
+        assertThat(vm.state.value.reliabilityProblem).isNull()
 
         reliability.set(ReliabilityCheck.Notifications, CheckState.Missing)
         vm.refreshReliability()
         vm.fixReliability()
 
-        assertThat(vm.state.value.reliabilityProblem).isTrue()
+        assertThat(vm.state.value.reliabilityProblem).isEqualTo(ReliabilityProblem.Unreliable)
         assertThat(reliability.opened).containsExactly(ReliabilityCheck.Notifications)
+    }
+
+    @Test
+    fun `the alarm volume at 0 makes the banner say so, and Beheben asks for the sound settings (D-098)`() {
+        val vm = viewModel()
+
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        vm.refreshReliability()
+        vm.fixReliability()
+
+        assertThat(vm.state.value.reliabilityProblem).isEqualTo(ReliabilityProblem.AlarmVolumeOff)
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.AlarmVolume)
     }
 
     private companion object {

@@ -46,6 +46,8 @@
 
     <!-- Reliability banner (TMR-31) -->
     <string name="brew_timer_reliability">Der Timer ist eventuell unzuverlässig</string>
+    <!-- The phone's alarm volume at 0 (v0.3.0, TMR-31, D-098). -->
+    <string name="brew_timer_reliability_alarm_volume">Alarmlautstärke ist aus</string>
 
     <!-- TalkBack (03 §6, SCR-05) -->
     <string name="brew_timer_back">Zurück</string>
