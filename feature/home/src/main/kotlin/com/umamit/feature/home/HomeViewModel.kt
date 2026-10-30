@@ -1,6 +1,7 @@
 package com.umamit.feature.home
 
 import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.MonotonicClock
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import javax.inject.Inject
 
 /** A tea of *Nochmal brühen* (BRW-11) or *Favoriten*, with its cover photo file (null: the leaf placeholder). */
@@ -166,10 +168,20 @@ class HomeViewModel @Inject constructor(
     /** The banner's *Beheben*: the pages of the first missing check, for Start to start. */
     fun fixReliability(): List<Intent> = reliability.firstMissingIntents()
 
-    /** *Ausblenden* on the low-stock card: hidden until the tea's next purchase (INV-10 AC2). */
+    /**
+     * *Ausblenden* on the low-stock card: hidden until the tea's next purchase (INV-10 AC2). A failed write
+     * never crashes the app (a crash would take a running timer's process down, rule 8): it is logged and the
+     * card stays.
+     */
     fun hideLowStock() {
         val card = state.value.lowStock ?: return
-        viewModelScope.launch { lowStock.hide(card) }
+        viewModelScope.launch {
+            try {
+                lowStock.hide(card)
+            } catch (e: IOException) {
+                Log.w(TAG, "Low-stock card not hidden", e)
+            }
+        }
     }
 
     /** The monotonic clock of the deadlines, for the live countdown of *Aufguss fortsetzen*. */
@@ -271,5 +283,7 @@ class HomeViewModel @Inject constructor(
 
         /** A second tile tap this soon after a start is the same gesture, not a new brew (#54 S6). */
         const val DOUBLE_TAP_WINDOW_MS = 1_000L
+
+        const val TAG = "UmamiTHome"
     }
 }
