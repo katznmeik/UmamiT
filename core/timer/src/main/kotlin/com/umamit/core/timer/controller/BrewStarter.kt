@@ -48,7 +48,10 @@ interface BrewStarter {
      */
     suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 
-    /** „Schnelltimer beenden und neu starten?" (D-098): the active quick timer ends, then this one runs; the brew stays. */
+    /**
+     * „Schnelltimer beenden und neu starten?" (D-098): the active quick timer ends, then this one runs; the brew
+     * stays.
+     */
     suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 }
 
