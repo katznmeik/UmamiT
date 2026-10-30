@@ -7,6 +7,10 @@
     <string name="brew_timer_step_short">%1$s %2$d/%3$d</string>
     <string name="brew_timer_meta">%1$d\u00A0°C · %2$s</string>
     <string name="brew_timer_ready_detail">%1$s %2$d · %3$s</string>
+    <!-- READY: the session's leaf and water, only what it has (BRW-11, D-097): „4,0 g Tee · 250 ml Wasser". -->
+    <string name="brew_timer_leaf">%1$s\u00A0g Tee</string>
+    <string name="brew_timer_water">%1$d\u00A0ml Wasser</string>
+    <string name="brew_timer_leaf_and_water">%1$s · %2$s</string>
     <string name="brew_timer_caption_ready">Bereit</string>
     <string name="brew_timer_caption_running">Zieht …</string>
     <string name="brew_timer_caption_pre_alert">Gleich fertig …</string>
@@ -48,6 +52,10 @@
     <string name="brew_timer_more">Weitere Optionen</string>
     <string name="brew_timer_ring_start">Aufguss starten</string>
     <string name="brew_timer_overtime_description">%1$s überzogen</string>
+    <!-- „4 Komma 0 Gramm Tee, 250 Milliliter Wasser" (BRW-11): Gramm and Milliliter have no plural form. -->
+    <string name="brew_timer_leaf_description" tools:ignore="PluralsCandidate">%1$d Komma %2$d Gramm Tee</string>
+    <string name="brew_timer_water_description" tools:ignore="PluralsCandidate">%1$d Milliliter Wasser</string>
+    <string name="brew_timer_leaf_and_water_description">%1$s, %2$s</string>
     <string name="brew_timer_announce_ready">Bereit für %1$s</string>
     <string name="brew_timer_announce_running">%1$s läuft</string>
     <string name="brew_timer_announce_pre_alert">Gleich fertig</string>

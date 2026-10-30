@@ -353,6 +353,69 @@ class TimerScreenTest {
         compose.onNodeWithText("Eiswürfel", useUnmergedTree = true).assertIsDisplayed()
     }
 
+    // --- Leaf and water on READY (BRW-11, D-097) -----------------------------------------------
+    // The merged tree: the slot's invisible copy (the same text, so the pill never moves) is not in it.
+
+    private val amounts = "4,0 g Tee · 250 ml Wasser"
+
+    /** The kettle hint's lines, top to bottom. */
+    private fun hasLines(vararg lines: String) = SemanticsMatcher("lines ${lines.toList()}") {
+        it.config.getOrElse(SemanticsProperties.Text) { emptyList() }.map { text -> text.text } == lines.toList()
+    }
+
+    @Test
+    fun `READY shows the session's leaf and water under the kettle hint, at every infusion (BRW-11, D-097)`() {
+        show(TimerStates.ready().copy(teaName = "Tanabata"))
+
+        compose.onNodeWithText(amounts).assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 55 °C", amounts, "Aufguss 1 · 1:00"))
+
+        state = TimerStates.ready(stepIndex = 1).copy(teaName = "Tanabata")
+        compose.onNodeWithText(amounts).assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 60 °C", amounts, "Aufguss 2 · 0:20"))
+    }
+
+    @Test
+    fun `RUNNING, PAUSED, ALERTING and FINISHED show no leaf and water (BRW-11, D-097)`() {
+        show(TimerStates.running())
+        listOf(TimerStates.running(), TimerStates.paused(), TimerStates.alerting(), TimerStates.finished()).forEach {
+            state = it
+            compose.onNodeWithText(amounts).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `READY shows only what the session has, leaf or water or nothing (BRW-11, D-097)`() {
+        show(TimerStates.ready().copy(leafGrams = 12.5, waterMl = null))
+        compose.onNodeWithText("12,5 g Tee").assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 55 °C", "12,5 g Tee", "Aufguss 1 · 1:00"))
+
+        state = TimerStates.ready().copy(leafGrams = null, waterMl = 300)
+        compose.onNodeWithText("300 ml Wasser").assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 55 °C", "300 ml Wasser", "Aufguss 1 · 1:00"))
+
+        state = TimerStates.ready().copy(leafGrams = null, waterMl = null)
+        compose.onNodeWithText("Aufguss 1 · 1:00").assert(hasLines("Wasserkocher auf 55 °C", "Aufguss 1 · 1:00"))
+    }
+
+    @Test
+    fun `the quick timer's READY shows no leaf and water (BRW-11, SCR-07)`() {
+        show(TimerStates.quick(TimerPhase.READY))
+        compose.onNodeWithText("g Tee", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("ml Wasser", substring = true, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `TalkBack reads the leaf and water in words with the kettle hint (BRW-11, D-097)`() {
+        show(TimerStates.ready())
+        compose.onNode(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("Wasserkocher auf 55 Grad, 4 Komma 0 Gramm Tee, 250 Milliliter Wasser, Aufguss 1 · 1:00"),
+            ),
+        ).assertIsDisplayed()
+    }
+
     @Test
     fun `overflow items send their events or open their screens`() {
         show(TimerStates.running(stepIndex = 1))

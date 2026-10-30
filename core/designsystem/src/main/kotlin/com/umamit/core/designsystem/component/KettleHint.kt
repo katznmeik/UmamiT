@@ -25,8 +25,10 @@ import com.umamit.core.model.KettleWater
 /**
  * Kettle icon with „Wasserkocher auf 60 °C" (03 §3.8) and an optional detail
  * line such as „Aufguss 2 · 0:20"; for [KettleWater.COLD] and [KettleWater.ICE]
- * „Kaltes Wasser" or „Eiswürfel" instead (BRW-10). TalkBack reads one
- * sentence: the hint in words, then [detailDescription] (or [detail]).
+ * „Kaltes Wasser" or „Eiswürfel" instead (BRW-10). An optional [amount]
+ * line, such as „4,0 g Tee · 250 ml Wasser" (BRW-11, D-097), sits between the
+ * hint and the detail. TalkBack reads one sentence: the hint in words, then
+ * [amountDescription] (or [amount]), then [detailDescription] (or [detail]).
  *
  * @param temperatureCelsius already a multiple of 5 (GEN-12).
  */
@@ -37,6 +39,8 @@ fun KettleHint(
     detail: String? = null,
     detailDescription: String? = detail,
     water: KettleWater = KettleWater.HOT,
+    amount: String? = null,
+    amountDescription: String? = amount,
 ) {
     val text = when (water) {
         KettleWater.HOT -> stringResource(R.string.ds_kettle_hint, temperatureCelsius)
@@ -49,6 +53,7 @@ fun KettleHint(
         } else {
             text
         },
+        amountDescription,
         detailDescription,
     ).joinToString(", ")
     Row(
@@ -68,6 +73,13 @@ fun KettleHint(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
+            if (amount != null) {
+                Text(
+                    text = amount,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (detail != null) {
                 Text(
                     text = detail,

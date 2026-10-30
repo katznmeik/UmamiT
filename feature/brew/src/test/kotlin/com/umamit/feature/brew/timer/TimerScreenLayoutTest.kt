@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -32,6 +33,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.TimerRingColors
 import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.theme.SteepingTheme
+import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
@@ -216,9 +218,10 @@ class TimerScreenLayoutTest {
     }
 
     /**
-     * Rule 8: on a short screen at the largest font, the band and the seal give way so that the
-     * alert's *Abgegossen* lies whole on the screen without scrolling, and still nothing moves when
-     * the alert starts (D-058, D-096).
+     * Rule 8: on a short screen at the largest font, the band and the seal give way so that READY's
+     * *Start*, with the session's leaf and water above it (BRW-11, D-097), and the alert's *Abgegossen*
+     * lie whole on the screen without scrolling, with the bottom margin below them, and still nothing
+     * moves when the alert starts (D-058, D-096).
      */
     @Test
     @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
@@ -238,7 +241,9 @@ class TimerScreenLayoutTest {
     private fun alertPillOnScreen(teaName: String, titleLines: Int) {
         show(TimerStates.ready().copy(teaName = teaName))
         assertThat(titleLineCount(teaName)).isEqualTo(titleLines)
+        compose.onNodeWithText("4,0\u00A0g Tee · 250\u00A0ml Wasser").assertIsDisplayed()
         val ready = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Start"))
+        assertWithMargin(compose.onNodeWithText("Start").getUnclippedBoundsInRoot())
 
         state = TimerStates.running().copy(teaName = teaName)
         compose.waitForIdle()
@@ -254,13 +259,20 @@ class TimerScreenLayoutTest {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val pill = compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()
         assertThat(pill.top).isAtLeast(screen.top)
-        assertThat(pill.bottom).isAtMost(screen.bottom)
+        assertWithMargin(pill)
 
         compose.mainClock.advanceTimeBy(8_000)
         compose.onNodeWithText("+0:15 überzogen", useUnmergedTree = true).assertIsDisplayed()
         assertThat(compose.onNodeWithText("Abgegossen").getUnclippedBoundsInRoot()).isEqualTo(pill)
 
         assertThat(listOf(running, alert)).containsExactly(ready, ready)
+    }
+
+    /** The primary control lies on the screen with the bottom margin below it (D-096). */
+    private fun assertWithMargin(pill: DpRect) {
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        assertThat(pill.top).isAtLeast(screen.top)
+        assertThat(pill.bottom + UmamiSpacing.Large).isAtMost(screen.bottom)
     }
 
     /** The quick timer has no seal and a one-line title: its *Fertig* fits as it is (SCR-07). */
