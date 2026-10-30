@@ -9,7 +9,7 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.2.2 — the PO's feedback on v0.2.1: specified, waiting for the PO's go** (`/implement-spec #108`; spec #108, tickets #109–#119, D-097, plan `docs/plans/v0.2.2.md`). Before it: v0.2.1 done (2026-10-29, PR #106). **After it: v0.3.0**, quick timers alongside a brew session (D-093 point 1; needs grilling, spec and tickets); then M3 → v0.4.0, M4 → v0.5.0 |
+| Current milestone | **v0.2.2 — the PO's feedback on v0.2.1: building** (go: the PO's `/implement-spec #108`, 2026-10-30; spec #108, tickets #109–#119, D-097, plan `docs/plans/v0.2.2.md`). Before it: v0.2.1 done (2026-10-29, PR #106). **After it: v0.3.0**, quick timers alongside a brew session (D-093 point 1; needs grilling, spec and tickets); then M3 → v0.4.0, M4 → v0.5.0 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.2.2:** the PO's go to build (`/implement-spec #108`). Then v0.3.0: grill and spec quick timers alongside a brew (D-093 point 1).
+1. **v0.2.2:** building since 2026-10-30 (the PO's go); the PO tests the rc (#118). Then v0.3.0: grill and spec quick timers alongside a brew (D-093 point 1).
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
