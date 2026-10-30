@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.2.2:** `v0.2.2-rc.1` is out (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms); the PO tests it with the checklist on #118 and judges `docs/design/review/v0.2.2/`. Then v0.3.0: grill and spec quick timers alongside a brew (D-093 point 1).
+1. **v0.2.2:** `v0.2.2-rc.1` is out (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms); the PO tests it with the checklist on #118 and judges `docs/design/review/v0.2.2/`. Then v0.3.0 (also the Vorwarnung for hot steps ≥ 10 min, PO 2026-10-30, issue #122): grill and spec quick timers alongside a brew (D-093 point 1).
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
