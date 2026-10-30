@@ -115,8 +115,9 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
  * the [band] from the top of the screen, behind the status bar; ← and ⋮
  * ([topBar]) below the status bar; for a brew ([withSeal]) the [seal] centred
  * on the band's lower edge; then [aboveControls], from the title down to the
- * space above the primary control, and [controls], the primary control and
- * what follows it, all centred. The quick timer has no seal; its content starts at
+ * space above the primary control, [controls], the primary control (and,
+ * with [fitControls], the secondary control below it), and [afterControls],
+ * what follows them (a banner), all centred. The quick timer has no seal; its content starts at
  * the band's lower edge. The band's and the seal's space stays when they draw
  * nothing, as on the alert surface (D-058).
  *
@@ -126,8 +127,11 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
  * primary control ([controlHeight] tall) and the bottom margin lie on the
  * screen without scrolling. Its height follows only the screen, the insets
  * and [aboveControls], never [controls] or whether the band and the seal are
- * drawn, so nothing moves when the alert starts. What does not fit even then
- * scrolls, and so does everything below the primary control.
+ * drawn, so nothing moves when the alert starts. With [fitControls] (FINISHED,
+ * whose *Weiterer Aufguss* sits below *Sitzung beenden*) the measured
+ * [controls] take [controlHeight]'s place, so the secondary control and the
+ * bottom margin fit too. What does not fit even then scrolls, and so does
+ * [afterControls].
  */
 @Composable
 internal fun TimerBandPage(
@@ -139,6 +143,8 @@ internal fun TimerBandPage(
     aboveControls: @Composable ColumnScope.() -> Unit,
     controls: @Composable ColumnScope.() -> Unit,
     adaptive: Boolean = withSeal,
+    fitControls: Boolean = false,
+    afterControls: @Composable ColumnScope.() -> Unit = {},
 ) {
     val insets = WindowInsets.safeDrawing
     val top: @Composable () -> Unit = {
@@ -155,10 +161,13 @@ internal fun TimerBandPage(
     val below: @Composable () -> Unit = {
         Column(horizontalAlignment = Alignment.CenterHorizontally, content = controls)
     }
+    val after: @Composable () -> Unit = {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, content = afterControls)
+    }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = constraints.maxHeight
         Layout(
-            contents = listOf(band, top, column, below),
+            contents = listOf(band, top, column, below, after),
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
@@ -167,6 +176,7 @@ internal fun TimerBandPage(
             val topSlot = slots[1]
             val contentSlot = slots[2]
             val controlsSlot = slots[3]
+            val afterSlot = slots[4]
             val statusBar = insets.getTop(this)
             val left = insets.getLeft(this, layoutDirection)
             val width = constraints.maxWidth
@@ -174,6 +184,7 @@ internal fun TimerBandPage(
             val inColumn = Constraints.fixedWidth(columnWidth)
             val contentPlaceable = contentSlot.single().measure(inColumn)
             val controlsPlaceable = controlsSlot.single().measure(inColumn)
+            val afterPlaceable = afterSlot.single().measure(inColumn)
 
             val sealHalf = if (withSeal) TimerSealSize.roundToPx() / 2 else 0
             val margin = UmamiSpacing.Large.roundToPx()
@@ -181,7 +192,8 @@ internal fun TimerBandPage(
             val bandHeight = if (adaptive && screenHeight != Constraints.Infinity) {
                 val lowest = minOf(statusBar + TimerTopBarHeight.roundToPx(), tallest)
                 // The band's lower edge as low as the content, the primary control and the margin allow.
-                val fits = screenHeight - insets.getBottom(this) - margin - controlHeight.roundToPx() -
+                val fitted = if (fitControls) controlsPlaceable.height else controlHeight.roundToPx()
+                val fits = screenHeight - insets.getBottom(this) - margin - fitted -
                     contentPlaceable.height - sealHalf
                 fits.coerceIn(lowest, tallest)
             } else {
@@ -193,12 +205,14 @@ internal fun TimerBandPage(
 
             val contentTop = statusBar + topHeight
             val controlsTop = contentTop + contentPlaceable.height
-            val height = controlsTop + controlsPlaceable.height + margin + insets.getBottom(this)
+            val afterTop = controlsTop + controlsPlaceable.height
+            val height = afterTop + afterPlaceable.height + margin + insets.getBottom(this)
             layout(width, height.coerceAtLeast(constraints.minHeight)) {
                 bandPlaceables.forEach { it.place(0, 0) }
                 topPlaceable.place(left, statusBar)
                 contentPlaceable.place(left, contentTop)
                 controlsPlaceable.place(left, controlsTop)
+                afterPlaceable.place(left, afterTop)
             }
         }
     }

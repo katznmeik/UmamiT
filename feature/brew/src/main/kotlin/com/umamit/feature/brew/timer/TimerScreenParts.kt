@@ -117,8 +117,11 @@ internal fun TimerBody(args: TimerBodyArgs) {
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
         },
-        controls = {
-            TimerControls(state, actions)
+        // FINISHED's *Weiterer Aufguss* fits with *Sitzung beenden* and the bottom margin (D-096); the step phases
+        // keep the fixed pill height, so nothing moves at *Start* or when the alert starts.
+        fitControls = state.phase == TimerPhase.FINISHED,
+        controls = { TimerControls(state, actions) },
+        afterControls = {
             // Below the controls, so it never moves them; hidden during the alert.
             if (args.reliabilityProblem && !state.alerting) {
                 ReliabilityBanner(

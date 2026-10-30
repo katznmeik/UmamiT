@@ -268,6 +268,27 @@ class TimerScreenLayoutTest {
         assertThat(listOf(running, alert)).containsExactly(ready, ready)
     }
 
+    /**
+     * D-096 for FINISHED: the band gives way until *Sitzung beenden*, *Weiterer Aufguss* below it and the bottom
+     * margin lie on the screen, so the secondary never sits on the gesture handle (BRW-11's line makes the page
+     * taller).
+     */
+    @Test
+    @Config(fontScale = 2.0f)
+    fun `at font scale 2_0 FINISHED's Weiterer Aufguss and the bottom margin are on the screen`() =
+        finishedFits(TimerStates.finished())
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 FINISHED's Weiterer Aufguss and the margin are on the screen`() =
+        finishedFits(TimerStates.finished().copy(teaName = TWO_LINE_NAME))
+
+    private fun finishedFits(finished: TimerUiState.Active) {
+        show(finished)
+        assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
+        assertWithMargin(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot())
+    }
+
     /** The primary control lies on the screen with the bottom margin below it (D-096). */
     private fun assertWithMargin(pill: DpRect) {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
