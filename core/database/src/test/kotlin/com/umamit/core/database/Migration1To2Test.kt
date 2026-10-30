@@ -96,7 +96,8 @@ class Migration1To2Test {
             .allowMainThreadQueries()
             .build()
         try {
-            assertThat(db.openHelper.writableDatabase.version).isEqualTo(2)
+            // The production builder migrates on to the current version (v3: MIGRATION_2_3 keeps every v2 value).
+            assertThat(db.openHelper.writableDatabase.version).isEqualTo(UmamiDatabase.VERSION)
             assertThat(db.activeBrewDao().get()?.sessionId).isEqualTo("live-1")
             assertThat(db.sessionDao().steps("live-1").map { it.preAlertSeconds }).containsExactly(null, 20, 20)
                 .inOrder()

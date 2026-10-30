@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.common.WallClock
+import com.umamit.core.data.catalog.RoomCatalogBookmarkRepository
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
@@ -37,6 +38,7 @@ class TestDatabase(
     val transactions = RoomDatabaseTransactions(db)
     val sessions = RoomSessionRepository(db, settings, time)
     val activeBrew = RoomActiveBrewStore(db, time)
+    val bookmarks = RoomCatalogBookmarkRepository(db.catalogBookmarkDao(), time)
 
     fun close() = db.close()
 }

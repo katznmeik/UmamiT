@@ -181,6 +181,26 @@ class ActiveBrewStoreTest {
     }
 
     @Test
+    fun `the quick timer's own pre-alert choice round-trips through active_brew (umamit_db v3)`() = runTest {
+        val running = TimerDriver(data).run {
+            send(TimerEvent.StartQuickTimer(120, globalPreAlertSeconds = 10))
+            send(TimerEvent.Start)
+        }
+        val automatic = BrewTimerEngine.snapshot(running)!!
+        // The engine leaves the choice null (*Automatisch*) until the selector (v0.2.2-03, #116) sets it.
+        assertThat(data.activeBrew.read()).isEqualTo(automatic)
+        assertThat(automatic.activeBrew.quickPreAlertSeconds).isNull()
+
+        listOf(0, 5, 30).forEach { choice ->
+            val chosen = automatic.copy(activeBrew = automatic.activeBrew.copy(quickPreAlertSeconds = choice))
+
+            data.activeBrew.persist(chosen)
+
+            assertWithMessage("choice $choice").that(data.activeBrew.read()).isEqualTo(chosen)
+        }
+    }
+
+    @Test
     fun `a failed write leaves the stored active brew unchanged`() = runTest {
         data.teas.saveTea(tea("t1"))
         val driver = TimerDriver(data)

@@ -116,7 +116,8 @@ data class SessionStepEntity(
 /**
  * Single-row table `active_brew` (05 §3.12, `id` = [ActiveBrewEntity.SINGLE_ROW_ID]): the timer
  * engine's `ActiveBrewSnapshot` column by column. Counters and flags are non-null, values that
- * only some phases set are nullable.
+ * only some phases set are nullable. `quick_pre_alert_seconds` (schema v3, D-097) is the quick
+ * timer's pre-alert choice: null *Automatisch*, 0 *Aus*, else 5–30 s; always null for a brew session.
  */
 @Entity(
     tableName = "active_brew",
@@ -155,6 +156,7 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "zone_id") val zoneId: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "quick_pre_alert_seconds") val quickPreAlertSeconds: Int?,
 ) {
     companion object {
         const val SINGLE_ROW_ID = 1

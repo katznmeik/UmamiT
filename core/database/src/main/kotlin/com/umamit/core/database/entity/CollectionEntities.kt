@@ -244,3 +244,14 @@ data class InventoryEventEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
+
+/**
+ * Table `catalog_bookmark` (05 §3.13, schema v3, CAT-18, D-097): the Merkliste, catalog teas marked for later.
+ * Personal data, so it lives in `umamit.db`, outside the rebuilt `catalog.db`, and no refresh touches it. The key
+ * is the catalog tea's (`catalog_tea.catalog_key`), with no foreign key across the databases.
+ */
+@Entity(tableName = "catalog_bookmark")
+data class CatalogBookmarkEntity(
+    @PrimaryKey @ColumnInfo(name = "catalog_key") val catalogKey: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
