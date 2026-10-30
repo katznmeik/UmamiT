@@ -323,7 +323,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
-    /** The *Gemerkt* view without a mark (CAT-18): „Noch nichts gemerkt · Tippe bei einem Tee auf 🔖". */
+    /** The *Gemerkt* view without a mark (CAT-18): „Noch nichts gemerkt · Tippe bei einem Tee auf das Lesezeichen.". */
     @Test
     fun listMarkedEmpty() = capture("listMarkedEmpty") {
         val filter = CatalogFilter.DEFAULT.copy(marked = true)

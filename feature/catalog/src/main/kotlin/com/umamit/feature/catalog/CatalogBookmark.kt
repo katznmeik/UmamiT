@@ -50,7 +50,7 @@ internal fun BookmarkToggle(marked: Boolean, onToggle: (Boolean) -> Unit, modifi
 
 /**
  * The *Gemerkt* view's notices (SCR-19, CAT-18): its empty state without any mark („Noch nichts
- * gemerkt · Tippe bei einem Tee auf 🔖"), or a search that matches none of the marked teas.
+ * gemerkt · Tippe bei einem Tee auf das Lesezeichen."), or a search that matches none of the marked teas.
  */
 internal fun LazyListScope.markedNotices(listing: CatalogListing) {
     when {

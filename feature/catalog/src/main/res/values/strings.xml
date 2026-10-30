@@ -71,7 +71,7 @@
     <string name="catalog_reset_filters">Filter zurücksetzen</string>
     <!-- The Gemerkt view without any mark (SCR-19, CAT-18). -->
     <string name="catalog_marked_empty_title">Noch nichts gemerkt</string>
-    <string name="catalog_marked_empty_body">Tippe bei einem Tee auf 🔖</string>
+    <string name="catalog_marked_empty_body">Tippe bei einem Tee auf das Lesezeichen.</string>
     <!-- The Gemerkt view when the search matches none of the marked teas. -->
     <string name="catalog_marked_no_match">Kein gemerkter Tee passt zu deiner Suche.</string>
     <!-- The bookmark toggle of a row and of the detail (SCR-19, SCR-21, CAT-18): TalkBack and the detail's label. -->

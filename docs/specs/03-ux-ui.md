@@ -802,7 +802,7 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   every marked tea, green and herbal, sold out or discontinued, grouped as
   the default view; the other chips are hidden and only the search applies;
   the header reads „… · 4 gemerkt · …". Empty: „Noch nichts gemerkt ·
-  Tippe bei einem Tee auf 🔖".
+  Tippe bei einem Tee auf das Lesezeichen.".
 - **Default view** (D-073): grouped by *Sorte* under a section header per
   *Sorte* (teas without one last, „Ohne Sorte"), available teas only, „Pur"
   on, so flavoured teas are one tap away. Sorted by name or price the list
