@@ -6,6 +6,9 @@
     <string name="brew_picker_recent">Zuletzt</string>
     <string name="brew_picker_favorites">Favoriten</string>
     <string name="brew_picker_all">Alle</string>
+    <!-- Group headers of the tea picker's Alle and search results (SCR-03, D-097). -->
+    <string name="brew_picker_group_green">Grüntees</string>
+    <string name="brew_picker_group_herbal">Kräutertees</string>
     <!-- SCR-03 footer (D-073): to the catalog, the add sheet and back to the setup of the new tea. -->
     <string name="brew_picker_catalog">Aus dem Katalog</string>
     <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>

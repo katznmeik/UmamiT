@@ -56,11 +56,13 @@ class TeaPickerViewModelTest {
         favorite: Boolean = false,
         archived: Boolean = false,
         type: String = "Sencha",
+        style: String? = "sencha",
     ) = Tea(
         id = id,
         name = name,
-        category = TeaCategory.GREEN,
+        category = if (style == "herbal") TeaCategory.HERBAL else TeaCategory.GREEN,
         form = TeaForm.LOOSE_LEAF,
+        styleKey = style,
         teaType = type,
         isFavorite = favorite,
         isArchived = archived,
@@ -217,5 +219,87 @@ class TeaPickerViewModelTest {
         assertThat(archive.archived).isEmpty()
         assertThat(vm.state.value.all.map { it.id }).contains("t")
         assertThat(vm.state.value.removed).isNull()
+    }
+
+    /** Synthetic: two green teas and one herbal tea (D-097 picker groups). */
+    private suspend fun seedKinds() {
+        collection.teas.saveTea(tea("t", "Bio Sencha Tanabata", favorite = true))
+        collection.teas.saveTea(tea("m", "Minze Zitrone", type = "Kräutertee", style = "herbal"))
+        collection.teas.saveTea(tea("k", "Kōridashi Gyokuro", type = "Gyokuro", style = "gyokuro"))
+    }
+
+    private fun List<PickerGroup>.ids() = map { group -> group.kind to group.teas.map { it.id } }
+
+    @Test
+    fun `Alle is grouped by kind, green teas before herbal teas, A to Z within`() = runTest(dispatcher) {
+        seedKinds()
+        brewed("s1", "m", "Minze Zitrone", at = 1_000)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertThat(state.allGroups.ids()).containsExactly(
+            TeaKind.GREEN to listOf("t", "k"),
+            TeaKind.HERBAL to listOf("m"),
+        ).inOrder()
+        assertThat(state.showGroupHeaders).isTrue()
+        // Zuletzt and Favoriten stay ungrouped.
+        assertThat(state.recent.map { it.id }).containsExactly("m")
+        assertThat(state.favorites.map { it.id }).containsExactly("t")
+    }
+
+    @Test
+    fun `with green teas only there is one group and no headers`() = runTest(dispatcher) {
+        seed()
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        val state = vm.state.value
+        assertThat(state.allGroups.ids()).containsExactly(TeaKind.GREEN to listOf("h", "t", "k"))
+        assertThat(state.showGroupHeaders).isFalse()
+    }
+
+    @Test
+    fun `search results are grouped the same way, with headers only for two kinds`() = runTest(dispatcher) {
+        seedKinds()
+        collection.teas.saveTea(tea("z", "Bio Zitronengras", type = "Kräutertee", style = "herbal"))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.setQuery("bio")
+        advanceUntilIdle()
+        assertThat(vm.state.value.resultGroups!!.ids()).containsExactly(
+            TeaKind.GREEN to listOf("t"),
+            TeaKind.HERBAL to listOf("z"),
+        ).inOrder()
+        assertThat(vm.state.value.showResultHeaders).isTrue()
+
+        vm.setQuery("gyokuro")
+        advanceUntilIdle()
+        assertThat(vm.state.value.resultGroups!!.ids()).containsExactly(TeaKind.GREEN to listOf("k"))
+        assertThat(vm.state.value.showResultHeaders).isFalse()
+
+        vm.setQuery("")
+        advanceUntilIdle()
+        assertThat(vm.state.value.resultGroups).isNull()
+    }
+
+    @Test
+    fun `a tea removed from its group comes back into it with undo`() = runTest(dispatcher) {
+        seedKinds()
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        vm.remove("m")
+        advanceUntilIdle()
+        assertThat(vm.state.value.allGroups.ids()).containsExactly(TeaKind.GREEN to listOf("t", "k"))
+        assertThat(vm.state.value.showGroupHeaders).isFalse()
+
+        vm.undoRemove()
+        advanceUntilIdle()
+        assertThat(vm.state.value.allGroups.ids()).containsExactly(
+            TeaKind.GREEN to listOf("t", "k"),
+            TeaKind.HERBAL to listOf("m"),
+        ).inOrder()
     }
 }
