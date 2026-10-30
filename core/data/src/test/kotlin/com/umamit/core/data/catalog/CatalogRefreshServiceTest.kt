@@ -4,7 +4,9 @@ import android.app.Application
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Looper
 import android.os.PowerManager
@@ -220,6 +222,31 @@ class CatalogRefreshServiceTest {
             )
         assertThat(result.flags and Notification.FLAG_AUTO_CANCEL).isNotEqualTo(0)
         assertThat(result.contentIntent).isNotNull()
+    }
+
+    // From v0.2.2 a tap opens Sammlung › Katalog with the refresh sheet (SCR-22, 03 §2.4, D-097).
+    @Test
+    fun aTapOnTheProgressOrTheResultAsksTheAppForTheRefreshSheet() {
+        port.mutableState.value = running(done = 3, total = 10, products = 2)
+        val service = service().run()
+        val progress = checkNotNull(service.foreground())
+        port.mutableState.value = CatalogRefreshState.Finished(CatalogRefreshOutcome.Success(teas = 276, newTeas = 12))
+        idle()
+        val result = checkNotNull(posted(CatalogNotifications.ID_RESULT))
+
+        for (notification in listOf(progress, result)) {
+            val tap = shadowOf(notification.contentIntent)
+            assertThat(tap.isActivity).isTrue()
+            assertThat(tap.flags and PendingIntent.FLAG_IMMUTABLE).isNotEqualTo(0)
+            val intent = tap.savedIntent
+            assertThat(CatalogRefreshIntents.isOpenRefresh(intent)).isTrue()
+            // Only this app's own activity: never an intent another app could answer.
+            assertThat(intent.`package`).isEqualTo(app.packageName)
+            assertThat(intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK).isNotEqualTo(0)
+            assertThat(intent.flags and Intent.FLAG_ACTIVITY_SINGLE_TOP).isNotEqualTo(0)
+        }
+        // *Abbrechen* still goes to the service.
+        assertThat(shadowOf(progress.actions.single().actionIntent).isService).isTrue()
     }
 
     @Test

@@ -123,6 +123,12 @@ class CatalogViewModel @Inject constructor(
     /** The result sheet was closed. */
     fun acknowledgeResult() = refresh.acknowledge()
 
+    /** A refresh notification was tapped: the last result from the log when nothing is held (SCR-22, D-097). */
+    suspend fun recallRefreshResult() = refresh.recallLastResult()
+
+    /** Whether the refresh sheet has something to show: a running refresh or a result. */
+    fun refreshShowing(): Boolean = refresh.state.value != CatalogRefreshState.Idle
+
     /** *Link einfügen*: the paste sheet, empty (CAT-17 AC1). */
     fun openLinkSheet() {
         linkJob?.cancel()

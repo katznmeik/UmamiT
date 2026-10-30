@@ -31,6 +31,14 @@ internal data object QuickTimerRoute
 @Serializable
 internal data object TimerSettingsRoute
 
+/**
+ * Sammlung › Katalog with the refresh sheet, opened by a tap on a catalog refresh notification
+ * (SCR-22, 03 §2.4, D-097): a shell of its own above whatever was shown, the timer included, so
+ * back returns there. It gives way to a new alert like every route above the shell (rule 8).
+ */
+@Serializable
+internal data object CatalogRefreshRoute
+
 /** Type-safe routes (06 §5.5). Every tab owns a navigation controller, so each has its own back stack. */
 @Serializable
 internal data object StartRoute
