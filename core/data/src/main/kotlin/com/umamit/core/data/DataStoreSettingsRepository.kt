@@ -81,6 +81,10 @@ internal fun settingsRetryDelayMs(attempt: Long): Long {
     return (FIRST_SETTINGS_RETRY_MS shl doublings).coerceAtMost(MAX_SETTINGS_RETRY_MS)
 }
 
-/** Keeps the pre-alert in 0, 5…30 (SET-10). */
-internal fun UserSettings.normalized(): UserSettings =
-    copy(preAlertSeconds = snap5(preAlertSeconds).coerceIn(0, MAX_PRE_ALERT_SECONDS))
+/** Keeps the pre-alert (SET-10) and the quick timer's choice (TMR-22, D-097; null stays *Automatisch*) in 0, 5…30. */
+internal fun UserSettings.normalized(): UserSettings = copy(
+    preAlertSeconds = preAlertOf(preAlertSeconds),
+    quickTimerPreAlert = quickTimerPreAlert?.let(::preAlertOf),
+)
+
+private fun preAlertOf(seconds: Int): Int = snap5(seconds).coerceIn(0, MAX_PRE_ALERT_SECONDS)

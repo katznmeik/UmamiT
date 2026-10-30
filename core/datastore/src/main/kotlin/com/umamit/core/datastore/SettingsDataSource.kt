@@ -36,6 +36,8 @@ data class StoredSettings(
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
     val catalogDownloadPhotos: Boolean = true,
+    /** TMR-22 (v0.2.2, D-097): SCR-07's last *Vorwarnung*; null *Automatisch* (also for a file of v0.2.1). */
+    val quickTimerPreAlert: Int? = null,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -125,6 +127,7 @@ private fun StoredSettings.toModel() = UserSettings(
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
     catalogDownloadPhotos = catalogDownloadPhotos,
+    quickTimerPreAlert = quickTimerPreAlert,
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -143,6 +146,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     dimWhileSteeping = dimWhileSteeping,
     dismissedHints = dismissedHints,
     catalogDownloadPhotos = catalogDownloadPhotos,
+    quickTimerPreAlert = quickTimerPreAlert,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

@@ -20,6 +20,11 @@ data class UserSettings(
     val dismissedHints: Set<String> = emptySet(),
     /** SET-22 *Katalog: Fotos laden*: the catalog refresh downloads the teas' photos (CAT-08). */
     val catalogDownloadPhotos: Boolean = true,
+    /**
+     * TMR-22 (v0.2.2, D-097): the last *Vorwarnung* chosen on SCR-07, which the next quick timer opens with:
+     * null *Automatisch*, 0 *Aus*, otherwise 5–30 in steps of 5.
+     */
+    val quickTimerPreAlert: Int? = null,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

@@ -45,6 +45,7 @@ class SettingsDataSourceTest {
         assertThat(settings.dimWhileSteeping).isTrue()
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(settings.catalogDownloadPhotos).isTrue()
+        assertThat(settings.quickTimerPreAlert).isNull()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -83,6 +84,7 @@ class SettingsDataSourceTest {
             dimWhileSteeping = false,
             dismissedHints = setOf("swipe", "stock"),
             catalogDownloadPhotos = false,
+            quickTimerPreAlert = 20,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -126,6 +128,28 @@ class SettingsDataSourceTest {
         assertThat(settings.alertSound).isEqualTo("sanft")
         assertThat(settings.preAlertSeconds).isEqualTo(20)
         assertThat(source.seedDataCreated.first()).isTrue()
+    }
+
+    @Test
+    fun theQuickTimersChoiceKeepsAusApartFromAutomatischAcrossARestart() = runTest {
+        // TMR-22 (v0.2.2, D-097): null is *Automatisch*, 0 is *Aus*; a file of v0.2.1 has no key and reads null.
+        val v021 = """{"preAlertSeconds":20,"seedDataCreated":true}"""
+        val old = File(folder.root, "quick-v021.json").apply { writeText(v021) }
+        assertThat(dataSource(old).settings.first().quickTimerPreAlert).isNull()
+
+        listOf(0, null, 30).forEach { choice ->
+            val file = File(folder.root, "quick-$choice.json").apply { writeText(v021) }
+            val writerScope = CoroutineScope(coroutineContext + Job())
+            val writer = SettingsDataSource(DataStoreFactory.create(SettingsSerializer, scope = writerScope) { file })
+            writer.update { it.copy(quickTimerPreAlert = choice) }
+            writerScope.cancel()
+            writerScope.coroutineContext.job.join()
+
+            val reader = dataSource(file)
+            assertThat(reader.settings.first().quickTimerPreAlert).isEqualTo(choice)
+            assertThat(reader.settings.first().preAlertSeconds).isEqualTo(20)
+            assertThat(reader.seedDataCreated.first()).isTrue()
+        }
     }
 
     @Test
