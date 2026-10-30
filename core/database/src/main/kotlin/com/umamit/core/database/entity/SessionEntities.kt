@@ -10,6 +10,7 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 
 // Session tables of 05 §3.6, §3.7 and §3.12. The lifecycle (05 §3.7) lives in
 // core:data's RoomSessionRepository, the active brew in RoomActiveBrewStore.
@@ -114,10 +115,12 @@ data class SessionStepEntity(
 )
 
 /**
- * Single-row table `active_brew` (05 §3.12, `id` = [ActiveBrewEntity.SINGLE_ROW_ID]): the timer
- * engine's `ActiveBrewSnapshot` column by column. Counters and flags are non-null, values that
+ * Table `active_brew` (05 §3.12), from schema v4 one row per [TimerSlot], keyed by [slot] (D-098): the
+ * timer engine's `ActiveBrewSnapshot` column by column. Counters and flags are non-null, values that
  * only some phases set are nullable. `quick_pre_alert_seconds` (schema v3, D-097) is the quick
  * timer's pre-alert choice: null *Automatisch*, 0 *Aus*, else 5–30 s; always null for a brew session.
+ * `alert_ringing_since_*` (schema v4) are when an ALERTING row's alert last started ringing; null =
+ * held or not alerting.
  */
 @Entity(
     tableName = "active_brew",
@@ -132,7 +135,7 @@ data class SessionStepEntity(
     indices = [Index("session_id")],
 )
 data class ActiveBrewEntity(
-    @PrimaryKey val id: Int = SINGLE_ROW_ID,
+    @PrimaryKey @ColumnInfo(name = "slot") val slot: TimerSlot,
     @ColumnInfo(name = "session_id") val sessionId: String?,
     @ColumnInfo(name = "is_quick_timer") val isQuickTimer: Boolean,
     @ColumnInfo(name = "quick_duration_seconds") val quickDurationSeconds: Int?,
@@ -157,8 +160,6 @@ data class ActiveBrewEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "quick_pre_alert_seconds") val quickPreAlertSeconds: Int?,
-) {
-    companion object {
-        const val SINGLE_ROW_ID = 1
-    }
-}
+    @ColumnInfo(name = "alert_ringing_since_elapsed_ms") val alertRingingSinceElapsedMs: Long?,
+    @ColumnInfo(name = "alert_ringing_since_wall_ms") val alertRingingSinceWallMs: Long?,
+)
