@@ -540,6 +540,71 @@ reminder") was updated with the grilling.
 quick timer; a per-tea reminder switch; reminders other than low stock;
 changing the system alarm volume from the app; M3 (now v0.4.0).
 
+**Build notes (Claude, 2026-10-30, #126: umamit.db v4).**
+- **Slot key.** `active_brew.slot` is the enum `TimerSlot` of `core:model`,
+  stored by name (`BREW`, `QUICK`) like `phase`; a name never changes its
+  meaning and is never renamed (05 §5). A row's slot is derived from its kind
+  (`ActiveBrewSnapshot.slot`, from `is_quick_timer`), so it is never chosen
+  apart from it.
+- **Store per slot.** `ActiveBrewStore` gains `read(slot)`, `persist(slot,
+  snapshot)` and `clear(slot)`, which touch only their slot (the brew slot
+  also its session's step rows). `persist(slot, …)` refuses a snapshot of the
+  other kind (`IllegalArgumentException`) and writes nothing. A damaged row
+  whose `slot` and `is_quick_timer` disagree is read as stored; the controller
+  refuses it like a snapshot `restore` refuses (#125, #134).
+- **Single-timer methods kept** for the controller until v0.3.0-03: `read()`
+  returns the brew slot's row, else the quick slot's; `persist(snapshot)`
+  writes the snapshot in its kind's slot and clears the other slot in the same
+  transaction, as v3 replaced its single row; `clear()` clears both. The
+  controller harness's `ObservedStore` passes the slot methods to the real
+  store unobserved.
+- **Ringing start.** `ActiveBrewSnapshot` carries
+  `alertRingingSinceElapsedMs` / `alertRingingSinceWallMs`, and the store
+  round-trips them in either slot (null = held or not alerting). Until the
+  held alert lands (#134) the engine neither sets nor reads them, so the first
+  transition after the migration writes them back as null; nothing reads them
+  before #134.
+- **Migration.** `MIGRATION_3_4` creates the new table with Room's v4
+  `createSql` (identical but for the table name), copies the v3 columns but
+  `id`, drops, renames and recreates `index_active_brew_session_id`;
+  `created_at` stays per row. `Migration3To4Test` covers a running brew, a
+  running quick timer with its own 20 s, an alerting quick timer with *Aus*,
+  an alerting brew whose alert played, and no timer.
+
+**Build notes (Claude, 2026-10-30, #125: timer slots in the controller).**
+- **Slots.** `BrewSessionController` holds a `ControllerSlot` per `TimerSlot`
+  (engine state, session details, alert watchdog, the state recovery
+  restored); the engine is unchanged. One timer is still active across both:
+  the admission (`Admission`, `ControllerSlots.blocking`) refuses a start
+  while the other slot is active as `ActiveTimerExists(<its kind>)`, logged
+  as before, and *Beenden & neu starten* ends the active timer in whichever
+  slot it is. v0.3.0-03 changes only these rules. A user event (`send`) goes
+  to the slot of the active timer, the brew slot while none is; the screens
+  and notifications name no slot yet (#134–#136). `state` is the active
+  timer's UI state.
+- **Request codes and broadcasts.** `TimerAlarmKind.requestCodeIn(slot)`:
+  100 or 200 plus 1–7. The brew slot keeps the broadcast of v0.2.2
+  („…TIMER_ALARM.DEADLINE"), so its alarms replace and cancel those v0.2.2
+  left; the quick slot's is „…TIMER_ALARM.QUICK.DEADLINE". The receiver reads
+  an alarm of v0.2.2 as the brew slot's; `TimerInputs.onAlarm(slot, kind)`.
+- **An alarm runs both slots.** `onAlarm` runs every due event of both slots,
+  the brew slot first (so an old alarm of a quick timer, read as the brew
+  slot's, still delivers its event); the slot names the alarm's log entry, its
+  retry and its watchdog. The in-process wake-up comes for the earliest due
+  time of either slot.
+- **Recovery** reads both slots in each try (a failed read of either fails the
+  try), recovers the brew slot first, then cancels the alarms of every slot
+  without a timer (`reconcile(slot, NONE)`), which moves a quick timer of
+  v0.2.2 from 101–106 to 201–206; its watchdog 107 goes with the brew
+  slot's first watchdog turn.
+- **Store seam.** The controller writes through `TimerSlotStore`
+  (`read`/`persist`/`clear` per slot), today on the single-timer methods of
+  `ActiveBrewStore` (`SingleTimerSlotStore`), so a write still clears the other
+  slot as v3 replaced its row. v0.3.0-03 moves it to the slot methods,
+  including the refusal of a row whose slot and kind disagree.
+- **Unchanged:** notification IDs (by role), the diagnostics log format (no
+  slot in `AlarmReceived` yet), the UI.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

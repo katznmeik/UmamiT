@@ -78,7 +78,7 @@ class BrewSessionController @Inject constructor(
     private val ports: TimerPorts,
 ) : TimerInputs {
     private val lock = Mutex()
-    private val store: TimerSlotStore = SingleRowSlotStore(activeBrew)
+    private val store: TimerSlotStore = SingleTimerSlotStore(activeBrew)
     private val effects = TransitionEffects(sessions, store, transactions, ports)
     private val persistedTimer = PersistedTimer(store, sessions, ports, effects)
     private val recovery = ProcessRecovery()

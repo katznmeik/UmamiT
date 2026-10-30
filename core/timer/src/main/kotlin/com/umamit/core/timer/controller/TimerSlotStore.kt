@@ -2,7 +2,6 @@ package com.umamit.core.timer.controller
 
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.model.TimerSlot
-import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerSnapshot
 
 /**
@@ -22,25 +21,17 @@ internal interface TimerSlotStore {
 }
 
 /**
- * [TimerSlotStore] on the single `active_brew` row of umamit.db v1–v3 (05 §3.12), until umamit.db v4 keeps
- * one row per slot (v0.3.0-02). Only one timer is active across both slots, so the row holds the timer of
- * one slot, the slot of its kind ([slotOf]): [read] gives it to that slot only, and a write or a clear always
- * meets that slot's row or none.
+ * [TimerSlotStore] on the single-timer methods of [ActiveBrewStore], which umamit.db v4 keeps for a
+ * controller that runs one timer at a time (D-098, #126): the table holds the one active timer, in the slot
+ * of its kind, and a write clears the other slot, as v3 replaced its single row. Only one timer is active
+ * across both slots until v0.3.0-03, so [read] gives the row to the slot of its kind only, and a write or a
+ * clear always meets that slot's row or none. v0.3.0-03 moves this to the store's slot methods.
  */
-internal class SingleRowSlotStore(private val activeBrew: ActiveBrewStore) : TimerSlotStore {
-    override suspend fun read(slot: TimerSlot): TimerSnapshot? = activeBrew.read()?.takeIf { slotOf(it) == slot }
+internal class SingleTimerSlotStore(private val activeBrew: ActiveBrewStore) : TimerSlotStore {
+    override suspend fun read(slot: TimerSlot): TimerSnapshot? =
+        activeBrew.read()?.takeIf { it.activeBrew.slot == slot }
 
     override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) = activeBrew.persist(snapshot)
 
     override suspend fun clear(slot: TimerSlot) = activeBrew.clear()
 }
-
-/** The slot of a timer of [kind] (04 §3.3): a brew session's or the quick timer's. */
-internal fun slotOf(kind: SessionKind): TimerSlot = when (kind) {
-    is SessionKind.Brew -> TimerSlot.BREW
-    SessionKind.Quick -> TimerSlot.QUICK
-}
-
-/** The slot of a persisted timer: the quick timer's when it is one (`is_quick_timer`), else the brew's. */
-internal fun slotOf(snapshot: TimerSnapshot): TimerSlot =
-    if (snapshot.activeBrew.isQuickTimer) TimerSlot.QUICK else TimerSlot.BREW

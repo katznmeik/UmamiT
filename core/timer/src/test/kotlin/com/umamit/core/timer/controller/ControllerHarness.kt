@@ -196,9 +196,9 @@ data class Persisted(val phase: TimerPhase?) : PortCall
 /**
  * The real [ActiveBrewStore] with a test handle: each persist is logged as [Persisted];
  * [failNext] makes the next persists throw like a full disk; [hold] keeps the next persist
- * waiting until the returned gate is opened.
+ * waiting until the returned gate is opened. The slot methods (umamit.db v4) go to the real store as they are.
  */
-class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPortLog) : ActiveBrewStore {
+class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPortLog) : ActiveBrewStore by real {
     private var failures = 0
     private var readFailures = 0
     private var gate: Gate? = null

@@ -1,6 +1,7 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerState
 
 /**
@@ -51,4 +52,10 @@ internal class ControllerSlots(alarms: TimerAlarmPort) : Iterable<ControllerSlot
     fun blocking(id: TimerSlot): TimerState.Active? = slots.firstNotNullOfOrNull { slot ->
         slot.active?.takeIf { slot.id != id }
     }
+}
+
+/** The slot of a timer of [kind] (04 §3.3): a brew session's or the quick timer's. */
+internal fun slotOf(kind: SessionKind): TimerSlot = when (kind) {
+    is SessionKind.Brew -> TimerSlot.BREW
+    SessionKind.Quick -> TimerSlot.QUICK
 }

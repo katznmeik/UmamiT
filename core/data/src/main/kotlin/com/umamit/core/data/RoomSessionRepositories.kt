@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
@@ -193,31 +195,62 @@ private fun zoneOf(id: String): ZoneId = try {
     ZoneId.systemDefault()
 }
 
-/** [ActiveBrewStore] on Room (05 §3.12): the row and the session's step rows in one transaction. */
+/**
+ * [ActiveBrewStore] on Room (05 §3.12): a slot's row and, for a brew session, its step rows in one
+ * transaction.
+ */
 class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, private val time: WallClock) :
     ActiveBrewStore {
     private val activeBrew = db.activeBrewDao()
     private val sessions = db.sessionDao()
 
+    override suspend fun read(slot: TimerSlot): TimerSnapshot? = db.withTransaction {
+        activeBrew.get(slot)?.let { snapshotOf(it) }
+    }
+
+    override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) {
+        if (snapshot == null) return clear(slot)
+        require(snapshot.activeBrew.slot == slot) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
+        val now = time.nowMs()
+        db.withTransaction { write(snapshot, now) }
+    }
+
+    override suspend fun clear(slot: TimerSlot) = activeBrew.delete(slot)
+
     override suspend fun read(): TimerSnapshot? = db.withTransaction {
-        val row = activeBrew.get() ?: return@withTransaction null
-        val steps = row.sessionId?.let { sessions.steps(it).map { step -> step.toRow() } }.orEmpty()
-        // A cold or ice brew has long steps only; that follows from the session's method (D-053).
-        val method = row.sessionId?.let { sessions.get(it)?.method }
-        TimerSnapshot(row.toSnapshot(), steps, longStepsOnly = method?.let(BrewTimerEngine::longStepsOnly) ?: false)
+        activeBrew.get()?.let { snapshotOf(it) }
     }
 
     override suspend fun persist(snapshot: TimerSnapshot?) {
         if (snapshot == null) return clear()
         val now = time.nowMs()
         db.withTransaction {
-            snapshot.activeBrew.sessionId?.let { syncSteps(it, snapshot, now) }
-            val createdAt = activeBrew.get()?.createdAt ?: now
-            activeBrew.upsert(snapshot.activeBrew.toEntity(createdAt = createdAt, updatedAt = now))
+            write(snapshot, now)
+            activeBrew.deleteOtherThan(snapshot.activeBrew.slot)
         }
     }
 
     override suspend fun clear() = activeBrew.clear()
+
+    /** The snapshot of [row] with its session's step rows; called inside a transaction. */
+    private suspend fun snapshotOf(row: ActiveBrewEntity): TimerSnapshot {
+        val steps = row.sessionId?.let { sessions.steps(it).map { step -> step.toRow() } }.orEmpty()
+        // A cold or ice brew has long steps only; that follows from the session's method (D-053).
+        val method = row.sessionId?.let { sessions.get(it)?.method }
+        return TimerSnapshot(
+            row.toSnapshot(),
+            steps,
+            longStepsOnly = method?.let(BrewTimerEngine::longStepsOnly) ?: false,
+        )
+    }
+
+    /** Writes [snapshot]'s row in its slot and its session's step rows; called inside a transaction. */
+    private suspend fun write(snapshot: TimerSnapshot, now: Long) {
+        val row = snapshot.activeBrew
+        row.sessionId?.let { syncSteps(it, snapshot, now) }
+        val createdAt = activeBrew.get(row.slot)?.createdAt ?: now
+        activeBrew.upsert(row.toEntity(createdAt = createdAt, updatedAt = now))
+    }
 
     /** Makes the session's rows equal [snapshot]'s step rows, keeping row ids, notes and creation times. */
     private suspend fun syncSteps(sessionId: String, snapshot: TimerSnapshot, now: Long) {
