@@ -1,11 +1,12 @@
 package com.umamit.core.model
 
 /**
- * The single `active_brew` row (05 §3.12): the active timer state as plain
+ * One `active_brew` row (05 §3.12): the active timer state as plain
  * values, written on every timer transition (04 §7.1) and read on recovery
  * (04 §7.2). Together with the session's [SessionStepRow]s it holds the timer
  * engine's state losslessly. `…ElapsedMs` values are on the monotonic clock of
- * boot [bootCount]; `…WallMs` values on the wall clock.
+ * boot [bootCount]; `…WallMs` values on the wall clock. From umamit.db v4 the
+ * table holds one row per [TimerSlot], the [slot] of the row's kind (D-098).
  *
  * @property sessionId the `brew_session` row; null for the quick timer.
  * @property quickDurationSeconds the quick timer's one step; null for a brew session.
@@ -30,6 +31,10 @@ package com.umamit.core.model
  * @property quickPreAlertSeconds the quick timer's own pre-alert choice (umamit.db v3, TMR-22, D-097): null
  *   *Automatisch* (B = [preAlertInheritedSeconds]), 0 *Aus*, else 5–30 s; always null for a brew session, whose
  *   pre-alerts are per step. The engine's restore refuses a value on a brew session or outside 0 / 5–30 s (#116).
+ * @property alertRingingSinceElapsedMs ALERTING (umamit.db v4, D-098): when the alert last started ringing
+ *   (`ringingSince`, 04 §9.3); null = held (a quick alert waiting for the brew's) or not alerting.
+ * @property alertRingingSinceWallMs the same on the wall clock; it rebases [alertRingingSinceElapsedMs] after a reboot.
+ *   Until the held alert arrives (v0.3.0-03, #134) the engine neither sets nor reads the two; the store keeps them.
  */
 data class ActiveBrewSnapshot(
     val sessionId: String?,
@@ -54,7 +59,12 @@ data class ActiveBrewSnapshot(
     val preAlertInheritedSeconds: Int,
     val zoneId: String,
     val quickPreAlertSeconds: Int? = null,
-)
+    val alertRingingSinceElapsedMs: Long? = null,
+    val alertRingingSinceWallMs: Long? = null,
+) {
+    /** The slot of this row's kind: [TimerSlot.QUICK] for the quick timer, else [TimerSlot.BREW] (05 §3.12). */
+    val slot: TimerSlot get() = if (isQuickTimer) TimerSlot.QUICK else TimerSlot.BREW
+}
 
 /**
  * The timer's view of one `session_step` row (05 §3.7) at [position]. A

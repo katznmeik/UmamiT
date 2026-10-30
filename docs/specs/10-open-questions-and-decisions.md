@@ -540,6 +540,37 @@ reminder") was updated with the grilling.
 quick timer; a per-tea reminder switch; reminders other than low stock;
 changing the system alarm volume from the app; M3 (now v0.4.0).
 
+**Build notes (Claude, 2026-10-30, #126: umamit.db v4).**
+- **Slot key.** `active_brew.slot` is the enum `TimerSlot` of `core:model`,
+  stored by name (`BREW`, `QUICK`) like `phase`; a name never changes its
+  meaning and is never renamed (05 §5). A row's slot is derived from its kind
+  (`ActiveBrewSnapshot.slot`, from `is_quick_timer`), so it is never chosen
+  apart from it.
+- **Store per slot.** `ActiveBrewStore` gains `read(slot)`, `persist(slot,
+  snapshot)` and `clear(slot)`, which touch only their slot (the brew slot
+  also its session's step rows). `persist(slot, …)` refuses a snapshot of the
+  other kind (`IllegalArgumentException`) and writes nothing. A damaged row
+  whose `slot` and `is_quick_timer` disagree is read as stored; the controller
+  refuses it like a snapshot `restore` refuses (#125, #134).
+- **Single-timer methods kept** for the controller until v0.3.0-03: `read()`
+  returns the brew slot's row, else the quick slot's; `persist(snapshot)`
+  writes the snapshot in its kind's slot and clears the other slot in the same
+  transaction, as v3 replaced its single row; `clear()` clears both. The
+  controller harness's `ObservedStore` passes the slot methods to the real
+  store unobserved.
+- **Ringing start.** `ActiveBrewSnapshot` carries
+  `alertRingingSinceElapsedMs` / `alertRingingSinceWallMs`, and the store
+  round-trips them in either slot (null = held or not alerting). Until the
+  held alert lands (#134) the engine neither sets nor reads them, so the first
+  transition after the migration writes them back as null; nothing reads them
+  before #134.
+- **Migration.** `MIGRATION_3_4` creates the new table with Room's v4
+  `createSql` (identical but for the table name), copies the v3 columns but
+  `id`, drops, renames and recreates `index_active_brew_session_id`;
+  `created_at` stays per row. `Migration3To4Test` covers a running brew, a
+  running quick timer with its own 20 s, an alerting quick timer with *Aus*,
+  an alerting brew whose alert played, and no timer.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

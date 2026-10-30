@@ -467,6 +467,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `VesselMaterial` | `UNGLAZED_CLAY`, `GLAZED_CERAMIC`, `PORCELAIN`, `GLASS`, `CAST_IRON`, `STAINLESS_STEEL`, `OTHER` |
 | `SessionStatus` | `IN_PROGRESS`, `COMPLETED`, `MANUAL` |
 | `TimerPhase` | `READY`, `RUNNING`, `PAUSED`, `ALERTING`, `FINISHED` |
+| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098) |
 | `InventoryEventType` | `INITIAL`, `PURCHASE`, `BREW`, `ADJUSTMENT` |
 | `PhotoOrigin` | `OWN`, `CATALOG_COPY` |
 | `RecipeSource` | `CATALOG_TABLE`, `CATALOG_TEXT`, `STYLE_DEFAULT`, `USER` |
