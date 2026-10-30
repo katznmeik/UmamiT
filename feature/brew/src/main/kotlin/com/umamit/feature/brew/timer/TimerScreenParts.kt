@@ -329,7 +329,11 @@ private fun leafAndWater(state: TimerUiState.Active): LeafAndWater? {
     return when {
         leaf != null && water != null -> LeafAndWater(
             text = stringResource(R.string.brew_timer_leaf_and_water, leaf.text, water.text),
-            description = stringResource(R.string.brew_timer_leaf_and_water_description, leaf.description, water.description),
+            description = stringResource(
+                R.string.brew_timer_leaf_and_water_description,
+                leaf.description,
+                water.description,
+            ),
         )
 
         else -> leaf ?: water
