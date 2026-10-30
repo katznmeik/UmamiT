@@ -2,9 +2,9 @@ package com.umamit.core.timer.diagnostics
 
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
-import com.umamit.core.timer.alert.DoNotDisturb
 import com.umamit.core.timer.controller.AlarmClock
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerDiagnostic
@@ -72,9 +72,7 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->
-            "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
-                "DND ${dnd(entry.conditions.dnd)}, alarm volume ${if (entry.conditions.alarmVolumeOff) "0" else "on"}" +
-                " -> ${outputs(entry.outputs)} | " +
+            "alert ${entry.cue}: ${entry.conditions.text()} -> ${outputs(entry.outputs)} | " +
                 "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} % | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
@@ -140,8 +138,6 @@ object TimerDiagnosticFormat {
 
     private fun yesNo(value: Boolean) = if (value) "yes" else "no"
 
-    private fun dnd(dnd: DoNotDisturb): String = dnd.name.lowercase().replace('_', ' ')
-
     private fun outputs(outputs: AlertOutputs): String = when {
         outputs.sound && outputs.vibration -> "sound + vibration"
         outputs.sound -> "sound"
@@ -185,3 +181,11 @@ private fun CueStart.text(): String {
     }
     return "queued $queuedMs ms, settings $settingsMs ms, outputs $outputsMs ms, $sound"
 }
+
+/**
+ * What the player read at a cue, e.g. `ringer SILENT, in call no, DND alarms only, alarm volume 0`: the DND mode
+ * as `off`, `priority`, `alarms only` or `total silence`, so the PO's phone shows how One UI reports the ringer
+ * mode under each (D-098).
+ */
+private fun AlertConditions.text(): String = "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +
+    "DND ${dnd.name.lowercase().replace('_', ' ')}, alarm volume ${if (alarmVolumeOff) "0" else "on"}"

@@ -57,7 +57,10 @@ class SettingsViewModel @Inject constructor(
     /** *Anhören*: [toneKey] once, at the stored *Lautstärke* (SET-27). */
     fun previewTone(toneKey: String) = preview.play(toneKey, volumePercent())
 
-    /** *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once, at the *Lautstärke*. */
+    /**
+     * *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once, at the stored
+     * *Lautstärke* (SET-27).
+     */
     fun previewPreAlertSound(preAlertKey: String) = preview.playPreAlert(preAlertKey, volumePercent())
 
     private fun volumePercent(): Int = (current.value ?: UserSettings()).alertVolumePercent

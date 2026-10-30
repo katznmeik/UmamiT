@@ -571,6 +571,53 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   running quick timer with its own 20 s, an alerting quick timer with *Aus*,
   an alerting brew whose alert played, and no timer.
 
+**Build notes (Claude, 2026-10-30, #128: alarm volume and *Lautstärke*).**
+- **DND under „alarms only" (S2, S3; the check 04 §9.1 asked for).** The
+  matrix reads `getRingerMode()` and `getCurrentInterruptionFilter()` as
+  before. AOSP's zen mode forces the ringer to silent under „alarms only"
+  and total silence (`ZenModeHelper.applyZenToRingerMode` sets the internal
+  ringer mode to silent, and the reported one follows), so under „alarms
+  only" a silent report says nothing about the user's choice. The app reads
+  it as normal there: „alarms only" lets both cues ring (decision 8, rule 8);
+  vibrate is kept as reported. Priority mode leaves the ringer mode alone in
+  AOSP, so it plays as the ringer mode, and total silence stays visual only.
+  The open risk is a phone that reports the user's own silent mode under
+  „alarms only": the cue then rings although the PO chose silent. One UI's
+  DND is priority mode with exceptions (alarms allowed by default), where
+  the ringer mode is used as reported. No emulator runs here and Robolectric
+  does not model zen, so the device answer comes from the rc: each cue's
+  *Diagnose* line now names the ringer mode, the DND mode („DND off /
+  priority / alarms only / total silence"), the alarm volume („alarm volume
+  on / 0") and the gain („gain 60 %"); the 09 §4 DND item asks the PO to
+  copy it after the DND checks.
+- **Gain.** `MediaPlayer.setVolume(gain, gain)` right before `start()`, so a
+  sound loaded ahead takes the cue's own gain, and a player loaded on the
+  spot (D-092 fallback) too. A change of *Lautstärke* loads nothing (the
+  sounds of `keepReady` are unchanged), so the first cue still starts
+  without a load. The gain is `alertVolumePercent` clamped to 10–100 on
+  read (`AlertSettings.of`), so a damaged file never silences a cue; the
+  repository snaps a written value to 10 (half up) and clamps it.
+- **Settings file.** `alertVolumePercent` (Int, default 100) needs no
+  settings migration: a v0.2.2 file has no key and reads 100 %; settings
+  `schemaVersion` stays 2 (05 §6).
+- ***Anhören*** (SET-09, SET-26) plays at the stored *Lautstärke* too, on
+  the alarm stream like *Alarm testen*, so the PO hears what will ring.
+- **The slider.** M3 `Slider`, 10–100 with 8 steps, the value („60 %", with
+  a no-break space) at the title's end and as TalkBack's state. A drag
+  writes once, when it ends; TalkBack's adjustments write at once. The
+  inactive track is `surfaceContainerHighest` (the washi
+  `secondaryContainer` read like a warning on the dark theme).
+- **The check.** `ReliabilityCheck.AlarmVolume`, last in the card's order,
+  so a missing permission's *Beheben* comes first; `PermissionStates` gains
+  `alarmVolumeOn` (`getStreamVolume(STREAM_ALARM) > 0`; 0 also for a muted
+  stream), logged at process start. The banner says „Alarmlautstärke ist
+  aus" only when the volume is the first missing check (the one *Beheben*
+  opens), else the general message. *Beheben* opens
+  `Settings.ACTION_SOUND_SETTINGS`, then the settings (not the app's
+  details, which have no volume). The card's row shows ✓ like its
+  neighbours when the volume is up and „Ist aus" with *Beheben* when it is
+  0; the setup page (ONB-02) does not list it.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
