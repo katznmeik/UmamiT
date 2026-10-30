@@ -400,6 +400,58 @@ point 1), which stays as planned.
   `v0.2.2-rc.N` needs a passing accuracy run (09 §4a), and the 04 §12 tests
   are extended by the quick timer's pre-alert (rule 8).
 
+**Build notes (Claude, 2026-10-30, PR #121).** Details decided while building
+#109–#117:
+- **Silent quick-timer pre-alert (#109).** Not reproduced on any seam: the
+  controller through the real starter (5–30 s × 0:30–5:00), the alert
+  playback, the service port with the notifier on SDK 36, and the full screen
+  path all mark and play it. The PO later found it working on the phone; the
+  likeliest cause is the global *Vorwarnung* at *Aus* at the time. The tests
+  stay as regression tests; no production code changed. The quick timer's
+  start is logged with its Vorwarnung in *Diagnose* („pre-alert auto, base
+  10 s, lead 10 s").
+- **umamit.db v3 (#110, #116).** A second mark keeps the first `created_at`;
+  the list is ordered by key. `quick_pre_alert_seconds` is only valid as 0 or
+  5–30 on a quick timer; a value on a brew session, or out of range, makes the
+  snapshot invalid. A choice is valid by the same test as the global setting.
+- **Quick timer screen (#116, #111).** On a short screen at a large font the
+  band before *Start* gives way so *Start* fits (where it fits it stays
+  220 dp; only then the ring moves at *Start*). *Start* passes the choice
+  shown; if storing it fails, this timer still uses it. A stored value the
+  selector doesn't offer reads as *Automatisch*. The chips wrap 5 + 2 at font
+  1.0 and 4 + 3 at font 2.0.
+- **READY line (#112).** The amount line has the kettle hint's main style (the
+  PO called it crucial). The space below the ring reserves it in every phase
+  of a brew with leaf or water, so the pill never moves at *Start* or at the
+  alert. FINISHED also lets the band give way until *Weiterer Aufguss* and the
+  bottom margin fit; the reliability banner sits after the controls and
+  scrolls. Leaf and water come from the start's snapshot or the session row
+  read on recovery, never from the engine's timing state.
+- **Low stock (#115).** Stock amounts in the setup and on the card drop a
+  trailing „,0" („14 g", „12,5 g"); the stock sheet keeps „100,0". *Leer* is
+  below 0,05 g; *Knapp* includes the threshold. The card is placed after
+  *Schnelltimer*, starts empty and swallows read errors, so Start's state
+  (which carries the alert) is never held up. A tea with a catalog key but no
+  loaded catalog reorders via its own `product_url`. *Ausblenden* keeps one
+  entry per tea (`<id>/` for a tea without INITIAL/PURCHASE).
+- **Notification taps (#113).** The catalog opens as a second shell route
+  above what was shown; back from a tab's root there leaves the route. A tap
+  during an alert waits until the alert ends; an alert starting while it is
+  open removes it, and it does not reopen. During the first-start setup the
+  tap is discarded. After a restart a failure's kind comes from the first
+  line of the logged error (*Details kopieren* copies that line); a cancelled
+  last refresh shows no sheet. The intent names the launcher activity and
+  carries only its action, so another app can at most open the sheet.
+- **Picker groups (#114).** With two or more kinds the group headers replace
+  the *Alle* header. Kräutertee = style `herbal`, or no style and category
+  herbal; every other tea is under „Grüntees".
+- **Merkliste (#117).** While *Gemerkt* is on, *Filter* is hidden too and the
+  other filters are kept for later. The empty state reads „Noch nichts gemerkt
+  · Tippe bei einem Tee auf das Lesezeichen." (a colour 🔖 clashed with the
+  palette). A discontinued tea kept only because it is marked shows the
+  bookmark button and no shop button. Add and repurchase delete the mark in
+  their own transaction.
+
 <a id="d-096"></a>
 ### D-096 — v0.2.1 build decisions (#83–#92, #97, #98, #100, #102; TMR-23, SET-26, PRF-03, SCR-04, SCR-05, SCR-07, SCR-19, SCR-31, CAT-10, CAT-16, CAT-17, TEA-04, INV-03, WARE-06) · *Accepted* (Claude, 2026-10-29)
 
