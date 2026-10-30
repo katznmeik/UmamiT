@@ -238,9 +238,10 @@ private fun QuickPreAlertRow(state: QuickTimerUiState, onSelect: (PreAlertChoice
 }
 
 /**
- * The chips 0:30 … 5:00 (TMR-22). No check mark on the selected one: it would
- * widen the chip and shift its neighbours under the finger; the colour and the
- * selected state (TalkBack) mark it.
+ * The chips 0:30 … 8:00 (TMR-22), wrapping onto a second line at narrow widths
+ * and large fonts. No check mark on the selected one: it would widen the chip
+ * and shift its neighbours under the finger; the colour and the selected state
+ * (TalkBack) mark it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
