@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (Merkliste, Knapp, D-097)
+> Status: **Draft v0.2** · Last updated: 2026-10-30 (Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -49,9 +49,10 @@
 | **Katalog / Sammlung** | Catalog = read-only copy of the shop's green teas; Sammlung (collection) = the teas the user owns. |
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
-| **Pre-alert (Vorwarnung)** | Soft tick a configurable number of seconds before a steep ends. |
+| **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2); *Leer* at 0 g (INV-05). |
+| **Low-stock card / reminder** | The card on Start for one *Knapp* or *Leer* tea (INV-10), which *Ausblenden* hides for that tea until its next purchase; and, from v0.3.0, the daily notification listing every *Knapp* or *Leer* tea, which ignores *Ausblenden*. A removed (archived) tea appears in neither. |
 | **Pre-alert glow** | Signature motion: the pre-alert marker on the timer ring glows gently in sync with the pre-alert tick (03 §3.6, D-041). |
 | **Liquor fill** | Signature motion: while a step runs, the inside of the timer ring fills in the tea's liquor colour (03 §3.6, D-041). |
 | **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip and on the lock screen; on One UI also in Samsung's Now Bar (best effort). |
@@ -63,10 +64,12 @@
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |
 | **Step** | One timed part of a profile/session: rinse, infusion or whisk. |
 | **Session** | One brewing occasion recorded in the journal. |
+| **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
+| **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most one active brew session and at most one active quick timer at the same time (from v0.3.0; until then one active timer in total). |
 | **Teaware / vessel** | A brewing vessel with capacity (kyusu, gaiwan, …). |
 | **Ratio** | Leaf grams per 100 ml of water. |
-| **Active brew bar** | The persistent mini-timer shown above the navigation bar while a session runs. |
-| **Short / long step** | Steps under / at least 10 minutes (`LONG_STEP_THRESHOLD`); handled differently in the background. |
+| **Active brew bar** | The persistent mini-timer shown above the navigation bar while an active timer exists; with a brew session and a quick timer it shows both. |
+| **Short / long step** | A long step is every step of a cold or ice brew, and any step of at least 60 minutes (from v0.3.0; until then 10 minutes). Long steps have no pre-alert and show „Fertig um …“; all other steps are short steps. |
 | **Full-screen intent** | A notification that turns the screen on and opens an activity over the lock screen; used for the step alert (`USE_FULL_SCREEN_INTENT`). |
 | **Schritte-Sheet** | Session-only step editor (SCR-31). |
 | **Release candidate (rc)** | Pre-release APK `vX.Y.Z-rc.N` built from a milestone PR branch for the PO's testing. |
