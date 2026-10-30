@@ -15,6 +15,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -394,6 +395,11 @@ private fun VolumeRow(percent: Int, onChange: (Int) -> Unit) {
             },
             valueRange = MIN_VOLUME.toFloat()..MAX_VOLUME.toFloat(),
             steps = VOLUME_STEPS,
+            // A quiet inactive track: the washi container stands out like a warning on the dark theme.
+            colors = SliderDefaults.colors(
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                inactiveTickColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(SettingsTags.VOLUME)
