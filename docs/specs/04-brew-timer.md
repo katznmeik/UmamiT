@@ -15,7 +15,8 @@
 > two controller slots, alert arbitration with a held quick alert, the Live
 > Update for the timer due next, long steps from 60 min, `USAGE_ALARM` with
 > *Lautstärke* and the DND matrix, D-098, 2026-10-30; a silent report under
-> a DND that lets alarms through rings, with SET-32, D-099, 2026-10-31)
+> a DND that lets alarms through rings, with SET-32, D-099, 2026-10-31;
+> E10 and E15 for v0.4.0's *Archivieren* and *Löschen*, D-100, 2026-10-31)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time
@@ -1120,10 +1121,10 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
 | E7 | Planned step < N + 5 s | No pre-alert for that step. From v0.2.1 only an explicit per-step value can meet this; the automatic N is at most a third of the step (§5, D-093). |
-| E15 | *Aus Sammlung entfernen* on the tea of the active brew session (v0.2.1) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093). |
+| E15 | *Archivieren* (until v0.3.0 *Aus Sammlung entfernen*) on the tea of the active brew session, in the picker (v0.2.1) or on the tea detail (v0.4.0) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093, D-100). |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
-| E10 | Tea deleted while its session is active | Delete disabled („Erst die Sitzung beenden"). |
+| E10 | Tea deleted, or its vessel archived, while its session is active (v0.4.0) | Not possible: *Löschen* and the vessel's *Archivieren* are greyed out („Erst die Sitzung beenden", D-100). Edits to the tea, its recipes or the vessel never reach the running session, which keeps its snapshot. |
 | E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. The first recovery ends every session left `IN_PROGRESS`: saved with `auto_finished` when it has a completed infusion, else discarded (§7.2, D-063). |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |

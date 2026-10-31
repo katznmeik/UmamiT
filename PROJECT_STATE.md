@@ -3,7 +3,7 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-31 (v0.3.0 released from `main` 688a23a, PR #143; next: M3 → v0.4.0, waiting for the PO's `/to-spec`)
+**Last updated:** 2026-10-31 (v0.4.0 specified: spec #145, D-100, plan `docs/plans/v0.4.0.md`, tickets #147–#161; waiting for the PO's approval and `/implement-spec #145`)
 
 ## Phase
 
@@ -65,13 +65,28 @@
 
 ## Next steps
 
+### v0.4.0 specified (2026-10-31)
+
+- The PO grilled M3 (R1–R5, the test seams, and a glossary grilling G1–G12), recorded as **D-100**: M3 splits into
+  **v0.4.0** (brewing: *Meine Tees* with in-memory search, *Kategorie*/*Sorte* filters and the remembered sort; tea detail;
+  tea editor and *Sorte wählen*; recipe editor with drag, three step kinds, per-step Vorwarnung and several recipes; teaware
+  in *Einstellungen* and *Neues Gefäß …*; *Archivieren* everywhere, *Löschen*; BRW-08; the read-only session page with
+  *So nochmal brühen*; TEA-17 fix; SET-15 row; the accuracy test's waits) and **v0.4.1** (stock history, freshness, cost per
+  cup, own photos, *Aus Katalog zurücksetzen*), whose spec follows v0.4.0. No DB migration in v0.4.0.
+- After the docs review the PO settled Q-19 (never-started steps are kept at completion from v0.4.0, ticket -15, T4) and
+  Q-20 (values of the generic style rows), and per-step Vorwarnung in the recipe editor.
+- Spec **#145**, glossary 11 (c52b0a5), specs 02, 03, 04, 05, 08, 09, 10, 12 and the plan `docs/plans/v0.4.0.md` on docs PR #146;
+  tickets **#147–#161** (v0.4.0-01 … -15, sub-issues of #145). **Next:** the PO approves the tickets; nothing is built
+  before the PO starts `/implement-spec #145`.
+- **Decision numbers:** up to D-100 used; the next free is **D-101**.
+
 ### v0.3.0 released (2026-10-31)
 
 - [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) from `main` 688a23a (PR #143, merge commit), versionCode 30099, certificate verified. #124, #125–#139, #141, #122 and #123 closed.
 - rc.1 (ef62744): every checklist item passed, design review approved; two findings. The *Lautstärke* slider jumped on release (fixed, c5b5121). One UI reports the ringer as silent under its DND, so the cues stayed visual: **D-099**, ring when DND lets alarms through, with the switch *Bei „Nicht stören" klingeln* (SET-32, default on). rc.2 (70ef390) re-checked by the PO: passed.
 - Accuracy on `main`: both variants PASS on their one re-run; the first attempts failed in the test harness (a 5 s screen-off wait at step 11, a 10 s session-start wait), not in timing.
 - **Follow-ups for a later release:** make the waits in `AccuracyRunTest` robust (resend `KEYCODE_SLEEP` until the screen stays off, as `ProcessDeathTest` does since 42bad49; a longer start wait). The design-review points the PO accepted (two *Pause* buttons, the shortened tea name in the brew row at font 2.0) can be revisited with M3.
-- **Next:** M3 (collection) → v0.4.0, started by the PO with `/to-spec`.
+- **Next:** M3 (collection) → v0.4.0 (specified, see above).
 
 ### v0.3.0 specified (2026-10-30)
 

@@ -1,6 +1,8 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: SET-32 *Bei
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (M3 in two releases,
+> v0.4.0 and v0.4.1: TEA, PRF, WARE, INV, BRW-06, BRW-08, JRN-10, SET-15,
+> SET-30, D-100; v0.3.0: SET-32 *Bei
 > „Nicht stören" klingeln*, D-099; 2026-10-30: v0.3.0: quick timer
 > alongside a brew, long steps from 60 min, alarm volume and *Lautstärke*,
 > daily low-stock reminder INV-11, foldable catalog groups, stock on READY,
@@ -339,6 +341,9 @@ A refresh never changes collection teas, except the one-time linking of seed
 teas in CAT-15. Tea detail offers *Aus Katalog
 zurücksetzen* (reset description/recipes from the current catalog entry, with
 confirmation and a choice of what to reset).
+- **v0.4.1 (D-100):** the reset takes recipes and description together after
+  one confirmation (no choice); stock, photos, notes, favourite and journal
+  stay. Not offered when the tea is no longer in the catalog.
 
 **CAT-14 — Bundled snapshot** `Won't`
 No catalog snapshot is bundled in the APK: the APK is publicly downloadable
@@ -414,10 +419,25 @@ A catalog tea can be marked for later without adding it to the collection:
 
 ## 4. Collection — my teas (TEA) — SCR-08 … SCR-11
 
+M3 ships in two releases ([D-100](10-open-questions-and-decisions.md#d-100)):
+**v0.4.0** (brewing: list, detail, editors, teaware, favourites) and
+**v0.4.1** (stock history, freshness, cost, own photos, reset from catalog).
+Each item below names its release.
+
 **TEA-01 — Add a tea** `Must`
-From the catalog (CAT-12, primary path) or manually (*Tee ohne Katalog
-anlegen*): style picker (SCR-11) → editor (SCR-10) with defaults from the
-style. Only *Name* is mandatory (1–80 chars).
+From the catalog (CAT-12, primary path) or manually: style picker (SCR-11) →
+editor (SCR-10) with defaults from the style. Only *Name* is mandatory
+(1–80 chars).
+- **v0.4.0 (D-100):** *Meine Tees*' FAB *Tee hinzufügen* offers *Aus dem
+  Katalog* (opens the catalog, where a tea is added as before, SCR-23) and
+  *Ohne Katalog* (→ *Sorte wählen*, SCR-11). *Sorte wählen* lists every
+  built-in style by its Sorte name, grouped by Kategorie and searchable:
+  the green styles, Kräutertee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh and
+  *Andere / unbekannt* ([08 §3](08-content.md#3-built-in-tea-styles)). The
+  new tea gets the style's default recipe (PRF-02); a package entered in
+  *Kauf* becomes its INITIAL stock event (INV-01); without a package it has
+  no stock. It appears in *Meine Tees*, the tea picker and Start like any
+  other tea.
 
 **TEA-02 — Tea fields** `Must`
 All fields of `Tea` ([05 §3.1](05-data-model.md#31-tea)) in sections:
@@ -426,18 +446,26 @@ All fields of `Tea` ([05 §3.1](05-data-model.md#31-tea)) in sections:
 processing), *Kauf* (vendor — default „Tee-Kontor Kiel" for catalog teas —
 plus purchase date, package size and price, which are stored as the tea's
 INITIAL stock event, [05 §3.10](05-data-model.md#310-inventoryevent)), *Vorrat & Frische* (stock, opened
-date, best before, storage note), *Notizen & Schlagwörter*.
+date, best before, storage note), *Notizen*.
+- **v0.4.0 (D-100):** *Allgemein* (name, secondary name, Sorte, umami
+  level, flavoured), *Herkunft*, *Kauf* (vendor; purchase date, package and
+  price only when a tea is added) and *Notizen*. Invalid values (an empty
+  name, a harvest year in the future) show at the field and *Speichern*
+  refuses them; ✕ with unsaved changes asks GEN-08's question.
+- **v0.4.1:** photos (TEA-05) and the opened and best-before dates
+  (INV-06). Tags are not planned (TEA-07).
 
-**TEA-03 — Edit** `Must`
-All fields editable. Changing the style does not overwrite recipes.
+**TEA-03 — Edit** `Must` (v0.4.0)
+All fields editable. Changing the style does not overwrite recipes. Editing a
+tea during its brew session changes nothing in the running session (rule 8).
 
 **TEA-04 — Archive / delete** `Must`
 *Archivieren* hides a tea from lists and pickers (e.g. when used up); journal
 entries remain. *Löschen* keeps journal sessions (name snapshot) and removes
 recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
 - **From the tea picker (v0.2.1, D-093):** a long press on a tea in SCR-03
-  offers *Aus Sammlung entfernen*. It archives the tea and shows the
-  snackbar „*Tanabata* aus der Sammlung entfernt" · *Rückgängig*. An
+  offers *Archivieren* (until v0.3.0 „Aus Sammlung entfernen"). It archives
+  the tea and shows the snackbar „*Tanabata* archiviert" · *Rückgängig*. An
   archived tea disappears from Start (*Nochmal brühen*, BRW-11) and from the
   tea picker; the journal keeps its entries with name and photo. Not
   possible for the tea of the active brew session: the item is greyed out
@@ -446,43 +474,86 @@ recipes, photos and stock events; the dialog offers *Stattdessen archivieren*.
   (D-085); its earlier stock events stay (correct with INV-03). An archived
   tea's catalog row has no „im Besitz" badge and its detail offers *In
   Sammlung aufnehmen*.
+- **v0.4.0 (D-100):** one word everywhere, *Archivieren*, and
+  *Wiederherstellen* to bring a tea back.
+  - The detail's ⋮ offers *Archivieren* (snackbar with *Rückgängig*) and
+    *Löschen*.
+  - *Löschen* asks first: „*Gyokuro* löschen? Deine 12 Journal-Einträge
+    bleiben erhalten." · *Stattdessen archivieren* / *Löschen* (03 §5). The
+    journal keeps the entries with the tea's name; the tea's photo files are
+    removed from the phone.
+  - The list's *Archiviert* filter shows archived teas; *Wiederherstellen*
+    brings one back to the list and the pickers, without re-adding it from
+    the catalog.
+  - A tea of the active brew session can be neither archived nor deleted
+    until the session ends („Erst die Sitzung beenden").
 
-**TEA-05 — Photos** `Should`
+**TEA-05 — Photos** `Should` (v0.4.1)
 Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
-teas); own photos via photo picker or camera; *Als Titelbild* sets the cover.
+teas); own photos via the Android photo picker (no camera, D-100); *Als
+Titelbild* sets the cover; the EXIF rotation of #58.
 Processing rules: [06 §5.2](06-architecture.md#52-photos).
 
-**TEA-06 — Favourites** `Must`
+**TEA-06 — Favourites** `Must` (v0.4.0)
+The detail's ⋮ *Favorit* marks or unmarks a tea; favourites show under
+*Favoriten* in Start and the tea picker, and with a star in *Meine Tees*.
 
-**TEA-07 — Tags** `Could`
-Free-form tags (1–30 chars, ≤ 20 per tea).
+**TEA-07 — Tags** `Could` — **not planned** (D-100)
+Free-form tags (1–30 chars, ≤ 20 per tea). No tag tables exist.
 
 **TEA-08 — List** `Must`
-SCR-08 („Meine Tees") rows: cover photo, name, secondary name, type, average
+SCR-08 („Meine Tees") rows: cover photo, name, secondary name, Sorte, average
 rating, stock chip („38 g übrig"), freshness chip, favourite, „Rezept prüfen"
 badge.
+- **v0.4.0 (D-100):** every part but the rating (M4) and the freshness chip
+  (v0.4.1); the stock chip reads „38 g", *Knapp* or *Leer*. Empty states:
+  „Noch keine Tees · Im Katalog stöbern" (A7) and „Kein Tee passt zu deiner
+  Suche." (A10). Smooth with 500 teas (NFR-PERF-03).
 
-**TEA-09 — Search** `Must` over name, secondary name, vendor, region,
-cultivar, notes, tags.
+**TEA-09 — Search** `Must` (v0.4.0)
+Over name, secondary name, vendor, region, cultivar and notes, ignoring case
+and accents (GEN-10). It runs in memory over the list's rows: there is no
+full-text index and no tags (D-100, 05 §3.1).
 
-**TEA-10 — Filters** `Should`: favourites, type, stock (vorrätig / knapp /
-leer), flavoured, archived.
+**TEA-10 — Filters** `Should` (v0.4.0)
+Favoriten, *Kategorie* (`TeaCategory`: Grüntee, Oolong …), *Sorte* (the
+tea's display Sorte: Gyokuro, Sencha …), Vorrat (*Knapp* / *Leer*),
+Aromatisiert, *Archiviert* (only archived teas, each with
+*Wiederherstellen*) (D-100).
 
-**TEA-11 — Sorting** `Must`: name, zuletzt gebrüht (recently brewed), zuletzt
-hinzugefügt, Bewertung, Vorrat (low → high), geöffnet seit (oldest first).
+**TEA-11 — Sorting** `Must`
+*Zuletzt gebrüht* (default), *Name*, *Zuletzt hinzugefügt*, *Vorrat*
+(low → high). The choice is remembered (`collectionSort`); empty teas are
+last in every order (INV-05).
+- **v0.4.0 (D-100):** these four. *Bewertung* needs M4's ratings and
+  *Geöffnet seit* the editable opened date of v0.4.1; neither is offered in
+  v0.4.0.
 
 **TEA-13 — Tea detail** `Must`
 SCR-09: hero photo, names, rating „★ 4,5 (12)", type chip, umami meter,
-`StatTriplet` of the default recipe (Temperatur · Ziehzeit · Aufgüsse), primary
-*Brühen*, recipes, stock & cost, freshness, tasting summary, recent sessions,
-notes, details, and for catalog teas the visible reorder link
-„Beim Tee-Kontor nachbestellen" (INV-09).
+`StatTriplet`, primary *Brühen*, recipes, stock & cost, freshness, tasting
+summary, recent sessions, notes, details, and for catalog teas the visible
+reorder link „Beim Tee-Kontor nachbestellen" (INV-09).
+- **v0.4.0 (D-100):** hero photo, names, Sorte chip, umami meter, a
+  `StatTriplet` of the tea's sessions, last brew and stock; sticky *Brühen*
+  (setup with the default recipe); REZEPTE (a tap opens the setup with that
+  recipe, its pencil the recipe editor; *Rezept hinzufügen* up to 10);
+  VORRAT („38 g übrig" with *knapp*/*leer*, *Bestand korrigieren*, INV-09's
+  link); BESCHREIBUNG (seed and catalog descriptions, D-090); NOTIZEN and
+  DETAILS only with content; pencil FAB → editor; ⋮ *Favorit*,
+  *Archivieren*, *Löschen*. Opened from *Meine Tees* and from the setup's ⋮
+  *Tee ansehen*. It updates at once after an edit, a brew or a correction.
+- **v0.4.1:** costs and freshness. **M4:** rating, tasting summary, recent
+  sessions.
 
-**TEA-14 — Duplicate** `Could`
+**TEA-14 — Duplicate** `Could` — **not planned** (D-100)
 
 **TEA-17 — Recipe check** `Must`
 Teas flagged „Rezept prüfen" show the reason and *Rezept bestätigen*
 (confirm) / *Rezept bearbeiten*; editing or confirming clears the flag.
+- **v0.4.0 (D-100):** saving a recipe, in the recipe editor (SCR-12) or with
+  the setup's *Im Rezept speichern*, clears the flag (until v0.3.0 only
+  *Rezept passt* did).
 
 ---
 
@@ -493,7 +564,8 @@ The app ships the style list in [08 §3](08-content.md#3-built-in-tea-styles)
 (Japanese and other green teas plus generic other categories). Styles are
 **not** browsable as a catalog; they provide: mapping targets for catalog teas
 (CAT-06), umami level, freshness window, and fallback recipes; and templates
-for manually added teas.
+for manually added teas. From v0.4.0 (D-100) every row of 08 §3 ships,
+the other categories included, for *Sorte wählen* (SCR-11).
 
 **STY-02 — Versioned with the app** `Must`
 Updates never change existing teas or recipes.
@@ -509,6 +581,9 @@ pre-alert choice (D-093).
 
 **PRF-01 — Recipes per tea** `Must`
 1–10 recipes per tea, exactly one default.
+- **v0.4.0 (D-100):** *Rezept hinzufügen* (up to 10), *Als Standard*, and
+  delete, never the last recipe; deleting the default makes the next recipe
+  the default.
 
 **PRF-02 — Defaults** `Must`
 Catalog teas get the recipes derived by CAT-04; manual teas get the style's
@@ -529,22 +604,35 @@ recipes; teas without style get *Western 3 g / 250 ml / 85 °C / 3:00*.
 | Notes | 0–500 chars |
 
 - AC1: Ratio shown live („4,0 g / 100 ml").
+- **v0.4.0 (D-100):** the recipe editor (SCR-12), opened from the tea
+  detail's REZEPTE. Choosing a vessel sets the water to its (usable) volume
+  and scales the leaf by the ratio, as in the setup (WARE-03, WARE-04); the
+  vessel list shows favourites first and hides archived vessels (WARE-02); a
+  recipe's archived vessel shows „(archiviert)". Saving clears „Rezept
+  prüfen" (TEA-17). A running brew keeps the steps it started with
+  (rule 8).
 
 **PRF-04 — Steps editor** `Must`
-Add, delete, reorder steps; per step: kind, duration 5 s – 24 h (5 s steps
+Add, delete, reorder steps; per step: kind (*Aufguss* / *Spülen* /
+*Aufschlagen*), duration 5 s – 24 h (5 s steps
 below 10 min, 1 min steps above), optional temperature (5 °C steps), note.
-At least one non-rinse step. From v0.3.0 (D-098, #141) a step's duration is
+At least one non-rinse step. **v0.4.0 (D-100):** in the recipe editor,
+steps are reordered by drag; durations use the Schritte-Sheet's picker and
+hold-to-repeat. From v0.3.0 (D-098, #141) a step's duration is
 set fast where it is edited (the Schritte-Sheet, SCR-31, also from the setup,
 SCR-04): a tap on the time opens „Dauer wählen" (SCR-07's picker, the same
 bounds and increments), and a held − / + repeats and speeds up, one increment
 per repeat.
 
-**PRF-05 — Generate series** `Should`
+**PRF-05 — Generate series** `Should` — **not planned** (D-100)
 First duration + increment × count, optional +5 °C per step.
 
 **PRF-06 — Reset** `Should`
 *Aus Katalog zurücksetzen* (catalog teas) or *Auf Standard zurücksetzen*
 (style default).
+- **v0.4.1 (D-100):** *Aus Katalog zurücksetzen* resets the recipes and the
+  description after a confirmation; stock, photos, notes, favourite and
+  journal stay. Not offered when the tea is no longer in the catalog.
 
 **PRF-07 — Learn from sessions** `Must`
 If a session's actual step times differ from the plan by more than
@@ -558,16 +646,32 @@ added steps into the recipe used.
 ## 7. Teaware (WARE) — SCR-13, SCR-14
 
 **WARE-01 — Manage vessels** `Must`
-Name, type, volume (10–3000 ml), material, notes, photo, favourite.
+Name, type, volume (10–3000 ml), usable volume, material, notes, photo,
+favourite.
+- **v0.4.0 (D-100):** *Einstellungen › Teegeschirr* (SET-30) lists the
+  vessels with type icon, name and volume (SCR-13) and opens the editor
+  (SCR-14) for every field but the photo (v0.4.1). The seed vessels are
+  edited like any other. A vessel is **archived, never deleted**:
+  *Archivieren* hides it from the pickers while recipes and journal entries
+  keep it; archived vessels sit in their own part of the list with
+  *Wiederherstellen*. The vessel of the active brew session can't be
+  archived until the session ends.
 
 **WARE-02 — Vessel picker** `Must`
-In brew setup and recipe editor: favourites first.
+In brew setup and recipe editor: favourites first; archived vessels are not
+offered.
+- **v0.4.0 (D-100):** the setup's *Gefäß* list ends with *Neues Gefäß …*,
+  which opens the vessel editor and, when saved, selects the new vessel. A
+  recipe whose vessel was archived keeps it: the setup shows „Kyusu
+  (archiviert)" with water and leaf unchanged; another vessel can be chosen,
+  the archived one isn't in the list.
 
 **WARE-03 — Scaling** `Must`
 Choosing a vessel sets the water volume to the vessel's brewing volume and
-scales leaf by the recipe's ratio (BRW-03).
+scales leaf by the recipe's ratio (BRW-03). From v0.4.0 the recipe editor
+does the same (PRF-03).
 
-**WARE-04 — Usable volume** `Should`
+**WARE-04 — Usable volume** `Should` (v0.4.0)
 Optional usable brewing volume (e.g. 180 ml kyusu brews 150 ml), used for
 scaling if set.
 
@@ -585,7 +689,7 @@ and „Becher mit Sieb" (MUG_INFUSER, 400 ml, usable 400 ml, at work).
   v0.2.1 (fixed IDs, inserted only when absent, 05 §6
   `seedVesselsV2Added`). Free-size vessels come with M3's editor (WARE-01).
 
-**WARE-05 — Default vessel per method** `Could`
+**WARE-05 — Default vessel per method** `Could` — **not planned** (D-100)
 E.g. KYUSU → „Kyusu 180 ml".
 
 ---
@@ -594,7 +698,8 @@ E.g. KYUSU → „Kyusu 180 ml".
 
 **BRW-01 — Start a brew** `Must`
 Entry points: Home *Aufguss starten* (tea picker → setup), tea detail
-*Brühen* (→ setup), journal *Nochmal brühen* (→ setup prefilled), and Home
+*Brühen* and its recipes (→ setup, v0.4.0), the session page's *So nochmal
+brühen* (→ setup prefilled, BRW-06, v0.4.0), and Home
 *Nochmal brühen* (→ **directly to the timer**, BRW-11).
 
 **BRW-11 — One-tap brew again** `Must`
@@ -626,19 +731,37 @@ step's pre-alert (TMR-23, D-093).
   correction (INV-03) and the setup shows the new amount.
 - **Im Katalog ansehen (v0.3.0, D-098):** for a tea with a catalog entry
   the top bar's ⋮ opens its SCR-21; back returns to the unchanged setup.
+- **Tee ansehen (v0.4.0, D-100):** the ⋮ is shown for every tea of the
+  collection and offers *Tee ansehen* (the tea detail, SCR-09) above *Im
+  Katalog ansehen*; back returns to the unchanged setup.
 
 **BRW-03 — Ratio scaling** `Must`
 With ratio lock (default on), changing water or vessel rescales leaf (0,1 g);
 changing leaf rescales water (5 ml). Times and temperatures never scale.
 
-**BRW-06 — Brew from a past session** `Should`
-*Nochmal brühen* on a journal entry pre-fills setup with that session's
-parameters.
+**BRW-06 — Brew from a past session** `Should` (v0.4.0, D-100)
+*So nochmal brühen* on a session's page (SCR-16) opens the setup prefilled
+with the session as brewed: tea, vessel (shown „(archiviert)" if archived),
+leaf, water and every planned step at its **set time** (*geplant*, including
+Schritte-Sheet changes and steps never started, which a session keeps
+from v0.4.0 on; an older session prefills only its stored steps, Q-19,
+D-100) with its kind,
+temperature and Vorwarnung; never the measured time. The recipe is changed
+only by *Im Rezept speichern*.
+- **Recipe:** the session's recipe while it exists; otherwise *Ohne
+  Rezept*, and *Im Rezept speichern* saves a new recipe.
+- **Archived tea:** the button is greyed out with „Tee ist archiviert", and
+  *Wiederherstellen* is offered.
+- **Deleted tea:** no tea link and no button; the page stays readable.
 
 **BRW-08 — Stock warning** `Should`
 „Nur noch 3 g übrig" if stock is below the leaf amount.
 - **v0.2.2 (D-097):** the setup's stock line marks a *Knapp* tea (INV-05):
-  „14 g übrig · knapp"; the warning above is still M3.
+  „14 g übrig · knapp".
+- **v0.4.0 (D-100):** the warning ships. When the stock is known, above 0 g
+  and below this brew's leaf, the stock line reads „Nur noch 3 g übrig"
+  (with „· knapp" when *Knapp*) and follows leaf changes. It never blocks
+  *Brühen starten*. A *Leer* tea keeps „Leer".
 
 **BRW-09 — Freshness hint** `Could`
 
@@ -709,8 +832,10 @@ running step's pre-alert is editable too, TMR-23, D-093).
 **TMR-12 — Finish & auto-log** `Must`
 Finishing early (e.g. after infusion 2 of 3) is a normal session; the
 journal shows „2 von 3 Aufgüssen". Planned steps that were never started are
-not recorded as skipped (their rows are deleted at finish, 05 §3.7) and do
-not count as a time difference for PRF-07.
+not recorded as skipped and do not count as a time difference for PRF-07.
+From v0.4.0 their rows are kept without an actual time (until v0.3.0 they
+were deleted at finish; 05 §3.7, Q-19, D-100), for *So nochmal brühen*
+(BRW-06).
 
 *Sitzung beenden* (FINISHED state or overflow) completes the session; it is
 saved to the journal automatically **without a summary screen**. A bottom
@@ -894,7 +1019,12 @@ rating if present, a subtle dot for sessions without notes. In-progress session 
 
 **JRN-09 — Search & filters** `Should` (tea, type, rating, date range, with/without notes).
 
-**JRN-10 — Session detail** `Must` with *Bearbeiten*, *Löschen*, *Nochmal brühen*.
+**JRN-10 — Session detail** `Must` with *Bearbeiten*, *Löschen*, *So nochmal brühen*.
+- **v0.4.0 (D-100):** a tap on a past journal entry opens its page (SCR-16),
+  read-only: the tea (tap → its detail), date and time, method, vessel,
+  leaf / water / ratio, the step table (*geplant* / *tatsächlich* / °C) and
+  *So nochmal brühen* (BRW-06). *Bearbeiten*, rating, taste and *Löschen*
+  follow in M4.
 
 **JRN-11 — Edit session** `Must` (all fields incl. times; leaf edits update the stock deduction).
 
@@ -909,6 +1039,8 @@ rating if present, a subtle dot for sessions without notes. In-progress session 
 **INV-01 — Stock from purchase** `Must`
 Adding a catalog tea with a package option (CAT-12) or entering a package size
 manually creates an initial stock event with the package weight and price.
+From v0.4.0 (D-100) the manual path is *Ohne Katalog* (TEA-01); a tea added
+without a package gets no stock event.
 
 **INV-02 — Auto-deduct** `Must`
 Finishing a session deducts the leaf amount used (setting SET-15, default on);
@@ -923,6 +1055,10 @@ history list (SCR-29).
   it as „Bestand korrigiert".
 - **v0.2.1 (D-093):** the correction is first reachable from the brew setup
   (tap „… g übrig", BRW-02); SCR-29's history follows with M3.
+- **v0.4.0 (D-100):** *Bestand korrigieren* also on the tea detail's VORRAT
+  (the setup's sheet).
+- **v0.4.1 (D-100):** the history (SCR-29) and *Nachkauf erfassen* for teas
+  not from the catalog (catalog teas have it in SCR-21 since M2).
 
 **INV-04 — Session edits** `Must` update the linked deduction.
 
@@ -938,6 +1074,12 @@ session after a new package: i.e. when `opened_date` is empty, or when the
 latest INITIAL/PURCHASE event is newer than `opened_date` and the stock had
 reached 0 g before that purchase; freshness from the style's window: „Frisch",
 „Bald genießen", „Über dem Höhepunkt".
+- **Until v0.4.0:** the opened date is set automatically, without the
+  snackbar; no freshness is shown.
+- **v0.4.1 (D-100):** the freshness labels in the list and the detail, the
+  *Rückgängig* snackbar, and the opened and best-before dates editable in
+  the tea editor. The freshness period is the style's; there is no per-tea
+  period.
 
 **INV-07 — Low stock & freshness reminders** `Could`
 Weekly digest notification (off by default).
@@ -950,9 +1092,14 @@ per session = leaf × cost per gram. **One poured infusion = one cup**: cost
 per cup = session cost ÷ completed infusions (rinse and whisk-only matcha:
 the whole session is one cup). Shown on tea detail („0,24 € pro Tasse") and in
 statistics.
+- **Since v0.1.0:** the session's cost (`cost_cents`) is stored at
+  completion.
+- **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
+  **M4:** the statistics (INS-05).
 
 **INV-09 — Reorder link** `Must`
-SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN for every tea
+SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN (VORRAT in
+v0.4.0, D-100) for every tea
 with a `catalog_key`, so reordering takes one tap (D-072). It opens the
 browser on the shop page of the **package size bought last**: the grams of the
 tea's latest INITIAL or PURCHASE event matched to a `catalog_package` of its
@@ -1042,7 +1189,7 @@ Every chart has an accessible table alternative.
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
-| SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
+| SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
@@ -1056,8 +1203,8 @@ Every chart has an accessible table alternative.
 | SET-24 | Timer-Zuverlässigkeit (status of notification, Live Update, full-screen alert, battery, exact alarm, and from v0.3.0 the alarm volume, with *Beheben* links) | — | Must |
 
 **SET-30 — Sections** `Must`: *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
-*Teegeschirr* (→ SCR-13), *Darstellung*, *Daten* (→ SCR-26, Alle Daten
-löschen), *Über* (→ SCR-27).
+*Teegeschirr* (→ SCR-13; v0.4.0, D-100), *Darstellung*, *Daten* (→ SCR-26,
+Alle Daten löschen), *Über* (→ SCR-27).
 
 **SET-31 — Test alert** `Must`: *Alarm testen* plays pre-alert tick + alert
 (the chosen *Vorwarnton*, SET-26, from v0.2.1; from v0.3.0 on the alarm

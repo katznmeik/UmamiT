@@ -1,6 +1,6 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (M3 in two releases, v0.4.0 and v0.4.1, D-100)
 > Decision: [D-026](10-open-questions-and-decisions.md#d-026)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
@@ -120,16 +120,33 @@ Answer the questions in order and take the first tier that matches:
 | Catalog list and detail screens, add-to-collection sheet | T2 |
 | Milestone review | T3 |
 
-**M3 — Collection**
+**M3 — Collection** (two releases, [D-100](10-open-questions-and-decisions.md#d-100); tickets in
+[`docs/plans/v0.4.0.md`](../plans/v0.4.0.md))
+
+*v0.4.0 — brewing*
 
 | Task | Tier |
 |---|---|
-| Tea list, detail and editor screens | T2 |
-| Recipe and steps editor (drag reorder, series generator) | T2 |
-| Teaware CRUD and scaling logic | T2 |
-| Stock events, cost per gram, opened-date rule | T3 |
-| Add from catalog (copying recipes, photo re-encode, INITIAL event) | T3 |
-| Reset from catalog | T2 |
+| Data semantics: delete a tea with its photo files, restore, the recipe default invariant (one default, ≤ 10, promotion on delete), INITIAL event on manual add, TEA-17 clearing | T3 |
+| Built-in style rows of the other categories; list search, filters and sort as pure functions in `core:domain` | T2 |
+| *Meine Tees* (SCR-08), tea detail (SCR-09), tea editor and *Sorte wählen* (SCR-10, SCR-11) | T2 |
+| Recipe editor (SCR-12: drag reorder, step kinds, several recipes; no series generator) | T2 (T3 where it changes the setup's save path) |
+| Teaware list and editor (SCR-13, SCR-14) and the settings entry | T2 |
+| Setup changes: ⋮ *Tee ansehen*, *Neues Gefäß …*, the archived vessel's label, BRW-08 | T3 |
+| Session page (SCR-16, read-only) and *So nochmal brühen* (BRW-06) | T3 |
+| Wording (*Archivieren*, step kinds) and the SET-15 row | T2 |
+| Accuracy test waits (timer test code) | T3 |
+| Milestone review | T3 |
+
+*v0.4.1 — stock, freshness, cost, photos* (provisional; its spec sets the tickets and tiers)
+
+| Task | Tier |
+|---|---|
+| Stock history (SCR-29), *Nachkauf erfassen* for teas not from the catalog | T3 |
+| Freshness labels, the opened-date snackbar, dates in the editor | T2 |
+| Price per gram and cost per cup | T3 |
+| Own photos (photo picker, cover, EXIF rotation) | T3 |
+| *Aus Katalog zurücksetzen* | T2 |
 | Milestone review | T3 |
 
 **M4 — Journal & statistics**

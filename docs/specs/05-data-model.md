@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -32,8 +32,6 @@ erDiagram
     TEA |o--o{ BREW_SESSION : "brewed in"
     BREW_SESSION ||--|{ SESSION_STEP : records
     BREW_SESSION ||--o{ SESSION_DESCRIPTOR : ""
-    TEA ||--o{ TEA_TAG : ""
-    TAG ||--o{ TEA_TAG : ""
     TEA ||--o{ INVENTORY_EVENT : stock
     BREW_SESSION |o--o| INVENTORY_EVENT : deducts
     TEA ||--o{ PHOTO : ""
@@ -91,7 +89,19 @@ Table `tea`
 | `cover_photo_id` | TEXT | | FK → `photo` SET NULL |
 
 Indices: `name NOCASE`, `catalog_key`, `style_key`, `is_archived`.
-FTS4 `tea_fts`: name, secondary_name, vendor, origin_region, cultivar, notes.
+No full-text table ([D-100](10-open-questions-and-decisions.md#d-100); the
+earlier plan had FTS4 `tea_fts` over name, secondary_name, vendor,
+origin_region, cultivar, notes). *Meine Tees* searches these columns in
+memory over its rows (TEA-09): pure functions in `core:domain`, normalised
+like the picker's search (GEN-10). A collection of a few hundred teas needs
+no index and no migration.
+
+From v0.4.0 (D-100) the editors write the tea's fields; `low_stock_grams`
+and `freshness_days` have no UI (no per-tea threshold or freshness period),
+and `opened_date`, `best_before` and `storage_note` become editable with
+v0.4.1. Deleting a tea removes its recipes, steps, stock events and photo
+rows by cascade and its photo files after the commit; sessions keep their
+snapshot with `tea_id` NULL.
 
 ### 3.2 BrewProfile (recipe)
 
@@ -132,9 +142,11 @@ Table `vessel`: `id`, `name` 1–40, `type` `VesselType`, `capacity_ml`
 10–3000, `usable_ml` (≤ capacity), `material` `VesselMaterial`, `notes`,
 `is_favorite`, `is_archived`, `cover_photo_id`.
 
-### 3.5 Tag & TeaTag (Could)
+### 3.5 Tag & TeaTag — not planned
 
-`tag` (`id`, `name` UNIQUE NOCASE 1–30); `tea_tag` (`tea_id`, `tag_id`) PK both.
+Tags (TEA-07) are not planned (D-100), so umamit.db has no `tag` or
+`tea_tag` table. The earlier design was `tag` (`id`, `name` UNIQUE NOCASE
+1–30) and `tea_tag` (`tea_id`, `tag_id`, PK both).
 
 ### 3.6 BrewSession
 
@@ -202,8 +214,11 @@ effect of the timer engine, 04 §4; D-052):
   [04 §5.1](04-brew-timer.md#51-recorded-step-data). A row is ended exactly
   when `actual_seconds` is set.
 - **Complete** (`CompleteSession`, TMR-12): rows that were never started are
-  **deleted**; `brew_session.planned_step_count` keeps the planned total so
-  the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
+  **kept** without `actual_seconds` from v0.4.0 on (Q-19, D-100; until
+  v0.3.0 they were deleted), so *So nochmal brühen* (BRW-06) can prefill
+  them and the session page shows them as „nicht gebrüht"; journal counts,
+  cost and statistics count only ended rows. `brew_session.planned_step_count`
+  keeps the planned total so the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
   `skipped = 1`. It also sets `cost_cents` and `ended_at`, adds the BREW stock
   event (−leaf, at `ended_at`, linked by `session_id`) when *Bestand
   abziehen* is on (SET-15), and sets the tea's `opened_date` to the session's
@@ -503,8 +518,8 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `backupReminder` | OFF/MONTHLY | MONTHLY | SET-20 |
 | `lastManualBackupAt` | Long? | null | BAK-01 |
 | `catalogDownloadPhotos` | Boolean | true | SET-22 |
-| `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 |
-| `collectionSort` | enum | name | |
+| `collectionSegment` | MY_TEAS/CATALOG | MY_TEAS | SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last |
+| `collectionSort` | LAST_BREWED/NAME/RECENTLY_ADDED/STOCK | LAST_BREWED | TEA-11, SCR-08 (v0.4.0, D-100): *Zuletzt gebrüht*, *Name*, *Zuletzt hinzugefügt*, *Vorrat*; empty teas last in each |
 | `statsRange` | enum | DAYS_90 | INS-07 |
 | `dimWhileSteeping` | Boolean | true | SET-25 |
 | `dismissedHints` | Set<String> | ∅ | |
@@ -516,7 +531,9 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 The catalog list's search, filters and sort are not stored: it opens in its
 default view each time (D-073, D-083). Only the folded groups are
 (`catalogFolded`, v0.3.0). The v0.3.0 keys need no settings migration: a
-missing key reads as its default (`schemaVersion` stays 2).
+missing key reads as its default (`schemaVersion` stays 2). Likewise *Meine
+Tees* stores only its sort (`collectionSort`), not its search or filters;
+the v0.4.0 keys need no migration either (D-100).
 
 The settings are one JSON file, `files/datastore/settings.json`. A missing
 key reads as its default, an unknown enum name falls back to the default,
@@ -549,8 +566,8 @@ Time rounding for derived recipes: nearest 5 s (half up).
 - `manifest.json`: format id `umamit-backup`, `formatVersion` 1,
   `createdAt`, app version, database schema version, counts, SHA-256 of JSON
   entries.
-- `data.json`: arrays for teas, brewProfiles, brewSteps, vessels, tags,
-  teaTags, sessions, sessionSteps, customDescriptors, sessionDescriptors,
+- `data.json`: arrays for teas, brewProfiles, brewSteps, vessels,
+  sessions, sessionSteps, customDescriptors, sessionDescriptors,
   inventoryEvents, photos, and from v0.2.2 catalogBookmarks (camelCase
   fields mirroring §3).
 - **Restore (post-1.0, BAK-02 `Won't` for 1.x, D-036):** if built later,
@@ -609,9 +626,10 @@ compares when it opens the database; a formatting-only difference (e.g. after
 a Room upgrade) passes with a warning. `SchemaVersionsTest` opens a database
 of every committed schema version with the production `umamiDatabaseBuilder`,
 whose migrations are the list `UMAMI_MIGRATIONS`, so a version bump without
-its migration in that list fails the unit tests. The tags, tea descriptors
-and FTS tables of §3 (`tag`, `tea_tag`, `custom_descriptor`, `session_descriptor`, `tea_fts`,
-`session_fts`) arrive with M3 and M4 through such migrations. The
+its migration in that list fails the unit tests. The descriptor and FTS
+tables of §3 (`custom_descriptor`, `session_descriptor`, `session_fts`)
+arrive with M4 through such migrations; `tag`, `tea_tag` and `tea_fts` are
+not planned, and M3 needs no migration (D-100). The
 catalog tables may be dropped and recreated in a migration (followed by a
 prompt to refresh), since they are re-downloadable.
 
