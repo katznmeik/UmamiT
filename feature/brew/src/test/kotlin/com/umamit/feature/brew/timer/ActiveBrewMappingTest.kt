@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,6 +45,17 @@ class ActiveBrewMappingTest {
 
         assertThat(brew.alerting).isTrue()
         assertThat(brew.overtimeSeconds).isEqualTo(7)
+    }
+
+    @Test
+    fun `a held quick alert is fertig, not alerting, until it rings (D-098)`() {
+        val held = TimerStates.quick(TimerPhase.ALERTING, overtimeMs = 12_000).copy(alertHeld = true)
+
+        val brew = activeBrewOf(held, NOW, resources, liquor)
+
+        assertThat(brew.held).isTrue()
+        assertThat(brew.alerting).isFalse()
+        assertThat(activeBrewOf(held.copy(alertHeld = false), NOW, resources, liquor).alerting).isTrue()
     }
 
     @Test

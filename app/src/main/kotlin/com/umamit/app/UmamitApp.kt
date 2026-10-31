@@ -62,6 +62,7 @@ import androidx.navigation.toRoute
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerSlot
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
@@ -88,6 +89,7 @@ private const val SLIDE_FRACTION = 12
  * @param alerting whether an alert plays now.
  * @param layoutType forces the bar or the rail; `null` follows the window size.
  * @param onOpenTimer a tap on the active brew bar, or on the running session in the journal, opens the timer (GEN-06).
+ * @param onOpenTimerOf with a brew and a quick timer, a tap on a half of the bar opens that timer (D-098).
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
@@ -118,6 +120,7 @@ internal fun UmamitApp(
     alerting: Boolean = false,
     layoutType: NavigationSuiteType? = null,
     onOpenTimer: () -> Unit = {},
+    onOpenTimerOf: (TimerSlot) -> Unit = { onOpenTimer() },
     startNavigation: StartNavigation = StartNavigation(),
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
@@ -160,6 +163,7 @@ internal fun UmamitApp(
     }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
+    val alongside by activeBrewSource.alongside.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
         ?: NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
     val motion = UmamiTheme.motion
@@ -318,11 +322,18 @@ internal fun UmamitApp(
                 )
             }
             // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
-            // layout leaves the system bar insets to the brew bar.
+            // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own (D-098).
             ActiveBrewBar(
                 brew = activeBrew,
                 progress = activeBrewSource.progress,
-                onClick = onOpenTimer,
+                onClick = if (alongside != null) {
+                    { onOpenTimerOf(TimerSlot.BREW) }
+                } else {
+                    onOpenTimer
+                },
+                alongside = alongside,
+                alongsideProgress = activeBrewSource.alongsideProgress,
+                onAlongsideClick = { onOpenTimerOf(TimerSlot.QUICK) },
                 windowInsets = if (!rail) {
                     WindowInsets(0)
                 } else {

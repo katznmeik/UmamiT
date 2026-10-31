@@ -65,6 +65,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         advanceMillis: Long = 0,
         photo: SealPhoto = SealPhoto.Leaves,
         stock: TimerStock? = TimerStock(38.0, StockLevel.AVAILABLE),
+        other: TimerUiState.Active? = null,
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.mainClock.autoAdvance = false
@@ -85,6 +86,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
                     },
                     teaStyleKey = "gyokuro",
                     stock = stock,
+                    other = other,
                 )
             }
         }
@@ -96,6 +98,42 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
 
     @Test
     fun ready() = capture("Ready", TimerStates.ready(stepIndex = 1))
+
+    // --- Two timers (D-098): the other timer's row below the band ------------------------------
+
+    /** The brew with the quick timer's row „Schnelltimer 2:14" and its *Pause*. */
+    @Test
+    fun runningWithQuickRow() = capture(
+        "Running_quickRow",
+        TimerStates.running(),
+        other = TimerStates.quick(TimerPhase.RUNNING, seconds = 300, remainingMs = 134_000),
+    )
+
+    /** The brew paused, the quick timer paused too: „Schnelltimer · Pausiert 2:14" with *Weiter*. */
+    @Test
+    fun pausedWithQuickRow() = capture(
+        "Paused_quickRow",
+        TimerStates.paused(),
+        other = TimerStates.quick(TimerPhase.PAUSED, seconds = 300, remainingMs = 134_000),
+    )
+
+    /** The brew's alert while the quick timer's alert waits (held): the row is hidden, its space kept (rule 8). */
+    @Test
+    fun alertingWithQuickHeld() = capture(
+        "Alerting_quickHeld",
+        TimerStates.alerting(overtimeMs = 7_000),
+        other = TimerStates.quick(TimerPhase.ALERTING, overtimeMs = 12_000).copy(alertHeld = true),
+    )
+
+    /** The quick timer with the brew's row „Bio Uji Gyokuro Gokō · Aufguss 1 · 0:48" and its *Pause*. */
+    @Test
+    fun quickWithBrewRow() = capture(
+        "Quick_brewRow",
+        TimerStates.quick(TimerPhase.RUNNING, seconds = 300, remainingMs = 134_000),
+        photo = SealPhoto.None,
+        stock = null,
+        other = TimerStates.running(remainingMs = 48_000),
+    )
 
     /** The tea is *Knapp* (BRW-11, D-098): „14 g übrig · knapp" under the leaf and water. */
     @Test

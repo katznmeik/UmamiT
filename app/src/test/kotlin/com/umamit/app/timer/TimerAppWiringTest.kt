@@ -65,8 +65,29 @@ class TimerAppWiringTest {
         assertThat(lockScreenFlags(TimerUiState.Idle, timerVisible = true)).isEqualTo(LockScreenFlags(false, false))
     }
 
+    /** One timer in front and in its slot, or the two slots set apart ([showBoth]). */
     private class FakeTimer(initial: TimerUiState) : BrewTimer {
         override val state = MutableStateFlow(initial)
+        private val slots = TimerSlot.entries.associateWith { MutableStateFlow<TimerUiState>(TimerUiState.Idle) }
+
+        init {
+            show(initial)
+        }
+
+        fun show(ui: TimerUiState) {
+            slots.forEach { (slot, flow) ->
+                flow.value = if ((ui as? TimerUiState.Active)?.slot == slot) ui else TimerUiState.Idle
+            }
+            state.value = ui
+        }
+
+        fun showBoth(brew: TimerUiState, quick: TimerUiState, front: TimerUiState) {
+            slots.getValue(TimerSlot.BREW).value = brew
+            slots.getValue(TimerSlot.QUICK).value = quick
+            state.value = front
+        }
+
+        override fun state(slot: TimerSlot) = slots.getValue(slot)
 
         override suspend fun send(slot: TimerSlot, event: TimerEvent) = TransitionOutcome.Ignored
     }
@@ -86,7 +107,7 @@ class TimerAppWiringTest {
         backgroundScope.launch { source.activeBrew.collect { shown += it } }
         runCurrent()
 
-        timer.state.value = active(TimerPhase.RUNNING, deadline = 60_000)
+        timer.show(active(TimerPhase.RUNNING, deadline = 60_000))
         runCurrent()
         advanceTimeBy(1_001)
 
@@ -94,7 +115,7 @@ class TimerAppWiringTest {
         assertThat(shown.last()?.step).isEqualTo("Aufguss 1/1")
         assertThat(source.progress()).isWithin(1e-3f).of(1f / 60)
 
-        timer.state.value = TimerUiState.Idle
+        timer.show(TimerUiState.Idle)
         runCurrent()
         assertThat(shown.last()).isNull()
     }
@@ -126,5 +147,31 @@ class TimerAppWiringTest {
         assertThat(source.progress()).isEqualTo(first)
         advanceTimeBy(1_000)
         assertThat(source.progress()).isGreaterThan(first)
+    }
+
+    @Test
+    fun `with a brew and a quick timer the bar has the brew first and the quick timer beside it (D-098)`() = runTest {
+        val timer = FakeTimer(TimerUiState.Idle)
+        val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val brew = active(TimerPhase.RUNNING, deadline = 60_000)
+        val quick = active(TimerPhase.RUNNING, deadline = 134_000, plannedSeconds = 300)
+            .copy(kind = SessionKind.Quick, teaName = null)
+        // The quick timer is in front of the controller (used last): the bar keeps the brew first.
+        timer.showBoth(brew = brew, quick = quick, front = quick)
+        val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope)
+        backgroundScope.launch { source.activeBrew.collect {} }
+        backgroundScope.launch { source.alongside.collect {} }
+        runCurrent()
+
+        assertThat(source.activeBrew.value?.title).isEqualTo("Hisui")
+        assertThat(source.alongside.value?.title).isEqualTo("Schnelltimer")
+        assertThat(source.alongside.value?.remainingSeconds).isEqualTo(134)
+        assertThat(source.alongsideProgress()).isWithin(1e-3f).of(166f / 300)
+
+        // The brew ends: the quick timer has the bar alone.
+        timer.show(quick)
+        runCurrent()
+        assertThat(source.activeBrew.value?.title).isEqualTo("Schnelltimer")
+        assertThat(source.alongside.value).isNull()
     }
 }

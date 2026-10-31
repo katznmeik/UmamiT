@@ -18,8 +18,11 @@ import javax.inject.Inject
  * screens call nothing else: no engine, no database.
  */
 interface BrewTimer {
-    /** The controller's [BrewSessionController.state]. */
+    /** The controller's [BrewSessionController.state]: the timer in front of the screens (04 §3.3). */
     val state: StateFlow<TimerUiState>
+
+    /** [slot]'s timer ([BrewSessionController.slotStates]): the brew session's or the quick timer's, Idle without. */
+    fun state(slot: TimerSlot): StateFlow<TimerUiState>
 
     /**
      * The controller's [BrewSessionController.recovered]: until it is true, an `Idle` [state] may
@@ -40,6 +43,8 @@ class ControllerBrewTimer @Inject constructor(private val controller: BrewSessio
     override val state: StateFlow<TimerUiState> get() = controller.state
 
     override val recovered: StateFlow<Boolean> get() = controller.recovered
+
+    override fun state(slot: TimerSlot): StateFlow<TimerUiState> = controller.slotStates.getValue(slot)
 
     override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome = controller.send(slot, event)
 }

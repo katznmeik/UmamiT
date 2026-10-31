@@ -91,6 +91,14 @@ internal class TimerBodyArgs(
     val teaPhoto: Painter?,
     val teaStyleKey: String?,
     val stock: TimerStock?,
+    val other: OtherTimerArgs?,
+)
+
+/** The other active timer's row (D-098): its state, its row's button and its tap. */
+internal class OtherTimerArgs(
+    val state: TimerUiState.Active,
+    val onEvent: (TimerEvent) -> Unit,
+    val onOpen: () -> Unit,
 )
 
 @Composable
@@ -129,6 +137,18 @@ internal fun TimerBody(args: TimerBodyArgs) {
         // of a brew reserves them, so the pill moves neither at *Start*, at the alert nor at the last *Abgegossen*.
         reservedControls = { if (!state.isQuick) FinishedControls(onFinish = {}, onAddStep = {}) },
         controls = { TimerControls(state, actions) },
+        // The other timer's row: hidden on the alert surface, its space kept (rule 8, D-098).
+        belowBand = {
+            args.other?.let {
+                TimerOtherRow(
+                    other = it.state,
+                    nowElapsedMs = args.nowElapsedMs,
+                    hidden = state.alerting,
+                    onEvent = it.onEvent,
+                    onOpen = it.onOpen,
+                )
+            }
+        },
         afterControls = {
             // Below the controls, so it never moves them; hidden during the alert.
             val problem = args.reliabilityProblem

@@ -59,7 +59,7 @@ class LowStockReminderTapTest {
                     onboardingScreen = { Text("EINRICHTUNG") },
                     startRequest = requests.token,
                     onConsumeStartRequest = requests::handled,
-                    timerScreen = { _, _, _ -> Text("TIMER") },
+                    timerScreen = { _, _, _, _ -> Text("TIMER") },
                     settings = testSettingsScreens(),
                     startScreen = { Text("START") },
                 )

@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.flow
 /**
  * The active brew bar's content for [state] at [nowElapsedMs] (GEN-06, 03 §3.8):
  * the tea („Schnelltimer" for the quick timer), „Aufguss 2/4", the remaining
- * time, and in ALERTING „Jetzt abgießen!" with the overtime (D-055).
+ * time, and in ALERTING „Jetzt abgießen!" with the overtime (D-055); a held quick alert „fertig" (D-098).
  */
 fun activeBrewOf(state: TimerUiState.Active, nowElapsedMs: Long, resources: Resources, liquorColor: Color): ActiveBrew {
     val display = state.display(nowElapsedMs)
@@ -32,8 +32,10 @@ fun activeBrewOf(state: TimerUiState.Active, nowElapsedMs: Long, resources: Reso
             resources.getString(R.string.brew_timer_step_label, it, state.stepIndex + 1, state.steps.size)
         },
         longStep = state.longStep,
-        alerting = state.alerting,
+        // A held quick alert waits silently for the brew's (D-098): „fertig", not the alert, until it rings.
+        alerting = state.ringing,
         overtimeSeconds = display.overtimeSeconds.toInt(),
+        held = state.alerting && state.alertHeld,
     )
 }
 

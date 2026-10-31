@@ -60,16 +60,6 @@ import java.io.IOException
 @Config(sdk = [36])
 class TimerViewModelTest {
 
-    private class FakeBrewTimer(initial: TimerUiState) : BrewTimer {
-        override val state = MutableStateFlow(initial)
-        val sent = mutableListOf<Pair<TimerSlot, TimerEvent>>()
-
-        override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome {
-            sent += slot to event
-            return TransitionOutcome.Accepted
-        }
-    }
-
     private val clock = object : MonotonicClock {
         override fun elapsedMs() = 42L
 
@@ -137,9 +127,24 @@ class TimerViewModelTest {
         collection.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "p1")
         assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = photos.file("p1").path))
 
-        timer.state.value = TimerStates.quick(TimerPhase.RUNNING)
+        timer.show(TimerStates.quick(TimerPhase.RUNNING))
         assertThat(vm.teaSeal.value).isNull()
     }
+
+    @Test
+    fun `the seal and the stock follow the brew while the quick timer is in front of the controller (D-098)`() =
+        runTest {
+            collection.teas.saveTea(SeedData.hisui)
+            buy(38.0)
+            startHisuiSession("s1")
+            val quick = TimerStates.quick(TimerPhase.RUNNING)
+            timer.show(brew = TimerStates.ready(), quick = quick, front = quick)
+            val vm = viewModel()
+
+            assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
+            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+            assertThat(vm.state(TimerSlot.QUICK).value).isEqualTo(quick)
+        }
 
     @Test
     fun `READY's stock follows the tea's stock live, Knapp at the threshold and Leer at 0 g (BRW-11, D-098)`() =
@@ -147,7 +152,7 @@ class TimerViewModelTest {
             collection.teas.saveTea(SeedData.hisui)
             buy(38.0)
             startHisuiSession("s1")
-            timer.state.value = TimerStates.ready()
+            timer.show(TimerStates.ready())
             val vm = viewModel()
             assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
 
@@ -165,7 +170,7 @@ class TimerViewModelTest {
         collection.teas.saveTea(SeedData.hisui.copy(lowStockGrams = 20.0))
         buy(18.0)
         startHisuiSession("s1")
-        timer.state.value = TimerStates.ready()
+        timer.show(TimerStates.ready())
 
         assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 18.0, level = StockLevel.LOW))
     }
@@ -174,7 +179,7 @@ class TimerViewModelTest {
     fun `a tea without packages reads Leer, as in the setup (INV-05)`() = runTest {
         collection.teas.saveTea(SeedData.hisui)
         startHisuiSession("s1")
-        timer.state.value = TimerStates.ready()
+        timer.show(TimerStates.ready())
 
         assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 0.0, level = StockLevel.EMPTY))
     }
@@ -183,12 +188,12 @@ class TimerViewModelTest {
     fun `no stock for the quick timer or a tea not in the collection (BRW-11, D-098)`() = runTest {
         // A session without a tea, and one whose tea was deleted or removed (archived).
         startHisuiSession("s1", teaId = null)
-        timer.state.value = TimerStates.ready()
+        timer.show(TimerStates.ready())
         val vm = viewModel()
         assertThat(vm.teaStock.value).isNull()
 
         startHisuiSession("s2")
-        timer.state.value = TimerStates.ready().copy(kind = SessionKind.Brew("s2"))
+        timer.show(TimerStates.ready().copy(kind = SessionKind.Brew("s2")))
         assertThat(vm.teaStock.value).isNull()
         collection.teas.saveTea(SeedData.hisui.copy(isArchived = true))
         buy(38.0)
@@ -196,7 +201,7 @@ class TimerViewModelTest {
         collection.teas.saveTea(SeedData.hisui)
         assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
 
-        timer.state.value = TimerStates.quick(TimerPhase.READY)
+        timer.show(TimerStates.quick(TimerPhase.READY))
         assertThat(vm.teaStock.value).isNull()
     }
 
@@ -207,13 +212,13 @@ class TimerViewModelTest {
         stock = object : StockRepository by collection.stock {
             override fun observeStock(teaId: String): Flow<StockSummary> = flow { throw IOException("disk") }
         }
-        timer.state.value = TimerStates.ready()
+        timer.show(TimerStates.ready())
         val vm = viewModel()
 
         assertThat(vm.teaStock.value).isNull()
         assertThat(vm.state.value).isEqualTo(TimerStates.ready())
         vm.send(TimerSlot.BREW, TimerEvent.Start)
-        timer.state.value = TimerStates.running()
+        timer.show(TimerStates.running())
         assertThat(timer.sent).containsExactly(TimerSlot.BREW to TimerEvent.Start)
         assertThat(vm.state.value).isEqualTo(TimerStates.running())
     }
@@ -223,7 +228,7 @@ class TimerViewModelTest {
         val vm = viewModel()
 
         vm.send(TimerSlot.QUICK, TimerEvent.Pause)
-        timer.state.value = TimerUiState.Idle
+        timer.show(TimerUiState.Idle)
 
         assertThat(timer.sent).containsExactly(TimerSlot.QUICK to TimerEvent.Pause)
         assertThat(vm.state.value).isEqualTo(TimerUiState.Idle)

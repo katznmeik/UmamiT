@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Color
  * @param alerting the step has ended and waits for *Abgegossen* (ALERTING): the bar turns
  *   static matcha with „Jetzt abgießen!" and the [overtimeSeconds] counting up (03 §3.8).
  * @param overtimeSeconds time since the step ended; shown only while [alerting].
+ * @param held the quick timer's alert waits for the brew's (D-098): the half reads „fertig" without the alert
+ *   style until it rings.
  */
 @Immutable
 data class ActiveBrew(
@@ -26,4 +28,5 @@ data class ActiveBrew(
     val longStep: Boolean = false,
     val alerting: Boolean = false,
     val overtimeSeconds: Int = 0,
+    val held: Boolean = false,
 )
