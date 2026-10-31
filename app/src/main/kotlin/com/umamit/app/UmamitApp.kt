@@ -140,6 +140,8 @@ internal fun UmamitApp(
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
     // *Link einfügen* in the same menu (CAT-17).
     var catalogPasteRequest by remember { mutableIntStateOf(0) }
+    // *Alle einklappen* / *Alle ausklappen* in the same menu, only while the catalog's groups fold (D-098).
+    val catalogFolds = remember { CatalogFoldMenu() }
     // A shared link shows the catalog list, which loads it (CAT-17).
     LaunchedEffect(teaLinkShare?.token) {
         if (teaLinkShare != null) {
@@ -264,11 +266,15 @@ internal fun UmamitApp(
                                         sharedLink = teaLinkShare,
                                         onTakeSharedLink = onTakeTeaLinkShare,
                                         refreshSheetRequest = opening.sheetToken,
+                                        foldAllRequest = catalogFolds.foldAllRequest,
+                                        unfoldAllRequest = catalogFolds.unfoldAllRequest,
+                                        onFoldableChange = { catalogFolds.foldable = it },
                                     ),
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
                             onPasteLink = { catalogPasteRequest++ },
+                            onFoldCatalog = catalogFolds.action,
                             catalogTea = { onBack ->
                                 catalogScreens.tea(
                                     CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
@@ -501,6 +507,7 @@ private fun TabHost(
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     onPasteLink: () -> Unit,
+    onFoldCatalog: ((fold: Boolean) -> Unit)?,
     catalogTea: @Composable (onBack: () -> Unit) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
@@ -533,6 +540,7 @@ private fun TabHost(
                 scrollToTopRequest = scrollToTopRequest,
                 onRefreshCatalog = onRefreshCatalog,
                 onPasteLink = onPasteLink,
+                onFoldCatalog = onFoldCatalog,
             )
         }
         // The add sheet (SCR-23) gives way to an alert (rule 8). Every on-screen back acts only while its

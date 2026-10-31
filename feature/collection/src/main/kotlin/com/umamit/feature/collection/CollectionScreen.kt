@@ -24,7 +24,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
  * depends on another, 06 §3), which fills the rest of the screen and scrolls itself; it gets
  * the [scrollToTopRequest] counter (03 §2.2, D-049). On *Katalog* the ⋮ menu offers
  * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
- * ([onPasteLink], a tea from a shop link, CAT-17).
+ * ([onPasteLink], a tea from a shop link, CAT-17), and while the catalog shows a view whose *Sorte* groups fold
+ * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`).
  */
 @Composable
 fun CollectionScreen(
@@ -36,11 +37,21 @@ fun CollectionScreen(
     scrollToTopRequest: Int = 0,
     onRefreshCatalog: () -> Unit = {},
     onPasteLink: () -> Unit = {},
+    onFoldCatalog: ((fold: Boolean) -> Unit)? = null,
 ) {
     val refreshLabel = stringResource(R.string.collection_catalog_refresh)
     val pasteLabel = stringResource(R.string.collection_catalog_paste_link)
+    val foldLabel = stringResource(R.string.collection_catalog_fold_all)
+    val unfoldLabel = stringResource(R.string.collection_catalog_unfold_all)
     val menuItems = if (segment == CollectionSegment.Catalog) {
-        listOf(OverflowItem(refreshLabel, onRefreshCatalog), OverflowItem(pasteLabel, onPasteLink))
+        buildList {
+            add(OverflowItem(refreshLabel, onRefreshCatalog))
+            add(OverflowItem(pasteLabel, onPasteLink))
+            if (onFoldCatalog != null) {
+                add(OverflowItem(foldLabel) { onFoldCatalog(true) })
+                add(OverflowItem(unfoldLabel) { onFoldCatalog(false) })
+            }
+        }
     } else {
         emptyList()
     }

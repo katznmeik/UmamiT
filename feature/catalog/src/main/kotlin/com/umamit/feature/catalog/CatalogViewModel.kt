@@ -3,6 +3,8 @@ package com.umamit.feature.catalog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.catalog.CatalogBookmarkRepository
+import com.umamit.core.data.catalog.CatalogFoldKey
+import com.umamit.core.data.catalog.CatalogFoldRepository
 import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
@@ -11,6 +13,7 @@ import com.umamit.core.data.catalog.TeaLinkLoader
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogListing
+import com.umamit.core.model.CatalogSort
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -37,6 +40,7 @@ import javax.inject.Inject
  * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
  * @property herbalPending the Kräutertees are still to come with the first refresh after the
  *   update (D-093 Q20): the *Kräutertee* view shows its hint with *Jetzt laden*.
+ * @property folded the folded *Sorte* groups of both views as `catalogFolded` keys (CAT-10, D-098).
  */
 data class CatalogUiState(
     val listing: CatalogListing = CatalogListing.EMPTY,
@@ -45,11 +49,22 @@ data class CatalogUiState(
     val loading: Boolean = true,
     val guideCount: Int = 0,
     val herbalPending: Boolean = false,
+    val folded: Set<String> = emptySet(),
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
 
     /** Never loaded (or emptied): SCR-19's empty state, whatever the filters and the kind shown. */
     val isEmpty: Boolean get() = listing.catalogCount == 0
+
+    /**
+     * The groups fold (D-098): only in the grouped default and Kräutertee views of a loaded catalog, never in
+     * *Gemerkt* or a flat sort order, and not while a search is typed (it shows every hit unfolded).
+     */
+    val foldable: Boolean
+        get() = !loading && !isEmpty && filter.sort == CatalogSort.TYPE && !filter.marked && filter.search.isBlank()
+
+    /** Whether the group of [teaType] (null = „Ohne Sorte") is folded in the view shown. */
+    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.herbal, teaType) in folded
 }
 
 /**
@@ -77,6 +92,7 @@ class CatalogViewModel @Inject constructor(
     guides: GuideRepository = GuideRepository.NONE,
     private val links: TeaLinkLoader = TeaLinkLoader.NONE,
     private val bookmarks: CatalogBookmarkRepository = CatalogBookmarkRepository.NONE,
+    private val folds: CatalogFoldRepository = CatalogFoldRepository.NONE,
 ) : ViewModel() {
     private val filter = MutableStateFlow(CatalogFilter.DEFAULT)
 
@@ -86,8 +102,8 @@ class CatalogViewModel @Inject constructor(
         filter,
         refresh.state,
         guides.observeGuides().map { it.size },
-        repository.observeHerbalPending(),
-    ) { listing, filter, refreshState, guideCount, herbalPending ->
+        combine(repository.observeHerbalPending(), folds.observeFolded(), ::Pair),
+    ) { listing, filter, refreshState, guideCount, (herbalPending, folded) ->
         CatalogUiState(
             listing = listing,
             filter = filter,
@@ -95,6 +111,7 @@ class CatalogViewModel @Inject constructor(
             loading = false,
             guideCount = guideCount,
             herbalPending = herbalPending,
+            folded = folded,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())
 
@@ -112,6 +129,32 @@ class CatalogViewModel @Inject constructor(
     /** A row's bookmark toggle (CAT-18): marks or unmarks the tea [key]. */
     fun toggleMark(key: String, marked: Boolean) {
         viewModelScope.launch { if (marked) bookmarks.mark(key) else bookmarks.unmark(key) }
+    }
+
+    /** A tap on the header of [teaType]'s group (null = „Ohne Sorte"): folds or unfolds it in the view (D-098). */
+    fun toggleFold(teaType: String?) {
+        val shown = state.value.takeIf { it.foldable } ?: return
+        val key = CatalogFoldKey.of(shown.filter.herbal, teaType)
+        viewModelScope.launch { folds.update { if (key in it) it - key else it + key } }
+    }
+
+    /**
+     * ⋮ *Alle einklappen*: every *Sorte* of the view shown, those the filters hide and „Ohne Sorte" included, so a
+     * changed filter shows no group open; the other view keeps its folding (D-098).
+     */
+    fun foldAll() {
+        val shown = state.value.takeIf { it.foldable } ?: return
+        val herbal = shown.filter.herbal
+        val types = shown.listing.types + shown.listing.sections.map { it.teaType } + null
+        val keys = types.map { CatalogFoldKey.of(herbal, it) }.toSet()
+        viewModelScope.launch { folds.update { it + keys } }
+    }
+
+    /** ⋮ *Alle ausklappen*: every group of the view shown, also keys of a *Sorte* that is gone (D-098). */
+    fun unfoldAll() {
+        val shown = state.value.takeIf { it.foldable } ?: return
+        val prefix = CatalogFoldKey.prefix(shown.filter.herbal)
+        viewModelScope.launch { folds.update { folded -> folded.filterNot { it.startsWith(prefix) }.toSet() } }
     }
 
     /** *Katalog laden*. */

@@ -1150,6 +1150,34 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   failing for both timers; the two-timer process-death test on API 35 and 36
   in the emulator job.
 
+**Build notes (Claude, 2026-10-31, #131: foldable catalog groups, CAT-10, SCR-19).**
+- **Settings.** `catalogFolded` is a new key with a default (∅), so a
+  settings file of v0.2.2 reads it without a migration; `schemaVersion`
+  stays 2. The *Sorte* key is the shop's *Sorte* name as the list shows it
+  (`CatalogFoldKey`, `green/Bancha`, „Ohne Sorte" `green/-`); a renamed
+  *Sorte* starts open. Behind `CatalogFoldRepository` (on the settings) in
+  `core:data`; a failed write (full disk) is logged and the groups stay as
+  they were.
+- **When it folds.** Only in the grouped default and Kräutertee views of a
+  loaded catalog, with an empty search. While a search is typed, in
+  *Gemerkt* and in the flat orders the headers are the plain overline of
+  before: no chevron, no count, no toggle, so a tap never changes a folding
+  the user cannot see. The folding stays stored meanwhile.
+- **Header.** „BANCHA · 12" as the overline, the hairline, a chevron at the
+  end (the shared `ChevronRight`, turned 90° while open); the whole row is
+  the toggle, at least 48 dp high. The count is the group's teas under the
+  current filters, also while open. TalkBack: one heading node, content
+  description „Bancha, 12 Tees", state „eingeklappt" / „ausgeklappt", click
+  label „Ausklappen" / „Einklappen".
+- **Motion.** The chevron turns in 200 ms (`motion.exit()`; a snap under
+  reduce motion); the rows have no item animation, so they snap.
+- **⋮ menu.** *Alle einklappen* / *Alle ausklappen* show only while the
+  catalog view folds (the catalog tells the shell, which owns Sammlung's
+  menu). *Alle einklappen* folds every *Sorte* of the view, those the
+  filters hide and „Ohne Sorte" included, so changing a filter shows no group
+  open; *Alle ausklappen* removes every key of the view (stale ones too). The
+  other view keeps its folding.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

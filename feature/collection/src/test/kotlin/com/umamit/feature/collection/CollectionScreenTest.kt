@@ -25,8 +25,9 @@ class CollectionScreenTest {
     private var refreshes = 0
     private var pastes = 0
     private var settingsOpened = 0
+    private val folds = mutableListOf<Boolean>()
 
-    private fun show(segment: CollectionSegment) {
+    private fun show(segment: CollectionSegment, foldable: Boolean = false) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
                 CollectionScreen(
@@ -36,6 +37,7 @@ class CollectionScreenTest {
                     catalogContent = { _, _ -> },
                     onRefreshCatalog = { refreshes++ },
                     onPasteLink = { pastes++ },
+                    onFoldCatalog = if (foldable) ({ folds += it }) else null,
                 )
             }
         }
@@ -80,5 +82,31 @@ class CollectionScreenTest {
         assertThat(settingsOpened).isEqualTo(1)
         assertThat(refreshes).isEqualTo(0)
         assertThat(pastes).isEqualTo(0)
+    }
+
+    @Test
+    fun aFoldingCatalogOffersAlleEinklappenAndAlleAusklappen() {
+        // D-098: only while the catalog shows a view whose groups fold.
+        show(CollectionSegment.Catalog, foldable = true)
+
+        openMenu()
+        compose.onNodeWithText("Alle einklappen").performClick()
+        compose.waitForIdle()
+        openMenu()
+        compose.onNodeWithText("Alle ausklappen").performClick()
+        compose.waitForIdle()
+
+        assertThat(folds).containsExactly(true, false).inOrder()
+    }
+
+    @Test
+    fun aCatalogViewWithoutFoldingHasNoFoldEntries() {
+        show(CollectionSegment.Catalog, foldable = false)
+
+        openMenu()
+
+        compose.onNodeWithText("Katalog aktualisieren").assertExists()
+        compose.onNodeWithText("Alle einklappen").assertDoesNotExist()
+        compose.onNodeWithText("Alle ausklappen").assertDoesNotExist()
     }
 }
