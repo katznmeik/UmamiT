@@ -5,12 +5,17 @@ import com.umamit.core.common.MonotonicClock
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
+import com.umamit.core.data.StockRepository
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StockLevel
+import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
@@ -20,6 +25,7 @@ import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
@@ -27,8 +33,10 @@ import com.umamit.core.timer.reliability.ReliabilityCheck
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -38,9 +46,18 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.io.IOException
 
-/** The timer's view model over a fake [BrewTimer]: it forwards events and reads the settings and checks. */
+/**
+ * The timer's view model over a fake [BrewTimer]: it forwards events and reads the settings, the checks, the
+ * seal and the stock. On Robolectric for the log of a failed stock read.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
 class TimerViewModelTest {
 
     private class FakeBrewTimer(initial: TimerUiState) : BrewTimer {
@@ -76,11 +93,18 @@ class TimerViewModelTest {
     private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }
 
     private fun viewModel() =
-        TimerViewModel(timer, clock, settings, reliability, sessions.sessions, collection.teas, photos)
+        TimerViewModel(timer, clock, settings, reliability, sessions.sessions, collection.teas, photos, stock)
 
-    private suspend fun startHisuiSession(id: String) {
+    /** The stock the view model reads; a test swaps in a failing one (rule 8). */
+    private var stock: StockRepository = collection.stock
+
+    private suspend fun buy(grams: Double, id: String = "e$grams") = collection.stock.addEvent(
+        InventoryEvent(id, SeedData.HISUI_TEA_ID, InventoryEventType.PURCHASE, grams, occurredAtMillis = 1),
+    )
+
+    private suspend fun startHisuiSession(id: String, teaId: String? = SeedData.HISUI_TEA_ID) {
         val snapshot = SessionSnapshot(
-            teaId = SeedData.HISUI_TEA_ID,
+            teaId = teaId,
             teaName = "Bio Sencha Hisui",
             teaSecondaryName = null,
             teaType = "Sencha",
@@ -115,6 +139,83 @@ class TimerViewModelTest {
 
         timer.state.value = TimerStates.quick(TimerPhase.RUNNING)
         assertThat(vm.teaSeal.value).isNull()
+    }
+
+    @Test
+    fun `READY's stock follows the tea's stock live, Knapp at the threshold and Leer at 0 g (BRW-11, D-098)`() =
+        runTest {
+            collection.teas.saveTea(SeedData.hisui)
+            buy(38.0)
+            startHisuiSession("s1")
+            timer.state.value = TimerStates.ready()
+            val vm = viewModel()
+            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+
+            // SET-16's „Knapp ab" is 15 g, inclusive.
+            collection.stock.correctStock(SeedData.HISUI_TEA_ID, 15.0)
+            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 15.0, level = StockLevel.LOW))
+            collection.stock.correctStock(SeedData.HISUI_TEA_ID, 14.0)
+            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 14.0, level = StockLevel.LOW))
+            collection.stock.correctStock(SeedData.HISUI_TEA_ID, 0.0)
+            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 0.0, level = StockLevel.EMPTY))
+        }
+
+    @Test
+    fun `the tea's own Knapp threshold wins over SET-16's (INV-05)`() = runTest {
+        collection.teas.saveTea(SeedData.hisui.copy(lowStockGrams = 20.0))
+        buy(18.0)
+        startHisuiSession("s1")
+        timer.state.value = TimerStates.ready()
+
+        assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 18.0, level = StockLevel.LOW))
+    }
+
+    @Test
+    fun `a tea without packages reads Leer, as in the setup (INV-05)`() = runTest {
+        collection.teas.saveTea(SeedData.hisui)
+        startHisuiSession("s1")
+        timer.state.value = TimerStates.ready()
+
+        assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 0.0, level = StockLevel.EMPTY))
+    }
+
+    @Test
+    fun `no stock for the quick timer or a tea not in the collection (BRW-11, D-098)`() = runTest {
+        // A session without a tea, and one whose tea was deleted or removed (archived).
+        startHisuiSession("s1", teaId = null)
+        timer.state.value = TimerStates.ready()
+        val vm = viewModel()
+        assertThat(vm.teaStock.value).isNull()
+
+        startHisuiSession("s2")
+        timer.state.value = TimerStates.ready().copy(kind = SessionKind.Brew("s2"))
+        assertThat(vm.teaStock.value).isNull()
+        collection.teas.saveTea(SeedData.hisui.copy(isArchived = true))
+        buy(38.0)
+        assertThat(vm.teaStock.value).isNull()
+        collection.teas.saveTea(SeedData.hisui)
+        assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+
+        timer.state.value = TimerStates.quick(TimerPhase.READY)
+        assertThat(vm.teaStock.value).isNull()
+    }
+
+    @Test
+    fun `a failed stock read shows no line and leaves the timer alone (rule 8)`() = runTest {
+        collection.teas.saveTea(SeedData.hisui)
+        startHisuiSession("s1")
+        stock = object : StockRepository by collection.stock {
+            override fun observeStock(teaId: String): Flow<StockSummary> = flow { throw IOException("disk") }
+        }
+        timer.state.value = TimerStates.ready()
+        val vm = viewModel()
+
+        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.state.value).isEqualTo(TimerStates.ready())
+        vm.send(TimerSlot.BREW, TimerEvent.Start)
+        timer.state.value = TimerStates.running()
+        assertThat(timer.sent).containsExactly(TimerSlot.BREW to TimerEvent.Start)
+        assertThat(vm.state.value).isEqualTo(TimerStates.running())
     }
 
     @Test

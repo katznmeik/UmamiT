@@ -7,6 +7,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -18,7 +19,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * SCR-05 on a short screen (384 × 832 dp) at font scale 2.0 with a two-line tea name: the band
- * and the seal give way, so the primary control lies whole on the screen (rule 8, D-096). The
+ * and the seal give way, so the primary control lies whole on the screen (rule 8, D-096), READY's
+ * stock line „14 g übrig · knapp" included (BRW-11, D-098). The
  * seal shows a plain white synthetic photo (D-016). Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -44,6 +46,8 @@ class TimerShortScreenScreenshotTest {
                     onOpenTimerSettings = {},
                     teaPhoto = ColorPainter(Color.White),
                     teaStyleKey = "sencha",
+                    // The longest stock line (BRW-11, D-098): it shares the space the band gives way for.
+                    stock = TimerStock(14.0, StockLevel.LOW),
                 )
             }
         }

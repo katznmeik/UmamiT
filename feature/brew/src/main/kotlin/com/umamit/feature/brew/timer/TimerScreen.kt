@@ -66,6 +66,8 @@ const val TIMER_RING_TAG = "timer_ring"
  *
  * @param teaPhoto the brew's tea photo in the seal; null: the leaf in [teaStyleKey]'s colour.
  * @param teaStyleKey the brew tea's style (08 §2), for the leaf's colour.
+ * @param stock the brew tea's stock, shown on READY under the leaf and water (BRW-11, D-098); null: no line
+ *   (the quick timer never has one). Its space is reserved in every brew, so the pill never moves for it.
  */
 @Composable
 fun TimerScreen(
@@ -81,6 +83,7 @@ fun TimerScreen(
     onFixReliability: () -> Unit = {},
     teaPhoto: Painter? = null,
     teaStyleKey: String? = null,
+    stock: TimerStock? = null,
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
@@ -130,6 +133,7 @@ fun TimerScreen(
                     onFixReliability,
                     teaPhoto,
                     teaStyleKey,
+                    stock,
                 )
             // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
             val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }

@@ -53,6 +53,7 @@ import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
+import com.umamit.core.designsystem.text.stockGramsText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
@@ -75,6 +76,9 @@ private const val PLACEHOLDER_STEP = 10
 private const val PLACEHOLDER_SECONDS = 600
 private const val TENTHS_PER_GRAM = 10L
 
+/** The stock line's placeholder, „100 g übrig · knapp": its space is reserved before the stock is read. */
+private const val PLACEHOLDER_STOCK_GRAMS = 100.0
+
 /** What the timer's body shows; one value, so the body can move between the two surfaces. */
 internal class TimerBodyArgs(
     val state: TimerUiState.Active,
@@ -86,6 +90,7 @@ internal class TimerBodyArgs(
     val onFixReliability: () -> Unit,
     val teaPhoto: Painter?,
     val teaStyleKey: String?,
+    val stock: TimerStock?,
 )
 
 @Composable
@@ -110,11 +115,13 @@ internal fun TimerBody(args: TimerBodyArgs) {
             Spacer(Modifier.height(UmamiSpacing.Medium))
             // One fixed slot for the kettle hint and the overtime: the pill below never moves under the
             // finger, not at *Start*, not when the alert starts, not when the overtime turns large. The
-            // session's leaf and water never change while it runs, so neither does the slot (BRW-11).
+            // session's leaf and water never change while it runs, so neither does the slot (BRW-11). The
+            // stock line has its space in every brew, read or not, so nothing moves when it comes (D-098).
             val leafAndWater = leafAndWater(state)
+            val stock = if (state.isQuick) null else args.stock?.let { stockLine(it) }
             Box(contentAlignment = Alignment.Center) {
-                BelowRingSpace(leafAndWater)
-                TimerBelowRing(state, now, leafAndWater)
+                BelowRingSpace(leafAndWater, reserveStock = !state.isQuick, stock = stock)
+                TimerBelowRing(state, now, leafAndWater, stock)
             }
             Spacer(Modifier.height(UmamiSpacing.Large))
         },
@@ -147,28 +154,40 @@ internal fun TimerBody(args: TimerBodyArgs) {
 
 /**
  * Invisible copies of the slot's two tallest contents, the kettle hint with
- * its detail and the session's [leafAndWater], and the large overtime: the
- * slot is as tall as they are at any font scale, so the pill below never
- * moves (D-058, BRW-11).
+ * its detail, the session's [leafAndWater] and, with [reserveStock], a stock
+ * line (a placeholder and the [stock] shown), and the large overtime: the slot
+ * is as tall as they are at any font scale, so the pill below never moves
+ * (D-058, BRW-11, D-098).
  */
 @Composable
-private fun BelowRingSpace(leafAndWater: LeafAndWater?) {
+private fun BelowRingSpace(leafAndWater: SpokenLine?, reserveStock: Boolean, stock: SpokenLine?) {
     Box(
         modifier = Modifier
             .alpha(0f)
             .clearAndSetSemantics {},
         contentAlignment = Alignment.Center,
     ) {
-        KettleHint(
-            temperatureCelsius = PLACEHOLDER_TEMPERATURE,
-            detail = stringResource(
-                R.string.brew_timer_ready_detail,
-                stringResource(R.string.brew_steps_kind_infusion),
-                PLACEHOLDER_STEP,
-                clockText(PLACEHOLDER_SECONDS),
-            ),
-            amount = leafAndWater?.text,
+        val detail = stringResource(
+            R.string.brew_timer_ready_detail,
+            stringResource(R.string.brew_steps_kind_infusion),
+            PLACEHOLDER_STEP,
+            clockText(PLACEHOLDER_SECONDS),
         )
+        val stockLines = if (reserveStock) {
+            listOf(stringResource(R.string.brew_setup_stock_low, stockGramsText(PLACEHOLDER_STOCK_GRAMS))) +
+                listOfNotNull(stock?.text)
+        } else {
+            listOf(null)
+        }
+        // The taller of the placeholder and the stock shown: a long one may wrap at a large font.
+        stockLines.forEach { line ->
+            KettleHint(
+                temperatureCelsius = PLACEHOLDER_TEMPERATURE,
+                detail = detail,
+                amount = leafAndWater?.text,
+                stock = line,
+            )
+        }
         Overtime(PLACEHOLDER_SECONDS)
     }
 }
@@ -311,19 +330,16 @@ internal fun TimerRingColors.dimmed(factor: Float): TimerRingColors = if (factor
     )
 }
 
-/** The session's leaf and water as READY shows them (BRW-11, D-097), and as TalkBack reads them. */
-private class LeafAndWater(val text: String, val description: String)
-
 /**
  * „4,0 g Tee · 250 ml Wasser" of a brew session, only the parts it has; null without either and for the quick
  * timer (BRW-11, D-097). TalkBack reads „4 Komma 0 Gramm Tee, 250 Milliliter Wasser".
  */
 @Composable
-private fun leafAndWater(state: TimerUiState.Active): LeafAndWater? {
+private fun leafAndWater(state: TimerUiState.Active): SpokenLine? {
     if (state.isQuick) return null
     val leaf = state.leafGrams?.let { grams ->
         val tenths = Math.round(grams * TENTHS_PER_GRAM)
-        LeafAndWater(
+        SpokenLine(
             text = stringResource(R.string.brew_timer_leaf, grams(grams)),
             description = stringResource(
                 R.string.brew_timer_leaf_description,
@@ -333,13 +349,13 @@ private fun leafAndWater(state: TimerUiState.Active): LeafAndWater? {
         )
     }
     val water = state.waterMl?.let { ml ->
-        LeafAndWater(
+        SpokenLine(
             text = stringResource(R.string.brew_timer_water, ml),
             description = stringResource(R.string.brew_timer_water_description, ml),
         )
     }
     return when {
-        leaf != null && water != null -> LeafAndWater(
+        leaf != null && water != null -> SpokenLine(
             text = stringResource(R.string.brew_timer_leaf_and_water, leaf.text, water.text),
             description = stringResource(
                 R.string.brew_timer_leaf_and_water_description,
@@ -352,9 +368,12 @@ private fun leafAndWater(state: TimerUiState.Active): LeafAndWater? {
     }
 }
 
-/** READY: the kettle hint, the session's [leafAndWater] and the next step; ALERTING: the overtime. */
+/**
+ * READY: the kettle hint, the session's [leafAndWater], the tea's [stock] (D-098) and the next step; ALERTING:
+ * the overtime.
+ */
 @Composable
-private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: LeafAndWater?) {
+private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: SpokenLine?, stock: SpokenLine?) {
     when (state.phase) {
         TimerPhase.READY -> {
             val step = state.currentStep ?: return
@@ -376,6 +395,8 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: 
                     water = water,
                     amount = leafAndWater?.text,
                     amountDescription = leafAndWater?.description,
+                    stock = stock?.text,
+                    stockDescription = stock?.description,
                 )
 
                 else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -384,6 +405,14 @@ private fun TimerBelowRing(state: TimerUiState.Active, now: Long, leafAndWater: 
                             text = it.text,
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.semantics { contentDescription = it.description },
+                        )
+                    }
+                    stock?.let {
+                        Text(
+                            text = it.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.semantics { contentDescription = it.description },
                         )
                     }
