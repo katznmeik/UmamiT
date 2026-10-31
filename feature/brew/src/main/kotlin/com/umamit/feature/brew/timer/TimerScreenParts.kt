@@ -65,6 +65,7 @@ import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.quick.QuickTimerSpace
 import com.umamit.feature.brew.setup.grams
 
 private val TimerPillMinHeight = 72.dp
@@ -111,6 +112,8 @@ internal fun TimerBody(args: TimerBodyArgs) {
     // starts (D-058, D-095). On a short screen the band gives way so the primary control stays on it (D-096).
     TimerBandPage(
         withSeal = !state.isQuick,
+        // The quick timer's band gives way like its screen before *Start*, which it reserves below (D-098).
+        adaptive = true,
         controlHeight = TimerPillMinHeight,
         band = { if (!state.alerting) TimerBand() },
         topBar = { TimerTopBar(state, overlays, actions) },
@@ -136,6 +139,9 @@ internal fun TimerBody(args: TimerBodyArgs) {
         // FINISHED's *Weiterer Aufguss* fits with *Sitzung beenden* and the bottom margin (D-096), and every phase
         // of a brew reserves them, so the pill moves neither at *Start*, at the alert nor at the last *Abgegossen*.
         reservedControls = { if (!state.isQuick) FinishedControls(onFinish = {}, onAddStep = {}) },
+        // The quick timer reserves its screen before *Start* (the chips and the *Vorwarnung* row): the band, the ring
+        // and the pill stand where they stood there, so nothing moves at *Start* (SCR-07 polish 2, D-098).
+        reservedAboveControls = { if (state.isQuick) QuickTimerSpace() },
         controls = { TimerControls(state, actions) },
         // The other timer's row: hidden on the alert surface, its space kept (rule 8, D-098).
         belowBand = {

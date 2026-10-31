@@ -1188,6 +1188,39 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   open; *Alle ausklappen* removes every key of the view (stale ones too). The
   other view keeps its folding.
 
+**Build notes (Claude, 2026-10-31, #133: SCR-07 polish).**
+- **Calm *Vorwarnung* row (polish 1).** Of the ticket's two ways, both: the
+  row stays centred, and the selector is as wide as the widest label it can
+  show on SCR-07 (*Automatisch* with „keine" and 5–30 s, *Aus*, 5–30 s plain,
+  „· zu kurz" and „· keine", and the shown one), its button at the start. So
+  „Vorwarnung" keeps its x **and** y for every choice and duration, and the
+  button grows to its right within the reserved width. The width is measured
+  from the labels' text (`PreAlertDropdown(reserveFor = …)`: the widest label,
+  the button's padding, gap and chevron, plus 1 dp against rounding), so no
+  invisible copy is composed and TalkBack and the tests find one label; the
+  Schritte-Sheet passes none and is unchanged. Where the row wraps (384 × 832 dp, font 2.0) it wraps for every
+  choice alike; the selector's line then starts at the reserved box's start.
+- **The ring and the pill at *Start* (polish 2).** `TimerBandPage` gains
+  `reservedAboveControls`, measured and never placed like the reserved
+  controls: the content slot is as tall as the taller of the two. The
+  running quick timer reserves its screen before *Start* (`QuickTimerSpace`:
+  title, ring, chips, *Vorwarnung* row, whose height does not depend on the
+  state) and its band now gives way (`adaptive`) like that screen's. Both
+  compute the same band, so the ring's centre and the pill's top stay put at
+  *Start* and at the alert on every screen. This moves the running quick
+  timer's *Pause*, *Weiter* and *Fertig* down to where *Start* stood (on
+  411 × 891 dp by about 100 dp; the space lies between the overtime slot and
+  the pill), so the finger that pressed *Start* finds *Pause* there (as on a
+  brew, TMR-03); the ticket's „elsewhere nothing changes" held only for the
+  ring. The reservation goes one way: the screen before *Start* is the taller
+  at every size and font tried, and `TimerScreenLayoutTest`'s
+  `quickStaysPut` cases (411 × 891 dp at font 1.0 and 2.0, 384 × 832 dp and
+  411 × 800 dp at font 2.0) would catch a change. With the brew's row
+  (#136) the running quick timer's band gives way by the row, as before.
+- **Tests.** `QuickTimerLayoutTest` (the label's place, 411 × 891 dp and
+  384 × 832 dp at font 2.0) and `TimerScreenLayoutTest`'s quick-timer cases;
+  the goldens of the running quick timer and of SCR-07 were re-recorded.
+
 **Build notes (Claude, 2026-10-31, #129: setup ⋮ *Im Katalog ansehen*, BRW-02, SCR-04).**
 - **When it shows.** The setup's view model observes the tea's catalog tea
   (`CatalogRepository.observeTea(catalog_key)`) and puts the key into the

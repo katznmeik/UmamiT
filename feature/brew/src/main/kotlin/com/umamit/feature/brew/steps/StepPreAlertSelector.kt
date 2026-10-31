@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -136,6 +137,10 @@ internal fun StepPreAlertRow(state: StepsSheetState, index: Int) {
  *
  * **Alerts first (rule 8):** the menu remembers the [alertKey] it was opened in; another alert removes it in its
  * first frame, without its exit animation, and it stays closed (as SCR-07's duration picker).
+ *
+ * **Reserved width (SCR-07, D-098).** With [reserveFor], the selector is as wide as the widest of those labels
+ * (and [shown]), its button at the start: whatever it shows, what stands before it keeps its place, and the
+ * button grows to its right. The width is measured from the labels' text, so nothing invisible is composed.
  */
 @Composable
 internal fun PreAlertDropdown(
@@ -146,6 +151,7 @@ internal fun PreAlertDropdown(
     onSelect: (PreAlertChoice) -> Unit,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
+    reserveFor: List<StepPreAlert> = emptyList(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     var openedIn by remember { mutableStateOf<String?>(null) }
@@ -156,7 +162,12 @@ internal fun PreAlertDropdown(
         openedIn = alertKey
         expanded = true
     }
-    Box(modifier = modifier) {
+    val reserved = if (reserveFor.isEmpty()) {
+        Modifier
+    } else {
+        Modifier.widthIn(min = preAlertReservedWidth(reserveFor + shown))
+    }
+    Box(modifier = modifier.then(reserved), contentAlignment = Alignment.CenterStart) {
         TextButton(
             onClick = open,
             // One TalkBack element with the step, the spoken value, a button role and a click action.
@@ -174,7 +185,7 @@ internal fun PreAlertDropdown(
             Icon(
                 painterResource(R.drawable.ic_expand_more),
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(PreAlertChevronSize),
             )
         }
         // Out of the composition under an alert: an expanded = false would still animate the popup out.
@@ -212,7 +223,7 @@ private fun PreAlertMenu(
 
 /** The selector's label: „Auto · 5 s", „Auto · keine", „Aus", „10 s", „10 s · zu kurz" or „10 s · keine". */
 @Composable
-private fun preAlertLabel(shown: StepPreAlert): String = when (shown) {
+internal fun preAlertLabel(shown: StepPreAlert): String = when (shown) {
     is StepPreAlert.Auto -> stringResource(R.string.brew_steps_pre_alert_auto, leadLabel(shown.leadSeconds))
     StepPreAlert.Off -> stringResource(R.string.brew_steps_pre_alert_off)
     is StepPreAlert.Lead -> secondsLabel(shown.seconds)
