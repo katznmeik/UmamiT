@@ -104,7 +104,7 @@ class NextDueLiveUpdateTest {
         }
 
     @Test
-    fun `each notification's tap opens its own timer, also after Pause moved the Live Update (04 §8_2)`() =
+    fun `each notification's tap opens its own timer, also after Pause moved the Live Update (04 8_2)`() =
         runBlocking<Unit> {
             controller.startSession(brewStart(infusion(120, preAlert = 0)))
             controller.send(TimerSlot.BREW, TimerEvent.Start)

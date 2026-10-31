@@ -100,7 +100,7 @@ class TimerScreenRequestsTest {
     }
 
     @Test
-    fun `a request names the notification's timer, also after the recreation (04 §8_2)`() {
+    fun `a request names the notification's timer, also after the recreation (04 8_2)`() {
         val before = requests()
         val intent = openTimer(TimerSlot.QUICK)
         before.request(intent)

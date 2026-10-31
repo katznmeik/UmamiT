@@ -169,7 +169,7 @@ class RecoveryTableTest {
     }
 
     @Test
-    fun `reboot with a brew step and a quick timer - one notice names both (04 §7_3)`() = runTest {
+    fun `reboot with a brew step and a quick timer - one notice names both (04 7_3)`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
         before.controller.send(TimerSlot.BREW, TimerEvent.Start)
         before.controller.startQuickTimer(120, preAlertSeconds = 0, run = true)

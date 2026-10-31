@@ -197,7 +197,7 @@ class TimerStateNotificationsTest {
     }
 
     @Test
-    fun `each timer's notifications open its own timer, the alert's full-screen intent too (04 §8_2, D-098)`() {
+    fun `each timer's notifications open its own timer, the alert's full-screen intent too (04 8_2, D-098)`() {
         val brew = states.running()
         val quick = states.quick(TimerPhase.RUNNING)
         val brewTaps = listOf(build(brew), notifications.other(brew, clock.reading())).map { it.contentIntent }

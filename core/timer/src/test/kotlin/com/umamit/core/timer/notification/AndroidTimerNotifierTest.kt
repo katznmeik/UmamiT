@@ -240,7 +240,7 @@ class AndroidTimerNotifierTest {
     }
 
     @Test
-    fun `after a reboot with both timers one notice names both (04 §7_3)`() {
+    fun `after a reboot with both timers one notice names both (04 7_3)`() {
         notifier.notifyTimersResumed(listOf(states.running(), states.quick(TimerPhase.PAUSED)))
 
         val notice = checkNotNull(posted(TimerNotifications.ID_SESSION_SAVED))

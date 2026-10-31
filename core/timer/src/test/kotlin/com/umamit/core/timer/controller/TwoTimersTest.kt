@@ -197,7 +197,7 @@ class TwoTimersTest {
     }
 
     @Test
-    fun `a released alert is due at its release for the player's log, with the time it was held (06 §5_6)`() = runTest {
+    fun `a released alert is due at its release for the player's log, with the time it was held (06 5_6)`() = runTest {
         h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
         h.controller.send(TimerSlot.BREW, TimerEvent.Start)
         h.controller.startQuickTimer(60, preAlertSeconds = 0, run = true)
