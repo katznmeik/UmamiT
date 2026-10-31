@@ -1,4 +1,4 @@
-package com.umamit.feature.brew.steps
+package com.umamit.core.ui
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.indication
@@ -38,10 +38,11 @@ import kotlinx.coroutines.launch
  * [HoldRepeat]'s schedule, each repeat one step with a light haptic tick, and a release (or the sheet leaving,
  * e.g. for an alert) stops it at once. It looks and measures like Material's `IconButton` (40 dp, a 48 dp
  * target). [onStep] applies one step and returns whether it changed anything; at a bound the hold stops.
- * TalkBack gets a plain button: one step per activation, no repeat.
+ * TalkBack gets a plain button: one step per activation, no repeat. Shared in `core:ui` (D-100) for every
+ * − / + stepper that repeats while held.
  */
 @Composable
-internal fun RepeatingIconButton(
+fun RepeatingIconButton(
     icon: Painter,
     contentDescription: String,
     enabled: Boolean,
