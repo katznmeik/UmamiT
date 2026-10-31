@@ -119,7 +119,7 @@ internal fun UmamitRoot(
             onAdjustBrew = onAdjust,
             onOpenTimerSettings = onSettings,
             slot = shown.slot,
-            onPinned = shown.onPinned,
+            onPin = shown.onPin,
             onShowOther = shown.onShowOther,
         )
     },
@@ -215,6 +215,7 @@ internal fun UmamitRoot(
             }
         },
         openTimer = openTimer,
+        openTimerOf = openTimerOf,
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
         // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
         openQuickTimer = {
@@ -311,7 +312,7 @@ internal fun UmamitRoot(
                     TimerShown(
                         slot = route.slot,
                         // The timer a route opened for none shows, for a later notification's request (04 §8.2).
-                        onPinned = { pinned -> timerEntry.savedStateHandle[SHOWN_SLOT_KEY] = pinned.name },
+                        onPin = { pinned -> timerEntry.pinTimer(pinned) },
                         onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
                     ),
                 )
@@ -481,49 +482,9 @@ private fun NavHostController.openCatalogRefresh(
     navigateAbove(route) { launchSingleTop = true }
 }
 
-/**
- * A tap on the row for the [other] timer on the timer [route] of [entry] (D-098): the other timer's route above it;
- * from a route opened by that row, back to the route below it, so two timers never stack more than two routes. Only
- * while resumed: a quick double tap opens the other timer once (D-090).
- */
-private fun NavHostController.showOtherTimer(entry: NavBackStackEntry, route: TimerRoute, other: TimerSlot) {
-    if (entry.lifecycle.currentState != Lifecycle.State.RESUMED) return
-    if (route.switched) popBackStack() else navigate(TimerRoute(other, switched = true))
-}
-
-/**
- * Pops back to the timer route that shows [slot]'s timer (a notification opens its own timer, 04 §8.2, D-098); null:
- * the topmost timer route. A topmost route that shows the other timer is left as its row leaves it: back to the route
- * below when the row opened it ([TimerRoute.switched]), else [slot]'s route opens above it, so two timers never stack
- * more than two routes. False when no timer route is on the back stack.
- */
-private fun NavHostController.popBackToTimerOf(slot: TimerSlot?): Boolean {
-    if (!hasTimer()) return false
-    popBackStack<TimerRoute>(inclusive = false)
-    val top = currentBackStackEntry ?: return true
-    val route = top.toRoute<TimerRoute>()
-    val shows = route.slot ?: top.savedStateHandle.get<String>(SHOWN_SLOT_KEY)?.let { name ->
-        TimerSlot.entries.firstOrNull { it.name == name }
-    }
-    when {
-        slot == null || shows == null || shows == slot -> Unit
-        route.switched -> popBackStack()
-        else -> navigate(TimerRoute(slot, switched = true))
-    }
-    return true
-}
-
 /** Runs [open], or [instead] while an alert plays ([alerting]): nothing opens over an alert (rule 8). */
 private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, open: () -> Unit) {
     if (alerting()) instead() else open()
-}
-
-/** Whether the timer is on the back stack (its public check throws when it is not). */
-private fun NavHostController.hasTimer(): Boolean = try {
-    getBackStackEntry<TimerRoute>()
-    true
-} catch (_: IllegalArgumentException) {
-    false
 }
 
 /** What [rememberTimerFirst] gives the root. */
@@ -609,17 +570,14 @@ private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
 
 /**
  * What the timer route's content gets about its timer (D-098): the [slot] it shows (null: the one in front when it
- * opened), [onPinned], which a route opened for none calls with the timer it then keeps showing, and
+ * opened), [onPin], which a route opened for none calls with the timer it then keeps showing, and
  * [onShowOther], a tap on the other timer's row.
  */
 internal class TimerShown(
     val slot: TimerSlot?,
-    val onPinned: (TimerSlot) -> Unit = {},
+    val onPin: (TimerSlot) -> Unit = {},
     val onShowOther: (TimerSlot) -> Unit = {},
 )
-
-/** The timer a timer route opened for none shows, in its entry's saved state ([TimerShown.onPinned]). */
-private const val SHOWN_SLOT_KEY = "com.umamit.app.SHOWN_TIMER_SLOT"
 
 /** The cover over the shell while the timer opens from a notification. */
 internal const val SHELL_COVER_TAG = "shell_cover"

@@ -184,13 +184,12 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
      * [fullScreenCodeOf]): extras do not tell PendingIntents apart, so a code shared by both timers would let the
      * latest notification's slot replace the other's.
      */
-    private fun openTimerIntent(slot: TimerSlot?, requestCode: Int): PendingIntent =
-        PendingIntent.getActivity(
-            context,
-            requestCode,
-            TimerScreenIntents.openTimer(context, slot),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    private fun openTimerIntent(slot: TimerSlot?, requestCode: Int): PendingIntent = PendingIntent.getActivity(
+        context,
+        requestCode,
+        TimerScreenIntents.openTimer(context, slot),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun launchAppIntent(): PendingIntent? =
         context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {

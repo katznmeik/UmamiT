@@ -753,7 +753,8 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   does all three, from the settings.
 - **An empty day** posts nothing and removes yesterday's notification 12,
   which would no longer be true. A failed read (an `IOException`) skips the
-  day, logged; the next day is scheduled either way.
+  day, logged; the next day is scheduled either way. (The v0.3.0 code review
+  widened this to every failure; see its build notes.)
 - **Notification.** Title „3 Tees werden knapp" (two and more), „Tanabata
   wird knapp" (one); `InboxStyle` lines „Tanabata · 14 g" (0,1 g in German
   format, no-break space before „g"), „Hisui · leer"; the collapsed text
@@ -1288,6 +1289,43 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   reads the hold back (`heldMs`); `CueTimes` refuses such a sound, so the
   accuracy report never counts a hold as lateness or as on time (the run
   avoids holds anyway, #137).
+- **Start's card is the brew's (03 SCR-02).** The card took the controller's
+  timer in front, so a Schnelltimer alone replaced *Aufguss starten* and,
+  with both timers, the card switched to the quick timer when it was in
+  front. Now only an active brew replaces the card (`BrewStarter.observeActive`,
+  the brew slot as it changes, also behind the quick timer); a quick timer
+  alone leaves *Aufguss starten* and *Nochmal brühen* as they are, and the
+  bar shows it. The card's tap opens the brew's timer (`StartNavigation.openTimerOf`),
+  not the timer in front. Start's question still closes on either timer's
+  alert. The card looks as before, so no golden changed.
+- **One empty tea (INV-11).** The reminder of a single empty tea is titled
+  „Hisui ist leer" (INV-10's wording), not „Hisui wird knapp" over „Hisui ·
+  leer"; several teas stay „N Tees werden knapp".
+- **The reminder never breaks its chain (INV-11).** A run read the settings
+  outside its `try` and caught only an `IOException`, so any other failure
+  failed the job, and the successor it had appended (`APPEND_OR_REPLACE`)
+  failed with it: no reminder until the next app start. Worse, a failed
+  query left the day without a run, so the successor was due at once: a
+  query that kept failing ran the job again and again (the test drove it
+  into a `StackOverflowError`). Now every failure (`CancellationException`
+  aside) is logged and skips the day: the job succeeds, and the next run
+  waits for tomorrow's set time (`scheduleNext(skipToday)`), or a day when
+  the settings cannot be read; a switched-off reminder still schedules none.
+- **Small cleanups.** `TimerSlot.other` and the slots' name prefix
+  (`TimerSlot.named`: `DEADLINE`, `QUICK.DEADLINE`) live once in `core:model`
+  for the screens, the fake starter, the alarm and action receivers and the
+  log; `SlotNamesTest` pins every alarm broadcast and notification action
+  byte for byte (pending alarms and posted notifications of earlier builds
+  are matched by them), `ControllerDiagnosticsLogTest` the log lines. The
+  test-only `AlertArbitration.ringingSlot` is gone. The reminder's grams
+  use the app's one formatter (`stockGramsText`, moved from
+  `core:designsystem` to `core:common`). The timer screen's log tag is
+  `UmamiTTimerScreen`.
+- **Accepted, not changed** (judgement smells of the review): the re-post
+  logic of the service and `TimerNotifications`, the collaborators
+  `TransitionEffects` exposes, `ActiveBrewSlotStore`, the duplicated
+  `UmamiTTimer` tag, the stock threshold rule in four places, and the
+  primitive settings types.
 
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)

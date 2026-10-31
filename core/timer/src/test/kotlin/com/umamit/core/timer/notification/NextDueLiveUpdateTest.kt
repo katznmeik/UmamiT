@@ -347,7 +347,8 @@ class NextDueLiveUpdateTest {
     private fun activeIds(): List<Int> = notificationManager.activeNotifications.map { it.id }
 
     /** The timer notification [id]'s tap opens (04 §8.2); null: the one in front. */
-    private fun tapOpens(id: Int): TimerSlot? = TimerScreenIntents.slotOf(shadowOf(posted(id).contentIntent).savedIntent)
+    private fun tapOpens(id: Int): TimerSlot? =
+        TimerScreenIntents.slotOf(shadowOf(posted(id).contentIntent).savedIntent)
 
     private fun posted(id: Int): Notification =
         checkNotNull(system.getNotification(id)) { "notification $id is not showing: ${activeIds()}" }

@@ -61,8 +61,8 @@ class TwoTimersNavigationTest {
                     timerScreen = { onClose, _, _, shown ->
                         // Opened for no timer, it shows the one in front: here the brew, as the real route reports it.
                         val slot = shown.slot ?: TimerSlot.BREW
-                        LaunchedEffect(slot) { shown.onPinned(slot) }
-                        val other = if (slot == TimerSlot.BREW) TimerSlot.QUICK else TimerSlot.BREW
+                        LaunchedEffect(slot) { shown.onPin(slot) }
+                        val other = slot.other
                         Column {
                             Text("TIMER $slot")
                             Button(onClick = { shown.onShowOther(other) }) { Text("ROW $other") }
@@ -71,7 +71,11 @@ class TwoTimersNavigationTest {
                     },
                     settings = testSettingsScreens(),
                     startScreen = { tab ->
-                        Button(onClick = tab.navigation.openQuickTimer) { Text("Schnell") }
+                        Column {
+                            Button(onClick = tab.navigation.openQuickTimer) { Text("Schnell") }
+                            // Start's card *Aufguss fortsetzen*, as StartTabContent wires it (SCR-02, D-098).
+                            Button(onClick = { tab.navigation.openTimerOf(TimerSlot.BREW) }) { Text("Fortsetzen") }
+                        }
                     },
                     quickTimerScreen = { _, openTimer -> Button(onClick = openTimer) { Text("QUICK-START") } },
                 )
@@ -183,6 +187,15 @@ class TwoTimersNavigationTest {
         notificationTap(TimerSlot.QUICK)
         compose.onNodeWithText("TIMER QUICK").assertIsDisplayed()
         pressBack()
+        compose.onNodeWithText("TIMER BREW").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Start's card opens the brew it shows, not the timer in front (SCR-02)`() {
+        show()
+
+        compose.onNodeWithText("Fortsetzen").performClick()
+
         compose.onNodeWithText("TIMER BREW").assertIsDisplayed()
     }
 

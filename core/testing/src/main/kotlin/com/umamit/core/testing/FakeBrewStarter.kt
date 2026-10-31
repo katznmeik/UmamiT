@@ -12,7 +12,10 @@ import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TransitionOutcome
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Fake [BrewStarter] with the controller's observable rules (GEN-03, TMR-21, TMR-22, D-098): one brew session
@@ -36,8 +39,13 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     var replaced = 0
         private set
 
-    override fun activeIn(slot: TimerSlot): TimerUiState.Active? =
-        listOf(state.value, other.value).filterIsInstance<TimerUiState.Active>().firstOrNull { it.slot == slot }
+    override fun activeIn(slot: TimerSlot): TimerUiState.Active? = activeIn(slot, state.value, other.value)
+
+    override fun observeActive(slot: TimerSlot): Flow<TimerUiState.Active?> =
+        combine(state, other) { front, beside -> activeIn(slot, front, beside) }.distinctUntilChanged()
+
+    private fun activeIn(slot: TimerSlot, vararg timers: TimerUiState): TimerUiState.Active? =
+        timers.filterIsInstance<TimerUiState.Active>().firstOrNull { it.slot == slot }
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome {
         val active = activeIn(TimerSlot.BREW)
@@ -87,7 +95,7 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
 
     /** [timer] starts in front; the active timer of the other slot moves beside it. */
     private fun inFront(timer: TimerUiState.Active) {
-        other.value = activeIn(if (timer.slot == TimerSlot.BREW) TimerSlot.QUICK else TimerSlot.BREW)
+        other.value = activeIn(timer.slot.other)
             ?: TimerUiState.Idle
         state.value = timer
     }

@@ -33,7 +33,7 @@ import com.umamit.core.ui.rememberPhotoPainter
  *
  * @param onAdjustBrew *Brühen anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
  * @param slot the timer this route shows; null: the one in front when it opened.
- * @param onPinned opened for none, the timer it then keeps showing, once known (the navigation reads it when a
+ * @param onPin opened for none, the timer it then keeps showing, once known (the navigation reads it when a
  *   notification asks for a timer, 04 §8.2).
  * @param onShowOther a tap on the other timer's row: that timer's route.
  */
@@ -44,7 +44,7 @@ fun BrewTimerRoute(
     onOpenTimerSettings: () -> Unit,
     modifier: Modifier = Modifier,
     slot: TimerSlot? = null,
-    onPinned: (TimerSlot) -> Unit = {},
+    onPin: (TimerSlot) -> Unit = {},
     onShowOther: (TimerSlot) -> Unit = {},
     viewModel: TimerViewModel = hiltViewModel(),
 ) {
@@ -85,7 +85,7 @@ fun BrewTimerRoute(
             if (pinned == null) {
                 SideEffect {
                     pinned = active.slot
-                    onPinned(active.slot)
+                    onPin(active.slot)
                 }
             }
             val other = view.other
@@ -130,19 +130,14 @@ internal fun timerRouteView(
     quick: TimerUiState,
     front: TimerUiState,
 ): TimerRouteView {
-    val brewTimer = brew as? TimerUiState.Active
-    val quickTimer = quick as? TimerUiState.Active
-    val shown = brewTimer?.takeIf { it.ringing }
-        ?: quickTimer?.takeIf { it.ringing }
-        ?: when (pinned) {
-            null -> front as? TimerUiState.Active
-            TimerSlot.BREW -> brewTimer
-            TimerSlot.QUICK -> quickTimer
-        }
-    val other = when (shown?.slot) {
+    fun activeIn(slot: TimerSlot?): TimerUiState.Active? = when (slot) {
         null -> null
-        TimerSlot.BREW -> quickTimer
-        TimerSlot.QUICK -> brewTimer
+        TimerSlot.BREW -> brew as? TimerUiState.Active
+        TimerSlot.QUICK -> quick as? TimerUiState.Active
     }
+    val shown = activeIn(TimerSlot.BREW)?.takeIf { it.ringing }
+        ?: activeIn(TimerSlot.QUICK)?.takeIf { it.ringing }
+        ?: if (pinned == null) front as? TimerUiState.Active else activeIn(pinned)
+    val other = activeIn(shown?.slot?.other)
     return TimerRouteView(shown, other)
 }

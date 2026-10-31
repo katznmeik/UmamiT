@@ -1,6 +1,5 @@
 package com.umamit.app
 
-import com.umamit.app.timer.TimerRequest
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
@@ -14,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.picker.TeaPickerSheet

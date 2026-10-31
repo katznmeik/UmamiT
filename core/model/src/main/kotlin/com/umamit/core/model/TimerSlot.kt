@@ -13,4 +13,19 @@ enum class TimerSlot {
 
     /** The quick timer (`is_quick_timer` 1); its alarms use the request codes 201–207. */
     QUICK,
+    ;
+
+    /** The other slot. */
+    val other: TimerSlot get() = if (this == BREW) QUICK else BREW
+
+    /**
+     * How this slot's alarm broadcasts, notification actions and diagnostics log lines name it before their own
+     * name ([named]): nothing for the brew slot, whose names are those of one timer (v0.2.2), „QUICK." for the quick
+     * slot (D-098). Alarms still pending from an earlier version and the accuracy run read these names, so they never
+     * change.
+     */
+    val namePrefix: String get() = if (this == BREW) "" else "QUICK."
+
+    /** [name] as this slot names it: `DEADLINE` for the brew slot, `QUICK.DEADLINE` for the quick slot. */
+    fun named(name: String): String = namePrefix + name
 }

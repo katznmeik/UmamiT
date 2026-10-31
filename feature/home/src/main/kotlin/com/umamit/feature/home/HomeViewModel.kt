@@ -67,7 +67,9 @@ data class HomeQuestion(val teaName: String?)
 /**
  * What Start (SCR-02) shows.
  *
- * @property active the active session or quick timer: *Aufguss fortsetzen* with a live countdown (GEN-06).
+ * @property active the active brew session: *Aufguss fortsetzen* with a live countdown in place of *Aufguss starten*
+ *   (GEN-06). Never the quick timer (SCR-02, D-098): alone it leaves *Aufguss starten*, beside a brew the card stays
+ *   the brew's; the active brew bar shows it.
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
@@ -118,10 +120,11 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeUiState> = combine(
         teas.observeTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
-        starter.state,
+        // The card is the brew's (SCR-02, D-098): a quick timer alone leaves *Aufguss starten*, the bar shows it.
+        starter.state.combine(starter.observeActive(TimerSlot.BREW), ::Timers),
         pending,
         reliabilityProblem,
-    ) { overviews, recentSessions, timer, question, problem ->
+    ) { overviews, recentSessions, timers, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
         val byId = owned.associateBy { it.tea.id }
         // A session row keeps its tea's photo when the tea was removed, as in the journal (D-093 Q13).
@@ -130,7 +133,7 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             loading = false,
             collectionEmpty = owned.isEmpty(),
-            active = timer as? TimerUiState.Active,
+            active = timers.brew,
             brewAgain = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
                 .mapNotNull { byId[it] }
                 .take(SHOWN)
@@ -140,7 +143,8 @@ class HomeViewModel @Inject constructor(
                 it.tea.isFavorite
             }.map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
             question = question?.question,
-            alertKey = timer.alertKey(),
+            // Either timer's alert: no question over it (rule 8).
+            alertKey = timers.front.alertKey(),
             reliabilityProblem = problem,
         )
     }.combine(
@@ -274,6 +278,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
+
+    /** The timer in front of the controller (its alert first) and the active brew session beside it. */
+    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?)
 
     private class Started(val sessionId: String, val atElapsedMs: Long)
 
