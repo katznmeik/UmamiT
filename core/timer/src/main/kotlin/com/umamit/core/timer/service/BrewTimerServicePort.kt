@@ -159,7 +159,10 @@ class BrewTimerServicePort internal constructor(
     private fun show(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
         if (!state.alerting && LiveUpdateDismissal.isDismissed(state)) return
         val serviceShows = ForegroundServiceState.isForeground || ForegroundServiceState.hasPendingCommands
-        if (state.runsWithService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
+        // The service runs for [state] when it needs it, or when notification 5's timer does (04 §6.1 two slots,
+        // D-098): the timer due next is then the service's Live Update, also a long step that runs without it alone.
+        val withService = state.runsWithService || other?.runsWithService == true
+        if (withService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
     }
 
     /**
@@ -220,7 +223,7 @@ class BrewTimerServicePort internal constructor(
      */
     private fun send(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading, again: Boolean = false) {
         lastShown = state to fullScreen
-        val id = notifications.idFor(state)
+        val id = notifications.idFor(state, byService = true)
         val notification = notifications.build(state, fullScreen, now)
         if (again) notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
         // The longer of the two timers' needs (04 §6.1 two slots, D-098).
@@ -270,10 +273,17 @@ class BrewTimerServicePort internal constructor(
             TimerNotifications.ID_QUIET,
         )
 
-        /** 04 §6.3: running: remaining + the longest alert + 30 s; alerting: the alert + 30 s; else none. */
+        /**
+         * 04 §6.3: a short running step: remaining + the longest alert + 30 s; alerting: the alert + 30 s; else
+         * none, also for a long step the service shows for the other timer (04 §6.1).
+         */
         fun wakeLockMs(state: TimerUiState.Active, now: ClockReading): Long = when (state.phase) {
-            TimerPhase.RUNNING -> (checkNotNull(state.deadlineElapsedMs) - now.elapsedMs).coerceAtLeast(0) +
-                ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
+            TimerPhase.RUNNING -> if (state.longStep) {
+                0L
+            } else {
+                (checkNotNull(state.deadlineElapsedMs) - now.elapsedMs).coerceAtLeast(0) +
+                    ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
+            }
 
             TimerPhase.ALERTING -> ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
 

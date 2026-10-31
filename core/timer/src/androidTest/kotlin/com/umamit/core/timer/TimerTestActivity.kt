@@ -8,9 +8,10 @@ import android.util.Log
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.TimerUiState
-import com.umamit.core.timer.controller.send
+import com.umamit.core.timer.controller.state
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -32,20 +33,27 @@ class TimerTestActivity : Activity() {
         val coldBrew = intent.getBooleanExtra(EXTRA_COLD_BREW, false)
         val steps = intent.getIntExtra(EXTRA_STEPS, 1)
         val preAlertSeconds = intent.getIntExtra(EXTRA_PRE_ALERT, 0)
+        val quickSeconds = intent.getIntExtra(EXTRA_QUICK_SECONDS, 0)
         val controller = (application as TimerTestApplication).controller
         CoroutineScope(Dispatchers.Main).launch {
             val started = controller.startSession(brew(seconds, coldBrew, steps, preAlertSeconds))
-            val running = controller.send(TimerEvent.Start)
+            val running = controller.send(TimerSlot.BREW, TimerEvent.Start)
             Log.i(TAG, "Step of $seconds s: start $started, Start $running")
-            (controller.state.value as? TimerUiState.Active)?.deadlineWallMs?.let {
+            (controller.state(TimerSlot.BREW).value as? TimerUiState.Active)?.deadlineWallMs?.let {
                 deadlineFile(this@TimerTestActivity).writeTextAtomically(it.toString())
+            }
+            // A quick timer running alongside (D-098), without a pre-alert.
+            val quick = if (quickSeconds > 0) {
+                controller.startQuickTimer(quickSeconds, preAlertSeconds = 0, run = true)
+            } else {
+                TransitionOutcome.Accepted
             }
             // The test runs in another process: it reads the outcome here and fails fast on a refusal.
             outcomeFile(this@TimerTestActivity).writeTextAtomically(
-                if (started == TransitionOutcome.Accepted && running == TransitionOutcome.Accepted) {
+                if (listOf(started, running, quick).all { it == TransitionOutcome.Accepted }) {
                     STARTED
                 } else {
-                    "start $started, Start $running"
+                    "start $started, Start $running, quick timer $quick"
                 },
             )
             finish()
@@ -58,6 +66,7 @@ class TimerTestActivity : Activity() {
         private const val EXTRA_COLD_BREW = "coldBrew"
         private const val EXTRA_STEPS = "steps"
         private const val EXTRA_PRE_ALERT = "preAlertSeconds"
+        private const val EXTRA_QUICK_SECONDS = "quickSeconds"
 
         /** The tea of the test session; the alert notification shows it after the restart. */
         const val TEA = "Testtee"
@@ -73,7 +82,9 @@ class TimerTestActivity : Activity() {
 
         /**
          * A session of [steps] infusions of [seconds] each, with a pre-alert of [preAlertSeconds]
-         * (0: none); with [coldBrew] every step is a long step without the service (TMR-18).
+         * (0: none); with [coldBrew] every step is a long step without the service (TMR-18). With
+         * [quickSeconds] a quick timer of that length runs alongside, started after the brew's step
+         * (0: none; D-098).
          */
         fun intent(
             context: Context,
@@ -81,11 +92,13 @@ class TimerTestActivity : Activity() {
             coldBrew: Boolean = false,
             steps: Int = 1,
             preAlertSeconds: Int = 0,
+            quickSeconds: Int = 0,
         ): Intent = Intent(context, TimerTestActivity::class.java)
             .putExtra(EXTRA_SECONDS, seconds)
             .putExtra(EXTRA_COLD_BREW, coldBrew)
             .putExtra(EXTRA_STEPS, steps)
             .putExtra(EXTRA_PRE_ALERT, preAlertSeconds)
+            .putExtra(EXTRA_QUICK_SECONDS, quickSeconds)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int) = BrewStart(

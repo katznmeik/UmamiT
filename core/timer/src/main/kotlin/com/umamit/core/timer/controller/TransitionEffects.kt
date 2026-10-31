@@ -60,12 +60,12 @@ internal class TransitionEffects(
      * notification action, a tap; 04 §6.2, §6.3): a start Android refused earlier goes again,
      * with the notification of [timer], the lead slot's state now (D-057, D-063). Not after a
      * turn that sent the service a command itself: that command replaced the refused one, or was
-     * refused just now. A state that needs no service drops it. The alert keeps its full-screen
-     * intent while it plays.
+     * refused just now. While neither timer needs the service ([serviceNeeded]) it is dropped. The
+     * alert keeps its full-screen intent while it plays.
      */
-    fun retryRefusedStart(timer: TimerState, now: ClockReading) {
+    fun retryRefusedStart(timer: TimerState, serviceNeeded: Boolean, now: ClockReading) {
         if (roles.serviceCommanded) return
-        val ui = roles.lead?.let { screens[it] }?.takeIf { BrewTimerEngine.needsService(timer) }
+        val ui = roles.lead?.let { screens[it] }?.takeIf { serviceNeeded }
         val fullScreen = timer is TimerState.Alerting && player.isPlaying(timer)
         attempt { ports.service.retryRefusedStart(ui, fullScreen) }
             ?.let { record(TimerDiagnostic.EffectFailed(now, TimerEffect.StartForeground, it)) }

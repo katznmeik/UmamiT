@@ -296,10 +296,9 @@ class BrewSessionController @Inject constructor(
                 }
                 if (serviceStartAllowed) {
                     effects.retryRefusedStart(
-                        effects.roles.lead?.let {
-                            slots[it].timer
-                        } ?: TimerState.Idle,
-                        clocks.read(),
+                        effects.roles.lead?.let { slots[it].timer } ?: TimerState.Idle,
+                        serviceNeeded = slots.any { BrewTimerEngine.needsService(it.timer) },
+                        now = clocks.read(),
                     )
                 }
                 rearmWakeUp()
@@ -365,6 +364,8 @@ class BrewSessionController @Inject constructor(
                 attempt { ports.alarms.reconcile(idle, DueTimes.NONE) }
                     ?.let { Log.w(TAG, "alarms of the idle $idle slot not cancelled", it) }
             }
+            // The killed process's notification 5 stays posted: it goes unless a timer is shown there now (D-098).
+            attempt { effects.roles.dropStaleOther() }?.let { Log.w(TAG, "stale notification 5 not removed", it) }
             // After the recovered state is published: the screens may now trust Idle.
             mutableRecovered.value = true
             // After the timer and its alert: the sessions a device restore (E11) left in progress.

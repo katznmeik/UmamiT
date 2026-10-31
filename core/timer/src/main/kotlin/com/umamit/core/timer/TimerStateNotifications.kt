@@ -39,10 +39,13 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
     private val texts = TimerNotificationTexts(context)
     private val actions = TimerNotificationActions(context)
 
-    /** The ID of [state]'s notification: the alert while alerting, the Live Update with the service, else quiet. */
-    fun idFor(state: TimerUiState.Active): Int = when {
+    /**
+     * The ID of [state]'s notification: the alert while alerting, the Live Update with the service ([byService]:
+     * the service shows it, also for a timer that needs it only for the other one, 04 §6.1), else quiet.
+     */
+    fun idFor(state: TimerUiState.Active, byService: Boolean = state.runsWithService): Int = when {
         state.alerting -> TimerNotifications.ID_ALERT
-        state.runsWithService -> TimerNotifications.ID_LIVE_UPDATE
+        byService -> TimerNotifications.ID_LIVE_UPDATE
         else -> TimerNotifications.ID_QUIET
     }
 

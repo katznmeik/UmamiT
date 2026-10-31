@@ -22,12 +22,19 @@ import org.robolectric.shadows.ShadowService
  * - The system ([systemCancel]) removes it.
  *
  * It also records, for each notification ID, which IDs were showing when it was first posted,
- * so a test can check that the alert never appeared next to notification 1 (D-044).
+ * so a test can check that the alert never appeared next to notification 1 (D-044), and which
+ * notifications took the screen: System UI launches a full-screen intent only for a notification
+ * that is added, never for an update of one it already shows (`HeadsUpCoordinator`'s
+ * `onEntryAdded` makes the full-screen decision; `onEntryUpdated` only decides about a heads-up
+ * again), so [fullScreenLaunches] lists the new posts that carry one (D-098, #135).
  */
 @Implements(NotificationManager::class)
 class SystemLikeNotificationManager : ShadowNotificationManager() {
     /** Per ID: the IDs that were showing when it was posted while not showing itself. */
     val showingWhenFirstPosted = mutableMapOf<Int, Set<Int>>()
+
+    /** The notifications whose full-screen intent System UI launched, in order: added ones that carry one. */
+    val fullScreenLaunches = mutableListOf<Notification>()
 
     /** Called with each notification posted (by the app or the system), as it is posted. */
     var onPost: ((id: Int, notification: Notification) -> Unit)? = null
@@ -40,6 +47,7 @@ class SystemLikeNotificationManager : ShadowNotificationManager() {
         val old = getNotification(tag, id)
         if (old == null) {
             showingWhenFirstPosted[id] = activeNotifications.map { it.id }.toSet()
+            if (notification.fullScreenIntent != null) fullScreenLaunches += notification
         } else {
             notification.flags = notification.flags or (old.flags and Notification.FLAG_FOREGROUND_SERVICE)
         }

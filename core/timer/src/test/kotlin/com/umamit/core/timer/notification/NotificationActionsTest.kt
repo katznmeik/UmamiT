@@ -108,8 +108,9 @@ class NotificationActionsTest {
     fun `the quick timer's notification 5 beside a brew acts on the quick timer only`() = runBlocking<Unit> {
         harness.controller.startSession(brewStart(infusion(120)))
         harness.controller.send(TimerSlot.BREW, TimerEvent.Start)
-        harness.controller.startQuickTimer(60, run = true)
-        // The screens show the quick timer; the brew is the service's notification, the quick timer notification 5.
+        harness.controller.startQuickTimer(300, run = true)
+        // The brew ends first: it is the Live Update, the quick timer notification 5 (04 §8.3, D-098).
+        assertThat(harness.notifier.other?.slot).isEqualTo(TimerSlot.QUICK)
         val brew = harness.controller.state(TimerSlot.BREW).value
 
         tapOther(TimerSlot.QUICK, "Pause", expect = TimerPhase.PAUSED)

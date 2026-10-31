@@ -96,14 +96,24 @@ class BrewTimerService : Service() {
         TimerNotifications.cancel(this, otherIdThan(id))
         // A pending re-post holds older content; this command is newer.
         cancelRepost()
-        if (!foregroundRequired && ForegroundServiceState.foregroundId == id) {
+        val shownNow = ForegroundServiceState.foregroundId == id
+        if (shownNow && startsAlert(notification)) {
+            // An alert that starts while another alert is the foreground notification 2 (the brew's taking over a
+            // ringing quick alert, a quick alert released when the brew session ends during its alert; D-098):
+            // System UI launches a full-screen intent only for a notification it adds, never for an update, so
+            // the earlier alert goes first and the new one is posted as a new notification.
+            Log.i(TAG, "show($id): a new alert, posted as a new notification")
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            ForegroundServiceState.foregroundId = 0
+        } else if (!foregroundRequired && shownNow) {
             Log.i(TAG, "show($id): notify, foregroundRequired=false")
             TimerNotifications.post(this, id, notification)
             val sinceStart = lastForegroundStartAt?.let { SystemClock.uptimeMillis() - it }
             if (sinceStart != null && sinceStart < REPOST_WINDOW_MS) scheduleRepost(id, notification)
             return
+        } else if (!ForegroundServiceState.isForeground) {
+            takeOverStale(otherIdThan(id))
         }
-        if (!ForegroundServiceState.isForeground) takeOverStale(otherIdThan(id))
         try {
             Log.i(TAG, "show($id): startForeground, foregroundRequired=$foregroundRequired")
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -241,6 +251,14 @@ class BrewTimerService : Service() {
         fun wakeLockMsOf(command: Intent): Long = command.getLongExtra(EXTRA_WAKE_LOCK_MS, 0)
 
         fun isForegroundRequired(command: Intent): Boolean = command.getBooleanExtra(EXTRA_FOREGROUND_REQUIRED, false)
+
+        /**
+         * [notification] starts an alert: its full-screen intent is to take the screen now (D-057). An alert shown
+         * again (an update in the same alert, a re-sent start) has none or must not alert again
+         * ([Notification.FLAG_ONLY_ALERT_ONCE]).
+         */
+        fun startsAlert(notification: Notification): Boolean = notification.fullScreenIntent != null &&
+            notification.flags and Notification.FLAG_ONLY_ALERT_ONCE == 0
 
         fun otherIdThan(id: Int): Int =
             if (id == TimerNotifications.ID_ALERT) TimerNotifications.ID_LIVE_UPDATE else TimerNotifications.ID_ALERT

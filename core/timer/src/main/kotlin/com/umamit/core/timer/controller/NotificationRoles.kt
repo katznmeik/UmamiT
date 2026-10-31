@@ -1,16 +1,18 @@
 package com.umamit.core.timer.controller
 
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.notification.runsWithService
 
 /**
- * Which notification each active timer has while a brew session and a quick timer run at once (04 §8.2,
- * D-098): the [lead] slot's is the service's (the Live Update 1, the alert 2) or, without the service, the
- * quiet 4; the other active timer's is notification 5 on the LOW channel `timer_other`, so the alert stays the
- * app's only notification of importance DEFAULT or higher (D-044). The lead is the ringing slot (the brew's
- * first), else the first slot, brew before quick, that runs with the service, else the first active one. With
- * one timer every effect goes to the service and the notifier as before v0.3.0. Which timer is the Live Update
- * (the one due next, and its promotion) is v0.3.0-04's. Used inside the controller's event lock.
+ * Which notification each active timer has (04 §8.2, §8.3; D-044, D-098, PO Q5). With one timer every effect
+ * goes to the service and the notifier as before v0.3.0. With a brew session and a quick timer at once, the
+ * [lead] is the timer that ends next ([dueNext]): its notification is the service's (the Live Update 1, the
+ * alert 2) while either timer needs the service, else the quiet 4; the other active timer is notification 5 on
+ * the LOW channel `timer_other`, never promoted, so the alert stays the app's only notification of importance
+ * DEFAULT or higher (D-044). The roles are settled after each transition of either timer ([Transition.finish]):
+ * notification 5 first, then the lead's, so a move of the Live Update updates 1 and 5 in that turn and the
+ * service keeps its foreground ID 1 for it. Used inside the controller's event lock.
  */
 internal class NotificationRoles(
     private val service: TimerServicePort,
@@ -24,21 +26,37 @@ internal class NotificationRoles(
     /** The slot shown as notification 5; null when none is. */
     private var otherShown: TimerSlot? = null
 
+    /** The service was asked to run: a `StartForeground` since the last `StopForeground`. */
+    private var serviceOn = false
+
     /** The current turn sent the service a command (`StartForeground`, `StopForeground`). */
     var serviceCommanded = false
 
     /** A transition of [slot] begins, the screens already showing its new state: the roles after it. */
     fun begin(slot: TimerSlot): Transition {
         val before = lead
-        lead = leadNow()
+        lead = dueNext(screens[TimerSlot.BREW], screens[TimerSlot.QUICK])
         return Transition(slot, before, alone = screens[slot.other] == null && otherShown == null)
     }
 
-    private fun leadNow(): TimerSlot? {
-        val active = TimerSlot.entries.mapNotNull { slot -> screens[slot]?.let { slot to it } }
-        return active.firstOrNull { it.second.ringing }?.first
-            ?: active.firstOrNull { it.second.runsWithService }?.first
-            ?: active.firstOrNull()?.first
+    /**
+     * After the recovery of a new process (04 §7.2): a notification 5 the killed process left behind goes when
+     * no timer is shown there now, so it neither outlives its timer nor repeats the Live Update.
+     */
+    fun dropStaleOther() {
+        if (otherShown == null) notifier.showOther(null)
+    }
+
+    private fun startService(state: TimerUiState.Active, fullScreen: Boolean) {
+        serviceCommanded = true
+        serviceOn = true
+        service.startForeground(state, fullScreen)
+    }
+
+    private fun stopService() {
+        serviceCommanded = true
+        serviceOn = false
+        service.stopForeground()
     }
 
     /** Notification 5 shows [state], the active timer that is not the [lead]; null removes it. */
@@ -48,73 +66,101 @@ internal class NotificationRoles(
     }
 
     /**
-     * The service and notification effects of one transition of [slot]. [alone]: the other slot has no timer,
-     * so every effect goes where it went before v0.3.0.
+     * The service and notification effects of one transition of [slot]. [alone]: the other slot has no timer
+     * and none is shown as notification 5, so every effect goes where it went before v0.3.0; else the effects
+     * only say what the transition asks for, and [finish] settles both timers' notifications.
      */
     inner class Transition(
         private val slot: TimerSlot,
         private val leadBefore: TimerSlot?,
         private val alone: Boolean,
     ) {
-        private var shownAsOther = false
+        private var startAsked = false
+        private var updateAsked = false
 
-        private val leads: Boolean get() = alone || lead == slot
+        /** The transition starts its alert: its alert notification takes the screen (D-057). */
+        private var fullScreen = false
 
-        /** `StartForeground`: only the lead's state is the service's notification. */
+        /** `StartForeground`. */
         fun startForeground(state: TimerUiState.Active, fullScreen: Boolean) {
-            if (!leads) return
-            serviceCommanded = true
-            service.startForeground(state, fullScreen)
+            if (alone) return startService(state, fullScreen)
+            startAsked = true
+            this.fullScreen = this.fullScreen || fullScreen
         }
 
-        /** `StopForeground`: while the other slot leads, it needs the service, which keeps running (04 §6.1). */
+        /** `StopForeground`: with two timers the service stops only when neither needs it ([finish]). */
         fun stopForeground() {
-            if (!leads) return
-            serviceCommanded = true
-            service.stopForeground()
+            if (alone) stopService()
         }
 
-        /** `UpdateNotification`: the lead's goes to the notifier, the other's is notification 5. */
+        /** `UpdateNotification`. */
         fun update(state: TimerUiState.Active, fullScreen: Boolean) {
-            if (leads) {
-                notifier.update(state, fullScreen)
-            } else {
-                showOther(state)
-                shownAsOther = true
-            }
+            if (alone) return notifier.update(state, fullScreen)
+            updateAsked = true
+            this.fullScreen = this.fullScreen || fullScreen
         }
 
         /**
-         * After the transition's effects, while the other slot has a timer: a slot that took the lead from the
-         * other moves the other to notification 5; a slot that lost it hands the service to the other (or stops
-         * it, and the other shows quietly) and shows as notification 5 itself; a slot that went idle takes its
-         * notification 5 with it.
+         * After the transition's effects, with two timers: notification 5 shows the timer that is not the lead,
+         * or goes; then the lead's notification is the service's while either timer needs the service (04 §6.1),
+         * sent again when the lead moved, the service was off or the transition asked for it, else the quiet one.
+         * A slot that went idle takes its notification 5 with it; the last one to need the service stops it.
          */
         fun finish() {
             if (alone) return
-            val mine = screens[slot]
-            val theirs = screens[slot.other]
-            if (lead == slot && leadBefore == slot.other && theirs != null) showOther(theirs)
-            if (lead == slot.other && leadBefore != slot.other && theirs != null) handOver(theirs)
+            val leading = lead?.let { screens[it] }
+            val other = lead?.other?.let { screens[it] }
             when {
-                mine == null -> if (otherShown == slot) showOther(null)
-                lead != slot && !shownAsOther -> showOther(mine)
+                other == null -> if (otherShown != null) showOther(null)
+                otherShown != other.slot || other.slot == slot -> showOther(other)
+            }
+            val needsService = leading?.runsWithService == true || other?.runsWithService == true
+            when {
+                leading != null -> showLead(leading, needsService)
+                serviceOn -> stopService()
             }
         }
 
-        /** The other slot's timer [theirs] takes the lead from this one. */
-        private fun handOver(theirs: TimerUiState.Active) {
-            // A held alert is released in this very turn and takes the service with its own alert then.
-            if (!theirs.alertHeld) {
-                serviceCommanded = true
-                if (theirs.runsWithService) {
-                    service.startForeground(theirs, fullScreen = false)
-                } else {
-                    service.stopForeground()
-                    notifier.update(theirs, fullScreen = false)
-                }
+        /** The lead's notification [leading]: the service's while either timer [needsService], else the quiet one. */
+        private fun showLead(leading: TimerUiState.Active, needsService: Boolean) {
+            val own = lead == slot
+            val moved = leadBefore != lead
+            when {
+                // A held alert is released in this very turn and takes the service with its own alert then.
+                leading.alertHeld -> Unit
+
+                !needsService -> showQuiet(leading, again = moved || (own && updateAsked))
+
+                moved || (own && startAsked) || !serviceOn -> startService(leading, own && fullScreen)
+
+                own && updateAsked -> notifier.update(leading, fullScreen)
             }
-            if (otherShown == slot.other) showOther(null)
+        }
+
+        /** Neither timer needs the service: it stops, and the lead shows quietly (4; TMR-14, TMR-18). */
+        private fun showQuiet(leading: TimerUiState.Active, again: Boolean) {
+            if (serviceOn) {
+                stopService()
+                notifier.update(leading, fullScreen = false)
+            } else if (again) {
+                notifier.update(leading, fullScreen = false)
+            }
         }
     }
+}
+
+/**
+ * The slot whose timer ends next (04 §8.3, D-098, PO Q5), the Live Update's: the ringing alert (the brew's
+ * first); else a running timer before a waiting one; of two running, the earlier deadline (the brew on a tie);
+ * of two waiting, the brew, unless it went quiet (TMR-14) and the quick timer has not. Null while both are idle.
+ */
+internal fun dueNext(brew: TimerUiState.Active?, quick: TimerUiState.Active?): TimerSlot? {
+    val active = listOfNotNull(brew, quick)
+    val running = active.filter { it.phase == TimerPhase.RUNNING }
+    return (
+        active.firstOrNull { it.ringing }
+            ?: running.minByOrNull { checkNotNull(it.deadlineElapsedMs) }
+            ?: active.firstOrNull { !it.demoted }
+            ?: active.firstOrNull()
+        )?.slot
 }
