@@ -7,20 +7,6 @@
     <string name="brew_quick_done">Fertig</string>
     <string name="brew_quick_cancel">Abbrechen</string>
 
-    <!-- Duration picker (5 s – 24 h, PRF-04 increments) -->
-    <string name="brew_quick_picker_title">Dauer wählen</string>
-    <string name="brew_quick_picker_hours">Std.</string>
-    <string name="brew_quick_picker_minutes">Min.</string>
-    <string name="brew_quick_picker_seconds">Sek.</string>
-    <string name="brew_quick_picker_hours_less">Eine Stunde weniger</string>
-    <string name="brew_quick_picker_hours_more">Eine Stunde mehr</string>
-    <string name="brew_quick_picker_minutes_less">Eine Minute weniger</string>
-    <string name="brew_quick_picker_minutes_more">Eine Minute mehr</string>
-    <string name="brew_quick_picker_seconds_less">5 Sekunden weniger</string>
-    <string name="brew_quick_picker_seconds_more">5 Sekunden mehr</string>
-    <string name="brew_quick_picker_apply">Übernehmen</string>
-    <string name="brew_quick_picker_cancel">Abbrechen</string>
-
     <!-- TalkBack -->
     <string name="brew_quick_back">Zurück</string>
     <string name="brew_quick_ring_label">Dauer wählen</string>

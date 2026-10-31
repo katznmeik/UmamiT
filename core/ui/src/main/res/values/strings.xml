@@ -6,4 +6,29 @@
     <string name="ui_recipe_reason_conflict">Tabelle und Beschreibungstext des Shops widersprechen sich – das Rezept folgt der Tabelle.</string>
     <string name="ui_recipe_reason_implausible">Ein Wert des Shops wirkt unplausibel – stattdessen gilt der Standardwert der Sorte.</string>
     <string name="ui_recipe_reason_unmapped">Der Tee passt zu keiner bekannten Sorte – Umami-Stufe und Ersatzwerte sind allgemeine Grüntee-Werte.</string>
+    <!-- The stock sheet „Wie viel ist noch da?" (SCR-04, BRW-02, INV-03; D-093). -->
+    <string name="ui_stock_title">Wie viel ist noch da?</string>
+    <string name="ui_stock_field">Noch da</string>
+    <string name="ui_stock_unit">g</string>
+    <string name="ui_stock_hint">0 g heißt: der Tee ist leer.</string>
+    <!-- D-096: a session of this tea is running; %1$s is its leaf in g („4,5"). It is deducted at Sitzung beenden. -->
+    <string name="ui_stock_session">Die laufende Sitzung zieht beim Beenden noch %1$s\u00A0g ab.</string>
+    <string name="ui_stock_invalid">Gib eine Menge ab 0 g ein, z. B. 23,5</string>
+    <string name="ui_stock_less">0,1 g weniger</string>
+    <string name="ui_stock_more">0,1 g mehr</string>
+    <string name="ui_stock_cancel">Abbrechen</string>
+    <string name="ui_stock_save">Speichern</string>
+    <!-- „Dauer wählen" (SCR-07, SCR-31; 5 s – 24 h, PRF-04 increments) -->
+    <string name="ui_duration_picker_title">Dauer wählen</string>
+    <string name="ui_duration_picker_hours">Std.</string>
+    <string name="ui_duration_picker_minutes">Min.</string>
+    <string name="ui_duration_picker_seconds">Sek.</string>
+    <string name="ui_duration_picker_hours_less">Eine Stunde weniger</string>
+    <string name="ui_duration_picker_hours_more">Eine Stunde mehr</string>
+    <string name="ui_duration_picker_minutes_less">Eine Minute weniger</string>
+    <string name="ui_duration_picker_minutes_more">Eine Minute mehr</string>
+    <string name="ui_duration_picker_seconds_less">5 Sekunden weniger</string>
+    <string name="ui_duration_picker_seconds_more">5 Sekunden mehr</string>
+    <string name="ui_duration_picker_apply">Übernehmen</string>
+    <string name="ui_duration_picker_cancel">Abbrechen</string>
 </resources>

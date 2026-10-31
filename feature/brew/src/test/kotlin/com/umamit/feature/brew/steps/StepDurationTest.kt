@@ -28,7 +28,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
-import com.umamit.feature.brew.quick.QUICK_PICKER_TOTAL_TAG
+import com.umamit.core.ui.DURATION_PICKER_TOTAL_TAG
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,7 +77,7 @@ class StepDurationTest {
         .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
         .performClick()
 
-    private fun total() = compose.onNodeWithTag(QUICK_PICKER_TOTAL_TAG)
+    private fun total() = compose.onNodeWithTag(DURATION_PICKER_TOTAL_TAG)
 
     /** Holds − or + of step 1 for [millis] ms on the test clock, then releases it. */
     private fun hold(description: String, millis: Long) {
