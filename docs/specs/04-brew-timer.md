@@ -529,7 +529,10 @@ length.
   follows any post of the app (`startForeground`, an update, notification 5)
   within 1 s once more 0.5 s later (only-alert-once, only while that ID is
   still the foreground notification; a newer update replaces it). Same-ID
-  updates never call `startForeground` again (D-071, D-098 #135).
+  updates never call `startForeground` again (D-071, D-098 #135). The
+  notifications posted without the service, the quiet 4 and notification 5,
+  are posted once more the same way (one pending re-post per ID; a newer post
+  replaces it, a cancel drops it, so an ended timer never comes back).
 - A process killed while it posts an update of its foreground notification
   can leave that notification behind, still flagged as a foreground
   notification but owned by no service; the app can never cancel it. So a

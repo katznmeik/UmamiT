@@ -867,7 +867,7 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   dropped update again before the 15-s refresh; the four earlier runs that
   passed had tapped within it. Fix: the service posts a same-ID update once
   more 0.5 s later when the app posted any notification less than 1 s before
-  it (`ForegroundServiceState.posted`/`sinceLastPostMs`; every
+  it (`ForegroundServiceState.posted`/`postedRecently`; every
   `TimerNotifications.post`, the service's `startForeground` and its re-posts
   count), no longer only after a `startForeground`. A post more than 0.67 s
   after the one before is never dropped, and 0.5 s without posts brings the
@@ -878,9 +878,19 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   `ShedUpdateTest` (Robolectric with the real controller, ports and service and
   the run's timings; `SystemLikeNotificationManager.limitUpdateRate` adds
   AOSP's rule), red before the fix; it also covers *Weiter* right after the
-  *Pause*, the brew's *Pause* and the quick timer's end. A dropped update of
-  notification 5 (posted by the port, not the service) is still not posted
-  again until its timer changes next; not seen on CI, left for now.
+  *Pause*, the brew's *Pause* and the quick timer's end.
+- **The same for 4 and 5.** Notification 5 and the quiet 4 are posted by
+  the port, not the service, and an update of them can be dropped the same
+  way (5 left showing the paused quick timer as waiting). `TimerNotifications.post`
+  now posts a post of 4 or 5 that follows another post within 1 s once more
+  0.5 s later (only-alert-once), one pending re-post per ID: a newer post of
+  that ID replaces it, and a cancel drops it, so a timer that ended never comes
+  back. Any such post counts, not only an update, since a killed process
+  leaves 5 behind for the next one. The alert 2 and notification 1 keep the
+  service's re-post (only while that ID is the foreground notification), and a
+  new alert stays a new post that takes the screen. Test: `ShedUpdateTest`'s
+  *Pause* on notification 5 while the brew leads, red before (5 kept
+  „Bereit · 2:00").
 
 **Build notes (Claude, 2026-10-31, #132: stock on READY, BRW-11).**
 - **Read.** `TimerViewModel.teaStock` follows the active session's id

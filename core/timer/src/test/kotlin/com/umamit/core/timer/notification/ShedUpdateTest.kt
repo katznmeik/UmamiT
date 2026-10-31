@@ -130,30 +130,57 @@ class ShedUpdateTest {
         assertThat(posted(TimerNotifications.ID_LIVE_UPDATE).text()).isEqualTo(BREW_RUNNING)
     }
 
-    /** The brew's step (120 s) and the quick timer (60 s) run, started as the device test starts them. */
+    /**
+     * Notification 5 posted by the port, outside the service: the brew leads, and a *Pause* of the quick timer on
+     * notification 5 updates only 5. Right after both timers' start (the package posted busily until 0.3 s before),
+     * that update and the quick timer's start on 5 are dropped; 5 must not keep showing the quick timer as waiting
+     * or running while it is paused.
+     */
+    @Test
+    fun `the quick timer's Pause on notification 5 right after its start shows it paused even if Android drops it`() =
+        runBlocking<Unit> {
+            start(brewSeconds = 60, quickSeconds = 120, quietMs = HOT_QUIET_MS)
+            idle(QUICK_TAP_AFTER_MS)
+
+            controller.send(TimerSlot.QUICK, TimerEvent.Pause)
+            deliver()
+            idle(SETTLED_MS)
+
+            assertLiveUpdate(BREW, other = QUICK)
+            assertThat(posted(TimerNotifications.ID_LIVE_UPDATE).text()).isEqualTo(BREW_RUNNING)
+            assertWithMessage("notification 5 (dropped: ${system.shed.map { it.first to it.second.text() }})")
+                .that(posted(TimerNotifications.ID_OTHER).text()).startsWith("Pausiert")
+        }
+
+    /** The brew's step (120 s) and the quick timer (60 s) run; the quick timer, ending first, is the Live Update. */
     private suspend fun bothRunning() {
-        busyPast()
-        controller.startSession(brewStart(infusion(120, preAlert = 0)))
+        start()
+        idle(TAP_AFTER_MS)
+        assertLiveUpdate(QUICK, other = BREW)
+    }
+
+    /** A busy past, then the brew's step and the quick timer, started as the device test starts them. */
+    private suspend fun start(brewSeconds: Int = 120, quickSeconds: Int = 60, quietMs: Long = QUIET_MS) {
+        busyPast(quietMs)
+        controller.startSession(brewStart(infusion(brewSeconds, preAlert = 0)))
         deliver()
         idle(START_AFTER_MS)
         controller.send(TimerSlot.BREW, TimerEvent.Start)
         deliver()
         idle(QUICK_AFTER_MS)
-        controller.startQuickTimer(60, preAlertSeconds = 0, run = true)
+        controller.startQuickTimer(quickSeconds, preAlertSeconds = 0, run = true)
         deliver()
-        idle(TAP_AFTER_MS)
-        assertLiveUpdate(QUICK, other = BREW)
     }
 
-    /** The package posted busily until [QUIET_MS] ago, as the device test before this one did on CI. */
-    private fun busyPast() {
+    /** The package posted busily until [quietMs] ago, as the device test before this one did on CI. */
+    private fun busyPast(quietMs: Long) {
         val ids = (0 until BUSY_POSTS).map { BUSY_ID + it }
         ids.forEach {
             notificationManager.notify(it, plain())
             idle(BUSY_GAP_MS)
         }
         ids.forEach(notificationManager::cancel)
-        idle(QUIET_MS)
+        idle(quietMs)
     }
 
     private fun plain(): Notification = Notification.Builder(app, TimerNotifications.CHANNEL_SESSIONS)
@@ -230,6 +257,12 @@ class ShedUpdateTest {
 
         /** *Weiter* after *Pause*: before the Pause's re-post would land. */
         const val WEITER_AFTER_MS = 300L
+
+        /** A busier past for notification 5: the package's last posts 0.3 s before the start. */
+        const val HOT_QUIET_MS = 300L
+
+        /** A tap on notification 5 right after the quick timer's start, before the start's re-posts. */
+        const val QUICK_TAP_AFTER_MS = 100L
 
         /** Long enough for any repair, well before the 15 s refresh (04 §8.3) and the device test's 10 s. */
         const val SETTLED_MS = 9_000L

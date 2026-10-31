@@ -39,10 +39,11 @@ internal object ForegroundServiceState {
     private var lastPostAt: Long? = null
 
     /**
-     * How long ago the app last posted a notification ([posted]); null before the first. Shortly after one, Android
-     * may drop an update (its rate limit, #135) or overtake it with a `startForeground`'s late post (D-071).
+     * The app posted a notification ([posted]) less than `REPOST_WINDOW_MS` ago: Android may drop an update posted
+     * now (its rate limit, #135) or overtake it with a `startForeground`'s late post (D-071).
      */
-    val sinceLastPostMs: Long? get() = lastPostAt?.let { SystemClock.uptimeMillis() - it }
+    val postedRecently: Boolean
+        get() = lastPostAt?.let { SystemClock.uptimeMillis() - it in 0 until BrewTimerService.REPOST_WINDOW_MS } == true
 
     /** Logs what the service did (06 §5.6); set by the port, which owns the clocks and the log. */
     @Volatile

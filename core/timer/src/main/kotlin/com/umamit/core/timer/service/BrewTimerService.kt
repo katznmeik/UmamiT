@@ -107,7 +107,7 @@ class BrewTimerService : Service() {
             Log.i(TAG, "show($id): notify, foregroundRequired=false")
             // Shortly after another post, Android may drop this update (its rate limit, #135) or overtake it with the
             // start's late post (D-071): it is posted once more when the posts have calmed down.
-            val mayBeLost = ForegroundServiceState.sinceLastPostMs?.let { it in 0 until REPOST_WINDOW_MS } == true
+            val mayBeLost = ForegroundServiceState.postedRecently
             TimerNotifications.post(this, id, notification)
             if (mayBeLost) scheduleRepost(id, notification)
             return
