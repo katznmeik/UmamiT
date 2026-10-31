@@ -6,14 +6,14 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import com.umamit.core.common.stockGramsText
 import com.umamit.core.data.R
 import com.umamit.core.model.LowStockTea
-import java.text.NumberFormat
-import java.util.Locale
 
 /**
  * The daily low-stock reminder's notification (INV-11, 04 §8.1, 06 §5.4, D-098): „3 Tees werden knapp" with
- * one line per tea („Tanabata · 14 g", „Hisui · leer"), least stock first.
+ * one line per tea („Tanabata · 14 g", „Hisui · leer"), least stock first; one tea is named, „Tanabata wird
+ * knapp" or, empty, „Hisui ist leer" (INV-10's wording).
  *
  * **Apart from the timer (rule 8):** its own channel `stock` („Vorrat") at importance LOW, which keeps it out
  * of the alert's section, so the alert stays the app's only notification of importance DEFAULT or higher
@@ -46,10 +46,11 @@ object LowStockReminderNotifications {
     /** The reminder for [teas] (not empty), least stock first. */
     fun notification(context: Context, teas: List<LowStockTea>): Notification {
         require(teas.isNotEmpty()) { "A day without a low tea posts nothing (INV-11 AC2)" }
-        val title = if (teas.size == 1) {
-            context.getString(R.string.data_stock_reminder_title_one, teas.single().teaName)
-        } else {
-            context.getString(R.string.data_stock_reminder_title, teas.size)
+        val one = teas.singleOrNull()
+        val title = when {
+            one == null -> context.getString(R.string.data_stock_reminder_title, teas.size)
+            one.isEmpty -> context.getString(R.string.data_stock_reminder_title_one_empty, one.teaName)
+            else -> context.getString(R.string.data_stock_reminder_title_one, one.teaName)
         }
         val lines = teas.map { line(context, it) }
         val style = NotificationCompat.InboxStyle().setBigContentTitle(title)
@@ -83,13 +84,8 @@ object LowStockReminderNotifications {
     private fun line(context: Context, tea: LowStockTea): String = if (tea.isEmpty) {
         context.getString(R.string.data_stock_reminder_line_empty, tea.teaName)
     } else {
-        context.getString(R.string.data_stock_reminder_line, tea.teaName, grams(tea.remainingGrams))
+        context.getString(R.string.data_stock_reminder_line, tea.teaName, stockGramsText(tea.remainingGrams))
     }
-
-    private fun grams(grams: Double): String = NumberFormat.getNumberInstance(Locale.GERMANY).apply {
-        maximumFractionDigits = 1
-        minimumFractionDigits = 0
-    }.format(grams)
 
     /** A tap opens Start at its root (03 §2.4); the app's root lets an alert finish first (rule 8). */
     private fun openStart(context: Context): PendingIntent = PendingIntent.getActivity(

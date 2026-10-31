@@ -979,7 +979,9 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
 **INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
 Once a day at the time of SET-29 (default 18:00) one quiet notification
 lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
-with lines „Tanabata · 14 g", „Hisui · leer". A tap opens Start.
+with lines „Tanabata · 14 g", „Hisui · leer"; one tea is named, „Tanabata
+wird knapp" or, empty, „Hisui ist leer" (as INV-10 says it). A tap opens
+Start.
 - AC1: Teas hidden with *Ausblenden* (INV-10) are included until their next
   INITIAL or PURCHASE event; archived teas and teas without stock events
   never.

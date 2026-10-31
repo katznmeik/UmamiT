@@ -16,11 +16,16 @@ import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.WallClock
+import com.umamit.core.data.LowStockRepository
+import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.LowStockTea
+import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -59,7 +64,23 @@ class LowStockReminderTest {
     private val settings = FakeSettingsRepository()
     private val lowStock = FakeLowStockRepository()
     private val scheduler = LowStockReminderScheduler(context, settings, clock)
-    private val run = LowStockReminderRun(context, lowStock, settings, clock, scheduler)
+
+    /** What the run's query throws, if anything (a broken database, a bug). */
+    private var queryFailure: Exception? = null
+
+    /** What the run's read of the settings throws, if anything (an unreadable file, a bug). */
+    private var settingsFailure: Exception? = null
+
+    private val failingQuery = object : LowStockRepository by lowStock {
+        override suspend fun reminderTeas(): List<LowStockTea> = queryFailure?.let { throw it } ?: lowStock.reminder
+    }
+    private val failingSettings = object : SettingsRepository by settings {
+        override val settings: Flow<UserSettings>
+            get() = settingsFailure?.let { failure -> flow { throw failure } } ?: realSettings()
+    }
+    private val run = LowStockReminderRun(context, failingQuery, failingSettings, clock, scheduler)
+
+    private fun realSettings(): Flow<UserSettings> = settings.settings
     private val notifications = context.getSystemService(NotificationManager::class.java)
 
     private fun at(hour: Int, minute: Int, date: LocalDate = today): Long =
@@ -211,6 +232,46 @@ class LowStockReminderTest {
         assertThat(notification.extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString())
             .isEqualTo("Tanabata wird knapp")
         assertThat(lines(notification)).containsExactly("Tanabata · 12,5\u00A0g")
+    }
+
+    @Test
+    fun oneEmptyTeaIsCalledEmptyAsTheStartCardSaysIt() = runTest {
+        lowStock.reminder = listOf(LowStockTea("t2", "Hisui", 0.0))
+        startApp()
+
+        runJobAt(at(18, 0))
+
+        val notification = requireNotNull(posted())
+        assertThat(notification.extras.getCharSequence(NotificationCompat.EXTRA_TITLE).toString())
+            .isEqualTo("Hisui ist leer")
+        assertThat(lines(notification)).containsExactly("Hisui · leer")
+    }
+
+    @Test
+    fun aRunWhoseQueryFailsInAnyWaySucceedsAndTheNextDayIsScheduled() = runTest {
+        lowStock.reminder = three
+        startApp()
+        queryFailure = IllegalStateException("a broken query (test)")
+
+        runJobAt(at(18, 0))
+
+        assertThat(posted()).isNull()
+        // The job succeeded, so the run it appended is not failed with it: tomorrow's waits, not one at once.
+        assertThat(work().filter { it.state.isFinished }.map { it.state }).containsExactly(WorkInfo.State.SUCCEEDED)
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(24))
+    }
+
+    @Test
+    fun aRunWhoseSettingsCannotBeReadSucceedsAndTheNextDayIsScheduled() = runTest {
+        lowStock.reminder = three
+        startApp()
+        settingsFailure = IllegalStateException("an unreadable settings file (test)")
+
+        runJobAt(at(18, 0))
+
+        assertThat(posted()).isNull()
+        assertThat(work().filter { it.state.isFinished }.map { it.state }).containsExactly(WorkInfo.State.SUCCEEDED)
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(24))
     }
 
     @Test

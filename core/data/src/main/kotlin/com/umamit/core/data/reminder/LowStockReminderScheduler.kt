@@ -1,6 +1,7 @@
 package com.umamit.core.data.reminder
 
 import android.content.Context
+import android.util.Log
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -8,6 +9,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.UserSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -54,17 +56,32 @@ class LowStockReminderScheduler @Inject constructor(
 
     /**
      * Schedules the run after the one that is running now: appended to it, so it starts once the running one
-     * has ended, never cancelling it (REPLACE from inside the job would).
+     * has ended, never cancelling it (REPLACE from inside the job would). [skipToday]: the running one failed,
+     * so today counts as had (the next waits for tomorrow's set time, never runs at once again); without readable
+     * settings it comes a day later.
      */
-    suspend fun scheduleNext() = enqueue(delayMs(), ExistingWorkPolicy.APPEND_OR_REPLACE)
+    @Suppress("TooGenericExceptionCaught") // unreadable settings never break the chain of days (INV-11)
+    suspend fun scheduleNext(skipToday: Boolean = false) {
+        val delay = try {
+            delayMs(skipToday)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Low-stock reminder settings unreadable: the next run comes in a day", e)
+            TimeUnit.DAYS.toMillis(1)
+        }
+        enqueue(delay, ExistingWorkPolicy.APPEND_OR_REPLACE)
+    }
 
-    private suspend fun delayMs(): Long {
+    private suspend fun delayMs(skipToday: Boolean = false): Long {
         val current = settings.settings.first()
+        val now = clock.nowMs()
+        val zone = clock.zone()
         return LowStockReminderSchedule.delayMs(
-            nowMs = clock.nowMs(),
-            zone = clock.zone(),
+            nowMs = now,
+            zone = zone,
             minuteOfDay = current.lowStockReminderTime,
-            lastDate = current.lastReminderDate(),
+            lastDate = if (skipToday) LowStockReminderSchedule.dateOf(now, zone) else current.lastReminderDate(),
         )
     }
 
@@ -80,6 +97,8 @@ class LowStockReminderScheduler @Inject constructor(
     companion object {
         /** The job's unique name (06 §5.4). */
         const val WORK_NAME = "low-stock-reminder"
+
+        private const val TAG = "UmamiTStockReminder"
     }
 }
 
