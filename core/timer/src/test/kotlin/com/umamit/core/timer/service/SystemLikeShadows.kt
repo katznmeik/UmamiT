@@ -4,6 +4,7 @@ import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.os.SystemClock
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
@@ -27,6 +28,13 @@ import org.robolectric.shadows.ShadowService
  * that is added, never for an update of one it already shows (`HeadsUpCoordinator`'s
  * `onEntryAdded` makes the full-screen decision; `onEntryUpdated` only decides about a heads-up
  * again), so [fullScreenLaunches] lists the new posts that carry one (D-098, #135).
+ *
+ * With [limitUpdateRate] it also sheds updates as AOSP does (`checkDisqualifyingFeatures`, #135): an update of a
+ * notification that is showing is dropped without a word to the app while the package's enqueue rate is above 5 per
+ * second (`mMaxPackageEnqueueRate`); every post that is let through counts, a new one, an update and the service's
+ * `startForeground` post alike (`NotificationUsageStats.registerEnqueuedByAppAndTrimmed`), as an exponentially
+ * weighted moving average of the time between posts (`RateEstimator`, alpha 0.7, on `SystemClock.elapsedRealtime`).
+ * The rate is the package's: it carries over from an earlier process.
  */
 @Implements(NotificationManager::class)
 class SystemLikeNotificationManager : ShadowNotificationManager() {
@@ -39,12 +47,26 @@ class SystemLikeNotificationManager : ShadowNotificationManager() {
     /** Called with each notification posted (by the app or the system), as it is posted. */
     var onPost: ((id: Int, notification: Notification) -> Unit)? = null
 
+    /** AOSP's rate limit on updates (above); off unless a test turns it on. */
+    var limitUpdateRate = false
+
+    /** The updates the rate limit dropped, in order: ID and notification. */
+    val shed = mutableListOf<Pair<Int, Notification>>()
+
+    private val enqueueRate = EnqueueRate()
+
     @Implementation
     override fun notify(id: Int, notification: Notification) = notify(null, id, notification)
 
     @Implementation
     override fun notify(tag: String?, id: Int, notification: Notification) {
         val old = getNotification(tag, id)
+        val now = SystemClock.elapsedRealtime()
+        if (limitUpdateRate && old != null && enqueueRate.rateAt(now) > MAX_ENQUEUE_RATE) {
+            shed += id to notification
+            return
+        }
+        enqueueRate.update(now)
         if (old == null) {
             showingWhenFirstPosted[id] = activeNotifications.map { it.id }.toSet()
             if (notification.fullScreenIntent != null) fullScreenLaunches += notification
@@ -69,7 +91,36 @@ class SystemLikeNotificationManager : ShadowNotificationManager() {
     fun systemCancel(id: Int) = super.cancel(null, id)
 
     companion object {
+        /** AOSP's `mMaxPackageEnqueueRate` (`DEFAULT_MAX_NOTIFICATION_ENQUEUE_RATE`): posts per second. */
+        const val MAX_ENQUEUE_RATE = 5.0
+
         fun of(manager: NotificationManager): SystemLikeNotificationManager = Shadow.extract(manager)
+    }
+}
+
+/** AOSP's `RateEstimator`: an exponentially weighted moving average of the time between events, in seconds. */
+private class EnqueueRate {
+    private var lastEventMs: Long? = null
+
+    /** AOSP's generous start for a package it knows nothing about. */
+    private var interarrivalS = 1000.0
+
+    fun update(nowMs: Long) {
+        if (lastEventMs != null) interarrivalS = estimateAt(nowMs)
+        lastEventMs = nowMs
+    }
+
+    /** The rate if there were an event now; 0 before the first. */
+    fun rateAt(nowMs: Long): Double = if (lastEventMs == null) 0.0 else 1.0 / estimateAt(nowMs)
+
+    private fun estimateAt(nowMs: Long): Double {
+        val dt = maxOf((nowMs - checkNotNull(lastEventMs)) / 1000.0, MINIMUM_DT_S)
+        return ALPHA * interarrivalS + (1 - ALPHA) * dt
+    }
+
+    private companion object {
+        const val ALPHA = 0.7
+        const val MINIMUM_DT_S = 0.0005
     }
 }
 
