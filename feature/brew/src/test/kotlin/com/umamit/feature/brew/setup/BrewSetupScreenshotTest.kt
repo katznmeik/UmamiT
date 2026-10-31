@@ -12,8 +12,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -199,6 +201,18 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     /** At 0 g the header reads „Leer" (INV-05). */
     @Test
     fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
+
+    /** *Bearb.* opens the Schritte-Sheet, and a tap on step 1's time opens „Dauer wählen" over it (#141). */
+    @Test
+    fun setupDurationPicker() = capture("BrewSetup_durationPicker", act = { tapFirstDuration() }) {
+        BrewSetupScreen(kyusu)
+    }
+
+    private fun tapFirstDuration() {
+        compose.onNodeWithTag(SETUP_STEPS_EDIT_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 1: 1 Minute. Ändern").performScrollTo().performClick()
+    }
 
     private fun tapStock() {
         compose.onNodeWithTag(SETUP_STOCK_TAG).performClick()

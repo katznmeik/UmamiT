@@ -999,6 +999,51 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   labels, with goldens `StepsSheet_hotStepsOfMinutes`, `StepsSheet_coldBrew`
   and `BrewSetup_hotStepsOfMinutes`.
 
+**Build notes (Claude, 2026-10-31, #141: step durations, fast; PRF-04, SCR-04, SCR-31).**
+- **Where.** The setup's step list (SCR-04) is a read-only summary; its
+  durations are edited in the Schritte-Sheet it opens (*Bearb.*), so the
+  tap and the hold live in the sheet and reach the setup, the timer and
+  *Weiterer Aufguss* alike. The setup gets no second editor.
+- **The picker.** SCR-07's `QuickDurationPicker` (its rules
+  `QuickDuration.step`) is reused unchanged, opened from the sheet with the
+  step's value. `StepsSheetState.setDuration` takes its result within 5 s –
+  24 h, rounded down to PRF-04's increment (the picker only offers values on
+  the grid). It is composed in the sheet's window, so an alert, which removes
+  the window in its first frame, removes it too; the sheet's edits, the
+  picker's draft included, are dropped as before (D-051). It only opens for a
+  step that is still pending.
+- **The hold's schedule (`HoldRepeat`).** The ticket's 400 ms / 150 ms /
+  60 ms after 1,5 s cannot reach 10:00 from 5:00 (60 repeats) in about 3 s:
+  at 60 ms it takes about 4,6 s. Claude kept the PO's numbers and added a
+  third phase, every 25 ms from 2 s: the repeats come at 400, 550, …, 1600,
+  then 1660, …, 2020, then every 25 ms, and the 60th lands at 3,12 s. The
+  interval after a repeat is that of the phase the repeat fell in.
+- **Tap and hold, one button (`RepeatingIconButton`).** It replaces
+  Material's `IconButton` in the sheet's steppers at the same size (40 dp, a
+  48 dp target, 38 % when disabled), so the goldens without a picker do not
+  move. A press that ends before the first repeat is one step on release; a
+  press a scroll takes over is none. The haptic tick
+  (`HapticFeedbackType.SegmentFrequentTick`) comes with each repeat that
+  changed the value, not with a plain tap (as before). A repeat that would
+  leave the bounds ends the hold without a tick.
+- **The temperature too.** The temperature's − / + hold the same way, so a
+  row's steppers behave alike (5 °C per repeat, 5–100 °C).
+- **TalkBack.** The time is a button „Ziehzeit, Schritt 2: 5 Minuten.
+  Ändern", in the wording of the row's other labels („Ziehzeit verlängern,
+  Schritt 2", „Vorwarnung, Schritt 2: … Ändern") rather than the ticket's
+  „Dauer …"; its live region still announces a new value. − / + are single
+  steps through the click action.
+- **Tests.** `HoldRepeatTest` (the schedule, 60 repeats by 3,12 s),
+  `StepsSheetSetDurationTest` (bounds, rounding, locked steps, dirty),
+  `StepDurationTest` (the picker: 10:00 in one go, *Abbrechen*, bounds and
+  rounding from the dialog, no button on locked steps; the hold on the test
+  clock: 5:00 → 10:00 in 3,12 s, then minutes, ticks per repeat, a short
+  press is one step, release and bound stop it; TalkBack), and
+  `StepsSheetHostTest` (an alert removes the picker in two frames without
+  applying its draft; an alert stops a hold). Goldens
+  `StepsSheet_durationPicker` and `BrewSetup_durationPicker` (light/dark,
+  font 1.0/2.0).
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

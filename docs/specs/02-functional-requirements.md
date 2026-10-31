@@ -532,7 +532,11 @@ recipes; teas without style get *Western 3 g / 250 ml / 85 °C / 3:00*.
 **PRF-04 — Steps editor** `Must`
 Add, delete, reorder steps; per step: kind, duration 5 s – 24 h (5 s steps
 below 10 min, 1 min steps above), optional temperature (5 °C steps), note.
-At least one non-rinse step.
+At least one non-rinse step. From v0.3.0 (D-098, #141) a step's duration is
+set fast where it is edited (the Schritte-Sheet, SCR-31, also from the setup,
+SCR-04): a tap on the time opens „Dauer wählen" (SCR-07's picker, the same
+bounds and increments), and a held − / + repeats and speeds up, one increment
+per repeat.
 
 **PRF-05 — Generate series** `Should`
 First duration + increment × count, optional +5 °C per step.

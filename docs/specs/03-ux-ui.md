@@ -397,7 +397,8 @@ state has a text or semantics equivalent (remaining time, „Gleich fertig …",
 „Jetzt abgießen!").
 
 Haptics: tick on start/pause, pre-alert tick, alert pattern, confirm on
-*Abgegossen*.
+*Abgegossen*; a light tick (`SegmentFrequentTick`) per repeat of a held − / +
+in the Schritte-Sheet (SCR-31, #141).
 
 ### 3.7 Voice & tone (German)
 
@@ -576,6 +577,9 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - **Long hot steps.** A hot step of 10–59 min shows its Vorwarnung like any
   other („Auto · 10 s"); „–" / „· keine" stays for cold and ice brew and
   steps of 60 min and more (TMR-18).
+- **Step durations, fast (#141).** The setup's step list stays a read-only
+  summary; durations are edited in its Schritte-Sheet (*Bearb.*), which
+  now has the tap on the time („Dauer wählen") and the held − / + of SCR-31.
 
 ### SCR-05 Timer
 
@@ -1098,6 +1102,18 @@ editable before *Start*). Never from ALERTING: both entries appear after
   temperature (5 °C steps), delete; *Aufguss hinzufügen* appends a step
   (TMR-10 defaults). Started and completed steps are read-only; the running
   step is not editable.
+- **Faster durations (v0.3.0, #141, [D-098](10-open-questions-and-decisions.md#d-098)).**
+  A tap on a pending step's time opens „Dauer wählen", SCR-07's picker
+  (hours, minutes, seconds with − / +; 5 s – 24 h in PRF-04's increments),
+  with the step's value: *Übernehmen* sets it, *Abbrechen* leaves it. A held
+  − / + (duration and temperature) repeats: the first repeat after 400 ms,
+  then every 150 ms, from 1,5 s every 60 ms and from 2 s every 25 ms, one
+  PRF-04 step (or 5 °C) per repeat with a light haptic tick, so 5:00 →
+  10:00 takes about 3 s; a plain tap is one step, a release stops at once, and
+  a bound ends the hold. TalkBack reads the time as a button („Ziehzeit,
+  Schritt 2: 5 Minuten. Ändern"); − / + are single steps there. Like the
+  sheet, the picker never covers an alert: it goes in the alert's first frame
+  with the sheet, and its draft is never applied; a hold stops.
 - **Pre-alert per step (v0.2.1, TMR-23, [D-093](10-open-questions-and-decisions.md#d-093)).**
   Each pending step, and the running one, has a *Vorwarnung* selector:
   *Automatisch* (shows its value, „Auto · 5 s", or „Auto · keine") / *Aus* /
