@@ -217,7 +217,7 @@ class EngineInvariantsTest {
 
     /**
      * The oracle of 04 §4, written from the spec: every active state needs the
-     * service except a demoted session and a running long step (≥ 10 min, or
+     * service except a demoted session and a running long step (≥ 60 min, or
      * any step of a cold or ice brew).
      */
     private fun needsService(state: TimerState): Boolean = when {
@@ -512,7 +512,7 @@ class EngineInvariantsTest {
 
     /** Short steps, and now and then a long one (TMR-18), each with its own pre-alert. */
     private fun randomPlan(random: Random): List<PlannedStep> = List(random.nextInt(1, 5)) {
-        val seconds = if (random.nextInt(6) == 0) random.nextInt(600, 3600) else random.nextInt(5, 120)
+        val seconds = if (random.nextInt(6) == 0) random.nextInt(600, 7_200) else random.nextInt(5, 120)
         PlannedStep(StepKind.entries.random(random), seconds, tempC = null, randomPreAlert(random))
     }
 
@@ -546,7 +546,7 @@ class EngineInvariantsTest {
      * *Aus* or 5–30 s; the selector's choice, and now and then a value it never offers (rejected).
      */
     private fun randomQuickTimer(random: Random): TimerEvent.StartQuickTimer {
-        val seconds = if (random.nextInt(8) == 0) random.nextInt(LONG_SECONDS, 900) else random.nextInt(5, 120)
+        val seconds = if (random.nextInt(8) == 0) random.nextInt(600, 7_200) else random.nextInt(5, 120)
         val base = random.nextInt(0, 7) * 5
         val choice = if (random.nextInt(10) == 0) listOf(-5, 3, 35).random(random) else randomPreAlert(random)
         return TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = base, preAlertSeconds = choice)
@@ -556,6 +556,6 @@ class EngineInvariantsTest {
         const val RUNS = 300
         const val EVENTS_PER_RUN = 80
         const val STALE_ONE_IN = 10
-        const val LONG_SECONDS = 600
+        const val LONG_SECONDS = 3_600
     }
 }

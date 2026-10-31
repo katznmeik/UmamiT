@@ -6,6 +6,7 @@ import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.PowerManager
 import android.util.Log
@@ -21,8 +22,9 @@ import javax.inject.Inject
 /**
  * The states the timer's reliability depends on (06 §5.6, TMR-31): the
  * notification permission, Live Update promotion (null: the platform has no
- * such API), the full-screen alert, exact alarms and the exemption from
- * battery optimisation.
+ * such API), the full-screen alert, exact alarms, the exemption from
+ * battery optimisation and, from v0.3.0, the phone's alarm volume above 0
+ * (D-098: the cues play on the alarm stream).
  */
 data class PermissionStates(
     val notifications: Boolean,
@@ -30,6 +32,7 @@ data class PermissionStates(
     val fullScreenIntent: Boolean,
     val exactAlarms: Boolean,
     val batteryUnrestricted: Boolean,
+    val alarmVolumeOn: Boolean = true,
 )
 
 /** Reads the [PermissionStates] of the app now; a binder call each, so off the main thread. */
@@ -53,6 +56,9 @@ class AndroidPermissionStatesReader @Inject constructor(@ApplicationContext cont
             exactAlarms = checkNotNull(appContext.getSystemService(AlarmManager::class.java)).canScheduleExactAlarms(),
             batteryUnrestricted = checkNotNull(appContext.getSystemService(PowerManager::class.java))
                 .isIgnoringBatteryOptimizations(appContext.packageName),
+            // TMR-31 (D-098): getStreamVolume answers 0 for a muted stream too.
+            alarmVolumeOn = checkNotNull(appContext.getSystemService(AudioManager::class.java))
+                .getStreamVolume(AudioManager.STREAM_ALARM) > 0,
         )
     }
 

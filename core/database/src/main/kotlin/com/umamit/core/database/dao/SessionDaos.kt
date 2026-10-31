@@ -12,6 +12,7 @@ import androidx.room.Upsert
 import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
 import com.umamit.core.database.entity.SessionStepEntity
+import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.flow.Flow
 
 /** A session row with its step rows (in any order; sort by `position`) and its tea's cover photo id. */
@@ -82,15 +83,22 @@ interface JournalDao {
     fun observeSessions(): Flow<List<JournalSessionRow>>
 }
 
-/** The single `active_brew` row (05 §3.12). */
+/** The `active_brew` rows (05 §3.12), from schema v4 one per [TimerSlot] (D-098). */
 @Dao
 interface ActiveBrewDao {
-    @Query("SELECT * FROM active_brew WHERE id = ${ActiveBrewEntity.SINGLE_ROW_ID}")
-    suspend fun get(): ActiveBrewEntity?
+    /** The row of [slot]; null while that slot has no active timer. */
+    @Query("SELECT * FROM active_brew WHERE slot = :slot")
+    suspend fun get(slot: TimerSlot): ActiveBrewEntity?
 
+    /** Writes the row of its [ActiveBrewEntity.slot]; the other slot's row is untouched. */
     @Upsert
     suspend fun upsert(activeBrew: ActiveBrewEntity)
 
+    /** Deletes the row of [slot] only. */
+    @Query("DELETE FROM active_brew WHERE slot = :slot")
+    suspend fun delete(slot: TimerSlot)
+
+    /** Deletes the rows of both slots. */
     @Query("DELETE FROM active_brew")
     suspend fun clear()
 

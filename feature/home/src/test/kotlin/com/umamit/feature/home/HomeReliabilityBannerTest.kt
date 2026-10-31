@@ -17,6 +17,7 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -37,7 +38,7 @@ class HomeReliabilityBannerTest {
 
     private var fixes = 0
 
-    private fun show(problem: Boolean) = compose.setContent {
+    private fun show(problem: ReliabilityProblem?) = compose.setContent {
         UmamiTheme(reduceMotion = true) {
             HomeScreen(
                 state = HomeUiState(loading = false, reliabilityProblem = problem),
@@ -49,9 +50,21 @@ class HomeReliabilityBannerTest {
 
     @Test
     fun `a missing check shows the banner, and Beheben opens its setting`() {
-        show(problem = true)
+        show(problem = ReliabilityProblem.Unreliable)
 
         compose.onNodeWithText("Der Timer ist eventuell unzuverlässig").assertIsDisplayed()
+        compose.onNodeWithText("Beheben").performClick()
+
+        assertThat(fixes).isEqualTo(1)
+    }
+
+    @Test
+    fun `the alarm volume at 0 shows Alarmlautstaerke ist aus with Beheben`() {
+        // TMR-31, D-098: the cues play on the alarm stream.
+        show(problem = ReliabilityProblem.AlarmVolumeOff)
+
+        compose.onNodeWithText("Alarmlautstärke ist aus").assertIsDisplayed()
+        compose.onNodeWithText("Der Timer ist eventuell unzuverlässig").assertDoesNotExist()
         compose.onNodeWithText("Beheben").performClick()
 
         assertThat(fixes).isEqualTo(1)
@@ -87,12 +100,28 @@ class HomeReliabilityBannerTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Der Timer ist eventuell unzuverlässig").assertIsDisplayed()
+
+        // The alarm volume turned down to 0 in the meantime, the exact alarms granted again.
+        compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        reliability.set(ReliabilityCheck.ExactAlarms, CheckState.Ok)
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+        compose.onNodeWithText("Alarmlautstärke ist aus").assertIsDisplayed()
+
+        // Raised again: the warning clears on the next resume.
+        compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Ok)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+        compose.onNodeWithText("Alarmlautstärke ist aus").assertDoesNotExist()
     }
 
     @Test
     fun `with every check passing there is no banner`() {
-        show(problem = false)
+        show(problem = null)
 
         compose.onNodeWithText("Der Timer ist eventuell unzuverlässig").assertDoesNotExist()
+        compose.onNodeWithText("Alarmlautstärke ist aus").assertDoesNotExist()
     }
 }

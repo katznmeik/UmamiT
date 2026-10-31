@@ -12,6 +12,7 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -128,6 +129,13 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
     fun lowStockEmpty() = capture(
         "lowStockEmpty",
         seeded.copy(lowStock = lowStockCard(teaName = "Bio Sencha Tanabata", grams = 0.0, reorderUrl = null)),
+    )
+
+    /** The reliability banner when the phone's alarm volume is 0: „Alarmlautstärke ist aus" (TMR-31, D-098). */
+    @Test
+    fun alarmVolumeOff() = capture(
+        "alarmVolumeOff",
+        seeded.copy(reliabilityProblem = ReliabilityProblem.AlarmVolumeOff),
     )
 
     @Test

@@ -3,12 +3,18 @@ package com.umamit.feature.settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
@@ -18,6 +24,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
@@ -70,14 +77,24 @@ class SettingsTest {
     private class FakeTonePreview : TonePreview {
         val played = mutableListOf<String>()
         val preAlertsPlayed = mutableListOf<String>()
+
+        /** The *Lautstärke* of every preview, in order (SET-27). */
+        val volumes = mutableListOf<Int>()
+
+        /** *Bei „Nicht stören" klingeln* of every preview, in order (SET-32). */
+        val ringUnderDnd = mutableListOf<Boolean>()
         var stops = 0
 
-        override fun play(toneKey: String) {
+        override fun play(toneKey: String, volumePercent: Int, ringUnderDnd: Boolean) {
             played += toneKey
+            volumes += volumePercent
+            this.ringUnderDnd += ringUnderDnd
         }
 
-        override fun playPreAlert(preAlertKey: String) {
+        override fun playPreAlert(preAlertKey: String, volumePercent: Int, ringUnderDnd: Boolean) {
             preAlertsPlayed += preAlertKey
+            volumes += volumePercent
+            this.ringUnderDnd += ringUnderDnd
         }
 
         override fun stop() {
@@ -117,6 +134,10 @@ class SettingsTest {
     private fun stored(): UserSettings = runBlocking { settings.settings.first() }
 
     private fun clickRow(text: String) = compose.onNodeWithText(text).performScrollTo().performClick()
+
+    /** A tap on [hour] on the time picker's 24 h dial (its items carry the hour as content description). */
+    private fun pickHour(hour: Int) =
+        compose.onNode(hasContentDescription("$hour ", substring = true) and hasClickAction()).performClick()
 
     @Test
     fun `the switches persist vibration, the screen kept on and the dimming`() {
@@ -255,6 +276,72 @@ class SettingsTest {
     }
 
     @Test
+    fun `the daily reminder is on at 18 00 and switching it off hides its time (SET-28, SET-29)`() {
+        show()
+        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).performScrollTo().assertIsOn()
+        compose.onNodeWithText("Listet jeden Tag alle knappen und leeren Tees.").assertIsDisplayed()
+        compose.onNodeWithText("Uhrzeit").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("18:00").assertIsDisplayed()
+
+        clickRow("Tägliche Vorrats-Erinnerung")
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(lowStockReminder = false))
+        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).assertIsOff()
+        compose.onNodeWithText("Uhrzeit").assertDoesNotExist()
+
+        clickRow("Tägliche Vorrats-Erinnerung")
+        compose.waitForIdle()
+        assertThat(stored().lowStockReminder).isTrue()
+        compose.onNodeWithText("18:00").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Uhrzeit opens the 24 h time picker and stores the time picked`() {
+        show()
+
+        clickRow("Uhrzeit")
+        pickHour(21)
+        compose.onNodeWithText("OK").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().lowStockReminderTime).isEqualTo(21 * 60)
+        compose.onNodeWithText("21:00").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `Abbrechen in the time picker keeps the time`() {
+        show()
+
+        clickRow("Uhrzeit")
+        pickHour(21)
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().lowStockReminderTime).isEqualTo(18 * 60)
+    }
+
+    @Test
+    fun `the reminder time reads in the German 24 h format`() {
+        runBlocking { settings.update { it.copy(lowStockReminderTime = 7 * 60 + 5) } }
+        show()
+
+        compose.onNodeWithText("07:05").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `an alert closes the time picker`() {
+        show()
+        clickRow("Uhrzeit")
+        compose.onNodeWithText("OK").assertIsDisplayed()
+
+        alertKey = "session-1:0"
+        compose.waitForIdle()
+
+        compose.onNodeWithText("OK").assertDoesNotExist()
+    }
+
+    @Test
     fun `Knapp ab stops at 0 and 500 g`() {
         runBlocking { settings.update { it.copy(lowStockGrams = 500.0) } }
         show()
@@ -266,6 +353,112 @@ class SettingsTest {
         clickRow("Knapp ab")
         compose.onNodeWithContentDescription("5 g weniger").assertIsNotEnabled()
         compose.onNodeWithContentDescription("5 g mehr").assertIsEnabled()
+    }
+
+    @Test
+    fun `Lautstaerke below Vorwarnton reads 100 percent with its hint and stores a new value in steps of 10`() {
+        // SET-27 (D-098): 10–100 % in steps of 10, default 100 %.
+        show()
+        compose.onNodeWithTag(SettingsTags.VOLUME).performScrollTo()
+        compose.onNodeWithText("Lautstärke").assertIsDisplayed()
+        compose.onNodeWithText("100 %").assertIsDisplayed()
+        compose.onNodeWithText("Wirkt auf die Alarmlautstärke des Handys").assertIsDisplayed()
+        compose.onNodeWithTag(SettingsTags.VOLUME)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "100 %"))
+
+        compose.onNodeWithTag(SettingsTags.VOLUME).performSemanticsAction(SemanticsActions.SetProgress) { it(30f) }
+        compose.waitForIdle()
+
+        assertThat(stored().alertVolumePercent).isEqualTo(30)
+        compose.onNodeWithText("30 %").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Lautstaerke stops at 10 percent, so the app never silences a cue`() {
+        runBlocking { settings.update { it.copy(alertVolumePercent = 20) } }
+        show()
+        compose.onNodeWithTag(SettingsTags.VOLUME).performScrollTo()
+
+        compose.onNodeWithTag(SettingsTags.VOLUME).performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        compose.waitForIdle()
+
+        assertThat(stored().alertVolumePercent).isEqualTo(10)
+        compose.onNodeWithTag(SettingsTags.VOLUME)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "10 %"))
+        val range = compose.onNodeWithTag(SettingsTags.VOLUME).fetchSemanticsNode()
+            .config[SemanticsProperties.ProgressBarRangeInfo]
+        assertThat(range.range).isEqualTo(10f..100f)
+        assertThat(range.steps).isEqualTo(8)
+    }
+
+    @Test
+    fun `Anhoeren plays at the stored Lautstaerke`() {
+        runBlocking { settings.update { it.copy(alertVolumePercent = 40) } }
+        show()
+
+        clickRow("Alarmton")
+        compose.onNodeWithText("Anhören").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Anhören").performClick()
+
+        assertThat(preview.volumes).containsExactly(40, 40)
+    }
+
+    @Test
+    fun `Bei Nicht stoeren klingeln is on with its detail and switching it off persists`() {
+        // SET-32 (D-099): default on; off, the phone's reported ringer mode decides under Do Not Disturb.
+        show()
+        val row = hasText("Bei „Nicht\u00A0stören“ klingeln") and isToggleable()
+        compose.onNode(row).performScrollTo().assertIsOn()
+        compose.onNodeWithText("Vorwarnung und Alarm klingen, wenn „Nicht\u00A0stören“ Alarme erlaubt")
+            .assertIsDisplayed()
+
+        compose.onNode(row).performClick()
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(ringUnderDnd = false))
+        compose.onNode(row).assertIsOff()
+        compose.onNode(row).performClick()
+        compose.waitForIdle()
+        assertThat(stored().ringUnderDnd).isTrue()
+    }
+
+    @Test
+    fun `Anhoeren follows Bei Nicht stoeren klingeln`() {
+        // SET-32 (D-099): the preview sounds where the cues would.
+        runBlocking { settings.update { it.copy(ringUnderDnd = false) } }
+        show()
+
+        clickRow("Alarmton")
+        compose.onNodeWithText("Anhören").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        runBlocking { settings.update { it.copy(ringUnderDnd = true) } }
+        compose.waitForIdle()
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Anhören").performClick()
+
+        assertThat(preview.ringUnderDnd).containsExactly(false, true).inOrder()
+    }
+
+    @Test
+    fun `the alarm volume at 0 shows its row with Ist aus and Beheben, which opens the sound settings`() {
+        // TMR-31, SET-24 (D-098).
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        val viewModel = show()
+
+        compose.onNodeWithText("Alarmlautstärke").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Ist aus").assertIsDisplayed()
+        compose.onNodeWithText("Beheben").performClick()
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.AlarmVolume)
+
+        // Raised in the sound settings: back on the screen the row reads OK again.
+        reliability.grantAll()
+        viewModel.refresh()
+        compose.waitForIdle()
+        compose.onNodeWithText("Ist aus").assertDoesNotExist()
+        compose.onNodeWithText("Beheben").assertDoesNotExist()
+        compose.onNodeWithText("Alarmlautstärke").assertIsDisplayed()
     }
 
     @Test

@@ -24,11 +24,13 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedData
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -61,7 +63,9 @@ class BrewSetupScreenTest {
     private val settings = FakeSettingsRepository()
     private val sessions = FakeSessions(collection, settings)
     private val starter = FakeBrewStarter()
+    private val catalog = FakeCatalogRepository()
     private var timerOpened = 0
+    private val catalogOpened = mutableListOf<String>()
 
     @Before
     fun seed() = runBlocking {
@@ -80,10 +84,16 @@ class BrewSetupScreenTest {
             sessions.sessions,
             settings,
             starter,
+            catalog,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = reduceMotion) {
-                BrewSetupRoute(onBack = {}, onOpenTimer = { timerOpened++ }, viewModel = viewModel)
+                BrewSetupRoute(
+                    onBack = {},
+                    onOpenTimer = { timerOpened++ },
+                    onOpenCatalog = { catalogOpened += it },
+                    viewModel = viewModel,
+                )
             }
         }
         compose.waitForIdle()
@@ -223,6 +233,49 @@ class BrewSetupScreenTest {
     }
 
     @Test
+    fun `a catalog tea's setup offers Im Katalog ansehen in its overflow menu (SCR-04, D-098)`() {
+        catalog.details.value = mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP))
+        show()
+
+        compose.onNodeWithContentDescription("Weitere Optionen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Im Katalog ansehen").assert(hasAnyAncestor(isPopup())).performClick()
+        compose.waitForIdle()
+
+        assertThat(catalogOpened).containsExactly("TG0557")
+        compose.onNodeWithText("Im Katalog ansehen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a tea without a catalog entry has no overflow menu (SCR-04, D-098)`() {
+        show()
+
+        compose.onNodeWithText("Bio Sencha Hisui").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Weitere Optionen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the open overflow menu in its first frame (rule 8, D-098)`() {
+        catalog.details.value = mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP))
+        val waiting = FakeBrewStarter.readyState(tanabata(), "other")
+        starter.state.value = waiting.copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        // With motion on, a normal close would still be fading after two frames; only the alert gate is instant.
+        show(reduceMotion = false)
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Im Katalog ansehen").assertIsDisplayed()
+
+        compose.mainClock.autoAdvance = false
+        starter.state.value = waiting.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        // The frame that recomposes, and the frame that drops the menu's window, without its close animation.
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+
+        compose.onNodeWithText("Im Katalog ansehen").assertDoesNotExist()
+        assertThat(catalogOpened).isEmpty()
+    }
+
+    @Test
     fun `Bearb opens the Schritte-Sheet, and an alert removes it at once, without the close animation (rule 8)`() {
         val waiting = FakeBrewStarter.readyState(tanabata(), "other")
         starter.state.value = waiting.copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 1, deadlineWallMs = 1)
@@ -329,8 +382,29 @@ class BrewSetupScreenTest {
         row.assert(hasText("–"))
     }
 
+    @Test
+    fun `the Vorwarnung row gives a hot step of 10 to 59 min its pre-alert, a long step none (TMR-18, D-098)`() {
+        var state by mutableStateOf(kyusu.copy(steps = listOf(infusion(15 * 60))))
+        compose.setContent { UmamiTheme(reduceMotion = true) { BrewSetupScreen(state) } }
+        val row = compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performScrollTo()
+
+        row.assert(hasText("10 s")).assert(hasContentDescription("10 Sekunden"))
+        state = kyusu.copy(steps = listOf(infusion(59 * 60 + 59, preAlert = 30), infusion(60 * 60)))
+        row.assert(hasText("30 · –")).assert(hasContentDescription("30 Sekunden, keine"))
+        state = kyusu.copy(steps = listOf(infusion(60 * 60, preAlert = 10)))
+        row.assert(hasText("–"))
+        state = kyusu.copy(method = BrewMethod.COLD_BREW, steps = listOf(infusion(15 * 60)))
+        row.assert(hasText("–"))
+        state = kyusu.copy(method = BrewMethod.ICE_BREW, steps = listOf(infusion(15 * 60)))
+        row.assert(hasText("–"))
+    }
+
     private fun infusion(seconds: Int, preAlert: Int? = null) =
         PlannedStep(StepKind.INFUSION, seconds, 65, preAlertSeconds = preAlert)
+
+    private companion object {
+        const val SHOP = "https://example.test/tee"
+    }
 
     private fun tanabata() = BrewStart(
         snapshot = SessionSnapshot(

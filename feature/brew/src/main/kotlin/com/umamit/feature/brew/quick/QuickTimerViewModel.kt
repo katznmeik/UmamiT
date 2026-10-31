@@ -56,8 +56,9 @@ enum class QuickTimerEvent {
  * The quick timer's view model (SCR-07, TMR-22): the chosen duration, kept
  * across process death (GEN-07), the *Vorwarnung* choice, remembered in the
  * setting `quickTimerPreAlert` for the next quick timer (D-097), and *Start*
- * through the start seam. While another timer is active, *Start* asks first
- * (TMR-21); while it alerts, the alerting timer opens instead (rule 8, D-062).
+ * through the start seam. It starts while a brew session runs (D-098); while
+ * another quick timer is active, *Start* asks „Schnelltimer beenden und neu
+ * starten?"; while a timer alerts, the alerting timer opens instead (rule 8, D-062).
  */
 @HiltViewModel
 class QuickTimerViewModel @Inject constructor(
@@ -138,7 +139,7 @@ class QuickTimerViewModel @Inject constructor(
 
     private var starting = false
 
-    /** *Beenden & neu starten* (TMR-21). */
+    /** *Beenden & neu starten*: the active quick timer ends, never the brew (D-098). */
     fun confirmRestart() {
         if (pending.value == null) return
         pending.value = null
@@ -162,8 +163,8 @@ class QuickTimerViewModel @Inject constructor(
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(QuickTimerEvent.OpenTimer)
                 } else {
-                    val active = timer as? TimerUiState.Active
-                    pending.value = Pending(ActiveSessionQuestion(active?.teaName), openedIn = null)
+                    // Only another quick timer refuses it (D-098): „Schnelltimer beenden und neu starten?".
+                    pending.value = Pending(ActiveSessionQuestion(teaName = null), openedIn = null)
                 }
             }
 

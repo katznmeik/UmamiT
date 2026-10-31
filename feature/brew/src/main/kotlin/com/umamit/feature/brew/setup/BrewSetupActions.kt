@@ -19,4 +19,6 @@ class BrewSetupActions(
     val dismissQuestion: () -> Unit = {},
     /** *Speichern* in „Wie viel ist noch da?": the tea's new total in g (BRW-02, INV-03). */
     val correctStock: (Double) -> Unit = {},
+    /** ⋮ *Im Katalog ansehen*: the catalog tea's detail (SCR-21) by its key, above the setup (D-098). */
+    val openCatalog: (String) -> Unit = {},
 )

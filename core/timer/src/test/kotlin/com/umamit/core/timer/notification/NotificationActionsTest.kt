@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.controller.ControllerHarness
 import com.umamit.core.timer.controller.EventSource
@@ -17,6 +18,8 @@ import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.brewStart
 import com.umamit.core.timer.controller.infusion
 import com.umamit.core.timer.controller.rinse
+import com.umamit.core.timer.controller.send
+import com.umamit.core.timer.controller.state
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -99,6 +102,51 @@ class NotificationActionsTest {
         assertThat(harness.active.demoted).isTrue()
 
         tap("Sitzung beenden", expect = null)
+    }
+
+    @Test
+    fun `the quick timer's notification 5 beside a brew acts on the quick timer only`() = runBlocking<Unit> {
+        harness.controller.startSession(brewStart(infusion(120)))
+        harness.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        harness.controller.startQuickTimer(300, run = true)
+        // The brew ends first: it is the Live Update, the quick timer notification 5 (04 §8.3, D-098).
+        assertThat(harness.notifier.other?.slot).isEqualTo(TimerSlot.QUICK)
+        val brew = harness.controller.state(TimerSlot.BREW).value
+
+        tapOther(TimerSlot.QUICK, "Pause", expect = TimerPhase.PAUSED)
+        assertThat(harness.controller.state(TimerSlot.BREW).value).isEqualTo(brew)
+        tapOther(TimerSlot.QUICK, "Weiter", expect = TimerPhase.RUNNING)
+        tapOther(TimerSlot.QUICK, "Abbrechen", expect = null)
+
+        assertThat(harness.controller.state(TimerSlot.BREW).value).isEqualTo(brew)
+    }
+
+    @Test
+    fun `an action of v0,2,2 without a slot reaches the brew slot`() {
+        val legacy = android.content.Intent(app, TimerActionReceiver::class.java)
+            .setAction("com.umamit.core.timer.action.NOTIFICATION.PAUSE")
+
+        assertThat(TimerActionReceiver.eventOf(legacy)).isEqualTo(TimerEvent.Pause)
+        assertThat(TimerActionReceiver.slotOf(legacy)).isEqualTo(TimerSlot.BREW)
+        val quick = TimerActionReceiver.intent(app, TimerEvent.Pause, TimerSlot.QUICK)
+        assertThat(TimerActionReceiver.eventOf(quick)).isEqualTo(TimerEvent.Pause)
+        assertThat(TimerActionReceiver.slotOf(quick)).isEqualTo(TimerSlot.QUICK)
+    }
+
+    /** Taps the action [label] of [slot]'s notification 5 and waits for its timer's [expect] (null: idle). */
+    private fun tapOther(slot: TimerSlot, label: String, expect: TimerPhase?) {
+        val state = harness.controller.state(slot).value as TimerUiState.Active
+        val action = notifications.other(state, harness.clock.reading()).actions
+            .firstOrNull { it.title.toString() == label }
+        assertWithMessage("action $label of notification 5 in ${state.phase}").that(action).isNotNull()
+        app.sendBroadcast(shadowOf(action!!.actionIntent).savedIntent)
+        val phaseOf = { (harness.controller.state(slot).value as? TimerUiState.Active)?.phase }
+        val start = TimeSource.Monotonic.markNow()
+        while (phaseOf() != expect && start.elapsedNow() < TIMEOUT) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(POLL_MS)
+        }
+        assertWithMessage("phase after $label").that(phaseOf()).isEqualTo(expect)
     }
 
     /** Taps the action [label] of the notification of the controller's state and waits for [expect] (null: idle). */

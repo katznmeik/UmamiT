@@ -14,7 +14,8 @@
 > the fix of its silent pre-alert for v0.2.2, D-097, 2026-10-30; v0.3.0:
 > two controller slots, alert arbitration with a held quick alert, the Live
 > Update for the timer due next, long steps from 60 min, `USAGE_ALARM` with
-> *Lautstärke* and the DND matrix, D-098, 2026-10-30)
+> *Lautstärke* and the DND matrix, D-098, 2026-10-30; a silent report under
+> a DND that lets alarms through rings, with SET-32, D-099, 2026-10-31)
 > v0.2: pre-alert tick, alert follows ringer mode, Pause as only running
 > control, exact alarms always available (personal app, no store review),
 > Live Update on Android 16, Samsung battery handling, one timer at a time
@@ -198,8 +199,11 @@ share the controller's event lock, the turn order and the alert player.
   arbitration of §9.3 across both.
 - **Held alert in the engine.** ALERTING carries `ringingSince` (elapsed and
   wall; null = held). The controller sends `alertHold` (preemption, or a
-  deadline while the brew alerts) and `alertRingStart` (release); neither is
-  an interaction. `dueTimes.overtimeTimeoutAt` of the quick slot is
+  deadline while the brew alerts), `alertRingStart` (release) and, in place
+  of `recover` while the brew alerts after its own recovery, `recoverHeld`
+  (§7.2); none is an interaction, and the engine ignores the hold for a brew
+  session. A quick alert that rings at its deadline rings since its deadline,
+  as before v0.3.0 (#134 build notes in D-098). `dueTimes.overtimeTimeoutAt` of the quick slot is
   `ringingSince` + 10 min and has no value while held; the brew slot is
   never held and keeps deadline + 10 min. `deadlineReached` at or after
   deadline + 10 min applies `overtimeTimeout` only for a timer that could
@@ -425,7 +429,9 @@ service runs while either slot needs it; it stops only when neither does. The
 partial wake lock is held while either slot runs a short step or alerts, with
 the longer of the two timeouts. Idle demote and the midnight timeout belong
 to the brew slot only: a demoted brew leaves the service running while the
-quick slot needs it and shows as notification 5 (§8.2). A hot step of
+quick slot needs it and shows as notification 5 (§8.2). A long running step
+that ends next while the other slot needs the service is the service's Live
+Update (notification 1, §8.2), still without a wake lock of its own. A hot step of
 10–59 min is now a short step and keeps the service and the wake lock for its
 length.
 
@@ -517,10 +523,17 @@ length.
   (D-057).
 - Android posts the notification of `startForeground` asynchronously, so a
   same-ID update the service posts within 1 s of a `startForeground` can be
-  overtaken by the start's late post. The service posts such an update once
-  more 0.5 s later (only-alert-once, only while that ID is still the
-  foreground notification; a newer update replaces it). Same-ID updates never
-  call `startForeground` again (D-071).
+  overtaken by the start's late post. And Android drops an update without a
+  word while the app posts faster than 5 notifications per second (a moving
+  average over all its posts), which two timers can reach: one tap updates
+  notifications 5 and 1 at once. So the service posts a same-ID update that
+  follows any post of the app (`startForeground`, an update, notification 5)
+  within 1 s once more 0.5 s later (only-alert-once, only while that ID is
+  still the foreground notification; a newer update replaces it). Same-ID
+  updates never call `startForeground` again (D-071, D-098 #135). The
+  notifications posted without the service, the quiet 4 and notification 5,
+  are posted once more the same way (one pending re-post per ID; a newer post
+  replaces it, a cancel drops it, so an ended timer never comes back).
 - A process killed while it posts an update of its foreground notification
   can leave that notification behind, still flagged as a foreground
   notification but owned by no service; the app can never cancel it. So a
@@ -636,8 +649,9 @@ any notification the old process left (D-057, D-063).
 
 **Two slots (v0.3.0, D-098).** The first turn restores both rows and runs
 `recover` for the brew slot first, then for the quick slot. If the brew slot
-is then ALERTING, a quick timer past its deadline becomes held (no sound, no
-overtime timeout), however long ago its deadline was; it rings when the
+is then ALERTING, the quick slot gets `recoverHeld`: a quick timer past its
+deadline becomes held (no sound, no overtime timeout), however long ago its
+deadline was, and a ringing one is held again; it rings when the
 brew slot leaves ALERTING (§9.3). Otherwise the quick slot follows the table
 above, with its overtime timeout counted from `ringingSince` when it had
 already rung. A held alert survives process death, a reboot and an app
@@ -651,8 +665,11 @@ asks the controller to recover (D-063): it restores the state from
 wall-clock data, reschedules the exact alarms (or applies §7.2 if the
 deadline already passed), tries to restart the FGS (§6.3) and posts a
 notification „Dein Timer läuft weiter" (the tea below it) through the notifier port,
-except while alerting (the alert is the notice then). If the FGS start was
-refused, the deadline alarm starts it when it fires (§6.2).
+except while alerting (the alert is the notice then). With both timers it is
+one notice after both are recovered, naming both („Deine Timer laufen
+weiter", „Gyokuro und Schnelltimer · nach dem Neustart"; v0.3.0, D-098), as
+notification 3 holds one notice; an alerting timer is left out of it. If the
+FGS start was refused, the deadline alarm starts it when it fires (§6.2).
 
 Samsung's *Automatische Optimierung* may restart the phone at night; the
 first-start setup shows a hint to disable *Automatisch neu starten* (ONB-02).
@@ -672,7 +689,11 @@ Installing an update kills the process and a running FGS (alarms survive).
 `TimerRecoveryReceiver` (`MY_PACKAGE_REPLACED`) runs §7.2 recovery right
 away, including the FGS restart attempt (D-063). The update from v0.2.2 to
 v0.3.0 also migrates umamit.db v3 → v4 (05 §9) and moves a running quick
-timer's alarms to the quick slot's codes (§6.2, D-098).
+timer's alarms to the quick slot's codes (§6.2, D-098). A hot step of 10–59
+min that v0.2.2 ran as a long step (no pre-alert, no service) recovers as a
+short step: the FGS restart attempt, the countdown Live Update, and its
+pre-alert computed from its deadline and N as `resume` does, due while its
+time is still ahead, else skipped without a late tick (§5, D-098).
 
 ## 8. Notifications
 
@@ -751,6 +772,20 @@ alert stays the app's only notification of importance DEFAULT or higher
 auf den Aufguss" with no full-screen intent; when it rings it becomes
 notification 2 with its full-screen intent to SCR-07. When one timer ends,
 notification 5 goes and the remaining timer is shown as with one timer.
+While the service runs for either timer, the timer due next is its
+notification 1, also a long running step that would be the quiet 4 alone; its
+wake lock stays the short step's or the alert's only (§6.1). After a process
+death, a notification 5 the killed process left is removed unless a timer is
+shown there again (#135 build notes in D-098).
+
+**A new alert is a new notification (v0.3.0, D-098).** System UI launches a
+full-screen intent only for a notification it adds, never for an update of
+one it shows. So an alert that starts while another alert is the service's
+notification 2 (the brew's deadline during a ringing quick alert, a held quick
+alert released when the brew session is ended or discarded during its alert)
+is posted as a new notification 2: the service leaves the foreground with the
+earlier alert removed and starts it again with the new one. An alert shown
+again (an update, a re-sent start with only-alert-once) stays an update.
 
 ### 8.3 Live Update
 
@@ -798,12 +833,15 @@ ongoing notification** (Live Update):
   `Settings.ACTION_APP_NOTIFICATION_PROMOTION_SETTINGS` (D-043). The banner is based
   only on this check, not on Now Bar presence.
 - **The timer due next (v0.3.0, D-098, PO Q5).** With two active timers
-  only one is the Live Update: a running slot beats a waiting one; of two
-  running, the earlier deadline; of two waiting, the brew. The controller
-  recomputes it at the end of every turn and, when it changes, updates
-  notifications 1 and 5 in that turn (the service keeps foreground ID 1; it
-  never switches IDs for it). A user's dismissal (above) belongs to the slot
-  it was shown for.
+  only one is the Live Update: a ringing alert first (the brew's); else a
+  running slot beats a waiting one; of two running, the earlier deadline (the
+  brew on a tie); of two waiting, the brew, unless it is demoted (TMR-14). The
+  controller recomputes it after every transition of either slot and, when it
+  changes, updates notifications 1 and 5 in that turn (the service keeps
+  foreground ID 1; it never switches IDs for it). A user's dismissal (above)
+  belongs to the slot it was shown for; a move of the Live Update always posts
+  the new lead's notification 1, so it never keeps showing the timer that is
+  now notification 5.
 - API names follow the Android 16 SDK and are verified in the **probe
   release** (M1 plan) on the PO's Galaxy before the full timer is built.
   `v0.0.2-probe` passed all four probe items on 2026-10-22 (09 §4, D-040,
@@ -830,20 +868,42 @@ ongoing notification** (Live Update):
 - The alarm stream ignores the ringer mode, so the app keeps applying the
   table above itself on every cycle: silent and vibrate still silence the
   sound.
-- Do Not Disturb:
+- Do Not Disturb (from `v0.3.0-rc.2` as amended by
+  [D-099](10-open-questions-and-decisions.md#d-099)):
 
-  | DND mode | Pre-alert | Alert |
-  |---|---|---|
-  | Off | as the ringer mode | as the ringer mode |
-  | „Nur Alarme" (alarms only) | as the ringer mode | as the ringer mode |
-  | Priority („Prioritätsmodus", alarms allowed) | as the ringer mode | as the ringer mode |
-  | „Absolute Ruhe" (total silence) | — | visual only |
+  | DND mode | Pre-alert and alert |
+  |---|---|
+  | Off | as the ringer mode |
+  | „Nur Alarme" (alarms only) | as the ringer mode; a silent report rings |
+  | Priority („Prioritätsmodus") letting alarms through: One UI's „Nicht stören" with its default exceptions | as the ringer mode; a silent report rings while SET-32 is on (default) |
+  | Priority whose policy blocks alarms | as the ringer mode, as reported |
+  | „Absolute Ruhe" (total silence) | visual only |
+
+  „A silent report rings": it reads as the ringer on normal, so sound plus
+  vibration if SET-11 is on, and vibration only in a call. A vibrate report
+  stays vibrate everywhere.
 
   The app reads DND with `NotificationManager.getCurrentInterruptionFilter()`
   (`INTERRUPTION_FILTER_NONE` = total silence) next to the user's ringer mode
-  (`getRingerMode()`). How One UI reports the ringer mode under each DND mode
-  is checked by #128 on SDK 36 and the PO's phone; the table above is the
-  target, and the result goes into D-098's build notes.
+  (`getRingerMode()`). In priority mode it also reads whether the policy lets
+  alarms through: `getConsolidatedNotificationPolicy()` (the policy of every
+  DND mode in effect; public from API 35, no notification-policy access
+  needed) has `PRIORITY_CATEGORY_ALARMS`. A policy that cannot be read counts
+  as letting them through (rule 8). A DND that lets alarms through can report
+  the ringer as silent whatever the user chose:
+  - Under „alarms only" AOSP forces the silent report, so a silent report
+    there always rings (D-098 build notes, #128).
+  - One UI reports silent under its „Nicht stören" with the phone on ring
+    (the PO's test of `v0.3.0-rc.1`, D-099). So in priority mode letting
+    alarms through, a silent report rings while *Bei „Nicht stören"
+    klingeln* (SET-32) is on. Off, the reported ringer mode decides, as in
+    `v0.3.0-rc.1`.
+
+  The rule applies on every cycle, to *Alarm testen* and to *Anhören*. Each
+  cue's *Diagnose* line names the ringer mode, the DND mode (`priority
+  without alarms` when its policy blocks them), the alarm volume, the gain
+  and the switch (`DND rings on` / `off`), so the PO's phone shows how One UI
+  reports them and which rule rang (09 §4).
 
 - **Alarm volume 0:** `getStreamVolume(STREAM_ALARM) == 0` is a reliability
   check (TMR-31): „Alarmlautstärke ist aus" with *Beheben*
@@ -973,13 +1033,17 @@ sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
 | Situation | Result |
 |---|---|
 | Brew deadline, quick not alerting | Brew alerts as today. |
-| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = now. |
+| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = its deadline (also when recovery finds it late, §3.3), so its silent end stays deadline + 10 min. |
 | Both deadlines in the same turn (or within the brew alert) | Brew alerts; quick goes ALERTING **held** (`alertHold`): no sound, no notification 2, no full-screen intent, no overtime timeout. |
 | Brew deadline while the quick alert rings | **Preemption**, same turn: the quick sound stops, the brew alert starts, the quick slot goes back to held. The quick alert is not reported completed. |
 | Brew leaves ALERTING (*Abgegossen*, *Sitzung beenden*, *verwerfen*, its overtime timeout) with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |
 | A pre-alert due while the other slot's alert sound plays or its pre-alert rings | Waits until that sound ends; played if ≥ 1 s of its step is left, else consumed (§5). |
 | An alert due while the other slot's pre-alert rings | The alert cuts it at once (as within one slot). |
 
+- **Waiting for a pre-alert's end:** the player does not report it, so the
+  controller counts a pre-alert as ringing for the longest pre-alert sound
+  plus the player's 250 ms release (3.45 s); a pre-alert waiting for an alert
+  plays when the player reports the alert's end or the alert is stopped.
 - **Overtime timeout of a quick alert:** 10 min after it last started
   ringing (S1). Every release restarts the alert length (SET-14) and the
   10 min, so a held alert always rings in full before it ends silently.
@@ -1063,7 +1127,7 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 | E11 | Device restore (new phone or reset) | `active_brew` is cleared on the first start after the restore (05 §8); no session is resumed. The first recovery ends every session left `IN_PROGRESS`: saved with `auto_finished` when it has a completed infusion, else discarded (§7.2, D-063). |
 | E12 | Catalog refresh during a session | Allowed; never affects the session (it uses a recipe snapshot). |
 | E13 | Session spans midnight | Belongs to the local date of `startedAt`. |
-| E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. From v0.3.0 (§9.1, D-098): „alarms only" and priority mode play as the ringer mode; total silence is visual only. |
+| E14 | DND on | Sound/vibration suppressed per DND; visual alert remains. From v0.3.0 (§9.1, D-098): „alarms only" and priority mode play as the ringer mode; total silence is visual only. From `v0.3.0-rc.2` (D-099): under „alarms only", and under priority mode letting alarms through while SET-32 is on, a silent report rings as the ringer on normal. |
 | E16 | Brew and quick timer due at the same moment (v0.3.0) | Brew alerts; quick held; quick rings after *Abgegossen* with its overtime (§9.3). |
 | E17 | Process killed with both timers active, one alert held (v0.3.0) | Both restored; the brew alert replays first; the held quick alert rings after *Abgegossen* (§7.2). |
 | E18 | Phone's alarm volume at 0 (v0.3.0) | Cues run visual and with vibration only; banner „Alarmlautstärke ist aus" (§9.1). |
@@ -1072,11 +1136,11 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 
 | Level | Tests |
 |---|---|
-| Unit | **v0.3.0 (D-098):** the long-step rule at 599/600/3599/3600 s for hot steps and any length for cold and ice brew; a 20-min hot step's automatic and explicit pre-alert scheduled and played, a 60-min one none; the held alert (overtime from the deadline, timeout from `ringingSince`, preemption and release) and its snapshot round trip; the seeded invariant test extended to two slots with arbitration (never two sounds, the brew never held, a held quick alert always rings before its silent end, every slot's due event handled). Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
+| Unit | **v0.3.0 (D-098):** the long-step rule at 599/600/3599/3600 s for hot steps and any length for cold and ice brew; a 20-min hot step's automatic and explicit pre-alert scheduled and played, a 60-min one none; a running 15-min hot step stored by v0.2.2 as a long step recovered with its pre-alert while it is still ahead (#127); the held alert (overtime from the deadline, timeout from `ringingSince`, preemption and release) and its snapshot round trip; the seeded invariant test extended to two slots with arbitration (never two sounds, the brew never held, a held quick alert always rings before its silent end, every slot's due event handled). Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
 choice *Automatisch*, *Aus* and explicit, through snapshot and recovery,
 D-097); idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
-| Robolectric | **v0.3.0 (D-098):** a brew with a running quick timer; both due within 1 s; the brew preempting a ringing quick alert; a quick alert held for 12 min, then ringing with „+12:00"; *Beenden & neu starten* only within a slot; process death with both active, incl. a held alert; a pre-alert during the other slot's alert; the slots' request codes never colliding and a v0.2.2 quick timer's old codes recovered; the Live Update following the next due slot (promotion switching after a pause and when one ends, notification 5 never promoted, no orphan after either ends); a 15-min hot step with service, countdown Live Update and Vorwarnung; `USAGE_ALARM`, gain at 10/50/100 %, the ringer-mode and DND matrix, the alarm-volume-0 check. Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
-| Instrumented (CI emulator job, API 35 and 36) | **v0.3.0 (D-098):** process death during a brew step with a quick timer running: both restored, both alert on time, the brew first when both are due; promotion of the Live Update for the next due slot. Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). A test that fails only now and then is repeated by the manually dispatched workflow `timer-stress.yml` (`scripts/stress-instrumented.sh`; for the kill during a step it can sweep the moment of the kill, D-084). |
+| Robolectric | **v0.3.0 (D-098):** a brew with a running quick timer; both due within 1 s; the brew preempting a ringing quick alert; a quick alert held for 12 min, then ringing with „+12:00"; *Beenden & neu starten* only within a slot; process death with both active, incl. a held alert; a pre-alert during the other slot's alert; the slots' request codes never colliding and a v0.2.2 quick timer's old codes recovered; the Live Update following the next due slot (promotion switching after a pause and when one ends, notification 5 never promoted, no orphan after either ends or after a process death, a long step ending next shown by the service, a demoted brew giving way); a new alert while another alert is notification 2 (preemption, a quick alert released when the brew session ends during its alert) posted as a new notification, whose full-screen intent System UI launches (a shadow rule: only an added notification launches one); a 15-min hot step with service, countdown Live Update and Vorwarnung, also after a process death, beside a quick timer and after the update from v0.2.2 (#127); `USAGE_ALARM`, gain at 10/50/100 %, the ringer-mode and DND matrix, the alarm-volume-0 check; from `v0.3.0-rc.2` (D-099) the DND policy read in priority mode (alarms allowed, blocked, none to read) and the matrix with SET-32 on and off for every cue, every cycle, *Alarm testen* and *Anhören*. Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |
+| Instrumented (CI emulator job, API 35 and 36) | **v0.3.0 (D-098):** process death during a brew step with a quick timer running: both restored, both alert on time, the brew first when both are due (#137: a brew step and a quick timer due together, killed while both run and again during the brew's alert with the quick timer's held; the brew's alert on time and replayed, the quick timer's deadline handled on time and held without a full-screen intent, then ringing at once after *Abgegossen*; the log's alert sounds brew first, the quick timer's once and last); promotion of the Live Update for the next due slot. Process death during a step (SIGKILL from a test runner in its own process; `am kill` spares a process with a foreground service, D-057), with the alarm starting the new process and with the app reopened before the deadline (state restored, alert within 2 s of the deadline, D-063); alarm delivery. The runner's instrumentation lets Android allow every foreground start of the app's uid, so a refused start cannot show here: the refused-start paths (§6.3) rest on the Robolectric tests and the PO's device; full-screen intent launch; promotion of the Live Update asserted via `dumpsys notification` (`FLAG_PROMOTED_ONGOING`). A test that fails only now and then is repeated by the manually dispatched workflow `timer-stress.yml` (`scripts/stress-instrumented.sh`; for the kill during a step it can sweep the moment of the kill, D-084). |
 | On the PO's Galaxy (acceptance) | Probe release first (M1 plan); then alert & pre-alert with screen off for 2 and 6 min steps; app swiped away; `adb`-free checks of Live Update (Now Bar best effort); reboot during a long step; ringer normal/vibrate/silent; DND. |
 | Accuracy | 50 × 60 s steps with the screen off on the CI emulator, in the manually dispatched workflow `accuracy.yml` that must pass before each release candidate (`AccuracyRunTest`, skipped in the regular emulator job; [09 §4a](09-release-plan.md#4a-accuracy-run-before-each-release-candidate), D-067); on the device the diagnostics log (06 §5.6) records scheduled vs actual times: p95 ≤ 250 ms, max ≤ 1 s for pre-alert and alert, measured up to the moment the player started the sound (the „alert" entry), not the handling of the event (D-068). **From v0.3.0 (D-098):** a second variant `alongside` runs the same brew steps with a quick timer running alongside, restarted so it overlaps the steps, and measures both timers' pre-alerts and alerts against the same targets; every v0.3.0 rc and the final release need both variants (09 §4a). |
 

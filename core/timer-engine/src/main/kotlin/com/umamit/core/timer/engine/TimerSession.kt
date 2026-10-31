@@ -210,7 +210,7 @@ data class TimerSession(
     /** This session after a user event at [now]: the idle timeouts restart and a demoted session is active again. */
     internal fun touched(now: ClockReading): TimerSession = copy(lastInteractionWallMs = now.wallMs, demoted = false)
 
-    /** Step [index] is a long step (≥ 10 min, or any step of a cold or ice brew; TMR-18, 04 §1). */
+    /** Step [index] is a long step (≥ 60 min, or any step of a cold or ice brew; TMR-18, 04 §1, D-098). */
     internal fun isLongStep(index: Int): Boolean = isLongStepOf(steps[index].plannedSeconds, longStepsOnly)
 
     /** This session with step [index] replaced by [transform] of it. */

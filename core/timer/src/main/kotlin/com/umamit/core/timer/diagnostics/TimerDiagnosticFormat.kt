@@ -2,10 +2,12 @@ package com.umamit.core.timer.diagnostics
 
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.controller.AlarmClock
 import com.umamit.core.timer.controller.ScheduledTime
+import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerDiagnostic
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.TimerEvent
@@ -19,6 +21,9 @@ import java.time.format.DateTimeFormatter
  * accuracy workflow can read it (04 §12): a time-based event shows
  *
  * `PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono 5050080) delta +80 ms`,
+ *
+ * and the sound of a quick alert released after a hold (04 §9.3) its hold and its release in place of the schedule:
+ * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 (mono 5720000) actual … delta +15 ms`;
  *
  * every other timer entry the monotonic time and boot it was read at. Only
  * plain values are written, never a model's `toString()`, so no note text
@@ -36,7 +41,7 @@ object TimerDiagnosticFormat {
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
         is TimerDiagnostic.AlarmReceived ->
-            "alarm ${entry.kind} received | " +
+            "alarm ${entry.kind.nameIn(entry.slot)} received | " +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: "nothing due | ${clocks(entry.at)}")
 
         is TimerDiagnostic.PersistFailed ->
@@ -71,9 +76,9 @@ object TimerDiagnosticFormat {
         is TimerDiagnostic.ServiceStopped -> "service: stopped | ${clocks(entry.at)}"
 
         is TimerDiagnostic.AlertPlayed ->
-            "alert ${entry.cue}: ringer ${entry.conditions.ringerMode}, in call ${yesNo(entry.conditions.inCall)}, " +
-                "DND blocks ${yesNo(entry.conditions.dndBlocksAlerts)} -> ${outputs(entry.outputs)} | " +
-                "tone ${entry.tone}, length ${entry.length} | " +
+            "alert ${entry.cue}: ${entry.readings()} -> ${outputs(entry.outputs)} | " +
+                "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} %, " +
+                "DND rings ${if (entry.ringUnderDnd) "on" else "off"} | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
@@ -81,7 +86,8 @@ object TimerDiagnosticFormat {
             "process start: notifications ${yesNo(notifications)}, " +
                 "live updates ${promotedNotifications?.let(::yesNo) ?: "n/a"}, " +
                 "full-screen alert ${yesNo(fullScreenIntent)}, exact alarms ${yesNo(exactAlarms)}, " +
-                "battery unrestricted ${yesNo(batteryUnrestricted)} | ${clocks(entry.at)}"
+                "battery unrestricted ${yesNo(batteryUnrestricted)}, " +
+                "alarm volume ${if (alarmVolumeOn) "on" else "0"} | ${clocks(entry.at)}"
         }
 
         is TimerDiagnostic.RecoveryRequested ->
@@ -123,7 +129,10 @@ object TimerDiagnosticFormat {
         is TransitionOutcome.Rejected -> "rejected: ${outcome.reason::class.simpleName}"
     }
 
-    /** Scheduled vs actual on both clocks; the other clock's scheduled time is derived from the delay. */
+    /**
+     * Scheduled vs actual on both clocks; the other clock's scheduled time is derived from the delay. A released
+     * alert is due at its release, after its hold.
+     */
     private fun timing(scheduled: ScheduledTime, now: ClockReading): String {
         val late = scheduled.lateMs(now)
         val (scheduledWall, scheduledMono) = when (scheduled.kind.clock) {
@@ -131,8 +140,10 @@ object TimerDiagnosticFormat {
             AlarmClock.WALL -> scheduled.atMs to now.elapsedMs - late
         }
         val sign = if (late < 0) "-" else "+"
-        return "${scheduled.kind} scheduled ${time(scheduledWall, now)} (mono $scheduledMono) " +
-            "actual ${time(now.wallMs, now)} (mono ${now.elapsedMs}) delta $sign${kotlin.math.abs(late)} ms"
+        val due = scheduled.heldMs?.let { "held $it ms, released" } ?: "scheduled"
+        return "${scheduled.kind.nameIn(scheduled.slot)} $due ${time(scheduledWall, now)} " +
+            "(mono $scheduledMono) actual ${time(now.wallMs, now)} (mono ${now.elapsedMs}) " +
+            "delta $sign${kotlin.math.abs(late)} ms"
     }
 
     private fun yesNo(value: Boolean) = if (value) "yes" else "no"
@@ -171,6 +182,13 @@ private fun TimerEvent.StartQuickTimer.preAlertText(): String {
     return "pre-alert $choice, base $globalPreAlertSeconds s, lead ${lead?.let { "$it s" } ?: "none"}"
 }
 
+/**
+ * The alarm kind as the log names it in [slot]: the brew slot's plainly (`DEADLINE`), so its lines stay those of one
+ * timer and the standard accuracy run reads them as before; the quick slot's with its slot (`QUICK.DEADLINE`; D-098,
+ * #137).
+ */
+private fun TimerAlarmKind.nameIn(slot: TimerSlot): String = slot.named(name)
+
 /** Where a cue's start spent the time (D-092), e.g. `queued 2 ms, settings 0 ms, outputs 15 ms, sound ready`. */
 private fun CueStart.text(): String {
     val sound = when (soundLoaded) {
@@ -179,4 +197,15 @@ private fun CueStart.text(): String {
         null -> "no sound"
     }
     return "queued $queuedMs ms, settings $settingsMs ms, outputs $outputsMs ms, $sound"
+}
+
+/**
+ * What the player read at a cue, e.g. `ringer SILENT, in call no, DND alarms only, alarm volume 0`: the DND mode
+ * as `off`, `priority`, `priority without alarms` (its policy blocks alarms, D-099), `alarms only` or `total
+ * silence`, so the PO's phone shows how One UI reports the ringer mode under each (D-098). The settings part
+ * after the outputs ends with `DND rings on` or `off` (SET-32, D-099).
+ */
+private fun TimerDiagnostic.AlertPlayed.readings(): String = with(conditions) {
+    "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +
+        "DND ${dnd.name.lowercase().replace('_', ' ')}, alarm volume ${if (alarmVolumeOff) "0" else "on"}"
 }

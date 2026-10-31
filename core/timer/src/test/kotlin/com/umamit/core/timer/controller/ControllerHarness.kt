@@ -19,6 +19,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeSavedSheet
 import com.umamit.core.testing.FakeSettingsRepository
@@ -50,6 +51,8 @@ class ControllerHarness(
     diagnosticsPort: TimerDiagnosticsPort? = null,
     /** The service and notifier ports; the default is [service] and [notifier]. The Android adapters for M1-11. */
     private val notificationPorts: (ControllerHarness.() -> Pair<TimerServicePort, TimerNotifierPort>)? = null,
+    /** The alarm port; the default is [alarms]. The Android adapter for the alarms' request codes (D-098). */
+    alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null,
     val clock: FakeClock = FakeClock(),
     val settings: FakeSettingsRepository = FakeSettingsRepository(),
     val db: UmamiDatabase = Room
@@ -85,7 +88,7 @@ class ControllerHarness(
         transactions = RoomDatabaseTransactions(db),
         settings = settings,
         ports = TimerPorts(
-            alarms = alarms,
+            alarms = alarmPort?.invoke(this) ?: alarms,
             service = shownBy?.first ?: service,
             notifier = shownBy?.second ?: notifier,
             alert = alertPort?.invoke(this) ?: alert,
@@ -122,10 +125,17 @@ class ControllerHarness(
 
     /**
      * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
-     * on the same database, settings and clocks. Close only one of the two harnesses.
+     * on the same database, settings and clocks, its alarms on [alarmPort] (the default: a fake).
+     * Close only one of the two harnesses.
      */
-    fun processRestarted(): ControllerHarness =
-        ControllerHarness(clock = clock, settings = settings, db = db, notificationPorts = notificationPorts)
+    fun processRestarted(alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null): ControllerHarness =
+        ControllerHarness(
+            clock = clock,
+            settings = settings,
+            db = db,
+            notificationPorts = notificationPorts,
+            alarmPort = alarmPort,
+        )
 
     /**
      * The database came to a new phone (or a reset one) in a device backup (E11, 05 §8): restore
@@ -185,11 +195,11 @@ fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 data class Persisted(val phase: TimerPhase?) : PortCall
 
 /**
- * The real [ActiveBrewStore] with a test handle: each persist is logged as [Persisted];
- * [failNext] makes the next persists throw like a full disk; [hold] keeps the next persist
- * waiting until the returned gate is opened.
+ * The real [ActiveBrewStore] with a test handle on the slot methods the controller uses (umamit.db v4): each
+ * persist is logged as [Persisted]; [failNext] makes the next persists throw like a full disk; [hold] keeps the
+ * next persist waiting until the returned gate is opened; [failNextReads] and [readAs] act on the reads.
  */
-class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPortLog) : ActiveBrewStore {
+class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPortLog) : ActiveBrewStore by real {
     private var failures = 0
     private var readFailures = 0
     private var gate: Gate? = null
@@ -208,16 +218,16 @@ class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPor
 
     fun hold(): Gate = Gate().also { gate = it }
 
-    override suspend fun read(): TimerSnapshot? {
+    override suspend fun read(slot: TimerSlot): TimerSnapshot? {
         if (readFailures > 0) {
             readFailures--
             throw android.database.sqlite.SQLiteCantOpenDatabaseException("unable to open database file (test)")
         }
-        val snapshot = real.read()
+        val snapshot = real.read(slot)
         return readAs?.invoke(snapshot) ?: snapshot
     }
 
-    override suspend fun persist(snapshot: TimerSnapshot?) {
+    override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) {
         gate?.let {
             gate = null
             it.reached.complete(Unit)
@@ -227,17 +237,26 @@ class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPor
             failures--
             throw android.database.sqlite.SQLiteFullException("database or disk is full (test)")
         }
-        real.persist(snapshot)
+        real.persist(slot, snapshot)
         log.record(Persisted(snapshot?.activeBrew?.phase))
     }
 
-    override suspend fun clear() = real.clear()
+    override suspend fun clear(slot: TimerSlot) = real.clear(slot)
 
-    /** The phase of the stored `active_brew` row, read back through the store. */
-    suspend fun storedPhase(): TimerPhase? = real.read()?.activeBrew?.phase
+    /** The phase of the stored `active_brew` row (the brew slot's, else the quick slot's), read back. */
+    suspend fun storedPhase(): TimerPhase? = readEither()?.activeBrew?.phase
 
-    /** The state the stored row restores to. */
-    suspend fun stored() = BrewTimerEngine.restore(real.read())
+    /** The phase of [slot]'s stored row, read back through the store. */
+    suspend fun storedPhase(slot: TimerSlot): TimerPhase? = real.read(slot)?.activeBrew?.phase
+
+    /** The state the stored row (the brew slot's, else the quick slot's) restores to. */
+    suspend fun stored() = BrewTimerEngine.restore(readEither())
+
+    /** The one stored timer of a one-timer test: the brew slot's, else the quick slot's. */
+    private suspend fun readEither(): TimerSnapshot? = real.read(TimerSlot.BREW) ?: real.read(TimerSlot.QUICK)
+
+    /** The state [slot]'s stored row restores to. */
+    suspend fun stored(slot: TimerSlot) = BrewTimerEngine.restore(real.read(slot))
 
     class Gate {
         val reached = CompletableDeferred<Unit>()

@@ -13,6 +13,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.Photo
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
@@ -20,9 +21,10 @@ import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.controller.brewAgainStart
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.core.timer.reliability.firstMissingIntents
-import com.umamit.core.timer.reliability.hasProblem
+import com.umamit.core.timer.reliability.problem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -65,10 +67,12 @@ data class HomeQuestion(val teaName: String?)
 /**
  * What Start (SCR-02) shows.
  *
- * @property active the active session or quick timer: *Aufguss fortsetzen* with a live countdown (GEN-06).
+ * @property active the active brew session: *Aufguss fortsetzen* with a live countdown in place of *Aufguss starten*
+ *   (GEN-06). Never the quick timer (SCR-02, D-098): alone it leaves *Aufguss starten*, beside a brew the card stays
+ *   the brew's; the active brew bar shows it.
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
- * @property reliabilityProblem a reliability check is missing: the banner (TMR-31).
+ * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
  * @property lowStock the nudge slot's low-stock card (INV-10), or null.
  */
 data class HomeUiState(
@@ -80,7 +84,7 @@ data class HomeUiState(
     val favorites: List<HomeTea> = emptyList(),
     val question: HomeQuestion? = null,
     val alertKey: String? = null,
-    val reliabilityProblem: Boolean = false,
+    val reliabilityProblem: ReliabilityProblem? = null,
     val lowStock: LowStockCard? = null,
 )
 
@@ -107,7 +111,7 @@ class HomeViewModel @Inject constructor(
     private val lowStock: LowStockRepository,
 ) : ViewModel() {
     private val pending = MutableStateFlow<Pending?>(null)
-    private val reliabilityProblem = MutableStateFlow(reliability.hasProblem())
+    private val reliabilityProblem = MutableStateFlow(reliability.problem())
     private val navigation = Channel<HomeEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host. */
@@ -116,10 +120,11 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeUiState> = combine(
         teas.observeTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
-        starter.state,
+        // The card is the brew's (SCR-02, D-098): a quick timer alone leaves *Aufguss starten*, the bar shows it.
+        starter.state.combine(starter.observeActive(TimerSlot.BREW), ::Timers),
         pending,
         reliabilityProblem,
-    ) { overviews, recentSessions, timer, question, problem ->
+    ) { overviews, recentSessions, timers, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
         val byId = owned.associateBy { it.tea.id }
         // A session row keeps its tea's photo when the tea was removed, as in the journal (D-093 Q13).
@@ -128,7 +133,7 @@ class HomeViewModel @Inject constructor(
         HomeUiState(
             loading = false,
             collectionEmpty = owned.isEmpty(),
-            active = timer as? TimerUiState.Active,
+            active = timers.brew,
             brewAgain = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
                 .mapNotNull { byId[it] }
                 .take(SHOWN)
@@ -138,7 +143,8 @@ class HomeViewModel @Inject constructor(
                 it.tea.isFavorite
             }.map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
             question = question?.question,
-            alertKey = timer.alertKey(),
+            // Either timer's alert: no question over it (rule 8).
+            alertKey = timers.front.alertKey(),
             reliabilityProblem = problem,
         )
     }.combine(
@@ -162,7 +168,7 @@ class HomeViewModel @Inject constructor(
 
     /** Reads the reliability checks again; Start calls it on every resume (TMR-31). */
     fun refreshReliability() {
-        reliabilityProblem.value = reliability.hasProblem()
+        reliabilityProblem.value = reliability.problem()
     }
 
     /** The banner's *Beheben*: the pages of the first missing check, for Start to start. */
@@ -239,7 +245,8 @@ class HomeViewModel @Inject constructor(
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(HomeEvent.OpenTimer)
                 } else {
-                    pending.value = Pending(request, HomeQuestion((timer as? TimerUiState.Active)?.teaName), null)
+                    // The brew session that refused it (a quick timer never does, D-098).
+                    pending.value = Pending(request, HomeQuestion(starter.activeIn(TimerSlot.BREW)?.teaName), null)
                 }
             }
 
@@ -271,6 +278,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
+
+    /** The timer in front of the controller (its alert first) and the active brew session beside it. */
+    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?)
 
     private class Started(val sessionId: String, val atElapsedMs: Long)
 

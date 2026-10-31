@@ -26,6 +26,7 @@ import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.delay
 
 /** Test tag of the TalkBack announcement node (a polite, while alerting assertive, live region). */
@@ -65,6 +66,12 @@ const val TIMER_RING_TAG = "timer_ring"
  *
  * @param teaPhoto the brew's tea photo in the seal; null: the leaf in [teaStyleKey]'s colour.
  * @param teaStyleKey the brew tea's style (08 §2), for the leaf's colour.
+ * @param other the other active timer (D-098): the quick timer on the brew's screen, the brew on the quick
+ *   timer's; null without one. Its row ([TimerOtherRow]) sits below the band, hidden on the alert surface.
+ * @param onOtherEvent the row's *Pause* / *Weiter*, for the [other] timer only.
+ * @param onOpenOther a tap on the row: the [other] timer's screen.
+ * @param stock the brew tea's stock, shown on READY under the leaf and water (BRW-11, D-098); null: no line
+ *   (the quick timer never has one). Its space is reserved in every brew, so the pill never moves for it.
  */
 @Composable
 fun TimerScreen(
@@ -76,10 +83,14 @@ fun TimerScreen(
     onOpenTimerSettings: () -> Unit,
     modifier: Modifier = Modifier,
     settings: TimerScreenSettings = TimerScreenSettings(),
-    reliabilityProblem: Boolean = false,
+    reliabilityProblem: ReliabilityProblem? = null,
     onFixReliability: () -> Unit = {},
     teaPhoto: Painter? = null,
     teaStyleKey: String? = null,
+    stock: TimerStock? = null,
+    other: TimerUiState.Active? = null,
+    onOtherEvent: (TimerEvent) -> Unit = {},
+    onOpenOther: () -> Unit = {},
 ) {
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         val alerting = state.alerting
@@ -129,6 +140,8 @@ fun TimerScreen(
                     onFixReliability,
                     teaPhoto,
                     teaStyleKey,
+                    stock,
+                    other?.let { OtherTimerArgs(it, onOtherEvent, onOpenOther) },
                 )
             // One body for both surfaces: it moves between them with its state (scroll, menu, focus).
             val body = remember { movableContentOf { bodyArgs: TimerBodyArgs -> TimerBody(bodyArgs) } }
@@ -168,7 +181,7 @@ fun TimerScreen(
  * composition, so the first frame after *Start* or *Weiter* is never stale.
  */
 @Composable
-private fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long): State<Long> {
+internal fun rememberTimerNow(state: TimerUiState.Active, nowElapsedMs: () -> Long): State<Long> {
     val now = remember(state, nowElapsedMs) { mutableLongStateOf(nowElapsedMs()) }
     LaunchedEffect(now, nowElapsedMs) {
         while (true) {

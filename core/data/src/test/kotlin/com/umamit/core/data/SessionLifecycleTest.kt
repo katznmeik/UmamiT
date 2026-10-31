@@ -10,6 +10,7 @@ import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.StepRecord
@@ -300,7 +301,7 @@ class SessionLifecycleTest {
             completeOneStep(TimerDriver(broken))
 
             assertThat(broken.sessions.getSession(SESSION_ID)!!.status).isEqualTo(SessionStatus.COMPLETED)
-            assertThat(broken.activeBrew.read()).isNull()
+            assertThat(broken.activeBrew.read(TimerSlot.BREW)).isNull()
             assertThat(broken.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(96.0)
         } finally {
             broken.close()
@@ -317,7 +318,7 @@ class SessionLifecycleTest {
         completeOneStep(driver)
 
         assertThat(session().status).isEqualTo(SessionStatus.COMPLETED)
-        assertThat(data.activeBrew.read()).isNull()
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isNull()
         val deviceDate = Instant.ofEpochMilli(START_WALL_MS).atZone(ZoneId.systemDefault()).toLocalDate()
         assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(deviceDate)
     }
@@ -372,7 +373,7 @@ class SessionLifecycleTest {
         driver.send(TimerEvent.Discard)
 
         assertThat(data.sessions.getSession("s2")).isNull()
-        assertThat(data.activeBrew.read()).isNull()
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isNull()
         assertThat(data.stock.observeEvents("t1").first().map { it.id }).doesNotContain("brew-s2")
         // The other session and its deduction stay.
         assertThat(session().status).isEqualTo(SessionStatus.COMPLETED)

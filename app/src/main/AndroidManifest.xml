@@ -24,6 +24,11 @@
         tools:ignore="BatteryLife" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- WorkManager's library manifest adds it for network constraints; the daily low-stock
+         reminder (INV-11) has none, and 06 §5.7 does not list it (D-098). -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <application
         android:name=".UmamitApplication"
@@ -70,6 +75,19 @@
             android:noHistory="true"
             android:taskAffinity=""
             android:theme="@android:style/Theme.NoDisplay" />
+        <!-- WorkManager starts on demand with Hilt's worker factory (UmamitApplication is its
+             Configuration.Provider; 06 §5.4, D-098): its default initializer goes, the other
+             App Startup initializers stay. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

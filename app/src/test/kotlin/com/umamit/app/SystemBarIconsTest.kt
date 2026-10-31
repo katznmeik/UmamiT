@@ -101,7 +101,7 @@ class SystemBarIconsTest {
                             actions = QuickTimerActions(back = onBack, start = onOpenTimer),
                         )
                     },
-                    timerScreen = { onClose, _, _ ->
+                    timerScreen = { onClose, _, _, _ ->
                         closeTimer = onClose
                         TimerScreen(
                             state = timerState,

@@ -103,16 +103,16 @@ class FinishAndRestartTest {
         h.controller.startSession(brewStart(infusion(60)))
         val gate = h.store.hold()
 
-        // The finish is being saved when a quick timer is started from elsewhere.
+        // The finish is being saved when another brew is started from elsewhere.
         val restart = async { h.controller.finishActiveAndStart(brewStart(infusion(45))) }
         gate.reached.await()
-        val quick = async { h.controller.startQuickTimer(60) }
+        val other = async { h.controller.startSession(brewStart(infusion(30))) }
         runCurrent()
         gate.open.complete(Unit)
 
         assertThat(restart.await()).isEqualTo(TransitionOutcome.Accepted)
         val brew = h.active.kind
-        assertThat(quick.await()).isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(brew)))
-        assertThat(brew).isInstanceOf(SessionKind.Brew::class.java)
+        assertThat(other.await()).isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(brew)))
+        assertThat(h.active.steps.single().plannedSeconds).isEqualTo(45)
     }
 }

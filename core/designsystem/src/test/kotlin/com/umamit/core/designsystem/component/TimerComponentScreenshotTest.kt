@@ -283,4 +283,44 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
             )
         }
     }
+
+    /**
+     * The bar with a brew and a quick timer (D-098): two halves, brew first; then the quick timer alerting (its half
+     * alone in the alert style); then the brew alerting with the quick timer's alert held („fertig", calm).
+     */
+    @Test
+    fun activeBrewBarTwoTimers() = capture("ActiveBrewBar_twoTimers") {
+        val hisui = ActiveBrew(
+            title = "Bio Sencha Hisui",
+            step = "Aufguss 2/4",
+            stepDescription = "Aufguss 2 von 4",
+            remainingSeconds = 72,
+            liquorColor = liquor().green,
+        )
+        val quick =
+            ActiveBrew(title = "Schnelltimer", step = null, remainingSeconds = 134, liquorColor = liquor().green)
+        Column(verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
+            ActiveBrewBar(
+                brew = hisui,
+                progress = { 0.4f },
+                onClick = {},
+                alongside = quick,
+                alongsideProgress = { 0.55f },
+            )
+            ActiveBrewBar(
+                brew = hisui,
+                progress = { 0.4f },
+                onClick = {},
+                alongside = quick.copy(remainingSeconds = 0, alerting = true, overtimeSeconds = 7),
+                alongsideProgress = { 1f },
+            )
+            ActiveBrewBar(
+                brew = hisui.copy(remainingSeconds = 0, alerting = true, overtimeSeconds = 3),
+                progress = { 1f },
+                onClick = {},
+                alongside = quick.copy(remainingSeconds = 0, held = true),
+                alongsideProgress = { 1f },
+            )
+        }
+    }
 }

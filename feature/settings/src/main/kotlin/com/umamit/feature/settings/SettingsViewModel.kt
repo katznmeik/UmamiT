@@ -22,7 +22,7 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25, 26), the
+ * The timer settings (SCR-25): the M1 settings on DataStore (SET-09…11, 14, 17, 25, 26, 27, 32), the
  * reliability checks (SET-24) and *Alarm testen* through the production player (SET-31, D-059).
  */
 @HiltViewModel
@@ -54,11 +54,20 @@ class SettingsViewModel @Inject constructor(
     /** The screen closes: a running test stops; a real alert plays on (D-059). */
     fun stopTest() = tester.stopTestAlert()
 
-    /** *Anhören*: [toneKey] once. */
-    fun previewTone(toneKey: String) = preview.play(toneKey)
+    /**
+     * *Anhören*: [toneKey] once, at the stored *Lautstärke* (SET-27) and, under Do Not Disturb, as the stored
+     * *Bei „Nicht stören" klingeln* says (SET-32, D-099).
+     */
+    fun previewTone(toneKey: String) = stored().let { preview.play(toneKey, it.alertVolumePercent, it.ringUnderDnd) }
 
-    /** *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once. */
-    fun previewPreAlertSound(preAlertKey: String) = preview.playPreAlert(preAlertKey)
+    /**
+     * *Anhören* in the *Vorwarnton* picker (SET-26): the sound stored under [preAlertKey] once, at the stored
+     * *Lautstärke* (SET-27) and *Bei „Nicht stören" klingeln* (SET-32).
+     */
+    fun previewPreAlertSound(preAlertKey: String) =
+        stored().let { preview.playPreAlert(preAlertKey, it.alertVolumePercent, it.ringUnderDnd) }
+
+    private fun stored(): UserSettings = current.value ?: UserSettings()
 
     fun stopPreview() = preview.stop()
 

@@ -91,6 +91,34 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun lautstaerkeIsKeptInTenToHundredInStepsOfTen() = runTest {
+        // SET-27 (D-098): never below 10 %, so the app itself can never silence a cue (05 §6).
+        val repository = repository()
+        assertThat(repository.settings.first().alertVolumePercent).isEqualTo(100)
+
+        val stored = listOf(30, 44, 45, 0, -20, 5, 150, 100, 10).map { percent ->
+            repository.update { it.copy(alertVolumePercent = percent) }
+            repository.settings.first().alertVolumePercent
+        }
+
+        assertThat(stored).containsExactly(30, 40, 50, 10, 10, 10, 100, 100, 10).inOrder()
+    }
+
+    @Test
+    fun theReminderTimeIsKeptWithinTheDay() = runTest {
+        // SET-29 (INV-11, D-098): a minute of the day, 0:00 to 23:59 (05 §6).
+        val repository = repository()
+        assertThat(repository.settings.first().lowStockReminderTime).isEqualTo(1080)
+
+        val stored = listOf(0, 1439, 1440, -1, 450).map { minute ->
+            repository.update { it.copy(lowStockReminderTime = minute) }
+            repository.settings.first().lowStockReminderTime
+        }
+
+        assertThat(stored).containsExactly(0, 1439, 1439, 0, 450).inOrder()
+    }
+
+    @Test
     fun lowStockThresholdIsKeptInZeroToFiveHundredInStepsOfFive() = runTest {
         // SET-16 „Knapp ab" (D-097): 0–500 g in 5 g steps.
         val repository = repository()

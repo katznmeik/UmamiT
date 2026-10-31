@@ -46,6 +46,9 @@ import javax.inject.Inject
  *
  * The catalog refresh's notifications open it with [CatalogRefreshRequests] (SCR-22, D-097): the
  * root shows Sammlung › Katalog with the refresh sheet above what was shown, never over an alert.
+ *
+ * The daily low-stock reminder opens it with [StartRequests] (INV-11, D-098): the root shows Start at its
+ * root, after a running alert.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -72,6 +75,9 @@ class MainActivity : ComponentActivity() {
     /** Taps on the catalog refresh's notifications (SCR-22, D-097); a pending one survives a recreation. */
     private val catalogRefreshRequests = CatalogRefreshRequests()
 
+    /** Taps on the daily low-stock reminder (INV-11, D-098); a pending one survives a recreation. */
+    private val startRequests = StartRequests()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -80,10 +86,12 @@ class MainActivity : ComponentActivity() {
             openTimerIfAsked(intent)
             teaLinkShares.offer(intent)
             catalogRefreshRequests.offer(intent)
+            startRequests.offer(intent)
         } else {
             if (timerRequests.restore(savedInstanceState, intent)) showTimerOverLockScreen()
             teaLinkShares.restore(savedInstanceState)
             catalogRefreshRequests.restore(savedInstanceState)
+            startRequests.restore(savedInstanceState)
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
@@ -102,13 +110,15 @@ class MainActivity : ComponentActivity() {
                     journalSources = journalSources,
                     alertKey = alertKey,
                     onboardingCompleted = onboardingCompleted,
-                    timerRequest = timerRequests.token,
+                    timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
                     teaLinkShare = teaLinkShares.share,
                     onTakeTeaLinkShare = teaLinkShares::taken,
                     catalogRefreshRequest = catalogRefreshRequests.token,
                     onConsumeCatalogRefreshRequest = catalogRefreshRequests::handled,
+                    startRequest = startRequests.token,
+                    onConsumeStartRequest = startRequests::handled,
                     startScreen = { StartTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
                 )
@@ -122,6 +132,7 @@ class MainActivity : ComponentActivity() {
         openTimerIfAsked(intent)
         teaLinkShares.offer(intent)
         catalogRefreshRequests.offer(intent)
+        startRequests.offer(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -129,6 +140,7 @@ class MainActivity : ComponentActivity() {
         timerRequests.save(outState)
         teaLinkShares.save(outState)
         catalogRefreshRequests.save(outState)
+        startRequests.save(outState)
     }
 
     private fun openTimerIfAsked(intent: Intent?) {

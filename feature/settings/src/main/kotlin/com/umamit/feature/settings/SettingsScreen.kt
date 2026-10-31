@@ -63,10 +63,16 @@ object SettingsTags {
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
     const val LOW_STOCK = "SettingsLowStock"
+
+    /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
+    const val REMINDER_TIME = "SettingsReminderTime"
+
+    /** The *Lautstärke* slider (SET-27). */
+    const val VOLUME = "SettingsVolume"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
-internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock }
+internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock, ReminderTime }
 
 /** What the rows of SCR-25 do. */
 class SettingsActions(
@@ -81,12 +87,20 @@ class SettingsActions(
     val setPreAlertSound: (String) -> Unit = {},
     /** *Anhören* in the *Vorwarnton* picker: the picked sound once (SET-26). */
     val previewPreAlertSound: () -> Unit = {},
+    /** SET-27 *Lautstärke* in % (10–100 in steps of 10), written once a drag ends. */
+    val setVolume: (Int) -> Unit = {},
     val setVibration: (Boolean) -> Unit = {},
     val setAlertLength: (AlertLength) -> Unit = {},
+    /** SET-32 *Bei „Nicht stören" klingeln* (D-099). */
+    val setRingUnderDnd: (Boolean) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
+    /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, D-098). */
+    val setLowStockReminder: (Boolean) -> Unit = {},
+    /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
+    val setLowStockReminderTime: (Int) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -151,11 +165,15 @@ fun SettingsRoute(
             setPreAlert = { seconds -> viewModel.change { it.copy(preAlertSeconds = seconds) } },
             setPreAlertSound = { key -> viewModel.change { it.copy(preAlertSound = key) } },
             previewPreAlertSound = { viewModel.previewPreAlertSound((settings ?: UserSettings()).preAlertSound) },
+            setVolume = { percent -> viewModel.change { it.copy(alertVolumePercent = percent) } },
             setVibration = { on -> viewModel.change { it.copy(vibration = on) } },
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
+            setRingUnderDnd = { on -> viewModel.change { it.copy(ringUnderDnd = on) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
+            setLowStockReminder = { on -> viewModel.change { it.copy(lowStockReminder = on) } },
+            setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
@@ -215,6 +233,7 @@ fun SettingsScreen(
             onClick = { if (!alerting) dialog = SettingsDialog.LowStock },
             modifier = Modifier.testTag(SettingsTags.LOW_STOCK),
         )
+        ReminderRows(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
         CatalogSection(catalog, onRefresh = actions.refreshCatalog)
         SwitchRow(
@@ -240,6 +259,15 @@ fun SettingsScreen(
             SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions) { dialog = null }
 
             SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock) { dialog = null }
+
+            SettingsDialog.ReminderTime -> ReminderTimeDialog(
+                minuteOfDay = settings.lowStockReminderTime,
+                onConfirm = { minute ->
+                    actions.setLowStockReminderTime(minute)
+                    dialog = null
+                },
+                onDismiss = { dialog = null },
+            )
 
             SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength) {
                 dialog =
@@ -277,11 +305,18 @@ private fun ReliabilityCard(status: ReliabilityStatus, onFix: (ReliabilityCheck)
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             ReliabilityCheck.entries.forEach { check ->
+                val state = status.stateOf(check)
                 StatusCheckRow(
                     label = stringResource(check.label()),
-                    state = status.stateOf(check).toStatusCheck(),
+                    state = state.toStatusCheck(),
                     actionLabel = stringResource(R.string.settings_fix),
                     onAction = { onFix(check) },
+                    // „Alarmlautstärke · Ist aus" (D-098): the phone's setting, not a missing permission.
+                    explanation = if (check == ReliabilityCheck.AlarmVolume && state == CheckState.Missing) {
+                        stringResource(R.string.settings_check_alarm_volume_off)
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -306,11 +341,18 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
             value = stringResource(PreAlertSound.of(settings.preAlertSound).sound.label()),
             onClick = { openDialog(SettingsDialog.PreAlertSound) },
         )
+        VolumeRow(percent = settings.alertVolumePercent, onChange = actions.setVolume)
         SwitchRow(stringResource(R.string.settings_vibration), settings.vibration, actions.setVibration)
         SettingsRow(
             title = stringResource(R.string.settings_alert_length),
             value = stringResource(settings.alertLength.label()),
             onClick = { openDialog(SettingsDialog.AlertLength) },
+        )
+        SwitchRow(
+            title = stringResource(R.string.settings_ring_under_dnd),
+            checked = settings.ringUnderDnd,
+            onCheckedChange = actions.setRingUnderDnd,
+            detail = stringResource(R.string.settings_ring_under_dnd_detail),
         )
         SwitchRow(stringResource(R.string.settings_keep_screen_on), settings.keepScreenOn, actions.setKeepScreenOn)
         SwitchRow(
@@ -364,7 +406,7 @@ internal fun SettingsRow(
 }
 
 @Composable
-private fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
+internal fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = detail?.let { { Text(it) } },
@@ -415,6 +457,7 @@ private fun ReliabilityCheck.label(): Int = when (this) {
     ReliabilityCheck.FullScreenAlert -> R.string.settings_check_full_screen
     ReliabilityCheck.Battery -> R.string.settings_check_battery
     ReliabilityCheck.ExactAlarms -> R.string.settings_check_exact_alarms
+    ReliabilityCheck.AlarmVolume -> R.string.settings_check_alarm_volume
 }
 
 private fun CheckState.toStatusCheck(): StatusCheck = when (this) {

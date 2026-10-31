@@ -38,8 +38,8 @@ import javax.inject.Singleton
 interface AlertTester {
     /**
      * Plays the pre-alert tick, then the alert, with the current settings
-     * (tone, vibration, alert length) and the ringer-mode matrix, exactly as
-     * a step would. Ignored while a real alert or tick plays; a real one
+     * (tone, vibration, alert length, *Lautstärke*) and the ringer-mode matrix,
+     * exactly as a step would. Ignored while a real alert or tick plays; a real one
      * replaces a running test.
      */
     fun testAlert()
@@ -51,8 +51,9 @@ interface AlertTester {
 /**
  * The production alert player (04 §9; M1-10, D-059): the [RingerModeAlertPlayer]
  * with the device outputs, playing with the stored settings (SET-09 tone,
- * SET-11 vibration, SET-14 alert length, SET-26 pre-alert sound) read at the
- * start of every alert, tick and test. [ControllerAlertPort] drives it for
+ * SET-11 vibration, SET-14 alert length, SET-26 pre-alert sound, SET-27
+ * *Lautstärke*) read at the start of every alert, tick and test, so a change
+ * applies to the next cue. [ControllerAlertPort] drives it for
  * the controller, the settings screen through [AlertTester]; both share this
  * one player, so a test never plays over a real alert.
  *
@@ -288,7 +289,7 @@ class AlertPlayback internal constructor(
         try {
             val at = clock()
             val conditions = environment.conditions()
-            val outputs = AlertMatrix.outputs(conditions, current.vibration)
+            val outputs = AlertMatrix.outputs(conditions, current.vibration, current.ringUnderDnd)
             diagnostics.record(
                 TimerDiagnostic.AlertPlayed(
                     at = at,
@@ -299,6 +300,10 @@ class AlertPlayback internal constructor(
                     length = current.length,
                     scheduled = scheduled,
                     start = timing?.cueStart(at.elapsedMs, outputs.sound),
+                    volumePercent = current.volumePercent,
+                    ringUnderDnd = current.ringUnderDnd,
+                    // Read here, after the outputs started: never ahead of a cue's sound (rule 8).
+                    alarmVolumeOff = environment.alarmVolumeOff(),
                 ),
             )
         } catch (e: CancellationException) {

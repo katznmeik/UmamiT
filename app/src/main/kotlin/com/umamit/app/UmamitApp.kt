@@ -62,6 +62,7 @@ import androidx.navigation.toRoute
 import com.umamit.core.designsystem.component.ActiveBrewBar
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerSlot
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
@@ -88,6 +89,7 @@ private const val SLIDE_FRACTION = 12
  * @param alerting whether an alert plays now.
  * @param layoutType forces the bar or the rail; `null` follows the window size.
  * @param onOpenTimer a tap on the active brew bar, or on the running session in the journal, opens the timer (GEN-06).
+ * @param onOpenTimerOf with a brew and a quick timer, a tap on a half of the bar opens that timer (D-098).
  * @param startNavigation where Start leads outside the shell (setup, timer, quick timer).
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
@@ -99,6 +101,8 @@ private const val SLIDE_FRACTION = 12
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
  * @param opening how this shell opens: the app's shell on Start, or the shell a catalog refresh
  *   notification opens above what was shown ([ShellOpening.CatalogRefresh], D-097).
+ * @param startRequest a new non-zero token for each tap on the daily low-stock reminder (INV-11, D-098): the
+ *   shell turns to Start at its root; the picker's catalog flow ends quietly.
  *
  * **The tea picker's catalog flow** (D-073, D-088): *Aus dem Katalog* opens Sammlung › Katalog
  * (the Sammlung tab at its root, segment *Katalog*); an add or repurchase saved there opens the
@@ -116,6 +120,7 @@ internal fun UmamitApp(
     alerting: Boolean = false,
     layoutType: NavigationSuiteType? = null,
     onOpenTimer: () -> Unit = {},
+    onOpenTimerOf: (TimerSlot) -> Unit = { onOpenTimer() },
     startNavigation: StartNavigation = StartNavigation(),
     alertKey: String? = null,
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
@@ -125,6 +130,7 @@ internal fun UmamitApp(
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
     opening: ShellOpening = ShellOpening.Start,
+    startRequest: Long = 0L,
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
@@ -134,6 +140,8 @@ internal fun UmamitApp(
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
     // *Link einfügen* in the same menu (CAT-17).
     var catalogPasteRequest by remember { mutableIntStateOf(0) }
+    // *Alle einklappen* / *Alle ausklappen* in the same menu, only while the catalog's groups fold (D-098).
+    val catalogFolds = remember { CatalogFoldMenu() }
     // A shared link shows the catalog list, which loads it (CAT-17).
     LaunchedEffect(teaLinkShare?.token) {
         if (teaLinkShare != null) {
@@ -143,14 +151,21 @@ internal fun UmamitApp(
         }
     }
     // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
-    OnNewRefreshSheet(opening.sheetToken) {
+    OnNewToken(opening.sheetToken) {
         brewFlow.leaveFor(Tab.Collection)
         controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
         segment = CollectionSegment.Catalog
         selected = Tab.Collection
     }
+    // The daily low-stock reminder's tap (INV-11): Start at its root.
+    OnNewToken(startRequest) {
+        brewFlow.quit()
+        controllers.getValue(Tab.Start).popToRoot(Tab.Start)
+        selected = Tab.Start
+    }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
+    val alongside by activeBrewSource.alongside.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
         ?: NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
     val motion = UmamiTheme.motion
@@ -251,11 +266,15 @@ internal fun UmamitApp(
                                         sharedLink = teaLinkShare,
                                         onTakeSharedLink = onTakeTeaLinkShare,
                                         refreshSheetRequest = opening.sheetToken,
+                                        foldAllRequest = catalogFolds.foldAllRequest,
+                                        unfoldAllRequest = catalogFolds.unfoldAllRequest,
+                                        onFoldableChange = { catalogFolds.foldable = it },
                                     ),
                                 )
                             },
                             onRefreshCatalog = { catalogRefreshRequest++ },
                             onPasteLink = { catalogPasteRequest++ },
+                            onFoldCatalog = catalogFolds.action,
                             catalogTea = { onBack ->
                                 catalogScreens.tea(
                                     CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
@@ -309,11 +328,18 @@ internal fun UmamitApp(
                 )
             }
             // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
-            // layout leaves the system bar insets to the brew bar.
+            // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own (D-098).
             ActiveBrewBar(
                 brew = activeBrew,
                 progress = activeBrewSource.progress,
-                onClick = onOpenTimer,
+                onClick = if (alongside != null) {
+                    { onOpenTimerOf(TimerSlot.BREW) }
+                } else {
+                    onOpenTimer
+                },
+                alongside = alongside,
+                alongsideProgress = activeBrewSource.alongsideProgress,
+                onAlongsideClick = { onOpenTimerOf(TimerSlot.QUICK) },
                 windowInsets = if (!rail) {
                     WindowInsets(0)
                 } else {
@@ -358,11 +384,11 @@ internal sealed interface ShellOpening {
 }
 
 /**
- * Runs [show] for each new refresh sheet [token] after the one this shell opened with, once each,
- * also across a recreation.
+ * Runs [show] for each new [token] (a refresh sheet, a tap on the reminder) after the one this shell was
+ * composed with, once each, also across a recreation.
  */
 @Composable
-private fun OnNewRefreshSheet(token: Long, show: () -> Unit) {
+private fun OnNewToken(token: Long, show: () -> Unit) {
     var shown by rememberSaveable { mutableLongStateOf(token) }
     val currentShow by rememberUpdatedState(show)
     LaunchedEffect(token) {
@@ -400,6 +426,11 @@ private class CatalogBrewFlow(
         if (!active) return
         end(toPicker = false)
         then()
+    }
+
+    /** The flow ends quietly, without the picker (the reminder's tap, INV-11). */
+    fun quit() {
+        if (active) end(toPicker = false)
     }
 
     /**
@@ -476,6 +507,7 @@ private fun TabHost(
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     onPasteLink: () -> Unit,
+    onFoldCatalog: ((fold: Boolean) -> Unit)?,
     catalogTea: @Composable (onBack: () -> Unit) -> Unit,
     start: @Composable (openSettings: () -> Unit, scrollToTopRequest: Int) -> Unit,
 ) {
@@ -508,6 +540,7 @@ private fun TabHost(
                 scrollToTopRequest = scrollToTopRequest,
                 onRefreshCatalog = onRefreshCatalog,
                 onPasteLink = onPasteLink,
+                onFoldCatalog = onFoldCatalog,
             )
         }
         // The add sheet (SCR-23) gives way to an alert (rule 8). Every on-screen back acts only while its

@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.ForegroundStart
 import com.umamit.core.testing.ServiceStarted
 import com.umamit.core.testing.ServiceStopped
@@ -31,8 +32,8 @@ class ForegroundServiceContractTest {
     fun tearDown() = h.close()
 
     @Test
-    fun `a ten-minute step runs without the service and its alert brings it back full screen`() = runTest {
-        h.controller.startSession(brewStart(infusion(600)))
+    fun `a 60-min step runs without the service and its alert brings it back full screen`() = runTest {
+        h.controller.startSession(brewStart(infusion(3_600)))
         assertThat(h.service.running).isTrue()
 
         h.controller.send(TimerEvent.Start)
@@ -41,7 +42,7 @@ class ForegroundServiceContractTest {
         assertThat(h.service.running).isFalse()
         assertThat(h.log.calls.last { it is ServiceStarted || it == ServiceStopped }).isEqualTo(ServiceStopped)
 
-        h.advanceSeconds(600)
+        h.advanceSeconds(3_600)
 
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(h.service.running).isTrue()
@@ -70,7 +71,7 @@ class ForegroundServiceContractTest {
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(60)
         // The deadline alarm after the wake-up, the end of the alert and Abgegossen start nothing full screen.
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         h.controller.alertCompleted(checkNotNull(h.alert.playing))
         h.controller.send(TimerEvent.Poured)
         h.controller.send(TimerEvent.Start)

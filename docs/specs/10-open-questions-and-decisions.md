@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-30
+> Status: **Living document** · Last updated: 2026-10-31
 
 ## Open questions
 
@@ -302,6 +302,93 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-099"></a>
+### D-099 — v0.3.0: Vorwarnung and alarm ring under a „Nicht stören" that lets alarms through (SET-32, TMR-31; amends D-098's DND matrix and its #128 build notes, 04 §9.1) · *Accepted* (PO, 2026-10-31; build notes Claude's)
+
+**Context.** The PO tested `v0.3.0-rc.1` on the Galaxy (One UI 9, Android
+17) with the sound mode on ring and „Nicht stören" on with its default
+exceptions (alarms allowed). The Schnelltimer's Vorwarnung and alarm were
+silent. *Diagnose* showed:
+
+```
+alert PRE_ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> visual only | tone zimbel, length NORMAL, gain 100 % …
+alert ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> visual only | tone klangschale …
+```
+
+So One UI reports the ringer as silent under its „Nicht stören" (priority
+mode), although the phone is on ring. D-098's matrix read a silent report as
+normal only under „alarms only" (#128 build notes) and took it as reported in
+priority mode, so both cues stayed visual. While DND is on, the app cannot
+tell this report from the user's own silent mode.
+
+**Decision (PO, 2026-10-31): „Ring + setting".**
+1. While DND is on and lets alarms through, Vorwarnung and alarm sound as
+   with the ringer on normal (sound, plus vibration if SET-11 is on), even
+   when the phone reports silent.
+2. A new switch in *Einstellungen › Timer & Alarm*, „Bei „Nicht stören"
+   klingeln" (SET-32), default **on**, lets the PO turn this off. Off is
+   today's behaviour: the reported ringer mode decides.
+
+**Build notes (Claude, 2026-10-31).**
+- **„Lets alarms through".**
+  - „Nur Alarme" (`INTERRUPTION_FILTER_ALARMS`): always.
+  - Priority mode (`INTERRUPTION_FILTER_PRIORITY`): when the policy has
+    `PRIORITY_CATEGORY_ALARMS`. The app reads
+    `NotificationManager.getConsolidatedNotificationPolicy()`, the policy of
+    every DND mode in effect (public from API 35, the app's minimum). It
+    does not read `getNotificationPolicy()`, which is the manual DND's own
+    policy and misses a schedule mode (e.g. bedtime) with a policy of its
+    own; zen mode mutes the alarm stream by the consolidated policy too.
+  - „Absolute Ruhe": never (visual only, unchanged).
+- **Policy access.** In AOSP neither getter checks notification-policy
+  access; only the setters do. The app asks for no access. The policy is
+  read only in priority mode, one binder call next to the interruption
+  filter. A policy that cannot be read (null, or any exception, logged)
+  counts as letting alarms through, so a guess never silences a cue
+  (rule 8). It is not shown in *Diagnose*.
+- **The matrix** (`AlertMatrix.outputs(conditions, vibration,
+  ringUnderDnd)`; `DoNotDisturb` gains `PRIORITY_WITHOUT_ALARMS`):
+  - A *silent* report reads as normal under „alarms only" (always, D-098
+    decision 8) and under priority mode letting alarms through while SET-32
+    is on.
+  - A *vibrate* report stays vibrate everywhere.
+  - In a call: vibration only, as with the ringer on normal.
+  - Priority mode whose policy blocks alarms plays as reported. Its alarm
+    stream is muted anyway.
+  - DND off: unchanged.
+- **Switch off = `v0.3.0-rc.1`.** „Today's behaviour" is taken literally:
+  off restores rc.1's matrix. Priority mode then follows the report; „alarms
+  only" keeps D-098's rule, since AOSP forces the silent report there and
+  the PO decided that „alarms only" rings (D-098 decision 8).
+- **Every cue, every cycle.** The switch is read with the other settings at
+  the start of every tick, alert and *Alarm testen* (SET-31). The conditions
+  are read again on each cycle, so DND turned on during an alert takes
+  effect at the next repeat. *Anhören* (SET-09, SET-26) plays only where a
+  cue would sound, with the stored switch.
+- ***Diagnose*.** Each cue's line keeps its format and adds two things.
+  Priority mode whose policy blocks alarms reads `DND priority without
+  alarms`. The settings part ends with the switch, e.g.
+  `… -> sound + vibration | tone zimbel, length NORMAL, gain 100 %, DND
+  rings on | …`. `FireTime` and `AccuracyReport` read the line as before;
+  their tests round-trip it through the format.
+- **Settings file.** `ringUnderDnd` (Boolean, default true). A file of
+  `v0.3.0-rc.1` or older has no key and reads true, so it needs no settings
+  migration; settings `schemaVersion` stays 2 (05 §6).
+- **The row.** A switch with a detail line below *Alarmdauer*: „Bei „Nicht
+  stören" klingeln" over „Vorwarnung und Alarm klingen, wenn „Nicht stören"
+  Alarme erlaubt". „Nicht stören" has a no-break space, so it never splits
+  across lines.
+- **Reliability.** Nothing new. With the switch off under DND the cues stay
+  visual as the PO chose; no banner or check.
+- **Open risk.** With the switch on, a phone that reports the user's own
+  silent mode under a DND that lets alarms through rings although the user
+  chose silent. The switch is the way out. The new 09 §4 item checks both
+  states on the Galaxy.
+
+**Spec updates:** 02 SET-32 (new), 03 SCR-25, 04 §9.1 (DND matrix), E14 and
+§12, 05 §6 (`ringUnderDnd`), 06 §5.6, 09 §4 (v0.3.0, the DND item with
+SET-32).
+
 <a id="d-098"></a>
 ### D-098 — v0.3.0: quick timer alongside a brew, long hot steps, the PO's feedback on v0.2.2-rc.1 (TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-11, INV-07, INV-11, CAT-10, SET-27–SET-29, SCR-02, SCR-04, SCR-05, SCR-07, SCR-19, SCR-25; amends D-093 point 1 and Q2, TMR-18, 04 §9.1) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q8, R2-Q1–R2-Q3 and scenarios S1–S4; details marked „Claude" are Claude's)
 
@@ -479,6 +566,8 @@ reminder") was updated with the grilling.
   SET-11); vibrate → vibration only; silent → visual only. Do Not Disturb:
   „alarms only" and priority mode → as the ringer mode (alarms pass);
   „total silence" → visual only. A call still means vibration only.
+  *Amended by [D-099](#d-099):* a silent report under a DND that lets alarms
+  through rings, in priority mode while SET-32 is on.
 - **Alarm volume 0.** A new reliability check (TMR-31):
   `AudioManager.getStreamVolume(STREAM_ALARM) == 0` → „Alarmlautstärke ist
   aus" with *Beheben* (`Settings.ACTION_SOUND_SETTINGS`), in the banner on
@@ -539,6 +628,804 @@ reminder") was updated with the grilling.
 **Out of scope.** More than one quick timer or two brew sessions; logging the
 quick timer; a per-tea reminder switch; reminders other than low stock;
 changing the system alarm volume from the app; M3 (now v0.4.0).
+
+**Build notes (Claude, 2026-10-30, #126: umamit.db v4).**
+- **Slot key.** `active_brew.slot` is the enum `TimerSlot` of `core:model`,
+  stored by name (`BREW`, `QUICK`) like `phase`; a name never changes its
+  meaning and is never renamed (05 §5). A row's slot is derived from its kind
+  (`ActiveBrewSnapshot.slot`, from `is_quick_timer`), so it is never chosen
+  apart from it.
+- **Store per slot.** `ActiveBrewStore` gains `read(slot)`, `persist(slot,
+  snapshot)` and `clear(slot)`, which touch only their slot (the brew slot
+  also its session's step rows). `persist(slot, …)` refuses a snapshot of the
+  other kind (`IllegalArgumentException`) and writes nothing. A damaged row
+  whose `slot` and `is_quick_timer` disagree is read as stored; the controller
+  refuses it like a snapshot `restore` refuses (#125, #134).
+- **Single-timer methods kept** for the controller until v0.3.0-03: `read()`
+  returns the brew slot's row, else the quick slot's; `persist(snapshot)`
+  writes the snapshot in its kind's slot and clears the other slot in the same
+  transaction, as v3 replaced its single row; `clear()` clears both. The
+  controller harness's `ObservedStore` passes the slot methods to the real
+  store unobserved.
+- **Ringing start.** `ActiveBrewSnapshot` carries
+  `alertRingingSinceElapsedMs` / `alertRingingSinceWallMs`, and the store
+  round-trips them in either slot (null = held or not alerting). Until the
+  held alert lands (#134) the engine neither sets nor reads them, so the first
+  transition after the migration writes them back as null; nothing reads them
+  before #134.
+- **Migration.** `MIGRATION_3_4` creates the new table with Room's v4
+  `createSql` (identical but for the table name), copies the v3 columns but
+  `id`, drops, renames and recreates `index_active_brew_session_id`;
+  `created_at` stays per row. `Migration3To4Test` covers a running brew, a
+  running quick timer with its own 20 s, an alerting quick timer with *Aus*,
+  an alerting brew whose alert played, and no timer.
+
+**Build notes (Claude, 2026-10-30, #128: alarm volume and *Lautstärke*).**
+- **DND under „alarms only" (S2, S3; the check 04 §9.1 asked for).** The
+  matrix reads `getRingerMode()` and `getCurrentInterruptionFilter()` as
+  before. AOSP's zen mode forces the ringer to silent under „alarms only"
+  and total silence (`ZenModeHelper.applyZenToRingerMode` sets the internal
+  ringer mode to silent, and the reported one follows), so under „alarms
+  only" a silent report says nothing about the user's choice. The app reads
+  it as normal there: „alarms only" lets both cues ring (decision 8, rule 8);
+  vibrate is kept as reported. Priority mode leaves the ringer mode alone in
+  AOSP, so it plays as the ringer mode, and total silence stays visual only.
+  The open risk is a phone that reports the user's own silent mode under
+  „alarms only": the cue then rings although the PO chose silent. One UI's
+  DND is priority mode with exceptions (alarms allowed by default), where
+  the ringer mode is used as reported. No emulator runs here and Robolectric
+  does not model zen, so the device answer comes from the rc: each cue's
+  *Diagnose* line now names the ringer mode, the DND mode („DND off /
+  priority / alarms only / total silence"), the alarm volume („alarm volume
+  on / 0") and the gain („gain 60 %"); the 09 §4 DND item asks the PO to
+  copy it after the DND checks. *Amended by [D-099](#d-099):* `v0.3.0-rc.1`
+  showed that One UI reports silent in priority mode with the phone on
+  ring.
+- **Gain.** `MediaPlayer.setVolume(gain, gain)` right before `start()`, so a
+  sound loaded ahead takes the cue's own gain, and a player loaded on the
+  spot (D-092 fallback) too. A change of *Lautstärke* loads nothing (the
+  sounds of `keepReady` are unchanged), so the first cue still starts
+  without a load. The gain is `alertVolumePercent` clamped to 10–100 on
+  read (`AlertSettings.of`), so a damaged file never silences a cue; the
+  repository snaps a written value to 10 (half up) and clamps it.
+- **Settings file.** `alertVolumePercent` (Int, default 100) needs no
+  settings migration: a v0.2.2 file has no key and reads 100 %; settings
+  `schemaVersion` stays 2 (05 §6).
+- ***Anhören*** (SET-09, SET-26) plays at the stored *Lautstärke* too, on
+  the alarm stream like *Alarm testen*, so the PO hears what will ring.
+- **The slider.** M3 `Slider`, 10–100 with 8 steps, the value („60 %", with
+  a no-break space) at the title's end and as TalkBack's state. A drag
+  writes once, when it ends; TalkBack's adjustments write at once. The
+  inactive track is `surfaceContainerHighest` (the washi
+  `secondaryContainer` read like a warning on the dark theme).
+- **The check.** `ReliabilityCheck.AlarmVolume`, last in the card's order,
+  so a missing permission's *Beheben* comes first; `PermissionStates` gains
+  `alarmVolumeOn` (`getStreamVolume(STREAM_ALARM) > 0`; 0 also for a muted
+  stream), logged at process start. The player reads the alarm volume only
+  for a cue's log line, after its outputs started, so no binder call is
+  added ahead of a cue's sound; at 0 the cue still runs (E18). The banner
+  says „Alarmlautstärke ist aus" only when the volume is the first missing
+  check (the one *Beheben*
+  opens), else the general message. *Beheben* opens
+  `Settings.ACTION_SOUND_SETTINGS`, then the settings (not the app's
+  details, which have no volume). The card's row shows ✓ like its
+  neighbours when the volume is up and „Ist aus" with *Beheben* when it is
+  0; the setup page (ONB-02) does not list it.
+
+**Build notes (Claude, 2026-10-30, #125: timer slots in the controller).**
+- **Slots.** `BrewSessionController` holds a `ControllerSlot` per `TimerSlot`
+  (engine state, session details, alert watchdog, the state recovery
+  restored); the engine is unchanged. One timer is still active across both:
+  the admission (`Admission`, `ControllerSlots.blocking`) refuses a start
+  while the other slot is active as `ActiveTimerExists(<its kind>)`, logged
+  as before, and *Beenden & neu starten* ends the active timer in whichever
+  slot it is. v0.3.0-03 changes only these rules. A user event (`send`) goes
+  to the slot of the active timer, the brew slot while none is; the screens
+  and notifications name no slot yet (#134–#136). `state` is the active
+  timer's UI state.
+- **Request codes and broadcasts.** `TimerAlarmKind.requestCodeIn(slot)`:
+  100 or 200 plus 1–7. The brew slot keeps the broadcast of v0.2.2
+  („…TIMER_ALARM.DEADLINE"), so its alarms replace and cancel those v0.2.2
+  left; the quick slot's is „…TIMER_ALARM.QUICK.DEADLINE". The receiver reads
+  an alarm of v0.2.2 as the brew slot's; `TimerInputs.onAlarm(slot, kind)`.
+- **An alarm runs both slots.** `onAlarm` runs every due event of both slots,
+  the brew slot first (so an old alarm of a quick timer, read as the brew
+  slot's, still delivers its event); the slot names the alarm's log entry, its
+  retry and its watchdog. The in-process wake-up comes for the earliest due
+  time of either slot.
+- **Recovery** reads both slots in each try (a failed read of either fails the
+  try), recovers the brew slot first, then cancels the alarms of every slot
+  without a timer (`reconcile(slot, NONE)`), which moves a quick timer of
+  v0.2.2 from 101–106 to 201–206; its watchdog 107 goes with the brew
+  slot's first watchdog turn.
+- **Store seam.** The controller writes through `TimerSlotStore`
+  (`read`/`persist`/`clear` per slot), today on the single-timer methods of
+  `ActiveBrewStore` (`SingleTimerSlotStore`), so a write still clears the other
+  slot as v3 replaced its row. v0.3.0-03 moves it to the slot methods,
+  including the refusal of a row whose slot and kind disagree.
+- **Unchanged:** notification IDs (by role), the diagnostics log format (no
+  slot in `AlarmReceived` yet), the UI.
+
+**Build notes (Claude, 2026-10-30, #134: brew and quick timer together).**
+- **Ringing start.** A quick alert that rings at its deadline rings since its
+  deadline (`ringingSince` = the deadline, as the migration sets it), so its
+  silent end stays deadline + 10 min as in v0.2.2, also when recovery finds
+  it late; only a release rings since „now". A brew row stored without a
+  ringing start (rows the interim builds of v0.3.0 wrote) rings since its
+  deadline; a quick one is held. `restore` refuses a held alert reported
+  played and a ringing start with only one of its two clocks.
+- **A third controller event, `RecoverHeld`.** `recover` of the quick slot
+  while the brew slot is ALERTING after its own recovery: a quick timer past
+  its deadline is held however late (never ended silently), a ringing one is
+  held again without a sound of its own; anything else recovers as by
+  `recover`. A held alert recovered by plain `recover` stays held, and the
+  arbitration releases it in the same turn. The engine ignores `alertHold`,
+  `alertRingStart` and `RecoverHeld`'s hold for a brew session.
+- **The rules are pure.** `AlertArbitration` (the quick slot's deadline and
+  recovery while the brew alerts become `alertHold` / `RecoverHeld`; after
+  every accepted event `settle` holds a ringing quick alert while the brew
+  alerts, releases a held one when it no longer does) and `PlayerSound` (the
+  one player's sound) live in `core:timer-engine`, so the seeded two-slot test
+  (`TwoSlotInvariantsTest`) runs the controller's rules in pure JVM. The
+  controller applies them; the alert player's own code is unchanged.
+- **Preemption by state.** At most one slot rings: a brew deadline holds the
+  quick alert also when its sound has already run its cycle, and every
+  release plays the full alert length (SET-14) again.
+- **A stop belongs to its slot.** A `StopAlert` reaches the player only when
+  the other slot does not own its sound (so the preempted quick alert's stop
+  never silences the brew's, and *Fertig* on a held alert never cuts a
+  pre-alert); the engine emits none for a held alert.
+- **Waiting pre-alert.** The engine marks it played at its due time (at most
+  once; „Gleich fertig …" shows on time); the controller holds only its
+  sound and plays it when the blocking sound ends, with at least 1 s left,
+  else drops it. The end of an alert is the player's report or the alert's
+  stop; the end of a pre-alert, which the player does not report, is taken as
+  the longest pre-alert sound plus the player's 250 ms release (3.45 s), and
+  a wake-up comes then. A waiting pre-alert whose step no longer counts down
+  to the same deadline (paused, ended) is dropped; one waiting when the
+  process dies does not come back.
+- **The screens' timer.** `state` is the ringing alert's timer (the brew's
+  first), else the timer the user started or used last in the app (a
+  notification action does not move it), else the other active one;
+  `state(slot)` gives each slot's. Every user event names its slot: the timer
+  screen sends the slot of the state it shows, a notification action carries
+  it („…NOTIFICATION.QUICK.<EVENT>", request codes 420+; an action without a
+  slot, as v0.2.2 posted, reads as the brew slot's). `send(event)` without a
+  slot remains as an extension for one-timer callers (tests).
+- **Notifications until v0.3.0-04 (`NotificationRoles`).** The lead slot is
+  the ringing one, else the first (brew before quick) that runs with the
+  service, else the first active one; its notification is the service's (1,
+  2) or the quiet 4 as with one timer, and the other active timer is
+  notification 5 on the new channel `timer_other` (LOW; created here), a held
+  quick alert as „Fertig, wartet auf den Aufguss" without a full-screen
+  intent. The service stops only when neither slot needs it; its wake lock is
+  the longer of both (notification 5's need is added, and the service's last
+  notification is sent again, only-alert-once, when it grows). After
+  *Abgegossen* the brew's Live Update replaces its alert first, so a released
+  quick alert is a fresh notification 2 with its full-screen intent; when the
+  brew session is ended or discarded during its own alert, the quick alert
+  updates notification 2 in place. #135 replaces the lead rule by the timer
+  due next and checks the full-screen intent of that update on the device.
+- **Store.** The controller reads, writes and clears each slot through
+  `ActiveBrewStore`'s slot methods; a row whose slot and kind disagree is
+  refused like an unrestorable snapshot (cleared, logged).
+- **Diagnostics.** The log names the event the engine got (`AlertHold`,
+  `AlertRingStart`, `RecoverHeld`), from the new source `ARBITRATION` where
+  the controller sent it, and recovery's new decision `alert held`. Still no
+  slot in the log lines; the accuracy run's `alongside` variant (#137) adds
+  what it needs.
+- **UI reachability.** Start's *Schnelltimer* starts alongside a running or
+  alerting brew (the timer then opens on the brew's alert); the setup and
+  *Nochmal brühen* start a brew alongside a quick timer. A second brew asks
+  TMR-21's question with the brew's tea; a second quick timer asks
+  „Schnelltimer beenden und neu starten?", and its *Beenden & neu starten*
+  ends the quick timer only.
+
+**Build notes (Claude, 2026-10-30, #130: daily low-stock reminder, INV-11).**
+- **When it runs** (`LowStockReminderSchedule`, on the clock of the
+  device's zone, so DST keeps „18:00"). The next run is today's set time
+  while it is ahead; a day whose set time has passed **without a run** runs
+  at once (the job was late, the phone was off, the reminder was switched on
+  or set to an earlier time that day); a day that had its run waits for the
+  next day. A run posts when its date had no run yet and the set time is at
+  most 30 min ahead.
+- **`lowStockReminderLastDate`** is the date of the last run that was
+  **due**, posted or with nothing to post, so a restart after an empty run
+  does not run again that day (05 §6 said „last posted").
+- **Policies.** At app start (also after an update, whose
+  `MY_PACKAGE_REPLACED` starts the process through the timer's receiver;
+  no receiver of its own) `KEEP`: a job that waits or runs stays, so a
+  process the job itself started, or an app start at 18:05 before the late
+  job ran, never cancels or repeats it. A change of SET-28 or SET-29:
+  `REPLACE`, off cancels the job and notification 12. A run schedules its
+  successor with `APPEND_OR_REPLACE` (it starts once the running job has
+  ended; `REPLACE` from inside the job would cancel it). One flow
+  (`LowStockReminderScheduler.follow`, launched in `UmamitApplication`)
+  does all three, from the settings.
+- **An empty day** posts nothing and removes yesterday's notification 12,
+  which would no longer be true. A failed read (an `IOException`) skips the
+  day, logged; the next day is scheduled either way. (The v0.3.0 code review
+  widened this to every failure; see its build notes.)
+- **Notification.** Title „3 Tees werden knapp" (two and more), „Tanabata
+  wird knapp" (one); `InboxStyle` lines „Tanabata · 14 g" (0,1 g in German
+  format, no-break space before „g"), „Hisui · leer"; the collapsed text
+  joins the lines with „, ". `CATEGORY_REMINDER`, silent, auto-cancel, the
+  app's sprig as icon. The query reuses the Start card's
+  `observeStockLevels` (least stock first, then by name) and its threshold
+  rule, without `lowStockHidden`.
+- **Tap.** `OpenStartIntents` names `com.umamit.app.MainActivity` by class
+  name (`core:data` cannot see the app; the app's test pins it). No gate as
+  the catalog's taps have (#121): Start is what the launcher opens anyway.
+  The root pops everything above the app's shell (a timer keeps running
+  behind the bar; a setup's choices are dropped as with back; a refresh
+  shell goes) and the shell turns to Start at its root, ending the picker's
+  catalog flow quietly. During an alert it waits; before the first-start
+  setup is done, or while a setup re-run is shown, it is let go.
+- **WorkManager** 2.12 adds, besides the permissions, `SystemJobService`
+  (exported, `BIND_JOB_SERVICE`), `SystemForegroundService` (not exported,
+  never started: no expedited or foreground work), the receivers
+  `ForceStopRunnable$BroadcastReceiver`, `RescheduleReceiver` (disabled until
+  needed) and `DiagnosticsReceiver` (exported, protected by `DUMP`, so only
+  adb reaches it). No `SystemAlarmService` in this version. The manifest
+  removes `ACCESS_NETWORK_STATE` and the default `WorkManagerInitializer`;
+  the app is the `Configuration.Provider` with `HiltWorkerFactory`.
+- **Settings rows.** „Tägliche Vorrats-Erinnerung" (switch with its line)
+  and, while on, „Uhrzeit" („18:00", `HH:mm`) below „Knapp ab"; the time
+  opens M3's `TimePicker` (24 h dial) in a dialog with *Abbrechen* / *OK*,
+  closed by an alert like every settings dialog. At font 2.0 the dial's
+  numbers crowd (M3 does not scale the dial); the picker stays usable.
+
+**Build notes (Claude, 2026-10-31, #135: the Live Update for the timer due next).**
+- **Who is which notification.** With one timer nothing changes: the
+  service's 1 or 2, or the quiet 4. With two, the lead (`dueNext`) is the
+  ringing alert (the brew's first), else a running timer before a waiting
+  one, of two running the earlier deadline (the brew on a tie), of two
+  waiting the brew unless it is demoted: a demoted brew gives way, so the
+  waiting quick timer, which needs the service, is the service's
+  notification (04 §6.1). The lead is 2 while it rings, else 1 while either
+  timer needs the service, else 4 (two long running steps). The other timer is
+  5 (`timer_other`, LOW, no promotion request). A held quick alert is 5 while
+  the brew rings; it leads only within the turn in which the brew leaves its
+  alert, before the release in that turn, and gets no command of its own then.
+- **Settled per transition.** With one timer, `NotificationRoles` passes the
+  engine's effects through as before. With two, a transition's
+  `StartForeground`, `StopForeground` and `UpdateNotification` only say what it
+  asks for; then notification 5 is posted first (so the service port knows the
+  other timer's need) and the lead's: `startForeground` when the lead moved,
+  the service was off or the lead's own transition asked for it (full screen
+  only when that transition starts its alert), an update when the lead's
+  transition asked for one, else nothing; when neither timer needs the service
+  it stops and the lead is the quiet 4. So the other timer's `StopForeground`
+  never stops the service the lead needs, and the reverse.
+- **A long step as notification 1.** A long running step (cold or ice brew, ≥
+  60 min) that ends next while the other timer needs the service (waiting, or a
+  short step ending later) is the service's notification 1 („Fertig um 14:30",
+  promotion requested); the port sends any non-alert state to the service as 1
+  and keeps its updates and 15-s refreshes there while notification 5's timer
+  needs the service. A long step's wake lock is 0 (04 §6.1), as the lead and as
+  notification 5; #134's port would have held one for its whole remaining time.
+  When the other timer ends, the service stops and the long step is 4 again.
+- **Dismissal.** A move of the Live Update goes through `startForeground`,
+  which ignores a dismissal: notification 1 must never keep showing the timer
+  that is now 5. While the lead stays, the dismissal rule of 04 §8.3 is
+  unchanged and per slot (its key names the session or the quick timer).
+- **No orphan.** Notification 5 goes in the transition that ends its timer or
+  makes it the lead; the last timer that needed the service stops it. A
+  killed process leaves notification 5 behind (only the foreground notification
+  goes with the service), so the first turn of a new process cancels 5 after
+  its recovery unless a timer is shown there again.
+- **A new alert is a new notification 2 (the second item #134 left).** System
+  UI (AOSP 14–16, `HeadsUpCoordinator`) makes the full-screen decision only in
+  `onEntryAdded`; `onEntryUpdated` only decides about a heads-up again (an
+  intent held back only by DND is re-checked on a ranking update). An update of
+  notification 2 therefore never takes the screen. Two cases updated it in
+  place: the held quick alert released when the brew session is ended or
+  discarded during its alert, and, since #134, the brew's deadline while the
+  quick alert rings (preemption; also with this ticket's lead rule). The
+  service now posts an alert that starts (a full-screen intent, not
+  only-alert-once) as a new notification when notification 2 is already its
+  foreground notification: `stopForeground(STOP_FOREGROUND_REMOVE)`, then
+  `startForeground(2, alert)`. Both reach NotificationManagerService in order
+  through the activity manager's handler, so the old alert is removed before
+  the new one is added (the switch D-084 relies on). That `startForeground` is
+  re-checked against the background-start rules like the switch from 1 to 2 at
+  every deadline (any start after the first); a refusal posts the alert
+  without the service, also as a new notification. An alert shown again (an
+  update, or the start re-sent only-alert-once for notification 5's longer wake
+  lock) stays an update and never takes the screen twice. Rejected: a switch
+  through notification 1 with a placeholder (one more notification on screen),
+  and stopping the whole service (a gap in the process and the wake lock).
+- **Tests.** `NextDueLiveUpdateTest` (Robolectric with the real controller,
+  service port, notifier and service and the AOSP-rule shadows of D-084, which
+  now also launch a full-screen intent only for an added notification),
+  `NewAlertTest` (the service), and on the CI emulator
+  `TimerNotificationsDeviceTest.theLiveUpdateFollowsTheTimerDueNextAndTheOtherTimerIsNeverPromoted`
+  (`FLAG_PROMOTED_ONGOING` on notification 1 for the timer due next, after a
+  pause on the other, never on 5). The screen taken by the brew's alert during
+  a ringing quick alert is a 09 §4 item for the rc.
+- **A dropped update (CI emulator, API 36, run 41167064240).** The device
+  test failed once: after *Pause* on the quick timer's Live Update,
+  notification 1 kept the quick timer's running content for 10 s, while 5
+  showed it paused. The service's log shows the brew's update posted
+  (`show(1): notify`) and nothing after it. Cause: NotificationManagerService
+  drops an update of a showing notification without a word while the app's
+  posts come faster than 5 per second (`mMaxPackageEnqueueRate`, a moving
+  average with alpha 0.7 over all the package's posts, which carries across
+  its processes; logged only in the system log, which CI's logcat files do not
+  hold). Two timers post in bursts: the quick timer's start posts 5 twice and
+  1 twice within milliseconds, D-071's re-post follows 0.5 s later, and the
+  *Pause* posts 5 and then 1. The tap came 1.03 s after the service's
+  `startForeground`, just outside D-071's window, so nothing posted the
+  dropped update again before the 15-s refresh; the four earlier runs that
+  passed had tapped within it. Fix: the service posts a same-ID update once
+  more 0.5 s later when the app posted any notification less than 1 s before
+  it (`ForegroundServiceState.posted`/`postedRecently`; every
+  `TimerNotifications.post`, the service's `startForeground` and its re-posts
+  count), no longer only after a `startForeground`. A post more than 0.67 s
+  after the one before is never dropped, and 0.5 s without posts brings the
+  rate below the limit unless the app posted more than 14 per second; D-071's
+  late start post is one such case. Ruled out by the log: an update skipped as
+  unchanged (the port sent it), a re-post of older content after it (none
+  followed), the start's late post (that would show the brew). Test:
+  `ShedUpdateTest` (Robolectric with the real controller, ports and service and
+  the run's timings; `SystemLikeNotificationManager.limitUpdateRate` adds
+  AOSP's rule), red before the fix; it also covers *Weiter* right after the
+  *Pause*, the brew's *Pause* and the quick timer's end.
+- **The same for 4 and 5.** Notification 5 and the quiet 4 are posted by
+  the port, not the service, and an update of them can be dropped the same
+  way (5 left showing the paused quick timer as waiting). `TimerNotifications.post`
+  now posts a post of 4 or 5 that follows another post within 1 s once more
+  0.5 s later (only-alert-once), one pending re-post per ID: a newer post of
+  that ID replaces it, and a cancel drops it, so a timer that ended never comes
+  back. Any such post counts, not only an update, since a killed process
+  leaves 5 behind for the next one. The alert 2 and notification 1 keep the
+  service's re-post (only while that ID is the foreground notification), and a
+  new alert stays a new post that takes the screen. Test: `ShedUpdateTest`'s
+  *Pause* on notification 5 while the brew leads, red before (5 kept
+  „Bereit · 2:00").
+
+**Build notes (Claude, 2026-10-31, #132: stock on READY, BRW-11).**
+- **Read.** `TimerViewModel.teaStock` follows the active session's id
+  (as the seal does), reads its snapshot's `tea_id` and combines the tea,
+  its `StockRepository.observeStock` and SET-16's „Knapp ab" into
+  `TimerStock(grams, StockLevel)`, the tea's own threshold first; live, so
+  a correction or a purchase shows at once. Nothing on the controller's
+  state, its events or the alarm path waits for it. A failed read (session
+  or stock) is caught per session, logged, and gives null; the next session
+  reads again.
+- **Not in the collection** = no `tea_id`, a deleted tea or a removed
+  (archived) one: no line. A tea in the collection **without packages**
+  (no stock events) reads „Leer", as the setup shows it (INV-05: ≤ 0 g),
+  although the Start card and the daily reminder skip such teas.
+- **Text** is the setup's (`brew_setup_stock*`, `stockGramsText`: „38 g",
+  „14,5 g", no-break space before „g"): „38 g übrig", „14 g übrig · knapp",
+  „Leer". It sits in the kettle hint between the amount line and „Aufguss 2
+  · 0:20" in the detail's style (`bodyMedium`, `onSurfaceVariant`); without
+  a kettle hint, in the same place of the plain column. TalkBack reads it in
+  the hint's sentence as „14,5 Gramm übrig, knapp".
+- **Space.** The slot below the ring reserves a stock line („100 g übrig ·
+  knapp", and the shown one if it wraps longer) in **every phase of every
+  brew**, read or not, so neither *Start* nor the ring moves when the stock
+  arrives after the screen, changes, or fails; the quick timer reserves
+  none. Every brew golden therefore has one more caption line between the
+  ring and the pill, the band giving way on short screens. In the tightest
+  case (384 × 832 dp, font 2.0, a two-line name) FINISHED's *Weiterer
+  Aufguss* now starts on the screen with its lower part below it and the
+  page scrolls by the rest (D-096); *Sitzung beenden* keeps its place and
+  margin, and *Start*, *Abgegossen* lie whole on the screen.
+- **Test harness.** The Schritte-Sheet's saver now writes a
+  `java.util.ArrayList` instead of `buildList`'s Kotlin list: Compose's
+  `StateRestorationTester` reads the saved state back through the class
+  loader of a saved value, and under Robolectric a Kotlin stdlib class
+  comes from the loader outside the sandbox, which made the timer's
+  configuration-change test fail depending on source positions.
+
+**Build notes (Claude, 2026-10-31, #136: both timers in view, SCR-02, SCR-05, SCR-07).**
+- **One timer per route.** The timer route carries the slot it shows
+  (`TimerRoute(slot, switched)`): the bar's halves, the setup (brew) and
+  SCR-07's *Start* (quick) name it; Start (its card, *Nochmal brühen*), a
+  notification and an alert open it without one, and it then shows the
+  timer in front of the controller (#134; the one just started) and keeps
+  it from its first frame. So the row's *Pause*, which puts the other timer in front of
+  the controller, never swaps the screen under the finger. (Amended by the
+  v0.3.0 code review: a notification and an alert name their timer and open
+  it; Start's card shows and opens the brew only.) A ringing alert
+  of either timer takes any route at once, the brew's first (rule 8); a held
+  quick alert never does. A route whose timer ends closes (back to the timer
+  below it, or the shell, where the „Gespeichert" sheet shows), except while
+  the other timer's alert rings: it shows that alert until *Fertig*. This
+  is how *Fertig* on a quick alert over SCR-05 „returns to this screen".
+- **Row tap and back.** A tap on the row opens the other timer's route
+  above (`switched`); there, the row's tap is back, so two timers never
+  stack more than two routes. The route change keeps the app's usual route
+  fade (no new motion; instant while an alert plays, as before).
+- **Row.** One 48 dp line in the body style (`bodyMedium`, tabular digits
+  so the centred row never shifts as it ticks), the timer icon or the leaf
+  (icons, not the emoji of the spec's notation), the name, the detail
+  („2:14", „· Pausiert 2:14", „· Aufguss 2 · 0:48", „· bereit", „· fertig")
+  and a compact *Pause* / *Weiter* (TalkBack: „Schnelltimer pausieren",
+  „Aufguss fortsetzen"; the row: „Schnelltimer öffnen" / „Aufguss öffnen").
+  A long name gives way first, down to its first 8 letters; where the
+  step still does not fit (font 2.0), the step goes: „Tanabata · 0:48". Its
+  height is reserved with a button whether one shows or not (READY,
+  FINISHED, the alert surface), so the pill never moves within a phase.
+- **The band gives way by the row's height** whenever the row is there,
+  also where everything fits: the seal and the band's edge move up by it,
+  and the name, the ring and the pill stand exactly where they stand
+  without a row. Where the band is down to the top bar already (384 × 832
+  dp, font 2.0) that is not possible: the page below the row moves by the
+  rest when the quick timer starts or ends (on Start, never under the
+  finger here), and nothing moves while the row is there.
+- **The seal yields to the row (rule 8 before decoration).** In the
+  tightest case (384 × 832 dp, font 2.0, a two-line name) the row would
+  push *Start* below the screen even with the band at the top bar: there
+  the seal is not drawn and the row takes its lower half's place, so
+  *Start* and *Pause* lie whole on the screen. Only with the row; the title
+  names the tea.
+- **Bar.** `ActiveBrewSource` reads the two slots: the brew first, else the
+  quick timer; the quick timer beside a brew is `alongside`, whichever is
+  in front of the controller. Each half: 40 dp ring, name (`titleSmall`),
+  countdown (timer digits, 20 sp) and the step (`bodySmall`, ellipsis); an
+  alerting half is matcha with ink, its ring full and the overtime, and
+  says „Jetzt abgießen!" only to TalkBack (the half has no room for it);
+  a held quick alert reads „fertig" calmly („Schnelltimer, fertig, wartet
+  auf den Aufguss" to TalkBack). The second half comes and goes without
+  motion of its own; the bar's arrival is unchanged.
+- **Tests.** `TimerOtherRowTest`, `TimerRouteTest` (two-timer cases),
+  `ActiveBrewBarTwoTimersTest`, `TwoTimersNavigationTest`,
+  `TimerAppWiringTest` and `ActiveBrewMappingTest` (held), `TimerViewModelTest`
+  (the seal and stock follow the brew slot); goldens `TimerScreen_*_quickRow`,
+  `TimerScreen_Alerting_quickHeld`, `TimerScreen_Quick_brewRow`,
+  `TimerScreen_short_*_quickRow` and `ActiveBrewBar_twoTimers`.
+
+**Build notes (Claude, 2026-10-31, #127: long hot steps).**
+- **One rule.** `LONG_STEP_SECONDS` = 3600 in `core:timer-engine`
+  (`isLongStepOf`: cold or ice brew, or planned ≥ 3600 s). The Schritte-Sheet
+  (`preAlertShown`), the setup's *Vorwarnung* row (`preAlertLeads`) and SCR-07
+  (`QuickPreAlert`) ask `BrewTimerEngine.isLongStep(step, longStepsOnly)` and
+  `stepPreAlertLeadSeconds`; everything else (`needsService`,
+  `NotificationRoles`, the service port's wake lock, the UI state's
+  `longStep`, the bar's and the ring's 10-s updates) derives from the engine,
+  so only the constant moved. The sheet's own `LONG_STEP_SECONDS` was only its
+  stepper's rounding boundary: it is now `MINUTE_STEPS_FROM_SECONDS` (still
+  600; #141 reworks the stepper), and the engine's *Weiterer Aufguss* rounding
+  has its own `ROUND_TO_MINUTES_FROM_SECONDS` (600), so PRF-04 and TMR-10 do
+  not move.
+- **The quick timer too.** A quick timer of 10–59 min (a custom duration)
+  is a short step: its Vorwarnung by its choice, the service and the
+  countdown.
+- **The update from v0.2.2 with a 10–59 min hot step running.** v0.2.2 ran
+  it as a long step: no pre-alert in its row, no pre-alert alarm, no
+  service; its deadline alarm (102) and guard (107) stand. `restore` accepts
+  the row (a short running step without a pre-alert is a state the engine
+  produces). `recover` of a running step whose deadline is ahead now computes
+  a pre-alert that is neither set nor played from its deadline and N, as
+  `resume` and `editSteps` do: due when its time is still ahead, else skipped,
+  so there is no late tick for a time that passed before the update, and the
+  alert is unchanged. The step is then a short step: the reconcile adds 101
+  and keeps 102 and 107, and the service starts with the countdown Live
+  Update and its wake lock (an attempt from `MY_PACKAGE_REPLACED`; after a
+  refusal the pre-alert alarm starts it, D-054). A paused one gets its
+  pre-alert at *Weiter*, which recomputes it anyway. In a state v0.3.0
+  stored, a running step without a pre-alert has none to gain (no lead, or
+  its time had passed), so its recovery is unchanged; only a reboot with the
+  wall clock set back, which gives a step more time again, can bring a skipped
+  pre-alert back, and it then plays like any other.
+- **Two timers.** A 10–59 min brew step beside a quick timer needs the
+  service like any short step: `dueNext` orders it by its deadline, as
+  notification 5 it adds its wake lock (the longer of both is held), and when
+  the quick timer ends it is the countdown Live Update 1, not the quiet
+  „Fertig um" 4. #135's long step shown by the service as notification 1 now
+  applies to cold and ice brew and steps of 60 min or more only.
+- **Tests.** Engine: `LongStepTest` (the boundaries 599/600/3599/3600 s,
+  cold and ice brew at 5 s to 24 h, a 15-min step with the service and its
+  pre-alert, a 20-min step's automatic and explicit pre-alert scheduled and
+  played, none at 60 min, and the recovery of a v0.2.2 row: ahead, passed,
+  after a reboot, paused, and 60 min and cold brew staying long), the
+  boundary rows of `StepPreAlertTest`, `PreAlertTest`, `PreAlertPerStepTest`
+  and `QuickTimerPreAlertChoiceTest`, and both seeded invariant tests with
+  steps of 10 to 120 min. Robolectric: `HotStepOfMinutesTest` (the real
+  controller, service port, notifier and service: a 15-min hot step's
+  countdown Live Update, wake lock, Vorwarnung and „Gleich fertig …", also
+  after a process death and beside a quick timer; a cold brew and a 60-min
+  step unchanged) and `UpdateFromV022Test` (a 15-min hot step v0.2.2 ran as a
+  long step, on the real alarm manager). UI: the sheet's and the setup's
+  labels, with goldens `StepsSheet_hotStepsOfMinutes`, `StepsSheet_coldBrew`
+  and `BrewSetup_hotStepsOfMinutes`.
+
+**Build notes (Claude, 2026-10-31, #141: step durations, fast; PRF-04, SCR-04, SCR-31).**
+- **Where.** The setup's step list (SCR-04) is a read-only summary; its
+  durations are edited in the Schritte-Sheet it opens (*Bearb.*), so the
+  tap and the hold live in the sheet and reach the setup, the timer and
+  *Weiterer Aufguss* alike. The setup gets no second editor.
+- **The picker.** SCR-07's `QuickDurationPicker` (its rules
+  `QuickDuration.step`) is reused unchanged, opened from the sheet with the
+  step's value. `StepsSheetState.setDuration` takes its result within 5 s –
+  24 h, rounded down to PRF-04's increment (the picker only offers values on
+  the grid). It is composed in the sheet's window, so an alert, which removes
+  the window in its first frame, removes it too; the sheet's edits, the
+  picker's draft included, are dropped as before (D-051). It only opens for a
+  step that is still pending.
+- **The hold's schedule (`HoldRepeat`).** The ticket's 400 ms / 150 ms /
+  60 ms after 1,5 s cannot reach 10:00 from 5:00 (60 repeats) in about 3 s:
+  at 60 ms it takes about 4,6 s. Claude kept the PO's numbers and added a
+  third phase, every 25 ms from 2 s: the repeats come at 400, 550, …, 1600,
+  then 1660, …, 2020, then every 25 ms, and the 60th lands at 3,12 s. The
+  interval after a repeat is that of the phase the repeat fell in.
+- **Tap and hold, one button (`RepeatingIconButton`).** It replaces
+  Material's `IconButton` in the sheet's steppers at the same size (40 dp, a
+  48 dp target, 38 % when disabled), so the goldens without a picker do not
+  move. A press that ends before the first repeat is one step on release; a
+  press a scroll takes over is none. The haptic tick
+  (`HapticFeedbackType.SegmentFrequentTick`) comes with each repeat that
+  changed the value, not with a plain tap (as before). A repeat that would
+  leave the bounds ends the hold without a tick.
+- **The temperature too.** The temperature's − / + hold the same way, so a
+  row's steppers behave alike (5 °C per repeat, 5–100 °C).
+- **TalkBack.** The time is a button „Ziehzeit, Schritt 2: 5 Minuten.
+  Ändern", in the wording of the row's other labels („Ziehzeit verlängern,
+  Schritt 2", „Vorwarnung, Schritt 2: … Ändern") rather than the ticket's
+  „Dauer …"; its live region still announces a new value. − / + are single
+  steps through the click action.
+- **Tests.** `HoldRepeatTest` (the schedule, 60 repeats by 3,12 s),
+  `StepsSheetSetDurationTest` (bounds, rounding, locked steps, dirty),
+  `StepDurationTest` (the picker: 10:00 in one go, *Abbrechen*, bounds and
+  rounding from the dialog, no button on locked steps; the hold on the test
+  clock: 5:00 → 10:00 in 3,12 s, then minutes, ticks per repeat, a short
+  press is one step, release and bound stop it; TalkBack), and
+  `StepsSheetHostTest` (an alert removes the picker in two frames without
+  applying its draft; an alert stops a hold). Goldens
+  `StepsSheet_durationPicker` and `BrewSetup_durationPicker` (light/dark,
+  font 1.0/2.0).
+
+**Build notes (Claude, 2026-10-31, #137: the accuracy run and the emulator tests with two timers).**
+- **The slot in the log** (the field #134 left). `ScheduledTime` carries the
+  slot of the timer whose time it is, and `AlarmReceived` the slot of its
+  alarm, so the alarm, the handled event and the player's cue name it: a
+  quick timer's lines read `alarm QUICK.PRE_ALERT received | QUICK.PRE_ALERT
+  scheduled …` and `alert ALERT: … | QUICK.DEADLINE scheduled …`; the brew's
+  lines are those of one timer, byte for byte, so the standard run reads its
+  log as before and *Diagnose* changes only for the quick timer. `FireTime`
+  reads the slot back (empty = the brew), and a quick deadline handled as the
+  arbitration's `AlertHold` counts as its handled deadline, so a held alert
+  would show in a report as handled on time and sounding late.
+- **The report** (`AccuracyReport`). `AccuracyRun.alongside`
+  (`QuickTimerAlongside`: 25 s, *Vorwarnung* 10 s, then 300 s) is null in
+  the standard run, whose Markdown and CSV stay those of the earlier runs (a
+  test pins the whole summary). In `alongside` each timer has its
+  distributions (`TimerAccuracy`); the run passes only when both completed
+  all steps and all four sound distributions are on target; the heading ends
+  in „· alongside", the table gets a column *Timer* (*Brew*, *Quick timer*),
+  *Slowest* names each timer's cues, and the CSV a column `timer`, a step's
+  rows in the order they were handled. A report refuses cues of the other
+  timer in either list, and a cue whose sound is the other timer's.
+- **How `alongside` overlaps** (`AccuracyRunTest`, argument
+  `umamitAccuracyVariant`). Each step's quick timer (25 s, 10 s) starts with
+  the step through the app, replacing the active one (*Schnelltimer beenden
+  und neu starten*); its pre-alert and alert come with the screen off while
+  the step runs; *Fertig* in the alert, then a quick timer of 300 s without a
+  *Vorwarnung* starts, so a quick timer also runs across the step's
+  pre-alert and alert (the brew as the Live Update, the quick timer as
+  notification 5), and the screen goes off again. The brew's *Start* and
+  *Sitzung beenden* are tapped in whichever of notifications 1 and 5 is the
+  brew's. No cue of one timer is due while the other's sound plays: a held
+  alert or a pre-alert waiting behind the other sound (04 §9.3) would
+  measure the arbitration, not the latency, and fail the run for a wanted
+  behaviour. The test fails as a setup error when it had the screen off
+  again less than 5 s before the step's pre-alert. The injected delay of the
+  gate check moves both slots' alarms and the wake-up.
+- **Workflow.** `accuracy.yml` has the input `variant` (`standard` default,
+  `alongside`), passed as `ACCURACY_VARIANT` to `scripts/accuracy-run.sh`,
+  which validates it like the other inputs. Each variant has its own
+  concurrency group (`accuracy-<ref>-<variant>`), so both runs of a commit go
+  in parallel; the run's name says the variant, the ref and a gate check; the
+  standard artifact keeps its name `accuracy-api-<level>`, the other is
+  `accuracy-alongside-api-<level>`; the job timeout is 115 min (about 65 min
+  of steps in `alongside`).
+- **Two timers through process death**
+  (`ProcessDeathTest.aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`,
+  the CI emulator job on API 35 and 36). A brew step and a quick timer of
+  35 s, due within 1 s of each other, killed while both run; the reopened
+  app restores both (`TimerStateActivity` now also writes each slot's phase
+  and deadline). The brew's alert comes within 2 s of its deadline and takes
+  the screen; the log shows the quick deadline handled within 2 s as
+  `AlertHold`; notification 5 is the quick timer, without a full-screen
+  intent, and the alert the only notification with one. Killed again with
+  the screen off during the brew's alert (within 9 s, so it has not run its
+  cycle): a new process (the alert watchdog's after 30 s, or the system's
+  restart of the service) replays the brew's alert and keeps the quick
+  timer's held. *Abgegossen* releases it within 2 s as a new notification 2
+  with its full-screen intent; the log's alert sounds are the brew's first
+  and the quick timer's once, last. `TimerTestActivity` gained a quick
+  timer's *Vorwarnung*, the restart and a quick-only start
+  (`quickIntent`), and writes the quick timer's deadline.
+- **The flaky kill of 2026-10-30** (`aStepKilledAndReopenedShowsItsStateAgainAndAlertsOnTime`,
+  API 36: notification 1 still there 10 s after the kill, no new process).
+  That is the case D-084 describes: a kill that meets an update of the
+  foreground notification on its way leaves it posted and flagged until a
+  new process takes it over, and without an alarm due nothing starts one
+  before the reopening. The wait no longer fails on it (it is logged); in
+  exchange the notification 1 that counts as back must be **posted after the
+  kill** (and after the one the kill left; `StatusBarNotification.postTime`),
+  so a left notification can no longer pass for the reopening's, as it could
+  before. The two-timer test kills through the same helper.
+- **Left for the GitHub runs:** `alongside` green on API 36 with both timers'
+  p95 and max in its summary; the gate check (`alongside`, 3 steps, 1500 ms)
+  failing for both timers; the two-timer process-death test on API 35 and 36
+  in the emulator job.
+
+**Build notes (Claude, 2026-10-31, #131: foldable catalog groups, CAT-10, SCR-19).**
+- **Settings.** `catalogFolded` is a new key with a default (∅), so a
+  settings file of v0.2.2 reads it without a migration; `schemaVersion`
+  stays 2. The *Sorte* key is the shop's *Sorte* name as the list shows it
+  (`CatalogFoldKey`, `green/Bancha`, „Ohne Sorte" `green/-`); a renamed
+  *Sorte* starts open. Behind `CatalogFoldRepository` (on the settings) in
+  `core:data`; a failed write (full disk) is logged and the groups stay as
+  they were.
+- **When it folds.** Only in the grouped default and Kräutertee views of a
+  loaded catalog, with an empty search. While a search is typed, in
+  *Gemerkt* and in the flat orders the headers are the plain overline of
+  before: no chevron, no count, no toggle, so a tap never changes a folding
+  the user cannot see. The folding stays stored meanwhile.
+- **Header.** „BANCHA · 12" as the overline, the hairline, a chevron at the
+  end (the shared `ChevronRight`, turned 90° while open); the whole row is
+  the toggle, at least 48 dp high. The count is the group's teas under the
+  current filters, also while open. TalkBack: one heading node, content
+  description „Bancha, 12 Tees", state „eingeklappt" / „ausgeklappt", click
+  label „Ausklappen" / „Einklappen".
+- **Motion.** The chevron turns in 200 ms (`motion.exit()`; a snap under
+  reduce motion); the rows have no item animation, so they snap.
+- **⋮ menu.** *Alle einklappen* / *Alle ausklappen* show only while the
+  catalog view folds (the catalog tells the shell, which owns Sammlung's
+  menu). *Alle einklappen* folds every *Sorte* of the view, those the
+  filters hide and „Ohne Sorte" included, so changing a filter shows no group
+  open; *Alle ausklappen* removes every key of the view (stale ones too). The
+  other view keeps its folding.
+
+**Build notes (Claude, 2026-10-31, #133: SCR-07 polish).**
+- **Calm *Vorwarnung* row (polish 1).** Of the ticket's two ways, both: the
+  row stays centred, and the selector is as wide as the widest label it can
+  show on SCR-07 (*Automatisch* with „keine" and 5–30 s, *Aus*, 5–30 s plain,
+  „· zu kurz" and „· keine", and the shown one), its button at the start. So
+  „Vorwarnung" keeps its x **and** y for every choice and duration, and the
+  button grows to its right within the reserved width. The width is measured
+  from the labels' text (`PreAlertDropdown(reserveFor = …)`: the widest label,
+  the button's padding, gap and chevron, plus 1 dp against rounding), so no
+  invisible copy is composed and TalkBack and the tests find one label; the
+  Schritte-Sheet passes none and is unchanged. Where the row wraps (384 × 832 dp, font 2.0) it wraps for every
+  choice alike; the selector's line then starts at the reserved box's start.
+- **The ring and the pill at *Start* (polish 2).** `TimerBandPage` gains
+  `reservedAboveControls`, measured and never placed like the reserved
+  controls: the content slot is as tall as the taller of the two. The
+  running quick timer reserves its screen before *Start* (`QuickTimerSpace`:
+  title, ring, chips, *Vorwarnung* row, whose height does not depend on the
+  state) and its band now gives way (`adaptive`) like that screen's. Both
+  compute the same band, so the ring's centre and the pill's top stay put at
+  *Start* and at the alert on every screen. This moves the running quick
+  timer's *Pause*, *Weiter* and *Fertig* down to where *Start* stood (on
+  411 × 891 dp by about 100 dp; the space lies between the overtime slot and
+  the pill), so the finger that pressed *Start* finds *Pause* there (as on a
+  brew, TMR-03); the ticket's „elsewhere nothing changes" held only for the
+  ring. The reservation goes one way: the screen before *Start* is the taller
+  at every size and font tried, and `TimerScreenLayoutTest`'s
+  `quickStaysPut` cases (411 × 891 dp at font 1.0 and 2.0, 384 × 832 dp and
+  411 × 800 dp at font 2.0) would catch a change. With the brew's row
+  (#136) the running quick timer's band gives way by the row, as before.
+- **Tests.** `QuickTimerLayoutTest` (the label's place, 411 × 891 dp and
+  384 × 832 dp at font 2.0) and `TimerScreenLayoutTest`'s quick-timer cases;
+  the goldens of the running quick timer and of SCR-07 were re-recorded.
+
+**Build notes (Claude, 2026-10-31, #129: setup ⋮ *Im Katalog ansehen*, BRW-02, SCR-04).**
+- **When it shows.** The setup's view model observes the tea's catalog tea
+  (`CatalogRepository.observeTea(catalog_key)`) and puts the key into the
+  UI state only while that tea exists, discontinued or not; the ⋮ follows
+  it live (a refresh that adds the tea shows it without touching the
+  draft). No `catalog_key`, or a key the local catalog has no tea for (no
+  refresh yet, a tea deleted by a later catalog), means no ⋮ at all.
+- **The menu.** An `IconButton` with `MoreVert` (48 dp) in the top bar,
+  TalkBack „Weitere Optionen", one `DropdownMenuItem` „Im Katalog
+  ansehen". Like the timer's menu it remembers the alert it was opened in;
+  another alert removes it in its first frame (not composed, so Material's
+  close animation never shows over the alert) and closes it for good.
+- **Route.** A root route `SetupCatalogTeaRoute(key)` above the setup, not
+  the Sammlung tab's `CatalogTeaRoute`: the setup is above the shell, so a
+  tab's stack would lie under it. It shows the same detail (`CatalogStackScreens.tea`),
+  is a route above the shell (an alert pops it to the timer like the setup)
+  and pops with its own ← (only while resumed, D-090) or system back. The
+  setup's draft lives in its back-stack entry's `SavedStateHandle`
+  (`setupEdits`), so recipe, vessel, leaf, water and steps come back as
+  they were, also after a process death.
+- **During an alert** the item opens the alerting timer instead of the
+  detail (rule 8, as a tea tap does, D-062 S3); in practice the setup
+  itself already gave way to the alert.
+- **Add on that detail.** *Hinzufügen* / *Nachkaufen* works as on any
+  SCR-21; the saved purchase stays on the detail (no picker flow here, D-088),
+  and back returns to the setup, whose stock line follows the new stock.
+
+**Build notes (Claude, 2026-10-31, the v0.3.0 code review).**
+- **One store, per slot.** The single-timer methods #126 kept
+  (`ActiveBrewStore.read()`, `persist(snapshot)`, `clear()`, and the DAO's
+  slotless `get()` and `deleteOtherThan`) are gone: since #134 only tests
+  used them, and `persist(snapshot)` cleared the other slot, a trap for a
+  timer running beside it (rule 8). Every caller names its slot.
+- **A notification opens its own timer (04 §8.2).** The content intents of
+  notifications 1, 2, 4 and 5 and the alert's full-screen intent name the
+  slot of the timer they show (`TimerScreenIntents.EXTRA_SLOT`), one request
+  code per slot (301/302 the brew's, 306/307 the quick timer's), since extras
+  do not tell PendingIntents apart and a shared code would let the latest
+  notification's slot replace the other's. Before, a tap opened the timer in
+  front of the controller: after *Pause* on the brew's row the Live Update
+  was the quick timer's, but its tap opened the brew. The activity keeps the
+  slot with the request's token (saved state and intent, #47). The
+  navigation pops back to the timer route that shows that slot (a route
+  opened for none records the timer it pinned in its entry's saved state);
+  a topmost route that shows the other timer is left as its row leaves it,
+  back to the route below when the row opened it, else the requested route
+  opens above it, so two timers still stack at most two routes. A request
+  for the timer already on top keeps that route (before, it was replaced by
+  a fresh one).
+- **One reboot notice for both (04 §7.3).** Each slot's recovery posted
+  „Dein Timer läuft weiter" as notification 3, so with both timers the quick
+  timer's replaced the brew's. Now the notice goes once, after both slots
+  are recovered: one timer as before, both as „Deine Timer laufen weiter" ·
+  „Gyokuro und Schnelltimer · nach dem Neustart" (brew first), whose tap
+  opens the timer in front (its own request code, 305); one timer's notice
+  opens that timer with its slot's code. An alerting timer is left out (the
+  alert is its notice, D-044).
+- **A released alert in the log (06 §5.6).** The player's line of every
+  alert was timed against the deadline, so a quick alert held 12 min read as
+  720 000 ms late in *Diagnose*. Its sound is now due at its release
+  (`ringingSince`), and the line names the hold:
+  `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta +15 ms`. An
+  alert that rang at its deadline is unchanged, byte for byte. `FireTime`
+  reads the hold back (`heldMs`); `CueTimes` refuses such a sound, so the
+  accuracy report never counts a hold as lateness or as on time (the run
+  avoids holds anyway, #137).
+- **Start's card is the brew's (03 SCR-02).** The card took the controller's
+  timer in front, so a Schnelltimer alone replaced *Aufguss starten* and,
+  with both timers, the card switched to the quick timer when it was in
+  front. Now only an active brew replaces the card (`BrewStarter.observeActive`,
+  the brew slot as it changes, also behind the quick timer); a quick timer
+  alone leaves *Aufguss starten* and *Nochmal brühen* as they are, and the
+  bar shows it. The card's tap opens the brew's timer (`StartNavigation.openTimerOf`),
+  not the timer in front. Start's question still closes on either timer's
+  alert. The card looks as before, so no golden changed.
+- **One empty tea (INV-11).** The reminder of a single empty tea is titled
+  „Hisui ist leer" (INV-10's wording), not „Hisui wird knapp" over „Hisui ·
+  leer"; several teas stay „N Tees werden knapp".
+- **The reminder never breaks its chain (INV-11).** A run read the settings
+  outside its `try` and caught only an `IOException`, so any other failure
+  failed the job, and the successor it had appended (`APPEND_OR_REPLACE`)
+  failed with it: no reminder until the next app start. Worse, a failed
+  query left the day without a run, so the successor was due at once: a
+  query that kept failing ran the job again and again (the test drove it
+  into a `StackOverflowError`). Now every failure (`CancellationException`
+  aside) is logged and skips the day: the job succeeds, and the next run
+  waits for tomorrow's set time (`scheduleNext(skipToday)`), or a day when
+  the settings cannot be read; a switched-off reminder still schedules none.
+- **Small cleanups.** `TimerSlot.other` and the slots' name prefix
+  (`TimerSlot.named`: `DEADLINE`, `QUICK.DEADLINE`) live once in `core:model`
+  for the screens, the fake starter, the alarm and action receivers and the
+  log; `SlotNamesTest` pins every alarm broadcast and notification action
+  byte for byte (pending alarms and posted notifications of earlier builds
+  are matched by them), `ControllerDiagnosticsLogTest` the log lines. The
+  test-only `AlertArbitration.ringingSlot` is gone. The reminder's grams
+  use the app's one formatter (`stockGramsText`, moved from
+  `core:designsystem` to `core:common`). The timer screen's log tag is
+  `UmamiTTimerScreen`.
+- **Accepted, not changed** (judgement smells of the review): the re-post
+  logic of the service and `TimerNotifications`, the collaborators
+  `TransitionEffects` exposes, `ActiveBrewSlotStore`, the duplicated
+  `UmamiTTimer` tag, the stock threshold rule in four places, and the
+  primitive settings types.
+
+**Build notes (Claude, 2026-10-31, the PO's test of `v0.3.0-rc.1`).** All
+checklist items passed. One finding: *Lautstärke*'s slider jumped on
+release, to the old value and back. The slider showed the stored value as
+soon as the drag ended, and the stored value changes only when the write
+arrives a moment later. It now keeps the released step until the stored
+value changes (`VolumeRow`, `VolumeRowTest`); a value stored from
+elsewhere afterwards still shows. Fixed in `v0.3.0-rc.2`.
 
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
@@ -4327,6 +5214,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-31 | D-099: the PO's test of `v0.3.0-rc.1` — One UI reports the ringer as silent under its „Nicht stören" with the phone on ring, so Vorwarnung and alarm stayed visual. While DND lets alarms through („alarms only", or priority mode whose consolidated policy allows alarms), a silent report now rings as the ringer on normal; the new switch „Bei „Nicht stören" klingeln" (SET-32, default on) turns this off for priority mode. *Diagnose* names the switch and a policy without alarms. 02, 03, 04, 05, 06, 09 updated. |
 | 2026-10-30 | D-098: v0.3.0 (spec #124, grilling Q1–Q8, R2-Q1–Q3, S1–S4) — one brew session and one quick timer at once in two controller slots, brew alarm first with a held quick alert, one Live Update for the timer due next, umamit.db v4 (`active_brew` per slot); long steps from 60 min (hot 10–59 min get countdown and Vorwarnung); Vorwarnung and alarm on the alarm volume (`USAGE_ALARM`) with *Lautstärke* 10–100 %, DND „alarms only" rings, „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; daily low-stock reminder (INV-11, channel „Vorrat"); foldable catalog groups; stock on READY; two SCR-07 polish items. Amends D-093 point 1 and Q2, TMR-18, 04 §9.1. 02, 03, 04, 05, 06, 09 updated; plan `docs/plans/v0.3.0.md`. |
 | 2026-10-30 | D-097: v0.2.2, the PO's feedback on v0.2.1 — grams and water on every READY; catalog notifications open the catalog with the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker (INV-10); the quick timer's silent pre-alert as a bug, plus a *Vorwarnung* selector and 8:00 chip; *Merken* for catalog teas (CAT-18, umamit.db v3). 02, 03, 04, 05, 09 updated. |
 | 2026-10-29 | D-096: v0.2.1 build decisions (#83–#92, #97, #98, #100, #102): per-step pre-alert details and migration of a running session, *Alarm testen* waits for the Vorwarnton, sounds load at once on change, timer band and seal details, Kräutertee scope (Mate/Lapacho), one-time reset by parser version, herbal view rules, sold-out re-check incl. owned discontinued teas, redirect and page rules, the strict shop-link grammar and its messages, `CatalogJobs` ordering, vessel seed, stock input, archiving rules. 09 §4 updated. |

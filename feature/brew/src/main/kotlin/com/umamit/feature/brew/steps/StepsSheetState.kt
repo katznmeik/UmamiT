@@ -181,6 +181,18 @@ class StepsSheetState(input: StepsSheetInput) {
         }
     }
 
+    /**
+     * „Dauer wählen" (SCR-31, #141): sets step [index]'s duration to [seconds] in one go, within 5 s – 24 h and
+     * rounded down to PRF-04's increment (5 s below 10 min, whole minutes from 10 min on); ignored for a step
+     * that is not editable ([isEditable]).
+     */
+    fun setDuration(index: Int, seconds: Int) {
+        if (isEditable(index)) {
+            val duration = roundedDuration(seconds)
+            steps = steps.mapIndexed { i, old -> if (i == index) old.copy(plannedSeconds = duration) else old }
+        }
+    }
+
     fun delete(index: Int) {
         if (canDelete(index)) steps = steps.filterIndexed { i, _ -> i != index }
     }
@@ -255,26 +267,35 @@ private fun StepsSheetStep.edited(edit: StepEdit, shownTempC: Int?): StepsSheetS
 }
 
 // Editing rules (PRF-04, GEN-12): durations 5 s – 24 h in 5 s steps below 10 min and
-// 1 min steps from 10 min on; temperatures 5–100 °C in 5 °C steps (05 §3.2).
+// 1 min steps from 10 min on; temperatures 5–100 °C in 5 °C steps (05 §3.2). The 10-min
+// boundary is the duration rounding only: whether a step is a long step (no Vorwarnung,
+// TMR-18) is the engine's `BrewTimerEngine.isLongStep`, from 60 min since v0.3.0 (D-098).
 private const val MIN_SECONDS = 5
 private const val MAX_SECONDS = 86_400
-private const val LONG_STEP_SECONDS = 600
-private const val SHORT_STEP_UNIT = 5
-private const val LONG_STEP_UNIT = 60
+private const val MINUTE_STEPS_FROM_SECONDS = 600
+private const val SECONDS_UNIT = 5
+private const val MINUTES_UNIT = 60
 private const val TEMP_UNIT = 5
 private const val MIN_TEMP_C = 5
 private const val MAX_TEMP_C = 100
 
 /** The next longer duration: the next multiple of 5 s below 10 min, of 1 min from 10 min on. */
 internal fun longer(seconds: Int): Int {
-    val unit = if (seconds < LONG_STEP_SECONDS) SHORT_STEP_UNIT else LONG_STEP_UNIT
+    val unit = if (seconds < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
     return nextMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtLeast(seconds)
 }
 
 /** The next shorter duration: the previous multiple of 1 min above 10 min, of 5 s from 10 min down. */
 internal fun shorter(seconds: Int): Int {
-    val unit = if (seconds > LONG_STEP_SECONDS) LONG_STEP_UNIT else SHORT_STEP_UNIT
+    val unit = if (seconds > MINUTE_STEPS_FROM_SECONDS) MINUTES_UNIT else SECONDS_UNIT
     return previousMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtMost(seconds)
+}
+
+/** [seconds] within 5 s – 24 h, rounded down to the PRF-04 increment. */
+internal fun roundedDuration(seconds: Int): Int {
+    val bounded = seconds.coerceIn(MIN_SECONDS, MAX_SECONDS)
+    val unit = if (bounded < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
+    return (bounded / unit * unit).coerceAtLeast(MIN_SECONDS)
 }
 
 internal fun warmer(tempC: Int): Int =

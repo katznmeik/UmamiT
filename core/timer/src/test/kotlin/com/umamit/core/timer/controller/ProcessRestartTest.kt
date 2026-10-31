@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.AlarmRetried
 import com.umamit.core.testing.AlarmsReconciled
 import com.umamit.core.testing.ServiceStopped
@@ -70,7 +71,7 @@ class ProcessRestartTest {
 
         val after = before.processRestarted()
         after.clock.advanceBy(40_250)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         // The log keeps the alarm's scheduled time from the recovered step (06 §5.6, TMR-30).
         val received = after.diagnostics.entriesOf<TimerDiagnostic.AlarmReceived>().single()
@@ -96,13 +97,13 @@ class ProcessRestartTest {
         val after = before.processRestarted()
         after.clock.advanceBy(60_250)
         after.controller.recover(RecoveryTrigger.APP_START)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         val received = after.diagnostics.entriesOf<TimerDiagnostic.AlarmReceived>().single()
         assertThat(received.scheduled).isEqualTo(ScheduledTime(TimerAlarmKind.DEADLINE, deadline))
         assertThat(after.alert.started).hasSize(1)
         // A later alarm of the same kind is due in nothing the process holds now.
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.AlarmReceived>().last().scheduled).isNull()
     }
 
@@ -114,7 +115,7 @@ class ProcessRestartTest {
 
         val after = before.processRestarted()
         after.clock.advanceBy(11_000)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.DEADLINE)
 
         assertThat(after.active.kind).isEqualTo(SessionKind.Quick)
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
@@ -126,15 +127,15 @@ class ProcessRestartTest {
     fun `an early alarm in a new process restores the running step and re-arms its alarms`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
         before.controller.send(TimerEvent.Start)
-        val armed = before.alarms.armed
+        val armed = before.alarms.armed(TimerSlot.BREW)
 
         val after = before.processRestarted()
         after.clock.advanceBy(5_000)
         // An alarm of the step arrives before anything is due (a stale or early delivery).
-        after.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
-        assertThat(after.alarms.armed).isEqualTo(armed)
+        assertThat(after.alarms.armed(TimerSlot.BREW)).isEqualTo(armed)
         assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.alert.started).isEmpty()
         // The process's own wake-up takes over: the deadline comes without another alarm.
@@ -149,8 +150,8 @@ class ProcessRestartTest {
 
         val after = before.processRestarted()
         after.clock.advanceBy(60_000)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         after.controller.send(TimerEvent.AddStep)
 
         val recoveries = after.diagnostics.entriesOf<TimerDiagnostic.EventHandled>()
@@ -166,7 +167,7 @@ class ProcessRestartTest {
         val id = before.sessionId
 
         val after = before.processRestarted()
-        val outcome = after.controller.startQuickTimer(60)
+        val outcome = after.controller.startSession(brewStart(infusion(30)))
 
         assertThat(outcome)
             .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(id))))
@@ -182,11 +183,11 @@ class ProcessRestartTest {
         after.store.readAs = { snapshot ->
             snapshot?.copy(activeBrew = snapshot.activeBrew.copy(pausedTotalMs = -1))
         }
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(after.ui).isEqualTo(TimerUiState.Idle)
         assertThat(after.store.storedPhase()).isNull()
-        assertThat(after.log.calls).contains(AlarmsReconciled(DueTimes.NONE))
+        assertThat(after.log.calls).contains(AlarmsReconciled(TimerSlot.BREW, DueTimes.NONE))
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.SnapshotUnreadable>()).hasSize(1)
         assertThat(after.service.running).isFalse()
         // A notification the old process posted without the service outlives it: it goes too (#46 review O1).
@@ -201,7 +202,7 @@ class ProcessRestartTest {
         val after = before.processRestarted()
         after.store.failNextReads(2)
         after.clock.advanceBy(60_000)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.RecoveryFailed>()).hasSize(2)
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
@@ -217,13 +218,13 @@ class ProcessRestartTest {
         val after = before.processRestarted()
         after.store.failNextReads(3)
         after.clock.advanceBy(60_000)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(after.ui).isEqualTo(TimerUiState.Idle)
         assertThat(after.store.storedPhase()).isEqualTo(TimerPhase.RUNNING)
         // The alarm is set again a few seconds out, and the process's own wake-up retries too.
         assertThat(after.alarms.retries)
-            .containsExactly(AlarmRetried(TimerAlarmKind.DEADLINE, after.clock.elapsed + 5_000))
+            .containsExactly(AlarmRetried(TimerSlot.BREW, TimerAlarmKind.DEADLINE, after.clock.elapsed + 5_000))
         assertThat(after.wakeUp.dueAtElapsedMs).isNotNull()
 
         after.advanceSeconds(5)
@@ -243,12 +244,12 @@ class ProcessRestartTest {
         after.clock.advanceBy(60_000)
         val firstFailure = after.clock.elapsed
         // Each retried alarm arrives at its time (the in-process wake-up is left out here).
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         while (after.alarms.retries.size < MAX_RETRIES) {
             val next = after.alarms.retries.last().atMs
             after.clock.advanceBy(next - after.clock.elapsed)
             val count = after.alarms.retries.size
-            after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+            after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
             if (after.alarms.retries.size == count) break
         }
 
@@ -263,12 +264,12 @@ class ProcessRestartTest {
         assertThat(stopped.at.elapsedMs - firstFailure).isEqualTo(stopped.failingForMs)
         // Only the retries stop (D-063): the row, its alarms and its session stay for a later read.
         assertThat(after.wakeUp.dueAtElapsedMs).isNull()
-        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(DueTimes.NONE))
+        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(TimerSlot.BREW, DueTimes.NONE))
         assertThat(after.store.storedPhase()).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.sessions.getSession(id)).isNotNull()
         // A later input reads again, and the step comes back.
         after.store.failNextReads(0)
-        after.controller.onAlarm(TimerAlarmKind.OVERTIME_TIMEOUT)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.OVERTIME_TIMEOUT)
         assertThat(after.active.sessionId).isEqualTo(id)
     }
 
@@ -307,9 +308,9 @@ class ProcessRestartTest {
         // The database comes back; the step's own deadline alarm arrives.
         after.store.failNextReads(0)
         after.clock.advanceBy(deadline - after.clock.elapsed)
-        after.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
-        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(DueTimes.NONE))
+        assertThat(after.log.calls).doesNotContain(AlarmsReconciled(TimerSlot.BREW, DueTimes.NONE))
         assertThat(after.active.sessionId).isEqualTo(id)
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(after.alert.started).hasSize(1)
@@ -319,7 +320,7 @@ class ProcessRestartTest {
     fun `a new process without a persisted timer stays idle`() = runTest {
         val after = before.processRestarted()
 
-        after.controller.onAlarm(TimerAlarmKind.MIDNIGHT)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.MIDNIGHT)
 
         assertThat(after.ui).isEqualTo(TimerUiState.Idle)
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.EventHandled>()).isEmpty()

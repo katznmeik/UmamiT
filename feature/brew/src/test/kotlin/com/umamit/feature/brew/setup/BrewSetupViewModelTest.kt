@@ -5,10 +5,13 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -37,6 +40,7 @@ class BrewSetupViewModelTest {
     private val settings = FakeSettingsRepository(UserSettings(preAlertSeconds = 10))
     private val sessions = FakeSessions(collection, settings)
     private val starter = FakeBrewStarter()
+    private val catalog = FakeCatalogRepository()
 
     @Before
     fun setUp() = runTest {
@@ -59,6 +63,7 @@ class BrewSetupViewModelTest {
         sessions.sessions,
         settings,
         starter,
+        catalog,
     )
 
     private val BrewSetupViewModel.ready get() = state.value as BrewSetupUiState.Ready
@@ -66,6 +71,53 @@ class BrewSetupViewModelTest {
     private fun BrewSetupUiState.Ready.recipe(name: String) = recipes.first { it.name == name }.id
 
     private fun BrewSetupUiState.Ready.vessel(name: String) = vessels.first { it.name == name }.id
+
+    @Test
+    fun `a tea whose catalog tea exists offers its catalog page`() {
+        catalog.details.value =
+            mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP_URL))
+
+        assertThat(viewModel().ready.catalogKey).isEqualTo("TG0557")
+    }
+
+    @Test
+    fun `a discontinued catalog tea still counts`() {
+        catalog.details.value = mapOf(
+            "TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP_URL, discontinued = true),
+        )
+
+        assertThat(viewModel().ready.catalogKey).isEqualTo("TG0557")
+    }
+
+    @Test
+    fun `a catalog key without its catalog tea offers nothing`() {
+        catalog.details.value =
+            mapOf("TG0213" to CatalogTeaDetail(key = "TG0213", name = "Other", productUrl = SHOP_URL))
+
+        assertThat(viewModel().ready.catalogKey).isNull()
+    }
+
+    @Test
+    fun `a tea without a catalog key offers nothing`() = runTest {
+        collection.teas.saveTea(SeedData.hisui.copy(catalogKey = null))
+        catalog.details.value =
+            mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP_URL))
+
+        assertThat(viewModel().ready.catalogKey).isNull()
+    }
+
+    @Test
+    fun `the catalog tea arriving later shows the entry without touching the edits`() {
+        val vm = viewModel()
+        vm.stepWater(up = true)
+        val water = vm.ready.waterMl
+
+        catalog.details.value =
+            mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP_URL))
+
+        assertThat(vm.ready.catalogKey).isEqualTo("TG0557")
+        assertThat(vm.ready.waterMl).isEqualTo(water)
+    }
 
     @Test
     fun `the setup opens with the tea's default recipe and its vessel`() {
@@ -270,6 +322,20 @@ class BrewSetupViewModelTest {
     }
 
     @Test
+    fun `the setup starts a brew while a quick timer runs, without asking (TMR-21 AC1, D-098)`() = runTest {
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+
+        vm.startBrew()
+
+        assertThat(vm.ready.question).isNull()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+    }
+
+    @Test
     fun `Abbrechen keeps the active session`() = runTest {
         starter.state.value = FakeBrewStarter.readyState(brewAgain("Bio Sencha Tanabata"), "other")
         val vm = viewModel()
@@ -345,4 +411,8 @@ class BrewSetupViewModelTest {
         steps = listOf(PlannedStep(StepKind.INFUSION, 60, 65)),
         recipePreAlertSeconds = null,
     )
+
+    private companion object {
+        const val SHOP_URL = "https://example.test/tee"
+    }
 }

@@ -52,6 +52,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.ui.rememberPhotoPainter
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -87,9 +88,14 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            if (state.reliabilityProblem) {
+            state.reliabilityProblem?.let { problem ->
                 ReliabilityBanner(
-                    message = stringResource(R.string.home_reliability),
+                    message = stringResource(
+                        when (problem) {
+                            ReliabilityProblem.Unreliable -> R.string.home_reliability
+                            ReliabilityProblem.AlarmVolumeOff -> R.string.home_reliability_alarm_volume
+                        },
+                    ),
                     onFix = actions.fixReliability,
                     modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
                 )

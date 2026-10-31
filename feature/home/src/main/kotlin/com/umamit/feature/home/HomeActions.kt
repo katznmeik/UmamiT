@@ -5,7 +5,7 @@ class HomeActions(
     val openSettings: () -> Unit = {},
     /** *Aufguss starten*: the tea picker (SCR-03). */
     val startBrew: () -> Unit = {},
-    /** *Aufguss fortsetzen*: the timer (SCR-05). */
+    /** *Aufguss fortsetzen*: the brew's timer (SCR-05). */
     val openTimer: () -> Unit = {},
     /** *Schnelltimer* (SCR-07). */
     val quickTimer: () -> Unit = {},

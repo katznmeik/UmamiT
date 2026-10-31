@@ -6,6 +6,8 @@ plugins {
 dependencies {
     // KettleWater (BRW-10), shared with the notifications of core:timer (D-068).
     api(project(":core:model"))
+    // The grams of a tea's stock, formatted once for the screens and the reminder (stockGramsText, INV-05).
+    api(project(":core:common"))
     testImplementation(libs.androidx.test.core)
 }
 

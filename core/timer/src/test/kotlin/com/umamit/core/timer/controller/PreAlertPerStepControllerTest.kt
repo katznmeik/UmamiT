@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.TimerStateNotifications
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
@@ -55,7 +56,7 @@ class PreAlertPerStepControllerTest {
         h.controller.send(TimerEvent.Start)
         val deadline = h.active.deadlineElapsedMs!!
         assertThat(h.active.preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
+        assertThat(h.alarms.armed(TimerSlot.BREW).preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
         h.advanceSeconds(14)
         assertThat(h.alert.ticks).isEqualTo(1)
         h.advanceSeconds(1)
@@ -69,14 +70,14 @@ class PreAlertPerStepControllerTest {
         h.controller.startSession(brewStart(infusion(20)))
         h.controller.send(TimerEvent.Start)
         val deadline = h.active.deadlineElapsedMs!!
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
+        assertThat(h.alarms.armed(TimerSlot.BREW).preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
         assertThat(livePoints()).containsExactly(150)
         h.advanceSeconds(2)
 
         h.controller.send(TimerEvent.EditSteps(listOf(infusion(20, preAlert = 10))))
 
         assertThat(h.active.preAlertLeadSeconds).isEqualTo(10)
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
+        assertThat(h.alarms.armed(TimerSlot.BREW).preAlertAtElapsedMs).isEqualTo(deadline - 10_000)
         assertThat(livePoints()).containsExactly(100)
         h.advanceSeconds(7)
         assertThat(h.alert.ticks).isEqualTo(0)
@@ -102,7 +103,7 @@ class PreAlertPerStepControllerTest {
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.active.preAlertLeadSeconds).isEqualTo(15)
-        assertThat(after.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 15_000)
+        assertThat(after.alarms.armed(TimerSlot.BREW).preAlertAtElapsedMs).isEqualTo(deadline - 15_000)
         after.advanceSeconds(39)
         assertThat(after.alert.ticks).isEqualTo(0)
         after.advanceSeconds(1)
@@ -126,7 +127,7 @@ class PreAlertPerStepControllerTest {
 
         val deadline = h.active.deadlineElapsedMs!!
         assertThat(h.active.preAlertLeadSeconds).isEqualTo(5)
-        assertThat(h.alarms.armed.preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).preAlertAtElapsedMs).isEqualTo(deadline - 5_000)
         h.advanceSeconds(15)
         assertThat(h.alert.ticks).isEqualTo(1)
     }

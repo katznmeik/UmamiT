@@ -3,6 +3,7 @@ package com.umamit.feature.brew.quick
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeSettingsRepository
@@ -136,19 +137,50 @@ class QuickTimerViewModelTest {
     }
 
     @Test
-    fun `Start while a session is active asks first (TMR-21)`() = runTest(dispatcher) {
+    fun `Start while a brew session runs starts alongside without asking (TMR-22, D-098)`() = runTest(dispatcher) {
         starter.state.value = brewSession(TimerPhase.RUNNING)
+        val vm = viewModel()
+        vm.select(120)
+
+        vm.start()
+
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.quickStarts).containsExactly(120)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.kind).isEqualTo(SessionKind.Brew("s1"))
+        assertThat(events).containsExactly(QuickTimerEvent.OpenTimer)
+    }
+
+    @Test
+    fun `Start while a brew alerts starts alongside and opens the alerting timer (rule 8)`() = runTest(dispatcher) {
+        starter.state.value = brewSession(TimerPhase.ALERTING)
         val vm = viewModel()
 
         vm.start()
 
-        assertThat(vm.state.value.question).isEqualTo(ActiveSessionQuestion("Bio Sencha Hisui"))
-        assertThat(events).isEmpty()
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.quickStarts).hasSize(1)
+        assertThat(events).containsExactly(QuickTimerEvent.OpenTimer)
     }
 
     @Test
-    fun `Beenden und neu starten replaces the session with the quick timer`() = runTest(dispatcher) {
+    fun `Start while another quick timer runs asks Schnelltimer beenden und neu starten (D-098)`() =
+        runTest(dispatcher) {
+            starter.state.value = FakeBrewStarter.quickRunningState(90)
+            val vm = viewModel()
+
+            vm.start()
+
+            assertThat(vm.state.value.question).isEqualTo(ActiveSessionQuestion(teaName = null))
+            assertThat(events).isEmpty()
+        }
+
+    @Test
+    fun `Beenden und neu starten replaces the quick timer only, never the brew`() = runTest(dispatcher) {
         starter.state.value = brewSession(TimerPhase.RUNNING)
+        val brewVm = viewModel()
+        brewVm.select(90)
+        brewVm.start()
+        events.clear()
         val vm = viewModel()
         vm.select(120)
         vm.selectPreAlert(PreAlertChoice.Off)
@@ -157,15 +189,16 @@ class QuickTimerViewModelTest {
         vm.confirmRestart()
 
         assertThat(starter.replaced).isEqualTo(1)
-        assertThat(starter.quickStarts).containsExactly(120)
-        assertThat(starter.quickPreAlerts).containsExactly(0)
+        assertThat(starter.quickStarts).containsExactly(90, 120).inOrder()
+        assertThat(starter.quickPreAlerts.last()).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.kind).isEqualTo(SessionKind.Brew("s1"))
         assertThat(vm.state.value.question).isNull()
         assertThat(events).containsExactly(QuickTimerEvent.OpenTimer)
     }
 
     @Test
-    fun `Abbrechen keeps the session`() = runTest(dispatcher) {
-        starter.state.value = brewSession(TimerPhase.RUNNING)
+    fun `Abbrechen keeps the running quick timer`() = runTest(dispatcher) {
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.start()
 
@@ -173,12 +206,15 @@ class QuickTimerViewModelTest {
 
         assertThat(vm.state.value.question).isNull()
         assertThat(starter.replaced).isEqualTo(0)
-        assertThat((starter.state.value as TimerUiState.Active).kind).isEqualTo(SessionKind.Brew("s1"))
+        assertThat((starter.state.value as TimerUiState.Active).steps.single().plannedSeconds).isEqualTo(90)
     }
 
     @Test
-    fun `Start while another timer alerts opens the alerting timer instead of asking (rule 8)`() = runTest(dispatcher) {
-        starter.state.value = brewSession(TimerPhase.ALERTING)
+    fun `Start while the quick timer alerts opens it instead of asking (rule 8)`() = runTest(dispatcher) {
+        starter.state.value = FakeBrewStarter.quickRunningState(90).copy(
+            phase = TimerPhase.ALERTING,
+            deadlineWallMs = 1,
+        )
         val vm = viewModel()
 
         vm.start()
@@ -190,9 +226,10 @@ class QuickTimerViewModelTest {
 
     @Test
     fun `a new alert closes the question (rule 8)`() = runTest(dispatcher) {
-        starter.state.value = brewSession(TimerPhase.RUNNING)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.start()
+        assertThat(vm.state.value.question).isNotNull()
 
         starter.state.value = brewSession(TimerPhase.ALERTING)
 

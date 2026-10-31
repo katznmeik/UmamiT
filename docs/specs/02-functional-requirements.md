@@ -1,6 +1,7 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: quick timer
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: SET-32 *Bei
+> „Nicht stören" klingeln*, D-099; 2026-10-30: v0.3.0: quick timer
 > alongside a brew, long steps from 60 min, alarm volume and *Lautstärke*,
 > daily low-stock reminder INV-11, foldable catalog groups, stock on READY,
 > D-098; v0.2.2 from the PO's
@@ -532,7 +533,11 @@ recipes; teas without style get *Western 3 g / 250 ml / 85 °C / 3:00*.
 **PRF-04 — Steps editor** `Must`
 Add, delete, reorder steps; per step: kind, duration 5 s – 24 h (5 s steps
 below 10 min, 1 min steps above), optional temperature (5 °C steps), note.
-At least one non-rinse step.
+At least one non-rinse step. From v0.3.0 (D-098, #141) a step's duration is
+set fast where it is edited (the Schritte-Sheet, SCR-31, also from the setup,
+SCR-04): a tap on the time opens „Dauer wählen" (SCR-07's picker, the same
+bounds and increments), and a held − / + repeats and speeds up, one increment
+per repeat.
 
 **PRF-05 — Generate series** `Should`
 First duration + increment × count, optional +5 °C per step.
@@ -975,7 +980,9 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
 **INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
 Once a day at the time of SET-29 (default 18:00) one quiet notification
 lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
-with lines „Tanabata · 14 g", „Hisui · leer". A tap opens Start.
+with lines „Tanabata · 14 g", „Hisui · leer"; one tea is named, „Tanabata
+wird knapp" or, empty, „Hisui ist leer" (as INV-10 says it). A tap opens
+Start.
 - AC1: Teas hidden with *Ausblenden* (INV-10) are included until their next
   INITIAL or PURCHASE event; archived teas and teas without stock events
   never.
@@ -1034,10 +1041,11 @@ Every chart has an accessible table alternative.
 | SET-27 | Lautstärke (Vorwarnung and alarm, on top of the phone's alarm volume; v0.3.0, D-098) | 10–100 % in 10 % steps — **100 %**; *Alarm testen* plays at it | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
+| SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
-| SET-29 | Erinnerung um (INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
+| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |

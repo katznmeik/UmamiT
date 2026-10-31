@@ -4,6 +4,7 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.common.WallClock
 import com.umamit.core.common.readClocks
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.SessionKind
 import javax.inject.Inject
@@ -23,31 +24,35 @@ import javax.inject.Inject
  * be injected, so no build ships a silent stand-in.
  */
 
-/** [TimerEffect.ScheduleAlarms][com.umamit.core.timer.engine.TimerEffect.ScheduleAlarms]: the alarms of 04 §6.2. */
+/**
+ * [TimerEffect.ScheduleAlarms][com.umamit.core.timer.engine.TimerEffect.ScheduleAlarms]: the alarms of 04 §6.2,
+ * per slot. Each slot has its own request codes ([TimerAlarmKind.requestCodeIn]), so a call for one slot never
+ * sets, moves or cancels an alarm of the other (D-098).
+ */
 interface TimerAlarmPort {
     /**
-     * Reconciles the alarms with [due], the full due set of the new state, per
-     * [TimerAlarmKind] and its fixed request code: a kind whose time is present
-     * is set (replacing the earlier alarm of that kind), a kind whose time is
-     * absent is cancelled. [DueTimes.NONE] cancels all.
+     * Reconciles the alarms of [slot] with [due], the full due set of its new
+     * state, per [TimerAlarmKind] and its fixed request code: a kind whose time
+     * is present is set (replacing the earlier alarm of that kind), a kind whose
+     * time is absent is cancelled. [DueTimes.NONE] cancels all of the slot's.
      */
-    fun reconcile(due: DueTimes)
+    fun reconcile(slot: TimerSlot, due: DueTimes)
 
     /**
-     * Sets the alarm of [kind] again at [atMs] on its clock and leaves the other
-     * kinds as they are: the turn of that alarm could not read the persisted
-     * timer, so the alarm must come again (04 §7.2, D-057).
+     * Sets the alarm of [kind] in [slot] again at [atMs] on its clock and leaves
+     * the other alarms as they are: the turn of that alarm could not read the
+     * persisted timer, so the alarm must come again (04 §7.2, D-057).
      */
-    fun retry(kind: TimerAlarmKind, atMs: Long)
+    fun retry(slot: TimerSlot, kind: TimerAlarmKind, atMs: Long)
 
     /**
-     * Sets the alert watchdog ([TimerAlarmKind.ALERT_WATCHDOG], exact, elapsed clock) at
+     * Sets the alert watchdog of [slot] ([TimerAlarmKind.ALERT_WATCHDOG], exact, elapsed clock) at
      * [atElapsedMs], replacing the earlier one, or cancels it (null); [reconcile] leaves it alone.
-     * It comes while the alert plays, and after the deadline of a running step (D-068), so a
+     * It comes while the slot's alert plays, and after the deadline of its running step (D-068), so a
      * process killed meanwhile is started again and its recovery replays the alert (04 §7.2,
      * D-063).
      */
-    fun watchAlert(atElapsedMs: Long?)
+    fun watchAlert(slot: TimerSlot, atElapsedMs: Long?)
 }
 
 /** `StartForeground` / `StopForeground`: the `specialUse` foreground service (04 §6.3, D-053). */
@@ -92,16 +97,26 @@ interface TimerNotifierPort {
     fun update(state: TimerUiState.Active, fullScreen: Boolean)
 
     /**
+     * Notification 5 (channel `timer_other`, importance LOW, silent; 04 §8.2, D-098): the active timer of the
+     * other slot while the service shows the first one, with its own actions; a held quick alert as „Fertig,
+     * wartet auf den Aufguss" without a full-screen intent. Null removes it. Its LOW importance keeps the alert
+     * the app's only notification of importance DEFAULT or higher (D-044). The service also keeps the process
+     * awake for it while it runs a short step (04 §6.1 two slots).
+     */
+    fun showOther(state: TimerUiState.Active?)
+
+    /**
      * „Sitzung gespeichert" (ID 3, channel `sessions`) for session [sessionId]: the midnight
      * timeout (TMR-14) and *Beenden & neu starten* (TMR-21, D-054).
      */
     fun notifySessionSaved(sessionId: String)
 
     /**
-     * „Dein Gyokuro-Timer läuft weiter" (channel `sessions`, 04 §7.3): the session of [state]
-     * survived a reboot. Never while alerting: the alert is the notice then (D-044).
+     * „Dein Timer läuft weiter" (channel `sessions`, ID 3, 04 §7.3): the timers in [states] (not empty, the brew
+     * first) survived a reboot; with both, one notice names both (D-098). Never for an alerting timer: the alert
+     * is the notice then (D-044).
      */
-    fun notifyTimerResumed(state: TimerUiState.Active)
+    fun notifyTimersResumed(states: List<TimerUiState.Active>)
 }
 
 /**

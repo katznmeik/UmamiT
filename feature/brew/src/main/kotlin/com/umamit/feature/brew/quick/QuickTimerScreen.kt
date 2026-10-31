@@ -136,6 +136,7 @@ private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions,
     // The ink-wash band without a seal, laid out like the running quick timer, so nothing moves at *Start* (D-095).
     // With the *Vorwarnung* row (D-097) the content no longer fits a short screen at the largest font: there the band
     // gives way as a brew's does, so *Start* lies on the screen (rule 8, D-096); wherever it fits it keeps its height.
+    // The running quick timer reserves this content and gives way alike, so the ring and the pill stay put (D-098).
     TimerBandPage(
         withSeal = false,
         adaptive = true,
@@ -163,6 +164,16 @@ private fun QuickTimerBody(state: QuickTimerUiState, actions: QuickTimerActions,
             )
         },
     )
+}
+
+/**
+ * SCR-07's content before *Start*, for the running quick timer to reserve (polish 2, D-098): measured, never placed,
+ * so both screens give the band the same height and the ring and the pill stay put at *Start*. Its height does not
+ * depend on the state (the selector reserves its widest label).
+ */
+@Composable
+internal fun ColumnScope.QuickTimerSpace() {
+    QuickTimerContent(state = QuickTimerUiState(), actions = QuickTimerActions(), openPicker = {})
 }
 
 /** The title, the ring, the chips and the *Vorwarnung* row, above *Start*. */
@@ -211,7 +222,9 @@ private fun ColumnScope.QuickTimerContent(
 
 /**
  * The *Vorwarnung* row below the chips (SCR-07, TMR-22, D-097): the selector of SCR-31 with the lead this quick
- * timer will get („Auto · 10 s", „Aus", „20 s", „20 s · zu kurz"), remembered for the next quick timer.
+ * timer will get („Auto · 10 s", „Aus", „20 s", „20 s · zu kurz"), remembered for the next quick timer. The row is
+ * centred with the selector at its widest label, so „Vorwarnung" keeps its place for every choice and the selector
+ * grows to its right (polish 1, D-098); where it wraps (a large font), it wraps for every choice alike.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -235,6 +248,8 @@ private fun QuickPreAlertRow(state: QuickTimerUiState, onSelect: (PreAlertChoice
             onSelect = onSelect,
             // Never over an alert (rule 8), as the duration picker.
             alertKey = state.alertKey,
+            // As wide as its widest label, so „Vorwarnung" never shifts (polish 1, D-098).
+            reserveFor = state.preAlertReserved(),
         )
     }
 }

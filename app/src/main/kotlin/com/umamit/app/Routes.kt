@@ -3,15 +3,27 @@ package com.umamit.app
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import com.umamit.core.designsystem.icon.UmamiIcons
+import com.umamit.core.model.TimerSlot
 import kotlinx.serialization.Serializable
 
 /** The navigation shell with its four tabs: the root of the app's top-level navigation. */
 @Serializable
 internal data object ShellRoute
 
-/** The timer (SCR-05): full-screen, above the shell, without the navigation bar and the active brew bar (03 §2.2). */
+/**
+ * The timer (SCR-05; SCR-07 once the quick timer runs): full-screen, above the shell, without the navigation bar and
+ * the active brew bar (03 §2.2). It shows [slot]'s timer, or, for none, the one in front when it opened (D-098).
+ * [switched]: opened from the other timer's row, which is right below it, so that row's tap there goes back.
+ */
 @Serializable
-internal data object TimerRoute
+internal data class TimerRoute(val slotName: String?, val switched: Boolean) {
+    /** The timer this route shows; null: the one in front when it opened. By name: a route holds no enum (R8). */
+    val slot: TimerSlot? get() = slotName?.let(TimerSlot::valueOf)
+
+    companion object {
+        operator fun invoke(slot: TimerSlot? = null, switched: Boolean = false) = TimerRoute(slot?.name, switched)
+    }
+}
 
 /**
  * The setup (SCR-04): of the tea [teaId] (from the tea picker or a favourite), or of the waiting
@@ -19,6 +31,14 @@ internal data object TimerRoute
  */
 @Serializable
 internal data class BrewSetupRoute(val teaId: String? = null, val sessionId: String? = null)
+
+/**
+ * A catalog tea's detail (SCR-21) from the setup's ⋮ *Im Katalog ansehen* (D-098): full-screen above the setup,
+ * whose back-stack entry keeps its draft, so back returns to it unchanged. [key] is the catalog key (05 §4.1), named
+ * as the detail's view model reads it. It gives way to a new alert like every route above the shell (rule 8).
+ */
+@Serializable
+internal data class SetupCatalogTeaRoute(val key: String)
 
 /**
  * The quick timer before its *Start* (SCR-07), from Start and the tea picker. Full-screen like the setup;

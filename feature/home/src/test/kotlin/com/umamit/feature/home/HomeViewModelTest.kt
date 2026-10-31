@@ -8,12 +8,14 @@ import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.LowStockCard
+import com.umamit.core.model.LowStockTea
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeLowStockRepository
@@ -22,11 +24,13 @@ import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.lowStockCard
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -209,11 +213,15 @@ class HomeViewModelTest {
             override fun observeCard(): Flow<LowStockCard?> = flow { awaitCancellation() }
 
             override suspend fun hide(card: LowStockCard) = Unit
+
+            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
         }
         val failing = object : LowStockRepository {
             override fun observeCard(): Flow<LowStockCard?> = flow { throw IOException("synthetic") }
 
             override suspend fun hide(card: LowStockCard) = Unit
+
+            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
         }
         listOf(hanging, failing).forEach { repository ->
             val vm = HomeViewModel(
@@ -322,6 +330,56 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `brewing again while a quick timer runs starts alongside without asking (TMR-21 AC1, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.QUICK)?.steps?.single()?.plannedSeconds).isEqualTo(90)
+    }
+
+    @Test
+    fun `a Schnelltimer alone leaves Aufguss starten and Nochmal bruehen on Start (SCR-02, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+
+        val state = viewModel().state.value
+
+        // No brew replaces the card: the bar shows the quick timer.
+        assertThat(state.active).isNull()
+        assertThat(state.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+    }
+
+    @Test
+    fun `with both timers the card shows the brew, also with the Schnelltimer in front (SCR-02, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        starter.startQuickTimer(90)
+
+        val brew = checkNotNull(starter.activeIn(TimerSlot.BREW))
+        assertThat((starter.state.value as TimerUiState.Active).slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(vm.state.value.active).isEqualTo(brew)
+        // The brew changes behind the Schnelltimer (its notification's *Start*): the card follows the brew.
+        starter.other.value = brew.copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 60_000, deadlineWallMs = 1)
+        assertThat(vm.state.value.active?.phase).isEqualTo(TimerPhase.RUNNING)
+        // A ringing quick alert still closes a question and counts as Start's alert (rule 8).
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+            .copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        assertThat(vm.state.value.alertKey).isNotNull()
+        assertThat(vm.state.value.active?.slot).isEqualTo(TimerSlot.BREW)
+    }
+
+    @Test
     fun `Abbrechen keeps the active session`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
@@ -373,14 +431,26 @@ class HomeViewModelTest {
     @Test
     fun `the banner follows the checks when read again, and Beheben asks for the missing one (TMR-31)`() {
         val vm = viewModel()
-        assertThat(vm.state.value.reliabilityProblem).isFalse()
+        assertThat(vm.state.value.reliabilityProblem).isNull()
 
         reliability.set(ReliabilityCheck.Notifications, CheckState.Missing)
         vm.refreshReliability()
         vm.fixReliability()
 
-        assertThat(vm.state.value.reliabilityProblem).isTrue()
+        assertThat(vm.state.value.reliabilityProblem).isEqualTo(ReliabilityProblem.Unreliable)
         assertThat(reliability.opened).containsExactly(ReliabilityCheck.Notifications)
+    }
+
+    @Test
+    fun `the alarm volume at 0 makes the banner say so, and Beheben asks for the sound settings (D-098)`() {
+        val vm = viewModel()
+
+        reliability.set(ReliabilityCheck.AlarmVolume, CheckState.Missing)
+        vm.refreshReliability()
+        vm.fixReliability()
+
+        assertThat(vm.state.value.reliabilityProblem).isEqualTo(ReliabilityProblem.AlarmVolumeOff)
+        assertThat(reliability.opened).containsExactly(ReliabilityCheck.AlarmVolume)
     }
 
     private companion object {

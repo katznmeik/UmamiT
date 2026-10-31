@@ -14,6 +14,7 @@ import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StockSummary
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -40,7 +41,7 @@ class FakeSessions(
     internal val nowMs: () -> Long = { 0L },
 ) {
     internal val sessionRows = MutableStateFlow<Map<String, BrewSession>>(emptyMap())
-    internal val activeRow = MutableStateFlow<TimerSnapshot?>(null)
+    internal val activeRows = MutableStateFlow<Map<TimerSlot, TimerSnapshot>>(emptyMap())
 
     val sessions = FakeSessionRepository(this)
     val activeBrew = FakeActiveBrewStore(this)
@@ -146,7 +147,7 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
 
     override suspend fun discardSession(sessionId: String) {
         s.collection.eventRows.update { map -> map.filterValues { it.sessionId != sessionId } }
-        s.activeRow.update { if (it?.activeBrew?.sessionId == sessionId) null else it }
+        s.activeRows.update { rows -> rows.filterValues { it.activeBrew.sessionId != sessionId } }
         s.sessionRows.update { it - sessionId }
     }
 
@@ -189,9 +190,9 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
     }
 }
 
-/** Fake [ActiveBrewStore]; create it through [FakeSessions]. */
+/** Fake [ActiveBrewStore], one row per [TimerSlot] as on Room (05 §3.12); create it through [FakeSessions]. */
 class FakeActiveBrewStore internal constructor(private val s: FakeSessions) : ActiveBrewStore {
-    override suspend fun read(): TimerSnapshot? = s.activeRow.value?.let { snapshot ->
+    override suspend fun read(slot: TimerSlot): TimerSnapshot? = s.activeRows.value[slot]?.let { snapshot ->
         val session = snapshot.activeBrew.sessionId?.let { s.sessionRows.value[it] }
         if (session == null) {
             snapshot
@@ -204,17 +205,21 @@ class FakeActiveBrewStore internal constructor(private val s: FakeSessions) : Ac
         }
     }
 
-    override suspend fun persist(snapshot: TimerSnapshot?) {
-        snapshot?.activeBrew?.sessionId?.let { id ->
+    override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) {
+        if (snapshot == null) return clear(slot)
+        require(snapshot.activeBrew.slot == slot) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
+        write(snapshot)
+    }
+
+    override suspend fun clear(slot: TimerSlot) = s.activeRows.update { it - slot }
+
+    private fun write(snapshot: TimerSnapshot) {
+        snapshot.activeBrew.sessionId?.let { id ->
             check(id in s.sessionRows.value) { "no session $id" }
             val rows = snapshot.steps.map { it.copy(tempC = it.tempC?.let { t -> snap5(t) }) }
             s.updateSession(id) { it.copy(steps = rows) }
         }
-        s.activeRow.value = snapshot
-    }
-
-    override suspend fun clear() {
-        s.activeRow.value = null
+        s.activeRows.update { it + (snapshot.activeBrew.slot to snapshot) }
     }
 }
 

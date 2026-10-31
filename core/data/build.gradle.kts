@@ -25,10 +25,17 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // Bitmap.scale for re-encoding the seed photos (05 §3.9, D-050).
     implementation(libs.androidx.core.ktx)
+    // The daily low-stock reminder, the app's first WorkManager job (INV-11, 06 §5.4, D-098), which the
+    // app's HiltWorkerFactory creates.
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
 
     // Robolectric tests against an in-memory Room database (05, #30).
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    // WorkManager's test driver for the reminder's schedule (INV-11, #130).
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.datastore)
     // FakeSettingsRepository for the seeder tests (M1-07).
     testImplementation(project(":core:testing"))

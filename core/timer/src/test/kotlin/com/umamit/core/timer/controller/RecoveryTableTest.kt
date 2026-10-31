@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -33,7 +34,7 @@ class RecoveryTableTest {
         before.controller.startSession(brewStart(infusion(60)))
         before.controller.send(TimerEvent.Start)
         before.advanceSeconds(20)
-        val armed = before.alarms.armed
+        val armed = before.alarms.armed(TimerSlot.BREW)
 
         val after = before.processRestarted()
         after.clock.advanceBy(5_000)
@@ -41,7 +42,7 @@ class RecoveryTableTest {
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.active.teaName).isEqualTo(ControllerHarness.TEA_NAME)
-        assertThat(after.alarms.armed).isEqualTo(armed)
+        assertThat(after.alarms.armed(TimerSlot.BREW)).isEqualTo(armed)
         assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.recovered()).isEqualTo(
             Decision(
@@ -111,7 +112,9 @@ class RecoveryTableTest {
         assertThat(after.alert.started.single().deadlineWallMs).isEqualTo(deadlineWall)
         assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(after.service.fullScreen).isTrue()
-        assertThat(after.alarms.armed.overtimeTimeoutAtElapsedMs).isEqualTo(after.clock.elapsed + 7 * MINUTE_MS)
+        assertThat(
+            after.alarms.armed(TimerSlot.BREW).overtimeTimeoutAtElapsedMs,
+        ).isEqualTo(after.clock.elapsed + 7 * MINUTE_MS)
         assertThat(after.recovered()).isEqualTo(
             Decision(TimerPhase.RUNNING, TimerPhase.ALERTING, rebooted = false, RecoveryDecision.ALERT_REPLAYED),
         )
@@ -153,7 +156,7 @@ class RecoveryTableTest {
 
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.active.deadlineElapsedMs).isEqualTo(30_000L)
-        assertThat(after.alarms.armed.deadlineElapsedMs).isEqualTo(30_000L)
+        assertThat(after.alarms.armed(TimerSlot.BREW).deadlineElapsedMs).isEqualTo(30_000L)
         assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.RUNNING)
         // „Dein …-Timer läuft weiter" (04 §7.3).
         assertThat(after.notifier.timersResumed.map { it.phase }).containsExactly(TimerPhase.RUNNING)
@@ -163,6 +166,24 @@ class RecoveryTableTest {
         after.advanceSeconds(15)
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(after.alert.started).hasSize(1)
+    }
+
+    @Test
+    fun `reboot with a brew step and a quick timer - one notice names both (04 7_3)`() = runTest {
+        before.controller.startSession(brewStart(infusion(60)))
+        before.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        before.controller.startQuickTimer(120, preAlertSeconds = 0, run = true)
+        before.advanceSeconds(10)
+
+        before.clock.reboot(offMs = 20_000, upMs = 15_000)
+        val after = before.processRestarted()
+        after.controller.recover(RecoveryTrigger.BOOT_COMPLETED)
+
+        assertThat(after.controller.state(TimerSlot.BREW).value).isInstanceOf(TimerUiState.Active::class.java)
+        assertThat(after.controller.state(TimerSlot.QUICK).value).isInstanceOf(TimerUiState.Active::class.java)
+        // One notification 3, never the quick timer's replacing the brew's.
+        assertThat(after.notifier.resumeNotices.map { notice -> notice.map { it.slot } })
+            .containsExactly(listOf(TimerSlot.BREW, TimerSlot.QUICK))
     }
 
     @Test
@@ -179,7 +200,9 @@ class RecoveryTableTest {
         assertThat(after.active.display(after.clock.elapsed).overtimeSeconds).isEqualTo(120L)
         assertThat(after.alert.started).hasSize(1)
         assertThat(after.service.fullScreen).isTrue()
-        assertThat(after.alarms.armed.overtimeTimeoutAtElapsedMs).isEqualTo(after.clock.elapsed + 8 * MINUTE_MS)
+        assertThat(
+            after.alarms.armed(TimerSlot.BREW).overtimeTimeoutAtElapsedMs,
+        ).isEqualTo(after.clock.elapsed + 8 * MINUTE_MS)
         // The alert is the only notice: nothing competes with it (D-044).
         assertThat(after.notifier.timersResumed).isEmpty()
     }
@@ -198,7 +221,7 @@ class RecoveryTableTest {
         assertThat(after.active.phase).isEqualTo(TimerPhase.PAUSED)
         assertThat(after.active.pausedRemainingMs).isEqualTo(40_000L)
         assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.PAUSED)
-        assertThat(after.alarms.armed.idleDemoteAtWallMs).isNotNull()
+        assertThat(after.alarms.armed(TimerSlot.BREW).idleDemoteAtWallMs).isNotNull()
         // No reboot: no „läuft weiter" notice.
         assertThat(after.notifier.timersResumed).isEmpty()
     }
@@ -222,9 +245,9 @@ class RecoveryTableTest {
 
     @Test
     fun `a long step - restored without the service, its deadline alarm kept`() = runTest {
-        before.controller.startSession(brewStart(infusion(20 * 60)))
+        before.controller.startSession(brewStart(infusion(60 * 60)))
         before.controller.send(TimerEvent.Start)
-        val deadline = before.alarms.armed.deadlineElapsedMs
+        val deadline = before.alarms.armed(TimerSlot.BREW).deadlineElapsedMs
 
         val after = before.processRestarted()
         after.clock.advanceBy(5 * MINUTE_MS)
@@ -233,7 +256,7 @@ class RecoveryTableTest {
         assertThat(after.active.phase).isEqualTo(TimerPhase.RUNNING)
         assertThat(after.active.longStep).isTrue()
         assertThat(after.service.starts).isEmpty()
-        assertThat(after.alarms.armed.deadlineElapsedMs).isEqualTo(deadline)
+        assertThat(after.alarms.armed(TimerSlot.BREW).deadlineElapsedMs).isEqualTo(deadline)
     }
 
     @Test

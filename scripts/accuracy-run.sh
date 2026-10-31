@@ -7,6 +7,8 @@
 #
 # Usage: ./gradlew :core:timer:assembleDebugAndroidTest && scripts/accuracy-run.sh
 #   ACCURACY_STEPS            steps to run (default 50; fewer only to try the workflow)
+#   ACCURACY_VARIANT          standard (default) or alongside: a quick timer beside
+#                             every step, both timers measured (D-098, #137)
 #   ACCURACY_INJECT_DELAY_MS  gate check: every pre-alert and alert this many ms late (default 0)
 #   ACCURACY_OUT              report directory (default build/accuracy)
 #
@@ -22,11 +24,16 @@ readonly TEST_CLASS="com.umamit.core.timer.AccuracyRunTest"
 readonly REPORT_FILES=(accuracy.md accuracy.csv diagnostics.txt)
 
 steps="${ACCURACY_STEPS:-50}"
+variant="${ACCURACY_VARIANT:-standard}"
 delay="${ACCURACY_INJECT_DELAY_MS:-0}"
 out="${ACCURACY_OUT:-build/accuracy}"
 
 if ! [[ "$steps" =~ ^[0-9]+$ ]] || ((steps < 1 || steps > 200)); then
   echo "::error::ACCURACY_STEPS must be a number from 1 to 200, was '$steps'."
+  exit 2
+fi
+if [[ "$variant" != standard && "$variant" != alongside ]]; then
+  echo "::error::ACCURACY_VARIANT must be standard or alongside, was '$variant'."
   exit 2
 fi
 if ! [[ "$delay" =~ ^[0-9]+$ ]] || ((delay > 60000)); then
@@ -49,11 +56,12 @@ adb logcat -c || true
 adb logcat -v time -s AccuracyRun:I &
 logcat_pid=$!
 
-echo "Accuracy run: $steps steps of 60 s, injected delay $delay ms."
+echo "Accuracy run: $steps steps of 60 s, variant $variant, injected delay $delay ms."
 adb shell am instrument -w \
   -e class "$TEST_CLASS" \
   -e umamitAccuracy true \
   -e umamitAccuracySteps "$steps" \
+  -e umamitAccuracyVariant "$variant" \
   -e umamitAccuracyInjectDelayMs "$delay" \
   "$PACKAGE/$RUNNER" | tr -d '\r' | tee "$out/instrumentation.txt"
 

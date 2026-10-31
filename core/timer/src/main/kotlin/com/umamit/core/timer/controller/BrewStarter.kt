@@ -1,25 +1,36 @@
 package com.umamit.core.timer.controller
 
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TransitionOutcome
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
  * What Start (SCR-02) and the setup (SCR-04) need from the
- * [BrewSessionController] to start a brew (TMR-01, BRW-11, TMR-21): its state,
- * for *Aufguss fortsetzen* and the second-session question, and the two
- * starts. Features depend only on `core:*` (06 §3), so the seam lives here; the
+ * [BrewSessionController] to start a brew (TMR-01, BRW-11, TMR-21, TMR-22): its state,
+ * for *Aufguss fortsetzen* and the second-timer questions, and the
+ * starts. A brew session and a quick timer start while the other runs (D-098); only a
+ * second one of the same kind asks. Features depend only on `core:*` (06 §3), so the seam lives here; the
  * timer screen's own seam is `BrewTimer` in `feature:brew` (D-058).
  */
 interface BrewStarter {
-    /** The controller's [BrewSessionController.state]. */
+    /** The controller's [BrewSessionController.state]: the timer in front. */
     val state: StateFlow<TimerUiState>
 
+    /** The active timer of [slot] now (the brew session, the quick timer); null while that slot is idle. */
+    fun activeIn(slot: TimerSlot): TimerUiState.Active?
+
+    /** The active timer of [slot] as it changes, whichever timer is in front; null while that slot is idle. */
+    fun observeActive(slot: TimerSlot): Flow<TimerUiState.Active?>
+
     /**
-     * *Brühen starten* / *Nochmal brühen*: the session waits in READY. Returns
-     * `Rejected(ActiveTimerExists)` while another timer is active; the UI then
+     * *Brühen starten* / *Nochmal brühen*: the session waits in READY, also while a quick timer runs. Returns
+     * `Rejected(ActiveTimerExists)` while another brew session is active; the UI then
      * asks „Erst die … -Sitzung beenden?" (TMR-21).
      */
     suspend fun startSession(request: BrewStart): TransitionOutcome
@@ -27,7 +38,7 @@ interface BrewStarter {
     /**
      * *Beenden & neu starten* (TMR-21): the active session is finished as by
      * *Sitzung beenden* (saved, or discarded without a completed non-rinse
-     * step), an active quick timer is cancelled, then [request] starts.
+     * step), then [request] starts; a quick timer is never touched (D-098).
      */
     suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome
 
@@ -36,13 +47,17 @@ interface BrewStarter {
      * [durationSeconds] with the *Vorwarnung* chosen on SCR-07, [preAlertSeconds]
      * (D-097: null *Automatisch* with B = the global pre-alert, 0 *Aus*, else
      * 5–30 s as set), running at once (SCR-07's *Start* is the start of its one
-     * step). Nothing is recorded. Returns `Rejected(ActiveTimerExists)` while
-     * another timer is active (TMR-21) and `Rejected(InvalidQuickTimer)` outside
+     * step). Nothing is recorded. It starts while a brew session runs (D-098). Returns
+     * `Rejected(ActiveTimerExists)` while another quick timer is active (the UI asks „Schnelltimer beenden und
+     * neu starten?") and `Rejected(InvalidQuickTimer)` outside
      * 5 s – 24 h or for a choice other than 0 or 5–30 s.
      */
     suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 
-    /** *Beenden & neu starten* (TMR-21) for the quick timer: the active timer ends as above, then it runs. */
+    /**
+     * „Schnelltimer beenden und neu starten?" (D-098): the active quick timer ends, then this one runs; the brew
+     * stays.
+     */
     suspend fun finishActiveAndStartQuickTimer(durationSeconds: Int, preAlertSeconds: Int? = null): TransitionOutcome
 }
 
@@ -53,6 +68,11 @@ interface BrewStarter {
  */
 class ControllerBrewStarter @Inject constructor(private val controller: BrewSessionController) : BrewStarter {
     override val state: StateFlow<TimerUiState> get() = controller.state
+
+    override fun activeIn(slot: TimerSlot): TimerUiState.Active? = controller.state(slot).value as? TimerUiState.Active
+
+    override fun observeActive(slot: TimerSlot): Flow<TimerUiState.Active?> =
+        controller.state(slot).map { it as? TimerUiState.Active }.distinctUntilChanged()
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome = controller.startSession(request)
 

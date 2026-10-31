@@ -89,6 +89,10 @@ const val CATALOG_GUIDES_ROW_TAG = "catalog_guides_row"
  *   none. Each new one opens the refresh sheet on what the refresh holds: its progress, its result,
  *   or the last result from the refresh log when the app was closed since. Never during an alert:
  *   the sheet opens once it has ended (rule 8).
+ * @param foldAllRequest a counter from the ⋮ menu's *Alle einklappen* (D-098), like [refreshRequest].
+ * @param unfoldAllRequest a counter from the ⋮ menu's *Alle ausklappen* (D-098), like [refreshRequest].
+ * @param onFoldableChange whether the list shown folds its groups (D-098): the ⋮ menu offers *Alle einklappen*
+ *   and *Alle ausklappen* only then.
  */
 @Composable
 @Suppress("LongParameterList") // the alert gate, the ways out, the shell's counters and the view model
@@ -103,9 +107,20 @@ fun CatalogRoute(
     sharedLink: TeaLinkShare? = null,
     onTakeSharedLink: (token: Long) -> Unit = {},
     refreshSheetRequest: Long = 0L,
+    foldAllRequest: Int = 0,
+    unfoldAllRequest: Int = 0,
+    onFoldableChange: (Boolean) -> Unit = {},
     viewModel: CatalogViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    FoldRequests(
+        state.foldable,
+        foldAllRequest,
+        unfoldAllRequest,
+        onFoldableChange,
+        viewModel::foldAll,
+        viewModel::unfoldAll,
+    )
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(alerting) { if (alerting) sheetOpen = false }
     val startRefresh = {
@@ -169,6 +184,7 @@ fun CatalogRoute(
         onOpenGuides = onOpenGuides,
         onFilterChange = viewModel::changeFilter,
         onToggleMark = viewModel::toggleMark,
+        onToggleFold = viewModel::toggleFold,
         alerting = alerting,
         scrollToTopRequest = scrollToTopRequest,
     )
@@ -200,7 +216,8 @@ fun CatalogRoute(
  * state or the list. [onLoad] is *Katalog laden*; [onShowProgress] reopens the sheet of a
  * running refresh; [onOpenTea] opens a tea's detail (SCR-21) by its key; [onFilterChange] takes
  * a changed search, filter or sort (CAT-10); [onOpenGuides] opens the *Ratgeber* (CAT-09);
- * [onToggleMark] marks or unmarks a tea by its key from its row (CAT-18). The
+ * [onToggleMark] marks or unmarks a tea by its key from its row (CAT-18); [onToggleFold] folds or unfolds the
+ * group of a *Sorte* from its header while the groups fold (D-098). The
  * filter sheet is never composed while [alerting] (rule 8). [scrollToTopRequest] is a counter;
  * every increase scrolls the list to the top. [thumbnail] loads a row's thumbnail file; tests pass placeholder images.
  */
@@ -215,6 +232,7 @@ fun CatalogContent(
     onOpenGuides: () -> Unit = {},
     onFilterChange: (FilterChange) -> Unit = {},
     onToggleMark: (key: String, marked: Boolean) -> Unit = { _, _ -> },
+    onToggleFold: (teaType: String?) -> Unit = {},
     alerting: Boolean = false,
     scrollToTopRequest: Int = 0,
     zone: ZoneId = ZoneId.systemDefault(),
@@ -238,6 +256,7 @@ fun CatalogContent(
                     onFilterChange = onFilterChange,
                     onOpenFilters = { if (!alerting) filterSheetOpen = true },
                     onToggleMark = onToggleMark,
+                    onToggleFold = onToggleFold,
                 ),
                 scrollToTopRequest = scrollToTopRequest,
                 zone = zone,
@@ -265,6 +284,7 @@ private class ListActions(
     val onFilterChange: (FilterChange) -> Unit,
     val onOpenFilters: () -> Unit,
     val onToggleMark: (key: String, marked: Boolean) -> Unit,
+    val onToggleFold: (teaType: String?) -> Unit,
 )
 
 @Composable
@@ -347,7 +367,8 @@ private fun CatalogList(
                 }
             }
         }
-        teaRows(listing, actions.onOpenTea, actions.onToggleMark, thumbnail)
+        val folding = if (state.foldable) GroupFolding(state::isFolded, actions.onToggleFold) else null
+        teaRows(listing, actions.onOpenTea, actions.onToggleMark, thumbnail, folding)
         if (listing.hiddenMatches > 0) {
             item(key = "hidden") {
                 NoticeRow(

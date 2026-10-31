@@ -28,6 +28,22 @@
     <string name="brew_timer_finish">Sitzung beenden</string>
     <string name="brew_timer_add_step">Weiterer Aufguss</string>
 
+    <!-- The row for the other timer (v0.3.0, SCR-05, SCR-07, D-098): „Schnelltimer 2:14", „Tanabata · Aufguss 2 · 0:48". -->
+    <string name="brew_timer_other_time">· %1$s</string>
+    <string name="brew_timer_other_paused">· Pausiert %1$s</string>
+    <string name="brew_timer_other_ready">· bereit</string>
+    <string name="brew_timer_other_done">· fertig</string>
+    <string name="brew_timer_other_alert">· Jetzt abgießen!</string>
+    <string name="brew_timer_other_step">· %1$s %2$d · %3$s</string>
+    <string name="brew_timer_other_step_paused">· %1$s %2$d · Pausiert %3$s</string>
+    <string name="brew_timer_other_step_ready">· %1$s %2$d · bereit</string>
+    <string name="brew_timer_other_open_quick">Schnelltimer öffnen</string>
+    <string name="brew_timer_other_open_brew">Aufguss öffnen</string>
+    <string name="brew_timer_other_pause_quick">Schnelltimer pausieren</string>
+    <string name="brew_timer_other_resume_quick">Schnelltimer fortsetzen</string>
+    <string name="brew_timer_other_pause_brew">Aufguss pausieren</string>
+    <string name="brew_timer_other_resume_brew">Aufguss fortsetzen</string>
+
     <!-- Overflow ⋮ (SCR-05) -->
     <string name="brew_timer_menu_adjust">Brühen anpassen</string>
     <string name="brew_timer_menu_end_step">Aufguss jetzt beenden</string>
@@ -46,6 +62,8 @@
 
     <!-- Reliability banner (TMR-31) -->
     <string name="brew_timer_reliability">Der Timer ist eventuell unzuverlässig</string>
+    <!-- The phone's alarm volume at 0 (v0.3.0, TMR-31, D-098). -->
+    <string name="brew_timer_reliability_alarm_volume">Alarmlautstärke ist aus</string>
 
     <!-- TalkBack (03 §6, SCR-05) -->
     <string name="brew_timer_back">Zurück</string>
@@ -56,6 +74,9 @@
     <string name="brew_timer_leaf_description" tools:ignore="PluralsCandidate">%1$d Komma %2$d Gramm Tee</string>
     <string name="brew_timer_water_description" tools:ignore="PluralsCandidate">%1$d Milliliter Wasser</string>
     <string name="brew_timer_leaf_and_water_description">%1$s, %2$s</string>
+    <!-- READY's stock as TalkBack reads it (BRW-11, D-098): „14,5 Gramm übrig, knapp"; the text is the setup's. -->
+    <string name="brew_timer_stock_description">%1$s Gramm übrig</string>
+    <string name="brew_timer_stock_low_description">%1$s Gramm übrig, knapp</string>
     <string name="brew_timer_announce_ready">Bereit für %1$s</string>
     <string name="brew_timer_announce_running">%1$s läuft</string>
     <string name="brew_timer_announce_pre_alert">Gleich fertig</string>

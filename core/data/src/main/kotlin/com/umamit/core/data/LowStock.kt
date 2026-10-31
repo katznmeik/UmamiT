@@ -5,17 +5,22 @@ import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.TeaStockLevel
 import com.umamit.core.model.LowStockCard
+import com.umamit.core.model.LowStockTea
 import com.umamit.core.model.StockLevel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-/** Start's low-stock card (INV-10, SCR-02, D-097): which tea it reminds of, and *Ausblenden*. */
+/**
+ * Start's low-stock card (INV-10, SCR-02, D-097): which tea it reminds of, and *Ausblenden*; and the teas of
+ * the daily low-stock reminder (INV-11, D-098).
+ */
 interface LowStockRepository {
     /**
      * The card, or null: the non-archived tea with stock events whose stock is *Knapp* or *Leer* (INV-05; its
@@ -26,6 +31,13 @@ interface LowStockRepository {
 
     /** *Ausblenden*: hides [card]'s tea until its next INITIAL or PURCHASE event (INV-10 AC2). */
     suspend fun hide(card: LowStockCard)
+
+    /**
+     * The daily reminder's teas (INV-11): every non-archived tea with stock events that is *Knapp* or *Leer*
+     * by the card's rules (a tea's own threshold first, inclusive), **including** the ones hidden with
+     * *Ausblenden*; least stock first, then by name. Empty when there is none.
+     */
+    suspend fun reminderTeas(): List<LowStockTea>
 }
 
 /** [LowStockRepository] on the collection's stock events, the settings and the local catalog (INV-09). */
@@ -68,6 +80,14 @@ class RoomLowStockRepository @Inject constructor(
             val others = s.lowStockHidden.filterNot { it.startsWith(tea) }.toSet()
             s.copy(lowStockHidden = others + card.hideKey)
         }
+    }
+
+    override suspend fun reminderTeas(): List<LowStockTea> {
+        val threshold = settings.settings.first().lowStockGrams
+        // Least stock first already. `lowStockHidden` is not read: hiding the card never hides the problem.
+        return dao.observeStockLevels().first()
+            .filter { StockLevel.of(it.remainingGrams, it.lowStockGrams ?: threshold) != StockLevel.AVAILABLE }
+            .map { LowStockTea(teaId = it.teaId, teaName = it.name, remainingGrams = it.remainingGrams) }
     }
 
     /**

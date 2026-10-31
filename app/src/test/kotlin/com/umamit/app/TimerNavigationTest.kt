@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.picker.TeaPickerSheet
@@ -41,7 +42,7 @@ class TimerNavigationTest {
         ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
     private val brew = MutableStateFlow<ActiveBrew?>(running)
     private val alertKey = MutableStateFlow<String?>(null)
-    private val timerRequest = MutableStateFlow(0L)
+    private val timerRequest = MutableStateFlow(TimerRequest(0L))
     private val visible = mutableListOf<Boolean>()
     private val handled = mutableListOf<Long>()
 
@@ -65,10 +66,11 @@ class TimerNavigationTest {
                     timerRequest = timerRequest,
                     onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
-                    timerScreen = { _, openSettings, _ ->
+                    timerScreen = { _, openSettings, adjust, _ ->
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
+                            Button(onClick = { adjust("s1") }) { Text("Brühen anpassen") }
                         }
                     },
                     settings = testSettingsScreens(),
@@ -88,7 +90,21 @@ class TimerNavigationTest {
                             )
                         }
                     },
-                    setupScreen = { _, _ -> Text("SETUP") },
+                    setupScreen = { onBack, _, openCatalog ->
+                        Column {
+                            Text("SETUP")
+                            Button(onClick = { openCatalog("TG0557") }) { Text("Im Katalog ansehen") }
+                            Button(onClick = onBack) { Text("Setup verlassen") }
+                        }
+                    },
+                    catalogScreens = CatalogStackScreens(
+                        tea = { host ->
+                            Column {
+                                Text("KATALOG-TEE")
+                                Button(onClick = host.onBack) { Text("Katalog verlassen") }
+                            }
+                        },
+                    ),
                     quickTimerScreen = { _, openTimer ->
                         Button(onClick = openTimer) { Text("QUICK-START") }
                     },
@@ -197,6 +213,54 @@ class TimerNavigationTest {
     }
 
     @Test
+    fun `the setup's Im Katalog ansehen opens the catalog page above it, and back returns to the setup (D-098)`() {
+        show()
+        openSetupFromStart()
+
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("KATALOG-TEE").assertIsDisplayed()
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+
+        compose.onNodeWithText("Katalog verlassen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the alert replaces the catalog page opened from the setup with the timer at once (rule 8, D-098)`() {
+        show()
+        openSetupFromStart()
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Im Katalog ansehen during an alert opens the timer, not the catalog page (rule 8, D-098)`() {
+        alert("A")
+        show()
+        bar().performClick()
+        // A setup opened in this alert stays for it (navigateAbove), so its menu is reachable.
+        compose.onNodeWithText("Brühen anpassen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
     fun `a tea tap on Start during an alert opens the timer, not the setup (rule 8)`() {
         // Like a refused start during ALERTING (D-062 S3): the alerting timer is where to go now.
         alert("A")
@@ -287,7 +351,7 @@ class TimerNavigationTest {
     fun `the alert's full-screen intent opens the timer, which counts as visible from the first frame`() {
         // MainActivity got the full-screen intent before its content was set (#47, D-058).
         alert("A")
-        timerRequest.value = 1L
+        timerRequest.value = TimerRequest(1L)
         compose.mainClock.autoAdvance = false
         show()
 
@@ -309,7 +373,7 @@ class TimerNavigationTest {
         show()
         openSettingsFromTimer()
 
-        timerRequest.value = 2L
+        timerRequest.value = TimerRequest(2L)
         compose.waitForIdle()
 
         assertTimerOnTop()
@@ -321,7 +385,7 @@ class TimerNavigationTest {
 
     @Test
     fun `a request already handled does not open the timer again after the timer was closed`() {
-        timerRequest.value = 3L
+        timerRequest.value = TimerRequest(3L)
         show()
         compose.onNodeWithText("TIMER").assertIsDisplayed()
 

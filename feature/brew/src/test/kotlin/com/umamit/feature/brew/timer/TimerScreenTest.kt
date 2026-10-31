@@ -31,6 +31,7 @@ import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
@@ -58,6 +59,7 @@ class TimerScreenTest {
 
     private var state by mutableStateOf<TimerUiState.Active>(TimerStates.ready())
     private var settings by mutableStateOf(TimerScreenSettings())
+    private var stock by mutableStateOf<TimerStock?>(null)
     private val events = mutableListOf<TimerEvent>()
     private val opened = mutableListOf<String>()
     private var start = 0L
@@ -76,6 +78,7 @@ class TimerScreenTest {
                     onAdjustBrew = { opened += "adjust" },
                     onOpenTimerSettings = { opened += "settings" },
                     settings = settings,
+                    stock = stock,
                 )
             }
         }
@@ -412,6 +415,75 @@ class TimerScreenTest {
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
                 listOf("Wasserkocher auf 55 Grad, 4 Komma 0 Gramm Tee, 250 Milliliter Wasser, Aufguss 1 · 1:00"),
+            ),
+        ).assertIsDisplayed()
+    }
+
+    // --- Stock on READY (BRW-11, D-098) ---------------------------------------------------------
+
+    @Test
+    fun `READY shows the tea's stock under the leaf and water, Knapp and Leer as in the setup (BRW-11, D-098)`() {
+        stock = TimerStock(38.0, StockLevel.AVAILABLE)
+        show(TimerStates.ready())
+        compose.onNodeWithText("38 g übrig").assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 55\u00A0°C", amounts, "38 g übrig", "Aufguss 1 · 1:00"))
+
+        // Live: the stock changes while READY waits.
+        stock = TimerStock(14.0, StockLevel.LOW)
+        compose.onNodeWithText("14 g übrig · knapp").assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 55\u00A0°C", amounts, "14 g übrig · knapp", "Aufguss 1 · 1:00"))
+
+        stock = TimerStock(14.5, StockLevel.LOW)
+        compose.onNodeWithText("14,5 g übrig · knapp").assertIsDisplayed()
+
+        stock = TimerStock(0.0, StockLevel.EMPTY)
+        state = TimerStates.ready(stepIndex = 1)
+        compose.onNodeWithText("Leer").assertIsDisplayed()
+            .assert(hasLines("Wasserkocher auf 60\u00A0°C", amounts, "Leer", "Aufguss 2 · 0:20"))
+    }
+
+    @Test
+    fun `without a stock READY has no stock line (BRW-11, D-098)`() {
+        show(TimerStates.ready())
+        compose.onNodeWithText(amounts).assert(hasLines("Wasserkocher auf 55\u00A0°C", amounts, "Aufguss 1 · 1:00"))
+        compose.onNodeWithText("übrig", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `RUNNING, PAUSED, ALERTING and FINISHED show no stock line (BRW-11, D-098)`() {
+        stock = TimerStock(38.0, StockLevel.AVAILABLE)
+        show(TimerStates.running())
+        listOf(TimerStates.running(), TimerStates.paused(), TimerStates.alerting(), TimerStates.finished()).forEach {
+            state = it
+            compose.onNodeWithText("38 g übrig").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `the stock line also shows without a kettle hint (BRW-11, D-098)`() {
+        stock = TimerStock(38.0, StockLevel.AVAILABLE)
+        show(TimerStates.ready().copy(kettleTempC = null))
+        compose.onNodeWithText("38 g übrig").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the quick timer's READY never shows a stock line (BRW-11, SCR-07)`() {
+        stock = TimerStock(38.0, StockLevel.AVAILABLE)
+        show(TimerStates.quick(TimerPhase.READY))
+        compose.onNodeWithText("übrig", substring = true, useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `TalkBack reads the stock in words with the kettle hint (BRW-11, D-098)`() {
+        stock = TimerStock(14.5, StockLevel.LOW)
+        show(TimerStates.ready())
+        compose.onNode(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf(
+                    "Wasserkocher auf 55 Grad, 4 Komma 0 Gramm Tee, 250 Milliliter Wasser, " +
+                        "14,5 Gramm übrig, knapp, Aufguss 1 · 1:00",
+                ),
             ),
         ).assertIsDisplayed()
     }

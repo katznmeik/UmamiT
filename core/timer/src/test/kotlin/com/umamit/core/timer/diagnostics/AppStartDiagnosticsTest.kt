@@ -3,6 +3,7 @@ package com.umamit.core.timer.diagnostics
 import android.Manifest
 import android.app.AppOpsManager
 import android.app.Application
+import android.media.AudioManager
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.testing.FakeClock
@@ -57,6 +58,19 @@ class AppStartDiagnosticsTest {
 
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         assertThat(reader.read().notifications).isTrue()
+    }
+
+    @Test
+    fun `the device reader reports the alarm volume at 0 and clears when it is raised`() {
+        // TMR-31, D-098: the cues play on the alarm stream.
+        val reader = AndroidPermissionStatesReader(app)
+        val audio = app.getSystemService(AudioManager::class.java)
+
+        audio.setStreamVolume(AudioManager.STREAM_ALARM, 0, 0)
+        assertThat(reader.read().alarmVolumeOn).isFalse()
+
+        audio.setStreamVolume(AudioManager.STREAM_ALARM, 1, 0)
+        assertThat(reader.read().alarmVolumeOn).isTrue()
     }
 
     @Test
