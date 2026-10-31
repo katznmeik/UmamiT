@@ -1010,7 +1010,7 @@ sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
 | Situation | Result |
 |---|---|
 | Brew deadline, quick not alerting | Brew alerts as today. |
-| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = now. |
+| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = its deadline (also when recovery finds it late, §3.3), so its silent end stays deadline + 10 min. |
 | Both deadlines in the same turn (or within the brew alert) | Brew alerts; quick goes ALERTING **held** (`alertHold`): no sound, no notification 2, no full-screen intent, no overtime timeout. |
 | Brew deadline while the quick alert rings | **Preemption**, same turn: the quick sound stops, the brew alert starts, the quick slot goes back to held. The quick alert is not reported completed. |
 | Brew leaves ALERTING (*Abgegossen*, *Sitzung beenden*, *verwerfen*, its overtime timeout) with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |

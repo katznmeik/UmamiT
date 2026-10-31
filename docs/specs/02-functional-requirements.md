@@ -1041,7 +1041,7 @@ Every chart has an accessible table alternative.
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
-| SET-29 | Erinnerung um (INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
+| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |
