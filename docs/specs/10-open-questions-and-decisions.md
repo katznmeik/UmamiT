@@ -730,6 +730,75 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   „Schnelltimer beenden und neu starten?", and its *Beenden & neu starten*
   ends the quick timer only.
 
+**Build notes (Claude, 2026-10-31, #135: the Live Update for the timer due next).**
+- **Who is which notification.** With one timer nothing changes: the
+  service's 1 or 2, or the quiet 4. With two, the lead (`dueNext`) is the
+  ringing alert (the brew's first), else a running timer before a waiting
+  one, of two running the earlier deadline (the brew on a tie), of two
+  waiting the brew unless it is demoted: a demoted brew gives way, so the
+  waiting quick timer, which needs the service, is the service's
+  notification (04 §6.1). The lead is 2 while it rings, else 1 while either
+  timer needs the service, else 4 (two long running steps). The other timer is
+  5 (`timer_other`, LOW, no promotion request). A held quick alert is 5 while
+  the brew rings; it leads only within the turn in which the brew leaves its
+  alert, before the release in that turn, and gets no command of its own then.
+- **Settled per transition.** With one timer, `NotificationRoles` passes the
+  engine's effects through as before. With two, a transition's
+  `StartForeground`, `StopForeground` and `UpdateNotification` only say what it
+  asks for; then notification 5 is posted first (so the service port knows the
+  other timer's need) and the lead's: `startForeground` when the lead moved,
+  the service was off or the lead's own transition asked for it (full screen
+  only when that transition starts its alert), an update when the lead's
+  transition asked for one, else nothing; when neither timer needs the service
+  it stops and the lead is the quiet 4. So the other timer's `StopForeground`
+  never stops the service the lead needs, and the reverse.
+- **A long step as notification 1.** A long running step (cold or ice brew, ≥
+  60 min) that ends next while the other timer needs the service (waiting, or a
+  short step ending later) is the service's notification 1 („Fertig um 14:30",
+  promotion requested); the port sends any non-alert state to the service as 1
+  and keeps its updates and 15-s refreshes there while notification 5's timer
+  needs the service. A long step's wake lock is 0 (04 §6.1), as the lead and as
+  notification 5; #134's port would have held one for its whole remaining time.
+  When the other timer ends, the service stops and the long step is 4 again.
+- **Dismissal.** A move of the Live Update goes through `startForeground`,
+  which ignores a dismissal: notification 1 must never keep showing the timer
+  that is now 5. While the lead stays, the dismissal rule of 04 §8.3 is
+  unchanged and per slot (its key names the session or the quick timer).
+- **No orphan.** Notification 5 goes in the transition that ends its timer or
+  makes it the lead; the last timer that needed the service stops it. A
+  killed process leaves notification 5 behind (only the foreground notification
+  goes with the service), so the first turn of a new process cancels 5 after
+  its recovery unless a timer is shown there again.
+- **A new alert is a new notification 2 (the second item #134 left).** System
+  UI (AOSP 14–16, `HeadsUpCoordinator`) makes the full-screen decision only in
+  `onEntryAdded`; `onEntryUpdated` only decides about a heads-up again (an
+  intent held back only by DND is re-checked on a ranking update). An update of
+  notification 2 therefore never takes the screen. Two cases updated it in
+  place: the held quick alert released when the brew session is ended or
+  discarded during its alert, and, since #134, the brew's deadline while the
+  quick alert rings (preemption; also with this ticket's lead rule). The
+  service now posts an alert that starts (a full-screen intent, not
+  only-alert-once) as a new notification when notification 2 is already its
+  foreground notification: `stopForeground(STOP_FOREGROUND_REMOVE)`, then
+  `startForeground(2, alert)`. Both reach NotificationManagerService in order
+  through the activity manager's handler, so the old alert is removed before
+  the new one is added (the switch D-084 relies on). That `startForeground` is
+  re-checked against the background-start rules like the switch from 1 to 2 at
+  every deadline (any start after the first); a refusal posts the alert
+  without the service, also as a new notification. An alert shown again (an
+  update, or the start re-sent only-alert-once for notification 5's longer wake
+  lock) stays an update and never takes the screen twice. Rejected: a switch
+  through notification 1 with a placeholder (one more notification on screen),
+  and stopping the whole service (a gap in the process and the wake lock).
+- **Tests.** `NextDueLiveUpdateTest` (Robolectric with the real controller,
+  service port, notifier and service and the AOSP-rule shadows of D-084, which
+  now also launch a full-screen intent only for an added notification),
+  `NewAlertTest` (the service), and on the CI emulator
+  `TimerNotificationsDeviceTest.theLiveUpdateFollowsTheTimerDueNextAndTheOtherTimerIsNeverPromoted`
+  (`FLAG_PROMOTED_ONGOING` on notification 1 for the timer due next, after a
+  pause on the other, never on 5). The screen taken by the brew's alert during
+  a ringing quick alert is a 09 §4 item for the rc.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
