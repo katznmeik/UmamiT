@@ -8,6 +8,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -32,7 +33,7 @@ class TimerShortScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun capture(name: String, state: TimerUiState.Active) {
+    private fun capture(name: String, state: TimerUiState.Active, other: TimerUiState.Active? = null) {
         compose.mainClock.autoAdvance = false
         val start = compose.mainClock.currentTime
         compose.setContent {
@@ -48,6 +49,7 @@ class TimerShortScreenScreenshotTest {
                     teaStyleKey = "sencha",
                     // The longest stock line (BRW-11, D-098): it shares the space the band gives way for.
                     stock = TimerStock(14.0, StockLevel.LOW),
+                    other = other,
                 )
             }
         }
@@ -58,6 +60,18 @@ class TimerShortScreenScreenshotTest {
 
     @Test
     fun ready() = capture("Ready", TimerStates.ready(stepIndex = 1))
+
+    /**
+     * With the quick timer's row (D-098): the band is down to the top bar already, so the seal yields its lower half
+     * to the row, and *Start* lies whole on the screen.
+     */
+    @Test
+    fun readyWithQuickRow() =
+        capture("Ready_quickRow", TimerStates.ready(stepIndex = 1), other = TimerStates.quick(TimerPhase.RUNNING))
+
+    @Test
+    fun runningWithQuickRow() =
+        capture("Running_quickRow", TimerStates.running(), other = TimerStates.quick(TimerPhase.RUNNING))
 
     @Test
     fun running() = capture("Running", TimerStates.running())

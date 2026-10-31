@@ -48,7 +48,7 @@ class OnboardingNavigationTest {
                         onFinish()
                     }) { Text("EINRICHTUNG FERTIG") }
                 },
-                timerScreen = { _, _, _ -> Text("TIMER") },
+                timerScreen = { _, _, _, _ -> Text("TIMER") },
                 startScreen = { Text("START") },
                 settings = testSettingsScreens(),
             )

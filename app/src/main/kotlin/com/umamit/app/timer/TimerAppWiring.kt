@@ -1,11 +1,13 @@
 package com.umamit.app.timer
 
 import android.content.res.Resources
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.mutableFloatStateOf
 import com.umamit.app.ActiveBrewSource
 import com.umamit.core.common.MonotonicClock
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.DefaultExtendedColors
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
@@ -26,6 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -73,39 +77,56 @@ fun lockScreenFlags(state: TimerUiState, timerVisible: Boolean): LockScreenFlags
  * with the app in the background. A long step's progress changes only every
  * 10 s (03 §3.6), so the mini ring holds still in between. Its first value is
  * read synchronously from the controller, so a new activity starts with the bar.
+ * It reads the two slots (D-098): the brew session first, else the quick timer;
+ * the quick timer beside a brew session is [alongside], whichever is in front.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimerActiveBrewSource(
     timer: BrewTimer,
-    clock: MonotonicClock,
+    private val clock: MonotonicClock,
     private val resources: Resources,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
 ) : ActiveBrewSource {
     // Snapshot state: the mini ring reads it while drawing and redraws when it changes.
     private val level = mutableFloatStateOf(0f)
+    private val alongsideLevel = mutableFloatStateOf(0f)
 
     override val progress: () -> Float = { level.floatValue }
 
-    override val activeBrew: StateFlow<ActiveBrew?> = timer.state
-        .flatMapLatest { state ->
-            if (state is TimerUiState.Active) {
-                state.displayTicks(clock::elapsedMs).map { now -> brewAt(state, now) }
-            } else {
-                flowOf(null)
-            }
-        }
-        // Synchronous first value from the controller's current state: a shell recreated while a
-        // step alerts (rotation, theme switch, reopening) draws the matcha bar in its first frame
-        // instead of letting it arrive a frame later with its enter motion (03 §3.8, rule 8).
-        .stateIn(
-            scope,
-            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-            timer.state.value.let { state ->
-                (state as? TimerUiState.Active)?.let { brewAt(it, clock.elapsedMs()) }
-            },
-        )
+    override val alongsideProgress: () -> Float = { alongsideLevel.floatValue }
 
-    private fun brewAt(state: TimerUiState.Active, now: Long): ActiveBrew {
+    private val brewSlot = timer.state(TimerSlot.BREW)
+    private val quickSlot = timer.state(TimerSlot.QUICK)
+
+    override val activeBrew: StateFlow<ActiveBrew?> = bar(level) { brew, quick -> brew ?: quick }
+
+    override val alongside: StateFlow<ActiveBrew?> =
+        bar(alongsideLevel) { brew, quick -> quick?.takeIf { brew != null } }
+
+    /** One part of the bar: the timer [pick] chooses of the two slots', ticking, with its [level]. */
+    private fun bar(
+        level: MutableFloatState,
+        pick: (brew: TimerUiState.Active?, quick: TimerUiState.Active?) -> TimerUiState.Active?,
+    ): StateFlow<ActiveBrew?> {
+        val picked = { brew: TimerUiState, quick: TimerUiState ->
+            pick(brew as? TimerUiState.Active, quick as? TimerUiState.Active)
+        }
+        return combine(brewSlot, quickSlot, picked)
+            .distinctUntilChanged()
+            .flatMapLatest { state ->
+                state?.displayTicks(clock::elapsedMs)?.map { now -> brewAt(state, now, level) } ?: flowOf(null)
+            }
+            // Synchronous first value from the controller's current state: a shell recreated while a
+            // step alerts (rotation, theme switch, reopening) draws the matcha bar in its first frame
+            // instead of letting it arrive a frame later with its enter motion (03 §3.8, rule 8).
+            .stateIn(
+                scope,
+                SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+                picked(brewSlot.value, quickSlot.value)?.let { brewAt(it, clock.elapsedMs(), level) },
+            )
+    }
+
+    private fun brewAt(state: TimerUiState.Active, now: Long, level: MutableFloatState): ActiveBrew {
         level.floatValue = state.progressAt(now)
         return activeBrewOf(state, now, resources, DefaultExtendedColors.liquor.green)
     }

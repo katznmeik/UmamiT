@@ -58,15 +58,19 @@ class TimerViewModel @Inject constructor(
     stock: StockRepository,
 ) : ViewModel() {
 
-    /** The controller's state. */
+    /** The controller's state: the timer in front of the screens (04 §3.3). */
     val state: StateFlow<TimerUiState> get() = timer.state
+
+    /** [slot]'s timer, Idle without one (D-098): a route shows one timer and the other as its row. */
+    fun state(slot: TimerSlot): StateFlow<TimerUiState> = timer.state(slot)
 
     /**
      * What the brew's seal shows (SCR-05, D-095): the session tea's style and the file of
-     * its cover photo; null for the quick timer (no seal) or before the session is read.
+     * its cover photo; null without a brew session (the quick timer has no seal) or before the session is read.
+     * It follows the brew's slot, so it is there while the quick timer is in front of the controller (D-098).
      * The screen shows the type-coloured leaf until the photo is read, or without one.
      */
-    val teaSeal: StateFlow<TimerTeaSeal?> = timer.state
+    val teaSeal: StateFlow<TimerTeaSeal?> = timer.state(TimerSlot.BREW)
         .map { (it as? TimerUiState.Active)?.sessionId }
         .distinctUntilChanged()
         .flatMapLatest { id ->
@@ -92,7 +96,7 @@ class TimerViewModel @Inject constructor(
      * nothing on the alarm path waits for it. Null for the quick timer, a session whose tea is not in the
      * collection (none, deleted or removed), before it is read and after a failed read (logged).
      */
-    val teaStock: StateFlow<TimerStock?> = timer.state
+    val teaStock: StateFlow<TimerStock?> = timer.state(TimerSlot.BREW)
         .map { (it as? TimerUiState.Active)?.sessionId }
         .distinctUntilChanged()
         .flatMapLatest { id ->

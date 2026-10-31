@@ -67,6 +67,9 @@
     <string name="ds_active_brew_description_no_step">Laufender Timer: %1$s, noch %2$s. Zum Timer</string>
     <string name="ds_active_brew_alerting">Jetzt abgießen!</string>
     <string name="ds_overtime">+%1$s</string>
+    <!-- A held quick alert in the bar beside the brew's (v0.3.0, 03 §3.8, D-098): it waits for *Abgegossen*. -->
+    <string name="ds_active_brew_held">fertig</string>
+    <string name="ds_active_brew_held_description">%1$s, fertig, wartet auf den Aufguss. Zum Timer</string>
     <string name="ds_active_brew_alerting_description">Jetzt abgießen: %1$s, %2$s, %3$s überzogen. Zum Timer</string>
     <string name="ds_active_brew_alerting_description_no_overtime">Jetzt abgießen: %1$s, %2$s. Zum Timer</string>
     <string name="ds_active_brew_alerting_description_no_step">Jetzt abgießen: %1$s, %2$s überzogen. Zum Timer</string>
