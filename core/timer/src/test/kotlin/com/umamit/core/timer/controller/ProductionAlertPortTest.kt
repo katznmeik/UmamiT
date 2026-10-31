@@ -71,7 +71,7 @@ class ProductionAlertPortTest {
         playAlertToTheEnd()
 
         assertThat(completions()).hasSize(1)
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
         assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L, 3_500L, 7_000L, 10_500L).inOrder()
 
         h.controller.send(TimerEvent.Poured)
@@ -178,7 +178,7 @@ class ProductionAlertPortTest {
         assertThat(sound.events).isEmpty()
         assertThat(haptics.events).isEmpty()
         assertThat(completions()).hasSize(1)
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
     }
 
     /** The harness with the production port (playback on the test thread, end reports in [reports]) and tea „t1". */

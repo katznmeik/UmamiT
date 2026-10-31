@@ -43,8 +43,8 @@ class TestClocks(var elapsed: Long = 5_000_000L, var wall: Long = START_WALL_MS,
  * Drives the engine like the M1-09 controller: each accepted transition's data
  * effects and its `Persist` go through the repositories in one transaction
  * (04 §2.3, §7.1). [start] is what the controller holds for `CreateSession`.
- * With a [slot], `Persist` writes that slot only (umamit.db v4, D-098); without
- * one, the store's single-timer `persist`.
+ * `Persist` writes one slot only (umamit.db v4, D-098): [slot], or without one
+ * the slot of the timer's kind (the brew's until a timer ran).
  */
 class TimerDriver(
     private val data: TestDatabase,
@@ -57,6 +57,9 @@ class TimerDriver(
         private set
 
     private var pendingStart: TimerEvent.StartSession? = null
+
+    /** The slot `Persist` writes; it follows the timer's kind unless a [slot] is given. */
+    private var persistSlot: TimerSlot = slot ?: TimerSlot.BREW
 
     suspend fun send(event: TimerEvent): TimerState {
         if (event is TimerEvent.StartSession) pendingStart = event
@@ -86,7 +89,8 @@ class TimerDriver(
 
             TimerEffect.Persist -> {
                 val snapshot = BrewTimerEngine.snapshot(newState)
-                slot?.let { data.activeBrew.persist(it, snapshot) } ?: data.activeBrew.persist(snapshot)
+                if (slot == null) snapshot?.let { persistSlot = it.activeBrew.slot }
+                data.activeBrew.persist(persistSlot, snapshot)
             }
 
             else -> Unit // alarms, sound, service and notification belong to M1-09

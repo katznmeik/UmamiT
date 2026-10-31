@@ -80,9 +80,7 @@ interface SessionRepository {
  * temperatures are multiples of 5 °C reads back equal. From umamit.db v4 (D-098) the table holds one
  * row per slot: the brew slot a brew session's, the quick slot the quick timer's.
  *
- * The slot methods act on their slot only; the controller uses only these from v0.3.0-03 (#134). The
- * methods without a slot treat the table as one active timer, in the slot of its kind, as the
- * controller of v0.3.0-01 did; tests read the stored timer through them.
+ * Each method acts on its slot only, so a transition of one timer never touches the other's row.
  */
 interface ActiveBrewStore {
     /**
@@ -103,18 +101,6 @@ interface ActiveBrewStore {
      * other slot stay.
      */
     suspend fun clear(slot: TimerSlot)
-
-    /** The one active timer: the brew slot's, else the quick slot's; null when both are idle. */
-    suspend fun read(): TimerSnapshot?
-
-    /**
-     * [TimerEffect.Persist] of the one active timer: [snapshot] becomes the only row, in the slot of its
-     * kind, and the other slot is cleared in the same transaction; null clears both (Idle).
-     */
-    suspend fun persist(snapshot: TimerSnapshot?)
-
-    /** Clears both slots, e.g. after `restore` refused an inconsistent snapshot (D-048). */
-    suspend fun clear()
 }
 
 /** One database transaction around several repository calls (04 §2.3: data effects and `Persist` together). */

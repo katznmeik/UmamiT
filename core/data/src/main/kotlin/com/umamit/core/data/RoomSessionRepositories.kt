@@ -217,21 +217,6 @@ class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, pri
 
     override suspend fun clear(slot: TimerSlot) = activeBrew.delete(slot)
 
-    override suspend fun read(): TimerSnapshot? = db.withTransaction {
-        activeBrew.get()?.let { snapshotOf(it) }
-    }
-
-    override suspend fun persist(snapshot: TimerSnapshot?) {
-        if (snapshot == null) return clear()
-        val now = time.nowMs()
-        db.withTransaction {
-            write(snapshot, now)
-            activeBrew.deleteOtherThan(snapshot.activeBrew.slot)
-        }
-    }
-
-    override suspend fun clear() = activeBrew.clear()
-
     /** The snapshot of [row] with its session's step rows; called inside a transaction. */
     private suspend fun snapshotOf(row: ActiveBrewEntity): TimerSnapshot {
         val steps = row.sessionId?.let { sessions.steps(it).map { step -> step.toRow() } }.orEmpty()

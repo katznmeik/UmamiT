@@ -6,6 +6,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +37,7 @@ class ExportedSchemaTest {
             .build()
         try {
             // Opening validates the identity hash and every table against the entities.
-            assertThat(db.activeBrewDao().get()).isNull()
+            assertThat(db.activeBrewDao().get(TimerSlot.BREW)).isNull()
             assertThat(db.openHelper.readableDatabase.version).isEqualTo(UmamiDatabase.VERSION)
         } finally {
             db.close()

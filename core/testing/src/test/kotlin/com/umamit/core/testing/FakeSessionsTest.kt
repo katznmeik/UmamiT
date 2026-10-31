@@ -76,13 +76,13 @@ class FakeSessionsTest {
         val ready = TimerSnapshot(readyRow(), fakes.sessions.getSession("s1")!!.steps, longStepsOnly = false)
         // A snapshot the engine accepts.
         BrewTimerEngine.restore(ready)
-        fakes.activeBrew.persist(ready)
+        fakes.activeBrew.persist(TimerSlot.BREW, ready)
 
-        assertThat(fakes.activeBrew.read()).isEqualTo(ready)
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isEqualTo(ready)
 
         fakes.sessions.discardSession("s1")
 
-        assertThat(fakes.activeBrew.read()).isNull()
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isNull()
     }
 
     @Test
@@ -103,21 +103,13 @@ class FakeSessionsTest {
 
         assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isEqualTo(brew)
         assertThat(fakes.activeBrew.read(TimerSlot.QUICK)).isEqualTo(quick)
-        assertThat(fakes.activeBrew.read()).isEqualTo(brew)
         assertThat(runCatching { fakes.activeBrew.persist(TimerSlot.QUICK, brew) }.exceptionOrNull())
             .isInstanceOf(IllegalArgumentException::class.java)
 
         fakes.activeBrew.clear(TimerSlot.BREW)
 
         assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isNull()
-        assertThat(fakes.activeBrew.read()).isEqualTo(quick)
-
-        // The single-timer persist leaves only its own slot.
-        fakes.activeBrew.persist(TimerSlot.QUICK, quick)
-        fakes.activeBrew.persist(brew)
-
-        assertThat(fakes.activeBrew.read(TimerSlot.QUICK)).isNull()
-        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isEqualTo(brew)
+        assertThat(fakes.activeBrew.read(TimerSlot.QUICK)).isEqualTo(quick)
     }
 
     private fun readyRow() = ActiveBrewSnapshot(

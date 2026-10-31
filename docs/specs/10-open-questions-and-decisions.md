@@ -1248,6 +1248,13 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   SCR-21; the saved purchase stays on the detail (no picker flow here, D-088),
   and back returns to the setup, whose stock line follows the new stock.
 
+**Build notes (Claude, 2026-10-31, the v0.3.0 code review).**
+- **One store, per slot.** The single-timer methods #126 kept
+  (`ActiveBrewStore.read()`, `persist(snapshot)`, `clear()`, and the DAO's
+  slotless `get()` and `deleteOtherThan`) are gone: since #134 only tests
+  used them, and `persist(snapshot)` cleared the other slot, a trap for a
+  timer running beside it (rule 8). Every caller names its slot.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

@@ -8,6 +8,7 @@ import com.umamit.core.database.umamiDatabaseBuilder
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
@@ -61,13 +62,13 @@ class RestoreDetectionTest {
         val first = open()
         first.teas.saveTea(tea("t1"))
         TimerDriver(first).send(startEvent(infusion(60)))
-        val stored = first.activeBrew.read()
+        val stored = first.activeBrew.read(TimerSlot.BREW)
         assertThat(marker.exists()).isTrue()
         first.closeDb()
 
         val restarted = open()
 
-        assertThat(restarted.activeBrew.read()).isEqualTo(stored)
+        assertThat(restarted.activeBrew.read(TimerSlot.BREW)).isEqualTo(stored)
     }
 
     @Test
@@ -81,7 +82,7 @@ class RestoreDetectionTest {
 
         val newPhone = open()
 
-        assertThat(newPhone.activeBrew.read()).isNull()
+        assertThat(newPhone.activeBrew.read(TimerSlot.BREW)).isNull()
         assertThat(marker.exists()).isTrue()
         // Only the timer state goes; the personal data stays.
         assertThat(newPhone.sessions.getSession(SESSION_ID)).isNotNull()
@@ -89,10 +90,10 @@ class RestoreDetectionTest {
 
         newPhone.teas.saveTea(tea("t1"))
         TimerDriver(newPhone).send(startEvent(infusion(60), id = "s2"))
-        val newTimer = newPhone.activeBrew.read()
+        val newTimer = newPhone.activeBrew.read(TimerSlot.BREW)
         newPhone.closeDb()
 
-        assertThat(open().activeBrew.read()).isEqualTo(newTimer)
+        assertThat(open().activeBrew.read(TimerSlot.BREW)).isEqualTo(newTimer)
     }
 
     /**
