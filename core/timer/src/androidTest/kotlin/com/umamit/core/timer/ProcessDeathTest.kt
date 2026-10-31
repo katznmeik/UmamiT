@@ -329,8 +329,12 @@ class ProcessDeathTest {
      * back with the quick timer's still held. Returns the brew's alert again.
      */
     private fun killDuringBrewAlert(brewAlert: StatusBarNotification): StatusBarNotification {
-        shell("input keyevent KEYCODE_SLEEP")
-        eventually("the screen off during the brew's alert", START_TIMEOUT) { Unit.takeIf { !power.isInteractive } }
+        // The alert's full-screen stand-in turns the screen on when it opens (setTurnScreenOn), which can come
+        // after the first key: the key is sent again until the screen stays off.
+        eventually("the screen off during the brew's alert", START_TIMEOUT) {
+            if (power.isInteractive) shell("input keyevent KEYCODE_SLEEP")
+            Unit.takeIf { !power.isInteractive }
+        }
         assertTrue(
             "test setup: too slow, the brew's alert must still play its cycle (SET-14) at the second kill",
             System.currentTimeMillis() - brewAlert.postTime < KILL_WITHIN_ALERT.inWholeMilliseconds,
