@@ -240,6 +240,18 @@ targets; its report lists both timers. **Every v0.3.0 rc and the final
 `v0.3.0` need a PASS of both variants** on their commit; from then on every
 rc that touches timer code does.
 
+How `alongside` overlaps (#137): with each brew step a quick timer of 25 s
+with a 10 s *Vorwarnung* starts (*Schnelltimer beenden und neu starten*, from
+the app as Start's *Schnelltimer* does), so its pre-alert and alert come with
+the screen off while the step runs; the test acknowledges it with *Fertig* and
+starts a quick timer of 5 min without a *Vorwarnung*, which runs across the
+step's own pre-alert and alert and is replaced by the next step's. No cue of
+one timer is due while the other's sound plays, so neither waits for the
+other (04 §9.3) and every delay counts against the target. The test fails as
+a setup error if it was too slow to have the screen off again 5 s before the
+step's pre-alert. The standard variant is unchanged, so its results compare
+with the runs before v0.3.0.
+
 **Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
 `accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
 
@@ -252,9 +264,11 @@ rc that touches timer code does.
 | `variant` (v0.3.0) | `standard` | `standard` or `alongside` (a quick timer running alongside the brew steps) |
 
 With the `gh` CLI the same dispatch is
-`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.
-GitHub dispatches only workflows whose file exists on `main`; the
-version at `--ref` runs (D-039, D-070).
+`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36 -f variant=standard`,
+and again with `-f variant=alongside`. Each variant has its own concurrency
+group, so the two runs of one commit go in parallel; the run's name says the
+variant and the ref. GitHub dispatches only workflows whose file exists on
+`main`; the version at `--ref` runs (D-039, D-070).
 
 **Reading the result.** The run page's summary shows a table per API level:
 
@@ -285,13 +299,25 @@ version at `--ref` runs (D-039, D-070).
   time, then the handled and the sound-start wall and monotonic time with
   their deltas), `diagnostics.txt` (the log lines it read), the
   instrumentation output and logcat.
+- **`alongside`:** the heading ends in „· alongside" and the table has a
+  first column *Timer*, with the rows *Brew* and *Quick timer* for the
+  pre-alert and the alert; „**Result: PASS** … for both timers" needs all
+  four rows on target and all 50 steps of both timers. *Slowest …* names
+  each timer's slowest pre-alert and alert. The artifact is
+  `accuracy-alongside-api-<level>`; its CSV has a second column `timer`
+  (`BREW`, `QUICK`), the quick timer's rows of a step before the brew's. The
+  quick timer's lines in `diagnostics.txt` name it (`QUICK.DEADLINE`, 06
+  §5.6).
 - A failed run blocks the rc. Find the cause from the CSV and the log lines,
   fix it (rule 8), and run again. A flaky emulator start (no report at all)
   may simply be re-run once.
 
 **Proving the gate.** Once per workflow change, Claude dispatches a run with
 `inject-delay-ms: 1500` and a few `steps`. It must fail with the delays
-around 1.5 s; the gate check changes nothing in the app.
+around 1.5 s; the gate check changes nothing in the app. For the change of
+#137 it is the `alongside` variant (`-f variant=alongside -f steps=3
+-f inject-delay-ms=1500`): both timers' rows must show about 1.5 s and **no**;
+the injected delay moves the quick timer's alarms as well as the brew's.
 
 On the phone, the same numbers come from *Einstellungen › Über › Diagnose*
 (the M1 checklist above): the emulator neither dozes within a 60 s step nor
