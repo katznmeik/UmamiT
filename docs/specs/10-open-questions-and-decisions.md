@@ -1328,6 +1328,14 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   `UmamiTTimer` tag, the stock threshold rule in four places, and the
   primitive settings types.
 
+**Build notes (Claude, 2026-10-31, the PO's test of `v0.3.0-rc.1`).** All
+checklist items passed. One finding: *Lautstärke*'s slider jumped on
+release, to the old value and back. The slider showed the stored value as
+soon as the drag ended, and the stored value changes only when the write
+arrives a moment later. It now keeps the released step until the stored
+value changes (`VolumeRow`, `VolumeRowTest`); a value stored from
+elsewhere afterwards still shows. Fixed in `v0.3.0-rc.2`.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

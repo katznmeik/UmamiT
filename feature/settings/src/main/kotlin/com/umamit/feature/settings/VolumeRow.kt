@@ -9,6 +9,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,7 +33,11 @@ import kotlin.math.roundToInt
 @Composable
 internal fun VolumeRow(percent: Int, onChange: (Int) -> Unit) {
     var dragged by remember { mutableStateOf<Float?>(null) }
-    val shown = dragged?.roundToInt() ?: percent.coerceIn(MIN_VOLUME, MAX_VOLUME)
+    // The value of the drag that ended, shown until the stored value changes: without it the slider showed
+    // the old value for the moment of the write and jumped back and forth (v0.3.0-rc.1).
+    var written by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(percent) { written = null }
+    val shown = dragged?.roundToInt() ?: written ?: percent.coerceIn(MIN_VOLUME, MAX_VOLUME)
     val valueText = stringResource(R.string.settings_volume_percent, shown)
     Column(
         modifier = Modifier
@@ -56,7 +61,10 @@ internal fun VolumeRow(percent: Int, onChange: (Int) -> Unit) {
             value = dragged ?: shown.toFloat(),
             onValueChange = { dragged = it },
             onValueChangeFinished = {
-                dragged?.let { onChange(it.roundToInt()) }
+                dragged?.roundToInt()?.let { value ->
+                    written = value.takeIf { it != percent }
+                    onChange(value)
+                }
                 dragged = null
             },
             valueRange = MIN_VOLUME.toFloat()..MAX_VOLUME.toFloat(),
