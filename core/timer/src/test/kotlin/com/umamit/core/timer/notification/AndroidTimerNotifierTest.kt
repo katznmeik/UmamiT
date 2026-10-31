@@ -223,7 +223,7 @@ class AndroidTimerNotifierTest {
 
     @Test
     fun `after a reboot the session's notice names its tea, on the quiet sessions channel`() {
-        notifier.notifyTimerResumed(states.running())
+        notifier.notifyTimersResumed(listOf(states.running()))
 
         val notice = checkNotNull(posted(TimerNotifications.ID_SESSION_SAVED))
         assertThat(notice.channelId).isEqualTo(TimerNotifications.CHANNEL_SESSIONS)
@@ -234,9 +234,19 @@ class AndroidTimerNotifierTest {
 
     @Test
     fun `after a reboot a quick timer's notice says Schnelltimer`() {
-        notifier.notifyTimerResumed(states.quick(TimerPhase.PAUSED))
+        notifier.notifyTimersResumed(listOf(states.quick(TimerPhase.PAUSED)))
 
         assertThat(posted(TimerNotifications.ID_SESSION_SAVED)?.text()).isEqualTo("Schnelltimer · nach dem Neustart")
+    }
+
+    @Test
+    fun `after a reboot with both timers one notice names both (04 §7_3)`() {
+        notifier.notifyTimersResumed(listOf(states.running(), states.quick(TimerPhase.PAUSED)))
+
+        val notice = checkNotNull(posted(TimerNotifications.ID_SESSION_SAVED))
+        assertThat(notice.channelId).isEqualTo(TimerNotifications.CHANNEL_SESSIONS)
+        assertThat(notice.title()).isEqualTo("Deine Timer laufen weiter")
+        assertThat(notice.text()).isEqualTo("Gyokuro und Schnelltimer · nach dem Neustart")
     }
 
     private fun dismiss(notification: Notification) {

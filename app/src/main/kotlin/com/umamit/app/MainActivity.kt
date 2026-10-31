@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                     journalSources = journalSources,
                     alertKey = alertKey,
                     onboardingCompleted = onboardingCompleted,
-                    timerRequest = timerRequests.token,
+                    timerRequest = timerRequests.request,
                     onConsumeTimerRequest = timerRequests::handled,
                     onTimerVisibleChange = { timerVisible.value = it },
                     teaLinkShare = teaLinkShares.share,

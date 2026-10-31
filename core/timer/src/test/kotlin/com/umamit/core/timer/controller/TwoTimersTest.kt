@@ -197,6 +197,30 @@ class TwoTimersTest {
     }
 
     @Test
+    fun `a released alert is due at its release for the player's log, with the time it was held (06 §5_6)`() = runTest {
+        h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.controller.startQuickTimer(60, preAlertSeconds = 0, run = true)
+        h.advanceSeconds(60)
+        assertThat(active(TimerSlot.QUICK).alertHeld).isTrue()
+        val quickDeadline = checkNotNull(active(TimerSlot.QUICK).deadlineElapsedMs)
+        // Held 9 min, within the brew alert's 10 min.
+        h.advanceSeconds(9 * 60)
+
+        h.controller.send(TimerSlot.BREW, TimerEvent.Poured)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(SessionKind.Quick)
+        val brewDue = h.alert.scheduled.first()
+        val released = checkNotNull(h.alert.scheduled.last())
+        // The brew rang at its deadline: due then, never held.
+        assertThat(brewDue?.heldMs).isNull()
+        assertThat(released.slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(released.kind).isEqualTo(TimerAlarmKind.DEADLINE)
+        assertThat(released.atMs).isEqualTo(h.clock.elapsed)
+        assertThat(released.heldMs).isEqualTo(h.clock.elapsed - quickDeadline)
+    }
+
+    @Test
     fun `a process death with both timers and a held alert replays the brew alert first, then the quick one`() =
         runTest {
             h.controller.startSession(brewStart(infusion(60, preAlert = 0)))

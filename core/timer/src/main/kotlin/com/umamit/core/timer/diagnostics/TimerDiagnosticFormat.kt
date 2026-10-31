@@ -22,6 +22,9 @@ import java.time.format.DateTimeFormatter
  *
  * `PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono 5050080) delta +80 ms`,
  *
+ * and the sound of a quick alert released after a hold (04 §9.3) its hold and its release in place of the schedule:
+ * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 (mono 5720000) actual … delta +15 ms`;
+ *
  * every other timer entry the monotonic time and boot it was read at. Only
  * plain values are written, never a model's `toString()`, so no note text
  * can reach the log; tea names do not appear either.
@@ -125,7 +128,10 @@ object TimerDiagnosticFormat {
         is TransitionOutcome.Rejected -> "rejected: ${outcome.reason::class.simpleName}"
     }
 
-    /** Scheduled vs actual on both clocks; the other clock's scheduled time is derived from the delay. */
+    /**
+     * Scheduled vs actual on both clocks; the other clock's scheduled time is derived from the delay. A released
+     * alert is due at its release, after its hold.
+     */
     private fun timing(scheduled: ScheduledTime, now: ClockReading): String {
         val late = scheduled.lateMs(now)
         val (scheduledWall, scheduledMono) = when (scheduled.kind.clock) {
@@ -133,7 +139,8 @@ object TimerDiagnosticFormat {
             AlarmClock.WALL -> scheduled.atMs to now.elapsedMs - late
         }
         val sign = if (late < 0) "-" else "+"
-        return "${scheduled.kind.nameIn(scheduled.slot)} scheduled ${time(scheduledWall, now)} " +
+        val due = scheduled.heldMs?.let { "held $it ms, released" } ?: "scheduled"
+        return "${scheduled.kind.nameIn(scheduled.slot)} $due ${time(scheduledWall, now)} " +
             "(mono $scheduledMono) actual ${time(now.wallMs, now)} (mono ${now.elapsedMs}) " +
             "delta $sign${kotlin.math.abs(late)} ms"
     }

@@ -21,7 +21,8 @@ import javax.inject.Singleton
  * - `NotifySessionSaved` posts „Sitzung gespeichert" (ID 3, channel `sessions`, LOW) with the
  *   tea of the session as the timer last showed it (TMR-14: the midnight timeout and
  *   *Beenden & neu starten*).
- * - After a reboot, „Dein Timer läuft weiter" goes on the same channel and ID (04 §7.3, D-063).
+ * - After a reboot, „Dein Timer läuft weiter" goes on the same channel and ID (04 §7.3, D-063); with both
+ *   timers one notice names both (D-098).
  */
 @Singleton
 class AndroidTimerNotifier @Inject constructor(
@@ -49,8 +50,8 @@ class AndroidTimerNotifier @Inject constructor(
         TimerNotifications.post(context, TimerNotifications.ID_SESSION_SAVED, notifications.sessionSaved(tea))
     }
 
-    override fun notifyTimerResumed(state: TimerUiState.Active) {
+    override fun notifyTimersResumed(states: List<TimerUiState.Active>) {
         TimerNotifications.ensureChannels(context)
-        TimerNotifications.post(context, TimerNotifications.ID_SESSION_SAVED, notifications.timerResumed(state))
+        TimerNotifications.post(context, TimerNotifications.ID_SESSION_SAVED, notifications.timerResumed(states))
     }
 }

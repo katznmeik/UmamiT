@@ -664,8 +664,11 @@ asks the controller to recover (D-063): it restores the state from
 wall-clock data, reschedules the exact alarms (or applies §7.2 if the
 deadline already passed), tries to restart the FGS (§6.3) and posts a
 notification „Dein Timer läuft weiter" (the tea below it) through the notifier port,
-except while alerting (the alert is the notice then). If the FGS start was
-refused, the deadline alarm starts it when it fires (§6.2).
+except while alerting (the alert is the notice then). With both timers it is
+one notice after both are recovered, naming both („Deine Timer laufen
+weiter", „Gyokuro und Schnelltimer · nach dem Neustart"; v0.3.0, D-098), as
+notification 3 holds one notice; an alerting timer is left out of it. If the
+FGS start was refused, the deadline alarm starts it when it fires (§6.2).
 
 Samsung's *Automatische Optimierung* may restart the phone at night; the
 first-start setup shows a hint to disable *Automatisch neu starten* (ONB-02).

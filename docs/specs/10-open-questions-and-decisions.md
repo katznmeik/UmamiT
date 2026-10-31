@@ -935,7 +935,9 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   notification and an alert open it without one, and it then shows the
   timer in front of the controller (#134; the one just started) and keeps
   it from its first frame. So the row's *Pause*, which puts the other timer in front of
-  the controller, never swaps the screen under the finger. A ringing alert
+  the controller, never swaps the screen under the finger. (Amended by the
+  v0.3.0 code review: a notification and an alert name their timer and open
+  it; Start's card shows and opens the brew only.) A ringing alert
   of either timer takes any route at once, the brew's first (rule 8); a held
   quick alert never does. A route whose timer ends closes (back to the timer
   below it, or the shell, where the „Gespeichert" sheet shows), except while
@@ -1254,6 +1256,38 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   slotless `get()` and `deleteOtherThan`) are gone: since #134 only tests
   used them, and `persist(snapshot)` cleared the other slot, a trap for a
   timer running beside it (rule 8). Every caller names its slot.
+- **A notification opens its own timer (04 §8.2).** The content intents of
+  notifications 1, 2, 4 and 5 and the alert's full-screen intent name the
+  slot of the timer they show (`TimerScreenIntents.EXTRA_SLOT`), one request
+  code per slot (301/302 the brew's, 306/307 the quick timer's), since extras
+  do not tell PendingIntents apart and a shared code would let the latest
+  notification's slot replace the other's. Before, a tap opened the timer in
+  front of the controller: after *Pause* on the brew's row the Live Update
+  was the quick timer's, but its tap opened the brew. The activity keeps the
+  slot with the request's token (saved state and intent, #47). The
+  navigation pops back to the timer route that shows that slot (a route
+  opened for none records the timer it pinned in its entry's saved state);
+  a topmost route that shows the other timer is left as its row leaves it,
+  back to the route below when the row opened it, else the requested route
+  opens above it, so two timers still stack at most two routes. A request
+  for the timer already on top keeps that route (before, it was replaced by
+  a fresh one).
+- **One reboot notice for both (04 §7.3).** Each slot's recovery posted
+  „Dein Timer läuft weiter" as notification 3, so with both timers the quick
+  timer's replaced the brew's. Now the notice goes once, after both slots
+  are recovered: one timer as before, both as „Deine Timer laufen weiter" ·
+  „Gyokuro und Schnelltimer · nach dem Neustart" (brew first), whose tap
+  opens the timer in front; an alerting timer is left out (the alert is its
+  notice, D-044).
+- **A released alert in the log (06 §5.6).** The player's line of every
+  alert was timed against the deadline, so a quick alert held 12 min read as
+  720 000 ms late in *Diagnose*. Its sound is now due at its release
+  (`ringingSince`), and the line names the hold:
+  `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta +15 ms`. An
+  alert that rang at its deadline is unchanged, byte for byte. `FireTime`
+  reads the hold back (`heldMs`); `CueTimes` refuses such a sound, so the
+  accuracy report never counts a hold as lateness or as on time (the run
+  avoids holds anyway, #137).
 
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)

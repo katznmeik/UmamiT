@@ -184,7 +184,7 @@ class FakeTimerService(private val log: TimerPortLog = TimerPortLog()) : TimerSe
 /**
  * Fake [TimerNotifierPort]: [shown] is the last posted timer notification's state; [other] notification 5;
  * [sessionsSaved] notification 3;
- * [timersResumed] the reboot notices.
+ * [resumeNotices] the reboot notices, each with the timers it names, and [timersResumed] those timers.
  */
 class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerNotifierPort {
     var shown: TimerUiState.Active? = null
@@ -194,7 +194,10 @@ class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerN
     var other: TimerUiState.Active? = null
         private set
     val sessionsSaved = mutableListOf<String>()
-    val timersResumed = mutableListOf<TimerUiState.Active>()
+    val resumeNotices = mutableListOf<List<TimerUiState.Active>>()
+
+    /** Every timer a reboot notice named, in order. */
+    val timersResumed: List<TimerUiState.Active> get() = resumeNotices.flatten()
 
     override fun update(state: TimerUiState.Active, fullScreen: Boolean) {
         shown = state
@@ -211,9 +214,9 @@ class FakeTimerNotifier(private val log: TimerPortLog = TimerPortLog()) : TimerN
         log.record(SessionSavedNotified(sessionId))
     }
 
-    override fun notifyTimerResumed(state: TimerUiState.Active) {
-        timersResumed += state
-        log.record(TimerResumedNotified(state.phase))
+    override fun notifyTimersResumed(states: List<TimerUiState.Active>) {
+        resumeNotices.add(states)
+        states.forEach { log.record(TimerResumedNotified(it.phase)) }
     }
 }
 

@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.app.MainActivity
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.notification.TimerScreenIntents
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,33 +43,33 @@ class TimerScreenRequestsTest {
         val after = requests()
         assertThat(after.restore(saved, null)).isTrue()
 
-        assertThat(after.token.value).isEqualTo(before.token.value)
-        assertThat(after.pending).isEqualTo(before.token.value)
+        assertThat(after.request.value.token).isEqualTo(before.request.value.token)
+        assertThat(after.pending).isEqualTo(before.request.value.token)
     }
 
     @Test
     fun `a handled request is not opened again after the recreation`() {
         val before = requests()
         before.request(openTimer())
-        before.handled(before.token.value)
+        before.handled(before.request.value.token)
         val saved = Bundle().also(before::save)
 
         val after = requests()
 
         assertThat(after.restore(saved, null)).isFalse()
-        assertThat(after.token.value).isEqualTo(0L)
+        assertThat(after.request.value.token).isEqualTo(0L)
     }
 
     @Test
     fun `handling an older request leaves a newer one pending`() {
         val requests = requests()
         requests.request(openTimer())
-        val older = requests.token.value
+        val older = requests.request.value.token
         requests.request(openTimer())
 
         requests.handled(older)
 
-        assertThat(requests.pending).isEqualTo(requests.token.value)
+        assertThat(requests.pending).isEqualTo(requests.request.value.token)
     }
 
     @Test
@@ -84,7 +85,7 @@ class TimerScreenRequestsTest {
         val after = requests()
 
         assertThat(after.restore(savedAtStop, intent)).isTrue()
-        assertThat(after.token.value).isEqualTo(before.token.value)
+        assertThat(after.request.value.token).isEqualTo(before.request.value.token)
     }
 
     @Test
@@ -92,11 +93,30 @@ class TimerScreenRequestsTest {
         val before = requests()
         val intent = openTimer()
         before.request(intent)
-        before.handled(before.token.value)
+        before.handled(before.request.value.token)
         val saved = Bundle().also(before::save)
 
         assertThat(requests().restore(saved, intent)).isFalse()
     }
 
-    private fun openTimer() = TimerScreenIntents.openTimer(ApplicationProvider.getApplicationContext<Application>())
+    @Test
+    fun `a request names the notification's timer, also after the recreation (04 §8_2)`() {
+        val before = requests()
+        val intent = openTimer(TimerSlot.QUICK)
+        before.request(intent)
+        val saved = Bundle().also(before::save)
+
+        val restored = requests().also { it.restore(saved, null) }
+        val relaunched = requests().also { it.restore(Bundle(), intent) }
+
+        assertThat(before.request.value.slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(restored.request.value).isEqualTo(before.request.value)
+        assertThat(relaunched.request.value).isEqualTo(before.request.value)
+        // A notice that names no timer opens the one in front.
+        val front = requests().also { it.request(openTimer()) }
+        assertThat(front.request.value.slot).isNull()
+    }
+
+    private fun openTimer(slot: TimerSlot? = null) =
+        TimerScreenIntents.openTimer(ApplicationProvider.getApplicationContext<Application>(), slot)
 }

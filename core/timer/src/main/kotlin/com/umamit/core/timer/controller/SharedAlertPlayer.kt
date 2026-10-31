@@ -42,7 +42,7 @@ internal class SharedAlertPlayer(
         if (stepAlert == playingAlert) return
         sound.alertStarted(slot)
         waitingScheduled.remove(slot)
-        alert.startAlert(stepAlert, ScheduledTime(TimerAlarmKind.DEADLINE, state.deadlineElapsedMs, slot))
+        alert.startAlert(stepAlert, dueTimeOf(slot, state))
         playingAlert = stepAlert
     }
 
@@ -96,6 +96,21 @@ internal class SharedAlertPlayer(
 
     /** When a waiting pre-alert may play because the pre-alert it waits for has rung out (a wake-up comes then). */
     val nextPreAlertReleaseAtElapsedMs: Long? get() = sound.nextReleaseAtElapsedMs()
+}
+
+/**
+ * When the sound of [slot]'s alerting [state] was due, for the player's log (06 §5.6, D-068): its deadline; an alert
+ * released after a hold (04 §9.3) at its release, with the time it was held, so *Diagnose* shows the player's own
+ * delay and the hold apart.
+ */
+private fun dueTimeOf(slot: TimerSlot, state: TimerState.Alerting): ScheduledTime {
+    val ringingSince = state.ringingSinceElapsedMs
+    val heldMs = ringingSince?.minus(state.deadlineElapsedMs)?.takeIf { it > 0 }
+    return if (ringingSince == null || heldMs == null) {
+        ScheduledTime(TimerAlarmKind.DEADLINE, state.deadlineElapsedMs, slot)
+    } else {
+        ScheduledTime(TimerAlarmKind.DEADLINE, ringingSince, slot, heldMs)
+    }
 }
 
 /** The alert of the alerting step of [state]: one per deadline (D-048). */

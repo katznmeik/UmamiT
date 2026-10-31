@@ -112,10 +112,11 @@ interface TimerNotifierPort {
     fun notifySessionSaved(sessionId: String)
 
     /**
-     * „Dein Gyokuro-Timer läuft weiter" (channel `sessions`, 04 §7.3): the session of [state]
-     * survived a reboot. Never while alerting: the alert is the notice then (D-044).
+     * „Dein Timer läuft weiter" (channel `sessions`, ID 3, 04 §7.3): the timers in [states] (not empty, the brew
+     * first) survived a reboot; with both, one notice names both (D-098). Never for an alerting timer: the alert
+     * is the notice then (D-044).
      */
-    fun notifyTimerResumed(state: TimerUiState.Active)
+    fun notifyTimersResumed(states: List<TimerUiState.Active>)
 }
 
 /**

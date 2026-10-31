@@ -33,6 +33,8 @@ import com.umamit.core.ui.rememberPhotoPainter
  *
  * @param onAdjustBrew *Brühen anpassen*: the setup (SCR-04) of the waiting session, by its id (BRW-11).
  * @param slot the timer this route shows; null: the one in front when it opened.
+ * @param onPinned opened for none, the timer it then keeps showing, once known (the navigation reads it when a
+ *   notification asks for a timer, 04 §8.2).
  * @param onShowOther a tap on the other timer's row: that timer's route.
  */
 @Composable
@@ -42,6 +44,7 @@ fun BrewTimerRoute(
     onOpenTimerSettings: () -> Unit,
     modifier: Modifier = Modifier,
     slot: TimerSlot? = null,
+    onPinned: (TimerSlot) -> Unit = {},
     onShowOther: (TimerSlot) -> Unit = {},
     viewModel: TimerViewModel = hiltViewModel(),
 ) {
@@ -79,7 +82,12 @@ fun BrewTimerRoute(
         }
 
         else -> {
-            if (pinned == null) SideEffect { pinned = active.slot }
+            if (pinned == null) {
+                SideEffect {
+                    pinned = active.slot
+                    onPinned(active.slot)
+                }
+            }
             val other = view.other
             TimerScreen(
                 state = active,

@@ -398,7 +398,11 @@ restore, recovery retries that stopped, and a refused service start that was ref
 again. From v0.3.0 (D-098, #137) a quick timer's alarm, time-based event and
 cue name its slot before the alarm kind (`alarm QUICK.DEADLINE received`,
 `… | QUICK.PRE_ALERT scheduled …`), so the accuracy run's `alongside` variant
-tells the two timers apart; the brew's lines are unchanged.
+tells the two timers apart; the brew's lines are unchanged. The sound of a
+quick alert released after a hold (04 §9.3) is timed from its release and
+names the hold (`QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta
++15 ms`), so *Diagnose* shows the player's own delay, never the hold as
+lateness, and the accuracy report never takes it for a cue.
 
 ## 6. Build & distribution
 

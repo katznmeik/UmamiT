@@ -1,6 +1,7 @@
 package com.umamit.core.timer.notification
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
@@ -8,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.TimerNotifications
 import com.umamit.core.timer.TimerStateNotifications
@@ -193,6 +195,33 @@ class TimerStateNotificationsTest {
             assertThat(target.action).isEqualTo(TimerScreenIntents.ACTION_OPEN_TIMER)
         }
     }
+
+    @Test
+    fun `each timer's notifications open its own timer, the alert's full-screen intent too (04 §8_2, D-098)`() {
+        val brew = states.running()
+        val quick = states.quick(TimerPhase.RUNNING)
+        val brewTaps = listOf(build(brew), notifications.other(brew, clock.reading())).map { it.contentIntent }
+        val quickAlert = build(states.quick(TimerPhase.ALERTING), fullScreen = true)
+        val quickTaps = listOf(build(quick), notifications.other(quick, clock.reading()), quickAlert)
+            .map { it.contentIntent } + quickAlert.fullScreenIntent
+
+        // Built after the brew's, the quick timer's intents never turn the brew's into its own (one per slot).
+        brewTaps.forEach { assertThat(slotOf(it)).isEqualTo(TimerSlot.BREW) }
+        quickTaps.forEach { assertThat(slotOf(it)).isEqualTo(TimerSlot.QUICK) }
+        assertThat(slotOf(build(states.alerting(), fullScreen = true).fullScreenIntent)).isEqualTo(TimerSlot.BREW)
+    }
+
+    @Test
+    fun `the reboot notice of one timer opens it, of both the one in front`() {
+        val one = notifications.timerResumed(listOf(states.quick(TimerPhase.PAUSED)))
+        val both = notifications.timerResumed(listOf(states.running(), states.quick(TimerPhase.PAUSED)))
+
+        assertThat(slotOf(one.contentIntent)).isEqualTo(TimerSlot.QUICK)
+        assertThat(shadowOf(both.contentIntent).savedIntent.action).isEqualTo(TimerScreenIntents.ACTION_OPEN_TIMER)
+        assertThat(slotOf(both.contentIntent)).isNull()
+    }
+
+    private fun slotOf(intent: PendingIntent): TimerSlot? = TimerScreenIntents.slotOf(shadowOf(intent).savedIntent)
 
     // --- quick timer (04 §10) ---
 

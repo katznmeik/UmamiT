@@ -169,6 +169,24 @@ class RecoveryTableTest {
     }
 
     @Test
+    fun `reboot with a brew step and a quick timer - one notice names both (04 §7_3)`() = runTest {
+        before.controller.startSession(brewStart(infusion(60)))
+        before.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        before.controller.startQuickTimer(120, preAlertSeconds = 0, run = true)
+        before.advanceSeconds(10)
+
+        before.clock.reboot(offMs = 20_000, upMs = 15_000)
+        val after = before.processRestarted()
+        after.controller.recover(RecoveryTrigger.BOOT_COMPLETED)
+
+        assertThat(after.controller.state(TimerSlot.BREW).value).isInstanceOf(TimerUiState.Active::class.java)
+        assertThat(after.controller.state(TimerSlot.QUICK).value).isInstanceOf(TimerUiState.Active::class.java)
+        // One notification 3, never the quick timer's replacing the brew's.
+        assertThat(after.notifier.resumeNotices.map { notice -> notice.map { it.slot } })
+            .containsExactly(listOf(TimerSlot.BREW, TimerSlot.QUICK))
+    }
+
+    @Test
     fun `reboot past the deadline - the alert comes after the first unlock, with overtime (E2)`() = runTest {
         before.controller.startSession(brewStart(infusion(60)))
         before.controller.send(TimerEvent.Start)
