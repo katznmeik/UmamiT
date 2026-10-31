@@ -678,7 +678,9 @@ TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
   quick timer is active, so the pill never moves when the row comes or goes
   within a phase; when the quick timer starts or ends, the band gives way
   by the row's height (D-096). On a short screen at a large font the band
-  gives way first; *Start* stays on the screen.
+  gives way first; *Start* stays on the screen. Where even the band at the
+  top bar is not enough (384 × 832 dp, font 2.0, a two-line name), the seal
+  yields its place to the row (D-098 build notes, #136).
 - **Alerts (rule 8).** On the brew's alert surface the row is hidden and its
   space kept; a held quick alert shows nothing here. After *Abgegossen* a
   held quick alert rings at once and its alert surface (SCR-07) comes to the

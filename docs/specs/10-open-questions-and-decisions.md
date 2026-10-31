@@ -888,6 +888,62 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   comes from the loader outside the sandbox, which made the timer's
   configuration-change test fail depending on source positions.
 
+**Build notes (Claude, 2026-10-31, #136: both timers in view, SCR-02, SCR-05, SCR-07).**
+- **One timer per route.** The timer route carries the slot it shows
+  (`TimerRoute(slot, switched)`): the bar's halves, the setup (brew) and
+  SCR-07's *Start* (quick) name it; Start (its card, *Nochmal brühen*), a
+  notification and an alert open it without one, and it then shows the
+  timer in front of the controller (#134; the one just started) and keeps
+  it from its first frame. So the row's *Pause*, which puts the other timer in front of
+  the controller, never swaps the screen under the finger. A ringing alert
+  of either timer takes any route at once, the brew's first (rule 8); a held
+  quick alert never does. A route whose timer ends closes (back to the timer
+  below it, or the shell, where the „Gespeichert" sheet shows), except while
+  the other timer's alert rings: it shows that alert until *Fertig*. This
+  is how *Fertig* on a quick alert over SCR-05 „returns to this screen".
+- **Row tap and back.** A tap on the row opens the other timer's route
+  above (`switched`); there, the row's tap is back, so two timers never
+  stack more than two routes. The route change keeps the app's usual route
+  fade (no new motion; instant while an alert plays, as before).
+- **Row.** One 48 dp line in the body style (`bodyMedium`, tabular digits
+  so the centred row never shifts as it ticks), the timer icon or the leaf
+  (icons, not the emoji of the spec's notation), the name, the detail
+  („2:14", „· Pausiert 2:14", „· Aufguss 2 · 0:48", „· bereit", „· fertig")
+  and a compact *Pause* / *Weiter* (TalkBack: „Schnelltimer pausieren",
+  „Aufguss fortsetzen"; the row: „Schnelltimer öffnen" / „Aufguss öffnen").
+  A long name gives way first, down to its first 8 letters; where the
+  step still does not fit (font 2.0), the step goes: „Tanabata · 0:48". Its
+  height is reserved with a button whether one shows or not (READY,
+  FINISHED, the alert surface), so the pill never moves within a phase.
+- **The band gives way by the row's height** whenever the row is there,
+  also where everything fits: the seal and the band's edge move up by it,
+  and the name, the ring and the pill stand exactly where they stand
+  without a row. Where the band is down to the top bar already (384 × 832
+  dp, font 2.0) that is not possible: the page below the row moves by the
+  rest when the quick timer starts or ends (on Start, never under the
+  finger here), and nothing moves while the row is there.
+- **The seal yields to the row (rule 8 before decoration).** In the
+  tightest case (384 × 832 dp, font 2.0, a two-line name) the row would
+  push *Start* below the screen even with the band at the top bar: there
+  the seal is not drawn and the row takes its lower half's place, so
+  *Start* and *Pause* lie whole on the screen. Only with the row; the title
+  names the tea.
+- **Bar.** `ActiveBrewSource` reads the two slots: the brew first, else the
+  quick timer; the quick timer beside a brew is `alongside`, whichever is
+  in front of the controller. Each half: 40 dp ring, name (`titleSmall`),
+  countdown (timer digits, 20 sp) and the step (`bodySmall`, ellipsis); an
+  alerting half is matcha with ink, its ring full and the overtime, and
+  says „Jetzt abgießen!" only to TalkBack (the half has no room for it);
+  a held quick alert reads „fertig" calmly („Schnelltimer, fertig, wartet
+  auf den Aufguss" to TalkBack). The second half comes and goes without
+  motion of its own; the bar's arrival is unchanged.
+- **Tests.** `TimerOtherRowTest`, `TimerRouteTest` (two-timer cases),
+  `ActiveBrewBarTwoTimersTest`, `TwoTimersNavigationTest`,
+  `TimerAppWiringTest` and `ActiveBrewMappingTest` (held), `TimerViewModelTest`
+  (the seal and stock follow the brew slot); goldens `TimerScreen_*_quickRow`,
+  `TimerScreen_Alerting_quickHeld`, `TimerScreen_Quick_brewRow`,
+  `TimerScreen_short_*_quickRow` and `ActiveBrewBar_twoTimers`.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
