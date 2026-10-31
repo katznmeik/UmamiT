@@ -78,8 +78,7 @@ class TimerActionReceiver : BroadcastReceiver() {
          */
         fun intent(context: Context, event: TimerEvent, slot: TimerSlot = TimerSlot.BREW): Intent {
             val name = EVENTS.entries.first { it.value == event }.key
-            val action = ACTION_PREFIX + (if (slot == TimerSlot.QUICK) QUICK_PREFIX else "") + name
-            return Intent(context, TimerActionReceiver::class.java).setAction(action)
+            return Intent(context, TimerActionReceiver::class.java).setAction(ACTION_PREFIX + slot.named(name))
         }
 
         /** The delete intent of a notification that shows the state of [key]. */
@@ -88,11 +87,15 @@ class TimerActionReceiver : BroadcastReceiver() {
 
         /** The event of an action broadcast made by [intent]; null for any other intent. */
         fun eventOf(intent: Intent): TimerEvent? = intent.action?.takeIf { it.startsWith(ACTION_PREFIX) }
-            ?.let { EVENTS[it.removePrefix(ACTION_PREFIX).removePrefix(QUICK_PREFIX)] }
+            ?.let { EVENTS[it.removePrefix(ACTION_PREFIX).removePrefix(TimerSlot.QUICK.namePrefix)] }
 
         /** The slot of an action broadcast made by [intent]: the quick slot's, else the brew slot's. */
         fun slotOf(intent: Intent): TimerSlot =
-            if (intent.action?.startsWith(ACTION_PREFIX + QUICK_PREFIX) == true) TimerSlot.QUICK else TimerSlot.BREW
+            if (intent.action?.startsWith(ACTION_PREFIX + TimerSlot.QUICK.namePrefix) == true) {
+                TimerSlot.QUICK
+            } else {
+                TimerSlot.BREW
+            }
 
         /** The state key of a dismissal made by [dismissIntent]; null for any other intent. */
         fun dismissedKeyOf(intent: Intent): String? =
@@ -104,6 +107,5 @@ class TimerActionReceiver : BroadcastReceiver() {
 
         private const val REQUEST_CODE_BASE = 400
         private const val QUICK_CODE_OFFSET = 20
-        private const val QUICK_PREFIX = "QUICK."
     }
 }

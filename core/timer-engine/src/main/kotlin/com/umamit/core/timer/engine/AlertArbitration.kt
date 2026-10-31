@@ -43,13 +43,6 @@ object AlertArbitration {
             else -> null
         }
     }
-
-    /** The slot whose alert may ring in [brew] and [quick]: the brew's first; null when neither alerts. */
-    fun ringingSlot(brew: TimerState, quick: TimerState): TimerSlot? = when {
-        brew is TimerState.Alerting -> TimerSlot.BREW
-        quick is TimerState.Alerting && !quick.held -> TimerSlot.QUICK
-        else -> null
-    }
 }
 
 /**

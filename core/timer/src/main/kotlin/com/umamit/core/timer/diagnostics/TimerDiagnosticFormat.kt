@@ -186,10 +186,7 @@ private fun TimerEvent.StartQuickTimer.preAlertText(): String {
  * timer and the standard accuracy run reads them as before; the quick slot's with its slot (`QUICK.DEADLINE`; D-098,
  * #137).
  */
-private fun TimerAlarmKind.nameIn(slot: TimerSlot): String = when (slot) {
-    TimerSlot.BREW -> name
-    TimerSlot.QUICK -> "${slot.name}.$name"
-}
+private fun TimerAlarmKind.nameIn(slot: TimerSlot): String = slot.named(name)
 
 /** Where a cue's start spent the time (D-092), e.g. `queued 2 ms, settings 0 ms, outputs 15 ms, sound ready`. */
 private fun CueStart.text(): String {
