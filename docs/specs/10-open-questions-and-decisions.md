@@ -852,6 +852,42 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   pause on the other, never on 5). The screen taken by the brew's alert during
   a ringing quick alert is a 09 §4 item for the rc.
 
+**Build notes (Claude, 2026-10-31, #132: stock on READY, BRW-11).**
+- **Read.** `TimerViewModel.teaStock` follows the active session's id
+  (as the seal does), reads its snapshot's `tea_id` and combines the tea,
+  its `StockRepository.observeStock` and SET-16's „Knapp ab" into
+  `TimerStock(grams, StockLevel)`, the tea's own threshold first; live, so
+  a correction or a purchase shows at once. Nothing on the controller's
+  state, its events or the alarm path waits for it. A failed read (session
+  or stock) is caught per session, logged, and gives null; the next session
+  reads again.
+- **Not in the collection** = no `tea_id`, a deleted tea or a removed
+  (archived) one: no line. A tea in the collection **without packages**
+  (no stock events) reads „Leer", as the setup shows it (INV-05: ≤ 0 g),
+  although the Start card and the daily reminder skip such teas.
+- **Text** is the setup's (`brew_setup_stock*`, `stockGramsText`: „38 g",
+  „14,5 g", no-break space before „g"): „38 g übrig", „14 g übrig · knapp",
+  „Leer". It sits in the kettle hint between the amount line and „Aufguss 2
+  · 0:20" in the detail's style (`bodyMedium`, `onSurfaceVariant`); without
+  a kettle hint, in the same place of the plain column. TalkBack reads it in
+  the hint's sentence as „14,5 Gramm übrig, knapp".
+- **Space.** The slot below the ring reserves a stock line („100 g übrig ·
+  knapp", and the shown one if it wraps longer) in **every phase of every
+  brew**, read or not, so neither *Start* nor the ring moves when the stock
+  arrives after the screen, changes, or fails; the quick timer reserves
+  none. Every brew golden therefore has one more caption line between the
+  ring and the pill, the band giving way on short screens. In the tightest
+  case (384 × 832 dp, font 2.0, a two-line name) FINISHED's *Weiterer
+  Aufguss* now starts on the screen with its lower part below it and the
+  page scrolls by the rest (D-096); *Sitzung beenden* keeps its place and
+  margin, and *Start*, *Abgegossen* lie whole on the screen.
+- **Test harness.** The Schritte-Sheet's saver now writes a
+  `java.util.ArrayList` instead of `buildList`'s Kotlin list: Compose's
+  `StateRestorationTester` reads the saved state back through the class
+  loader of a saved value, and under Robolectric a Kotlin stdlib class
+  comes from the loader outside the sandbox, which made the timer's
+  configuration-change test fail depending on source positions.
+
 **Build notes (Claude, 2026-10-31, #127: long hot steps).**
 - **One rule.** `LONG_STEP_SECONDS` = 3600 in `core:timer-engine`
   (`isLongStepOf`: cold or ice brew, or planned ≥ 3600 s). The Schritte-Sheet

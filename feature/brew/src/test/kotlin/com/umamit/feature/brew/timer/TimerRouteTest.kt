@@ -63,6 +63,7 @@ class TimerRouteTest {
             FakeSessions(collection).sessions,
             collection.teas,
             PhotoFiles(folder.newFolder()),
+            collection.stock,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
