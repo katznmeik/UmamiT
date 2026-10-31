@@ -64,12 +64,15 @@ object SettingsTags {
     const val CATALOG = "SettingsCatalog"
     const val LOW_STOCK = "SettingsLowStock"
 
+    /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
+    const val REMINDER_TIME = "SettingsReminderTime"
+
     /** The *Lautstärke* slider (SET-27). */
     const val VOLUME = "SettingsVolume"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
-internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock }
+internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock, ReminderTime }
 
 /** What the rows of SCR-25 do. */
 class SettingsActions(
@@ -92,6 +95,10 @@ class SettingsActions(
     val setDim: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
+    /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, D-098). */
+    val setLowStockReminder: (Boolean) -> Unit = {},
+    /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
+    val setLowStockReminderTime: (Int) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
     val setCatalogPhotos: (Boolean) -> Unit = {},
     val testAlert: () -> Unit = {},
@@ -162,6 +169,8 @@ fun SettingsRoute(
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
+            setLowStockReminder = { on -> viewModel.change { it.copy(lowStockReminder = on) } },
+            setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
@@ -221,6 +230,7 @@ fun SettingsScreen(
             onClick = { if (!alerting) dialog = SettingsDialog.LowStock },
             modifier = Modifier.testTag(SettingsTags.LOW_STOCK),
         )
+        ReminderRows(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
         CatalogSection(catalog, onRefresh = actions.refreshCatalog)
         SwitchRow(
@@ -246,6 +256,15 @@ fun SettingsScreen(
             SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions) { dialog = null }
 
             SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock) { dialog = null }
+
+            SettingsDialog.ReminderTime -> ReminderTimeDialog(
+                minuteOfDay = settings.lowStockReminderTime,
+                onConfirm = { minute ->
+                    actions.setLowStockReminderTime(minute)
+                    dialog = null
+                },
+                onDismiss = { dialog = null },
+            )
 
             SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength) {
                 dialog =
@@ -378,7 +397,7 @@ internal fun SettingsRow(
 }
 
 @Composable
-private fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
+internal fun SwitchRow(title: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit, detail: String? = null) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = detail?.let { { Text(it) } },

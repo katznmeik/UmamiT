@@ -2,6 +2,7 @@ package com.umamit.core.testing
 
 import com.umamit.core.data.LowStockRepository
 import com.umamit.core.model.LowStockCard
+import com.umamit.core.model.LowStockTea
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -18,6 +19,11 @@ class FakeLowStockRepository(initial: LowStockCard? = null) : LowStockRepository
         hidden += card
         if (this.card.value == card) this.card.value = null
     }
+
+    /** The daily reminder's teas (INV-11): tests set [reminder]. */
+    var reminder: List<LowStockTea> = emptyList()
+
+    override suspend fun reminderTeas(): List<LowStockTea> = reminder
 }
 
 /** „*Tanabata* wird knapp · 14 g übrig" with INV-09's link (synthetic, D-016). */

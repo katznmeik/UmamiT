@@ -39,6 +39,9 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
+    // WorkManager on demand with Hilt's worker factory, for the daily low-stock reminder (INV-11, 06 §5.4, D-098).
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
 
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.navigation.testing)

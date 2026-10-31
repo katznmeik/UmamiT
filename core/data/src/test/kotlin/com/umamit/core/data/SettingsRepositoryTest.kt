@@ -105,6 +105,20 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun theReminderTimeIsKeptWithinTheDay() = runTest {
+        // SET-29 (INV-11, D-098): a minute of the day, 0:00 to 23:59 (05 §6).
+        val repository = repository()
+        assertThat(repository.settings.first().lowStockReminderTime).isEqualTo(1080)
+
+        val stored = listOf(0, 1439, 1440, -1, 450).map { minute ->
+            repository.update { it.copy(lowStockReminderTime = minute) }
+            repository.settings.first().lowStockReminderTime
+        }
+
+        assertThat(stored).containsExactly(0, 1439, 1439, 0, 450).inOrder()
+    }
+
+    @Test
     fun lowStockThresholdIsKeptInZeroToFiveHundredInStepsOfFive() = runTest {
         // SET-16 „Knapp ab" (D-097): 0–500 g in 5 g steps.
         val repository = repository()

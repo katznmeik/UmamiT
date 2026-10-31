@@ -175,6 +175,44 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
+    /** The daily low-stock reminder's rows: the switch on, „Uhrzeit · 18:00" (SET-28, SET-29, INV-11, D-098). */
+    @Test
+    fun settingsReminder() = capture("Settings_reminder", scrollToText = "Uhrzeit") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** Switched off: the time row is gone. */
+    @Test
+    fun settingsReminderOff() = capture("Settings_reminderOff", scrollToText = "Tägliche Vorrats-Erinnerung") {
+        SettingsScreen(
+            settings = UserSettings(lowStockReminder = false),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** Material 3's 24 h time picker at 18:00. */
+    @Test
+    fun settingsReminderTimeDialog() = capture("Settings_reminderTime", clickText = "Uhrzeit") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
     @Test
     fun about() = capture("About") {
         AboutScreen(versionName = "0.1.0-rc.1", onBack = {}, onRerunSetup = {}, onOpenDiagnostics = {})

@@ -247,7 +247,7 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `CatalogRefreshService` (own `dataSync` FGS, not WorkManager) | User action only |
 | `OrphanFileSweepWorker` | Daily, idle; also once after a device restore |
 | `ReminderWorker` | Daily check (backup, freshness digest; not built yet) |
-| `LowStockReminderWorker` (v0.3.0, INV-11, D-098) | A unique one-time job (`low-stock-reminder`, policy REPLACE) for the next `lowStockReminderTime`, enqueued again by each run, at app start, after a change of SET-28/SET-29 and after an app update; WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is off |
+| `LowStockReminderWorker` (v0.3.0, INV-11, D-098) | A unique one-time job (`low-stock-reminder`) for the next `lowStockReminderTime`: kept if one waits at app start (also after an app update), replaced after a change of SET-28/SET-29, appended by each run for the next day (D-098 build notes); WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is off |
 
 **Daily low-stock reminder (v0.3.0, INV-11, D-098).** The app's first
 WorkManager job (Hilt `HiltWorkerFactory`, initialised on demand through
@@ -292,14 +292,21 @@ Timer", LOW, silent) carries the active timer that is not the Live Update
 No storage, camera, location or contacts permissions.
 
 **WorkManager (v0.3.0, INV-11, D-098).** The daily reminder brings
-`androidx.work` into the app. Its library manifest adds its own non-exported
-receivers (reboot, time change, constraint proxies), `SystemJobService`
-(exported, protected by `BIND_JOB_SERVICE`) and `SystemAlarmService`, and
+`androidx.work` into the app. Its library manifest (2.12, as built in #130)
+adds `SystemJobService` (exported, protected by `BIND_JOB_SERVICE`),
+`SystemForegroundService` (not exported; never started, the app has no
+expedited or foreground work), the non-exported receivers
+`ForceStopRunnable$BroadcastReceiver` and `RescheduleReceiver` (reboot;
+disabled until needed), `DiagnosticsReceiver` (exported, protected by the
+system's `DUMP` permission, so only adb reaches it), and
 the permissions `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED` and
 `FOREGROUND_SERVICE` (all above) plus `ACCESS_NETWORK_STATE`, which is not
 on the list: the app removes it with `tools:node="remove"`, since the job has
-no network constraint. `checkManifestPermissions` stays unchanged; if a
-WorkManager version ever needs the permission, it is recorded here first.
+no network constraint. The manifest also removes WorkManager's default
+initializer from `androidx.startup.InitializationProvider`, since the app
+starts it on demand with `HiltWorkerFactory`. `checkManifestPermissions`
+stays unchanged; if a WorkManager version ever needs the permission, it is
+recorded here first.
 
 **Share target (v0.2.1, CAT-17, D-094).** One activity (or activity alias)
 has an intent filter for `android.intent.action.SEND` with MIME type

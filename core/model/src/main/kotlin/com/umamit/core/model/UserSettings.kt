@@ -27,6 +27,15 @@ data class UserSettings(
      * a newer purchase of the tea has another id, so its card shows again (D-097).
      */
     val lowStockHidden: Set<String> = emptySet(),
+    /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, v0.3.0, D-098): the daily low-stock notification. */
+    val lowStockReminder: Boolean = true,
+    /** SET-29 *Uhrzeit* of the daily reminder (INV-11): the minute of the local day, 0…1439; 18:00 by default. */
+    val lowStockReminderTime: Int = DEFAULT_LOW_STOCK_REMINDER_TIME,
+    /**
+     * INV-11 (D-098), not shown: the local date (ISO, „2026-10-30") of the reminder's last run that was due,
+     * posted or with nothing to post, so a day gets at most one; null before the first.
+     */
+    val lowStockReminderLastDate: String? = null,
     val keepScreenOn: Boolean = true,
     val dimWhileSteeping: Boolean = true,
     val dismissedHints: Set<String> = emptySet(),
@@ -46,6 +55,12 @@ data class UserSettings(
 
         /** SET-16's default from v0.2.2 (D-097; was 10 g). */
         const val DEFAULT_LOW_STOCK_GRAMS = 15.0
+
+        /** SET-29's default, 18:00, as a minute of the day (INV-11, D-098). */
+        const val DEFAULT_LOW_STOCK_REMINDER_TIME = 18 * 60
+
+        /** The last minute of a day, 23:59 (SET-29). */
+        const val LAST_MINUTE_OF_DAY = 24 * 60 - 1
 
         /** SET-26 *Vorwarnton*: the Zimbel until the PO picks the default with the first v0.2.1 rc (D-093). */
         const val DEFAULT_PRE_ALERT_SOUND = "zimbel"

@@ -8,6 +8,7 @@ import com.umamit.core.data.SeedData
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.LowStockCard
+import com.umamit.core.model.LowStockTea
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
@@ -211,11 +212,15 @@ class HomeViewModelTest {
             override fun observeCard(): Flow<LowStockCard?> = flow { awaitCancellation() }
 
             override suspend fun hide(card: LowStockCard) = Unit
+
+            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
         }
         val failing = object : LowStockRepository {
             override fun observeCard(): Flow<LowStockCard?> = flow { throw IOException("synthetic") }
 
             override suspend fun hide(card: LowStockCard) = Unit
+
+            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
         }
         listOf(hanging, failing).forEach { repository ->
             val vm = HomeViewModel(
