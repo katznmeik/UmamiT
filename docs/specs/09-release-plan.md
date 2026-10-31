@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -44,7 +44,8 @@
 | **v0.2.1** | **Feedback on v0.2.0-rc.1** (D-093, #79; points 2–9) | Legible ← and ⋮ on bright tea photos; pre-alert per infusion with the automatic rule, into the recipe via *Im Rezept speichern* (umamit.db v2 with a tested migration); four new, much louder pre-alert sounds with a ≈ 3 s fall-off and *Vorwarnton*; each rc needs the accuracy run (§4a; timer code changes); seven more seed vessels, added once to existing installs; stock correction from „… g übrig"; *Aus Sammlung entfernen* from the tea picker (archive, undo); Kräutertees in the catalog (style `herbal`, hidden by default, chip *Kräutertee*); sold-out teas missing from the sitemap stay in the catalog, and a tea can be added from a shared or pasted shop link (D-094, #97, #98) | SCR-05, TMR-23, SCR-31, PRF-03 (pre-alert per step), SET-26, WARE-06, INV-03 (correction only), BRW-02, TEA-04 (archive from the picker only), CAT-01, CAT-10, CAT-16, CAT-17, GEN-01 (d), NFR-PERF-11 | v0.2.1 |
 | **v0.2.2** | **Feedback on v0.2.1** (D-097; seven points) | Leaf and water on every READY; the catalog's notifications open the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker; the quick timer's silent pre-alert fixed, its own *Vorwarnung* selector and an 8:00 chip; *Merken* for catalog teas (umamit.db v3 with a tested migration); each rc needs the accuracy run (§4a; timer code changes) | BRW-11, BRW-08 (marker only), SCR-03, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18 | v0.2.2 |
 | **v0.3.0** | **Quick timer alongside a brew, long hot steps, feedback on v0.2.2-rc.1** (D-098; spec #124, tickets #125–#139; #122, #123; plan `docs/plans/v0.3.0.md`) | One brew session and one quick timer at once in two controller slots, the brew alarm first with a held quick alert, a row for the other timer on each timer screen and both in the bar, the Live Update for the timer due next (umamit.db v4 with a tested migration); hot steps of 10–59 min with countdown and Vorwarnung (long steps from 60 min); Vorwarnung and alarm on the alarm volume with *Lautstärke* and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder; foldable *Sorte* groups; stock on READY; two SCR-07 polish items; each rc needs both accuracy variants (§4a) | TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-02, BRW-11, INV-07, INV-11, CAT-10, SET-24, SET-27–SET-29, SET-31 | v0.3.0 |
-| **M3** | **Collection** | Meine Tees list/detail/editor, add from catalog with package size, recipes & steps editor, teaware with scaling, stock, cost, freshness, reset from catalog | TEA-*, PRF-*, WARE-*, INV-*, BRW-06/08 | v0.4.0 |
+| **v0.4.0** | **Collection (M3), part 1: brewing** (D-100; spec #145; plan `docs/plans/v0.4.0.md`) | *Meine Tees* with in-memory search, *Kategorie*/*Sorte* filters and a remembered sort; tea detail; tea editor and *Ohne Katalog* with *Sorte wählen* (every built-in style); recipe editor (drag, step kinds, several recipes); teaware in *Einstellungen* and *Neues Gefäß …* in the setup (archive only); favourites; *Archivieren* everywhere, *Löschen*, *Wiederherstellen*; setup ⋮ *Tee ansehen*; BRW-08; tappable journal entries and the read-only session page with *So nochmal brühen*; TEA-17 fix; *Bestand abziehen*; the accuracy test's waits. No database migration; the rc carrying the test-wait fix and the final need both accuracy variants (§4a) | TEA-01–TEA-04, TEA-06, TEA-08–TEA-11, TEA-13, TEA-17, STY-01, PRF-01–PRF-04, WARE-01–WARE-04, INV-01, INV-03 (correction on the detail), INV-09, BRW-01, BRW-02, BRW-06, BRW-08, JRN-10 (read-only part), SET-15, SET-30 | v0.4.0 |
+| **v0.4.1** | **Collection (M3), part 2: stock, freshness, cost, photos** (D-100; its own spec after v0.4.0) | Stock history (SCR-29) and *Nachkauf erfassen* for teas not from the catalog; freshness labels, the opened-date snackbar, opened and best-before dates in the editor; price per gram and cost per cup; own photos from the photo picker (up to 10, cover, #58 rotation) for teas and vessels; *Aus Katalog zurücksetzen* (recipes and description) | INV-03, INV-06, INV-08, TEA-05, TEA-02 (dates), WARE-01 (photo), PRF-06, CAT-13 | v0.4.1 |
 | **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.5.0 |
 | **M5** | **Data & polish → 1.0** | Device backup verification (rules exist since M1), simple manual export (no in-app restore, D-036), reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log extended to the catalog, final illustrations | BAK-01, BAK-05, BAK-06, SET-*, NFR-* | **v1.0.0** |
 
@@ -191,13 +192,55 @@ v0.3.0 changes timer code throughout, so every `v0.3.0-rc.N` needs a PASS of
 - [ ] Schnelltimer screen: changing *Vorwarnung* (Auto, Aus, 20 s) does not move the word „Vorwarnung"; at the largest font the ring does not move at *Start*.
 - [ ] Schritte-Sheet: tap a step's time → „Dauer wählen" with its value; set 10:00 and *Übernehmen*; *Abbrechen* changes nothing. Hold *+* on a 5:00 step: it speeds up and reaches 10:00 in about 3 s; a plain tap still adds one step (#141).
 
-### M3 — Collection
+### v0.4.0 — Collection, part 1: brewing (D-100)
 
-- [ ] Add catalog tea with 100 g package → stock 100 g, price set, recipes copied, photo copied.
-- [ ] Brew → stock reduced by leaf; cost per cup shown.
-- [ ] Choosing a vessel rescales leaf; recipe pre-alert override works.
-- [ ] Catalog refresh does not change the collection tea; *Aus Katalog zurücksetzen* does.
-- [ ] „Beim Tee-Kontor nachbestellen" on a collection tea opens the shop page of the size bought last (e.g. 100 g); it is a filled button once the stock is *Knapp* (INV-09, D-072).
+The app's timer code is unchanged (rule 8), but the accuracy test's waits
+change, so the rc that carries that fix and the final `v0.4.0` need a PASS of
+both accuracy variants (§4a, D-073). Steps marked „test tea" use a tea added
+with *Ohne Katalog* for the test, deleted at the end.
+
+- [ ] `v0.4.0-rc.1` installs over `v0.3.0` without losing data (no database migration): journal, teas, recipes, photos, stock, Merkliste and settings are all there; a brew session running during the update still alerts on time.
+- [ ] *Sammlung › Meine Tees* lists the teas instead of „Deine Sammlung folgt bald": each row shows the photo, name, secondary name and Sorte, the stock („38 g", *Knapp* or *Leer*), a star for favourites and „Rezept prüfen" where flagged. Scrolling is smooth.
+- [ ] Sort: *Zuletzt gebrüht* is the default (the tea brewed last on top); *Name*, *Zuletzt hinzugefügt* and *Vorrat* work; after an app restart the choice is kept. A tea corrected to 0 g is last in every order.
+- [ ] Search „Deine Tees durchsuchen …": a name, a secondary name, the vendor („kontor"), a word of the notes, and an accent-free spelling („hojicha" finds „Hōjicha") each find the tea. A search without a hit shows the illustration and „Kein Tee passt zu deiner Suche.".
+- [ ] Filters: *Favoriten*, *Kategorie* (e.g. Grüntee), *Sorte* (e.g. Gyokuro), *Vorrat* (*Knapp* / *Leer*) and *Aromatisiert* each narrow the list; *Kategorie* and *Sorte* offer only what the collection has.
+- [ ] Switch to *Katalog*, open another tab and come back: *Sammlung* opens on *Katalog*; the same for *Meine Tees*.
+- [ ] FAB *Tee hinzufügen* › *Aus dem Katalog* opens the catalog; a tea added there appears in *Meine Tees*.
+- [ ] *Ohne Katalog* (test tea): *Sorte wählen* lists the green styles, Kräutertee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh and *Andere / unbekannt*, grouped, and its search finds „Oolong". Pick Oolong: *Speichern* with an empty name shows the error at the field; enter a name and in *Kauf* 50 g, a price and today. The tea appears in *Meine Tees*, under „Oolongs" in the tea picker and in Start; its stock is 50 g; *Brühen* shows Oolong's default recipe.
+- [ ] *Ohne Katalog* › *Andere / unbekannt* without a package: the recipe is 3 g / 250 ml / 85 °C / 3:00 and the tea shows no stock.
+- [ ] Tea detail of Tanabata: photo, names, Sorte chip, umami meter, the three figures (sessions, last brewed, stock); REZEPTE with the default marked; VORRAT „… g übrig"; BESCHREIBUNG with the shop's text; NOTIZEN and DETAILS only when filled; no ratings, taste or recent sessions.
+- [ ] Detail › *Brühen* opens the setup with the default recipe; a tap on another recipe opens the setup with that one; back returns to the detail.
+- [ ] Detail › *Bestand korrigieren*: the sheet „Wie viel ist noch da?"; after *Speichern* the detail shows the new amount at once. Brew the tea: the sessions and the last brew update without leaving the page.
+- [ ] *Beim Tee-Kontor nachbestellen* on a catalog tea is a text link; corrected to 10 g it becomes a filled button and opens the shop page of the size bought last. The test tea has no link.
+- [ ] ⋮ *Favorit*: the star shows in *Meine Tees*, and the tea under *Favoriten* in Start and the tea picker; unmark it: both go.
+- [ ] Pencil → „Tee bearbeiten": change the secondary name, the region and the notes → *Speichern* → the detail shows them. Change the Sorte: the recipes stay. A harvest year next year is refused at the field. ✕ after a change asks „Änderungen verwerfen?". A catalog tea's vendor reads „Tee-Kontor Kiel".
+- [ ] Recipe editor (pencil on a recipe): change the name, the method, the base temperature (5 °C steps), the *Vorwarnung* (20 s) and the notes; choose „Kyusu 180 ml": the water becomes 180 ml and the leaf scales; the ratio updates live. *Speichern*; the setup shows the new values, and the first infusion's Vorwarnton plays 20 s before its end.
+- [ ] Steps in the recipe editor: drag step 3 above step 2; add a step and make it *Spülen*; set a duration with „Dauer wählen" and by holding *+*; set a temperature and a note; delete steps until only *Spülen* is left: *Speichern* is refused. TalkBack names the drag handles.
+- [ ] Several recipes: *Rezept hinzufügen* → „Kaltaufguss" with a cold brew → *Speichern*; *Als Standard* makes *Brühen* use it; delete the default: the other recipe becomes the default; the last recipe can't be deleted.
+- [ ] „Rezept prüfen": save a flagged tea's recipe in the editor → the badge is gone. On another flagged tea change a step in the setup and tap *Im Rezept speichern* → the badge is gone there too.
+- [ ] During a brew, edit that tea and its recipe (another time, a new step): the running session keeps its steps and alerts on time.
+- [ ] *Einstellungen › Teegeschirr*: the nine seed vessels. Change the usable volume of „Kyusu 250 ml"; add „Houhin 120 ml" (Houhin, 150 ml, usable 120 ml, favourite): it is first in the setup's *Gefäß* list and choosing it sets 120 ml. *Archivieren* it: gone from the setup's and the recipe editor's lists, listed under „ARCHIVIERT"; *Wiederherstellen* brings it back.
+- [ ] Archive the vessel of a recipe: the setup shows „<Gefäß> (archiviert)" with water and leaf unchanged; the list doesn't offer it; choosing another vessel works.
+- [ ] Setup › *Gefäß* › *Neues Gefäß …* → the editor → *Speichern*: back in the setup with the new vessel selected and water and leaf scaled. ✕ returns with nothing changed.
+- [ ] Setup ⋮ › *Tee ansehen* opens the tea's detail; back returns to the setup with every value as before (change the leaf first). A tea without a catalog entry has ⋮ with *Tee ansehen* only.
+- [ ] Correct a tea to 3 g with a 5 g recipe: the setup reads „Nur noch 3 g übrig · knapp"; lower the leaf to 3 g: the warning goes; *Brühen starten* works with the warning shown.
+- [ ] Detail ⋮ *Archivieren*: the detail closes, „<Tee> archiviert" · *Rückgängig* restores it. Archive again: gone from *Meine Tees*, the picker and Start. Filter *Archiviert*: there; its detail has *Brühen* greyed out with „Tee ist archiviert"; *Wiederherstellen* brings it back everywhere. The picker's long press now reads *Archivieren*.
+- [ ] During a brew: on that tea's detail ⋮ *Archivieren* and *Löschen* are greyed out with „Erst die Sitzung beenden"; so is *Archivieren* of the session's vessel.
+- [ ] Brew the test tea twice, then ⋮ *Löschen*: „<Tee> löschen? Deine 2 Journal-Einträge bleiben erhalten." with *Stattdessen archivieren*; *Löschen* removes it; its journal entries keep the name, with the type leaf.
+- [ ] Journal: a tap on a past entry opens its page: tea, date and time, method, vessel, leaf / water / ratio and the step table (*geplant* / *tatsächlich* / °C); a tap on the tea opens its detail. The running session still opens the timer.
+- [ ] *So nochmal brühen* on a session whose step 2 was changed in the Schritte-Sheet and ran into overtime: the setup shows step 2's changed time, not the measured one, with the session's vessel, leaf and water; a session finished with v0.4.0 after 2 of 3 infusions prefills all three, the third at its planned time (its page shows it „nicht gebrüht"). The recipe is unchanged until *Im Rezept speichern*.
+- [ ] *So nochmal brühen* on a session whose recipe was deleted: the setup shows *Ohne Rezept*; *Im Rezept speichern* adds a new recipe to the tea.
+- [ ] Session of an archived tea: *So nochmal brühen* greyed out with „Tee ist archiviert"; *Wiederherstellen* enables it. The deleted test tea's session: its name without a link and no button.
+- [ ] *Einstellungen › Brühen & Vorrat › Bestand abziehen* off: a brew leaves the stock unchanged; on again: it is deducted.
+- [ ] The Schritte-Sheet names a rinse *Spülen*.
+
+### v0.4.1 — Collection, part 2: stock, freshness, cost, photos (D-100)
+
+The M3 items kept for v0.4.1; its spec adds the rest.
+
+- [ ] Add a catalog tea with a 100 g package → stock 100 g, its price per gram on the detail, recipes and photo copied.
+- [ ] Brew → stock reduced by the leaf; the cost per cup shown on the detail.
+- [ ] A catalog refresh does not change the collection tea; *Aus Katalog zurücksetzen* resets its recipes and description after a confirmation.
 
 ### M4 — Journal & statistics
 

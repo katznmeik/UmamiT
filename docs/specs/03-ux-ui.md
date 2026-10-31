@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -77,16 +77,18 @@ App
 ├── Einrichtung (SCR-01) — first start only
 ├── Start / Home (SCR-02)
 │   ├── Aufguss starten → Teeauswahl (SCR-03) → Brühen (SCR-04) → Timer (SCR-05) → Gespeichert-Sheet (SCR-06)
-│   │   └── Schritte-Sheet (SCR-31) from SCR-04 *Bearb.* and the timer
+│   │   ├── Schritte-Sheet (SCR-31) from SCR-04 *Bearb.* and the timer
+│   │   └── from SCR-04 (v0.4.0): ⋮ Tee ansehen → Tee (SCR-09); Gefäß › Neues Gefäß … → SCR-14
 │   ├── Nochmal brühen (recent teas) → Timer READY (SCR-05, BRW-11)
 │   ├── Schnelltimer (SCR-07)
 │   └── Einstellungen (SCR-25) — top-bar action
 ├── Journal (SCR-15)
-│   └── Sitzung (SCR-16) → Sitzung bearbeiten / Notizen (SCR-17) → Beschreibungen (SCR-30)
+│   └── Sitzung (SCR-16) → So nochmal brühen → Brühen (SCR-04); Tee (SCR-09)
+│       └── Sitzung bearbeiten / Notizen (SCR-17) → Beschreibungen (SCR-30) — M4
 ├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
 │   ├── Meine Tees (SCR-08)
-│   │   ├── Tee (SCR-09) → Bearbeiten (SCR-10), Rezept (SCR-12), Vorrat (SCR-29), Fotos (SCR-28)
-│   │   └── Tee ohne Katalog anlegen → Sorte wählen (SCR-11) → SCR-10
+│   │   ├── Tee (SCR-09) → Brühen (SCR-04), Bearbeiten (SCR-10), Rezept (SCR-12); Vorrat (SCR-29), Fotos (SCR-28) — v0.4.1
+│   │   └── Tee hinzufügen → Aus dem Katalog (SCR-19) | Ohne Katalog → Sorte wählen (SCR-11) → SCR-10
 │   └── Katalog (SCR-19)
 │       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
 │       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
@@ -415,7 +417,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 |---|---|
 | `TeaListItem` | 48 dp round thumbnail, serif title, meta line („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider |
 | `PrimaryActionCard` | Dark-green card, leaf icon, title + subtitle, chevron |
-| `StatTriplet` | Temperatur · Ziehzeit · Aufgüsse with line icons |
+| `StatTriplet` | Three figures with line icons (Temperatur · Ziehzeit · Aufgüsse); on SCR-09 from v0.4.0 the tea's sessions, last brew and stock (D-100) |
 | `SectionHeader` | Overline + optional „Alle anzeigen" |
 | `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
@@ -511,11 +513,11 @@ from the catalog list, or a tap on Start, returns to the picker; another tab
 ends the flow; nothing is written before the save. An alert wins: the add
 sheet and the picker give way and no setup opens during it ([D-088](10-open-questions-and-decisions.md#d-088)).
 
-**Removing a tea (v0.2.1, TEA-04, [D-093](10-open-questions-and-decisions.md#d-093)).**
-A long press on a tea row opens a small menu with *Aus Sammlung entfernen*
-(with a haptic tick). Choosing it archives the tea at once (no dialog), the
-row leaves the picker and a snackbar reads „*Tanabata* aus der Sammlung
-entfernt" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
+**Archiving a tea (v0.2.1, TEA-04, [D-093](10-open-questions-and-decisions.md#d-093); wording from v0.4.0, [D-100](10-open-questions-and-decisions.md#d-100)).**
+A long press on a tea row opens a small menu with *Archivieren* (until v0.3.0
+„Aus Sammlung entfernen"; with a haptic tick). Choosing it archives the tea
+at once (no dialog), the row leaves the picker and a snackbar reads
+„*Tanabata* archiviert" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
 *Favoriten* and Start's *Nochmal brühen* too; the journal keeps its entries
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
@@ -523,7 +525,9 @@ same action as a custom action on the row.
 
 **Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
 *Alle* is split by the tea's kind, each group under a small section header
-(„Grüntees", „Kräutertees"; later more kinds with M3's own teas), A–Z
+(„Grüntees", „Kräutertees"; from v0.4.0, for teas added without the
+catalog, in the Kategorie order „Grüntees", „Weiße Tees", „Oolongs",
+„Schwarztees", „Pu-Erh", „Kräutertees", „Andere", D-100), A–Z
 within a group, groups in that order. Search results are grouped the same
 way. *Zuletzt* and *Favoriten* stay ungrouped above. With teas of only one
 kind the list has no group headers, as before.
@@ -583,6 +587,30 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - **Step durations, fast (#141).** The setup's step list stays a read-only
   summary; durations are edited in its Schritte-Sheet (*Bearb.*), which
   now has the tap on the time („Dauer wählen") and the held − / + of SCR-31.
+
+v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
+- **⋮ › Tee ansehen.** The ⋮ is shown for every tea of the collection. Its
+  first item, *Tee ansehen*, opens the tea's detail (SCR-09) above the
+  setup; *Im Katalog ansehen* follows for teas with a catalog entry. Back
+  returns to the setup with every value unchanged.
+- ***Gefäß* list.** Favourites first, archived vessels hidden, and at its
+  end *Neues Gefäß …*, which opens the vessel editor (SCR-14) above the
+  setup. *Speichern* returns with the new vessel selected and the water and
+  leaf scaled as for any vessel (WARE-03); ✕ returns with nothing changed.
+- **Archived vessel.** A recipe whose vessel was archived shows it as
+  „Kyusu (archiviert)" with water and leaf as stored; another vessel can be
+  chosen, the archived one is not in the list (WARE-02).
+- **Stock warning (BRW-08).** When the stock is known, above 0 g and below
+  this brew's leaf, the stock line reads „Nur noch 3 g übrig" (or „Nur noch
+  3 g übrig · knapp") and follows leaf changes; it is still the button to
+  the stock sheet and never blocks *Brühen starten*. *Leer* stays „Leer".
+- **From *So nochmal brühen*** (SCR-16, BRW-06) the setup opens with the
+  session's tea, vessel, leaf, water and steps at their set times. Without
+  the session's recipe the recipe chips show *Ohne Rezept* selected, and *Im
+  Rezept speichern* saves a new recipe.
+- ***Im Rezept speichern*** clears „Rezept prüfen" (TEA-17).
+- **Step kinds** read *Aufguss*, *Spülen*, *Aufschlagen* here and in the
+  Schritte-Sheet (until v0.3.0 „Spülaufguss").
 
 ### SCR-05 Timer
 
@@ -772,13 +800,35 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
 
 ### SCR-08 Sammlung › Meine Tees
 
-Segmented control [ **Meine Tees** | Katalog ] at the top; search
-„Deine Tees durchsuchen …"; filter chips; sort; rows per TEA-08; FAB *Tee
-hinzufügen* (→ choice: *Aus dem Katalog* / *Ohne Katalog*).
-Empty: „Noch keine Tees · Im Katalog stöbern".
-**M1 placeholder** (until M3): „Deine Sammlung folgt bald · Deine Tees findest
-du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem
-späteren Update." It never claims an empty shelf: the seed teas exist (D-069).
+Segmented control [ **Meine Tees** | Katalog ] at the top, opening on the
+segment used last (`collectionSegment`); search „Deine Tees durchsuchen …";
+filter chips; sort; rows per TEA-08; FAB *Tee hinzufügen* (→ choice: *Aus
+dem Katalog* / *Ohne Katalog*). Empty: „Noch keine Tees · Im Katalog
+stöbern".
+
+v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
+placeholder („Deine Sammlung folgt bald …", D-069):
+- **Rows** (`TeaListItem`): cover, serif name, secondary name, Sorte, the
+  stock chip („38 g", *Knapp*, *Leer*), a favourite star and
+  `CheckRecipeBadge`. No rating (M4) and no freshness chip (v0.4.1). A tap
+  opens SCR-09.
+- **Search** (TEA-09) over name, secondary name, vendor, region, cultivar and
+  notes, ignoring case and accents.
+- **Filter chips** (TEA-10): *Favoriten*, *Kategorie*, *Sorte*, *Vorrat*
+  (*Knapp* / *Leer*), *Aromatisiert*, *Archiviert*. *Kategorie* and *Sorte*
+  offer only values present in the collection. *Archiviert* shows only
+  archived teas, each with *Wiederherstellen*.
+- **Sort** (TEA-11): *Zuletzt gebrüht* (default), *Name*, *Zuletzt
+  hinzugefügt*, *Vorrat*; remembered (`collectionSort`); empty teas last.
+- **FAB:** *Aus dem Katalog* switches to the *Katalog* segment (SCR-19),
+  where a tea is added as before (SCR-23); *Ohne Katalog* opens SCR-11.
+- **Empty states:** no teas → asset A7, „Noch keine Tees · Im Katalog
+  stöbern"; a search or filter without results → asset A10, „Kein Tee passt
+  zu deiner Suche.".
+- **Snackbars:** „*Tanabata* archiviert" · *Rückgängig* after *Archivieren*
+  on SCR-09.
+- TalkBack labels on rows, chips and stars. Smooth with 500 teas
+  (NFR-PERF-03).
 
 ### SCR-09 Tee (my tea detail)
 
@@ -792,23 +842,88 @@ a text link with an external-link icon; it opens the shop page of the size
 bought last. Overflow: Favorit, Aus Katalog zurücksetzen, Archivieren,
 Löschen.
 
+v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
+- **Top:** hero photo, names, Sorte chip, umami meter, and a `StatTriplet`
+  of the tea's sessions, last brew and stock. No rating (M4).
+- **Sticky *Brühen*:** the setup (SCR-04) with the default recipe.
+- **REZEPTE:** each recipe with its key values (vessel, leaf, water,
+  temperature, steps), the default marked; a tap opens the setup with that
+  recipe, its pencil the recipe editor (SCR-12). *Rezept hinzufügen* below
+  them, up to 10.
+- **VORRAT:** „38 g übrig" with *knapp* / *leer*; *Bestand korrigieren* (the
+  setup's sheet „Wie viel ist noch da?"); *Beim Tee-Kontor nachbestellen* as
+  above (INV-09). Costs come with v0.4.1.
+- **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
+  **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
+  FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
+- **Pencil FAB:** the tea editor (SCR-10).
+- **⋮:** *Favorit* (checked when it is one), *Archivieren*, *Löschen*. For the
+  tea of the active brew session both are greyed out with „Erst die Sitzung
+  beenden". *Löschen* asks with §5's dialog (*Stattdessen archivieren* /
+  *Löschen*). Either closes the detail.
+- **Archived tea:** *Brühen* is greyed out with „Tee ist archiviert"; ⋮ offers
+  *Wiederherstellen* in place of *Archivieren*.
+- **Entries:** *Meine Tees*, the setup's ⋮ *Tee ansehen* and the session
+  page's tea link. It updates at once after an edit, a brew or a correction.
+
 ### SCR-10 Tee bearbeiten
 
 Full-screen dialog (✕ · „Tee bearbeiten" · *Speichern*), photo drop zone,
 sections per TEA-02.
 
+v0.4.0 (D-100): no photo drop zone (v0.4.1). Sections *Allgemein* (name,
+secondary name, Sorte, umami level, flavoured), *Herkunft* (country, region,
+cultivar, harvest year and flush, shading days, processing), *Kauf* (vendor,
+„Tee-Kontor Kiel" by default for catalog teas; when a tea is added also
+purchase date, package in g and price) and *Notizen*. A Sorte change keeps
+the recipes (TEA-03). Errors show at the field (an empty name, a harvest
+year in the future) and *Speichern* refuses them; ✕ with changes asks
+„Änderungen verwerfen?" (GEN-08). Saving during a brew of the tea changes
+nothing in the running session.
+
 ### SCR-11 Sorte wählen (manual add)
 
 List of built-in styles by group with search; *Andere / unbekannt*.
 
+v0.4.0 (D-100): every built-in style by its Sorte name, grouped by Kategorie
+(Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee) and
+searchable, with *Andere / unbekannt* at the end (08 §3). A tap opens SCR-10
+for a new tea with the style's Sorte, Kategorie, umami level and default
+recipe.
+
 ### SCR-12 Rezept bearbeiten
 
 Fields per PRF-03/04 incl. *Vorwarnung* selector; step list with drag
-handles; *Aufgüsse erzeugen* sheet; *Als Standard*.
+handles; *Als Standard*.
+
+v0.4.0 (D-100):
+- **Fields:** name, method, vessel (sets the water and scales the leaf,
+  WARE-03; favourites first, archived hidden, „(archiviert)" for the
+  recipe's own archived vessel), leaf, water, base temperature, the recipe's
+  *Vorwarnung*, notes; the ratio („1,6 g / 100 ml") updates live.
+- **Steps:** a drag handle each (TalkBack: move up / down actions); kind
+  *Aufguss* / *Spülen* / *Aufschlagen*; duration with the Schritte-Sheet's
+  „Dauer wählen" and hold-to-repeat ± (5 s – 24 h); temperature in 5 °C
+  steps; note. At least one step that is not *Spülen*. Add and delete steps.
+- **Recipe actions:** *Als Standard*; delete (not for the last recipe;
+  deleting the default makes the next one default).
+- **Save:** *Speichern* clears „Rezept prüfen" (TEA-17); ✕ with changes asks
+  GEN-08's question. A running brew keeps its steps.
+- No *Aufgüsse erzeugen* (series generator, PRF-05 not planned).
 
 ### SCR-13 / SCR-14 Teegeschirr
 
 List (type icon, name, volume) and editor.
+
+v0.4.0 (D-100):
+- **SCR-13**, from *Einstellungen › Teegeschirr*: favourites first, then
+  A–Z; archived vessels follow under „ARCHIVIERT" with *Wiederherstellen*. A
+  FAB adds a vessel.
+- **SCR-14**, full-screen dialog like SCR-10: name, type, volume, usable
+  volume, material, notes, favourite. ⋮ *Archivieren* (not for the vessel of
+  the active brew session: „Erst die Sitzung beenden"); there is no delete.
+  Photos come with v0.4.1. Opened from the setup's *Neues Gefäß …* it
+  returns there with the new vessel selected.
 
 ### SCR-15 Journal
 
@@ -822,11 +937,28 @@ in-progress session sits under „LÄUFT GERADE" and opens the timer. An early
 finish reads „2 von 3 Aufgüssen". A session belongs to the local day of its
 start in its own time zone (E13); older days read „MONTAG, 12. OKTOBER".
 
+v0.4.0 (D-100): a tap on a past entry opens its session page (SCR-16); the
+in-progress session still opens the timer. A deleted tea's entry shows its
+name and the type leaf in place of the photo.
+
 ### SCR-16 Sitzung (detail)
 
 Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
 (geplant / tatsächlich / °C), rating, radar, descriptors, notes, photos.
-Actions: *Notizen hinzufügen*/*Bearbeiten*, *Nochmal brühen*, *Löschen*.
+Actions: *Notizen hinzufügen*/*Bearbeiten*, *So nochmal brühen*, *Löschen*.
+
+v0.4.0 (D-100), read-only:
+- **Content:** the tea (a tap opens SCR-09), date and time, method, vessel,
+  leaf / water / ratio, and the step table (*geplant* / *tatsächlich* / °C,
+  with each step's kind; a step never started reads „nicht gebrüht", Q-19). Rating, radar, descriptors, notes, photos and the
+  actions *Notizen hinzufügen* / *Bearbeiten* / *Löschen* follow in M4.
+- ***So nochmal brühen*** (BRW-06) opens the setup (SCR-04) with the session
+  as brewed: tea, vessel, leaf, water and every planned step at its set
+  time, never the measured time.
+- **Tea archived:** *So nochmal brühen* is greyed out with „Tee ist
+  archiviert", with *Wiederherstellen* next to it; restoring enables it.
+- **Tea deleted:** the tea's name without a link, and no *So nochmal
+  brühen*.
 
 ### SCR-17 Sitzung bearbeiten / Notizen
 
@@ -1065,6 +1197,13 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
   with „Vorwarnung und Alarm klingen, wenn „Nicht stören" Alarme erlaubt".
   „Nicht stören" keeps a no-break space, so it never splits across lines.
 
+v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
+- *Brühen & Vorrat* starts with the switch „Bestand abziehen" (SET-15, on)
+  and „Zieht nach jeder Sitzung die Blätter vom Vorrat ab.", above „Knapp
+  ab".
+- The section *Teegeschirr* (SET-30) between *Katalog* and *Über*: one row
+  „Teegeschirr" that opens SCR-13.
+
 ### SCR-26 Daten & Sicherung
 
 Device-backup explanation, *Sicherung erstellen* (BAK-01), (Could) CSV
@@ -1086,7 +1225,7 @@ AboutLibraries follows with 1.0 (D-066).
 
 Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
 erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
-groups, custom).
+groups, custom). SCR-28 and SCR-29 come with v0.4.1, SCR-30 with M4 (D-100).
 
 ### SCR-31 Schritte-Sheet (session steps)
 
@@ -1165,13 +1304,17 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Situation | Copy |
 |---|---|
 | Unsaved changes | „Änderungen verwerfen?" · Weiter bearbeiten / Verwerfen |
-| Delete tea | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
+| Delete tea (v0.4.0, TEA-04) | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
+| Tea archived (v0.4.0, TEA-04; the picker too) | „*Tanabata* archiviert" · Rückgängig |
+| Archive or delete the tea or vessel of the active brew (v0.4.0) | „Erst die Sitzung beenden" (the item greyed out) |
+| Session of an archived tea (v0.4.0, BRW-06) | „Tee ist archiviert" · Wiederherstellen |
+| Stock below the leaf (v0.4.0, BRW-08) | „Nur noch 3 g übrig" |
 | Another session | „Erst die *Sencha*-Sitzung beenden?" · Beenden & neu starten / Abbrechen |
 | Another quick timer (v0.3.0, D-098) | „Schnelltimer beenden und neu starten?" · Beenden & neu starten / Abbrechen |
 | Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp" / „*Hisui* ist leer"; lines „Tanabata · 14 g", „Hisui · leer" |
 | Alarm volume 0 (v0.3.0, TMR-31) | „Alarmlautstärke ist aus" · Beheben |
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
-| Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
+| Reset from catalog (v0.4.1) | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
 | Catalog error | „Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh blocked (08 §2.8) | „Der Shop hat den Abruf vorübergehend blockiert – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh offline | „Keine Verbindung zum Shop – bitte später erneut versuchen." · „Dein bisheriger Katalog bleibt erhalten." |

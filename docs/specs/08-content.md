@@ -1,6 +1,6 @@
 # 08 · Content & Catalog Import
 
-> Status: **Draft v0.2** · Last updated: 2026-10-29 (a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (the rows of the other categories ship with v0.4.0's *Sorte wählen*, D-100; 2026-10-29: a tea from a shop link as built, #98; the re-check of teas missing from the sitemap as built, #97; 2026-10-28: sold-out teas missing from the sitemap re-checked, a tea from a shop link, D-094; 2026-10-26: Kräutertees in scope, style `herbal`, more seed vessels, D-093)
 > v0.2: Tee-Kontor Kiel is the primary content source (§2 verified against the live site); built-in styles become
 > internal fallbacks; German vocabulary; own guides and sample teas dropped.
 
@@ -638,14 +638,19 @@ days after opening.
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
 | `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas. A Kräutertee keeps the infusions the shop gives: the PO's second western infusion (§2.5 step 5) is for green teas only. The „Coldbrew geeignet" badge alone adds no cold brew; the shop's own cold values (a „kalt" row or cold-brew prose) do (§2.5 step 6) |
-| `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW/NONE | — | — | Western defaults (85 / 95 / 95 / 100 °C) for manually added non-green teas |
+| `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW, LOW, NONE, NONE | 90 | — | WESTERN 3 g / 250 ml, one infusion 3:00 at 85 / 95 / 95 / 100 °C, for manually added non-green teas (Q-20, D-100) |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
 These values are well-known starting points; imported Tee-Kontor recipes
 take precedence for catalog teas. The green rows are code in `core:domain`
 (`BuiltInStyles`, D-076, D-082), and from v0.2.1 the `herbal` row too
-(D-093); the rows of other categories follow with the collection editor
-(M3).
+(D-093). The rows of the other categories (`white_generic`,
+`oolong_generic`, `black_generic`, `dark_generic`, `other`) join them with
+v0.4.0, for teas added without the catalog: *Sorte wählen* (SCR-11) lists
+every row by its Sorte name, grouped by Kategorie, with `other` as *Andere /
+unbekannt* (D-100). The four generic rows' values are the PO's (Q-20,
+D-100). The catalog
+stays green and herbal (CAT-01).
 
 ## 4. Tasting descriptor vocabulary
 
