@@ -481,7 +481,7 @@ class StepsSheetTest {
     fun `the stepper values have spoken TalkBack descriptions`() {
         show(listOf(pending(seconds = 90, tempC = 60)))
 
-        compose.onNodeWithContentDescription("Ziehzeit 1 Minute 30 Sekunden").assertExists()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 1: 1 Minute 30 Sekunden. Ändern").assertExists()
         compose.onNodeWithContentDescription("Temperatur 60 Grad").assertExists()
     }
 
