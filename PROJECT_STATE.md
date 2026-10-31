@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-31 (`v0.3.0-rc.1` released for the PO's checklist, #138; v0.3.0 built on PR #143; specified: spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 released from `main` c499263)
+**Last updated:** 2026-10-31 (v0.3.0 released from `main` 688a23a, PR #143; next: M3 → v0.4.0, waiting for the PO's `/to-spec`)
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.2.2 — done** ([`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2), 2026-10-30, from `main` c499263; spec #108, PR #121). **Next: v0.3.0 — rc.2 with the PO** ([`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2), 2026-10-31, from 70ef390; rc.1 passed every item except two findings, fixed in rc.2; design review approved; PR #143; go given 2026-10-30 with `/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
+| Current milestone | **v0.3.0 — done** ([`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0), 2026-10-31, from `main` 688a23a; spec #124, PR #143, D-098, D-099): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123), the step duration (#141), ring under DND (D-099). **Next: M3 (collection) → v0.4.0**, not yet specified (the PO starts it with `/to-spec`). Then M4 → v0.5.0 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
+| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #143 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29), #121 (v0.2.2, 2026-10-30); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105, #120, #140 |
-| Open PR | #143 (v0.3.0 milestone; all tickets merged, waiting for the PO's checklist and design review on #138) |
+| Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29), #121 (v0.2.2, 2026-10-30), #143 (v0.3.0, 2026-10-31); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105, #120, #140, #142 |
+| Open PR | none |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2) (pre-release, versionCode 30002, from 70ef390; accuracy PASS: standard pre-alert p95 53 / max 162 ms, alert p95 47 / max 59 ms; alongside both timers p95 ≤ 38 ms, max ≤ 363 ms). Latest full release: [`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2) (full release, versionCode 20299, from `main` c499263; accuracy PASS on `main`: pre-alert p95 46 ms / max 94 ms, alert p95 31 ms / max 75 ms) |
+| Latest APK | [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (full release, versionCode 30099, from `main` 688a23a; accuracy PASS on `main`: standard pre-alert p95 46 / max 376 ms, alert p95 23 / max 24 ms; alongside brew pre-alert 16 / 154 ms, alert 37 / 41 ms, Schnelltimer pre-alert 13 / 465 ms, alert 20 / 442 ms) |
 
 ## Done (M0)
 
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.3.0:** the PO re-checks [`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2) on #138: the *Lautstärke* slider (fixed) and DND with the phone on ring (D-099: rings when DND lets alarms through, switch SET-32 „Bei „Nicht stören" klingeln", default on; One UI reported `ringer SILENT` under DND in rc.1). Everything else passed on rc.1; design review approved 2026-10-31. Before that: the PO tests [`v0.3.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.1) with the 09 §4 checklist posted on #138 and judges the design review (`docs/design/review/v0.3.0/README.md`). Accuracy on ef62744: standard PASS (pre-alert p95 40 / max 138 ms, alert p95 20 / max 56 ms), alongside PASS (both timers p95 ≤ 37 ms, max ≤ 346 ms); the 1500 ms gate check failed as intended. After the PO's approval: set `0.3.0`, merge #143, both accuracy variants on `main`, `release.yml` from `main` (#139). v0.2.2 is released (2026-10-30). Its rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
+1. **M3 → v0.4.0:** the PO starts the next spec with `/to-spec` (grilling first). v0.3.0 is released (2026-10-31): rc.1 passed every checklist item but two findings (the *Lautstärke* slider, no sound under One UI's DND), both fixed in rc.2 (D-099, SET-32) and re-checked by the PO; design review approved.
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
@@ -64,6 +64,14 @@
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps
+
+### v0.3.0 released (2026-10-31)
+
+- [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) from `main` 688a23a (PR #143, merge commit), versionCode 30099, certificate verified. #124, #125–#139, #141, #122 and #123 closed.
+- rc.1 (ef62744): every checklist item passed, design review approved; two findings. The *Lautstärke* slider jumped on release (fixed, c5b5121). One UI reports the ringer as silent under its DND, so the cues stayed visual: **D-099**, ring when DND lets alarms through, with the switch *Bei „Nicht stören" klingeln* (SET-32, default on). rc.2 (70ef390) re-checked by the PO: passed.
+- Accuracy on `main`: both variants PASS on their one re-run; the first attempts failed in the test harness (a 5 s screen-off wait at step 11, a 10 s session-start wait), not in timing.
+- **Follow-ups for a later release:** make the waits in `AccuracyRunTest` robust (resend `KEYCODE_SLEEP` until the screen stays off, as `ProcessDeathTest` does since 42bad49; a longer start wait). The design-review points the PO accepted (two *Pause* buttons, the shortened tea name in the brew row at font 2.0) can be revisited with M3.
+- **Next:** M3 (collection) → v0.4.0, started by the PO with `/to-spec`.
 
 ### v0.3.0 specified (2026-10-30)
 
