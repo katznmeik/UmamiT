@@ -852,6 +852,61 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   pause on the other, never on 5). The screen taken by the brew's alert during
   a ringing quick alert is a 09 §4 item for the rc.
 
+**Build notes (Claude, 2026-10-31, #127: long hot steps).**
+- **One rule.** `LONG_STEP_SECONDS` = 3600 in `core:timer-engine`
+  (`isLongStepOf`: cold or ice brew, or planned ≥ 3600 s). The Schritte-Sheet
+  (`preAlertShown`), the setup's *Vorwarnung* row (`preAlertLeads`) and SCR-07
+  (`QuickPreAlert`) ask `BrewTimerEngine.isLongStep(step, longStepsOnly)` and
+  `stepPreAlertLeadSeconds`; everything else (`needsService`,
+  `NotificationRoles`, the service port's wake lock, the UI state's
+  `longStep`, the bar's and the ring's 10-s updates) derives from the engine,
+  so only the constant moved. The sheet's own `LONG_STEP_SECONDS` was only its
+  stepper's rounding boundary: it is now `MINUTE_STEPS_FROM_SECONDS` (still
+  600; #141 reworks the stepper), and the engine's *Weiterer Aufguss* rounding
+  has its own `ROUND_TO_MINUTES_FROM_SECONDS` (600), so PRF-04 and TMR-10 do
+  not move.
+- **The quick timer too.** A quick timer of 10–59 min (a custom duration)
+  is a short step: its Vorwarnung by its choice, the service and the
+  countdown.
+- **The update from v0.2.2 with a 10–59 min hot step running.** v0.2.2 ran
+  it as a long step: no pre-alert in its row, no pre-alert alarm, no
+  service; its deadline alarm (102) and guard (107) stand. `restore` accepts
+  the row (a short running step without a pre-alert is a state the engine
+  produces). `recover` of a running step whose deadline is ahead now computes
+  a pre-alert that is neither set nor played from its deadline and N, as
+  `resume` and `editSteps` do: due when its time is still ahead, else skipped,
+  so there is no late tick for a time that passed before the update, and the
+  alert is unchanged. The step is then a short step: the reconcile adds 101
+  and keeps 102 and 107, and the service starts with the countdown Live
+  Update and its wake lock (an attempt from `MY_PACKAGE_REPLACED`; after a
+  refusal the pre-alert alarm starts it, D-054). A paused one gets its
+  pre-alert at *Weiter*, which recomputes it anyway. In a state v0.3.0
+  stored, a running step without a pre-alert has none to gain (no lead, or
+  its time had passed), so its recovery is unchanged; only a reboot with the
+  wall clock set back, which gives a step more time again, can bring a skipped
+  pre-alert back, and it then plays like any other.
+- **Two timers.** A 10–59 min brew step beside a quick timer needs the
+  service like any short step: `dueNext` orders it by its deadline, as
+  notification 5 it adds its wake lock (the longer of both is held), and when
+  the quick timer ends it is the countdown Live Update 1, not the quiet
+  „Fertig um" 4. #135's long step shown by the service as notification 1 now
+  applies to cold and ice brew and steps of 60 min or more only.
+- **Tests.** Engine: `LongStepTest` (the boundaries 599/600/3599/3600 s,
+  cold and ice brew at 5 s to 24 h, a 15-min step with the service and its
+  pre-alert, a 20-min step's automatic and explicit pre-alert scheduled and
+  played, none at 60 min, and the recovery of a v0.2.2 row: ahead, passed,
+  after a reboot, paused, and 60 min and cold brew staying long), the
+  boundary rows of `StepPreAlertTest`, `PreAlertTest`, `PreAlertPerStepTest`
+  and `QuickTimerPreAlertChoiceTest`, and both seeded invariant tests with
+  steps of 10 to 120 min. Robolectric: `HotStepOfMinutesTest` (the real
+  controller, service port, notifier and service: a 15-min hot step's
+  countdown Live Update, wake lock, Vorwarnung and „Gleich fertig …", also
+  after a process death and beside a quick timer; a cold brew and a 60-min
+  step unchanged) and `UpdateFromV022Test` (a 15-min hot step v0.2.2 ran as a
+  long step, on the real alarm manager). UI: the sheet's and the setup's
+  labels, with goldens `StepsSheet_hotStepsOfMinutes`, `StepsSheet_coldBrew`
+  and `BrewSetup_hotStepsOfMinutes`.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
