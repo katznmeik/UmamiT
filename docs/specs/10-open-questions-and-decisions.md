@@ -851,6 +851,36 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   (`FLAG_PROMOTED_ONGOING` on notification 1 for the timer due next, after a
   pause on the other, never on 5). The screen taken by the brew's alert during
   a ringing quick alert is a 09 §4 item for the rc.
+- **A dropped update (CI emulator, API 36, run 41167064240).** The device
+  test failed once: after *Pause* on the quick timer's Live Update,
+  notification 1 kept the quick timer's running content for 10 s, while 5
+  showed it paused. The service's log shows the brew's update posted
+  (`show(1): notify`) and nothing after it. Cause: NotificationManagerService
+  drops an update of a showing notification without a word while the app's
+  posts come faster than 5 per second (`mMaxPackageEnqueueRate`, a moving
+  average with alpha 0.7 over all the package's posts, which carries across
+  its processes; logged only in the system log, which CI's logcat files do not
+  hold). Two timers post in bursts: the quick timer's start posts 5 twice and
+  1 twice within milliseconds, D-071's re-post follows 0.5 s later, and the
+  *Pause* posts 5 and then 1. The tap came 1.03 s after the service's
+  `startForeground`, just outside D-071's window, so nothing posted the
+  dropped update again before the 15-s refresh; the four earlier runs that
+  passed had tapped within it. Fix: the service posts a same-ID update once
+  more 0.5 s later when the app posted any notification less than 1 s before
+  it (`ForegroundServiceState.posted`/`sinceLastPostMs`; every
+  `TimerNotifications.post`, the service's `startForeground` and its re-posts
+  count), no longer only after a `startForeground`. A post more than 0.67 s
+  after the one before is never dropped, and 0.5 s without posts brings the
+  rate below the limit unless the app posted more than 14 per second; D-071's
+  late start post is one such case. Ruled out by the log: an update skipped as
+  unchanged (the port sent it), a re-post of older content after it (none
+  followed), the start's late post (that would show the brew). Test:
+  `ShedUpdateTest` (Robolectric with the real controller, ports and service and
+  the run's timings; `SystemLikeNotificationManager.limitUpdateRate` adds
+  AOSP's rule), red before the fix; it also covers *Weiter* right after the
+  *Pause*, the brew's *Pause* and the quick timer's end. A dropped update of
+  notification 5 (posted by the port, not the service) is still not posted
+  again until its timer changes next; not seen on CI, left for now.
 
 **Build notes (Claude, 2026-10-31, #132: stock on READY, BRW-11).**
 - **Read.** `TimerViewModel.teaStock` follows the active session's id

@@ -522,10 +522,14 @@ length.
   (D-057).
 - Android posts the notification of `startForeground` asynchronously, so a
   same-ID update the service posts within 1 s of a `startForeground` can be
-  overtaken by the start's late post. The service posts such an update once
-  more 0.5 s later (only-alert-once, only while that ID is still the
-  foreground notification; a newer update replaces it). Same-ID updates never
-  call `startForeground` again (D-071).
+  overtaken by the start's late post. And Android drops an update without a
+  word while the app posts faster than 5 notifications per second (a moving
+  average over all its posts), which two timers can reach: one tap updates
+  notifications 5 and 1 at once. So the service posts a same-ID update that
+  follows any post of the app (`startForeground`, an update, notification 5)
+  within 1 s once more 0.5 s later (only-alert-once, only while that ID is
+  still the foreground notification; a newer update replaces it). Same-ID
+  updates never call `startForeground` again (D-071, D-098 #135).
 - A process killed while it posts an update of its foreground notification
   can leave that notification behind, still flagged as a foreground
   notification but owned by no service; the app can never cancel it. So a

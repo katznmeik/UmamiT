@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.umamit.core.timer.service.ForegroundServiceState
 
 /** Notification channels and IDs of the timer (04 §8.1, §8.2). */
 object TimerNotifications {
@@ -97,7 +98,10 @@ object TimerNotifications {
         )
     }
 
-    /** Posts [notification] when notifications are allowed; returns whether it was posted. */
+    /**
+     * Posts [notification] when notifications are allowed; returns whether it was posted. Each post counts against
+     * the app's rate (#135): the service posts an update that follows one shortly once more.
+     */
     fun post(context: Context, id: Int, notification: Notification): Boolean {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
@@ -106,6 +110,7 @@ object TimerNotifications {
             return false
         }
         NotificationManagerCompat.from(context).notify(id, notification)
+        ForegroundServiceState.posted()
         return true
     }
 

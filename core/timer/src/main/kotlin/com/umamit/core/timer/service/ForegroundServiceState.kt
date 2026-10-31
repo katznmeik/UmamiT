@@ -2,6 +2,7 @@ package com.umamit.core.timer.service
 
 import android.content.Context
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 
 /**
@@ -18,8 +19,9 @@ import android.util.Log
  *
  * It also keeps whether Android refused the last start, until a newer command
  * or a stop replaces it, so the controller's next turn that may start the
- * service sends one again (D-063); and a short wake lock that bridges from a
- * command to the service's own wake lock.
+ * service sends one again (D-063); a short wake lock that bridges from a
+ * command to the service's own wake lock; and when the app last posted a
+ * notification, so the service knows an update Android may drop (#135).
  */
 internal object ForegroundServiceState {
     private val lock = Any()
@@ -31,6 +33,16 @@ internal object ForegroundServiceState {
     /** The ID of the service's foreground notification; 0 while it is not in the foreground. */
     @Volatile
     var foregroundId: Int = 0
+
+    /** [SystemClock.uptimeMillis] of the app's last notification post ([posted]); null before the first. */
+    @Volatile
+    private var lastPostAt: Long? = null
+
+    /**
+     * How long ago the app last posted a notification ([posted]); null before the first. Shortly after one, Android
+     * may drop an update (its rate limit, #135) or overtake it with a `startForeground`'s late post (D-071).
+     */
+    val sinceLastPostMs: Long? get() = lastPostAt?.let { SystemClock.uptimeMillis() - it }
 
     /** Logs what the service did (06 §5.6); set by the port, which owns the clocks and the log. */
     @Volatile
@@ -86,6 +98,14 @@ internal object ForegroundServiceState {
         handover?.takeIf { it.isHeld }?.release()
     }
 
+    /**
+     * The app posted a notification: one through `TimerNotifications.post`, or the service's `startForeground`.
+     * Android counts each against the app's rate of posts (#135, D-071).
+     */
+    fun posted() {
+        lastPostAt = SystemClock.uptimeMillis()
+    }
+
     /** The service handled a command; true when it must stop itself now (a stop waited for it). */
     fun commandHandled(): Boolean = synchronized(lock) {
         pendingCommands = (pendingCommands - 1).coerceAtLeast(0)
@@ -108,6 +128,7 @@ internal object ForegroundServiceState {
         stopWanted = false
         foregroundId = 0
         refused = false
+        lastPostAt = null
         handover?.takeIf { it.isHeld }?.release()
         handover = null
     }

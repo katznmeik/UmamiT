@@ -11,7 +11,6 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
-import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import com.umamit.core.timer.TimerNotifications
@@ -37,17 +36,16 @@ import com.umamit.core.timer.TimerNotifications
  *   the notification is posted without the service (04 §6.3): the service
  *   leaves the foreground first, so an alert is still the only notification,
  *   and the refusal is logged.
- * - An update of the same ID right after `startForeground` is posted once
- *   more shortly after ([REPOST_DELAY_MS]), so the start's queued post cannot
- *   outlive it (D-071).
+ * - An update of the same ID right after another post of the app (a
+ *   `startForeground`, an update, notification 5) is posted once more shortly
+ *   after ([REPOST_DELAY_MS]), so neither the start's queued post (D-071) nor
+ *   Android's rate limit, which drops an update without a word (#135), leaves
+ *   older content showing.
  * - Each foreground start and the end of the service are logged too (06 §5.6).
  */
 class BrewTimerService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val mainHandler = Handler(Looper.getMainLooper())
-
-    /** [SystemClock.uptimeMillis] of the last successful `startForeground`; null before the first. */
-    private var lastForegroundStartAt: Long? = null
 
     /** The pending re-post of a same-ID update ([scheduleRepost]); at most one. Main thread only. */
     private var pendingRepost: Runnable? = null
@@ -107,9 +105,11 @@ class BrewTimerService : Service() {
             ForegroundServiceState.foregroundId = 0
         } else if (!foregroundRequired && shownNow) {
             Log.i(TAG, "show($id): notify, foregroundRequired=false")
+            // Shortly after another post, Android may drop this update (its rate limit, #135) or overtake it with the
+            // start's late post (D-071): it is posted once more when the posts have calmed down.
+            val mayBeLost = ForegroundServiceState.sinceLastPostMs?.let { it in 0 until REPOST_WINDOW_MS } == true
             TimerNotifications.post(this, id, notification)
-            val sinceStart = lastForegroundStartAt?.let { SystemClock.uptimeMillis() - it }
-            if (sinceStart != null && sinceStart < REPOST_WINDOW_MS) scheduleRepost(id, notification)
+            if (mayBeLost) scheduleRepost(id, notification)
             return
         } else if (!ForegroundServiceState.isForeground) {
             takeOverStale(otherIdThan(id))
@@ -117,7 +117,7 @@ class BrewTimerService : Service() {
         try {
             Log.i(TAG, "show($id): startForeground, foregroundRequired=$foregroundRequired")
             ServiceCompat.startForeground(this, id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-            lastForegroundStartAt = SystemClock.uptimeMillis()
+            ForegroundServiceState.posted()
             ForegroundServiceState.foregroundId = id
             ForegroundServiceState.report(ServiceReport.InForeground(id))
         } catch (e: ForegroundServiceStartNotAllowedException) {
@@ -164,7 +164,7 @@ class BrewTimerService : Service() {
 
     /**
      * Posts [notification] as [id] once more after [REPOST_DELAY_MS], if [id] is then still the
-     * foreground notification (D-071). The copy has [Notification.FLAG_ONLY_ALERT_ONCE], so it
+     * foreground notification (D-071, #135). The copy has [Notification.FLAG_ONLY_ALERT_ONCE], so it
      * never rings or vibrates again.
      */
     private fun scheduleRepost(id: Int, notification: Notification) {
@@ -213,16 +213,22 @@ class BrewTimerService : Service() {
         private const val EXTRA_FOREGROUND_REQUIRED = "com.umamit.core.timer.extra.FOREGROUND_REQUIRED"
 
         /**
-         * How long after a `startForeground` a same-ID update is posted once more (D-071).
+         * How long after another post of the app a same-ID update is posted once more (D-071, #135).
          * AOSP posts the notification of `startForeground` asynchronously
          * (`ServiceRecord.postNotification` queues it on the ActivityManager's handler), while
          * the service's own `notify` is a direct call into the NotificationManager. An update
-         * right after the start can arrive first, and the start's late post then overwrites it:
-         * up to 15 s while running (the refresh repairs it), for good in a waiting state.
+         * right after the start can arrive first, and the start's late post then overwrites it.
+         * And NotificationManagerService drops an update without a word while the app's posts come
+         * faster than 5 per second (a moving average, alpha 0.7, over all its posts): a post more
+         * than 0.67 s after the one before never is. Either way the older content stays: up to 15 s
+         * while running (the refresh repairs it), for good in a waiting state.
          */
         const val REPOST_WINDOW_MS = 1_000L
 
-        /** How long after such an update its re-post follows: long enough for the queued post to land. */
+        /**
+         * How long after such an update its re-post follows: long enough for the queued post to land, and
+         * for the rate to fall below the limit (it would take more than 14 posts a second to stay above).
+         */
         const val REPOST_DELAY_MS = 500L
 
         /**
