@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -52,7 +52,9 @@
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2); *Leer* at 0 g (INV-05). |
-| **Low-stock card / reminder** | The card on Start for one *Knapp* or *Leer* tea (INV-10), which *Ausblenden* hides for that tea until its next purchase; and, from v0.3.0, the daily notification listing every *Knapp* or *Leer* tea, which ignores *Ausblenden*. A removed (archived) tea appears in neither. |
+| **Low-stock card / reminder** | The card on Start for one *Knapp* or *Leer* tea (INV-10), which *Ausblenden* hides for that tea until its next purchase; and, from v0.3.0, the daily notification listing every *Knapp* or *Leer* tea, which ignores *Ausblenden*. An archived tea appears in neither. |
+| **Archivieren / Wiederherstellen** | *Archivieren* puts a tea or a vessel away: it leaves the lists and pickers but keeps its recipes, stock and journal entries; *Wiederherstellen* brings it back. The one word for it everywhere (formerly „Aus Sammlung entfernen" in the tea picker). Not *Ausblenden*, which only hides a low-stock card. |
+| **Löschen** | Deleting a tea for good: it and its recipes, stock and photos are gone; its journal entries stay with its name. Vessels are never deleted, only archived. |
 | **Pre-alert glow** | Signature motion: the pre-alert marker on the timer ring glows gently in sync with the pre-alert tick (03 §3.6, D-041). |
 | **Liquor fill** | Signature motion: while a step runs, the inside of the timer ring fills in the tea's liquor colour (03 §3.6, D-041). |
 | **Live Update** | Android 16 promoted ongoing notification shown as status-bar chip and on the lock screen; on One UI also in Samsung's Now Bar (best effort). |
@@ -60,10 +62,14 @@
 | **Sideloading** | Installing an APK directly (here from GitHub Releases) instead of from a store. |
 | **snap5** | Rounding a temperature to the nearest 5 °C (half up). |
 | **Collection** | The user's own teas (UI name: Sammlung › Meine Tees). |
-| **Style** | A built-in internal reference entry (e.g. "Gyokuro") with fallback parameters; not browsable. |
+| **Kategorie** | The broad class of a tea: Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee. |
+| **Sorte** | The kind of a tea as the user sees it (Gyokuro, Sencha, Bancha …): the shop's *Sorte* for a catalog tea, or the one picked in *Sorte wählen* for a tea added without the catalog. Each Sorte belongs to one Kategorie. |
+| **Style** | The built-in reference entry behind a Sorte, with its default recipe and freshness period. The user sees a style only by its Sorte name, never its values directly. |
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |
-| **Step** | One timed part of a profile/session: rinse, infusion or whisk. |
-| **Session** | One brewing occasion recorded in the journal. |
+| **Step** | One timed part of a profile/session. Its kind is *Aufguss* (infusion), *Spülen* (rinse: poured away, not a brewed step) or *Aufschlagen* (whisking matcha). |
+| **Set time / measured time** | A step's set time is the duration it ran with (*geplant*, including Schritte-Sheet changes); its measured time runs until *Abgegossen* (*tatsächlich*, including any overtime). Brewing again uses set times. |
+| **Session** | One brewing occasion recorded in the journal; its detail page (SCR-16) opens from a journal entry. |
+| **Nochmal brühen / So nochmal brühen** | *Nochmal brühen* (Start, BRW-11) starts one of the last three teas at once in READY with its last session's values. *So nochmal brühen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
 | **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most one active brew session and at most one active quick timer at the same time (from v0.3.0; until then one active timer in total). |
 | **Teaware / vessel** | A brewing vessel with capacity (kyusu, gaiwan, …). |
