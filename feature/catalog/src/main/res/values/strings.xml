@@ -67,6 +67,17 @@
     <string name="catalog_filter_done">Fertig</string>
     <!-- A group of the list without a Sorte. -->
     <string name="catalog_group_untyped">Ohne Sorte</string>
+    <!-- Foldable Sorte groups (v0.3.0, CAT-10, SCR-19, D-098): the header „Bancha · 12", read by TalkBack as
+         „Bancha, 12 Tees, eingeklappt" with the click action „Ausklappen" / „Einklappen". -->
+    <string name="catalog_group_title">%1$s · %2$d</string>
+    <plurals name="catalog_group_description">
+        <item quantity="one">%1$s, %2$d Tee</item>
+        <item quantity="other">%1$s, %2$d Tees</item>
+    </plurals>
+    <string name="catalog_group_folded">eingeklappt</string>
+    <string name="catalog_group_unfolded">ausgeklappt</string>
+    <string name="catalog_group_fold">Einklappen</string>
+    <string name="catalog_group_unfold">Ausklappen</string>
     <string name="catalog_no_match">Kein Tee passt zu deiner Suche und den Filtern.</string>
     <string name="catalog_reset_filters">Filter zurücksetzen</string>
     <!-- The Gemerkt view without any mark (SCR-19, CAT-18). -->

@@ -275,6 +275,44 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /** Foldable groups (v0.3.0, #131, D-098): Sencha and Gyokuro folded, their headers with the count. */
+    @Test
+    fun listFoldedSome() = capture("listFoldedSome") {
+        CatalogContent(
+            state = listState().copy(folded = setOf("green/Sencha", "green/Gyokuro", "herbal/Einzelkräuter")),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** ⋮ *Alle einklappen* (D-098): only the headers, each with its count. */
+    @Test
+    fun listFoldedAll() = capture("listFoldedAll") {
+        val listing = CatalogBrowser.listing(TEAS, CatalogFilter.DEFAULT, null, FakeClock.DEFAULT_WALL_MS)
+        CatalogContent(
+            state = listState().copy(folded = (listing.types + null).map { "green/${it ?: "-"}" }.toSet()),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+        )
+    }
+
+    /** A search over folded groups (D-098): every hit unfolded, the headers no toggles while it is typed. */
+    @Test
+    fun listSearchFolded() = capture("listSearchFolded") {
+        val filter = CatalogFilter.DEFAULT.copy(search = "Sencha")
+        CatalogContent(
+            state = listState(filter = filter, searchHits = setOf("XY0100", "XY0700", "XY0300"))
+                .copy(folded = setOf("green/Sencha", "green/Shincha")),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
     /** The Kräutertee view (v0.2.1, #89): the Kräutertees by Sorte, without „Pur" (D-093 Q14). */
     @Test
     fun listHerbal() = capture("listHerbal") {

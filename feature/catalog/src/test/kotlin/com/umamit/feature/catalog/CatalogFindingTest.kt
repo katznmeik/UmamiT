@@ -105,8 +105,9 @@ class CatalogFindingTest {
         show()
 
         compose.onNodeWithText("Tee-Kontor Kiel · 4\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
-        shown("GYOKURO")
-        shown("SENCHA")
+        // The Sorte headers fold since v0.3.0 (D-098).
+        compose.onNodeWithTag(catalogGroupTag("Gyokuro")).assertIsDisplayed()
+        compose.onNodeWithTag(catalogGroupTag("Sencha")).assertIsDisplayed()
         shown("Morgennebel Sencha")
         shown("Tautropfen Gyokuro")
         hidden("Kirsch Sencha")
@@ -188,6 +189,7 @@ class CatalogFindingTest {
         compose.onNode(hasText(str(R.string.catalog_sort_name)) and isChip).performClick()
         compose.waitForIdle()
         // Sorted by name: no groups any more.
+        compose.onNodeWithTag(catalogGroupTag("Gyokuro")).assertDoesNotExist()
         hidden("GYOKURO")
 
         alerting = true
