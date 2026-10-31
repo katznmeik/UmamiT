@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-30
+> Status: **Living document** · Last updated: 2026-10-31
 
 ## Open questions
 
@@ -302,6 +302,93 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-099"></a>
+### D-099 — v0.3.0: Vorwarnung and alarm ring under a „Nicht stören" that lets alarms through (SET-32, TMR-31; amends D-098's DND matrix and its #128 build notes, 04 §9.1) · *Accepted* (PO, 2026-10-31; build notes Claude's)
+
+**Context.** The PO tested `v0.3.0-rc.1` on the Galaxy (One UI 9, Android
+17) with the sound mode on ring and „Nicht stören" on with its default
+exceptions (alarms allowed). The Schnelltimer's Vorwarnung and alarm were
+silent. *Diagnose* showed:
+
+```
+alert PRE_ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> visual only | tone zimbel, length NORMAL, gain 100 % …
+alert ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> visual only | tone klangschale …
+```
+
+So One UI reports the ringer as silent under its „Nicht stören" (priority
+mode), although the phone is on ring. D-098's matrix read a silent report as
+normal only under „alarms only" (#128 build notes) and took it as reported in
+priority mode, so both cues stayed visual. While DND is on, the app cannot
+tell this report from the user's own silent mode.
+
+**Decision (PO, 2026-10-31): „Ring + setting".**
+1. While DND is on and lets alarms through, Vorwarnung and alarm sound as
+   with the ringer on normal (sound, plus vibration if SET-11 is on), even
+   when the phone reports silent.
+2. A new switch in *Einstellungen › Timer & Alarm*, „Bei „Nicht stören"
+   klingeln" (SET-32), default **on**, lets the PO turn this off. Off is
+   today's behaviour: the reported ringer mode decides.
+
+**Build notes (Claude, 2026-10-31).**
+- **„Lets alarms through".**
+  - „Nur Alarme" (`INTERRUPTION_FILTER_ALARMS`): always.
+  - Priority mode (`INTERRUPTION_FILTER_PRIORITY`): when the policy has
+    `PRIORITY_CATEGORY_ALARMS`. The app reads
+    `NotificationManager.getConsolidatedNotificationPolicy()`, the policy of
+    every DND mode in effect (public from API 35, the app's minimum). It
+    does not read `getNotificationPolicy()`, which is the manual DND's own
+    policy and misses a schedule mode (e.g. bedtime) with a policy of its
+    own; zen mode mutes the alarm stream by the consolidated policy too.
+  - „Absolute Ruhe": never (visual only, unchanged).
+- **Policy access.** In AOSP neither getter checks notification-policy
+  access; only the setters do. The app asks for no access. The policy is
+  read only in priority mode, one binder call next to the interruption
+  filter. A policy that cannot be read (null, or any exception, logged)
+  counts as letting alarms through, so a guess never silences a cue
+  (rule 8). It is not shown in *Diagnose*.
+- **The matrix** (`AlertMatrix.outputs(conditions, vibration,
+  ringUnderDnd)`; `DoNotDisturb` gains `PRIORITY_WITHOUT_ALARMS`):
+  - A *silent* report reads as normal under „alarms only" (always, D-098
+    decision 8) and under priority mode letting alarms through while SET-32
+    is on.
+  - A *vibrate* report stays vibrate everywhere.
+  - In a call: vibration only, as with the ringer on normal.
+  - Priority mode whose policy blocks alarms plays as reported. Its alarm
+    stream is muted anyway.
+  - DND off: unchanged.
+- **Switch off = `v0.3.0-rc.1`.** „Today's behaviour" is taken literally:
+  off restores rc.1's matrix. Priority mode then follows the report; „alarms
+  only" keeps D-098's rule, since AOSP forces the silent report there and
+  the PO decided that „alarms only" rings (D-098 decision 8).
+- **Every cue, every cycle.** The switch is read with the other settings at
+  the start of every tick, alert and *Alarm testen* (SET-31). The conditions
+  are read again on each cycle, so DND turned on during an alert takes
+  effect at the next repeat. *Anhören* (SET-09, SET-26) plays only where a
+  cue would sound, with the stored switch.
+- ***Diagnose*.** Each cue's line keeps its format and adds two things.
+  Priority mode whose policy blocks alarms reads `DND priority without
+  alarms`. The settings part ends with the switch, e.g.
+  `… -> sound + vibration | tone zimbel, length NORMAL, gain 100 %, DND
+  rings on | …`. `FireTime` and `AccuracyReport` read the line as before;
+  their tests round-trip it through the format.
+- **Settings file.** `ringUnderDnd` (Boolean, default true). A file of
+  `v0.3.0-rc.1` or older has no key and reads true, so it needs no settings
+  migration; settings `schemaVersion` stays 2 (05 §6).
+- **The row.** A switch with a detail line below *Alarmdauer*: „Bei „Nicht
+  stören" klingeln" over „Vorwarnung und Alarm klingen, wenn „Nicht stören"
+  Alarme erlaubt". „Nicht stören" has a no-break space, so it never splits
+  across lines.
+- **Reliability.** Nothing new. With the switch off under DND the cues stay
+  visual as the PO chose; no banner or check.
+- **Open risk.** With the switch on, a phone that reports the user's own
+  silent mode under a DND that lets alarms through rings although the user
+  chose silent. The switch is the way out. The new 09 §4 item checks both
+  states on the Galaxy.
+
+**Spec updates:** 02 SET-32 (new), 03 SCR-25, 04 §9.1 (DND matrix), E14 and
+§12, 05 §6 (`ringUnderDnd`), 06 §5.6, 09 §4 (v0.3.0, the DND item with
+SET-32).
+
 <a id="d-098"></a>
 ### D-098 — v0.3.0: quick timer alongside a brew, long hot steps, the PO's feedback on v0.2.2-rc.1 (TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-11, INV-07, INV-11, CAT-10, SET-27–SET-29, SCR-02, SCR-04, SCR-05, SCR-07, SCR-19, SCR-25; amends D-093 point 1 and Q2, TMR-18, 04 §9.1) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q8, R2-Q1–R2-Q3 and scenarios S1–S4; details marked „Claude" are Claude's)
 
@@ -479,6 +566,8 @@ reminder") was updated with the grilling.
   SET-11); vibrate → vibration only; silent → visual only. Do Not Disturb:
   „alarms only" and priority mode → as the ringer mode (alarms pass);
   „total silence" → visual only. A call still means vibration only.
+  *Amended by [D-099](#d-099):* a silent report under a DND that lets alarms
+  through rings, in priority mode while SET-32 is on.
 - **Alarm volume 0.** A new reliability check (TMR-31):
   `AudioManager.getStreamVolume(STREAM_ALARM) == 0` → „Alarmlautstärke ist
   aus" with *Beheben* (`Settings.ACTION_SOUND_SETTINGS`), in the banner on
@@ -589,7 +678,9 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   *Diagnose* line now names the ringer mode, the DND mode („DND off /
   priority / alarms only / total silence"), the alarm volume („alarm volume
   on / 0") and the gain („gain 60 %"); the 09 §4 DND item asks the PO to
-  copy it after the DND checks.
+  copy it after the DND checks. *Amended by [D-099](#d-099):* `v0.3.0-rc.1`
+  showed that One UI reports silent in priority mode with the phone on
+  ring.
 - **Gain.** `MediaPlayer.setVolume(gain, gain)` right before `start()`, so a
   sound loaded ahead takes the cue's own gain, and a player loaded on the
   spot (D-092 fallback) too. A change of *Lautstärke* loads nothing (the
@@ -5123,6 +5214,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-10-31 | D-099: the PO's test of `v0.3.0-rc.1` — One UI reports the ringer as silent under its „Nicht stören" with the phone on ring, so Vorwarnung and alarm stayed visual. While DND lets alarms through („alarms only", or priority mode whose consolidated policy allows alarms), a silent report now rings as the ringer on normal; the new switch „Bei „Nicht stören" klingeln" (SET-32, default on) turns this off for priority mode. *Diagnose* names the switch and a policy without alarms. 02, 03, 04, 05, 06, 09 updated. |
 | 2026-10-30 | D-098: v0.3.0 (spec #124, grilling Q1–Q8, R2-Q1–Q3, S1–S4) — one brew session and one quick timer at once in two controller slots, brew alarm first with a held quick alert, one Live Update for the timer due next, umamit.db v4 (`active_brew` per slot); long steps from 60 min (hot 10–59 min get countdown and Vorwarnung); Vorwarnung and alarm on the alarm volume (`USAGE_ALARM`) with *Lautstärke* 10–100 %, DND „alarms only" rings, „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; daily low-stock reminder (INV-11, channel „Vorrat"); foldable catalog groups; stock on READY; two SCR-07 polish items. Amends D-093 point 1 and Q2, TMR-18, 04 §9.1. 02, 03, 04, 05, 06, 09 updated; plan `docs/plans/v0.3.0.md`. |
 | 2026-10-30 | D-097: v0.2.2, the PO's feedback on v0.2.1 — grams and water on every READY; catalog notifications open the catalog with the refresh sheet; tea groups in the picker; *Knapp* from 15 g with a Start card and a setup marker (INV-10); the quick timer's silent pre-alert as a bug, plus a *Vorwarnung* selector and 8:00 chip; *Merken* for catalog teas (CAT-18, umamit.db v3). 02, 03, 04, 05, 09 updated. |
 | 2026-10-29 | D-096: v0.2.1 build decisions (#83–#92, #97, #98, #100, #102): per-step pre-alert details and migration of a running session, *Alarm testen* waits for the Vorwarnton, sounds load at once on change, timer band and seal details, Kräutertee scope (Mate/Lapacho), one-time reset by parser version, herbal view rules, sold-out re-check incl. owned discontinued teas, redirect and page rules, the strict shop-link grammar and its messages, `CatalogJobs` ordering, vessel seed, stock input, archiving rules. 09 §4 updated. |

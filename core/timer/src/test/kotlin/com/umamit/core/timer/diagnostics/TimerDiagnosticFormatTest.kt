@@ -98,8 +98,37 @@ class TimerDiagnosticFormatTest {
 
         assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
             "alert ALERT: ringer VIBRATE, in call no, DND off, alarm volume on -> vibration | " +
-                "tone klangschale, length NORMAL, gain 60 % | mono 5000000 boot 1",
+                "tone klangschale, length NORMAL, gain 60 %, DND rings on | mono 5000000 boot 1",
         )
+    }
+
+    @Test
+    fun `a cue names the switch Bei Nicht stoeren klingeln and priority mode without alarms`() {
+        // D-099: with the readings left of the arrow and the result right of it, a report settles which rule rang.
+        fun message(dnd: DoNotDisturb, ringUnderDnd: Boolean, outputs: AlertOutputs) = TimerDiagnosticFormat.message(
+            TimerDiagnostic.AlertPlayed(
+                now,
+                AlertCue.PRE_ALERT,
+                AlertConditions(RingerMode.SILENT, dnd = dnd),
+                outputs,
+                tone = "zimbel",
+                length = AlertLength.NORMAL,
+                ringUnderDnd = ringUnderDnd,
+            ),
+        )
+
+        assertThat(message(DoNotDisturb.PRIORITY, ringUnderDnd = true, AlertOutputs(sound = true, vibration = true)))
+            .isEqualTo(
+                "alert PRE_ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> sound + vibration | " +
+                    "tone zimbel, length NORMAL, gain 100 %, DND rings on | mono 5000000 boot 1",
+            )
+        assertThat(message(DoNotDisturb.PRIORITY, ringUnderDnd = false, AlertOutputs.NONE))
+            .contains(
+                "DND priority, alarm volume on -> visual only | " +
+                    "tone zimbel, length NORMAL, gain 100 %, DND rings off |",
+            )
+        assertThat(message(DoNotDisturb.PRIORITY_WITHOUT_ALARMS, ringUnderDnd = true, AlertOutputs.NONE))
+            .contains("DND priority without alarms, alarm volume on -> visual only |")
     }
 
     @Test
@@ -154,7 +183,8 @@ class TimerDiagnosticFormatTest {
 
         assertThat(TimerDiagnosticFormat.message(entry(CueStart(2, 0, 15, soundLoaded = true)))).isEqualTo(
             "alert PRE_ALERT: ringer NORMAL, in call no, DND off, alarm volume on -> sound + vibration | " +
-                "tone tick, length NORMAL, gain 100 % | queued 2 ms, settings 0 ms, outputs 15 ms, sound ready | " +
+                "tone tick, length NORMAL, gain 100 %, DND rings on | queued 2 ms, settings 0 ms, outputs 15 ms, " +
+                "sound ready | " +
                 "PRE_ALERT scheduled 09:59:59.983 (mono 4999983) actual 10:00:00.000 (mono 5000000) delta +17 ms",
         )
         assertThat(TimerDiagnosticFormat.message(entry(CueStart(1, 300, 900, soundLoaded = false))))

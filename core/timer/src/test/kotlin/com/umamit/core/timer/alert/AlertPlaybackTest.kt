@@ -412,6 +412,28 @@ class AlertPlaybackTest {
     }
 
     @Test
+    fun theStoredBeiNichtStoerenKlingelnDecidesASilentReportUnderDoNotDisturbAndItsLogNamesIt() = runTest {
+        // SET-32, D-099: One UI reports silent under its DND with the phone on ring; read at the start of every cue.
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+        settings.update { it.copy(alertLength = AlertLength.SHORT) }
+        val playback = playback(settings.settings)
+
+        playback.playPreAlert()
+        scheduler.advanceBy(5_000L)
+        settings.update { it.copy(ringUnderDnd = false) }
+        playback.startAlert(onFinished = {})
+        scheduler.advanceBy(300_000L)
+
+        assertThat(sound.plays(AlertSound.TICK)).containsExactly(0L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).isEmpty()
+        val played = diagnostics.entriesOf<TimerDiagnostic.AlertPlayed>()
+        assertThat(played.map { it.ringUnderDnd }).containsExactly(true, false).inOrder()
+        assertThat(played.map { it.outputs })
+            .containsExactly(AlertOutputs(sound = true, vibration = true), AlertOutputs.NONE)
+            .inOrder()
+    }
+
+    @Test
     fun aStoredLautstaerkeBelowTenPercentStillPlaysAtTenPercent() = runTest {
         // Rule 8: the app itself never silences a cue, whatever the file holds (05 §6).
         settings.update { it.copy(alertVolumePercent = 0) }

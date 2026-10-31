@@ -92,6 +92,82 @@ class RingerModeAlertPlayerTest {
         }
     }
 
+    // --- Bei „Nicht stören" klingeln (SET-32, D-099) -------------------------
+
+    @Test
+    fun underDoNotDisturbWithAlarmsAllowedASilentReportRingsTheTickAndEveryCycle() {
+        // The PO's v0.3.0-rc.1 test: One UI reports silent under its DND with the phone on ring.
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+
+        player.playPreAlert()
+        scheduler.advanceBy(5_000L)
+        player.startAlert()
+        scheduler.advanceBy(60_000L)
+
+        val cycles = listOf(5_000L, 8_500L, 12_000L, 15_500L)
+        assertThat(sound.plays(AlertSound.TICK)).containsExactly(0L)
+        assertThat(haptics.plays(Haptic.PRE_ALERT)).containsExactly(0L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactlyElementsIn(cycles).inOrder()
+        assertThat(haptics.plays(Haptic.ALERT)).containsExactlyElementsIn(cycles).inOrder()
+    }
+
+    @Test
+    fun withTheSwitchOffASilentReportUnderDoNotDisturbStaysVisual() {
+        settings = AlertSettings(preAlert = AlertSound.TICK, ringUnderDnd = false)
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+
+        player.playPreAlert()
+        scheduler.advanceBy(5_000L)
+        player.startAlert()
+        scheduler.advanceBy(60_000L)
+
+        assertThat(sound.events).isEmpty()
+        assertThat(haptics.events).isEmpty()
+    }
+
+    @Test
+    fun everyCycleAppliesTheSwitchToTheConditionsItReadsThen() {
+        // DND turned on during an alert: with the switch on the next cycles ring on …
+        ringer(RingerMode.NORMAL)
+        player.startAlert()
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+        scheduler.advanceBy(60_000L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L, 3_500L, 7_000L, 10_500L).inOrder()
+
+        // … with it off the next cycle falls silent, as for a silent report before D-099.
+        settings = AlertSettings(preAlert = AlertSound.TICK, ringUnderDnd = false)
+        ringer(RingerMode.NORMAL)
+        player.startAlert()
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+        scheduler.advanceBy(60_000L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE).filter { it >= 60_000L }).containsExactly(60_000L)
+        assertThat(haptics.plays(Haptic.ALERT).filter { it >= 60_000L }).containsExactly(60_000L)
+        assertThat(sound.events).containsAtLeast("stop @ 63500", "abandonFocus @ 63500").inOrder()
+    }
+
+    @Test
+    fun alarmTestenFollowsTheSwitchUnderDoNotDisturb() {
+        // SET-31 plays through the same matrix: it is how the PO hears the setting.
+        environment.conditions = AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY)
+        settings = AlertSettings(length = AlertLength.SHORT, preAlert = AlertSound.TICK)
+        player.testAlert()
+        scheduler.advanceBy(10_000L)
+        assertThat(sound.plays(AlertSound.TICK)).containsExactly(0L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(1_500L)
+
+        settings = AlertSettings(length = AlertLength.SHORT, preAlert = AlertSound.TICK, ringUnderDnd = false)
+        player.testAlert()
+        scheduler.advanceBy(10_000L)
+        assertThat(sound.plays(AlertSound.TICK)).containsExactly(0L)
+        assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(1_500L)
+    }
+
+    @Test
+    fun theSwitchIsReadFromTheStoredSettingsWithDefaultOn() {
+        assertThat(AlertSettings.of(UserSettings()).ringUnderDnd).isTrue()
+        assertThat(AlertSettings.of(UserSettings(ringUnderDnd = false)).ringUnderDnd).isFalse()
+    }
+
     @Test
     fun vibrationSettingOffKeepsOnlyTheToneInNormalMode() {
         settings = AlertSettings(vibration = false)
@@ -167,27 +243,70 @@ class RingerModeAlertPlayerTest {
 
     @Test
     fun matrixTableUnderDoNotDisturb() {
-        fun outputs(mode: RingerMode, dnd: DoNotDisturb, inCall: Boolean = false) =
-            AlertMatrix.outputs(AlertConditions(mode, inCall, dnd))
+        fun outputs(mode: RingerMode, dnd: DoNotDisturb, inCall: Boolean = false, ringUnderDnd: Boolean = true) =
+            AlertMatrix.outputs(AlertConditions(mode, inCall, dnd), ringUnderDnd = ringUnderDnd)
         val soundAndVibration = AlertOutputs(sound = true, vibration = true)
         val vibrationOnly = AlertOutputs(sound = false, vibration = true)
+        val switchStates = listOf(true, false)
 
-        // Priority mode (alarms allowed): as the ringer mode (04 §9.1, D-098).
-        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.PRIORITY)).isEqualTo(soundAndVibration)
-        assertThat(outputs(RingerMode.VIBRATE, DoNotDisturb.PRIORITY)).isEqualTo(vibrationOnly)
-        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY)).isEqualTo(AlertOutputs.NONE)
-        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.PRIORITY, inCall = true)).isEqualTo(vibrationOnly)
+        // Priority mode letting alarms through (One UI's DND): as the ringer mode (04 §9.1), except a silent
+        // report, which One UI gives under DND whatever the user chose (D-099).
+        switchStates.forEach { on ->
+            fun priority(mode: RingerMode, inCall: Boolean = false) =
+                outputs(mode, DoNotDisturb.PRIORITY, inCall, ringUnderDnd = on)
+            assertWithMessage("SET-32 $on").that(priority(RingerMode.NORMAL)).isEqualTo(soundAndVibration)
+            assertWithMessage("SET-32 $on").that(priority(RingerMode.VIBRATE)).isEqualTo(vibrationOnly)
+            assertWithMessage("SET-32 $on").that(priority(RingerMode.NORMAL, inCall = true)).isEqualTo(vibrationOnly)
+        }
+        // „Bei „Nicht stören" klingeln" (SET-32) on, the default: a silent report rings as the ringer on normal
+        // would; off: the reported ringer mode decides, as in v0.3.0-rc.1.
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY)).isEqualTo(soundAndVibration)
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY, ringUnderDnd = false)).isEqualTo(AlertOutputs.NONE)
+        // SET-11 off: the sound alone. In a call: vibration only, as with the ringer on normal.
+        assertThat(
+            AlertMatrix.outputs(
+                AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY),
+                vibrationEnabled = false,
+                ringUnderDnd = true,
+            ),
+        ).isEqualTo(AlertOutputs(sound = true, vibration = false))
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY, inCall = true)).isEqualTo(vibrationOnly)
+        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.PRIORITY, inCall = true, ringUnderDnd = false))
+            .isEqualTo(AlertOutputs.NONE)
+
+        // Priority mode whose policy blocks alarms: the ringer mode as reported, whatever the switch.
+        switchStates.forEach { on ->
+            fun blocked(mode: RingerMode) = outputs(mode, DoNotDisturb.PRIORITY_WITHOUT_ALARMS, ringUnderDnd = on)
+            assertWithMessage("SET-32 $on").that(blocked(RingerMode.NORMAL)).isEqualTo(soundAndVibration)
+            assertWithMessage("SET-32 $on").that(blocked(RingerMode.VIBRATE)).isEqualTo(vibrationOnly)
+            assertWithMessage("SET-32 $on").that(blocked(RingerMode.SILENT)).isEqualTo(AlertOutputs.NONE)
+        }
 
         // „Alarms only": as the ringer mode; the platform reports the ringer as silent in this mode (AOSP's zen
-        // forces it), so a silent report here is not the user's silent mode and the alert rings.
-        assertThat(outputs(RingerMode.NORMAL, DoNotDisturb.ALARMS_ONLY)).isEqualTo(soundAndVibration)
-        assertThat(outputs(RingerMode.VIBRATE, DoNotDisturb.ALARMS_ONLY)).isEqualTo(vibrationOnly)
-        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.ALARMS_ONLY)).isEqualTo(soundAndVibration)
-        assertThat(outputs(RingerMode.SILENT, DoNotDisturb.ALARMS_ONLY, inCall = true)).isEqualTo(vibrationOnly)
+        // forces it), so a silent report here is not the user's silent mode and the alert rings, with the switch
+        // on or off (D-098 decision 8, kept by D-099).
+        switchStates.forEach { on ->
+            fun alarmsOnly(mode: RingerMode, inCall: Boolean = false) =
+                outputs(mode, DoNotDisturb.ALARMS_ONLY, inCall, ringUnderDnd = on)
+            assertWithMessage("SET-32 $on").that(alarmsOnly(RingerMode.NORMAL)).isEqualTo(soundAndVibration)
+            assertWithMessage("SET-32 $on").that(alarmsOnly(RingerMode.VIBRATE)).isEqualTo(vibrationOnly)
+            assertWithMessage("SET-32 $on").that(alarmsOnly(RingerMode.SILENT)).isEqualTo(soundAndVibration)
+            assertWithMessage("SET-32 $on").that(alarmsOnly(RingerMode.SILENT, inCall = true)).isEqualTo(vibrationOnly)
+        }
 
-        // Total silence: visual only, whatever the ringer mode.
-        RingerMode.entries.forEach {
-            assertThat(outputs(it, DoNotDisturb.TOTAL_SILENCE)).isEqualTo(AlertOutputs.NONE)
+        // Total silence: visual only, whatever the ringer mode and the switch.
+        RingerMode.entries.forEach { mode ->
+            switchStates.forEach { on ->
+                assertWithMessage("$mode, SET-32 $on")
+                    .that(outputs(mode, DoNotDisturb.TOTAL_SILENCE, ringUnderDnd = on))
+                    .isEqualTo(AlertOutputs.NONE)
+            }
+        }
+
+        // DND off: a silent report is the user's own silent mode, whatever the switch.
+        switchStates.forEach { on ->
+            assertWithMessage("SET-32 $on").that(outputs(RingerMode.SILENT, DoNotDisturb.OFF, ringUnderDnd = on))
+                .isEqualTo(AlertOutputs.NONE)
         }
     }
 
@@ -425,7 +544,10 @@ class RingerModeAlertPlayerTest {
         AlertSound.TONES.forEach { tone ->
             AlertLength.entries.forEach { length ->
                 MATRIX.forEach { case ->
-                    val run = FreshPlayer(case.conditions, AlertSettings(tone, length, case.vibrationSetting))
+                    val run = FreshPlayer(
+                        case.conditions,
+                        AlertSettings(tone, length, case.vibrationSetting, ringUnderDnd = case.ringUnderDnd),
+                    )
 
                     run.player.startAlert(onFinished = { run.finishedAt += run.scheduler.now })
                     run.scheduler.advanceBy(300_000L)
@@ -615,6 +737,8 @@ class RingerModeAlertPlayerTest {
         val vibrationSetting: Boolean,
         val sound: Boolean,
         val vibration: Boolean,
+        /** SET-32 „Bei „Nicht stören" klingeln" (D-099). */
+        val ringUnderDnd: Boolean = true,
     )
 
     private companion object {
@@ -677,6 +801,35 @@ class RingerModeAlertPlayerTest {
                 true,
                 sound = false,
                 vibration = true,
+            ),
+            MatrixCase(
+                "silent, DND priority, SET-32 on",
+                AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY),
+                true,
+                sound = true,
+                vibration = true,
+            ),
+            MatrixCase(
+                "silent, DND priority, SET-32 on, SET-11 off",
+                AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY),
+                false,
+                sound = true,
+                vibration = false,
+            ),
+            MatrixCase(
+                "silent, DND priority, SET-32 off",
+                AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY),
+                true,
+                sound = false,
+                vibration = false,
+                ringUnderDnd = false,
+            ),
+            MatrixCase(
+                "silent, DND priority without alarms, SET-32 on",
+                AlertConditions(RingerMode.SILENT, dnd = DoNotDisturb.PRIORITY_WITHOUT_ALARMS),
+                true,
+                sound = false,
+                vibration = false,
             ),
         )
 

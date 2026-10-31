@@ -77,7 +77,8 @@ object TimerDiagnosticFormat {
 
         is TimerDiagnostic.AlertPlayed ->
             "alert ${entry.cue}: ${entry.readings()} -> ${outputs(entry.outputs)} | " +
-                "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} % | " +
+                "tone ${entry.tone}, length ${entry.length}, gain ${entry.volumePercent} %, " +
+                "DND rings ${if (entry.ringUnderDnd) "on" else "off"} | " +
                 (entry.start?.let { "${it.text()} | " } ?: "") +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
@@ -200,8 +201,9 @@ private fun CueStart.text(): String {
 
 /**
  * What the player read at a cue, e.g. `ringer SILENT, in call no, DND alarms only, alarm volume 0`: the DND mode
- * as `off`, `priority`, `alarms only` or `total silence`, so the PO's phone shows how One UI reports the ringer
- * mode under each (D-098).
+ * as `off`, `priority`, `priority without alarms` (its policy blocks alarms, D-099), `alarms only` or `total
+ * silence`, so the PO's phone shows how One UI reports the ringer mode under each (D-098). The settings part
+ * after the outputs ends with `DND rings on` or `off` (SET-32, D-099).
  */
 private fun TimerDiagnostic.AlertPlayed.readings(): String = with(conditions) {
     "ringer $ringerMode, in call ${if (inCall) "yes" else "no"}, " +

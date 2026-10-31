@@ -28,6 +28,10 @@ import com.umamit.core.timer.AlertPlayer
  * - [stopAlert] cancels everything at once and is idempotent.
  * - **Lautstärke** (SET-27, D-098): every sound of a tick, an alert cycle and
  *   a test plays at the settings' [AlertSettings.gain] of its cue.
+ * - **Bei „Nicht stören" klingeln** (SET-32, D-099): the tick and every
+ *   cycle apply the cue's [AlertSettings.ringUnderDnd] to the conditions read
+ *   then, so Do Not Disturb turned on during an alert takes effect at the
+ *   next repeat.
  *
  * Pure logic: it touches the device only through its seams, so the matrix is
  * unit-tested with fakes. Not thread-safe; it runs on the main thread and
@@ -111,7 +115,7 @@ class RingerModeAlertPlayer(
 
     /** The chosen pre-alert sound (SET-26) and/or the short haptic per the matrix; true when something plays. */
     private fun tick(): Boolean {
-        val allowed = AlertMatrix.outputs(environment.conditions(), current.vibration)
+        val allowed = AlertMatrix.outputs(environment.conditions(), current.vibration, current.ringUnderDnd)
         if (allowed.vibration) outputs.vibrate(Haptic.PRE_ALERT)
         if (allowed.sound) outputs.play(current.preAlert, current.gain)
         return outputs.active
@@ -127,7 +131,7 @@ class RingerModeAlertPlayer(
 
     private fun runCycle() {
         cyclesLeft--
-        val allowed = AlertMatrix.outputs(environment.conditions(), current.vibration)
+        val allowed = AlertMatrix.outputs(environment.conditions(), current.vibration, current.ringUnderDnd)
         if (!allowed.sound || !outputs.play(current.tone, current.gain)) outputs.silence()
         if (allowed.vibration) outputs.vibrate(Haptic.ALERT)
         schedule(cycleMs(current.tone)) {

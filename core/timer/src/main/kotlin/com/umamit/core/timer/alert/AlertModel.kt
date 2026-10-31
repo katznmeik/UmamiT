@@ -7,16 +7,23 @@ import com.umamit.core.model.UserSettings
 enum class RingerMode { NORMAL, VIBRATE, SILENT }
 
 /**
- * Do Not Disturb as the interruption filter reports it (04 §9.1, D-098), read with the ringer mode.
- * The cues play on the alarm stream (`USAGE_ALARM`), which *alarms only* and priority mode (alarms
- * allowed) let through; *total silence* mutes it.
+ * Do Not Disturb as the interruption filter reports it (04 §9.1, D-098), read with the ringer mode;
+ * in priority mode also whether its policy lets alarms through (D-099). The cues play on the alarm
+ * stream (`USAGE_ALARM`), which *alarms only* and priority mode with alarms allowed let through;
+ * *total silence* mutes it.
  */
 enum class DoNotDisturb {
     /** Off (`INTERRUPTION_FILTER_ALL`, or a filter the platform cannot say). */
     OFF,
 
-    /** Priority mode (`INTERRUPTION_FILTER_PRIORITY`): One UI's Do Not Disturb with its exceptions. */
+    /**
+     * Priority mode (`INTERRUPTION_FILTER_PRIORITY`) whose policy lets alarms through: One UI's Do Not
+     * Disturb with its default exceptions. Also priority mode whose policy cannot be read (rule 8, D-099).
+     */
     PRIORITY,
+
+    /** Priority mode whose policy blocks alarms (no `PRIORITY_CATEGORY_ALARMS`, D-099). */
+    PRIORITY_WITHOUT_ALARMS,
 
     /** „Nur Alarme" (`INTERRUPTION_FILTER_ALARMS`). */
     ALARMS_ONLY,
@@ -29,8 +36,8 @@ enum class DoNotDisturb {
  * What the device allows right now.
  *
  * @property inCall a call is ringing or active (incl. VoIP): vibrate only (04 §9.1).
- * @property dnd Do Not Disturb (04 §9.1, D-098): *total silence* keeps the cue visual; *alarms
- *   only* and priority mode play as the ringer mode ([AlertMatrix]).
+ * @property dnd Do Not Disturb (04 §9.1, D-098, D-099): *total silence* keeps the cue visual; *alarms
+ *   only* and priority mode play as the ringer mode, where a silent report may ring ([AlertMatrix]).
  */
 data class AlertConditions(
     val ringerMode: RingerMode,
@@ -69,18 +76,34 @@ data class AlertOutputs(val sound: Boolean, val vibration: Boolean) {
  * | Vibrate | vibration |
  * | Silent | none (visual only) |
  *
- * Do Not Disturb (D-098): off, priority mode and *alarms only* as the ringer
- * mode; *total silence* none. Under *alarms only* the platform reports the ringer
- * as silent whatever the user chose (AOSP's zen mode forces the internal and the
- * reported ringer mode to silent there), so a silent report then reads as
- * normal: *alarms only* lets both cues ring (D-098 decision 8, rule 8).
+ * Do Not Disturb (D-098, D-099): off and priority mode as the ringer mode,
+ * *alarms only* too; *total silence* none. A DND that lets alarms through can
+ * report the ringer as silent whatever the user chose, so there a silent report
+ * reads as normal (sound, plus vibration if SET-11 is on; a call still means
+ * vibration only):
+ * - *alarms only*: always. AOSP's zen mode forces the internal and the reported
+ *   ringer mode to silent there (D-098 decision 8, rule 8).
+ * - priority mode with alarms allowed: while [ringUnderDnd] („Bei „Nicht
+ *   stören" klingeln", SET-32, default on). One UI reports silent under its DND
+ *   with the phone on ring (the PO's v0.3.0-rc.1 test, D-099); off, the
+ *   reported ringer mode decides, as before.
+ *
+ * Priority mode whose policy blocks alarms plays as reported; a vibrate report
+ * stays vibrate everywhere.
  */
 object AlertMatrix {
-    fun outputs(conditions: AlertConditions, vibrationEnabled: Boolean = true): AlertOutputs {
+    fun outputs(
+        conditions: AlertConditions,
+        vibrationEnabled: Boolean = true,
+        ringUnderDnd: Boolean = true,
+    ): AlertOutputs {
         if (conditions.dnd == DoNotDisturb.TOTAL_SILENCE) return AlertOutputs.NONE
-        val silentByAlarmsOnly =
-            conditions.dnd == DoNotDisturb.ALARMS_ONLY && conditions.ringerMode == RingerMode.SILENT
-        val ringerMode = if (silentByAlarmsOnly) RingerMode.NORMAL else conditions.ringerMode
+        val silentByDnd = conditions.ringerMode == RingerMode.SILENT && when (conditions.dnd) {
+            DoNotDisturb.ALARMS_ONLY -> true
+            DoNotDisturb.PRIORITY -> ringUnderDnd
+            DoNotDisturb.OFF, DoNotDisturb.PRIORITY_WITHOUT_ALARMS, DoNotDisturb.TOTAL_SILENCE -> false
+        }
+        val ringerMode = if (silentByDnd) RingerMode.NORMAL else conditions.ringerMode
         return when (ringerMode) {
             RingerMode.NORMAL -> if (conditions.inCall) {
                 AlertOutputs(sound = false, vibration = true)
@@ -205,7 +228,8 @@ fun AlertLength.cycles(cycleMs: Long): Int {
 
 /**
  * The user's alert settings: tone (SET-09), alert length (SET-14), vibration (SET-11), the
- * pre-alert's sound (SET-26) and *Lautstärke* (SET-27, D-098).
+ * pre-alert's sound (SET-26), *Lautstärke* (SET-27, D-098) and *Bei „Nicht stören" klingeln*
+ * ([ringUnderDnd], SET-32, D-099: [AlertMatrix]).
  */
 data class AlertSettings(
     val tone: AlertSound = AlertSound.KLANGSCHALE,
@@ -213,6 +237,7 @@ data class AlertSettings(
     val vibration: Boolean = true,
     val preAlert: AlertSound = PreAlertSound.DEFAULT.sound,
     val volumePercent: Int = UserSettings.MAX_ALERT_VOLUME_PERCENT,
+    val ringUnderDnd: Boolean = true,
 ) {
     /** The sounds a timer's next tick and alert play, which stay loaded while it is active (D-092). */
     val sounds: Set<AlertSound> get() = linkedSetOf(preAlert, tone)
@@ -236,6 +261,7 @@ data class AlertSettings(
             vibration = settings.vibration,
             preAlert = PreAlertSound.of(settings.preAlertSound).sound,
             volumePercent = clampVolume(settings.alertVolumePercent),
+            ringUnderDnd = settings.ringUnderDnd,
         )
 
         private fun clampVolume(percent: Int): Int =

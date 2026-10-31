@@ -47,6 +47,11 @@
     <string name="settings_alert_length_normal_detail">Bis zu 15 Sekunden</string>
     <string name="settings_alert_length_long">Lang</string>
     <string name="settings_alert_length_long_detail">Bis du bestätigst, höchstens 2 Minuten</string>
+    <!-- SET-32 (v0.3.0, D-099): under a Do Not Disturb that lets alarms through, the cues ring even when the
+         phone reports silent (One UI does under its DND with the phone on ring). Off: the reported ringer mode
+         decides. A no-break space keeps „Nicht stören“ on one line. -->
+    <string name="settings_ring_under_dnd">Bei „Nicht&#160;stören“ klingeln</string>
+    <string name="settings_ring_under_dnd_detail">Vorwarnung und Alarm klingen, wenn „Nicht&#160;stören“ Alarme erlaubt</string>
     <string name="settings_keep_screen_on">Bildschirm beim Brühen anlassen</string>
     <string name="settings_dim">Beim Ziehen abdunkeln</string>
     <string name="settings_dim_detail">Nach 10 Sekunden ohne Berührung</string>

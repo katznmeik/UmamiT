@@ -1,6 +1,6 @@
 # 06 · Technical Architecture
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: a cue's log line names the DND policy and SET-32, D-099; 2026-10-30: v0.3.0: the daily low-stock reminder job and its channel „Vorrat", WorkManager's manifest entries, the timer's second channel, D-098; 2026-10-29: the share target and the catalog jobs taking turns as built, #98; 2026-10-28: four network uses, share target, D-094; 2026-10-26: where a cue's start spent the time in the diagnostics log, D-092; shop session and catalog image targets, D-074)
 > v0.2: personal sideloaded app, min SDK 35, catalog scraping (OkHttp +
 > Jsoup), GitHub Releases distribution, Claude as developer.
 
@@ -402,7 +402,10 @@ tells the two timers apart; the brew's lines are unchanged. The sound of a
 quick alert released after a hold (04 §9.3) is timed from its release and
 names the hold (`QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta
 +15 ms`), so *Diagnose* shows the player's own delay, never the hold as
-lateness, and the accuracy report never takes it for a cue.
+lateness, and the accuracy report never takes it for a cue. From
+`v0.3.0-rc.2` (D-099) a cue's line names priority mode whose policy blocks
+alarms (`DND priority without alarms`) and ends its settings part with
+SET-32 (`gain 100 %, DND rings on`); the accuracy run reads it as before.
 
 ## 6. Build & distribution
 

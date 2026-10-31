@@ -59,7 +59,8 @@ val AlertSound.rawRes: Int
 
 /**
  * Ringer mode from [AudioManager], calls from the audio mode, DND from the interruption filter (04 §9.1,
- * D-098), and whether the alarm stream is at 0 (TMR-31).
+ * D-098) and, in priority mode, whether its policy lets alarms through (D-099), and whether the alarm
+ * stream is at 0 (TMR-31).
  */
 internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
     private val audioManager = context.getSystemService(AudioManager::class.java)
@@ -76,7 +77,8 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
             else -> RingerMode.VIBRATE
         }
         val dnd = when (notificationManager?.currentInterruptionFilter) {
-            NotificationManager.INTERRUPTION_FILTER_PRIORITY -> DoNotDisturb.PRIORITY
+            NotificationManager.INTERRUPTION_FILTER_PRIORITY ->
+                if (priorityAllowsAlarms()) DoNotDisturb.PRIORITY else DoNotDisturb.PRIORITY_WITHOUT_ALARMS
 
             NotificationManager.INTERRUPTION_FILTER_ALARMS -> DoNotDisturb.ALARMS_ONLY
 
@@ -90,6 +92,23 @@ internal class AndroidAlertEnvironment(context: Context) : AlertEnvironment {
 
     /** `getStreamVolume` answers 0 for a muted stream too. */
     override fun alarmVolumeOff(): Boolean = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) == 0
+
+    /**
+     * Priority mode lets alarms through (D-099): the consolidated policy, that of every DND mode in effect
+     * (public from API 35, read without notification-policy access), has `PRIORITY_CATEGORY_ALARMS`. A policy
+     * that cannot be read counts as letting them through, so a guess never silences a cue (rule 8).
+     */
+    @Suppress("TooGenericExceptionCaught") // whatever the binder call throws, the cue plays (rule 8)
+    private fun priorityAllowsAlarms(): Boolean {
+        val policy: NotificationManager.Policy? = try {
+            notificationManager?.consolidatedNotificationPolicy
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "DND policy unreadable; alarms count as allowed", e)
+            null
+        }
+        return policy == null ||
+            policy.priorityCategories and NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS != 0
+    }
 
     private companion object {
         /** Ringing, in a call, in a VoIP call, call screening or redirected calls. */
