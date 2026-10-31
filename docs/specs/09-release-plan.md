@@ -188,6 +188,7 @@ v0.3.0 changes timer code throughout, so every `v0.3.0-rc.N` needs a PASS of
 - [ ] *Sammlung › Katalog*: tap „Bancha · …" to fold it; the chevron turns; fold another; after an app restart both stay folded; the Kräutertee view keeps its own. A search finds teas in folded groups; clearing it folds them again. ⋮ *Alle einklappen* / *Alle ausklappen* work. TalkBack reads „Bancha, 12 Tees, eingeklappt".
 - [ ] *Nochmal brühen* on a tea with 38 g: READY shows „38 g übrig" under „4,0 g Tee · 250 ml Wasser"; a tea at the threshold shows „· knapp"; the Schnelltimer shows no stock line.
 - [ ] Schnelltimer screen: changing *Vorwarnung* (Auto, Aus, 20 s) does not move the word „Vorwarnung"; at the largest font the ring does not move at *Start*.
+- [ ] Schritte-Sheet: tap a step's time → „Dauer wählen" with its value; set 10:00 and *Übernehmen*; *Abbrechen* changes nothing. Hold *+* on a 5:00 step: it speeds up and reaches 10:00 in about 3 s; a plain tap still adds one step (#141).
 
 ### M3 — Collection
 
