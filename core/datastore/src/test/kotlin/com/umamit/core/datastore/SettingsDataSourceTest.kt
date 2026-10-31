@@ -47,6 +47,9 @@ class SettingsDataSourceTest {
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(settings.quickTimerPreAlert).isNull()
+        assertThat(settings.lowStockReminder).isTrue()
+        assertThat(settings.lowStockReminderTime).isEqualTo(18 * 60)
+        assertThat(settings.lowStockReminderLastDate).isNull()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -88,6 +91,9 @@ class SettingsDataSourceTest {
             dismissedHints = setOf("swipe", "stock"),
             catalogDownloadPhotos = false,
             quickTimerPreAlert = 20,
+            lowStockReminder = false,
+            lowStockReminderTime = 7 * 60 + 30,
+            lowStockReminderLastDate = "2026-10-30",
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -165,6 +171,9 @@ class SettingsDataSourceTest {
         val settings = source.settings.first()
 
         assertThat(settings.alertVolumePercent).isEqualTo(100)
+        // SET-28 and SET-29 (INV-11) too: the reminder is on at 18:00 after the update.
+        assertThat(settings.lowStockReminder).isTrue()
+        assertThat(settings.lowStockReminderTime).isEqualTo(1080)
         assertThat(settings.schemaVersion).isEqualTo(2)
         assertThat(settings.alertSound).isEqualTo("glocke")
         assertThat(settings.lowStockGrams).isEqualTo(20.0)

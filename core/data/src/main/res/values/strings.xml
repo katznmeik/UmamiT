@@ -32,4 +32,13 @@
     <string name="data_catalog_result_unavailable">Der Shop ist gerade nicht erreichbar – bitte später erneut versuchen.</string>
     <string name="data_catalog_result_shop_changed">Die Shop-Seite hat sich geändert – ein App-Update ist nötig. Dein bisheriger Katalog bleibt erhalten.</string>
     <string name="data_catalog_result_storage">Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?</string>
+    <!-- The daily low-stock reminder (INV-11, D-098; 03 §5). -->
+    <string name="data_stock_channel">Vorrat</string>
+    <string name="data_stock_channel_description">Tägliche Erinnerung an knappe und leere Tees</string>
+    <!-- Two or more teas; one tea is named (data_stock_reminder_title_one), so no plural is needed. -->
+    <string name="data_stock_reminder_title" tools:ignore="PluralsCandidate">%1$d Tees werden knapp</string>
+    <string name="data_stock_reminder_title_one">%1$s wird knapp</string>
+    <string name="data_stock_reminder_line">%1$s · %2$s g</string>
+    <string name="data_stock_reminder_line_empty">%1$s · leer</string>
+    <string name="data_stock_reminder_separator">", "</string>
 </resources>

@@ -81,3 +81,12 @@ data class LowStockCard(
     /** *Leer* (INV-05): „*Tanabata* ist leer". */
     val isEmpty: Boolean get() = remainingGrams < StockLevel.EMPTY_BELOW_GRAMS
 }
+
+/**
+ * One line of the daily low-stock reminder (INV-11, D-098): a tea that is *Knapp* or *Leer* (INV-05),
+ * „Tanabata · 14 g" or „Hisui · leer".
+ */
+data class LowStockTea(val teaId: String, val teaName: String, val remainingGrams: Double) {
+    /** *Leer* (INV-05): „Hisui · leer". */
+    val isEmpty: Boolean get() = remainingGrams < StockLevel.EMPTY_BELOW_GRAMS
+}

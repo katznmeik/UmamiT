@@ -730,6 +730,59 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   „Schnelltimer beenden und neu starten?", and its *Beenden & neu starten*
   ends the quick timer only.
 
+**Build notes (Claude, 2026-10-30, #130: daily low-stock reminder, INV-11).**
+- **When it runs** (`LowStockReminderSchedule`, on the clock of the
+  device's zone, so DST keeps „18:00"). The next run is today's set time
+  while it is ahead; a day whose set time has passed **without a run** runs
+  at once (the job was late, the phone was off, the reminder was switched on
+  or set to an earlier time that day); a day that had its run waits for the
+  next day. A run posts when its date had no run yet and the set time is at
+  most 30 min ahead.
+- **`lowStockReminderLastDate`** is the date of the last run that was
+  **due**, posted or with nothing to post, so a restart after an empty run
+  does not run again that day (05 §6 said „last posted").
+- **Policies.** At app start (also after an update, whose
+  `MY_PACKAGE_REPLACED` starts the process through the timer's receiver;
+  no receiver of its own) `KEEP`: a job that waits or runs stays, so a
+  process the job itself started, or an app start at 18:05 before the late
+  job ran, never cancels or repeats it. A change of SET-28 or SET-29:
+  `REPLACE`, off cancels the job and notification 12. A run schedules its
+  successor with `APPEND_OR_REPLACE` (it starts once the running job has
+  ended; `REPLACE` from inside the job would cancel it). One flow
+  (`LowStockReminderScheduler.follow`, launched in `UmamitApplication`)
+  does all three, from the settings.
+- **An empty day** posts nothing and removes yesterday's notification 12,
+  which would no longer be true. A failed read (an `IOException`) skips the
+  day, logged; the next day is scheduled either way.
+- **Notification.** Title „3 Tees werden knapp" (two and more), „Tanabata
+  wird knapp" (one); `InboxStyle` lines „Tanabata · 14 g" (0,1 g in German
+  format, no-break space before „g"), „Hisui · leer"; the collapsed text
+  joins the lines with „, ". `CATEGORY_REMINDER`, silent, auto-cancel, the
+  app's sprig as icon. The query reuses the Start card's
+  `observeStockLevels` (least stock first, then by name) and its threshold
+  rule, without `lowStockHidden`.
+- **Tap.** `OpenStartIntents` names `com.umamit.app.MainActivity` by class
+  name (`core:data` cannot see the app; the app's test pins it). No gate as
+  the catalog's taps have (#121): Start is what the launcher opens anyway.
+  The root pops everything above the app's shell (a timer keeps running
+  behind the bar; a setup's choices are dropped as with back; a refresh
+  shell goes) and the shell turns to Start at its root, ending the picker's
+  catalog flow quietly. During an alert it waits; before the first-start
+  setup is done, or while a setup re-run is shown, it is let go.
+- **WorkManager** 2.12 adds, besides the permissions, `SystemJobService`
+  (exported, `BIND_JOB_SERVICE`), `SystemForegroundService` (not exported,
+  never started: no expedited or foreground work), the receivers
+  `ForceStopRunnable$BroadcastReceiver`, `RescheduleReceiver` (disabled until
+  needed) and `DiagnosticsReceiver` (exported, protected by `DUMP`, so only
+  adb reaches it). No `SystemAlarmService` in this version. The manifest
+  removes `ACCESS_NETWORK_STATE` and the default `WorkManagerInitializer`;
+  the app is the `Configuration.Provider` with `HiltWorkerFactory`.
+- **Settings rows.** „Tägliche Vorrats-Erinnerung" (switch with its line)
+  and, while on, „Uhrzeit" („18:00", `HH:mm`) below „Knapp ab"; the time
+  opens M3's `TimePicker` (24 h dial) in a dialog with *Abbrechen* / *OK*,
+  closed by an alert like every settings dialog. At font 2.0 the dial's
+  numbers crowd (M3 does not scale the dial); the picker stays usable.
+
 **Build notes (Claude, 2026-10-31, #135: the Live Update for the timer due next).**
 - **Who is which notification.** With one timer nothing changes: the
   service's 1 or 2, or the quiet 4. With two, the lead (`dueNext`) is the
