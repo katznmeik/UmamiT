@@ -46,6 +46,11 @@ data class UserSettings(
      * null *Automatisch*, 0 *Aus*, otherwise 5–30 in steps of 5.
      */
     val quickTimerPreAlert: Int? = null,
+    /**
+     * CAT-10, SCR-19 (v0.3.0, D-098): the folded *Sorte* groups of the catalog list as `<view>/<sorte key>`,
+     * view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; a key whose *Sorte* is gone is ignored.
+     */
+    val catalogFolded: Set<String> = emptySet(),
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

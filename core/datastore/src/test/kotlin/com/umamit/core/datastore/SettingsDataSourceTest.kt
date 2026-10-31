@@ -50,6 +50,7 @@ class SettingsDataSourceTest {
         assertThat(settings.lowStockReminder).isTrue()
         assertThat(settings.lowStockReminderTime).isEqualTo(18 * 60)
         assertThat(settings.lowStockReminderLastDate).isNull()
+        assertThat(settings.catalogFolded).isEmpty()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -94,6 +95,7 @@ class SettingsDataSourceTest {
             lowStockReminder = false,
             lowStockReminderTime = 7 * 60 + 30,
             lowStockReminderLastDate = "2026-10-30",
+            catalogFolded = setOf("green/Bancha", "herbal/-"),
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -219,5 +221,18 @@ class SettingsDataSourceTest {
         file.writeText("not json")
 
         assertThat(dataSource(file).settings.first()).isEqualTo(UserSettings())
+    }
+
+    @Test
+    fun aFileOfVersion022WithoutFoldedGroupsReadsNoneFoldedWithoutAMigration() = runTest {
+        // `catalogFolded` is new in v0.3.0 (CAT-10, D-098): a missing key reads ∅, `schemaVersion` stays 2 (05 §6).
+        val file = File(folder.root, "v022-folded.json")
+        file.writeText("""{"schemaVersion":2,"alertSound":"glocke","seedDataCreated":true}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.catalogFolded).isEmpty()
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertSound).isEqualTo("glocke")
     }
 }
