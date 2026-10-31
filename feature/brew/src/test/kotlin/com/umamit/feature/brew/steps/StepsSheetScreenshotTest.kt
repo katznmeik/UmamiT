@@ -121,6 +121,40 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
         ),
     )
 
+    @Test
+    fun hotStepsOfMinutes() = capture(
+        "hotStepsOfMinutes",
+        StepsSheetInput(
+            // From v0.3.0 a hot step of 10–59 min has its Vorwarnung like any short step („Auto · 10 s"); from
+            // 60 min it is a long step without one („Auto · keine", „10 s · keine"; TMR-18, D-098).
+            steps = listOf(
+                step(StepKind.INFUSION, 15 * 60, 95, StepStatus.STARTED),
+                step(StepKind.INFUSION, 30 * 60, 95, preAlert = 20),
+                step(StepKind.INFUSION, 60 * 60, 95),
+                step(StepKind.INFUSION, 60 * 60, 95, preAlert = 10),
+            ),
+            hasRecipe = true,
+            baseTempC = 95,
+            preAlertBaseSeconds = 10,
+        ),
+    )
+
+    @Test
+    fun coldBrew() = capture(
+        "coldBrew",
+        StepsSheetInput(
+            // Every step of a cold or ice brew is a long step, however short (TMR-18).
+            steps = listOf(
+                step(StepKind.INFUSION, 15 * 60, 5, StepStatus.STARTED),
+                step(StepKind.INFUSION, 4 * 3_600, 5, preAlert = 10),
+            ),
+            hasRecipe = true,
+            baseTempC = 5,
+            preAlertBaseSeconds = 10,
+            longStepsOnly = true,
+        ),
+    )
+
     private fun step(
         kind: StepKind,
         seconds: Int,
