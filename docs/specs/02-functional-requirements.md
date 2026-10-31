@@ -979,7 +979,9 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
 **INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
 Once a day at the time of SET-29 (default 18:00) one quiet notification
 lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
-with lines „Tanabata · 14 g", „Hisui · leer". A tap opens Start.
+with lines „Tanabata · 14 g", „Hisui · leer"; one tea is named, „Tanabata
+wird knapp" or, empty, „Hisui ist leer" (as INV-10 says it). A tap opens
+Start.
 - AC1: Teas hidden with *Ausblenden* (INV-10) are included until their next
   INITIAL or PURCHASE event; archived teas and teas without stock events
   never.
@@ -1041,7 +1043,7 @@ Every chart has an accessible table alternative.
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
-| SET-29 | Erinnerung um (INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
+| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |

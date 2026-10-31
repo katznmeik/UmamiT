@@ -359,7 +359,9 @@ class BrewSessionController @Inject constructor(
             }
             done = true
             val now = clocks.read()
-            persisted.forEach { (slot, restored) -> recoverSlot(slots[slot], restored, now) }
+            // The brew slot first; one reboot notice for both once both are recovered (04 §7.3).
+            val rebooted = persisted.filter { (slot, restored) -> recoverSlot(slots[slot], restored, now) }.keys
+            effects.notifyResumedAfterReboot(rebooted.toList())
             persisted.filterValues { it.state !is TimerState.Active }.keys.forEach { idle ->
                 attempt { ports.alarms.reconcile(idle, DueTimes.NONE) }
                     ?.let { Log.w(TAG, "alarms of the idle $idle slot not cancelled", it) }
@@ -373,9 +375,16 @@ class BrewSessionController @Inject constructor(
             persistedTimer.endOrphans((restoredBrew?.session?.kind as? SessionKind.Brew)?.sessionId, now)
         }
 
-        /** Restores [restored] into [slot] and sends it `recover` (04 §7.2); a slot without a timer stays idle. */
-        private suspend fun recoverSlot(slot: ControllerSlot, restored: PersistedTimer.Restored, now: ClockReading) {
-            val active = restored.state as? TimerState.Active ?: return
+        /**
+         * Restores [restored] into [slot] and sends it `recover` (04 §7.2); a slot without a timer stays idle.
+         * Returns whether its timer survived a reboot.
+         */
+        private suspend fun recoverSlot(
+            slot: ControllerSlot,
+            restored: PersistedTimer.Restored,
+            now: ClockReading,
+        ): Boolean {
+            val active = restored.state as? TimerState.Active ?: return false
             slot.timer = active
             slot.restoredForAlarmLog = active
             handle(slot.id, TimerEvent.Recover, now, EventSource.RECOVERY, startDetails = restored.details)
@@ -390,7 +399,7 @@ class BrewSessionController @Inject constructor(
                     service = BrewTimerEngine.needsService(slot.timer),
                 ),
             )
-            if (rebooted) effects.notifyResumedAfterReboot(slot.id)
+            return rebooted
         }
 
         /**

@@ -753,7 +753,8 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   does all three, from the settings.
 - **An empty day** posts nothing and removes yesterday's notification 12,
   which would no longer be true. A failed read (an `IOException`) skips the
-  day, logged; the next day is scheduled either way.
+  day, logged; the next day is scheduled either way. (The v0.3.0 code review
+  widened this to every failure; see its build notes.)
 - **Notification.** Title „3 Tees werden knapp" (two and more), „Tanabata
   wird knapp" (one); `InboxStyle` lines „Tanabata · 14 g" (0,1 g in German
   format, no-break space before „g"), „Hisui · leer"; the collapsed text
@@ -935,7 +936,9 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   notification and an alert open it without one, and it then shows the
   timer in front of the controller (#134; the one just started) and keeps
   it from its first frame. So the row's *Pause*, which puts the other timer in front of
-  the controller, never swaps the screen under the finger. A ringing alert
+  the controller, never swaps the screen under the finger. (Amended by the
+  v0.3.0 code review: a notification and an alert name their timer and open
+  it; Start's card shows and opens the brew only.) A ringing alert
   of either timer takes any route at once, the brew's first (rule 8); a held
   quick alert never does. A route whose timer ends closes (back to the timer
   below it, or the shell, where the „Gespeichert" sheet shows), except while
@@ -1247,6 +1250,83 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
 - **Add on that detail.** *Hinzufügen* / *Nachkaufen* works as on any
   SCR-21; the saved purchase stays on the detail (no picker flow here, D-088),
   and back returns to the setup, whose stock line follows the new stock.
+
+**Build notes (Claude, 2026-10-31, the v0.3.0 code review).**
+- **One store, per slot.** The single-timer methods #126 kept
+  (`ActiveBrewStore.read()`, `persist(snapshot)`, `clear()`, and the DAO's
+  slotless `get()` and `deleteOtherThan`) are gone: since #134 only tests
+  used them, and `persist(snapshot)` cleared the other slot, a trap for a
+  timer running beside it (rule 8). Every caller names its slot.
+- **A notification opens its own timer (04 §8.2).** The content intents of
+  notifications 1, 2, 4 and 5 and the alert's full-screen intent name the
+  slot of the timer they show (`TimerScreenIntents.EXTRA_SLOT`), one request
+  code per slot (301/302 the brew's, 306/307 the quick timer's), since extras
+  do not tell PendingIntents apart and a shared code would let the latest
+  notification's slot replace the other's. Before, a tap opened the timer in
+  front of the controller: after *Pause* on the brew's row the Live Update
+  was the quick timer's, but its tap opened the brew. The activity keeps the
+  slot with the request's token (saved state and intent, #47). The
+  navigation pops back to the timer route that shows that slot (a route
+  opened for none records the timer it pinned in its entry's saved state);
+  a topmost route that shows the other timer is left as its row leaves it,
+  back to the route below when the row opened it, else the requested route
+  opens above it, so two timers still stack at most two routes. A request
+  for the timer already on top keeps that route (before, it was replaced by
+  a fresh one).
+- **One reboot notice for both (04 §7.3).** Each slot's recovery posted
+  „Dein Timer läuft weiter" as notification 3, so with both timers the quick
+  timer's replaced the brew's. Now the notice goes once, after both slots
+  are recovered: one timer as before, both as „Deine Timer laufen weiter" ·
+  „Gyokuro und Schnelltimer · nach dem Neustart" (brew first), whose tap
+  opens the timer in front (its own request code, 305); one timer's notice
+  opens that timer with its slot's code. An alerting timer is left out (the
+  alert is its notice, D-044).
+- **A released alert in the log (06 §5.6).** The player's line of every
+  alert was timed against the deadline, so a quick alert held 12 min read as
+  720 000 ms late in *Diagnose*. Its sound is now due at its release
+  (`ringingSince`), and the line names the hold:
+  `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta +15 ms`. An
+  alert that rang at its deadline is unchanged, byte for byte. `FireTime`
+  reads the hold back (`heldMs`); `CueTimes` refuses such a sound, so the
+  accuracy report never counts a hold as lateness or as on time (the run
+  avoids holds anyway, #137).
+- **Start's card is the brew's (03 SCR-02).** The card took the controller's
+  timer in front, so a Schnelltimer alone replaced *Aufguss starten* and,
+  with both timers, the card switched to the quick timer when it was in
+  front. Now only an active brew replaces the card (`BrewStarter.observeActive`,
+  the brew slot as it changes, also behind the quick timer); a quick timer
+  alone leaves *Aufguss starten* and *Nochmal brühen* as they are, and the
+  bar shows it. The card's tap opens the brew's timer (`StartNavigation.openTimerOf`),
+  not the timer in front. Start's question still closes on either timer's
+  alert. The card looks as before, so no golden changed.
+- **One empty tea (INV-11).** The reminder of a single empty tea is titled
+  „Hisui ist leer" (INV-10's wording), not „Hisui wird knapp" over „Hisui ·
+  leer"; several teas stay „N Tees werden knapp".
+- **The reminder never breaks its chain (INV-11).** A run read the settings
+  outside its `try` and caught only an `IOException`, so any other failure
+  failed the job, and the successor it had appended (`APPEND_OR_REPLACE`)
+  failed with it: no reminder until the next app start. Worse, a failed
+  query left the day without a run, so the successor was due at once: a
+  query that kept failing ran the job again and again (the test drove it
+  into a `StackOverflowError`). Now every failure (`CancellationException`
+  aside) is logged and skips the day: the job succeeds, and the next run
+  waits for tomorrow's set time (`scheduleNext(skipToday)`), or a day when
+  the settings cannot be read; a switched-off reminder still schedules none.
+- **Small cleanups.** `TimerSlot.other` and the slots' name prefix
+  (`TimerSlot.named`: `DEADLINE`, `QUICK.DEADLINE`) live once in `core:model`
+  for the screens, the fake starter, the alarm and action receivers and the
+  log; `SlotNamesTest` pins every alarm broadcast and notification action
+  byte for byte (pending alarms and posted notifications of earlier builds
+  are matched by them), `ControllerDiagnosticsLogTest` the log lines. The
+  test-only `AlertArbitration.ringingSlot` is gone. The reminder's grams
+  use the app's one formatter (`stockGramsText`, moved from
+  `core:designsystem` to `core:common`). The timer screen's log tag is
+  `UmamiTTimerScreen`.
+- **Accepted, not changed** (judgement smells of the review): the re-post
+  logic of the service and `TimerNotifications`, the collaborators
+  `TransitionEffects` exposes, `ActiveBrewSlotStore`, the duplicated
+  `UmamiTTimer` tag, the stock threshold rule in four places, and the
+  primitive settings types.
 
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)

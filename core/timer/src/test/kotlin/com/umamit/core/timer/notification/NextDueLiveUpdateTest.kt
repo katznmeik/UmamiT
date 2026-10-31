@@ -104,6 +104,26 @@ class NextDueLiveUpdateTest {
         }
 
     @Test
+    fun `each notification's tap opens its own timer, also after Pause moved the Live Update (04 8_2)`() =
+        runBlocking<Unit> {
+            controller.startSession(brewStart(infusion(120, preAlert = 0)))
+            controller.send(TimerSlot.BREW, TimerEvent.Start)
+            controller.startQuickTimer(300, preAlertSeconds = 0, run = true)
+            deliver()
+            assertLiveUpdate(BREW, other = QUICK)
+            assertThat(tapOpens(TimerNotifications.ID_LIVE_UPDATE)).isEqualTo(TimerSlot.BREW)
+            assertThat(tapOpens(TimerNotifications.ID_OTHER)).isEqualTo(TimerSlot.QUICK)
+
+            // *Pause* on the brew (its row on the quick timer's screen): the Schnelltimer is due next.
+            controller.send(TimerSlot.BREW, TimerEvent.Pause)
+            deliver()
+
+            assertLiveUpdate(QUICK, other = BREW)
+            assertThat(tapOpens(TimerNotifications.ID_LIVE_UPDATE)).isEqualTo(TimerSlot.QUICK)
+            assertThat(tapOpens(TimerNotifications.ID_OTHER)).isEqualTo(TimerSlot.BREW)
+        }
+
+    @Test
     fun `when the Live Update's timer ends the other one becomes the Live Update, with nothing left behind`() =
         runBlocking<Unit> {
             controller.startSession(brewStart(infusion(120, preAlert = 0)))
@@ -325,6 +345,10 @@ class NextDueLiveUpdateTest {
     }
 
     private fun activeIds(): List<Int> = notificationManager.activeNotifications.map { it.id }
+
+    /** The timer notification [id]'s tap opens (04 §8.2); null: the one in front. */
+    private fun tapOpens(id: Int): TimerSlot? =
+        TimerScreenIntents.slotOf(shadowOf(posted(id).contentIntent).savedIntent)
 
     private fun posted(id: Int): Notification =
         checkNotNull(system.getNotification(id)) { "notification $id is not showing: ${activeIds()}" }

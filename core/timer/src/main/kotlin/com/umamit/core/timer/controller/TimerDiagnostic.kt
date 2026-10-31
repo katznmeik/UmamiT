@@ -63,8 +63,17 @@ enum class EventSource {
  * [kind]. With the reading of the moment it was handled, the log shows
  * scheduled vs actual fire time (06 §5.6, TMR-30); a quick timer's line names
  * its slot, so the accuracy run tells the two timers apart (D-098, #137).
+ *
+ * [heldMs] is set only for the sound of a quick alert released after it was held behind the brew's (04 §9.3): it
+ * was due at its release ([atMs]), [heldMs] after its deadline, so the log shows the player's own delay and the
+ * hold apart, never a hold as lateness.
  */
-data class ScheduledTime(val kind: TimerAlarmKind, val atMs: Long, val slot: TimerSlot = TimerSlot.BREW) {
+data class ScheduledTime(
+    val kind: TimerAlarmKind,
+    val atMs: Long,
+    val slot: TimerSlot = TimerSlot.BREW,
+    val heldMs: Long? = null,
+) {
     /** How late [now] is after the scheduled time, in ms, on this kind's clock. */
     fun lateMs(now: ClockReading): Long = when (kind.clock) {
         AlarmClock.ELAPSED -> now.elapsedMs - atMs

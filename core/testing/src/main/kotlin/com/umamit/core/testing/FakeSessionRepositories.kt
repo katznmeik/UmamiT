@@ -213,18 +213,6 @@ class FakeActiveBrewStore internal constructor(private val s: FakeSessions) : Ac
 
     override suspend fun clear(slot: TimerSlot) = s.activeRows.update { it - slot }
 
-    override suspend fun read(): TimerSnapshot? = read(TimerSlot.BREW) ?: read(TimerSlot.QUICK)
-
-    override suspend fun persist(snapshot: TimerSnapshot?) {
-        if (snapshot == null) return clear()
-        write(snapshot)
-        s.activeRows.update { rows -> rows.filterKeys { it == snapshot.activeBrew.slot } }
-    }
-
-    override suspend fun clear() {
-        s.activeRows.value = emptyMap()
-    }
-
     private fun write(snapshot: TimerSnapshot) {
         snapshot.activeBrew.sessionId?.let { id ->
             check(id in s.sessionRows.value) { "no session $id" }

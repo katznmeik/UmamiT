@@ -122,12 +122,14 @@ internal class TransitionEffects(
     }
 
     /**
-     * „Dein …-Timer läuft weiter" (04 §7.3) for the timer of [slot] that survived a reboot, after its
-     * recovery; not while alerting, where the alert is the notice (D-044).
+     * „Dein Timer läuft weiter" (04 §7.3) for the timers of [slots] that survived a reboot, after the recovery of
+     * both: one notice, which names both when both go on (D-098); not for an alerting timer, where the alert is
+     * the notice (D-044).
      */
-    fun notifyResumedAfterReboot(slot: TimerSlot) {
-        val active = screens[slot]?.takeUnless { it.alerting } ?: return
-        attempt { ports.notifier.notifyTimerResumed(active) }?.let { Log.w(TAG, "reboot notice not posted", it) }
+    fun notifyResumedAfterReboot(slots: List<TimerSlot>) {
+        val resumed = slots.mapNotNull { slot -> screens[slot]?.takeUnless { it.alerting } }
+        if (resumed.isEmpty()) return
+        attempt { ports.notifier.notifyTimersResumed(resumed) }?.let { Log.w(TAG, "reboot notice not posted", it) }
     }
 
     /** Writes [entry] to the diagnostics log; a log that fails never stops the timer. */

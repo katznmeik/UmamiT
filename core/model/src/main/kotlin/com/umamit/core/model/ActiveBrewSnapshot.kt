@@ -34,7 +34,7 @@ package com.umamit.core.model
  * @property alertRingingSinceElapsedMs ALERTING (umamit.db v4, D-098): when the alert last started ringing
  *   (`ringingSince`, 04 §9.3); null = held (a quick alert waiting for the brew's) or not alerting.
  * @property alertRingingSinceWallMs the same on the wall clock; it rebases [alertRingingSinceElapsedMs] after a reboot.
- *   Until the held alert arrives (v0.3.0-03, #134) the engine neither sets nor reads the two; the store keeps them.
+ *   A quick alert that rang at its deadline rings since its deadline; a released one since its release (04 §3.3).
  */
 data class ActiveBrewSnapshot(
     val sessionId: String?,

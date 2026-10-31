@@ -166,4 +166,4 @@ private fun stockOf(
     tea?.let { TimerStock(grams, StockLevel.of(grams, it.lowStockGrams ?: global)) }
 }
 
-private const val TAG = "TimerViewModel"
+private const val TAG = "UmamiTTimerScreen"

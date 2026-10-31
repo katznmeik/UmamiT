@@ -39,6 +39,8 @@ data class QuickTimerAlongside(val seconds: Int, val preAlertSeconds: Int, val a
 data class CueTimes(val handled: FireTime, val played: FireTime) {
     init {
         require(played.source == FireTime.PLAYER) { "not a sound start: $played" }
+        // A released alert measures the arbitration (04 §9.3), not the latency: never a cue of the run.
+        require(played.heldMs == null) { "a held alert's sound is no cue: $played" }
         require(
             handled.kind == played.kind && handled.slot == played.slot &&
                 handled.scheduledMonoMs == played.scheduledMonoMs,

@@ -477,6 +477,9 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
+  Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
+  *Aufguss starten* (the bar shows it); with both timers the card shows the
+  brew, never switching to the quick timer, and its tap opens the brew.
 - **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
   opens SCR-07 and starts a quick timer alongside it, without a question;
   while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
@@ -1161,7 +1164,7 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Delete tea | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
 | Another session | „Erst die *Sencha*-Sitzung beenden?" · Beenden & neu starten / Abbrechen |
 | Another quick timer (v0.3.0, D-098) | „Schnelltimer beenden und neu starten?" · Beenden & neu starten / Abbrechen |
-| Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp"; lines „Tanabata · 14 g", „Hisui · leer" |
+| Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp" / „*Hisui* ist leer"; lines „Tanabata · 14 g", „Hisui · leer" |
 | Alarm volume 0 (v0.3.0, TMR-31) | „Alarmlautstärke ist aus" · Beheben |
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |

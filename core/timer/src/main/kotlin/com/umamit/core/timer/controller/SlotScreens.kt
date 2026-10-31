@@ -43,6 +43,3 @@ internal class SlotScreens {
             ?: TimerUiState.Idle
     }
 }
-
-/** The other slot. */
-internal val TimerSlot.other: TimerSlot get() = if (this == TimerSlot.BREW) TimerSlot.QUICK else TimerSlot.BREW

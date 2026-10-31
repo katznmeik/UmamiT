@@ -38,6 +38,8 @@
     <!-- Two or more teas; one tea is named (data_stock_reminder_title_one), so no plural is needed. -->
     <string name="data_stock_reminder_title" tools:ignore="PluralsCandidate">%1$d Tees werden knapp</string>
     <string name="data_stock_reminder_title_one">%1$s wird knapp</string>
+    <!-- One tea, empty: as the Start card says it (INV-10). -->
+    <string name="data_stock_reminder_title_one_empty">%1$s ist leer</string>
     <string name="data_stock_reminder_line">%1$s · %2$s g</string>
     <string name="data_stock_reminder_line_empty">%1$s · leer</string>
     <string name="data_stock_reminder_separator">", "</string>

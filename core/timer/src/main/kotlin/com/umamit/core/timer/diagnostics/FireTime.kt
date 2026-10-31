@@ -19,7 +19,9 @@ import com.umamit.core.timer.engine.TimerEvent
  *   10:01:00.140 (mono 5060140) delta +140 ms` (the part on the start since D-092).
  *
  * A quick timer's line names its slot before the kind (`QUICK.DEADLINE scheduled …`; D-098, #137);
- * the brew's has none, as with one timer.
+ * the brew's has none, as with one timer. The sound of a quick alert released after a hold (04 §9.3) reads
+ * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 …`: due at its release, with its [heldMs], so it never
+ * pairs with its handled deadline and a hold never counts as lateness.
  *
  * The accuracy workflow (04 §12, #52) reads the pre-alert and the alert of every step this
  * way; the round-trip tests keep these parsers and the log format together.
@@ -48,13 +50,16 @@ data class FireTime(
     val start: String? = null,
     /** Whose cue it is: the brew session's or the quick timer's (D-098). */
     val slot: TimerSlot = TimerSlot.BREW,
+    /** A released alert's sound: how long it was held after its deadline; the scheduled time is its release. */
+    val heldMs: Long? = null,
 ) {
     companion object {
         /** The [source] of a fire time read by [parsePlayed]: the alert player started the sound. */
         const val PLAYER = "PLAYER"
 
         private const val TIMING =
-            """(?:(\w+)\.)?(\w+) scheduled (\S+) \(mono (-?\d+)\) actual (\S+) \(mono (-?\d+)\) delta ([+-]\d+) ms"""
+            """(?:(\w+)\.)?(\w+) (?:held (\d+) ms, released|scheduled) (\S+) \(mono (-?\d+)\) actual (\S+) """ +
+                """\(mono (-?\d+)\) delta ([+-]\d+) ms"""
 
         private val ACCEPTED = Regex("""^event (\w+) from (\w+): \w+ -> \w+ accepted \| $TIMING$""")
 
@@ -114,19 +119,21 @@ data class FireTime(
                 actualMonoMs = values[ACTUAL_MONO].toLong(),
                 deltaMs = values[DELTA].toLong(),
                 slot = slot,
+                heldMs = values[HELD].takeIf { it.isNotEmpty() }?.toLong(),
             )
         }
 
         // The groups of ACCEPTED and PLAYED; PLAYED has the cue as EVENT and an empty SOURCE. SLOT is empty for
-        // the brew slot's line.
+        // the brew slot's line, HELD for every line but a released alert's sound.
         private const val EVENT = 1
         private const val SOURCE = 2
         private const val SLOT = 3
         private const val KIND = 4
-        private const val SCHEDULED_WALL = 5
-        private const val SCHEDULED_MONO = 6
-        private const val ACTUAL_WALL = 7
-        private const val ACTUAL_MONO = 8
-        private const val DELTA = 9
+        private const val HELD = 5
+        private const val SCHEDULED_WALL = 6
+        private const val SCHEDULED_MONO = 7
+        private const val ACTUAL_WALL = 8
+        private const val ACTUAL_MONO = 9
+        private const val DELTA = 10
     }
 }

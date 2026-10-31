@@ -4,7 +4,10 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TransitionOutcome
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
@@ -21,6 +24,9 @@ interface BrewStarter {
 
     /** The active timer of [slot] now (the brew session, the quick timer); null while that slot is idle. */
     fun activeIn(slot: TimerSlot): TimerUiState.Active?
+
+    /** The active timer of [slot] as it changes, whichever timer is in front; null while that slot is idle. */
+    fun observeActive(slot: TimerSlot): Flow<TimerUiState.Active?>
 
     /**
      * *Brühen starten* / *Nochmal brühen*: the session waits in READY, also while a quick timer runs. Returns
@@ -64,6 +70,9 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
     override val state: StateFlow<TimerUiState> get() = controller.state
 
     override fun activeIn(slot: TimerSlot): TimerUiState.Active? = controller.state(slot).value as? TimerUiState.Active
+
+    override fun observeActive(slot: TimerSlot): Flow<TimerUiState.Active?> =
+        controller.state(slot).map { it as? TimerUiState.Active }.distinctUntilChanged()
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome = controller.startSession(request)
 

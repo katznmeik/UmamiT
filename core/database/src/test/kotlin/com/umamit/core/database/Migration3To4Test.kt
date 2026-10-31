@@ -94,12 +94,11 @@ class Migration3To4Test {
                     .that(db.catalogBookmarkDao().observeKeys().first()).containsExactly("TG0002")
                 val v3 = case.activeBrew
                 if (v3 == null) {
-                    assertWithMessage("$label: the one timer").that(dao.get()).isNull()
+                    TimerSlot.entries.forEach { assertWithMessage("$label: slot $it").that(dao.get(it)).isNull() }
                     return@forEachIndexed
                 }
 
                 val active = dao.get(checkNotNull(case.slot))!!
-                assertWithMessage("$label: the one timer").that(dao.get()).isEqualTo(active)
                 assertWithMessage("$label: slot").that(active.slot).isEqualTo(case.slot)
                 assertWithMessage("$label: quick timer").that(active.isQuickTimer).isEqualTo(v3["is_quick_timer"] == 1)
                 assertWithMessage("$label: session").that(active.sessionId).isEqualTo(v3["session_id"])

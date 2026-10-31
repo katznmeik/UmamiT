@@ -244,13 +244,16 @@ class ObservedStore(private val real: ActiveBrewStore, private val log: TimerPor
     override suspend fun clear(slot: TimerSlot) = real.clear(slot)
 
     /** The phase of the stored `active_brew` row (the brew slot's, else the quick slot's), read back. */
-    suspend fun storedPhase(): TimerPhase? = real.read()?.activeBrew?.phase
+    suspend fun storedPhase(): TimerPhase? = readEither()?.activeBrew?.phase
 
     /** The phase of [slot]'s stored row, read back through the store. */
     suspend fun storedPhase(slot: TimerSlot): TimerPhase? = real.read(slot)?.activeBrew?.phase
 
-    /** The state the stored row restores to. */
-    suspend fun stored() = BrewTimerEngine.restore(real.read())
+    /** The state the stored row (the brew slot's, else the quick slot's) restores to. */
+    suspend fun stored() = BrewTimerEngine.restore(readEither())
+
+    /** The one stored timer of a one-timer test: the brew slot's, else the quick slot's. */
+    private suspend fun readEither(): TimerSnapshot? = real.read(TimerSlot.BREW) ?: real.read(TimerSlot.QUICK)
 
     /** The state [slot]'s stored row restores to. */
     suspend fun stored(slot: TimerSlot) = BrewTimerEngine.restore(real.read(slot))

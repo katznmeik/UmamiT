@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
@@ -57,7 +58,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * route until it runs; then the timer shows it.
  *
  * A notification opens the timer the same way (03 §2.4; D-064): each new [timerRequest] token
- * (its content or full-screen intent) brings the timer to the top. Until it is there, the root
+ * (its content or full-screen intent) brings the timer to the top, the timer the notification names (04 §8.2,
+ * D-098: a notification opens its own timer, whichever role it has). Until it is there, the root
  * draws the timer's dark background over the shell and reports the timer as visible, so the
  * shell never shows over the lock screen, not even for one frame (D-058). One place decides
  * both ([rememberTimerFirst]).
@@ -66,7 +68,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param onTimerVisibleChange whether the timer is the current route, for the lock-screen flags (SCR-05).
  * @param alertKey the identity of the alert playing now (`TimerUiState.alertKey`), or null.
  * @param timerRequest a new non-zero token for each request to open the timer (a notification's
- *   content or full-screen intent); 0 for none.
+ *   content or full-screen intent), with the timer it names; token 0 for none.
  * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
  *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11), its fourth
@@ -103,7 +105,7 @@ internal fun UmamitRoot(
     journalSources: JournalSources,
     alertKey: StateFlow<String?>,
     modifier: Modifier = Modifier,
-    timerRequest: StateFlow<Long> = NO_TIMER_REQUEST,
+    timerRequest: StateFlow<TimerRequest> = NO_TIMER_REQUEST,
     onConsumeTimerRequest: (Long) -> Unit = {},
     onTimerVisibleChange: (Boolean) -> Unit = {},
     timerScreen: @Composable (
@@ -117,6 +119,7 @@ internal fun UmamitRoot(
             onAdjustBrew = onAdjust,
             onOpenTimerSettings = onSettings,
             slot = shown.slot,
+            onPin = shown.onPin,
             onShowOther = shown.onShowOther,
         )
     },
@@ -212,6 +215,7 @@ internal fun UmamitRoot(
             }
         },
         openTimer = openTimer,
+        openTimerOf = openTimerOf,
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
         // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
         openQuickTimer = {
@@ -305,7 +309,12 @@ internal fun UmamitRoot(
                             popUpTo<TimerRoute> { inclusive = true }
                         }
                     },
-                    TimerShown(route.slot) { other -> navController.showOtherTimer(timerEntry, route, other) },
+                    TimerShown(
+                        slot = route.slot,
+                        // The timer a route opened for none shows, for a later notification's request (04 §8.2).
+                        onPin = { pinned -> timerEntry.pinTimer(pinned) },
+                        onShowOther = { other -> navController.showOtherTimer(timerEntry, route, other) },
+                    ),
                 )
             }
             composable<BrewSetupRoute> {
@@ -473,27 +482,9 @@ private fun NavHostController.openCatalogRefresh(
     navigateAbove(route) { launchSingleTop = true }
 }
 
-/**
- * A tap on the row for the [other] timer on the timer [route] of [entry] (D-098): the other timer's route above it;
- * from a route opened by that row, back to the route below it, so two timers never stack more than two routes. Only
- * while resumed: a quick double tap opens the other timer once (D-090).
- */
-private fun NavHostController.showOtherTimer(entry: NavBackStackEntry, route: TimerRoute, other: TimerSlot) {
-    if (entry.lifecycle.currentState != Lifecycle.State.RESUMED) return
-    if (route.switched) popBackStack() else navigate(TimerRoute(other, switched = true))
-}
-
 /** Runs [open], or [instead] while an alert plays ([alerting]): nothing opens over an alert (rule 8). */
 private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, open: () -> Unit) {
     if (alerting()) instead() else open()
-}
-
-/** Whether the timer is on the back stack (its public check throws when it is not). */
-private fun NavHostController.hasTimer(): Boolean = try {
-    getBackStackEntry<TimerRoute>()
-    true
-} catch (_: IllegalArgumentException) {
-    false
 }
 
 /** What [rememberTimerFirst] gives the root. */
@@ -510,10 +501,10 @@ private class TimerFirst(
  *   *Über*, *Diagnose*, the first-start setup and any later one) opened before it gives way to
  *   the timer, once; one opened in this alert stays. Checked on every new alert and on resume,
  *   so an alert that started while the app was in the background is caught too;
- * - **a notification's request** (a new [timerRequest] token): the timer comes to the top, and
+ * - **a notification's request** (a new [timerRequest] token): the timer it names comes to the top, and
  *   the activity forgets the token ([onConsume]) only then, so a recreation before keeps it.
  *
- * Either way the timer is popped back to when it is on the stack, else it replaces what lies
+ * Either way the timer is popped back to when it is on the stack ([popBackToTimerOf]), else it replaces what lies
  * above the shell, without a transition while alerting. The alert a route was opened in and the
  * handled token survive a configuration change.
  */
@@ -521,7 +512,7 @@ private class TimerFirst(
 private fun rememberTimerFirst(
     navController: NavHostController,
     alert: String?,
-    timerRequest: StateFlow<Long>,
+    timerRequest: StateFlow<TimerRequest>,
     onConsume: (Long) -> Unit,
 ): TimerFirst {
     // The alert the route on top of the shell or timer was opened in (null: none played). Only that alert
@@ -532,9 +523,9 @@ private fun rememberTimerFirst(
     val currentAlert by rememberUpdatedState(alert)
     val currentOnConsume by rememberUpdatedState(onConsume)
 
-    val bringTimerToTop = {
-        if (!navController.popBackStack<TimerRoute>(inclusive = false)) {
-            navController.navigate(TimerRoute()) {
+    val bringTimerToTop = { slot: TimerSlot? ->
+        if (!navController.popBackToTimerOf(slot)) {
+            navController.navigate(TimerRoute(slot)) {
                 popUpTo<ShellRoute> { inclusive = false }
                 launchSingleTop = true
             }
@@ -543,7 +534,7 @@ private fun rememberTimerFirst(
     val giveWayToNewAlert = {
         val playing = currentAlert
         val above = navController.currentDestination?.isAboveShellAndTimer() == true
-        if (playing != null && above && playing != aboveAlert) bringTimerToTop()
+        if (playing != null && above && playing != aboveAlert) bringTimerToTop(null)
     }
     LaunchedEffect(alert) { giveWayToNewAlert() }
     // A defensive belt: the keyed effect above already sees a new alert after the background, because the
@@ -553,14 +544,15 @@ private fun rememberTimerFirst(
         onPauseOrDispose {}
     }
     LaunchedEffect(request) {
-        if (request != 0L && request != handledRequest) {
-            bringTimerToTop()
-            handledRequest = request
-            currentOnConsume(request)
+        val token = request.token
+        if (token != 0L && token != handledRequest) {
+            bringTimerToTop(request.slot)
+            handledRequest = token
+            currentOnConsume(token)
         }
     }
     return TimerFirst(
-        requestPending = request != 0L && request != handledRequest,
+        requestPending = request.token != 0L && request.token != handledRequest,
         navigateAbove = { route, options ->
             aboveAlert = currentAlert
             navController.navigate(route, options)
@@ -578,15 +570,20 @@ private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
 
 /**
  * What the timer route's content gets about its timer (D-098): the [slot] it shows (null: the one in front when it
- * opened) and [onShowOther], a tap on the other timer's row.
+ * opened), [onPin], which a route opened for none calls with the timer it then keeps showing, and
+ * [onShowOther], a tap on the other timer's row.
  */
-internal class TimerShown(val slot: TimerSlot?, val onShowOther: (TimerSlot) -> Unit)
+internal class TimerShown(
+    val slot: TimerSlot?,
+    val onPin: (TimerSlot) -> Unit = {},
+    val onShowOther: (TimerSlot) -> Unit = {},
+)
 
 /** The cover over the shell while the timer opens from a notification. */
 internal const val SHELL_COVER_TAG = "shell_cover"
 
 /** No request to open the timer ever comes. */
-private val NO_TIMER_REQUEST: StateFlow<Long> = MutableStateFlow(0L)
+private val NO_TIMER_REQUEST: StateFlow<TimerRequest> = MutableStateFlow(TimerRequest(0L))
 
 /** No catalog refresh notification is ever tapped. */
 private val NO_CATALOG_REFRESH_REQUEST: StateFlow<Long> = MutableStateFlow(0L)

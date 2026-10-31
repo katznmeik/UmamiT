@@ -3,7 +3,7 @@ package com.umamit.feature.brew.timer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
-import com.umamit.core.designsystem.text.stockGramsText
+import com.umamit.core.common.stockGramsText
 import com.umamit.core.model.StockLevel
 import com.umamit.feature.brew.R
 

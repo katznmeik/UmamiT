@@ -65,4 +65,7 @@
     <!-- After a reboot the session goes on (04 §7.3, D-063) -->
     <string name="timer_resumed_title">Dein Timer läuft weiter</string>
     <string name="timer_resumed_text">%1$s · nach dem Neustart</string>
+    <!-- Both timers survived the reboot: one notice names both, the brew first (04 §7.3, D-098) -->
+    <string name="timer_resumed_title_both">Deine Timer laufen weiter</string>
+    <string name="timer_resumed_text_both">%1$s und %2$s · nach dem Neustart</string>
 </resources>

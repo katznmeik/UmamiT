@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.umamit.core.common.stockGramsText
 import com.umamit.core.designsystem.component.KettleHint
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ReliabilityBanner
@@ -53,7 +54,6 @@ import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
-import com.umamit.core.designsystem.text.stockGramsText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind

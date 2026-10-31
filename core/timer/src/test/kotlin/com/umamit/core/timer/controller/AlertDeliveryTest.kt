@@ -120,7 +120,7 @@ class AlertDeliveryTest {
 
         h.controller.alertCompleted(h.alert.playing!!)
 
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
     }
 
@@ -136,7 +136,7 @@ class AlertDeliveryTest {
 
         h.controller.alertCompleted(first)
 
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isFalse()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isFalse()
         assertThat(h.diagnostics.entriesOf<TimerDiagnostic.StaleAlertCompletion>().map { it.alert })
             .containsExactly(first)
         assertThat(h.alert.playing).isEqualTo(StepAlert(SessionKind.Brew(h.sessionId), 1, h.clock.wall))

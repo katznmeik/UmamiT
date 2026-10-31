@@ -196,6 +196,39 @@ class AccuracyReportTest {
         assertThat(FireTime.parse(ringStart)).isNull()
     }
 
+    /**
+     * A quick alert held behind the brew's and released 12 min after its deadline (04 §9.3): its sound's line is timed
+     * from the release and names the hold, so *Diagnose* shows the player's own delay, not 720 s. It never pairs with
+     * the hold's handled deadline, so a report never counts a hold as lateness (nor as on time).
+     */
+    @Test
+    fun `a released alert's sound is timed from its release, names its hold and is never measured as late`() {
+        clock.advanceBy(TWELVE_MINUTES_MS + 15)
+        val line = TimerDiagnosticFormat.message(
+            played(AlertCue.ALERT, lateMs = 15, slot = TimerSlot.QUICK).copy(
+                scheduled = ScheduledTime(
+                    TimerAlarmKind.DEADLINE,
+                    clock.elapsed - 15,
+                    TimerSlot.QUICK,
+                    heldMs = TWELVE_MINUTES_MS,
+                ),
+            ),
+        )
+
+        assertThat(line).endsWith(
+            "| QUICK.DEADLINE held 720000 ms, released 10:12:00.000 (mono 5720000) " +
+                "actual 10:12:00.015 (mono 5720015) delta +15 ms",
+        )
+        val sound = FireTime.parsePlayed(line)!!
+        assertThat(sound.heldMs).isEqualTo(TWELVE_MINUTES_MS)
+        assertThat(sound.deltaMs).isEqualTo(15)
+        assertThat(sound.slot).isEqualTo(TimerSlot.QUICK)
+        val hold = fire(TimerAlarmKind.DEADLINE, "WAKE_UP", "10:00:00", 5_000_000, 0, TimerSlot.QUICK)
+        assertThrows(IllegalArgumentException::class.java) { CueTimes(hold, sound) }
+        // A sound on time has no hold.
+        assertThat(FireTime.parsePlayed(TimerDiagnosticFormat.message(played(AlertCue.ALERT, 5)))?.heldMs).isNull()
+    }
+
     @Test
     fun `a sound start parses back with where its start spent the time (D-092)`() {
         clock.advanceBy(1_178)
@@ -589,6 +622,8 @@ class AccuracyReportTest {
     )
 
     private companion object {
+        const val TWELVE_MINUTES_MS = 12 * 60_000L
+
         val RUN = AccuracyRun(apiLevel = 36, plannedSteps = 50, stepSeconds = 60, preAlertSeconds = 10)
 
         /** The `alongside` variant (D-098, #137): a 25 s quick timer from each step's start, then one of 300 s. */

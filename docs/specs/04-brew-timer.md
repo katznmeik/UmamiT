@@ -664,8 +664,11 @@ asks the controller to recover (D-063): it restores the state from
 wall-clock data, reschedules the exact alarms (or applies §7.2 if the
 deadline already passed), tries to restart the FGS (§6.3) and posts a
 notification „Dein Timer läuft weiter" (the tea below it) through the notifier port,
-except while alerting (the alert is the notice then). If the FGS start was
-refused, the deadline alarm starts it when it fires (§6.2).
+except while alerting (the alert is the notice then). With both timers it is
+one notice after both are recovered, naming both („Deine Timer laufen
+weiter", „Gyokuro und Schnelltimer · nach dem Neustart"; v0.3.0, D-098), as
+notification 3 holds one notice; an alerting timer is left out of it. If the
+FGS start was refused, the deadline alarm starts it when it fires (§6.2).
 
 Samsung's *Automatische Optimierung* may restart the phone at night; the
 first-start setup shows a hint to disable *Automatisch neu starten* (ONB-02).
@@ -1010,7 +1013,7 @@ sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
 | Situation | Result |
 |---|---|
 | Brew deadline, quick not alerting | Brew alerts as today. |
-| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = now. |
+| Quick deadline, brew not alerting | Quick alerts as today (sound, notification 2, full-screen intent to SCR-07); `ringingSince` = its deadline (also when recovery finds it late, §3.3), so its silent end stays deadline + 10 min. |
 | Both deadlines in the same turn (or within the brew alert) | Brew alerts; quick goes ALERTING **held** (`alertHold`): no sound, no notification 2, no full-screen intent, no overtime timeout. |
 | Brew deadline while the quick alert rings | **Preemption**, same turn: the quick sound stops, the brew alert starts, the quick slot goes back to held. The quick alert is not reported completed. |
 | Brew leaves ALERTING (*Abgegossen*, *Sitzung beenden*, *verwerfen*, its overtime timeout) with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |

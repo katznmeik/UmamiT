@@ -90,13 +90,6 @@ interface ActiveBrewDao {
     @Query("SELECT * FROM active_brew WHERE slot = :slot")
     suspend fun get(slot: TimerSlot): ActiveBrewEntity?
 
-    /**
-     * The one active timer while only one may run (until v0.3.0-03): the brew slot's row, else the quick slot's;
-     * null for none.
-     */
-    @Query("SELECT * FROM active_brew ORDER BY CASE slot WHEN 'BREW' THEN 0 ELSE 1 END LIMIT 1")
-    suspend fun get(): ActiveBrewEntity?
-
     /** Writes the row of its [ActiveBrewEntity.slot]; the other slot's row is untouched. */
     @Upsert
     suspend fun upsert(activeBrew: ActiveBrewEntity)
@@ -104,10 +97,6 @@ interface ActiveBrewDao {
     /** Deletes the row of [slot] only. */
     @Query("DELETE FROM active_brew WHERE slot = :slot")
     suspend fun delete(slot: TimerSlot)
-
-    /** Deletes every row but [slot]'s. */
-    @Query("DELETE FROM active_brew WHERE slot != :slot")
-    suspend fun deleteOtherThan(slot: TimerSlot)
 
     /** Deletes the rows of both slots. */
     @Query("DELETE FROM active_brew")

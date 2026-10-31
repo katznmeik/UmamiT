@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.umamit.core.common.stockGramsText
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.FinishActiveSessionDialog
@@ -53,7 +54,6 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.stockGramsText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel

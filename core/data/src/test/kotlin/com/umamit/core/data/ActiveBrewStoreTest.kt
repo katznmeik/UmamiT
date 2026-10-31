@@ -36,12 +36,9 @@ class ActiveBrewStoreTest {
     @After
     fun tearDown() = data.close()
 
-    /** The stored snapshot equals the engine's, and restoring it gives the same state. */
-    private suspend fun assertStored(name: String, state: TimerState) {
-        val stored = data.activeBrew.read()
-        assertWithMessage("$name: stored snapshot").that(stored).isEqualTo(BrewTimerEngine.snapshot(state))
-        assertWithMessage("$name: restored state").that(BrewTimerEngine.restore(stored)).isEqualTo(state)
-    }
+    /** The stored snapshot in the slot of [state]'s kind equals the engine's, and restoring it gives the same state. */
+    private suspend fun assertStored(name: String, state: TimerState) =
+        assertStored(BrewTimerEngine.snapshot(state)!!.activeBrew.slot, name, state)
 
     /** [slot]'s stored snapshot equals the engine's (none for Idle), and restoring it gives the same state. */
     private suspend fun assertStored(slot: TimerSlot, name: String, state: TimerState) {
@@ -57,7 +54,7 @@ class ActiveBrewStoreTest {
 
     @Test
     fun `no active brew reads as none`() = runTest {
-        assertThat(data.activeBrew.read()).isNull()
+        TimerSlot.entries.forEach { assertWithMessage("$it").that(data.activeBrew.read(it)).isNull() }
     }
 
     @Test
@@ -102,7 +99,7 @@ class ActiveBrewStoreTest {
 
         driver.send(TimerEvent.FinishSession)
 
-        assertThat(data.activeBrew.read()).isNull()
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isNull()
     }
 
     @Test
@@ -123,7 +120,7 @@ class ActiveBrewStoreTest {
 
         val running = driver.send(TimerEvent.Start)
 
-        assertThat(data.activeBrew.read()!!.longStepsOnly).isTrue()
+        assertThat(data.activeBrew.read(TimerSlot.BREW)!!.longStepsOnly).isTrue()
         assertStored("Running cold brew", running)
     }
 
@@ -150,7 +147,7 @@ class ActiveBrewStoreTest {
         )
 
         handMade.forEach { (name, state) ->
-            data.activeBrew.persist(BrewTimerEngine.snapshot(state))
+            data.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(state))
             assertStored(name, state)
         }
     }
@@ -172,7 +169,7 @@ class ActiveBrewStoreTest {
             state = BrewTimerEngine.reduce(state, event, clocks.now()).state
         }
 
-        data.activeBrew.persist(BrewTimerEngine.snapshot(state))
+        data.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(state))
 
         assertStored("Running after an unexecuted skip and edit", state)
     }
@@ -194,7 +191,7 @@ class ActiveBrewStoreTest {
 
         driver.send(TimerEvent.Poured)
 
-        assertThat(data.activeBrew.read()).isNull()
+        assertThat(data.activeBrew.read(TimerSlot.QUICK)).isNull()
     }
 
     @Test
@@ -205,15 +202,15 @@ class ActiveBrewStoreTest {
         }
         val automatic = BrewTimerEngine.snapshot(running)!!
         // The engine leaves the choice null (*Automatisch*) until the selector (v0.2.2-03, #116) sets it.
-        assertThat(data.activeBrew.read()).isEqualTo(automatic)
+        assertThat(data.activeBrew.read(TimerSlot.QUICK)).isEqualTo(automatic)
         assertThat(automatic.activeBrew.quickPreAlertSeconds).isNull()
 
         listOf(0, 5, 30).forEach { choice ->
             val chosen = automatic.copy(activeBrew = automatic.activeBrew.copy(quickPreAlertSeconds = choice))
 
-            data.activeBrew.persist(chosen)
+            data.activeBrew.persist(TimerSlot.QUICK, chosen)
 
-            assertWithMessage("choice $choice").that(data.activeBrew.read()).isEqualTo(chosen)
+            assertWithMessage("choice $choice").that(data.activeBrew.read(TimerSlot.QUICK)).isEqualTo(chosen)
         }
     }
 
@@ -222,17 +219,17 @@ class ActiveBrewStoreTest {
         data.teas.saveTea(tea("t1"))
         val driver = TimerDriver(data)
         val ready = driver.send(startEvent(infusion(60), infusion(20)))
-        val before = data.activeBrew.read()
+        val before = data.activeBrew.read(TimerSlot.BREW)
         // A snapshot of a session without a brew_session row breaks the foreign key.
         val orphan = BrewTimerEngine.snapshot(ready)!!.let {
             it.copy(activeBrew = it.activeBrew.copy(sessionId = "no-such-session"))
         }
 
-        val failure = runCatching { data.activeBrew.persist(orphan) }.exceptionOrNull()
+        val failure = runCatching { data.activeBrew.persist(TimerSlot.BREW, orphan) }.exceptionOrNull()
 
         assertThat(failure).isInstanceOf(SQLiteConstraintException::class.java)
 
-        assertThat(data.activeBrew.read()).isEqualTo(before)
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isEqualTo(before)
         assertThat(data.sessions.getSession(SESSION_ID)!!.steps).isEqualTo(before!!.steps)
     }
 
@@ -352,7 +349,7 @@ class ActiveBrewStoreTest {
         val ready = TimerDriver(data, slot = TimerSlot.BREW).send(startEvent(infusion(60)))
         val brew = BrewTimerEngine.snapshot(ready)!!
         val quick = BrewTimerEngine.snapshot(TimerDriver(data).send(TimerEvent.StartQuickTimer(90, 10)))!!
-        data.activeBrew.clear()
+        TimerSlot.entries.forEach { data.activeBrew.clear(it) }
 
         val wrong = listOf(TimerSlot.QUICK to brew, TimerSlot.BREW to quick)
 
@@ -364,39 +361,13 @@ class ActiveBrewStoreTest {
     }
 
     @Test
-    fun `the single-timer methods keep the one timer in the slot of its kind`() = runTest {
-        data.teas.saveTea(tea("t1"))
-        val quick = BrewTimerEngine.snapshot(TimerDriver(data).send(TimerEvent.StartQuickTimer(90, 10)))!!
-
-        assertThat(data.activeBrew.read(TimerSlot.QUICK)).isEqualTo(quick)
-        assertThat(data.activeBrew.read()).isEqualTo(quick)
-
-        // A brew started over the quick timer replaces it, as the single row did (v3).
-        val brew = BrewTimerEngine.snapshot(TimerDriver(data).send(startEvent(infusion(60))))!!
-
-        assertThat(data.activeBrew.read(TimerSlot.QUICK)).isNull()
-        assertThat(data.activeBrew.read(TimerSlot.BREW)).isEqualTo(brew)
-        assertThat(data.activeBrew.read()).isEqualTo(brew)
-
-        // With both slots written (v0.3.0-03), the one timer is the brew's; clear() ends both.
-        data.activeBrew.persist(TimerSlot.QUICK, quick)
-
-        assertThat(data.activeBrew.read()).isEqualTo(brew)
-
-        data.activeBrew.clear()
-
-        TimerSlot.entries.forEach { assertWithMessage("$it").that(data.activeBrew.read(it)).isNull() }
-        assertThat(data.sessions.getSession(SESSION_ID)).isNotNull()
-    }
-
-    @Test
     fun `clear removes the active brew but keeps the session`() = runTest {
         data.teas.saveTea(tea("t1"))
         TimerDriver(data).send(startEvent(infusion(60)))
 
-        data.activeBrew.clear()
+        data.activeBrew.clear(TimerSlot.BREW)
 
-        assertThat(data.activeBrew.read()).isNull()
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isNull()
         assertThat(data.sessions.getSession(SESSION_ID)).isNotNull()
     }
 

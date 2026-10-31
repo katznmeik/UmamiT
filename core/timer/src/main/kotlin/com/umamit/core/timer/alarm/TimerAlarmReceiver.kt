@@ -78,9 +78,6 @@ class TimerAlarmReceiver : BroadcastReceiver() {
             TimerAlarmKind.entries.firstOrNull { actionOf(slot, it) == intent.action }?.let { TimerAlarm(slot, it) }
         }
 
-        private fun actionOf(slot: TimerSlot, kind: TimerAlarmKind): String = when (slot) {
-            TimerSlot.BREW -> ACTION_PREFIX + kind.name
-            TimerSlot.QUICK -> ACTION_PREFIX + "QUICK." + kind.name
-        }
+        private fun actionOf(slot: TimerSlot, kind: TimerAlarmKind): String = ACTION_PREFIX + slot.named(kind.name)
     }
 }

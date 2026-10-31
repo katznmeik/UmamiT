@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.app.timer.TimerRequest
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.brew.picker.TeaPickerSheet
@@ -41,7 +42,7 @@ class TimerNavigationTest {
         ActiveBrew(title = "Hisui", step = "Aufguss 1/3", remainingSeconds = 30, liquorColor = Color.Green)
     private val brew = MutableStateFlow<ActiveBrew?>(running)
     private val alertKey = MutableStateFlow<String?>(null)
-    private val timerRequest = MutableStateFlow(0L)
+    private val timerRequest = MutableStateFlow(TimerRequest(0L))
     private val visible = mutableListOf<Boolean>()
     private val handled = mutableListOf<Long>()
 
@@ -350,7 +351,7 @@ class TimerNavigationTest {
     fun `the alert's full-screen intent opens the timer, which counts as visible from the first frame`() {
         // MainActivity got the full-screen intent before its content was set (#47, D-058).
         alert("A")
-        timerRequest.value = 1L
+        timerRequest.value = TimerRequest(1L)
         compose.mainClock.autoAdvance = false
         show()
 
@@ -372,7 +373,7 @@ class TimerNavigationTest {
         show()
         openSettingsFromTimer()
 
-        timerRequest.value = 2L
+        timerRequest.value = TimerRequest(2L)
         compose.waitForIdle()
 
         assertTimerOnTop()
@@ -384,7 +385,7 @@ class TimerNavigationTest {
 
     @Test
     fun `a request already handled does not open the timer again after the timer was closed`() {
-        timerRequest.value = 3L
+        timerRequest.value = TimerRequest(3L)
         show()
         compose.onNodeWithText("TIMER").assertIsDisplayed()
 

@@ -46,14 +46,6 @@ class AlertArbitrationTest {
     }
 
     @Test
-    fun `the brew rings first`() {
-        assertThat(AlertArbitration.ringingSlot(brewAlerting, quickAt(held = false))).isEqualTo(TimerSlot.BREW)
-        assertThat(AlertArbitration.ringingSlot(brewRunning, quickAt(held = false))).isEqualTo(TimerSlot.QUICK)
-        assertThat(AlertArbitration.ringingSlot(brewRunning, quickAt(held = true))).isNull()
-        assertThat(AlertArbitration.ringingSlot(TimerState.Idle, TimerState.Idle)).isNull()
-    }
-
-    @Test
     fun `a pre-alert during the other slot's alert waits for its end, then plays with at least 1 s left`() {
         val sound = PlayerSound(preAlertRingMs = RING_MS)
         sound.alertStarted(TimerSlot.QUICK)

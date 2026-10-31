@@ -8,6 +8,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.umamit.core.model.TimerSlot
 import com.umamit.feature.brew.picker.TeaPickerHost
 import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.home.HomeActions
@@ -16,11 +17,15 @@ import com.umamit.feature.home.HomeScreen
 import com.umamit.feature.home.HomeUiState
 import com.umamit.feature.home.HomeViewModel
 
-/** Where Start leads outside its tab (03 §2.1): the setup, the timer and the quick timer. */
+/**
+ * Where Start leads outside its tab (03 §2.1): the setup, the timer (the one in front, or [openTimerOf] a slot's)
+ * and the quick timer.
+ */
 internal class StartNavigation(
     val openSetup: (teaId: String) -> Unit = {},
     val openTimer: () -> Unit = {},
     val openQuickTimer: () -> Unit = {},
+    val openTimerOf: (TimerSlot) -> Unit = { openTimer() },
 )
 
 /**
@@ -76,7 +81,8 @@ internal fun StartTabContent(
                 pickerOpenedIn = tab.alertKey
                 pickerOpen = true
             },
-            openTimer = navigation.openTimer,
+            // *Aufguss fortsetzen* shows the brew (SCR-02, D-098), so it opens the brew, never the timer in front.
+            openTimer = { navigation.openTimerOf(TimerSlot.BREW) },
             quickTimer = navigation.openQuickTimer,
             openSetup = navigation.openSetup,
             showJournal = tab.showJournal,

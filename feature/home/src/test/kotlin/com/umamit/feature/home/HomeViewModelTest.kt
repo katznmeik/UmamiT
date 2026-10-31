@@ -24,6 +24,7 @@ import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.lowStockCard
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TransitionOutcome
@@ -341,6 +342,41 @@ class HomeViewModelTest {
         assertThat(starter.starts).hasSize(1)
         assertThat(starter.replaced).isEqualTo(0)
         assertThat(starter.activeIn(TimerSlot.QUICK)?.steps?.single()?.plannedSeconds).isEqualTo(90)
+    }
+
+    @Test
+    fun `a Schnelltimer alone leaves Aufguss starten and Nochmal bruehen on Start (SCR-02, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+
+        val state = viewModel().state.value
+
+        // No brew replaces the card: the bar shows the quick timer.
+        assertThat(state.active).isNull()
+        assertThat(state.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+    }
+
+    @Test
+    fun `with both timers the card shows the brew, also with the Schnelltimer in front (SCR-02, D-098)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        starter.startQuickTimer(90)
+
+        val brew = checkNotNull(starter.activeIn(TimerSlot.BREW))
+        assertThat((starter.state.value as TimerUiState.Active).slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(vm.state.value.active).isEqualTo(brew)
+        // The brew changes behind the Schnelltimer (its notification's *Start*): the card follows the brew.
+        starter.other.value = brew.copy(phase = TimerPhase.RUNNING, deadlineElapsedMs = 60_000, deadlineWallMs = 1)
+        assertThat(vm.state.value.active?.phase).isEqualTo(TimerPhase.RUNNING)
+        // A ringing quick alert still closes a question and counts as Start's alert (rule 8).
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+            .copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        assertThat(vm.state.value.alertKey).isNotNull()
+        assertThat(vm.state.value.active?.slot).isEqualTo(TimerSlot.BREW)
     }
 
     @Test
