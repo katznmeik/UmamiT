@@ -10,8 +10,8 @@ import androidx.compose.ui.graphics.Color
  * @param title the tea name, or „Schnelltimer".
  * @param step „Aufguss 2/4"; `null` for a quick timer.
  * @param stepDescription the step for TalkBack („Aufguss 2 von 4"); defaults to [step].
- * @param longStep the step is ≥ 10 min: the source updates the progress only about every
- *   `UmamiMotion.longStepUpdateIntervalMillis`, and the mini ring glides there (03 §3.6).
+ * @param longStep the step is a long step (≥ 60 min, or cold/ice brew; TMR-18, D-098): the source updates the
+ *   progress only about every `UmamiMotion.longStepUpdateIntervalMillis`, and the mini ring glides there (03 §3.6).
  * @param alerting the step has ended and waits for *Abgegossen* (ALERTING): the bar turns
  *   static matcha with „Jetzt abgießen!" and the [overtimeSeconds] counting up (03 §3.8).
  * @param overtimeSeconds time since the step ended; shown only while [alerting].
