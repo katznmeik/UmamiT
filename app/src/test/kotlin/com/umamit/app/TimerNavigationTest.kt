@@ -65,10 +65,11 @@ class TimerNavigationTest {
                     timerRequest = timerRequest,
                     onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
-                    timerScreen = { _, openSettings, _, _ ->
+                    timerScreen = { _, openSettings, adjust, _ ->
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
+                            Button(onClick = { adjust("s1") }) { Text("Brühen anpassen") }
                         }
                     },
                     settings = testSettingsScreens(),
@@ -88,7 +89,21 @@ class TimerNavigationTest {
                             )
                         }
                     },
-                    setupScreen = { _, _ -> Text("SETUP") },
+                    setupScreen = { onBack, _, openCatalog ->
+                        Column {
+                            Text("SETUP")
+                            Button(onClick = { openCatalog("TG0557") }) { Text("Im Katalog ansehen") }
+                            Button(onClick = onBack) { Text("Setup verlassen") }
+                        }
+                    },
+                    catalogScreens = CatalogStackScreens(
+                        tea = { host ->
+                            Column {
+                                Text("KATALOG-TEE")
+                                Button(onClick = host.onBack) { Text("Katalog verlassen") }
+                            }
+                        },
+                    ),
                     quickTimerScreen = { _, openTimer ->
                         Button(onClick = openTimer) { Text("QUICK-START") }
                     },
@@ -193,6 +208,54 @@ class TimerNavigationTest {
         advanceFrames()
 
         compose.onNodeWithText("SETUP").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the setup's Im Katalog ansehen opens the catalog page above it, and back returns to the setup (D-098)`() {
+        show()
+        openSetupFromStart()
+
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("KATALOG-TEE").assertIsDisplayed()
+        compose.onNodeWithText("SETUP").assertDoesNotExist()
+
+        compose.onNodeWithText("Katalog verlassen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the alert replaces the catalog page opened from the setup with the timer at once (rule 8, D-098)`() {
+        show()
+        openSetupFromStart()
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
+
+        alert("A")
+        advanceFrames()
+
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
+        compose.onNodeWithText("TIMER").assertIsDisplayed()
+    }
+
+    @Test
+    fun `Im Katalog ansehen during an alert opens the timer, not the catalog page (rule 8, D-098)`() {
+        alert("A")
+        show()
+        bar().performClick()
+        // A setup opened in this alert stays for it (navigateAbove), so its menu is reachable.
+        compose.onNodeWithText("Brühen anpassen").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("SETUP").assertIsDisplayed()
+
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("KATALOG-TEE").assertDoesNotExist()
         compose.onNodeWithText("TIMER").assertIsDisplayed()
     }
 

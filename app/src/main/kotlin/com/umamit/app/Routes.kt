@@ -33,6 +33,14 @@ internal data class TimerRoute(val slotName: String?, val switched: Boolean) {
 internal data class BrewSetupRoute(val teaId: String? = null, val sessionId: String? = null)
 
 /**
+ * A catalog tea's detail (SCR-21) from the setup's ⋮ *Im Katalog ansehen* (D-098): full-screen above the setup,
+ * whose back-stack entry keeps its draft, so back returns to it unchanged. [key] is the catalog key (05 §4.1), named
+ * as the detail's view model reads it. It gives way to a new alert like every route above the shell (rule 8).
+ */
+@Serializable
+internal data class SetupCatalogTeaRoute(val key: String)
+
+/**
  * The quick timer before its *Start* (SCR-07), from Start and the tea picker. Full-screen like the setup;
  * once it runs, the timer replaces it.
  */

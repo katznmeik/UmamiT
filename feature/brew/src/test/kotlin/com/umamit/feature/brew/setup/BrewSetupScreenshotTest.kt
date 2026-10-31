@@ -114,6 +114,21 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setup() = capture("BrewSetup_kyusu") { BrewSetupScreen(kyusu) }
 
+    /** A catalog tea's setup: the top bar's ⋮ (D-098). */
+    @Test
+    fun setupWithCatalogMenu() = capture("BrewSetup_catalogMenu") {
+        BrewSetupScreen(kyusu.copy(catalogKey = "TG0557"))
+    }
+
+    /** The ⋮ open on *Im Katalog ansehen* (D-098). */
+    @Test
+    fun setupCatalogMenuOpen() = capture(
+        "BrewSetup_catalogMenuOpen",
+        act = { compose.onNodeWithContentDescription("Weitere Optionen").performClick() },
+    ) {
+        BrewSetupScreen(kyusu.copy(catalogKey = "TG0557"))
+    }
+
     @Test
     fun setupChangedInTheBecher() = capture("BrewSetup_changed") {
         BrewSetupScreen(

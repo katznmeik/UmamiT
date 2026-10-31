@@ -24,6 +24,9 @@
 
     <!-- Brew setup (SCR-04) -->
     <string name="brew_setup_title">Brühen</string>
+    <!-- The top bar's ⋮ (TalkBack) and its one item, for a tea with a catalog entry (SCR-04, D-098). -->
+    <string name="brew_setup_more">Weitere Optionen</string>
+    <string name="brew_setup_menu_catalog">Im Katalog ansehen</string>
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>

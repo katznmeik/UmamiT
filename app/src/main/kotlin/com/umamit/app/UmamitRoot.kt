@@ -74,7 +74,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
- * @param setupScreen the setup route's content (SCR-04); tests replace it.
+ * @param setupScreen the setup route's content (SCR-04); tests replace it. Its third argument opens a catalog tea's
+ *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens].
  * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
  *   read, and nothing is shown until then. Not done: the setup (SCR-01) is the start destination.
  * @param onboardingScreen the setup's content; tests replace it, the app uses [OnboardingScreenRoute].
@@ -122,8 +123,12 @@ internal fun UmamitRoot(
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
-    setupScreen: @Composable (onBack: () -> Unit, onOpenTimer: () -> Unit) -> Unit = { onBack, onOpenTimer ->
-        BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer)
+    setupScreen: @Composable (
+        onBack: () -> Unit,
+        onOpenTimer: () -> Unit,
+        onOpenCatalog: (key: String) -> Unit,
+    ) -> Unit = { onBack, onOpenTimer, onOpenCatalog ->
+        BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer, onOpenCatalog = onOpenCatalog)
     },
     onboardingCompleted: StateFlow<Boolean?> = MutableStateFlow(true),
     onboardingScreen: @Composable (onFinish: () -> Unit) -> Unit = { onFinish ->
@@ -314,6 +319,23 @@ internal fun UmamitRoot(
                             launchSingleTop = true
                         }
                     },
+                    // ⋮ *Im Katalog ansehen* (D-098): the detail above the setup, which keeps its draft in its entry.
+                    // During an alert the alerting timer instead, never a page over it (rule 8, D-062 S3).
+                    { key ->
+                        unlessAlerting({ currentAlerting }, instead = openTimer) {
+                            navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
+                        }
+                    },
+                )
+            }
+            composable<SetupCatalogTeaRoute> {
+                catalogScreens.tea(
+                    // The tea is in the collection already: a saved purchase stays on the detail (no brew flow here).
+                    CatalogTeaHost(
+                        onBack = dropUnlessResumed { navController.popBackStack() },
+                        alerting = alert != null,
+                        onPurchaseSave = {},
+                    ),
                 )
             }
             composable<QuickTimerRoute> {
@@ -459,6 +481,11 @@ private fun NavHostController.openCatalogRefresh(
 private fun NavHostController.showOtherTimer(entry: NavBackStackEntry, route: TimerRoute, other: TimerSlot) {
     if (entry.lifecycle.currentState != Lifecycle.State.RESUMED) return
     if (route.switched) popBackStack() else navigate(TimerRoute(other, switched = true))
+}
+
+/** Runs [open], or [instead] while an alert plays ([alerting]): nothing opens over an alert (rule 8). */
+private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, open: () -> Unit) {
+    if (alerting()) instead() else open()
 }
 
 /** Whether the timer is on the back stack (its public check throws when it is not). */

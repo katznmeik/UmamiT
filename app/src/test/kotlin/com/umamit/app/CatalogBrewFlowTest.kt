@@ -4,8 +4,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -139,7 +143,7 @@ class CatalogBrewFlowTest {
                             )
                         },
                     ),
-                    setupScreen = { onBack, onOpenTimer -> Setup(onBack, onOpenTimer) },
+                    setupScreen = { onBack, onOpenTimer, onOpenCatalog -> Setup(onBack, onOpenTimer, onOpenCatalog) },
                 )
             }
         }
@@ -194,10 +198,11 @@ class CatalogBrewFlowTest {
 
     /** The setup of the route's tea (its saved state). */
     @Composable
-    private fun Setup(onBack: () -> Unit, onOpenTimer: () -> Unit) {
+    private fun Setup(onBack: () -> Unit, onOpenTimer: () -> Unit, onOpenCatalog: (String) -> Unit) {
         BrewSetupScreenRoute(
             onBack = onBack,
             onOpenTimer = onOpenTimer,
+            onOpenCatalog = onOpenCatalog,
             viewModel = viewModel {
                 BrewSetupViewModel(
                     createSavedStateHandle(),
@@ -208,6 +213,7 @@ class CatalogBrewFlowTest {
                     sessions.sessions,
                     settings,
                     starter,
+                    catalog,
                 )
             },
         )
@@ -265,6 +271,64 @@ class CatalogBrewFlowTest {
         compose.waitForIdle()
         compose.onNodeWithText("Katalog").performClick()
         compose.waitForIdle()
+    }
+
+    /** Every text the screen shows now, in order: the setup's values, read back after a round trip. */
+    private fun shownTexts(): List<String> = compose.onAllNodes(hasText("", substring = true), useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .flatMap { node -> node.config.getOrElse(SemanticsProperties.Text) { emptyList() }.map { it.text } }
+
+    private fun openHisuiSetup() {
+        openPicker()
+        compose.onNode(hasText("Bio Sencha Hisui") and hasAnyAncestor(hasTestTag(TEA_PICKER_TAG)))
+            .performScrollTo()
+            .performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Brühen").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the setup's Im Katalog ansehen opens the tea's catalog page and back keeps every value (SCR-04, D-098)`() {
+        catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME, discontinued = true)
+        show()
+        openHisuiSetup()
+        compose.onNodeWithText("Westlich").performClick()
+        compose.onNodeWithContentDescription("Mehr Wasser").performClick()
+        compose.onNodeWithContentDescription("Mehr Wasser").performClick()
+        compose.waitForIdle()
+        val before = shownTexts()
+
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+
+        // SCR-21 of the setup's tea above the setup, the discontinued one too.
+        compose.onNodeWithText(HISUI_CATALOG_NAME).assertIsDisplayed()
+        compose.onNodeWithText("Mehr Wasser").assertDoesNotExist()
+
+        back()
+
+        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        assertThat(shownTexts()).isEqualTo(before)
+    }
+
+    @Test
+    fun `the catalog page's own back returns to the setup too (SCR-04, D-098)`() {
+        catalog.details.value += HISUI_KEY to TEA.copy(key = HISUI_KEY, name = HISUI_CATALOG_NAME)
+        show()
+        openHisuiSetup()
+        compose.onNodeWithContentDescription("Mehr Wasser").performClick()
+        compose.waitForIdle()
+        val before = shownTexts()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        compose.onNodeWithText("Im Katalog ansehen").performClick()
+        compose.waitForIdle()
+
+        doubleTapOnScreenBack()
+
+        // One back: the setup as it was, never Start under it (D-090).
+        compose.onNodeWithText("Brühen").assertIsDisplayed()
+        assertThat(shownTexts()).isEqualTo(before)
     }
 
     @Test
@@ -531,6 +595,8 @@ class CatalogBrewFlowTest {
     private companion object {
         const val KEY = "XY0100"
         const val NAME = "Morgennebel Sencha"
+        const val HISUI_KEY = "TG0557"
+        const val HISUI_CATALOG_NAME = "Hisui im Katalog"
         const val PRODUCT = "https://shop.example/morgennebel-sencha/XY0100"
 
         val GUIDE = GuideDetail(

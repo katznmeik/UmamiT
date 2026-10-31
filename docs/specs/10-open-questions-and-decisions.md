@@ -1221,6 +1221,33 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   384 × 832 dp at font 2.0) and `TimerScreenLayoutTest`'s quick-timer cases;
   the goldens of the running quick timer and of SCR-07 were re-recorded.
 
+**Build notes (Claude, 2026-10-31, #129: setup ⋮ *Im Katalog ansehen*, BRW-02, SCR-04).**
+- **When it shows.** The setup's view model observes the tea's catalog tea
+  (`CatalogRepository.observeTea(catalog_key)`) and puts the key into the
+  UI state only while that tea exists, discontinued or not; the ⋮ follows
+  it live (a refresh that adds the tea shows it without touching the
+  draft). No `catalog_key`, or a key the local catalog has no tea for (no
+  refresh yet, a tea deleted by a later catalog), means no ⋮ at all.
+- **The menu.** An `IconButton` with `MoreVert` (48 dp) in the top bar,
+  TalkBack „Weitere Optionen", one `DropdownMenuItem` „Im Katalog
+  ansehen". Like the timer's menu it remembers the alert it was opened in;
+  another alert removes it in its first frame (not composed, so Material's
+  close animation never shows over the alert) and closes it for good.
+- **Route.** A root route `SetupCatalogTeaRoute(key)` above the setup, not
+  the Sammlung tab's `CatalogTeaRoute`: the setup is above the shell, so a
+  tab's stack would lie under it. It shows the same detail (`CatalogStackScreens.tea`),
+  is a route above the shell (an alert pops it to the timer like the setup)
+  and pops with its own ← (only while resumed, D-090) or system back. The
+  setup's draft lives in its back-stack entry's `SavedStateHandle`
+  (`setupEdits`), so recipe, vessel, leaf, water and steps come back as
+  they were, also after a process death.
+- **During an alert** the item opens the alerting timer instead of the
+  detail (rule 8, as a tea tap does, D-062 S3); in practice the setup
+  itself already gave way to the alert.
+- **Add on that detail.** *Hinzufügen* / *Nachkaufen* works as on any
+  SCR-21; the saved purchase stays on the detail (no picker flow here, D-088),
+  and back returns to the setup, whose stock line follows the new stock.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 

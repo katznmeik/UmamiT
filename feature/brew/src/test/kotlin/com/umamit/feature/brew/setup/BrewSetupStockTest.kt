@@ -27,6 +27,7 @@ import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.testing.FakeBrewStarter
+import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -58,6 +59,7 @@ class BrewSetupStockTest {
     private val settings = FakeSettingsRepository()
     private val sessions = FakeSessions(collection, settings)
     private val starter = FakeBrewStarter()
+    private val catalog = FakeCatalogRepository()
 
     @Before
     fun seed() = runBlocking {
@@ -78,6 +80,7 @@ class BrewSetupStockTest {
             sessions.sessions,
             settings,
             starter,
+            catalog,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {

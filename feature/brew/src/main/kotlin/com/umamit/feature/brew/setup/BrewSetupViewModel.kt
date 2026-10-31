@@ -9,6 +9,7 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
+import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.KettleWater
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -59,7 +61,8 @@ import javax.inject.Inject
  * (BRW-11), on the waiting session `sessionId` with that session's values.
  * Every change applies to this session only, until *Im Rezept speichern*.
  * *Brühen starten* goes through the [BrewStarter]; nothing else here touches
- * the timer.
+ * the timer. The [catalog] only tells whether the tea's catalog tea exists, for
+ * ⋮ *Im Katalog ansehen* (D-098).
  */
 // One public function per user action of SCR-04, plus the few helpers they share.
 @Suppress("TooManyFunctions")
@@ -74,6 +77,7 @@ class BrewSetupViewModel @Inject constructor(
     private val sessions: SessionRepository,
     private val settings: SettingsRepository,
     private val starter: BrewStarter,
+    private val catalog: CatalogRepository,
 ) : ViewModel() {
 
     /** The session *Brühen anpassen* came from; it is replaced without asking while it still waits. */
@@ -229,15 +233,29 @@ class BrewSetupViewModel @Inject constructor(
             } else {
                 emitAll(
                     combine(
-                        recipes.observeRecipes(teaId),
-                        vessels.observeVessels(),
-                        stock.observeStock(teaId).map { it.remainingGrams },
-                        settings.settings.map { Globals(it.preAlertSeconds, it.lowStockGrams) }.distinctUntilChanged(),
-                        sessionLeaf(teaId),
-                    ) { r, v, grams, global, leaf -> Source(overview, r, v, grams, global, session, leaf) },
+                        combine(
+                            recipes.observeRecipes(teaId),
+                            vessels.observeVessels(),
+                            stock.observeStock(teaId).map { it.remainingGrams },
+                            settings.settings.map { Globals(it.preAlertSeconds, it.lowStockGrams) }
+                                .distinctUntilChanged(),
+                            sessionLeaf(teaId),
+                        ) { r, v, grams, global, leaf -> Source(overview, r, v, grams, global, session, leaf) },
+                        catalogEntry(overview.tea.catalogKey),
+                    ) { source, key -> source.copy(catalogKey = key) },
                 )
             }
         }
+
+    /**
+     * [key] while the catalog has its tea, discontinued or not, else null: ⋮ *Im Katalog ansehen* shows only
+     * then (SCR-04, D-098).
+     */
+    private fun catalogEntry(key: String?): Flow<String?> = if (key == null) {
+        flowOf(null)
+    } else {
+        catalog.observeTea(key).map { tea -> key.takeIf { tea != null } }.distinctUntilChanged()
+    }
 
     /**
      * The leaf the active session of [teaId] still deducts at *Sitzung beenden* (INV-03, D-096): its
@@ -285,6 +303,7 @@ class BrewSetupViewModel @Inject constructor(
             question = p?.question,
             alertKey = timer.alertKey(),
             sessionLeafGrams = s.sessionLeafGrams,
+            catalogKey = s.catalogKey,
         )
     }
 
@@ -317,8 +336,11 @@ class BrewSetupViewModel @Inject constructor(
     /** The global settings the setup reads: the pre-alert base (SET-10) and „Knapp ab" (SET-16). */
     private data class Globals(val preAlertSeconds: Int, val lowStockGrams: Double)
 
-    /** What the setup is built from: the tea, its recipes, the vessels, the stock and the global settings. */
-    private class Source(
+    /**
+     * What the setup is built from: the tea, its recipes, the vessels, the stock, the global settings and the
+     * tea's catalog key while its catalog tea exists.
+     */
+    private data class Source(
         val tea: TeaOverview,
         val recipes: List<Recipe>,
         val vessels: List<Vessel>,
@@ -326,6 +348,7 @@ class BrewSetupViewModel @Inject constructor(
         val globals: Globals,
         val session: BrewSession?,
         val sessionLeafGrams: Double?,
+        val catalogKey: String? = null,
     ) {
         fun recipe(id: String?): Recipe? = recipes.firstOrNull { it.id == id }
 
