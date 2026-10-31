@@ -181,6 +181,18 @@ class StepsSheetState(input: StepsSheetInput) {
         }
     }
 
+    /**
+     * „Dauer wählen" (SCR-31, #141): sets step [index]'s duration to [seconds] in one go, within 5 s – 24 h and
+     * rounded down to PRF-04's increment (5 s below 10 min, whole minutes from 10 min on); ignored for a step
+     * that is not editable ([isEditable]).
+     */
+    fun setDuration(index: Int, seconds: Int) {
+        if (isEditable(index)) {
+            val duration = roundedDuration(seconds)
+            steps = steps.mapIndexed { i, old -> if (i == index) old.copy(plannedSeconds = duration) else old }
+        }
+    }
+
     fun delete(index: Int) {
         if (canDelete(index)) steps = steps.filterIndexed { i, _ -> i != index }
     }
@@ -277,6 +289,13 @@ internal fun longer(seconds: Int): Int {
 internal fun shorter(seconds: Int): Int {
     val unit = if (seconds > MINUTE_STEPS_FROM_SECONDS) MINUTES_UNIT else SECONDS_UNIT
     return previousMultiple(seconds, unit).coerceIn(MIN_SECONDS, MAX_SECONDS).coerceAtMost(seconds)
+}
+
+/** [seconds] within 5 s – 24 h, rounded down to the PRF-04 increment. */
+internal fun roundedDuration(seconds: Int): Int {
+    val bounded = seconds.coerceIn(MIN_SECONDS, MAX_SECONDS)
+    val unit = if (bounded < MINUTE_STEPS_FROM_SECONDS) SECONDS_UNIT else MINUTES_UNIT
+    return (bounded / unit * unit).coerceAtLeast(MIN_SECONDS)
 }
 
 internal fun warmer(tempC: Int): Int =
