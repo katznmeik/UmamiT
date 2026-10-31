@@ -36,6 +36,7 @@ class SettingsDataSourceTest {
         assertThat(settings.alertSound).isEqualTo("klangschale")
         assertThat(settings.preAlertSound).isEqualTo("zimbel")
         assertThat(settings.alertVolumePercent).isEqualTo(100)
+        assertThat(settings.ringUnderDnd).isTrue()
         assertThat(settings.preAlertSeconds).isEqualTo(10)
         assertThat(settings.vibration).isTrue()
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
@@ -81,6 +82,7 @@ class SettingsDataSourceTest {
             alertSound = "glocke",
             preAlertSound = "klangstab",
             alertVolumePercent = 30,
+            ringUnderDnd = false,
             preAlertSeconds = 0,
             vibration = false,
             alertLength = AlertLength.LONG,
@@ -180,6 +182,21 @@ class SettingsDataSourceTest {
         assertThat(settings.alertSound).isEqualTo("glocke")
         assertThat(settings.lowStockGrams).isEqualTo(20.0)
         assertThat(source.seedDataCreated.first()).isTrue()
+    }
+
+    @Test
+    fun aFileOfVersion030Rc1WithoutBeiNichtStoerenKlingelnReadsOnWithoutAMigration() = runTest {
+        // SET-32 is new in v0.3.0-rc.2 (D-099): a missing key reads as its default, on; `schemaVersion` stays 2.
+        val file = File(folder.root, "v030rc1.json")
+        file.writeText("""{"schemaVersion":2,"alertVolumePercent":40,"vibration":false,"seedDataCreated":true}""")
+        val source = dataSource(file)
+
+        val settings = source.settings.first()
+
+        assertThat(settings.ringUnderDnd).isTrue()
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertVolumePercent).isEqualTo(40)
+        assertThat(settings.vibration).isFalse()
     }
 
     @Test

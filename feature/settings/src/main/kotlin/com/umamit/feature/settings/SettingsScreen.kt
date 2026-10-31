@@ -91,6 +91,8 @@ class SettingsActions(
     val setVolume: (Int) -> Unit = {},
     val setVibration: (Boolean) -> Unit = {},
     val setAlertLength: (AlertLength) -> Unit = {},
+    /** SET-32 *Bei „Nicht stören" klingeln* (D-099). */
+    val setRingUnderDnd: (Boolean) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
@@ -166,6 +168,7 @@ fun SettingsRoute(
             setVolume = { percent -> viewModel.change { it.copy(alertVolumePercent = percent) } },
             setVibration = { on -> viewModel.change { it.copy(vibration = on) } },
             setAlertLength = { length -> viewModel.change { it.copy(alertLength = length) } },
+            setRingUnderDnd = { on -> viewModel.change { it.copy(ringUnderDnd = on) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
@@ -344,6 +347,12 @@ private fun TimerSection(settings: UserSettings, actions: SettingsActions, openD
             title = stringResource(R.string.settings_alert_length),
             value = stringResource(settings.alertLength.label()),
             onClick = { openDialog(SettingsDialog.AlertLength) },
+        )
+        SwitchRow(
+            title = stringResource(R.string.settings_ring_under_dnd),
+            checked = settings.ringUnderDnd,
+            onCheckedChange = actions.setRingUnderDnd,
+            detail = stringResource(R.string.settings_ring_under_dnd_detail),
         )
         SwitchRow(stringResource(R.string.settings_keep_screen_on), settings.keepScreenOn, actions.setKeepScreenOn)
         SwitchRow(

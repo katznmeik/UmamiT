@@ -15,6 +15,11 @@ data class UserSettings(
      * volume, 10–100 % in steps of 10; never below 10, so the app itself can never silence a cue.
      */
     val alertVolumePercent: Int = MAX_ALERT_VOLUME_PERCENT,
+    /**
+     * SET-32 *Bei „Nicht stören" klingeln* (v0.3.0, D-099): while Do Not Disturb lets alarms through,
+     * Vorwarnung and alarm ring even when the phone reports silent; off, the reported ringer mode decides.
+     */
+    val ringUnderDnd: Boolean = true,
     /** 0 = off, otherwise 5–30 in steps of 5 (SET-10). */
     val preAlertSeconds: Int = 10,
     val vibration: Boolean = true,

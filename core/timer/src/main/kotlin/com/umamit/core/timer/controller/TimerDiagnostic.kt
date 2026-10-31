@@ -193,6 +193,7 @@ sealed interface TimerDiagnostic {
      * outputs, and says whether its sound was loaded before (D-092; null for *Alarm testen*).
      * [volumePercent] is the *Lautstärke* its sound played at on the alarm stream (SET-27, D-098);
      * [alarmVolumeOff]: the phone's alarm volume was 0, so the sound was inaudible (TMR-31, E18).
+     * [ringUnderDnd]: *Bei „Nicht stören" klingeln* (SET-32, D-099) was on for this cue.
      */
     data class AlertPlayed(
         override val at: ClockReading,
@@ -205,6 +206,7 @@ sealed interface TimerDiagnostic {
         val start: CueStart? = null,
         val volumePercent: Int = 100,
         val alarmVolumeOff: Boolean = false,
+        val ringUnderDnd: Boolean = true,
     ) : TimerDiagnostic
 
     /**

@@ -39,6 +39,8 @@ data class StoredSettings(
     val preAlertSound: String = UserSettings.DEFAULT_PRE_ALERT_SOUND,
     /** SET-27 (v0.3.0, D-098); a file of v0.2.2 has no key and reads 100 %, so no settings migration. */
     val alertVolumePercent: Int = UserSettings.MAX_ALERT_VOLUME_PERCENT,
+    /** SET-32 (v0.3.0, D-099); a file of v0.3.0-rc.1 or older has no key and reads on, so no settings migration. */
+    val ringUnderDnd: Boolean = true,
     val preAlertSeconds: Int = 10,
     val vibration: Boolean = true,
     val alertLength: String = AlertLength.NORMAL.name,
@@ -174,6 +176,7 @@ private fun StoredSettings.toModel() = UserSettings(
     alertSound = alertSound,
     preAlertSound = preAlertSound,
     alertVolumePercent = alertVolumePercent,
+    ringUnderDnd = ringUnderDnd,
     preAlertSeconds = preAlertSeconds,
     vibration = vibration,
     alertLength = enumOrDefault(alertLength, AlertLength.NORMAL),
@@ -199,6 +202,7 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     alertSound = alertSound,
     preAlertSound = preAlertSound,
     alertVolumePercent = alertVolumePercent,
+    ringUnderDnd = ringUnderDnd,
     preAlertSeconds = preAlertSeconds,
     vibration = vibration,
     alertLength = alertLength.name,

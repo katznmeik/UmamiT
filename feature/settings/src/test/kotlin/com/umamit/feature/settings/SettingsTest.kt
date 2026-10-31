@@ -80,16 +80,21 @@ class SettingsTest {
 
         /** The *Lautstärke* of every preview, in order (SET-27). */
         val volumes = mutableListOf<Int>()
+
+        /** *Bei „Nicht stören" klingeln* of every preview, in order (SET-32). */
+        val ringUnderDnd = mutableListOf<Boolean>()
         var stops = 0
 
-        override fun play(toneKey: String, volumePercent: Int) {
+        override fun play(toneKey: String, volumePercent: Int, ringUnderDnd: Boolean) {
             played += toneKey
             volumes += volumePercent
+            this.ringUnderDnd += ringUnderDnd
         }
 
-        override fun playPreAlert(preAlertKey: String, volumePercent: Int) {
+        override fun playPreAlert(preAlertKey: String, volumePercent: Int, ringUnderDnd: Boolean) {
             preAlertsPlayed += preAlertKey
             volumes += volumePercent
+            this.ringUnderDnd += ringUnderDnd
         }
 
         override fun stop() {
@@ -398,6 +403,42 @@ class SettingsTest {
         compose.onNodeWithText("Anhören").performClick()
 
         assertThat(preview.volumes).containsExactly(40, 40)
+    }
+
+    @Test
+    fun `Bei Nicht stoeren klingeln is on with its detail and switching it off persists`() {
+        // SET-32 (D-099): default on; off, the phone's reported ringer mode decides under Do Not Disturb.
+        show()
+        val row = hasText("Bei „Nicht\u00A0stören“ klingeln") and isToggleable()
+        compose.onNode(row).performScrollTo().assertIsOn()
+        compose.onNodeWithText("Vorwarnung und Alarm klingen, wenn „Nicht\u00A0stören“ Alarme erlaubt")
+            .assertIsDisplayed()
+
+        compose.onNode(row).performClick()
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(ringUnderDnd = false))
+        compose.onNode(row).assertIsOff()
+        compose.onNode(row).performClick()
+        compose.waitForIdle()
+        assertThat(stored().ringUnderDnd).isTrue()
+    }
+
+    @Test
+    fun `Anhoeren follows Bei Nicht stoeren klingeln`() {
+        // SET-32 (D-099): the preview sounds where the cues would.
+        runBlocking { settings.update { it.copy(ringUnderDnd = false) } }
+        show()
+
+        clickRow("Alarmton")
+        compose.onNodeWithText("Anhören").performClick()
+        compose.onNodeWithText("Fertig").performClick()
+        runBlocking { settings.update { it.copy(ringUnderDnd = true) } }
+        compose.waitForIdle()
+        clickRow("Vorwarnton")
+        compose.onNodeWithText("Anhören").performClick()
+
+        assertThat(preview.ringUnderDnd).containsExactly(false, true).inOrder()
     }
 
     @Test

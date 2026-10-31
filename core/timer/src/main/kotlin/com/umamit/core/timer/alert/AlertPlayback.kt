@@ -289,7 +289,7 @@ class AlertPlayback internal constructor(
         try {
             val at = clock()
             val conditions = environment.conditions()
-            val outputs = AlertMatrix.outputs(conditions, current.vibration)
+            val outputs = AlertMatrix.outputs(conditions, current.vibration, current.ringUnderDnd)
             diagnostics.record(
                 TimerDiagnostic.AlertPlayed(
                     at = at,
@@ -301,6 +301,7 @@ class AlertPlayback internal constructor(
                     scheduled = scheduled,
                     start = timing?.cueStart(at.elapsedMs, outputs.sound),
                     volumePercent = current.volumePercent,
+                    ringUnderDnd = current.ringUnderDnd,
                     // Read here, after the outputs started: never ahead of a cue's sound (rule 8).
                     alarmVolumeOff = environment.alarmVolumeOff(),
                 ),

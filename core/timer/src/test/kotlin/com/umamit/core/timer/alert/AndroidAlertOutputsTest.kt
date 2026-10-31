@@ -74,6 +74,41 @@ class AndroidAlertOutputsTest {
     }
 
     @Test
+    fun environmentReadsWhetherPriorityModeLetsAlarmsThrough() {
+        // D-099: the policy of the DND modes in effect (the consolidated one); without one to read, alarms pass
+        // (rule 8).
+        val environment = AndroidAlertEnvironment(context)
+        fun policy(categories: Int) = NotificationManager.Policy(
+            categories,
+            NotificationManager.Policy.PRIORITY_SENDERS_ANY,
+            NotificationManager.Policy.PRIORITY_SENDERS_ANY,
+        )
+        shadowOf(notificationManager).setNotificationPolicyAccessGranted(true)
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY)
+
+        shadowOf(notificationManager).setConsolidatedNotificationPolicy(
+            policy(
+                NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS or
+                    NotificationManager.Policy.PRIORITY_CATEGORY_CALLS,
+            ),
+        )
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY)
+
+        shadowOf(notificationManager).setConsolidatedNotificationPolicy(
+            policy(NotificationManager.Policy.PRIORITY_CATEGORY_CALLS),
+        )
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY_WITHOUT_ALARMS)
+
+        // Only priority mode has a policy to read: „alarms only" lets alarms through, total silence none.
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.ALARMS_ONLY)
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.OFF)
+    }
+
+    @Test
     fun environmentReadsTheAlarmVolumeAtZero() {
         // TMR-31, D-098: the cue still runs at alarm volume 0; the reading goes into its log line.
         val environment = AndroidAlertEnvironment(context)
