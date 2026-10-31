@@ -395,7 +395,10 @@ clocks and the delta in ms. Since #46 (D-063) the controller also logs each
 recovery request (app start, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`), the
 row of the 04 §7.2 table that recovery applied, sessions ended after a device
 restore, recovery retries that stopped, and a refused service start that was refused
-again.
+again. From v0.3.0 (D-098, #137) a quick timer's alarm, time-based event and
+cue name its slot before the alarm kind (`alarm QUICK.DEADLINE received`,
+`… | QUICK.PRE_ALERT scheduled …`), so the accuracy run's `alongside` variant
+tells the two timers apart; the brew's lines are unchanged.
 
 ## 6. Build & distribution
 

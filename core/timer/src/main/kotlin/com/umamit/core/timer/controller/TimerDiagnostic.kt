@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
@@ -58,11 +59,12 @@ enum class EventSource {
 }
 
 /**
- * When a time-based event was due: [atMs] on the clock of [kind]. With the
- * reading of the moment it was handled, the log shows scheduled vs actual
- * fire time (06 §5.6, TMR-30).
+ * When a time-based event of [slot]'s timer was due: [atMs] on the clock of
+ * [kind]. With the reading of the moment it was handled, the log shows
+ * scheduled vs actual fire time (06 §5.6, TMR-30); a quick timer's line names
+ * its slot, so the accuracy run tells the two timers apart (D-098, #137).
  */
-data class ScheduledTime(val kind: TimerAlarmKind, val atMs: Long) {
+data class ScheduledTime(val kind: TimerAlarmKind, val atMs: Long, val slot: TimerSlot = TimerSlot.BREW) {
     /** How late [now] is after the scheduled time, in ms, on this kind's clock. */
     fun lateMs(now: ClockReading): Long = when (kind.clock) {
         AlarmClock.ELAPSED -> now.elapsedMs - atMs
@@ -93,9 +95,16 @@ sealed interface TimerDiagnostic {
         val scheduled: ScheduledTime?,
     ) : TimerDiagnostic
 
-    /** The alarm of [kind] arrived; [scheduled] is its time in the current due set, null when nothing is due. */
-    data class AlarmReceived(override val at: ClockReading, val kind: TimerAlarmKind, val scheduled: ScheduledTime?) :
-        TimerDiagnostic
+    /**
+     * The alarm of [kind] in [slot] arrived; [scheduled] is its time in the slot's current due set, null when
+     * nothing is due.
+     */
+    data class AlarmReceived(
+        override val at: ClockReading,
+        val kind: TimerAlarmKind,
+        val scheduled: ScheduledTime?,
+        val slot: TimerSlot = TimerSlot.BREW,
+    ) : TimerDiagnostic
 
     /**
      * Writing a transition failed (04 §7.1): the transaction of its data

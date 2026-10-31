@@ -1,7 +1,9 @@
 package com.umamit.core.timer.diagnostics
 
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.controller.TimerAlarmKind
+import com.umamit.core.timer.engine.TimerEvent
 
 /**
  * When a step's pre-alert or alert was due and when something happened to it, read back from
@@ -15,6 +17,9 @@ import com.umamit.core.timer.controller.TimerAlarmKind
  *   `alert ALERT: ringer NORMAL, … | tone klangschale, length NORMAL | queued 1 ms, settings 0 ms,
  *   outputs 12 ms, sound ready | DEADLINE scheduled 10:01:00.000 (mono 5060000) actual
  *   10:01:00.140 (mono 5060140) delta +140 ms` (the part on the start since D-092).
+ *
+ * A quick timer's line names its slot before the kind (`QUICK.DEADLINE scheduled …`; D-098, #137);
+ * the brew's has none, as with one timer.
  *
  * The accuracy workflow (04 §12, #52) reads the pre-alert and the alert of every step this
  * way; the round-trip tests keep these parsers and the log format together.
@@ -41,13 +46,15 @@ data class FireTime(
      * line without it.
      */
     val start: String? = null,
+    /** Whose cue it is: the brew session's or the quick timer's (D-098). */
+    val slot: TimerSlot = TimerSlot.BREW,
 ) {
     companion object {
         /** The [source] of a fire time read by [parsePlayed]: the alert player started the sound. */
         const val PLAYER = "PLAYER"
 
         private const val TIMING =
-            """(\w+) scheduled (\S+) \(mono (-?\d+)\) actual (\S+) \(mono (-?\d+)\) delta ([+-]\d+) ms"""
+            """(?:(\w+)\.)?(\w+) scheduled (\S+) \(mono (-?\d+)\) actual (\S+) \(mono (-?\d+)\) delta ([+-]\d+) ms"""
 
         private val ACCEPTED = Regex("""^event (\w+) from (\w+): \w+ -> \w+ accepted \| $TIMING$""")
 
@@ -60,12 +67,13 @@ data class FireTime(
         /**
          * The fire time in the log [message] of an accepted time-based event; null for any
          * other entry (an ignored or rejected event, an alarm that found its event handled).
+         * A quick timer's deadline reached while the brew alerts is handled as the arbitration's
+         * hold (`AlertHold`, 04 §9.3): that is its handled deadline too.
          */
         fun parse(message: String): FireTime? {
             val values = ACCEPTED.matchEntire(message.trim())?.groupValues ?: return null
-            val kind = TimerAlarmKind.entries.firstOrNull { it.name == values[KIND] }
-            return kind?.takeIf { it.event != null && it.event::class.simpleName == values[EVENT] }
-                ?.let { fireTime(it, values[SOURCE], values) }
+            val kind = TimerAlarmKind.entries.firstOrNull { it.name == values[KIND] && values[EVENT] in handledAs(it) }
+            return kind?.let { fireTime(it, values[SOURCE], values) }
         }
 
         /**
@@ -81,27 +89,44 @@ data class FireTime(
                 else -> null
             }
             return kind?.takeIf { it.name == values[KIND] }
-                ?.let { fireTime(it, PLAYER, values).copy(start = START.find(message)?.groupValues?.get(1)) }
+                ?.let { fireTime(it, PLAYER, values)?.copy(start = START.find(message)?.groupValues?.get(1)) }
         }
 
-        private fun fireTime(kind: TimerAlarmKind, source: String, values: List<String>) = FireTime(
-            kind = kind,
-            source = source,
-            scheduledWall = values[SCHEDULED_WALL],
-            scheduledMonoMs = values[SCHEDULED_MONO].toLong(),
-            actualWall = values[ACTUAL_WALL],
-            actualMonoMs = values[ACTUAL_MONO].toLong(),
-            deltaMs = values[DELTA].toLong(),
+        /** The names of the events whose accepted handling is the fire time of [kind]'s alarm. */
+        private fun handledAs(kind: TimerAlarmKind): Set<String> = setOfNotNull(
+            kind.event?.let { it::class.simpleName },
+            TimerEvent.AlertHold::class.simpleName.takeIf { kind == TimerAlarmKind.DEADLINE },
         )
 
-        // The groups of ACCEPTED and PLAYED; PLAYED has the cue as EVENT and an empty SOURCE.
+        /** The fire time in [values]; null for a slot the log does not name. */
+        private fun fireTime(kind: TimerAlarmKind, source: String, values: List<String>): FireTime? {
+            val slot = if (values[SLOT].isEmpty()) {
+                TimerSlot.BREW
+            } else {
+                TimerSlot.entries.firstOrNull { it.name == values[SLOT] && it != TimerSlot.BREW } ?: return null
+            }
+            return FireTime(
+                kind = kind,
+                source = source,
+                scheduledWall = values[SCHEDULED_WALL],
+                scheduledMonoMs = values[SCHEDULED_MONO].toLong(),
+                actualWall = values[ACTUAL_WALL],
+                actualMonoMs = values[ACTUAL_MONO].toLong(),
+                deltaMs = values[DELTA].toLong(),
+                slot = slot,
+            )
+        }
+
+        // The groups of ACCEPTED and PLAYED; PLAYED has the cue as EVENT and an empty SOURCE. SLOT is empty for
+        // the brew slot's line.
         private const val EVENT = 1
         private const val SOURCE = 2
-        private const val KIND = 3
-        private const val SCHEDULED_WALL = 4
-        private const val SCHEDULED_MONO = 5
-        private const val ACTUAL_WALL = 6
-        private const val ACTUAL_MONO = 7
-        private const val DELTA = 8
+        private const val SLOT = 3
+        private const val KIND = 4
+        private const val SCHEDULED_WALL = 5
+        private const val SCHEDULED_MONO = 6
+        private const val ACTUAL_WALL = 7
+        private const val ACTUAL_MONO = 8
+        private const val DELTA = 9
     }
 }

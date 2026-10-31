@@ -31,7 +31,7 @@ internal class AlertWatchdog(private val alarms: TimerAlarmPort, private val slo
     private var known = false
 
     /** When the watchdog is due as this process set it, for the log's scheduled vs actual time. */
-    val scheduled: ScheduledTime? get() = atMs?.let { ScheduledTime(TimerAlarmKind.ALERT_WATCHDOG, it) }
+    val scheduled: ScheduledTime? get() = atMs?.let { ScheduledTime(TimerAlarmKind.ALERT_WATCHDOG, it, slot) }
 
     /**
      * At the end of a turn whose process knows its state: while an alert [playing], the alarm is
