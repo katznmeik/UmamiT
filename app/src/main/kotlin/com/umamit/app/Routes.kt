@@ -16,7 +16,14 @@ internal data object ShellRoute
  * [switched]: opened from the other timer's row, which is right below it, so that row's tap there goes back.
  */
 @Serializable
-internal data class TimerRoute(val slot: TimerSlot? = null, val switched: Boolean = false)
+internal data class TimerRoute(val slotName: String?, val switched: Boolean) {
+    /** The timer this route shows; null: the one in front when it opened. By name: a route holds no enum (R8). */
+    val slot: TimerSlot? get() = slotName?.let(TimerSlot::valueOf)
+
+    companion object {
+        operator fun invoke(slot: TimerSlot? = null, switched: Boolean = false) = TimerRoute(slot?.name, switched)
+    }
+}
 
 /**
  * The setup (SCR-04): of the tea [teaId] (from the tea picker or a favourite), or of the waiting
