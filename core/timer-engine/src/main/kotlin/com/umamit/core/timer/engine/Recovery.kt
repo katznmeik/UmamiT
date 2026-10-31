@@ -64,7 +64,7 @@ private fun recoverWaiting(state: TimerState.Waiting, now: ClockReading): TimerT
 }
 
 /**
- * This running step with a pre-alert that is neither due nor played computed again from its deadline and its N,
+ * This running step with a pre-alert that is neither set nor played computed again from its deadline and its N,
  * as `resume` and `editSteps` do (04 §5): skipped when its time is not after [now], never a late tick. It gives a
  * hot step of 10–59 min that v0.2.2 ran as a long step, without one, its pre-alert after the update (D-098, #127).
  * In a state this version stored, such a step has no lead or its time had passed, so it stays without one.
