@@ -27,6 +27,8 @@ sealed interface BrewSetupUiState {
      * @property stockLevel the stock's INV-05 status: *Knapp* reads „14 g übrig · knapp" (BRW-08, D-097).
      * @property sessionLeafGrams the leaf an active session of this tea still deducts at *Sitzung beenden*
      *   (INV-03, D-096), or null: „Wie viel ist noch da?" says so, and the arithmetic stays as it is.
+     * @property catalogKey the tea's catalog key while its catalog tea exists (discontinued counts), else null:
+     *   the top bar's ⋮ *Im Katalog ansehen* shows only then (D-098).
      */
     data class Ready(
         val teaName: String,
@@ -51,6 +53,7 @@ sealed interface BrewSetupUiState {
         val alertKey: String?,
         val sessionLeafGrams: Double? = null,
         val stockLevel: StockLevel? = null,
+        val catalogKey: String? = null,
     ) : BrewSetupUiState
 }
 
