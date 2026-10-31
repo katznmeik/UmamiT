@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
@@ -19,6 +20,9 @@ enum class RecoveryDecision {
 
     /** The deadline passed less than 10 min ago, or the alert had not run its cycle: replayed. */
     ALERT_REPLAYED,
+
+    /** A quick timer's alert waits for the brew's (04 §7.2 two slots, §9.3; D-098): held, it rings after it. */
+    ALERT_HELD,
 
     /** The deadline passed 10 min or more ago: poured on time, silently (`overtimeAutoAck`). */
     OVERTIME_ACKNOWLEDGED,
@@ -49,14 +53,27 @@ enum class EventSource {
 
     /** The controller's first turn in a process: `recover` from the persisted state (04 §7.2). */
     RECOVERY,
+
+    /** The controller's alert arbitration between its two slots: a quick alert held or released (04 §9.3). */
+    ARBITRATION,
 }
 
 /**
- * When a time-based event was due: [atMs] on the clock of [kind]. With the
- * reading of the moment it was handled, the log shows scheduled vs actual
- * fire time (06 §5.6, TMR-30).
+ * When a time-based event of [slot]'s timer was due: [atMs] on the clock of
+ * [kind]. With the reading of the moment it was handled, the log shows
+ * scheduled vs actual fire time (06 §5.6, TMR-30); a quick timer's line names
+ * its slot, so the accuracy run tells the two timers apart (D-098, #137).
+ *
+ * [heldMs] is set only for the sound of a quick alert released after it was held behind the brew's (04 §9.3): it
+ * was due at its release ([atMs]), [heldMs] after its deadline, so the log shows the player's own delay and the
+ * hold apart, never a hold as lateness.
  */
-data class ScheduledTime(val kind: TimerAlarmKind, val atMs: Long) {
+data class ScheduledTime(
+    val kind: TimerAlarmKind,
+    val atMs: Long,
+    val slot: TimerSlot = TimerSlot.BREW,
+    val heldMs: Long? = null,
+) {
     /** How late [now] is after the scheduled time, in ms, on this kind's clock. */
     fun lateMs(now: ClockReading): Long = when (kind.clock) {
         AlarmClock.ELAPSED -> now.elapsedMs - atMs
@@ -87,9 +104,16 @@ sealed interface TimerDiagnostic {
         val scheduled: ScheduledTime?,
     ) : TimerDiagnostic
 
-    /** The alarm of [kind] arrived; [scheduled] is its time in the current due set, null when nothing is due. */
-    data class AlarmReceived(override val at: ClockReading, val kind: TimerAlarmKind, val scheduled: ScheduledTime?) :
-        TimerDiagnostic
+    /**
+     * The alarm of [kind] in [slot] arrived; [scheduled] is its time in the slot's current due set, null when
+     * nothing is due.
+     */
+    data class AlarmReceived(
+        override val at: ClockReading,
+        val kind: TimerAlarmKind,
+        val scheduled: ScheduledTime?,
+        val slot: TimerSlot = TimerSlot.BREW,
+    ) : TimerDiagnostic
 
     /**
      * Writing a transition failed (04 §7.1): the transaction of its data
@@ -167,6 +191,9 @@ sealed interface TimerDiagnostic {
      * started, it is the delay *Diagnose* and the accuracy run measure (TMR-30, D-068). [start]
      * splits a step's cue into the time it was queued, waited for the settings and started its
      * outputs, and says whether its sound was loaded before (D-092; null for *Alarm testen*).
+     * [volumePercent] is the *Lautstärke* its sound played at on the alarm stream (SET-27, D-098);
+     * [alarmVolumeOff]: the phone's alarm volume was 0, so the sound was inaudible (TMR-31, E18).
+     * [ringUnderDnd]: *Bei „Nicht stören" klingeln* (SET-32, D-099) was on for this cue.
      */
     data class AlertPlayed(
         override val at: ClockReading,
@@ -177,6 +204,9 @@ sealed interface TimerDiagnostic {
         val length: AlertLength,
         val scheduled: ScheduledTime? = null,
         val start: CueStart? = null,
+        val volumePercent: Int = 100,
+        val alarmVolumeOff: Boolean = false,
+        val ringUnderDnd: Boolean = true,
     ) : TimerDiagnostic
 
     /**

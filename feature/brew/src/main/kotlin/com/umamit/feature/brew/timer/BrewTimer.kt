@@ -1,5 +1,6 @@
 package com.umamit.feature.brew.timer
 
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewSessionController
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.ControllerBrewStarter
@@ -17,8 +18,11 @@ import javax.inject.Inject
  * screens call nothing else: no engine, no database.
  */
 interface BrewTimer {
-    /** The controller's [BrewSessionController.state]. */
+    /** The controller's [BrewSessionController.state]: the timer in front of the screens (04 §3.3). */
     val state: StateFlow<TimerUiState>
+
+    /** [slot]'s timer ([BrewSessionController.slotStates]): the brew session's or the quick timer's, Idle without. */
+    fun state(slot: TimerSlot): StateFlow<TimerUiState>
 
     /**
      * The controller's [BrewSessionController.recovered]: until it is true, an `Idle` [state] may
@@ -26,8 +30,8 @@ interface BrewTimer {
      */
     val recovered: StateFlow<Boolean> get() = ALWAYS_RECOVERED
 
-    /** A user event from the app ([BrewSessionController.send]). */
-    suspend fun send(event: TimerEvent): TransitionOutcome
+    /** A user event of [slot]'s timer from the app ([BrewSessionController.send]): the timer the screen shows. */
+    suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome
 }
 
 private val ALWAYS_RECOVERED: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
@@ -40,5 +44,7 @@ class ControllerBrewTimer @Inject constructor(private val controller: BrewSessio
 
     override val recovered: StateFlow<Boolean> get() = controller.recovered
 
-    override suspend fun send(event: TimerEvent): TransitionOutcome = controller.send(event)
+    override fun state(slot: TimerSlot): StateFlow<TimerUiState> = controller.slotStates.getValue(slot)
+
+    override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome = controller.send(slot, event)
 }

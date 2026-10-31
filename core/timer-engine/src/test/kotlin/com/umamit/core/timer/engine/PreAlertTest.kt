@@ -62,7 +62,9 @@ class PreAlertTest {
             rinse(14).withPreAlert(5) to false,
             rinse(10).withPreAlert(5) to false,
             infusion(599).withPreAlert(10) to true,
-            infusion(600).withPreAlert(10) to false,
+            infusion(600).withPreAlert(10) to true, // a hot step of 10–59 min is short (D-098)
+            infusion(3_599).withPreAlert(10) to true,
+            infusion(3_600).withPreAlert(10) to false,
             infusion(4 * 3600).withPreAlert(10) to false,
         )
         cases.forEach { (step, expected) ->
@@ -267,7 +269,7 @@ class PreAlertTest {
 
     @Test
     fun `preAlertLeadSeconds is the current step's lead time, played or not, for the ring and the progress point`() {
-        val driver = sessionWith(infusion(60), infusion(14), infusion(600))
+        val driver = sessionWith(infusion(60), infusion(14), infusion(3_600))
         assertThat(BrewTimerEngine.preAlertLeadSeconds(TimerState.Idle)).isNull()
         assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(10)
 
@@ -276,7 +278,7 @@ class PreAlertTest {
         driver.send(TimerEvent.PreAlertReached)
         assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(10)
 
-        driver.send(editSteps(PreAlertChoice.Seconds(20), infusion(60), infusion(14), infusion(600)))
+        driver.send(editSteps(PreAlertChoice.Seconds(20), infusion(60), infusion(14), infusion(3_600)))
         assertThat(BrewTimerEngine.preAlertLeadSeconds(driver.state)).isEqualTo(20)
 
         // A step shorter than N + 5 s and a long step have none (E7, TMR-18); Finished has no step.

@@ -63,7 +63,7 @@ class StepsSheetHostTest {
     private val sheet =
         SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle) and hasAnyDescendant(hasText(title))
 
-    private fun showHost(reduceMotion: Boolean = false) {
+    private fun showHost(reduceMotion: Boolean = false): StepsSheetState {
         val state = StepsSheetState(input)
         compose.setContent {
             UmamiTheme(reduceMotion = reduceMotion) {
@@ -85,6 +85,7 @@ class StepsSheetHostTest {
                 }
             }
         }
+        return state
     }
 
     @Test
@@ -384,6 +385,44 @@ class StepsSheetHostTest {
         compose.onNodeWithText(discardTitle).assertDoesNotExist()
         compose.onNodeWithText(title).assertDoesNotExist()
         compose.onNode(isDialog()).assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes Dauer wählen at once, and its draft is never applied (rule 8, #141)`() {
+        val state = showHost()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 2: 30 Sekunden. Ändern")
+            .performScrollTo()
+            .performClick()
+        compose.onNodeWithContentDescription("Eine Minute mehr").performClick()
+        compose.onNodeWithText("Dauer wählen").assertIsDisplayed()
+        compose.mainClock.autoAdvance = false
+
+        visible = false
+        alerting = true
+        advanceTwoFrames()
+
+        compose.onNodeWithText("Dauer wählen").assertDoesNotExist()
+        compose.onNode(isDialog()).assertDoesNotExist()
+        assertThat(state.steps[1].plannedSeconds).isEqualTo(30)
+    }
+
+    @Test
+    fun `an alert stops a hold in progress (rule 8, #141)`() {
+        val state = showHost()
+        val plus = compose.onNodeWithContentDescription("Ziehzeit verlängern, Schritt 2").performScrollTo()
+        compose.mainClock.autoAdvance = false
+        plus.performTouchInput { down(center) }
+        // 400, 550 ms: two repeats.
+        compose.mainClock.advanceTimeBy(600)
+        assertThat(state.steps[1].plannedSeconds).isEqualTo(40)
+
+        visible = false
+        alerting = true
+        advanceTwoFrames()
+        compose.mainClock.advanceTimeBy(2_000)
+
+        compose.onNodeWithText(title).assertDoesNotExist()
+        assertThat(state.steps[1].plannedSeconds).isEqualTo(40)
     }
 
     @Test

@@ -126,11 +126,9 @@ class ConcurrentEventsTest {
         val calls = h.log.calls.size
 
         val again = h.controller.startSession(brewStart(infusion(30)))
-        val quick = h.controller.startQuickTimer(durationSeconds = 120)
 
         val refusal = TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(first)))
         assertThat(again).isEqualTo(refusal)
-        assertThat(quick).isEqualTo(refusal)
         assertThat(h.log.calls).hasSize(calls)
         assertThat(h.sessionId).isEqualTo(first)
         assertThat(sessionRows()).isEqualTo(1)

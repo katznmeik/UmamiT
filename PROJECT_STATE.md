@@ -3,21 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-30 (v0.3.0 specified: spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 released from `main` c499263)
+**Last updated:** 2026-10-31 (`v0.3.0-rc.1` released for the PO's checklist, #138; v0.3.0 built on PR #143; specified: spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`; v0.2.2 released from `main` c499263)
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.2.2 — done** ([`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2), 2026-10-30, from `main` c499263; spec #108, PR #121). **Next: v0.3.0 — specified, waiting for the PO's go** (`/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
+| Current milestone | **v0.2.2 — done** ([`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2), 2026-10-30, from `main` c499263; spec #108, PR #121). **Next: v0.3.0 — rc.2 with the PO** ([`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2), 2026-10-31, from 70ef390; rc.1 passed every item except two findings, fixed in rc.2; design review approved; PR #143; go given 2026-10-30 with `/implement-spec #124`): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123); spec #124, tickets #125–#139 and #141, D-098, plan `docs/plans/v0.3.0.md`. Then M3 → v0.4.0, M4 → v0.5.0 |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
 | Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #106 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29), #121 (v0.2.2, 2026-10-30); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105, #120, #140 |
-| Open PR | none |
+| Open PR | #143 (v0.3.0 milestone; all tickets merged, waiting for the PO's checklist and design review on #138) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
-| Latest APK | [`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2) (full release, versionCode 20299, from `main` c499263; accuracy PASS on `main`: pre-alert p95 46 ms / max 94 ms, alert p95 31 ms / max 75 ms) |
+| Latest APK | [`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2) (pre-release, versionCode 30002, from 70ef390; accuracy PASS: standard pre-alert p95 53 / max 162 ms, alert p95 47 / max 59 ms; alongside both timers p95 ≤ 38 ms, max ≤ 363 ms). Latest full release: [`v0.2.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.2.2) (full release, versionCode 20299, from `main` c499263; accuracy PASS on `main`: pre-alert p95 46 ms / max 94 ms, alert p95 31 ms / max 75 ms) |
 
 ## Done (M0)
 
@@ -39,7 +39,7 @@
 
 ## Waiting on the PO
 
-1. **v0.3.0:** the PO approves tickets #125–#139 and #141 and gives the go with `/implement-spec #124` (D-098, plan `docs/plans/v0.3.0.md`). v0.2.2 is released (2026-10-30). Its rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
+1. **v0.3.0:** the PO re-checks [`v0.3.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.2) on #138: the *Lautstärke* slider (fixed) and DND with the phone on ring (D-099: rings when DND lets alarms through, switch SET-32 „Bei „Nicht stören" klingeln", default on; One UI reported `ringer SILENT` under DND in rc.1). Everything else passed on rc.1; design review approved 2026-10-31. Before that: the PO tests [`v0.3.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0-rc.1) with the 09 §4 checklist posted on #138 and judges the design review (`docs/design/review/v0.3.0/README.md`). Accuracy on ef62744: standard PASS (pre-alert p95 40 / max 138 ms, alert p95 20 / max 56 ms), alongside PASS (both timers p95 ≤ 37 ms, max ≤ 346 ms); the 1500 ms gate check failed as intended. After the PO's approval: set `0.3.0`, merge #143, both accuracy variants on `main`, `release.yml` from `main` (#139). v0.2.2 is released (2026-10-30). Its rc.1 (7f627a2, accuracy PASS: pre-alert p95 60 / max 375 ms, alert p95 26 / max 168 ms) was approved with its checklist and design review (#118); merged as c499263.
    Optional at any time: the PO's own alarm / Vorwarnung recordings
    (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`, WAV, sound from the first
    sample; see the session of 2026-10-28) — each becomes one more entry in `PreAlertSound` / `AlertSound`.
@@ -74,8 +74,9 @@
   10–100 % and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder (INV-11,
   channel „Vorrat", WorkManager); foldable catalog groups; stock on READY; two SCR-07 polish items.
 - Spec #124, tickets #125–#139 and #141, plan `docs/plans/v0.3.0.md`. Specs 02, 03, 04, 05, 06, 09 updated (11 before).
-- **Waiting for the PO's go** (`/implement-spec #124`, after the PO approves the tickets).
-- **Decision numbers:** up to D-098 used; the next free is **D-099**.
+- **Built** 2026-10-30/31 on PR #143: all tickets #125–#137 and #141 merged, a T4 fix for notification updates Android drops under its rate limit (found by the new emulator test), a two-axis code review (Standards, Spec T4/T3) with every finding fixed or recorded. `v0.3.0-rc.1` released 2026-10-31 (versionCode 30001, ef62744).
+- **Working notes for the session:** the container restarted twice from memory with two Gradle builds at once; since then every Gradle command goes through a machine-wide `flock` (one build at a time) and Kotlin compiles in-process (`~/.gradle/gradle.properties`).
+- **Decision numbers:** up to D-099 used; the next free is **D-100**.
 
 ### v0.2.2 specified (2026-10-30)
 

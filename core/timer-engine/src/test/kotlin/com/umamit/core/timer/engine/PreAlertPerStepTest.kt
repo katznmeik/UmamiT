@@ -32,7 +32,7 @@ class PreAlertPerStepTest {
 
     @Test
     fun `without an explicit value a step gets a third of its length in whole 5 s, at most B`() {
-        // TMR-23's examples with B = 10 s: 0:10 → none, 0:20 → 5 s, 0:30 and longer → 10 s; ≥ 10 min never (TMR-18).
+        // TMR-23's examples with B = 10 s: 0:10 → none, 0:20 → 5 s, 0:30 and longer → 10 s; ≥ 60 min never (TMR-18).
         val cases = listOf(
             Case(10, base = 10, lead = null),
             Case(14, base = 10, lead = null),
@@ -42,7 +42,9 @@ class PreAlertPerStepTest {
             Case(30, base = 10, lead = 10),
             Case(60, base = 10, lead = 10),
             Case(599, base = 10, lead = 10),
-            Case(600, base = 10, lead = null),
+            Case(600, base = 10, lead = 10), // a hot step of 10–59 min is short (D-098)
+            Case(3_599, base = 10, lead = 10),
+            Case(3_600, base = 10, lead = null),
             Case(4 * 3_600, base = 10, lead = null),
             Case(10, base = 20, lead = null),
             Case(14, base = 20, lead = null),
@@ -52,7 +54,8 @@ class PreAlertPerStepTest {
             Case(30, base = 20, lead = 10),
             Case(45, base = 20, lead = 15),
             Case(60, base = 20, lead = 20),
-            Case(600, base = 20, lead = null),
+            Case(600, base = 20, lead = 20),
+            Case(3_600, base = 20, lead = null),
             Case(10, base = 0, lead = null),
             Case(14, base = 0, lead = null),
             Case(15, base = 0, lead = null),
@@ -61,6 +64,7 @@ class PreAlertPerStepTest {
             Case(30, base = 0, lead = null),
             Case(60, base = 0, lead = null),
             Case(600, base = 0, lead = null),
+            Case(3_600, base = 0, lead = null),
             // 04 §12's boundaries 14/15/19/20/30/45 s with B = 5 and 30 s.
             Case(14, base = 5, lead = null),
             Case(15, base = 5, lead = 5),
@@ -113,7 +117,9 @@ class PreAlertPerStepTest {
             Triple(rinse(15), 10, 10) to 10,
             Triple(rinse(14), 5, 10) to null,
             Triple(infusion(599), 30, 10) to 30,
-            Triple(infusion(600), 10, 10) to null,
+            Triple(infusion(600), 10, 10) to 10, // a hot step of 10–59 min is short (D-098)
+            Triple(infusion(3_599), 10, 10) to 10,
+            Triple(infusion(3_600), 10, 10) to null,
             Triple(infusion(10), 0, 10) to null,
             Triple(infusion(20), 0, 10) to null,
             Triple(infusion(60), 0, 30) to null,
@@ -127,7 +133,7 @@ class PreAlertPerStepTest {
 
     @Test
     fun `the Schritte-Sheet's choice gives every step of the plan its own lead`() {
-        val plan = listOf(rinse(15), infusion(60), infusion(20), whisk(30), infusion(14), infusion(600))
+        val plan = listOf(rinse(15), infusion(60), infusion(20), whisk(30), infusion(14), infusion(3_600))
         // (choice, the lead of each step in order); B = 10 s.
         val cases = listOf(
             PreAlertChoice.Inherit to listOf(5, 10, 5, 10, null, null),
@@ -160,7 +166,9 @@ class PreAlertPerStepTest {
             Case(120, base = 15, lead = 15),
             Case(300, base = 30, lead = 30),
             Case(90, base = 0, lead = null),
-            Case(600, base = 10, lead = null),
+            Case(600, base = 10, lead = 10), // a hot step of 10–59 min is short (D-098)
+            Case(3_599, base = 10, lead = 10),
+            Case(3_600, base = 10, lead = null),
         )
         cases.forEach { (seconds, base, lead) ->
             val driver = EngineDriver()

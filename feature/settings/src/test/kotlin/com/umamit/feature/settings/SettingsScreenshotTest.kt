@@ -22,8 +22,10 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Einstellungen (SCR-25) with a missing check, with all ready, with the *Vorwarnton* picker
- * (SET-26) and scrolled to its *Katalog* section (SET-22, SET-23), and Über (SCR-27), in light and
- * dark at font scale 1.0 and 2.0 (03 §6). Goldens: `src/test/screenshots/`.
+ * (SET-26), its *Lautstärke* (SET-27), *Bei „Nicht stören“ klingeln* (SET-32) and the alarm volume at 0
+ * (TMR-31), scrolled to its *Katalog* section (SET-22, SET-23), and Über (SCR-27), in light and dark at font
+ * scale 1.0 and 2.0 (03 §6).
+ * Goldens: `src/test/screenshots/`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -44,6 +46,14 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         private val LIVE_UPDATES_MISSING = ReliabilityStatus(
             ReliabilityCheck.entries.associateWith { CheckState.Ok } +
                 (ReliabilityCheck.LiveUpdates to CheckState.Missing),
+        )
+
+        /** SET-32's title, with the no-break space that keeps „Nicht stören“ on one line. */
+        private const val RING_UNDER_DND = "Bei „Nicht\u00A0stören“ klingeln"
+
+        private val ALARM_VOLUME_OFF = ReliabilityStatus(
+            ReliabilityCheck.entries.associateWith { CheckState.Ok } +
+                (ReliabilityCheck.AlarmVolume to CheckState.Missing),
         )
     }
 
@@ -106,6 +116,42 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
+    /** *Lautstärke* below *Vorwarnton* at 60 %, with its hint (SET-27, D-098). */
+    @Test
+    fun settingsVolume() = capture("Settings_volume", scrollToText = "Wirkt auf die Alarmlautstärke des Handys") {
+        SettingsScreen(
+            settings = UserSettings(alertVolumePercent = 60),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
+    /** „Bei „Nicht stören" klingeln" below *Alarmdauer*, on with its detail (SET-32, D-099). */
+    @Test
+    fun settingsRingUnderDnd() = capture("Settings_ringUnderDnd", scrollToText = RING_UNDER_DND) {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
+    /** The phone's alarm volume at 0: the card's row „Alarmlautstärke · Ist aus" with *Beheben* (TMR-31, D-098). */
+    @Test
+    fun settingsAlarmVolumeOff() = capture("Settings_alarmVolumeOff", scrollToText = "Ist aus") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ALARM_VOLUME_OFF,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
     /** The *Katalog* section: „Letzter Abruf" with *Jetzt aktualisieren* and *Fotos laden* (SET-22, SET-23). */
     @Test
     fun settingsCatalog() = capture("Settings_catalog", scrollToText = "Fotos laden") {
@@ -136,6 +182,44 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
     /** The „Knapp ab" stepper at 15 g. */
     @Test
     fun settingsLowStockDialog() = capture("Settings_lowStock", clickText = "Knapp ab") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+        )
+    }
+
+    /** The daily low-stock reminder's rows: the switch on, „Uhrzeit · 18:00" (SET-28, SET-29, INV-11, D-098). */
+    @Test
+    fun settingsReminder() = capture("Settings_reminder", scrollToText = "Uhrzeit") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** Switched off: the time row is gone. */
+    @Test
+    fun settingsReminderOff() = capture("Settings_reminderOff", scrollToText = "Tägliche Vorrats-Erinnerung") {
+        SettingsScreen(
+            settings = UserSettings(lowStockReminder = false),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** Material 3's 24 h time picker at 18:00. */
+    @Test
+    fun settingsReminderTimeDialog() = capture("Settings_reminderTime", clickText = "Uhrzeit") {
         SettingsScreen(
             settings = UserSettings(),
             status = ReliabilityStatus.AllOk,

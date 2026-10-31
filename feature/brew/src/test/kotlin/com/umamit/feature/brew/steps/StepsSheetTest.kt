@@ -269,7 +269,7 @@ class StepsSheetTest {
     @Test
     fun `Automatisch shows the lead it will use, Auto N s or Auto keine`() {
         // Q17: N = min(B, 5 · ⌊d / 15⌋); none under 15 s and for long steps (TMR-23, TMR-18).
-        show(listOf(pending(seconds = 60), pending(seconds = 20), pending(seconds = 10), pending(seconds = 600)))
+        show(listOf(pending(seconds = 60), pending(seconds = 20), pending(seconds = 10), pending(seconds = 3_600)))
 
         compose.onNodeWithText("Auto · 10 s", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Auto · 5 s", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
@@ -303,6 +303,21 @@ class StepsSheetTest {
     }
 
     @Test
+    fun `a hot step of 10 to 59 min has its Vorwarnung, from 60 min none (TMR-18, D-098)`() {
+        show(listOf(pending(seconds = 15 * 60), pending(seconds = 60 * 60)))
+
+        preAlertSelector(1, "Automatisch, 10 Sekunden vorher").assertExists()
+        preAlertSelector(2, "Automatisch, keine").assertExists()
+
+        // Below 60 min the step is short again; the rounding stays 1 min from 10 min on (PRF-04).
+        click("Ziehzeit verkürzen, Schritt 2")
+        compose.onNodeWithText("59:00").assertIsDisplayed()
+        preAlertSelector(2, "Automatisch, 10 Sekunden vorher").assertExists()
+        click("Ziehzeit verlängern, Schritt 2")
+        preAlertSelector(2, "Automatisch, keine").assertExists()
+    }
+
+    @Test
     fun `the selector offers Automatisch with its lead, Aus and 5 to 30 s`() {
         show(listOf(pending(seconds = 60)))
 
@@ -325,7 +340,7 @@ class StepsSheetTest {
     @Test
     fun `an explicit value the step is too short for shows zu kurz, on a long step keine`() {
         // E7: none when d < N + 5 s; a long step never has one (09 §4 v0.2.1: 0:10 with 10 s → „zu kurz").
-        show(listOf(pending(seconds = 10), pending(seconds = 600)))
+        show(listOf(pending(seconds = 10), pending(seconds = 3_600)))
 
         choosePreAlert(1, "Automatisch, keine", "10 s · zu kurz")
         compose.onNodeWithText("10 s · zu kurz", useUnmergedTree = true).assertIsDisplayed()
@@ -466,7 +481,7 @@ class StepsSheetTest {
     fun `the stepper values have spoken TalkBack descriptions`() {
         show(listOf(pending(seconds = 90, tempC = 60)))
 
-        compose.onNodeWithContentDescription("Ziehzeit 1 Minute 30 Sekunden").assertExists()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 1: 1 Minute 30 Sekunden. Ändern").assertExists()
         compose.onNodeWithContentDescription("Temperatur 60 Grad").assertExists()
     }
 

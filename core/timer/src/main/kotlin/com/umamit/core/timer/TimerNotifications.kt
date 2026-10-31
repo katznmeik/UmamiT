@@ -4,10 +4,14 @@ import android.Manifest
 import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.umamit.core.timer.service.BrewTimerService
+import com.umamit.core.timer.service.ForegroundServiceState
 
 /** Notification channels and IDs of the timer (04 §8.1, §8.2). */
 object TimerNotifications {
@@ -19,6 +23,12 @@ object TimerNotifications {
 
     /** „Sitzung gespeichert" and the reboot notice: importance LOW, silent (04 §8.1). */
     const val CHANNEL_SESSIONS = "sessions"
+
+    /**
+     * The other active timer, notification [ID_OTHER] (04 §8.1, D-098): importance LOW, silent, never promoted,
+     * so the alert stays the app's only notification of importance DEFAULT or higher (D-044).
+     */
+    const val CHANNEL_TIMER_OTHER = "timer_other"
 
     /** Live Update; the foreground service notification except while alerting. */
     const val ID_LIVE_UPDATE = 1
@@ -46,7 +56,22 @@ object TimerNotifications {
      */
     const val ID_QUIET = 4
 
+    /**
+     * The other active timer (04 §8.2, D-098): with a brew session and a quick timer at once, the one whose
+     * notification the service does not show, on [CHANNEL_TIMER_OTHER]; posted directly, never by the service.
+     */
+    const val ID_OTHER = 5
+
     private const val TAG = "UmamiTTimer"
+
+    /** The notifications posted without the service whose post is posted once more after a burst (#135). */
+    private val REPOSTED_IDS = setOf(ID_QUIET, ID_OTHER)
+
+    /** Orders a re-post against a newer post and a cancel of its ID; guards [pendingReposts]. */
+    private val repostLock = Any()
+
+    /** The pending re-post per ID; one that is no longer here does nothing when it comes due. */
+    private val pendingReposts = mutableMapOf<Int, Runnable>()
 
     /** Creates (or updates the names of) the timer channels; idempotent. */
     fun ensureChannels(context: Context) {
@@ -74,12 +99,39 @@ object TimerNotifications {
                     .setVibrationEnabled(false)
                     .setShowBadge(false)
                     .build(),
+                NotificationChannelCompat.Builder(CHANNEL_TIMER_OTHER, NotificationManagerCompat.IMPORTANCE_LOW)
+                    .setName(context.getString(R.string.timer_channel_other_name))
+                    .setDescription(context.getString(R.string.timer_channel_other_description))
+                    .setSound(null, null)
+                    .setVibrationEnabled(false)
+                    .setShowBadge(false)
+                    .build(),
             ),
         )
     }
 
-    /** Posts [notification] when notifications are allowed; returns whether it was posted. */
-    fun post(context: Context, id: Int, notification: Notification): Boolean {
+    /**
+     * Posts [notification] when notifications are allowed; returns whether it was posted. Each post counts against
+     * the app's rate, and Android drops an update posted shortly after another post (#135): the service posts its
+     * own once more, and so does this for the quiet notification 4 and notification 5, posted without the service
+     * ([scheduleRepost]). The app cannot know whether a post is an update (a killed process leaves 5 behind), so
+     * any post of 4 or 5 shortly after another is; the alert 2 never is.
+     */
+    fun post(context: Context, id: Int, notification: Notification): Boolean = synchronized(repostLock) {
+        val mayBeLost = id in REPOSTED_IDS && ForegroundServiceState.postedRecently
+        pendingReposts.remove(id)
+        notifyIfAllowed(context, id, notification).also { posted ->
+            if (posted && mayBeLost) scheduleRepost(context.applicationContext, id, notification)
+        }
+    }
+
+    /** Removes notification [id]; a pending re-post of it goes too, so an ended timer never comes back. */
+    fun cancel(context: Context, id: Int) = synchronized(repostLock) {
+        pendingReposts.remove(id)
+        NotificationManagerCompat.from(context).cancel(id)
+    }
+
+    private fun notifyIfAllowed(context: Context, id: Int, notification: Notification): Boolean {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
         if (!granted) {
@@ -87,10 +139,27 @@ object TimerNotifications {
             return false
         }
         NotificationManagerCompat.from(context).notify(id, notification)
+        ForegroundServiceState.posted()
         return true
     }
 
-    fun cancel(context: Context, id: Int) {
-        NotificationManagerCompat.from(context).cancel(id)
+    /**
+     * Posts [notification] as [id] once more after `REPOST_DELAY_MS` (#135, as the service does for its own), unless
+     * a newer post or a cancel of [id] came first. The copy never alerts.
+     */
+    private fun scheduleRepost(context: Context, id: Int, notification: Notification) {
+        val copy = notification.clone().apply { flags = flags or Notification.FLAG_ONLY_ALERT_ONCE }
+        val repost = object : Runnable {
+            override fun run() {
+                synchronized(repostLock) {
+                    if (pendingReposts[id] !== this) return
+                    pendingReposts.remove(id)
+                    Log.i(TAG, "post($id): re-post")
+                    notifyIfAllowed(context, id, copy)
+                }
+            }
+        }
+        pendingReposts[id] = repost
+        Handler(Looper.getMainLooper()).postDelayed(repost, BrewTimerService.REPOST_DELAY_MS)
     }
 }

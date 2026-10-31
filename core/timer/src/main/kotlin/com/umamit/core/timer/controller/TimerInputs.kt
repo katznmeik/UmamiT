@@ -1,5 +1,6 @@
 package com.umamit.core.timer.controller
 
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
 
@@ -9,11 +10,14 @@ import com.umamit.core.timer.engine.TransitionOutcome
  * recovery receivers (04 §7.3, §7.5) and the full-screen alert (04 §8.2).
  */
 interface TimerInputs {
-    /** The alarm of [kind] arrived; runs every time-based event due now (suspends for one controller turn). */
-    suspend fun onAlarm(kind: TimerAlarmKind)
+    /**
+     * The alarm of [kind] in [slot] arrived; runs every time-based event due now (suspends for one controller
+     * turn). An alarm v0.2.2 left behind arrives as the brew slot's (04 §6.2, D-098).
+     */
+    suspend fun onAlarm(slot: TimerSlot, kind: TimerAlarmKind)
 
-    /** A user event from the app or a notification ([source]); see [BrewSessionController.send]. */
-    suspend fun send(event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome
+    /** A user event of [slot]'s timer from the app or a notification ([source]); see [BrewSessionController.send]. */
+    suspend fun send(slot: TimerSlot, event: TimerEvent, source: EventSource = EventSource.APP): TransitionOutcome
 
     /**
      * The process should hold the persisted timer now ([trigger], 04 §7.2): one controller turn

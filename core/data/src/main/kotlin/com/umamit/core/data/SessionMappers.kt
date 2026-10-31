@@ -171,6 +171,7 @@ internal fun SessionStepRow.toEntity(sessionId: String, now: Long) = SessionStep
 )
 
 internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = ActiveBrewEntity(
+    slot = slot,
     sessionId = sessionId,
     isQuickTimer = isQuickTimer,
     quickDurationSeconds = quickDurationSeconds,
@@ -195,6 +196,8 @@ internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = Act
     createdAt = createdAt,
     updatedAt = updatedAt,
     quickPreAlertSeconds = quickPreAlertSeconds,
+    alertRingingSinceElapsedMs = alertRingingSinceElapsedMs,
+    alertRingingSinceWallMs = alertRingingSinceWallMs,
 )
 
 internal fun ActiveBrewEntity.toSnapshot() = ActiveBrewSnapshot(
@@ -220,4 +223,6 @@ internal fun ActiveBrewEntity.toSnapshot() = ActiveBrewSnapshot(
     preAlertInheritedSeconds = preAlertInheritedSeconds,
     zoneId = zoneId,
     quickPreAlertSeconds = quickPreAlertSeconds,
+    alertRingingSinceElapsedMs = alertRingingSinceElapsedMs,
+    alertRingingSinceWallMs = alertRingingSinceWallMs,
 )

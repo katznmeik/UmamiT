@@ -10,6 +10,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTeaArchive
@@ -98,7 +99,7 @@ class TeaPickerViewModelTest {
         )
         val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
         sessions.sessions.startSession(SessionStart("active", snapshot, steps, 10, 1_000, "UTC"))
-        sessions.activeBrew.persist(BrewTimerEngine.snapshot(ready))
+        sessions.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
     }
 
     private suspend fun seed() {

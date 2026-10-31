@@ -5,6 +5,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TeaCategory
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertSettings
@@ -42,10 +43,13 @@ class TestClocks(var elapsed: Long = 5_000_000L, var wall: Long = START_WALL_MS,
  * Drives the engine like the M1-09 controller: each accepted transition's data
  * effects and its `Persist` go through the repositories in one transaction
  * (04 §2.3, §7.1). [start] is what the controller holds for `CreateSession`.
+ * `Persist` writes one slot only (umamit.db v4, D-098): [slot], or without one
+ * the slot of the timer's kind (the brew's until a timer ran).
  */
 class TimerDriver(
     private val data: TestDatabase,
     val clocks: TestClocks = TestClocks(),
+    private val slot: TimerSlot? = null,
     private val start: (sessionId: String, steps: List<PlannedStep>, preAlertSeconds: Int) -> SessionStart =
         { id, steps, preAlert -> sessionStart(id, steps, preAlert, clocks) },
 ) {
@@ -53,6 +57,9 @@ class TimerDriver(
         private set
 
     private var pendingStart: TimerEvent.StartSession? = null
+
+    /** The slot `Persist` writes; it follows the timer's kind unless a [slot] is given. */
+    private var persistSlot: TimerSlot = slot ?: TimerSlot.BREW
 
     suspend fun send(event: TimerEvent): TimerState {
         if (event is TimerEvent.StartSession) pendingStart = event
@@ -80,7 +87,11 @@ class TimerDriver(
 
             is TimerEffect.DiscardSession -> data.sessions.discardSession(effect.sessionId)
 
-            TimerEffect.Persist -> data.activeBrew.persist(BrewTimerEngine.snapshot(newState))
+            TimerEffect.Persist -> {
+                val snapshot = BrewTimerEngine.snapshot(newState)
+                if (slot == null) snapshot?.let { persistSlot = it.activeBrew.slot }
+                data.activeBrew.persist(persistSlot, snapshot)
+            }
 
             else -> Unit // alarms, sound, service and notification belong to M1-09
         }

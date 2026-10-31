@@ -63,27 +63,110 @@ class AndroidAlertOutputsTest {
         assertThat(environment.conditions().inCall).isFalse()
 
         shadowOf(notificationManager).setNotificationPolicyAccessGranted(true)
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.OFF)
         notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-        assertThat(environment.conditions().dndBlocksAlerts).isFalse()
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY)
         notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
-        assertThat(environment.conditions().dndBlocksAlerts).isTrue()
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.ALARMS_ONLY)
         notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
-        assertThat(environment.conditions().dndBlocksAlerts).isTrue()
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.TOTAL_SILENCE)
     }
 
     @Test
-    fun soundRequestsTransientDuckingFocusWithNotificationEventAttributes() {
+    fun environmentReadsWhetherPriorityModeLetsAlarmsThrough() {
+        // D-099: the policy of the DND modes in effect (the consolidated one); without one to read, alarms pass
+        // (rule 8).
+        val environment = AndroidAlertEnvironment(context)
+        fun policy(categories: Int) = NotificationManager.Policy(
+            categories,
+            NotificationManager.Policy.PRIORITY_SENDERS_ANY,
+            NotificationManager.Policy.PRIORITY_SENDERS_ANY,
+        )
+        shadowOf(notificationManager).setNotificationPolicyAccessGranted(true)
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY)
+
+        shadowOf(notificationManager).setConsolidatedNotificationPolicy(
+            policy(
+                NotificationManager.Policy.PRIORITY_CATEGORY_ALARMS or
+                    NotificationManager.Policy.PRIORITY_CATEGORY_CALLS,
+            ),
+        )
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY)
+
+        shadowOf(notificationManager).setConsolidatedNotificationPolicy(
+            policy(NotificationManager.Policy.PRIORITY_CATEGORY_CALLS),
+        )
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.PRIORITY_WITHOUT_ALARMS)
+
+        // Only priority mode has a policy to read: „alarms only" lets alarms through, total silence none.
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.ALARMS_ONLY)
+        notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+        assertThat(environment.conditions().dnd).isEqualTo(DoNotDisturb.OFF)
+    }
+
+    @Test
+    fun environmentReadsTheAlarmVolumeAtZero() {
+        // TMR-31, D-098: the cue still runs at alarm volume 0; the reading goes into its log line.
+        val environment = AndroidAlertEnvironment(context)
+
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, 0, 0)
+        assertThat(environment.alarmVolumeOff()).isTrue()
+
+        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, 3, 0)
+        assertThat(environment.alarmVolumeOff()).isFalse()
+    }
+
+    @Test
+    fun soundRequestsTransientDuckingFocusWithAlarmAttributes() {
+        // D-098: both cues play on the phone's alarm volume (USAGE_ALARM), no longer the notification volume.
         val output = output()
 
         assertThat(output.requestFocus(onLost = {})).isTrue()
 
         val request = shadowOf(audioManager).lastAudioFocusRequest.audioFocusRequest
         assertThat(request.focusGain).isEqualTo(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-        assertThat(request.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+        assertThat(request.audioAttributes.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
         assertThat(request.audioAttributes.contentType).isEqualTo(AudioAttributes.CONTENT_TYPE_SONIFICATION)
 
         output.abandonFocus()
         assertThat(shadowOf(audioManager).lastAbandonedAudioFocusRequest).isSameInstanceAs(request)
+    }
+
+    @Test
+    fun theSoundsLoadWithAlarmAttributes() {
+        assertThat(MediaPlayerSoundOutput.ATTRIBUTES.usage).isEqualTo(AudioAttributes.USAGE_ALARM)
+        assertThat(MediaPlayerSoundOutput.ATTRIBUTES.volumeControlStream).isEqualTo(AudioManager.STREAM_ALARM)
+    }
+
+    @Test
+    fun eachPlayStartsItsSoundAtTheGainItIsGiven() {
+        // SET-27: Lautstärke / 100 as the player's volume on top of the alarm stream, for a loaded sound
+        // and for one loaded on the spot (D-092).
+        ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(800, 0) }
+        val players = mutableListOf<MediaPlayer>()
+        val output = output(loader = { sound -> MediaPlayerSoundOutput.load(context, sound)?.also { players += it } })
+        output.prepare(setOf(AlertSound.TICK))
+        settle()
+
+        output.play(AlertSound.TICK, gain = 0.1f)
+        assertThat(shadowOf(players[0]).leftVolume).isEqualTo(0.1f)
+        assertThat(shadowOf(players[0]).rightVolume).isEqualTo(0.1f)
+
+        output.play(AlertSound.GLOCKE, gain = 0.5f)
+        val onTheSpot = players.last()
+        assertThat(shadowOf(onTheSpot).leftVolume).isEqualTo(0.5f)
+        assertThat(shadowOf(onTheSpot).rightVolume).isEqualTo(0.5f)
+        settle()
+
+        // The tick loaded again after its cue starts at the next cue's gain, not the last one's.
+        output.play(AlertSound.TICK, gain = 1f)
+        val reloaded = players.first { it !== players[0] && it !== onTheSpot }
+        assertThat(shadowOf(reloaded).leftVolume).isEqualTo(1f)
+        assertThat(output.isPlaying).isTrue()
     }
 
     @Test
@@ -98,7 +181,7 @@ class AndroidAlertOutputsTest {
         ShadowMediaPlayer.setMediaInfoProvider { _: DataSource -> ShadowMediaPlayer.MediaInfo(3_500, 0) }
         val output = output()
 
-        output.play(AlertSound.KLANGSCHALE)
+        output.play(AlertSound.KLANGSCHALE, gain = 1f)
         assertThat(output.isPlaying).isTrue()
 
         output.stop()
@@ -124,7 +207,7 @@ class AndroidAlertOutputsTest {
         assertThat(output.ready).containsExactly(AlertSound.TICK, AlertSound.KLANGSCHALE)
         loads.clear()
 
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
 
         // The cue only started the loaded player (D-092); the next tick loads after the cue, on the loader thread.
         assertThat(loads).isEmpty()
@@ -147,7 +230,7 @@ class AndroidAlertOutputsTest {
         settle()
         loads.clear()
 
-        output.play(AlertSound.GLOCKE)
+        output.play(AlertSound.GLOCKE, gain = 1f)
 
         assertThat(loads).containsExactly(AlertSound.GLOCKE)
         assertThat(output.isPlaying).isTrue()
@@ -173,7 +256,7 @@ class AndroidAlertOutputsTest {
         assertThat(shadowOf(players[1]).state).isEqualTo(ShadowMediaPlayer.State.END)
 
         // The timer ended right after a tick: nothing stays loaded, and the tick is not loaded again.
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
         output.prepare(emptySet())
         output.stop()
         settle()
@@ -203,7 +286,7 @@ class AndroidAlertOutputsTest {
         assertThat(output.ready).isEmpty()
         assertThat(shadowOf(players.single()).state).isEqualTo(ShadowMediaPlayer.State.END)
 
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
 
         assertThat(players).hasSize(2)
         assertThat(output.isPlaying).isTrue()
@@ -218,7 +301,7 @@ class AndroidAlertOutputsTest {
         })
         output.prepare(setOf(AlertSound.TICK))
         settle()
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
 
         // The start reported an error instead of playing (rule 8: the cue must still sound).
         shadowOf(players[0]).invokeErrorListener(MediaPlayer.MEDIA_ERROR_UNKNOWN, 0)
@@ -238,7 +321,7 @@ class AndroidAlertOutputsTest {
         output.prepare(setOf(AlertSound.TICK))
         settle()
 
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
 
         assertThat(loads).isEqualTo(2)
         assertThat(output.isPlaying).isTrue()
@@ -252,7 +335,7 @@ class AndroidAlertOutputsTest {
         output.prepare(setOf(AlertSound.ZIMBEL))
 
         // The pre-alert comes before the loader thread has loaded its sound: loaded on the spot (D-092).
-        output.play(AlertSound.ZIMBEL)
+        output.play(AlertSound.ZIMBEL, gain = 1f)
         assertThat(players).hasSize(1)
         assertThat(output.isPlaying).isTrue()
 
@@ -321,13 +404,13 @@ class AndroidAlertOutputsTest {
         // Without media info Robolectric's MediaPlayer cannot open the file; create() returns null.
         val output = output()
 
-        output.play(AlertSound.TICK)
+        output.play(AlertSound.TICK, gain = 1f)
 
         assertThat(output.isPlaying).isFalse()
     }
 
     @Test
-    fun hapticsUseTheWaveformWithNotificationUsage() {
+    fun hapticsUseTheWaveformWithAlarmUsage() {
         val haptics = VibratorHaptics(context)
 
         haptics.play(Haptic.ALERT)
@@ -337,7 +420,7 @@ class AndroidAlertOutputsTest {
         assertThat(shadow.pattern.toList()).isEqualTo(Haptic.ALERT.timings)
         assertThat(shadow.repeat).isEqualTo(-1)
         val attributes = shadow.vibrationAttributesFromLastVibration as VibrationAttributes
-        assertThat(attributes.usage).isEqualTo(VibrationAttributes.USAGE_NOTIFICATION)
+        assertThat(attributes.usage).isEqualTo(VibrationAttributes.USAGE_ALARM)
 
         haptics.cancel()
         assertThat(shadow.isVibrating).isFalse()

@@ -49,6 +49,7 @@ class TimerReliabilityTest {
                 fullScreenIntent = false,
                 exactAlarms = false,
                 batteryUnrestricted = false,
+                alarmVolumeOn = false,
             ),
         ).status()
 
@@ -81,10 +82,43 @@ class TimerReliabilityTest {
             Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
             Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+            Settings.ACTION_SOUND_SETTINGS,
         ).inOrder()
-        assertThat(opened.map { it.last().action }.toSet())
+        // The app's own pages end with its details page; the alarm volume is a phone setting: the settings.
+        assertThat(opened.dropLast(1).map { it.last().action }.toSet())
             .containsExactly(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+        assertThat(opened.last().last().action).isEqualTo(Settings.ACTION_SETTINGS)
         assertThat(opened[0].first().getStringExtra(Settings.EXTRA_APP_PACKAGE)).isEqualTo(PACKAGE)
+    }
+
+    @Test
+    fun `the alarm volume at 0 is a missing check of its own, last in the card, and clears when raised`() {
+        // TMR-31, D-098: the cues play on the alarm stream.
+        val off = reliability(allGranted.copy(alarmVolumeOn = false)).status()
+
+        assertThat(ReliabilityCheck.entries.last()).isEqualTo(ReliabilityCheck.AlarmVolume)
+        assertThat(off.stateOf(ReliabilityCheck.AlarmVolume)).isEqualTo(CheckState.Missing)
+        assertThat(off.firstMissing).isEqualTo(ReliabilityCheck.AlarmVolume)
+        assertThat(off.problem).isEqualTo(ReliabilityProblem.AlarmVolumeOff)
+
+        val raised = reliability(allGranted.copy(alarmVolumeOn = true)).status()
+        assertThat(raised.stateOf(ReliabilityCheck.AlarmVolume)).isEqualTo(CheckState.Ok)
+        assertThat(raised.problem).isNull()
+    }
+
+    @Test
+    fun `the banner names the alarm volume only when it is the check Beheben opens`() {
+        // „Alarmlautstärke ist aus" when the volume is the first missing check; with another check missing
+        // before it, the general message, and Beheben opens that check's page.
+        val alsoBattery = reliability(allGranted.copy(alarmVolumeOn = false, batteryUnrestricted = false))
+
+        assertThat(alsoBattery.status().problem).isEqualTo(ReliabilityProblem.Unreliable)
+        assertThat(alsoBattery.firstMissingIntents().first().action)
+            .isEqualTo(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+        assertThat(reliability(allGranted.copy(alarmVolumeOn = false)).firstMissingIntents().first().action)
+            .isEqualTo(Settings.ACTION_SOUND_SETTINGS)
+        assertThat(reliability(allGranted.copy(exactAlarms = false)).status().problem)
+            .isEqualTo(ReliabilityProblem.Unreliable)
     }
 
     @Test

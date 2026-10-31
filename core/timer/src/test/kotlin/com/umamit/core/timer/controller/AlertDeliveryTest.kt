@@ -2,6 +2,7 @@ package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.test.runTest
@@ -74,7 +75,7 @@ class AlertDeliveryTest {
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(60)
 
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         assertThat(h.alert.started).hasSize(1)
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
@@ -87,9 +88,9 @@ class AlertDeliveryTest {
 
         // Deep sleep: the in-process timer does not run, the exact alarms wake the phone.
         h.clock.advanceBy(50_000)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
         h.clock.advanceBy(10_000)
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
         h.wakeUp.advanceBy(0) // the process's own timer catches up: nothing more is due
 
         assertThat(h.alert.ticks).isEqualTo(1)
@@ -104,7 +105,7 @@ class AlertDeliveryTest {
 
         // The pre-alert alarm is delivered only after the deadline: no tick at or after it (D-053).
         h.clock.advanceBy(61_000)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
 
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(h.alert.started).hasSize(1)
@@ -119,7 +120,7 @@ class AlertDeliveryTest {
 
         h.controller.alertCompleted(h.alert.playing!!)
 
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
     }
 
@@ -135,7 +136,7 @@ class AlertDeliveryTest {
 
         h.controller.alertCompleted(first)
 
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isFalse()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isFalse()
         assertThat(h.diagnostics.entriesOf<TimerDiagnostic.StaleAlertCompletion>().map { it.alert })
             .containsExactly(first)
         assertThat(h.alert.playing).isEqualTo(StepAlert(SessionKind.Brew(h.sessionId), 1, h.clock.wall))
@@ -148,7 +149,7 @@ class AlertDeliveryTest {
         val deadline = h.clock.elapsed + 60_000
         h.clock.advanceBy(60_120)
 
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         val received = h.diagnostics.entriesOf<TimerDiagnostic.AlarmReceived>().single()
         assertThat(received.kind).isEqualTo(TimerAlarmKind.DEADLINE)

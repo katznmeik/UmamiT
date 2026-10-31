@@ -38,7 +38,19 @@ enum class ReliabilityCheck {
 
     /** Exact alarms, `canScheduleExactAlarms()` (04 §6.2). */
     ExactAlarms,
+
+    /**
+     * The phone's alarm volume above 0 (v0.3.0, D-098): the cues play on the alarm stream (04 §9.1). Not
+     * a permission; *Beheben* opens the sound settings. Last, so a missing permission's page comes first.
+     */
+    AlarmVolume,
 }
+
+/**
+ * What the reliability banner on Start and the timer says (TMR-31): „Alarmlautstärke ist aus" when the alarm
+ * volume is the check its *Beheben* opens (the first missing one), else „Der Timer ist eventuell unzuverlässig".
+ */
+enum class ReliabilityProblem { Unreliable, AlarmVolumeOff }
 
 /** A check's row: ✓, ! (missing), or not on this platform (no row problem, e.g. Live Updates before API 36). */
 enum class CheckState { Ok, Missing, Unavailable }
@@ -55,6 +67,13 @@ data class ReliabilityStatus(private val states: Map<ReliabilityCheck, CheckStat
     /** A check is missing: the banner shows (TMR-31). */
     val hasProblem: Boolean get() = firstMissing != null
 
+    /** The banner's message (TMR-31), from the check its *Beheben* opens; null: no banner. */
+    val problem: ReliabilityProblem? get() = when (firstMissing) {
+        null -> null
+        ReliabilityCheck.AlarmVolume -> ReliabilityProblem.AlarmVolumeOff
+        else -> ReliabilityProblem.Unreliable
+    }
+
     companion object {
         /** Every check passing; the state before the first read. */
         val AllOk = ReliabilityStatus(ReliabilityCheck.entries.associateWith { CheckState.Ok })
@@ -69,6 +88,7 @@ fun PermissionStates.toReliabilityStatus(): ReliabilityStatus = ReliabilityStatu
         ReliabilityCheck.FullScreenAlert to fullScreenIntent.toCheckState(),
         ReliabilityCheck.Battery to batteryUnrestricted.toCheckState(),
         ReliabilityCheck.ExactAlarms to exactAlarms.toCheckState(),
+        ReliabilityCheck.AlarmVolume to alarmVolumeOn.toCheckState(),
     ),
 )
 
@@ -94,6 +114,9 @@ interface TimerReliability {
 /** Whether a check is missing now. */
 fun TimerReliability.hasProblem(): Boolean = status().hasProblem
 
+/** The banner's message now (TMR-31); null: every check passes. */
+fun TimerReliability.problem(): ReliabilityProblem? = status().problem
+
 /** The banner's *Beheben*: the pages of the first missing check, or none. */
 fun TimerReliability.firstMissingIntents(): List<Intent> = status().firstMissing?.let(::settingsIntents).orEmpty()
 
@@ -118,7 +141,8 @@ class AndroidTimerReliability(private val reader: PermissionStatesReader, privat
  * on the Galaxy, #14). The last one is always the app's details page, so a tap opens something
  * where a page is missing (One UI, emulators). The battery asks for the exemption while the app
  * is restricted, and once it is exempt opens the app's details, where One UI keeps *Akku ›
- * Uneingeschränkt*.
+ * Uneingeschränkt*. The alarm volume (D-098) is the phone's, not the app's: the sound settings
+ * (*Töne und Vibration*, with the alarm slider), then the settings.
  */
 // BatteryLife: sideloaded, never reviewed by Play (D-013, 04 §6.4). InlinedApi: the promotion
 // page (API 36) is a plain string constant, used only from API 36.
@@ -159,6 +183,12 @@ fun reliabilitySettingsIntents(
         }
 
         ReliabilityCheck.ExactAlarms -> listOf(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, packageUri))
+
+        // Not the app's page: no app details after it.
+        ReliabilityCheck.AlarmVolume -> return listOf(
+            Intent(Settings.ACTION_SOUND_SETTINGS),
+            Intent(Settings.ACTION_SETTINGS),
+        )
     }
     return specific + Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri)
 }

@@ -87,8 +87,8 @@ class CatalogHerbalChipTest {
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
         compose.onNodeWithText("Tee-Kontor Kiel · 3 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()
-        shown("EINZELKRÄUTER")
-        shown("MISCHUNGEN")
+        compose.onNodeWithTag(catalogGroupTag("Einzelkräuter")).assertIsDisplayed()
+        compose.onNodeWithTag(catalogGroupTag("Mischungen")).assertIsDisplayed()
         shown("Bergminze")
         shown("Wiesenzauber")
         // „Pur" doesn't apply: the flavoured blend shows and the chip is gone (Q14).

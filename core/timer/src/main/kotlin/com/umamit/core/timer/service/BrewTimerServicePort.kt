@@ -88,6 +88,9 @@ class BrewTimerServicePort internal constructor(
     /** The state and full-screen flag last sent or posted, so the same update is not sent twice. Guarded by [lock]. */
     private var lastShown: Pair<TimerUiState.Active, Boolean>? = null
 
+    /** Notification 5, the other active timer (D-098); its wake-lock need adds to the service's. Guarded by [lock]. */
+    private var other: TimerUiState.Active? = null
+
     init {
         ForegroundServiceState.reporter = { report ->
             val now = clocks.read()
@@ -156,7 +159,33 @@ class BrewTimerServicePort internal constructor(
     private fun show(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading) {
         if (!state.alerting && LiveUpdateDismissal.isDismissed(state)) return
         val serviceShows = ForegroundServiceState.isForeground || ForegroundServiceState.hasPendingCommands
-        if (state.runsWithService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
+        // The service runs for [state] when it needs it, or when notification 5's timer does (04 §6.1 two slots,
+        // D-098): the timer due next is then the service's Live Update, also a long step that runs without it alone.
+        val withService = state.runsWithService || other?.runsWithService == true
+        if (withService && serviceShows) send(state, fullScreen, now) else post(state, fullScreen, now)
+    }
+
+    /**
+     * Notification 5 (04 §8.2, D-098): posts the other active timer's notification [state] on `timer_other`,
+     * or removes it (null). A short step running there needs the wake lock as the service's own does (04 §6.1
+     * two slots): when its need grows, the service's last notification is sent again with the longer wake lock,
+     * without alerting again.
+     */
+    fun showOther(state: TimerUiState.Active?) = synchronized(lock) {
+        val now = clocks.read()
+        val before = other
+        other = state
+        if (state == null) {
+            TimerNotifications.cancel(context, TimerNotifications.ID_OTHER)
+        } else if (state != before) {
+            TimerNotifications.ensureChannels(context)
+            TimerNotifications.post(context, TimerNotifications.ID_OTHER, notifications.other(state, now))
+        }
+        val shown = lastShown
+        val grows = state != null && wakeLockMs(state, now) > (before?.let { wakeLockMs(it, now) } ?: 0L)
+        if (grows && shown != null && ForegroundServiceState.isForeground) {
+            send(shown.first, shown.second, now, again = true)
+        }
     }
 
     /** Posts the notification of [state] without the service; the other timer notifications go first (D-044). */
@@ -194,10 +223,11 @@ class BrewTimerServicePort internal constructor(
      */
     private fun send(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading, again: Boolean = false) {
         lastShown = state to fullScreen
-        val id = notifications.idFor(state)
+        val id = notifications.idFor(state, byService = true)
         val notification = notifications.build(state, fullScreen, now)
         if (again) notification.flags = notification.flags or Notification.FLAG_ONLY_ALERT_ONCE
-        val wakeLockMs = wakeLockMs(state, now)
+        // The longer of the two timers' needs (04 §6.1 two slots, D-098).
+        val wakeLockMs = maxOf(wakeLockMs(state, now), other?.let { wakeLockMs(it, now) } ?: 0L)
         ForegroundServiceState.holdHandover(context)
         if (ForegroundServiceState.isForeground && sendToRunning(id, notification, wakeLockMs)) return
         val command = BrewTimerService.command(context, id, notification, wakeLockMs, foregroundRequired = true)
@@ -243,10 +273,17 @@ class BrewTimerServicePort internal constructor(
             TimerNotifications.ID_QUIET,
         )
 
-        /** 04 §6.3: running: remaining + the longest alert + 30 s; alerting: the alert + 30 s; else none. */
+        /**
+         * 04 §6.3: a short running step: remaining + the longest alert + 30 s; alerting: the alert + 30 s; else
+         * none, also for a long step the service shows for the other timer (04 §6.1).
+         */
         fun wakeLockMs(state: TimerUiState.Active, now: ClockReading): Long = when (state.phase) {
-            TimerPhase.RUNNING -> (checkNotNull(state.deadlineElapsedMs) - now.elapsedMs).coerceAtLeast(0) +
-                ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
+            TimerPhase.RUNNING -> if (state.longStep) {
+                0L
+            } else {
+                (checkNotNull(state.deadlineElapsedMs) - now.elapsedMs).coerceAtLeast(0) +
+                    ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
+            }
 
             TimerPhase.ALERTING -> ALERT_MAX_MS + WAKE_LOCK_MARGIN_MS
 

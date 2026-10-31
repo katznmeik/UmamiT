@@ -1,7 +1,9 @@
 package com.umamit.core.data
 
+import com.umamit.core.model.ActiveBrewSnapshot
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEffect
@@ -73,19 +75,32 @@ interface SessionRepository {
 }
 
 /**
- * The single `active_brew` row with the session's step rows (05 §3.12, 04 §7.1): the timer
- * engine's [TimerSnapshot], written and read in one transaction each. A snapshot whose
- * temperatures are multiples of 5 °C reads back equal.
+ * The `active_brew` rows with the brew session's step rows (05 §3.12, 04 §7.1): per [TimerSlot], the
+ * timer engine's [TimerSnapshot], written and read in one transaction each. A snapshot whose
+ * temperatures are multiples of 5 °C reads back equal. From umamit.db v4 (D-098) the table holds one
+ * row per slot: the brew slot a brew session's, the quick slot the quick timer's.
+ *
+ * Each method acts on its slot only, so a transition of one timer never touches the other's row.
  */
 interface ActiveBrewStore {
-    /** The persisted active timer; null when none is active (Idle). */
-    suspend fun read(): TimerSnapshot?
+    /**
+     * The persisted timer of [slot]; null when the slot is idle. Only a damaged row can be of the other
+     * kind (05 §3.12): the caller refuses it like a snapshot `restore` refuses ([ActiveBrewSnapshot.slot]).
+     */
+    suspend fun read(slot: TimerSlot): TimerSnapshot?
 
-    /** [TimerEffect.Persist]: writes [snapshot], or clears the row for Idle (null). */
-    suspend fun persist(snapshot: TimerSnapshot?)
+    /**
+     * [TimerEffect.Persist] of [slot]: writes [snapshot] as the slot's row and, for the brew slot, its
+     * session's step rows, or clears the slot for Idle (null). The other slot's row is untouched. A
+     * snapshot of the other kind is refused ([IllegalArgumentException]) and nothing is written.
+     */
+    suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?)
 
-    /** Clears the row, e.g. after `restore` refused an inconsistent snapshot (D-048). */
-    suspend fun clear()
+    /**
+     * Clears [slot]'s row only, e.g. after `restore` refused its snapshot (D-048); its session and the
+     * other slot stay.
+     */
+    suspend fun clear(slot: TimerSlot)
 }
 
 /** One database transaction around several repository calls (04 §2.3: data effects and `Persist` together). */

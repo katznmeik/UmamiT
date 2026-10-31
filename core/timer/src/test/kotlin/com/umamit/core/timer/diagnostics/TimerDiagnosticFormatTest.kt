@@ -9,6 +9,7 @@ import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
 import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
+import com.umamit.core.timer.alert.DoNotDisturb
 import com.umamit.core.timer.alert.RingerMode
 import com.umamit.core.timer.controller.RecoveryDecision
 import com.umamit.core.timer.controller.RecoveryTrigger
@@ -84,20 +85,71 @@ class TimerDiagnosticFormatTest {
     }
 
     @Test
-    fun `an alert shows the ringer mode, call, Do Not Disturb and the outputs it used`() {
+    fun `an alert shows the ringer mode, call, Do Not Disturb, the alarm volume and the outputs it used`() {
         val entry = TimerDiagnostic.AlertPlayed(
             now,
             AlertCue.ALERT,
-            AlertConditions(RingerMode.VIBRATE, inCall = false, dndBlocksAlerts = false),
+            AlertConditions(RingerMode.VIBRATE, inCall = false, dnd = DoNotDisturb.OFF),
             AlertOutputs(sound = false, vibration = true),
             tone = "klangschale",
             length = AlertLength.NORMAL,
+            volumePercent = 60,
         )
 
         assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
-            "alert ALERT: ringer VIBRATE, in call no, DND blocks no -> vibration | " +
-                "tone klangschale, length NORMAL | mono 5000000 boot 1",
+            "alert ALERT: ringer VIBRATE, in call no, DND off, alarm volume on -> vibration | " +
+                "tone klangschale, length NORMAL, gain 60 %, DND rings on | mono 5000000 boot 1",
         )
+    }
+
+    @Test
+    fun `a cue names the switch Bei Nicht stoeren klingeln and priority mode without alarms`() {
+        // D-099: with the readings left of the arrow and the result right of it, a report settles which rule rang.
+        fun message(dnd: DoNotDisturb, ringUnderDnd: Boolean, outputs: AlertOutputs) = TimerDiagnosticFormat.message(
+            TimerDiagnostic.AlertPlayed(
+                now,
+                AlertCue.PRE_ALERT,
+                AlertConditions(RingerMode.SILENT, dnd = dnd),
+                outputs,
+                tone = "zimbel",
+                length = AlertLength.NORMAL,
+                ringUnderDnd = ringUnderDnd,
+            ),
+        )
+
+        assertThat(message(DoNotDisturb.PRIORITY, ringUnderDnd = true, AlertOutputs(sound = true, vibration = true)))
+            .isEqualTo(
+                "alert PRE_ALERT: ringer SILENT, in call no, DND priority, alarm volume on -> sound + vibration | " +
+                    "tone zimbel, length NORMAL, gain 100 %, DND rings on | mono 5000000 boot 1",
+            )
+        assertThat(message(DoNotDisturb.PRIORITY, ringUnderDnd = false, AlertOutputs.NONE))
+            .contains(
+                "DND priority, alarm volume on -> visual only | " +
+                    "tone zimbel, length NORMAL, gain 100 %, DND rings off |",
+            )
+        assertThat(message(DoNotDisturb.PRIORITY_WITHOUT_ALARMS, ringUnderDnd = true, AlertOutputs.NONE))
+            .contains("DND priority without alarms, alarm volume on -> visual only |")
+    }
+
+    @Test
+    fun `each Do Not Disturb mode and an alarm volume at 0 are named`() {
+        // D-098: how One UI reports the ringer mode under each DND mode is read from these lines on the phone.
+        fun message(dnd: DoNotDisturb, alarmVolumeOff: Boolean = false) = TimerDiagnosticFormat.message(
+            TimerDiagnostic.AlertPlayed(
+                now,
+                AlertCue.ALERT,
+                AlertConditions(RingerMode.SILENT, dnd = dnd),
+                AlertOutputs.NONE,
+                tone = "klangschale",
+                length = AlertLength.NORMAL,
+                alarmVolumeOff = alarmVolumeOff,
+            ),
+        )
+
+        assertThat(message(DoNotDisturb.PRIORITY)).contains("DND priority, alarm volume on ->")
+        assertThat(message(DoNotDisturb.ALARMS_ONLY)).contains("DND alarms only, alarm volume on ->")
+        assertThat(message(DoNotDisturb.TOTAL_SILENCE, alarmVolumeOff = true))
+            .contains("DND total silence, alarm volume 0 ->")
     }
 
     @Test
@@ -105,14 +157,14 @@ class TimerDiagnosticFormatTest {
         val entry = TimerDiagnostic.AlertPlayed(
             now,
             AlertCue.PRE_ALERT,
-            AlertConditions(RingerMode.SILENT, inCall = true, dndBlocksAlerts = true),
+            AlertConditions(RingerMode.SILENT, inCall = true, dnd = DoNotDisturb.TOTAL_SILENCE),
             AlertOutputs.NONE,
             tone = "tick",
             length = AlertLength.SHORT,
         )
 
         assertThat(TimerDiagnosticFormat.message(entry)).startsWith(
-            "alert PRE_ALERT: ringer SILENT, in call yes, DND blocks yes -> visual only",
+            "alert PRE_ALERT: ringer SILENT, in call yes, DND total silence, alarm volume on -> visual only",
         )
     }
 
@@ -130,8 +182,9 @@ class TimerDiagnosticFormatTest {
         )
 
         assertThat(TimerDiagnosticFormat.message(entry(CueStart(2, 0, 15, soundLoaded = true)))).isEqualTo(
-            "alert PRE_ALERT: ringer NORMAL, in call no, DND blocks no -> sound + vibration | " +
-                "tone tick, length NORMAL | queued 2 ms, settings 0 ms, outputs 15 ms, sound ready | " +
+            "alert PRE_ALERT: ringer NORMAL, in call no, DND off, alarm volume on -> sound + vibration | " +
+                "tone tick, length NORMAL, gain 100 %, DND rings on | queued 2 ms, settings 0 ms, outputs 15 ms, " +
+                "sound ready | " +
                 "PRE_ALERT scheduled 09:59:59.983 (mono 4999983) actual 10:00:00.000 (mono 5000000) delta +17 ms",
         )
         assertThat(TimerDiagnosticFormat.message(entry(CueStart(1, 300, 900, soundLoaded = false))))
@@ -171,12 +224,13 @@ class TimerDiagnosticFormatTest {
                 fullScreenIntent = false,
                 exactAlarms = true,
                 batteryUnrestricted = false,
+                alarmVolumeOn = false,
             ),
         )
 
         assertThat(TimerDiagnosticFormat.message(entry)).isEqualTo(
             "process start: notifications yes, live updates n/a, full-screen alert no, exact alarms yes, " +
-                "battery unrestricted no | mono 5000000 boot 1",
+                "battery unrestricted no, alarm volume 0 | mono 5000000 boot 1",
         )
     }
 

@@ -35,6 +35,8 @@ class SettingsDataSourceTest {
         assertThat(settings.dynamicColor).isFalse()
         assertThat(settings.alertSound).isEqualTo("klangschale")
         assertThat(settings.preAlertSound).isEqualTo("zimbel")
+        assertThat(settings.alertVolumePercent).isEqualTo(100)
+        assertThat(settings.ringUnderDnd).isTrue()
         assertThat(settings.preAlertSeconds).isEqualTo(10)
         assertThat(settings.vibration).isTrue()
         assertThat(settings.alertLength).isEqualTo(AlertLength.NORMAL)
@@ -46,6 +48,10 @@ class SettingsDataSourceTest {
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(settings.quickTimerPreAlert).isNull()
+        assertThat(settings.lowStockReminder).isTrue()
+        assertThat(settings.lowStockReminderTime).isEqualTo(18 * 60)
+        assertThat(settings.lowStockReminderLastDate).isNull()
+        assertThat(settings.catalogFolded).isEmpty()
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -75,6 +81,8 @@ class SettingsDataSourceTest {
             dynamicColor = true,
             alertSound = "glocke",
             preAlertSound = "klangstab",
+            alertVolumePercent = 30,
+            ringUnderDnd = false,
             preAlertSeconds = 0,
             vibration = false,
             alertLength = AlertLength.LONG,
@@ -86,6 +94,10 @@ class SettingsDataSourceTest {
             dismissedHints = setOf("swipe", "stock"),
             catalogDownloadPhotos = false,
             quickTimerPreAlert = 20,
+            lowStockReminder = false,
+            lowStockReminderTime = 7 * 60 + 30,
+            lowStockReminderLastDate = "2026-10-30",
+            catalogFolded = setOf("green/Bancha", "herbal/-"),
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -154,6 +166,40 @@ class SettingsDataSourceTest {
     }
 
     @Test
+    fun aFileOfVersion022WithoutALautstaerkeReadsHundredPercentWithoutAMigration() = runTest {
+        // SET-27 is new in v0.3.0 (D-098): a missing key reads as its default, `schemaVersion` stays 2 (05 §6).
+        val file = File(folder.root, "v022.json")
+        file.writeText("""{"schemaVersion":2,"alertSound":"glocke","lowStockGrams":20.0,"seedDataCreated":true}""")
+        val source = dataSource(file)
+
+        val settings = source.settings.first()
+
+        assertThat(settings.alertVolumePercent).isEqualTo(100)
+        // SET-28 and SET-29 (INV-11) too: the reminder is on at 18:00 after the update.
+        assertThat(settings.lowStockReminder).isTrue()
+        assertThat(settings.lowStockReminderTime).isEqualTo(1080)
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertSound).isEqualTo("glocke")
+        assertThat(settings.lowStockGrams).isEqualTo(20.0)
+        assertThat(source.seedDataCreated.first()).isTrue()
+    }
+
+    @Test
+    fun aFileOfVersion030Rc1WithoutBeiNichtStoerenKlingelnReadsOnWithoutAMigration() = runTest {
+        // SET-32 is new in v0.3.0-rc.2 (D-099): a missing key reads as its default, on; `schemaVersion` stays 2.
+        val file = File(folder.root, "v030rc1.json")
+        file.writeText("""{"schemaVersion":2,"alertVolumePercent":40,"vibration":false,"seedDataCreated":true}""")
+        val source = dataSource(file)
+
+        val settings = source.settings.first()
+
+        assertThat(settings.ringUnderDnd).isTrue()
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertVolumePercent).isEqualTo(40)
+        assertThat(settings.vibration).isFalse()
+    }
+
+    @Test
     fun theOldDefaultOf10GramsBecomes15Once() = runTest {
         // SET-16 had no settings row before v0.2.2, so a stored 10,0 g is the old default (D-097).
         val file = File(folder.root, "v021.json")
@@ -192,5 +238,18 @@ class SettingsDataSourceTest {
         file.writeText("not json")
 
         assertThat(dataSource(file).settings.first()).isEqualTo(UserSettings())
+    }
+
+    @Test
+    fun aFileOfVersion022WithoutFoldedGroupsReadsNoneFoldedWithoutAMigration() = runTest {
+        // `catalogFolded` is new in v0.3.0 (CAT-10, D-098): a missing key reads ∅, `schemaVersion` stays 2 (05 §6).
+        val file = File(folder.root, "v022-folded.json")
+        file.writeText("""{"schemaVersion":2,"alertSound":"glocke","seedDataCreated":true}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.catalogFolded).isEmpty()
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertSound).isEqualTo("glocke")
     }
 }

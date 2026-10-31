@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -467,6 +467,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `VesselMaterial` | `UNGLAZED_CLAY`, `GLAZED_CERAMIC`, `PORCELAIN`, `GLASS`, `CAST_IRON`, `STAINLESS_STEEL`, `OTHER` |
 | `SessionStatus` | `IN_PROGRESS`, `COMPLETED`, `MANUAL` |
 | `TimerPhase` | `READY`, `RUNNING`, `PAUSED`, `ALERTING`, `FINISHED` |
+| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098) |
 | `InventoryEventType` | `INITIAL`, `PURCHASE`, `BREW`, `ADJUSTMENT` |
 | `PhotoOrigin` | `OWN`, `CATALOG_COPY` |
 | `RecipeSource` | `CATALOG_TABLE`, `CATALOG_TEXT`, `STYLE_DEFAULT`, `USER` |
@@ -491,9 +492,10 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `quickTimerPreAlert` | Int? (null, 0, 5…30) | null (*Automatisch*) | TMR-22 (v0.2.2, D-097): the last choice on SCR-07 |
 | `lowStockHidden` | Set<String> | ∅ | INV-10 (v0.2.2, D-097): `<tea id>/<event id>` of the latest INITIAL/PURCHASE event when *Ausblenden* was tapped; a newer purchase shows the card again |
 | `alertVolumePercent` | Int (10…100) | 100 | SET-27 (v0.3.0, D-098): the gain of Vorwarnung and alarm on the alarm stream; a written value is snapped to 10 and clamped to 10…100, so the app itself can never silence a cue |
+| `ringUnderDnd` | Boolean | true | SET-32 (v0.3.0, D-099): a silent report under a Do Not Disturb that lets alarms through rings; a file of `v0.3.0-rc.1` or older has no key and reads true |
 | `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
-| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last posted reminder, so a day gets at most one; not shown |
+| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
 | `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |

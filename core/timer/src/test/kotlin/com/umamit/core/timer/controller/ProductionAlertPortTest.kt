@@ -3,6 +3,7 @@ package com.umamit.core.timer.controller
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertPlayback
 import com.umamit.core.timer.alert.AlertSound
@@ -65,12 +66,12 @@ class ProductionAlertPortTest {
         h.controller.send(TimerEvent.Start)
         h.advanceSeconds(20)
         // The deadline alarm arrives after the in-process wake-up: no second alert.
-        h.controller.onAlarm(TimerAlarmKind.DEADLINE)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
 
         playAlertToTheEnd()
 
         assertThat(completions()).hasSize(1)
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
         assertThat(sound.plays(AlertSound.KLANGSCHALE)).containsExactly(0L, 3_500L, 7_000L, 10_500L).inOrder()
 
         h.controller.send(TimerEvent.Poured)
@@ -132,11 +133,11 @@ class ProductionAlertPortTest {
         h.controller.send(TimerEvent.Start)
 
         h.advanceSeconds(50)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
         scheduler.advanceBy(2_000L)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
         h.advanceSeconds(5)
-        h.controller.onAlarm(TimerAlarmKind.PRE_ALERT)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
         h.advanceSeconds(5)
         playAlertToTheEnd()
 
@@ -177,7 +178,7 @@ class ProductionAlertPortTest {
         assertThat(sound.events).isEmpty()
         assertThat(haptics.events).isEmpty()
         assertThat(completions()).hasSize(1)
-        assertThat(h.store.read()!!.activeBrew.alertPlayed).isTrue()
+        assertThat(h.store.read(TimerSlot.BREW)!!.activeBrew.alertPlayed).isTrue()
     }
 
     /** The harness with the production port (playback on the test thread, end reports in [reports]) and tea „t1". */

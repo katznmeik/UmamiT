@@ -25,23 +25,37 @@ import com.umamit.core.model.CatalogTeaSummary
 /**
  * The list's teas (SCR-19): under a header per *Sorte* when grouped (D-073), else one flat list
  * whose rows name their *Sorte*. Each tea not in the collection ends with its bookmark toggle
- * ([onToggleMark] with its key and new state, CAT-18).
+ * ([onToggleMark] with its key and new state, CAT-18). While the groups fold ([folding], D-098) each header is a
+ * toggle ([CatalogGroupHeader]) and a folded group shows its header only, with no motion: its rows snap.
  */
 internal fun LazyListScope.teaRows(
     listing: CatalogListing,
     onOpenTea: (String) -> Unit,
     onToggleMark: (key: String, marked: Boolean) -> Unit,
     thumbnail: @Composable (path: String?) -> Painter?,
+    folding: GroupFolding? = null,
 ) {
     listing.sections.forEach { section ->
+        val folded = folding?.isFolded(section.teaType) == true
         if (listing.grouped) {
-            item(key = "type:${section.teaType}", contentType = "section") {
-                SectionHeader(
-                    title = section.teaType ?: stringResource(R.string.catalog_group_untyped),
-                    modifier = Modifier.padding(top = UmamiSpacing.Small),
-                )
+            item(key = "type:${section.teaType}", contentType = if (folding != null) "fold_section" else "section") {
+                val title = section.teaType ?: stringResource(R.string.catalog_group_untyped)
+                if (folding != null) {
+                    CatalogGroupHeader(
+                        title = title,
+                        count = section.teas.size,
+                        folded = folded,
+                        onToggle = { folding.onToggle(section.teaType) },
+                        modifier = Modifier
+                            .padding(top = UmamiSpacing.Small)
+                            .testTag(catalogGroupTag(section.teaType)),
+                    )
+                } else {
+                    SectionHeader(title = title, modifier = Modifier.padding(top = UmamiSpacing.Small))
+                }
             }
         }
+        if (folded) return@forEach
         itemsIndexed(section.teas, key = { _, tea -> tea.key }, contentType = { _, _ -> "tea" }) { index, tea ->
             TeaRow(
                 tea = tea,
@@ -54,6 +68,9 @@ internal fun LazyListScope.teaRows(
         }
     }
 }
+
+/** The groups' folding in a view where they fold (D-098): which are folded, and a header's tap. */
+internal class GroupFolding(val isFolded: (teaType: String?) -> Boolean, val onToggle: (teaType: String?) -> Unit)
 
 /**
  * A catalog tea's row (CAT-10): name, secondary name (one line, D-090), *Sorte* (when not grouped),

@@ -8,6 +8,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -47,7 +50,7 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, input: StepsSheetInput) {
+    private fun capture(name: String, input: StepsSheetInput, act: () -> Unit = {}) {
         // The sheet's window takes the font scale from the configuration, not from a LocalDensity override.
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
@@ -75,6 +78,8 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
             }
         }
         // The sheet has its own window: capture the whole screen, host and sheet.
+        compose.waitForIdle()
+        act()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/StepsSheet_${name}_$variant.png")
     }
@@ -119,6 +124,61 @@ class StepsSheetScreenshotTest(private val dark: Boolean, private val fontScale:
             baseTempC = 60,
             preAlertBaseSeconds = 10,
         ),
+    )
+
+    @Test
+    fun hotStepsOfMinutes() = capture(
+        "hotStepsOfMinutes",
+        StepsSheetInput(
+            // From v0.3.0 a hot step of 10–59 min has its Vorwarnung like any short step („Auto · 10 s"); from
+            // 60 min it is a long step without one („Auto · keine", „10 s · keine"; TMR-18, D-098).
+            steps = listOf(
+                step(StepKind.INFUSION, 15 * 60, 95, StepStatus.STARTED),
+                step(StepKind.INFUSION, 30 * 60, 95, preAlert = 20),
+                step(StepKind.INFUSION, 60 * 60, 95),
+                step(StepKind.INFUSION, 60 * 60, 95, preAlert = 10),
+            ),
+            hasRecipe = true,
+            baseTempC = 95,
+            preAlertBaseSeconds = 10,
+        ),
+    )
+
+    @Test
+    fun coldBrew() = capture(
+        "coldBrew",
+        StepsSheetInput(
+            // Every step of a cold or ice brew is a long step, however short (TMR-18).
+            steps = listOf(
+                step(StepKind.INFUSION, 15 * 60, 5, StepStatus.STARTED),
+                step(StepKind.INFUSION, 4 * 3_600, 5, preAlert = 10),
+            ),
+            hasRecipe = true,
+            baseTempC = 5,
+            preAlertBaseSeconds = 10,
+            longStepsOnly = true,
+        ),
+    )
+
+    /** A tap on a pending step's time opens „Dauer wählen" over the sheet, with its value (#141). */
+    @Test
+    fun durationPicker() = capture(
+        "durationPicker",
+        StepsSheetInput(
+            steps = listOf(
+                step(StepKind.INFUSION, 90, 55, StepStatus.DONE),
+                step(StepKind.INFUSION, 300, null),
+                step(StepKind.INFUSION, 30, 60),
+            ),
+            hasRecipe = true,
+            baseTempC = 60,
+            preAlertBaseSeconds = 10,
+        ),
+        act = {
+            compose.onNodeWithContentDescription("Ziehzeit, Schritt 2: 5 Minuten. Ändern")
+                .performScrollTo()
+                .performClick()
+        },
     )
 
     private fun step(

@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.umamit.core.common.stockGramsText
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.FinishActiveSessionDialog
@@ -53,7 +54,6 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.text.stockGramsText
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel
@@ -87,7 +87,10 @@ const val SETUP_STOCK_TAG = "setup_stock"
  * *Bearb.* and the *Vorwarnung* row open the Schritte-Sheet (SCR-31) for this
  * session.
  *
- * **Alerts first (rule 8):** the sheet remembers the alert it was opened in
+ * For a tea with a catalog entry the top bar has a ⋮ with *Im Katalog ansehen* (D-098); without one,
+ * no ⋮ at all.
+ *
+ * **Alerts first (rule 8):** the ⋮ menu and the sheet remember the alert it was opened in
  * and is removed in the same frame, without animation or question, when
  * another alert starts; the second-session question is closed by the view
  * model.
@@ -102,6 +105,11 @@ fun BrewSetupScreen(
         title = stringResource(R.string.brew_setup_title),
         modifier = modifier,
         navigationIcon = { BackAction(actions.back) },
+        actions = {
+            val ready = state as? BrewSetupUiState.Ready
+            val key = ready?.catalogKey
+            if (key != null) SetupCatalogMenu(alertKey = ready.alertKey, onOpen = { actions.openCatalog(key) })
+        },
         verticalArrangement = if (state is BrewSetupUiState.Ready) Arrangement.Top else Arrangement.Center,
     ) {
         when (state) {

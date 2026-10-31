@@ -3,6 +3,7 @@ package com.umamit.feature.brew.steps
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,8 +33,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +47,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -59,6 +67,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.quick.QuickDurationPicker
 import kotlinx.coroutines.launch
 
 /** The column of a read-only step's status icon (✓ for a done step). */
@@ -88,6 +97,7 @@ fun StepsSheetContent(
             scope.launch { snackbarHostState.showSnackbar(savedMessage) }
         }
     }
+    var durationPickerFor by rememberSaveable { mutableStateOf<Int?>(null) }
     val scrollState = rememberScrollState()
     val reduceMotion = UmamiTheme.reduceMotion
     val motion = UmamiTheme.motion
@@ -107,7 +117,11 @@ fun StepsSheetContent(
                     .padding(horizontal = UmamiSpacing.SideMargin),
             ) {
                 state.steps.forEachIndexed { index, _ ->
-                    if (state.isEditable(index)) EditableStepRow(state, index) else ReadOnlyStepRow(state, index)
+                    if (state.isEditable(index)) {
+                        EditableStepRow(state, index, onDurationClick = { durationPickerFor = index })
+                    } else {
+                        ReadOnlyStepRow(state, index)
+                    }
                     // The running step's pre-alert is its only editable field (SCR-31, D-093).
                     if (state.hasPreAlert(index)) StepPreAlertRow(state, index)
                     HorizontalDivider(
@@ -154,6 +168,20 @@ fun StepsSheetContent(
             )
         }
     }
+    // „Dauer wählen" (#141), only for a step that is still editable. It lives in the sheet's window, so an alert,
+    // which removes the sheet in its first frame, removes it too, and its draft is never applied (rule 8).
+    durationPickerFor?.takeIf { it in state.steps.indices && state.isEditable(it) }?.let { index ->
+        key(index) {
+            QuickDurationPicker(
+                initialSeconds = state.steps[index].plannedSeconds,
+                onApply = { seconds ->
+                    state.setDuration(index, seconds)
+                    durationPickerFor = null
+                },
+                onDismiss = { durationPickerFor = null },
+            )
+        }
+    }
 }
 
 /** Scrolls to the end once the new content is measured; instant under reduce motion. */
@@ -165,7 +193,7 @@ private suspend fun ScrollState.scrollToEnd(reduceMotion: Boolean, spec: Animati
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun EditableStepRow(state: StepsSheetState, index: Int) {
+private fun EditableStepRow(state: StepsSheetState, index: Int, onDurationClick: () -> Unit) {
     val step = state.steps[index]
     val number = index + 1
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = UmamiSpacing.XSmall)) {
@@ -188,16 +216,19 @@ private fun EditableStepRow(state: StepsSheetState, index: Int) {
         ) {
             Stepper(
                 value = clockText(step.plannedSeconds),
+                // The time is a button: it opens „Dauer wählen" (#141).
                 valueDescription = stringResource(
-                    R.string.brew_steps_duration_value_description,
+                    R.string.brew_steps_duration_change_description,
+                    number,
                     spokenDuration(step.plannedSeconds),
                 ),
                 decreaseDescription = stringResource(R.string.brew_steps_shorter, number),
                 increaseDescription = stringResource(R.string.brew_steps_longer, number),
                 canDecrease = state.canEdit(index, StepEdit.SHORTEN),
                 canIncrease = state.canEdit(index, StepEdit.LENGTHEN),
-                onDecrease = { state.edit(index, StepEdit.SHORTEN) },
-                onIncrease = { state.edit(index, StepEdit.LENGTHEN) },
+                onDecrease = { state.step(index, StepEdit.SHORTEN) },
+                onIncrease = { state.step(index, StepEdit.LENGTHEN) },
+                onValueClick = onDurationClick,
             )
             // A step without any temperature (quick timer) has no temperature stepper.
             val tempC = state.shownTempC(index) ?: return@FlowRow
@@ -211,8 +242,8 @@ private fun EditableStepRow(state: StepsSheetState, index: Int) {
                 increaseDescription = stringResource(R.string.brew_steps_warmer, number),
                 canDecrease = state.canEdit(index, StepEdit.COOL),
                 canIncrease = state.canEdit(index, StepEdit.WARM),
-                onDecrease = { state.edit(index, StepEdit.COOL) },
-                onIncrease = { state.edit(index, StepEdit.WARM) },
+                onDecrease = { state.step(index, StepEdit.COOL) },
+                onIncrease = { state.step(index, StepEdit.WARM) },
             )
         }
     }
@@ -287,7 +318,15 @@ private fun ReadOnlyStepRow(state: StepsSheetState, index: Int) {
     }
 }
 
-/** A value between − and + buttons, each 48 dp, with German TalkBack labels (03 §6). */
+/** One − / + of a stepper: applies [edit] to step [index] and says whether it changed anything (a hold stops). */
+private fun StepsSheetState.step(index: Int, edit: StepEdit): Boolean =
+    canEdit(index, edit).also { if (it) edit(index, edit) }
+
+/**
+ * A value between − and + buttons, each 48 dp, with German TalkBack labels (03 §6). Held, − and + repeat and
+ * speed up ([RepeatingIconButton], #141). With [onValueClick] the value is a button too (the duration opens
+ * „Dauer wählen").
+ */
 @Composable
 private fun Stepper(
     value: String,
@@ -296,8 +335,9 @@ private fun Stepper(
     increaseDescription: String,
     canDecrease: Boolean,
     canIncrease: Boolean,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
+    onDecrease: () -> Boolean,
+    onIncrease: () -> Boolean,
+    onValueClick: (() -> Unit)? = null,
 ) {
     Surface(
         shape = UmamiShape.Pill,
@@ -305,23 +345,41 @@ private fun Stepper(
         color = MaterialTheme.colorScheme.surface,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onDecrease, enabled = canDecrease) {
-                Icon(painterResource(UmamiIcons.Remove), contentDescription = decreaseDescription)
-            }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge.tabular(),
-                textAlign = TextAlign.Center,
+            RepeatingIconButton(
+                icon = painterResource(UmamiIcons.Remove),
+                contentDescription = decreaseDescription,
+                enabled = canDecrease,
+                onStep = onDecrease,
+            )
+            Box(
                 modifier = Modifier
+                    .heightIn(min = UmamiSpacing.MinTouchTarget)
                     .widthIn(min = 64.dp)
+                    .then(
+                        if (onValueClick == null) {
+                            Modifier
+                        } else {
+                            Modifier.clickable(role = Role.Button, onClick = onValueClick)
+                        },
+                    )
                     .semantics {
                         contentDescription = valueDescription
                         liveRegion = LiveRegionMode.Polite
                     },
-            )
-            IconButton(onClick = onIncrease, enabled = canIncrease) {
-                Icon(painterResource(UmamiIcons.Add), contentDescription = increaseDescription)
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyLarge.tabular(),
+                    textAlign = TextAlign.Center,
+                )
             }
+            RepeatingIconButton(
+                icon = painterResource(UmamiIcons.Add),
+                contentDescription = increaseDescription,
+                enabled = canIncrease,
+                onStep = onIncrease,
+            )
         }
     }
 }

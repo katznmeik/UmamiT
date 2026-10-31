@@ -22,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
@@ -35,9 +36,11 @@ import com.umamit.core.designsystem.component.TimerRingDefaults
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.feature.brew.quick.QUICK_RING_TAG
 import com.umamit.feature.brew.quick.QuickTimerActions
 import com.umamit.feature.brew.quick.QuickTimerScreen
@@ -72,6 +75,9 @@ class TimerScreenLayoutTest {
 
     private var photo by mutableStateOf<Painter?>(whitePhoto)
 
+    /** READY's stock line „14 g übrig · knapp" (BRW-11, D-098): every layout here holds it. */
+    private var stock by mutableStateOf<TimerStock?>(TimerStock(14.0, StockLevel.LOW))
+
     private fun show(initial: TimerUiState.Active) {
         state = initial
         val start = compose.mainClock.currentTime
@@ -84,9 +90,10 @@ class TimerScreenLayoutTest {
                     onBack = {},
                     onAdjustBrew = {},
                     onOpenTimerSettings = {},
-                    reliabilityProblem = true,
+                    reliabilityProblem = ReliabilityProblem.Unreliable,
                     teaPhoto = photo,
                     teaStyleKey = "gyokuro",
+                    stock = stock,
                 )
             }
         }
@@ -211,9 +218,38 @@ class TimerScreenLayoutTest {
     @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
     fun `on a 384 x 832 dp screen at font scale 2_0 the pill does not move, not even into FINISHED`() = pillStaysPut()
 
+    /**
+     * The stock is read beside the timer (BRW-11, D-098): it arrives after the screen, changes while READY waits,
+     * or fails (no line). Its line has its space in every brew, so the ring and *Start* never move for it.
+     */
+    @Test
+    fun `the ring and Start do not move when the stock line comes, changes or goes (BRW-11, D-098)`() =
+        stockLineMovesNothing()
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the stock line moves nothing either`() = stockLineMovesNothing()
+
+    private fun stockLineMovesNothing() {
+        stock = null
+        show(TimerStates.ready().copy(teaName = TWO_LINE_NAME))
+        val before = listOf(tagTop(TIMER_RING_TAG), top("Start"))
+        listOf(
+            TimerStock(38.0, StockLevel.AVAILABLE),
+            TimerStock(14.5, StockLevel.LOW),
+            TimerStock(0.0, StockLevel.EMPTY),
+            null,
+        ).forEach { shown ->
+            stock = shown
+            compose.waitForIdle()
+            assertThat(listOf(tagTop(TIMER_RING_TAG), top("Start"))).isEqualTo(before)
+        }
+    }
+
     /** READY → RUNNING → ALERTING (overtime turning large) → the last step's ALERTING → FINISHED. */
     private fun pillStaysPut() {
         show(TimerStates.ready())
+        compose.onNodeWithText("14 g übrig · knapp").assertIsDisplayed()
         val ready = top("Start")
 
         state = TimerStates.running()
@@ -265,6 +301,7 @@ class TimerScreenLayoutTest {
     private fun alertPillOnScreen(teaName: String, titleLines: Int) {
         show(TimerStates.ready().copy(teaName = teaName))
         assertThat(titleLineCount(teaName)).isEqualTo(titleLines)
+        compose.onNodeWithText("14 g übrig · knapp").assertIsDisplayed()
         compose.onNodeWithText("4,0\u00A0g Tee · 250\u00A0ml Wasser").assertIsDisplayed()
         val ready = listOf(top(teaName), tagTop(TIMER_RING_TAG), top("Start"))
         assertWithMargin(compose.onNodeWithText("Start").getUnclippedBoundsInRoot())
@@ -309,13 +346,14 @@ class TimerScreenLayoutTest {
 
     /**
      * The tightest case: a two-line name on a short screen at the largest font, where the band is down to the top
-     * bar already. The pill keeps its place from the last *Abgegossen* (D-058, rule 8), so *Weiterer Aufguss*
-     * lies whole on the screen, above the bottom inset, but with less than the full margin; the page scrolls by
-     * the rest.
+     * bar already. The pill keeps its place from the last *Abgegossen* (D-058, rule 8) with the bottom margin
+     * below it. READY's stock line (BRW-11, D-098) has its space in every phase, so here *Weiterer Aufguss*
+     * starts on the screen but its lower part lies below it: the page scrolls by the rest (D-096: what still
+     * does not fit scrolls). Without a two-line name it fits whole (above).
      */
     @Test
     @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
-    fun `on a 384 x 832 dp screen at font scale 2_0 with a two-line tea name Weiterer Aufguss is on the screen`() {
+    fun `on a 384 x 832 dp screen at font scale 2_0 with a two-line tea name Weiterer Aufguss is reachable`() {
         show(TimerStates.alerting(overtimeMs = 7_000, stepIndex = 2).copy(teaName = TWO_LINE_NAME))
         val lastAlert = top("Abgegossen")
 
@@ -325,8 +363,10 @@ class TimerScreenLayoutTest {
         assertThat(top("Sitzung beenden")).isEqualTo(lastAlert)
         assertWithMargin(compose.onNodeWithText("Sitzung beenden").getUnclippedBoundsInRoot())
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
-        assertThat(compose.onNodeWithText("Weiterer Aufguss").getUnclippedBoundsInRoot().bottom)
-            .isAtMost(screen.bottom)
+        val secondary = compose.onNodeWithText("Weiterer Aufguss")
+        assertThat(secondary.getUnclippedBoundsInRoot().top + UmamiSpacing.MinTouchTarget / 2).isAtMost(screen.bottom)
+        secondary.performScrollTo()
+        assertThat(secondary.getUnclippedBoundsInRoot().bottom).isAtMost(screen.bottom)
     }
 
     private fun finishedFits(finished: TimerUiState.Active) {
@@ -340,6 +380,59 @@ class TimerScreenLayoutTest {
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         assertThat(pill.top).isAtLeast(screen.top)
         assertThat(pill.bottom + UmamiSpacing.Large).isAtMost(screen.bottom)
+    }
+
+    /**
+     * SCR-07 polish 2 (D-098): the screen before *Start* and the running quick timer reserve the same band and
+     * content, so the ring's centre and the pill's top stay where they were, at *Start* and at the alert.
+     */
+    @Test
+    fun `the quick timer's ring and pill do not move at Start nor at the alert (SCR-07)`() = quickStaysPut()
+
+    @Test
+    @Config(fontScale = 2.0f)
+    fun `at font scale 2_0 the quick timer's ring and pill do not move at Start either`() = quickStaysPut()
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the quick timer's ring and pill do not move at Start`() =
+        quickStaysPut()
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's ring and pill do not move at Start`() =
+        quickStaysPut()
+
+    private fun quickStaysPut() {
+        var running by mutableStateOf<TimerUiState.Active?>(null)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                val shown = running
+                if (shown != null) {
+                    TimerScreen(shown, { NOW }, {}, {}, {}, {})
+                } else {
+                    QuickTimerScreen(state = QuickTimerUiState(durationSeconds = 90), actions = QuickTimerActions())
+                }
+            }
+        }
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        val ring = compose.onNodeWithTag(QUICK_RING_TAG).getUnclippedBoundsInRoot()
+        val pill = compose.onNodeWithText("Start").getUnclippedBoundsInRoot()
+        // Rule 8 first: *Start* lies whole on the screen.
+        assertThat(pill.bottom).isAtMost(screen.bottom)
+
+        listOf(
+            TimerStates.quick(TimerPhase.RUNNING) to "Pause",
+            TimerStates.quick(TimerPhase.PAUSED) to "Weiter",
+            TimerStates.quick(TimerPhase.ALERTING) to "Fertig",
+        ).forEach { (state, control) ->
+            running = state
+            compose.waitForIdle()
+            val runningRing = compose.onNodeWithTag(TIMER_RING_TAG).getUnclippedBoundsInRoot()
+            val runningPill = compose.onNodeWithText(control).getUnclippedBoundsInRoot()
+            assertThat((runningRing.top + runningRing.bottom) / 2).isEqualTo((ring.top + ring.bottom) / 2)
+            assertThat(runningPill.top).isEqualTo(pill.top)
+        }
     }
 
     /** The quick timer has no seal and a one-line title: its *Fertig* fits as it is (SCR-07). */

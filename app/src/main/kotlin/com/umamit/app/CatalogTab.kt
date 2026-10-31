@@ -1,6 +1,11 @@
 package com.umamit.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.umamit.feature.catalog.CatalogContent
 import com.umamit.feature.catalog.CatalogRoute
@@ -22,6 +27,9 @@ import com.umamit.feature.catalog.CatalogTeaRoute as CatalogTeaScreenRoute
  * @property pasteLinkRequest the ⋮ menu's *Link einfügen* counter (CAT-17).
  * @property sharedLink a link shared to the app, not taken yet (CAT-17); [onTakeSharedLink] takes it.
  * @property refreshSheetRequest the token of a tap on a refresh notification (SCR-22, D-097); 0 for none.
+ * @property foldAllRequest the ⋮ menu's *Alle einklappen* counter (D-098).
+ * @property unfoldAllRequest the ⋮ menu's *Alle ausklappen* counter (D-098).
+ * @property onFoldableChange whether the list shown folds its groups, for the ⋮ menu (D-098).
  */
 internal data class CatalogTab(
     val modifier: Modifier,
@@ -34,7 +42,30 @@ internal data class CatalogTab(
     val sharedLink: TeaLinkShare? = null,
     val onTakeSharedLink: (Long) -> Unit = {},
     val refreshSheetRequest: Long = 0L,
+    val foldAllRequest: Int = 0,
+    val unfoldAllRequest: Int = 0,
+    val onFoldableChange: (Boolean) -> Unit = {},
 )
+
+/**
+ * Sammlung's ⋮ *Alle einklappen* / *Alle ausklappen* (D-098): counters for the catalog (D-049), offered only while
+ * the catalog shows a view whose groups fold ([foldable], told by the catalog).
+ */
+@Stable
+internal class CatalogFoldMenu {
+    var foldable by mutableStateOf(false)
+    var foldAllRequest by mutableIntStateOf(0)
+        private set
+    var unfoldAllRequest by mutableIntStateOf(0)
+        private set
+
+    /** The menu's action (`true` folds all) while the catalog folds; null hides both entries. */
+    val action: ((fold: Boolean) -> Unit)? get() = if (foldable) ::request else null
+
+    private fun request(fold: Boolean) {
+        if (fold) foldAllRequest++ else unfoldAllRequest++
+    }
+}
 
 /**
  * The catalog segment with its view model and the refresh (#64, #65); a row opens the tea's
@@ -53,6 +84,9 @@ internal fun CatalogTabContent(tab: CatalogTab) {
         sharedLink = tab.sharedLink,
         onTakeSharedLink = tab.onTakeSharedLink,
         refreshSheetRequest = tab.refreshSheetRequest,
+        foldAllRequest = tab.foldAllRequest,
+        unfoldAllRequest = tab.unfoldAllRequest,
+        onFoldableChange = tab.onFoldableChange,
     )
 }
 

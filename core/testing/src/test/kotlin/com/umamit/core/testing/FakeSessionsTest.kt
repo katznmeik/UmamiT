@@ -13,6 +13,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -75,13 +76,40 @@ class FakeSessionsTest {
         val ready = TimerSnapshot(readyRow(), fakes.sessions.getSession("s1")!!.steps, longStepsOnly = false)
         // A snapshot the engine accepts.
         BrewTimerEngine.restore(ready)
-        fakes.activeBrew.persist(ready)
+        fakes.activeBrew.persist(TimerSlot.BREW, ready)
 
-        assertThat(fakes.activeBrew.read()).isEqualTo(ready)
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isEqualTo(ready)
 
         fakes.sessions.discardSession("s1")
 
-        assertThat(fakes.activeBrew.read()).isNull()
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isNull()
+    }
+
+    @Test
+    fun `the store keeps one timer per slot as on Room (umamit_db v4)`() = runTest {
+        fakes.sessions.startSession(start)
+        val brew = TimerSnapshot(readyRow(), fakes.sessions.getSession("s1")!!.steps, longStepsOnly = false)
+        val quick = TimerSnapshot(
+            readyRow().copy(sessionId = null, isQuickTimer = true, quickDurationSeconds = 90),
+            emptyList(),
+            longStepsOnly = false,
+        )
+        // Snapshots the engine accepts.
+        BrewTimerEngine.restore(brew)
+        BrewTimerEngine.restore(quick)
+
+        fakes.activeBrew.persist(TimerSlot.BREW, brew)
+        fakes.activeBrew.persist(TimerSlot.QUICK, quick)
+
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isEqualTo(brew)
+        assertThat(fakes.activeBrew.read(TimerSlot.QUICK)).isEqualTo(quick)
+        assertThat(runCatching { fakes.activeBrew.persist(TimerSlot.QUICK, brew) }.exceptionOrNull())
+            .isInstanceOf(IllegalArgumentException::class.java)
+
+        fakes.activeBrew.clear(TimerSlot.BREW)
+
+        assertThat(fakes.activeBrew.read(TimerSlot.BREW)).isNull()
+        assertThat(fakes.activeBrew.read(TimerSlot.QUICK)).isEqualTo(quick)
     }
 
     private fun readyRow() = ActiveBrewSnapshot(

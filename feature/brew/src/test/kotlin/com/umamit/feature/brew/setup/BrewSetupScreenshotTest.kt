@@ -12,8 +12,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -112,6 +114,21 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setup() = capture("BrewSetup_kyusu") { BrewSetupScreen(kyusu) }
 
+    /** A catalog tea's setup: the top bar's ⋮ (D-098). */
+    @Test
+    fun setupWithCatalogMenu() = capture("BrewSetup_catalogMenu") {
+        BrewSetupScreen(kyusu.copy(catalogKey = "TG0557"))
+    }
+
+    /** The ⋮ open on *Im Katalog ansehen* (D-098). */
+    @Test
+    fun setupCatalogMenuOpen() = capture(
+        "BrewSetup_catalogMenuOpen",
+        act = { compose.onNodeWithContentDescription("Weitere Optionen").performClick() },
+    ) {
+        BrewSetupScreen(kyusu.copy(catalogKey = "TG0557"))
+    }
+
     @Test
     fun setupChangedInTheBecher() = capture("BrewSetup_changed") {
         BrewSetupScreen(
@@ -143,6 +160,19 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
                 baseTempC = 5,
                 kettle = Kettle(5, KettleWater.COLD),
                 steps = listOf(PlannedStep(StepKind.INFUSION, 14_400, 5)),
+            ),
+        )
+    }
+
+    /** A 15-min hot step has its Vorwarnung, a 60-min one none: the row reads „10 · –" (TMR-18, D-098). */
+    @Test
+    fun setupHotStepsOfMinutes() = capture("BrewSetup_hotStepsOfMinutes") {
+        BrewSetupScreen(
+            kyusu.copy(
+                steps = listOf(
+                    PlannedStep(StepKind.INFUSION, 15 * 60, 65),
+                    PlannedStep(StepKind.INFUSION, 60 * 60, 65),
+                ),
             ),
         )
     }
@@ -186,6 +216,18 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     /** At 0 g the header reads „Leer" (INV-05). */
     @Test
     fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
+
+    /** *Bearb.* opens the Schritte-Sheet, and a tap on step 1's time opens „Dauer wählen" over it (#141). */
+    @Test
+    fun setupDurationPicker() = capture("BrewSetup_durationPicker", act = { tapFirstDuration() }) {
+        BrewSetupScreen(kyusu)
+    }
+
+    private fun tapFirstDuration() {
+        compose.onNodeWithTag(SETUP_STEPS_EDIT_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 1: 1 Minute. Ändern").performScrollTo().performClick()
+    }
 
     private fun tapStock() {
         compose.onNodeWithTag(SETUP_STOCK_TAG).performClick()

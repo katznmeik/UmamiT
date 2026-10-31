@@ -3,6 +3,7 @@ package com.umamit.core.timer.alarm
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import androidx.test.core.app.ApplicationProvider
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerAlarmKind
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -25,7 +26,7 @@ class UnwiredReceiverTest {
         app.applicationInfo.flags = app.applicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
 
         assertThrows(IllegalStateException::class.java) {
-            TimerAlarmReceiver().onReceive(app, TimerAlarmReceiver.intent(app, TimerAlarmKind.DEADLINE))
+            TimerAlarmReceiver().onReceive(app, TimerAlarmReceiver.intent(app, TimerSlot.BREW, TimerAlarmKind.DEADLINE))
         }
     }
 
@@ -33,6 +34,6 @@ class UnwiredReceiverTest {
     fun aReleaseAppWithoutTheControllerDropsTheAlarmWithoutCrashing() {
         app.applicationInfo.flags = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE.inv()
 
-        TimerAlarmReceiver().onReceive(app, TimerAlarmReceiver.intent(app, TimerAlarmKind.DEADLINE))
+        TimerAlarmReceiver().onReceive(app, TimerAlarmReceiver.intent(app, TimerSlot.BREW, TimerAlarmKind.DEADLINE))
     }
 }

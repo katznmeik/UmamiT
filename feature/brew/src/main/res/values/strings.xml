@@ -32,7 +32,7 @@
         <item quantity="one">%1$d Grad</item>
         <item quantity="other">%1$d Grad</item>
     </plurals>
-    <string name="brew_steps_duration_value_description">Ziehzeit %1$s</string>
+    <string name="brew_steps_duration_change_description">Ziehzeit, Schritt %1$d: %2$s. Ändern</string>
     <string name="brew_steps_temperature_value_description">Temperatur %1$s</string>
     <string name="brew_steps_longer">Ziehzeit verlängern, Schritt %1$d</string>
     <string name="brew_steps_shorter">Ziehzeit verkürzen, Schritt %1$d</string>

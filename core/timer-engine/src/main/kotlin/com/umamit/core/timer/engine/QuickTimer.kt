@@ -91,11 +91,13 @@ internal fun onQuickEvent(state: TimerState.Active, event: TimerEvent, now: Cloc
             null
         }
 
+        TimerEvent.AlertHold, TimerEvent.AlertRingStart -> onArbitration(state, event, now)
+
         else -> null
     }
 
-/** The quick timer ends: nothing is recorded; the alert and the service stop. */
+/** The quick timer ends: nothing is recorded; its ringing alert (a held one plays nothing) and the service stop. */
 internal fun endQuickTimer(state: TimerState.Active): TimerTransition = accepted(
     TimerState.Idle,
-    side = listOfNotNull(StopAlert.takeIf { state is TimerState.Alerting }, StopForeground),
+    side = listOfNotNull(StopAlert.takeIf { state is TimerState.Alerting && !state.held }, StopForeground),
 )

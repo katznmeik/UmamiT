@@ -7,6 +7,7 @@ import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
@@ -136,35 +137,43 @@ class BrewStarterTest {
     }
 
     @Test
-    fun `a quick timer outside 5 s to 24 h is refused, and so is one while a session is active`() = runTest {
-        harness.teaWithStock()
-        assertThat(starter.startQuickTimer(4)).isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
-        assertThat(starter.startQuickTimer(86_401))
-            .isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
+    fun `a quick timer outside 5 s to 24 h is refused, one starts beside a session, a second one is refused`() =
+        runTest {
+            harness.teaWithStock()
+            assertThat(starter.startQuickTimer(4))
+                .isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
+            assertThat(starter.startQuickTimer(86_401))
+                .isEqualTo(TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer))
 
-        starter.startSession(brewStart(infusion(60)))
-        val first = harness.sessionId
+            starter.startSession(brewStart(infusion(60)))
+            val first = harness.sessionId
 
-        assertThat(starter.startQuickTimer(60))
-            .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(first))))
-        assertThat(harness.active.kind).isEqualTo(SessionKind.Brew(first))
-    }
+            assertThat(starter.startQuickTimer(60)).isEqualTo(TransitionOutcome.Accepted)
+            assertThat(starter.startQuickTimer(30))
+                .isEqualTo(TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Quick)))
+            assertThat(harness.controller.state(TimerSlot.BREW).value.let { (it as TimerUiState.Active).kind })
+                .isEqualTo(SessionKind.Brew(first))
+        }
 
     @Test
-    fun `Beenden und neu starten for the quick timer saves the session and runs the quick timer (TMR-21)`() = runTest {
-        harness.teaWithStock()
-        starter.startSession(brewStart(infusion(60)))
-        val first = harness.sessionId
-        harness.controller.send(TimerEvent.Start)
-        harness.advanceSeconds(60)
-        harness.controller.send(TimerEvent.Poured)
+    fun `Beenden und neu starten for the quick timer replaces only the quick timer, never the brew (D-098)`() =
+        runTest {
+            harness.teaWithStock()
+            starter.startSession(brewStart(infusion(60)))
+            val first = harness.sessionId
+            harness.controller.send(TimerEvent.Start)
+            harness.advanceSeconds(60)
+            harness.controller.send(TimerEvent.Poured)
+            starter.startQuickTimer(90)
 
-        assertThat(starter.finishActiveAndStartQuickTimer(120)).isEqualTo(TransitionOutcome.Accepted)
+            assertThat(starter.finishActiveAndStartQuickTimer(120)).isEqualTo(TransitionOutcome.Accepted)
 
-        assertThat(harness.sessions.getSession(first)!!.status).isEqualTo(SessionStatus.COMPLETED)
-        assertThat(harness.active.kind).isEqualTo(SessionKind.Quick)
-        assertThat(harness.active.phase).isEqualTo(TimerPhase.RUNNING)
-    }
+            assertThat(harness.sessions.getSession(first)!!.status).isEqualTo(SessionStatus.IN_PROGRESS)
+            assertThat(harness.active.kind).isEqualTo(SessionKind.Quick)
+            assertThat(harness.active.steps.single().plannedSeconds).isEqualTo(120)
+            assertThat(harness.active.phase).isEqualTo(TimerPhase.RUNNING)
+            assertThat(harness.notifier.sessionsSaved).isEmpty()
+        }
 
     @Test
     fun `an ice brew carries its method to the timer, also after a restart (BRW-10)`() = runTest {
@@ -173,7 +182,7 @@ class BrewStarterTest {
 
         assertThat(harness.active.iceBrew).isTrue()
         val after = harness.processRestarted()
-        after.controller.onAlarm(TimerAlarmKind.IDLE_DEMOTE)
+        after.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.IDLE_DEMOTE)
         assertThat(after.active.iceBrew).isTrue()
     }
 
@@ -199,35 +208,31 @@ class BrewStarterTest {
     }
 
     @Test
-    fun `Beenden und neu starten into the quick timer is one turn (TMR-21, D-054)`() = runTest {
+    fun `Beenden und neu starten into the quick timer is one turn (D-054, D-098)`() = runTest {
         harness.teaWithStock()
-        starter.startSession(brewStart(infusion(60)))
-        harness.controller.send(TimerEvent.Start)
-        harness.advanceSeconds(60)
-        harness.controller.send(TimerEvent.Poured)
+        starter.startQuickTimer(60)
         val before = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().size
         val gate = harness.store.hold()
 
-        // A notification's tap arrives while the finish is being saved.
+        // A notification's tap arrives while the cancel is being saved.
         val restart = async { starter.finishActiveAndStartQuickTimer(90) }
         gate.reached.await()
-        val tap = async { harness.controller.send(TimerEvent.Pause, EventSource.NOTIFICATION) }
+        val tap = async { harness.controller.send(TimerSlot.QUICK, TimerEvent.Pause, EventSource.NOTIFICATION) }
         runCurrent()
         gate.open.complete(Unit)
         assertThat(restart.await()).isEqualTo(TransitionOutcome.Accepted)
         tap.await()
 
-        // Finish, quick start and its step's start ran back to back; the tap came after them.
+        // Cancel, quick start and its step's start ran back to back; the tap came after them.
         val events = harness.diagnostics.entriesOf<TimerDiagnostic.EventHandled>().drop(before).map { it.event }
         assertThat(events.map { it::class }).containsExactly(
-            TimerEvent.FinishSession::class,
+            TimerEvent.Cancel::class,
             TimerEvent.StartQuickTimer::class,
             TimerEvent.Start::class,
             TimerEvent.Pause::class,
         ).inOrder()
-        // The finish's „Gespeichert" sheet became the notification: the quick timer is in front (D-054).
-        assertThat(harness.notifier.sessionsSaved).hasSize(1)
-        assertThat(harness.savedSheet.shown).isEmpty()
+        assertThat(harness.active.steps.single().plannedSeconds).isEqualTo(90)
+        assertThat(harness.active.phase).isEqualTo(TimerPhase.PAUSED)
     }
 
     @Test

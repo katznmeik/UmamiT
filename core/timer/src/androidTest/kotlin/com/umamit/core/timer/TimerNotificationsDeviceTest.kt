@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.database.UmamiDatabase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.controller.AndroidMonotonicClock
 import com.umamit.core.timer.controller.TimerClocks
@@ -48,7 +49,9 @@ import kotlin.time.TimeSource
  * - at the deadline the alert (ID 2) replaces the Live Update, is not `FLAG_SILENT` (D-044),
  *   and its full-screen intent opens the timer screen over the lock screen; *Abgegossen* in
  *   the notification ends the step;
- * - a long step's quiet notification (ID 4, D-064) gives way to the alert alone.
+ * - a long step's quiet notification (ID 4, D-064) gives way to the alert alone;
+ * - with a quick timer alongside, the Live Update is the timer due next and the other one is
+ *   notification 5, never promoted (D-098).
  *
  * Background for the API 36 checks: `docs/plans/M1-android16-api-notes.md`.
  */
@@ -134,6 +137,69 @@ class TimerNotificationsDeviceTest {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.takeIf { it.text() == "Zieht bei 60\u00A0°C" }
         }
     }
+
+    /**
+     * Two timers (04 §8.3, D-098, PO Q5): the Live Update (ID 1, promoted on API 36) is the timer that ends
+     * next, the other one is notification 5 on `timer_other`, never promoted. Pausing the quick timer moves
+     * the Live Update to the brew; *Abbrechen* on notification 5 leaves the brew's Live Update alone.
+     */
+    @Test
+    fun theLiveUpdateFollowsTheTimerDueNextAndTheOtherTimerIsNeverPromoted() {
+        val promotion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA
+        if (promotion) allowPromotion()
+        startStep(RUNNING_STEP, quick = QUICK_STEP)
+
+        val quickLiveUpdate = eventually("the quick timer's Live Update (ID 1), ending first", TIMEOUT) {
+            activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.takeIf {
+                it.title() == QUICK_TITLE && it.flags and Notification.FLAG_FOREGROUND_SERVICE != 0 &&
+                    (!promotion || it.flags and FLAG_PROMOTED_ONGOING != 0)
+            }
+        }
+        assertTrue("the Live Update must request promotion", !promotion || isRequestPromoted(quickLiveUpdate))
+        assertOtherNotPromoted(titleStart = TimerTestActivity.TEA)
+
+        tap(quickLiveUpdate, "Pause")
+        eventually("the brew's Live Update (ID 1) after the quick timer's Pause", TIMEOUT) {
+            activeNotification(TimerNotifications.ID_LIVE_UPDATE)?.takeIf {
+                it.title()?.startsWith(TimerTestActivity.TEA) == true &&
+                    (!promotion || it.flags and FLAG_PROMOTED_ONGOING != 0)
+            }
+        }
+        val pausedQuick = assertOtherNotPromoted(titleStart = QUICK_TITLE, textStart = "Pausiert")
+
+        tap(pausedQuick, "Abbrechen")
+        eventually("notification 5 gone after Abbrechen", TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_OTHER) == null }
+        }
+        check(
+            "the brew's Live Update must be the timer's only notification",
+            notificationManager.activeNotifications.map { it.id } == listOf(TimerNotifications.ID_LIVE_UPDATE),
+        )
+        val brew = checkNotNull(activeNotification(TimerNotifications.ID_LIVE_UPDATE))
+        check(
+            "notification 1 must show the brew, was ${brew.title()}",
+            brew.title()?.startsWith(TimerTestActivity.TEA) == true,
+        )
+    }
+
+    /** Notification 5 shows the timer of [titleStart] (and [textStart]), on `timer_other`, never promoted. */
+    private fun assertOtherNotPromoted(titleStart: String, textStart: String = ""): Notification {
+        val other = eventually("notification 5 of $titleStart $textStart", TIMEOUT) {
+            activeNotification(TimerNotifications.ID_OTHER)?.takeIf {
+                it.title()?.startsWith(titleStart) == true && it.text().orEmpty().startsWith(textStart)
+            }
+        }
+        assertEquals(TimerNotifications.CHANNEL_TIMER_OTHER, other.channelId)
+        assertFalse("notification 5 must not request promotion", isRequestPromoted(other))
+        check(
+            "notification 5 must never be promoted, flags=0x${Integer.toHexString(other.flags)}",
+            other.flags and FLAG_PROMOTED_ONGOING == 0,
+        )
+        return other
+    }
+
+    private fun isRequestPromoted(notification: Notification) =
+        NotificationCompat.isRequestPromotedOngoing(notification)
 
     @Test
     fun theAlertTakesOverTheLockScreenAloneAndAbgegossenEndsTheStep() {
@@ -223,8 +289,15 @@ class TimerNotificationsDeviceTest {
         if (!condition) throw AssertionError("$message\n${deviceState()}")
     }
 
-    private fun startStep(step: Duration, coldBrew: Boolean = false) {
-        context.startActivity(TimerTestActivity.intent(context, step.inWholeSeconds.toInt(), coldBrew))
+    private fun startStep(step: Duration, coldBrew: Boolean = false, quick: Duration = Duration.ZERO) {
+        context.startActivity(
+            TimerTestActivity.intent(
+                context,
+                step.inWholeSeconds.toInt(),
+                coldBrew,
+                quickSeconds = quick.inWholeSeconds.toInt(),
+            ),
+        )
         val outcome = eventually("the step's start in the timer process", TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
@@ -291,8 +364,8 @@ class TimerNotificationsDeviceTest {
         val clocks = TimerClocks(AndroidMonotonicClock(context), SystemWallClock)
         val alarms = AndroidTimerAlarms(context, clocks, TimerDiagnosticsPort {})
         val cancelAlarms = {
-            alarms.reconcile(DueTimes.NONE)
-            alarms.watchAlert(null)
+            TimerSlot.entries.forEach { alarms.reconcile(it, DueTimes.NONE) }
+            TimerSlot.entries.forEach { alarms.watchAlert(it, null) }
         }
         cancelAlarms()
         activityManager.appTasks.forEach { it.finishAndRemoveTask() }
@@ -389,6 +462,8 @@ class TimerNotificationsDeviceTest {
     private companion object {
         const val TAG = "TimerNotificationsTest"
         val RUNNING_STEP = 120.seconds
+        val QUICK_STEP = 60.seconds
+        const val QUICK_TITLE = "Schnelltimer"
         val COLD_BREW_STEP = 20.seconds
         val SHORT_STEP = 15.seconds
         val TIMEOUT = 10.seconds

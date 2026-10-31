@@ -7,6 +7,9 @@
     <string name="timer_channel_steep_finished_description">Alarm am Ende eines Aufgusses</string>
     <string name="timer_channel_sessions_name">Sitzungen</string>
     <string name="timer_channel_sessions_description">Automatisch gespeicherte Sitzungen</string>
+    <string name="timer_channel_other_name">Weiterer Timer</string>
+    <string name="timer_channel_other_description">Der zweite laufende Timer, still neben dem Aufguss</string>
+    <string name="timer_text_quick_held">Fertig, wartet auf den Aufguss</string>
 
     <!-- Timer notifications and Live Update (04 §8.2, §8.3; M1-11). The step word follows
          the step kind, as on the timer screen (D-058). -->
@@ -62,4 +65,7 @@
     <!-- After a reboot the session goes on (04 §7.3, D-063) -->
     <string name="timer_resumed_title">Dein Timer läuft weiter</string>
     <string name="timer_resumed_text">%1$s · nach dem Neustart</string>
+    <!-- Both timers survived the reboot: one notice names both, the brew first (04 §7.3, D-098) -->
+    <string name="timer_resumed_title_both">Deine Timer laufen weiter</string>
+    <string name="timer_resumed_text_both">%1$s und %2$s · nach dem Neustart</string>
 </resources>

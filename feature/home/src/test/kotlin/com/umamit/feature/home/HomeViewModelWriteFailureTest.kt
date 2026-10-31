@@ -6,6 +6,7 @@ import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SeedData
 import com.umamit.core.model.LowStockCard
+import com.umamit.core.model.LowStockTea
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
@@ -62,6 +63,8 @@ class HomeViewModelWriteFailureTest {
             override fun observeCard(): Flow<LowStockCard?> = flowOf(card)
 
             override suspend fun hide(card: LowStockCard) = throw IOException("synthetic: disk full")
+
+            override suspend fun reminderTeas(): List<LowStockTea> = emptyList()
         }
         val vm = HomeViewModel(
             collection.teas,

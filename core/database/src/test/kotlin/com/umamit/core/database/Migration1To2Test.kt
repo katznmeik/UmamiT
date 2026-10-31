@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -98,7 +99,7 @@ class Migration1To2Test {
         try {
             // The production builder migrates on to the current version (v3: MIGRATION_2_3 keeps every v2 value).
             assertThat(db.openHelper.writableDatabase.version).isEqualTo(UmamiDatabase.VERSION)
-            assertThat(db.activeBrewDao().get()?.sessionId).isEqualTo("live-1")
+            assertThat(db.activeBrewDao().get(TimerSlot.BREW)?.sessionId).isEqualTo("live-1")
             assertThat(db.sessionDao().steps("live-1").map { it.preAlertSeconds }).containsExactly(null, 20, 20)
                 .inOrder()
             assertThat(db.recipeDao().get("profile-1")?.steps?.map { it.preAlertSeconds })

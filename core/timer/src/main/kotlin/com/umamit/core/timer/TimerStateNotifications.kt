@@ -7,6 +7,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.notification.LiveUpdateProgress
 import com.umamit.core.timer.notification.TimerActionReceiver
@@ -32,17 +33,20 @@ import javax.inject.Inject
  *   a Live Update „Fertig um 14:30", and a demoted session as a regular ongoing notification
  *   with *Start* or *Weiter* and *Sitzung beenden* (D-064).
  *
- * Every one opens the timer screen (SCR-05) when tapped; a Live Update the user dismisses
- * reports it through its delete intent (04 §8.3).
+ * Every one opens its own timer's screen (SCR-05, SCR-07) when tapped, whichever role it has (04 §8.2,
+ * D-098); a Live Update the user dismisses reports it through its delete intent (04 §8.3).
  */
 class TimerStateNotifications @Inject constructor(@ApplicationContext private val context: Context) {
     private val texts = TimerNotificationTexts(context)
     private val actions = TimerNotificationActions(context)
 
-    /** The ID of [state]'s notification: the alert while alerting, the Live Update with the service, else quiet. */
-    fun idFor(state: TimerUiState.Active): Int = when {
+    /**
+     * The ID of [state]'s notification: the alert while alerting, the Live Update with the service ([byService]:
+     * the service shows it, also for a timer that needs it only for the other one, 04 §6.1), else quiet.
+     */
+    fun idFor(state: TimerUiState.Active, byService: Boolean = state.runsWithService): Int = when {
         state.alerting -> TimerNotifications.ID_ALERT
-        state.runsWithService -> TimerNotifications.ID_LIVE_UPDATE
+        byService -> TimerNotifications.ID_LIVE_UPDATE
         else -> TimerNotifications.ID_QUIET
     }
 
@@ -52,6 +56,36 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
      */
     fun build(state: TimerUiState.Active, fullScreen: Boolean, now: ClockReading): Notification =
         if (state.alerting) alert(state, fullScreen) else liveUpdate(state, now)
+
+    /**
+     * Notification 5, the other active timer (04 §8.2, D-098), on `timer_other` (LOW, silent, never promoted):
+     * the title and text of its phase, a countdown while it runs, its own actions; a held quick alert reads
+     * „Fertig, wartet auf den Aufguss" and has no full-screen intent. It opens the timer.
+     */
+    fun other(state: TimerUiState.Active, now: ClockReading): Notification {
+        val countdown = state.phase == TimerPhase.RUNNING && !state.longStep
+        val text = when {
+            state.alertHeld -> context.getString(R.string.timer_text_quick_held)
+            state.alerting -> texts.alertText(state)
+            else -> texts.text(state, now)
+        }
+        return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_TIMER_OTHER)
+            .setSmallIcon(R.drawable.ic_stat_umamit)
+            .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
+            .setContentTitle(texts.title(state))
+            .setContentText(text)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setShowWhen(countdown)
+            .setUsesChronometer(countdown)
+            .apply { if (countdown) setWhen(checkNotNull(state.deadlineWallMs)).setChronometerCountDown(true) }
+            .setContentIntent(openTimerIntent(state.slot, contentCodeOf(state.slot)))
+            .apply { actions.of(state).forEach(::addAction) }
+            .build()
+    }
 
     /** „Sitzung gespeichert" (ID 3, `sessions`, TMR-14) for the session of [teaName]. */
     fun sessionSaved(teaName: String?): Notification =
@@ -68,18 +102,30 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
             .build()
 
     /**
-     * „Dein Timer läuft weiter" after a reboot (04 §7.3, D-063), on `sessions` (LOW) with ID 3 like
-     * „Sitzung gespeichert", so it never sits next to the alert (D-044). It opens the timer.
+     * „Dein Timer läuft weiter" after a reboot (04 §7.3, D-063) for the timers in [states] (not empty), on
+     * `sessions` (LOW) with ID 3 like „Sitzung gespeichert", so it never sits next to the alert (D-044). With
+     * both timers one notice names both („Deine Timer laufen weiter", „Gyokuro und Schnelltimer · …"), as one ID
+     * holds one notice (D-098). It opens the timer: one timer's own, of two the one in front.
      */
-    fun timerResumed(state: TimerUiState.Active): Notification =
-        NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
+    fun timerResumed(states: List<TimerUiState.Active>): Notification {
+        require(states.isNotEmpty()) { "a reboot notice names its timer" }
+        val one = states.singleOrNull()
+        val title = if (one != null) R.string.timer_resumed_title else R.string.timer_resumed_title_both
+        val teas = states.map(texts::teaOf)
+        val text = one?.let { context.getString(R.string.timer_resumed_text, teas.single()) }
+            ?: context.getString(R.string.timer_resumed_text_both, teas[0], teas[1])
+        return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_SESSIONS)
             .setSmallIcon(R.drawable.ic_stat_umamit)
             .setColor(ContextCompat.getColor(context, R.color.timer_matcha))
-            .setContentTitle(context.getString(R.string.timer_resumed_title))
-            .setContentText(context.getString(R.string.timer_resumed_text, texts.teaOf(state)))
+            .setContentTitle(context.getString(title))
+            .setContentText(text)
             .setAutoCancel(true)
-            .setContentIntent(openTimerIntent(RC_RESUMED))
+            // One timer's notice opens it as its other notifications do; both names none (its own request code).
+            .setContentIntent(
+                one?.let { openTimerIntent(it.slot, contentCodeOf(it.slot)) } ?: openTimerIntent(null, RC_RESUMED),
+            )
             .build()
+    }
 
     private fun liveUpdate(state: TimerUiState.Active, now: ClockReading): Notification {
         val progress = LiveUpdateProgress.of(state, now.elapsedMs)
@@ -99,7 +145,7 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
                 },
                 points = listOfNotNull(progress.preAlertAt?.let { LiveUpdateContent.Point(it, accent) }),
                 progress = progress.progress,
-                contentIntent = openTimerIntent(RC_CONTENT),
+                contentIntent = openTimerIntent(state.slot, contentCodeOf(state.slot)),
                 actions = actions.of(state),
                 // A demoted session is a regular, quiet notification (TMR-14).
                 requestPromotion = !state.demoted,
@@ -122,20 +168,29 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setContentIntent(openTimerIntent(RC_CONTENT))
+            .setContentIntent(openTimerIntent(state.slot, contentCodeOf(state.slot)))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .apply { actions.of(state).forEach(::addAction) }
             .apply {
                 // The alert takes over the screen once, when it starts; shown again (an update in
                 // the same alert, a re-sent start) it must not alert a second time (D-057).
-                if (fullScreen) setFullScreenIntent(openTimerIntent(RC_FULL_SCREEN), true) else setOnlyAlertOnce(true)
+                if (fullScreen) {
+                    setFullScreenIntent(openTimerIntent(state.slot, fullScreenCodeOf(state.slot)), true)
+                } else {
+                    setOnlyAlertOnce(true)
+                }
             }
             .build()
 
-    private fun openTimerIntent(requestCode: Int): PendingIntent = PendingIntent.getActivity(
+    /**
+     * Opens [slot]'s timer (null: the one in front) with [requestCode], which is the slot's ([contentCodeOf],
+     * [fullScreenCodeOf]): extras do not tell PendingIntents apart, so a code shared by both timers would let the
+     * latest notification's slot replace the other's.
+     */
+    private fun openTimerIntent(slot: TimerSlot?, requestCode: Int): PendingIntent = PendingIntent.getActivity(
         context,
         requestCode,
-        TimerScreenIntents.openTimer(context),
+        TimerScreenIntents.openTimer(context, slot),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
@@ -155,5 +210,14 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         const val RC_DISMISS = 303
         const val RC_SESSION_SAVED = 304
         const val RC_RESUMED = 305
+        const val RC_CONTENT_QUICK = 306
+        const val RC_FULL_SCREEN_QUICK = 307
+
+        /** The content intent's request code of [slot]'s notifications (1, 2, 4, 5). */
+        fun contentCodeOf(slot: TimerSlot): Int = if (slot == TimerSlot.QUICK) RC_CONTENT_QUICK else RC_CONTENT
+
+        /** The full-screen intent's request code of [slot]'s alert. */
+        fun fullScreenCodeOf(slot: TimerSlot): Int =
+            if (slot == TimerSlot.QUICK) RC_FULL_SCREEN_QUICK else RC_FULL_SCREEN
     }
 }

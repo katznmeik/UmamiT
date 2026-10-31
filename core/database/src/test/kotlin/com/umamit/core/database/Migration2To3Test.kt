@@ -9,6 +9,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -85,7 +86,9 @@ class Migration2To3Test {
             try {
                 val label = case.name
                 assertWithMessage(label).that(db.openHelper.writableDatabase.version).isEqualTo(UmamiDatabase.VERSION)
-                val active = db.activeBrewDao().get()!!
+                // v4 keeps the row in the slot of its kind (D-098).
+                val slot = if (case.activeBrew["is_quick_timer"] == 1) TimerSlot.QUICK else TimerSlot.BREW
+                val active = db.activeBrewDao().get(slot)!!
                 assertWithMessage("$label: session").that(active.sessionId).isEqualTo(case.activeBrew["session_id"])
                 assertWithMessage("$label: phase").that(active.phase).isEqualTo(TimerPhase.RUNNING)
                 assertWithMessage("$label: deadline").that(active.deadlineElapsedMs).isEqualTo(DEADLINE)

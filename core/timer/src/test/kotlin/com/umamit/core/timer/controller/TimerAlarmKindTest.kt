@@ -1,16 +1,19 @@
 package com.umamit.core.timer.controller
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.TimerEvent
 import org.junit.Test
 
-/** The alarm table of 04 §6.2: one alarm per due-time field, fixed request codes (D-054). */
+/** The alarm table of 04 §6.2: one alarm per due-time field, fixed request codes per slot (D-054, D-098). */
 class TimerAlarmKindTest {
 
     @Test
     fun `each kind has the request code, clock and delivery of 04 §6_2`() {
-        val table = TimerAlarmKind.entries.map { listOf(it.name, it.requestCode, it.clock, it.exact, it.wakeUp) }
+        val table = TimerAlarmKind.entries.map {
+            listOf(it.name, it.requestCodeIn(TimerSlot.BREW), it.clock, it.exact, it.wakeUp)
+        }
 
         assertThat(table).containsExactly(
             listOf("PRE_ALERT", 101, AlarmClock.ELAPSED, true, true),
@@ -21,6 +24,29 @@ class TimerAlarmKindTest {
             listOf("MIDNIGHT", 106, AlarmClock.WALL, false, false),
             listOf("ALERT_WATCHDOG", 107, AlarmClock.ELAPSED, true, true),
         ).inOrder()
+    }
+
+    @Test
+    fun `the quick slot uses 201 to 207 for the same kinds (D-098)`() {
+        val codes = TimerAlarmKind.entries.associate { it.name to it.requestCodeIn(TimerSlot.QUICK) }
+
+        assertThat(codes).containsExactly(
+            "PRE_ALERT", 201,
+            "DEADLINE", 202,
+            "OVERTIME_TIMEOUT", 203,
+            "IDLE_DEMOTE", 204,
+            "QUICK_CANCEL", 205,
+            "MIDNIGHT", 206,
+            "ALERT_WATCHDOG", 207,
+        )
+    }
+
+    @Test
+    fun `no two alarms of the two slots share a request code`() {
+        val codes = TimerSlot.entries.flatMap { slot -> TimerAlarmKind.entries.map { it.requestCodeIn(slot) } }
+
+        assertThat(codes).containsNoDuplicates()
+        assertThat(codes).hasSize(TimerSlot.entries.size * TimerAlarmKind.entries.size)
     }
 
     @Test

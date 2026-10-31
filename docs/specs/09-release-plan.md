@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -172,21 +172,24 @@ v0.3.0 changes timer code throughout, so every `v0.3.0-rc.N` needs a PASS of
 - [ ] `v0.3.0-rc.1` installs over `v0.2.2` without losing data (umamit.db v3 → v4): journal, teas, recipes, photos, stock, Merkliste and settings are all there; a brew session running during the update still alerts on time, and so does a Schnelltimer started before the update.
 - [ ] Brew a tea and start step 1 (2:00). From Start start a Schnelltimer of 1:00 while it runs: no question. The brew timer shows the row „⏱ Schnelltimer 0:58"; a tap opens the Schnelltimer, which shows „🍃 <Tee> · Aufguss 1 · …"; back returns to the brew. The bar on Start, Journal, Sammlung and Statistik shows both countdowns; a tap on each opens its timer (TMR-22).
 - [ ] *Pause* in the Schnelltimer row pauses only the Schnelltimer; *Weiter* resumes it. Pausing the brew leaves the Schnelltimer running.
+- [ ] With only a Schnelltimer running, Start still shows *Aufguss starten* and *Nochmal brühen*; a brew started from there runs alongside. With both running, Start's card shows the brew. Pause the brew from its screen: the Live Update now shows the Schnelltimer, and a tap on it opens the Schnelltimer; a tap on the other timer's notification opens that timer (04 §8.2, v0.3.0 review).
 - [ ] Screen off, both running: the Schnelltimer (ending first) alerts on time with sound and full-screen alert; *Fertig*. Then the brew alerts on time. On the lock screen the Live Update showed the Schnelltimer first, then the brew; the other timer was a quiet notification (04 §8.3).
 - [ ] Both due together: start a 1:00 brew step and a 1:00 Schnelltimer within a second. Only the brew alarm sounds; after *Abgegossen* the Schnelltimer alarm rings at once with its overtime. Never two sounds at once.
 - [ ] Held for long: a 0:30 Schnelltimer during a brew step that ends first; leave the brew alarm unanswered for about 2 min. After *Abgegossen* the Schnelltimer rings with „+2:…"; it ends silently only 10 min after it started ringing (S1).
-- [ ] Preemption: a Schnelltimer alarm ringing when a brew step ends stops at once; the brew alarm rings; after *Abgegossen* the Schnelltimer alarm comes back.
+- [ ] Preemption: a Schnelltimer alarm ringing when a brew step ends stops at once; the brew alarm rings; after *Abgegossen* the Schnelltimer alarm comes back. With the screen off: let the Schnelltimer alarm turn it on, turn it off again before the brew step ends; the brew alarm turns the screen on with its full-screen alarm (a new alert notification, #135 build notes in D-098).
 - [ ] A second Schnelltimer asks „Schnelltimer beenden und neu starten?"; *Beenden & neu starten* replaces only the Schnelltimer, the brew runs on. A second brew still asks „Erst die …-Sitzung beenden?" and leaves the Schnelltimer running. *Sitzung beenden* leaves the Schnelltimer running; *Abbrechen* of the Schnelltimer leaves the brew running.
-- [ ] Swipe the app away with both running, phone locked: both alert on time, brew first when due together. Restart the phone during a long cold-brew step with a Schnelltimer running: after unlocking both are back.
+- [ ] Swipe the app away with both running, phone locked: both alert on time, brew first when due together. Restart the phone during a long cold-brew step with a Schnelltimer running: after unlocking both are back, with one notice „Deine Timer laufen weiter".
 - [ ] A hot step of 15 min (Schritte-Sheet): the setup and the sheet show „Auto · 10 s"; it counts down with „Gleich fertig …" and the Vorwarnton at 0:10. A 60-min hot step and a cold brew show „· keine" and „Fertig um …" (TMR-18).
 - [ ] Turn the phone's notification volume down and the alarm volume up: Vorwarnung and alarm are loud. *Einstellungen › Timer & Alarm › Lautstärke* at 30 %: *Alarm testen* is quieter; back to 100 %. The slider stops at 10 %.
-- [ ] Vibrate mode: vibration only; silent mode: visual only. DND „Nur Alarme": Vorwarnung and alarm ring. DND total silence (if offered): visual only.
+- [ ] Vibrate mode: vibration only; silent mode: visual only. DND „Nur Alarme": Vorwarnung and alarm ring. DND total silence (if offered): visual only. Then copy *Über › Diagnose* into #138: each cue's line names the ringer mode and the DND mode as One UI reported them (D-098 build notes).
+- [ ] Phone on ring (Ton), „Nicht stören" on with its default exceptions (alarms allowed): with *Einstellungen › Timer & Alarm › Bei „Nicht stören" klingeln* on (the default), a Schnelltimer's Vorwarnung and alarm ring, and *Alarm testen* rings. Switched off: both are visual only (the full-screen alarm still shows), and *Alarm testen* is silent. Copy *Über › Diagnose*: the cue lines end their settings part with „DND rings on" or „off" (SET-32, D-099).
 - [ ] Alarm volume at 0: Start and the settings show „Alarmlautstärke ist aus"; *Beheben* opens the sound settings; raising it clears the warning.
 - [ ] Brew setup of a catalog tea: ⋮ › *Im Katalog ansehen* opens its catalog page; back returns to the setup with every value as before. A tea without a catalog entry has no ⋮.
-- [ ] *Einstellungen › Brühen & Vorrat*: „Tägliche Vorrats-Erinnerung" on, „Uhrzeit 18:00". Set the time a few minutes ahead with a *Knapp* tea and a hidden (*Ausblenden*) one: one quiet notification „2 Tees werden knapp" lists both, without sound; a tap opens Start. A removed tea never appears. Off: no notification the next day.
+- [ ] *Einstellungen › Brühen & Vorrat*: „Tägliche Vorrats-Erinnerung" on, „Uhrzeit 18:00". Set the time a few minutes ahead with a *Knapp* tea and a hidden (*Ausblenden*) one: one quiet notification „2 Tees werden knapp" lists both, without sound; a tap opens Start. A removed tea never appears; a single empty tea reads „<Tee> ist leer". Off: no notification the next day.
 - [ ] *Sammlung › Katalog*: tap „Bancha · …" to fold it; the chevron turns; fold another; after an app restart both stay folded; the Kräutertee view keeps its own. A search finds teas in folded groups; clearing it folds them again. ⋮ *Alle einklappen* / *Alle ausklappen* work. TalkBack reads „Bancha, 12 Tees, eingeklappt".
 - [ ] *Nochmal brühen* on a tea with 38 g: READY shows „38 g übrig" under „4,0 g Tee · 250 ml Wasser"; a tea at the threshold shows „· knapp"; the Schnelltimer shows no stock line.
 - [ ] Schnelltimer screen: changing *Vorwarnung* (Auto, Aus, 20 s) does not move the word „Vorwarnung"; at the largest font the ring does not move at *Start*.
+- [ ] Schritte-Sheet: tap a step's time → „Dauer wählen" with its value; set 10:00 and *Übernehmen*; *Abbrechen* changes nothing. Hold *+* on a 5:00 step: it speeds up and reaches 10:00 in about 3 s; a plain tap still adds one step (#141).
 
 ### M3 — Collection
 
@@ -240,6 +243,18 @@ targets; its report lists both timers. **Every v0.3.0 rc and the final
 `v0.3.0` need a PASS of both variants** on their commit; from then on every
 rc that touches timer code does.
 
+How `alongside` overlaps (#137): with each brew step a quick timer of 25 s
+with a 10 s *Vorwarnung* starts (*Schnelltimer beenden und neu starten*, from
+the app as Start's *Schnelltimer* does), so its pre-alert and alert come with
+the screen off while the step runs; the test acknowledges it with *Fertig* and
+starts a quick timer of 5 min without a *Vorwarnung*, which runs across the
+step's own pre-alert and alert and is replaced by the next step's. No cue of
+one timer is due while the other's sound plays, so neither waits for the
+other (04 §9.3) and every delay counts against the target. The test fails as
+a setup error if it was too slow to have the screen off again 5 s before the
+step's pre-alert. The standard variant is unchanged, so its results compare
+with the runs before v0.3.0.
+
 **Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
 `accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
 
@@ -252,9 +267,11 @@ rc that touches timer code does.
 | `variant` (v0.3.0) | `standard` | `standard` or `alongside` (a quick timer running alongside the brew steps) |
 
 With the `gh` CLI the same dispatch is
-`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36`.
-GitHub dispatches only workflows whose file exists on `main`; the
-version at `--ref` runs (D-039, D-070).
+`gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36 -f variant=standard`,
+and again with `-f variant=alongside`. Each variant has its own concurrency
+group, so the two runs of one commit go in parallel; the run's name says the
+variant and the ref. GitHub dispatches only workflows whose file exists on
+`main`; the version at `--ref` runs (D-039, D-070).
 
 **Reading the result.** The run page's summary shows a table per API level:
 
@@ -285,13 +302,25 @@ version at `--ref` runs (D-039, D-070).
   time, then the handled and the sound-start wall and monotonic time with
   their deltas), `diagnostics.txt` (the log lines it read), the
   instrumentation output and logcat.
+- **`alongside`:** the heading ends in „· alongside" and the table has a
+  first column *Timer*, with the rows *Brew* and *Quick timer* for the
+  pre-alert and the alert; „**Result: PASS** … for both timers" needs all
+  four rows on target and all 50 steps of both timers. *Slowest …* names
+  each timer's slowest pre-alert and alert. The artifact is
+  `accuracy-alongside-api-<level>`; its CSV has a second column `timer`
+  (`BREW`, `QUICK`), the quick timer's rows of a step before the brew's. The
+  quick timer's lines in `diagnostics.txt` name it (`QUICK.DEADLINE`, 06
+  §5.6).
 - A failed run blocks the rc. Find the cause from the CSV and the log lines,
   fix it (rule 8), and run again. A flaky emulator start (no report at all)
   may simply be re-run once.
 
 **Proving the gate.** Once per workflow change, Claude dispatches a run with
 `inject-delay-ms: 1500` and a few `steps`. It must fail with the delays
-around 1.5 s; the gate check changes nothing in the app.
+around 1.5 s; the gate check changes nothing in the app. For the change of
+#137 it is the `alongside` variant (`-f variant=alongside -f steps=3
+-f inject-delay-ms=1500`): both timers' rows must show about 1.5 s and **no**;
+the injected delay moves the quick timer's alarms as well as the brew's.
 
 On the phone, the same numbers come from *Einstellungen › Über › Diagnose*
 (the M1 checklist above): the emulator neither dozes within a 60 s step nor

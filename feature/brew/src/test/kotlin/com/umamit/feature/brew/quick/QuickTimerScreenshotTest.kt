@@ -96,6 +96,7 @@ class QuickTimerScreenshotTest(private val appDark: Boolean, private val fontSca
     @Test
     fun question() = capture(
         "question",
-        QuickTimerUiState(durationSeconds = 120, question = ActiveSessionQuestion("Bio Uji Gyokuro Gokō")),
+        // The second quick timer's question (D-098): „Schnelltimer beenden und neu starten?".
+        QuickTimerUiState(durationSeconds = 120, question = ActiveSessionQuestion(teaName = null)),
     )
 }

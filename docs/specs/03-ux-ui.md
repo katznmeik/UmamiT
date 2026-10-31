@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -322,8 +322,8 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 | `tabSwitch` | out `tween(90, CalmEaseOut)`, in `tween(210, delay 90, CalmEaseOut)` (fade-through); reduce motion: `fade` (100 ms, no delay) | Switching between the four tabs | Tab switches happen tens of times a day, so they are short, and the old screen is gone before the new one arrives: no double exposure of two top bars. |
 | `sheet` | `spring(dampingRatio = 1, stiffness = 320)` (response ≈ 0.35 s) | Own sheets (not the Schritte-Sheet, which uses Material 3's modal sheet and its motion, D-051) | Critically damped: no overshoot. A spring starts from the current value and keeps velocity, so a sheet grabbed mid-motion follows the finger. |
 | `activeBrewBar` | `spring(dampingRatio = 1, stiffness = 250)` (response ≈ 0.4 s) | Active brew bar arriving and leaving | Same physics as sheets, a touch slower: it is ambient, not asked for. |
-| short-step ring | none, per frame | Ring and liquor fill while a step under 10 min runs | Progress follows the remaining time exactly; any easing would lie about it. |
-| `longStepGlide` | `tween(600, CalmEaseInOut)` every `10 000` ms | Ring and liquor fill of long steps (≥ 10 min) | One redraw burst every 10 s saves battery; the 600 ms glide keeps the jump from looking like a glitch. |
+| short-step ring | none, per frame | Ring and liquor fill while a short step runs (under 10 min; from v0.3.0 every hot step under 60 min, D-098) | Progress follows the remaining time exactly; any easing would lie about it. |
+| `longStepGlide` | `tween(600, CalmEaseInOut)` every `10 000` ms | Ring and liquor fill of long steps (≥ 10 min; from v0.3.0 cold or ice brew, or ≥ 60 min, D-098) | One redraw burst every 10 s saves battery; the 600 ms glide keeps the jump from looking like a glitch. |
 | `preAlertGlow` | `keyframes(800 ms)`: 0 → 1 at 200 ms (`CalmEaseOut`), → 0 at 800 ms (`SineInOut`) | Pre-alert marker on the ring | One swell exactly as long as the 0.8 s tick (D-045), peaking early like the strike of the bowl and decaying with its sound, so eye and ear get one event. |
 | `alertEnter` | `snap()`, also without reduce motion | Entering ALERTING | The alert is the biggest state change and must never be delayed or softened by a transition (rule 8). |
 | `alertPulse` | `infiniteRepeatable(tween(750, SineInOut), Reverse, initialStartOffset = 750 ms FastForward)`, animated 0 (washi) → 1 (matcha): frame 1 is full matcha, then matcha → washi → matcha, one cycle per 1.5 s | Alert surface | Slow and strong: visible across the room even in silent mode. It starts at its strongest phase, the same matcha as the static reduce-motion surface, so the onset is never soft. 0.67 cycles/s is far below the 3 flashes/s limit (WCAG 2.3.1), and a sine has no hard edges, so it never flashes. |
@@ -397,7 +397,8 @@ state has a text or semantics equivalent (remaining time, „Gleich fertig …",
 „Jetzt abgießen!").
 
 Haptics: tick on start/pause, pre-alert tick, alert pattern, confirm on
-*Abgegossen*.
+*Abgegossen*; a light tick (`SegmentFrequentTick`) per repeat of a held − / +
+in the Schritte-Sheet (SCR-31, #141).
 
 ### 3.7 Voice & tone (German)
 
@@ -476,6 +477,9 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
+  Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
+  *Aufguss starten* (the bar shows it); with both timers the card shows the
+  brew, never switching to the quick timer, and its tap opens the brew.
 - **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
   opens SCR-07 and starts a quick timer alongside it, without a question;
   while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
@@ -576,6 +580,9 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - **Long hot steps.** A hot step of 10–59 min shows its Vorwarnung like any
   other („Auto · 10 s"); „–" / „· keine" stays for cold and ice brew and
   steps of 60 min and more (TMR-18).
+- **Step durations, fast (#141).** The setup's step list stays a read-only
+  summary; durations are edited in its Schritte-Sheet (*Bearb.*), which
+  now has the tap on the time („Dauer wählen") and the held − / + of SCR-31.
 
 ### SCR-05 Timer
 
@@ -613,8 +620,10 @@ stays on its lower edge. The band's height follows only the screen, the
 font and the content above the control, so nothing moves when the alert
 starts; what still does not fit, and the banner below the control, scroll
 (rule 8, [D-096](10-open-questions-and-decisions.md#d-096)). The quick
-timer's band keeps its height: without a seal and with a one-line title its
-*Fertig* fits.
+timer's band follows its screen before *Start*: from v0.3.0 the running
+quick timer reserves that screen's content (the chips and the *Vorwarnung*
+row), so its band, ring and pill stand where they stood before *Start*
+(SCR-07 polish 2, [D-098](10-open-questions-and-decisions.md#d-098)).
 
 **Top-bar icons (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
 Tea photos often have a white background, so ← and ⋮ each sit on a filled
@@ -678,7 +687,9 @@ TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
   quick timer is active, so the pill never moves when the row comes or goes
   within a phase; when the quick timer starts or ends, the band gives way
   by the row's height (D-096). On a short screen at a large font the band
-  gives way first; *Start* stays on the screen.
+  gives way first; *Start* stays on the screen. Where even the band at the
+  top bar is not enough (384 × 832 dp, font 2.0, a two-line name), the seal
+  yields its place to the row (D-098 build notes, #136).
 - **Alerts (rule 8).** On the brew's alert surface the row is hidden and its
   space kept; a held quick alert shows nothing here. After *Abgegossen* a
   held quick alert rings at once and its alert surface (SCR-07) comes to the
@@ -754,7 +765,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
   reserves the running screen's band and control height, as the brew
   timer's reserved controls do, so on a short screen at a large font
   (384 × 832 dp, font 2.0) the ring's centre and the pill's top are the same
-  before and after *Start*. Elsewhere nothing changes; no new animation.
+  before and after *Start*. On every screen the running quick timer's
+  *Pause*, *Weiter* and *Fertig* now stand where *Start* stood (lower than in
+  v0.2.2, by the chips and the row); the ring stays where it was. No new
+  animation.
 
 ### SCR-08 Sammlung › Meine Tees
 
@@ -1046,6 +1060,10 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
   on) with „Listet jeden Tag alle knappen und leeren Tees." and, while it is
   on, „Uhrzeit" with the time („18:00", SET-29), which opens Material 3's
   time picker (24 h).
+- *Timer & Alarm* gets the switch „Bei „Nicht stören" klingeln" (SET-32,
+  on; [D-099](10-open-questions-and-decisions.md#d-099)) below *Alarmdauer*,
+  with „Vorwarnung und Alarm klingen, wenn „Nicht stören" Alarme erlaubt".
+  „Nicht stören" keeps a no-break space, so it never splits across lines.
 
 ### SCR-26 Daten & Sicherung
 
@@ -1096,6 +1114,18 @@ editable before *Start*). Never from ALERTING: both entries appear after
   temperature (5 °C steps), delete; *Aufguss hinzufügen* appends a step
   (TMR-10 defaults). Started and completed steps are read-only; the running
   step is not editable.
+- **Faster durations (v0.3.0, #141, [D-098](10-open-questions-and-decisions.md#d-098)).**
+  A tap on a pending step's time opens „Dauer wählen", SCR-07's picker
+  (hours, minutes, seconds with − / +; 5 s – 24 h in PRF-04's increments),
+  with the step's value: *Übernehmen* sets it, *Abbrechen* leaves it. A held
+  − / + (duration and temperature) repeats: the first repeat after 400 ms,
+  then every 150 ms, from 1,5 s every 60 ms and from 2 s every 25 ms, one
+  PRF-04 step (or 5 °C) per repeat with a light haptic tick, so 5:00 →
+  10:00 takes about 3 s; a plain tap is one step, a release stops at once, and
+  a bound ends the hold. TalkBack reads the time as a button („Ziehzeit,
+  Schritt 2: 5 Minuten. Ändern"); − / + are single steps there. Like the
+  sheet, the picker never covers an alert: it goes in the alert's first frame
+  with the sheet, and its draft is never applied; a hold stops.
 - **Pre-alert per step (v0.2.1, TMR-23, [D-093](10-open-questions-and-decisions.md#d-093)).**
   Each pending step, and the running one, has a *Vorwarnung* selector:
   *Automatisch* (shows its value, „Auto · 5 s", or „Auto · keine") / *Aus* /
@@ -1138,7 +1168,7 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Delete tea | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
 | Another session | „Erst die *Sencha*-Sitzung beenden?" · Beenden & neu starten / Abbrechen |
 | Another quick timer (v0.3.0, D-098) | „Schnelltimer beenden und neu starten?" · Beenden & neu starten / Abbrechen |
-| Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp"; lines „Tanabata · 14 g", „Hisui · leer" |
+| Daily reminder (v0.3.0, INV-11) | „3 Tees werden knapp" / „*Tanabata* wird knapp" / „*Hisui* ist leer"; lines „Tanabata · 14 g", „Hisui · leer" |
 | Alarm volume 0 (v0.3.0, TMR-31) | „Alarmlautstärke ist aus" · Beheben |
 | Discard session | „Sitzung verwerfen? Nichts wird gespeichert." · Verwerfen / Weiter brühen |
 | Reset from catalog | „Rezepte und Beschreibung aus dem Katalog übernehmen? Deine Änderungen gehen verloren." |
