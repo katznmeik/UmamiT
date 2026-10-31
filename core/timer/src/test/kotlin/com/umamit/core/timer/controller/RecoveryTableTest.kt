@@ -227,7 +227,7 @@ class RecoveryTableTest {
 
     @Test
     fun `a long step - restored without the service, its deadline alarm kept`() = runTest {
-        before.controller.startSession(brewStart(infusion(20 * 60)))
+        before.controller.startSession(brewStart(infusion(60 * 60)))
         before.controller.send(TimerEvent.Start)
         val deadline = before.alarms.armed(TimerSlot.BREW).deadlineElapsedMs
 
