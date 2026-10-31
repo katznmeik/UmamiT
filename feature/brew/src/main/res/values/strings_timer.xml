@@ -58,6 +58,9 @@
     <string name="brew_timer_leaf_description" tools:ignore="PluralsCandidate">%1$d Komma %2$d Gramm Tee</string>
     <string name="brew_timer_water_description" tools:ignore="PluralsCandidate">%1$d Milliliter Wasser</string>
     <string name="brew_timer_leaf_and_water_description">%1$s, %2$s</string>
+    <!-- READY's stock as TalkBack reads it (BRW-11, D-098): „14,5 Gramm übrig, knapp"; the text is the setup's. -->
+    <string name="brew_timer_stock_description">%1$s Gramm übrig</string>
+    <string name="brew_timer_stock_low_description">%1$s Gramm übrig, knapp</string>
     <string name="brew_timer_announce_ready">Bereit für %1$s</string>
     <string name="brew_timer_announce_running">%1$s läuft</string>
     <string name="brew_timer_announce_pre_alert">Gleich fertig</string>

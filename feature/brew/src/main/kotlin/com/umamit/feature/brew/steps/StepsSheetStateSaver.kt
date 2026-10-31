@@ -25,7 +25,9 @@ private const val HEADER_SIZE = 5
 private const val STEP_SIZE = 5
 private const val APPLIED_STEP_SIZE = 4
 
-private fun encode(state: StepsSheetState): List<Int?> = buildList {
+// A plain java.util.ArrayList, not `buildList`'s Kotlin class: a saved value's class loader may be used to read
+// back the whole saved state, and in a Robolectric test Kotlin's classes come from a loader outside the sandbox.
+private fun encode(state: StepsSheetState): List<Int?> = ArrayList<Int?>().apply {
     add(if (state.hasRecipe) 1 else 0)
     add(state.baseTempC)
     add(state.preAlertBaseSeconds)

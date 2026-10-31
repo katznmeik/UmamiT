@@ -36,6 +36,7 @@ fun BrewTimerRoute(
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
     val problem by viewModel.reliabilityProblem.collectAsStateWithLifecycle()
     val seal by viewModel.teaSeal.collectAsStateWithLifecycle()
+    val stock by viewModel.teaStock.collectAsStateWithLifecycle()
     val currentOnClose by rememberUpdatedState(onClose)
     LifecycleResumeEffect(viewModel) {
         viewModel.refreshReliability()
@@ -58,6 +59,8 @@ fun BrewTimerRoute(
             // its space is fixed, so nothing moves when the photo arrives (D-058, D-095).
             teaPhoto = seal?.photoPath?.let { rememberPhotoPainter(it, rememberSealLeafPainter(seal?.styleKey)) },
             teaStyleKey = seal?.styleKey,
+            // Read beside the timer, never on its path: it comes when it comes, in space kept for it (D-098).
+            stock = stock,
         )
 
         // Restored after process death (from recents, or a notification of a session the new

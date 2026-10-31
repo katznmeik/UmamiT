@@ -13,6 +13,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.feature.brew.timer.TimerStates.NOW
@@ -63,6 +64,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         state: TimerUiState.Active,
         advanceMillis: Long = 0,
         photo: SealPhoto = SealPhoto.Leaves,
+        stock: TimerStock? = TimerStock(38.0, StockLevel.AVAILABLE),
     ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.mainClock.autoAdvance = false
@@ -82,6 +84,7 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
                         SealPhoto.None -> null
                     },
                     teaStyleKey = "gyokuro",
+                    stock = stock,
                 )
             }
         }
@@ -93,6 +96,11 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
 
     @Test
     fun ready() = capture("Ready", TimerStates.ready(stepIndex = 1))
+
+    /** The tea is *Knapp* (BRW-11, D-098): „14 g übrig · knapp" under the leaf and water. */
+    @Test
+    fun readyLowStock() =
+        capture("Ready_lowStock", TimerStates.ready(stepIndex = 1), stock = TimerStock(14.0, StockLevel.LOW))
 
     @Test
     fun running() = capture("Running", TimerStates.running(remainingMs = 48_000))
