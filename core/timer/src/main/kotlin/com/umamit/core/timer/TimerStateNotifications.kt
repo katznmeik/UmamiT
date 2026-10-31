@@ -120,7 +120,10 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
             .setContentTitle(context.getString(title))
             .setContentText(text)
             .setAutoCancel(true)
-            .setContentIntent(openTimerIntent(one?.slot, RC_RESUMED))
+            // One timer's notice opens it as its other notifications do; both names none (its own request code).
+            .setContentIntent(
+                one?.let { openTimerIntent(it.slot, contentCodeOf(it.slot)) } ?: openTimerIntent(null, RC_RESUMED),
+            )
             .build()
     }
 

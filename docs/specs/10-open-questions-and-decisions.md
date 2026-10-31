@@ -1278,8 +1278,9 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   timer's replaced the brew's. Now the notice goes once, after both slots
   are recovered: one timer as before, both as „Deine Timer laufen weiter" ·
   „Gyokuro und Schnelltimer · nach dem Neustart" (brew first), whose tap
-  opens the timer in front; an alerting timer is left out (the alert is its
-  notice, D-044).
+  opens the timer in front (its own request code, 305); one timer's notice
+  opens that timer with its slot's code. An alerting timer is left out (the
+  alert is its notice, D-044).
 - **A released alert in the log (06 §5.6).** The player's line of every
   alert was timed against the deadline, so a quick alert held 12 min read as
   720 000 ms late in *Diagnose*. Its sound is now due at its release
