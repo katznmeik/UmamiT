@@ -137,10 +137,15 @@ internal fun TimerBand(modifier: Modifier = Modifier) {
  * *Sitzung beenden* with *Weiterer Aufguss* in every phase, so the secondary
  * control and the bottom margin fit in FINISHED and the pill does not move at
  * the last *Abgegossen*. The band's height follows only the screen, the
- * insets, [aboveControls] and [reservedControls], never [controls] or whether
+ * insets, [aboveControls], [reservedAboveControls] and [reservedControls], never [controls] or whether
  * the band and the seal are drawn, so nothing moves when the phase changes or
  * the alert starts. What does not fit even then scrolls, and so does
  * [afterControls].
+ *
+ * **Reserved content (SCR-07, D-098).** [reservedAboveControls], measured and never placed either, takes
+ * [aboveControls]' place when it is taller: the running quick timer passes the content of its screen before
+ * *Start* (the chips and the *Vorwarnung* row below the ring), so both compute the same band and the ring and the
+ * pill do not move at *Start*. The space it adds lies between [aboveControls] and [controls].
  */
 @Composable
 internal fun TimerBandPage(
@@ -153,6 +158,7 @@ internal fun TimerBandPage(
     controls: @Composable ColumnScope.() -> Unit,
     adaptive: Boolean = withSeal,
     reservedControls: @Composable ColumnScope.() -> Unit = {},
+    reservedAboveControls: @Composable ColumnScope.() -> Unit = {},
     afterControls: @Composable ColumnScope.() -> Unit = {},
     belowBand: @Composable () -> Unit = {},
 ) {
@@ -180,10 +186,18 @@ internal fun TimerBandPage(
             content = reservedControls,
         )
     }
+    val reservedContent: @Composable () -> Unit = {
+        // Only measured, as the reserved controls.
+        Column(
+            modifier = Modifier.clearAndSetSemantics {},
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = reservedAboveControls,
+        )
+    }
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = constraints.maxHeight
         Layout(
-            contents = listOf(band, top, column, below, after, reserved, belowBand, sealOnEdge),
+            contents = listOf(band, top, column, below, after, reserved, belowBand, sealOnEdge, reservedContent),
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
@@ -196,12 +210,14 @@ internal fun TimerBandPage(
             val reservedSlot = slots[5]
             val rowSlot = slots[6]
             val sealSlot = slots[7]
+            val reservedContentSlot = slots[8]
             val statusBar = insets.getTop(this)
             val left = insets.getLeft(this, layoutDirection)
             val width = constraints.maxWidth
             val columnWidth = (width - left - insets.getRight(this, layoutDirection)).coerceAtLeast(0)
             val inColumn = Constraints.fixedWidth(columnWidth)
             val contentPlaceable = contentSlot.single().measure(inColumn)
+            val contentHeight = maxOf(contentPlaceable.height, reservedContentSlot.single().measure(inColumn).height)
             val controlsPlaceable = controlsSlot.single().measure(inColumn)
             val afterPlaceable = afterSlot.single().measure(inColumn)
             val rowPlaceables = rowSlot.map { it.measure(inColumn) }
@@ -217,7 +233,7 @@ internal fun TimerBandPage(
             val fits = if (adaptive && screenHeight != Constraints.Infinity) {
                 val reservedHeight = reservedSlot.single().measure(inColumn).height
                 val fitted = maxOf(controlHeight.roundToPx(), reservedHeight)
-                screenHeight - insets.getBottom(this) - margin - fitted - contentPlaceable.height - rowHeight
+                screenHeight - insets.getBottom(this) - margin - fitted - contentHeight - rowHeight
             } else {
                 null
             }
@@ -235,7 +251,7 @@ internal fun TimerBandPage(
 
             val rowTop = statusBar + topHeight
             val contentTop = rowTop + rowHeight
-            val controlsTop = contentTop + contentPlaceable.height
+            val controlsTop = contentTop + contentHeight
             val afterTop = controlsTop + controlsPlaceable.height
             val height = afterTop + afterPlaceable.height + margin + insets.getBottom(this)
             layout(width, height.coerceAtLeast(constraints.minHeight)) {

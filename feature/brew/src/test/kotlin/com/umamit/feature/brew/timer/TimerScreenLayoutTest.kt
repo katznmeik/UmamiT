@@ -382,6 +382,59 @@ class TimerScreenLayoutTest {
         assertThat(pill.bottom + UmamiSpacing.Large).isAtMost(screen.bottom)
     }
 
+    /**
+     * SCR-07 polish 2 (D-098): the screen before *Start* and the running quick timer reserve the same band and
+     * content, so the ring's centre and the pill's top stay where they were, at *Start* and at the alert.
+     */
+    @Test
+    fun `the quick timer's ring and pill do not move at Start nor at the alert (SCR-07)`() = quickStaysPut()
+
+    @Test
+    @Config(fontScale = 2.0f)
+    fun `at font scale 2_0 the quick timer's ring and pill do not move at Start either`() = quickStaysPut()
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xhdpi", fontScale = 2.0f)
+    fun `on a 384 x 832 dp screen at font scale 2_0 the quick timer's ring and pill do not move at Start`() =
+        quickStaysPut()
+
+    @Test
+    @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)
+    fun `on a 411 x 800 dp screen at font scale 2_0 the quick timer's ring and pill do not move at Start`() =
+        quickStaysPut()
+
+    private fun quickStaysPut() {
+        var running by mutableStateOf<TimerUiState.Active?>(null)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                val shown = running
+                if (shown != null) {
+                    TimerScreen(shown, { NOW }, {}, {}, {}, {})
+                } else {
+                    QuickTimerScreen(state = QuickTimerUiState(durationSeconds = 90), actions = QuickTimerActions())
+                }
+            }
+        }
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        val ring = compose.onNodeWithTag(QUICK_RING_TAG).getUnclippedBoundsInRoot()
+        val pill = compose.onNodeWithText("Start").getUnclippedBoundsInRoot()
+        // Rule 8 first: *Start* lies whole on the screen.
+        assertThat(pill.bottom).isAtMost(screen.bottom)
+
+        listOf(
+            TimerStates.quick(TimerPhase.RUNNING) to "Pause",
+            TimerStates.quick(TimerPhase.PAUSED) to "Weiter",
+            TimerStates.quick(TimerPhase.ALERTING) to "Fertig",
+        ).forEach { (state, control) ->
+            running = state
+            compose.waitForIdle()
+            val runningRing = compose.onNodeWithTag(TIMER_RING_TAG).getUnclippedBoundsInRoot()
+            val runningPill = compose.onNodeWithText(control).getUnclippedBoundsInRoot()
+            assertThat((runningRing.top + runningRing.bottom) / 2).isEqualTo((ring.top + ring.bottom) / 2)
+            assertThat(runningPill.top).isEqualTo(pill.top)
+        }
+    }
+
     /** The quick timer has no seal and a one-line title: its *Fertig* fits as it is (SCR-07). */
     @Test
     @Config(qualifiers = "w411dp-h800dp-xhdpi", fontScale = 2.0f)

@@ -4,6 +4,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.feature.brew.steps.PreAlertOptions
 import com.umamit.feature.brew.steps.StepPreAlert
 import com.umamit.feature.brew.steps.stepPreAlertOf
 
@@ -29,3 +30,15 @@ internal fun QuickTimerUiState.preAlertShown(choice: PreAlertChoice = preAlertCh
  */
 internal fun QuickTimerUiState.preAlertPosition(): Float? =
     preAlertLeadSeconds()?.let { 1f - it.toFloat() / durationSeconds }
+
+/**
+ * Every label the *Vorwarnung* selector of SCR-07 can show, and the one it shows: the selector reserves the widest,
+ * so „Vorwarnung" before it keeps its place for every choice and duration (polish 1, D-098).
+ */
+internal fun QuickTimerUiState.preAlertReserved(): List<StepPreAlert> {
+    val seconds = PreAlertOptions.mapNotNull { (it as? PreAlertChoice.Seconds)?.seconds }
+    return listOf(StepPreAlert.Auto(null), StepPreAlert.Off, preAlertShown()) +
+        seconds.flatMap {
+            listOf(StepPreAlert.Auto(it), StepPreAlert.Lead(it), StepPreAlert.TooShort(it), StepPreAlert.LongStep(it))
+        }
+}

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -23,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -31,6 +34,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -136,6 +142,10 @@ internal fun StepPreAlertRow(state: StepsSheetState, index: Int) {
  *
  * **Alerts first (rule 8):** the menu remembers the [alertKey] it was opened in; another alert removes it in its
  * first frame, without its exit animation, and it stays closed (as SCR-07's duration picker).
+ *
+ * **Reserved width (SCR-07, D-098).** With [reserveFor], the selector is as wide as the widest of those labels
+ * (and [shown]), its button at the start: whatever it shows, what stands before it keeps its place, and the
+ * button grows to its right. The width is measured from the labels' text, so nothing invisible is composed.
  */
 @Composable
 internal fun PreAlertDropdown(
@@ -146,6 +156,7 @@ internal fun PreAlertDropdown(
     onSelect: (PreAlertChoice) -> Unit,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
+    reserveFor: List<StepPreAlert> = emptyList(),
 ) {
     var expanded by remember { mutableStateOf(false) }
     var openedIn by remember { mutableStateOf<String?>(null) }
@@ -156,7 +167,8 @@ internal fun PreAlertDropdown(
         openedIn = alertKey
         expanded = true
     }
-    Box(modifier = modifier) {
+    val reserved = if (reserveFor.isEmpty()) Modifier else Modifier.widthIn(min = reservedWidth(reserveFor + shown))
+    Box(modifier = modifier.then(reserved), contentAlignment = Alignment.CenterStart) {
         TextButton(
             onClick = open,
             // One TalkBack element with the step, the spoken value, a button role and a click action.
@@ -168,18 +180,39 @@ internal fun PreAlertDropdown(
                     true
                 }
             },
-        ) {
-            Text(preAlertLabel(shown), style = MaterialTheme.typography.labelLarge)
-            Spacer(Modifier.width(UmamiSpacing.XXSmall))
-            Icon(
-                painterResource(R.drawable.ic_expand_more),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        ) { PreAlertButtonContent(shown) }
         // Out of the composition under an alert: an expanded = false would still animate the popup out.
         if (!covered) PreAlertMenu(expanded, selected, optionShown, onSelect, onClose = { expanded = false })
     }
+}
+
+/** The width of the selector's button with the widest of [labels]: its padding, the label, the gap and the chevron. */
+@Composable
+private fun reservedWidth(labels: List<StepPreAlert>): Dp {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val texts = labels.map { preAlertLabel(it) }
+    val widest = texts.maxOf { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width }
+    val padding = ButtonDefaults.TextButtonContentPadding
+    val content = with(LocalDensity.current) { widest.toDp() } + UmamiSpacing.XXSmall + ChevronSize +
+        padding.calculateLeftPadding(LayoutDirection.Ltr) + padding.calculateRightPadding(LayoutDirection.Ltr)
+    // One dp more than the sum, so the rounding of the button's own layout never makes it the wider.
+    return maxOf(content + RoundingSlack, ButtonDefaults.MinWidth)
+}
+
+private val ChevronSize = 20.dp
+private val RoundingSlack = 1.dp
+
+/** The selector button's label and its chevron. */
+@Composable
+private fun PreAlertButtonContent(shown: StepPreAlert) {
+    Text(preAlertLabel(shown), style = MaterialTheme.typography.labelLarge)
+    Spacer(Modifier.width(UmamiSpacing.XXSmall))
+    Icon(
+        painterResource(R.drawable.ic_expand_more),
+        contentDescription = null,
+        modifier = Modifier.size(ChevronSize),
+    )
 }
 
 @Composable

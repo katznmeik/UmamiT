@@ -617,8 +617,10 @@ stays on its lower edge. The band's height follows only the screen, the
 font and the content above the control, so nothing moves when the alert
 starts; what still does not fit, and the banner below the control, scroll
 (rule 8, [D-096](10-open-questions-and-decisions.md#d-096)). The quick
-timer's band keeps its height: without a seal and with a one-line title its
-*Fertig* fits.
+timer's band follows its screen before *Start*: from v0.3.0 the running
+quick timer reserves that screen's content (the chips and the *Vorwarnung*
+row), so its band, ring and pill stand where they stood before *Start*
+(SCR-07 polish 2, [D-098](10-open-questions-and-decisions.md#d-098)).
 
 **Top-bar icons (v0.2.1, [D-093](10-open-questions-and-decisions.md#d-093)).**
 Tea photos often have a white background, so ← and ⋮ each sit on a filled
@@ -760,7 +762,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
   reserves the running screen's band and control height, as the brew
   timer's reserved controls do, so on a short screen at a large font
   (384 × 832 dp, font 2.0) the ring's centre and the pill's top are the same
-  before and after *Start*. Elsewhere nothing changes; no new animation.
+  before and after *Start*. On every screen the running quick timer's
+  *Pause*, *Weiter* and *Fertig* now stand where *Start* stood (lower than in
+  v0.2.2, by the chips and the row); the ring stays where it was. No new
+  animation.
 
 ### SCR-08 Sammlung › Meine Tees
 
