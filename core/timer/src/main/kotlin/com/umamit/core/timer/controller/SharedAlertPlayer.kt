@@ -42,7 +42,7 @@ internal class SharedAlertPlayer(
         if (stepAlert == playingAlert) return
         sound.alertStarted(slot)
         waitingScheduled.remove(slot)
-        alert.startAlert(stepAlert, ScheduledTime(TimerAlarmKind.DEADLINE, state.deadlineElapsedMs))
+        alert.startAlert(stepAlert, ScheduledTime(TimerAlarmKind.DEADLINE, state.deadlineElapsedMs, slot))
         playingAlert = stepAlert
     }
 

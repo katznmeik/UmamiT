@@ -8,6 +8,7 @@ import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.ControllerHarness
+import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.brewStart
 import com.umamit.core.timer.controller.infusion
@@ -70,6 +71,55 @@ class ControllerDiagnosticsLogTest {
             "alarm DEADLINE received | " +
                 "DEADLINE scheduled 10:01:00.000 (mono 5060000) actual 10:01:00.040 (mono 5060040) delta +40 ms",
         )
+    }
+
+    /**
+     * Two timers (D-098, #137): the quick timer's time-based lines name its slot, so the accuracy run's `alongside`
+     * variant tells its cues from the brew's; the brew's lines stay exactly as with one timer.
+     */
+    @Test
+    fun `a quick timer's alarms and events name its slot, the brew's lines stay as they were`() = runTest {
+        h.teaWithStock()
+        h.controller.startSession(brewStart(infusion(60)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.controller.startQuickTimer(30, preAlertSeconds = 10, run = true)
+
+        // The quick timer's pre-alert 30 ms late, its deadline 20 ms late, then the brew's pre-alert 80 ms late.
+        h.clock.advanceBy(20_030)
+        h.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.PRE_ALERT)
+        h.clock.advanceBy(9_990)
+        h.controller.onAlarm(TimerSlot.QUICK, TimerAlarmKind.DEADLINE)
+        h.controller.send(TimerSlot.QUICK, TimerEvent.Poured)
+        h.clock.advanceBy(20_060)
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.PRE_ALERT)
+
+        val entries = log.entries()
+        assertThat(entries.messageOf("alarm QUICK.PRE_ALERT")).isEqualTo(
+            "alarm QUICK.PRE_ALERT received | " +
+                "QUICK.PRE_ALERT scheduled 10:00:20.000 (mono 5020000) actual 10:00:20.030 (mono 5020030) delta +30 ms",
+        )
+        assertThat(entries.messageOf("event DeadlineReached")).isEqualTo(
+            "event DeadlineReached from ALARM: RUNNING -> ALERTING accepted | " +
+                "QUICK.DEADLINE scheduled 10:00:30.000 (mono 5030000) actual 10:00:30.020 (mono 5030020) delta +20 ms",
+        )
+        // The log reads newest first.
+        val preAlerts = entries.asReversed().map { it.message }.filter { it.startsWith("event PreAlertReached") }
+        assertThat(preAlerts).containsExactly(
+            "event PreAlertReached from ALARM: RUNNING -> RUNNING accepted | " +
+                "QUICK.PRE_ALERT scheduled 10:00:20.000 (mono 5020000) actual 10:00:20.030 (mono 5020030) delta +30 ms",
+            "event PreAlertReached from ALARM: RUNNING -> RUNNING accepted | " +
+                "PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono 5050080) delta +80 ms",
+        ).inOrder()
+        assertThat(entries.messageOf("alarm PRE_ALERT")).isEqualTo(
+            "alarm PRE_ALERT received | " +
+                "PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono 5050080) delta +80 ms",
+        )
+        // The player gets each cue's due time with its slot, for its own log line (D-068).
+        assertThat(h.alert.scheduled).containsExactly(
+            ScheduledTime(TimerAlarmKind.PRE_ALERT, 5_020_000, TimerSlot.QUICK),
+            ScheduledTime(TimerAlarmKind.DEADLINE, 5_030_000, TimerSlot.QUICK),
+            ScheduledTime(TimerAlarmKind.PRE_ALERT, 5_050_000, TimerSlot.BREW),
+        ).inOrder()
     }
 
     @Test

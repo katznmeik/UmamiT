@@ -26,6 +26,7 @@ import com.umamit.core.timer.diagnostics.AccuracyReport
 import com.umamit.core.timer.diagnostics.AccuracyRun
 import com.umamit.core.timer.diagnostics.CueTimes
 import com.umamit.core.timer.diagnostics.FireTime
+import com.umamit.core.timer.diagnostics.QuickTimerAlongside
 import com.umamit.core.timer.diagnostics.StepFireTimes
 import com.umamit.core.timer.engine.DueTimes
 import kotlinx.coroutines.Dispatchers
@@ -59,11 +60,22 @@ import kotlin.time.TimeSource
  * a step fails. It fails unless the sound started with p95 ≤ 250 ms and max ≤ 1 s for both, over
  * every step.
  *
- * It takes about 55 minutes, so the regular emulator job skips it: it runs only with the
- * instrumentation argument `umamitAccuracy=true`, which `scripts/accuracy-run.sh` passes for
+ * **Variant `alongside`** (D-098, #137; 09 §4a): the same brew steps with a quick timer running beside
+ * them, restarted every step. With each step a quick timer of [QUICK_STEP] with a pre-alert of
+ * [QUICK_PRE_ALERT_SECONDS] starts (*Schnelltimer beenden und neu starten*, as Start's *Schnelltimer*
+ * does), so its pre-alert and alert come with the screen off while the step runs, before the step's own
+ * cues; its alert is acknowledged with *Fertig* and a quick timer of [ACROSS_STEP] without a pre-alert
+ * starts, which runs across the step's pre-alert and alert and is replaced by the next step's. Never two
+ * sounds are due at once, so no cue waits for the other timer's (04 §9.3): each timer's pre-alerts and
+ * alerts are measured against the same target, and the report lists both. The standard variant runs as
+ * it did before v0.3.0, so its results compare with the earlier runs.
+ *
+ * It takes about 55 minutes (`alongside` about an hour), so the regular emulator job skips it: it runs only
+ * with the instrumentation argument `umamitAccuracy=true`, which `scripts/accuracy-run.sh` passes for
  * the manually dispatched `.github/workflows/accuracy.yml` (09 §4a). Optional arguments:
- * `umamitAccuracySteps` (default 50) and `umamitAccuracyInjectDelayMs`, the gate check that
- * makes every pre-alert and alert late on purpose ([InjectedDelay]).
+ * `umamitAccuracySteps` (default 50), `umamitAccuracyVariant` (`standard`, the default, or `alongside`)
+ * and `umamitAccuracyInjectDelayMs`, the gate check that makes every pre-alert and alert late on purpose
+ * ([InjectedDelay]), the quick timer's too.
  */
 @RunWith(AndroidJUnit4::class)
 class AccuracyRunTest {
@@ -78,11 +90,17 @@ class AccuracyRunTest {
     private val enabled = arguments.getString(ARG_ENABLED) == "true"
     private val plannedSteps = arguments.getString(ARG_STEPS)?.toIntOrNull() ?: DEFAULT_STEPS
     private val injectedDelayMs = arguments.getString(ARG_INJECT_DELAY_MS)?.toLongOrNull() ?: 0L
+    private val variant = arguments.getString(ARG_VARIANT) ?: VARIANT_STANDARD
+
+    /** The variant `alongside`: a quick timer beside every step (D-098). */
+    private val alongside = variant == VARIANT_ALONGSIDE
 
     private val start = context.getString(R.string.timer_action_start)
     private val pause = context.getString(R.string.timer_action_pause)
     private val poured = context.getString(R.string.timer_action_poured)
+    private val quickDone = context.getString(R.string.timer_action_quick_done)
     private val finishSession = context.getString(R.string.timer_action_finish_session)
+    private val quickTitle = context.getString(R.string.timer_quick_title)
 
     private val logDirectory = File(context.noBackupFilesDir, DiagnosticsLog.DIRECTORY)
 
@@ -102,6 +120,10 @@ class AccuracyRunTest {
             Application.getProcessName(),
         )
         assertTrue("test setup: $ARG_STEPS must be 1..$MAX_STEPS, was $plannedSteps", plannedSteps in 1..MAX_STEPS)
+        assertTrue(
+            "test setup: $ARG_VARIANT must be $VARIANT_STANDARD or $VARIANT_ALONGSIDE, was $variant",
+            variant == VARIANT_STANDARD || variant == VARIANT_ALONGSIDE,
+        )
         instrumentation.uiAutomation.grantRuntimePermission(packageName, Manifest.permission.POST_NOTIFICATIONS)
         shell("appops set $packageName USE_FULL_SCREEN_INTENT allow")
         resetTimer()
@@ -132,40 +154,81 @@ class AccuracyRunTest {
             stepSeconds = STEP.inWholeSeconds.toInt(),
             preAlertSeconds = PRE_ALERT_SECONDS,
             injectedDelayMs = injectedDelayMs,
+            alongside = QuickTimerAlongside(
+                seconds = QUICK_STEP.inWholeSeconds.toInt(),
+                preAlertSeconds = QUICK_PRE_ALERT_SECONDS,
+                acrossSeconds = ACROSS_STEP.inWholeSeconds.toInt(),
+            ).takeIf { alongside },
         )
         val steps = mutableListOf<StepFireTimes>()
+        val quickSteps = mutableListOf<StepFireTimes>()
         try {
-            while (steps.size < plannedSteps) runSession(min(SESSION_STEPS, plannedSteps - steps.size), steps)
+            while (steps.size < plannedSteps) {
+                runSession(min(SESSION_STEPS, plannedSteps - steps.size), steps, quickSteps)
+            }
         } finally {
-            writeReport(AccuracyReport(run, steps))
+            writeReport(AccuracyReport(run, steps, quickSteps))
         }
-        val report = AccuracyReport(run, steps)
+        val report = AccuracyReport(run, steps, quickSteps)
         assertTrue("the timer missed the accuracy target of 04 §12:\n${report.markdown()}", report.passed)
     }
 
-    /** One session of [count] steps, started in the foreground and ended with *Sitzung beenden*. */
-    private fun runSession(count: Int, steps: MutableList<StepFireTimes>) {
+    /**
+     * One session of [count] steps, started in the foreground and ended with *Sitzung beenden*; in the variant
+     * `alongside` each step with its quick timer, the first one replacing the quick timer an earlier session left
+     * running.
+     */
+    private fun runSession(count: Int, steps: MutableList<StepFireTimes>, quickSteps: MutableList<StepFireTimes>) {
         wakeAndUnlock()
         TimerTestActivity.outcomeFile(context).delete()
+        var stepStarted = TimeSource.Monotonic.markNow()
         context.startActivity(
-            TimerTestActivity.intent(
-                context,
-                STEP.inWholeSeconds.toInt(),
-                steps = count,
-                preAlertSeconds = PRE_ALERT_SECONDS,
-            ),
+            if (alongside) {
+                TimerTestActivity.intent(
+                    context,
+                    STEP.inWholeSeconds.toInt(),
+                    steps = count,
+                    preAlertSeconds = PRE_ALERT_SECONDS,
+                    quickSeconds = QUICK_STEP.inWholeSeconds.toInt(),
+                    quickPreAlertSeconds = QUICK_PRE_ALERT_SECONDS,
+                    quickRestart = true,
+                )
+            } else {
+                TimerTestActivity.intent(
+                    context,
+                    STEP.inWholeSeconds.toInt(),
+                    steps = count,
+                    preAlertSeconds = PRE_ALERT_SECONDS,
+                )
+            },
         )
         val outcome = eventually("the session's start in the timer process", TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
         assertEquals("test setup: start and Start of the session", TimerTestActivity.STARTED, outcome)
         repeat(count) { index ->
-            if (index > 0) tap(liveUpdateWith(start, "READY of the next step"), start)
-            steps += runStep(steps.size + 1)
+            if (alongside) {
+                if (index > 0) {
+                    stepStarted = TimeSource.Monotonic.markNow()
+                    tap(brewNotificationWith(start, "READY of the next step"), start)
+                    startQuickTimer(QUICK_STEP, QUICK_PRE_ALERT_SECONDS, "the quick timer of step ${steps.size + 1}")
+                }
+                runStepAlongside(steps.size + 1, stepStarted, steps, quickSteps)
+            } else {
+                if (index > 0) tap(liveUpdateWith(start, "READY of the next step"), start)
+                steps += runStep(steps.size + 1)
+            }
         }
-        tap(liveUpdateWith(finishSession, "FINISHED after the last step"), finishSession)
-        eventually("the session ended after Sitzung beenden", TIMEOUT) {
-            Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
+        if (alongside) {
+            tap(brewNotificationWith(finishSession, "FINISHED after the last step"), finishSession)
+            eventually("the session ended after Sitzung beenden", TIMEOUT) {
+                Unit.takeIf { brewNotification() == null }
+            }
+        } else {
+            tap(liveUpdateWith(finishSession, "FINISHED after the last step"), finishSession)
+            eventually("the session ended after Sitzung beenden", TIMEOUT) {
+                Unit.takeIf { activeNotification(TimerNotifications.ID_LIVE_UPDATE) == null }
+            }
         }
     }
 
@@ -178,7 +241,7 @@ class AccuracyRunTest {
             activeNotification(TimerNotifications.ID_ALERT)
         }
         val (preAlert, deadline) = eventually("step $number's pre-alert and alert in the diagnostics log", TIMEOUT) {
-            newCues(number)
+            newCues(number, TimerSlot.BREW)
         }
         // With where each start spent the time (queue, settings, outputs, sound loaded or not; D-092).
         Log.i(TAG, "step $number/$plannedSteps: pre-alert ${preAlert.summary()}, alert ${deadline.summary()}")
@@ -190,14 +253,87 @@ class AccuracyRunTest {
     }
 
     /**
-     * The pre-alert and the alert of step [number] among the log entries not read before: each
-     * as the accepted event and the start of its sound (D-068); null until all four are written
-     * (the log writes in the background).
+     * One running step [number] of the variant `alongside`, which started at [stepStarted] (at the latest) with
+     * its quick timer beside it: the screen off until the quick timer's alert, its fire times read, *Fertig*, the
+     * quick timer across the step's own cues started, the screen off again until the step's alert, its fire times
+     * read, *Abgegossen*. Each timer's cues go to [steps] and [quickSteps] as soon as they are read.
      */
-    private fun newCues(number: Int): Pair<CueTimes, CueTimes>? {
+    private fun runStepAlongside(
+        number: Int,
+        stepStarted: TimeSource.Monotonic.ValueTimeMark,
+        steps: MutableList<StepFireTimes>,
+        quickSteps: MutableList<StepFireTimes>,
+    ) {
+        brewNotificationWith(pause, "step $number running")
+        quickNotificationWith(pause, "the quick timer of step $number running")
+        screenOff("in step $number")
+        val quickAlert = eventually("the quick timer's alert (ID 2) in step $number", QUICK_STEP + ALERT_TIMEOUT) {
+            alertOf(TimerSlot.QUICK)
+        }
+        val (quickPreAlert, quickDeadline) =
+            eventually("the quick timer's pre-alert and alert of step $number in the diagnostics log", TIMEOUT) {
+                newCues(number, TimerSlot.QUICK)
+            }
+        Log.i(
+            TAG,
+            "step $number/$plannedSteps: quick timer pre-alert ${quickPreAlert.summary()}, " +
+                "alert ${quickDeadline.summary()}",
+        )
+        quickSteps += StepFireTimes(number, quickPreAlert, quickDeadline)
+        tap(quickAlert, quickDone)
+        eventually("the quick timer's alert of step $number gone after $quickDone", TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_ALERT) == null }
+        }
+        startQuickTimer(ACROSS_STEP, preAlertSeconds = 0, "the quick timer across step $number's own cues")
+        screenOff("again in step $number")
+        // The step's pre-alert must not meet the quick timer's sound or a screen still on (04 §9.3).
+        check(
+            "test setup: too slow, ${stepStarted.elapsedNow()} of step $number passed before the screen went off " +
+                "again; its pre-alert comes ${STEP - PRE_ALERT_SECONDS.seconds} after its start",
+            stepStarted.elapsedNow() < STEP - PRE_ALERT_SECONDS.seconds - SOUND_MARGIN,
+        )
+        val alert = eventually("the alert (ID 2) of step $number", STEP + ALERT_TIMEOUT) { alertOf(TimerSlot.BREW) }
+        val (preAlert, deadline) = eventually("step $number's pre-alert and alert in the diagnostics log", TIMEOUT) {
+            newCues(number, TimerSlot.BREW)
+        }
+        Log.i(TAG, "step $number/$plannedSteps: pre-alert ${preAlert.summary()}, alert ${deadline.summary()}")
+        steps += StepFireTimes(number, preAlert, deadline)
+        tap(alert, poured)
+        eventually("the alert of step $number gone after $poured", TIMEOUT) {
+            Unit.takeIf { activeNotification(TimerNotifications.ID_ALERT) == null }
+        }
+    }
+
+    /**
+     * A quick timer of [duration] with the *Vorwarnung* [preAlertSeconds] (0: *Aus*) beside the running brew, in
+     * place of the active one, started in the foreground as Start's *Schnelltimer* does ([what] for a failure).
+     */
+    private fun startQuickTimer(duration: Duration, preAlertSeconds: Int, what: String) {
+        wakeAndUnlock()
+        TimerTestActivity.outcomeFile(context).delete()
+        context.startActivity(
+            TimerTestActivity.quickIntent(context, duration.inWholeSeconds.toInt(), preAlertSeconds, restart = true),
+        )
+        val outcome = eventually("$what: its start in the timer process", TIMEOUT) {
+            TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
+        }
+        assertEquals("test setup: $what", TimerTestActivity.STARTED, outcome)
+    }
+
+    private fun screenOff(what: String) {
+        shell("input keyevent KEYCODE_SLEEP")
+        eventually("the screen off $what", SCREEN_TIMEOUT) { Unit.takeIf { !power.isInteractive } }
+    }
+
+    /**
+     * The pre-alert and the alert of [slot]'s timer in step [number] among the log entries not read before:
+     * each as the accepted event and the start of its sound (D-068); null until all four are written (the log
+     * writes in the background).
+     */
+    private fun newCues(number: Int, slot: TimerSlot): Pair<CueTimes, CueTimes>? {
         val fresh = unreadEntries()
-        val handled = fresh.mapNotNull { FireTime.parse(it.message) }
-        val played = fresh.mapNotNull { FireTime.parsePlayed(it.message) }
+        val handled = fresh.mapNotNull { FireTime.parse(it.message) }.filter { it.slot == slot }
+        val played = fresh.mapNotNull { FireTime.parsePlayed(it.message) }.filter { it.slot == slot }
         val preAlert = cue(number, TimerAlarmKind.PRE_ALERT, handled, played)
         val alert = cue(number, TimerAlarmKind.DEADLINE, handled, played)
         if (preAlert == null || alert == null) return null
@@ -247,6 +383,43 @@ class AccuracyRunTest {
             activeNotification(TimerNotifications.ID_LIVE_UPDATE)
                 ?.takeIf { live -> live.actions.orEmpty().any { it.title.toString() == label } }
         }
+
+    /**
+     * Waits for the brew's notification with the action [label], in the state [what]: with a quick timer beside
+     * it, the Live Update (ID 1) while it ends next, else the other timer's notification (ID 5; D-098).
+     */
+    private fun brewNotificationWith(label: String, what: String): Notification =
+        eventually("$what: the brew's notification (ID 1 or 5) with $label", TIMEOUT) {
+            brewNotification()?.takeIf { it.hasAction(label) }
+        }
+
+    /** Waits for the quick timer's notification (ID 1 or 5) with the action [label], in the state [what]. */
+    private fun quickNotificationWith(label: String, what: String): Notification =
+        eventually("$what: the quick timer's notification (ID 1 or 5) with $label", TIMEOUT) {
+            timerNotifications().firstOrNull { it.title()?.startsWith(quickTitle) == true && it.hasAction(label) }
+        }
+
+    /** The brew's Live Update or other-timer notification; null when it shows none of them. */
+    private fun brewNotification(): Notification? =
+        timerNotifications().firstOrNull { it.title()?.startsWith(TimerTestActivity.TEA) == true }
+
+    /** The notifications of a timer that does not alert: the Live Update (ID 1) and the other timer's (ID 5). */
+    private fun timerNotifications(): List<Notification> =
+        listOf(TimerNotifications.ID_LIVE_UPDATE, TimerNotifications.ID_OTHER).mapNotNull(::activeNotification)
+
+    /** The alert (ID 2) when it is [slot]'s: „Schnelltimer" for the quick timer, „Testtee · Aufguss N" for the brew. */
+    private fun alertOf(slot: TimerSlot): Notification? = activeNotification(TimerNotifications.ID_ALERT)?.takeIf {
+        when (slot) {
+            TimerSlot.QUICK -> it.text() == quickTitle
+            TimerSlot.BREW -> it.text()?.startsWith(TimerTestActivity.TEA) == true
+        }
+    }
+
+    private fun Notification.hasAction(label: String) = actions.orEmpty().any { it.title.toString() == label }
+
+    private fun Notification.title() = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
+
+    private fun Notification.text() = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
 
     /** Taps the action [label] of [notification], as the user does in the shade or on the lock screen. */
     private fun tap(notification: Notification, label: String) {
@@ -308,14 +481,16 @@ class AccuracyRunTest {
     }
 
     private fun deviceState(): String = buildString {
-        appendLine("SDK=${Build.VERSION.SDK_INT} timerPid=${timerPid()} interactive=${power.isInteractive}")
+        appendLine(
+            "SDK=${Build.VERSION.SDK_INT} variant=$variant timerPid=${timerPid()} interactive=${power.isInteractive}",
+        )
         appendLine("canUseFullScreenIntent=${notificationManager.canUseFullScreenIntent()}")
         appendLine("--- notifications ---")
         notificationManager.activeNotifications.forEach {
             val notification = it.notification
             appendLine(
                 "id=${it.id} channel=${notification.channelId} flags=0x${Integer.toHexString(notification.flags)} " +
-                    "text=${notification.extras.getCharSequence(Notification.EXTRA_TEXT)} " +
+                    "title=${notification.title()} text=${notification.text()} " +
                     "actions=${notification.actions?.map { action -> action.title }}",
             )
         }
@@ -335,6 +510,11 @@ class AccuracyRunTest {
         const val ARG_STEPS = "umamitAccuracySteps"
         const val ARG_INJECT_DELAY_MS = "umamitAccuracyInjectDelayMs"
 
+        /** `standard` (the default) or `alongside` (D-098, #137). */
+        const val ARG_VARIANT = "umamitAccuracyVariant"
+        const val VARIANT_STANDARD = "standard"
+        const val VARIANT_ALONGSIDE = "alongside"
+
         /** Where the report goes: `files/accuracy/` of the test APK (read with `run-as`). */
         fun reportDirectory(context: android.content.Context): File = File(context.filesDir, "accuracy")
 
@@ -345,6 +525,22 @@ class AccuracyRunTest {
         private const val SESSION_STEPS = 10
         private val STEP = 60.seconds
         private const val PRE_ALERT_SECONDS = 10
+
+        /**
+         * `alongside`: the quick timer started with each step, ending with the screen off well before the step's
+         * pre-alert (at 50 s), and its *Vorwarnung*.
+         */
+        private val QUICK_STEP = 25.seconds
+        private const val QUICK_PRE_ALERT_SECONDS = 10
+
+        /**
+         * `alongside`: the quick timer across the step's pre-alert and alert, without a pre-alert; the next step's
+         * replaces it long before it ends.
+         */
+        private val ACROSS_STEP = 300.seconds
+
+        /** `alongside`: the quick timer's alert is done and the screen off this long before the step's pre-alert. */
+        private val SOUND_MARGIN = 5.seconds
         private val TIMEOUT = 10.seconds
         private val SCREEN_TIMEOUT = 5.seconds
 

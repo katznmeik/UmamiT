@@ -1044,6 +1044,82 @@ changing the system alarm volume from the app; M3 (now v0.4.0).
   `StepsSheet_durationPicker` and `BrewSetup_durationPicker` (light/dark,
   font 1.0/2.0).
 
+**Build notes (Claude, 2026-10-31, #137: the accuracy run and the emulator tests with two timers).**
+- **The slot in the log** (the field #134 left). `ScheduledTime` carries the
+  slot of the timer whose time it is, and `AlarmReceived` the slot of its
+  alarm, so the alarm, the handled event and the player's cue name it: a
+  quick timer's lines read `alarm QUICK.PRE_ALERT received | QUICK.PRE_ALERT
+  scheduled …` and `alert ALERT: … | QUICK.DEADLINE scheduled …`; the brew's
+  lines are those of one timer, byte for byte, so the standard run reads its
+  log as before and *Diagnose* changes only for the quick timer. `FireTime`
+  reads the slot back (empty = the brew), and a quick deadline handled as the
+  arbitration's `AlertHold` counts as its handled deadline, so a held alert
+  would show in a report as handled on time and sounding late.
+- **The report** (`AccuracyReport`). `AccuracyRun.alongside`
+  (`QuickTimerAlongside`: 25 s, *Vorwarnung* 10 s, then 300 s) is null in
+  the standard run, whose Markdown and CSV stay those of the earlier runs (a
+  test pins the whole summary). In `alongside` each timer has its
+  distributions (`TimerAccuracy`); the run passes only when both completed
+  all steps and all four sound distributions are on target; the heading ends
+  in „· alongside", the table gets a column *Timer* (*Brew*, *Quick timer*),
+  *Slowest* names each timer's cues, and the CSV a column `timer`, a step's
+  rows in the order they were handled. A report refuses cues of the other
+  timer in either list, and a cue whose sound is the other timer's.
+- **How `alongside` overlaps** (`AccuracyRunTest`, argument
+  `umamitAccuracyVariant`). Each step's quick timer (25 s, 10 s) starts with
+  the step through the app, replacing the active one (*Schnelltimer beenden
+  und neu starten*); its pre-alert and alert come with the screen off while
+  the step runs; *Fertig* in the alert, then a quick timer of 300 s without a
+  *Vorwarnung* starts, so a quick timer also runs across the step's
+  pre-alert and alert (the brew as the Live Update, the quick timer as
+  notification 5), and the screen goes off again. The brew's *Start* and
+  *Sitzung beenden* are tapped in whichever of notifications 1 and 5 is the
+  brew's. No cue of one timer is due while the other's sound plays: a held
+  alert or a pre-alert waiting behind the other sound (04 §9.3) would
+  measure the arbitration, not the latency, and fail the run for a wanted
+  behaviour. The test fails as a setup error when it had the screen off
+  again less than 5 s before the step's pre-alert. The injected delay of the
+  gate check moves both slots' alarms and the wake-up.
+- **Workflow.** `accuracy.yml` has the input `variant` (`standard` default,
+  `alongside`), passed as `ACCURACY_VARIANT` to `scripts/accuracy-run.sh`,
+  which validates it like the other inputs. Each variant has its own
+  concurrency group (`accuracy-<ref>-<variant>`), so both runs of a commit go
+  in parallel; the run's name says the variant, the ref and a gate check; the
+  standard artifact keeps its name `accuracy-api-<level>`, the other is
+  `accuracy-alongside-api-<level>`; the job timeout is 115 min (about 65 min
+  of steps in `alongside`).
+- **Two timers through process death**
+  (`ProcessDeathTest.aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst`,
+  the CI emulator job on API 35 and 36). A brew step and a quick timer of
+  35 s, due within 1 s of each other, killed while both run; the reopened
+  app restores both (`TimerStateActivity` now also writes each slot's phase
+  and deadline). The brew's alert comes within 2 s of its deadline and takes
+  the screen; the log shows the quick deadline handled within 2 s as
+  `AlertHold`; notification 5 is the quick timer, without a full-screen
+  intent, and the alert the only notification with one. Killed again with
+  the screen off during the brew's alert (within 9 s, so it has not run its
+  cycle): a new process (the alert watchdog's after 30 s, or the system's
+  restart of the service) replays the brew's alert and keeps the quick
+  timer's held. *Abgegossen* releases it within 2 s as a new notification 2
+  with its full-screen intent; the log's alert sounds are the brew's first
+  and the quick timer's once, last. `TimerTestActivity` gained a quick
+  timer's *Vorwarnung*, the restart and a quick-only start
+  (`quickIntent`), and writes the quick timer's deadline.
+- **The flaky kill of 2026-10-30** (`aStepKilledAndReopenedShowsItsStateAgainAndAlertsOnTime`,
+  API 36: notification 1 still there 10 s after the kill, no new process).
+  That is the case D-084 describes: a kill that meets an update of the
+  foreground notification on its way leaves it posted and flagged until a
+  new process takes it over, and without an alarm due nothing starts one
+  before the reopening. The wait no longer fails on it (it is logged); in
+  exchange the notification 1 that counts as back must be **posted after the
+  kill** (and after the one the kill left; `StatusBarNotification.postTime`),
+  so a left notification can no longer pass for the reopening's, as it could
+  before. The two-timer test kills through the same helper.
+- **Left for the GitHub runs:** `alongside` green on API 36 with both timers'
+  p95 and max in its summary; the gate check (`alongside`, 3 steps, 1500 ms)
+  failing for both timers; the two-timer process-death test on API 35 and 36
+  in the emulator job.
+
 <a id="d-097"></a>
 ### D-097 — v0.2.2: the PO's feedback on v0.2.1 (BRW-11, BRW-08, SCR-02, SCR-03, SCR-05, SCR-07, SCR-19, SCR-21, SCR-22, INV-05, INV-10, SET-16, TMR-22, CAT-18) · *Accepted* (PO, 2026-10-30, grilled in the session Q1–Q9; details marked „Claude" are Claude's)
 
