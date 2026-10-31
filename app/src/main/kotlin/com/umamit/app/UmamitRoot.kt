@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
@@ -32,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.umamit.core.designsystem.theme.SteepingColorScheme
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerSlot
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.journal.JournalSources
@@ -67,7 +69,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   content or full-screen intent); 0 for none.
  * @param onConsumeTimerRequest consumes that token: the timer was opened for it.
  * @param timerScreen the timer route's content; tests replace it, the app uses [BrewTimerRoute].
- *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11).
+ *   Its third argument opens the setup of the waiting session (*Brühen anpassen*, BRW-11), its fourth
+ *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
@@ -106,8 +109,15 @@ internal fun UmamitRoot(
         onClose: () -> Unit,
         onOpenTimerSettings: () -> Unit,
         onAdjustBrew: (sessionId: String) -> Unit,
-    ) -> Unit = { onClose, onSettings, onAdjust ->
-        BrewTimerRoute(onClose = onClose, onAdjustBrew = onAdjust, onOpenTimerSettings = onSettings)
+        shown: TimerShown,
+    ) -> Unit = { onClose, onSettings, onAdjust, shown ->
+        BrewTimerRoute(
+            onClose = onClose,
+            onAdjustBrew = onAdjust,
+            onOpenTimerSettings = onSettings,
+            slot = shown.slot,
+            onShowOther = shown.onShowOther,
+        )
     },
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
@@ -178,8 +188,12 @@ internal fun UmamitRoot(
 
     // No transition at all where an alerting timer enters, leaves or is uncovered (`alertEnter`).
     fun AnimatedTimer.instant(): Boolean = currentAlerting && (initial.isTimer() || target.isTimer())
-    val closeTimer: () -> Unit = { navController.popBackStack(TimerRoute, inclusive = true) }
-    val openTimer: () -> Unit = { navController.navigate(TimerRoute) { launchSingleTop = true } }
+    val closeTimer: () -> Unit = { navController.popBackStack<TimerRoute>(inclusive = true) }
+    val openTimer: () -> Unit = { navController.navigate(TimerRoute()) { launchSingleTop = true } }
+    // A half of the bar with two timers (D-098).
+    val openTimerOf: (
+        TimerSlot,
+    ) -> Unit = { slot -> navController.navigate(TimerRoute(slot)) { launchSingleTop = true } }
     val startNavigation = StartNavigation(
         // During an alert a tea tap (*Favoriten*, the picker) opens the alerting timer, never a setup that
         // would cover it (rule 8, D-062 S3).
@@ -241,6 +255,7 @@ internal fun UmamitRoot(
                     journalSources = journalSources,
                     alerting = alert != null,
                     onOpenTimer = openTimer,
+                    onOpenTimerOf = openTimerOf,
                     startNavigation = startNavigation,
                     alertKey = alert,
                     startScreen = startScreen,
@@ -261,6 +276,7 @@ internal fun UmamitRoot(
                     journalSources = journalSources,
                     alerting = alert != null,
                     onOpenTimer = openTimer,
+                    onOpenTimerOf = openTimerOf,
                     startNavigation = startNavigation,
                     alertKey = alert,
                     startScreen = startScreen,
@@ -273,7 +289,8 @@ internal fun UmamitRoot(
                 )
             }
             composable<OnboardingRoute> { onboardingScreen(finishSetup) }
-            composable<TimerRoute> {
+            composable<TimerRoute> { timerEntry ->
+                val route = timerEntry.toRoute<TimerRoute>()
                 timerScreen(
                     closeTimer,
                     { navigateAbove(TimerSettingsRoute) {} },
@@ -283,6 +300,7 @@ internal fun UmamitRoot(
                             popUpTo<TimerRoute> { inclusive = true }
                         }
                     },
+                    TimerShown(route.slot) { other -> navController.showOtherTimer(timerEntry, route, other) },
                 )
             }
             composable<BrewSetupRoute> {
@@ -291,7 +309,7 @@ internal fun UmamitRoot(
                     dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces the setup, so back from the timer returns to where the brew began.
                     {
-                        navController.navigate(TimerRoute) {
+                        navController.navigate(TimerRoute(TimerSlot.BREW)) {
                             popUpTo<BrewSetupRoute> { inclusive = true }
                             launchSingleTop = true
                         }
@@ -303,7 +321,7 @@ internal fun UmamitRoot(
                     dropUnlessResumed { navController.popBackStack() },
                     // The timer replaces it, so back from the running quick timer returns to Start.
                     {
-                        navController.navigate(TimerRoute) {
+                        navController.navigate(TimerRoute(TimerSlot.QUICK)) {
                             popUpTo<QuickTimerRoute> { inclusive = true }
                             launchSingleTop = true
                         }
@@ -429,8 +447,18 @@ private fun NavHostController.openCatalogRefresh(
     val timerBefore = hasTimer()
     // An older refresh shell leaves with what was opened above it; a timer among that comes back.
     val replaced = popBackStack<CatalogRefreshRoute>(inclusive = true)
-    if (replaced && timerBefore && !hasTimer()) navigate(TimerRoute) { launchSingleTop = true }
+    if (replaced && timerBefore && !hasTimer()) navigate(TimerRoute()) { launchSingleTop = true }
     navigateAbove(route) { launchSingleTop = true }
+}
+
+/**
+ * A tap on the row for the [other] timer on the timer [route] of [entry] (D-098): the other timer's route above it;
+ * from a route opened by that row, back to the route below it, so two timers never stack more than two routes. Only
+ * while resumed: a quick double tap opens the other timer once (D-090).
+ */
+private fun NavHostController.showOtherTimer(entry: NavBackStackEntry, route: TimerRoute, other: TimerSlot) {
+    if (entry.lifecycle.currentState != Lifecycle.State.RESUMED) return
+    if (route.switched) popBackStack() else navigate(TimerRoute(other, switched = true))
 }
 
 /** Whether the timer is on the back stack (its public check throws when it is not). */
@@ -478,8 +506,8 @@ private fun rememberTimerFirst(
     val currentOnConsume by rememberUpdatedState(onConsume)
 
     val bringTimerToTop = {
-        if (!navController.popBackStack(TimerRoute, inclusive = false)) {
-            navController.navigate(TimerRoute) {
+        if (!navController.popBackStack<TimerRoute>(inclusive = false)) {
+            navController.navigate(TimerRoute()) {
                 popUpTo<ShellRoute> { inclusive = false }
                 launchSingleTop = true
             }
@@ -520,6 +548,12 @@ private fun ShellCover(requestPending: Boolean, timerOnTop: Boolean) {
         Box(Modifier.fillMaxSize().background(SteepingColorScheme.background).testTag(SHELL_COVER_TAG))
     }
 }
+
+/**
+ * What the timer route's content gets about its timer (D-098): the [slot] it shows (null: the one in front when it
+ * opened) and [onShowOther], a tap on the other timer's row.
+ */
+internal class TimerShown(val slot: TimerSlot?, val onShowOther: (TimerSlot) -> Unit)
 
 /** The cover over the shell while the timer opens from a notification. */
 internal const val SHELL_COVER_TAG = "shell_cover"

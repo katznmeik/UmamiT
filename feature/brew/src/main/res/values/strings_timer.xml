@@ -28,6 +28,22 @@
     <string name="brew_timer_finish">Sitzung beenden</string>
     <string name="brew_timer_add_step">Weiterer Aufguss</string>
 
+    <!-- The row for the other timer (v0.3.0, SCR-05, SCR-07, D-098): „Schnelltimer 2:14", „Tanabata · Aufguss 2 · 0:48". -->
+    <string name="brew_timer_other_time">· %1$s</string>
+    <string name="brew_timer_other_paused">· Pausiert %1$s</string>
+    <string name="brew_timer_other_ready">· bereit</string>
+    <string name="brew_timer_other_done">· fertig</string>
+    <string name="brew_timer_other_alert">· Jetzt abgießen!</string>
+    <string name="brew_timer_other_step">· %1$s %2$d · %3$s</string>
+    <string name="brew_timer_other_step_paused">· %1$s %2$d · Pausiert %3$s</string>
+    <string name="brew_timer_other_step_ready">· %1$s %2$d · bereit</string>
+    <string name="brew_timer_other_open_quick">Schnelltimer öffnen</string>
+    <string name="brew_timer_other_open_brew">Aufguss öffnen</string>
+    <string name="brew_timer_other_pause_quick">Schnelltimer pausieren</string>
+    <string name="brew_timer_other_resume_quick">Schnelltimer fortsetzen</string>
+    <string name="brew_timer_other_pause_brew">Aufguss pausieren</string>
+    <string name="brew_timer_other_resume_brew">Aufguss fortsetzen</string>
+
     <!-- Overflow ⋮ (SCR-05) -->
     <string name="brew_timer_menu_adjust">Brühen anpassen</string>
     <string name="brew_timer_menu_end_step">Aufguss jetzt beenden</string>

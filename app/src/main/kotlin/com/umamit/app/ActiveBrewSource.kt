@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * controller's state (`TimerActiveBrewSource`).
  */
 interface ActiveBrewSource {
-    /** The running brew, or `null` when none runs (the bar is then not shown). */
+    /**
+     * The running brew session, else the quick timer, or `null` when none runs (the bar is then not shown). With
+     * both, the brew session: it comes first in the bar (D-098).
+     */
     val activeBrew: StateFlow<ActiveBrew?>
 
     /**
@@ -20,7 +23,17 @@ interface ActiveBrewSource {
      * every tab for the whole step. `TimerAppWiringTest` checks that the bound source holds still in between.
      */
     val progress: () -> Float
+
+    /** The quick timer while a brew session is active too (D-098): the bar's second half; `null` otherwise. */
+    val alongside: StateFlow<ActiveBrew?> get() = NO_ALONGSIDE
+
+    /** The [alongside] timer's progress, as [progress]. */
+    val alongsideProgress: () -> Float get() = NO_PROGRESS
 }
+
+private val NO_ALONGSIDE: StateFlow<ActiveBrew?> = MutableStateFlow<ActiveBrew?>(null).asStateFlow()
+
+private val NO_PROGRESS: () -> Float = { 0f }
 
 /** No brew runs: for previews and tests of the shell. */
 object NoActiveBrewSource : ActiveBrewSource {

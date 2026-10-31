@@ -85,7 +85,7 @@ class TeaLinkFlowTest {
                         taken += it
                         if (share.value?.token == it) share.value = null
                     },
-                    timerScreen = { _, _, _ -> Text("TIMER") },
+                    timerScreen = { _, _, _, _ -> Text("TIMER") },
                     settings = testSettingsScreens(),
                     catalogScreen = { tab -> Catalog(tab) },
                     catalogScreens = CatalogStackScreens(tea = { host -> Tea(host) }),

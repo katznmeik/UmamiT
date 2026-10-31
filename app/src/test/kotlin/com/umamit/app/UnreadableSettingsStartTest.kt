@@ -64,7 +64,7 @@ class UnreadableSettingsStartTest {
                 alertKey = MutableStateFlow(null),
                 onboardingCompleted = onboardingCompleted,
                 onboardingScreen = { Text("EINRICHTUNG") },
-                timerScreen = { _, _, _ -> Text("TIMER") },
+                timerScreen = { _, _, _, _ -> Text("TIMER") },
                 startScreen = { Text("START") },
                 settings = testSettingsScreens(),
             )

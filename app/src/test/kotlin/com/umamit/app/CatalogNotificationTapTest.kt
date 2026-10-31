@@ -82,7 +82,7 @@ class CatalogNotificationTapTest {
                     onboardingScreen = { Text("EINRICHTUNG") },
                     catalogRefreshRequest = requests.token,
                     onConsumeCatalogRefreshRequest = requests::handled,
-                    timerScreen = { _, _, _ -> Text("TIMER") },
+                    timerScreen = { _, _, _, _ -> Text("TIMER") },
                     settings = testSettingsScreens(),
                     catalogScreen = { tab -> Catalog(tab) },
                 )

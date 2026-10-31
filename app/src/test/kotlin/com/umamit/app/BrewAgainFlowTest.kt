@@ -97,7 +97,7 @@ class BrewAgainFlowTest {
                     activeBrewSource = NoActiveBrewSource,
                     journalSources = testJournalSources(sessions),
                     alertKey = MutableStateFlow(null),
-                    timerScreen = { onClose, _, _ ->
+                    timerScreen = { onClose, _, _, _ ->
                         val state by starter.state.collectAsStateWithLifecycle()
                         (state as? TimerUiState.Active)?.let { active ->
                             TimerScreen(

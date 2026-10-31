@@ -65,7 +65,7 @@ class TimerNavigationTest {
                     timerRequest = timerRequest,
                     onConsumeTimerRequest = { handled += it },
                     onTimerVisibleChange = { visible += it },
-                    timerScreen = { _, openSettings, _ ->
+                    timerScreen = { _, openSettings, _, _ ->
                         Column {
                             Text("TIMER")
                             Button(onClick = openSettings) { Text("Timer-Einstellungen") }
