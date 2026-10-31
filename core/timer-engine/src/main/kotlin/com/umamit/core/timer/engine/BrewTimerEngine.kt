@@ -135,7 +135,7 @@ object BrewTimerEngine {
     fun longStepsOnly(method: BrewMethod): Boolean = method == BrewMethod.COLD_BREW || method == BrewMethod.ICE_BREW
 
     /**
-     * True when the current step of [state] is a long step (≥ 10 min, or any
+     * True when the current step of [state] is a long step (≥ 60 min, or any
      * step of a cold or ice brew; TMR-18): it runs without the foreground
      * service and without a pre-alert, and the notification shows its end
      * („Fertig um 14:30"). False in Idle and Finished.
@@ -188,8 +188,9 @@ object BrewTimerEngine {
         quickTimerPreAlertLeadOf(durationSeconds, globalPreAlertSeconds, preAlertSeconds)
 
     /**
-     * True when a planned [step] is a long step (≥ 10 min, or any step when [longStepsOnly]; TMR-18), which never
-     * has a pre-alert, whatever its choice: the Schritte-Sheet tells it apart from a step too short for its value.
+     * True when a planned [step] is a long step (≥ 60 min, or any step when [longStepsOnly]; TMR-18, D-098),
+     * which never has a pre-alert, whatever its choice: the Schritte-Sheet and the setup ask this one rule, and
+     * the sheet tells such a step apart from one too short for its value.
      */
     fun isLongStep(step: PlannedStep, longStepsOnly: Boolean): Boolean =
         isLongStepOf(step.plannedSeconds, longStepsOnly)

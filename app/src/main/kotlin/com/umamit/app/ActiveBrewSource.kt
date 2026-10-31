@@ -18,8 +18,8 @@ interface ActiveBrewSource {
 
     /**
      * Progress 0..1 of the current step; read only while drawing, so a per-frame value does not recompose.
-     * Short steps may change it per frame. For a long step (≥ 10 min, `ActiveBrew.longStep`) it changes
-     * only about every `UmamiMotion.longStepUpdateIntervalMillis` (03 §3.6 battery rule): the bar is on
+     * Short steps may change it per frame. For a long step (≥ 60 min or cold/ice brew, `ActiveBrew.longStep`) it
+     * changes only about every `UmamiMotion.longStepUpdateIntervalMillis` (03 §3.6 battery rule): the bar is on
      * every tab for the whole step. `TimerAppWiringTest` checks that the bound source holds still in between.
      */
     val progress: () -> Float

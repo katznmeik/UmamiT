@@ -48,7 +48,7 @@ class NotificationStates(private val clock: FakeClock) {
         kettleTempC = null,
     )
 
-    /** A cold brew's single long step (≥ 10 min, TMR-18), running with [remainingMs] left. */
+    /** A cold brew's single long step (TMR-18), running with [remainingMs] left. */
     fun longStep(remainingMs: Long) = base(TimerPhase.RUNNING).copy(
         stepIndex = 0,
         steps = listOf(TimerUiStep(StepKind.INFUSION, 8 * 3_600, null, StepStatus.STARTED)),

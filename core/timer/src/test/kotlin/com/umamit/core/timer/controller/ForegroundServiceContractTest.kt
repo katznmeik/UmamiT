@@ -32,8 +32,8 @@ class ForegroundServiceContractTest {
     fun tearDown() = h.close()
 
     @Test
-    fun `a ten-minute step runs without the service and its alert brings it back full screen`() = runTest {
-        h.controller.startSession(brewStart(infusion(600)))
+    fun `a 60-min step runs without the service and its alert brings it back full screen`() = runTest {
+        h.controller.startSession(brewStart(infusion(3_600)))
         assertThat(h.service.running).isTrue()
 
         h.controller.send(TimerEvent.Start)
@@ -42,7 +42,7 @@ class ForegroundServiceContractTest {
         assertThat(h.service.running).isFalse()
         assertThat(h.log.calls.last { it is ServiceStarted || it == ServiceStopped }).isEqualTo(ServiceStopped)
 
-        h.advanceSeconds(600)
+        h.advanceSeconds(3_600)
 
         assertThat(h.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(h.service.running).isTrue()

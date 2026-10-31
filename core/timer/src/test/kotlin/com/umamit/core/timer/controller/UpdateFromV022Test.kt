@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.alarm.AndroidTimerAlarms
 import com.umamit.core.timer.alarm.TimerAlarmReceiver
 import com.umamit.core.timer.alarm.V022Alarms
@@ -115,6 +116,38 @@ class UpdateFromV022Test {
         assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
         assertThat(after.alert.started).containsExactly(StepAlert(SessionKind.Brew(id), 0, deadlineWall))
         assertThat(alarms().keys).containsExactly(103, 107)
+    }
+
+    @Test
+    fun `a 15-min hot step v0_2_2 ran as a long step gets the service and its Vorwarnung after the update`() = runTest {
+        before.controller.startSession(brewStart(infusion(15 * 60)))
+        before.controller.send(TimerEvent.Start)
+        // v0.2.2 ran it as a long step (≥ 10 min, TMR-18): no pre-alert in its row, no pre-alert alarm.
+        val row = checkNotNull(before.store.read(TimerSlot.BREW))
+        before.store.persist(TimerSlot.BREW, row.copy(activeBrew = row.activeBrew.copy(preAlertElapsedMs = null)))
+        val deadline = checkNotNull(before.active.deadlineElapsedMs)
+        V022Alarms.set(context, TimerAlarmKind.DEADLINE, deadline)
+        V022Alarms.set(context, TimerAlarmKind.ALERT_WATCHDOG, deadline + AlertWatchdog.GUARD_MS)
+
+        val after = updated()
+        after.clock.advanceBy(5 * 60_000L)
+        after.controller.recover(RecoveryTrigger.PACKAGE_REPLACED)
+
+        // A short step from v0.3.0 (D-098): its pre-alert is back, with the service and the countdown.
+        val preAlert = deadline - 10_000
+        assertThat(alarms()).containsExactly(101, preAlert, 102, deadline, 107, deadline + AlertWatchdog.GUARD_MS)
+        assertThat(after.active.longStep).isFalse()
+        assertThat(after.service.running).isTrue()
+        assertThat(after.service.foreground?.phase).isEqualTo(TimerPhase.RUNNING)
+
+        after.clock.advanceBy(preAlert - after.clock.elapsed)
+        after.deliver(101)
+        assertThat(after.alert.ticks).isEqualTo(1)
+
+        after.clock.advanceBy(deadline - after.clock.elapsed)
+        after.deliver(102)
+        assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(after.alert.started).hasSize(1)
     }
 
     /**

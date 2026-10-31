@@ -22,7 +22,7 @@ internal fun recover(state: TimerState.Active, now: ClockReading, holdAlert: Boo
         is TimerState.Waiting -> recoverWaiting(rebased, now)
 
         is TimerState.Running -> when {
-            now.elapsedMs < rebased.deadlineElapsedMs -> restored(rebased)
+            now.elapsedMs < rebased.deadlineElapsedMs -> restored(rebased.withPreAlertAt(now))
 
             // The brew alerts (04 §7.2 two slots): the quick timer waits for it, however late (D-098).
             holdAlert -> holdAtDeadline(rebased)
@@ -62,6 +62,19 @@ private fun recoverWaiting(state: TimerState.Waiting, now: ClockReading): TimerT
         else -> restored(state)
     }
 }
+
+/**
+ * This running step with a pre-alert that is neither set nor played computed again from its deadline and its N,
+ * as `resume` and `editSteps` do (04 §5): skipped when its time is not after [now], never a late tick. It gives a
+ * hot step of 10–59 min that v0.2.2 ran as a long step, without one, its pre-alert after the update (D-098, #127).
+ * In a state this version stored, such a step has no lead or its time had passed, so it stays without one.
+ */
+private fun TimerState.Running.withPreAlertAt(now: ClockReading): TimerState.Running =
+    if (preAlertAtElapsedMs != null || preAlertPlayed) {
+        this
+    } else {
+        copy(preAlertAtElapsedMs = preAlertAt(session, stepIndex, deadlineElapsedMs, played = false, now))
+    }
 
 /**
  * The state as it was: alarms re-armed from its due times, the notification

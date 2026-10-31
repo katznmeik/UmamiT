@@ -30,7 +30,8 @@ class StepPreAlertTest {
             infusion(34).withPreAlert(30) to null,
             infusion(35).withPreAlert(30) to 30, // explicit values are not capped by B
             rinse(15).withPreAlert(10) to 10,
-            infusion(600).withPreAlert(10) to null, // long step (TMR-18)
+            infusion(600).withPreAlert(10) to 10, // a hot step of 10–59 min is short (D-098)
+            infusion(3_600).withPreAlert(10) to null, // long step (TMR-18)
             infusion(14).withPreAlert(null) to null,
         )
         val driver = EngineDriver().apply {
@@ -131,8 +132,10 @@ class StepPreAlertTest {
             infusion(35).withPreAlert(30) to 30,
             rinse(10).withPreAlert(5) to null, // a rinse under 15 s
             infusion(599) to 10,
-            infusion(600) to null, // long step (TMR-18)
-            infusion(600).withPreAlert(10) to null,
+            infusion(600) to 10, // a hot step of 10–59 min is short (D-098)
+            infusion(3_599) to 10,
+            infusion(3_600) to null, // long step (TMR-18)
+            infusion(3_600).withPreAlert(10) to null,
         )
 
         val leads = plan.map { (step, _) ->
@@ -156,8 +159,8 @@ class StepPreAlertTest {
                 .isNull()
             assertWithMessage("$step: long").that(BrewTimerEngine.isLongStep(step, longStepsOnly = true)).isTrue()
         }
-        assertWithMessage("9:59").that(BrewTimerEngine.isLongStep(infusion(599), longStepsOnly = false)).isFalse()
-        assertWithMessage("10:00").that(BrewTimerEngine.isLongStep(infusion(600), longStepsOnly = false)).isTrue()
+        assertWithMessage("59:59").that(BrewTimerEngine.isLongStep(infusion(3_599), longStepsOnly = false)).isFalse()
+        assertWithMessage("60:00").that(BrewTimerEngine.isLongStep(infusion(3_600), longStepsOnly = false)).isTrue()
     }
 
     @Test

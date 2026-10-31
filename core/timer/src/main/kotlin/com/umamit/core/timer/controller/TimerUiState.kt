@@ -50,7 +50,7 @@ sealed interface TimerUiState {
      * @property preAlertLeadSeconds the current step's pre-alert N, played or not; null without one (TMR-23).
      * @property preAlertAtElapsedMs RUNNING: when the pre-alert is due, until it played.
      * @property preAlertPlayed RUNNING, PAUSED: the tick played („Gleich fertig …").
-     * @property longStep the current step is a long step (≥ 10 min, or cold/ice brew; TMR-18).
+     * @property longStep the current step is a long step (≥ 60 min, or cold/ice brew; TMR-18, D-098).
      * @property kettleTempC the current step's temperature for the kettle hint (BRW-10); null in FINISHED.
      * @property demoted the session went quiet after 30 min (TMR-14): no service, regular notification.
      * @property finishWouldDiscard *Sitzung beenden* would discard the session; the UI asks first (TMR-12).

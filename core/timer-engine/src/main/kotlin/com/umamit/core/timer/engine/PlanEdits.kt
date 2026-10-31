@@ -15,6 +15,12 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 private const val SHORT_ROUNDING_SECONDS = 5L
 private const val LONG_ROUNDING_SECONDS = 60L
+
+/**
+ * From this planned duration a step's duration is rounded to whole minutes, below it to 5 s (PRF-04, TMR-10):
+ * 10 min, apart from the long-step threshold, which moved to 60 min in v0.3.0 (D-098).
+ */
+internal const val ROUND_TO_MINUTES_FROM_SECONDS = 600
 internal const val MIN_STEP_SECONDS = 5
 internal const val MAX_STEP_SECONDS = 86_400
 
@@ -34,7 +40,7 @@ internal fun defaultAddedStepOf(plan: List<PlannedStep>): PlannedStep {
 /** 1.5 × [seconds], rounded per PRF-04 and clamped to the step bounds. */
 private fun extendedDuration(seconds: Int): Int {
     val halfSeconds = seconds * 3L // 1.5 × seconds, in half seconds
-    val unit = if (halfSeconds < LONG_STEP_SECONDS * 2L) SHORT_ROUNDING_SECONDS else LONG_ROUNDING_SECONDS
+    val unit = if (halfSeconds < ROUND_TO_MINUTES_FROM_SECONDS * 2L) SHORT_ROUNDING_SECONDS else LONG_ROUNDING_SECONDS
     val rounded = (halfSeconds + unit) / (unit * 2) * unit
     return rounded.coerceIn(MIN_STEP_SECONDS.toLong(), MAX_STEP_SECONDS.toLong()).toInt()
 }

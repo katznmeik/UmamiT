@@ -260,7 +260,11 @@ class SnapshotTest {
         val finished = BrewTimerEngine.snapshot(sessionWith(infusion(60)).apply { send(TimerEvent.SkipStep) }.state)!!
         val quick = BrewTimerEngine.snapshot(quick().state)!!
         val running = BrewTimerEngine.snapshot(running().state)!!
-        val longRunning = BrewTimerEngine.snapshot(sessionWith(infusion(600)).apply { send(TimerEvent.Start) }.state)!!
+        val longRunning = BrewTimerEngine.snapshot(
+            sessionWith(infusion(3_600)).apply {
+                send(TimerEvent.Start)
+            }.state,
+        )!!
         fun TimerSnapshot.row(transform: ActiveBrewSnapshot.() -> ActiveBrewSnapshot) =
             copy(activeBrew = activeBrew.transform())
         fun TimerSnapshot.step(index: Int, transform: SessionStepRow.() -> SessionStepRow) =

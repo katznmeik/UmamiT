@@ -12,8 +12,12 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
  * transition that plays it, and a played tick never comes back (E6).
  */
 
-/** Planned duration from which a step is a long step (`LONG_STEP_THRESHOLD`, 04 §1). */
-internal const val LONG_STEP_SECONDS = 600
+/**
+ * Planned duration from which a hot step is a long step (`LONG_STEP_THRESHOLD`, 04 §1): 60 min from v0.3.0
+ * (D-098, #122; 10 min until v0.2.2). Not the duration rounding of PRF-04, which keeps its 10-min boundary
+ * ([ROUND_TO_MINUTES_FROM_SECONDS]).
+ */
+internal const val LONG_STEP_SECONDS = 3_600
 
 /** A step needs at least N + 5 s for a pre-alert (E7, D-035). */
 private const val PRE_ALERT_MIN_SPARE_SECONDS = 5
@@ -46,7 +50,10 @@ internal fun preAlertLeadSecondsOf(step: PlannedStep, settings: PreAlertSettings
     return if (none) null else n
 }
 
-/** A step of [plannedSeconds] is a long step (≥ 10 min), or every step is in a cold or ice brew (TMR-18, 04 §1). */
+/**
+ * A step of [plannedSeconds] is a long step (≥ 60 min), or every step is in a cold or ice brew (TMR-18, 04 §1,
+ * D-098): the one rule of the engine, the Schritte-Sheet and the setup.
+ */
 internal fun isLongStepOf(plannedSeconds: Int, longStepsOnly: Boolean): Boolean =
     longStepsOnly || plannedSeconds >= LONG_STEP_SECONDS
 
