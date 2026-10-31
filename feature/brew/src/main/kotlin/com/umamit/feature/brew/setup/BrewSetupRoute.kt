@@ -12,13 +12,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * The setup route (SCR-04). Its arguments are the view model's `teaId` and
  * `sessionId` ([BrewSetupViewModel.TEA_ID], [BrewSetupViewModel.SESSION_ID]).
- * [onOpenTimer] runs once the session waits in READY (TMR-01).
+ * [onOpenTimer] runs once the session waits in READY (TMR-01); [onOpenCatalog] opens the tea's
+ * catalog page (SCR-21) by its catalog key, from ⋮ *Im Katalog ansehen* (D-098).
  */
 @Composable
 fun BrewSetupRoute(
     onBack: () -> Unit,
     onOpenTimer: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenCatalog: (String) -> Unit = {},
     viewModel: BrewSetupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -30,6 +32,7 @@ fun BrewSetupRoute(
             }
         }
     }
+    val currentOnOpenCatalog by rememberUpdatedState(onOpenCatalog)
     val actions = remember(viewModel, onBack) {
         BrewSetupActions(
             back = onBack,
@@ -45,6 +48,7 @@ fun BrewSetupRoute(
             confirmRestart = viewModel::confirmRestart,
             dismissQuestion = viewModel::dismissQuestion,
             correctStock = viewModel::correctStock,
+            openCatalog = { key -> currentOnOpenCatalog(key) },
         )
     }
     BrewSetupScreen(state = state, modifier = modifier, actions = actions)
