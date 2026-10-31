@@ -3,7 +3,7 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-31 (v0.4.0 specified: spec #145, D-100, plan `docs/plans/v0.4.0.md`; tickets next, then the PO's approval and `/implement-spec #145`)
+**Last updated:** 2026-10-31 (v0.4.0 specified: spec #145, D-100, plan `docs/plans/v0.4.0.md`, tickets #147–#161; waiting for the PO's approval and `/implement-spec #145`)
 
 ## Phase
 
@@ -75,9 +75,9 @@
   cup, own photos, *Aus Katalog zurücksetzen*), whose spec follows v0.4.0. No DB migration in v0.4.0.
 - After the docs review the PO settled Q-19 (never-started steps are kept at completion from v0.4.0, ticket -15, T4) and
   Q-20 (values of the generic style rows), and per-step Vorwarnung in the recipe editor.
-- Spec **#145**, glossary 11 (c52b0a5), specs 02, 03, 04, 05, 08, 09, 10, 12 and the plan `docs/plans/v0.4.0.md` (tickets -01
-  to -15) on the docs PR. **Next:** create the tickets as sub-issues of #145 for the PO's approval; nothing is built before
-  the PO starts `/implement-spec #145`.
+- Spec **#145**, glossary 11 (c52b0a5), specs 02, 03, 04, 05, 08, 09, 10, 12 and the plan `docs/plans/v0.4.0.md` on docs PR #146;
+  tickets **#147–#161** (v0.4.0-01 … -15, sub-issues of #145). **Next:** the PO approves the tickets; nothing is built
+  before the PO starts `/implement-spec #145`.
 - **Decision numbers:** up to D-100 used; the next free is **D-101**.
 
 ### v0.3.0 released (2026-10-31)
