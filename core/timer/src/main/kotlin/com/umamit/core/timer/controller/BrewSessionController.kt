@@ -230,10 +230,10 @@ class BrewSessionController @Inject constructor(
             val scheduled = if (kind == TimerAlarmKind.ALERT_WATCHDOG) {
                 inSlot.watchdog.scheduled
             } else {
-                scheduled(inSlot.timer, kind) ?: inSlot.restoredForAlarmLog?.let { scheduled(it, kind) }
+                scheduled(inSlot.timer, kind, slot) ?: inSlot.restoredForAlarmLog?.let { scheduled(it, kind, slot) }
             }
             slots.forEach { it.restoredForAlarmLog = null }
-            effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled))
+            effects.record(TimerDiagnostic.AlarmReceived(now, kind, scheduled, slot))
             // The persisted timer could not be read: the alarm comes again, in case it was the only one.
             if (recovery.retrying) recovery.retryAlarm(slot, kind, now)
             handleDue(EventSource.ALARM)
@@ -502,7 +502,7 @@ class BrewSessionController @Inject constructor(
     ): TransitionOutcome {
         val inSlot = slots[slot]
         val before = inSlot.timer
-        val due = TimerAlarmKind.of(event)?.let { scheduled(before, it) }
+        val due = TimerAlarmKind.of(event)?.let { scheduled(before, it, slot) }
         val sent = if (slot == TimerSlot.QUICK) AlertArbitration.quickEvent(event, slots.brew) else event
         val transition = BrewTimerEngine.reduce(before, sent, now)
         effects.record(
@@ -624,9 +624,9 @@ private fun deadlineGuardAt(state: TimerState, now: ClockReading): Long? = (stat
     ?.takeIf { it.session.bootCount == now.bootCount }
     ?.let { it.deadlineElapsedMs + AlertWatchdog.GUARD_MS }
 
-/** When the alarm of [kind] is due in [state]; null when it is not due there. */
-private fun scheduled(state: TimerState, kind: TimerAlarmKind): ScheduledTime? =
-    kind.timeIn(BrewTimerEngine.dueTimes(state))?.let { ScheduledTime(kind, it) }
+/** When the alarm of [kind] is due in [state], the timer of [slot]; null when it is not due there. */
+private fun scheduled(state: TimerState, kind: TimerAlarmKind, slot: TimerSlot): ScheduledTime? =
+    kind.timeIn(BrewTimerEngine.dueTimes(state))?.let { ScheduledTime(kind, it, slot) }
 
 /**
  * The user event that ends [state] for *Beenden & neu starten* (D-054): *Sitzung beenden* for a

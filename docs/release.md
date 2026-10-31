@@ -89,15 +89,30 @@ In short:
 1. Push the rc commit, then dispatch `accuracy.yml` with `ref` = that branch
    or SHA (default `api-level` 36, `steps` 50, `inject-delay-ms` 0). A run
    takes about an hour.
-2. The job summary must say **Result: PASS** (p95 ≤ 250 ms and max ≤ 1 s for
-   the pre-alert and the alert, all 50 steps). Link the run in the rc's
-   announcement.
-3. Then bump the version and dispatch `release.yml`. If the bump is the only
-   change since the run, the run still counts.
+2. **From v0.3.0 (D-098, #137) dispatch it twice**, once per `variant`:
+   `standard` (the brew steps alone, as before) and `alongside` (a quick
+   timer beside every step, both timers measured). Both runs of one commit
+   go in parallel:
+
+   ```bash
+   gh workflow run accuracy.yml --ref <branch> -f ref=<full-sha> -f api-level=36 -f variant=standard
+   gh workflow run accuracy.yml --ref <branch> -f ref=<full-sha> -f api-level=36 -f variant=alongside
+   ```
+
+3. Each job summary must say **Result: PASS** (p95 ≤ 250 ms and max ≤ 1 s for
+   the pre-alert and the alert, all 50 steps; in `alongside` for the brew and
+   the quick timer). Link both runs in the rc's announcement.
+4. Then bump the version and dispatch `release.yml`. If the bump is the only
+   change since the runs, they still count.
+
+After a change of the workflow or the test, prove the gate once with a run
+that must **fail**, e.g. `-f variant=alongside -f steps=3 -f inject-delay-ms=1500`
+(09 §4a).
 
 Locally, with a device or emulator attached, the same test runs with
 `./gradlew :core:timer:assembleDebugAndroidTest && scripts/accuracy-run.sh`
-(report in `build/accuracy/`).
+(report in `build/accuracy/`; `ACCURACY_VARIANT=alongside` for the second
+variant).
 
 ## Checking the fingerprint on the phone
 
