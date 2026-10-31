@@ -329,6 +329,23 @@ class BrewSetupScreenTest {
         row.assert(hasText("–"))
     }
 
+    @Test
+    fun `the Vorwarnung row gives a hot step of 10 to 59 min its pre-alert, a long step none (TMR-18, D-098)`() {
+        var state by mutableStateOf(kyusu.copy(steps = listOf(infusion(15 * 60))))
+        compose.setContent { UmamiTheme(reduceMotion = true) { BrewSetupScreen(state) } }
+        val row = compose.onNodeWithTag(SETUP_PRE_ALERT_TAG).performScrollTo()
+
+        row.assert(hasText("10 s")).assert(hasContentDescription("10 Sekunden"))
+        state = kyusu.copy(steps = listOf(infusion(59 * 60 + 59, preAlert = 30), infusion(60 * 60)))
+        row.assert(hasText("30 · –")).assert(hasContentDescription("30 Sekunden, keine"))
+        state = kyusu.copy(steps = listOf(infusion(60 * 60, preAlert = 10)))
+        row.assert(hasText("–"))
+        state = kyusu.copy(method = BrewMethod.COLD_BREW, steps = listOf(infusion(15 * 60)))
+        row.assert(hasText("–"))
+        state = kyusu.copy(method = BrewMethod.ICE_BREW, steps = listOf(infusion(15 * 60)))
+        row.assert(hasText("–"))
+    }
+
     private fun infusion(seconds: Int, preAlert: Int? = null) =
         PlannedStep(StepKind.INFUSION, seconds, 65, preAlertSeconds = preAlert)
 

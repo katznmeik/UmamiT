@@ -31,7 +31,9 @@ class QuickTimerPreAlertChoiceTest {
         Case(24, base = 10, choice = 20, lead = null),
         Case(25, base = 10, choice = 20, lead = 20),
         // A long step never has one (TMR-18).
-        Case(600, base = 10, choice = 20, lead = null),
+        Case(3_600, base = 10, choice = 20, lead = null),
+        Case(3_599, base = 10, choice = 30, lead = 30),
+        Case(600, base = 10, choice = 20, lead = 20), // a hot step of 10–59 min is short (D-098)
         Case(599, base = 10, choice = 30, lead = 30),
     )
 

@@ -147,6 +147,19 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         )
     }
 
+    /** A 15-min hot step has its Vorwarnung, a 60-min one none: the row reads „10 · –" (TMR-18, D-098). */
+    @Test
+    fun setupHotStepsOfMinutes() = capture("BrewSetup_hotStepsOfMinutes") {
+        BrewSetupScreen(
+            kyusu.copy(
+                steps = listOf(
+                    PlannedStep(StepKind.INFUSION, 15 * 60, 65),
+                    PlannedStep(StepKind.INFUSION, 60 * 60, 65),
+                ),
+            ),
+        )
+    }
+
     /** A tea flagged „Rezept prüfen": the flag and its reason above the steps (CAT-05, SCR-04). */
     @Test
     fun setupRecipeCheck() = capture("BrewSetup_recipeCheck") {
