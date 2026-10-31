@@ -1,6 +1,7 @@
 # 02 · Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-30 (v0.3.0: quick timer
+> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.3.0: SET-32 *Bei
+> „Nicht stören" klingeln*, D-099; 2026-10-30: v0.3.0: quick timer
 > alongside a brew, long steps from 60 min, alarm volume and *Lautstärke*,
 > daily low-stock reminder INV-11, foldable catalog groups, stock on READY,
 > D-098; v0.2.2 from the PO's
@@ -1040,6 +1041,7 @@ Every chart has an accessible table alternative.
 | SET-27 | Lautstärke (Vorwarnung and alarm, on top of the phone's alarm volume; v0.3.0, D-098) | 10–100 % in 10 % steps — **100 %**; *Alarm testen* plays at it | Must |
 | SET-11 | Vibration | an | Must |
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
+| SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Verbrauch automatisch abziehen (auto-deduct) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
