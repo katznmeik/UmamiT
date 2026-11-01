@@ -41,3 +41,19 @@ internal fun NavBackStackEntry.forgetArchivedVessel() {
     savedStateHandle.remove<String>(VesselEditorResult.ARCHIVED_VESSEL_ID)
     savedStateHandle.remove<String>(VesselEditorResult.ARCHIVED_VESSEL_NAME)
 }
+
+/**
+ * The vessel the editor above this entry just saved (the setup's *Neues Gefäß …*, WARE-02), until
+ * [forgetSavedVessel].
+ */
+@Composable
+internal fun NavBackStackEntry.savedVesselId(): String? {
+    val id by savedStateHandle.getStateFlow<String?>(VesselEditorResult.SAVED_VESSEL_ID, null)
+        .collectAsStateWithLifecycle()
+    return id
+}
+
+/** The setup has selected the saved vessel. */
+internal fun NavBackStackEntry.forgetSavedVessel() {
+    savedStateHandle.remove<String>(VesselEditorResult.SAVED_VESSEL_ID)
+}

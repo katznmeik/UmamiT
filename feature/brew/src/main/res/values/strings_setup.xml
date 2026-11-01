@@ -24,14 +24,19 @@
 
     <!-- Brew setup (SCR-04) -->
     <string name="brew_setup_title">Brühen</string>
-    <!-- The top bar's ⋮ (TalkBack) and its one item, for a tea with a catalog entry (SCR-04, D-098). -->
+    <!-- The top bar's ⋮ (TalkBack) and its items: the tea's detail for every tea (SCR-04, D-100), the catalog
+         page for a tea with a catalog entry (D-098). -->
     <string name="brew_setup_more">Weitere Optionen</string>
+    <string name="brew_setup_menu_tea">Tee ansehen</string>
     <string name="brew_setup_menu_catalog">Im Katalog ansehen</string>
     <!-- Between „Kabusecha" and „85 g übrig" under the tea name; quoted to keep the spaces. -->
     <string name="brew_setup_meta_separator">" · "</string>
     <string name="brew_setup_stock">%1$s\u00A0g übrig</string>
     <!-- BRW-08, INV-05 (D-097): the stock is at or below „Knapp ab"; %1$s is the stock in g („14"). -->
     <string name="brew_setup_stock_low">%1$s\u00A0g übrig · knapp</string>
+    <!-- BRW-08 (D-100): the stock is above 0 g and below this brew's leaf; %1$s is the stock in g („3"). -->
+    <string name="brew_setup_stock_short">Nur noch %1$s\u00A0g übrig</string>
+    <string name="brew_setup_stock_short_low">Nur noch %1$s\u00A0g übrig · knapp</string>
     <!-- INV-05: the stock is 0 g or less. -->
     <string name="brew_setup_stock_empty">Leer</string>
     <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->
@@ -40,6 +45,10 @@
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
     <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>
     <string name="brew_setup_vessel_description">Gefäß: %1$s. Ändern</string>
+    <!-- WARE-02 (D-100): a recipe's vessel that was archived, „Kyusu 250 ml (archiviert)". -->
+    <string name="brew_setup_vessel_archived">%1$s (archiviert)</string>
+    <!-- The end of the Gefäß list: opens the vessel editor (SCR-14) above the setup (WARE-02, D-100). -->
+    <string name="brew_setup_vessel_new">Neues Gefäß …</string>
     <string name="brew_setup_water">Wasser</string>
     <string name="brew_setup_leaf">Blätter</string>
     <string name="brew_setup_ml">%1$d\u00A0ml</string>

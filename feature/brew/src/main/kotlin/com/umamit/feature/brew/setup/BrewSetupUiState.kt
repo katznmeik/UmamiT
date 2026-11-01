@@ -29,8 +29,12 @@ sealed interface BrewSetupUiState {
      *   (INV-03, D-096), or null: „Wie viel ist noch da?" says so, and the arithmetic stays as it is.
      * @property catalogKey the tea's catalog key while its catalog tea exists (discontinued counts), else null:
      *   the top bar's ⋮ *Im Katalog ansehen* shows only then (D-098).
+     * @property vessels the vessels the *Gefäß* list offers: favourites first, never an archived one (WARE-02).
+     * @property archivedVessel the selected vessel when it is archived (a recipe's, D-100): the row reads
+     *   „Kyusu (archiviert)", and the list doesn't offer it (WARE-02).
      */
     data class Ready(
+        val teaId: String,
         val teaName: String,
         val secondaryName: String?,
         val stockGrams: Double?,
@@ -54,7 +58,15 @@ sealed interface BrewSetupUiState {
         val sessionLeafGrams: Double? = null,
         val stockLevel: StockLevel? = null,
         val catalogKey: String? = null,
-    ) : BrewSetupUiState
+        val archivedVessel: VesselOption? = null,
+    ) : BrewSetupUiState {
+        /**
+         * BRW-08 (D-100): the stock is known, above 0 g (not *Leer*) and below this brew's leaf, so the stock line
+         * reads „Nur noch 3 g übrig". It follows the leaf and never blocks *Brühen starten*.
+         */
+        val stockShort: Boolean
+            get() = stockGrams != null && stockGrams >= StockLevel.EMPTY_BELOW_GRAMS && stockGrams < leafGrams
+    }
 }
 
 /** A recipe chip (SCR-04). */

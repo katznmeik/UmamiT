@@ -37,6 +37,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.catalog.TeaLinkShare
+import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,8 +79,10 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
  *   replace them.
- * @param setupScreen the setup route's content (SCR-04); tests replace it. Its third argument opens a catalog tea's
- *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens].
+ * @param setupScreen the setup route's content (SCR-04); tests replace it. Its [SetupHost] opens a catalog tea's
+ *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens]; a collection
+ *   tea's detail (SCR-09) by its id (⋮ *Tee ansehen*, D-100), shown with [collectionScreens]; and the vessel editor
+ *   (*Neues Gefäß …*, WARE-02), whose saved vessel it hands back.
  * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
  *   read, and nothing is shown until then. Not done: the setup (SCR-01) is the start destination.
  * @param onboardingScreen the setup's content; tests replace it, the app uses [OnboardingScreenRoute].
@@ -129,12 +132,16 @@ internal fun UmamitRoot(
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     collectionScreens: CollectionStackScreens = CollectionStackScreens(),
-    setupScreen: @Composable (
-        onBack: () -> Unit,
-        onOpenTimer: () -> Unit,
-        onOpenCatalog: (key: String) -> Unit,
-    ) -> Unit = { onBack, onOpenTimer, onOpenCatalog ->
-        BrewSetupScreenRoute(onBack = onBack, onOpenTimer = onOpenTimer, onOpenCatalog = onOpenCatalog)
+    setupScreen: @Composable (SetupHost) -> Unit = { host ->
+        BrewSetupScreenRoute(
+            onBack = host.onBack,
+            onOpenTimer = host.onOpenTimer,
+            onOpenCatalog = host.onOpenCatalog,
+            onOpenTea = host.onOpenTea,
+            onNewVessel = host.onNewVessel,
+            newVesselId = host.newVesselId,
+            onConsumeNewVessel = host.onConsumeNewVessel,
+        )
     },
     onboardingCompleted: StateFlow<Boolean?> = MutableStateFlow(true),
     onboardingScreen: @Composable (onFinish: () -> Unit) -> Unit = { onFinish ->
@@ -324,24 +331,41 @@ internal fun UmamitRoot(
                     ),
                 )
             }
-            composable<BrewSetupRoute> {
+            composable<BrewSetupRoute> { entry ->
                 setupScreen(
-                    // Only while resumed: a quick double tap never pops the shell under it (D-090).
-                    dropUnlessResumed { navController.popBackStack() },
-                    // The timer replaces the setup, so back from the timer returns to where the brew began.
-                    {
-                        navController.navigate(TimerRoute(TimerSlot.BREW)) {
-                            popUpTo<BrewSetupRoute> { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                    // ⋮ *Im Katalog ansehen* (D-098): the detail above the setup, which keeps its draft in its entry.
-                    // During an alert the alerting timer instead, never a page over it (rule 8, D-062 S3).
-                    { key ->
-                        unlessAlerting({ currentAlerting }, instead = openTimer) {
-                            navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
-                        }
-                    },
+                    SetupHost(
+                        // Only while resumed: a quick double tap never pops the shell under it (D-090).
+                        onBack = dropUnlessResumed { navController.popBackStack() },
+                        // The timer replaces the setup, so back from the timer returns to where the brew began.
+                        onOpenTimer = {
+                            navController.navigate(TimerRoute(TimerSlot.BREW)) {
+                                popUpTo<BrewSetupRoute> { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        // ⋮ *Im Katalog ansehen* (D-098) and *Tee ansehen* (D-100): the detail above the setup, which
+                        // keeps its draft in its entry. During an alert the alerting timer instead, never a page over
+                        // it (rule 8, D-062 S3).
+                        onOpenCatalog = { key ->
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(SetupCatalogTeaRoute(key)) { launchSingleTop = true }
+                            }
+                        },
+                        onOpenTea = { teaId ->
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(SetupTeaRoute(teaId)) { launchSingleTop = true }
+                            }
+                        },
+                        // *Neues Gefäß …* (WARE-02, D-100): the editor above the setup; *Speichern* leaves the new
+                        // vessel's id in this entry, and the setup selects it.
+                        onNewVessel = {
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
+                            }
+                        },
+                        newVesselId = entry.savedVesselId(),
+                        onConsumeNewVessel = entry::forgetSavedVessel,
+                    ),
                 )
             }
             composable<SetupCatalogTeaRoute> {
@@ -351,6 +375,24 @@ internal fun UmamitRoot(
                         onBack = dropUnlessResumed { navController.popBackStack() },
                         alerting = alert != null,
                         onPurchaseSave = {},
+                    ),
+                )
+            }
+            // ⋮ *Tee ansehen* (D-100): the tea's detail above the setup. *Brühen* there starts a new setup in place of
+            // this one (the alerting timer during an alert, rule 8); *Archivieren* and *Löschen* close the setup too,
+            // as its tea has left the collection.
+            composable<SetupTeaRoute> { entry ->
+                collectionScreens.tea(
+                    setupTeaHost(
+                        entry = entry,
+                        navController = navController,
+                        alertKey = alert,
+                        // A new setup in its place, or the alerting timer during an alert (rule 8).
+                        openSetup = { route ->
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(route) { popUpTo<BrewSetupRoute> { inclusive = true } }
+                            }
+                        },
                     ),
                 )
             }
@@ -518,6 +560,31 @@ private fun NavHostController.openCatalogRefresh(
 /** Runs [open], or [instead] while an alert plays ([alerting]): nothing opens over an alert (rule 8). */
 private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, open: () -> Unit) {
     if (alerting()) instead() else open()
+}
+
+/**
+ * What the tea detail (SCR-09) above the setup gets (⋮ *Tee ansehen*, D-100): back returns to the setup;
+ * *Brühen* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
+ * *Archivieren* and *Löschen* close the detail and the setup. Each acts only while [entry] is on top, so a quick
+ * double tap or a late outcome never pops another screen (D-090).
+ */
+private fun setupTeaHost(
+    entry: NavBackStackEntry,
+    navController: NavHostController,
+    alertKey: String?,
+    openSetup: (BrewSetupRoute) -> Unit,
+): TeaDetailHost {
+    val teaId = entry.toRoute<SetupTeaRoute>().teaId
+    val onTop = { navController.currentBackStackEntry?.id == entry.id }
+    val resumed = { entry.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
+    val closeWithSetup = { if (onTop()) navController.popBackStack<BrewSetupRoute>(inclusive = true) }
+    return TeaDetailHost(
+        onBack = { if (resumed()) navController.popBackStack() },
+        onBrew = { recipeId -> if (resumed()) openSetup(BrewSetupRoute(teaId = teaId, recipeId = recipeId)) },
+        onArchived = { closeWithSetup() },
+        onDeleted = { closeWithSetup() },
+        alertKey = alertKey,
+    )
 }
 
 /** What [rememberTimerFirst] gives the root. */

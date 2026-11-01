@@ -66,6 +66,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         private val minze = PickerTea("m", "Minze Zitrone", "Kräutertee", null, kind = TeaKind.HERBAL)
 
         val kyusu = BrewSetupUiState.Ready(
+            teaId = "h",
             teaName = "Bio Sencha Hisui",
             secondaryName = null,
             stockGrams = 100.0,
@@ -211,6 +212,36 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun setupLowStock() = capture("BrewSetup_lowStock") {
         BrewSetupScreen(kyusu.copy(stockGrams = 14.0, stockLevel = StockLevel.LOW))
+    }
+
+    /** 3 g of a *Knapp* tea for 5,0 g of leaf: „Nur noch 3 g übrig · knapp" (BRW-08, D-100). */
+    @Test
+    fun setupShortStock() = capture("BrewSetup_shortStock") {
+        BrewSetupScreen(kyusu.copy(stockGrams = 3.0, stockLevel = StockLevel.LOW))
+    }
+
+    /** The ⋮ of a tea without a catalog entry: *Tee ansehen* alone (D-100). */
+    @Test
+    fun setupMenuOpen() = capture(
+        "BrewSetup_menuOpen",
+        act = { compose.onNodeWithContentDescription("Weitere Optionen").performClick() },
+    ) {
+        BrewSetupScreen(kyusu)
+    }
+
+    /** The *Gefäß* list open: the vessels, then *Neues Gefäß …* (WARE-02, D-100). */
+    @Test
+    fun setupVesselList() = capture(
+        "BrewSetup_vesselList",
+        act = { compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").performClick() },
+    ) {
+        BrewSetupScreen(kyusu)
+    }
+
+    /** A recipe's archived vessel: „Kyusu 250 ml (archiviert)" with water and leaf as stored (WARE-02, D-100). */
+    @Test
+    fun setupArchivedVessel() = capture("BrewSetup_archivedVessel") {
+        BrewSetupScreen(kyusu.copy(vessels = kyusu.vessels.drop(1), archivedVessel = kyusu.vessels.first()))
     }
 
     /** At 0 g the header reads „Leer" (INV-05). */

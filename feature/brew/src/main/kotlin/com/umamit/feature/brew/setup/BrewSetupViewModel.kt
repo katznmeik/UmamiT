@@ -282,7 +282,9 @@ class BrewSetupViewModel @Inject constructor(
     private fun uiState(s: Source, e: SetupEdits, p: PendingStart?, timer: TimerUiState): BrewSetupUiState.Ready {
         val recipe = s.recipe(e.recipeId)
         val firstTemp = e.steps.firstOrNull()?.tempC ?: e.baseTempC
+        val selected = s.vessels.firstOrNull { it.id == e.vesselId }
         return BrewSetupUiState.Ready(
+            teaId = s.tea.tea.id,
             teaName = s.tea.tea.name,
             secondaryName = s.tea.tea.secondaryName,
             stockGrams = s.stockGrams,
@@ -291,10 +293,12 @@ class BrewSetupViewModel @Inject constructor(
             recipeCheckReason = s.tea.tea.recipeCheckReason,
             recipes = s.recipes.map { RecipeChip(it.id, it.name) },
             selectedRecipeId = e.recipeId,
-            vessels = s.vessels.filter { !it.isArchived || it.id == e.vesselId }
+            // Favourites first, never an archived vessel; a recipe's archived one shows on its own (WARE-02, D-100).
+            vessels = s.vessels.filter { !it.isArchived }
                 .sortedWith(compareBy({ !it.isFavorite }, { it.name.lowercase() }))
-                .map { VesselOption(it.id, it.name, it.brewMl()) },
+                .map { it.option() },
             selectedVesselId = e.vesselId,
+            archivedVessel = selected?.takeIf { it.isArchived }?.option(),
             method = e.method,
             waterMl = e.waterMl,
             leafGrams = e.leafGrams,
@@ -313,6 +317,8 @@ class BrewSetupViewModel @Inject constructor(
             catalogKey = s.catalogKey,
         )
     }
+
+    private fun Vessel.option() = VesselOption(id, name, brewMl())
 
     private fun SetupEdits.startRequest(s: Source): BrewStart {
         val recipe = s.recipe(recipeId)

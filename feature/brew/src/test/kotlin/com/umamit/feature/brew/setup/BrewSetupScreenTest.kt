@@ -66,6 +66,7 @@ class BrewSetupScreenTest {
     private val catalog = FakeCatalogRepository()
     private var timerOpened = 0
     private val catalogOpened = mutableListOf<String>()
+    private val teaOpened = mutableListOf<String>()
 
     @Before
     fun seed() = runBlocking {
@@ -92,6 +93,7 @@ class BrewSetupScreenTest {
                     onBack = {},
                     onOpenTimer = { timerOpened++ },
                     onOpenCatalog = { catalogOpened += it },
+                    onOpenTea = { teaOpened += it },
                     viewModel = viewModel,
                 )
             }
@@ -246,11 +248,29 @@ class BrewSetupScreenTest {
     }
 
     @Test
-    fun `a tea without a catalog entry has no overflow menu (SCR-04, D-098)`() {
+    fun `every tea's overflow menu offers Tee ansehen, without a catalog entry alone (SCR-04, D-100)`() {
         show()
 
-        compose.onNodeWithText("Bio Sencha Hisui").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Weitere Optionen").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Weitere Optionen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Im Katalog ansehen").assertDoesNotExist()
+        compose.onNodeWithText("Tee ansehen").assert(hasAnyAncestor(isPopup())).performClick()
+        compose.waitForIdle()
+
+        assertThat(teaOpened).containsExactly(SeedData.HISUI_TEA_ID)
+        assertThat(catalogOpened).isEmpty()
+        compose.onNodeWithText("Tee ansehen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a catalog tea's menu lists Tee ansehen first, Im Katalog ansehen below it (SCR-04, D-100)`() {
+        catalog.details.value = mapOf("TG0557" to CatalogTeaDetail(key = "TG0557", name = "Hisui", productUrl = SHOP))
+        show()
+
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
+        val tea = compose.onNodeWithText("Tee ansehen").fetchSemanticsNode().boundsInRoot
+        val catalogItem = compose.onNodeWithText("Im Katalog ansehen").fetchSemanticsNode().boundsInRoot
+
+        assertThat(tea.bottom).isAtMost(catalogItem.top)
     }
 
     @Test
@@ -272,6 +292,7 @@ class BrewSetupScreenTest {
         }
 
         compose.onNodeWithText("Im Katalog ansehen").assertDoesNotExist()
+        compose.onNodeWithText("Tee ansehen").assertDoesNotExist()
         assertThat(catalogOpened).isEmpty()
     }
 
