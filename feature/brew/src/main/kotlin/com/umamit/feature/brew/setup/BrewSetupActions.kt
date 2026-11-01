@@ -21,4 +21,8 @@ class BrewSetupActions(
     val correctStock: (Double) -> Unit = {},
     /** ⋮ *Im Katalog ansehen*: the catalog tea's detail (SCR-21) by its key, above the setup (D-098). */
     val openCatalog: (String) -> Unit = {},
+    /** ⋮ *Tee ansehen*: the tea's detail (SCR-09) by its id, above the setup (D-100). */
+    val openTea: (String) -> Unit = {},
+    /** *Neues Gefäß …* at the end of the *Gefäß* list: the vessel editor (SCR-14) above the setup (WARE-02). */
+    val newVessel: () -> Unit = {},
 )

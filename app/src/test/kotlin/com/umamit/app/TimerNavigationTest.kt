@@ -90,11 +90,11 @@ class TimerNavigationTest {
                             )
                         }
                     },
-                    setupScreen = { onBack, _, openCatalog ->
+                    setupScreen = { host ->
                         Column {
                             Text("SETUP")
-                            Button(onClick = { openCatalog("TG0557") }) { Text("Im Katalog ansehen") }
-                            Button(onClick = onBack) { Text("Setup verlassen") }
+                            Button(onClick = { host.onOpenCatalog("TG0557") }) { Text("Im Katalog ansehen") }
+                            Button(onClick = host.onBack) { Text("Setup verlassen") }
                         }
                     },
                     catalogScreens = CatalogStackScreens(

@@ -130,7 +130,7 @@ class TeaDetailFlowTest {
                             )
                         },
                     ),
-                    setupScreen = { onBack, onOpenTimer, _ -> Setup(onBack, onOpenTimer) },
+                    setupScreen = { host -> Setup(host.onBack, host.onOpenTimer) },
                     timerScreen = { _, _, _, _ -> Text(TIMER) },
                 )
             }

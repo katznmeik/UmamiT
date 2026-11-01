@@ -543,6 +543,22 @@ font 2.0.
   the teas of the current side (archived or not), whatever the other
   filters. Ties in every order break by name, then id.
 
+**Build notes (Claude, 2026-11-01, #158: the setup's links, archived vessel, BRW-08).**
+- ⋮ *Tee ansehen* opens the detail as a full-screen route above the setup
+  (`SetupTeaRoute`), like *Im Katalog ansehen*, whichever tab or root the
+  setup came from. On that detail, *Brühen* (or a recipe's tap) starts a
+  new setup in place of the one below, so back from it returns to where the
+  first setup began; *Archivieren* and *Löschen* close the detail and the
+  setup (no *Rückgängig* snackbar there; *Wiederherstellen* stays on the
+  archived tea's detail).
+- *Neues Gefäß …* sits below a divider at the end of the *Gefäß* list.
+  Like the ⋮, the list gives way to a new alert in its first frame
+  (rule 8).
+- The archived vessel reads „Kyusu 250 ml (archiviert)" (the setup's usual
+  vessel label with „(archiviert)" after it).
+- BRW-08 compares the exact stock with the leaf: „Nur noch 5,5 g übrig" at
+  5,6 g of leaf, „5,5 g übrig" at 5,5 g.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12

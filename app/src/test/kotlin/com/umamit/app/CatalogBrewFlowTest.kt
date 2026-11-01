@@ -143,7 +143,7 @@ class CatalogBrewFlowTest {
                             )
                         },
                     ),
-                    setupScreen = { onBack, onOpenTimer, onOpenCatalog -> Setup(onBack, onOpenTimer, onOpenCatalog) },
+                    setupScreen = { host -> Setup(host.onBack, host.onOpenTimer, host.onOpenCatalog) },
                 )
             }
         }
