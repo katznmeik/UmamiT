@@ -527,6 +527,22 @@ font 2.0.
   recipe's own Vorwarnung as the default (PRF-03, PRF-04). This replaces
   the „Claude" detail that steps only keep their stored choice.
 
+**Build notes (Claude, 2026-11-01, #148: style rows and list functions).**
+- `other` (*Andere / unbekannt*) has no umami level and no freshness window
+  (08 §3 „—"), so `TeaStyle.umami` and `freshnessDays` are nullable. The
+  generic rows' and `other`'s teaspoon weight is 2,5 g; the catalog never
+  maps to them (CAT-01), so nothing reads it.
+- The list functions are `CollectionBrowser` (`core:domain`) over
+  `CollectionRow`s (`core:model`: the tea, its `created_at`, its latest
+  session's start and its stock sum, null without stock events). GEN-10's
+  word-prefix search moved from the tea picker to `core:domain`
+  (`SearchQuery`); both use it.
+- The *Kategorie*, *Sorte* and *Vorrat* chips each allow several values
+  („any of"). *Knapp* matches *Knapp* teas only and *Leer* *Leer* teas
+  only; a tea without stock events is neither. The chips' values come from
+  the teas of the current side (archived or not), whatever the other
+  filters. Ties in every order break by name, then id.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12
