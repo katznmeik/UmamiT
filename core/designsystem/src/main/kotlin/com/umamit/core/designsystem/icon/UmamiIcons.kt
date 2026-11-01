@@ -72,6 +72,21 @@ object UmamiIcons {
 
     @DrawableRes val Infusions = R.drawable.ic_custom_infusions
 
+    // Vessel types (SCR-13, placeholders, 03 §3.4)
+    @DrawableRes val Kyusu = R.drawable.ic_custom_kyusu
+
+    @DrawableRes val Teapot = R.drawable.ic_custom_teapot
+
+    @DrawableRes val Houhin = R.drawable.ic_custom_houhin
+
+    @DrawableRes val Gaiwan = R.drawable.ic_custom_gaiwan
+
+    @DrawableRes val Cup = R.drawable.ic_custom_cup
+
+    @DrawableRes val Chawan = R.drawable.ic_custom_chawan
+
+    @DrawableRes val ColdBrewBottle = R.drawable.ic_custom_bottle
+
     // Illustrations (placeholders, 03 §3.5)
     @DrawableRes val LandscapePlaceholder = R.drawable.illustration_placeholder_landscape
 

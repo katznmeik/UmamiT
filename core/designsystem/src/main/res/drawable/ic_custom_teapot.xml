@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder line icon „Teekanne" (own work) until the PO's custom icons exist (03 §3.4). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M6,10H16V15A3,3 0,0 1,13 18H9A3,3 0,0 1,6 15ZM8,10A3,2 0,0 1,14 10M11,8V7.5M6,12L3,9.5M16,11.5H17.5A2,2 0,0 1,17.5 15.5H16"
+        android:strokeWidth="1.4"
+        android:strokeColor="@android:color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

@@ -9,6 +9,8 @@ dependencies {
     // The timer screen (SCR-05) reads the BrewSessionController's state and sends its inputs (D-056);
     // core:timer carries core:data (settings) and the monotonic clock binding.
     implementation(project(":core:timer"))
+    // The picker's GEN-10 search, shared with *Meine Tees* (TEA-09, D-100).
+    implementation(project(":core:domain"))
     // BackHandler: back with unsaved edits asks „Änderungen verwerfen?" (GEN-08).
     implementation(libs.androidx.activity.compose)
 

@@ -120,7 +120,7 @@ class TimerStateNotificationsTest {
         val rinse = states.ready().copy(stepIndex = 0)
         val whisk = states.ready().copy(steps = states.ready().steps.map { it.copy(kind = StepKind.WHISK) })
 
-        assertThat(build(rinse).title()).isEqualTo("Gyokuro · Spülaufguss 1 von 3")
+        assertThat(build(rinse).title()).isEqualTo("Gyokuro · Spülen 1 von 3")
         assertThat(build(whisk).title()).isEqualTo("Gyokuro · Aufschlagen 2 von 3")
     }
 
@@ -172,7 +172,7 @@ class TimerStateNotificationsTest {
         val rinse = states.alerting().copy(stepIndex = 0)
 
         assertThat(build(rinse, fullScreen = true).actionTitles()).containsExactly("Weggegossen")
-        assertThat(build(rinse, fullScreen = true).text()).isEqualTo("Gyokuro · Spülaufguss 1")
+        assertThat(build(rinse, fullScreen = true).text()).isEqualTo("Gyokuro · Spülen 1")
     }
 
     @Test

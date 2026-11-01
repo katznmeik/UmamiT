@@ -372,6 +372,32 @@ internal fun UmamitRoot(
                         onBack = dropUnlessResumed { navController.popBackStack() },
                         onOpenAbout = { navigateAbove(AboutRoute) {} },
                         alertKey = alert,
+                        onOpenTeaware = dropUnlessResumed { navigateAbove(TeawareRoute) {} },
+                    ),
+                )
+            }
+            // Teegeschirr above the timer (from *Timer-Einstellungen*), and the vessel editor above it or above
+            // the setup (*Neues Gefäß …*, WARE-02); both give way to a new alert like every route above the
+            // shell (rule 8).
+            composable<TeawareRoute> { entry ->
+                settings.teaware(
+                    TeawareHost(
+                        onBack = dropUnlessResumed { navController.popBackStack() },
+                        onOpenVessel = { id -> navigateAbove(VesselEditorRoute(id)) { launchSingleTop = true } },
+                        onAddVessel = dropUnlessResumed {
+                            navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
+                        },
+                        archived = entry.archivedVessel(),
+                        onArchivedSnackbarEnd = entry::forgetArchivedVessel,
+                    ),
+                )
+            }
+            composable<VesselEditorRoute> {
+                settings.vesselEditor(
+                    VesselEditorHost(
+                        onClose = dropUnlessResumed { navController.popBackStack() },
+                        onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
+                        onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
                     ),
                 )
             }

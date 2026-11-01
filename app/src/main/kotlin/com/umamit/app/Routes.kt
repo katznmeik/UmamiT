@@ -113,6 +113,18 @@ internal data object OnboardingRoute
 @Serializable
 internal data object DiagnosticsRoute
 
+/** *Teegeschirr* (SCR-13) from *Einstellungen › Teegeschirr* (SET-30, D-100): in a tab's stack or above the timer. */
+@Serializable
+internal data object TeawareRoute
+
+/**
+ * The vessel editor (SCR-14): [vesselId] to edit, null for a new vessel (named as the editor's view model reads it,
+ * `VesselEditorViewModel.VESSEL_ID`). It closes with its result in the entry below ([closeVesselEditor]): the saved
+ * vessel's id, for the setup's *Neues Gefäß …* (WARE-02), or the archived vessel, for the list's snackbar.
+ */
+@Serializable
+internal data class VesselEditorRoute(val vesselId: String? = null)
+
 /** The four areas of 03 §2.2, in navigation order. */
 internal enum class Tab(val root: Any, @StringRes val label: Int, @DrawableRes val icon: Int) {
     Start(StartRoute, R.string.tab_start, UmamiIcons.Start),

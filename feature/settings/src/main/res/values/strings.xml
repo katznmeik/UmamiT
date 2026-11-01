@@ -63,6 +63,9 @@
 
     <!-- Brühen & Vorrat (SET-30, v0.2.2, D-097): „Knapp ab" (SET-16, INV-05), 0–500 g in 5 g steps. -->
     <string name="settings_section_brewing">Brühen &amp; Vorrat</string>
+    <!-- SET-15 (INV-02, v0.4.0, D-100): the first row of Brühen & Vorrat. -->
+    <string name="settings_deduct_stock">Bestand abziehen</string>
+    <string name="settings_deduct_stock_detail">Zieht nach jeder Sitzung die Blätter vom Vorrat ab.</string>
     <string name="settings_low_stock">Knapp ab</string>
     <string name="settings_low_stock_grams">%1$d g</string>
     <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>
@@ -86,6 +89,10 @@
     <string name="settings_catalog_refresh_detail">Lädt alle Grün- und Kräutertees von Tee-Kontor Kiel. Das erste Laden dauert etwa eine Viertelstunde, spätere Aktualisierungen wenige Minuten; es läuft auch bei gesperrtem Handy weiter.</string>
     <string name="settings_catalog_photos">Fotos laden</string>
     <string name="settings_catalog_photos_detail">Beim Aktualisieren ein Foto je Tee laden, zusammen etwa 30 MB</string>
+
+    <!-- Teegeschirr (SET-30, v0.4.0, D-100): one row that opens the teaware list (SCR-13). -->
+    <string name="settings_section_teaware">Teegeschirr</string>
+    <string name="settings_teaware">Teegeschirr</string>
 
     <!-- Über (SCR-27). -->
     <string name="settings_section_about">Über</string>
