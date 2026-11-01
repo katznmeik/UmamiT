@@ -304,8 +304,12 @@ internal fun UmamitApp(
                                         openTea = openTea,
                                         alerting = alerting,
                                         addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
-                                        // *Sorte wählen* (SCR-11) comes with #155.
-                                        addWithoutCatalog = {},
+                                        // *Ohne Katalog*: *Sorte wählen* (SCR-11, TEA-01).
+                                        addWithoutCatalog = dropUnlessResumed {
+                                            controllers.getValue(Tab.Collection).navigate(CollectionSorteRoute) {
+                                                launchSingleTop = true
+                                            }
+                                        },
                                     ),
                                 )
                             },
@@ -634,6 +638,38 @@ private fun TabHost(
                     },
                     onDeleted = { close() },
                     alertKey = alertKey,
+                    onEditTea = dropUnlessResumed { navController.navigate(CollectionTeaEditorRoute(teaId = teaId)) },
+                ),
+            )
+        }
+        // *Sorte wählen* (SCR-11): a tap replaces it with the editor of a new tea of that Sorte (TEA-01).
+        composable<CollectionSorteRoute> {
+            collection.screens.sortePicker(
+                dropUnlessResumed { navController.popBackStack() },
+                resumedOnly { styleKey: String ->
+                    navController.navigate(CollectionTeaEditorRoute(styleKey = styleKey)) {
+                        popUpTo<CollectionSorteRoute> { inclusive = true }
+                    }
+                },
+            )
+        }
+        // Tee bearbeiten (SCR-10): after an add, the new tea's detail replaces it; after an edit, back to the detail.
+        composable<CollectionTeaEditorRoute> { entry ->
+            val onTop = { navController.currentBackStackEntry?.id == entry.id }
+            collection.screens.teaEditor(
+                TeaEditorHost(
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                    onSave = { teaId, isNew ->
+                        when {
+                            !onTop() -> Unit
+
+                            isNew -> navController.navigate(CollectionTeaRoute(teaId)) {
+                                popUpTo<CollectionTeaEditorRoute> { inclusive = true }
+                            }
+
+                            else -> navController.popBackStack()
+                        }
+                    },
                 ),
             )
         }

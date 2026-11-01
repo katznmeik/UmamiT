@@ -228,7 +228,7 @@ internal fun Details(facts: TeaFacts) {
     }
 }
 
-private val HarvestSeason.label: Int?
+internal val HarvestSeason.label: Int?
     get() = when (this) {
         HarvestSeason.FIRST_FLUSH -> R.string.collection_tea_season_first_flush
         HarvestSeason.SECOND_FLUSH -> R.string.collection_tea_season_second_flush

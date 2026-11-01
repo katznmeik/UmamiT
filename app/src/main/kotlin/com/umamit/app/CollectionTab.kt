@@ -6,6 +6,8 @@ import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.collection.detail.TeaDetailRoute
+import com.umamit.feature.collection.editor.SortePickerScreen
+import com.umamit.feature.collection.editor.TeaEditorRoute
 
 /**
  * What Sammlung's *Meine Tees* segment gets from the shell (SCR-08).
@@ -28,17 +30,26 @@ internal class MyTeasTab(
 
 /**
  * The collection screens of the Sammlung stack: the *Meine Tees* list ([myTeas]; the app passes [MyTeasTabContent],
- * the default is „Noch keine Tees" without data),
- * a tea's detail (SCR-09) and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the list shows after
- * *Archivieren* on the detail (D-100). The app uses the real routes; tests replace them.
+ * the default is „Noch keine Tees" without data), a tea's detail (SCR-09), *Sorte wählen* (SCR-11), the tea editor
+ * (SCR-10) and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the list shows after *Archivieren* on the
+ * detail (D-100). The app uses the real routes; tests replace them.
  */
 internal class CollectionStackScreens(
     val myTeas: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
     val tea: @Composable (TeaDetailHost) -> Unit = { TeaDetailRoute(it) },
+    val sortePicker: @Composable (onBack: () -> Unit, onPick: (styleKey: String) -> Unit) -> Unit =
+        { onBack, onPick -> SortePickerScreen(onBack = onBack, onPick = onPick) },
+    val teaEditor: @Composable (TeaEditorHost) -> Unit = { TeaEditorRoute(onClose = it.onClose, onSave = it.onSave) },
     // Only composed with a notice: its view model exists only while there is something to undo.
     val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, modifier: Modifier) -> Unit =
         { archived, onDone, modifier -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, modifier) },
 )
+
+/**
+ * What the tea editor (SCR-10) gets from the Sammlung stack: [onClose] for ✕ and back, [onSave] after *Speichern*
+ * (after an add, [isNew], the new tea's detail replaces the editor).
+ */
+internal class TeaEditorHost(val onClose: () -> Unit, val onSave: (teaId: String, isNew: Boolean) -> Unit)
 
 /**
  * What the Sammlung tab's collection screens get from the shell: the [screens], the tea [archived] on its detail
