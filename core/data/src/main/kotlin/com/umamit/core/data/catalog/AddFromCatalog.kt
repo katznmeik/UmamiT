@@ -11,6 +11,7 @@ import com.umamit.core.data.PhotoTranscoder
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.data.purchaseEvent
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogTeaEntity
@@ -35,7 +36,6 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
 import java.util.UUID
 import javax.inject.Inject
 
@@ -172,10 +172,13 @@ class RoomAddFromCatalog @Inject constructor(
     /** Writes the collection copy of [entry] and returns its id. */
     private suspend fun copy(entry: CatalogTeaEntity, purchase: CatalogPurchase, cover: CoverCopy?): String {
         val teaId = UUID.randomUUID().toString()
-        teas.saveTea(entry.toTea(teaId))
+        val tea = entry.toTea(teaId)
+        // Saving a recipe clears „Rezept prüfen" (TEA-17), so the tea's reason is written after its recipes.
+        teas.saveTea(tea.copy(recipeCheckReason = null))
         templates(entry).forEachIndexed { position, template ->
             recipes.saveRecipe(template.toRecipe(UUID.randomUUID().toString(), teaId, position))
         }
+        if (tea.recipeCheckReason != null) teas.saveTea(tea)
         stock.addEvent(event(teaId, InventoryEventType.INITIAL, purchase))
         if (cover != null) {
             teas.savePhoto(
@@ -239,28 +242,9 @@ class RoomAddFromCatalog @Inject constructor(
 
     private fun currentYear(): Int = Instant.ofEpochMilli(time.nowMs()).atZone(time.zone()).year
 
-    /**
-     * The stock event of [purchase]: bought today, now; on another day, that day at noon in the
-     * phone's zone (the order among the events of one day doesn't matter, D-085).
-     */
-    private fun event(teaId: String, type: InventoryEventType, purchase: CatalogPurchase): InventoryEvent {
-        val now = time.nowMs()
-        val zone = time.zone()
-        val at = if (purchase.purchasedOn == Instant.ofEpochMilli(now).atZone(zone).toLocalDate()) {
-            now
-        } else {
-            purchase.purchasedOn.atTime(LocalTime.NOON).atZone(zone).toInstant().toEpochMilli()
-        }
-        return InventoryEvent(
-            id = UUID.randomUUID().toString(),
-            teaId = teaId,
-            type = type,
-            deltaGrams = purchase.grams,
-            occurredAtMillis = at,
-            priceCents = purchase.priceCents,
-            packageLabel = CatalogColumns.packageLabel(purchase.grams, null),
-        )
-    }
+    /** The stock event of [purchase] ([purchaseEvent]: bought today, now; on another day, that day at noon). */
+    private fun event(teaId: String, type: InventoryEventType, purchase: CatalogPurchase): InventoryEvent =
+        purchaseEvent(teaId, type, purchase.grams, purchase.priceCents, purchase.purchasedOn, time)
 
     /** A catalog photo re-encoded for the collection, written as `photos/<id>.jpg`. */
     private class CoverCopy(val id: String, val bytes: ByteArray, val width: Int, val height: Int)

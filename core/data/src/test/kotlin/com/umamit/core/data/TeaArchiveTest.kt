@@ -28,7 +28,7 @@ class TeaArchiveTest {
     val folder = TemporaryFolder()
 
     private val data = TestDatabase()
-    private val archive by lazy { RoomTeaArchive(data.db, data.time) }
+    private val archive by lazy { RoomTeaArchive(data.db, data.time, PhotoFiles(folder.newFolder("archive-photos"))) }
 
     @After
     fun tearDown() = data.close()

@@ -1,7 +1,9 @@
 package com.umamit.core.testing
 
 import com.umamit.core.common.snap5
+import com.umamit.core.data.DeleteRecipeResult
 import com.umamit.core.data.RecipeRepository
+import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
@@ -41,6 +43,11 @@ class FakeCollection {
     val recipes = FakeRecipeRepository(this)
     val vessels = FakeVesselRepository(this)
     val stock = FakeStockRepository(this)
+
+    /** „Rezept prüfen" of [teaId] goes (CAT-05, TEA-17); a tea that is gone is ignored. */
+    internal fun clearRecipeCheck(teaId: String) = teaRows.update { map ->
+        map[teaId]?.let { map + (teaId to it.copy(recipeCheckReason = null)) } ?: map
+    }
 }
 
 /** Fake [TeaRepository]; create it through [FakeCollection]. */
@@ -80,9 +87,7 @@ class FakeTeaRepository internal constructor(private val c: FakeCollection) : Te
         map[teaId]?.let { map + (teaId to it.copy(coverPhotoId = photoId)) } ?: map
     }
 
-    override suspend fun clearRecipeCheck(teaId: String) = c.teaRows.update { map ->
-        map[teaId]?.let { map + (teaId to it.copy(recipeCheckReason = null)) } ?: map
-    }
+    override suspend fun clearRecipeCheck(teaId: String) = c.clearRecipeCheck(teaId)
 }
 
 /** Fake [RecipeRepository]; create it through [FakeCollection]. */
@@ -93,24 +98,56 @@ class FakeRecipeRepository internal constructor(private val c: FakeCollection) :
 
     override suspend fun getRecipe(id: String): Recipe? = c.recipeRows.value[id]
 
-    override suspend fun saveRecipe(recipe: Recipe) {
+    override suspend fun saveRecipe(recipe: Recipe): SaveRecipeResult {
         val snapped = recipe.copy(baseTempC = snap5(recipe.baseTempC), steps = recipe.steps.snapped())
+        val rows = c.recipeRows.value
+        if (snapped.id !in rows && rows.values.count { it.teaId == snapped.teaId } >= Recipe.MAX_PER_TEA) {
+            return SaveRecipeResult.LimitReached
+        }
         c.recipeRows.update { map ->
             val others = if (snapped.isDefault) {
                 map.mapValues { (_, r) -> if (r.teaId == snapped.teaId) r.copy(isDefault = false) else r }
             } else {
                 map
             }
-            others + (snapped.id to snapped)
+            (others + (snapped.id to snapped)).withDefault(snapped.teaId)
+        }
+        c.clearRecipeCheck(snapped.teaId)
+        return SaveRecipeResult.Saved
+    }
+
+    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) {
+        val recipe = c.recipeRows.value[recipeId] ?: return
+        c.recipeRows.update { map -> map + (recipeId to recipe.copy(steps = steps.snapped())) }
+        c.clearRecipeCheck(recipe.teaId)
+    }
+
+    override suspend fun deleteRecipe(id: String): DeleteRecipeResult {
+        val recipe = c.recipeRows.value[id]
+        return when {
+            recipe == null -> DeleteRecipeResult.NotFound
+
+            c.recipeRows.value.values.count { it.teaId == recipe.teaId } <= 1 -> DeleteRecipeResult.LastRecipe
+
+            else -> {
+                c.recipeRows.update { map -> (map - id).withDefault(recipe.teaId) }
+                DeleteRecipeResult.Deleted
+            }
         }
     }
 
-    override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) = c.recipeRows.update { map ->
-        val recipe = map[recipeId] ?: return@update map
-        map + (recipeId to recipe.copy(steps = steps.snapped()))
+    /** As on Room: a tea without a default makes its first recipe by position the default (PRF-01). */
+    private fun Map<String, Recipe>.withDefault(teaId: String): Map<String, Recipe> {
+        val own = values.filter { it.teaId == teaId }
+        val first = own.minWithOrNull(compareBy({ it.position }, { it.name }, { it.id }))
+        return if (first == null ||
+            own.any { it.isDefault }
+        ) {
+            this
+        } else {
+            this + (first.id to first.copy(isDefault = true))
+        }
     }
-
-    override suspend fun deleteRecipe(id: String) = c.recipeRows.update { it - id }
 }
 
 /** Fake [VesselRepository]; create it through [FakeCollection]. */
