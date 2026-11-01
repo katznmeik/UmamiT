@@ -97,11 +97,7 @@ class RoomLowStockRepository @Inject constructor(
     private fun reorderUrl(level: TeaStockLevel): Flow<String?> {
         val key = level.catalogKey ?: return flowOf(null)
         return combine(catalog.observeTea(key), dao.observeForTea(level.teaId)) { tea, events ->
-            when {
-                tea == null -> level.productUrl
-                tea.discontinued -> null
-                else -> ShopLink.url(tea.productUrl, tea.packages, events.map { it.toModel() })
-            }
+            ShopLink.reorderUrl(key, tea, level.productUrl, events.map { it.toModel() })
         }
     }
 

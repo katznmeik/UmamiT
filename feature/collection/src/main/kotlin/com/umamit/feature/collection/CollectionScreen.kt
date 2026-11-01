@@ -26,6 +26,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
  * *Katalog aktualisieren* ([onRefreshCatalog], SCR-19, CAT-07) and *Link einfügen*
  * ([onPasteLink], a tea from a shop link, CAT-17), and while the catalog shows a view whose *Sorte* groups fold
  * ([onFoldCatalog] not null, D-098) *Alle einklappen* (`true`) and *Alle ausklappen* (`false`).
+ * [myTeasContent], when given, replaces the placeholder of *Meine Tees* (SCR-08, wired by the app like the
+ * catalog); like the catalog it fills the rest of the screen and scrolls itself.
  */
 @Composable
 fun CollectionScreen(
@@ -38,6 +40,7 @@ fun CollectionScreen(
     onRefreshCatalog: () -> Unit = {},
     onPasteLink: () -> Unit = {},
     onFoldCatalog: ((fold: Boolean) -> Unit)? = null,
+    myTeasContent: (@Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit)? = null,
 ) {
     val refreshLabel = stringResource(R.string.collection_catalog_refresh)
     val pasteLabel = stringResource(R.string.collection_catalog_paste_link)
@@ -63,7 +66,7 @@ fun CollectionScreen(
         // The segments stay at the top (a centred column moved them with the placeholder's height).
         verticalArrangement = Arrangement.Top,
         // The catalog is a lazy list that scrolls itself below the segments.
-        scrollable = segment == CollectionSegment.MyTeas,
+        scrollable = segment == CollectionSegment.MyTeas && myTeasContent == null,
     ) {
         val segments = CollectionSegment.entries
         SingleChoiceSegmentedButtonRow(
@@ -82,10 +85,14 @@ fun CollectionScreen(
             }
         }
         when (segment) {
-            CollectionSegment.MyTeas -> EmptyState(
-                title = stringResource(R.string.collection_my_teas_later_title),
-                body = stringResource(R.string.collection_my_teas_later_body),
-            )
+            CollectionSegment.MyTeas -> if (myTeasContent != null) {
+                myTeasContent(Modifier.weight(1f), scrollToTopRequest)
+            } else {
+                EmptyState(
+                    title = stringResource(R.string.collection_my_teas_later_title),
+                    body = stringResource(R.string.collection_my_teas_later_body),
+                )
+            }
 
             CollectionSegment.Catalog -> catalogContent(Modifier.weight(1f), scrollToTopRequest)
         }

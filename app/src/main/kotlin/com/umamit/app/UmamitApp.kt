@@ -66,6 +66,8 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.feature.catalog.TeaLinkShare
 import com.umamit.feature.collection.CollectionScreen
 import com.umamit.feature.collection.CollectionSegment
+import com.umamit.feature.collection.detail.ArchivedTea
+import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.stats.StatsScreen
@@ -96,6 +98,8 @@ private const val SLIDE_FRACTION = 12
  * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20) in the Sammlung tab;
  *   tests replace them.
+ * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) in the Sammlung tab and its archive
+ *   snackbar; tests replace them.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
@@ -126,6 +130,7 @@ internal fun UmamitApp(
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
+    collectionScreens: CollectionStackScreens = CollectionStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
@@ -142,6 +147,8 @@ internal fun UmamitApp(
     var catalogPasteRequest by remember { mutableIntStateOf(0) }
     // *Alle einklappen* / *Alle ausklappen* in the same menu, only while the catalog's groups fold (D-098).
     val catalogFolds = remember { CatalogFoldMenu() }
+    // The tea archived on its detail, for the snackbar with *Rückgängig* on the screen below (D-100).
+    var archivedTea by rememberSaveable(stateSaver = ArchivedTea.Saver) { mutableStateOf<ArchivedTea?>(null) }
     // A shared link shows the catalog list, which loads it (CAT-17).
     LaunchedEffect(teaLinkShare?.token) {
         if (teaLinkShare != null) {
@@ -248,6 +255,12 @@ internal fun UmamitApp(
                             settings = settings,
                             alertKey = alertKey,
                             catalogScreens = catalogScreens,
+                            collection = CollectionWiring(
+                                screens = collectionScreens,
+                                archived = archivedTea,
+                                onArchivedChange = { archivedTea = it },
+                                openSetup = startNavigation.openSetupWith,
+                            ),
                             catalog = { catalogModifier, scrollToTop ->
                                 catalogScreen(
                                     CatalogTab(
@@ -504,6 +517,7 @@ private fun TabHost(
     settings: SettingsScreens,
     alertKey: String?,
     catalogScreens: CatalogStackScreens,
+    collection: CollectionWiring,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     onPasteLink: () -> Unit,
@@ -532,15 +546,47 @@ private fun TabHost(
             JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
         }
         composable<CollectionRoute> {
-            CollectionScreen(
-                segment = segment,
-                onSegmentChange = onSegmentChange,
-                onOpenSettings = openSettings,
-                catalogContent = catalog,
-                scrollToTopRequest = scrollToTopRequest,
-                onRefreshCatalog = onRefreshCatalog,
-                onPasteLink = onPasteLink,
-                onFoldCatalog = onFoldCatalog,
+            // Only from the resumed list: a double tap opens one detail (D-090).
+            val openTea = resumedOnly<String> { navController.navigate(CollectionTeaRoute(it)) }
+            Box(modifier = Modifier.fillMaxSize()) {
+                CollectionScreen(
+                    segment = segment,
+                    onSegmentChange = onSegmentChange,
+                    onOpenSettings = openSettings,
+                    catalogContent = catalog,
+                    scrollToTopRequest = scrollToTopRequest,
+                    onRefreshCatalog = onRefreshCatalog,
+                    onPasteLink = onPasteLink,
+                    onFoldCatalog = onFoldCatalog,
+                    myTeasContent = collection.screens.myTeas?.let { myTeas ->
+                        { modifier, scrollToTop -> myTeas(MyTeasTab(modifier, scrollToTop, openTea)) }
+                    },
+                )
+                // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on the detail (D-100).
+                collection.screens.archivedSnackbar(
+                    collection.archived,
+                    { collection.onArchivedChange(null) },
+                    Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+        // A collection tea's detail (SCR-09): *Brühen* and a recipe's tap open the setup above the shell, which
+        // opens the alerting timer instead during an alert (rule 8). *Archivieren* and *Löschen* close it.
+        composable<CollectionTeaRoute> { entry ->
+            val teaId = entry.toRoute<CollectionTeaRoute>().teaId
+            // Only while this detail is on top: a late outcome never pops another screen.
+            val close = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            collection.screens.tea(
+                TeaDetailHost(
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                    onBrew = resumedOnly { recipeId: String? -> collection.openSetup(teaId, recipeId) },
+                    onArchived = {
+                        collection.onArchivedChange(it)
+                        close()
+                    },
+                    onDeleted = { close() },
+                    alertKey = alertKey,
+                ),
             )
         }
         // The add sheet (SCR-23) gives way to an alert (rule 8). Every on-screen back acts only while its
