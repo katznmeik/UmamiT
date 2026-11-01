@@ -706,7 +706,9 @@ brühen* (→ setup prefilled, BRW-06, v0.4.0), and Home
 Home *Nochmal brühen* shows the **3 most recently brewed distinct teas**
 (non-archived). Tapping one starts a session immediately and opens the timer
 in READY with the parameters of that tea's last session (recipe, vessel, leaf,
-water, temperatures, step durations as planned). The kettle hint shows the
+water, temperatures, step durations as planned). A session finished early
+starts again with its started steps only (D-062), though from v0.4.0 it keeps
+its never-started ones for BRW-06 (Q-19). The kettle hint shows the
 temperature. Timer ⋮ › *Brühen anpassen* opens the setup screen for this
 session (only while no step has started). A known tea starts in **2 taps**
 (tea → *Start*).

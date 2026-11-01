@@ -62,10 +62,6 @@ interface SessionDao {
     /** Deletes the rows of [sessionId] from [position] on: the pending suffix (05 §3.7). */
     @Query("DELETE FROM session_step WHERE session_id = :sessionId AND position >= :position")
     suspend fun deleteStepsFrom(sessionId: String, position: Int)
-
-    /** Deletes the rows that were never started, i.e. carry no recorded values (05 §3.7, TMR-12). */
-    @Query("DELETE FROM session_step WHERE session_id = :sessionId AND actual_seconds IS NULL")
-    suspend fun deleteUnrecordedSteps(sessionId: String)
 }
 
 /** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */

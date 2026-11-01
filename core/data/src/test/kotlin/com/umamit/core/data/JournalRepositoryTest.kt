@@ -63,9 +63,9 @@ class JournalRepositoryTest {
         assertThat(sessions.map { it.session.status })
             .containsExactly(SessionStatus.IN_PROGRESS, SessionStatus.COMPLETED).inOrder()
         val early = sessions.last().session
-        // „1 von 2 Aufgüssen": the never-started row is gone, the plan keeps its count (TMR-12).
+        // „1 von 2 Aufgüssen": the plan keeps its count (TMR-12); the never-started row stays unended (Q-19).
         assertThat(early.plannedStepCount).isEqualTo(2)
-        assertThat(early.steps.map { it.actualSeconds }).containsExactly(60)
+        assertThat(early.steps.map { it.actualSeconds }).containsExactly(60, null).inOrder()
     }
 
     @Test
