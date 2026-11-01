@@ -202,7 +202,7 @@ class AccuracyRunTest {
                 )
             },
         )
-        val outcome = eventually("the session's start in the timer process", TIMEOUT) {
+        val outcome = eventually("the session's start in the timer process", START_TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
         assertEquals("test setup: start and Start of the session", TimerTestActivity.STARTED, outcome)
@@ -235,8 +235,7 @@ class AccuracyRunTest {
     /** One running step: the screen off until the alert, its fire times read, then *Abgegossen*. */
     private fun runStep(number: Int): StepFireTimes {
         liveUpdateWith(pause, "step $number running")
-        shell("input keyevent KEYCODE_SLEEP")
-        eventually("the screen off in step $number", SCREEN_TIMEOUT) { Unit.takeIf { !power.isInteractive } }
+        screenOff("in step $number")
         val alert = eventually("the alert (ID 2) of step $number", STEP + ALERT_TIMEOUT) {
             activeNotification(TimerNotifications.ID_ALERT)
         }
@@ -314,15 +313,28 @@ class AccuracyRunTest {
         context.startActivity(
             TimerTestActivity.quickIntent(context, duration.inWholeSeconds.toInt(), preAlertSeconds, restart = true),
         )
-        val outcome = eventually("$what: its start in the timer process", TIMEOUT) {
+        val outcome = eventually("$what: its start in the timer process", START_TIMEOUT) {
             TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
         }
         assertEquals("test setup: $what", TimerTestActivity.STARTED, outcome)
     }
 
+    /**
+     * Turns the screen off and waits until it stays off for [SCREEN_OFF_SETTLE] ([what] for a failure). The alert's
+     * full-screen stand-in turns the screen on when it opens or comes to the front again (setTurnScreenOn), which
+     * can come after the first key: the key is sent again while the screen is on, as in [ProcessDeathTest].
+     */
     private fun screenOff(what: String) {
-        shell("input keyevent KEYCODE_SLEEP")
-        eventually("the screen off $what", SCREEN_TIMEOUT) { Unit.takeIf { !power.isInteractive } }
+        var offSince: TimeSource.Monotonic.ValueTimeMark? = null
+        eventually("the screen off $what", SCREEN_TIMEOUT) {
+            if (power.isInteractive) {
+                offSince = null
+                shell("input keyevent KEYCODE_SLEEP")
+            } else if (offSince == null) {
+                offSince = TimeSource.Monotonic.markNow()
+            }
+            Unit.takeIf { offSince?.let { it.elapsedNow() >= SCREEN_OFF_SETTLE } == true }
+        }
     }
 
     /**
@@ -542,7 +554,18 @@ class AccuracyRunTest {
         /** `alongside`: the quick timer's alert is done and the screen off this long before the step's pre-alert. */
         private val SOUND_MARGIN = 5.seconds
         private val TIMEOUT = 10.seconds
-        private val SCREEN_TIMEOUT = 5.seconds
+
+        /**
+         * A start in the timer process through [TimerTestActivity]: its process, the activity and the outcome file,
+         * which on a slow CI emulator once took longer than [TIMEOUT].
+         */
+        private val START_TIMEOUT = 30.seconds
+
+        /** The screen off, with the sleep key sent again while the alert's stand-in turns it on. */
+        private val SCREEN_TIMEOUT = 10.seconds
+
+        /** How long the screen must stay off before the step goes on. */
+        private val SCREEN_OFF_SETTLE = 1.seconds
 
         /** Margin after the step for the alarm, the alert and its notification on a slow CI emulator. */
         private val ALERT_TIMEOUT = 45.seconds
