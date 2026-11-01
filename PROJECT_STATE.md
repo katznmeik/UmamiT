@@ -5,6 +5,8 @@
 
 **Last updated:** 2026-11-01 (v0.4.0 built: all 13 build tickets on PR #162, code review done; **next: the fix round F1–F15**, then `v0.4.0-rc.1` — paused by the PO before the fix round)
 
+> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) first:** state, the PO questions to ask first (F5, F11, F12), environment setup (Gradle lock, gate script), the fix-round cut, the steps to rc.1, the implementer brief and the build's contracts.
+
 ## Phase
 
 | Item | Status |
@@ -85,7 +87,7 @@
   session's), F12 (refuse deleting the running session's recipe — proposed: yes), F5 (wire the editors above the setup —
   proposed — or hide the pencils there). Also from #152: Start's *Nochmal brühen* keeps brewing only the steps that ran
   (BRW-11/D-062, unchanged).
-- **Paused by the PO (2026-11-01) before the fix round:** no fix implementer, no accuracy runs started.
+- **Paused by the PO (2026-11-01) before the fix round:** no fix implementer, no accuracy runs started. To resume (after the weekly limit resets): **`docs/plans/v0.4.0-resume.md`**.
 
 **Remaining steps to `v0.4.0-rc.1`:**
 1. Fix round: one implementer (T3; T4 for anything touching session completion or the timer) works F1–F10 plus the
