@@ -105,7 +105,18 @@ interface ActiveBrewDao {
     /** [observeActiveTeaId], read once. */
     @Query(ACTIVE_TEA_ID)
     suspend fun activeTeaId(): String?
+
+    /** The vessel of the active brew session; null without one or for a session without a vessel (WARE-01, D-100). */
+    @Query(ACTIVE_VESSEL_ID)
+    fun observeActiveVesselId(): Flow<String?>
+
+    /** [observeActiveVesselId], read once. */
+    @Query(ACTIVE_VESSEL_ID)
+    suspend fun activeVesselId(): String?
 }
 
 private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +
+    "JOIN brew_session ON brew_session.id = active_brew.session_id"
+
+private const val ACTIVE_VESSEL_ID = "SELECT brew_session.vessel_id FROM active_brew " +
     "JOIN brew_session ON brew_session.id = active_brew.session_id"

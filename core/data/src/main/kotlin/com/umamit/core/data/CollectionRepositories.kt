@@ -26,7 +26,10 @@ interface TeaRepository {
     /** Inserts the tea, or updates it when its id exists (keeping its creation time). */
     suspend fun saveTea(tea: Tea)
 
-    /** Deletes the tea; its recipes, stock events and photos go with it (05 §3). */
+    /**
+     * Deletes the tea row; its recipes, stock events and photo rows go with it (05 §3). The user's *Löschen*
+     * is [TeaArchive.delete], which also guards the active brew and removes the photo files (D-100).
+     */
     suspend fun deleteTea(id: String)
 
     /** Stores a photo row (05 §3.9); the image file itself is written by the caller. */
@@ -50,18 +53,44 @@ interface RecipeRepository {
     suspend fun getRecipe(id: String): Recipe?
 
     /**
-     * Inserts or updates the recipe and replaces its steps. A recipe saved as default
-     * becomes the tea's only default.
+     * Inserts or updates the recipe and replaces its steps, in one transaction (PRF-01, D-100):
+     * - a recipe saved as default becomes the tea's only default; a tea without a default makes its
+     *   first recipe (by position) the default, so it always has exactly one;
+     * - a new recipe of a tea that already has [Recipe.MAX_PER_TEA] is refused ([SaveRecipeResult.LimitReached]);
+     * - the tea's „Rezept prüfen" is cleared (TEA-17), from the recipe editor and the setup's *Im Rezept speichern*.
      */
-    suspend fun saveRecipe(recipe: Recipe)
+    suspend fun saveRecipe(recipe: Recipe): SaveRecipeResult
 
     /**
      * *Im Rezept speichern* (BRW-02, SCR-31): replaces exactly the steps, each with its pre-alert (TMR-23,
-     * D-093); the recipe's pre-alert base B stays.
+     * D-093); the recipe's pre-alert base B stays. Clears the tea's „Rezept prüfen" (TEA-17).
      */
     suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>)
 
-    suspend fun deleteRecipe(id: String)
+    /**
+     * Deletes the recipe unless it is its tea's last one (PRF-01, D-100); a deleted default passes to the
+     * first remaining recipe by position. One transaction.
+     */
+    suspend fun deleteRecipe(id: String): DeleteRecipeResult
+}
+
+/** How [RecipeRepository.saveRecipe] ended. */
+sealed interface SaveRecipeResult {
+    data object Saved : SaveRecipeResult
+
+    /** The tea already has [Recipe.MAX_PER_TEA] recipes; nothing was written. */
+    data object LimitReached : SaveRecipeResult
+}
+
+/** How [RecipeRepository.deleteRecipe] ended. */
+sealed interface DeleteRecipeResult {
+    data object Deleted : DeleteRecipeResult
+
+    /** The tea's last recipe stays (PRF-01); nothing changed. */
+    data object LastRecipe : DeleteRecipeResult
+
+    /** No recipe with the id (any more); nothing changed. */
+    data object NotFound : DeleteRecipeResult
 }
 
 /** The user's vessels (05 §3.4). */
@@ -73,6 +102,7 @@ interface VesselRepository {
 
     suspend fun saveVessel(vessel: Vessel)
 
+    /** Deletes the vessel row. The app never deletes a vessel: it archives it ([VesselArchive], D-100). */
     suspend fun deleteVessel(id: String)
 }
 
