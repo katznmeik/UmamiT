@@ -283,7 +283,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun pickerEmpty() = capture("TeaPicker_empty") { PickerHost(TeaPickerUiState(loading = false)) }
 
-    /** A long press on a tea: its menu with *Aus Sammlung entfernen* (SCR-03, TEA-04). */
+    /** A long press on a tea: its menu with *Archivieren* (SCR-03, TEA-04). */
     @Test
     fun pickerMenu() = capture("TeaPicker_menu", act = { longPress("Bio Sencha Tanabata") }) {
         PickerHost(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata), loading = false))

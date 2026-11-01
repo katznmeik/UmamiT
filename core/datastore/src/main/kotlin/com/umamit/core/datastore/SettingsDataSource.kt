@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.CollectionSegment
+import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +61,9 @@ data class StoredSettings(
     val quickTimerPreAlert: Int? = null,
     /** CAT-10 (v0.3.0, D-098): the catalog's folded groups; a file of v0.2.2 has no key and reads ∅, no migration. */
     val catalogFolded: Set<String> = emptySet(),
+    /** TEA-11, SCR-08 (v0.4.0, D-100); a file of v0.3.0 has neither key and reads the defaults, no migration. */
+    val collectionSort: String = CollectionSort.LAST_BREWED.name,
+    val collectionSegment: String = CollectionSegment.MY_TEAS.name,
     /** Set once the first-start seed data exists (M1-07); never reset. */
     val seedDataCreated: Boolean = false,
     /** Set once the one-time seed photo download has ended in any way (ONB-06); never reset. */
@@ -192,6 +197,8 @@ private fun StoredSettings.toModel() = UserSettings(
     catalogDownloadPhotos = catalogDownloadPhotos,
     quickTimerPreAlert = quickTimerPreAlert,
     catalogFolded = catalogFolded,
+    collectionSort = enumOrDefault(collectionSort, CollectionSort.LAST_BREWED),
+    collectionSegment = enumOrDefault(collectionSegment, CollectionSegment.MY_TEAS),
 )
 
 private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
@@ -218,6 +225,8 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     catalogDownloadPhotos = catalogDownloadPhotos,
     quickTimerPreAlert = quickTimerPreAlert,
     catalogFolded = catalogFolded,
+    collectionSort = collectionSort.name,
+    collectionSegment = collectionSegment.name,
     seedDataCreated = markersOf.seedDataCreated,
     seedPhotosAttempted = markersOf.seedPhotosAttempted,
     seedTeaLinksDone = markersOf.seedTeaLinksDone,

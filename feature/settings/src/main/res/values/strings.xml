@@ -63,6 +63,9 @@
 
     <!-- Brühen & Vorrat (SET-30, v0.2.2, D-097): „Knapp ab" (SET-16, INV-05), 0–500 g in 5 g steps. -->
     <string name="settings_section_brewing">Brühen &amp; Vorrat</string>
+    <!-- SET-15 (INV-02, v0.4.0, D-100): the first row of Brühen & Vorrat. -->
+    <string name="settings_deduct_stock">Bestand abziehen</string>
+    <string name="settings_deduct_stock_detail">Zieht nach jeder Sitzung die Blätter vom Vorrat ab.</string>
     <string name="settings_low_stock">Knapp ab</string>
     <string name="settings_low_stock_grams">%1$d g</string>
     <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>

@@ -14,11 +14,12 @@ import org.junit.Test
 /** The built-in styles of 08 §3 (STY-01), as code for the first time (D-076). */
 class BuiltInStylesTest {
     @Test
-    fun everyGreenStyleOf08Section3Exists() {
+    fun everyStyleOf08Section3Exists() {
         assertThat(BuiltInStyles.all.map { it.key }).containsExactly(
             "gyokuro", "kabusecha", "sencha", "fukamushi_sencha", "shincha", "matcha", "karigane", "bancha",
             "hojicha", "hojicha_powder", "genmaicha", "kamairicha", "tamaryokucha", "longjing", "anji_bai_cha",
             "bi_luo_chun", "korean_green", "flavored_green", "green_generic", "herbal",
+            "white_generic", "oolong_generic", "black_generic", "dark_generic", "other",
         ).inOrder()
         assertThat(BuiltInStyles.byKey("nope")).isNull()
     }
@@ -45,8 +46,75 @@ class BuiltInStylesTest {
             ),
         )
         assertThat(herbal.coldBrew).isNull()
-        assertThat(BuiltInStyles.all.filter { it.category != TeaCategory.GREEN }.map { it.key })
-            .containsExactly("herbal")
+    }
+
+    @Test
+    fun theGenericRowsOfTheOtherCategoriesBrewOneThreeMinuteWesternInfusion() {
+        // Q-20, D-100, 08 §3: WESTERN 3 g / 250 ml, one infusion of 3:00 at 85 / 95 / 95 / 100 °C.
+        data class Expected(val key: String, val category: TeaCategory, val umami: UmamiLevel, val tempC: Int)
+        val expected = listOf(
+            Expected("white_generic", TeaCategory.WHITE, UmamiLevel.LOW, 85),
+            Expected("oolong_generic", TeaCategory.OOLONG, UmamiLevel.LOW, 95),
+            Expected("black_generic", TeaCategory.BLACK, UmamiLevel.NONE, 95),
+            Expected("dark_generic", TeaCategory.DARK, UmamiLevel.NONE, 100),
+        )
+        for (row in expected) {
+            val style = BuiltInStyles.byKey(row.key)!!
+            val check = assertWithMessage(row.key)
+            check.that(style.category).isEqualTo(row.category)
+            check.that(style.umami).isEqualTo(row.umami)
+            check.that(style.freshnessDays).isEqualTo(90)
+            check.that(style.japanese).isFalse()
+            check.that(style.coldBrew).isNull()
+            check.that(style.recipes).containsExactly(
+                RecipeTemplate(
+                    name = "Westlich",
+                    method = BrewMethod.WESTERN,
+                    leafGrams = 3.0,
+                    waterMl = 250,
+                    baseTempC = row.tempC,
+                    steps = listOf(RecipeStep(StepKind.INFUSION, 180)),
+                    source = RecipeSource.STYLE_DEFAULT,
+                    isDefault = true,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun otherHasNoUmamiAndNoFreshnessWindow() {
+        // 08 §3: „Andere" — umami and freshness „—", 2,5 g/TL, WESTERN 3 g / 250 ml / 85 °C: 3:00.
+        val other = BuiltInStyles.byKey("other")!!
+        assertThat(other.category).isEqualTo(TeaCategory.OTHER)
+        assertThat(other.umami).isNull()
+        assertThat(other.freshnessDays).isNull()
+        assertThat(other.gramsPerTeaspoon).isEqualTo(2.5)
+        assertThat(other.recipes).containsExactly(
+            RecipeTemplate(
+                name = "Westlich",
+                method = BrewMethod.WESTERN,
+                leafGrams = 3.0,
+                waterMl = 250,
+                baseTempC = 85,
+                steps = listOf(RecipeStep(StepKind.INFUSION, 180)),
+                source = RecipeSource.STYLE_DEFAULT,
+                isDefault = true,
+            ),
+        )
+    }
+
+    @Test
+    fun everyStyleBelongsToItsKategorie() {
+        assertThat(BuiltInStyles.all.groupBy({ it.category }, { it.key }).mapValues { it.value.size })
+            .containsExactly(
+                TeaCategory.GREEN, 19,
+                TeaCategory.HERBAL, 1,
+                TeaCategory.WHITE, 1,
+                TeaCategory.OOLONG, 1,
+                TeaCategory.BLACK, 1,
+                TeaCategory.DARK, 1,
+                TeaCategory.OTHER, 1,
+            )
     }
 
     @Test

@@ -176,7 +176,7 @@ class TeaPickerViewModelTest {
         assertThat(removed.all.map { it.id }).containsExactly("t", "k").inOrder()
         assertThat(removed.recent).isEmpty()
         assertThat(removed.favorites).isEmpty()
-        // The snackbar „Bio Sencha Hisui aus der Sammlung entfernt" · *Rückgängig* (SCR-03, D-093 Q21).
+        // The snackbar „Bio Sencha Hisui archiviert" · *Rückgängig* (SCR-03, D-093 Q21).
         assertThat(removed.removed?.name).isEqualTo("Bio Sencha Hisui")
 
         vm.undoRemove()
