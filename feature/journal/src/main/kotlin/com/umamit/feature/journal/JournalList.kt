@@ -80,14 +80,16 @@ private fun dayOf(date: LocalDate, today: LocalDate): JournalDay = when (date) {
 }
 
 private fun JournalSession.toEntry(): JournalEntry {
-    val infusionRows = session.steps.filter { it.kind != StepKind.RINSE }
-    val poured = infusionRows.count { it.poured }
     val inProgress = session.status == SessionStatus.IN_PROGRESS
-    // A finished session keeps only its ended rows; its plan lives on in the planned count (TMR-12).
+    // A finished session counts only its ended rows, also when it keeps its never-started ones (from
+    // v0.4.0, Q-19); its plan lives on in the planned count (TMR-12).
+    val rows = if (inProgress) session.steps else session.endedSteps
+    val infusionRows = rows.filter { it.kind != StepKind.RINSE }
+    val poured = infusionRows.count { it.poured }
     val planned = if (inProgress) {
         infusionRows.size
     } else {
-        session.plannedStepCount - session.steps.count { it.kind == StepKind.RINSE }
+        session.plannedStepCount - rows.count { it.kind == StepKind.RINSE }
     }
     return JournalEntry(
         sessionId = session.id,
@@ -106,6 +108,7 @@ private fun JournalSession.toEntry(): JournalEntry {
 /** The „Gespeichert" sheet's summary (SCR-06): poured infusions and their steeping time together. */
 data class SavedSummary(val infusions: Int, val steepSeconds: Int)
 
+/** [SavedSummary] of [session]: poured rows are ended, so never-started ones (kept from v0.4.0, Q-19) don't count. */
 fun savedSummary(session: BrewSession): SavedSummary {
     val poured = session.steps.filter { it.kind != StepKind.RINSE && it.poured }
     return SavedSummary(poured.size, poured.sumOf { it.actualSeconds ?: 0 })
