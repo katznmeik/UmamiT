@@ -235,4 +235,98 @@
     <string name="tea_editor_error_package">Gib die Packung in g an, z. B. 50.</string>
     <string name="tea_editor_error_price">Gib den Preis in Euro an, z. B. 12,40.</string>
     <string name="tea_editor_error_price_without_package">Zum Preis gehört eine Packung.</string>
+    <!-- SCR-12 Rezept bearbeiten (PRF-01, PRF-03, PRF-04, WARE-02–WARE-04, TEA-17, D-100). -->
+    <string name="recipe_editor_title_new">Neues Rezept</string>
+    <string name="recipe_editor_title_edit">Rezept bearbeiten</string>
+    <string name="recipe_editor_close">Schließen</string>
+    <string name="recipe_editor_save">Speichern</string>
+    <string name="recipe_editor_more">Weitere Optionen</string>
+    <string name="recipe_editor_not_found">Dieses Rezept gibt es nicht mehr.</string>
+    <string name="recipe_editor_section_recipe">Rezept</string>
+    <string name="recipe_editor_section_steps">Schritte</string>
+    <string name="recipe_editor_section_notes">Notizen</string>
+    <string name="recipe_editor_name">Name</string>
+    <string name="recipe_editor_name_hint">z. B. Kyusu oder Kaltaufguss</string>
+    <string name="recipe_editor_method">Methode</string>
+    <string name="recipe_editor_vessel">Gefäß</string>
+    <string name="recipe_editor_vessel_none">Kein Gefäß</string>
+    <!-- A vessel whose name doesn't end with its volume: „Lieblingskanne · 450 ml". -->
+    <string name="recipe_editor_vessel_option">%1$s · %2$d\u00A0ml</string>
+    <!-- WARE-02 (D-100): the recipe's vessel that was archived, „Kyusu 250 ml (archiviert)", as in the setup. -->
+    <string name="recipe_editor_vessel_archived">%1$s (archiviert)</string>
+    <string name="recipe_editor_leaf">Blätter</string>
+    <string name="recipe_editor_water">Wasser</string>
+    <string name="recipe_editor_unit_g">g</string>
+    <string name="recipe_editor_unit_ml">ml</string>
+    <!-- PRF-03 AC1: the ratio, live. -->
+    <string name="recipe_editor_ratio">Verhältnis %1$s\u00A0g / 100\u00A0ml</string>
+    <string name="recipe_editor_ratio_unknown">Verhältnis –</string>
+    <string name="recipe_editor_temperature">Temperatur</string>
+    <string name="recipe_editor_temperature_value">%1$d\u00A0°C</string>
+    <!-- PRF-03: „kalt" for 10 °C and below. -->
+    <string name="recipe_editor_temperature_cold">%1$d\u00A0°C · kalt</string>
+    <string name="recipe_editor_warmer">Temperatur erhöhen</string>
+    <string name="recipe_editor_cooler">Temperatur senken</string>
+    <plurals name="recipe_editor_temperature_description">
+        <item quantity="one">Temperatur %1$d Grad</item>
+        <item quantity="other">Temperatur %1$d Grad</item>
+    </plurals>
+    <!-- The recipe's Vorwarnung, the base of its steps' Automatisch (PRF-03, TMR-23). -->
+    <string name="recipe_editor_pre_alert">Vorwarnung</string>
+    <string name="recipe_editor_pre_alert_settings">Wie in Einstellungen · %1$s</string>
+    <string name="recipe_editor_pre_alert_hint">Gilt für die Schritte auf „Automatisch“.</string>
+    <string name="recipe_editor_default">Als Standard</string>
+    <string name="recipe_editor_default_detail">Brühen und die Teeauswahl nehmen dieses Rezept.</string>
+    <string name="recipe_editor_default_locked">Das ist das Standardrezept dieses Tees.</string>
+    <string name="recipe_editor_notes">Notizen</string>
+    <string name="recipe_editor_delete">Rezept löschen</string>
+    <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
+    <string name="recipe_editor_delete_title">Rezept löschen?</string>
+    <string name="recipe_editor_delete_text">Das Rezept ist danach weg. Deine Sitzungen im Journal bleiben.</string>
+    <string name="recipe_editor_delete_confirm">Löschen</string>
+    <string name="recipe_editor_delete_cancel">Abbrechen</string>
+    <string name="recipe_editor_limit_reached">Ein Tee hat höchstens 10 Rezepte.</string>
+    <string name="recipe_editor_error_name_empty">Gib dem Rezept einen Namen.</string>
+    <string name="recipe_editor_error_name_long">Höchstens 40 Zeichen.</string>
+    <string name="recipe_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>
+    <string name="recipe_editor_error_water">10 bis 3000 ml, in 5-ml-Schritten.</string>
+    <string name="recipe_editor_error_only_rinse">Mindestens ein Schritt muss ein Aufguss oder Aufschlagen sein.</string>
+
+    <!-- Methods (BrewMethod). -->
+    <string name="recipe_method_kyusu">Kyusu</string>
+    <string name="recipe_method_gongfu">Gongfu</string>
+    <string name="recipe_method_western">Westlich</string>
+    <string name="recipe_method_matcha_usucha">Matcha Usucha</string>
+    <string name="recipe_method_matcha_koicha">Matcha Koicha</string>
+    <string name="recipe_method_cold_brew">Kaltaufguss</string>
+    <string name="recipe_method_ice_brew">Eisaufguss</string>
+    <string name="recipe_method_custom">Eigene</string>
+
+    <!-- The steps (PRF-04): kind, duration, temperature, note and Vorwarnung, as the Schritte-Sheet (SCR-31). -->
+    <string name="recipe_step_kind_infusion">Aufguss</string>
+    <string name="recipe_step_kind_rinse">Spülen</string>
+    <string name="recipe_step_kind_whisk">Aufschlagen</string>
+    <!-- „2 · Aufguss" -->
+    <string name="recipe_step_label">%1$d · %2$s</string>
+    <string name="recipe_step_note">Notiz</string>
+    <string name="recipe_step_add">Aufguss hinzufügen</string>
+    <string name="recipe_step_delete">Löschen, Schritt %1$d</string>
+    <string name="recipe_step_shorter">Ziehzeit verkürzen, Schritt %1$d</string>
+    <string name="recipe_step_longer">Ziehzeit verlängern, Schritt %1$d</string>
+    <string name="recipe_step_duration_description">Ziehzeit, Schritt %1$d: %2$s. Ändern</string>
+    <string name="recipe_step_cooler">Temperatur senken, Schritt %1$d</string>
+    <string name="recipe_step_warmer">Temperatur erhöhen, Schritt %1$d</string>
+    <!-- The drag handle (TalkBack: its move actions). -->
+    <string name="recipe_step_move">Verschieben, Schritt %1$d</string>
+    <string name="recipe_step_move_up">Nach oben verschieben</string>
+    <string name="recipe_step_move_down">Nach unten verschieben</string>
+    <string name="recipe_step_pre_alert">Vorwarnung</string>
+    <string name="recipe_step_pre_alert_off">Aus</string>
+    <string name="recipe_step_pre_alert_seconds">%1$d\u00A0s</string>
+    <string name="recipe_step_pre_alert_auto">Auto · %1$s</string>
+    <string name="recipe_step_pre_alert_auto_option">Automatisch · %1$s</string>
+    <string name="recipe_step_pre_alert_none">keine</string>
+    <string name="recipe_step_pre_alert_too_short">%1$s · zu kurz</string>
+    <string name="recipe_step_pre_alert_long_step">%1$s · keine</string>
+    <string name="recipe_step_pre_alert_description">Vorwarnung, Schritt %1$d: %2$s. Ändern</string>
 </resources>

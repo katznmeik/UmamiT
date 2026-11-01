@@ -931,6 +931,29 @@ v0.4.0 (D-100):
 - **Save:** *Speichern* clears „Rezept prüfen" (TEA-17); ✕ with changes asks
   GEN-08's question. A running brew keeps its steps.
 - No *Aufgüsse erzeugen* (series generator, PRF-05 not planned).
+- **As built (#156, Claude):** a full-screen dialog like SCR-10 and SCR-14
+  (✕ · „Rezept bearbeiten" / „Neues Rezept" · *Speichern* · ⋮), sections
+  *Rezept*, *Schritte*, *Notizen*; errors show only after the first
+  *Speichern*, then follow the typing.
+  - *Rezept*: name (hint „z. B. Kyusu oder Kaltaufguss"), *Methode* (Kyusu,
+    Gongfu, Westlich, Matcha Usucha, Matcha Koicha, Kaltaufguss, Eisaufguss,
+    Eigene), *Gefäß* (*Kein Gefäß* first; it keeps leaf and water), leaf and
+    water typed („0,1 bis 100 g", „10 bis 3000 ml, in 5-ml-Schritten"), the
+    line „Verhältnis 2,0 g / 100 ml" below them, the base temperature as a
+    − / + stepper („10 °C · kalt" at 10 °C and below), *Vorwarnung* (*Wie in
+    Einstellungen · 10 s*, *Aus*, 5–30 s) and the switch *Als Standard*,
+    stored with *Speichern*; on the default recipe it stays on.
+  - Each step: the drag handle (TalkBack: „Verschieben, Schritt 2" with *Nach
+    oben* / *Nach unten verschieben*), „1 · Aufguss" opening the kind menu, ✕,
+    the duration and temperature steppers, its *Vorwarnung* selector as in
+    the Schritte-Sheet („Auto · 10 s" with the lead the timer will give) and
+    a note (≤ 120 characters). The only step that brews can't become
+    *Spülen* and can't be deleted. *Aufguss hinzufügen* appends the timer's
+    *Weiterer Aufguss* (TMR-10), up to 30 steps.
+  - ⋮ *Rezept löschen* asks „Rezept löschen?"; for the tea's last recipe it
+    is greyed out with „Ein Tee braucht mindestens ein Rezept."
+  - The editor sits in the Sammlung stack above the detail; *Speichern* and
+    *Löschen* return to it.
 
 ### SCR-13 / SCR-14 Teegeschirr
 

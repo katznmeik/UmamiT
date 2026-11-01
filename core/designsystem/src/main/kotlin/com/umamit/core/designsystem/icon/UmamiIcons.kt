@@ -47,6 +47,9 @@ object UmamiIcons {
 
     @DrawableRes val Edit = R.drawable.ic_edit
 
+    /** A step's handle in the recipe editor: drag to reorder (SCR-12). */
+    @DrawableRes val DragHandle = R.drawable.ic_drag_handle
+
     /** A link that leaves the app for the browser (INV-09). */
     @DrawableRes val OpenInNew = R.drawable.ic_open_in_new
 

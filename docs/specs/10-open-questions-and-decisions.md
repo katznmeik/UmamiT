@@ -592,6 +592,21 @@ font 2.0.
   brühen* sits at the end of the page; „Tee ist archiviert" ·
   *Wiederherstellen* below it.
 
+**Build notes (Claude, 2026-11-01, #156: the recipe editor).**
+- The setup's ratio scaling (`BrewScaling`, `Ratio`, `Vessel.brewMl()`, the
+  ratio per 100 ml) moved from `feature:brew` to `core:domain`, so the
+  setup and the recipe editor scale alike (WARE-03, WARE-04); no behaviour
+  change. A vessel scales the leaf from the form's leaf and water; while
+  either isn't valid, only the water is set. *Kein Gefäß* keeps both.
+- *Rezept hinzufügen* on a tea without any recipe starts from its style's
+  default recipe, else PRF-02's *Westlich*. The new recipe goes last
+  (position after the others) and is not the default unless *Als Standard*
+  is on.
+- Saving stores a step at the base temperature without its own (as the
+  setup's *Im Rezept speichern*) and marks the recipe's source `USER`.
+- The detail opened above the setup (⋮ *Tee ansehen*) doesn't open the
+  editors yet, as #155's pencil there.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12

@@ -92,8 +92,11 @@ class RoomAddWithoutCatalog @Inject constructor(
             templates.filter { it !== default }.map { it.copy(isDefault = false) }
     }
 
-    private companion object {
-        /** PRF-02: a tea without a style brews *Westlich* 3 g / 250 ml / 85 °C, one infusion of 3:00. */
+    companion object {
+        /**
+         * PRF-02: a tea without a style brews *Westlich* 3 g / 250 ml / 85 °C, one infusion of 3:00; also the
+         * recipe editor's start for *Rezept hinzufügen* on a tea without any recipe (SCR-12).
+         */
         val WESTERN_DEFAULT = RecipeTemplate(
             name = "Westlich",
             method = BrewMethod.WESTERN,

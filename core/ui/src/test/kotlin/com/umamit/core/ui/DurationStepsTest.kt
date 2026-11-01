@@ -47,4 +47,26 @@ class DurationStepsTest {
         assertThat(DurationSteps.parts(3_725)).isEqualTo(Triple(1, 2, 5))
         assertThat(DurationSteps.parts(86_400)).isEqualTo(Triple(24, 0, 0))
     }
+
+    @Test
+    fun `the steppers move 5 s below 10 min and whole minutes from there, within 5 s - 24 h (PRF-04)`() {
+        assertThat(DurationSteps.stepped(60, up = true)).isEqualTo(65)
+        assertThat(DurationSteps.stepped(60, up = false)).isEqualTo(55)
+        assertThat(DurationSteps.stepped(62, up = true)).isEqualTo(65)
+        assertThat(DurationSteps.stepped(62, up = false)).isEqualTo(60)
+        assertThat(DurationSteps.stepped(595, up = true)).isEqualTo(600)
+        assertThat(DurationSteps.stepped(600, up = true)).isEqualTo(660)
+        assertThat(DurationSteps.stepped(660, up = false)).isEqualTo(600)
+        assertThat(DurationSteps.stepped(600, up = false)).isEqualTo(595)
+        assertThat(DurationSteps.stepped(5, up = false)).isEqualTo(5)
+        assertThat(DurationSteps.stepped(86_400, up = true)).isEqualTo(86_400)
+    }
+
+    @Test
+    fun `a set duration is bounded and rounded down to the increment`() {
+        assertThat(DurationSteps.rounded(0)).isEqualTo(5)
+        assertThat(DurationSteps.rounded(92)).isEqualTo(90)
+        assertThat(DurationSteps.rounded(659)).isEqualTo(600)
+        assertThat(DurationSteps.rounded(100_000)).isEqualTo(86_400)
+    }
 }

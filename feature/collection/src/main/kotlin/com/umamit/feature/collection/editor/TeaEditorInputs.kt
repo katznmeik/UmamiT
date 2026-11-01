@@ -177,7 +177,11 @@ internal fun NumberInput(
     )
 }
 
-/** A read-only field that opens a menu of [options] (as the vessel editor's, SCR-14). */
+/**
+ * A read-only field that opens a menu of [options] (as the vessel editor's, SCR-14); with [singleLine] false a long
+ * value wraps (a vessel „(archiviert)" at font scale 2.0).
+ */
+@Suppress("LongParameterList") // a choice field's parts
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun <T> ChoiceField(
@@ -187,6 +191,7 @@ internal fun <T> ChoiceField(
     optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    singleLine: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
@@ -196,7 +201,7 @@ internal fun <T> ChoiceField(
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            singleLine = true,
+            singleLine = singleLine,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
