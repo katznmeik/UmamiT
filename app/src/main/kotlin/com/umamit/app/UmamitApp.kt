@@ -140,22 +140,8 @@ internal fun UmamitApp(
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
-    val rememberedSegment by collectionSegments.remembered.collectAsStateWithLifecycle()
-    var segment by rememberSaveable { mutableStateOf(opening.firstSegment(rememberedSegment)) }
-    // The app's shell opens on the segment used last, once it is read; any change before that wins.
-    var segmentKnown by rememberSaveable { mutableStateOf(opening !is ShellOpening.Start || rememberedSegment != null) }
-    LaunchedEffect(rememberedSegment) {
-        val remembered = rememberedSegment
-        if (!segmentKnown && remembered != null) {
-            segment = remembered
-            segmentKnown = true
-        }
-    }
-    val chooseSegment: (CollectionSegment) -> Unit = {
-        segment = it
-        segmentKnown = true
-    }
-    LaunchedEffect(segment, segmentKnown) { if (segmentKnown) collectionSegments.remember(segment) }
+    val segments = rememberSegmentChoice(opening, collectionSegments)
+    val chooseSegment: (CollectionSegment) -> Unit = segments::choose
     val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
     // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
@@ -262,7 +248,7 @@ internal fun UmamitApp(
                             tab = tab,
                             navController = controllers.getValue(tab),
                             scrollToTopRequest = reselection.scrollRequest(tab),
-                            segment = segment,
+                            segment = segments.segment,
                             onSegmentChange = chooseSegment,
                             journalSources = journalSources,
                             onOpenTimer = onOpenTimer,

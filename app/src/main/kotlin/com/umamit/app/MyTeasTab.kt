@@ -1,7 +1,15 @@
 package com.umamit.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.SettingsRepository
 import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.collection.MyTeasActions
@@ -114,4 +122,48 @@ internal class SettingsCollectionSegments(
         CollectionSegment.MyTeas -> StoredSegment.MY_TEAS
         CollectionSegment.Catalog -> StoredSegment.CATALOG
     }
+}
+
+/**
+ * The Sammlung segment the shell shows. The app's shell ([ShellOpening.Start]) opens on the one used last once
+ * [CollectionSegmentMemory.remembered] is read; a change before that wins. Every change is remembered.
+ */
+@Stable
+internal class SegmentChoice(segment: CollectionSegment, known: Boolean) {
+    var segment by mutableStateOf(segment)
+        private set
+
+    /** Whether [segment] is the remembered one or a choice; until then it is not written back. */
+    var known by mutableStateOf(known)
+        private set
+
+    fun choose(segment: CollectionSegment) {
+        this.segment = segment
+        known = true
+    }
+
+    /** The segment used last, read after the shell was shown: taken unless one was chosen meanwhile. */
+    fun adopt(remembered: CollectionSegment?) {
+        if (!known && remembered != null) choose(remembered)
+    }
+
+    companion object {
+        val Saver = listSaver<SegmentChoice, Any>(
+            save = { listOf(it.segment.name, it.known) },
+            restore = { (segment, known) ->
+                SegmentChoice(CollectionSegment.valueOf(segment as String), known as Boolean)
+            },
+        )
+    }
+}
+
+@Composable
+internal fun rememberSegmentChoice(opening: ShellOpening, memory: CollectionSegmentMemory): SegmentChoice {
+    val remembered by memory.remembered.collectAsStateWithLifecycle()
+    val choice = rememberSaveable(saver = SegmentChoice.Saver) {
+        SegmentChoice(opening.firstSegment(remembered), known = opening !is ShellOpening.Start || remembered != null)
+    }
+    LaunchedEffect(remembered) { choice.adopt(remembered) }
+    LaunchedEffect(choice.segment, choice.known) { if (choice.known) memory.remember(choice.segment) }
+    return choice
 }
