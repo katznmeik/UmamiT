@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.SavedStateHandle
@@ -169,6 +170,68 @@ class BrewSetupStockTest {
         correctTo("14")
 
         compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("14\u00A0g übrig")
+    }
+
+    @Test
+    fun `below this brew's leaf the stock line reads Nur noch 3 g uebrig and still opens the sheet (BRW-08, D-100)`() {
+        // Hisui's Kyusu recipe brews 5,0 g; its own threshold keeps 3 g out of *Knapp*.
+        runBlocking {
+            collection.teas.saveTea(collection.teas.getTea(SeedData.HISUI_TEA_ID)!!.copy(lowStockGrams = 1.0))
+        }
+        show()
+
+        correctTo("3")
+
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("Nur noch 3 g übrig")
+        openSheet()
+    }
+
+    @Test
+    fun `a Knapp tea below the leaf reads Nur noch 3 g uebrig - knapp (BRW-08, D-100)`() {
+        show()
+
+        correctTo("3")
+
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("Nur noch 3 g übrig · knapp")
+    }
+
+    @Test
+    fun `the warning follows the leaf (BRW-08, D-100)`() {
+        runBlocking {
+            collection.teas.saveTea(collection.teas.getTea(SeedData.HISUI_TEA_ID)!!.copy(lowStockGrams = 1.0))
+        }
+        show()
+        correctTo("5,5")
+        // 5,0 g of leaf: enough.
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("5,5 g übrig")
+
+        repeat(6) { compose.onNodeWithContentDescription("Mehr Blätter").performClick() }
+        compose.waitForIdle()
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("Nur noch 5,5 g übrig")
+
+        repeat(1) { compose.onNodeWithContentDescription("Weniger Blätter").performClick() }
+        compose.waitForIdle()
+        // Exactly 5,5 g of leaf: still enough.
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("5,5 g übrig")
+    }
+
+    @Test
+    fun `a Leer tea keeps Leer (BRW-08, D-100)`() {
+        show()
+        correctTo("0")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("Leer")
+    }
+
+    @Test
+    fun `the warning never blocks Bruehen starten (BRW-08, D-100)`() {
+        show()
+        correctTo("2")
+        compose.onNodeWithTag(SETUP_STOCK_TAG).assertTextEquals("Nur noch 2 g übrig · knapp")
+
+        compose.onNodeWithTag(SETUP_START_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertThat(starter.starts.single().snapshot.leafGrams).isEqualTo(5.0)
     }
 
     private fun correctTo(grams: String) {

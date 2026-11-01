@@ -46,6 +46,14 @@ internal data class BrewSetupRoute(
 internal data class SetupCatalogTeaRoute(val key: String)
 
 /**
+ * A collection tea's detail (SCR-09) from the setup's ⋮ *Tee ansehen* (D-100): full-screen above the setup, whose
+ * back-stack entry keeps its draft, so back returns to it unchanged. [teaId] is named as the detail's view model
+ * reads it. It gives way to a new alert like every route above the shell (rule 8).
+ */
+@Serializable
+internal data class SetupTeaRoute(val teaId: String)
+
+/**
  * The quick timer before its *Start* (SCR-07), from Start and the tea picker. Full-screen like the setup;
  * once it runs, the timer replaces it.
  */
