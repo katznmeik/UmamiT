@@ -28,6 +28,8 @@ internal class StartNavigation(
     val openTimer: () -> Unit = {},
     val openQuickTimer: () -> Unit = {},
     val openTimerOf: (TimerSlot) -> Unit = { openTimer() },
+    /** *So nochmal brühen* on a session's page (SCR-16, BRW-06): the setup prefilled with that past session. */
+    val openSetupFromSession: (sessionId: String) -> Unit = {},
 )
 
 /**

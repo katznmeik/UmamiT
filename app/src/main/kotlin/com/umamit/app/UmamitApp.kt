@@ -70,6 +70,7 @@ import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import com.umamit.feature.journal.SavedSheetHost
+import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
 import com.umamit.feature.journal.JournalRoute as JournalTab
@@ -103,6 +104,9 @@ private const val SLIDE_FRACTION = 12
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) in the Sammlung tab and its archive
  *   snackbar; tests replace them. *Meine Tees*' *Aus dem Katalog* and *Im Katalog stöbern* turn to the *Katalog*
  *   segment.
+ * @param journalScreens a past session's page (SCR-16) in the Journal tab, opened from its entry (D-100); its tea
+ *   link opens the tea's detail in the same stack, and *So nochmal brühen* the setup above the shell
+ *   ([StartNavigation.openSetupFromSession]). Tests replace it.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
  * @param teaLinkShare a link shared to the app (CAT-17): the shell turns to Sammlung › Katalog (the
  *   list, not a screen left open there), whose catalog loads it and hands its token to [onTakeTeaLinkShare].
@@ -134,6 +138,7 @@ internal fun UmamitApp(
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     collectionScreens: CollectionStackScreens = CollectionStackScreens(),
+    journalScreens: JournalStackScreens = JournalStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
     collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     teaLinkShare: TeaLinkShare? = null,
@@ -256,6 +261,7 @@ internal fun UmamitApp(
                             segment = segments.segment,
                             onSegmentChange = chooseSegment,
                             journalSources = journalSources,
+                            journal = JournalWiring(journalScreens, startNavigation.openSetupFromSession),
                             onOpenTimer = onOpenTimer,
                             settings = settings,
                             alertKey = alertKey,
@@ -541,6 +547,7 @@ private fun TabHost(
     segment: CollectionSegment,
     onSegmentChange: (CollectionSegment) -> Unit,
     journalSources: JournalSources,
+    journal: JournalWiring,
     onOpenTimer: () -> Unit,
     settings: SettingsScreens,
     alertKey: String?,
@@ -572,7 +579,25 @@ private fun TabHost(
     ) {
         composable<StartRoute> { start(openSettings, scrollToTopRequest) }
         composable<JournalRoute> {
-            JournalTab(journalSources, openSettings, onOpenTimer, scrollToTopRequest = scrollToTopRequest)
+            JournalTab(
+                journalSources,
+                openSettings,
+                onOpenTimer,
+                scrollToTopRequest = scrollToTopRequest,
+                // Only from the resumed list: a double tap opens one page (D-090).
+                onOpenSession = resumedOnly { navController.navigate(JournalSessionRoute(it)) },
+            )
+        }
+        // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
+        // above the shell, which opens the alerting timer instead during an alert (rule 8).
+        composable<JournalSessionRoute> {
+            journal.screens.session(
+                SessionPageHost(
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                    onOpenTea = resumedOnly { navController.navigate(CollectionTeaRoute(it)) },
+                    onBrewAgain = resumedOnly(journal.openSetupFromSession),
+                ),
+            )
         }
         composable<CollectionRoute> {
             // Only from the resumed list: a double tap opens one detail (D-090).

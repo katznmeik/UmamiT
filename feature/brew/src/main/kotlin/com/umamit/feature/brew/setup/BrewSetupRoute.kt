@@ -10,8 +10,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 /**
- * The setup route (SCR-04). Its arguments are the view model's `teaId` and
- * `sessionId` ([BrewSetupViewModel.TEA_ID], [BrewSetupViewModel.SESSION_ID]).
+ * The setup route (SCR-04). Its arguments are the view model's `teaId`, `sessionId`, `recipeId` and
+ * `pastSessionId` ([BrewSetupViewModel.TEA_ID], [BrewSetupViewModel.SESSION_ID], [BrewSetupViewModel.RECIPE_ID],
+ * [BrewSetupViewModel.PAST_SESSION_ID]; the last for *So nochmal brühen*, BRW-06).
  * [onOpenTimer] runs once the session waits in READY (TMR-01); [onOpenCatalog] opens the tea's
  * catalog page (SCR-21) by its catalog key, from ⋮ *Im Katalog ansehen* (D-098); [onOpenTea] the tea's detail
  * (SCR-09) by its id, from ⋮ *Tee ansehen* (D-100).
@@ -55,6 +56,7 @@ fun BrewSetupRoute(
         BrewSetupActions(
             back = onBack,
             selectRecipe = viewModel::selectRecipe,
+            selectWithoutRecipe = viewModel::selectWithoutRecipe,
             selectVessel = viewModel::selectVessel,
             stepWater = viewModel::stepWater,
             stepLeaf = viewModel::stepLeaf,
