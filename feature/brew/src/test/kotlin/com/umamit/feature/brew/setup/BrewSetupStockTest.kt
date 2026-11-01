@@ -33,6 +33,7 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.ui.STOCK_SHEET_SAVE_TAG
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Before

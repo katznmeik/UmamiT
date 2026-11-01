@@ -1,4 +1,4 @@
-package com.umamit.feature.brew.setup
+package com.umamit.core.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,9 +42,9 @@ import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
-import com.umamit.feature.brew.R
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.Locale
 
 const val STOCK_SHEET_FIELD_TAG = "stock_sheet_field"
 const val STOCK_SHEET_SAVE_TAG = "stock_sheet_save"
@@ -59,12 +59,12 @@ const val STOCK_SHEET_SESSION_TAG = "stock_sheet_session"
  * saving ([onDismissRequest]). While a session of this tea runs, [sessionLeafGrams] is the leaf it still
  * deducts at *Sitzung beenden*, and a line says so (D-096); the total typed is stored as it is.
  *
- * Like every sheet it never covers an alert: the host composes it inside [com.umamit.feature.brew.picker]'s
- * `AlertGate` (rule 8).
+ * Shared in `core:ui` (D-100) so the setup and the tea detail open the same sheet. Like every sheet it never
+ * covers an alert: the host removes it in the frame an alert starts (in `feature:brew`, its `AlertGate`; rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun StockSheet(
+fun StockSheet(
     currentGrams: Double,
     onSave: (Double) -> Unit,
     onDismissRequest: () -> Unit,
@@ -103,7 +103,7 @@ private fun StockSheetContent(
             .navigationBarsPadding(),
     ) {
         Text(
-            text = stringResource(R.string.brew_setup_stock_title),
+            text = stringResource(R.string.ui_stock_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -116,7 +116,7 @@ private fun StockSheetContent(
             ) {
                 Icon(
                     painterResource(UmamiIcons.Remove),
-                    contentDescription = stringResource(R.string.brew_setup_stock_less),
+                    contentDescription = stringResource(R.string.ui_stock_less),
                 )
             }
             OutlinedTextField(
@@ -126,12 +126,12 @@ private fun StockSheetContent(
                     .weight(1f)
                     .testTag(STOCK_SHEET_FIELD_TAG),
                 textStyle = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = "tnum"),
-                label = { Text(stringResource(R.string.brew_setup_stock_field)) },
-                suffix = { Text(stringResource(R.string.brew_setup_stock_unit)) },
+                label = { Text(stringResource(R.string.ui_stock_field)) },
+                suffix = { Text(stringResource(R.string.ui_stock_unit)) },
                 supportingText = {
                     Text(
                         stringResource(
-                            if (invalid) R.string.brew_setup_stock_invalid else R.string.brew_setup_stock_hint,
+                            if (invalid) R.string.ui_stock_invalid else R.string.ui_stock_hint,
                         ),
                     )
                 },
@@ -147,7 +147,7 @@ private fun StockSheetContent(
             ) {
                 Icon(
                     painterResource(UmamiIcons.Add),
-                    contentDescription = stringResource(R.string.brew_setup_stock_more),
+                    contentDescription = stringResource(R.string.ui_stock_more),
                 )
             }
         }
@@ -155,7 +155,7 @@ private fun StockSheetContent(
         sessionLeafGrams?.let { leaf ->
             Spacer(Modifier.height(UmamiSpacing.XSmall))
             Text(
-                text = stringResource(R.string.brew_setup_stock_session, grams(leaf)),
+                text = stringResource(R.string.ui_stock_session, grams(leaf)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(STOCK_SHEET_SESSION_TAG),
@@ -167,10 +167,10 @@ private fun StockSheetContent(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.brew_setup_stock_cancel)) }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.ui_stock_cancel)) }
             Spacer(Modifier.width(UmamiSpacing.XSmall))
             PillButton(
-                text = stringResource(R.string.brew_setup_stock_save),
+                text = stringResource(R.string.ui_stock_save),
                 onClick = { save() },
                 enabled = total != null,
                 modifier = Modifier.testTag(STOCK_SHEET_SAVE_TAG),
@@ -183,7 +183,7 @@ private fun StockSheetContent(
  * The total typed into the sheet: German „23,5" (a dot works too), at most one decimal (0,1 g steps,
  * BRW-02), 0 to [MAX_GRAMS] g. Pure, so the field, the steppers and *Speichern* agree.
  */
-internal object StockInput {
+object StockInput {
     /** Four digits before the comma: the largest total the field takes. */
     const val MAX_GRAMS = 9_999.9
 
@@ -206,6 +206,9 @@ internal object StockInput {
         return next.takeIf { it >= BigDecimal.ZERO && it.toDouble() <= MAX_GRAMS }?.let { format(it.toDouble()) }
     }
 }
+
+/** „4,5": [value] in g to 0,1 g, German decimal comma. */
+private fun grams(value: Double): String = "%.1f".format(Locale.GERMAN, value)
 
 /** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
 @OptIn(ExperimentalMaterial3Api::class)

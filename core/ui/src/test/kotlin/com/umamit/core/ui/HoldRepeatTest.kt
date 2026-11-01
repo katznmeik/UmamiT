@@ -1,4 +1,4 @@
-package com.umamit.feature.brew.steps
+package com.umamit.core.ui
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
