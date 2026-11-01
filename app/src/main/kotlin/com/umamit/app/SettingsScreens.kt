@@ -28,21 +28,21 @@ internal class SettingsHost(
 
 /**
  * What *Teegeschirr* (SCR-13) gets from its host: [archived] is the vessel the editor above just archived,
- * for the snackbar; [onArchivedShown] once it is gone.
+ * for the snackbar; [onArchivedSnackbarEnd] once it is gone.
  */
 internal class TeawareHost(
     val onBack: () -> Unit,
     val onOpenVessel: (vesselId: String) -> Unit,
     val onAddVessel: () -> Unit,
     val archived: ArchivedVessel? = null,
-    val onArchivedShown: () -> Unit = {},
+    val onArchivedSnackbarEnd: () -> Unit = {},
 )
 
 /** What the vessel editor (SCR-14) gets from its host. */
 internal class VesselEditorHost(
     val onClose: () -> Unit,
-    val onSaved: (vesselId: String) -> Unit,
-    val onArchived: (ArchivedVessel) -> Unit,
+    val onSave: (vesselId: String) -> Unit,
+    val onArchive: (ArchivedVessel) -> Unit,
 )
 
 /** What *Über* (SCR-27) gets from its host. */
@@ -79,11 +79,11 @@ internal class SettingsScreens(
             onOpenVessel = host.onOpenVessel,
             onAddVessel = host.onAddVessel,
             archived = host.archived,
-            onArchivedShown = host.onArchivedShown,
+            onArchivedSnackbarEnd = host.onArchivedSnackbarEnd,
         )
     },
     val vesselEditor: @Composable (VesselEditorHost) -> Unit = { host ->
-        VesselEditorRoute(onClose = host.onClose, onSaved = host.onSaved, onArchived = host.onArchived)
+        VesselEditorRoute(onClose = host.onClose, onSave = host.onSave, onArchive = host.onArchive)
     },
 ) {
     /** The same screens with the root's [onRerunSetup]. */

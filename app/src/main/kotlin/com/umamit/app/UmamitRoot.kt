@@ -381,7 +381,7 @@ internal fun UmamitRoot(
                             navigateAbove(VesselEditorRoute()) { launchSingleTop = true }
                         },
                         archived = entry.archivedVessel(),
-                        onArchivedShown = entry::forgetArchivedVessel,
+                        onArchivedSnackbarEnd = entry::forgetArchivedVessel,
                     ),
                 )
             }
@@ -389,8 +389,8 @@ internal fun UmamitRoot(
                 settings.vesselEditor(
                     VesselEditorHost(
                         onClose = dropUnlessResumed { navController.popBackStack() },
-                        onSaved = { id -> navController.closeVesselEditor(savedVesselId = id) },
-                        onArchived = { archived -> navController.closeVesselEditor(archived = archived) },
+                        onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
+                        onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
                     ),
                 )
             }

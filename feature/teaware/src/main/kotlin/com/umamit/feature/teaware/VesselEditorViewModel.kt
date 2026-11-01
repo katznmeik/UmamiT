@@ -184,22 +184,28 @@ class VesselEditorViewModel @Inject constructor(
 
     /** *Speichern*: stores the vessel when every field is valid, else shows the errors at the fields. */
     fun save() {
-        val f = form.value ?: return
-        val b = base.value ?: return
-        if (f.errors().isNotEmpty()) {
-            showErrors.value = true
-            savedState[SHOW_ERRORS] = true
-            return
+        val f = form.value
+        val stored = when (val b = base.value) {
+            is Base.Stored -> b.vessel
+            Base.New -> Vessel(UUID.randomUUID().toString(), "", f?.type ?: VesselType.KYUSU, 0)
+            Base.Gone, null -> null
         }
-        val vessel = when (b) {
-            is Base.Stored -> f.applyTo(b.vessel)
-            Base.New -> f.applyTo(Vessel(UUID.randomUUID().toString(), "", f.type, 0))
-            Base.Gone -> return
-        }
-        viewModelScope.launch {
-            vessels.saveVessel(vessel)
-            base.value = Base.Stored(vessel)
-            navigation.send(VesselEditorEvent.Saved(vessel.id))
+        when {
+            f == null || stored == null -> Unit
+
+            f.errors().isNotEmpty() -> {
+                showErrors.value = true
+                savedState[SHOW_ERRORS] = true
+            }
+
+            else -> {
+                val vessel = f.applyTo(stored)
+                viewModelScope.launch {
+                    vessels.saveVessel(vessel)
+                    base.value = Base.Stored(vessel)
+                    navigation.send(VesselEditorEvent.Saved(vessel.id))
+                }
+            }
         }
     }
 

@@ -87,26 +87,26 @@ object VesselEditorResult {
 }
 
 /**
- * Gefäß bearbeiten (SCR-14) with its view model: [onSaved] with the stored vessel's id after
- * *Speichern*, [onArchived] after *Archivieren*, [onClose] for ✕ and back (after „Änderungen
+ * Gefäß bearbeiten (SCR-14) with its view model: [onSave] with the stored vessel's id after
+ * *Speichern*, [onArchive] after *Archivieren*, [onClose] for ✕ and back (after „Änderungen
  * verwerfen?" when something changed, GEN-08).
  */
 @Composable
 fun VesselEditorRoute(
     onClose: () -> Unit,
-    onSaved: (vesselId: String) -> Unit,
+    onSave: (vesselId: String) -> Unit,
     modifier: Modifier = Modifier,
-    onArchived: (ArchivedVessel) -> Unit = {},
+    onArchive: (ArchivedVessel) -> Unit = {},
     viewModel: VesselEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val currentOnSaved by rememberUpdatedState(onSaved)
-    val currentOnArchived by rememberUpdatedState(onArchived)
+    val currentOnSave by rememberUpdatedState(onSave)
+    val currentOnArchive by rememberUpdatedState(onArchive)
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is VesselEditorEvent.Saved -> currentOnSaved(event.vesselId)
-                is VesselEditorEvent.Archived -> currentOnArchived(ArchivedVessel(event.vesselId, event.name))
+                is VesselEditorEvent.Saved -> currentOnSave(event.vesselId)
+                is VesselEditorEvent.Archived -> currentOnArchive(ArchivedVessel(event.vesselId, event.name))
             }
         }
     }

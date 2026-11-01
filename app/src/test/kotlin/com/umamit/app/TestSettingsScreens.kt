@@ -49,15 +49,15 @@ internal fun testSettingsScreens(collection: FakeCollection = FakeCollection()):
                 onOpenVessel = host.onOpenVessel,
                 onAddVessel = host.onAddVessel,
                 archived = host.archived,
-                onArchivedShown = host.onArchivedShown,
+                onArchivedSnackbarEnd = host.onArchivedSnackbarEnd,
                 viewModel = viewModel { TeawareViewModel(collection.vessels, archive) },
             )
         },
         vesselEditor = { host ->
             VesselEditorRoute(
                 onClose = host.onClose,
-                onSaved = host.onSaved,
-                onArchived = host.onArchived,
+                onSave = host.onSave,
+                onArchive = host.onArchive,
                 // The route's vesselId arrives in the entry's SavedStateHandle, as with Hilt.
                 viewModel = viewModel { VesselEditorViewModel(createSavedStateHandle(), collection.vessels, archive) },
             )

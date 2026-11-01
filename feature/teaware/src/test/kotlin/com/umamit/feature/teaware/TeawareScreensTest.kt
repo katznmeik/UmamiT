@@ -58,15 +58,15 @@ class TeawareScreensTest {
 
     private fun showEditor(
         vesselId: String? = null,
-        onSaved: (String) -> Unit = {},
-        onArchived: (ArchivedVessel) -> Unit = {},
+        onSave: (String) -> Unit = {},
+        onArchive: (ArchivedVessel) -> Unit = {},
         onClose: () -> Unit = {},
     ) {
         val saved = SavedStateHandle().apply { if (vesselId != null) set(VesselEditorViewModel.VESSEL_ID, vesselId) }
         val vm = VesselEditorViewModel(saved, collection.vessels, archive)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
-                VesselEditorRoute(onClose = onClose, onSaved = onSaved, onArchived = onArchived, viewModel = vm)
+                VesselEditorRoute(onClose = onClose, onSave = onSave, onArchive = onArchive, viewModel = vm)
             }
         }
     }
@@ -119,7 +119,7 @@ class TeawareScreensTest {
     @Test
     fun `a new vessel is saved and its id handed back`() {
         var savedId: String? = null
-        showEditor(onSaved = { savedId = it })
+        showEditor(onSave = { savedId = it })
 
         compose.onNodeWithText("Neues Gefäß").assertIsDisplayed()
         compose.onNodeWithTag(VesselEditorTags.NAME).performTextInput("Gaiwan klein")
@@ -141,7 +141,7 @@ class TeawareScreensTest {
     @Test
     fun `Speichern shows the errors at the fields and stores nothing`() {
         var savedId: String? = null
-        showEditor(onSaved = { savedId = it })
+        showEditor(onSave = { savedId = it })
 
         compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
 
@@ -182,7 +182,7 @@ class TeawareScreensTest {
     fun `Archivieren in the menu archives and closes`() {
         save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300, 250))
         var archived: ArchivedVessel? = null
-        showEditor("k", onArchived = { archived = it })
+        showEditor("k", onArchive = { archived = it })
 
         compose.onNodeWithTag(VesselEditorTags.MORE).performClick()
         compose.onNodeWithText("Archivieren").performClick()

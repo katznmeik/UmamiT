@@ -62,7 +62,7 @@ data class ArchivedVessel(val id: String, val name: String)
 /**
  * Teegeschirr (SCR-13) with its view model, from *Einstellungen › Teegeschirr* (SET-30).
  *
- * @param archived the vessel the editor above just archived, or null; [onArchivedShown] once its
+ * @param archived the vessel the editor above just archived, or null; [onArchivedSnackbarEnd] once its
  *   snackbar is gone (undone or not).
  */
 @Composable
@@ -72,7 +72,7 @@ fun TeawareRoute(
     onAddVessel: () -> Unit,
     modifier: Modifier = Modifier,
     archived: ArchivedVessel? = null,
-    onArchivedShown: () -> Unit = {},
+    onArchivedSnackbarEnd: () -> Unit = {},
     viewModel: TeawareViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,9 +86,9 @@ fun TeawareRoute(
         archived = archived,
         onUndoArchive = { id ->
             viewModel.restore(id)
-            onArchivedShown()
+            onArchivedSnackbarEnd()
         },
-        onArchivedDismiss = onArchivedShown,
+        onArchivedDismiss = onArchivedSnackbarEnd,
     )
 }
 
