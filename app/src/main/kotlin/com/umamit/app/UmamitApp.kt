@@ -570,6 +570,7 @@ private fun TabHost(
                     onOpenAbout = { navController.navigate(AboutRoute) },
                     alertKey = alertKey,
                     scrollToTopRequest = scrollToTopRequest,
+                    onOpenTeaware = dropUnlessResumed { navController.navigate(TeawareRoute) },
                 ),
             )
         }
@@ -583,6 +584,26 @@ private fun TabHost(
             )
         }
         composable<DiagnosticsRoute> { settings.diagnostics(dropUnlessResumed { navController.popBackStack() }) }
+        composable<TeawareRoute> { entry ->
+            settings.teaware(
+                TeawareHost(
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                    onOpenVessel = resumedOnly { navController.navigate(VesselEditorRoute(it)) },
+                    onAddVessel = dropUnlessResumed { navController.navigate(VesselEditorRoute()) },
+                    archived = entry.archivedVessel(),
+                    onArchivedSnackbarEnd = entry::forgetArchivedVessel,
+                ),
+            )
+        }
+        composable<VesselEditorRoute> {
+            settings.vesselEditor(
+                VesselEditorHost(
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                    onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
+                    onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
+                ),
+            )
+        }
     }
 }
 

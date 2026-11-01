@@ -166,6 +166,19 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
+    /** The end of SCR-25: *Teegeschirr* between *Katalog* and *Über* (SET-30, D-100). */
+    @Test
+    fun settingsTeaware() = capture("Settings_teaware", scrollToText = "Über UmamiT") {
+        SettingsScreen(
+            settings = UserSettings(),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
     /** *Brühen & Vorrat* between *Timer & Alarm* and *Katalog*: „Knapp ab" 15 g (SET-16, SET-30, D-097). */
     @Test
     fun settingsBrewing() = capture("Settings_brewing", scrollToText = "Knapp ab") {

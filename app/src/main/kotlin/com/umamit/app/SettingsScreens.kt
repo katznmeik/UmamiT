@@ -5,6 +5,9 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.feature.settings.AboutScreen
 import com.umamit.feature.settings.SettingsRoute
 import com.umamit.feature.settings.diagnostics.DiagnosticsRoute
+import com.umamit.feature.teaware.ArchivedVessel
+import com.umamit.feature.teaware.TeawareRoute
+import com.umamit.feature.teaware.VesselEditorRoute
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -19,6 +22,27 @@ internal class SettingsHost(
     val onOpenAbout: () -> Unit,
     val alertKey: String?,
     val scrollToTopRequest: Int = 0,
+    /** *Teegeschirr* (SET-30): the teaware list (SCR-13). */
+    val onOpenTeaware: () -> Unit = {},
+)
+
+/**
+ * What *Teegeschirr* (SCR-13) gets from its host: [archived] is the vessel the editor above just archived,
+ * for the snackbar; [onArchivedSnackbarEnd] once it is gone.
+ */
+internal class TeawareHost(
+    val onBack: () -> Unit,
+    val onOpenVessel: (vesselId: String) -> Unit,
+    val onAddVessel: () -> Unit,
+    val archived: ArchivedVessel? = null,
+    val onArchivedSnackbarEnd: () -> Unit = {},
+)
+
+/** What the vessel editor (SCR-14) gets from its host. */
+internal class VesselEditorHost(
+    val onClose: () -> Unit,
+    val onSave: (vesselId: String) -> Unit,
+    val onArchive: (ArchivedVessel) -> Unit,
 )
 
 /** What *Über* (SCR-27) gets from its host. */
@@ -37,6 +61,7 @@ internal class SettingsScreens(
             onOpenAbout = host.onOpenAbout,
             alertKey = host.alertKey,
             scrollToTopRequest = host.scrollToTopRequest,
+            onOpenTeaware = host.onOpenTeaware,
         )
     },
     val about: @Composable (AboutHost) -> Unit = { host ->
@@ -48,9 +73,22 @@ internal class SettingsScreens(
         )
     },
     val diagnostics: @Composable (onBack: () -> Unit) -> Unit = { onBack -> DiagnosticsRoute(onBack = onBack) },
+    val teaware: @Composable (TeawareHost) -> Unit = { host ->
+        TeawareRoute(
+            onBack = host.onBack,
+            onOpenVessel = host.onOpenVessel,
+            onAddVessel = host.onAddVessel,
+            archived = host.archived,
+            onArchivedSnackbarEnd = host.onArchivedSnackbarEnd,
+        )
+    },
+    val vesselEditor: @Composable (VesselEditorHost) -> Unit = { host ->
+        VesselEditorRoute(onClose = host.onClose, onSave = host.onSave, onArchive = host.onArchive)
+    },
 ) {
     /** The same screens with the root's [onRerunSetup]. */
-    fun withRerunSetup(onRerunSetup: () -> Unit) = SettingsScreens(onRerunSetup, screen, about, diagnostics)
+    fun withRerunSetup(onRerunSetup: () -> Unit) =
+        SettingsScreens(onRerunSetup, screen, about, diagnostics, teaware, vesselEditor)
 }
 
 /**
