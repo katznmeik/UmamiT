@@ -23,10 +23,10 @@
 | # | Asset | Where | Format | Milestone |
 |---|---|---|---|---|
 | A6 | **Empty state: Journal** („Deine erste Tasse wartet.") ✓ delivered | SCR-15 | ≥ 1200 × 900 vignette | M4 |
-| A7 | **Empty state: Meine Tees** ✓ delivered | SCR-08 | ≥ 1200 × 900 vignette | M3 |
+| A7 | **Empty state: Meine Tees** ✓ delivered, built in with v0.4.0 | SCR-08 | ≥ 1200 × 900 vignette | M3 |
 | A8 | **Empty state: Katalog** (never loaded) ✓ delivered, built in with v0.2.1 | SCR-19 | ≥ 1200 × 900 vignette | M2 |
 | A9 | **Empty state: Statistik** (not enough data) ✓ delivered | SCR-18 | ≥ 1200 × 900 vignette | M4 |
-| A10 | **No search results** ✓ delivered | lists | ≥ 1200 × 900 vignette | M3 |
+| A10 | **No search results** ✓ delivered, built in with v0.4.0 (*Meine Tees*) | lists | ≥ 1200 × 900 vignette | M3 |
 | A11 | **Ratgeber header** (guides list) ✓ delivered, built in with v0.2.1 | SCR-19 › Ratgeber | ≥ 2400 × 1000 | M2 |
 | A12 | **Dark variants** of A6–A11 ✓ delivered with them | dark theme | as above | with each asset |
 | A13 | **Timer band** (ink-wash, D-095) ✓ delivered 2026-10-28, built in with v0.2.1 (#102) | SCR-05 and SCR-07 top (full width × about 220 dp, centre-cropped, fading into the background; the tea seal sits on its lower edge, ← and ⋮ in its top corners) | PNG 1536 × 1024 (3:2), `A13-timer-band-dark.png` | dark only (timer is always dark) — v0.2.1 |

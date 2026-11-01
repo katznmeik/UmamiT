@@ -10,9 +10,53 @@
     <!-- Foldable Sorte groups, only in a grouped catalog view (SCR-19, CAT-10, D-098). -->
     <string name="collection_catalog_fold_all">Alle einklappen</string>
     <string name="collection_catalog_unfold_all">Alle ausklappen</string>
-    <!-- M1 placeholder (#54 S2, GEN-09): the seed teas exist, so it never claims an empty shelf. -->
-    <string name="collection_my_teas_later_title">Deine Sammlung folgt bald</string>
-    <string name="collection_my_teas_later_body">Deine Tees findest du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem späteren Update.</string>
+
+    <!-- Meine Tees (SCR-08, TEA-08–TEA-11, D-100). -->
+    <string name="my_teas_search_hint">Deine Tees durchsuchen …</string>
+    <string name="my_teas_search_clear">Suche löschen</string>
+    <!-- Filter chips (TEA-10). A chip with values shows the one chosen, or the name with the count. -->
+    <string name="my_teas_filter_favorites">Favoriten</string>
+    <string name="my_teas_filter_category">Kategorie</string>
+    <string name="my_teas_filter_sorte">Sorte</string>
+    <string name="my_teas_filter_stock">Vorrat</string>
+    <string name="my_teas_filter_flavored">Aromatisiert</string>
+    <string name="my_teas_filter_archived">Archiviert</string>
+    <string name="my_teas_filter_count">%1$s (%2$d)</string>
+    <string name="my_teas_stock_low">Knapp</string>
+    <string name="my_teas_stock_empty">Leer</string>
+    <!-- Sort (TEA-11); the chip reads „Sortierung: Zuletzt gebrüht" to TalkBack. -->
+    <string name="my_teas_sort_last_brewed">Zuletzt gebrüht</string>
+    <string name="my_teas_sort_name">Name</string>
+    <string name="my_teas_sort_recently_added">Zuletzt hinzugefügt</string>
+    <string name="my_teas_sort_stock">Vorrat</string>
+    <string name="my_teas_sort_description">Sortierung: %1$s</string>
+    <!-- Categories (TeaCategory, glossary *Kategorie*). -->
+    <string name="my_teas_category_green">Grüntee</string>
+    <string name="my_teas_category_white">Weißer Tee</string>
+    <string name="my_teas_category_yellow">Gelber Tee</string>
+    <string name="my_teas_category_oolong">Oolong</string>
+    <string name="my_teas_category_black">Schwarzer Tee</string>
+    <string name="my_teas_category_dark">Pu-Erh</string>
+    <string name="my_teas_category_herbal">Kräutertee</string>
+    <string name="my_teas_category_other">Andere</string>
+    <!-- A row: the stock chip and the star (TalkBack). -->
+    <string name="my_teas_stock_grams">%1$s g</string>
+    <string name="my_teas_stock_left">%1$s g übrig</string>
+    <string name="my_teas_stock_low_description">Knapp, %1$s g übrig</string>
+    <string name="my_teas_stock_empty_description">Leer</string>
+    <string name="my_teas_favorite">Favorit</string>
+    <string name="my_teas_restore">Wiederherstellen</string>
+    <string name="my_teas_restore_description">%1$s wiederherstellen</string>
+    <!-- FAB and its choice (SCR-08, D-100 point 4). -->
+    <string name="my_teas_add">Tee hinzufügen</string>
+    <string name="my_teas_add_from_catalog">Aus dem Katalog</string>
+    <string name="my_teas_add_without_catalog">Ohne Katalog</string>
+    <!-- Empty states (A7, A10). -->
+    <string name="my_teas_empty_title">Noch keine Tees</string>
+    <string name="my_teas_empty_body">Nimm deinen ersten Tee aus dem Katalog auf oder leg ihn ohne Katalog an.</string>
+    <string name="my_teas_empty_action">Im Katalog stöbern</string>
+    <string name="my_teas_no_match_title">Kein Tee passt zu deiner Suche.</string>
+    <string name="my_teas_reset_filters">Filter zurücksetzen</string>
 
     <!-- SCR-09 Tee (TEA-13, D-100). Non-breaking spaces ( ) keep a number with its unit. -->
     <string name="collection_tea_brew">Brühen</string>

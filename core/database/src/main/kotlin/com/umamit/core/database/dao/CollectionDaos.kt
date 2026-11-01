@@ -39,12 +39,38 @@ data class TeaWithDetails(
     val coverPhoto: PhotoEntity?,
 )
 
+/**
+ * What *Meine Tees* sorts and filters a tea by besides its own columns (SCR-08, TEA-08–TEA-11, D-100), as
+ * [TeaDao.observeListFacts] reads it: the start of its latest session (null: never brewed) and the Σ of its stock
+ * events (null: none).
+ */
+data class TeaListFacts(
+    @ColumnInfo(name = "tea_id") val teaId: String,
+    @ColumnInfo(name = "last_brewed_at") val lastBrewedAt: Long?,
+    @ColumnInfo(name = "remaining_grams") val remainingGrams: Double?,
+)
+
 @Dao
 @Suppress("TooManyFunctions") // one query per need of the tea, its photos and its catalog link (CAT-12)
 interface TeaDao {
     @Transaction
     @Query("SELECT * FROM tea ORDER BY name")
     fun observeAll(): Flow<List<TeaWithDetails>>
+
+    /**
+     * Every tea, archived ones included, with [TeaListFacts] (SCR-08, D-100): the list's sort by *Zuletzt
+     * gebrüht* and *Vorrat*, and its stock chips. Emits again on every write to the teas,
+     * their sessions and their stock events.
+     */
+    @Query(
+        """
+        SELECT t.id AS tea_id,
+            (SELECT MAX(s.started_at) FROM brew_session s WHERE s.tea_id = t.id) AS last_brewed_at,
+            (SELECT SUM(e.delta_grams) FROM inventory_event e WHERE e.tea_id = t.id) AS remaining_grams
+        FROM tea t
+        """,
+    )
+    fun observeListFacts(): Flow<List<TeaListFacts>>
 
     /** The teas that are not archived: Start and the tea picker (SCR-02, SCR-03, TEA-04). */
     @Transaction

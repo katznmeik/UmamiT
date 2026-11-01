@@ -829,6 +829,15 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   on SCR-09.
 - TalkBack labels on rows, chips and stars. Smooth with 500 teas
   (NFR-PERF-03).
+- **As built (#153, Claude):** the chips row starts with the sort chip
+  („Zuletzt gebrüht ▾", read „Sortierung: …"); *Kategorie*, *Sorte* and
+  *Vorrat* open a menu of values to tick (the chip then names the one ticked,
+  or „Sorte (2)"); *Kategorie* and *Sorte* show only while the collection has
+  more than one value (or one is ticked). The stock chip reads „38 g übrig",
+  „Knapp, 8 g übrig" or „Leer" to TalkBack. With only archived teas, A7 shows
+  below the search and chips, so *Archiviert* stays reachable. A10 offers
+  *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
+  remembered on every change, also when the app turns to *Katalog* itself.
 
 ### SCR-09 Tee (my tea detail)
 

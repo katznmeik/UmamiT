@@ -31,6 +31,9 @@ abstract class DataModule {
     abstract fun stockRepository(impl: RoomStockRepository): StockRepository
 
     @Binds
+    abstract fun collectionListRepository(impl: RoomCollectionListRepository): CollectionListRepository
+
+    @Binds
     abstract fun lowStockRepository(impl: RoomLowStockRepository): LowStockRepository
 
     @Binds
