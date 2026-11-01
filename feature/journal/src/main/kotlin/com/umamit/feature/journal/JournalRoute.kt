@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 /**
  * The journal tab: the sessions as the repository writes them, so a finished
  * brew appears at once (JRN-01). „Heute" moves on at midnight and on resume.
+ * A past entry's tap calls [onOpenSession] with its id (SCR-16, D-100).
  */
 @Composable
 fun JournalRoute(
@@ -23,6 +24,7 @@ fun JournalRoute(
     onOpenTimer: () -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
+    onOpenSession: (sessionId: String) -> Unit = {},
 ) {
     val sessionsFlow = remember(sources) { sources.journal.observeSessions() }
     val sessions by sessionsFlow.collectAsStateWithLifecycle(initialValue = sources.lastSessions)
@@ -43,5 +45,6 @@ fun JournalRoute(
         onOpenTimer = onOpenTimer,
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
+        onOpenSession = onOpenSession,
     )
 }

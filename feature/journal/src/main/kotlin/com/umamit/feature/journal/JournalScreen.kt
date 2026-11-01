@@ -47,11 +47,12 @@ private val GERMAN_DAY_WITH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPatter
 /**
  * The journal (SCR-15 minimal, JRN-08): read-only, the in-progress session
  * pinned on top (a tap opens the timer), then the finished sessions grouped
- * by day, newest first. Search, filters, ratings and the session detail come
- * with M4.
+ * by day, newest first; a tap on one opens its page (SCR-16, D-100). Search,
+ * filters and ratings come with M4.
  *
  * @param list the journal; null while the first read is running (nothing is shown, not the empty state).
  * @param thumbnail loads a tea's cover photo; tests pass a placeholder.
+ * @param onOpenSession a past entry's tap: its session page (SCR-16) by the session's id.
  */
 @Composable
 fun JournalScreen(
@@ -61,6 +62,7 @@ fun JournalScreen(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     thumbnail: @Composable (File) -> Painter? = { rememberAsyncImagePainter(it) },
+    onOpenSession: (sessionId: String) -> Unit = {},
 ) {
     ScreenScaffold(
         title = stringResource(R.string.journal_title),
@@ -79,10 +81,14 @@ fun JournalScreen(
 
             else -> Column(modifier = Modifier.fillMaxWidth().padding(bottom = UmamiSpacing.Large)) {
                 if (list.inProgress.isNotEmpty()) {
-                    Group(stringResource(R.string.journal_in_progress), list.inProgress, thumbnail, onOpenTimer)
+                    val label = stringResource(R.string.journal_open_timer)
+                    Group(stringResource(R.string.journal_in_progress), list.inProgress, thumbnail, label) {
+                        onOpenTimer()
+                    }
                 }
+                val label = stringResource(R.string.journal_open_session)
                 list.days.forEach { group ->
-                    Group(dayTitle(group.day), group.entries, thumbnail, onOpen = null)
+                    Group(dayTitle(group.day), group.entries, thumbnail, label) { onOpenSession(it.sessionId) }
                 }
             }
         }
@@ -94,14 +100,16 @@ private fun Group(
     title: String,
     entries: List<JournalEntry>,
     thumbnail: @Composable (File) -> Painter?,
-    onOpen: (() -> Unit)?,
+    openLabel: String,
+    onOpen: (JournalEntry) -> Unit,
 ) {
     SectionHeader(title = title, modifier = Modifier.padding(top = UmamiSpacing.Medium))
     entries.forEachIndexed { index, entry ->
         JournalRow(
             entry = entry,
             thumbnail = entry.photo?.let { thumbnail(it) },
-            onClick = onOpen,
+            openLabel = openLabel,
+            onClick = { onOpen(entry) },
             showDivider = index < entries.lastIndex,
         )
     }
@@ -109,14 +117,17 @@ private fun Group(
 
 /** A row as in mockup v2: round photo, serif tea name with the time of day on the right, the meta line. */
 @Composable
-private fun JournalRow(entry: JournalEntry, thumbnail: Painter?, onClick: (() -> Unit)?, showDivider: Boolean) {
-    val openLabel = stringResource(R.string.journal_open_timer)
+private fun JournalRow(
+    entry: JournalEntry,
+    thumbnail: Painter?,
+    openLabel: String,
+    onClick: () -> Unit,
+    showDivider: Boolean,
+) {
     Column {
         Row(
             modifier = Modifier
-                .then(
-                    if (onClick != null) Modifier.clickable(onClickLabel = openLabel, onClick = onClick) else Modifier,
-                )
+                .clickable(onClickLabel = openLabel, onClick = onClick)
                 .semantics(mergeDescendants = true) {}
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = 72.dp)

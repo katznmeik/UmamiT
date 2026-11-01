@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.RecipeRepository
+import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
@@ -53,13 +54,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.util.UUID
 import javax.inject.Inject
 
 /**
  * The setup's view model (SCR-04; BRW-02, BRW-03, BRW-10, TMR-01, TMR-21). It
  * opens on the tea `teaId` with its default recipe (or with `recipeId`, a recipe
  * tapped on the tea detail, SCR-09), or, for *Brühen anpassen*
- * (BRW-11), on the waiting session `sessionId` with that session's values.
+ * (BRW-11), on the waiting session `sessionId` with that session's values, or, for *So nochmal brühen* (BRW-06),
+ * on the past session `pastSessionId` as brewed: its set times, its recipe while it exists, else *Ohne Rezept*.
  * Every change applies to this session only, until *Im Rezept speichern*.
  * *Brühen starten* goes through the [BrewStarter]; nothing else here touches
  * the timer. The [catalog] only tells whether the tea's catalog tea exists, for
@@ -84,6 +87,9 @@ class BrewSetupViewModel @Inject constructor(
     /** The session *Brühen anpassen* came from; it is replaced without asking while it still waits. */
     private val adjustedSessionId: String? = savedState[SESSION_ID]
 
+    /** The past session *So nochmal brühen* came from (BRW-06, D-100); it is only read, never replaced. */
+    private val pastSessionId: String? = savedState[PAST_SESSION_ID]
+
     private val edits = MutableStateFlow(SetupEdits.decode(savedState[EDITS]))
     private val pending = MutableStateFlow<PendingStart?>(null)
     private val navigation = Channel<BrewSetupEvent>(Channel.BUFFERED)
@@ -92,7 +98,7 @@ class BrewSetupViewModel @Inject constructor(
     val events: Flow<BrewSetupEvent> = navigation.receiveAsFlow()
 
     private val source: Flow<Source?> = flow {
-        val session = adjustedSessionId?.let { sessions.getSession(it) }
+        val session = (adjustedSessionId ?: pastSessionId)?.let { sessions.getSession(it) }
         val teaId = savedState.get<String>(TEA_ID) ?: session?.snapshot?.teaId
         if (teaId == null) {
             emit(null)
@@ -154,11 +160,26 @@ class BrewSetupViewModel @Inject constructor(
         )
     }
 
-    /** *Im Rezept speichern* on the setup: every value of this session into the recipe (BRW-02). */
+    /**
+     * *Im Rezept speichern* on the setup: every value of this session into the recipe (BRW-02); with *Ohne Rezept*
+     * (BRW-06) into a new recipe, which is then the selected one.
+     */
     fun saveToRecipe() = launchWithSource { s ->
         val current = edits.value ?: return@launchWithSource
-        val recipe = s.recipe(current.recipeId) ?: return@launchWithSource
-        recipes.saveRecipe(current.appliedTo(recipe))
+        val recipe = s.recipe(current.recipeId)
+        if (recipe != null) {
+            recipes.saveRecipe(current.appliedTo(recipe))
+        } else if (current.recipeId == null) {
+            val created = s.newRecipe(current) ?: return@launchWithSource
+            if (recipes.saveRecipe(created) == SaveRecipeResult.Saved) {
+                edits.value?.let { setEdits(it.copy(recipeId = created.id)) }
+            }
+        }
+    }
+
+    /** The *Ohne Rezept* chip (BRW-06): the past session's values as brewed again, without a recipe. */
+    fun selectWithoutRecipe() = launchWithSource { s ->
+        if (s.withoutRecipe) setEdits(s.initialEdits())
     }
 
     /**
@@ -247,7 +268,9 @@ class BrewSetupViewModel @Inject constructor(
                             settings.settings.map { Globals(it.preAlertSeconds, it.lowStockGrams) }
                                 .distinctUntilChanged(),
                             sessionLeaf(teaId),
-                        ) { r, v, grams, global, leaf -> Source(overview, r, v, grams, global, session, leaf) },
+                        ) { r, v, grams, global, leaf ->
+                            Source(overview, r, v, grams, global, session, leaf, brewedAgain = pastSessionId != null)
+                        },
                         catalogEntry(overview.tea.catalogKey),
                     ) { source, key -> source.copy(catalogKey = key) },
                 )
@@ -310,7 +333,14 @@ class BrewSetupViewModel @Inject constructor(
             // The B that startRequest hands the controller with the recipe's value (04 §5, TMR-23).
             preAlertBaseSeconds = PreAlertSettings.inherited(recipe?.preAlertSeconds, s.globals.preAlertSeconds)
                 .inheritedSeconds,
-            canSaveToRecipe = recipe != null && e.differsFrom(recipe),
+            // *Ohne Rezept* offers it as long as a new recipe can be saved (BRW-06); a recipe saved just now and not
+            // read back yet counts as not saved, so the slot never flips back and forth.
+            canSaveToRecipe = if (recipe != null) {
+                e.differsFrom(recipe)
+            } else {
+                s.withoutRecipe && s.recipes.size < Recipe.MAX_PER_TEA
+            },
+            withoutRecipe = s.withoutRecipe,
             question = p?.question,
             alertKey = timer.alertKey(),
             sessionLeafGrams = s.sessionLeafGrams,
@@ -362,21 +392,47 @@ class BrewSetupViewModel @Inject constructor(
         val session: BrewSession?,
         val sessionLeafGrams: Double?,
         val catalogKey: String? = null,
+        val brewedAgain: Boolean = false,
     ) {
         fun recipe(id: String?): Recipe? = recipes.firstOrNull { it.id == id }
+
+        /** *So nochmal brühen* of a session whose recipe is gone: *Ohne Rezept* (BRW-06, D-100). */
+        val withoutRecipe: Boolean
+            get() = brewedAgain && session != null && recipe(session.snapshot.profileId) == null
+
+        /**
+         * The recipe *Im Rezept speichern* creates for *Ohne Rezept*, named after the session's recipe (or its tea,
+         * for a session brewed without one), after the tea's other recipes; null at [Recipe.MAX_PER_TEA] recipes.
+         */
+        fun newRecipe(edits: SetupEdits): Recipe? {
+            if (!withoutRecipe || recipes.size >= Recipe.MAX_PER_TEA) return null
+            val base = Recipe(
+                id = UUID.randomUUID().toString(),
+                teaId = tea.tea.id,
+                name = session?.snapshot?.profileName ?: tea.tea.name,
+                method = edits.method,
+                leafGrams = edits.leafGrams,
+                waterMl = edits.waterMl,
+                baseTempC = edits.baseTempC,
+                steps = emptyList(),
+                position = (recipes.maxOfOrNull { it.position } ?: -1) + 1,
+            )
+            return edits.appliedTo(base)
+        }
 
         private fun startingRecipe(): Recipe? =
             tea.defaultRecipe?.let { d -> recipes.firstOrNull { it.id == d.id } } ?: recipes.firstOrNull()
 
         /**
          * The [requestedRecipeId] (a recipe tapped on SCR-09) or else the default recipe, or the adjusted
-         * session's values on top of its recipe (BRW-11).
+         * session's values on top of its recipe (BRW-11), or the past session as brewed with its recipe while it
+         * exists, else *Ohne Rezept* (BRW-06).
          */
         fun initialEdits(requestedRecipeId: String? = null): SetupEdits {
             val session = session
                 ?: return (recipe(requestedRecipeId) ?: startingRecipe())?.let(SetupEdits::of) ?: SetupEdits.default()
             val snapshot = session.snapshot
-            val recipe = recipe(snapshot.profileId) ?: startingRecipe()
+            val recipe = recipe(snapshot.profileId) ?: startingRecipe().takeUnless { brewedAgain }
             val base = recipe?.let(SetupEdits::of) ?: SetupEdits.default()
             val water = snapshot.waterMl ?: base.waterMl
             val leaf = snapshot.leafGrams ?: base.leafGrams
@@ -403,6 +459,7 @@ class BrewSetupViewModel @Inject constructor(
         const val TEA_ID = "teaId"
         const val SESSION_ID = "sessionId"
         const val RECIPE_ID = "recipeId"
+        const val PAST_SESSION_ID = "pastSessionId"
         private const val EDITS = "setupEdits"
 
         /** Leaf per 100 ml, to 0,1 g (PRF-03 AC1). */

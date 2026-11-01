@@ -150,7 +150,7 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
                 stockOpen = true
             },
         )
-        RecipeChips(state, actions.selectRecipe)
+        RecipeChips(state, actions.selectRecipe, actions.selectWithoutRecipe)
         VesselRow(state, actions.selectVessel, actions.newVessel)
         AmountRow(
             label = stringResource(R.string.brew_setup_water),
@@ -309,12 +309,27 @@ private val STOCK_ICON_SIZE = 16.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecipeChips(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit) {
-    if (state.recipes.isEmpty()) return
+private fun RecipeChips(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit, onSelectWithout: () -> Unit) {
+    if (state.recipes.isEmpty() && !state.withoutRecipe) return
     FlowRow(
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
     ) {
+        // *So nochmal brühen* without the session's recipe (BRW-06, D-100): *Ohne Rezept* first, selected while no
+        // recipe is.
+        if (state.withoutRecipe) {
+            val selected = state.selectedRecipeId == null
+            FilterChip(
+                selected = selected,
+                onClick = onSelectWithout,
+                label = { Text(stringResource(R.string.brew_setup_without_recipe)) },
+                leadingIcon = if (selected) {
+                    { Icon(painterResource(UmamiIcons.Check), contentDescription = null) }
+                } else {
+                    null
+                },
+            )
+        }
         state.recipes.forEach { recipe ->
             val selected = recipe.id == state.selectedRecipeId
             FilterChip(

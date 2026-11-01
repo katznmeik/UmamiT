@@ -32,6 +32,9 @@ sealed interface BrewSetupUiState {
      * @property vessels the vessels the *Gefäß* list offers: favourites first, never an archived one (WARE-02).
      * @property archivedVessel the selected vessel when it is archived (a recipe's, D-100): the row reads
      *   „Kyusu (archiviert)", and the list doesn't offer it (WARE-02).
+     * @property withoutRecipe *So nochmal brühen* of a session whose recipe is gone (BRW-06, D-100): the recipe chips
+     *   offer *Ohne Rezept*, selected while no recipe is ([selectedRecipeId] null), and *Im Rezept speichern* then
+     *   saves a new recipe.
      */
     data class Ready(
         val teaId: String,
@@ -59,6 +62,7 @@ sealed interface BrewSetupUiState {
         val stockLevel: StockLevel? = null,
         val catalogKey: String? = null,
         val archivedVessel: VesselOption? = null,
+        val withoutRecipe: Boolean = false,
     ) : BrewSetupUiState {
         /**
          * BRW-08 (D-100): the stock is known, above 0 g (not *Leer*) and below this brew's leaf, so the stock line
