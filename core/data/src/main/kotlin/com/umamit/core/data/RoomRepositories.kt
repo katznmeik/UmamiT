@@ -3,6 +3,7 @@ package com.umamit.core.data
 import com.umamit.core.common.WallClock
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.RecipeDao
+import com.umamit.core.database.dao.RecipeDeletion
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.dao.VesselDao
 import com.umamit.core.model.InventoryEvent
@@ -55,10 +56,11 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
 
     override suspend fun getRecipe(id: String): Recipe? = dao.get(id)?.toModel()
 
-    override suspend fun saveRecipe(recipe: Recipe) {
+    override suspend fun saveRecipe(recipe: Recipe): SaveRecipeResult {
         val now = time.nowMs()
         val createdAt = dao.get(recipe.id)?.profile?.createdAt ?: now
-        dao.save(recipe.toEntity(createdAt, now), recipe.steps.toEntities(recipe.id, now))
+        val saved = dao.save(recipe.toEntity(createdAt, now), recipe.steps.toEntities(recipe.id, now), now)
+        return if (saved) SaveRecipeResult.Saved else SaveRecipeResult.LimitReached
     }
 
     override suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>) {
@@ -66,7 +68,11 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
         dao.replaceSteps(recipeId, steps.toEntities(recipeId, now), now)
     }
 
-    override suspend fun deleteRecipe(id: String) = dao.delete(id)
+    override suspend fun deleteRecipe(id: String): DeleteRecipeResult = when (dao.deleteKeepingOne(id, time.nowMs())) {
+        RecipeDeletion.DELETED -> DeleteRecipeResult.Deleted
+        RecipeDeletion.LAST_RECIPE -> DeleteRecipeResult.LastRecipe
+        RecipeDeletion.NOT_FOUND -> DeleteRecipeResult.NotFound
+    }
 }
 
 /** [VesselRepository] on Room (05 §3.4). */

@@ -133,11 +133,11 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
                 )
             }
         }
+        // As on Room from v0.4.0 (Q-19, D-100): the never-started rows stay, without an actual time.
         s.updateSession(sessionId) {
             it.copy(
                 status = SessionStatus.COMPLETED,
                 plannedStepCount = it.steps.size,
-                steps = it.steps.filter { row -> row.actualSeconds != null },
                 costCents = if (leaf != null && perGram != null) (leaf * perGram).roundToLong() else null,
                 endedAtMs = endedAt,
                 autoFinished = autoFinished,

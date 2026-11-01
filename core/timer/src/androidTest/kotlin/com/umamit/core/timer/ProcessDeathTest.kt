@@ -644,8 +644,13 @@ class ProcessDeathTest {
         /** `Notification.FLAG_SILENT` (`@hide`, API 36), set on force-grouped notifications (D-044). */
         const val FLAG_SILENT = 0x00020000
 
-        /** Two timers: the quick timer's deadline at most this long after the brew's counts as due together. */
-        const val TOGETHER_MS = 1_000L
+        /**
+         * Two timers: the quick timer's deadline at most this long after the brew's counts as due together. The
+         * quick timer starts after the brew's step in the test activity; on the CI emulator that start once took
+         * 1.26 s (API 35). Any gap well inside the brew's alert keeps the case: the quick timer's deadline passes
+         * while the brew alerts and is held behind it.
+         */
+        const val TOGETHER_MS = 2_000L
 
         /** How often the alert watchdog comes while an alert plays (`AlertWatchdog.INTERVAL_MS`, D-063). */
         val WATCHDOG = 30.seconds

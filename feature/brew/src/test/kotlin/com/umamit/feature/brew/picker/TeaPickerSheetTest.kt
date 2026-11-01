@@ -203,15 +203,15 @@ class TeaPickerSheetTest {
     }
 
     @Test
-    fun `a long press offers Aus Sammlung entfernen, which removes the tea without a dialog`() {
+    fun `a long press offers Archivieren, which removes the tea without a dialog`() {
         showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata), loading = false))
 
         compose.onNodeWithText("Bio Sencha Hisui").performTouchInput { longClick() }
-        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Archivieren").assertIsDisplayed().performClick()
 
         assertThat(removedTeas).containsExactly("h")
         assertThat(picked).isEmpty()
-        compose.onNodeWithText("Aus Sammlung entfernen").assertDoesNotExist()
+        compose.onNodeWithText("Archivieren").assertDoesNotExist()
     }
 
     @Test
@@ -221,17 +221,17 @@ class TeaPickerSheetTest {
         compose.onNodeWithText("Bio Sencha Tanabata").performTouchInput { longClick() }
 
         compose.onNodeWithText("Erst die Sitzung beenden", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNode(hasClickAction() and hasText("Aus Sammlung entfernen")).assertIsNotEnabled().performClick()
+        compose.onNode(hasClickAction() and hasText("Archivieren")).assertIsNotEnabled().performClick()
         assertThat(removedTeas).isEmpty()
     }
 
     @Test
-    fun `TalkBack offers Aus Sammlung entfernen as a custom action on the row`() {
+    fun `TalkBack offers Archivieren as a custom action on the row`() {
         showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata.copy(removable = false)), loading = false))
 
         val row = compose.onNode(hasText("Bio Sencha Hisui") and hasClickAction()).fetchSemanticsNode()
         compose.runOnIdle {
-            row.config[SemanticsActions.CustomActions].single { it.label == "Aus Sammlung entfernen" }.action()
+            row.config[SemanticsActions.CustomActions].single { it.label == "Archivieren" }.action()
         }
         // Not for the tea of the active session.
         val blocked = compose.onNode(hasText("Bio Sencha Tanabata") and hasClickAction()).fetchSemanticsNode()
@@ -244,7 +244,7 @@ class TeaPickerSheetTest {
     fun `the snackbar names the removed tea and Rueckgaengig undoes it`() {
         showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
 
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()
 
@@ -255,10 +255,10 @@ class TeaPickerSheetTest {
     @Test
     fun `the snackbar stays about 8 s, then goes and the tea stays removed (D-093 Q21)`() {
         showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
 
         compose.mainClock.advanceTimeBy(7_500)
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
         assertThat(snackbarGone).isEqualTo(0)
 
         compose.mainClock.advanceTimeBy(1_000)
@@ -314,7 +314,7 @@ class TeaPickerSheetTest {
         showRemovable(TeaPickerUiState(all = listOf(hisui, minze), loading = false))
 
         compose.onNodeWithText("Minze Zitrone").performTouchInput { longClick() }
-        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Archivieren").assertIsDisplayed().performClick()
 
         assertThat(removedTeas).containsExactly("m")
     }

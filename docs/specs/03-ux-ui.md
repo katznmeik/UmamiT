@@ -829,6 +829,15 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   on SCR-09.
 - TalkBack labels on rows, chips and stars. Smooth with 500 teas
   (NFR-PERF-03).
+- **As built (#153, Claude):** the chips row starts with the sort chip
+  („Zuletzt gebrüht ▾", read „Sortierung: …"); *Kategorie*, *Sorte* and
+  *Vorrat* open a menu of values to tick (the chip then names the one ticked,
+  or „Sorte (2)"); *Kategorie* and *Sorte* show only while the collection has
+  more than one value (or one is ticked). The stock chip reads „38 g übrig",
+  „Knapp, 8 g übrig" or „Leer" to TalkBack. With only archived teas, A7 shows
+  below the search and chips, so *Archiviert* stays reachable. A10 offers
+  *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
+  remembered on every change, also when the app turns to *Katalog* itself.
 
 ### SCR-09 Tee (my tea detail)
 
@@ -880,6 +889,15 @@ the recipes (TEA-03). Errors show at the field (an empty name, a harvest
 year in the future) and *Speichern* refuses them; ✕ with changes asks
 „Änderungen verwerfen?" (GEN-08). Saving during a brew of the tea changes
 nothing in the running session.
+- **As built (#155, Claude):** like the vessel editor (SCR-14): errors show
+  only after the first *Speichern*, then follow the typing. The Sorte is a
+  menu of every built-in style by Kategorie; choosing one also sets the umami
+  level to the Sorte's, and on *Speichern* the tea takes the Sorte's name
+  (`tea_type`) and Kategorie (the form only for a new tea; the recipes stay).
+  *Land* offers the usual tea countries by their German name. *Kaufdatum* is
+  today by default and never later (as SCR-23); a price needs a package
+  („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
+  after an add, the new tea's detail replaces it, *Sorte wählen* included.
 
 ### SCR-11 Sorte wählen (manual add)
 
@@ -890,6 +908,9 @@ v0.4.0 (D-100): every built-in style by its Sorte name, grouped by Kategorie
 searchable, with *Andere / unbekannt* at the end (08 §3). A tap opens SCR-10
 for a new tea with the style's Sorte, Kategorie, umami level and default
 recipe.
+- **As built (#155, Claude):** the search matches the Sorte name and its
+  Kategorie (GEN-10). *Andere / unbekannt* stores no style (05 §3.1) and the
+  Kategorie *Andere*.
 
 ### SCR-12 Rezept bearbeiten
 
@@ -910,6 +931,29 @@ v0.4.0 (D-100):
 - **Save:** *Speichern* clears „Rezept prüfen" (TEA-17); ✕ with changes asks
   GEN-08's question. A running brew keeps its steps.
 - No *Aufgüsse erzeugen* (series generator, PRF-05 not planned).
+- **As built (#156, Claude):** a full-screen dialog like SCR-10 and SCR-14
+  (✕ · „Rezept bearbeiten" / „Neues Rezept" · *Speichern* · ⋮), sections
+  *Rezept*, *Schritte*, *Notizen*; errors show only after the first
+  *Speichern*, then follow the typing.
+  - *Rezept*: name (hint „z. B. Kyusu oder Kaltaufguss"), *Methode* (Kyusu,
+    Gongfu, Westlich, Matcha Usucha, Matcha Koicha, Kaltaufguss, Eisaufguss,
+    Eigene), *Gefäß* (*Kein Gefäß* first; it keeps leaf and water), leaf and
+    water typed („0,1 bis 100 g", „10 bis 3000 ml, in 5-ml-Schritten"), the
+    line „Verhältnis 2,0 g / 100 ml" below them, the base temperature as a
+    − / + stepper („10 °C · kalt" at 10 °C and below), *Vorwarnung* (*Wie in
+    Einstellungen · 10 s*, *Aus*, 5–30 s) and the switch *Als Standard*,
+    stored with *Speichern*; on the default recipe it stays on.
+  - Each step: the drag handle (TalkBack: „Verschieben, Schritt 2" with *Nach
+    oben* / *Nach unten verschieben*), „1 · Aufguss" opening the kind menu, ✕,
+    the duration and temperature steppers, its *Vorwarnung* selector as in
+    the Schritte-Sheet („Auto · 10 s" with the lead the timer will give) and
+    a note (≤ 120 characters). The only step that brews can't become
+    *Spülen* and can't be deleted. *Aufguss hinzufügen* appends the timer's
+    *Weiterer Aufguss* (TMR-10), up to 30 steps.
+  - ⋮ *Rezept löschen* asks „Rezept löschen?"; for the tea's last recipe it
+    is greyed out with „Ein Tee braucht mindestens ein Rezept."
+  - The editor sits in the Sammlung stack above the detail; *Speichern* and
+    *Löschen* return to it.
 
 ### SCR-13 / SCR-14 Teegeschirr
 

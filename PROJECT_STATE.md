@@ -3,19 +3,21 @@
 > Handover between sessions. Update at the end of every session and
 > milestone. Newest information first.
 
-**Last updated:** 2026-10-31 (v0.4.0 specified: spec #145, D-100, plan `docs/plans/v0.4.0.md`, tickets #147–#161; waiting for the PO's approval and `/implement-spec #145`)
+**Last updated:** 2026-11-01 (v0.4.0 built: all 13 build tickets on PR #162, code review done; **next: the fix round F1–F15**, then `v0.4.0-rc.1` — paused by the PO before the fix round)
+
+> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) first:** state, the PO questions to ask first (F5, F11, F12), environment setup (Gradle lock, gate script), the fix-round cut, the steps to rc.1, the implementer brief and the build's contracts.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.3.0 — done** ([`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0), 2026-10-31, from `main` 688a23a; spec #124, PR #143, D-098, D-099): quick timer alongside a brew, hot steps of 10–59 min with Vorwarnung (#122), the PO's five points on v0.2.2-rc.1 (#123), the step duration (#141), ring under DND (D-099). **Next: M3 (collection) → v0.4.0**, not yet specified (the PO starts it with `/to-spec`). Then M4 → v0.5.0 |
+| Current milestone | **v0.4.0 — built, review fixes pending** (spec #145, PR #162 draft, D-100): all build tickets #147–#159 merged on the branch and pushed; code review in `docs/plans/v0.4.0-review.md`; fix round F1–F15, then rc.1. Previous: v0.3.0 done ([`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0), 2026-10-31, `main` 688a23a). |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Spec version | v0.2 (`docs/specs/`) |
-| Working branch | `claude/umamit-m1-start-k0jg3n`, restarted from `main` after the merge of #143 |
+| Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Merged PRs | #1 (M0 specs), #25 (M1 milestone, 2026-10-25), #78 (M2 milestone, 2026-10-26), #106 (v0.2.1, 2026-10-29), #121 (v0.2.2, 2026-10-30), #143 (v0.3.0, 2026-10-31); docs/housekeeping #2–#5, #7, #18–#24, #26, #57, #59, #60, #61, #80, #82, #95, #96, #99, #101, #103, #105, #120, #140, #142 |
-| Open PR | none |
+| Open PR | #162 (v0.4.0 milestone, draft) |
 | Merging | Claude merges all PRs (D-037); the PO only approves milestone PRs |
 | Latest APK | [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (full release, versionCode 30099, from `main` 688a23a; accuracy PASS on `main`: standard pre-alert p95 46 / max 376 ms, alert p95 23 / max 24 ms; alongside brew pre-alert 16 / 154 ms, alert 37 / 41 ms, Schnelltimer pre-alert 13 / 465 ms, alert 20 / 442 ms) |
 
@@ -64,6 +66,41 @@
 | Probe gate | D-040: all four checklist items must pass before M1-09/M1-11; Now Bar best effort; fix loop with `0.0.N-probe`; runtime fallbacks stay |
 
 ## Next steps
+
+### v0.4.0 built, review done — fix round next (2026-11-01)
+
+- **PO's go:** `/implement-spec #145` on 2026-10-31 (the tickets' approval). Working branch = PR **#162** (draft, closes #145 and #147–#161).
+- **Built and pushed:** all 13 build tickets, each verified with the full local gate before merging and green on CI:
+  #147 data rules, #148 style rows and list functions, #149 shared parts in `core:ui`, #150 *Archivieren* / *Spülen* /
+  *Bestand abziehen*, #151 accuracy-test waits, #152 never-started steps kept (T4), #153 *Meine Tees*, #154 tea detail,
+  #155 tea editor and *Sorte wählen*, #156 recipe editor, #157 teaware, #158 setup changes, #159 session page and
+  *So nochmal brühen*. Plus `ab84993`: `ProcessDeathTest` allows 2 s between the two timers' starts (CI API 35 fix).
+- **Accuracy:** both variants PASS on `5b5af88` (with #151, first attempt). Timer code changed after that (#152 was
+  before; #159's setup prefill and the F3/F4/F10 fixes are timer-adjacent), so rc.1 needs a fresh run (D-073).
+- **Code review** (Standards T3, Spec T3, timer-adjacent T4): no blockers in the timer path; findings consolidated in
+  **`docs/plans/v0.4.0-review.md`** with the fix list **F1–F15** (must fix F1–F10, should fix / PO decision F11–F15,
+  nits). Highlights: F1 alert gate missing in the three editors (rule 8); F2 tea-picker groups only green/herbal (09 §4
+  item fails); F3/F4 *So nochmal brühen* save path (wrong temperatures, duplicate recipe on double tap); F5 dead
+  pencils on the detail above the setup; F6 *Rückgängig* snackbar only in Sammlung; F7 raw country code; F8 teas
+  without stock events shown „Leer"; F9 SCR-21 back button dark on dark; F10 accuracy alongside guard.
+- **Open PO decisions:** F11 (*Ohne Rezept* uses the global Vorwarnung base instead of the session's — proposed: the
+  session's), F12 (refuse deleting the running session's recipe — proposed: yes), F5 (wire the editors above the setup —
+  proposed — or hide the pencils there). Also from #152: Start's *Nochmal brühen* keeps brewing only the steps that ran
+  (BRW-11/D-062, unchanged).
+- **Paused by the PO (2026-11-01) before the fix round:** no fix implementer, no accuracy runs started. To resume (after the weekly limit resets): **`docs/plans/v0.4.0-resume.md`**.
+
+**Remaining steps to `v0.4.0-rc.1`:**
+1. Fix round: one implementer (T3; T4 for anything touching session completion or the timer) works F1–F10 plus the
+   decided F11–F15 and the nits, test-first; verify with the full local gate; push; CI green.
+2. Record the build notes in D-100 (doc 10): the „Claude" decisions from the ticket reports (vessel names and validation,
+   tea-editor validation, chip behaviour, archived-tea delete question, session count = finished sessions, …) and the
+   review outcome.
+3. Accuracy run, both variants (`standard`, `alongside`), on the rc commit (D-073; F10 changes the harness).
+4. Design renders, light/dark, to `docs/design/review/v0.4.0/` with a README (placeholder vessel icons and the A7/A10
+   empty states called out).
+5. Set `umamit.version=0.4.0-rc.1`, dispatch `release.yml` (`ref` = branch, `version` = `0.4.0-rc.1`, versionCode
+   40001), copy the 09 §4 v0.4.0 checklist into #160 and the PR, notify the PO.
+6. #160: the PO tests on the Galaxy and approves; then #161 merge and `v0.4.0`.
 
 ### v0.4.0 specified (2026-10-31)
 

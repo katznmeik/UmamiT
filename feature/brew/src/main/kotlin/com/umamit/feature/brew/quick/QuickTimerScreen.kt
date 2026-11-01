@@ -47,6 +47,7 @@ import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.ui.DurationPicker
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.PreAlertDropdown
 import com.umamit.feature.brew.steps.preAlertSpoken
@@ -110,7 +111,7 @@ fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modif
             )
         }
         if (pickerOpen && !pickerCovered) {
-            QuickDurationPicker(
+            DurationPicker(
                 initialSeconds = state.durationSeconds,
                 onApply = {
                     pickerOpen = false

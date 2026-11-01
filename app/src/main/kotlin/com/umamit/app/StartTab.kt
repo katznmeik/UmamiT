@@ -23,9 +23,13 @@ import com.umamit.feature.home.HomeViewModel
  */
 internal class StartNavigation(
     val openSetup: (teaId: String) -> Unit = {},
+    /** The setup of a tea with one of its recipes (null: the default), from the tea detail (SCR-09). */
+    val openSetupWith: (teaId: String, recipeId: String?) -> Unit = { teaId, _ -> openSetup(teaId) },
     val openTimer: () -> Unit = {},
     val openQuickTimer: () -> Unit = {},
     val openTimerOf: (TimerSlot) -> Unit = { openTimer() },
+    /** *So nochmal brühen* on a session's page (SCR-16, BRW-06): the setup prefilled with that past session. */
+    val openSetupFromSession: (sessionId: String) -> Unit = {},
 )
 
 /**

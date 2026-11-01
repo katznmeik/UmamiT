@@ -10,7 +10,323 @@
     <!-- Foldable Sorte groups, only in a grouped catalog view (SCR-19, CAT-10, D-098). -->
     <string name="collection_catalog_fold_all">Alle einklappen</string>
     <string name="collection_catalog_unfold_all">Alle ausklappen</string>
-    <!-- M1 placeholder (#54 S2, GEN-09): the seed teas exist, so it never claims an empty shelf. -->
-    <string name="collection_my_teas_later_title">Deine Sammlung folgt bald</string>
-    <string name="collection_my_teas_later_body">Deine Tees findest du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem späteren Update.</string>
+
+    <!-- Meine Tees (SCR-08, TEA-08–TEA-11, D-100). -->
+    <string name="my_teas_search_hint">Deine Tees durchsuchen …</string>
+    <string name="my_teas_search_clear">Suche löschen</string>
+    <!-- Filter chips (TEA-10). A chip with values shows the one chosen, or the name with the count. -->
+    <string name="my_teas_filter_favorites">Favoriten</string>
+    <string name="my_teas_filter_category">Kategorie</string>
+    <string name="my_teas_filter_sorte">Sorte</string>
+    <string name="my_teas_filter_stock">Vorrat</string>
+    <string name="my_teas_filter_flavored">Aromatisiert</string>
+    <string name="my_teas_filter_archived">Archiviert</string>
+    <string name="my_teas_filter_count">%1$s (%2$d)</string>
+    <string name="my_teas_stock_low">Knapp</string>
+    <string name="my_teas_stock_empty">Leer</string>
+    <!-- Sort (TEA-11); the chip reads „Sortierung: Zuletzt gebrüht" to TalkBack. -->
+    <string name="my_teas_sort_last_brewed">Zuletzt gebrüht</string>
+    <string name="my_teas_sort_name">Name</string>
+    <string name="my_teas_sort_recently_added">Zuletzt hinzugefügt</string>
+    <string name="my_teas_sort_stock">Vorrat</string>
+    <string name="my_teas_sort_description">Sortierung: %1$s</string>
+    <!-- Categories (TeaCategory, glossary *Kategorie*). -->
+    <string name="my_teas_category_green">Grüntee</string>
+    <string name="my_teas_category_white">Weißer Tee</string>
+    <string name="my_teas_category_yellow">Gelber Tee</string>
+    <string name="my_teas_category_oolong">Oolong</string>
+    <string name="my_teas_category_black">Schwarzer Tee</string>
+    <string name="my_teas_category_dark">Pu-Erh</string>
+    <string name="my_teas_category_herbal">Kräutertee</string>
+    <string name="my_teas_category_other">Andere</string>
+    <!-- A row: the stock chip and the star (TalkBack). -->
+    <string name="my_teas_stock_grams">%1$s g</string>
+    <string name="my_teas_stock_left">%1$s g übrig</string>
+    <string name="my_teas_stock_low_description">Knapp, %1$s g übrig</string>
+    <string name="my_teas_stock_empty_description">Leer</string>
+    <string name="my_teas_favorite">Favorit</string>
+    <string name="my_teas_restore">Wiederherstellen</string>
+    <string name="my_teas_restore_description">%1$s wiederherstellen</string>
+    <!-- FAB and its choice (SCR-08, D-100 point 4). -->
+    <string name="my_teas_add">Tee hinzufügen</string>
+    <string name="my_teas_add_from_catalog">Aus dem Katalog</string>
+    <string name="my_teas_add_without_catalog">Ohne Katalog</string>
+    <!-- Empty states (A7, A10). -->
+    <string name="my_teas_empty_title">Noch keine Tees</string>
+    <string name="my_teas_empty_body">Nimm deinen ersten Tee aus dem Katalog auf oder leg ihn ohne Katalog an.</string>
+    <string name="my_teas_empty_action">Im Katalog stöbern</string>
+    <string name="my_teas_no_match_title">Kein Tee passt zu deiner Suche.</string>
+    <string name="my_teas_reset_filters">Filter zurücksetzen</string>
+
+    <!-- SCR-09 Tee (TEA-13, D-100). Non-breaking spaces ( ) keep a number with its unit. -->
+    <string name="collection_tea_brew">Brühen</string>
+    <string name="collection_tea_brew_archived">Tee ist archiviert</string>
+    <string name="collection_tea_more">Weitere Optionen</string>
+    <string name="collection_tea_edit">Tee bearbeiten</string>
+    <string name="collection_tea_gone_title">Diesen Tee gibt es nicht mehr.</string>
+    <string name="collection_tea_gone_body">Er wurde gelöscht. Deine Journal-Einträge bleiben erhalten.</string>
+    <!-- The flags beside the Sorte chip. -->
+    <string name="collection_tea_organic">Bio</string>
+    <string name="collection_tea_flavored">Aromatisiert</string>
+    <!-- The umami meter: „Umami" with four leaves; TalkBack „Umami: hoch". -->
+    <string name="collection_tea_umami">Umami</string>
+    <string name="collection_tea_umami_description">Umami: %1$s</string>
+    <string name="collection_tea_umami_none">kein</string>
+    <string name="collection_tea_umami_low">wenig</string>
+    <string name="collection_tea_umami_medium">mittel</string>
+    <string name="collection_tea_umami_high">hoch</string>
+    <string name="collection_tea_umami_very_high">sehr hoch</string>
+    <!-- The StatTriplet of SCR-09 (D-100): the tea's sessions, last brew and stock. -->
+    <string name="collection_tea_stat_sessions">Sitzungen</string>
+    <plurals name="collection_tea_stat_sessions_description">
+        <item quantity="one">%1$d Sitzung</item>
+        <item quantity="other">%1$d Sitzungen</item>
+    </plurals>
+    <string name="collection_tea_stat_last">Zuletzt</string>
+    <string name="collection_tea_stat_last_description">Zuletzt gebrüht am %1$s</string>
+    <string name="collection_tea_stat_never">–</string>
+    <string name="collection_tea_stat_never_description">Noch nie gebrüht</string>
+    <string name="collection_tea_stat_stock">Vorrat</string>
+    <string name="collection_tea_stat_stock_value">%1$s g</string>
+    <string name="collection_tea_stat_stock_description">Vorrat: %1$s</string>
+    <!-- ⋮ (TEA-04, TEA-06): an item greyed out for the tea of the active brew session (E15). -->
+    <string name="collection_tea_favorite">Favorit</string>
+    <string name="collection_tea_archive">Archivieren</string>
+    <string name="collection_tea_restore">Wiederherstellen</string>
+    <string name="collection_tea_delete">Löschen</string>
+    <string name="collection_tea_blocked">Erst die Sitzung beenden</string>
+    <!-- 03 §5: „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." -->
+    <string name="collection_tea_delete_title">%1$s löschen?</string>
+    <plurals name="collection_tea_delete_body">
+        <item quantity="one">Dein Journal-Eintrag bleibt erhalten.</item>
+        <item quantity="other">Deine %1$d Journal-Einträge bleiben erhalten.</item>
+    </plurals>
+    <string name="collection_tea_delete_archive_instead">Stattdessen archivieren</string>
+    <string name="collection_tea_delete_confirm">Löschen</string>
+    <!-- The snackbar on the screen below the closed detail (TEA-04, 03 §5). -->
+    <string name="collection_tea_archived">%1$s archiviert</string>
+    <string name="collection_tea_undo">Rückgängig</string>
+    <!-- Sections, given in sentence case (shown uppercase). -->
+    <string name="collection_tea_section_recipes">Rezepte</string>
+    <string name="collection_tea_section_stock">Vorrat</string>
+    <string name="collection_tea_section_description">Beschreibung</string>
+    <string name="collection_tea_section_notes">Notizen</string>
+    <string name="collection_tea_section_details">Details</string>
+    <!-- REZEPTE: „Kyusu 250 ml · 5 g · 250 ml · 70 °C · 3 Aufgüsse". -->
+    <string name="collection_tea_recipe_default">Standard</string>
+    <string name="collection_tea_recipe_separator">" · "</string>
+    <string name="collection_tea_recipe_grams">%1$s g</string>
+    <string name="collection_tea_recipe_ml">%1$d ml</string>
+    <string name="collection_tea_recipe_temp">%1$d °C</string>
+    <plurals name="collection_tea_recipe_infusions">
+        <item quantity="one">%1$d Aufguss</item>
+        <item quantity="other">%1$d Aufgüsse</item>
+    </plurals>
+    <string name="collection_tea_recipe_edit">%1$s bearbeiten</string>
+    <string name="collection_tea_recipe_add">Rezept hinzufügen</string>
+    <!-- VORRAT: „38 g übrig", „14 g übrig · knapp", „Leer" (INV-05). -->
+    <string name="collection_tea_stock">%1$s g übrig</string>
+    <string name="collection_tea_stock_low">%1$s g übrig · knapp</string>
+    <string name="collection_tea_stock_empty">Leer</string>
+    <string name="collection_tea_stock_correct">Bestand korrigieren</string>
+    <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
+    <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <!-- DETAILS, each only when set. -->
+    <string name="collection_tea_origin">Herkunft</string>
+    <string name="collection_tea_cultivar">Kultivar</string>
+    <string name="collection_tea_harvest">Ernte</string>
+    <string name="collection_tea_shading">Beschattung</string>
+    <plurals name="collection_tea_shading_days">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <string name="collection_tea_processing">Verarbeitung</string>
+    <string name="collection_tea_ingredients">Zutaten</string>
+    <string name="collection_tea_vendor">Händler</string>
+    <string name="collection_tea_season_first_flush">Erste Pflückung</string>
+    <string name="collection_tea_season_second_flush">Zweite Pflückung</string>
+    <string name="collection_tea_season_summer">Sommer</string>
+    <string name="collection_tea_season_autumn">Herbst</string>
+    <string name="collection_tea_season_winter">Winter</string>
+    <!-- Sorte names of the built-in styles (08 §3, glossary *Sorte*): Sorte wählen (SCR-11) and the editor's Sorte. -->
+    <string name="sorte_gyokuro">Gyokuro</string>
+    <string name="sorte_kabusecha">Kabusecha</string>
+    <string name="sorte_sencha">Sencha</string>
+    <string name="sorte_fukamushi_sencha">Fukamushi Sencha</string>
+    <string name="sorte_shincha">Shincha</string>
+    <string name="sorte_matcha">Matcha</string>
+    <string name="sorte_karigane">Kukicha / Karigane</string>
+    <string name="sorte_bancha">Bancha</string>
+    <string name="sorte_hojicha">Hōjicha</string>
+    <string name="sorte_hojicha_powder">Hōjicha-Pulver</string>
+    <string name="sorte_genmaicha">Genmaicha</string>
+    <string name="sorte_kamairicha">Kamairicha</string>
+    <string name="sorte_tamaryokucha">Tamaryokucha</string>
+    <string name="sorte_longjing">Long Jing</string>
+    <string name="sorte_anji_bai_cha">Anji Bai Cha</string>
+    <string name="sorte_bi_luo_chun">Bi Luo Chun</string>
+    <string name="sorte_korean_green">Koreanischer Grüntee</string>
+    <string name="sorte_flavored_green">Aromatisierter Grüntee</string>
+    <string name="sorte_green_generic">Grüntee (sonstiger)</string>
+    <string name="sorte_herbal">Kräutertee</string>
+    <string name="sorte_white_generic">Weißer Tee</string>
+    <string name="sorte_oolong_generic">Oolong</string>
+    <string name="sorte_black_generic">Schwarzer Tee</string>
+    <string name="sorte_dark_generic">Pu-Erh</string>
+    <string name="sorte_other">Andere / unbekannt</string>
+
+    <!-- SCR-11 Sorte wählen (TEA-01, D-100). -->
+    <string name="sorte_picker_title">Sorte wählen</string>
+    <string name="sorte_picker_back">Zurück</string>
+    <string name="sorte_picker_search_hint">Sorte suchen …</string>
+    <string name="sorte_picker_search_clear">Suche löschen</string>
+    <string name="sorte_picker_no_match">Keine Sorte passt zu deiner Suche.</string>
+
+    <!-- SCR-10 Tee bearbeiten (TEA-01–TEA-03, INV-01, D-100). -->
+    <string name="tea_editor_title_new">Neuer Tee</string>
+    <string name="tea_editor_title_edit">Tee bearbeiten</string>
+    <string name="tea_editor_close">Schließen</string>
+    <string name="tea_editor_save">Speichern</string>
+    <string name="tea_editor_not_found">Diesen Tee gibt es nicht mehr.</string>
+    <string name="tea_editor_save_failed">Speichern hat nicht geklappt. Versuch es noch einmal.</string>
+    <string name="tea_editor_section_general">Allgemein</string>
+    <string name="tea_editor_section_origin">Herkunft</string>
+    <string name="tea_editor_section_purchase">Kauf</string>
+    <string name="tea_editor_section_notes">Notizen</string>
+    <string name="tea_editor_name">Name</string>
+    <string name="tea_editor_secondary_name">Zweiter Name</string>
+    <string name="tea_editor_secondary_name_hint">z. B. der japanische Name</string>
+    <string name="tea_editor_sorte">Sorte</string>
+    <string name="tea_editor_umami">Umami</string>
+    <string name="tea_editor_umami_unset">Keine Angabe</string>
+    <string name="tea_editor_umami_none">Kein</string>
+    <string name="tea_editor_umami_low">Wenig</string>
+    <string name="tea_editor_umami_medium">Mittel</string>
+    <string name="tea_editor_umami_high">Hoch</string>
+    <string name="tea_editor_umami_very_high">Sehr hoch</string>
+    <string name="tea_editor_flavored">Aromatisiert</string>
+    <string name="tea_editor_flavored_detail">Mit Aromen oder Zutaten wie Früchten oder Blüten</string>
+    <string name="tea_editor_country">Land</string>
+    <string name="tea_editor_country_unset">Keine Angabe</string>
+    <string name="tea_editor_region">Region</string>
+    <string name="tea_editor_cultivar">Kultivar</string>
+    <string name="tea_editor_harvest_year">Erntejahr</string>
+    <string name="tea_editor_harvest_season">Pflückung</string>
+    <string name="tea_editor_harvest_season_unset">Keine Angabe</string>
+    <string name="tea_editor_shading">Beschattung</string>
+    <string name="tea_editor_shading_unit">Tage</string>
+    <string name="tea_editor_processing">Verarbeitung</string>
+    <string name="tea_editor_processing_hint">z. B. Chumushi</string>
+    <string name="tea_editor_vendor">Händler</string>
+    <string name="tea_editor_purchase_date">Kaufdatum</string>
+    <string name="tea_editor_purchase_date_ok">OK</string>
+    <string name="tea_editor_purchase_date_cancel">Abbrechen</string>
+    <string name="tea_editor_package">Packung</string>
+    <string name="tea_editor_package_unit">g</string>
+    <string name="tea_editor_package_hint">Leer lassen, wenn du den Vorrat nicht kennst</string>
+    <string name="tea_editor_price">Preis</string>
+    <string name="tea_editor_price_unit">€</string>
+    <string name="tea_editor_notes">Notizen</string>
+    <string name="tea_editor_error_name_empty">Gib dem Tee einen Namen.</string>
+    <string name="tea_editor_error_name_long">Höchstens 80 Zeichen.</string>
+    <string name="tea_editor_error_harvest_year">Gib ein Jahr wie 2026 an.</string>
+    <string name="tea_editor_error_harvest_year_future">Das Jahr liegt in der Zukunft.</string>
+    <string name="tea_editor_error_shading">0 bis 60 Tage.</string>
+    <string name="tea_editor_error_package">Gib die Packung in g an, z. B. 50.</string>
+    <string name="tea_editor_error_price">Gib den Preis in Euro an, z. B. 12,40.</string>
+    <string name="tea_editor_error_price_without_package">Zum Preis gehört eine Packung.</string>
+    <!-- SCR-12 Rezept bearbeiten (PRF-01, PRF-03, PRF-04, WARE-02–WARE-04, TEA-17, D-100). -->
+    <string name="recipe_editor_title_new">Neues Rezept</string>
+    <string name="recipe_editor_title_edit">Rezept bearbeiten</string>
+    <string name="recipe_editor_close">Schließen</string>
+    <string name="recipe_editor_save">Speichern</string>
+    <string name="recipe_editor_more">Weitere Optionen</string>
+    <string name="recipe_editor_not_found">Dieses Rezept gibt es nicht mehr.</string>
+    <string name="recipe_editor_section_recipe">Rezept</string>
+    <string name="recipe_editor_section_steps">Schritte</string>
+    <string name="recipe_editor_section_notes">Notizen</string>
+    <string name="recipe_editor_name">Name</string>
+    <string name="recipe_editor_name_hint">z. B. Kyusu oder Kaltaufguss</string>
+    <string name="recipe_editor_method">Methode</string>
+    <string name="recipe_editor_vessel">Gefäß</string>
+    <string name="recipe_editor_vessel_none">Kein Gefäß</string>
+    <!-- A vessel whose name doesn't end with its volume: „Lieblingskanne · 450 ml". -->
+    <string name="recipe_editor_vessel_option">%1$s · %2$d\u00A0ml</string>
+    <!-- WARE-02 (D-100): the recipe's vessel that was archived, „Kyusu 250 ml (archiviert)", as in the setup. -->
+    <string name="recipe_editor_vessel_archived">%1$s (archiviert)</string>
+    <string name="recipe_editor_leaf">Blätter</string>
+    <string name="recipe_editor_water">Wasser</string>
+    <string name="recipe_editor_unit_g">g</string>
+    <string name="recipe_editor_unit_ml">ml</string>
+    <!-- PRF-03 AC1: the ratio, live. -->
+    <string name="recipe_editor_ratio">Verhältnis %1$s\u00A0g / 100\u00A0ml</string>
+    <string name="recipe_editor_ratio_unknown">Verhältnis –</string>
+    <string name="recipe_editor_temperature">Temperatur</string>
+    <string name="recipe_editor_temperature_value">%1$d\u00A0°C</string>
+    <!-- PRF-03: „kalt" for 10 °C and below. -->
+    <string name="recipe_editor_temperature_cold">%1$d\u00A0°C · kalt</string>
+    <string name="recipe_editor_warmer">Temperatur erhöhen</string>
+    <string name="recipe_editor_cooler">Temperatur senken</string>
+    <plurals name="recipe_editor_temperature_description">
+        <item quantity="one">Temperatur %1$d Grad</item>
+        <item quantity="other">Temperatur %1$d Grad</item>
+    </plurals>
+    <!-- The recipe's Vorwarnung, the base of its steps' Automatisch (PRF-03, TMR-23). -->
+    <string name="recipe_editor_pre_alert">Vorwarnung</string>
+    <string name="recipe_editor_pre_alert_settings">Wie in Einstellungen · %1$s</string>
+    <string name="recipe_editor_pre_alert_hint">Gilt für die Schritte auf „Automatisch“.</string>
+    <string name="recipe_editor_default">Als Standard</string>
+    <string name="recipe_editor_default_detail">Brühen und die Teeauswahl nehmen dieses Rezept.</string>
+    <string name="recipe_editor_default_locked">Das ist das Standardrezept dieses Tees.</string>
+    <string name="recipe_editor_notes">Notizen</string>
+    <string name="recipe_editor_delete">Rezept löschen</string>
+    <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
+    <string name="recipe_editor_delete_title">Rezept löschen?</string>
+    <string name="recipe_editor_delete_text">Das Rezept ist danach weg. Deine Sitzungen im Journal bleiben.</string>
+    <string name="recipe_editor_delete_confirm">Löschen</string>
+    <string name="recipe_editor_delete_cancel">Abbrechen</string>
+    <string name="recipe_editor_limit_reached">Ein Tee hat höchstens 10 Rezepte.</string>
+    <string name="recipe_editor_error_name_empty">Gib dem Rezept einen Namen.</string>
+    <string name="recipe_editor_error_name_long">Höchstens 40 Zeichen.</string>
+    <string name="recipe_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>
+    <string name="recipe_editor_error_water">10 bis 3000 ml, in 5-ml-Schritten.</string>
+    <string name="recipe_editor_error_only_rinse">Mindestens ein Schritt muss ein Aufguss oder Aufschlagen sein.</string>
+
+    <!-- Methods (BrewMethod). -->
+    <string name="recipe_method_kyusu">Kyusu</string>
+    <string name="recipe_method_gongfu">Gongfu</string>
+    <string name="recipe_method_western">Westlich</string>
+    <string name="recipe_method_matcha_usucha">Matcha Usucha</string>
+    <string name="recipe_method_matcha_koicha">Matcha Koicha</string>
+    <string name="recipe_method_cold_brew">Kaltaufguss</string>
+    <string name="recipe_method_ice_brew">Eisaufguss</string>
+    <string name="recipe_method_custom">Eigene</string>
+
+    <!-- The steps (PRF-04): kind, duration, temperature, note and Vorwarnung, as the Schritte-Sheet (SCR-31). -->
+    <string name="recipe_step_kind_infusion">Aufguss</string>
+    <string name="recipe_step_kind_rinse">Spülen</string>
+    <string name="recipe_step_kind_whisk">Aufschlagen</string>
+    <!-- „2 · Aufguss" -->
+    <string name="recipe_step_label">%1$d · %2$s</string>
+    <string name="recipe_step_note">Notiz</string>
+    <string name="recipe_step_add">Aufguss hinzufügen</string>
+    <string name="recipe_step_delete">Löschen, Schritt %1$d</string>
+    <string name="recipe_step_shorter">Ziehzeit verkürzen, Schritt %1$d</string>
+    <string name="recipe_step_longer">Ziehzeit verlängern, Schritt %1$d</string>
+    <string name="recipe_step_duration_description">Ziehzeit, Schritt %1$d: %2$s. Ändern</string>
+    <string name="recipe_step_cooler">Temperatur senken, Schritt %1$d</string>
+    <string name="recipe_step_warmer">Temperatur erhöhen, Schritt %1$d</string>
+    <!-- The drag handle (TalkBack: its move actions). -->
+    <string name="recipe_step_move">Verschieben, Schritt %1$d</string>
+    <string name="recipe_step_move_up">Nach oben verschieben</string>
+    <string name="recipe_step_move_down">Nach unten verschieben</string>
+    <string name="recipe_step_pre_alert">Vorwarnung</string>
+    <string name="recipe_step_pre_alert_off">Aus</string>
+    <string name="recipe_step_pre_alert_seconds">%1$d\u00A0s</string>
+    <string name="recipe_step_pre_alert_auto">Auto · %1$s</string>
+    <string name="recipe_step_pre_alert_auto_option">Automatisch · %1$s</string>
+    <string name="recipe_step_pre_alert_none">keine</string>
+    <string name="recipe_step_pre_alert_too_short">%1$s · zu kurz</string>
+    <string name="recipe_step_pre_alert_long_step">%1$s · keine</string>
+    <string name="recipe_step_pre_alert_description">Vorwarnung, Schritt %1$d: %2$s. Ändern</string>
 </resources>

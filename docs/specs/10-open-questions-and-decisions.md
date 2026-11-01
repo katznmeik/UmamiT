@@ -527,6 +527,86 @@ font 2.0.
   recipe's own Vorwarnung as the default (PRF-03, PRF-04). This replaces
   the „Claude" detail that steps only keep their stored choice.
 
+**Build notes (Claude, 2026-11-01, #148: style rows and list functions).**
+- `other` (*Andere / unbekannt*) has no umami level and no freshness window
+  (08 §3 „—"), so `TeaStyle.umami` and `freshnessDays` are nullable. The
+  generic rows' and `other`'s teaspoon weight is 2,5 g; the catalog never
+  maps to them (CAT-01), so nothing reads it.
+- The list functions are `CollectionBrowser` (`core:domain`) over
+  `CollectionRow`s (`core:model`: the tea, its `created_at`, its latest
+  session's start and its stock sum, null without stock events). GEN-10's
+  word-prefix search moved from the tea picker to `core:domain`
+  (`SearchQuery`); both use it.
+- The *Kategorie*, *Sorte* and *Vorrat* chips each allow several values
+  („any of"). *Knapp* matches *Knapp* teas only and *Leer* *Leer* teas
+  only; a tea without stock events is neither. The chips' values come from
+  the teas of the current side (archived or not), whatever the other
+  filters. Ties in every order break by name, then id.
+
+**Build notes (Claude, 2026-11-01, #158: the setup's links, archived vessel, BRW-08).**
+- ⋮ *Tee ansehen* opens the detail as a full-screen route above the setup
+  (`SetupTeaRoute`), like *Im Katalog ansehen*, whichever tab or root the
+  setup came from. On that detail, *Brühen* (or a recipe's tap) starts a
+  new setup in place of the one below, so back from it returns to where the
+  first setup began; *Archivieren* and *Löschen* close the detail and the
+  setup (no *Rückgängig* snackbar there; *Wiederherstellen* stays on the
+  archived tea's detail).
+- *Neues Gefäß …* sits below a divider at the end of the *Gefäß* list.
+  Like the ⋮, the list gives way to a new alert in its first frame
+  (rule 8).
+- The archived vessel reads „Kyusu 250 ml (archiviert)" (the setup's usual
+  vessel label with „(archiviert)" after it).
+- BRW-08 compares the exact stock with the leaf: „Nur noch 5,5 g übrig" at
+  5,6 g of leaf, „5,5 g übrig" at 5,5 g.
+
+**Build notes (Claude, 2026-11-01, #159: the session page and *So nochmal brühen*).**
+- **Routes.** The page (`JournalSessionRoute`) sits in the Journal tab's
+  stack; its tea link opens the tea's detail (SCR-09) in the same stack.
+  *So nochmal brühen* opens the setup above the shell like every other
+  entry (`BrewSetupRoute(pastSessionId)`), or the alerting timer during an
+  alert (rule 8); the timer only starts from the setup's *Brühen starten*.
+  Back from that setup returns to the page. *Archivieren* on a detail
+  opened from the page closes it; its *Rückgängig* snackbar is the
+  Sammlung list's, as from the list.
+- **Prefill.** Every stored row, in position order, at its
+  `planned_seconds` (the set time, including Schritte-Sheet changes), with
+  its kind, its temperature (the session's base where the row has none)
+  and its Vorwarnung; tea, method, vessel, leaf, water and base
+  temperature from the session's snapshot. With the session's recipe the
+  setup reads the recipe's Vorwarnung base B, as for any brew of that
+  recipe; with *Ohne Rezept* the global one.
+- ***Ohne Rezept*** is the first recipe chip whenever the session's recipe
+  is gone; another chip can be chosen, and *Ohne Rezept* brings the
+  session's values back. *Im Rezept speichern* is offered at once and
+  saves a new, non-default recipe after the tea's others, named like the
+  session's recipe (a session brewed without one: the tea's name); the new
+  recipe is then selected. At 10 recipes (PRF-01) it isn't offered.
+- **Page.** Title „Sitzung"; the tea's name in the serif with a chevron
+  (also for an archived tea, whose detail offers *Wiederherstellen*), the
+  start „22. Okt. 2026 · 09:12" in the session's zone; *Methode*, *Gefäß*,
+  *Blätter*, *Wasser*, *Verhältnis* („2,5 g / 100 ml"). The table lists
+  „Aufguss 1", „Spülen", „Aufschlagen" with *geplant* / *tatsächlich* /
+  °C; a skipped step reads „übersprungen", a never-started one „nicht
+  gebrüht", both in italics. From font scale 1,5 each step stacks
+  („geplant 1:15 · tatsächlich 1:35") instead of columns. *So nochmal
+  brühen* sits at the end of the page; „Tee ist archiviert" ·
+  *Wiederherstellen* below it.
+
+**Build notes (Claude, 2026-11-01, #156: the recipe editor).**
+- The setup's ratio scaling (`BrewScaling`, `Ratio`, `Vessel.brewMl()`, the
+  ratio per 100 ml) moved from `feature:brew` to `core:domain`, so the
+  setup and the recipe editor scale alike (WARE-03, WARE-04); no behaviour
+  change. A vessel scales the leaf from the form's leaf and water; while
+  either isn't valid, only the water is set. *Kein Gefäß* keeps both.
+- *Rezept hinzufügen* on a tea without any recipe starts from its style's
+  default recipe, else PRF-02's *Westlich*. The new recipe goes last
+  (position after the others) and is not the default unless *Als Standard*
+  is on.
+- Saving stores a step at the base temperature without its own (as the
+  setup's *Im Rezept speichern*) and marks the recipe's source `USER`.
+- The detail opened above the setup (⋮ *Tee ansehen*) doesn't open the
+  editors yet, as #155's pencil there.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12

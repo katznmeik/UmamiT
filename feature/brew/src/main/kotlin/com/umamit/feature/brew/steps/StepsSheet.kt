@@ -66,8 +66,9 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.DurationPicker
+import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.quick.QuickDurationPicker
 import kotlinx.coroutines.launch
 
 /** The column of a read-only step's status icon (✓ for a done step). */
@@ -172,7 +173,7 @@ fun StepsSheetContent(
     // which removes the sheet in its first frame, removes it too, and its draft is never applied (rule 8).
     durationPickerFor?.takeIf { it in state.steps.indices && state.isEditable(it) }?.let { index ->
         key(index) {
-            QuickDurationPicker(
+            DurationPicker(
                 initialSeconds = state.steps[index].plannedSeconds,
                 onApply = { seconds ->
                     state.setDuration(index, seconds)

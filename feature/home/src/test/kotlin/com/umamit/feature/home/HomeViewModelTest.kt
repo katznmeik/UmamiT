@@ -96,8 +96,18 @@ class HomeViewModelTest {
         baseTempC = 65,
     )
 
-    /** A completed session of [teaId] started at [at] with [seconds] steps at 65 °C. */
-    private suspend fun brewed(id: String, teaId: String, name: String, at: Long, vararg seconds: Int) {
+    /**
+     * A completed session of [teaId] started at [at] with [seconds] steps at 65 °C, of which the
+     * first [poured] were brewed (all by default); the rest were never started.
+     */
+    private suspend fun brewed(
+        id: String,
+        teaId: String,
+        name: String,
+        at: Long,
+        vararg seconds: Int,
+        poured: Int = seconds.size,
+    ) {
         sessions.sessions.startSession(
             SessionStart(
                 id,
@@ -110,7 +120,7 @@ class HomeViewModelTest {
                 "UTC",
             ),
         )
-        seconds.indices.forEach {
+        (0 until poured).forEach {
             sessions.sessions.recordStep(id, it, StepRecord(seconds[it], seconds[it], 0, 0, at, at + 1, false, false))
         }
         sessions.sessions.completeSession(id, autoFinished = false)
@@ -271,6 +281,23 @@ class HomeViewModelTest {
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
         assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
     }
+
+    @Test
+    fun `a session finished after two of three shows and brews again only its two poured steps (Q-19, D-062)`() =
+        runTest {
+            seed()
+            // From v0.4.0 the never-started third row is kept, without an actual time.
+            brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60, 10, 30, poured = 2)
+            val vm = viewModel()
+
+            assertThat(vm.state.value.recent.single().infusions).isEqualTo(2)
+            assertThat(vm.state.value.recent.single().firstStepSeconds).isEqualTo(60)
+
+            vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+            // A session finished early is brewed again with its started steps (BRW-11, D-062).
+            assertThat(starter.starts.single().steps.map { it.plannedSeconds }).containsExactly(60, 10).inOrder()
+        }
 
     @Test
     fun `a double tap on a tile starts once and leaves no question on Start (S6)`() = runTest {

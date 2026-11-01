@@ -18,9 +18,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The *Sammlung* placeholder (SCR-08, #54 S2) in light and dark at font scale 1.0
- * and 2.0 (03 §6): *Meine Tees* until M3. The *Katalog* segment's content is
- * `feature:catalog`'s (`CatalogScreenshotTest`). Goldens: `src/test/screenshots/`.
+ * *Sammlung › Meine Tees* (SCR-08, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6): the list, the
+ * *Archiviert* filter, „Noch keine Tees" (A7) and „Kein Tee passt zu deiner Suche." (A10). The *Katalog*
+ * segment's content is `feature:catalog`'s (`CatalogScreenshotTest`). Synthetic teas with the leaf placeholder
+ * (D-016). Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -40,13 +41,20 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, segment: CollectionSegment) {
+    private fun capture(name: String, state: MyTeasUiState) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
                 Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    CollectionScreen(segment = segment, onSegmentChange = {
-                    }, onOpenSettings = {}, catalogContent = { _, _ -> })
+                    CollectionScreen(
+                        segment = CollectionSegment.MyTeas,
+                        onSegmentChange = {},
+                        onOpenSettings = {},
+                        catalogContent = { _, _ -> },
+                        myTeasContent = { modifier, _ ->
+                            MyTeasContent(state = state, actions = MyTeasActions(), modifier = modifier)
+                        },
+                    )
                 }
             }
         }
@@ -55,5 +63,14 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
     }
 
     @Test
-    fun myTeas() = capture("myTeas", CollectionSegment.MyTeas)
+    fun myTeas() = capture("myTeas", MyTeasStates.list)
+
+    @Test
+    fun archived() = capture("archived", MyTeasStates.archived)
+
+    @Test
+    fun noTeas() = capture("noTeas", MyTeasStates.noTeas)
+
+    @Test
+    fun noMatch() = capture("noMatch", MyTeasStates.noMatch)
 }
