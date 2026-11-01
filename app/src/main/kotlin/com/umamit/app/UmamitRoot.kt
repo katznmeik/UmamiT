@@ -75,6 +75,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
+ * @param myTeasScreen Sammlung's *Meine Tees* segment (SCR-08); the app passes [MyTeasTabContent].
+ * @param collectionSegments the Sammlung segment used last (`collectionSegment`); the app passes the settings'.
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param setupScreen the setup route's content (SCR-04); tests replace it. Its third argument opens a catalog tea's
  *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens].
@@ -126,6 +128,8 @@ internal fun UmamitRoot(
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
+    myTeasScreen: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
+    collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     setupScreen: @Composable (
         onBack: () -> Unit,
         onOpenTimer: () -> Unit,
@@ -270,6 +274,8 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
+                    myTeasScreen = myTeasScreen,
+                    collectionSegments = collectionSegments,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
@@ -291,6 +297,8 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
+                    myTeasScreen = myTeasScreen,
+                    collectionSegments = collectionSegments,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,

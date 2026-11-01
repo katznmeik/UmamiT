@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity() {
             startRequests.restore(savedInstanceState)
         }
         val activeBrewSource = TimerActiveBrewSource(brewTimer, clock, resources, lifecycleScope)
+        val collectionSegments = SettingsCollectionSegments(settings, lifecycleScope)
         val onboardingCompleted = settings.onboardingCompleted()
             .stateIn(lifecycleScope, SharingStarted.Eagerly, null)
         val alertKey = brewTimer.state.map { it.alertKey() }.stateIn(lifecycleScope, SharingStarted.Eagerly, null)
@@ -121,6 +122,8 @@ class MainActivity : ComponentActivity() {
                     onConsumeStartRequest = startRequests::handled,
                     startScreen = { StartTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
+                    myTeasScreen = { MyTeasTabContent(it) },
+                    collectionSegments = collectionSegments,
                 )
             }
         }

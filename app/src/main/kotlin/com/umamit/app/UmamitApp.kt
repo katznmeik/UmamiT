@@ -94,6 +94,10 @@ private const val SLIDE_FRACTION = 12
  * @param alertKey the alert playing now, or null (rule 8).
  * @param startScreen the Start tab's content; the app uses [StartTabContent], tests the calm placeholder.
  * @param catalogScreen Sammlung's *Katalog* segment; the app uses [CatalogTabContent], tests the empty state.
+ * @param myTeasScreen Sammlung's *Meine Tees* segment (SCR-08); the app uses [MyTeasTabContent], tests „Noch keine
+ *   Tees". Its *Aus dem Katalog* and *Im Katalog stöbern* turn to the *Katalog* segment.
+ * @param collectionSegments the Sammlung segment used last: the app's shell opens on it ([ShellOpening.Start]),
+ *   and every change of the segment is remembered (`collectionSegment`, 03 §2.2).
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20) in the Sammlung tab;
  *   tests replace them.
  * @param settings the settings in a tab's stack and what they lead to outside the shell (M1-15).
@@ -127,6 +131,8 @@ internal fun UmamitApp(
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     settings: SettingsScreens = SettingsScreens(),
+    myTeasScreen: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
+    collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     teaLinkShare: TeaLinkShare? = null,
     onTakeTeaLinkShare: (Long) -> Unit = {},
     opening: ShellOpening = ShellOpening.Start,
@@ -134,7 +140,22 @@ internal fun UmamitApp(
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
-    var segment by rememberSaveable { mutableStateOf(opening.firstSegment) }
+    val rememberedSegment by collectionSegments.remembered.collectAsStateWithLifecycle()
+    var segment by rememberSaveable { mutableStateOf(opening.firstSegment(rememberedSegment)) }
+    // The app's shell opens on the segment used last, once it is read; any change before that wins.
+    var segmentKnown by rememberSaveable { mutableStateOf(opening !is ShellOpening.Start || rememberedSegment != null) }
+    LaunchedEffect(rememberedSegment) {
+        val remembered = rememberedSegment
+        if (!segmentKnown && remembered != null) {
+            segment = remembered
+            segmentKnown = true
+        }
+    }
+    val chooseSegment: (CollectionSegment) -> Unit = {
+        segment = it
+        segmentKnown = true
+    }
+    LaunchedEffect(segment, segmentKnown) { if (segmentKnown) collectionSegments.remember(segment) }
     val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
     // *Katalog aktualisieren* in Sammlung's ⋮ menu, for the catalog segment (a counter, D-049).
     var catalogRefreshRequest by remember { mutableIntStateOf(0) }
@@ -146,7 +167,7 @@ internal fun UmamitApp(
     LaunchedEffect(teaLinkShare?.token) {
         if (teaLinkShare != null) {
             controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
-            segment = CollectionSegment.Catalog
+            chooseSegment(CollectionSegment.Catalog)
             selected = Tab.Collection
         }
     }
@@ -154,7 +175,7 @@ internal fun UmamitApp(
     OnNewToken(opening.sheetToken) {
         brewFlow.leaveFor(Tab.Collection)
         controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
-        segment = CollectionSegment.Catalog
+        chooseSegment(CollectionSegment.Catalog)
         selected = Tab.Collection
     }
     // The daily low-stock reminder's tap (INV-11): Start at its root.
@@ -242,7 +263,7 @@ internal fun UmamitApp(
                             navController = controllers.getValue(tab),
                             scrollToTopRequest = reselection.scrollRequest(tab),
                             segment = segment,
-                            onSegmentChange = { segment = it },
+                            onSegmentChange = chooseSegment,
                             journalSources = journalSources,
                             onOpenTimer = onOpenTimer,
                             settings = settings,
@@ -272,6 +293,20 @@ internal fun UmamitApp(
                                     ),
                                 )
                             },
+                            myTeas = { myTeasModifier, scrollToTop ->
+                                myTeasScreen(
+                                    MyTeasTab(
+                                        modifier = myTeasModifier,
+                                        scrollToTopRequest = scrollToTop,
+                                        alerting = alerting,
+                                        // The tea's detail (SCR-09) comes with #154; until then a row's tap stays.
+                                        openTea = {},
+                                        addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
+                                        // *Sorte wählen* (SCR-11) comes with #155.
+                                        addWithoutCatalog = {},
+                                    ),
+                                )
+                            },
                             onRefreshCatalog = { catalogRefreshRequest++ },
                             onPasteLink = { catalogPasteRequest++ },
                             onFoldCatalog = catalogFolds.action,
@@ -295,14 +330,14 @@ internal fun UmamitApp(
                                         openCatalog = {
                                             // The list, not a screen left open in Sammlung (D-090).
                                             controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
-                                            segment = CollectionSegment.Catalog
+                                            chooseSegment(CollectionSegment.Catalog)
                                             selected = Tab.Collection
                                         },
                                         alertKey = alertKey,
                                         navigation = startNavigation,
                                         openCatalogForBrew = {
                                             brewFlow.start()
-                                            segment = CollectionSegment.Catalog
+                                            chooseSegment(CollectionSegment.Catalog)
                                             selected = Tab.Collection
                                         },
                                         pickerReturn = brewFlow.pickerReturn,
@@ -355,6 +390,9 @@ internal sealed interface ShellOpening {
     val firstTab: Tab
     val firstSegment: CollectionSegment
 
+    /** The segment this shell opens on, given the one used last ([remembered], null while unknown). */
+    fun firstSegment(remembered: CollectionSegment?): CollectionSegment = firstSegment
+
     /** The token of the refresh sheet to show (SCR-22); 0 for none. */
     val sheetToken: Long
 
@@ -368,6 +406,9 @@ internal sealed interface ShellOpening {
     data object Start : ShellOpening {
         override val firstTab = Tab.Start
         override val firstSegment = CollectionSegment.MyTeas
+
+        /** The segment used last (03 §2.2). */
+        override fun firstSegment(remembered: CollectionSegment?) = remembered ?: firstSegment
         override val sheetToken = 0L
         override val backLeaves = false
     }
@@ -505,6 +546,7 @@ private fun TabHost(
     alertKey: String?,
     catalogScreens: CatalogStackScreens,
     catalog: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
+    myTeas: @Composable (modifier: Modifier, scrollToTopRequest: Int) -> Unit,
     onRefreshCatalog: () -> Unit,
     onPasteLink: () -> Unit,
     onFoldCatalog: ((fold: Boolean) -> Unit)?,
@@ -537,6 +579,7 @@ private fun TabHost(
                 onSegmentChange = onSegmentChange,
                 onOpenSettings = openSettings,
                 catalogContent = catalog,
+                myTeasContent = myTeas,
                 scrollToTopRequest = scrollToTopRequest,
                 onRefreshCatalog = onRefreshCatalog,
                 onPasteLink = onPasteLink,

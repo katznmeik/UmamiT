@@ -111,6 +111,18 @@ object UmamiIcons {
     /** A8: the empty catalog's vignette in the dark theme. */
     @DrawableRes val CatalogEmptyDark = R.drawable.illustration_catalog_empty_dark
 
+    /** A7: the empty *Meine Tees* vignette in the light theme (SCR-08, „Noch keine Tees"). */
+    @DrawableRes val TeasEmptyLight = R.drawable.illustration_teas_empty_light
+
+    /** A7: the empty *Meine Tees* vignette in the dark theme. */
+    @DrawableRes val TeasEmptyDark = R.drawable.illustration_teas_empty_dark
+
+    /** A10: a search or filter without results in the light theme (SCR-08, „Kein Tee passt zu deiner Suche."). */
+    @DrawableRes val NoResultsLight = R.drawable.illustration_no_results_light
+
+    /** A10: a search or filter without results in the dark theme. */
+    @DrawableRes val NoResultsDark = R.drawable.illustration_no_results_dark
+
     /** A11: the *Ratgeber* list's header band in the light theme (SCR-20). */
     @DrawableRes val GuidesHeaderLight = R.drawable.illustration_guides_header_light
 
