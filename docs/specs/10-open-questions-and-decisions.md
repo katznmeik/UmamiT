@@ -559,6 +559,39 @@ font 2.0.
 - BRW-08 compares the exact stock with the leaf: „Nur noch 5,5 g übrig" at
   5,6 g of leaf, „5,5 g übrig" at 5,5 g.
 
+**Build notes (Claude, 2026-11-01, #159: the session page and *So nochmal brühen*).**
+- **Routes.** The page (`JournalSessionRoute`) sits in the Journal tab's
+  stack; its tea link opens the tea's detail (SCR-09) in the same stack.
+  *So nochmal brühen* opens the setup above the shell like every other
+  entry (`BrewSetupRoute(pastSessionId)`), or the alerting timer during an
+  alert (rule 8); the timer only starts from the setup's *Brühen starten*.
+  Back from that setup returns to the page. *Archivieren* on a detail
+  opened from the page closes it; its *Rückgängig* snackbar is the
+  Sammlung list's, as from the list.
+- **Prefill.** Every stored row, in position order, at its
+  `planned_seconds` (the set time, including Schritte-Sheet changes), with
+  its kind, its temperature (the session's base where the row has none)
+  and its Vorwarnung; tea, method, vessel, leaf, water and base
+  temperature from the session's snapshot. With the session's recipe the
+  setup reads the recipe's Vorwarnung base B, as for any brew of that
+  recipe; with *Ohne Rezept* the global one.
+- ***Ohne Rezept*** is the first recipe chip whenever the session's recipe
+  is gone; another chip can be chosen, and *Ohne Rezept* brings the
+  session's values back. *Im Rezept speichern* is offered at once and
+  saves a new, non-default recipe after the tea's others, named like the
+  session's recipe (a session brewed without one: the tea's name); the new
+  recipe is then selected. At 10 recipes (PRF-01) it isn't offered.
+- **Page.** Title „Sitzung"; the tea's name in the serif with a chevron
+  (also for an archived tea, whose detail offers *Wiederherstellen*), the
+  start „22. Okt. 2026 · 09:12" in the session's zone; *Methode*, *Gefäß*,
+  *Blätter*, *Wasser*, *Verhältnis* („2,5 g / 100 ml"). The table lists
+  „Aufguss 1", „Spülen", „Aufschlagen" with *geplant* / *tatsächlich* /
+  °C; a skipped step reads „übersprungen", a never-started one „nicht
+  gebrüht", both in italics. From font scale 1,5 each step stacks
+  („geplant 1:15 · tatsächlich 1:35") instead of columns. *So nochmal
+  brühen* sits at the end of the page; „Tee ist archiviert" ·
+  *Wiederherstellen* below it.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12

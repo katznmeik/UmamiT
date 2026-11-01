@@ -80,6 +80,8 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
  *   replace them.
+ * @param journalScreens a past session's page (SCR-16, D-100) in the Journal tab; tests replace it. Its *So nochmal
+ *   brühen* opens the setup of that session above the shell ([BrewSetupRoute.pastSessionId], BRW-06).
  * @param setupScreen the setup route's content (SCR-04); tests replace it. Its [SetupHost] opens a catalog tea's
  *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens]; a collection
  *   tea's detail (SCR-09) by its id (⋮ *Tee ansehen*, D-100), shown with [collectionScreens]; and the vessel editor
@@ -134,6 +136,7 @@ internal fun UmamitRoot(
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     collectionScreens: CollectionStackScreens = CollectionStackScreens(),
+    journalScreens: JournalStackScreens = JournalStackScreens(),
     setupScreen: @Composable (SetupHost) -> Unit = { host ->
         BrewSetupScreenRoute(
             onBack = host.onBack,
@@ -229,6 +232,13 @@ internal fun UmamitRoot(
         openSetup = { teaId -> openSetupWith(teaId, null) },
         openSetupWith = openSetupWith,
         openTimer = openTimer,
+        // *So nochmal brühen* (BRW-06): the setup holding a past session as brewed, the same setup → *Brühen starten*
+        // path as every brew; during an alert the alerting timer instead (rule 8).
+        openSetupFromSession = { sessionId ->
+            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                navigateAbove(BrewSetupRoute(pastSessionId = sessionId)) { launchSingleTop = true }
+            }
+        },
         openTimerOf = openTimerOf,
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
         // *Schnelltimer* and *Ohne Tee (Schnelltimer)* open the alerting timer instead (D-062 S3, D-065).
@@ -286,6 +296,7 @@ internal fun UmamitRoot(
                     catalogScreens = catalogScreens,
                     collectionSegments = collectionSegments,
                     collectionScreens = collectionScreens,
+                    journalScreens = journalScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
@@ -309,6 +320,7 @@ internal fun UmamitRoot(
                     catalogScreens = catalogScreens,
                     collectionSegments = collectionSegments,
                     collectionScreens = collectionScreens,
+                    journalScreens = journalScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,

@@ -244,6 +244,29 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         BrewSetupScreen(kyusu.copy(vessels = kyusu.vessels.drop(1), archivedVessel = kyusu.vessels.first()))
     }
 
+    /**
+     * *So nochmal brühen* of a session whose recipe is gone (BRW-06, D-100): *Ohne Rezept* selected before the tea's
+     * recipes, the session's steps at their set times, and *Im Rezept speichern* offered.
+     */
+    @Test
+    fun setupWithoutRecipe() = capture("BrewSetup_withoutRecipe") {
+        BrewSetupScreen(
+            kyusu.copy(
+                selectedRecipeId = null,
+                withoutRecipe = true,
+                waterMl = 180,
+                leafGrams = 4.5,
+                ratioPer100Ml = 2.5,
+                steps = listOf(
+                    PlannedStep(StepKind.RINSE, 10, 80, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 75, 65),
+                    PlannedStep(StepKind.INFUSION, 30, 75, preAlertSeconds = 15),
+                ),
+                canSaveToRecipe = true,
+            ),
+        )
+    }
+
     /** At 0 g the header reads „Leer" (INV-05). */
     @Test
     fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }

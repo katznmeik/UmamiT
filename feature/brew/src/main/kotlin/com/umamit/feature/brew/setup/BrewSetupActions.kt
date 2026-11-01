@@ -7,6 +7,8 @@ import com.umamit.feature.brew.steps.SaveToRecipeRequest
 class BrewSetupActions(
     val back: () -> Unit = {},
     val selectRecipe: (String) -> Unit = {},
+    /** The *Ohne Rezept* chip of *So nochmal brühen* (BRW-06): the session's values again, without a recipe. */
+    val selectWithoutRecipe: () -> Unit = {},
     val selectVessel: (String) -> Unit = {},
     val stepWater: (up: Boolean) -> Unit = {},
     val stepLeaf: (up: Boolean) -> Unit = {},

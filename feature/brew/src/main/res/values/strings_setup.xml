@@ -41,6 +41,8 @@
     <string name="brew_setup_stock_empty">Leer</string>
     <!-- TalkBack: „doppeltippen zum Bestand korrigieren" on „38,0 g übrig" (BRW-02, INV-03). -->
     <string name="brew_setup_stock_correct">Bestand korrigieren</string>
+    <!-- So nochmal brühen of a session whose recipe is gone (BRW-06, D-100): the first recipe chip. -->
+    <string name="brew_setup_without_recipe">Ohne Rezept</string>
     <string name="brew_setup_vessel">Gefäß</string>
     <string name="brew_setup_vessel_none">Kein Gefäß</string>
     <string name="brew_setup_vessel_option">%1$s · %2$d\u00A0ml</string>
