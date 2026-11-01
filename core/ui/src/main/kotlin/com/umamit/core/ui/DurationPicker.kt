@@ -1,4 +1,4 @@
-package com.umamit.feature.brew.quick
+package com.umamit.core.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,25 +33,24 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
-import com.umamit.feature.brew.R
 import java.util.Locale
 
 /** Test tag of the picker's total, „1:30". */
-const val QUICK_PICKER_TOTAL_TAG = "quick_picker_total"
+const val DURATION_PICKER_TOTAL_TAG = "duration_picker_total"
 
 /**
- * The duration picker of SCR-07: hours, minutes and seconds, each with − and
- * +, within 5 s – 24 h and in the PRF-04 increments ([QuickDuration.step]).
- * The draft survives a configuration change; *Übernehmen* applies it.
+ * „Dauer wählen", the duration picker of SCR-07 and the Schritte-Sheet (SCR-31, #141): hours, minutes and
+ * seconds, each with − and +, within 5 s – 24 h and in the PRF-04 increments ([DurationSteps.step]).
+ * The draft survives a configuration change; *Übernehmen* applies it. Shared in `core:ui` (D-100).
  */
 @Composable
-internal fun QuickDurationPicker(initialSeconds: Int, onApply: (Int) -> Unit, onDismiss: () -> Unit) {
+fun DurationPicker(initialSeconds: Int, onApply: (Int) -> Unit, onDismiss: () -> Unit) {
     var seconds by rememberSaveable { mutableIntStateOf(initialSeconds) }
-    val (h, m, s) = QuickDuration.parts(seconds)
+    val (h, m, s) = DurationSteps.parts(seconds)
     val total = spokenDuration(seconds)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.brew_quick_picker_title)) },
+        title = { Text(stringResource(R.string.ui_duration_picker_title)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -63,30 +62,30 @@ internal fun QuickDurationPicker(initialSeconds: Int, onApply: (Int) -> Unit, on
                             contentDescription = total
                             liveRegion = LiveRegionMode.Polite
                         }
-                        .testTag(QUICK_PICKER_TOTAL_TAG),
+                        .testTag(DURATION_PICKER_TOTAL_TAG),
                 )
                 Spacer(Modifier.height(UmamiSpacing.Small))
                 listOf(
                     PickerField(
-                        QuickDuration.Field.HOURS,
-                        R.string.brew_quick_picker_hours,
+                        DurationSteps.Field.HOURS,
+                        R.string.ui_duration_picker_hours,
                         h.toString(),
-                        R.string.brew_quick_picker_hours_less,
-                        R.string.brew_quick_picker_hours_more,
+                        R.string.ui_duration_picker_hours_less,
+                        R.string.ui_duration_picker_hours_more,
                     ),
                     PickerField(
-                        QuickDuration.Field.MINUTES,
-                        R.string.brew_quick_picker_minutes,
+                        DurationSteps.Field.MINUTES,
+                        R.string.ui_duration_picker_minutes,
                         "%02d".format(Locale.GERMAN, m),
-                        R.string.brew_quick_picker_minutes_less,
-                        R.string.brew_quick_picker_minutes_more,
+                        R.string.ui_duration_picker_minutes_less,
+                        R.string.ui_duration_picker_minutes_more,
                     ),
                     PickerField(
-                        QuickDuration.Field.SECONDS,
-                        R.string.brew_quick_picker_seconds,
+                        DurationSteps.Field.SECONDS,
+                        R.string.ui_duration_picker_seconds,
                         "%02d".format(Locale.GERMAN, s),
-                        R.string.brew_quick_picker_seconds_less,
-                        R.string.brew_quick_picker_seconds_more,
+                        R.string.ui_duration_picker_seconds_less,
+                        R.string.ui_duration_picker_seconds_more,
                     ),
                 ).forEach { field ->
                     PickerRow(field, seconds) { seconds = it }
@@ -94,16 +93,16 @@ internal fun QuickDurationPicker(initialSeconds: Int, onApply: (Int) -> Unit, on
             }
         },
         confirmButton = {
-            TextButton(onClick = { onApply(seconds) }) { Text(stringResource(R.string.brew_quick_picker_apply)) }
+            TextButton(onClick = { onApply(seconds) }) { Text(stringResource(R.string.ui_duration_picker_apply)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.brew_quick_picker_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.ui_duration_picker_cancel)) }
         },
     )
 }
 
 private class PickerField(
-    val field: QuickDuration.Field,
+    val field: DurationSteps.Field,
     val label: Int,
     val value: String,
     val less: Int,
@@ -112,8 +111,8 @@ private class PickerField(
 
 @Composable
 private fun PickerRow(field: PickerField, seconds: Int, onChange: (Int) -> Unit) {
-    val down = QuickDuration.step(seconds, field.field, up = false)
-    val up = QuickDuration.step(seconds, field.field, up = true)
+    val down = DurationSteps.step(seconds, field.field, up = false)
+    val up = DurationSteps.step(seconds, field.field, up = true)
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = stringResource(field.label),
