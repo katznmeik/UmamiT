@@ -62,6 +62,9 @@ object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
+
+    /** The *Teegeschirr* row (SET-30, D-100). */
+    const val TEAWARE = "SettingsTeaware"
     const val LOW_STOCK = "SettingsLowStock"
 
     /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
@@ -107,6 +110,8 @@ class SettingsActions(
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
     val openAbout: () -> Unit = {},
+    /** *Teegeschirr* (SET-30): the teaware list (SCR-13). */
+    val openTeaware: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -122,6 +127,7 @@ fun SettingsRoute(
     onOpenAbout: () -> Unit,
     alertKey: String?,
     modifier: Modifier = Modifier,
+    onOpenTeaware: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -178,6 +184,7 @@ fun SettingsRoute(
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
+            openTeaware = onOpenTeaware,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
@@ -187,8 +194,8 @@ fun SettingsRoute(
 }
 
 /**
- * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog* and
- * *Über* (SET-30).
+ * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
+ * *Teegeschirr* and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -241,6 +248,13 @@ fun SettingsScreen(
             checked = settings.catalogDownloadPhotos,
             onCheckedChange = actions.setCatalogPhotos,
             detail = stringResource(R.string.settings_catalog_photos_detail),
+        )
+        SectionHeader(title = stringResource(R.string.settings_section_teaware), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_teaware),
+            onClick = actions.openTeaware,
+            modifier = Modifier.testTag(SettingsTags.TEAWARE),
+            chevron = true,
         )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(
