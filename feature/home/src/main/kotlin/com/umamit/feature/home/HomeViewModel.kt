@@ -262,8 +262,9 @@ class HomeViewModel @Inject constructor(
 
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
 
+    /** The session's ended rows only: from v0.4.0 it keeps its never-started ones too (Q-19). */
     private fun BrewSession.toRecent(photoPath: String?): RecentBrew {
-        val brewed = steps.sortedBy { it.position }.filter { it.kind != StepKind.RINSE && !it.skipped }
+        val brewed = endedSteps.sortedBy { it.position }.filter { it.kind != StepKind.RINSE && !it.skipped }
         val first = brewed.firstOrNull()
         return RecentBrew(
             sessionId = id,
