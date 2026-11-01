@@ -943,7 +943,7 @@ v0.4.0 (D-100):
     − / + stepper („10 °C · kalt" at 10 °C and below), *Vorwarnung* (*Wie in
     Einstellungen · 10 s*, *Aus*, 5–30 s) and the switch *Als Standard*,
     stored with *Speichern*; on the default recipe it stays on.
-  - Each step: the drag handle (TalkBack: „Schritt 2 verschieben" with *Nach
+  - Each step: the drag handle (TalkBack: „Verschieben, Schritt 2" with *Nach
     oben* / *Nach unten verschieben*), „1 · Aufguss" opening the kind menu, ✕,
     the duration and temperature steppers, its *Vorwarnung* selector as in
     the Schritte-Sheet („Auto · 10 s" with the lead the timer will give) and

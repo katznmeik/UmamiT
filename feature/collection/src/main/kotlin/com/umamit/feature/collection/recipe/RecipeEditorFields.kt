@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -150,7 +151,11 @@ private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActio
             )
             Stepper(
                 value = temperatureLabel(form.baseTempC),
-                valueDescription = stringResource(R.string.recipe_editor_temperature_description, form.baseTempC),
+                valueDescription = pluralStringResource(
+                    R.plurals.recipe_editor_temperature_description,
+                    form.baseTempC,
+                    form.baseTempC,
+                ),
                 decreaseDescription = stringResource(R.string.recipe_editor_cooler),
                 increaseDescription = stringResource(R.string.recipe_editor_warmer),
                 canStep = { up -> form.withBaseStep(up) != form },

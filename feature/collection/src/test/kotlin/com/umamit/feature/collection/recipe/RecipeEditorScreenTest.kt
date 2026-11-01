@@ -157,7 +157,7 @@ class RecipeEditorScreenTest {
     @Test
     fun `TalkBack moves a step with the handle's actions`() {
         show()
-        val handle = compose.onNodeWithContentDescription("Schritt 2 verschieben").performScrollTo()
+        val handle = compose.onNodeWithContentDescription("Verschieben, Schritt 2").performScrollTo()
         val actions = handle.fetchSemanticsNode().config[SemanticsActions.CustomActions]
         // The last step can only move up.
         assertThat(actions.map { it.label }).containsExactly("Nach oben verschieben")

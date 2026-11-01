@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -223,7 +224,7 @@ private fun StepRow(
             val tempC = form.shownTempC(index)
             Stepper(
                 value = temperatureLabel(tempC),
-                valueDescription = stringResource(R.string.recipe_editor_temperature_description, tempC),
+                valueDescription = pluralStringResource(R.plurals.recipe_editor_temperature_description, tempC, tempC),
                 decreaseDescription = stringResource(R.string.recipe_step_cooler, number),
                 increaseDescription = stringResource(R.string.recipe_step_warmer, number),
                 canStep = { up -> form.withStepTemp(index, up) != form },
@@ -247,7 +248,7 @@ private fun StepRow(
 
 /**
  * The handle: dragged, the step follows the finger and takes a neighbour's place past its middle. TalkBack gets
- * „Schritt 2 verschieben" with the actions *Nach oben verschieben* / *Nach unten verschieben* (03 §6).
+ * „Verschieben, Schritt 2" with the actions *Nach oben verschieben* / *Nach unten verschieben* (03 §6).
  */
 @Composable
 private fun DragHandle(
