@@ -171,9 +171,10 @@ class SessionLifecycleTest {
 
         val session = session()
         assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)
-        // „2 von 3 Aufgüssen": the never-started third row is gone, the plan count stays.
+        // „2 von 3 Aufgüssen": the plan count stays; the never-started third row is kept unended (Q-19).
         assertThat(session.plannedStepCount).isEqualTo(3)
-        assertThat(session.steps.map { it.position to it.skipped }).containsExactly(0 to true, 1 to false).inOrder()
+        assertThat(session.steps.map { Triple(it.position, it.skipped, it.actualSeconds) })
+            .containsExactly(Triple(0, true, 0), Triple(1, false, 62), Triple(2, false, null)).inOrder()
         assertThat(session.endedAtMs).isEqualTo(pouredAt)
         // 4 g × 8.5 ct/g = 34 ct (INV-08).
         assertThat(session.costCents).isEqualTo(34)
@@ -184,6 +185,36 @@ class SessionLifecycleTest {
         assertThat(data.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(96.0)
         assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 22))
     }
+
+    @Test
+    fun `finishing after two of three infusions keeps the never-started third row without an actual time (Q-19)`() =
+        runTest {
+            teaWithStock()
+            val driver = TimerDriver(data)
+            driver.send(startEvent(infusion(60), infusion(20), infusion(30, tempC = 70, preAlert = 5)))
+            repeat(2) { step ->
+                driver.send(TimerEvent.Start)
+                driver.clocks.advanceSeconds(if (step == 0) 60 else 20)
+                driver.send(TimerEvent.DeadlineReached)
+                driver.send(TimerEvent.Poured)
+            }
+            val pouredAt = driver.clocks.wall
+            driver.clocks.advanceSeconds(120)
+
+            driver.send(TimerEvent.FinishSession)
+
+            val session = session()
+            assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)
+            assertThat(session.steps.map { it.position to it.actualSeconds })
+                .containsExactly(0 to 60, 1 to 20, 2 to null).inOrder()
+            // The third row as planned: its set time, temperature and pre-alert, no recorded values (05 §3.7).
+            assertThat(session.steps.last()).isEqualTo(planned(2, StepKind.INFUSION, 30, 70).copy(preAlertSeconds = 5))
+            // Counted as in v0.3.0: the plan of three, the end of the last poured step, 4 g × 8.5 ct/g.
+            assertThat(session.plannedStepCount).isEqualTo(3)
+            assertThat(session.endedAtMs).isEqualTo(pouredAt)
+            assertThat(session.costCents).isEqualTo(34)
+            assertThat(data.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(96.0)
+        }
 
     @Test
     fun `finishing a running step records it as ended early before completing`() = runTest {
@@ -197,7 +228,7 @@ class SessionLifecycleTest {
 
         val session = session()
         assertThat(session.plannedStepCount).isEqualTo(2)
-        assertThat(session.steps.single().actualSeconds).isEqualTo(30)
+        assertThat(session.steps.map { it.actualSeconds }).containsExactly(30, null).inOrder()
         assertThat(session.endedAtMs).isEqualTo(driver.clocks.wall)
     }
 
