@@ -27,10 +27,15 @@ internal data class TimerRoute(val slotName: String?, val switched: Boolean) {
 
 /**
  * The setup (SCR-04): of the tea [teaId] (from the tea picker or a favourite), or of the waiting
- * session [sessionId] (*Brühen anpassen* on the timer, BRW-11). Full-screen like the timer.
+ * session [sessionId] (*Brühen anpassen* on the timer, BRW-11). Full-screen like the timer. [recipeId]: the recipe
+ * tapped on the tea detail (SCR-09); null opens the tea's default recipe.
  */
 @Serializable
-internal data class BrewSetupRoute(val teaId: String? = null, val sessionId: String? = null)
+internal data class BrewSetupRoute(
+    val teaId: String? = null,
+    val sessionId: String? = null,
+    val recipeId: String? = null,
+)
 
 /**
  * A catalog tea's detail (SCR-21) from the setup's ⋮ *Im Katalog ansehen* (D-098): full-screen above the setup,
@@ -77,6 +82,10 @@ internal data object StatsRoute
 /** A catalog tea's detail (SCR-21), in the Sammlung tab's stack; [key] is the catalog key (05 §4.1). */
 @Serializable
 internal data class CatalogTeaRoute(val key: String)
+
+/** A collection tea's detail (SCR-09), in the Sammlung tab's stack; [teaId] is named as its view model reads it. */
+@Serializable
+internal data class CollectionTeaRoute(val teaId: String)
 
 /** The *Ratgeber* list (CAT-09), in the Sammlung tab's stack. */
 @Serializable

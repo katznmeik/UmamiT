@@ -54,8 +54,12 @@ class BrewSetupViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(teaId: String? = SeedData.HISUI_TEA_ID, sessionId: String? = null) = BrewSetupViewModel(
-        SavedStateHandle(mapOf("teaId" to teaId, "sessionId" to sessionId)),
+    private fun viewModel(
+        teaId: String? = SeedData.HISUI_TEA_ID,
+        sessionId: String? = null,
+        recipeId: String? = null,
+    ) = BrewSetupViewModel(
+        SavedStateHandle(mapOf("teaId" to teaId, "sessionId" to sessionId, "recipeId" to recipeId)),
         collection.teas,
         collection.recipes,
         collection.vessels,
@@ -138,6 +142,18 @@ class BrewSetupViewModelTest {
         assertThat(ready.kettle).isEqualTo(Kettle(65, KettleWater.HOT))
         assertThat(ready.stockGrams).isEqualTo(100.0)
         assertThat(ready.canSaveToRecipe).isFalse()
+    }
+
+    @Test
+    fun `a recipe tapped on the tea detail opens the setup with that recipe (SCR-09)`() {
+        val westlich = viewModel().ready.recipe("Westlich")
+
+        val ready = viewModel(recipeId = westlich).ready
+
+        assertThat(ready.selectedRecipeId).isEqualTo(westlich)
+        assertThat(ready.waterMl).isEqualTo(400)
+        // A recipe that is gone (deleted meanwhile) falls back to the default.
+        assertThat(viewModel(recipeId = "gone").ready.selectedRecipeId).isEqualTo(ready.recipe("Kyusu"))
     }
 
     @Test

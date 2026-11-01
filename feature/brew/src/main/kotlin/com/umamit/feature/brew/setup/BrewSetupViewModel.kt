@@ -57,7 +57,8 @@ import javax.inject.Inject
 
 /**
  * The setup's view model (SCR-04; BRW-02, BRW-03, BRW-10, TMR-01, TMR-21). It
- * opens on the tea `teaId` with its default recipe, or, for *Brühen anpassen*
+ * opens on the tea `teaId` with its default recipe (or with `recipeId`, a recipe
+ * tapped on the tea detail, SCR-09), or, for *Brühen anpassen*
  * (BRW-11), on the waiting session `sessionId` with that session's values.
  * Every change applies to this session only, until *Im Rezept speichern*.
  * *Brühen starten* goes through the [BrewStarter]; nothing else here touches
@@ -110,7 +111,13 @@ class BrewSetupViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            source.first { it != null }?.let { s -> if (edits.value == null) setEdits(s.initialEdits()) }
+            source.first { it != null }?.let { s ->
+                if (edits.value ==
+                    null
+                ) {
+                    setEdits(s.initialEdits(savedState[RECIPE_ID]))
+                }
+            }
         }
         // Alerts first (rule 8): a new alert closes the question.
         viewModelScope.launch {
@@ -355,9 +362,13 @@ class BrewSetupViewModel @Inject constructor(
         private fun startingRecipe(): Recipe? =
             tea.defaultRecipe?.let { d -> recipes.firstOrNull { it.id == d.id } } ?: recipes.firstOrNull()
 
-        /** The default recipe, or the adjusted session's values on top of its recipe (BRW-11). */
-        fun initialEdits(): SetupEdits {
-            val session = session ?: return startingRecipe()?.let(SetupEdits::of) ?: SetupEdits.default()
+        /**
+         * The [requestedRecipeId] (a recipe tapped on SCR-09) or else the default recipe, or the adjusted
+         * session's values on top of its recipe (BRW-11).
+         */
+        fun initialEdits(requestedRecipeId: String? = null): SetupEdits {
+            val session = session
+                ?: return (recipe(requestedRecipeId) ?: startingRecipe())?.let(SetupEdits::of) ?: SetupEdits.default()
             val snapshot = session.snapshot
             val recipe = recipe(snapshot.profileId) ?: startingRecipe()
             val base = recipe?.let(SetupEdits::of) ?: SetupEdits.default()
@@ -385,6 +396,7 @@ class BrewSetupViewModel @Inject constructor(
         /** Navigation arguments (the route's property names). */
         const val TEA_ID = "teaId"
         const val SESSION_ID = "sessionId"
+        const val RECIPE_ID = "recipeId"
         private const val EDITS = "setupEdits"
 
         /** Leaf per 100 ml, to 0,1 g (PRF-03 AC1). */

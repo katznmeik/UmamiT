@@ -13,4 +13,95 @@
     <!-- M1 placeholder (#54 S2, GEN-09): the seed teas exist, so it never claims an empty shelf. -->
     <string name="collection_my_teas_later_title">Deine Sammlung folgt bald</string>
     <string name="collection_my_teas_later_body">Deine Tees findest du vorerst unter Start › Aufguss starten. Hier siehst du sie mit einem späteren Update.</string>
+
+    <!-- SCR-09 Tee (TEA-13, D-100). Non-breaking spaces ( ) keep a number with its unit. -->
+    <string name="collection_tea_brew">Brühen</string>
+    <string name="collection_tea_brew_archived">Tee ist archiviert</string>
+    <string name="collection_tea_more">Weitere Optionen</string>
+    <string name="collection_tea_edit">Tee bearbeiten</string>
+    <string name="collection_tea_gone_title">Diesen Tee gibt es nicht mehr.</string>
+    <string name="collection_tea_gone_body">Er wurde gelöscht. Deine Journal-Einträge bleiben erhalten.</string>
+    <!-- The flags beside the Sorte chip. -->
+    <string name="collection_tea_organic">Bio</string>
+    <string name="collection_tea_flavored">Aromatisiert</string>
+    <!-- The umami meter: „Umami" with four leaves; TalkBack „Umami: hoch". -->
+    <string name="collection_tea_umami">Umami</string>
+    <string name="collection_tea_umami_description">Umami: %1$s</string>
+    <string name="collection_tea_umami_none">kein</string>
+    <string name="collection_tea_umami_low">wenig</string>
+    <string name="collection_tea_umami_medium">mittel</string>
+    <string name="collection_tea_umami_high">hoch</string>
+    <string name="collection_tea_umami_very_high">sehr hoch</string>
+    <!-- The StatTriplet of SCR-09 (D-100): the tea's sessions, last brew and stock. -->
+    <string name="collection_tea_stat_sessions">Sitzungen</string>
+    <plurals name="collection_tea_stat_sessions_description">
+        <item quantity="one">%1$d Sitzung</item>
+        <item quantity="other">%1$d Sitzungen</item>
+    </plurals>
+    <string name="collection_tea_stat_last">Zuletzt</string>
+    <string name="collection_tea_stat_last_description">Zuletzt gebrüht am %1$s</string>
+    <string name="collection_tea_stat_never">–</string>
+    <string name="collection_tea_stat_never_description">Noch nie gebrüht</string>
+    <string name="collection_tea_stat_stock">Vorrat</string>
+    <string name="collection_tea_stat_stock_value">%1$s g</string>
+    <string name="collection_tea_stat_stock_description">Vorrat: %1$s</string>
+    <!-- ⋮ (TEA-04, TEA-06): an item greyed out for the tea of the active brew session (E15). -->
+    <string name="collection_tea_favorite">Favorit</string>
+    <string name="collection_tea_archive">Archivieren</string>
+    <string name="collection_tea_restore">Wiederherstellen</string>
+    <string name="collection_tea_delete">Löschen</string>
+    <string name="collection_tea_blocked">Erst die Sitzung beenden</string>
+    <!-- 03 §5: „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." -->
+    <string name="collection_tea_delete_title">%1$s löschen?</string>
+    <plurals name="collection_tea_delete_body">
+        <item quantity="one">Dein Journal-Eintrag bleibt erhalten.</item>
+        <item quantity="other">Deine %1$d Journal-Einträge bleiben erhalten.</item>
+    </plurals>
+    <string name="collection_tea_delete_archive_instead">Stattdessen archivieren</string>
+    <string name="collection_tea_delete_confirm">Löschen</string>
+    <!-- The snackbar on the screen below the closed detail (TEA-04, 03 §5). -->
+    <string name="collection_tea_archived">%1$s archiviert</string>
+    <string name="collection_tea_undo">Rückgängig</string>
+    <!-- Sections, given in sentence case (shown uppercase). -->
+    <string name="collection_tea_section_recipes">Rezepte</string>
+    <string name="collection_tea_section_stock">Vorrat</string>
+    <string name="collection_tea_section_description">Beschreibung</string>
+    <string name="collection_tea_section_notes">Notizen</string>
+    <string name="collection_tea_section_details">Details</string>
+    <!-- REZEPTE: „Kyusu 250 ml · 5 g · 250 ml · 70 °C · 3 Aufgüsse". -->
+    <string name="collection_tea_recipe_default">Standard</string>
+    <string name="collection_tea_recipe_separator">" · "</string>
+    <string name="collection_tea_recipe_grams">%1$s g</string>
+    <string name="collection_tea_recipe_ml">%1$d ml</string>
+    <string name="collection_tea_recipe_temp">%1$d °C</string>
+    <plurals name="collection_tea_recipe_infusions">
+        <item quantity="one">%1$d Aufguss</item>
+        <item quantity="other">%1$d Aufgüsse</item>
+    </plurals>
+    <string name="collection_tea_recipe_edit">%1$s bearbeiten</string>
+    <string name="collection_tea_recipe_add">Rezept hinzufügen</string>
+    <!-- VORRAT: „38 g übrig", „14 g übrig · knapp", „Leer" (INV-05). -->
+    <string name="collection_tea_stock">%1$s g übrig</string>
+    <string name="collection_tea_stock_low">%1$s g übrig · knapp</string>
+    <string name="collection_tea_stock_empty">Leer</string>
+    <string name="collection_tea_stock_correct">Bestand korrigieren</string>
+    <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
+    <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <!-- DETAILS, each only when set. -->
+    <string name="collection_tea_origin">Herkunft</string>
+    <string name="collection_tea_cultivar">Kultivar</string>
+    <string name="collection_tea_harvest">Ernte</string>
+    <string name="collection_tea_shading">Beschattung</string>
+    <plurals name="collection_tea_shading_days">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <string name="collection_tea_processing">Verarbeitung</string>
+    <string name="collection_tea_ingredients">Zutaten</string>
+    <string name="collection_tea_vendor">Händler</string>
+    <string name="collection_tea_season_first_flush">Erste Pflückung</string>
+    <string name="collection_tea_season_second_flush">Zweite Pflückung</string>
+    <string name="collection_tea_season_summer">Sommer</string>
+    <string name="collection_tea_season_autumn">Herbst</string>
+    <string name="collection_tea_season_winter">Winter</string>
 </resources>
