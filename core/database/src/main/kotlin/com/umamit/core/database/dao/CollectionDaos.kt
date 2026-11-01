@@ -68,7 +68,7 @@ interface TeaDao {
     @Upsert
     suspend fun upsert(tea: TeaEntity)
 
-    /** *Aus Sammlung entfernen* and its undo (TEA-04): returns the number of rows changed (0: no such tea). */
+    /** *Archivieren* and its undo (TEA-04): returns the number of rows changed (0: no such tea). */
     @Query("UPDATE tea SET is_archived = :archived, updated_at = :now WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, now: Long): Int
 

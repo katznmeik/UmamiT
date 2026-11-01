@@ -135,7 +135,7 @@ internal fun AlertGate(
  * transition (no sheet exit before it), and nothing can navigate after an
  * alert has started (rule 8, D-062).
  *
- * A long press on a tea opens its menu with *Aus Sammlung entfernen* ([onRemoveTea]; greyed out
+ * A long press on a tea opens its menu with *Archivieren* ([onRemoveTea]; greyed out
  * with „Erst die Sitzung beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
  * is set, a snackbar of about 8 s offers *Rückgängig* ([onUndoRemove]); when it goes,
  * [onRemovedDismiss] is called (TEA-04, D-093 Q21).
@@ -177,7 +177,7 @@ fun TeaPickerSheet(
 }
 
 /**
- * Shows the snackbar „*Tanabata* aus der Sammlung entfernt" · *Rückgängig* for [removed]: about
+ * Shows the snackbar „*Tanabata* archiviert" · *Rückgängig* for [removed]: about
  * 8 s (D-093 Q21), longer when the accessibility settings ask for more time.
  */
 @Composable
@@ -320,7 +320,7 @@ private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowAction
 }
 
 /**
- * A tea of the picker. A long press opens its menu with *Aus Sammlung entfernen*, greyed out with
+ * A tea of the picker. A long press opens its menu with *Archivieren*, greyed out with
  * „Erst die Sitzung beenden" for the active session's tea (E15); TalkBack offers the removal as a
  * custom action on the row (SCR-03).
  */

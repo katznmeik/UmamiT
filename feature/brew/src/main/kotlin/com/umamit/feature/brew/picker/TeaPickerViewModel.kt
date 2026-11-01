@@ -47,7 +47,7 @@ enum class TeaKind {
 
 /**
  * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
- * [removable] is false for the tea of the active brew session: *Aus Sammlung entfernen* is greyed
+ * [removable] is false for the tea of the active brew session: *Archivieren* is greyed
  * out with „Erst die Sitzung beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
  */
 data class PickerTea(
@@ -150,7 +150,7 @@ class TeaPickerViewModel @Inject constructor(
     }
 
     /**
-     * *Aus Sammlung entfernen* (TEA-04, SCR-03): archives the tea at once, without a dialog; the
+     * *Archivieren* (TEA-04, SCR-03): archives the tea at once, without a dialog; the
      * snackbar then offers *Rückgängig*. The active brew session's tea is refused and stays (E15).
      */
     fun remove(teaId: String) {

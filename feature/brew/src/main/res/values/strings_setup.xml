@@ -14,12 +14,12 @@
     <string name="brew_picker_quick_timer">Ohne Tee (Schnelltimer)</string>
     <string name="brew_picker_empty">Noch keine Tees in deiner Sammlung.</string>
     <string name="brew_picker_no_results">Kein Tee zu „%1$s“ gefunden.</string>
-    <!-- SCR-03, TEA-04 (D-093): a long press on a tea; the tea is archived, with undo. -->
+    <!-- SCR-03, TEA-04 (D-093, D-100): a long press on a tea; the tea is archived, with undo. -->
     <string name="brew_picker_tea_menu">Optionen</string>
-    <string name="brew_picker_remove">Aus Sammlung entfernen</string>
-    <!-- E15: the tea of the active brew session can't be removed. -->
+    <string name="brew_picker_remove">Archivieren</string>
+    <!-- E15: the tea of the active brew session can't be archived. -->
     <string name="brew_picker_remove_blocked">Erst die Sitzung beenden</string>
-    <string name="brew_picker_removed">%1$s aus der Sammlung entfernt</string>
+    <string name="brew_picker_removed">%1$s archiviert</string>
     <string name="brew_picker_undo">Rückgängig</string>
 
     <!-- Brew setup (SCR-04) -->

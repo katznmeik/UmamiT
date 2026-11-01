@@ -24,7 +24,7 @@ sealed interface ArchiveResult {
 }
 
 /**
- * *Aus Sammlung entfernen* from the tea picker and its *Rückgängig* (TEA-04, SCR-03, D-093 point 8).
+ * *Archivieren* from the tea picker and its *Rückgängig* (TEA-04, SCR-03, D-093 point 8).
  *
  * A removed tea is archived, never deleted: its recipes, stock events, photos and journal sessions
  * stay. It leaves Start and the tea picker ([TeaRepository.observeOwnedTeas]) and the catalog's

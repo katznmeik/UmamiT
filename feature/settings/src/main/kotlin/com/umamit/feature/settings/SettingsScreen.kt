@@ -95,6 +95,8 @@ class SettingsActions(
     val setRingUnderDnd: (Boolean) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-15 *Bestand abziehen* (INV-02, D-100). */
+    val setDeductStock: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
     /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, D-098). */
@@ -171,6 +173,7 @@ fun SettingsRoute(
             setRingUnderDnd = { on -> viewModel.change { it.copy(ringUnderDnd = on) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setDeductStock = { on -> viewModel.change { it.copy(deductStock = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
             setLowStockReminder = { on -> viewModel.change { it.copy(lowStockReminder = on) } },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
@@ -227,6 +230,12 @@ fun SettingsScreen(
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_brewing), modifier = Modifier.fillMaxWidth())
+        SwitchRow(
+            title = stringResource(R.string.settings_deduct_stock),
+            checked = settings.deductStock,
+            onCheckedChange = actions.setDeductStock,
+            detail = stringResource(R.string.settings_deduct_stock_detail),
+        )
         SettingsRow(
             title = stringResource(R.string.settings_low_stock),
             value = stringResource(R.string.settings_low_stock_grams, settings.lowStockGrams.roundToInt()),
