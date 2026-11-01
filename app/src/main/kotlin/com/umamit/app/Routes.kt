@@ -95,6 +95,18 @@ internal data class CatalogTeaRoute(val key: String)
 @Serializable
 internal data class CollectionTeaRoute(val teaId: String)
 
+/** *Sorte wählen* (SCR-11) from *Meine Tees*' *Ohne Katalog* (TEA-01, D-100), in the Sammlung tab's stack. */
+@Serializable
+internal data object CollectionSorteRoute
+
+/**
+ * Tee bearbeiten (SCR-10), in the Sammlung tab's stack: the tea [teaId] from its detail's pencil, or with none a new
+ * tea of the Sorte [styleKey] chosen in *Sorte wählen* (`other`: *Andere / unbekannt*). Named as the editor's view
+ * model reads them (`TeaEditorViewModel.TEA_ID`, `STYLE_KEY`).
+ */
+@Serializable
+internal data class CollectionTeaEditorRoute(val teaId: String? = null, val styleKey: String? = null)
+
 /** The *Ratgeber* list (CAT-09), in the Sammlung tab's stack. */
 @Serializable
 internal data object GuidesRoute

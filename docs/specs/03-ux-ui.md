@@ -889,6 +889,15 @@ the recipes (TEA-03). Errors show at the field (an empty name, a harvest
 year in the future) and *Speichern* refuses them; ✕ with changes asks
 „Änderungen verwerfen?" (GEN-08). Saving during a brew of the tea changes
 nothing in the running session.
+- **As built (#155, Claude):** like the vessel editor (SCR-14): errors show
+  only after the first *Speichern*, then follow the typing. The Sorte is a
+  menu of every built-in style by Kategorie; choosing one also sets the umami
+  level to the Sorte's, and on *Speichern* the tea takes the Sorte's name
+  (`tea_type`) and Kategorie (the form only for a new tea; the recipes stay).
+  *Land* offers the usual tea countries by their German name. *Kaufdatum* is
+  today by default and never later (as SCR-23); a price needs a package
+  („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
+  after an add, the new tea's detail replaces it, *Sorte wählen* included.
 
 ### SCR-11 Sorte wählen (manual add)
 
@@ -899,6 +908,9 @@ v0.4.0 (D-100): every built-in style by its Sorte name, grouped by Kategorie
 searchable, with *Andere / unbekannt* at the end (08 §3). A tap opens SCR-10
 for a new tea with the style's Sorte, Kategorie, umami level and default
 recipe.
+- **As built (#155, Claude):** the search matches the Sorte name and its
+  Kategorie (GEN-10). *Andere / unbekannt* stores no style (05 §3.1) and the
+  Kategorie *Andere*.
 
 ### SCR-12 Rezept bearbeiten
 
