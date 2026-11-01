@@ -75,6 +75,7 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
+ * @param collectionSegments the Sammlung segment used last (`collectionSegment`); the app passes the settings'.
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
  * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
  *   replace them.
@@ -128,6 +129,7 @@ internal fun UmamitRoot(
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
+    collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     collectionScreens: CollectionStackScreens = CollectionStackScreens(),
     setupScreen: @Composable (
         onBack: () -> Unit,
@@ -275,6 +277,7 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
+                    collectionSegments = collectionSegments,
                     collectionScreens = collectionScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
@@ -297,6 +300,7 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
+                    collectionSegments = collectionSegments,
                     collectionScreens = collectionScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
