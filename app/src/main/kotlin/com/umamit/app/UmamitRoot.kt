@@ -75,9 +75,10 @@ import com.umamit.feature.onboarding.OnboardingRoute as OnboardingScreenRoute
  *   names the timer the route shows and opens the other one's (D-098).
  * @param startScreen the Start tab's content; the app passes [StartTabContent].
  * @param catalogScreen Sammlung's *Katalog* segment; the app passes [CatalogTabContent].
- * @param myTeasScreen Sammlung's *Meine Tees* segment (SCR-08); the app passes [MyTeasTabContent].
  * @param collectionSegments the Sammlung segment used last (`collectionSegment`); the app passes the settings'.
  * @param catalogScreens a catalog tea's detail (SCR-21) and the *Ratgeber* (SCR-20); tests replace them.
+ * @param collectionScreens *Meine Tees*, a collection tea's detail (SCR-09) and its archive snackbar; tests
+ *   replace them.
  * @param setupScreen the setup route's content (SCR-04); tests replace it. Its third argument opens a catalog tea's
  *   detail (SCR-21) above it by its key (⋮ *Im Katalog ansehen*, D-098), shown with [catalogScreens].
  * @param onboardingCompleted whether the first-start setup is done (ONB-04); null until the settings are
@@ -128,8 +129,8 @@ internal fun UmamitRoot(
     startScreen: @Composable (StartTab) -> Unit = { PlaceholderStart(it) },
     catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
     catalogScreens: CatalogStackScreens = CatalogStackScreens(),
-    myTeasScreen: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
     collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
+    collectionScreens: CollectionStackScreens = CollectionStackScreens(),
     setupScreen: @Composable (
         onBack: () -> Unit,
         onOpenTimer: () -> Unit,
@@ -206,18 +207,20 @@ internal fun UmamitRoot(
     val openTimerOf: (
         TimerSlot,
     ) -> Unit = { slot -> navController.navigate(TimerRoute(slot)) { launchSingleTop = true } }
-    val startNavigation = StartNavigation(
-        // During an alert a tea tap (*Favoriten*, the picker) opens the alerting timer, never a setup that
-        // would cover it (rule 8, D-062 S3).
-        openSetup = { teaId ->
-            if (currentAlerting) {
-                openTimer()
-            } else {
-                navigateAbove(BrewSetupRoute(teaId = teaId)) {
-                    launchSingleTop = true
-                }
+    // During an alert a tea tap (*Favoriten*, the picker, the tea detail) opens the alerting timer, never a setup
+    // that would cover it (rule 8, D-062 S3).
+    val openSetupWith: (String, String?) -> Unit = { teaId, recipeId ->
+        if (currentAlerting) {
+            openTimer()
+        } else {
+            navigateAbove(BrewSetupRoute(teaId = teaId, recipeId = recipeId)) {
+                launchSingleTop = true
             }
-        },
+        }
+    }
+    val startNavigation = StartNavigation(
+        openSetup = { teaId -> openSetupWith(teaId, null) },
+        openSetupWith = openSetupWith,
         openTimer = openTimer,
         openTimerOf = openTimerOf,
         // A route above the shell like the setup: it gives way to a new alert (rule 8). During an alert,
@@ -274,8 +277,8 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
-                    myTeasScreen = myTeasScreen,
                     collectionSegments = collectionSegments,
+                    collectionScreens = collectionScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
@@ -297,8 +300,8 @@ internal fun UmamitRoot(
                     startScreen = startScreen,
                     catalogScreen = catalogScreen,
                     catalogScreens = catalogScreens,
-                    myTeasScreen = myTeasScreen,
                     collectionSegments = collectionSegments,
+                    collectionScreens = collectionScreens,
                     settings = settings.withRerunSetup(rerunSetup),
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,

@@ -47,6 +47,9 @@ object UmamiIcons {
 
     @DrawableRes val Edit = R.drawable.ic_edit
 
+    /** A link that leaves the app for the browser (INV-09). */
+    @DrawableRes val OpenInNew = R.drawable.ic_open_in_new
+
     @DrawableRes val Schedule = R.drawable.ic_schedule
 
     @DrawableRes val Timer = R.drawable.ic_timer

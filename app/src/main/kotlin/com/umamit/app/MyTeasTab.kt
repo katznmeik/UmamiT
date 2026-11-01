@@ -8,7 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.data.SettingsRepository
 import com.umamit.feature.collection.CollectionSegment
@@ -26,25 +25,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
 import com.umamit.core.model.CollectionSegment as StoredSegment
-
-/**
- * What Sammlung's *Meine Tees* segment gets from the shell (SCR-08, D-100).
- *
- * @property modifier its place below the segmented control.
- * @property scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
- * @property alerting whether an alert plays now: the FAB's choice and the chips' menus give way (rule 8).
- * @property openTea a row's tap: the tea's detail (SCR-09).
- * @property addFromCatalog *Aus dem Katalog* and *Im Katalog stöbern*: the *Katalog* segment (SCR-19).
- * @property addWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
- */
-internal data class MyTeasTab(
-    val modifier: Modifier,
-    val scrollToTopRequest: Int,
-    val alerting: Boolean,
-    val openTea: (teaId: String) -> Unit = {},
-    val addFromCatalog: () -> Unit = {},
-    val addWithoutCatalog: () -> Unit = {},
-)
 
 /** *Meine Tees* with its view model (#153). */
 @Composable

@@ -122,7 +122,7 @@ class MainActivity : ComponentActivity() {
                     onConsumeStartRequest = startRequests::handled,
                     startScreen = { StartTabContent(it) },
                     catalogScreen = { CatalogTabContent(it) },
-                    myTeasScreen = { MyTeasTabContent(it) },
+                    collectionScreens = CollectionStackScreens(myTeas = { MyTeasTabContent(it) }),
                     collectionSegments = collectionSegments,
                 )
             }
