@@ -37,8 +37,25 @@ object DurationSteps {
     fun parts(seconds: Int): Triple<Int, Int, Int> =
         Triple(seconds / SECONDS_PER_HOUR, seconds % SECONDS_PER_HOUR / LONG_UNIT, seconds % LONG_UNIT)
 
-    private fun rounded(seconds: Int): Int {
-        val unit = if (seconds < LONG_FROM_SECONDS) SHORT_UNIT else LONG_UNIT
-        return (seconds / unit * unit).coerceIn(MIN_SECONDS, MAX_SECONDS)
+    /**
+     * The duration stepper's − / + (SCR-12, as the Schritte-Sheet's): the next multiple of 5 s below 10 min and of
+     * 1 min from 10 min on, up or down, within 5 s – 24 h.
+     */
+    fun stepped(seconds: Int, up: Boolean): Int {
+        val next = if (up) {
+            val unit = if (seconds < LONG_FROM_SECONDS) SHORT_UNIT else LONG_UNIT
+            Math.floorDiv(seconds, unit) * unit + unit
+        } else {
+            val unit = if (seconds > LONG_FROM_SECONDS) LONG_UNIT else SHORT_UNIT
+            Math.floorDiv(seconds - 1, unit) * unit
+        }
+        return next.coerceIn(MIN_SECONDS, MAX_SECONDS)
+    }
+
+    /** [seconds] within 5 s – 24 h, rounded down to the PRF-04 increment. */
+    fun rounded(seconds: Int): Int {
+        val bounded = seconds.coerceIn(MIN_SECONDS, MAX_SECONDS)
+        val unit = if (bounded < LONG_FROM_SECONDS) SHORT_UNIT else LONG_UNIT
+        return (bounded / unit * unit).coerceIn(MIN_SECONDS, MAX_SECONDS)
     }
 }

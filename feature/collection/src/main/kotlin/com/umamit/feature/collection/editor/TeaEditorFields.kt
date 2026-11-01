@@ -288,7 +288,7 @@ private fun Purchase(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> 
 }
 
 @Composable
-private fun Section(@StringRes title: Int, content: @Composable ColumnScope.() -> Unit) {
+internal fun Section(@StringRes title: Int, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
         SectionHeader(
             title = stringResource(title),

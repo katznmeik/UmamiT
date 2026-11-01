@@ -614,6 +614,21 @@ private fun TabHost(
                     onDeleted = { close() },
                     alertKey = alertKey,
                     onEditTea = dropUnlessResumed { navController.navigate(CollectionTeaEditorRoute(teaId = teaId)) },
+                    // A recipe's pencil and *Rezept hinzufügen* (SCR-12, PRF-01).
+                    onEditRecipe = resumedOnly { recipeId: String ->
+                        navController.navigate(CollectionRecipeEditorRoute(teaId, recipeId))
+                    },
+                    onAddRecipe = dropUnlessResumed { navController.navigate(CollectionRecipeEditorRoute(teaId)) },
+                ),
+            )
+        }
+        // Rezept bearbeiten (SCR-12): *Speichern* and *Löschen* return to the tea's detail.
+        composable<CollectionRecipeEditorRoute> { entry ->
+            val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+            collection.screens.recipeEditor(
+                RecipeEditorHost(
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                    onDone = { closeIfOnTop() },
                 ),
             )
         }

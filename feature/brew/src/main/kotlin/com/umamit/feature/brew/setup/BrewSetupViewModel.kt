@@ -10,6 +10,9 @@ import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
+import com.umamit.core.domain.brew.BrewScaling
+import com.umamit.core.domain.brew.Ratio
+import com.umamit.core.domain.brew.brewMl
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.KettleWater
@@ -51,8 +54,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.math.BigDecimal
-import java.math.RoundingMode
 import javax.inject.Inject
 
 /**
@@ -303,7 +304,7 @@ class BrewSetupViewModel @Inject constructor(
             waterMl = e.waterMl,
             leafGrams = e.leafGrams,
             ratioLocked = e.locked,
-            ratioPer100Ml = per100Ml(e.leafGrams, e.waterMl),
+            ratioPer100Ml = BrewScaling.per100Ml(e.leafGrams, e.waterMl),
             baseTempC = e.baseTempC,
             kettle = Kettle(firstTemp, KettleWater.of(firstTemp, iceBrew = e.method == BrewMethod.ICE_BREW)),
             steps = e.steps,
@@ -404,12 +405,5 @@ class BrewSetupViewModel @Inject constructor(
         const val SESSION_ID = "sessionId"
         const val RECIPE_ID = "recipeId"
         private const val EDITS = "setupEdits"
-
-        /** Leaf per 100 ml, to 0,1 g (PRF-03 AC1). */
-        internal fun per100Ml(leafGrams: Double, waterMl: Int): Double = (leafGrams.toBigDecimal() * HUNDRED)
-            .divide(waterMl.toBigDecimal(), 1, RoundingMode.HALF_UP)
-            .toDouble()
-
-        private val HUNDRED = BigDecimal(100)
     }
 }

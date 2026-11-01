@@ -107,6 +107,14 @@ internal data object CollectionSorteRoute
 @Serializable
 internal data class CollectionTeaEditorRoute(val teaId: String? = null, val styleKey: String? = null)
 
+/**
+ * Rezept bearbeiten (SCR-12), in the Sammlung tab's stack: the recipe [recipeId] of the tea [teaId] from a pencil in
+ * its detail's REZEPTE, or with none *Rezept hinzufügen* (PRF-01, D-100). Named as the editor's view model reads
+ * them (`RecipeEditorViewModel.TEA_ID`, `RECIPE_ID`).
+ */
+@Serializable
+internal data class CollectionRecipeEditorRoute(val teaId: String, val recipeId: String? = null)
+
 /** The *Ratgeber* list (CAT-09), in the Sammlung tab's stack. */
 @Serializable
 internal data object GuidesRoute

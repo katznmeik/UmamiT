@@ -1,5 +1,6 @@
-package com.umamit.feature.brew.setup
+package com.umamit.core.domain.brew
 
+import com.umamit.core.model.Vessel
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -15,6 +16,7 @@ data class Ratio(val leafGrams: Double, val waterMl: Int) {
  * leaf to 0,1 g and water to 5 ml, both half up, within the recipe bounds of
  * 05 §3.2 (leaf 0,1–100 g, water 10–3000 ml). Times and temperatures never
  * scale. Exact decimals, so 2,45 g rounds to 2,5 g and not to the binary 2,4.
+ * The setup (SCR-04) and the recipe editor (SCR-12, PRF-03) share it (D-100).
  */
 object BrewScaling {
     const val MIN_LEAF_GRAMS = 0.1
@@ -54,8 +56,17 @@ object BrewScaling {
         return next.coerceIn(MIN_WATER_ML, MAX_WATER_ML)
     }
 
+    /** Leaf per 100 ml, to 0,1 g half up: the ratio „1,6 g / 100 ml" (PRF-03 AC1). */
+    fun per100Ml(leafGrams: Double, waterMl: Int): Double = (leafGrams.toBigDecimal() * HUNDRED)
+        .divide(waterMl.toBigDecimal(), 1, RoundingMode.HALF_UP)
+        .toDouble()
+
     private fun roundLeaf(grams: BigDecimal): Double =
         grams.setScale(1, RoundingMode.HALF_UP).toDouble().coerceIn(MIN_LEAF_GRAMS, MAX_LEAF_GRAMS)
 
     private const val EXACT_SCALE = 6
+    private val HUNDRED = BigDecimal(100)
 }
+
+/** The volume a vessel brews (WARE-04): its usable volume, else its capacity. */
+fun Vessel.brewMl(): Int = usableMl ?: capacityMl

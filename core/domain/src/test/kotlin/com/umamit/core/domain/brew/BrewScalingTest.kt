@@ -1,6 +1,8 @@
-package com.umamit.feature.brew.setup
+package com.umamit.core.domain.brew
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.model.Vessel
+import com.umamit.core.model.VesselType
 import org.junit.Test
 
 /**
@@ -74,5 +76,18 @@ class BrewScalingTest {
         assertThat(BrewScaling.stepWater(252, up = false)).isEqualTo(250)
         assertThat(BrewScaling.stepWater(10, up = false)).isEqualTo(10)
         assertThat(BrewScaling.stepWater(3000, up = true)).isEqualTo(3000)
+    }
+
+    @Test
+    fun `a vessel brews its usable volume, else its capacity (WARE-04)`() {
+        assertThat(Vessel("k", "Kyusu", VesselType.KYUSU, capacityMl = 300, usableMl = 250).brewMl()).isEqualTo(250)
+        assertThat(Vessel("b", "Becher", VesselType.MUG_INFUSER, capacityMl = 400).brewMl()).isEqualTo(400)
+    }
+
+    @Test
+    fun `the ratio per 100 ml is rounded half up to 0,1 g (PRF-03 AC1)`() {
+        assertThat(BrewScaling.per100Ml(leafGrams = 4.0, waterMl = 250)).isEqualTo(1.6)
+        assertThat(BrewScaling.per100Ml(leafGrams = 5.0, waterMl = 200)).isEqualTo(2.5)
+        assertThat(BrewScaling.per100Ml(leafGrams = 1.0, waterMl = 300)).isEqualTo(0.3)
     }
 }

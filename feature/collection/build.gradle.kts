@@ -8,5 +8,8 @@ dependencies {
     implementation(project(":core:data"))
     // Search, filters and sort as pure functions (CollectionBrowser; TEA-09–TEA-11).
     implementation(project(":core:domain"))
+    // Rezept bearbeiten (SCR-12): each step's Vorwarnung shows the lead the timer will give it (TMR-23), and
+    // *Aufguss hinzufügen* appends the timer's *Weiterer Aufguss* (TMR-10), as the Schritte-Sheet does.
+    implementation(project(":core:timer-engine"))
     implementation(libs.kotlinx.coroutines.core)
 }

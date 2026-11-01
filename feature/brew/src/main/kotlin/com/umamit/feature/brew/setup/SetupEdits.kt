@@ -1,5 +1,8 @@
 package com.umamit.feature.brew.setup
 
+import com.umamit.core.domain.brew.BrewScaling
+import com.umamit.core.domain.brew.Ratio
+import com.umamit.core.domain.brew.brewMl
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
@@ -151,6 +154,3 @@ internal data class SetupEdits(
         }.getOrNull()
     }
 }
-
-/** The volume a vessel brews (WARE-04): its usable volume, else its capacity. */
-internal fun Vessel.brewMl(): Int = usableMl ?: capacityMl
