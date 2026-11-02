@@ -1,7 +1,7 @@
 # 12 · Subagent Distribution Plan
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (M3 in two releases, v0.4.0 and v0.4.1, D-100)
-> Decision: [D-026](10-open-questions-and-decisions.md#d-026)
+> Status: **Draft v0.3** · Last updated: 2026-11-02 (tiers shifted down to save usage; orchestrator sessions, lean briefs, one milestone review, D-101)
+> Decisions: [D-026](10-open-questions-and-decisions.md#d-026), [D-101](10-open-questions-and-decisions.md#d-101)
 
 UmamiT is built by Claude ([D-024](10-open-questions-and-decisions.md#d-024)).
 A main **orchestrating session** plans each milestone, splits it into tasks,
@@ -12,9 +12,11 @@ cheap and fast and complex work gets the depth it needs.
 ## 1. Principles
 
 1. **Match effort to difficulty.** Simple, well-specified tasks use low
-   effort; complex or risky tasks use high effort.
-2. **Simple tasks use Sonnet.** Moderate and harder tasks use Opus.
-3. **The ceiling is `xhigh` (extra high).** `max` is not used.
+   effort; complex or risky tasks use more.
+2. **Sonnet for simple and standard work, Opus for complex and critical
+   work** (D-101).
+3. **The ceiling is `high`.** `xhigh` (extra high) is used only when the PO
+   approves it for a named task; `max` is never used.
 4. **Risk raises the tier, size does not.** A small change to the timer's
    alarm handling is riskier than a large but mechanical screen, so it gets the
    higher tier.
@@ -23,18 +25,25 @@ cheap and fast and complex work gets the depth it needs.
    not proof that the work is correct.
 6. **Escalate, never silently downgrade.** If a task fails or turns out to be
    harder than expected, re-run it one tier up (§4).
+7. **Usage is a budget.** The orchestrator and every subagent draw on the
+   PO's one usage limit. Take the cheapest tier that fits and keep every
+   context small (§5.1, §5.2). Spend a reviewer only where §5.3 asks for one.
 
 ## 2. Tiers
 
 | Tier | Model | Effort | Use for |
 |---|---|---|---|
 | **T1 Simple** | **Sonnet** | `low` | Mechanical, fully specified, low-risk changes with an obvious correct result |
-| **T2 Standard** | Opus | `medium` | Normal feature work following established patterns in the codebase |
-| **T3 Complex** | Opus | `high` | Non-trivial logic, platform integration, data integrity, anything with many edge cases |
-| **T4 Critical** | Opus | `xhigh` | Highest risk and hardest reasoning: timer reliability, architecture, hard bugs, final reviews |
+| **T2 Standard** | **Sonnet** | `medium` | Normal feature work following established patterns in the codebase |
+| **T3 Complex** | Opus | `medium` | Non-trivial logic, platform integration, data integrity, anything with many edge cases; implementing timer, backup and migration code |
+| **T4 Critical** | Opus | `high` | Highest risk and hardest reasoning: timer design and hard timer bugs, architecture, the timer-path review |
 
-The orchestrating session itself runs on Opus at the session's configured
-effort.
+- **`xhigh`** is used only when the PO approves it for a named task, for
+  example a hard timer bug that T4 could not solve (§4).
+- **Before 2026-11-02** the tiers were one step higher (T2 Opus `medium`,
+  T3 Opus `high`, T4 Opus `xhigh`; D-026). Plans and PRs from before then
+  name the old pairs. Read their T labels with this table (D-101).
+- **The orchestrating session** is set up as in §5.1.
 
 ### 2.1 How to choose a tier
 
@@ -178,10 +187,10 @@ Answer the questions in order and take the first tier that matches:
 
 | Situation | Action |
 |---|---|
-| A T1 (Sonnet) result fails to build, fails tests, or is wrong | Re-run the task once at T2 (Opus, medium) with the failure details |
-| A T2 task fails twice, or turns out to touch timer, data integrity or parsing | Escalate to T3 |
-| A T3 task fails twice, or the problem is not understood | Escalate to T4 |
-| T4 cannot resolve it | Orchestrator stops and asks the PO, with a summary of the findings |
+| A T1 (Sonnet, low) result fails to build, fails tests, or is wrong | Re-run the task once at T2 (Sonnet, medium) with the failure details |
+| A T2 task fails twice, or turns out to touch timer, data integrity or parsing | Escalate to T3 (Opus, medium) |
+| A T3 task fails twice, or the problem is not understood | Escalate to T4 (Opus, high) |
+| T4 cannot resolve it | Orchestrator stops and asks the PO, with a summary of the findings; the PO may approve one `xhigh` run |
 | A task touches `core:timer`, `core:timer-engine`, `core:backup` or migrations | Never below T3, whatever its size |
 
 A task is never moved to a *lower* tier after it failed.
@@ -199,23 +208,77 @@ A task is never moved to a *lower* tier after it failed.
 3. **Verify:** for every result, the orchestrator runs the build,
    lint/detekt, unit tests and screenshot tests, and reads the diff. Failures
    follow §4.
-4. **Review:** before the milestone PR, a review subagent at the milestone's
-   review tier (§3.2) checks the full diff against the spec. Its findings are
-   fixed (or answered) before opening the PR.
+4. **Review:** before the milestone PR is marked ready, the milestone review
+   of §5.3 checks the full diff against the spec. Its findings are fixed (or
+   answered) before the rc.
 5. **PR:** one PR per milestone, with the requirement IDs implemented, the
    tiers used for critical parts, and the on-device acceptance checklist from
    [09 §4](09-release-plan.md#4-acceptance-checklists-on-the-pos-galaxy).
+
+### 5.1 The orchestrating session (D-101)
+
+- **A fresh session per phase.** The phases are: spec and tickets; the
+  build; the review and fix round; the rc and the PO's testing; the final
+  release.
+  - Each phase ends with a handover: `PROJECT_STATE.md`, plus a resume note
+    in `docs/plans/` when a phase stops part-way (as `v0.4.0-resume.md`).
+  - One session never carries a whole milestone. The session that ran M1 to
+    v0.4.0 lasted 11 days, and every turn and every CI wake-up re-sent its
+    long context.
+- **Model.** Use Opus at `medium` effort for phases that need judgement (the
+  build, the review and fix round). Sonnet is enough for mechanical phases:
+  rc dispatch, accuracy runs, renders, docs after a decision. The PO picks
+  the model when starting the session, and the handover says which model
+  the next phase needs.
+- **A small context.**
+  - Read long files in parts (02, 03, 04 and 10 run to 700–5 500 lines).
+  - Filter Gradle output to failures and the result line.
+  - Keep subagent reports and diffs to what the decision needs.
+  - Run long builds in the background with a long timeout instead of
+    polling.
+- **`PROJECT_STATE.md` holds only the current state:** the phase, what is
+  waiting on the PO, the next steps and the next free decision number.
+  Finished releases move to `docs/history.md`, which is read only when
+  needed.
+
+### 5.2 Lean briefs
+
+- **Give the task itself and pointers:** the ticket or finding text (or the
+  issue number), the files to change, and the requirement IDs and spec
+  section anchors that matter. The subagent searches the long specs for those
+  IDs. Don't tell it to read whole documents such as `CLAUDE.md`, the spec
+  issue, the plan and the decision. It opens them only if the pointers are
+  not enough.
+- **Give the commands:** the module-scoped Gradle tasks to run and the
+  shared build lock, so the subagent doesn't have to find them.
+- **Ask for a short report:** the branch and head, one line per item, the
+  Gradle tasks with their results, tests added, and open questions. No pasted
+  logs or diffs; the orchestrator reads the diff itself.
+
+### 5.3 Reviews
+
+- **One milestone review:**
+  - one reviewer at T3 checks standards and spec together on the whole
+    diff;
+  - a second reviewer at T4 covers the timer path (`core:timer`,
+    `core:timer-engine`, session completion, the accuracy and process-death
+    harness), and only when the milestone changed it.
+- **Per-ticket reviews** only where the plan names one (e.g. a timer
+  design).
+- **`/review-animations`** runs once per milestone, on the new and changed
+  screens, not on every UI ticket.
 
 ## 6. Prompt template for subagents
 
 ```text
 Task: <one sentence>
 Milestone / requirements: <M1 · TMR-23, 04 §5>
-Context: <relevant files and modules; patterns to follow>
+Context: <pointers: ticket/finding, files and modules, spec anchors; patterns to follow>
 Do: <exact steps / expected result>
 Don't: <out of scope; files not to touch>
 Acceptance: <tests that must pass, behaviour to demonstrate>
-Report: <what to return: changed files, test results, open questions>
+Commands: <module-scoped Gradle tasks, through the shared build lock>
+Report: <short: branch and head, one line per item, Gradle tasks and results, open questions; no logs>
 ```
 
 ## 7. Notes
@@ -228,5 +291,6 @@ Report: <what to return: changed files, test results, open questions>
   never after a failure.
 - Read-only research (searching the codebase, checking the website) can use
   T1 or T2 depending on how much judgement the conclusion needs.
-- This plan applies from M1 onwards. It is revised after M1 based on how well
-  the tiers worked.
+- This plan applies from M1 onwards. It was revised on 2026-11-02 (D-101)
+  because the usage limit ran out too fast. Usage is checked again after
+  v0.4.0, and the PO can raise a tier again.
