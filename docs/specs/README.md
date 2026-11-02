@@ -70,8 +70,9 @@ releases are dispatched and verified).
   Jsoup; min SDK 35. — D-003, D-023
 - **Delivery:** timer first, starting with a probe release; one PR per
   milestone; release candidates for testing. — D-024, D-036
-- **Subagents:** simple tasks use Sonnet at low effort; complex ones use Opus
-  at medium, high or extra-high effort, never max. — D-026
+- **Subagents:** simple and standard tasks use Sonnet (low, medium effort);
+  complex and critical ones use Opus (medium, high effort). Extra-high only
+  with the PO's OK, never max. — D-026, D-101
 
 ## Conventions
 

@@ -51,12 +51,14 @@ Read `CLAUDE.md`, `PROJECT_STATE.md` and `docs/agents/issue-tracker.md` first.
 - **Tiers:** set `model` and `effort` on every subagent call per `docs/specs/12-agent-plan.md`:
   - each ticket's tier comes from the plan (`docs/plans/<milestone>.md`);
   - timer, backup and migration code is never below T3;
-  - never use `max`;
+  - `xhigh` only with the PO's OK for a named task; never use `max`;
   - after a failure, escalate one tier and never downgrade.
+- **Lean briefs** (12 §5.2): give implementers the ticket, the files, the requirement IDs and section anchors, and the Gradle commands. Don't hand them a reading list. Ask for a short report with no pasted logs.
 - **Implementer subagents:** run them with `isolation: "worktree"`. Exploration notes go to the session scratchpad, not the repo.
 - **Merging into the PR branch:** the orchestrator verifies each result itself (build, `spotlessCheck detekt lint testDebugUnitTest`, screenshot tests where they exist, and the diff) before merging it. A subagent's report is not proof.
 - **Human tickets (`ready-for-human`):** no implementer subagent. Work that the specs assign to the orchestrator (e.g. generating and delivering the signing key, 06 §6.1) is done by the orchestrator itself, so key material passes through no other context. Then wait for the PO's part. Release dispatches and the PO's on-device checks gate the tickets that depend on them.
 - **Public repository:** no Tee-Kontor texts, photos or HTML, and no secrets or keystores (CLAUDE.md rule 3).
-- **Code review (step 7):** use a reviewer at the milestone's review tier (`docs/specs/12-agent-plan.md` §3.2; the M1 milestone review is T4). Fix the findings or answer them.
+- **Code review (step 7):** one milestone review per `docs/specs/12-agent-plan.md` §5.3. One T3 reviewer covers standards and spec. A T4 reviewer covers the timer path, and only when the milestone changed it. Run `/review-animations` once on the new and changed screens. Fix the findings or answer them.
+- **Phases:** the orchestrator runs one phase per session (12 §5.1). At the end of a phase, or when the PO pauses, write the handover (`PROJECT_STATE.md`, plus a resume note if the phase stops part-way) and name the model the next phase needs.
 - **Ready for review and merge (steps 8–9):** keep the PR in draft while the milestone has open tickets. Mark it ready only when the milestone's done criteria can be checked. Claude merges a milestone PR only after the PO's explicit approval (CLAUDE.md rule 9). Never close the spec issue by hand.
 - **Bookkeeping:** update the ticket checkboxes and `PROJECT_STATE.md` as tickets complete. Reference requirement IDs in commits (Conventional Commits).

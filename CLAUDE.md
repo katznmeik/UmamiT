@@ -39,18 +39,27 @@ commit and push.
    - German number and date formats („4,0 g", „21. Okt. 2026");
    - every UI string goes in `strings.xml`.
    Docs and code are in English.
-5. **Delegation** follows `docs/specs/12-agent-plan.md`:
+5. **Delegation** follows `docs/specs/12-agent-plan.md`. The tiers were
+   shifted down on 2026-11-02 to save usage (D-101):
 
    | Tier | Model | Effort | Use for |
    |---|---|---|---|
-   | T1 | **Sonnet** | `low` | Simple tasks |
-   | T2 | Opus | `medium` | Standard tasks |
-   | T3 | Opus | `high` | Complex tasks |
-   | T4 | Opus | `xhigh` | Critical tasks |
+   | T1 | **Sonnet** | `low` | Simple, mechanical tasks |
+   | T2 | **Sonnet** | `medium` | Standard tasks |
+   | T3 | Opus | `medium` | Complex tasks |
+   | T4 | Opus | `high` | Critical tasks |
 
-   Never use `max`. Timer, backup and migration code is never below T3.
-   Escalate one tier after a failure, never downgrade. Verify every subagent
-   result (build, tests, diff) yourself.
+   - `xhigh` only with the PO's OK for a named task; never `max`.
+   - Timer, backup and migration code is never below T3.
+   - Escalate one tier after a failure, never downgrade.
+   - Verify every subagent result (build, tests, diff) yourself.
+   - **Orchestrator:** a fresh session per phase (build, fix round, rc,
+     final), handed over through `PROJECT_STATE.md`. Use Opus at `medium`,
+     or Sonnet for mechanical phases (12 §5.1).
+   - **Lean briefs:** give pointers to the ticket or finding, the files and
+     the section IDs, not reading lists. Ask for short reports (12 §5.2).
+   - **One milestone review** at T3, plus a T4 review of the timer path only
+     when it changed. Run `/review-animations` once per milestone (12 §5.3).
 6. **One PR per milestone** into `main`. A milestone is done when:
    - CI is green;
    - a signed APK is on a GitHub Release. Claude dispatches `release.yml`
