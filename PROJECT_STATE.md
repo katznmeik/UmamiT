@@ -5,16 +5,16 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-02. v0.4.0 is built and reviewed; the fix round F1–F15 is next, then `v0.4.0-rc.1`. The PO paused before the fix round and shifted the subagent tiers down to save usage (D-101).
+**Last updated:** 2026-11-02. v0.4.0 is built and reviewed; the fix round F1–F15 is next, then `v0.4.0-rc.1`. The PO paused before the fix round and shifted the subagent tiers down to save usage (D-101). A later session the same day checked the handover for completeness. The PO settled nits, motion review and CI, recorded in D-101 under „Amended".
 
-> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** It has the PO questions to ask first (F5, F11, F12), the environment setup, the fix-round cut with the new tiers, the steps to rc.1, the implementer brief and the build's contracts.
+> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompt: this handover is only on the milestone branch, not on `main`. It has the PO questions to ask first (F5, F11, F12), the environment setup, the fix-round cut with the new tiers, the steps to rc.1, the implementer brief and the build's contracts.
 
 ## Phase
 
 | Item | Status |
 |---|---|
 | Current milestone | **v0.4.0, built; review fixes pending** (spec #145, PR #162 draft, D-100). All build tickets #147–#159 are merged on the branch. The review is in `docs/plans/v0.4.0-review.md`; the fix round F1–F15 comes next, then rc.1. |
-| Next phase | **Fix round**, in a fresh session on **Opus, `medium`** (D-101). After that, the rc phase (version, accuracy runs, renders, dispatch) can run in a fresh **Sonnet** session. |
+| Next phase | **Fix round**, in a fresh session on **Opus, `medium`** (D-101), started with the prompt in `v0.4.0-resume.md` §0. It ends after §5 step 2. Then the rc phase (version, accuracy runs, renders, dispatch) runs in a fresh **Sonnet** session. |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038); `/implement-spec #145` given on 2026-10-31 |
 | Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -46,21 +46,22 @@
 
 **Steps to `v0.4.0-rc.1`** (details in `v0.4.0-resume.md` §4–§5):
 1. Ask the PO F5, F11 and F12.
-2. Fix round: four implementers A–D, at most two at a time:
+2. Fix round: step 0 (`ci.yml` push only on `main`), then four implementers A–D, at most two at a time, plus the read-only motion reviewer E:
    - A: F1, T3 (Opus `medium`);
-   - B: the screen findings, T2 (Sonnet `medium`);
    - C: the brew path, T3 (Opus `medium`), or T4 (Opus `high`) if it touches session completion;
-   - D: F14, T2 (Sonnet `medium`).
+   - E: `/review-animations` applied by a read-only reviewer, T2 (Sonnet `medium`), alongside A and C;
+   - B: the screen findings, the small nits and E's findings, T2 (Sonnet `medium`);
+   - D: F14, T2 (Sonnet `medium`), alongside B.
 
    Verify each result with the full local gate before merging it.
-3. D-100 build notes and the review outcome (doc 10), the PR body.
+3. D-100 build notes and the review outcome (doc 10), the PR body. **The fix-round session ends here** with a handover for the Sonnet rc session.
 4. `umamit.version=0.4.0-rc.1` (versionCode 40001), then accuracy runs (both variants) on that commit.
 5. Design renders to `docs/design/review/v0.4.0/`, then dispatch `release.yml`.
 6. Post the checklist on #160 and notify the PO. After the PO's approval: #161 (merge, `v0.4.0` from `main`).
 
 ## Open for later
 
-- **v0.4.1** (stock history, freshness, cost per cup, own photos, *Aus Katalog zurücksetzen*): its spec follows v0.4.0 (D-100). Then M4 → v0.5.0.
+- **v0.4.1** (stock history, freshness, cost per cup, own photos, *Aus Katalog zurücksetzen*): its spec follows v0.4.0 (D-100). It also takes two nit refactors from the v0.4.0 review: shared formatters in `core:ui` and one editor scaffold (D-101, Amended). Then M4 → v0.5.0.
 - **Parked from v0.3.0:** the two *Pause* buttons and the shortened tea name in the brew row at font 2.0.
 - **#58:** its remaining optional review findings stay open for later milestones.
 - **Images:** all delivered. A6 (Journal) and A9 (Statistik) empty states are built in with M4.

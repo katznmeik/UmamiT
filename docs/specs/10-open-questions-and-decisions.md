@@ -357,6 +357,18 @@ measured):
 | C | F3, F4, F10–F12 | T3, Opus `medium`; T4, Opus `high`, if it touches session completion |
 | D | F14 | T2, Sonnet `medium` |
 
+**Amended (PO, 2026-11-02, completeness check of the resume note):**
+- **Nits:** only the small nits ride with the fixes (B: `Role.Button`, the vessel editor's *Speichern* with
+  `enabled = !saving`, `FakeAddWithoutCatalog`; C: the `ProcessDeathTest` gap log, the formatter artefact). The two
+  refactors, shared formatters in `core:ui` and one editor scaffold, move to v0.4.1.
+- **Motion review:** `/review-animations` is user-invocable only, so a read-only T2 reviewer (E) applies its
+  `SKILL.md` and `STANDARDS.md` to the new and changed screens, in parallel with A and C. Its findings ride with B.
+- **D runs alongside B** as its own small implementer; they share no files.
+- **CI:** `ci.yml` runs on `push` only for `main`, and pull requests keep `pull_request`. This halves the CI runs and the
+  CI events per push to a PR branch (step 0 of the fix round).
+- **Start:** the handover lives on the milestone branch, so the fix-round session starts with a prompt that names it
+  and allows pushes there (`v0.4.0-resume.md` §0).
+
 **Consequences.**
 - Sonnet now writes standard screens and their tests.
 - A failure escalates to Opus `medium`. The orchestrator's gate and diff
