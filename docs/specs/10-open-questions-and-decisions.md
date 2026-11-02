@@ -304,6 +304,65 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-101"></a>
+### D-101 — Model and effort tiers shifted down; a fresh orchestrator session per phase, lean briefs, one milestone review (12; amends D-026, CLAUDE.md rule 5) · *Accepted* (PO, 2026-11-02)
+
+**Context.** The PO found the usage limit running out too fast and paused
+v0.4.0 before its fix round (F1–F15) to change who works at which model and
+effort. The causes, as far as the process shows them (no usage data was
+measured):
+- One Opus session orchestrated everything from M1 to v0.4.0 (2026-10-21 to
+  2026-11-01), so every turn and every CI wake-up re-sent a long context.
+- All 13 v0.4.0 build tickets ran on Opus (T2 `medium` to T4 `xhigh`).
+- Implementer briefs listed whole documents to read first (`CLAUDE.md`,
+  the spec issue, the plan, the decision).
+- The milestone review ran three reviewers (Standards T3, Spec T3, timer
+  path T4 `xhigh`), plus `/review-animations` on every UI ticket.
+- `PROJECT_STATE.md` had grown to about 340 lines, mostly history, and every
+  session reads it at the start.
+
+**Decision.**
+1. **Tiers:** T1 Sonnet `low`, T2 **Sonnet** `medium`, T3 Opus **`medium`**,
+   T4 Opus **`high`**.
+   - `xhigh` only when the PO approves it for a named task; `max` never.
+   - Unchanged: the tier questions (12 §2.1), timer, backup and migration
+     code never below T3, escalation one tier up after a failure, and the
+     orchestrator's verification of every result.
+2. **Orchestrator** (12 §5.1):
+   - a fresh session per phase (spec and tickets, build, review and fix
+     round, rc and testing, final), handed over through `PROJECT_STATE.md`
+     and, if a phase stops part-way, a resume note;
+   - Opus at `medium` for the build and the fix round, Sonnet for mechanical
+     phases. The PO picks the model at the start; the handover says which.
+3. **Lean briefs** (12 §5.2): the ticket or finding, the files, the
+   requirement IDs and section anchors, and the commands. No reading lists.
+   Short reports, no pasted logs.
+4. **One milestone review** (12 §5.3):
+   - one T3 reviewer covers standards and spec together;
+   - a T4 reviewer covers the timer path, and only when it changed;
+   - `/review-animations` runs once per milestone.
+5. **`PROJECT_STATE.md`** holds only the current state. The release history
+   moves to `docs/history.md`. This is done on the v0.4.0 branch, because
+   its `PROJECT_STATE.md` is newer than `main`'s.
+6. **Older plans** name the old model and effort pairs. Their T labels are
+   read with the new table.
+
+**The v0.4.0 fix round under the new tiers** (`docs/plans/v0.4.0-resume.md`
+§4):
+
+| Implementer | Findings | Tier |
+|---|---|---|
+| A | F1 | T3, Opus `medium` |
+| B | F2, F5–F9, F13, F15 and the nits | T2, Sonnet `medium` |
+| C | F3, F4, F10–F12 | T3, Opus `medium`; T4, Opus `high`, if it touches session completion |
+| D | F14 | T2, Sonnet `medium` |
+
+**Consequences.**
+- Sonnet now writes standard screens and their tests.
+- A failure escalates to Opus `medium`. The orchestrator's gate and diff
+  reading stay the safety net.
+- Usage is checked again after v0.4.0, and the PO can raise a tier.
+
 <a id="d-100"></a>
 ### D-100 — M3 in two releases; v0.4.0: Meine Tees, tea detail and editors, recipe editor, teaware, the session page with *So nochmal brühen* (spec #145; TEA-01, TEA-02, TEA-04, TEA-06–TEA-11, TEA-13, TEA-17, PRF-03–PRF-05, WARE-01–WARE-05, INV-03, INV-06, INV-08, BRW-01, BRW-06, BRW-08, JRN-10, SET-15, SET-30, SCR-03, SCR-04, SCR-08–SCR-16; amends 05 §3.1 and §3.5, the M3 row of 09 §2, D-093's picker wording) · *Accepted* (PO, 2026-10-31, grilled in the session R1–R5 with the test seams, and on spec #145 G1–G12; details marked „Claude" are Claude's)
 
@@ -5423,12 +5482,15 @@ Result of an Opus `xhigh` review of spec v0.2 plus the PO's answers.
   worked examples, glossary, single source of M1 scope).
 
 <a id="d-026"></a>
-### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21)
+### D-026 — Subagent distribution: model and effort per task · *Accepted* (PO, 2026-10-21); tiers amended by [D-101](#d-101) (2026-11-02)
 
 Development tasks are delegated to subagents by tier: T1 simple → Sonnet,
 low effort; T2 standard → Opus, medium; T3 complex → Opus, high; T4 critical →
 Opus, extra high (`xhigh`, the ceiling; `max` not used). Details, task
 catalogue and escalation rules: [12 · Subagent Distribution Plan](12-agent-plan.md).
+
+**Amended by D-101 (2026-11-02):** T2 Sonnet `medium`, T3 Opus `medium`,
+T4 Opus `high`; `xhigh` only with the PO's OK.
 
 <a id="d-027"></a>
 ### D-027 — Application ID and display font · *Accepted* (PO, 2026-10-21)
@@ -5445,6 +5507,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-02 | D-101: tiers shifted down to save usage (T1 Sonnet low, T2 Sonnet medium, T3 Opus medium, T4 Opus high; `xhigh` only with the PO's OK, never `max`). Also a fresh orchestrator session per phase, lean briefs, one milestone review (T3, plus T4 for a changed timer path), and `PROJECT_STATE.md` trimmed to the current state (12, CLAUDE.md rule 5; amends D-026). |
 | 2026-10-31 | D-100: M3 split into v0.4.0 (brewing) and v0.4.1 (stock history, freshness, cost per cup, own photos, reset from catalog), from the PO's grilling R1–R5 and G1–G12 on spec #145. v0.4.0: *Meine Tees* with in-memory search (no `tea_fts`, no tags), *Kategorie*/*Sorte* filters, remembered sort; tea detail; tea editor and *Sorte wählen* with every built-in style; recipe editor (drag, step kinds, several recipes, no series generator); teaware in *Einstellungen* and *Neues Gefäß …* in the setup, archive only; *Archivieren* everywhere; delete with *Stattdessen archivieren*; BRW-08; the read-only session page with *So nochmal brühen*; TEA-17 fix; SET-15 row; the accuracy test's waits. Q-19 (never-started steps are kept from v0.4.0) and Q-20 (values of the four generic style rows) resolved by the PO. 02, 03, 04, 05, 08, 09, 12 updated; plan `docs/plans/v0.4.0.md`. |
 | 2026-10-31 | D-099: the PO's test of `v0.3.0-rc.1` — One UI reports the ringer as silent under its „Nicht stören" with the phone on ring, so Vorwarnung and alarm stayed visual. While DND lets alarms through („alarms only", or priority mode whose consolidated policy allows alarms), a silent report now rings as the ringer on normal; the new switch „Bei „Nicht stören" klingeln" (SET-32, default on) turns this off for priority mode. *Diagnose* names the switch and a policy without alarms. 02, 03, 04, 05, 06, 09 updated. |
 | 2026-10-30 | D-098: v0.3.0 (spec #124, grilling Q1–Q8, R2-Q1–Q3, S1–S4) — one brew session and one quick timer at once in two controller slots, brew alarm first with a held quick alert, one Live Update for the timer due next, umamit.db v4 (`active_brew` per slot); long steps from 60 min (hot 10–59 min get countdown and Vorwarnung); Vorwarnung and alarm on the alarm volume (`USAGE_ALARM`) with *Lautstärke* 10–100 %, DND „alarms only" rings, „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; daily low-stock reminder (INV-11, channel „Vorrat"); foldable catalog groups; stock on READY; two SCR-07 polish items. Amends D-093 point 1 and Q2, TMR-18, 04 §9.1. 02, 03, 04, 05, 06, 09 updated; plan `docs/plans/v0.3.0.md`. |

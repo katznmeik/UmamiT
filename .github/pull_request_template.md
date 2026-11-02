@@ -29,7 +29,7 @@
 
 ## Subagent tiers used
 
-<!-- Critical parts and the tier used (docs/specs/12-agent-plan.md), e.g. "Timer background integration — T4 (Opus, xhigh)" -->
+<!-- Critical parts and the tier used (docs/specs/12-agent-plan.md), e.g. "Timer background integration — T4 (Opus, high)" -->
 
 ## Verification
 
