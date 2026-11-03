@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-02. v0.4.0 is built and reviewed; the fix round F1–F15 is next, then `v0.4.0-rc.1`. The PO paused before the fix round and shifted the subagent tiers down to save usage (D-101). A later session the same day checked the handover for completeness. The PO settled nits, motion review and CI, recorded in D-101 under „Amended".
+**Last updated:** 2026-11-03. v0.4.0 is built and reviewed; the fix round F1–F15 is next, then `v0.4.0-rc.1`. The PO paused before the fix round and shifted the subagent tiers down to save usage (D-101). The handover was checked for completeness, and the PO settled nits, motion review, CI and, on 2026-11-03, the fix round's open decisions F5, F11, F12 (all recorded in D-101 under „Amended"). The fix-round session has nothing left to ask; it waits for the PO's usage limit to reset.
 
-> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompt: this handover is only on the milestone branch, not on `main`. It has the PO questions to ask first (F5, F11, F12), the environment setup, the fix-round cut with the new tiers, the steps to rc.1, the implementer brief and the build's contracts.
+> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompt: this handover is only on the milestone branch, not on `main`. It has the PO's decisions (F5, F11, F12, §2), the environment setup, the fix-round cut with the new tiers, the steps to rc.1, the implementer brief and the build's contracts.
 
 ## Phase
 
@@ -33,7 +33,7 @@
 
 ## Waiting on the PO
 
-1. **v0.4.0 fix round:** three decisions to ask first, with the recommended option first (`v0.4.0-resume.md` §2): F11 (*Ohne Rezept* Vorwarnung base), F12 (deleting the running brew's recipe), F5 (pencils on the tea detail above the setup).
+1. **v0.4.0 fix round:** nothing to ask; F5, F11 and F12 are decided (`v0.4.0-resume.md` §2, D-101). The PO starts the fix-round session (Opus `medium`, prompt in `v0.4.0-resume.md` §0) once the usage limit has reset.
 2. **Later:** testing `v0.4.0-rc.1` with the 09 §4 checklist and the design review (#160).
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 
@@ -45,7 +45,7 @@
 - **Paused by the PO** on 2026-11-01, before the fix round: no fix implementer and no accuracy runs have started.
 
 **Steps to `v0.4.0-rc.1`** (details in `v0.4.0-resume.md` §4–§5):
-1. Ask the PO F5, F11 and F12.
+1. F5, F11 and F12 are decided (`v0.4.0-resume.md` §2); don't ask again.
 2. Fix round: step 0 (`ci.yml` push only on `main`), then four implementers A–D, at most two at a time, plus the read-only motion reviewer E:
    - A: F1, T3 (Opus `medium`);
    - C: the brew path, T3 (Opus `medium`), or T4 (Opus `high`) if it touches session completion;

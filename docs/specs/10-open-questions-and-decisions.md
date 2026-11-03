@@ -369,6 +369,17 @@ measured):
 - **Start:** the handover lives on the milestone branch, so the fix-round session starts with a prompt that names it
   and allows pushes there (`v0.4.0-resume.md` §0).
 
+**Amended (PO, 2026-11-03, the fix round's open decisions, asked ahead of the fix-round session):**
+- **F11:** when *So nochmal brühen* opens a session whose recipe was deleted (*Ohne Rezept*), the setup uses the
+  session's own Vorwarnung base (`brew_session.pre_alert_seconds`), as Start's *Nochmal brühen* does; a recipe saved
+  from it keeps that base.
+- **F12:** deleting the recipe of the running brew is refused („Erst die Sitzung beenden"), as archiving the brewing
+  tea is; *Brühen anpassen* never falls back to another recipe.
+- **F5:** the tea detail opened from the setup's ⋮ *Tee ansehen* opens the tea and recipe editors too (routes above
+  the setup); the pencils are not hidden.
+- **Confirmed:** Start's *Nochmal brühen* keeps brewing only the steps that ran (BRW-11, D-062); only the session
+  page's *So nochmal brühen* prefills never-started steps.
+
 **Consequences.**
 - Sonnet now writes standard screens and their tests.
 - A failure escalates to Opus `medium`. The orchestrator's gate and diff
