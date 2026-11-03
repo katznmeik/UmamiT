@@ -29,7 +29,7 @@
 | A10 | **No search results** ✓ delivered | lists | ≥ 1200 × 900 vignette | M3 |
 | A11 | **Ratgeber header** (guides list) ✓ delivered, built in with v0.2.1 | SCR-19 › Ratgeber | ≥ 2400 × 1000 | M2 |
 | A12 | **Dark variants** of A6–A11 ✓ delivered with them | dark theme | as above | with each asset |
-| A13 | **Timer band** (ink-wash, D-095) ✓ delivered 2026-10-28, built in with v0.2.1 (#102) | SCR-05 and SCR-07 top (full width × about 220 dp, centre-cropped, fading into the background; the tea seal sits on its lower edge, ← and ⋮ in its top corners) | PNG 1536 × 1024 (3:2), `A13-timer-band-dark.png` | dark only (timer is always dark) — v0.2.1 |
+| A13 | **Timer band** (ink-wash, D-095): a bamboo spray ✓ delivered and built in 2026-11-03; until then (v0.2.1–v0.3.0) a night landscape, whose source `A13-timer-band-dark.png` stays | SCR-05 and SCR-07 top (full width × about 220 dp, centre-cropped, fading into the background; the tea seal sits on its lower edge, ← and ⋮ in its top corners) | PNG 1536 × 1024 (3:2), painted light first, then its night version: `A13-timer-band-bamboo-light.png`, `A13-timer-band-bamboo-dark.png` | dark only (timer is always dark); the light painting is only the source of the night version |
 
 All of A6–A11 were delivered on 2026-10-28 as PNG 1536 × 1024 (3:2), light and dark (`A<n>-<name>-light.png` / `-dark.png`). ChatGPT has no 4:3 or 2.4:1 output, so the vignettes have a small motif in the centre and A11 keeps everything in the middle third of the height; the app crops them, matches the paper to the theme background and feathers the edges, as for A5.
 
@@ -139,16 +139,78 @@ A10: a single tea leaf floating on a calm water surface with soft ripples.
 (generate each one separately, using the line for that asset)
 
 **A13 — Timer band (dark only)**
+
+The shared style block plus the dark block gave rendered, moody illustrations
+rather than ink painting, and still lifes came out shaded and stippled. A13 is
+therefore painted as a classic sumi-e first (black ink on cream paper, which
+ChatGPT does well when the prompt describes the brushwork) and then turned into
+its night version. Generate it in a fresh conversation, without attaching the
+older assets as references. Base block:
+
 ```text
-<style block> <dark block> Landscape 3:2 for the top of a phone timer
-screen, cropped to a band. A quiet mountain valley at night in drifting
-mist, closer and more intimate than a wide panorama: a few soft mountain
-ridges, a gentle tea terrace slope on the right, a lone pine on the left,
-a faint crescent moon allowed. The motif lives in the upper two thirds; the
-bottom third is soft empty mist fading into the plain dark background, and
-the bottom centre stays completely calm (a round element is placed there).
-The top-left and top-right corners stay calm too (icons sit there).
+A traditional Japanese sumi-e ink painting in the spirit of Edo-period haiga
+and zenga sketches, painted quickly with one soft bamboo brush and black sumi
+ink on plain cream washi paper with faint fibres. Landscape 3:2, 1536 × 1024.
+
+Brushwork (most important): every element is drawn with only a few fast,
+calligraphic strokes that swell and thin as the brush presses and lifts.
+Dry-brush streaks (kasure) where the brush runs out of ink, soft bleeding edges
+where wet ink spreads into the paper (nijimi), a few pale grey washes of
+diluted ink. Lots of bare paper; outlines break off and stay open. Simple,
+suggestive, slightly imperfect, calm, wabi-sabi.
+
+Colours: black and grey ink only, plus one small touch of muted matcha green
+(#4A5643) where noted below.
+
+Not allowed: shading, a light source, shadows, highlights, reflections, 3D
+volume, detailed texture, stippling, hatching, pencil or pen lines,
+photorealism, a digital-illustration look, watercolour colours, mountains,
+horizon, landscape, cups, teapots, text, calligraphy, signature, red seal or
+stamp, frame, border, people.
+
+The picture is cropped to a wide band at the top of a phone screen and its
+lower half fades out, so:
+- The top 18 % of the image is empty paper.
+- The top-left and top-right corners (outer 15 % of the width, down to 35 % of
+  the height) are empty.
+- The bottom 45 % is empty paper, and the bottom centre must stay completely
+  empty.
+- Nothing important within 8 % of the left and right edges.
 ```
+
+Motif (appended to the base block):
+
+```text
+Subject: a few sprays of bamboo leaves on thin, jointed twigs, the classic
+sumi-e bamboo: each leaf one quick, sharp stroke, pressed at the base and
+lifted to a fine point, some dark, some pale for depth. Green: a few of the
+pale leaves.
+Composition: two sprays enter from the right edge at about 35–45 % of the
+image height, just below the empty corner, and reach left across the image to
+about 25 % of the width; the leaves droop slightly, the highest at about 22 %
+of the height.
+```
+
+Night version (follow-up in the same conversation). If it repaints instead of
+recolouring, Claude derives the night version from the light painting instead
+(lightness inverted, paper to `#1C231D`, ink to `#A9A99D`, the green kept):
+
+```text
+Now make a night version of exactly this painting. Keep the composition and
+every brushstroke identical and change only the colours, as if painted with
+pale ink on dark paper: the paper becomes deep forest green-black (#1C231D),
+the ink becomes soft pale grey-green (#A9A99D), the strongest strokes palest
+and the diluted washes only slightly lighter than the paper. Keep the small
+touch of matcha green. Very low contrast, no pure black, no pure white. Do not
+add light, shadows, mist or anything else.
+```
+
+Where the band shows in the app: the app keeps rows 40–861 of the 1024; the
+status bar covers about the top 18 %; ← and ⋮ sit in the top corners (about
+14–35 % of the height); the band fades from 32 % of the height (half faded at
+58 %); the seal covers 39–61 % of the width from 68 % down. A narrow phone
+(360 dp) loses about 6 % per side, a shortened band (D-096) loses the top and
+bottom equally.
 
 **A11 — Ratgeber header**
 ```text
