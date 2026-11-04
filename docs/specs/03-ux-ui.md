@@ -461,7 +461,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 ```
 ┌──────────────────────────────┐
 │ UmamiT                 ⚙   │
-│  [ink-wash mountains ……… ]   │  header illustration only, no text
+│  [ink-wash tea branch …… ]   │  header illustration only, no text
 │ ┌──────────────────────────┐ │
 │ │ 🍃 Aufguss starten     › │ │  → SCR-03
 │ │    Tee wählen und los    │ │
