@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-03
+> Status: **Living document** · Last updated: 2026-11-04
 
 ## Open questions
 
@@ -219,12 +219,31 @@ The PO's kettle is adjustable in 5 °C steps; the timer shows a kettle hint per
 step.
 
 <a id="d-029"></a>
-### D-029 — Imagery: AI-generated and curated, optional CC0 museum art · *Accepted* (PO, 2026-10-21)
+### D-029 — Imagery: AI-generated and curated, optional CC0 museum art · *Accepted* (PO, 2026-10-21); sumi-e redo of A13 and A3 (PO, 2026-11-04)
 
 Illustrations are generated (ChatGPT) in one consistent style, curated and
 post-processed (palette match, light/dark variants, WebP). Hero landscapes may
 use public-domain (CC0) museum ink paintings instead. The logo is redrawn as a
 vector in M1. Asset list and prompts: [`docs/design/assets.md`](../design/assets.md).
+
+**Amended (PO, 2026-11-04): sumi-e redo, starting with A13 and A3.**
+- *Context.* The first ChatGPT images read as rendered, moody illustrations
+  rather than ink painting, and at phone size the landscapes turned mostly
+  into grey haze.
+- *Decision.* A13 (timer band, 2026-11-03, D-095) and A3 (Start header,
+  2026-11-04) are redone as real sumi-e: painted on light paper first, with a
+  prompt that describes the brushwork, then a night version
+  (`docs/design/assets.md` §3). A3 shows a flowering tea branch
+  (*Camellia sinensis*) instead of the landscape; the PO chose it from four
+  motifs (tea branch, young tea shoots, tea leaves in the wind, the landscape
+  as ink painting). It pairs with the timer: the bamboo enters from the
+  right, the tea branch from the left. The other illustrations stay as they
+  are until the PO asks.
+- *Details (Claude).* When ChatGPT repaints the night version instead of
+  recolouring it, as for A3, Claude derives it from the light painting, so
+  light and dark show the same picture (`CREDITS.md`). A3 is cropped to the
+  same 3.43:1 band as before; the header has no fade, so the motif ends in
+  bare paper before the cut edges.
 
 <a id="d-030"></a>
 ### D-030 — Public repository · *Accepted* (PO, 2026-10-21)
@@ -5525,6 +5544,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
 | 2026-11-03 | D-095 amended: the timer band A13 shows a sumi-e bamboo spray instead of the night landscape (PO); new A13 prompt in `docs/design/assets.md` §4, `CREDITS.md` and 03 SCR-05 updated. |
 | 2026-11-02 | D-101: tiers shifted down to save usage (T1 Sonnet low, T2 Sonnet medium, T3 Opus medium, T4 Opus high; `xhigh` only with the PO's OK, never `max`). Also a fresh orchestrator session per phase, lean briefs, one milestone review (T3, plus T4 for a changed timer path), and `PROJECT_STATE.md` trimmed to the current state (12, CLAUDE.md rule 5; amends D-026). |
 | 2026-10-31 | D-100: M3 split into v0.4.0 (brewing) and v0.4.1 (stock history, freshness, cost per cup, own photos, reset from catalog), from the PO's grilling R1–R5 and G1–G12 on spec #145. v0.4.0: *Meine Tees* with in-memory search (no `tea_fts`, no tags), *Kategorie*/*Sorte* filters, remembered sort; tea detail; tea editor and *Sorte wählen* with every built-in style; recipe editor (drag, step kinds, several recipes, no series generator); teaware in *Einstellungen* and *Neues Gefäß …* in the setup, archive only; *Archivieren* everywhere; delete with *Stattdessen archivieren*; BRW-08; the read-only session page with *So nochmal brühen*; TEA-17 fix; SET-15 row; the accuracy test's waits. Q-19 (never-started steps are kept from v0.4.0) and Q-20 (values of the four generic style rows) resolved by the PO. 02, 03, 04, 05, 08, 09, 12 updated; plan `docs/plans/v0.4.0.md`. |

@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | A1 | **Logo sprig** (two tea leaves) ✓ delivered | App icon, splash, welcome, About | PNG ≥ 1024 × 1024, centred on plain washi background; used as reference for the vector redraw | — |
 | A2 | **Welcome landscape** ✓ delivered | SCR-01 welcome (full bleed behind the content) | PNG, portrait 2:3 (≥ 1024 × 1536): top 55 % empty paper, landscape below; the app crops from the right edge on narrow screens and matches the paper to the theme background | light **and** dark |
-| A3 | **Home header landscape** ✓ delivered | SCR-02 header (no text on it) | PNG, landscape 3:2 (≥ 1536 × 1024) with everything in the middle third of the height: the app crops a ≈ 3.4:1 band (edge to edge, 120 dp) and matches the paper to the theme background | light **and** dark |
+| A3 | **Home header**: a flowering tea branch (sumi-e) ✓ delivered and built in 2026-11-04; until then a landscape, whose sources `A3-home-header-{light,dark}.png` stay | SCR-02 header (no text on it) | PNG with everything between 35 and 65 % of the height: the app crops a 3.43:1 band around the motif (1536 × 448) and shows about 4.3:1 of it (edge to edge, 96 dp in the 120 dp slot), with no fade; the paper is matched to the theme background | light **and** dark; the dark version is derived from the light painting `A3-home-header-teabranch-light.png` (ChatGPT's night version `-dark.png` was a repaint and stays unused) |
 | A4 | **Timer fallback photo** ✓ delivered; retired in v0.2.1 (D-095: replaced by A13 and the seal) | SCR-05 top area when a tea has no photo (the quick timer has none, D-069) | PNG, landscape 3:2 (≥ 1536 × 1024): the photo band is full width × 280 dp, centre-cropped, its lower part fading into the background; dark and moody, subject in the upper middle | dark only (timer is always dark) |
 | A5 | **Reliability illustration** ✓ delivered | SCR-01 page „Damit der Timer zuverlässig klingelt" (top, 70 % of the width) | PNG, landscape 3:2 (≥ 1536 × 1024), small motif in the centre; the app crops the motif, matches the paper to the theme background and feathers the edges to transparent | light **and** dark |
 
@@ -78,6 +78,55 @@ background (#1C231D), ink lines in soft pale grey-green (#A9A99D), very low
 contrast, no pure black, no pure white.
 ```
 
+### Sumi-e block (A13 from 2026-11-03, A3 from 2026-11-04)
+
+The shared style block plus the dark block gave rendered, moody illustrations
+rather than ink painting, and still lifes came out shaded and stippled. The
+redone assets are therefore painted as a classic sumi-e first (black ink on
+cream paper, which ChatGPT does well when the prompt describes the brushwork),
+in a fresh conversation without the older assets attached. Each prompt is this
+block, then the asset's layout block and motif (§4):
+
+```text
+A traditional Japanese sumi-e ink painting in the spirit of Edo-period haiga
+and zenga sketches, painted quickly with one soft bamboo brush and black sumi
+ink on plain cream washi paper with faint fibres. Landscape 3:2, 1536 × 1024.
+
+Brushwork (most important): every element is drawn with only a few fast,
+calligraphic strokes that swell and thin as the brush presses and lifts.
+Dry-brush streaks (kasure) where the brush runs out of ink, soft bleeding edges
+where wet ink spreads into the paper (nijimi), a few pale grey washes of
+diluted ink. Lots of bare paper; outlines break off and stay open. Simple,
+suggestive, slightly imperfect, calm, wabi-sabi.
+
+Colours: black and grey ink only, plus one small touch of muted matcha green
+(#4A5643) where noted below.
+
+Not allowed: shading, a light source, shadows, highlights, reflections, 3D
+volume, detailed texture, stippling, hatching, pencil or pen lines,
+photorealism, a digital-illustration look, watercolour colours, cups,
+teapots, text, calligraphy, signature, red seal or stamp, frame, border,
+people.
+```
+
+Night version, as a follow-up in the same conversation:
+
+```text
+Now make a night version of exactly this painting. Keep the composition and
+every brushstroke identical and change only the colours, as if painted with
+pale ink on dark paper: the paper becomes deep forest green-black (#1C231D),
+the ink becomes soft pale grey-green (#A9A99D), the strongest strokes palest
+and the diluted washes only slightly lighter than the paper. Keep the small
+touch of matcha green. Very low contrast, no pure black, no pure white. Do not
+add light, shadows, mist or anything else.
+```
+
+ChatGPT often repaints instead of recolouring (it did for A3). Then Claude
+derives the night version from the light painting: lightness inverted in
+CIELAB, the paper to `#1C231D`, the strongest ink to `#A9A99D`, colour accents
+keeping their hue. That keeps every stroke, so light and dark show the same
+picture.
+
 ## 4. Prompts per asset
 
 **A1 — Logo sprig**
@@ -98,14 +147,38 @@ corner in deep green. The upper two thirds are almost empty paper with soft
 mist, leaving room for a logo and title.
 ```
 
-**A3 — Home header (wide)**
+**A3 — Home header (light and dark)**
+
+Sumi-e block (§3), then this layout block and the motif:
+
 ```text
-<style block> Landscape 3:2 treated as a long strip: every mountain and tea
-terrace within the middle third of the height, only mist above and below. Soft layered mountain
-ridges in mist, a distant tea plantation on rolling hills, delicate
-gradients of grey. Very subtle warm morning light.
+The picture is cut to a long, thin strip across its middle for the header of
+a phone screen (about 4:1), so:
+- Everything lies between 35 % and 65 % of the image height. Above and below
+  is completely empty paper.
+- The motif ends in bare paper before the top and bottom of that strip; no
+  stroke touches them.
+- The motif may run off the left and right edges.
+- Low, wide and calm, spread across the whole width, with breathing room.
 ```
-(then the dark variant with the dark block, "evening, moonlit mist")
+
+```text
+Subject: one long, flowering branch of the tea plant (Camellia sinensis) in
+autumn, lying across the strip from the left edge to about 80 % of the width,
+gently rising and falling. Pointed, slightly serrated leaves, each one or two
+boneless strokes (mokkotsu), dark and pale; three small nodding tea flowers
+with five to seven round petals left as bare paper, lightly outlined, around a
+dense tuft of ink-dot stamens; two round buds. Green: only the two youngest
+leaves at the tip. Nothing else in the picture: no mountains, no landscape, no
+ground.
+```
+
+Then the night version (§3). Where the header shows in the app: the app crops
+a 3.43:1 band around the motif; a 411 dp phone shows rows 32.5–67.5 % of a 3:2
+image (about 4.3:1, 96 dp tall), a narrower phone a little more, a wider one a
+little less; nothing is cut at the sides. There is no fade, so only bare paper
+hides the cut edges. The tea branch enters from the left, the timer's bamboo
+(A13) from the right.
 
 **A4 — Timer fallback photo**
 ```text
@@ -140,34 +213,9 @@ A10: a single tea leaf floating on a calm water surface with soft ripples.
 
 **A13 — Timer band (dark only)**
 
-The shared style block plus the dark block gave rendered, moody illustrations
-rather than ink painting, and still lifes came out shaded and stippled. A13 is
-therefore painted as a classic sumi-e first (black ink on cream paper, which
-ChatGPT does well when the prompt describes the brushwork) and then turned into
-its night version. Generate it in a fresh conversation, without attaching the
-older assets as references. Base block:
+Sumi-e block (§3), then this layout block and the motif:
 
 ```text
-A traditional Japanese sumi-e ink painting in the spirit of Edo-period haiga
-and zenga sketches, painted quickly with one soft bamboo brush and black sumi
-ink on plain cream washi paper with faint fibres. Landscape 3:2, 1536 × 1024.
-
-Brushwork (most important): every element is drawn with only a few fast,
-calligraphic strokes that swell and thin as the brush presses and lifts.
-Dry-brush streaks (kasure) where the brush runs out of ink, soft bleeding edges
-where wet ink spreads into the paper (nijimi), a few pale grey washes of
-diluted ink. Lots of bare paper; outlines break off and stay open. Simple,
-suggestive, slightly imperfect, calm, wabi-sabi.
-
-Colours: black and grey ink only, plus one small touch of muted matcha green
-(#4A5643) where noted below.
-
-Not allowed: shading, a light source, shadows, highlights, reflections, 3D
-volume, detailed texture, stippling, hatching, pencil or pen lines,
-photorealism, a digital-illustration look, watercolour colours, mountains,
-horizon, landscape, cups, teapots, text, calligraphy, signature, red seal or
-stamp, frame, border, people.
-
 The picture is cropped to a wide band at the top of a phone screen and its
 lower half fades out, so:
 - The top 18 % of the image is empty paper.
@@ -178,39 +226,24 @@ lower half fades out, so:
 - Nothing important within 8 % of the left and right edges.
 ```
 
-Motif (appended to the base block):
-
 ```text
 Subject: a few sprays of bamboo leaves on thin, jointed twigs, the classic
 sumi-e bamboo: each leaf one quick, sharp stroke, pressed at the base and
 lifted to a fine point, some dark, some pale for depth. Green: a few of the
-pale leaves.
+pale leaves. Nothing else in the picture: no mountains, no landscape.
 Composition: two sprays enter from the right edge at about 35–45 % of the
 image height, just below the empty corner, and reach left across the image to
 about 25 % of the width; the leaves droop slightly, the highest at about 22 %
 of the height.
 ```
 
-Night version (follow-up in the same conversation). If it repaints instead of
-recolouring, Claude derives the night version from the light painting instead
-(lightness inverted, paper to `#1C231D`, ink to `#A9A99D`, the green kept):
-
-```text
-Now make a night version of exactly this painting. Keep the composition and
-every brushstroke identical and change only the colours, as if painted with
-pale ink on dark paper: the paper becomes deep forest green-black (#1C231D),
-the ink becomes soft pale grey-green (#A9A99D), the strongest strokes palest
-and the diluted washes only slightly lighter than the paper. Keep the small
-touch of matcha green. Very low contrast, no pure black, no pure white. Do not
-add light, shadows, mist or anything else.
-```
-
-Where the band shows in the app: the app keeps rows 40–861 of the 1024; the
-status bar covers about the top 18 %; ← and ⋮ sit in the top corners (about
-14–35 % of the height); the band fades from 32 % of the height (half faded at
-58 %); the seal covers 39–61 % of the width from 68 % down. A narrow phone
-(360 dp) loses about 6 % per side, a shortened band (D-096) loses the top and
-bottom equally.
+Then the night version (§3); for A13, ChatGPT's own night version kept the
+brushwork. Where the band shows in the app: the app keeps rows 40–861 of the
+1024; the status bar covers about the top 18 %; ← and ⋮ sit in the top corners
+(about 14–35 % of the height); the band fades from 32 % of the height (half
+faded at 58 %); the seal covers 39–61 % of the width from 68 % down. A narrow
+phone (360 dp) loses about 6 % per side, a shortened band (D-096) loses the
+top and bottom equally.
 
 **A11 — Ratgeber header**
 ```text
