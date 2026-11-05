@@ -45,8 +45,8 @@ import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
 import com.umamit.feature.collection.R
+import com.umamit.feature.collection.countryName
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /** *Bestand korrigieren* (INV-03). */
 const val TEA_DETAIL_CORRECT_STOCK_TAG = "tea_detail_correct_stock"
@@ -151,7 +151,7 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
 internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) -> Unit) {
     Section(stringResource(R.string.collection_tea_section_stock)) {
         Text(
-            text = stockText(tea.stockGrams, tea.stockLevel, short = false),
+            text = stockText(tea, short = false),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -187,13 +187,23 @@ internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) ->
     }
 }
 
-/** „38 g übrig", „14 g übrig · knapp", „Leer"; [short]: „38 g" for the `StatTriplet`. */
+/**
+ * „38 g übrig", „14 g übrig · knapp", „Leer"; [short]: „38 g" for the `StatTriplet`. A tea without any stock event
+ * has no figure: „kein Bestand erfasst", „–" in the `StatTriplet` (D-100: no stock is invented).
+ */
 @Composable
-internal fun stockText(grams: Double, level: StockLevel, short: Boolean): String = when {
-    level == StockLevel.EMPTY -> stringResource(R.string.collection_tea_stock_empty)
-    short -> stringResource(R.string.collection_tea_stat_stock_value, stockGramsText(grams))
-    level == StockLevel.LOW -> stringResource(R.string.collection_tea_stock_low, stockGramsText(grams))
-    else -> stringResource(R.string.collection_tea_stock, stockGramsText(grams))
+internal fun stockText(tea: TeaDetail, short: Boolean): String = when {
+    !tea.hasStock ->
+        stringResource(if (short) R.string.collection_tea_stat_stock_none else R.string.collection_tea_stock_none)
+
+    tea.stockLevel == StockLevel.EMPTY -> stringResource(R.string.collection_tea_stock_empty)
+
+    short -> stringResource(R.string.collection_tea_stat_stock_value, stockGramsText(tea.stockGrams))
+
+    tea.stockLevel == StockLevel.LOW ->
+        stringResource(R.string.collection_tea_stock_low, stockGramsText(tea.stockGrams))
+
+    else -> stringResource(R.string.collection_tea_stock, stockGramsText(tea.stockGrams))
 }
 
 /** BESCHREIBUNG or NOTIZEN: only with content. */
@@ -211,7 +221,7 @@ internal fun Details(facts: TeaFacts) {
     val season = facts.harvestSeason?.label?.let { stringResource(it) }
     val harvest = listOfNotNull(season, facts.harvestYear?.toString()).joinToString(" ").ifEmpty { null }
     val rows = listOfNotNull(
-        listOfNotNull(facts.originCountry, facts.originRegion).joinToString(", ").ifEmpty { null }
+        listOfNotNull(facts.originCountry?.let(::countryName), facts.originRegion).joinToString(", ").ifEmpty { null }
             ?.let { R.string.collection_tea_origin to it },
         facts.cultivar?.let { R.string.collection_tea_cultivar to it },
         harvest?.let { R.string.collection_tea_harvest to it },

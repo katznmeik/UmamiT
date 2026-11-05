@@ -70,13 +70,13 @@ import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
+import com.umamit.feature.collection.countryName
 import com.umamit.feature.collection.detail.label
 import com.umamit.feature.collection.label
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /*
  * The fields of Tee bearbeiten (SCR-10, TEA-02, D-100): *Allgemein*, *Herkunft*, *Kauf* and *Notizen*.
@@ -381,10 +381,6 @@ private val UmamiLevel.editorLabel: Int
 
 /** The countries tea usually comes from (ISO 3166-1 alpha-2, 05 §3.1); a stored other one is offered too. */
 private val TEA_COUNTRIES = listOf("JP", "CN", "TW", "KR", "IN", "LK", "NP", "VN", "TH", "ID", "KE", "ZA", "DE")
-
-/** The German name of the country [code], e.g. „Japan" for `JP`. */
-private fun countryName(code: String): String =
-    Locale.Builder().setRegion(code).build().getDisplayCountry(Locale.GERMAN).ifEmpty { code }
 
 private fun Boolean.then(value: Int): Int? = if (this) value else null
 

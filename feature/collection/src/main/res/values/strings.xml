@@ -128,6 +128,8 @@
     <string name="collection_tea_stock">%1$s g übrig</string>
     <string name="collection_tea_stock_low">%1$s g übrig · knapp</string>
     <string name="collection_tea_stock_empty">Leer</string>
+    <string name="collection_tea_stock_none">Kein Bestand erfasst</string>
+    <string name="collection_tea_stat_stock_none">–</string>
     <string name="collection_tea_stock_correct">Bestand korrigieren</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>

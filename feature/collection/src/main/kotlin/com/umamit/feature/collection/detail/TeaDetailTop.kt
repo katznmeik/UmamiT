@@ -125,7 +125,7 @@ private val UmamiLevel.label: Int
 @Composable
 internal fun Stats(tea: TeaDetail) {
     val sessionsLabel = stringResource(R.string.collection_tea_stat_sessions)
-    val stockText = stockText(tea.stockGrams, tea.stockLevel, short = true)
+    val stockText = stockText(tea, short = true)
     val lastBrewed = tea.lastBrewed?.format(DAY)
     StatTriplet(
         first = StatFigure(

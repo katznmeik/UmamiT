@@ -172,9 +172,16 @@ class TeaDetailViewModel @Inject constructor(
             sessionCount = finished.size,
             lastBrewed = latest?.day(),
             stockGrams = grams,
+            hasStock = stockEvents.isNotEmpty(),
             stockLevel = level,
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
-            reorder = reorderUrl?.let { Reorder(it, prominent = level != StockLevel.AVAILABLE) },
+            reorder = reorderUrl?.let {
+                Reorder(
+                    it,
+                    prominent =
+                    stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
+                )
+            },
             description = tea.description?.takeIf { it.isNotBlank() },
             notes = tea.notes?.takeIf { it.isNotBlank() },
             details = TeaFacts(

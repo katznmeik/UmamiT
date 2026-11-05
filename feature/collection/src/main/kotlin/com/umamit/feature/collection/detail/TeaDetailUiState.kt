@@ -25,6 +25,7 @@ sealed interface TeaDetailUiState {
  * @property sessionCount the tea's finished sessions (the `StatTriplet`'s *Sitzungen*).
  * @property lastBrewed the day of the latest finished session in its own time zone; null when never brewed.
  * @property stockGrams the remaining grams (Σ of the stock events; 0 without any, as the setup reads it).
+ * @property hasStock whether the tea has any stock event; without one no figure is shown (D-100: no stock is invented).
  * @property stockLevel *Knapp* / *Leer* by the tea's own threshold, else SET-16's (INV-05).
  * @property recipes the recipes by position, the default marked.
  * @property reorder INV-09's link, or null when it offers none.
@@ -43,6 +44,7 @@ data class TeaDetail(
     val sessionCount: Int = 0,
     val lastBrewed: LocalDate? = null,
     val stockGrams: Double = 0.0,
+    val hasStock: Boolean = true,
     val stockLevel: StockLevel = StockLevel.EMPTY,
     val recipes: List<RecipeSummary> = emptyList(),
     val reorder: Reorder? = null,
