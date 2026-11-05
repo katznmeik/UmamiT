@@ -5,16 +5,16 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-03. v0.4.0 is built and reviewed; the fix round F1–F15 is next, then `v0.4.0-rc.1`. The PO paused before the fix round and shifted the subagent tiers down to save usage (D-101). The handover was checked for completeness, and the PO settled nits, motion review, CI and, on 2026-11-03, the fix round's open decisions F5, F11, F12 (all recorded in D-101 under „Amended"). The fix-round session has nothing left to ask; it waits for the PO's usage limit to reset.
+**Last updated:** 2026-11-05. The v0.4.0 fix round is done: F1–F15, the small nits and the motion review are merged on the milestone branch, each verified with the full local gate; D-100 has the build notes and the review outcome, and PR #162's body is current. **Next: the rc phase** (`v0.4.0-rc.1`) in a fresh **Sonnet** session.
 
-> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompt: this handover is only on the milestone branch, not on `main`. It has the PO's decisions (F5, F11, F12, §2), the environment setup, the fix-round cut with the new tiers, the steps to rc.1, the implementer brief and the build's contracts.
+> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.0, built; review fixes pending** (spec #145, PR #162 draft, D-100). All build tickets #147–#159 are merged on the branch. The review is in `docs/plans/v0.4.0-review.md`; the fix round F1–F15 comes next, then rc.1. |
-| Next phase | **Fix round**, in a fresh session on **Opus, `medium`** (D-101), started with the prompt in `v0.4.0-resume.md` §0. It ends after §5 step 2. Then the rc phase (version, accuracy runs, renders, dispatch) runs in a fresh **Sonnet** session. |
+| Current milestone | **v0.4.0, built, reviewed and fixed** (spec #145, PR #162 draft, D-100). All build tickets #147–#159 and the review fixes F1–F15 are merged on the branch (`docs/plans/v0.4.0-review.md`). |
+| Next phase | **rc phase** (`v0.4.0-resume.md` §5 steps 3–8: version, accuracy runs, renders, dispatch, checklist), in a fresh **Sonnet** session (`medium`) started with the prompt in `v0.4.0-resume.md` §0.1. |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038); `/implement-spec #145` given on 2026-10-31 |
 | Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -33,31 +33,29 @@
 
 ## Waiting on the PO
 
-1. **v0.4.0 fix round:** nothing to ask; F5, F11 and F12 are decided (`v0.4.0-resume.md` §2, D-101). The PO starts the fix-round session (Opus `medium`, prompt in `v0.4.0-resume.md` §0) once the usage limit has reset.
+1. **v0.4.0 rc phase:** nothing to ask. The PO starts the rc session (Sonnet, prompt in `v0.4.0-resume.md` §0.1).
 2. **Later:** testing `v0.4.0-rc.1` with the 09 §4 checklist and the design review (#160).
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
+4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR #162's CI results don't wake a session; the sessions check CI themselves.
 
-## v0.4.0: built, review done, fix round next
+## v0.4.0: fix round done, rc.1 next
 
-- **Built and pushed:** all 13 build tickets (#147–#159), each verified with the full local gate and green on CI. Plus `ab84993`: `ProcessDeathTest` allows 2 s between the two timers' starts (CI API 35 fix).
-- **Accuracy:** both variants passed on `5b5af88`. Timer-adjacent code changed afterwards, and F3, F4 and F10 change more, so rc.1 needs a fresh run of both (D-073).
-- **Code review** (Standards T3, Spec T3, timer path T4): no blockers in the timer path. The fix list **F1–F15** is in `docs/plans/v0.4.0-review.md`: F1–F10 must be fixed, F11–F15 are should-fix or a PO decision, plus nits.
-- **Paused by the PO** on 2026-11-01, before the fix round: no fix implementer and no accuracy runs have started.
+- **Fix round (2026-11-05, Opus `medium` orchestrator):** step 0 (`ci.yml` runs `push` only on `main`; a push to the PR runs 4 checks, not 8). Then:
+  - A, F1 (T3): one `AlertGate` in `core:ui` for every menu, dialog, sheet and picker; the four copies deleted.
+  - C, the brew path (T3): F3, F4, F10, F11 and F12 as decided, plus the `ProcessDeathTest` gap log. Session completion untouched.
+  - E, the motion review (T2, read-only), whose findings went to B.
+  - B, the screens (T2): F2, F5–F9, F13, F15, the nits, and E's drag-reorder and list motion.
+  - D, F14 (T2): `GermanNumber` in `core:domain`.
 
-**Steps to `v0.4.0-rc.1`** (details in `v0.4.0-resume.md` §4–§5):
-1. F5, F11 and F12 are decided (`v0.4.0-resume.md` §2); don't ask again.
-2. Fix round: step 0 (`ci.yml` push only on `main`), then four implementers A–D, at most two at a time, plus the read-only motion reviewer E:
-   - A: F1, T3 (Opus `medium`);
-   - C: the brew path, T3 (Opus `medium`), or T4 (Opus `high`) if it touches session completion;
-   - E: `/review-animations` applied by a read-only reviewer, T2 (Sonnet `medium`), alongside A and C;
-   - B: the screen findings, the small nits and E's findings, T2 (Sonnet `medium`);
-   - D: F14, T2 (Sonnet `medium`), alongside B.
+  The full local gate passed on A+C and on B+D. The orchestrator did not take E's reserved *Im Rezept speichern* slot: it left an empty band on every unchanged setup, against SCR-04 (`380d992`). All of this is recorded in D-100.
+- **Accuracy:** last PASS on `5b5af88`. F10 and the brew path changed since, so rc.1 needs a fresh run of both variants (D-073).
+- **Goldens:** B re-recorded 32 in `feature:catalog` (F9's back arrow). The brew setup goldens are unchanged after the slot revert.
 
-   Verify each result with the full local gate before merging it.
-3. D-100 build notes and the review outcome (doc 10), the PR body. **The fix-round session ends here** with a handover for the Sonnet rc session.
-4. `umamit.version=0.4.0-rc.1` (versionCode 40001), then accuracy runs (both variants) on that commit.
-5. Design renders to `docs/design/review/v0.4.0/`, then dispatch `release.yml`.
-6. Post the checklist on #160 and notify the PO. After the PO's approval: #161 (merge, `v0.4.0` from `main`).
+**Steps to `v0.4.0-rc.1`** (details in `v0.4.0-resume.md` §5, steps 3–8):
+1. `umamit.version=0.4.0-rc.1` (versionCode 40001), commit, green CI.
+2. Accuracy runs (both variants) on that commit.
+3. Design renders to `docs/design/review/v0.4.0/`, then dispatch `release.yml`.
+4. Post the checklist on #160 and notify the PO. After the PO's approval: #161 (merge, `v0.4.0` from `main`).
 
 ## Open for later
 
