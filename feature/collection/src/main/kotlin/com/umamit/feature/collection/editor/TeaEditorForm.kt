@@ -1,6 +1,7 @@
 package com.umamit.feature.collection.editor
 
 import com.umamit.core.data.TeaPurchase
+import com.umamit.core.domain.input.GermanNumber
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.HarvestSeason
@@ -9,7 +10,6 @@ import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
 import java.io.Serializable
-import java.math.BigDecimal
 import java.time.LocalDate
 
 /**
@@ -122,10 +122,6 @@ data class TeaEditorForm(
         /** Shading days (05 §3.1). */
         val SHADING_RANGE = 0..60
         private const val MIN_YEAR = 1900
-        private const val MAX_GRAMS = 10_000.0
-        private const val CENT_DIGITS = 2
-        private val GRAMS = Regex("""\d{1,5}(?:[.,]\d)?""")
-        private val AMOUNT = Regex("""\d{1,6}(?:[.,]\d{1,2})?""")
 
         /** A new tea of the Sorte [styleKey] (`other` or null: *Andere / unbekannt*), bought [today] (SCR-11). */
         fun new(styleKey: String?, today: LocalDate): TeaEditorForm =
@@ -149,13 +145,11 @@ data class TeaEditorForm(
             notes = tea.notes.orEmpty(),
         )
 
-        /** „50", „37,5" → grams in (0, 10 000]; null otherwise. */
-        fun parseGrams(text: String): Double? = text.trim().takeIf(GRAMS::matches)
-            ?.replace(',', '.')?.toDouble()?.takeIf { it > 0.0 && it <= MAX_GRAMS }
+        /** „50", „37,5", „1.000" → grams in (0, 10 000]; null otherwise (shared rule, F14). */
+        fun parseGrams(text: String): Double? = GermanNumber.parseGrams(text)
 
-        /** „12,40", „12.4", „12" → cents; null otherwise. */
-        fun parseCents(text: String): Long? = text.replace("€", "").trim().takeIf(AMOUNT::matches)
-            ?.let { BigDecimal(it.replace(',', '.')).movePointRight(CENT_DIGITS).toLong() }
+        /** „12,40", „12.4", „12", „1.234,50" → cents; null otherwise (shared rule, F14). */
+        fun parseCents(text: String): Long? = GermanNumber.parseCents(text)
 
         private const val CATALOG_VENDOR = "Tee-Kontor Kiel"
 
