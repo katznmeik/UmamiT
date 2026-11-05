@@ -1,6 +1,11 @@
 package com.umamit.feature.brew.setup
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -154,52 +159,50 @@ internal fun SetupButtons(state: BrewSetupUiState.Ready, actions: BrewSetupActio
             .fillMaxWidth()
             .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),
     ) {
-        // The slot keeps its height for as long as the setup shows, so *Brühen starten* never moves under a finger
-        // (D-058, D-062): *Im Rezept speichern* and „Im Rezept gespeichert" only cross-fade in it (E4, 03 §3.6).
+        // Once saved, the slot keeps its height and shows „Im Rezept gespeichert", so *Brühen starten* never
+        // moves under a finger that taps *Im Rezept speichern* twice (D-058, D-062). It grows from its top
+        // edge only when a change makes it appear, far from the start button (03 §3.6).
         var saved by rememberSaveable { mutableStateOf(false) }
         LaunchedEffect(state.canSaveToRecipe) { if (state.canSaveToRecipe) saved = false }
-        Crossfade(
-            targetState = when {
-                state.canSaveToRecipe -> SaveSlot.SAVE
-                saved -> SaveSlot.SAVED
-                else -> SaveSlot.EMPTY
-            },
-            animationSpec = motion.fade(),
-            label = "saveToRecipe",
-            modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
-                .padding(bottom = UmamiSpacing.Small),
-        ) { slot ->
-            when (slot) {
-                SaveSlot.SAVE -> OutlinedButton(
-                    onClick = {
-                        saved = true
-                        actions.saveToRecipe()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(SETUP_SAVE_TAG),
-                ) {
-                    Text(stringResource(R.string.brew_setup_save_to_recipe))
+        AnimatedVisibility(
+            visible = state.canSaveToRecipe || saved,
+            enter = fadeIn(motion.fade()) + expandVertically(motion.standard(), expandFrom = Alignment.Top),
+            exit = fadeOut(motion.exitFade()) + shrinkVertically(motion.exit(), shrinkTowards = Alignment.Top),
+        ) {
+            Crossfade(
+                targetState = state.canSaveToRecipe,
+                animationSpec = motion.fade(),
+                label = "saveToRecipe",
+                modifier = Modifier.padding(bottom = UmamiSpacing.Small),
+            ) { canSave ->
+                if (canSave) {
+                    OutlinedButton(
+                        onClick = {
+                            saved = true
+                            actions.saveToRecipe()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(SETUP_SAVE_TAG),
+                    ) {
+                        Text(stringResource(R.string.brew_setup_save_to_recipe))
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
+                            .testTag(SETUP_SAVED_TAG)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.brew_setup_saved_to_recipe),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-
-                SaveSlot.SAVED -> Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
-                        .testTag(SETUP_SAVED_TAG)
-                        .semantics { liveRegion = LiveRegionMode.Polite },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.brew_setup_saved_to_recipe),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                SaveSlot.EMPTY -> Unit
             }
         }
         PillButton(
@@ -212,6 +215,3 @@ internal fun SetupButtons(state: BrewSetupUiState.Ready, actions: BrewSetupActio
         Spacer(Modifier.height(UmamiSpacing.Medium))
     }
 }
-
-/** What the slot above *Brühen starten* shows (E4). */
-private enum class SaveSlot { SAVE, SAVED, EMPTY }

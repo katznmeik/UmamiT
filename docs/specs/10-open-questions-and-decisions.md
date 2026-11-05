@@ -699,6 +699,11 @@ font 2.0.
 - **F8:** a tea without a single stock event shows „–" in the `StatTriplet`, „Kein Bestand erfasst" in VORRAT and a
   plain reorder link (no stock is invented, as in the list); *Bestand korrigieren* stays.
 - **F9:** the back arrow over a photo or hero is the shared `OverPhoto` (core:designsystem), with its own ink.
+- **Motion review (`/review-animations`, D-101):** the drag reorder of the recipe steps lifts, glides and settles with
+  `press()` / `pressRelease()` / `sheet()`; *Meine Tees*' rows only move (`standard()`), without fading on every
+  search keystroke. Not taken: a permanently reserved *Im Rezept speichern* slot. It left an empty band above
+  *Brühen starten* on every unchanged setup, against SCR-04 („only when changed"); the slot still grows from its
+  top edge after a change, away from the start button (03 §3.6), and keeps its height once saved (D-058, D-062).
 
 **Build notes (Claude, 2026-11-05, v0.4.0 review F1: one alert gate).** Every
 menu, dialog, sheet and picker that can stay open while a timer runs uses one
