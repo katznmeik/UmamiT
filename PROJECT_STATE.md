@@ -50,14 +50,12 @@
   - D, F14 (T2): `GermanNumber` in `core:domain`.
 
   The full local gate passed on A+C and on B+D. The orchestrator did not take E's reserved *Im Rezept speichern* slot: it left an empty band on every unchanged setup, against SCR-04 (`380d992`). All of this is recorded in D-100.
-- **Accuracy:** last PASS on `5b5af88`. F10 and the brew path changed since, so rc.1 needs a fresh run of both variants (D-073).
 - **Goldens:** B re-recorded 32 in `feature:catalog` (F9's back arrow). The brew setup goldens are unchanged after the slot revert.
 
-**Steps to `v0.4.0-rc.1`** (details in `v0.4.0-resume.md` §5, steps 3–8):
-1. `umamit.version=0.4.0-rc.1` (versionCode 40001), commit, green CI.
-2. Accuracy runs (both variants) on that commit.
-3. Design renders to `docs/design/review/v0.4.0/`, then dispatch `release.yml`.
-4. Post the checklist on #160 and notify the PO. After the PO's approval: #161 (merge, `v0.4.0` from `main`).
+**Next** (`v0.4.0-resume.md` §5 steps 7–8):
+1. Wait for the PO's results on #160. rc findings are fixed on the branch (timer code never below T3) → `0.4.0-rc.2`, with both accuracy variants again if timer code changed (09 §4a).
+2. After the PO's explicit approval of the checklist and the design review: #161 (merge PR #162 with a merge commit, both accuracy variants on `main`'s merge commit, `v0.4.0` from `main`, restart the branch from `main`).
+3. The workflow-dispatch runs (accuracy, release) don't wake a session; check them yourself. A release needs a green CI run on the exact commit it builds, so don't push while that CI runs (a newer push cancels it).
 
 ## Open for later
 
