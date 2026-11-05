@@ -1,5 +1,8 @@
 package com.umamit.feature.collection
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -54,6 +57,7 @@ class MyTeasScreenTest {
     private val opened = mutableListOf<String>()
     private var fromCatalog = 0
     private var withoutCatalog = 0
+    private var alertKey by mutableStateOf<String?>(null)
 
     private fun show(vararg teas: Tea, stock: Map<String, Double> = emptyMap()) {
         runBlocking {
@@ -76,6 +80,7 @@ class MyTeasScreenTest {
                     onOpenTea = { opened += it },
                     onAddFromCatalog = { fromCatalog++ },
                     onAddWithoutCatalog = { withoutCatalog++ },
+                    alertKey = alertKey,
                     viewModel = vm,
                 )
             }
@@ -201,6 +206,53 @@ class MyTeasScreenTest {
         compose.onNodeWithText("Ohne Katalog").performClick()
         compose.waitForIdle()
         assertThat(withoutCatalog).isEqualTo(1)
+    }
+
+    @Test
+    fun aChipMenuOpenedBeforeAnAlertIsGoneInItsFirstFramesAndStaysClosedAfterIt() {
+        show(tea("a", "Asamushi"), tea("b", "Bancha"))
+        compose.onNodeWithTag(MY_TEAS_SORT_TAG).performClick()
+        compose.onNodeWithText("Name").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Name").assertDoesNotExist()
+    }
+
+    @Test
+    fun theFabsChoiceOpenedBeforeAnAlertIsGoneInItsFirstFramesAndStaysClosedAfterIt() {
+        show(tea("a", "Asamushi"))
+        compose.onNodeWithTag(MY_TEAS_ADD_TAG).performClick()
+        compose.onNodeWithText("Ohne Katalog").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Ohne Katalog").assertDoesNotExist()
+    }
+
+    @Test
+    fun aChipMenuOpenedDuringAnAlertStaysForThatAlert() {
+        alertKey = "s1:0:1"
+        show(tea("a", "Asamushi"), tea("b", "Bancha"))
+
+        compose.onNodeWithTag(MY_TEAS_SORT_TAG).performClick()
+
+        compose.onNodeWithText("Name").assertExists()
+    }
+
+    /** An alert starts: its menu is gone in the frame that recomposes and the one that drops the popup; it ends. */
+    private fun alertAndEnd() {
+        compose.mainClock.autoAdvance = false
+        alertKey = "s1:0:1"
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Name").assertDoesNotExist()
+        compose.onNodeWithText("Ohne Katalog").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        alertKey = null
+        compose.waitForIdle()
     }
 
     @Test

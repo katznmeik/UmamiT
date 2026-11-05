@@ -66,6 +66,9 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
 import com.umamit.feature.collection.label
@@ -107,6 +110,7 @@ fun TeaEditorRoute(
     onClose: () -> Unit,
     onSave: (teaId: String, isNew: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    alertKey: String? = null,
     viewModel: TeaEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -122,6 +126,7 @@ fun TeaEditorRoute(
         state = state,
         actions = TeaEditorActions(update = viewModel::update, save = viewModel::save, close = onClose),
         modifier = modifier,
+        alertKey = alertKey,
     )
 }
 
@@ -140,11 +145,16 @@ class TeaEditorActions(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TeaEditorScreen(state: TeaEditorUiState, actions: TeaEditorActions, modifier: Modifier = Modifier) {
+fun TeaEditorScreen(
+    state: TeaEditorUiState,
+    actions: TeaEditorActions,
+    modifier: Modifier = Modifier,
+    alertKey: String? = null,
+) {
     val ready = state as? TeaEditorUiState.Ready
-    var askDiscard by rememberSaveable { mutableStateOf(false) }
-    val requestClose = { if (ready?.hasChanges == true) askDiscard = true else actions.close() }
-    BackHandler(enabled = ready?.hasChanges == true) { askDiscard = true }
+    val askDiscard = rememberAlertGate(alertKey)
+    val requestClose = { if (ready?.hasChanges == true) askDiscard.open() else actions.close() }
+    BackHandler(enabled = ready?.hasChanges == true) { askDiscard.open() }
     val snackbar = remember { SnackbarHostState() }
     val failed = stringResource(R.string.tea_editor_save_failed)
     LaunchedEffect(ready?.saveFailed) { if (ready?.saveFailed == true) snackbar.showSnackbar(failed) }
@@ -202,6 +212,7 @@ fun TeaEditorScreen(state: TeaEditorUiState, actions: TeaEditorActions, modifier
             is TeaEditorUiState.Ready -> EditorFields(
                 state = state,
                 update = actions.update,
+                alertKey = alertKey,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -210,11 +221,11 @@ fun TeaEditorScreen(state: TeaEditorUiState, actions: TeaEditorActions, modifier
             )
         }
     }
-    if (askDiscard) {
+    AlertGated(askDiscard) {
         DiscardChangesDialog(
-            onKeepEditing = { askDiscard = false },
+            onKeepEditing = askDiscard::close,
             onDiscard = {
-                askDiscard = false
+                askDiscard.close()
                 actions.close()
             },
         )

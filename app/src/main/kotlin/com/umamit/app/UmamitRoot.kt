@@ -456,6 +456,7 @@ internal fun UmamitRoot(
                         onClose = dropUnlessResumed { navController.popBackStack() },
                         onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
                         onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
+                        alertKey = alert,
                     ),
                 )
             }

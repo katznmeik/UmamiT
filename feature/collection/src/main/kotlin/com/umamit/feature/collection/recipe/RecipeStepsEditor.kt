@@ -70,8 +70,10 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.StepKind
+import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.DurationPicker
 import com.umamit.core.ui.RepeatingIconButton
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 
 /**
@@ -80,14 +82,20 @@ import com.umamit.feature.collection.R
  * *Aufguss hinzufügen* below, up to 30 steps.
  */
 @Composable
-internal fun RecipeSteps(state: RecipeEditorUiState.Ready, update: ((RecipeForm) -> RecipeForm) -> Unit) {
+internal fun RecipeSteps(
+    state: RecipeEditorUiState.Ready,
+    update: ((RecipeForm) -> RecipeForm) -> Unit,
+    alertKey: String?,
+) {
     val form = state.form
     val haptics = LocalHapticFeedback.current
     // The dragged step (by key), how far it is off its slot, and each step's height to know when it passes one.
     var dragged by remember { mutableStateOf<Int?>(null) }
     var offset by remember { mutableFloatStateOf(0f) }
     val heights = remember { mutableStateMapOf<Int, Int>() }
+    // „Dauer wählen" of the step [pickerFor] gives way to another alert than the one it was opened in (rule 8).
     var pickerFor by rememberSaveable { mutableStateOf<Int?>(null) }
+    val picker = rememberAlertGate(alertKey)
     val currentSteps by rememberUpdatedState(form.steps)
     val drag = object : StepDrag {
         override fun start(key: Int) {
@@ -134,7 +142,17 @@ internal fun RecipeSteps(state: RecipeEditorUiState.Ready, update: ((RecipeForm)
                         .testTag(RecipeStepTags.step(index + 1)),
                 ) {
                     Column {
-                        StepRow(state, index, update, drag, onDurationClick = { pickerFor = step.key })
+                        StepRow(
+                            state = state,
+                            index = index,
+                            update = update,
+                            drag = drag,
+                            alertKey = alertKey,
+                            onDurationClick = {
+                                pickerFor = step.key
+                                picker.open()
+                            },
+                        )
                         HorizontalDivider(
                             thickness = UmamiSpacing.Hairline,
                             color = MaterialTheme.colorScheme.outlineVariant,
@@ -157,15 +175,15 @@ internal fun RecipeSteps(state: RecipeEditorUiState.Ready, update: ((RecipeForm)
         }
     }
     val pickerIndex = form.steps.indexOfFirst { it.key == pickerFor }
-    if (pickerIndex >= 0) {
+    if (pickerIndex >= 0 && picker.shown) {
         key(pickerFor) {
             DurationPicker(
                 initialSeconds = form.steps[pickerIndex].durationSeconds,
                 onApply = { seconds ->
                     update { it.withStepDurationSet(pickerIndex, seconds) }
-                    pickerFor = null
+                    picker.close()
                 },
-                onDismiss = { pickerFor = null },
+                onDismiss = picker::close,
             )
         }
     }
@@ -187,6 +205,7 @@ private fun StepRow(
     index: Int,
     update: ((RecipeForm) -> RecipeForm) -> Unit,
     drag: StepDrag,
+    alertKey: String?,
     onDurationClick: () -> Unit,
 ) {
     val form = state.form
@@ -198,7 +217,7 @@ private fun StepRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             DragHandle(index, form.steps.size, step.key, update, drag)
-            KindSelector(form, index, update, modifier = Modifier.weight(1f))
+            KindSelector(form, index, update, alertKey, modifier = Modifier.weight(1f))
             IconButton(onClick = { update { it.withoutStep(index) } }, enabled = form.canDelete(index)) {
                 Icon(painterResource(UmamiIcons.Close), stringResource(R.string.recipe_step_delete, number))
             }
@@ -231,7 +250,7 @@ private fun StepRow(
                 onStep = { up -> update { it.withStepTemp(index, up) } },
             )
         }
-        StepPreAlertRow(state, index, update)
+        StepPreAlertRow(state, index, update, alertKey)
         OutlinedTextField(
             value = step.note,
             onValueChange = { value -> update { it.withStepNote(index, value) } },
@@ -315,27 +334,28 @@ private fun KindSelector(
     form: RecipeForm,
     index: Int,
     update: ((RecipeForm) -> RecipeForm) -> Unit,
+    alertKey: String?,
     modifier: Modifier = Modifier,
 ) {
-    var open by remember { mutableStateOf(false) }
+    val menu = rememberAlertGate(alertKey)
     val number = index + 1
     val kind = stringResource(form.steps[index].kind.label)
     Box(modifier = modifier) {
         // TalkBack reads the button's text, „1 · Aufguss".
-        TextButton(onClick = { open = true }, modifier = Modifier.testTag(RecipeStepTags.kind(number))) {
+        TextButton(onClick = menu::open, modifier = Modifier.testTag(RecipeStepTags.kind(number))) {
             Text(
                 text = stringResource(R.string.recipe_step_label, number, kind),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            ExposedDropdownMenuDefaults.TrailingIcon(expanded = open)
+            ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        AlertGatedDropdownMenu(menu) {
             StepKind.entries.sortedBy { KIND_ORDER.indexOf(it) }.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.label)) },
                     onClick = {
-                        open = false
+                        menu.close()
                         update { it.withStepKind(index, option) }
                     },
                     enabled = option != StepKind.RINSE || form.canBeRinse(index),
@@ -353,8 +373,9 @@ private fun StepPreAlertRow(
     state: RecipeEditorUiState.Ready,
     index: Int,
     update: ((RecipeForm) -> RecipeForm) -> Unit,
+    alertKey: String?,
 ) {
-    var open by remember { mutableStateOf(false) }
+    val menu = rememberAlertGate(alertKey)
     val number = index + 1
     val selected = state.form.steps[index].preAlertSeconds
     val shown = stepPreAlertLabel(state.stepPreAlert(index))
@@ -369,27 +390,27 @@ private fun StepPreAlertRow(
         )
         Box {
             TextButton(
-                onClick = { open = true },
+                onClick = menu::open,
                 modifier = Modifier
                     .testTag(RecipeStepTags.preAlert(number))
                     .clearAndSetSemantics {
                         contentDescription = description
                         role = Role.Button
                         onClick {
-                            open = true
+                            menu.open()
                             true
                         }
                     },
             ) {
                 Text(shown, style = MaterialTheme.typography.labelLarge)
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = open)
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown)
             }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            AlertGatedDropdownMenu(menu) {
                 PreAlertChoices.forEach { choice ->
                     DropdownMenuItem(
                         text = { Text(stepPreAlertLabel(state.stepPreAlert(index, choice), spelledOut = true)) },
                         onClick = {
-                            open = false
+                            menu.close()
                             update { it.withStepPreAlert(index, choice) }
                         },
                         leadingIcon = { CheckMark(choice == selected) },

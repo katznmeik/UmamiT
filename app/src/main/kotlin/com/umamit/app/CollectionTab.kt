@@ -16,7 +16,8 @@ import com.umamit.feature.collection.recipe.RecipeEditorRoute
  * @property modifier its place below the segmented control.
  * @property scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
  * @property openTea opens a collection tea's detail (SCR-09) by its id, in the Sammlung tab's stack.
- * @property alerting whether an alert plays now: the FAB's choice and the chips' menus give way (rule 8).
+ * @property alertKey the alert playing now, or null: the FAB's choice and the chips' menus give way to
+ *   another (rule 8).
  * @property addFromCatalog *Aus dem Katalog* and *Im Katalog stöbern*: the *Katalog* segment (SCR-19).
  * @property addWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
  */
@@ -24,7 +25,7 @@ internal class MyTeasTab(
     val modifier: Modifier,
     val scrollToTopRequest: Int,
     val openTea: (teaId: String) -> Unit,
-    val alerting: Boolean = false,
+    val alertKey: String? = null,
     val addFromCatalog: () -> Unit = {},
     val addWithoutCatalog: () -> Unit = {},
 )
@@ -40,9 +41,18 @@ internal class CollectionStackScreens(
     val tea: @Composable (TeaDetailHost) -> Unit = { TeaDetailRoute(it) },
     val sortePicker: @Composable (onBack: () -> Unit, onPick: (styleKey: String) -> Unit) -> Unit =
         { onBack, onPick -> SortePickerScreen(onBack = onBack, onPick = onPick) },
-    val teaEditor: @Composable (TeaEditorHost) -> Unit = { TeaEditorRoute(onClose = it.onClose, onSave = it.onSave) },
+    val teaEditor: @Composable (
+        TeaEditorHost,
+    ) -> Unit = { TeaEditorRoute(onClose = it.onClose, onSave = it.onSave, alertKey = it.alertKey) },
     val recipeEditor: @Composable (RecipeEditorHost) -> Unit =
-        { RecipeEditorRoute(onClose = it.onClose, onSave = { _ -> it.onDone() }, onDelete = it.onDone) },
+        {
+            RecipeEditorRoute(
+                onClose = it.onClose,
+                onSave = { _ -> it.onDone() },
+                onDelete = it.onDone,
+                alertKey = it.alertKey,
+            )
+        },
     // Only composed with a notice: its view model exists only while there is something to undo.
     val archivedSnackbar: @Composable (archived: ArchivedTea?, onDone: () -> Unit, modifier: Modifier) -> Unit =
         { archived, onDone, modifier -> if (archived != null) ArchivedTeaSnackbar(archived, onDone, modifier) },
@@ -50,15 +60,21 @@ internal class CollectionStackScreens(
 
 /**
  * What the tea editor (SCR-10) gets from the Sammlung stack: [onClose] for ✕ and back, [onSave] after *Speichern*
- * (after an add, [isNew], the new tea's detail replaces the editor).
+ * (after an add, [isNew], the new tea's detail replaces the editor), and [alertKey], the alert playing now: its
+ * menus and dialogs give way to another (rule 8).
  */
-internal class TeaEditorHost(val onClose: () -> Unit, val onSave: (teaId: String, isNew: Boolean) -> Unit)
+internal class TeaEditorHost(
+    val onClose: () -> Unit,
+    val onSave: (teaId: String, isNew: Boolean) -> Unit,
+    val alertKey: String? = null,
+)
 
 /**
  * What the recipe editor (SCR-12) gets from the Sammlung stack: [onClose] for ✕ and back, [onDone] after *Speichern*
- * or *Löschen*; either returns to the tea's detail.
+ * or *Löschen*; either returns to the tea's detail. Its menus and dialogs give way to another alert than
+ * [alertKey] (rule 8).
  */
-internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit)
+internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit, val alertKey: String? = null)
 
 /**
  * What the Sammlung tab's collection screens get from the shell: the [screens], the tea [archived] on its detail

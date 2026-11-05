@@ -2,6 +2,7 @@ package com.umamit.feature.brew.setup
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -26,11 +27,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -59,10 +55,12 @@ import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.RecipeCheckNote
 import com.umamit.core.ui.StockSheet
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.picker.AlertGate
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
@@ -133,22 +131,12 @@ fun BrewSetupScreen(
 
 @Composable
 private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupActions) {
-    var stepsOpen by rememberSaveable { mutableStateOf(false) }
-    var stepsOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
-    val stepsCovered = state.alertKey != null && state.alertKey != stepsOpenedIn
-    val openSteps = {
-        stepsOpenedIn = state.alertKey
-        stepsOpen = true
-    }
-    var stockOpen by rememberSaveable { mutableStateOf(false) }
-    var stockOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
+    val steps = rememberAlertGate(state.alertKey)
+    val stock = rememberAlertGate(state.alertKey)
     Column(modifier = Modifier.fillMaxWidth()) {
         TeaHeader(
             state,
-            onStock = {
-                stockOpenedIn = state.alertKey
-                stockOpen = true
-            },
+            onStock = stock::open,
         )
         RecipeChips(state, actions.selectRecipe, actions.selectWithoutRecipe)
         VesselRow(state, actions.selectVessel, actions.newVessel)
@@ -182,8 +170,8 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
                     .testTag(SETUP_RECIPE_CHECK_TAG),
             )
         }
-        StepsSection(state, onEdit = openSteps)
-        PreAlertRow(state, onClick = openSteps)
+        StepsSection(state, onEdit = steps::open)
+        PreAlertRow(state, onClick = steps::open)
         SetupButtons(state, actions)
     }
     val input = StepsSheetInput(
@@ -197,28 +185,26 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         longStepsOnly = BrewTimerEngine.longStepsOnly(state.method),
     )
     StepsSheet(
-        visible = stepsOpen && !stepsCovered,
+        visible = steps.shown,
         state = rememberStepsSheetState(input),
         onDone = {
             actions.applySteps(it)
-            stepsOpen = false
+            steps.close()
         },
         onSaveToRecipe = actions.saveStepsToRecipe,
-        onDismissRequest = { stepsOpen = false },
-        alerting = stepsCovered,
+        onDismissRequest = steps::close,
+        alerting = steps.covered,
     )
-    // A new alert closes the sheet for good; it was already removed in the frame the alert started.
-    LaunchedEffect(stepsCovered) { if (stepsCovered) stepsOpen = false }
     // „Wie viel ist noch da?" (BRW-02, INV-03): gone in the frame another alert starts, without saving (rule 8).
-    AlertGate(stockOpen, stockOpenedIn, state.alertKey, onDismissRequest = { stockOpen = false }) {
+    AlertGated(stock) {
         StockSheet(
             currentGrams = state.stockGrams ?: 0.0,
             sessionLeafGrams = state.sessionLeafGrams,
             onSave = { grams ->
                 actions.correctStock(grams)
-                stockOpen = false
+                stock.close()
             },
-            onDismissRequest = { stockOpen = false },
+            onDismissRequest = stock::close,
         )
     }
     // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
@@ -366,48 +352,47 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit,
         else -> vesselLabel(selected)
     }
     val description = stringResource(R.string.brew_setup_vessel_description, name)
-    AlertGatedMenu(
-        alertKey = state.alertKey,
-        anchor = { open ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.DropdownList, onClick = open)
-                    .semantics(mergeDescendants = true) { contentDescription = description }
-                    .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
-                    .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RowLabel(stringResource(R.string.brew_setup_vessel))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+    val menu = rememberAlertGate(state.alertKey)
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.DropdownList, onClick = menu::open)
+                .semantics(mergeDescendants = true) { contentDescription = description }
+                .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
+                .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RowLabel(stringResource(R.string.brew_setup_vessel))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null)
+        }
+        AlertGatedDropdownMenu(menu) {
+            state.vessels.forEach { vessel ->
+                DropdownMenuItem(
+                    text = { Text(vesselLabel(vessel)) },
+                    onClick = {
+                        menu.close()
+                        onSelect(vessel.id)
+                    },
                 )
-                Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null)
             }
-        },
-    ) { close ->
-        state.vessels.forEach { vessel ->
+            if (state.vessels.isNotEmpty()) HorizontalDivider()
             DropdownMenuItem(
-                text = { Text(vesselLabel(vessel)) },
+                text = { Text(stringResource(R.string.brew_setup_vessel_new)) },
                 onClick = {
-                    close()
-                    onSelect(vessel.id)
+                    menu.close()
+                    onNewVessel()
                 },
             )
         }
-        if (state.vessels.isNotEmpty()) HorizontalDivider()
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.brew_setup_vessel_new)) },
-            onClick = {
-                close()
-                onNewVessel()
-            },
-        )
     }
 }
 

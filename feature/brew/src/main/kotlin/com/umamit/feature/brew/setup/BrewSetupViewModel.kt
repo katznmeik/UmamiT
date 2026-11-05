@@ -34,6 +34,7 @@ import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.ui.alertCovers
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -133,7 +134,7 @@ class BrewSetupViewModel @Inject constructor(
         viewModelScope.launch {
             starter.state.collect { timer ->
                 val alert = timer.alertKey()
-                if (alert != null) pending.update { it?.takeIf { p -> p.openedIn == alert } }
+                pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
             }
         }
     }

@@ -44,6 +44,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.DiscardChangesDialog
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 
 /** Test tags of SCR-12. */
@@ -88,6 +91,7 @@ fun RecipeEditorRoute(
     onSave: (recipeId: String) -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    alertKey: String? = null,
     viewModel: RecipeEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -112,6 +116,7 @@ fun RecipeEditorRoute(
             close = onClose,
         ),
         modifier = modifier,
+        alertKey = alertKey,
     )
 }
 
@@ -133,12 +138,17 @@ class RecipeEditorActions(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions, modifier: Modifier = Modifier) {
+fun RecipeEditorScreen(
+    state: RecipeEditorUiState,
+    actions: RecipeEditorActions,
+    modifier: Modifier = Modifier,
+    alertKey: String? = null,
+) {
     val ready = state as? RecipeEditorUiState.Ready
-    var askDiscard by rememberSaveable { mutableStateOf(false) }
-    var askDelete by rememberSaveable { mutableStateOf(false) }
-    val requestClose = { if (ready?.hasChanges == true) askDiscard = true else actions.close() }
-    BackHandler(enabled = ready?.hasChanges == true) { askDiscard = true }
+    val askDiscard = rememberAlertGate(alertKey)
+    val askDelete = rememberAlertGate(alertKey)
+    val requestClose = { if (ready?.hasChanges == true) askDiscard.open() else actions.close() }
+    BackHandler(enabled = ready?.hasChanges == true) { askDiscard.open() }
     val snackbar = remember { SnackbarHostState() }
     val limit = stringResource(R.string.recipe_editor_limit_reached)
     val last = stringResource(R.string.recipe_editor_delete_last)
@@ -180,7 +190,9 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
                         ) {
                             Text(stringResource(R.string.recipe_editor_save))
                         }
-                        if (!ready.isNew) EditorMenu(ready.canDelete, ready.isBrewing, onDelete = { askDelete = true })
+                        if (!ready.isNew) {
+                            EditorMenu(ready.canDelete, ready.isBrewing, alertKey, onDelete = askDelete::open)
+                        }
                     }
                 },
             )
@@ -206,6 +218,7 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
             is RecipeEditorUiState.Ready -> RecipeFields(
                 state = state,
                 actions = actions,
+                alertKey = alertKey,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -214,30 +227,30 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
             )
         }
     }
-    if (askDiscard) {
+    AlertGated(askDiscard) {
         DiscardChangesDialog(
-            onKeepEditing = { askDiscard = false },
+            onKeepEditing = askDiscard::close,
             onDiscard = {
-                askDiscard = false
+                askDiscard.close()
                 actions.close()
             },
         )
     }
-    if (askDelete) {
+    AlertGated(askDelete) {
         AlertDialog(
-            onDismissRequest = { askDelete = false },
+            onDismissRequest = askDelete::close,
             title = { Text(stringResource(R.string.recipe_editor_delete_title)) },
             text = { Text(stringResource(R.string.recipe_editor_delete_text)) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        askDelete = false
+                        askDelete.close()
                         actions.delete()
                     },
                 ) { Text(stringResource(R.string.recipe_editor_delete_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { askDelete = false }) {
+                TextButton(onClick = askDelete::close) {
                     Text(stringResource(R.string.recipe_editor_delete_cancel))
                 }
             },
@@ -247,13 +260,13 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
 
 /** ⋮: *Rezept löschen*, greyed out for the tea's last recipe (PRF-01) and the running brew's (E15, D-101 F12). */
 @Composable
-private fun EditorMenu(canDelete: Boolean, isBrewing: Boolean, onDelete: () -> Unit) {
-    var open by remember { mutableStateOf(false) }
+private fun EditorMenu(canDelete: Boolean, isBrewing: Boolean, alertKey: String?, onDelete: () -> Unit) {
+    val menu = rememberAlertGate(alertKey)
     Box {
-        IconButton(onClick = { open = true }, modifier = Modifier.testTag(RecipeEditorTags.MORE)) {
+        IconButton(onClick = menu::open, modifier = Modifier.testTag(RecipeEditorTags.MORE)) {
             Icon(painterResource(UmamiIcons.MoreVert), stringResource(R.string.recipe_editor_more))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        AlertGatedDropdownMenu(menu) {
             DropdownMenuItem(
                 text = {
                     Column {
@@ -274,7 +287,7 @@ private fun EditorMenu(canDelete: Boolean, isBrewing: Boolean, onDelete: () -> U
                     }
                 },
                 onClick = {
-                    open = false
+                    menu.close()
                     onDelete()
                 },
                 enabled = canDelete,

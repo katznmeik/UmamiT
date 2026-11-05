@@ -40,11 +40,12 @@ import com.umamit.feature.collection.editor.decimalInput
 internal fun RecipeFields(
     state: RecipeEditorUiState.Ready,
     actions: RecipeEditorActions,
+    alertKey: String?,
     modifier: Modifier = Modifier,
 ) {
     val update = actions.update
     Column(modifier = modifier.padding(vertical = UmamiSpacing.Small)) {
-        Section(R.string.recipe_editor_section_recipe) { General(state, actions) }
+        Section(R.string.recipe_editor_section_recipe) { General(state, actions, alertKey) }
         Section(R.string.recipe_editor_section_steps) {
             if (RecipeFieldError.OnlyRinse in state.errors) {
                 Text(
@@ -54,7 +55,7 @@ internal fun RecipeFields(
                     modifier = FieldModifier,
                 )
             }
-            Column(Modifier.testTag(RecipeEditorTags.STEPS)) { RecipeSteps(state, update) }
+            Column(Modifier.testTag(RecipeEditorTags.STEPS)) { RecipeSteps(state, update, alertKey) }
         }
         Section(R.string.recipe_editor_section_notes) {
             TextInput(
@@ -70,7 +71,7 @@ internal fun RecipeFields(
 }
 
 @Composable
-private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActions) {
+private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActions, alertKey: String?) {
     val form = state.form
     val errors = state.errors
     val update = actions.update
@@ -95,6 +96,7 @@ private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActio
             options = BrewMethod.entries,
             optionLabel = { stringResource(it.label) },
             onSelect = { method -> update { it.copy(method = method) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(RecipeEditorTags.METHOD),
         )
         // The list never offers an archived vessel; the recipe's own archived one shows as chosen (WARE-02, D-100).
@@ -104,6 +106,7 @@ private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActio
             options = listOf<Vessel?>(null) + state.vessels,
             optionLabel = { it?.let { v -> vesselLabel(v) } ?: stringResource(R.string.recipe_editor_vessel_none) },
             onSelect = { vessel -> actions.selectVessel(vessel?.id) },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(RecipeEditorTags.VESSEL),
             singleLine = false,
         )
@@ -169,6 +172,7 @@ private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActio
             options = PreAlertChoices,
             optionLabel = { recipePreAlertLabel(it, state.globalPreAlertSeconds) },
             onSelect = { seconds -> update { it.copy(preAlertSeconds = seconds) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(RecipeEditorTags.PRE_ALERT),
         )
         Text(

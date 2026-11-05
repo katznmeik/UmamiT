@@ -342,6 +342,10 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 - **Alerts first:** an alert's start is never delayed by a transition
   (`alertEnter`); the pulse begins on the first frame of ALERTING at full
   matcha.
+- **Overlays give way:** every menu, dialog, sheet and picker remembers the
+  alert it was opened in; another alert removes it in its first frame, without
+  an exit animation, and it stays closed after the alert (one shared gate,
+  `AlertGate` in `core:ui`; D-058, D-100 build notes F1).
 - **Unscaled alert and glow:** Compose multiplies every duration by the system
   animator duration scale. The alert pulse and the pre-alert glow run with a
   fixed scale of 1 (`UnscaledMotion`, as an `Animatable` inside
