@@ -465,7 +465,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 ```
 ┌──────────────────────────────┐
 │ UmamiT                 ⚙   │
-│  [ink-wash mountains ……… ]   │  header illustration only, no text
+│  [ink-wash tea branch …… ]   │  header illustration only, no text
 │ ┌──────────────────────────┐ │
 │ │ 🍃 Aufguss starten     › │ │  → SCR-03
 │ │    Tee wählen und los    │ │
@@ -630,7 +630,8 @@ route on top, never the screens themselves
 ([D-069](10-open-questions-and-decisions.md#d-069)).
 
 **Ink-wash band and tea seal (v0.2.1, [D-095](10-open-questions-and-decisions.md#d-095)).**
-The top is our own ink-wash picture A13 (`docs/design/assets.md`), full width,
+The top is our own ink-wash picture A13 (`docs/design/assets.md`; a bamboo
+spray since 2026-11-03, D-095), full width,
 about 220 dp, centre-cropped and fading into the Steeping background. A brew
 shows the tea photo as a **seal**: an 88 dp washi disc (`#F3F0E9`) with a thin
 ring, centred, half over the band's lower edge. The photo fills its inner

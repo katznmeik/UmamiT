@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-10-31
+> Status: **Living document** · Last updated: 2026-11-04
 
 ## Open questions
 
@@ -219,12 +219,31 @@ The PO's kettle is adjustable in 5 °C steps; the timer shows a kettle hint per
 step.
 
 <a id="d-029"></a>
-### D-029 — Imagery: AI-generated and curated, optional CC0 museum art · *Accepted* (PO, 2026-10-21)
+### D-029 — Imagery: AI-generated and curated, optional CC0 museum art · *Accepted* (PO, 2026-10-21); sumi-e redo of A13 and A3 (PO, 2026-11-04)
 
 Illustrations are generated (ChatGPT) in one consistent style, curated and
 post-processed (palette match, light/dark variants, WebP). Hero landscapes may
 use public-domain (CC0) museum ink paintings instead. The logo is redrawn as a
 vector in M1. Asset list and prompts: [`docs/design/assets.md`](../design/assets.md).
+
+**Amended (PO, 2026-11-04): sumi-e redo, starting with A13 and A3.**
+- *Context.* The first ChatGPT images read as rendered, moody illustrations
+  rather than ink painting, and at phone size the landscapes turned mostly
+  into grey haze.
+- *Decision.* A13 (timer band, 2026-11-03, D-095) and A3 (Start header,
+  2026-11-04) are redone as real sumi-e: painted on light paper first, with a
+  prompt that describes the brushwork, then a night version
+  (`docs/design/assets.md` §3). A3 shows a flowering tea branch
+  (*Camellia sinensis*) instead of the landscape; the PO chose it from four
+  motifs (tea branch, young tea shoots, tea leaves in the wind, the landscape
+  as ink painting). It pairs with the timer: the bamboo enters from the
+  right, the tea branch from the left. The other illustrations stay as they
+  are until the PO asks.
+- *Details (Claude).* When ChatGPT repaints the night version instead of
+  recolouring it, as for A3, Claude derives it from the light painting, so
+  light and dark show the same picture (`CREDITS.md`). A3 is cropped to the
+  same 3.43:1 band as before; the header has no fade, so the motif ends in
+  bare paper before the cut edges.
 
 <a id="d-030"></a>
 ### D-030 — Public repository · *Accepted* (PO, 2026-10-21)
@@ -2231,7 +2250,7 @@ doubt) where it touches them.
   A2, A3 and A5. A8 also fills the catalog's other empty states.
 
 <a id="d-095"></a>
-### D-095 — Timer top: ink-wash band and tea seal (#102; SCR-05, SCR-07; amends D-058, D-069, D-093 point 2) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
+### D-095 — Timer top: ink-wash band and tea seal (#102; SCR-05, SCR-07; amends D-058, D-069, D-093 point 2) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's); A13 motif amended to bamboo (PO, 2026-11-03)
 
 **Context.** The Tee-Kontor photos are product shots on a white background.
 As the full-width band at the top of the always-dark timer they look like a
@@ -2263,6 +2282,24 @@ pasted-in rectangle (PO feedback, 2026-10-28).
   and their space stays, so nothing moves when the alert starts (D-058).
 - **Not the timer.** Pure layout and drawing in `feature:brew`; no engine,
   service or alarm code, so the accuracy run is not touched by it (rule 8).
+
+**Amended (PO, 2026-11-03): A13 shows a bamboo spray.**
+- *Context.* At phone size the night landscape turned mostly into grey haze,
+  and it did not read as an ink painting. The PO tried a tea set, then
+  dropped it: ChatGPT shaded and stippled the vessels, and the cup and the
+  kyusu already appear in A5, A6 and A11. Of four other motifs (a flowering
+  tea branch, rising steam, falling tea leaves, bamboo) the PO chose bamboo.
+- *Decision.* A13 is a sumi-e bamboo spray entering from the right edge
+  (`A13-timer-band-bamboo-dark.png`), painted first as black ink on cream
+  paper (`-light`) and then turned into its night version in ChatGPT. The
+  band, its size, fade, seal and icons are unchanged; only the drawable
+  `illustration_timer_band.webp` changes.
+- *Details (Claude).* Cropped like before (rows 40–861) and the paper
+  matched to `#1C231D`, the leaves keeping their own colour. The lowest
+  leaves end just above the seal; ⋮ sits over the end of the stalk, and its
+  40 dp circle keeps the icon readable (D-093). The prompt and the
+  composition rules are in `docs/design/assets.md` §4. The landscape's
+  source stays in `docs/design/assets/source/`.
 
 <a id="d-094"></a>
 ### D-094 — Sold-out teas and adding a tea from a shop link (#97, #98; CAT-07, CAT-16, CAT-17, GEN-01, SCR-19, SCR-21, NFR-PRIV-02; amends D-036) · *Accepted* (PO, 2026-10-28; details marked „Claude" are Claude's)
@@ -5678,6 +5715,8 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
+| 2026-11-03 | D-095 amended: the timer band A13 shows a sumi-e bamboo spray instead of the night landscape (PO); new A13 prompt in `docs/design/assets.md` §4, `CREDITS.md` and 03 SCR-05 updated. |
 | 2026-11-02 | D-101: tiers shifted down to save usage (T1 Sonnet low, T2 Sonnet medium, T3 Opus medium, T4 Opus high; `xhigh` only with the PO's OK, never `max`). Also a fresh orchestrator session per phase, lean briefs, one milestone review (T3, plus T4 for a changed timer path), and `PROJECT_STATE.md` trimmed to the current state (12, CLAUDE.md rule 5; amends D-026). |
 | 2026-10-31 | D-100: M3 split into v0.4.0 (brewing) and v0.4.1 (stock history, freshness, cost per cup, own photos, reset from catalog), from the PO's grilling R1–R5 and G1–G12 on spec #145. v0.4.0: *Meine Tees* with in-memory search (no `tea_fts`, no tags), *Kategorie*/*Sorte* filters, remembered sort; tea detail; tea editor and *Sorte wählen* with every built-in style; recipe editor (drag, step kinds, several recipes, no series generator); teaware in *Einstellungen* and *Neues Gefäß …* in the setup, archive only; *Archivieren* everywhere; delete with *Stattdessen archivieren*; BRW-08; the read-only session page with *So nochmal brühen*; TEA-17 fix; SET-15 row; the accuracy test's waits. Q-19 (never-started steps are kept from v0.4.0) and Q-20 (values of the four generic style rows) resolved by the PO. 02, 03, 04, 05, 08, 09, 12 updated; plan `docs/plans/v0.4.0.md`. |
 | 2026-10-31 | D-099: the PO's test of `v0.3.0-rc.1` — One UI reports the ringer as silent under its „Nicht stören" with the phone on ring, so Vorwarnung and alarm stayed visual. While DND lets alarms through („alarms only", or priority mode whose consolidated policy allows alarms), a silent report now rings as the ringer on normal; the new switch „Bei „Nicht stören" klingeln" (SET-32, default on) turns this off for priority mode. *Diagnose* names the switch and a policy without alarms. 02, 03, 04, 05, 06, 09 updated. |
