@@ -51,6 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.OverPhoto
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -209,10 +210,8 @@ private fun Detail(
             Spacer(Modifier.height(UmamiSpacing.Large))
         }
         // Over the photo, it stays put while the page scrolls; its own surface keeps it legible on any photo.
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = BACK_SURFACE_ALPHA),
-            modifier = Modifier
+        OverPhoto(
+            Modifier
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
                 .padding(UmamiSpacing.XSmall),
         ) {
@@ -335,5 +334,4 @@ internal fun Context.openInBrowser(url: String) {
 
 private const val HERO_ASPECT_RATIO = 4f / 3f
 private const val PLACEHOLDER_ALPHA = 0.22f
-private const val BACK_SURFACE_ALPHA = 0.92f
 private val HERO_LEAF_SIZE = 64.dp
