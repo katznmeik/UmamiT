@@ -583,7 +583,8 @@ pre-alert choice (D-093).
 1–10 recipes per tea, exactly one default.
 - **v0.4.0 (D-100):** *Rezept hinzufügen* (up to 10), *Als Standard*, and
   delete, never the last recipe; deleting the default makes the next recipe
-  the default.
+  the default. The recipe of the active brew session can't be deleted until
+  the session ends (E15, D-101).
 
 **PRF-02 — Defaults** `Must`
 Catalog teas get the recipes derived by CAT-04; manual teas get the style's
@@ -751,7 +752,10 @@ D-100) with its kind,
 temperature and Vorwarnung; never the measured time. The recipe is changed
 only by *Im Rezept speichern*.
 - **Recipe:** the session's recipe while it exists; otherwise *Ohne
-  Rezept*, and *Im Rezept speichern* saves a new recipe.
+  Rezept*, and *Im Rezept speichern* saves a new recipe. *Ohne Rezept* keeps
+  the session's own Vorwarnung base B, and so does the new recipe (D-101).
+  *Im Rezept speichern* into the session's recipe writes its method and base
+  temperature with the steps, so every step keeps its temperature.
 - **Archived tea:** the button is greyed out with „Tee ist archiviert", and
   *Wiederherstellen* is offered.
 - **Deleted tea:** no tea link and no button; the page stays readable.

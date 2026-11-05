@@ -7,6 +7,7 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
@@ -15,6 +16,7 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,6 +34,7 @@ import org.junit.Test
 class RecipeEditorViewModelTest {
     private val collection = FakeCollection()
     private val settings = FakeSettingsRepository(UserSettings(preAlertSeconds = 15))
+    private val sessions = FakeSessions(collection, settings)
 
     private val tea = Tea(
         id = TEA,
@@ -336,6 +339,47 @@ class RecipeEditorViewModelTest {
         last.messageShown()
         assertThat(last.ready.message).isNull()
         assertThat(collection.recipes.observeRecipes(TEA).first()).hasSize(1)
+    }
+
+    @Test
+    fun `the recipe of the running brew can't be deleted - Erst die Sitzung beenden (E15, D-101)`() = runTest {
+        brewing(recipeId = "kyusu")
+        val vm = viewModel("kyusu")
+        assertThat(vm.ready.isBrewing).isTrue()
+        assertThat(vm.ready.canDelete).isFalse()
+
+        // A delete that comes anyway (the menu opened before the brew started) is refused.
+        vm.delete()
+
+        assertThat(vm.ready.message).isEqualTo(RecipeEditorMessage.InActiveSession)
+        assertThat(collection.recipes.getRecipe("kyusu")).isNotNull()
+        // The tea's other recipe can go meanwhile.
+        val other = viewModel("kalt")
+        assertThat(other.ready.isBrewing).isFalse()
+        assertThat(other.ready.canDelete).isTrue()
+        other.delete()
+        assertThat(other.events.first()).isEqualTo(RecipeEditorEvent.Deleted)
+    }
+
+    /** A brew session of [recipeId] waits in READY: the running brew (E15). */
+    private suspend fun brewing(recipeId: String) {
+        val snapshot = SessionSnapshot(
+            teaId = TEA,
+            teaName = tea.name,
+            teaSecondaryName = null,
+            teaType = null,
+            styleKey = tea.styleKey,
+            category = tea.category,
+            profileId = recipeId,
+            profileName = "Kyusu",
+            method = BrewMethod.KYUSU,
+            vesselId = null,
+            vesselName = null,
+            leafGrams = 5.0,
+            waterMl = 250,
+            baseTempC = 70,
+        )
+        sessions.startActiveBrew(snapshot)
     }
 
     @Test

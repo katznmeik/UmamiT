@@ -19,6 +19,8 @@ import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlin.math.abs
@@ -43,6 +45,12 @@ class FakeCollection {
     val recipes = FakeRecipeRepository(this)
     val vessels = FakeVesselRepository(this)
     val stock = FakeStockRepository(this)
+
+    /**
+     * The recipe of the active brew session, which can't be deleted (E15, D-101 F12); the [FakeSessions] built on
+     * this collection answer it, a collection on its own has none.
+     */
+    internal var activeRecipeId: Flow<String?> = flowOf(null)
 
     /** „Rezept prüfen" of [teaId] goes (CAT-05, TEA-17); a tea that is gone is ignored. */
     internal fun clearRecipeCheck(teaId: String) = teaRows.update { map ->
@@ -127,6 +135,8 @@ class FakeRecipeRepository internal constructor(private val c: FakeCollection) :
         return when {
             recipe == null -> DeleteRecipeResult.NotFound
 
+            id == c.activeRecipeId.first() -> DeleteRecipeResult.InActiveSession
+
             c.recipeRows.value.values.count { it.teaId == recipe.teaId } <= 1 -> DeleteRecipeResult.LastRecipe
 
             else -> {
@@ -135,6 +145,8 @@ class FakeRecipeRepository internal constructor(private val c: FakeCollection) :
             }
         }
     }
+
+    override fun observeActiveRecipeId(): Flow<String?> = c.activeRecipeId
 
     /** As on Room: a tea without a default makes its first recipe by position the default (PRF-01). */
     private fun Map<String, Recipe>.withDefault(teaId: String): Map<String, Recipe> {

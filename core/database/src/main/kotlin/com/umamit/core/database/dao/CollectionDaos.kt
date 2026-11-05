@@ -233,15 +233,32 @@ abstract class RecipeDao {
         teaIdOf(profileId)?.let { clearRecipeCheck(it, now) }
     }
 
+    /** Whether [profileId] is the recipe of the active brew session (`active_brew`, READY to FINISHED; E15). */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.profile_id = :profileId)",
+    )
+    protected abstract suspend fun inActiveSession(profileId: String): Boolean
+
+    /** The recipe of the active brew session; null without one or for a session without a recipe (E15). */
+    @Query(
+        "SELECT brew_session.profile_id FROM active_brew " +
+            "JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
+    )
+    abstract fun observeActiveRecipeId(): Flow<String?>
+
     /**
-     * Deletes the recipe unless it is its tea's last one (PRF-01); a deleted default passes to the first
-     * remaining recipe by position.
+     * Deletes the recipe unless it is its tea's last one (PRF-01) or the recipe of the active brew session
+     * (E15, D-101 F12); a deleted default passes to the first remaining recipe by position.
      */
     @Transaction
     open suspend fun deleteKeepingOne(id: String, now: Long): RecipeDeletion {
         val teaId = teaIdOf(id)
         return when {
             teaId == null -> RecipeDeletion.NOT_FOUND
+
+            inActiveSession(id) -> RecipeDeletion.IN_ACTIVE_SESSION
 
             countForTea(teaId) <= 1 -> RecipeDeletion.LAST_RECIPE
 
@@ -261,6 +278,9 @@ enum class RecipeDeletion {
 
     /** It is its tea's last recipe; nothing changed. */
     LAST_RECIPE,
+
+    /** It is the recipe of the active brew session; nothing changed („Erst die Sitzung beenden", E15). */
+    IN_ACTIVE_SESSION,
 
     /** No recipe with the id; nothing changed. */
     NOT_FOUND,

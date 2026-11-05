@@ -1,5 +1,6 @@
 package com.umamit.core.testing
 
+import com.umamit.core.common.ClockReading
 import com.umamit.core.common.snap5
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
@@ -11,21 +12,29 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerSnapshot
+import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlin.math.roundToLong
 
 // In-memory fakes of the session repositories and the active brew store (05 §3.6, §3.7,
@@ -47,6 +56,24 @@ class FakeSessions(
     val activeBrew = FakeActiveBrewStore(this)
     val journal = FakeJournalRepository(this)
     val transactions: DatabaseTransactions = FakeDatabaseTransactions
+
+    init {
+        // As on Room: the recipe of a session in `active_brew` can't be deleted (E15, D-101 F12).
+        collection.activeRecipeId = combine(activeRows, sessionRows) { active, rows ->
+            active.values.firstNotNullOfOrNull { row ->
+                row.activeBrew.sessionId?.let { rows[it] }?.snapshot?.profileId
+            }
+        }.distinctUntilChanged()
+    }
+
+    /** A brew session of [snapshot] (one 60 s infusion) waits in READY in `active_brew`: the running brew (E15). */
+    suspend fun startActiveBrew(snapshot: SessionSnapshot, id: String = "active") {
+        val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 70))
+        val start = TimerEvent.StartSession(id, steps, PreAlertSettings.inherited(null, 10), longStepsOnly = false)
+        val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
+        sessions.startSession(SessionStart(id, snapshot, steps, 10, 1_000, "UTC"))
+        activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
+    }
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
         map[id]?.let { map + (id to transform(it)) } ?: map

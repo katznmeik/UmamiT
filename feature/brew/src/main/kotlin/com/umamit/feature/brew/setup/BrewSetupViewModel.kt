@@ -448,14 +448,16 @@ class BrewSetupViewModel @Inject constructor(
 
         /**
          * The [requestedRecipeId] (a recipe tapped on SCR-09) or else the default recipe, or the adjusted
-         * session's values on top of its recipe (BRW-11), or the past session as brewed with its recipe while it
-         * exists, else *Ohne Rezept* (BRW-06).
+         * session's values on top of its recipe (BRW-11; another recipe only for a session brewed without one, never
+         * for one whose recipe is gone, D-101 F12), or the past session as brewed with its recipe while it exists,
+         * else *Ohne Rezept* (BRW-06).
          */
         fun initialEdits(requestedRecipeId: String? = null): SetupEdits {
             val session = session
                 ?: return (recipe(requestedRecipeId) ?: startingRecipe())?.let(SetupEdits::of) ?: SetupEdits.default()
             val snapshot = session.snapshot
-            val recipe = recipe(snapshot.profileId) ?: startingRecipe().takeUnless { brewedAgain }
+            val recipe = recipe(snapshot.profileId)
+                ?: startingRecipe().takeIf { !brewedAgain && snapshot.profileId == null }
             val base = recipe?.let(SetupEdits::of) ?: SetupEdits.default()
             val water = snapshot.waterMl ?: base.waterMl
             val leaf = snapshot.leafGrams ?: base.leafGrams

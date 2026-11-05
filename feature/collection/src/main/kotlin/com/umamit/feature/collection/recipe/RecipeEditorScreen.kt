@@ -142,10 +142,12 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
     val snackbar = remember { SnackbarHostState() }
     val limit = stringResource(R.string.recipe_editor_limit_reached)
     val last = stringResource(R.string.recipe_editor_delete_last)
+    val brewing = stringResource(R.string.recipe_editor_delete_brewing)
     LaunchedEffect(ready?.message) {
         val text = when (ready?.message) {
             RecipeEditorMessage.LimitReached -> limit
             RecipeEditorMessage.LastRecipe -> last
+            RecipeEditorMessage.InActiveSession -> brewing
             null -> return@LaunchedEffect
         }
         actions.messageShown()
@@ -178,7 +180,7 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
                         ) {
                             Text(stringResource(R.string.recipe_editor_save))
                         }
-                        if (!ready.isNew) EditorMenu(ready.canDelete, onDelete = { askDelete = true })
+                        if (!ready.isNew) EditorMenu(ready.canDelete, ready.isBrewing, onDelete = { askDelete = true })
                     }
                 },
             )
@@ -243,9 +245,9 @@ fun RecipeEditorScreen(state: RecipeEditorUiState, actions: RecipeEditorActions,
     }
 }
 
-/** ⋮: *Rezept löschen*, greyed out for the tea's last recipe (PRF-01). */
+/** ⋮: *Rezept löschen*, greyed out for the tea's last recipe (PRF-01) and the running brew's (E15, D-101 F12). */
 @Composable
-private fun EditorMenu(canDelete: Boolean, onDelete: () -> Unit) {
+private fun EditorMenu(canDelete: Boolean, isBrewing: Boolean, onDelete: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }, modifier = Modifier.testTag(RecipeEditorTags.MORE)) {
@@ -258,7 +260,13 @@ private fun EditorMenu(canDelete: Boolean, onDelete: () -> Unit) {
                         Text(stringResource(R.string.recipe_editor_delete))
                         if (!canDelete) {
                             Text(
-                                text = stringResource(R.string.recipe_editor_delete_last),
+                                text = stringResource(
+                                    if (isBrewing) {
+                                        R.string.recipe_editor_delete_brewing
+                                    } else {
+                                        R.string.recipe_editor_delete_last
+                                    },
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

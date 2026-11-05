@@ -21,6 +21,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
@@ -28,6 +29,7 @@ import com.umamit.core.model.TeaForm
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -238,6 +240,35 @@ class RecipeEditorScreenTest {
         compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
         compose.onNodeWithText("Rezept löschen").assertIsNotEnabled()
         compose.onNodeWithText("Ein Tee braucht mindestens ein Rezept.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the recipe of the running brew stays - Erst die Sitzung beenden (E15, D-101)`() {
+        runBlocking {
+            FakeSessions(collection).startActiveBrew(
+                SessionSnapshot(
+                    teaId = "tea",
+                    teaName = "Morgennebel",
+                    teaSecondaryName = null,
+                    teaType = null,
+                    styleKey = null,
+                    category = TeaCategory.GREEN,
+                    profileId = "kyusu",
+                    profileName = "Kyusu",
+                    method = BrewMethod.KYUSU,
+                    vesselId = null,
+                    vesselName = null,
+                    leafGrams = 5.0,
+                    waterMl = 250,
+                    baseTempC = 70,
+                ),
+            )
+        }
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithText("Rezept löschen").assertIsNotEnabled()
+        compose.onNodeWithText("Erst die Sitzung beenden").assertIsDisplayed()
+        assertThat(deleted).isEqualTo(0)
     }
 
     private companion object {
