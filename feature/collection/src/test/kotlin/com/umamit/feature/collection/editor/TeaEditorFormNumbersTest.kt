@@ -1,8 +1,8 @@
 package com.umamit.feature.collection.editor
 
 import com.google.common.truth.Truth.assertThat
-import java.time.LocalDate
 import org.junit.Test
+import java.time.LocalDate
 
 /** The editor reads „Kauf" numbers the German way, like the add sheet (INV-01, D-090, F14). */
 class TeaEditorFormNumbersTest {
