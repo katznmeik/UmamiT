@@ -50,9 +50,9 @@ interface SessionRepository {
 
     /**
      * [TimerEffect.CompleteSession] (TMR-12): keeps the never-started rows (no `actual_seconds`;
-     * the journal shows them „nicht gebrüht", #152, Q-19) and the planned total, sets the cost (INV-08) and the end, deducts the leaf as a BREW stock event when
-     * *Bestand abziehen* is on (SET-15) and sets the tea's opened date on the first session
-     * after a new package (INV-06). A session that is no longer in progress is left unchanged.
+     * the journal shows them „nicht gebrüht", #152, Q-19) and the planned total, sets the cost (INV-08) and the
+     * end, deducts the leaf as a BREW stock event when *Bestand abziehen* is on (SET-15) and sets the tea's opened
+     * date on the first session after a new package (INV-06). A session that is no longer in progress is left unchanged.
      */
     suspend fun completeSession(sessionId: String, autoFinished: Boolean)
 

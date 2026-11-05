@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
@@ -427,34 +428,7 @@ internal fun UmamitRoot(
                     ),
                 )
             }
-            // Tee bearbeiten and Rezept bearbeiten above the detail above the setup (F5): *Speichern* and *Löschen*
-            // return to the detail, which shows the change.
-            composable<SetupTeaEditorRoute> { entry ->
-                val onTop = { navController.currentBackStackEntry?.id == entry.id }
-                collectionScreens.teaEditor(
-                    TeaEditorHost(
-                        onClose = dropUnlessResumed { navController.popBackStack() },
-                        onSave = { _, _ -> if (onTop()) navController.popBackStack() },
-                        alertKey = alert,
-                    ),
-                )
-            }
-            composable<SetupRecipeEditorRoute> { entry ->
-                val closeIfOnTop = {
-                    if (navController.currentBackStackEntry?.id ==
-                        entry.id
-                    ) {
-                        navController.popBackStack()
-                    }
-                }
-                collectionScreens.recipeEditor(
-                    RecipeEditorHost(
-                        onClose = dropUnlessResumed { navController.popBackStack() },
-                        onDone = { closeIfOnTop() },
-                        alertKey = alert,
-                    ),
-                )
-            }
+            setupEditorRoutes(navController, collectionScreens, alert)
             composable<QuickTimerRoute> {
                 quickTimerScreen(
                     dropUnlessResumed { navController.popBackStack() },
@@ -620,6 +594,37 @@ private fun NavHostController.openCatalogRefresh(
 /** Runs [open], or [instead] while an alert plays ([alerting]): nothing opens over an alert (rule 8). */
 private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, open: () -> Unit) {
     if (alerting()) instead() else open()
+}
+
+/**
+ * Tee bearbeiten and Rezept bearbeiten above the detail above the setup (F5): *Speichern* and *Löschen* return to
+ * that detail, which shows the change.
+ */
+private fun NavGraphBuilder.setupEditorRoutes(
+    navController: NavHostController,
+    collectionScreens: CollectionStackScreens,
+    alert: String?,
+) {
+    composable<SetupTeaEditorRoute> { entry ->
+        val onTop = { navController.currentBackStackEntry?.id == entry.id }
+        collectionScreens.teaEditor(
+            TeaEditorHost(
+                onClose = dropUnlessResumed { navController.popBackStack() },
+                onSave = { _, _ -> if (onTop()) navController.popBackStack() },
+                alertKey = alert,
+            ),
+        )
+    }
+    composable<SetupRecipeEditorRoute> { entry ->
+        val closeIfOnTop = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
+        collectionScreens.recipeEditor(
+            RecipeEditorHost(
+                onClose = dropUnlessResumed { navController.popBackStack() },
+                onDone = { closeIfOnTop() },
+                alertKey = alert,
+            ),
+        )
+    }
 }
 
 /**
