@@ -266,6 +266,13 @@ class AccuracyRunTest {
         brewNotificationWith(pause, "step $number running")
         quickNotificationWith(pause, "the quick timer of step $number running")
         screenOff("in step $number")
+        // The quick timer's pre-alert must not meet a screen still on either (04 §9.3); it started at stepStarted
+        // at the earliest.
+        check(
+            "test setup: too slow, ${stepStarted.elapsedNow()} of step $number passed before the screen went off; " +
+                "the quick timer's pre-alert comes ${QUICK_STEP - QUICK_PRE_ALERT_SECONDS.seconds} after its start",
+            stepStarted.elapsedNow() < QUICK_STEP - QUICK_PRE_ALERT_SECONDS.seconds - QUICK_SCREEN_MARGIN,
+        )
         val quickAlert = eventually("the quick timer's alert (ID 2) in step $number", QUICK_STEP + ALERT_TIMEOUT) {
             alertOf(TimerSlot.QUICK)
         }
@@ -553,6 +560,12 @@ class AccuracyRunTest {
 
         /** `alongside`: the quick timer's alert is done and the screen off this long before the step's pre-alert. */
         private val SOUND_MARGIN = 5.seconds
+
+        /**
+         * `alongside`: the screen is off at least this long before the quick timer's pre-alert (15 s after its
+         * start), after up to [SCREEN_TIMEOUT] + [SCREEN_OFF_SETTLE] of turning it off.
+         */
+        private val QUICK_SCREEN_MARGIN = 1.seconds
         private val TIMEOUT = 10.seconds
 
         /**

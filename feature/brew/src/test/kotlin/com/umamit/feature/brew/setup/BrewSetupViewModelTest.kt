@@ -402,6 +402,25 @@ class BrewSetupViewModelTest {
     }
 
     @Test
+    fun `Bruehen anpassen never falls back to another recipe when the session's recipe is gone (D-101)`() = runTest {
+        val default = collection.recipes.observeRecipes(SeedData.HISUI_TEA_ID).first().single { it.isDefault }
+        collection.recipes.saveRecipe(default.copy(id = "extra", name = "Extra", isDefault = false, position = 5))
+        val request = brewAgain("Bio Sencha Hisui").let { it.copy(snapshot = it.snapshot.copy(profileId = "extra")) }
+        sessions.sessions.startSession(
+            SessionStart("waiting", request.snapshot, request.steps, preAlertSeconds = 10, 0, "Europe/Berlin"),
+        )
+        starter.state.value = FakeBrewStarter.readyState(request, "waiting")
+        // Not possible through the app any more (the delete is refused, E15); the setup still never picks another.
+        collection.recipes.deleteRecipe("extra")
+
+        val vm = viewModel(teaId = null, sessionId = "waiting")
+
+        assertThat(vm.ready.selectedRecipeId).isNull()
+        assertThat(vm.ready.canSaveToRecipe).isFalse()
+        assertThat(vm.ready.steps).containsExactly(PlannedStep(StepKind.INFUSION, 60, 65))
+    }
+
+    @Test
     fun `an unknown tea shows the not-found state`() {
         assertThat(viewModel(teaId = "gone").state.value).isEqualTo(BrewSetupUiState.NotFound)
     }

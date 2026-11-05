@@ -56,10 +56,13 @@ internal data class SetupEdits(
     fun differsFrom(recipe: Recipe): Boolean = this != of(recipe).copy(locked = locked, ratio = ratio)
 
     /**
-     * The recipe with these values (*Im Rezept speichern*): the steps with their pre-alerts (D-093); a step at the
-     * base temperature keeps none of its own. The recipe's pre-alert base B stays.
+     * The recipe with these values (*Im Rezept speichern*): method, base temperature and the steps with their
+     * pre-alerts (D-093); a step at the base temperature keeps none of its own, so the base goes with the steps
+     * and a session brewed at another base keeps every temperature. The recipe's pre-alert base B stays.
      */
     fun appliedTo(recipe: Recipe): Recipe = recipe.copy(
+        method = method,
+        baseTempC = baseTempC,
         vesselId = vesselId,
         waterMl = waterMl,
         leafGrams = leafGrams,

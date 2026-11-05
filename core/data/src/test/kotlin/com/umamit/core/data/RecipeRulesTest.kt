@@ -5,6 +5,7 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.StepKind
+import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -69,6 +70,36 @@ class RecipeRulesTest {
     @Test
     fun `deleting a recipe that is gone reports it`() = runTest {
         assertThat(data.recipes.deleteRecipe("gone")).isEqualTo(DeleteRecipeResult.NotFound)
+    }
+
+    @Test
+    fun `the recipe of the running brew can't be deleted until the session ends (E15, D-101)`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.recipes.saveRecipe(recipe("r0", "t1", isDefault = true).copy(position = 0))
+        data.recipes.saveRecipe(recipe("r1", "t1").copy(position = 1))
+        data.recipes.saveRecipe(recipe("r2", "t1").copy(position = 2))
+        val driver = TimerDriver(data) { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks(), snapshotOf().copy(profileId = "r1", profileName = "r1"))
+        }
+        assertThat(data.recipes.observeActiveRecipeId().first()).isNull()
+        driver.send(startEvent(infusion(60)))
+
+        assertThat(data.recipes.observeActiveRecipeId().first()).isEqualTo("r1")
+        assertThat(data.recipes.deleteRecipe("r1")).isEqualTo(DeleteRecipeResult.InActiveSession)
+        assertThat(data.recipes.getRecipe("r1")).isNotNull()
+        // Another recipe of the tea can go meanwhile.
+        assertThat(data.recipes.deleteRecipe("r2")).isEqualTo(DeleteRecipeResult.Deleted)
+
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        // After its last step the brew still waits for Sitzung beenden: still refused.
+        assertThat(data.recipes.deleteRecipe("r1")).isEqualTo(DeleteRecipeResult.InActiveSession)
+        driver.send(TimerEvent.FinishSession)
+
+        assertThat(data.recipes.observeActiveRecipeId().first()).isNull()
+        assertThat(data.recipes.deleteRecipe("r1")).isEqualTo(DeleteRecipeResult.Deleted)
     }
 
     @Test

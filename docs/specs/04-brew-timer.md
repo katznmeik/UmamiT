@@ -1121,7 +1121,7 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 | E5 | *Abgegossen* tapped in app and notification at once | Second event ignored. |
 | E6 | Pause during pre-alert window, then resume | Pre-alert not repeated if already played; an unplayed one is rescheduled from the new deadline, or skipped if `deadline − N ≤ now` after the resume (§5). |
 | E7 | Planned step < N + 5 s | No pre-alert for that step. From v0.2.1 only an explicit per-step value can meet this; the automatic N is at most a third of the step (§5, D-093). |
-| E15 | *Archivieren* (until v0.3.0 *Aus Sammlung entfernen*) on the tea of the active brew session, in the picker (v0.2.1) or on the tea detail (v0.4.0) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093, D-100). |
+| E15 | *Archivieren* (until v0.3.0 *Aus Sammlung entfernen*) on the tea of the active brew session, in the picker (v0.2.1) or on the tea detail (v0.4.0) | Not possible: the item is greyed out with „Erst die Sitzung beenden" (TEA-04, PO, D-093, D-100). The same holds for *Rezept löschen* on the active session's recipe in the recipe editor (v0.4.0, D-101): *Brühen anpassen* keeps its recipe. |
 | E8 | Phone call during alert | Vibration only. |
 | E9 | Notifications or Live Updates disabled mid-session | Alert still plays via service; banner shown. |
 | E10 | Tea deleted, or its vessel archived, while its session is active (v0.4.0) | Not possible: *Löschen* and the vessel's *Archivieren* are greyed out („Erst die Sitzung beenden", D-100). Edits to the tea, its recipes or the vessel never reach the running session, which keeps its snapshot. |
