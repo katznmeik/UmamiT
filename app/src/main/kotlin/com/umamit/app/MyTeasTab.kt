@@ -34,7 +34,7 @@ internal fun MyTeasTabContent(tab: MyTeasTab) {
         onAddFromCatalog = tab.addFromCatalog,
         onAddWithoutCatalog = tab.addWithoutCatalog,
         modifier = tab.modifier,
-        alerting = tab.alerting,
+        alertKey = tab.alertKey,
         scrollToTopRequest = tab.scrollToTopRequest,
     )
 }
@@ -50,7 +50,7 @@ internal fun PlaceholderMyTeas(tab: MyTeasTab) {
             onAddWithoutCatalog = tab.addWithoutCatalog,
         ),
         modifier = tab.modifier,
-        alerting = tab.alerting,
+        alertKey = tab.alertKey,
     )
 }
 

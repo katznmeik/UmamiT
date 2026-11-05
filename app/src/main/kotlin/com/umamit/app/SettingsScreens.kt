@@ -38,11 +38,15 @@ internal class TeawareHost(
     val onArchivedSnackbarEnd: () -> Unit = {},
 )
 
-/** What the vessel editor (SCR-14) gets from its host. */
+/**
+ * What the vessel editor (SCR-14) gets from its host; its menus and dialogs give way to another alert than
+ * [alertKey] (rule 8).
+ */
 internal class VesselEditorHost(
     val onClose: () -> Unit,
     val onSave: (vesselId: String) -> Unit,
     val onArchive: (ArchivedVessel) -> Unit,
+    val alertKey: String? = null,
 )
 
 /** What *Über* (SCR-27) gets from its host. */
@@ -83,7 +87,12 @@ internal class SettingsScreens(
         )
     },
     val vesselEditor: @Composable (VesselEditorHost) -> Unit = { host ->
-        VesselEditorRoute(onClose = host.onClose, onSave = host.onSave, onArchive = host.onArchive)
+        VesselEditorRoute(
+            onClose = host.onClose,
+            onSave = host.onSave,
+            onArchive = host.onArchive,
+            alertKey = host.alertKey,
+        )
     },
 ) {
     /** The same screens with the root's [onRerunSetup]. */

@@ -66,6 +66,9 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
 import com.umamit.feature.collection.label
@@ -80,8 +83,8 @@ import java.util.Locale
 /** *Kaufdatum* with Material's date picker; never after today (as the catalog's add sheet, SCR-23). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PurchaseDate(date: LocalDate, today: LocalDate, onDateChange: (LocalDate) -> Unit) {
-    var picking by rememberSaveable { mutableStateOf(false) }
+internal fun PurchaseDate(date: LocalDate, today: LocalDate, alertKey: String?, onDateChange: (LocalDate) -> Unit) {
+    val picking = rememberAlertGate(alertKey)
     Column(FieldModifier) {
         Text(
             text = stringResource(R.string.tea_editor_purchase_date),
@@ -89,7 +92,7 @@ internal fun PurchaseDate(date: LocalDate, today: LocalDate, onDateChange: (Loca
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         OutlinedButton(
-            onClick = { picking = true },
+            onClick = picking::open,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(TeaEditorTags.PURCHASE_DATE),
@@ -97,7 +100,7 @@ internal fun PurchaseDate(date: LocalDate, today: LocalDate, onDateChange: (Loca
             Text(DAY.format(date))
         }
     }
-    if (picking) {
+    AlertGated(picking) {
         val todayMillis = today.utcMillis()
         val pickerState = rememberDatePickerState(
             initialSelectedDateMillis = date.utcMillis(),
@@ -108,17 +111,17 @@ internal fun PurchaseDate(date: LocalDate, today: LocalDate, onDateChange: (Loca
             },
         )
         DatePickerDialog(
-            onDismissRequest = { picking = false },
+            onDismissRequest = picking::close,
             confirmButton = {
                 TextButton(
                     onClick = {
                         pickerState.selectedDateMillis?.let { onDateChange(it.utcDate()) }
-                        picking = false
+                        picking.close()
                     },
                 ) { Text(stringResource(R.string.tea_editor_purchase_date_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { picking = false }) {
+                TextButton(onClick = picking::close) {
                     Text(stringResource(R.string.tea_editor_purchase_date_cancel))
                 }
             },
@@ -179,7 +182,8 @@ internal fun NumberInput(
 
 /**
  * A read-only field that opens a menu of [options] (as the vessel editor's, SCR-14); with [singleLine] false a long
- * value wraps (a vessel „(archiviert)" at font scale 2.0).
+ * value wraps (a vessel „(archiviert)" at font scale 2.0). The menu gives way to another alert than the one it was
+ * opened in ([alertKey], rule 8).
  */
 @Suppress("LongParameterList") // a choice field's parts
 @OptIn(ExperimentalMaterial3Api::class)
@@ -190,28 +194,29 @@ internal fun <T> ChoiceField(
     options: List<T>,
     optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
+    alertKey: String?,
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+    val menu = rememberAlertGate(alertKey)
+    ExposedDropdownMenuBox(expanded = menu.shown, onExpandedChange = menu::expand, modifier = modifier) {
         OutlinedTextField(
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown) },
             singleLine = singleLine,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AlertGatedExposedDropdownMenu(menu) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(optionLabel(option)) },
                     onClick = {
-                        expanded = false
+                        menu.close()
                         onSelect(option)
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,

@@ -1,5 +1,8 @@
 package com.umamit.feature.collection.editor
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -41,6 +44,7 @@ class TeaEditorScreensTest {
     private val adder = FakeAddWithoutCatalog(collection)
     private val saved = mutableListOf<Pair<String, Boolean>>()
     private var closed = 0
+    private var alertKey by mutableStateOf<String?>(null)
 
     private fun showEditor(teaId: String? = null, styleKey: String? = null) {
         compose.setContent {
@@ -48,6 +52,7 @@ class TeaEditorScreensTest {
                 TeaEditorRoute(
                     onClose = { closed++ },
                     onSave = { id, isNew -> saved += id to isNew },
+                    alertKey = alertKey,
                     viewModel = viewModel {
                         TeaEditorViewModel(
                             SavedStateHandle(
@@ -112,6 +117,67 @@ class TeaEditorScreensTest {
         compose.onNodeWithContentDescription("Schließen").performClick()
         compose.onNodeWithText("Verwerfen").performClick()
         assertThat(closed).isEqualTo(1)
+    }
+
+    @Test
+    fun `an alert removes the discard question in its first frame and it does not come back (rule 8)`() {
+        showEditor(styleKey = "sencha")
+        compose.onNodeWithTag(TeaEditorTags.NAME).performTextInput("Tanabata")
+        compose.onNodeWithContentDescription("Schließen").performClick()
+        compose.onNodeWithText("Änderungen verwerfen?").assertIsDisplayed()
+
+        alertAndEnd()
+
+        compose.onAllNodesWithText("Änderungen verwerfen?").assertCountEquals(0)
+        assertThat(closed).isEqualTo(0)
+    }
+
+    @Test
+    fun `an alert removes the date picker and it does not come back (rule 8)`() {
+        showEditor(styleKey = "sencha")
+        compose.onNodeWithTag(TeaEditorTags.PURCHASE_DATE).performScrollTo().performClick()
+        compose.onNodeWithText("OK").assertIsDisplayed()
+
+        alertAndEnd()
+
+        compose.onAllNodesWithText("OK").assertCountEquals(0)
+    }
+
+    @Test
+    fun `an alert removes the Sorte menu and it does not come back (rule 8)`() {
+        showEditor(styleKey = "sencha")
+        compose.onNodeWithText("Sencha").performClick()
+        compose.onNodeWithText("Gyokuro").assertExists()
+
+        alertAndEnd()
+
+        compose.onAllNodesWithText("Gyokuro").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a menu opened during an alert stays for that alert`() {
+        alertKey = "s1:0:1"
+        showEditor(styleKey = "sencha")
+
+        compose.onNodeWithText("Sencha").performClick()
+
+        compose.onNodeWithText("Gyokuro").assertExists()
+    }
+
+    /** An alert starts: what was open is gone after the frame that recomposes and the one that drops its window. */
+    private fun alertAndEnd() {
+        compose.mainClock.autoAdvance = false
+        alertKey = "s1:0:1"
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        compose.onAllNodesWithText("Änderungen verwerfen?").assertCountEquals(0)
+        compose.onAllNodesWithText("OK").assertCountEquals(0)
+        compose.onAllNodesWithText("Gyokuro").assertCountEquals(0)
+        compose.mainClock.autoAdvance = true
+        alertKey = null
+        compose.waitForIdle()
     }
 
     @Test

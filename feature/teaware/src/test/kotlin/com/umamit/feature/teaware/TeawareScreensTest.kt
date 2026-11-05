@@ -1,5 +1,8 @@
 package com.umamit.feature.teaware
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -36,6 +39,7 @@ class TeawareScreensTest {
 
     private val collection = FakeCollection()
     private val archive = FakeVesselArchive(FakeSessions(collection))
+    private var alertKey by mutableStateOf<String?>(null)
 
     private fun save(vararg vessels: Vessel) = runBlocking { vessels.forEach { collection.vessels.saveVessel(it) } }
 
@@ -66,7 +70,13 @@ class TeawareScreensTest {
         val vm = VesselEditorViewModel(saved, collection.vessels, archive)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
-                VesselEditorRoute(onClose = onClose, onSave = onSave, onArchive = onArchive, viewModel = vm)
+                VesselEditorRoute(
+                    onClose = onClose,
+                    onSave = onSave,
+                    onArchive = onArchive,
+                    alertKey = alertKey,
+                    viewModel = vm,
+                )
             }
         }
     }
@@ -176,6 +186,52 @@ class TeawareScreensTest {
         compose.onNodeWithContentDescription("Schließen").performClick()
 
         assertThat(closed).isTrue()
+    }
+
+    @Test
+    fun `an alert removes the type menu and it does not come back (rule 8)`() {
+        showEditor()
+        compose.onNodeWithTag(VesselEditorTags.TYPE).performClick()
+        compose.onNodeWithText("Gaiwan").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Gaiwan").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the discard question and the menu, and they do not come back (rule 8)`() {
+        save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300, 250))
+        var closed = false
+        showEditor("k", onClose = { closed = true })
+        compose.onNodeWithTag(VesselEditorTags.CAPACITY).performTextReplacement("350")
+        compose.onNodeWithContentDescription("Schließen").performClick()
+        compose.onNodeWithText("Änderungen verwerfen?").assertIsDisplayed()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        assertThat(closed).isFalse()
+        compose.onNodeWithTag(VesselEditorTags.MORE).performClick()
+        compose.onNodeWithText("Archivieren").assertExists()
+        alertAndEnd(key = "s1:1:2")
+        compose.onNodeWithText("Archivieren").assertDoesNotExist()
+    }
+
+    /** An alert starts: what was open is gone after the frame that recomposes and the one that drops its window. */
+    private fun alertAndEnd(key: String = "s1:0:1") {
+        compose.mainClock.autoAdvance = false
+        alertKey = key
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Gaiwan").assertDoesNotExist()
+        compose.onNodeWithText("Änderungen verwerfen?").assertDoesNotExist()
+        compose.onNodeWithText("Archivieren").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        alertKey = null
+        compose.waitForIdle()
     }
 
     @Test

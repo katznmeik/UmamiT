@@ -22,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -33,12 +32,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,7 +50,10 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.StockSheet
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.collection.R
 
@@ -134,8 +130,8 @@ private fun Detail(
     photo: Painter?,
     modifier: Modifier = Modifier,
 ) {
-    val deleteAsk = rememberGate(alertKey)
-    val stockSheet = rememberGate(alertKey)
+    val deleteAsk = rememberAlertGate(alertKey)
+    val stockSheet = rememberAlertGate(alertKey)
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -178,7 +174,7 @@ private fun Detail(
         }
         TopActions(tea, actions, alertKey, onDelete = deleteAsk::open)
     }
-    if (deleteAsk.shown) {
+    AlertGated(deleteAsk) {
         DeleteDialog(
             tea = tea,
             onArchiveInstead = {
@@ -193,7 +189,7 @@ private fun Detail(
         )
     }
     // „Wie viel ist noch da?" (INV-03): gone in the frame another alert starts, without saving (rule 8).
-    if (stockSheet.shown) {
+    AlertGated(stockSheet) {
         StockSheet(
             currentGrams = tea.stockGrams.coerceAtLeast(0.0),
             sessionLeafGrams = tea.sessionLeafGrams,
@@ -244,7 +240,7 @@ private fun BrewBar(tea: TeaDetail, onBrew: () -> Unit) {
 /** Back and ⋮ over the photo; each on its own surface, legible on any photo, staying put while the page scrolls. */
 @Composable
 private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: String?, onDelete: () -> Unit) {
-    val menu = rememberGate(alertKey)
+    val menu = rememberAlertGate(alertKey)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -261,13 +257,7 @@ private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: Stri
                     )
                 }
             }
-            // Not composed while another alert plays: Material's menu would keep its popup for the exit animation
-            // over the alert's first frames. A normal close still animates.
-            if (alertKey == null || menu.shown) {
-                DropdownMenu(expanded = menu.shown, onDismissRequest = menu::close) {
-                    TeaMenu(tea, actions, onDelete, close = menu::close)
-                }
-            }
+            AlertGatedDropdownMenu(menu) { TeaMenu(tea, actions, onDelete, close = menu::close) }
         }
     }
 }
@@ -387,39 +377,6 @@ private fun Hero(photo: Painter?, placeholderColor: Color) {
             )
         }
     }
-}
-
-/**
- * Something opened on the detail (the menu, the delete question, the stock sheet) that gives way to an alert:
- * it remembers the alert it was opened in; another alert hides it in that frame and closes it for good (rule 8,
- * as the setup's `AlertGate`).
- */
-private class Gate(
-    private val openState: MutableState<Boolean>,
-    private val openedIn: MutableState<String?>,
-    private val alertKey: String?,
-) {
-    val covered: Boolean get() = alertKey != null && alertKey != openedIn.value
-    val shown: Boolean get() = openState.value && !covered
-
-    fun open() {
-        openedIn.value = alertKey
-        openState.value = true
-    }
-
-    fun close() {
-        openState.value = false
-    }
-}
-
-@Composable
-private fun rememberGate(alertKey: String?): Gate {
-    val open = rememberSaveable { mutableStateOf(false) }
-    val openedIn = rememberSaveable { mutableStateOf<String?>(null) }
-    val gate = Gate(open, openedIn, alertKey)
-    val covered by rememberUpdatedState(gate.covered)
-    LaunchedEffect(covered) { if (covered) open.value = false }
-    return gate
 }
 
 private const val HERO_ASPECT_RATIO = 4f / 3f

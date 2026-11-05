@@ -66,6 +66,9 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
 import com.umamit.feature.collection.label
@@ -83,12 +86,13 @@ import java.util.Locale
 internal fun EditorFields(
     state: TeaEditorUiState.Ready,
     update: ((TeaEditorForm) -> TeaEditorForm) -> Unit,
+    alertKey: String?,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.padding(vertical = UmamiSpacing.Small)) {
-        General(state, update)
-        Origin(state, update)
-        Purchase(state, update)
+        General(state, update, alertKey)
+        Origin(state, update, alertKey)
+        Purchase(state, update, alertKey)
         Section(R.string.tea_editor_section_notes) {
             TextInput(
                 value = state.form.notes,
@@ -103,7 +107,11 @@ internal fun EditorFields(
 }
 
 @Composable
-private fun General(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> TeaEditorForm) -> Unit) {
+private fun General(
+    state: TeaEditorUiState.Ready,
+    update: ((TeaEditorForm) -> TeaEditorForm) -> Unit,
+    alertKey: String?,
+) {
     val form = state.form
     val errors = state.errors
     Section(R.string.tea_editor_section_general) {
@@ -131,6 +139,7 @@ private fun General(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> T
         SorteField(
             selected = form.styleKey,
             onSelect = { key -> update { it.withStyle(key) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(TeaEditorTags.SORTE),
         )
         ChoiceField(
@@ -139,6 +148,7 @@ private fun General(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> T
             options = listOf<UmamiLevel?>(null) + UmamiLevel.entries,
             optionLabel = { stringResource(it?.editorLabel ?: R.string.tea_editor_umami_unset) },
             onSelect = { level -> update { it.copy(umami = level) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(TeaEditorTags.UMAMI),
         )
         ListItem(
@@ -161,7 +171,11 @@ private fun General(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> T
 }
 
 @Composable
-private fun Origin(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> TeaEditorForm) -> Unit) {
+private fun Origin(
+    state: TeaEditorUiState.Ready,
+    update: ((TeaEditorForm) -> TeaEditorForm) -> Unit,
+    alertKey: String?,
+) {
     val form = state.form
     val errors = state.errors
     Section(R.string.tea_editor_section_origin) {
@@ -172,6 +186,7 @@ private fun Origin(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> Te
             options = listOf<String?>(null) + countries.sortedBy(::countryName),
             optionLabel = { it?.let(::countryName) ?: stringResource(R.string.tea_editor_country_unset) },
             onSelect = { country -> update { it.copy(originCountry = country) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(TeaEditorTags.COUNTRY),
         )
         TextInput(
@@ -208,6 +223,7 @@ private fun Origin(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> Te
                 stringResource(season?.label ?: R.string.tea_editor_harvest_season_unset)
             },
             onSelect = { season -> update { it.copy(harvestSeason = season) } },
+            alertKey = alertKey,
             modifier = FieldModifier.testTag(TeaEditorTags.HARVEST_SEASON),
         )
         NumberInput(
@@ -231,7 +247,11 @@ private fun Origin(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> Te
 }
 
 @Composable
-private fun Purchase(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> TeaEditorForm) -> Unit) {
+private fun Purchase(
+    state: TeaEditorUiState.Ready,
+    update: ((TeaEditorForm) -> TeaEditorForm) -> Unit,
+    alertKey: String?,
+) {
     val form = state.form
     val errors = state.errors
     Section(R.string.tea_editor_section_purchase) {
@@ -244,7 +264,7 @@ private fun Purchase(state: TeaEditorUiState.Ready, update: ((TeaEditorForm) -> 
         )
         val date = form.purchaseDate
         if (state.isNew && date != null) {
-            PurchaseDate(date, state.today) { day -> update { it.copy(purchaseDate = day) } }
+            PurchaseDate(date, state.today, alertKey) { day -> update { it.copy(purchaseDate = day) } }
             OutlinedTextField(
                 value = form.packageGrams,
                 onValueChange = { typed ->
@@ -301,22 +321,27 @@ internal fun Section(@StringRes title: Int, content: @Composable ColumnScope.() 
 /** The Sorte: every built-in style by Kategorie (as *Sorte wählen*), *Andere / unbekannt* last. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SorteField(selected: String?, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
+private fun SorteField(
+    selected: String?,
+    onSelect: (String) -> Unit,
+    alertKey: String?,
+    modifier: Modifier = Modifier,
+) {
+    val menu = rememberAlertGate(alertKey)
     val groups = SortePicker.groups("", { it }, { "" })
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+    ExposedDropdownMenuBox(expanded = menu.shown, onExpandedChange = menu::expand, modifier = modifier) {
         OutlinedTextField(
             value = stringResource(sorteNameRes(selected ?: OTHER_STYLE_KEY) ?: R.string.sorte_other),
             onValueChange = {},
             readOnly = true,
             label = { Text(stringResource(R.string.tea_editor_sorte)) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown) },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AlertGatedExposedDropdownMenu(menu) {
             groups.forEach { group ->
                 group.category?.let { category ->
                     Text(
@@ -333,7 +358,7 @@ private fun SorteField(selected: String?, onSelect: (String) -> Unit, modifier: 
                     DropdownMenuItem(
                         text = { Text(stringResource(sorteNameRes(key) ?: R.string.sorte_other)) },
                         onClick = {
-                            expanded = false
+                            menu.close()
                             onSelect(key)
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
