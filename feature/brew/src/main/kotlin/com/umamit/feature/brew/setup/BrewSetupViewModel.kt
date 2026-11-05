@@ -92,6 +92,13 @@ class BrewSetupViewModel @Inject constructor(
     private val pastSessionId: String? = savedState[PAST_SESSION_ID]
 
     private val edits = MutableStateFlow(SetupEdits.decode(savedState[EDITS]))
+
+    /**
+     * The id the next new recipe of *Ohne Rezept* gets, reserved before *Im Rezept speichern* suspends and kept
+     * across process death: a second tap while the first one still writes saves into the same recipe, never a
+     * second one.
+     */
+    private var newRecipeId: String = savedState[NEW_RECIPE_ID] ?: reserveNewRecipeId()
     private val pending = MutableStateFlow<PendingStart?>(null)
     private val navigation = Channel<BrewSetupEvent>(Channel.BUFFERED)
 
@@ -119,11 +126,7 @@ class BrewSetupViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             source.first { it != null }?.let { s ->
-                if (edits.value ==
-                    null
-                ) {
-                    setEdits(s.initialEdits(savedState[RECIPE_ID]))
-                }
+                if (edits.value == null) setEdits(s.initialEdits(savedState[RECIPE_ID]))
             }
         }
         // Alerts first (rule 8): a new alert closes the question.
@@ -165,18 +168,25 @@ class BrewSetupViewModel @Inject constructor(
      * *Im Rezept speichern* on the setup: every value of this session into the recipe (BRW-02); with *Ohne Rezept*
      * (BRW-06) into a new recipe, which is then the selected one.
      */
-    fun saveToRecipe() = launchWithSource { s ->
-        val current = edits.value ?: return@launchWithSource
-        val recipe = s.recipe(current.recipeId)
-        if (recipe != null) {
-            recipes.saveRecipe(current.appliedTo(recipe))
-        } else if (current.recipeId == null) {
-            val created = s.newRecipe(current) ?: return@launchWithSource
-            if (recipes.saveRecipe(created) == SaveRecipeResult.Saved) {
-                edits.value?.let { setEdits(it.copy(recipeId = created.id)) }
+    fun saveToRecipe() {
+        val newId = newRecipeId
+        launchWithSource { s ->
+            val current = edits.value ?: return@launchWithSource
+            val recipe = s.recipe(current.recipeId)
+            if (recipe != null) {
+                recipes.saveRecipe(current.appliedTo(recipe))
+            } else if (current.recipeId == null) {
+                val created = s.newRecipe(current, newId) ?: return@launchWithSource
+                if (recipes.saveRecipe(created) == SaveRecipeResult.Saved) {
+                    // A later save of *Ohne Rezept* is a recipe of its own again.
+                    if (newRecipeId == newId) newRecipeId = reserveNewRecipeId()
+                    edits.value?.let { setEdits(it.copy(recipeId = created.id)) }
+                }
             }
         }
     }
+
+    private fun reserveNewRecipeId(): String = UUID.randomUUID().toString().also { savedState[NEW_RECIPE_ID] = it }
 
     /** The *Ohne Rezept* chip (BRW-06): the past session's values as brewed again, without a recipe. */
     fun selectWithoutRecipe() = launchWithSource { s ->
@@ -332,7 +342,7 @@ class BrewSetupViewModel @Inject constructor(
             kettle = Kettle(firstTemp, KettleWater.of(firstTemp, iceBrew = e.method == BrewMethod.ICE_BREW)),
             steps = e.steps,
             // The B that startRequest hands the controller with the recipe's value (04 §5, TMR-23).
-            preAlertBaseSeconds = PreAlertSettings.inherited(recipe?.preAlertSeconds, s.globals.preAlertSeconds)
+            preAlertBaseSeconds = PreAlertSettings.inherited(s.preAlertBase(recipe), s.globals.preAlertSeconds)
                 .inheritedSeconds,
             // *Ohne Rezept* offers it as long as a new recipe can be saved (BRW-06); a recipe saved just now and not
             // read back yet counts as not saved, so the slot never flips back and forth.
@@ -373,7 +383,7 @@ class BrewSetupViewModel @Inject constructor(
                 baseTempC = baseTempC,
             ),
             steps = steps,
-            recipePreAlertSeconds = recipe?.preAlertSeconds,
+            recipePreAlertSeconds = s.preAlertBase(recipe),
         )
     }
 
@@ -402,13 +412,24 @@ class BrewSetupViewModel @Inject constructor(
             get() = brewedAgain && session != null && recipe(session.snapshot.profileId) == null
 
         /**
-         * The recipe *Im Rezept speichern* creates for *Ohne Rezept*, named after the session's recipe (or its tea,
-         * for a session brewed without one), after the tea's other recipes; null at [Recipe.MAX_PER_TEA] recipes.
+         * The pre-alert base B of [recipe] (null: the global setting, TMR-23); without a recipe, *Ohne Rezept*
+         * keeps the past session's own base, as Start's *Nochmal brühen* does (BRW-06, D-101 F11).
          */
-        fun newRecipe(edits: SetupEdits): Recipe? {
+        fun preAlertBase(recipe: Recipe?): Int? = if (recipe != null) {
+            recipe.preAlertSeconds
+        } else {
+            session?.preAlertSeconds?.takeIf { withoutRecipe }
+        }
+
+        /**
+         * The recipe [id] *Im Rezept speichern* creates for *Ohne Rezept*, named after the session's recipe (or its
+         * tea, for a session brewed without one), after the tea's other recipes, with the session's pre-alert base
+         * (D-101 F11); null at [Recipe.MAX_PER_TEA] recipes.
+         */
+        fun newRecipe(edits: SetupEdits, id: String): Recipe? {
             if (!withoutRecipe || recipes.size >= Recipe.MAX_PER_TEA) return null
             val base = Recipe(
-                id = UUID.randomUUID().toString(),
+                id = id,
                 teaId = tea.tea.id,
                 name = session?.snapshot?.profileName ?: tea.tea.name,
                 method = edits.method,
@@ -416,6 +437,7 @@ class BrewSetupViewModel @Inject constructor(
                 waterMl = edits.waterMl,
                 baseTempC = edits.baseTempC,
                 steps = emptyList(),
+                preAlertSeconds = preAlertBase(null),
                 position = (recipes.maxOfOrNull { it.position } ?: -1) + 1,
             )
             return edits.appliedTo(base)
@@ -462,5 +484,6 @@ class BrewSetupViewModel @Inject constructor(
         const val RECIPE_ID = "recipeId"
         const val PAST_SESSION_ID = "pastSessionId"
         private const val EDITS = "setupEdits"
+        private const val NEW_RECIPE_ID = "newRecipeId"
     }
 }
