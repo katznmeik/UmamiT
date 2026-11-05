@@ -91,6 +91,8 @@ sealed interface VesselEditorUiState {
 
     /**
      * @property errors the refused fields, once *Speichern* was tapped (then kept up to date as you type).
+     * @property saving *Speichern* is stored and the editor is closing: *Speichern* is greyed out (a second tap
+     *   would store a second vessel).
      * @property archiveBlocked the vessel belongs to the active brew session: *Archivieren* is greyed out (E10).
      */
     data class Ready(
@@ -100,6 +102,7 @@ sealed interface VesselEditorUiState {
         val archiveBlocked: Boolean,
         val hasChanges: Boolean,
         val errors: Set<VesselFieldError>,
+        val saving: Boolean = false,
     ) : VesselEditorUiState
 }
 
@@ -132,6 +135,7 @@ class VesselEditorViewModel @Inject constructor(
     private val base = MutableStateFlow<Base?>(null)
     private val form = MutableStateFlow(restoreForm())
     private val showErrors = MutableStateFlow(savedState[SHOW_ERRORS] ?: false)
+    private val saving = MutableStateFlow(false)
     private val navigation = Channel<VesselEditorEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host. */
@@ -142,7 +146,8 @@ class VesselEditorViewModel @Inject constructor(
         form,
         showErrors,
         archive.observeActiveVesselId(),
-    ) { b, f, show, activeId ->
+        saving,
+    ) { b, f, show, activeId, isSaving ->
         when {
             b == null -> VesselEditorUiState.Loading
 
@@ -159,6 +164,7 @@ class VesselEditorViewModel @Inject constructor(
                     archiveBlocked = stored != null && stored.id == activeId,
                     hasChanges = f != (stored?.let(VesselForm::of) ?: VesselForm()),
                     errors = if (show) f.errors() else emptySet(),
+                    saving = isSaving,
                 )
             }
         }
@@ -184,6 +190,7 @@ class VesselEditorViewModel @Inject constructor(
 
     /** *Speichern*: stores the vessel when every field is valid, else shows the errors at the fields. */
     fun save() {
+        if (saving.value) return
         val f = form.value
         val stored = when (val b = base.value) {
             is Base.Stored -> b.vessel
@@ -200,6 +207,7 @@ class VesselEditorViewModel @Inject constructor(
 
             else -> {
                 val vessel = f.applyTo(stored)
+                saving.value = true
                 viewModelScope.launch {
                     vessels.saveVessel(vessel)
                     base.value = Base.Stored(vessel)

@@ -175,7 +175,11 @@ fun VesselEditorScreen(
                 },
                 actions = {
                     if (ready != null) {
-                        TextButton(onClick = actions.save, modifier = Modifier.testTag(VesselEditorTags.SAVE)) {
+                        TextButton(
+                            onClick = actions.save,
+                            enabled = !ready.saving,
+                            modifier = Modifier.testTag(VesselEditorTags.SAVE),
+                        ) {
                             Text(stringResource(R.string.vessel_editor_save))
                         }
                         if (!ready.isNew) EditorMenu(ready, actions, alertKey)
