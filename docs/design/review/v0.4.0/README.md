@@ -17,6 +17,7 @@ Naming:
 | `brew/` | See below. |
 | `settings/` | *Bestand abziehen* in *Brühen & Vorrat* (`Settings_brewing`, #150) and the *Teegeschirr* row (`Settings_teaware`). The other settings renders changed only because the page grew. |
 | `catalog/` | Only F9's back arrow on the tea detail and the guide; nothing else changed. |
+| `home/` | The Start header A3 as a sumi-e tea branch (#165, merged from `main` after rc.1): `Home_seeded` light and dark. |
 
 **`collection/`**
 - **Meine Tees (#153):** `Collection_myTeas` (photo, names, Sorte, stock chip „38 g" / *Knapp* / *Leer*, star, „Rezept prüfen", sort chip first), `Collection_archived` (filter *Archiviert*), `Collection_noMatch` („Kein Tee passt zu deiner Suche."), `Collection_noTeas` (the A7 empty state); `Collection_noMatch` carries A10.
@@ -31,10 +32,12 @@ Naming:
 - **Tea picker (#150, F2):** `TeaPicker_menu` (long press: *Archivieren*), `_menuBlocked` („Erst die Sitzung beenden"), `_removed`.
 - **Rinse (#150):** `StepsSheet_manySteps` and `TimerScreen_Alerting_rinse_*` name the rinse *Spülen*.
 - The other brew renders changed only by small shifts from the shared parts in `core:ui` (#149, F1).
+- **Timer band A13 as a sumi-e bamboo spray (#164, merged from `main` after rc.1):** `TimerScreen_Running_appDark` (with the seal), `_noPhoto_appDark` (the type leaf), `TimerScreen_Quick_ready_appDark` (no seal), `TimerScreen_short_Running_quickRow_font2x` (the band shortened).
 
 Not rendered (behaviour, checked by tests and on the phone): archive and its *Rückgängig* snackbar, delete with *Stattdessen archivieren*, refusals during a brew, the sort and segment kept over a restart, drag reorder and its motion, *Bestand abziehen* off, *So nochmal brühen* prefilling never-started steps.
 
 Known points to judge:
+- **The new timer band and Start header (#164, #165)** are not in `v0.4.0-rc.1`: they reached the milestone branch with the merge of `main` after it, so the phone shows them from rc.2.
 - **Placeholder vessel icons (#157):** the nine vessel types use simple line icons from `UmamiIcons`; final icons are not yet in `docs/design/assets.md`.
 - **A7 (no teas) and A10 (no search hit) empty states** in *Meine Tees*: the vignettes as built in; are the texts right?
 - **Tea detail, low stock (`TeaDetail_lowArchived`):** the pencil FAB sits over the right end of the filled *Beim Tee-Kontor nachbestellen* button when the page is scrolled to VORRAT. Acceptable, or should the FAB move or hide there?

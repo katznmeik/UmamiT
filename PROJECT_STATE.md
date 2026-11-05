@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-05. **`v0.4.0-rc.1` is out** (pre-release from `5240a57`, versionCode 40001): both accuracy variants PASS on that commit, CI green, design renders in `docs/design/review/v0.4.0/`, checklist on #160. **Next: the PO tests rc.1** (09 §4 checklist and the design review on #160); findings → rc.2 on the branch, approval → #161.
+**Last updated:** 2026-11-05. **`v0.4.0-rc.1` is out** (pre-release from `5240a57`, versionCode 40001): both accuracy variants PASS on that commit, CI green, design renders in `docs/design/review/v0.4.0/`, checklist on #160. **Next: the PO tests rc.1** (09 §4 checklist and the design review on #160); findings → rc.2 on the branch, approval → #161. **Also on 2026-11-05:** `main` merged into the branch (f754d66) to bring in the new timer band A13 (bamboo, #164) and Start header A3 (tea branch, #165), which rc.1 lacks; renders added to `docs/design/review/v0.4.0/` (`brew/TimerScreen_*`, `home/`). The merge touches only drawables, screenshot goldens and docs, no timer code. **rc.2 is needed in any case** so the PO sees both images on the phone: with the rc.1 findings, or on its own if rc.1 has none (PO, 2026-11-05).
 
 > **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
 
@@ -14,7 +14,7 @@
 | Item | Status |
 |---|---|
 | Current milestone | **v0.4.0, `v0.4.0-rc.1` with the PO** (spec #145, PR #162 draft, D-100). All build tickets #147–#159 and the review fixes F1–F15 are merged on the branch (`docs/plans/v0.4.0-review.md`). |
-| Next phase | **PO testing rc.1** (#160). Then either an rc.2 fix round (timer code T3+) or #161 (merge, final `v0.4.0` from `main`, both accuracy variants again per 09 §4a). |
+| Next phase | **PO testing rc.1** (#160). Then **rc.2** in any case (it carries #164/#165 from `main`; with an rc.2 fix round if rc.1 has findings, timer code T3+), then #161 (merge, final `v0.4.0` from `main`, both accuracy variants again per 09 §4a). |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038); `/implement-spec #145` given on 2026-10-31 |
 | Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
@@ -34,7 +34,7 @@
 ## Waiting on the PO
 
 1. **Testing `v0.4.0-rc.1`** with the 09 §4 checklist and the design review (#160), including the new point: the tea detail's pencil FAB over the filled reorder button.
-2. After the results: a session for rc.2 fixes, or the PO's approval for #161.
+2. After the results: a session for rc.2 (with the fixes, or just the new band and header if rc.1 has no findings); the PO checks the bamboo timer band and the tea-branch Start header on rc.2, then approves #161.
 3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR #162's CI results don't wake a session; the sessions check CI themselves.
 
