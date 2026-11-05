@@ -286,7 +286,12 @@ private fun PickerLists(state: TeaPickerUiState, actions: TeaRowActions) {
 private fun TeaKind.title(): String = stringResource(
     when (this) {
         TeaKind.GREEN -> R.string.brew_picker_group_green
+        TeaKind.WHITE -> R.string.brew_picker_group_white
+        TeaKind.OOLONG -> R.string.brew_picker_group_oolong
+        TeaKind.BLACK -> R.string.brew_picker_group_black
+        TeaKind.PUERH -> R.string.brew_picker_group_puerh
         TeaKind.HERBAL -> R.string.brew_picker_group_herbal
+        TeaKind.OTHER -> R.string.brew_picker_group_other
     },
 )
 
