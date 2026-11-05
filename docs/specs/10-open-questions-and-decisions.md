@@ -689,6 +689,22 @@ font 2.0.
 - The detail opened above the setup (⋮ *Tee ansehen*) doesn't open the
   editors yet, as #155's pencil there.
 
+**Build notes (Claude, 2026-11-05, v0.4.0 review F1: one alert gate).** Every
+menu, dialog, sheet and picker that can stay open while a timer runs uses one
+gate, `AlertGate` in `core:ui` (`rememberAlertGate(alertKey)`, `AlertGated`,
+`AlertGatedDropdownMenu`, `AlertGatedExposedDropdownMenu`), with the rule of
+D-058 and D-062: it remembers the alert it was opened in; another alert removes
+it in that frame (a Material menu is not composed, so its exit animation never
+shows) and closes it for good, so it does not come back after the alert. It
+survives a configuration change. It replaces the setup's `AlertGate` and
+`AlertGatedMenu`, the Vorwarnung selector's, the tea detail's and the quick
+timer's copies; view models holding a question use its rule `alertCovers`.
+New users: the tea, recipe and vessel editors (discard and delete questions,
+*Kaufdatum*, every choice field, ⋮, the step's kind, Vorwarnung and „Dauer
+wählen") and *Meine Tees*' sort and filter chips and FAB choice, which used to
+refuse to open during any alert and reopened after it; now, like every other
+gated overlay, one opened during an alert stays for that alert.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
 §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12

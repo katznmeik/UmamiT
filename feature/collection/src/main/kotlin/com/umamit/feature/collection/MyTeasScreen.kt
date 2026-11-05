@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -23,9 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +39,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CollectionFilter
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.core.ui.rememberPhotoPainter
 
 /** The list of *Meine Tees* (SCR-08). */
@@ -76,7 +75,7 @@ typealias FilterChange = (CollectionFilter) -> CollectionFilter
  * @param onOpenTea a row's tap: the tea's detail (SCR-09).
  * @param onAddFromCatalog *Aus dem Katalog* and *Im Katalog stöbern*: Sammlung's *Katalog* segment (SCR-19).
  * @param onAddWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
- * @param alerting whether an alert plays now: the FAB's choice and the chips' menus give way (rule 8).
+ * @param alertKey the alert playing now, or null: the FAB's choice and the chips' menus give way to another (rule 8).
  * @param scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
  */
 @Composable
@@ -85,7 +84,7 @@ fun MyTeasRoute(
     onAddFromCatalog: () -> Unit,
     onAddWithoutCatalog: () -> Unit,
     modifier: Modifier = Modifier,
-    alerting: Boolean = false,
+    alertKey: String? = null,
     scrollToTopRequest: Int = 0,
     viewModel: MyTeasViewModel = hiltViewModel(),
 ) {
@@ -102,7 +101,7 @@ fun MyTeasRoute(
             onAddWithoutCatalog = onAddWithoutCatalog,
         ),
         modifier = modifier,
-        alerting = alerting,
+        alertKey = alertKey,
         scrollToTopRequest = scrollToTopRequest,
     )
 }
@@ -119,7 +118,7 @@ fun MyTeasContent(
     state: MyTeasUiState,
     actions: MyTeasActions,
     modifier: Modifier = Modifier,
-    alerting: Boolean = false,
+    alertKey: String? = null,
     scrollToTopRequest: Int = 0,
     thumbnail: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
 ) {
@@ -127,11 +126,11 @@ fun MyTeasContent(
         when {
             state.loading -> Unit
             state.empty == MyTeasEmpty.NO_TEAS && !state.showControls -> NoTeasAlone(actions.onAddFromCatalog)
-            else -> MyTeasList(state, actions, alerting, scrollToTopRequest, thumbnail)
+            else -> MyTeasList(state, actions, alertKey, scrollToTopRequest, thumbnail)
         }
         if (!state.loading) {
             AddTeaButton(
-                alerting = alerting,
+                alertKey = alertKey,
                 onAddFromCatalog = actions.onAddFromCatalog,
                 onAddWithoutCatalog = actions.onAddWithoutCatalog,
                 modifier = Modifier
@@ -146,7 +145,7 @@ fun MyTeasContent(
 private fun MyTeasList(
     state: MyTeasUiState,
     actions: MyTeasActions,
-    alerting: Boolean,
+    alertKey: String?,
     scrollToTopRequest: Int,
     thumbnail: @Composable (path: String?) -> Painter?,
 ) {
@@ -167,7 +166,7 @@ private fun MyTeasList(
         contentPadding = PaddingValues(bottom = FabClearance),
     ) {
         item(key = "search") { MyTeasSearchField(state.filter, actions.onFilterChange) }
-        item(key = "chips") { MyTeasChips(state, actions, alerting) }
+        item(key = "chips") { MyTeasChips(state, actions, alertKey) }
         when (state.empty) {
             MyTeasEmpty.NO_TEAS -> item(key = "no_teas") { NoTeas(actions.onAddFromCatalog) }
 
@@ -234,32 +233,32 @@ private fun noResultsIllustration(): Painter =
 /** The FAB *Tee hinzufügen* and its choice *Aus dem Katalog* / *Ohne Katalog* (D-100 point 4). */
 @Composable
 private fun AddTeaButton(
-    alerting: Boolean,
+    alertKey: String?,
     onAddFromCatalog: () -> Unit,
     onAddWithoutCatalog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var open by rememberSaveable { mutableStateOf(false) }
+    val choice = rememberAlertGate(alertKey)
     Box(modifier = modifier) {
         ExtendedFloatingActionButton(
             text = { Text(stringResource(R.string.my_teas_add)) },
             icon = { Icon(painterResource(UmamiIcons.Add), contentDescription = null) },
-            onClick = { if (!alerting) open = true },
+            onClick = choice::open,
             modifier = Modifier.testTag(MY_TEAS_ADD_TAG),
         )
-        // The choice gives way to an alert (rule 8).
-        DropdownMenu(expanded = open && !alerting, onDismissRequest = { open = false }) {
+        // The choice gives way to another alert (rule 8).
+        AlertGatedDropdownMenu(choice) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.my_teas_add_from_catalog)) },
                 onClick = {
-                    open = false
+                    choice.close()
                     onAddFromCatalog()
                 },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.my_teas_add_without_catalog)) },
                 onClick = {
-                    open = false
+                    choice.close()
                     onAddWithoutCatalog()
                 },
             )

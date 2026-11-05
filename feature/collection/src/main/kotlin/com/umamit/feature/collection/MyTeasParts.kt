@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -52,6 +51,8 @@ import com.umamit.core.model.CollectionFilter
 import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaCategory
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 
 /** The search field of *Meine Tees* (SCR-08). */
 const val MY_TEAS_SEARCH_TAG = "my_teas_search"
@@ -103,11 +104,11 @@ internal fun MyTeasSearchField(filter: CollectionFilter, onFilterChange: (Filter
 /**
  * The sort and the filter chips (TEA-10, TEA-11): the sort first, then *Favoriten*, *Kategorie* and *Sorte*
  * (each only while the collection has more than one value, or one is chosen), *Vorrat* (*Knapp* / *Leer*),
- * *Aromatisiert* and *Archiviert*. A chip with values opens a menu to tick them; their menus give way to an
- * alert (rule 8).
+ * *Aromatisiert* and *Archiviert*. A chip with values opens a menu to tick them; their menus give way to another
+ * alert than the one they were opened in ([alertKey], rule 8).
  */
 @Composable
-internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alerting: Boolean) {
+internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alertKey: String?) {
     val filter = state.filter
     val change = actions.onFilterChange
     Row(
@@ -118,7 +119,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alerting:
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SortChip(state.sort, actions.onSortChange, alerting)
+        SortChip(state.sort, actions.onSortChange, alertKey)
         ToggleChip(stringResource(R.string.my_teas_filter_favorites), filter.favoritesOnly) {
             change { it.copy(favoritesOnly = !it.favoritesOnly) }
         }
@@ -128,7 +129,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alerting:
                 name = stringResource(R.string.my_teas_filter_category),
                 options = labels.toList(),
                 chosen = filter.categories,
-                alerting = alerting,
+                alertKey = alertKey,
             ) { category -> change { it.copy(categories = it.categories.toggle(category)) } }
         }
         if (state.sorten.size > 1 || filter.sorten.isNotEmpty()) {
@@ -136,7 +137,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alerting:
                 name = stringResource(R.string.my_teas_filter_sorte),
                 options = (state.sorten + filter.sorten).distinct().map { it to it },
                 chosen = filter.sorten,
-                alerting = alerting,
+                alertKey = alertKey,
             ) { sorte -> change { it.copy(sorten = it.sorten.toggle(sorte)) } }
         }
         MenuChip(
@@ -146,7 +147,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alerting:
                 StockLevel.EMPTY to stringResource(R.string.my_teas_stock_empty),
             ),
             chosen = filter.stock,
-            alerting = alerting,
+            alertKey = alertKey,
         ) { level -> change { it.copy(stock = it.stock.toggle(level)) } }
         ToggleChip(stringResource(R.string.my_teas_filter_flavored), filter.flavoredOnly) {
             change { it.copy(flavoredOnly = !it.flavoredOnly) }
@@ -161,26 +162,26 @@ private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - valu
 
 /** The sort (TEA-11): the chip names the order; its menu offers the four. */
 @Composable
-private fun SortChip(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, alerting: Boolean) {
-    var open by remember { mutableStateOf(false) }
+private fun SortChip(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, alertKey: String?) {
+    val menu = rememberAlertGate(alertKey)
     val label = stringResource(sort.label)
     val description = stringResource(R.string.my_teas_sort_description, label)
     Box {
         MyTeasChip(
             label = label,
             selected = false,
-            onClick = { if (!alerting) open = true },
+            onClick = menu::open,
             dropdown = true,
             modifier = Modifier
                 .testTag(MY_TEAS_SORT_TAG)
                 .semantics { contentDescription = description },
         )
-        DropdownMenu(expanded = open && !alerting, onDismissRequest = { open = false }) {
+        AlertGatedDropdownMenu(menu) {
             CollectionSort.entries.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.label)) },
                     onClick = {
-                        open = false
+                        menu.close()
                         onSortChange(option)
                     },
                     leadingIcon = { CheckMark(option == sort) },
@@ -199,20 +200,18 @@ private fun <T> MenuChip(
     name: String,
     options: List<Pair<T, String>>,
     chosen: Set<T>,
-    alerting: Boolean,
+    alertKey: String?,
     onToggle: (T) -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
+    val menu = rememberAlertGate(alertKey)
     val label = when (chosen.size) {
         0 -> name
         1 -> options.firstOrNull { it.first in chosen }?.second ?: name
         else -> stringResource(R.string.my_teas_filter_count, name, chosen.size)
     }
     Box {
-        MyTeasChip(label = label, selected = chosen.isNotEmpty(), onClick = {
-            if (!alerting) open = true
-        }, dropdown = true)
-        DropdownMenu(expanded = open && !alerting, onDismissRequest = { open = false }) {
+        MyTeasChip(label = label, selected = chosen.isNotEmpty(), onClick = menu::open, dropdown = true)
+        AlertGatedDropdownMenu(menu) {
             options.forEach { (value, text) ->
                 DropdownMenuItem(
                     text = { Text(text) },

@@ -58,6 +58,10 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.VesselMaterial
 import com.umamit.core.model.VesselType
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 
 /** Test tags of SCR-14. */
 object VesselEditorTags {
@@ -97,6 +101,7 @@ fun VesselEditorRoute(
     onSave: (vesselId: String) -> Unit,
     modifier: Modifier = Modifier,
     onArchive: (ArchivedVessel) -> Unit = {},
+    alertKey: String? = null,
     viewModel: VesselEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -120,6 +125,7 @@ fun VesselEditorRoute(
             close = onClose,
         ),
         modifier = modifier,
+        alertKey = alertKey,
     )
 }
 
@@ -139,11 +145,16 @@ class VesselEditorActions(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VesselEditorScreen(state: VesselEditorUiState, actions: VesselEditorActions, modifier: Modifier = Modifier) {
+fun VesselEditorScreen(
+    state: VesselEditorUiState,
+    actions: VesselEditorActions,
+    modifier: Modifier = Modifier,
+    alertKey: String? = null,
+) {
     val ready = state as? VesselEditorUiState.Ready
-    var askDiscard by rememberSaveable { mutableStateOf(false) }
-    val requestClose = { if (ready?.hasChanges == true) askDiscard = true else actions.close() }
-    BackHandler(enabled = ready?.hasChanges == true) { askDiscard = true }
+    val askDiscard = rememberAlertGate(alertKey)
+    val requestClose = { if (ready?.hasChanges == true) askDiscard.open() else actions.close() }
+    BackHandler(enabled = ready?.hasChanges == true) { askDiscard.open() }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -167,7 +178,7 @@ fun VesselEditorScreen(state: VesselEditorUiState, actions: VesselEditorActions,
                         TextButton(onClick = actions.save, modifier = Modifier.testTag(VesselEditorTags.SAVE)) {
                             Text(stringResource(R.string.vessel_editor_save))
                         }
-                        if (!ready.isNew) EditorMenu(ready, actions)
+                        if (!ready.isNew) EditorMenu(ready, actions, alertKey)
                     }
                 },
             )
@@ -192,6 +203,7 @@ fun VesselEditorScreen(state: VesselEditorUiState, actions: VesselEditorActions,
             is VesselEditorUiState.Ready -> EditorFields(
                 state = state,
                 update = actions.update,
+                alertKey = alertKey,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -200,11 +212,11 @@ fun VesselEditorScreen(state: VesselEditorUiState, actions: VesselEditorActions,
             )
         }
     }
-    if (askDiscard) {
+    AlertGated(askDiscard) {
         DiscardChangesDialog(
-            onKeepEditing = { askDiscard = false },
+            onKeepEditing = askDiscard::close,
             onDiscard = {
-                askDiscard = false
+                askDiscard.close()
                 actions.close()
             },
         )
@@ -213,18 +225,18 @@ fun VesselEditorScreen(state: VesselEditorUiState, actions: VesselEditorActions,
 
 /** ⋮: *Archivieren* (greyed out for the active brew session's vessel, E10) or *Wiederherstellen*. */
 @Composable
-private fun EditorMenu(state: VesselEditorUiState.Ready, actions: VesselEditorActions) {
-    var open by remember { mutableStateOf(false) }
+private fun EditorMenu(state: VesselEditorUiState.Ready, actions: VesselEditorActions, alertKey: String?) {
+    val menu = rememberAlertGate(alertKey)
     Box {
-        IconButton(onClick = { open = true }, modifier = Modifier.testTag(VesselEditorTags.MORE)) {
+        IconButton(onClick = menu::open, modifier = Modifier.testTag(VesselEditorTags.MORE)) {
             Icon(painterResource(UmamiIcons.MoreVert), stringResource(R.string.vessel_editor_more))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        AlertGatedDropdownMenu(menu) {
             if (state.isArchived) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.vessel_editor_restore)) },
                     onClick = {
-                        open = false
+                        menu.close()
                         actions.restore()
                     },
                 )
@@ -243,7 +255,7 @@ private fun EditorMenu(state: VesselEditorUiState.Ready, actions: VesselEditorAc
                         }
                     },
                     onClick = {
-                        open = false
+                        menu.close()
                         actions.archive()
                     },
                     enabled = !state.archiveBlocked,
@@ -257,6 +269,7 @@ private fun EditorMenu(state: VesselEditorUiState.Ready, actions: VesselEditorAc
 private fun EditorFields(
     state: VesselEditorUiState.Ready,
     update: ((VesselForm) -> VesselForm) -> Unit,
+    alertKey: String?,
     modifier: Modifier = Modifier,
 ) {
     val form = state.form
@@ -298,6 +311,7 @@ private fun EditorFields(
             optionLabel = { stringResource(it.label()) },
             optionIcon = { it.icon() },
             onSelect = { type -> update { it.copy(type = type) } },
+            alertKey = alertKey,
             modifier = fieldModifier.testTag(VesselEditorTags.TYPE),
         )
         VolumeField(
@@ -321,6 +335,7 @@ private fun EditorFields(
             options = listOf<VesselMaterial?>(null) + VesselMaterial.entries,
             optionLabel = { stringResource(it?.label() ?: R.string.vessel_editor_material_none) },
             onSelect = { material -> update { it.copy(material = material) } },
+            alertKey = alertKey,
             modifier = fieldModifier.testTag(VesselEditorTags.MATERIAL),
         )
         OutlinedTextField(
@@ -383,7 +398,7 @@ private fun VolumeField(
     )
 }
 
-/** A read-only field that opens a menu of [options]. */
+/** A read-only field that opens a menu of [options]; it gives way to another alert than the one it was opened in. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun <T> ChoiceField(
@@ -392,30 +407,31 @@ private fun <T> ChoiceField(
     options: List<T>,
     optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
+    alertKey: String?,
     modifier: Modifier = Modifier,
     optionIcon: ((T) -> Int)? = null,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }, modifier = modifier) {
+    val menu = rememberAlertGate(alertKey)
+    ExposedDropdownMenuBox(expanded = menu.shown, onExpandedChange = menu::expand, modifier = modifier) {
         OutlinedTextField(
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
             leadingIcon = optionIcon?.let { icon -> { OptionIcon(icon(selected)) } },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu.shown) },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        AlertGatedExposedDropdownMenu(menu) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(optionLabel(option)) },
                     leadingIcon = optionIcon?.let { icon -> { OptionIcon(icon(option)) } },
                     onClick = {
-                        expanded = false
+                        menu.close()
                         onSelect(option)
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,

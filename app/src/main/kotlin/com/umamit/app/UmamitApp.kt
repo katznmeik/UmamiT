@@ -302,7 +302,7 @@ internal fun UmamitApp(
                                         modifier = myTeasModifier,
                                         scrollToTopRequest = scrollToTop,
                                         openTea = openTea,
-                                        alerting = alerting,
+                                        alertKey = alertKey,
                                         addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
                                         // *Ohne Katalog*: *Sorte wählen* (SCR-11, TEA-01).
                                         addWithoutCatalog = dropUnlessResumed {
@@ -654,6 +654,7 @@ private fun TabHost(
                 RecipeEditorHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
                     onDone = { closeIfOnTop() },
+                    alertKey = alertKey,
                 ),
             )
         }
@@ -685,6 +686,7 @@ private fun TabHost(
                             else -> navController.popBackStack()
                         }
                     },
+                    alertKey = alertKey,
                 ),
             )
         }
@@ -746,6 +748,7 @@ private fun TabHost(
                     onClose = dropUnlessResumed { navController.popBackStack() },
                     onSave = { id -> navController.closeVesselEditor(savedVesselId = id) },
                     onArchive = { archived -> navController.closeVesselEditor(archived = archived) },
+                    alertKey = alertKey,
                 ),
             )
         }

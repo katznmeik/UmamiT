@@ -1,5 +1,8 @@
 package com.umamit.feature.collection.recipe
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertContentDescriptionEquals
@@ -48,6 +51,7 @@ class RecipeEditorScreenTest {
     private val saved = mutableListOf<String>()
     private var closed = 0
     private var deleted = 0
+    private var alertKey by mutableStateOf<String?>(null)
 
     private val recipe = Recipe(
         id = "kyusu",
@@ -78,6 +82,7 @@ class RecipeEditorScreenTest {
                     onClose = { closed++ },
                     onSave = { saved += it },
                     onDelete = { deleted++ },
+                    alertKey = alertKey,
                     viewModel = viewModel {
                         RecipeEditorViewModel(
                             SavedStateHandle(
@@ -229,6 +234,68 @@ class RecipeEditorScreenTest {
         assertThat(deleted).isEqualTo(1)
         assertThat(runBlocking { collection.recipes.getRecipe("kyusu") }).isNull()
         assertThat(runBlocking { collection.recipes.getRecipe("kalt") }!!.isDefault).isTrue()
+    }
+
+    @Test
+    fun `an alert removes the step's kind menu and it does not come back (rule 8)`() {
+        show()
+        compose.onNodeWithTag(RecipeStepTags.kind(1)).performScrollTo().performClick()
+        compose.onNodeWithText("Aufschlagen").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Aufschlagen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the step's Vorwarnung menu and it does not come back (rule 8)`() {
+        show()
+        compose.onNodeWithTag(RecipeStepTags.preAlert(1)).performScrollTo().performClick()
+        compose.onNodeWithText("Aus").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Aus").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes Dauer waehlen and it does not come back (rule 8)`() {
+        show()
+        compose.onNodeWithContentDescription("Ziehzeit, Schritt 1", substring = true).performScrollTo().performClick()
+        compose.onNodeWithText("Dauer wählen").assertExists()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Dauer wählen").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an alert removes the delete question and it does not come back (rule 8)`() {
+        show()
+        compose.onNodeWithTag(RecipeEditorTags.MORE).performClick()
+        compose.onNodeWithText("Rezept löschen").performClick()
+        compose.onNodeWithText("Rezept löschen?").assertIsDisplayed()
+
+        alertAndEnd()
+
+        compose.onNodeWithText("Rezept löschen?").assertDoesNotExist()
+        assertThat(deleted).isEqualTo(0)
+    }
+
+    /** An alert starts: what was open is gone after the frame that recomposes and the one that drops its window. */
+    private fun alertAndEnd() {
+        compose.mainClock.autoAdvance = false
+        alertKey = "s1:0:1"
+        repeat(2) {
+            compose.mainClock.advanceTimeByFrame()
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Aufschlagen").assertDoesNotExist()
+        compose.onNodeWithText("Dauer wählen").assertDoesNotExist()
+        compose.onNodeWithText("Rezept löschen?").assertDoesNotExist()
+        compose.mainClock.autoAdvance = true
+        alertKey = null
+        compose.waitForIdle()
     }
 
     @Test

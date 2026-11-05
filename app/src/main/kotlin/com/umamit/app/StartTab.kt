@@ -3,12 +3,10 @@ package com.umamit.app
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.picker.TeaPickerHost
 import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.home.HomeActions
@@ -64,27 +62,20 @@ internal fun StartTabContent(
     homeViewModel: HomeViewModel = hiltViewModel(),
     pickerViewModel: TeaPickerViewModel = hiltViewModel(),
 ) {
-    var pickerOpen by rememberSaveable { mutableStateOf(false) }
-    var pickerOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
+    val picker = rememberAlertGate(tab.alertKey)
     val navigation = tab.navigation
     // Back from the picker's catalog flow (D-088): the picker again, never over an alert (rule 8).
     val currentOnPickerReturned by rememberUpdatedState(tab.onPickerReturned)
     LaunchedEffect(tab.pickerReturn) {
         if (tab.pickerReturn) {
             currentOnPickerReturned()
-            if (tab.alertKey == null) {
-                pickerOpenedIn = null
-                pickerOpen = true
-            }
+            if (tab.alertKey == null) picker.open()
         }
     }
     HomeRoute(
         actions = HomeActions(
             openSettings = tab.openSettings,
-            startBrew = {
-                pickerOpenedIn = tab.alertKey
-                pickerOpen = true
-            },
+            startBrew = picker::open,
             // *Aufguss fortsetzen* shows the brew (SCR-02, D-098), so it opens the brew, never the timer in front.
             openTimer = { navigation.openTimerOf(TimerSlot.BREW) },
             quickTimer = navigation.openQuickTimer,
@@ -97,21 +88,19 @@ internal fun StartTabContent(
         viewModel = homeViewModel,
     )
     TeaPickerHost(
-        open = pickerOpen,
-        openedIn = pickerOpenedIn,
-        alertKey = tab.alertKey,
+        gate = picker,
         // The setup opens in the tap's frame and its fade covers the closing sheet (D-062).
         onPickTea = {
-            pickerOpen = false
+            picker.close()
             navigation.openSetup(it)
         },
         onQuickTimer = {
-            pickerOpen = false
+            picker.close()
             navigation.openQuickTimer()
         },
-        onDismissRequest = { pickerOpen = false },
+        onDismissRequest = picker::close,
         onCatalog = {
-            pickerOpen = false
+            picker.close()
             tab.openCatalogForBrew()
         },
         viewModel = pickerViewModel,
