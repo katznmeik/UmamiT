@@ -43,6 +43,10 @@ import kotlin.math.roundToLong
 // Not modelled: the new-package rule of INV-06 (the fake sets only a missing opened date)
 // and rollbacks (FakeDatabaseTransactions runs the block as is).
 
+/** [FakeSessions.startActiveBrew]'s session: its Vorwarnung and its start. */
+private const val ACTIVE_PRE_ALERT_SECONDS = 10
+private const val ACTIVE_STARTED_AT_MS = 1_000L
+
 /** The session tables of a fake database; completion uses [collection]'s teas and stock and [settings]. */
 class FakeSessions(
     internal val collection: FakeCollection = FakeCollection(),
@@ -69,9 +73,13 @@ class FakeSessions(
     /** A brew session of [snapshot] (one 60 s infusion) waits in READY in `active_brew`: the running brew (E15). */
     suspend fun startActiveBrew(snapshot: SessionSnapshot, id: String = "active") {
         val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 70))
-        val start = TimerEvent.StartSession(id, steps, PreAlertSettings.inherited(null, 10), longStepsOnly = false)
-        val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
-        sessions.startSession(SessionStart(id, snapshot, steps, 10, 1_000, "UTC"))
+        val preAlert = PreAlertSettings.inherited(null, ACTIVE_PRE_ALERT_SECONDS)
+        val start = TimerEvent.StartSession(id, steps, preAlert, longStepsOnly = false)
+        val now = ClockReading(ACTIVE_STARTED_AT_MS, ACTIVE_STARTED_AT_MS, ZoneOffset.UTC, 1)
+        val ready = BrewTimerEngine.reduce(TimerState.Idle, start, now).state
+        sessions.startSession(
+            SessionStart(id, snapshot, steps, ACTIVE_PRE_ALERT_SECONDS, ACTIVE_STARTED_AT_MS, "UTC"),
+        )
         activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
     }
 
