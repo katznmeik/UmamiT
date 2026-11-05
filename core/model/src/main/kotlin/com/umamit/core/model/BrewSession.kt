@@ -32,6 +32,8 @@ data class SessionSnapshot(
  * @property costCents leaf × cost per gram at the finish (INV-08); null without a tea, leaf amount or priced stock.
  * @property endedAtMs the end of the last ended step, set when the session is completed.
  * @property zoneId the session's time zone (IANA id).
+ * @property steps every row: a session completed from v0.4.0 on keeps its never-started rows, without an actual
+ * time (Q-19, D-100); one completed by v0.3.0 or earlier has only its ended rows.
  */
 data class BrewSession(
     val id: String,
@@ -45,4 +47,10 @@ data class BrewSession(
     val zoneId: String,
     val autoFinished: Boolean,
     val steps: List<SessionStepRow>,
-)
+) {
+    /**
+     * The ended rows, those with an actual time (05 §3.7): all that journal counts, cost and
+     * statistics count of a completed session, as before v0.4.0 kept its never-started rows (Q-19).
+     */
+    val endedSteps: List<SessionStepRow> get() = steps.filter { it.actualSeconds != null }
+}

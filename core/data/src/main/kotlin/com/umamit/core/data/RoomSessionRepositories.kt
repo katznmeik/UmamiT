@@ -70,6 +70,12 @@ class RoomSessionRepository @Inject constructor(
         }
     }
 
+    /**
+     * Completes the session (TMR-12, 05 §3.7). Its step rows stay as they are: from v0.4.0 the
+     * never-started ones too, without `actual_seconds` (Q-19, D-100; until v0.3.0 they were
+     * deleted here), so *So nochmal brühen* can prefill them. `planned_step_count` is the planned
+     * total; `ended_at` comes from the ended rows only, and the cost from the leaf.
+     */
     override suspend fun completeSession(sessionId: String, autoFinished: Boolean) {
         val deductStock = deductStock()
         val now = time.nowMs()
@@ -77,7 +83,6 @@ class RoomSessionRepository @Inject constructor(
             val session = sessions.get(sessionId)?.takeIf { it.status == SessionStatus.IN_PROGRESS }
                 ?: return@withTransaction
             val rows = sessions.steps(sessionId)
-            sessions.deleteUnrecordedSteps(sessionId)
             val endedAt = rows.mapNotNull { it.endedAt }.maxOrNull() ?: now
             val teaId = session.teaId
             val events = teaId?.let { db.inventoryDao().eventsForTea(it).map { e -> e.toModel() } }

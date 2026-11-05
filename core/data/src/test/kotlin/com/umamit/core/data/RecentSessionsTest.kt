@@ -24,7 +24,8 @@ class RecentSessionsTest {
     @After
     fun tearDown() = data.close()
 
-    private suspend fun completed(id: String, startedAtMs: Long, vararg seconds: Int) {
+    /** Completes session [id] of [seconds] steps after its first [poured] steps (all by default). */
+    private suspend fun completed(id: String, startedAtMs: Long, vararg seconds: Int, poured: Int = seconds.size) {
         if (data.teas.getTea("t1") == null) data.teas.saveTea(tea("t1"))
         data.sessions.startSession(
             SessionStart(
@@ -36,7 +37,7 @@ class RecentSessionsTest {
                 zoneId = "Europe/Berlin",
             ),
         )
-        seconds.indices.forEach { i ->
+        (0 until poured).forEach { i ->
             data.sessions.recordStep(
                 id,
                 i,
@@ -72,4 +73,19 @@ class RecentSessionsTest {
         assertThat(data.sessions.observeRecentSessions(limit = 3).first().map { it.id })
             .containsExactly("b", "a").inOrder()
     }
+
+    @Test
+    fun `a session finished early comes with its never-started rows, and its ended steps are the poured ones (Q-19)`() =
+        runTest {
+            completed("early", startedAtMs = 1_000, 60, 10, 30, poured = 2)
+
+            val early = data.sessions.observeRecentSessions(limit = 1).first().single()
+
+            // From v0.4.0 the third row is kept for *So nochmal brühen*; what Start counts and brews again
+            // are the ended rows, as v0.3.0 stored them (BRW-11, D-062).
+            assertThat(early.plannedStepCount).isEqualTo(3)
+            assertThat(early.steps.map { it.plannedSeconds to it.actualSeconds })
+                .containsExactly(60 to 60, 10 to 10, 30 to null).inOrder()
+            assertThat(early.endedSteps.map { it.plannedSeconds }).containsExactly(60, 10).inOrder()
+        }
 }

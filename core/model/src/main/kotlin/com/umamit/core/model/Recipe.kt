@@ -23,7 +23,12 @@ data class Recipe(
     val position: Int = 0,
     val source: RecipeSource = RecipeSource.USER,
     val notes: String? = null,
-)
+) {
+    companion object {
+        /** A tea holds 1 to this many recipes (PRF-01, D-100). */
+        const val MAX_PER_TEA = 10
+    }
+}
 
 /** One step of a recipe (05 §3.3); its order is its index in [Recipe.steps]. */
 data class RecipeStep(

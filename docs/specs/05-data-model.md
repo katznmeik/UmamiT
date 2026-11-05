@@ -217,7 +217,8 @@ effect of the timer engine, 04 §4; D-052):
   **kept** without `actual_seconds` from v0.4.0 on (Q-19, D-100; until
   v0.3.0 they were deleted), so *So nochmal brühen* (BRW-06) can prefill
   them and the session page shows them as „nicht gebrüht"; journal counts,
-  cost and statistics count only ended rows. `brew_session.planned_step_count`
+  cost and statistics count only ended rows, and Start's *Nochmal brühen*
+  (BRW-11) brews only those again, as before (D-062). `brew_session.planned_step_count`
   keeps the planned total so the journal can show „2 von 3 Aufgüssen". Skipped steps (TMR-09) stay with
   `skipped = 1`. It also sets `cost_cents` and `ended_at`, adds the BREW stock
   event (−leaf, at `ended_at`, linked by `session_id`) when *Bestand

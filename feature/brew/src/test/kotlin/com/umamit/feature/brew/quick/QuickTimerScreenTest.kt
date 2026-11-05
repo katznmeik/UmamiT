@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.ui.DURATION_PICKER_TOTAL_TAG
 import com.umamit.feature.brew.setup.ActiveSessionQuestion
 import org.junit.Rule
 import org.junit.Test
@@ -71,7 +72,7 @@ class QuickTimerScreenTest {
         }
     }
 
-    private fun total() = compose.onNodeWithTag(QUICK_PICKER_TOTAL_TAG)
+    private fun total() = compose.onNodeWithTag(DURATION_PICKER_TOTAL_TAG)
 
     @Test
     fun `a chip selects its duration and Start starts it (TMR-22)`() {

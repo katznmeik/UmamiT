@@ -2,6 +2,7 @@ package com.umamit.feature.journal
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.SessionStatus
+import com.umamit.core.model.SessionStepRow
 import com.umamit.core.model.StepKind
 import com.umamit.feature.journal.JournalSessions.TODAY
 import com.umamit.feature.journal.JournalSessions.session
@@ -152,5 +153,56 @@ class JournalListTest {
         ).days.single().entries.single()
 
         assertThat(entry.temperatureC).isEqualTo(70)
+    }
+
+    /**
+     * Q-19: from v0.4.0 a finished session keeps its never-started rows, without an actual time;
+     * v0.3.0 stored only the ended ones. The journal counts only ended rows, so both read alike.
+     */
+    @Test
+    fun `a finished session's never-started rows change nothing in its entry or its saved summary (Q-19)`() {
+        // A rinse, then two of three infusions poured; no base temperature, the poured steps at the base.
+        val ended = listOf(
+            step(0, 10, kind = StepKind.RINSE),
+            step(1, 90, tempC = null),
+            step(2, 30, tempC = null),
+        )
+        val neverStarted = listOf(
+            step(3, 45, actualSeconds = null, tempC = 80),
+            step(4, 10, actualSeconds = null, kind = StepKind.RINSE),
+        )
+        fun finished(steps: List<SessionStepRow>) =
+            session("early", at(TODAY, 9), baseTempC = null, steps = steps, plannedStepCount = 5)
+
+        val before = finished(ended)
+        val now = finished(ended + neverStarted)
+        val entry = journalList(listOf(now), TODAY).days.single().entries.single()
+
+        assertThat(entry).isEqualTo(journalList(listOf(before), TODAY).days.single().entries.single())
+        assertThat(entry.infusions).isEqualTo(2)
+        assertThat(entry.finishedEarly).isTrue()
+        assertThat(entry.firstInfusionSeconds).isEqualTo(90)
+        assertThat(entry.temperatureC).isNull()
+        assertThat(savedSummary(now.session)).isEqualTo(SavedSummary(infusions = 2, steepSeconds = 120))
+        assertThat(savedSummary(now.session)).isEqualTo(savedSummary(before.session))
+    }
+
+    @Test
+    fun `an early finish kept with its never-started row reads „2 von 3" (TMR-12, Q-19)`() {
+        val entry = journalList(
+            listOf(
+                session(
+                    "early",
+                    at(TODAY, 9),
+                    steps = listOf(step(0, 60), step(1, 20), step(2, 60, actualSeconds = null)),
+                    plannedStepCount = 3,
+                ),
+            ),
+            TODAY,
+        ).days.single().entries.single()
+
+        assertThat(entry.infusions).isEqualTo(2)
+        assertThat(entry.plannedInfusions).isEqualTo(3)
+        assertThat(entry.finishedEarly).isTrue()
     }
 }

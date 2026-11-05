@@ -286,7 +286,7 @@ class AddFromCatalogTest {
         val listed = RoomCatalogRepository(catalogDb.catalogDao(), catalogPhotos, owned)
         assertThat(listed.observeCatalog().first().teas.single().owned).isTrue()
 
-        assertThat(RoomTeaArchive(data.db, data.time).archive(teaId)).isEqualTo(ArchiveResult.Archived)
+        assertThat(RoomTeaArchive(data.db, data.time, photoFiles).archive(teaId)).isEqualTo(ArchiveResult.Archived)
 
         // No „im Besitz" badge or filter hit, and the detail offers *In Sammlung aufnehmen* (TEA-04, CAT-10).
         assertThat(listed.observeCatalog().first().teas.single().owned).isFalse()
@@ -300,7 +300,7 @@ class AddFromCatalogTest {
     fun `adding a removed tea again brings back the same tea with a purchase, never a second one`() = runTest {
         catalog(sencha() to packages())
         val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
-        RoomTeaArchive(data.db, data.time).archive(teaId)
+        RoomTeaArchive(data.db, data.time, photoFiles).archive(teaId)
 
         val again = add.add(purchase(grams = 250.0, priceCents = 2990))
 
@@ -408,7 +408,7 @@ class AddFromCatalogTest {
         // A removed (archived) tea is not in the collection, so it can be marked (CAT-18 AC2).
         catalog(sencha() to packages())
         val teaId = (add.add(purchase()) as AddFromCatalogResult.Added).teaId
-        RoomTeaArchive(data.db, data.time).archive(teaId)
+        RoomTeaArchive(data.db, data.time, photoFiles).archive(teaId)
         data.bookmarks.mark(KEY)
 
         assertThat(add.add(purchase())).isEqualTo(AddFromCatalogResult.Repurchased(teaId))

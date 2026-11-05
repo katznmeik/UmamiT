@@ -10,18 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -37,6 +31,9 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.ui.AlertGate
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
 
 /*
@@ -153,15 +150,7 @@ internal fun PreAlertDropdown(
     alertKey: String? = null,
     reserveFor: List<StepPreAlert> = emptyList(),
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var openedIn by remember { mutableStateOf<String?>(null) }
-    val covered = alertKey != null && alertKey != openedIn
-    // A new alert closes the menu for good; it is already gone in the frame the alert started.
-    LaunchedEffect(covered) { if (covered) expanded = false }
-    val open = {
-        openedIn = alertKey
-        expanded = true
-    }
+    val menu = rememberAlertGate(alertKey)
     val reserved = if (reserveFor.isEmpty()) {
         Modifier
     } else {
@@ -169,13 +158,13 @@ internal fun PreAlertDropdown(
     }
     Box(modifier = modifier.then(reserved), contentAlignment = Alignment.CenterStart) {
         TextButton(
-            onClick = open,
+            onClick = menu::open,
             // One TalkBack element with the step, the spoken value, a button role and a click action.
             modifier = Modifier.clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
                 onClick {
-                    open()
+                    menu.open()
                     true
                 }
             },
@@ -188,26 +177,24 @@ internal fun PreAlertDropdown(
                 modifier = Modifier.size(PreAlertChevronSize),
             )
         }
-        // Out of the composition under an alert: an expanded = false would still animate the popup out.
-        if (!covered) PreAlertMenu(expanded, selected, optionShown, onSelect, onClose = { expanded = false })
+        PreAlertMenu(menu, selected, optionShown, onSelect)
     }
 }
 
 @Composable
 private fun PreAlertMenu(
-    expanded: Boolean,
+    menu: AlertGate,
     selected: PreAlertChoice,
     optionShown: (PreAlertChoice) -> StepPreAlert,
     onSelect: (PreAlertChoice) -> Unit,
-    onClose: () -> Unit,
 ) {
-    DropdownMenu(expanded = expanded, onDismissRequest = onClose) {
+    AlertGatedDropdownMenu(menu) {
         PreAlertOptions.forEach { option ->
             DropdownMenuItem(
                 text = { Text(preAlertOptionLabel(optionShown(option))) },
                 onClick = {
                     onSelect(option)
-                    onClose()
+                    menu.close()
                 },
                 leadingIcon = {
                     if (option == selected) {

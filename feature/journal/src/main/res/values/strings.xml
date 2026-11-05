@@ -21,6 +21,56 @@
         <item quantity="other">%1$d von %2$d Aufgüssen</item>
     </plurals>
     <string name="journal_open_timer">Zum Timer</string>
+    <!-- TalkBack: „doppeltippen zum Sitzung öffnen" on a past entry (SCR-15, D-100). -->
+    <string name="journal_open_session">Sitzung öffnen</string>
+
+    <!-- SCR-16 Sitzung, read-only in v0.4.0 (JRN-10, BRW-06, D-100). -->
+    <string name="session_title">Sitzung</string>
+    <string name="session_not_found_title">Diese Sitzung ist nicht mehr da</string>
+    <string name="session_not_found_body">Sie wurde gelöscht.</string>
+    <!-- TalkBack on the tea's name: „doppeltippen zum Tee öffnen". -->
+    <string name="session_open_tea">Tee öffnen</string>
+    <!-- „22. Okt. 2026 · 09:12". -->
+    <string name="session_started">%1$s · %2$s</string>
+    <string name="session_method">Methode</string>
+    <string name="session_vessel">Gefäß</string>
+    <string name="session_vessel_none">Kein Gefäß</string>
+    <string name="session_leaf">Blätter</string>
+    <string name="session_water">Wasser</string>
+    <string name="session_ratio">Verhältnis</string>
+    <string name="session_grams">%1$s g</string>
+    <string name="session_ml">%1$d ml</string>
+    <string name="session_ratio_value">%1$s g / 100 ml</string>
+    <string name="session_unknown">–</string>
+    <string name="session_steps">Aufgüsse</string>
+    <string name="session_column_step">Schritt</string>
+    <string name="session_column_planned">geplant</string>
+    <string name="session_column_actual">tatsächlich</string>
+    <string name="session_column_temperature">°C</string>
+    <string name="session_temperature">%1$d °C</string>
+    <!-- A step never started (Q-19, D-100). -->
+    <string name="session_not_brewed">nicht gebrüht</string>
+    <string name="session_skipped">übersprungen</string>
+    <!-- Large fonts: the step's times on one line, „geplant 1:15 · tatsächlich 1:35". -->
+    <string name="session_planned_value">geplant\u00A0%1$s</string>
+    <string name="session_actual_value">tatsächlich\u00A0%1$s</string>
+    <!-- TalkBack for a step row: „Aufguss 2: geplant 1 Minute 15 Sekunden, tatsächlich 1 Minute 35 Sekunden, 65 °C". -->
+    <string name="session_step_description">%1$s: %2$s</string>
+    <string name="session_step_infusion">Aufguss %1$d</string>
+    <string name="session_step_rinse">Spülen</string>
+    <string name="session_step_whisk">Aufschlagen</string>
+    <string name="session_brew_again">So nochmal brühen</string>
+    <!-- BRW-06 (D-100): the session's tea is archived; the button is greyed out. -->
+    <string name="session_tea_archived">Tee ist archiviert</string>
+    <string name="session_restore">Wiederherstellen</string>
+    <string name="session_method_kyusu">Kyusu</string>
+    <string name="session_method_gongfu">Gongfu</string>
+    <string name="session_method_western">Westlich</string>
+    <string name="session_method_usucha">Usucha</string>
+    <string name="session_method_koicha">Koicha</string>
+    <string name="session_method_cold_brew">Kaltaufguss</string>
+    <string name="session_method_ice_brew">Eisaufguss</string>
+    <string name="session_method_custom">Eigene</string>
     <string name="journal_saved_title">Gespeichert im Journal</string>
     <!-- „3 Aufgüsse · 2:20": the infusions and the total steep time. -->
     <string name="journal_saved_summary">%1$s · %2$s</string>

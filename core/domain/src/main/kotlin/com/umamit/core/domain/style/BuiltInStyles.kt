@@ -13,17 +13,20 @@ import com.umamit.core.model.UmamiLevel
  * umami level, freshness window, teaspoon weight and fallback recipes.
  *
  * @property key the style key stored with a tea (`sencha`, `green_generic`, …).
- * @property freshnessDays suggested days to drink the tea after opening.
- * @property gramsPerTeaspoon converts teaspoon amounts of the shop's prose (08 §2.5).
+ * @property umami the style's umami level; null for `other` (*Andere / unbekannt*, 08 §3: „—").
+ * @property freshnessDays suggested days to drink the tea after opening; null for `other` (08 §3: „—").
+ * @property gramsPerTeaspoon converts teaspoon amounts of the shop's prose (08 §2.5). The catalog maps
+ *   only to green and herbal styles (CAT-01), so the other categories' rows (08 §3: „—") carry `other`'s
+ *   2,5 g, which nothing reads.
  * @property recipes the style's recipes in 08 §3's order; the first is the default.
  * @property japanese a Japanese tea: its Kyusu row is its default recipe (08 §2.5 step 1).
- * @property category the tea category of a tea of this style (05 §3.1): green, or herbal for
- *   `herbal` (v0.2.1, D-093).
+ * @property category the tea category (*Kategorie*) of a tea of this style (05 §3.1): green, herbal for
+ *   `herbal` (v0.2.1, D-093), and from v0.4.0 the other categories' rows (D-100).
  */
 data class TeaStyle(
     val key: String,
-    val umami: UmamiLevel,
-    val freshnessDays: Int,
+    val umami: UmamiLevel?,
+    val freshnessDays: Int?,
     val gramsPerTeaspoon: Double,
     val recipes: List<RecipeTemplate>,
     val japanese: Boolean,
@@ -47,10 +50,10 @@ data class TeaStyle(
 }
 
 /**
- * The built-in green tea styles of 08 §3 (STY-01, D-076) and, from v0.2.1, the catalog's
- * Kräutertees' `herbal` (D-093). Temperatures in 5 °C steps; a step without a temperature brews
- * at the recipe's base temperature. The generic styles of other tea categories (white, oolong, …)
- * come with the collection editor (M3).
+ * The built-in tea styles of 08 §3 (STY-01): the green ones (D-076), from v0.2.1 the catalog's
+ * Kräutertees' `herbal` (D-093), and from v0.4.0 the rows of the other categories for teas added
+ * without the catalog, *Sorte wählen* (SCR-11, D-100; the generic values are the PO's, Q-20).
+ * Temperatures in 5 °C steps; a step without a temperature brews at the recipe's base temperature.
  */
 object BuiltInStyles {
     val all: List<TeaStyle> = listOf(
@@ -126,6 +129,21 @@ object BuiltInStyles {
             recipes = arrayOf(western(2.0, 100, 6 * MINUTE)),
             category = TeaCategory.HERBAL,
         ),
+        // The other categories (v0.4.0, Q-20, D-100): one western infusion of 3:00 at the category's temperature.
+        generic("white_generic", TeaCategory.WHITE, UmamiLevel.LOW, tempC = 85),
+        generic("oolong_generic", TeaCategory.OOLONG, UmamiLevel.LOW, tempC = 95),
+        generic("black_generic", TeaCategory.BLACK, UmamiLevel.NONE, tempC = 95),
+        generic("dark_generic", TeaCategory.DARK, UmamiLevel.NONE, tempC = 100),
+        // *Andere / unbekannt* (08 §3): no umami level and no freshness window.
+        style(
+            "other",
+            umami = null,
+            freshness = null,
+            teaspoon = OTHER_TEASPOON_GRAMS,
+            japanese = false,
+            recipes = arrayOf(western(GENERIC_LEAF_GRAMS, 85, GENERIC_INFUSION_SECONDS)),
+            category = TeaCategory.OTHER,
+        ),
     )
 
     private val byKey: Map<String, TeaStyle> = all.associateBy { it.key }
@@ -140,6 +158,10 @@ object BuiltInStyles {
 private const val HOUR = 3600
 private const val MINUTE = 60
 private const val HERBAL_FRESHNESS_DAYS = 180
+private const val GENERIC_FRESHNESS_DAYS = 90
+private const val GENERIC_INFUSION_SECONDS = 3 * MINUTE
+private const val OTHER_TEASPOON_GRAMS = 2.5
+private const val GENERIC_LEAF_GRAMS = 3.0
 private const val COLD_C = 5
 
 /** A step's duration in seconds and its temperature (null: the base temperature). */
@@ -173,8 +195,8 @@ private fun coldBrew(leaf: Double, water: Int, hours: Int) =
 @Suppress("LongParameterList")
 private fun style(
     key: String,
-    umami: UmamiLevel,
-    freshness: Int,
+    umami: UmamiLevel?,
+    freshness: Int?,
     teaspoon: Double,
     japanese: Boolean,
     recipes: Array<out RecipeTemplate>,
@@ -196,3 +218,14 @@ private fun japanese(key: String, umami: UmamiLevel, freshness: Int, teaspoon: D
 
 private fun other(key: String, umami: UmamiLevel, freshness: Int, teaspoon: Double, vararg recipes: RecipeTemplate) =
     style(key, umami, freshness, teaspoon, japanese = false, recipes = recipes)
+
+/** A generic row of another category (Q-20, D-100): WESTERN 3 g / 250 ml, one infusion of 3:00 at [tempC]. */
+private fun generic(key: String, category: TeaCategory, umami: UmamiLevel, tempC: Int) = style(
+    key,
+    umami,
+    GENERIC_FRESHNESS_DAYS,
+    OTHER_TEASPOON_GRAMS,
+    japanese = false,
+    recipes = arrayOf(western(GENERIC_LEAF_GRAMS, tempC, GENERIC_INFUSION_SECONDS)),
+    category = category,
+)

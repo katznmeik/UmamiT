@@ -2,6 +2,8 @@ package com.umamit.core.datastore
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.CollectionSegment
+import com.umamit.core.model.CollectionSort
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +54,8 @@ class SettingsDataSourceTest {
         assertThat(settings.lowStockReminderTime).isEqualTo(18 * 60)
         assertThat(settings.lowStockReminderLastDate).isNull()
         assertThat(settings.catalogFolded).isEmpty()
+        assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
+        assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
         assertThat(source.seedDataCreated.first()).isFalse()
         assertThat(source.seedPhotosAttempted.first()).isFalse()
         assertThat(source.seedVesselsV2Added.first()).isFalse()
@@ -98,6 +102,8 @@ class SettingsDataSourceTest {
             lowStockReminderTime = 7 * 60 + 30,
             lowStockReminderLastDate = "2026-10-30",
             catalogFolded = setOf("green/Bancha", "herbal/-"),
+            collectionSort = CollectionSort.STOCK,
+            collectionSegment = CollectionSegment.CATALOG,
         )
         // Write with one DataStore, close it, and read the file back with a new one (an app restart).
         val writerScope = CoroutineScope(coroutineContext + Job())
@@ -250,6 +256,47 @@ class SettingsDataSourceTest {
 
         assertThat(settings.catalogFolded).isEmpty()
         assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.alertSound).isEqualTo("glocke")
+    }
+
+    @Test
+    fun eachCollectionSortAndSegmentIsStoredAndReadBack() = runTest {
+        // TEA-11, SCR-08 (v0.4.0, D-100): `collectionSort` and `collectionSegment` round-trip (05 §6).
+        val source = dataSource()
+        for (sort in CollectionSort.entries) {
+            for (segment in CollectionSegment.entries) {
+                source.update { it.copy(collectionSort = sort, collectionSegment = segment) }
+
+                val settings = source.settings.first()
+                assertThat(settings.collectionSort).isEqualTo(sort)
+                assertThat(settings.collectionSegment).isEqualTo(segment)
+            }
+        }
+    }
+
+    @Test
+    fun aFileOfVersion030WithoutTheCollectionKeysReadsTheDefaultsWithoutAMigration() = runTest {
+        // The v0.4.0 keys (D-100): a missing key reads its default, `schemaVersion` stays 2 (05 §6).
+        val file = File(folder.root, "v030-collection.json")
+        file.writeText("""{"schemaVersion":2,"catalogFolded":["green/Bancha"],"seedDataCreated":true}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
+        assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
+        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.catalogFolded).containsExactly("green/Bancha")
+    }
+
+    @Test
+    fun unknownCollectionSortOrSegmentNamesReadTheDefaults() = runTest {
+        val file = File(folder.root, "odd-collection.json")
+        file.writeText("""{"collectionSort":"RATING","collectionSegment":"TEAWARE","alertSound":"glocke"}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
+        assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
         assertThat(settings.alertSound).isEqualTo("glocke")
     }
 }

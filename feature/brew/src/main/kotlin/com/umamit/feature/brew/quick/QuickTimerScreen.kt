@@ -20,11 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -47,6 +42,9 @@ import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.DurationPicker
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.steps.PreAlertDropdown
 import com.umamit.feature.brew.steps.preAlertSpoken
@@ -92,31 +90,24 @@ class QuickTimerActions(
  */
 @Composable
 fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modifier: Modifier = Modifier) {
-    var pickerOpen by rememberSaveable { mutableStateOf(false) }
-    var pickerOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
-    val pickerCovered = state.alertKey != null && state.alertKey != pickerOpenedIn
-    // A new alert closes the picker for good; it is already gone in the frame the alert started.
-    LaunchedEffect(pickerCovered) { if (pickerCovered) pickerOpen = false }
+    val picker = rememberAlertGate(state.alertKey)
 
     SteepingTheme(reduceMotion = UmamiTheme.reduceMotion) {
         Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             QuickTimerBody(
                 state = state,
                 actions = actions,
-                openPicker = {
-                    pickerOpenedIn = state.alertKey
-                    pickerOpen = true
-                },
+                openPicker = picker::open,
             )
         }
-        if (pickerOpen && !pickerCovered) {
-            QuickDurationPicker(
+        AlertGated(picker) {
+            DurationPicker(
                 initialSeconds = state.durationSeconds,
                 onApply = {
-                    pickerOpen = false
+                    picker.close()
                     actions.select(it)
                 },
-                onDismiss = { pickerOpen = false },
+                onDismiss = picker::close,
             )
         }
         // Never over an alert, by construction (the view model also closes it).

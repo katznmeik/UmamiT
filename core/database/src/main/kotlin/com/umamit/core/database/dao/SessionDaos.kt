@@ -62,10 +62,6 @@ interface SessionDao {
     /** Deletes the rows of [sessionId] from [position] on: the pending suffix (05 §3.7). */
     @Query("DELETE FROM session_step WHERE session_id = :sessionId AND position >= :position")
     suspend fun deleteStepsFrom(sessionId: String, position: Int)
-
-    /** Deletes the rows that were never started, i.e. carry no recorded values (05 §3.7, TMR-12). */
-    @Query("DELETE FROM session_step WHERE session_id = :sessionId AND actual_seconds IS NULL")
-    suspend fun deleteUnrecordedSteps(sessionId: String)
 }
 
 /** The journal's read side (SCR-15, JRN-08): read-only, the writes are [SessionDao]'s. */
@@ -109,7 +105,18 @@ interface ActiveBrewDao {
     /** [observeActiveTeaId], read once. */
     @Query(ACTIVE_TEA_ID)
     suspend fun activeTeaId(): String?
+
+    /** The vessel of the active brew session; null without one or for a session without a vessel (WARE-01, D-100). */
+    @Query(ACTIVE_VESSEL_ID)
+    fun observeActiveVesselId(): Flow<String?>
+
+    /** [observeActiveVesselId], read once. */
+    @Query(ACTIVE_VESSEL_ID)
+    suspend fun activeVesselId(): String?
 }
 
 private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +
+    "JOIN brew_session ON brew_session.id = active_brew.session_id"
+
+private const val ACTIVE_VESSEL_ID = "SELECT brew_session.vessel_id FROM active_brew " +
     "JOIN brew_session ON brew_session.id = active_brew.session_id"

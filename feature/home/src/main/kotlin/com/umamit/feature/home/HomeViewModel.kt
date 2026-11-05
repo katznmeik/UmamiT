@@ -25,6 +25,7 @@ import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
 import com.umamit.core.timer.reliability.firstMissingIntents
 import com.umamit.core.timer.reliability.problem
+import com.umamit.core.ui.alertCovers
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -161,7 +162,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             starter.state.collect { timer ->
                 val alert = timer.alertKey()
-                if (alert != null) pending.update { it?.takeIf { p -> p.openedIn == alert } }
+                pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
             }
         }
     }
@@ -262,8 +263,9 @@ class HomeViewModel @Inject constructor(
 
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
 
+    /** The session's ended rows only: from v0.4.0 it keeps its never-started ones too (Q-19). */
     private fun BrewSession.toRecent(photoPath: String?): RecentBrew {
-        val brewed = steps.sortedBy { it.position }.filter { it.kind != StepKind.RINSE && !it.skipped }
+        val brewed = endedSteps.sortedBy { it.position }.filter { it.kind != StepKind.RINSE && !it.skipped }
         val first = brewed.firstOrNull()
         return RecentBrew(
             sessionId = id,

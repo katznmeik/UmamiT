@@ -22,7 +22,9 @@ through the GitHub Actions API/tool. The PO never dispatches or tags.
 - **Bump first, then wait for CI:** set `umamit.version` in
   `gradle.properties` on `ref`, push, and dispatch only after CI (`ci.yml`)
   has passed on that commit; the workflow refuses a commit without a
-  successful CI run (D-070). Tags are never reused; a failed or wrong release
+  successful CI run (D-070) of this repository: a `push` run, or a
+  `pull_request` run from one of its branches (a PR branch has only those
+  since D-101), never a fork's. Tags are never reused; a failed or wrong release
   is fixed with the next version (`-rc.N+1`, `0.0.N+1-probe`).
 - **Workflows on `main` (D-039, D-070):** GitHub dispatches a
   `workflow_dispatch` workflow only while a file of that name exists on the

@@ -12,6 +12,7 @@ import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.TransitionOutcome
+import com.umamit.core.ui.alertCovers
 import com.umamit.feature.brew.setup.ActiveSessionQuestion
 import com.umamit.feature.brew.steps.PreAlertOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -93,7 +94,7 @@ class QuickTimerViewModel @Inject constructor(
         viewModelScope.launch {
             starter.state.collect { timer ->
                 val alert = timer.alertKey()
-                if (alert != null) pending.update { it?.takeIf { p -> p.openedIn == alert } }
+                pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
             }
         }
     }

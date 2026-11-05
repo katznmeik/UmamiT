@@ -28,12 +28,18 @@ class JournalScreenTest {
     val compose = createComposeRule()
 
     private var timerOpened = 0
+    private val sessionsOpened = mutableListOf<String>()
 
     private fun at(date: LocalDate, hour: Int, minute: Int = 0) = LocalDateTime.of(date, LocalTime.of(hour, minute))
 
     private fun show(list: JournalList) = compose.setContent {
         UmamiTheme(darkTheme = false, reduceMotion = true) {
-            JournalScreen(list = list, onOpenSettings = {}, onOpenTimer = { timerOpened++ })
+            JournalScreen(
+                list = list,
+                onOpenSettings = {},
+                onOpenTimer = { timerOpened++ },
+                onOpenSession = { sessionsOpened += it },
+            )
         }
     }
 
@@ -127,11 +133,12 @@ class JournalScreenTest {
     }
 
     @Test
-    fun `a finished row is not a button`() {
+    fun `a finished row opens its session page, not the timer (SCR-15, D-100)`() {
         show(journalList(listOf(session("s1", at(TODAY, 9))), TODAY))
 
         compose.onNodeWithText("Bio Sencha Hisui").performClick()
 
+        assertThat(sessionsOpened).containsExactly("s1")
         assertThat(timerOpened).isEqualTo(0)
     }
 }

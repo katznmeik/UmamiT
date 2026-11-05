@@ -164,11 +164,14 @@ object StyleMapper {
         else -> TeaForm.LOOSE_LEAF
     }
 
-    /** The umami level (08 §2.6): the shop's Umami scale (0 → NONE … 4–5 → VERY_HIGH), else the style's. */
+    /**
+     * The umami level (08 §2.6): the shop's Umami scale (0 → NONE … 4–5 → VERY_HIGH), else the style's.
+     * The catalog maps only to green and herbal styles (CAT-01), which all have one.
+     */
     fun umamiLevel(scales: List<ShopScale>, style: TeaStyle): UmamiLevel =
         scales.firstOrNull { it.label.equals("Umami", ignoreCase = true) }
             ?.let { UMAMI[it.leaves.coerceIn(0, UMAMI.lastIndex)] }
-            ?: style.umami
+            ?: requireNotNull(style.umami) { "catalog style ${style.key} without an umami level" }
 
     private const val FLAVORED = "flavored_green"
     private const val HERBAL = "herbal"

@@ -258,6 +258,27 @@ class SettingsTest {
     }
 
     @Test
+    fun `Bestand abziehen is on, first in Bruehen und Vorrat, and switching it persists (SET-15)`() {
+        show()
+        val row = compose.onNode(hasText("Bestand abziehen") and isToggleable()).performScrollTo()
+        row.assertIsOn()
+        compose.onNodeWithText("Zieht nach jeder Sitzung die Blätter vom Vorrat ab.").assertIsDisplayed()
+        // Above „Knapp ab" (D-100).
+        val lowStockTop = compose.onNodeWithText("Knapp ab").performScrollTo().fetchSemanticsNode().boundsInRoot.top
+        val switchTop = row.fetchSemanticsNode().boundsInRoot.top
+        assertThat(switchTop).isLessThan(lowStockTop)
+
+        clickRow("Bestand abziehen")
+        compose.waitForIdle()
+
+        assertThat(stored()).isEqualTo(UserSettings(deductStock = false))
+        compose.onNode(hasText("Bestand abziehen") and isToggleable()).assertIsOff()
+        clickRow("Bestand abziehen")
+        compose.waitForIdle()
+        assertThat(stored().deductStock).isTrue()
+    }
+
+    @Test
     fun `Knapp ab in Bruehen und Vorrat reads 15 g and steps by 5 g (SET-16)`() {
         show()
         compose.onNodeWithText("15 g").performScrollTo().assertIsDisplayed()

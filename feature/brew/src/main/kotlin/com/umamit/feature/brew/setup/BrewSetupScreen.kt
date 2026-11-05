@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,11 +27,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -60,9 +55,12 @@ import com.umamit.core.model.StockLevel
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.RecipeCheckNote
+import com.umamit.core.ui.StockSheet
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
-import com.umamit.feature.brew.picker.AlertGate
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 import com.umamit.feature.brew.steps.StepsSheet
 import com.umamit.feature.brew.steps.StepsSheetInput
@@ -87,10 +85,11 @@ const val SETUP_STOCK_TAG = "setup_stock"
  * *Bearb.* and the *Vorwarnung* row open the Schritte-Sheet (SCR-31) for this
  * session.
  *
- * For a tea with a catalog entry the top bar has a ⋮ with *Im Katalog ansehen* (D-098); without one,
- * no ⋮ at all.
+ * The top bar's ⋮ has *Tee ansehen* (D-100) and, for a tea with a catalog entry, *Im Katalog ansehen* (D-098).
+ * The *Gefäß* list ends with *Neues Gefäß …* (WARE-02); a recipe's archived vessel reads „(archiviert)". The
+ * stock line warns „Nur noch 3 g übrig" below this brew's leaf (BRW-08).
  *
- * **Alerts first (rule 8):** the ⋮ menu and the sheet remember the alert it was opened in
+ * **Alerts first (rule 8):** the menus and the sheets remember the alert they were opened in
  * and is removed in the same frame, without animation or question, when
  * another alert starts; the second-session question is closed by the view
  * model.
@@ -106,9 +105,14 @@ fun BrewSetupScreen(
         modifier = modifier,
         navigationIcon = { BackAction(actions.back) },
         actions = {
-            val ready = state as? BrewSetupUiState.Ready
-            val key = ready?.catalogKey
-            if (key != null) SetupCatalogMenu(alertKey = ready.alertKey, onOpen = { actions.openCatalog(key) })
+            if (state is BrewSetupUiState.Ready) {
+                val key = state.catalogKey
+                SetupMenu(
+                    alertKey = state.alertKey,
+                    onOpenTea = { actions.openTea(state.teaId) },
+                    onOpenCatalog = key?.let { { actions.openCatalog(it) } },
+                )
+            }
         },
         verticalArrangement = if (state is BrewSetupUiState.Ready) Arrangement.Top else Arrangement.Center,
     ) {
@@ -127,25 +131,15 @@ fun BrewSetupScreen(
 
 @Composable
 private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupActions) {
-    var stepsOpen by rememberSaveable { mutableStateOf(false) }
-    var stepsOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
-    val stepsCovered = state.alertKey != null && state.alertKey != stepsOpenedIn
-    val openSteps = {
-        stepsOpenedIn = state.alertKey
-        stepsOpen = true
-    }
-    var stockOpen by rememberSaveable { mutableStateOf(false) }
-    var stockOpenedIn by rememberSaveable { mutableStateOf<String?>(null) }
+    val steps = rememberAlertGate(state.alertKey)
+    val stock = rememberAlertGate(state.alertKey)
     Column(modifier = Modifier.fillMaxWidth()) {
         TeaHeader(
             state,
-            onStock = {
-                stockOpenedIn = state.alertKey
-                stockOpen = true
-            },
+            onStock = stock::open,
         )
-        RecipeChips(state, actions.selectRecipe)
-        VesselRow(state, actions.selectVessel)
+        RecipeChips(state, actions.selectRecipe, actions.selectWithoutRecipe)
+        VesselRow(state, actions.selectVessel, actions.newVessel)
         AmountRow(
             label = stringResource(R.string.brew_setup_water),
             value = stringResource(R.string.brew_setup_ml, state.waterMl),
@@ -176,8 +170,8 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
                     .testTag(SETUP_RECIPE_CHECK_TAG),
             )
         }
-        StepsSection(state, onEdit = openSteps)
-        PreAlertRow(state, onClick = openSteps)
+        StepsSection(state, onEdit = steps::open)
+        PreAlertRow(state, onClick = steps::open)
         SetupButtons(state, actions)
     }
     val input = StepsSheetInput(
@@ -191,28 +185,26 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         longStepsOnly = BrewTimerEngine.longStepsOnly(state.method),
     )
     StepsSheet(
-        visible = stepsOpen && !stepsCovered,
+        visible = steps.shown,
         state = rememberStepsSheetState(input),
         onDone = {
             actions.applySteps(it)
-            stepsOpen = false
+            steps.close()
         },
         onSaveToRecipe = actions.saveStepsToRecipe,
-        onDismissRequest = { stepsOpen = false },
-        alerting = stepsCovered,
+        onDismissRequest = steps::close,
+        alerting = steps.covered,
     )
-    // A new alert closes the sheet for good; it was already removed in the frame the alert started.
-    LaunchedEffect(stepsCovered) { if (stepsCovered) stepsOpen = false }
     // „Wie viel ist noch da?" (BRW-02, INV-03): gone in the frame another alert starts, without saving (rule 8).
-    AlertGate(stockOpen, stockOpenedIn, state.alertKey, onDismissRequest = { stockOpen = false }) {
+    AlertGated(stock) {
         StockSheet(
             currentGrams = state.stockGrams ?: 0.0,
             sessionLeafGrams = state.sessionLeafGrams,
             onSave = { grams ->
                 actions.correctStock(grams)
-                stockOpen = false
+                stock.close()
             },
-            onDismissRequest = { stockOpen = false },
+            onDismissRequest = stock::close,
         )
     }
     // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
@@ -248,22 +240,34 @@ private fun TeaHeader(state: BrewSetupUiState.Ready, onStock: () -> Unit) {
                 )
             }
             state.stockGrams?.let {
-                StockButton(it, state.stockLevel, onStock, Modifier.align(Alignment.CenterVertically))
+                StockButton(
+                    StockLine(it, state.stockLevel, state.stockShort),
+                    onStock,
+                    Modifier.align(Alignment.CenterVertically),
+                )
             }
         }
     }
 }
 
+/** What the stock line says: the [grams] left, their INV-05 [level], and whether they are [short] of the leaf. */
+private class StockLine(val grams: Double, val level: StockLevel?, val short: Boolean)
+
 /**
- * „38 g übrig", „14 g übrig · knapp" for a *Knapp* tea (BRW-08, D-097) or „Leer" at 0 g and below (INV-05),
- * with a pencil: opens the stock sheet (BRW-02, INV-03).
+ * „38 g übrig", „14 g übrig · knapp" for a *Knapp* tea (BRW-08, D-097), „Nur noch 3 g übrig" (· knapp) below this
+ * brew's leaf (BRW-08, D-100) or „Leer" at 0 g and below (INV-05), with a pencil: opens the stock sheet (BRW-02,
+ * INV-03).
  */
 @Composable
-private fun StockButton(grams: Double, level: StockLevel?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun StockButton(line: StockLine, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val grams = stockGramsText(line.grams)
+    val low = line.level == StockLevel.LOW
     val text = when {
-        grams < StockLevel.EMPTY_BELOW_GRAMS -> stringResource(R.string.brew_setup_stock_empty)
-        level == StockLevel.LOW -> stringResource(R.string.brew_setup_stock_low, stockGramsText(grams))
-        else -> stringResource(R.string.brew_setup_stock, stockGramsText(grams))
+        line.grams < StockLevel.EMPTY_BELOW_GRAMS -> stringResource(R.string.brew_setup_stock_empty)
+        line.short && low -> stringResource(R.string.brew_setup_stock_short_low, grams)
+        line.short -> stringResource(R.string.brew_setup_stock_short, grams)
+        low -> stringResource(R.string.brew_setup_stock_low, grams)
+        else -> stringResource(R.string.brew_setup_stock, grams)
     }
     Row(
         modifier = modifier
@@ -291,12 +295,27 @@ private val STOCK_ICON_SIZE = 16.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecipeChips(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit) {
-    if (state.recipes.isEmpty()) return
+private fun RecipeChips(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit, onSelectWithout: () -> Unit) {
+    if (state.recipes.isEmpty() && !state.withoutRecipe) return
     FlowRow(
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
         horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
     ) {
+        // *So nochmal brühen* without the session's recipe (BRW-06, D-100): *Ohne Rezept* first, selected while no
+        // recipe is.
+        if (state.withoutRecipe) {
+            val selected = state.selectedRecipeId == null
+            FilterChip(
+                selected = selected,
+                onClick = onSelectWithout,
+                label = { Text(stringResource(R.string.brew_setup_without_recipe)) },
+                leadingIcon = if (selected) {
+                    { Icon(painterResource(UmamiIcons.Check), contentDescription = null) }
+                } else {
+                    null
+                },
+            )
+        }
         state.recipes.forEach { recipe ->
             val selected = recipe.id == state.selectedRecipeId
             FilterChip(
@@ -313,17 +332,32 @@ private fun RecipeChips(state: BrewSetupUiState.Ready, onSelect: (String) -> Uni
     }
 }
 
+/**
+ * *Gefäß* with its list (WARE-02): the offered vessels, then *Neues Gefäß …* ([onNewVessel]). The selected vessel
+ * may be a recipe's archived one, „Kyusu 250 ml (archiviert)", which the list doesn't offer (D-100). The list gives
+ * way to an alert like the ⋮ (rule 8).
+ */
 @Composable
-private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit) {
-    var open by rememberSaveable { mutableStateOf(false) }
-    val selected = state.vessels.firstOrNull { it.id == state.selectedVesselId }
-    val name = selected?.name ?: stringResource(R.string.brew_setup_vessel_none)
+private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit, onNewVessel: () -> Unit) {
+    val archived = state.archivedVessel?.takeIf { it.id == state.selectedVesselId }
+    val selected = state.vessels.firstOrNull { it.id == state.selectedVesselId } ?: archived
+    val name = when {
+        selected == null -> stringResource(R.string.brew_setup_vessel_none)
+        archived != null -> stringResource(R.string.brew_setup_vessel_archived, archived.name.trim())
+        else -> selected.name
+    }
+    val label = when {
+        selected == null -> name
+        archived != null -> stringResource(R.string.brew_setup_vessel_archived, vesselLabel(archived))
+        else -> vesselLabel(selected)
+    }
     val description = stringResource(R.string.brew_setup_vessel_description, name)
+    val menu = rememberAlertGate(state.alertKey)
     Box {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(role = Role.DropdownList, enabled = state.vessels.isNotEmpty()) { open = true }
+                .clickable(role = Role.DropdownList, onClick = menu::open)
                 .semantics(mergeDescendants = true) { contentDescription = description }
                 .defaultMinSize(minHeight = UmamiSpacing.MinTouchTarget)
                 .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
@@ -331,7 +365,7 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit)
         ) {
             RowLabel(stringResource(R.string.brew_setup_vessel))
             Text(
-                text = selected?.let { vesselLabel(it) } ?: name,
+                text = label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
@@ -340,16 +374,24 @@ private fun VesselRow(state: BrewSetupUiState.Ready, onSelect: (String) -> Unit)
             )
             Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        AlertGatedDropdownMenu(menu) {
             state.vessels.forEach { vessel ->
                 DropdownMenuItem(
                     text = { Text(vesselLabel(vessel)) },
                     onClick = {
-                        open = false
+                        menu.close()
                         onSelect(vessel.id)
                     },
                 )
             }
+            if (state.vessels.isNotEmpty()) HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.brew_setup_vessel_new)) },
+                onClick = {
+                    menu.close()
+                    onNewVessel()
+                },
+            )
         }
     }
 }

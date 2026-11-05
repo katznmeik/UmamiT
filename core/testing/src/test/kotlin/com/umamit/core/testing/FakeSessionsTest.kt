@@ -40,7 +40,7 @@ class FakeSessionsTest {
     )
 
     @Test
-    fun `complete keeps the plan count, deducts stock, sets cost and opened date, and discard removes it all`() =
+    fun `complete keeps the plan and its rows, deducts stock, sets cost and opened date, and discard removes it all`() =
         runTest {
             fakes.collection.teas.saveTea(Tea("t1", "Hisui", TeaCategory.GREEN, TeaForm.LOOSE_LEAF))
             fakes.collection.stock.addEvent(
@@ -58,7 +58,9 @@ class FakeSessionsTest {
             val session = fakes.sessions.getSession("s1")!!
             assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)
             assertThat(session.plannedStepCount).isEqualTo(2)
-            assertThat(session.steps.map { it.tempC }).containsExactly(60)
+            // As on Room from v0.4.0: the never-started second row stays, without an actual time (Q-19).
+            assertThat(session.steps.map { it.tempC to it.actualSeconds })
+                .containsExactly(60 to 62, 60 to null).inOrder()
             assertThat(session.costCents).isEqualTo(34)
             assertThat(session.endedAtMs).isEqualTo(START + 62_000)
             assertThat(fakes.collection.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(96.0)

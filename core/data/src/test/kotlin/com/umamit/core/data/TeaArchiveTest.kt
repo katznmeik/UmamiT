@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * *Aus Sammlung entfernen* (TEA-04, SCR-03, D-093 point 8) on the database in memory: the tea is
+ * *Archivieren* (TEA-04, SCR-03, D-093 point 8) on the database in memory: the tea is
  * archived, never deleted, and comes back with undo; the tea of the active brew session can't be
  * removed (E15); Start and the tea picker no longer list it while the journal keeps its sessions
  * with name and photo.
@@ -28,7 +28,7 @@ class TeaArchiveTest {
     val folder = TemporaryFolder()
 
     private val data = TestDatabase()
-    private val archive by lazy { RoomTeaArchive(data.db, data.time) }
+    private val archive by lazy { RoomTeaArchive(data.db, data.time, PhotoFiles(folder.newFolder("archive-photos"))) }
 
     @After
     fun tearDown() = data.close()

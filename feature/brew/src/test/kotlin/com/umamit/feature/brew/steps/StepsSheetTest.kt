@@ -180,6 +180,14 @@ class StepsSheetTest {
     }
 
     @Test
+    fun `a rinse reads Spuelen, not Spuelaufguss (D-100 G3)`() {
+        show(listOf(pending(StepKind.RINSE, seconds = 10), pending(seconds = 60)))
+
+        compose.onNodeWithText("1 Spülen").assertIsDisplayed()
+        compose.onAllNodesWithText("Spülaufguss", substring = true).assertCountEquals(0)
+    }
+
+    @Test
     fun `a done infusion counts as the non-rinse step that must remain`() {
         show(listOf(doneStep(), pending(seconds = 45)))
 

@@ -54,6 +54,8 @@ import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.AlertGate
+import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.rememberPhotoPainter
 import com.umamit.feature.brew.R
 import kotlinx.coroutines.withTimeoutOrNull
@@ -67,16 +69,14 @@ const val TEA_PICKER_TAG = "tea_picker"
  * tea ([onCatalog], D-073); *Ohne Tee (Schnelltimer)* the quick timer
  * ([onQuickTimer]).
  *
- * **Alerts first (rule 8):** the host remembers the alert the sheet was
- * opened in ([openedIn], the `alertKey` of that moment). While another alert
- * plays ([alertKey]) the sheet is not composed, so it leaves in the same
- * frame without animation, and [onDismissRequest] is called.
+ * **Alerts first (rule 8):** the host opens the sheet through its [gate], which
+ * remembers the alert it was opened in. While another alert plays the sheet is
+ * not composed, so it leaves in the same frame without animation, and the gate
+ * closes it for good.
  */
 @Composable
 fun TeaPickerHost(
-    open: Boolean,
-    openedIn: String?,
-    alertKey: String?,
+    gate: AlertGate,
     onPickTea: (teaId: String) -> Unit,
     onQuickTimer: () -> Unit,
     onDismissRequest: () -> Unit,
@@ -84,13 +84,13 @@ fun TeaPickerHost(
     viewModel: TeaPickerViewModel = hiltViewModel(),
 ) {
     // A closed picker forgets its search and its undo, so it opens on the sections again.
-    LaunchedEffect(open, viewModel) {
-        if (!open) {
+    LaunchedEffect(gate.isOpen, viewModel) {
+        if (!gate.isOpen) {
             viewModel.setQuery("")
             viewModel.dismissRemoved()
         }
     }
-    AlertGate(open, openedIn, alertKey, onDismissRequest) {
+    AlertGated(gate) {
         val state by viewModel.state.collectAsStateWithLifecycle()
         TeaPickerSheet(
             state = state,
@@ -107,26 +107,6 @@ fun TeaPickerHost(
 }
 
 /**
- * Composes [content] while [open], unless an alert plays that it was not
- * opened in ([openedIn]): then it is removed in that frame (no exit
- * animation can cover the alert) and [onDismissRequest] closes it for good
- * (rule 8, D-058).
- */
-@Composable
-internal fun AlertGate(
-    open: Boolean,
-    openedIn: String?,
-    alertKey: String?,
-    onDismissRequest: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val coveredAlert = alertKey != null && alertKey != openedIn
-    val currentOnDismiss by rememberUpdatedState(onDismissRequest)
-    LaunchedEffect(open, coveredAlert) { if (open && coveredAlert) currentOnDismiss() }
-    if (open && !coveredAlert) content()
-}
-
-/**
  * The stateless tea picker sheet (SCR-03): search, *Zuletzt*, *Favoriten*,
  * *Alle* and the footer *Aus dem Katalog* and *Ohne Tee (Schnelltimer)*. It opens expanded with
  * Material's calm sheet motion, like the Schritte-Sheet (D-051); under reduce
@@ -135,7 +115,7 @@ internal fun AlertGate(
  * transition (no sheet exit before it), and nothing can navigate after an
  * alert has started (rule 8, D-062).
  *
- * A long press on a tea opens its menu with *Aus Sammlung entfernen* ([onRemoveTea]; greyed out
+ * A long press on a tea opens its menu with *Archivieren* ([onRemoveTea]; greyed out
  * with „Erst die Sitzung beenden" for the active session's tea, E15). While [TeaPickerUiState.removed]
  * is set, a snackbar of about 8 s offers *Rückgängig* ([onUndoRemove]); when it goes,
  * [onRemovedDismiss] is called (TEA-04, D-093 Q21).
@@ -177,7 +157,7 @@ fun TeaPickerSheet(
 }
 
 /**
- * Shows the snackbar „*Tanabata* aus der Sammlung entfernt" · *Rückgängig* for [removed]: about
+ * Shows the snackbar „*Tanabata* archiviert" · *Rückgängig* for [removed]: about
  * 8 s (D-093 Q21), longer when the accessibility settings ask for more time.
  */
 @Composable
@@ -306,7 +286,12 @@ private fun PickerLists(state: TeaPickerUiState, actions: TeaRowActions) {
 private fun TeaKind.title(): String = stringResource(
     when (this) {
         TeaKind.GREEN -> R.string.brew_picker_group_green
+        TeaKind.WHITE -> R.string.brew_picker_group_white
+        TeaKind.OOLONG -> R.string.brew_picker_group_oolong
+        TeaKind.BLACK -> R.string.brew_picker_group_black
+        TeaKind.PUERH -> R.string.brew_picker_group_puerh
         TeaKind.HERBAL -> R.string.brew_picker_group_herbal
+        TeaKind.OTHER -> R.string.brew_picker_group_other
     },
 )
 
@@ -320,7 +305,7 @@ private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowAction
 }
 
 /**
- * A tea of the picker. A long press opens its menu with *Aus Sammlung entfernen*, greyed out with
+ * A tea of the picker. A long press opens its menu with *Archivieren*, greyed out with
  * „Erst die Sitzung beenden" for the active session's tea (E15); TalkBack offers the removal as a
  * custom action on the row (SCR-03).
  */

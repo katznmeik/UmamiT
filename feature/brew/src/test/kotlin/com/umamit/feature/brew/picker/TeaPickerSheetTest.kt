@@ -19,6 +19,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.AlertGate
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.rememberAlertGate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -89,16 +92,17 @@ class TeaPickerSheetTest {
     @Test
     fun `a pick calls back in the tap's frame, so no alert can come between the pick and the setup (rule 8)`() {
         var alertKey by mutableStateOf<String?>(null)
-        var open by mutableStateOf(true)
+        lateinit var gate: AlertGate
         compose.setContent {
             UmamiTheme(reduceMotion = false) {
-                AlertGate(open = open, openedIn = null, alertKey = alertKey, onDismissRequest = { open = false }) {
+                gate = rememberAlertGate(alertKey)
+                AlertGated(gate) {
                     TeaPickerSheet(
                         state = TeaPickerUiState(all = listOf(hisui), loading = false),
                         onQueryChange = {},
                         onPickTea = {
                             picked += it
-                            open = false
+                            gate.close()
                         },
                         onQuickTimer = {},
                         onDismissRequest = {},
@@ -106,6 +110,7 @@ class TeaPickerSheetTest {
                 }
             }
         }
+        compose.runOnIdle { gate.open() }
         compose.waitForIdle()
         compose.mainClock.autoAdvance = false
 
@@ -132,10 +137,11 @@ class TeaPickerSheetTest {
     @Test
     fun `an alert that starts while the picker is open removes it at once and closes it (rule 8)`() {
         var alertKey by mutableStateOf<String?>(null)
-        var open by mutableStateOf(true)
+        lateinit var gate: AlertGate
         compose.setContent {
             UmamiTheme(reduceMotion = false) {
-                AlertGate(open = open, openedIn = null, alertKey = alertKey, onDismissRequest = { open = false }) {
+                gate = rememberAlertGate(alertKey)
+                AlertGated(gate) {
                     TeaPickerSheet(
                         state = TeaPickerUiState(all = listOf(hisui), loading = false),
                         onQueryChange = {},
@@ -146,6 +152,7 @@ class TeaPickerSheetTest {
                 }
             }
         }
+        compose.runOnIdle { gate.open() }
         compose.onNodeWithText("Tee wählen").assertIsDisplayed()
 
         compose.mainClock.autoAdvance = false
@@ -159,14 +166,16 @@ class TeaPickerSheetTest {
         compose.onNodeWithText("Tee wählen").assertDoesNotExist()
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
-        assertThat(open).isFalse()
+        assertThat(gate.isOpen).isFalse()
     }
 
     @Test
     fun `a picker opened during an alert stays for that alert`() {
+        lateinit var gate: AlertGate
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                AlertGate(open = true, openedIn = "s1:0:1", alertKey = "s1:0:1", onDismissRequest = {}) {
+                gate = rememberAlertGate("s1:0:1")
+                AlertGated(gate) {
                     TeaPickerSheet(
                         state = TeaPickerUiState(all = listOf(hisui), loading = false),
                         onQueryChange = {},
@@ -177,6 +186,7 @@ class TeaPickerSheetTest {
                 }
             }
         }
+        compose.runOnIdle { gate.open() }
 
         compose.onNodeWithText("Tee wählen").assertIsDisplayed()
     }
@@ -203,15 +213,15 @@ class TeaPickerSheetTest {
     }
 
     @Test
-    fun `a long press offers Aus Sammlung entfernen, which removes the tea without a dialog`() {
+    fun `a long press offers Archivieren, which removes the tea without a dialog`() {
         showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata), loading = false))
 
         compose.onNodeWithText("Bio Sencha Hisui").performTouchInput { longClick() }
-        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Archivieren").assertIsDisplayed().performClick()
 
         assertThat(removedTeas).containsExactly("h")
         assertThat(picked).isEmpty()
-        compose.onNodeWithText("Aus Sammlung entfernen").assertDoesNotExist()
+        compose.onNodeWithText("Archivieren").assertDoesNotExist()
     }
 
     @Test
@@ -221,17 +231,17 @@ class TeaPickerSheetTest {
         compose.onNodeWithText("Bio Sencha Tanabata").performTouchInput { longClick() }
 
         compose.onNodeWithText("Erst die Sitzung beenden", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNode(hasClickAction() and hasText("Aus Sammlung entfernen")).assertIsNotEnabled().performClick()
+        compose.onNode(hasClickAction() and hasText("Archivieren")).assertIsNotEnabled().performClick()
         assertThat(removedTeas).isEmpty()
     }
 
     @Test
-    fun `TalkBack offers Aus Sammlung entfernen as a custom action on the row`() {
+    fun `TalkBack offers Archivieren as a custom action on the row`() {
         showRemovable(TeaPickerUiState(all = listOf(hisui, tanabata.copy(removable = false)), loading = false))
 
         val row = compose.onNode(hasText("Bio Sencha Hisui") and hasClickAction()).fetchSemanticsNode()
         compose.runOnIdle {
-            row.config[SemanticsActions.CustomActions].single { it.label == "Aus Sammlung entfernen" }.action()
+            row.config[SemanticsActions.CustomActions].single { it.label == "Archivieren" }.action()
         }
         // Not for the tea of the active session.
         val blocked = compose.onNode(hasText("Bio Sencha Tanabata") and hasClickAction()).fetchSemanticsNode()
@@ -244,7 +254,7 @@ class TeaPickerSheetTest {
     fun `the snackbar names the removed tea and Rueckgaengig undoes it`() {
         showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
 
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()
 
@@ -255,10 +265,10 @@ class TeaPickerSheetTest {
     @Test
     fun `the snackbar stays about 8 s, then goes and the tea stays removed (D-093 Q21)`() {
         showRemovable(TeaPickerUiState(all = listOf(tanabata), loading = false, removed = hisui))
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
 
         compose.mainClock.advanceTimeBy(7_500)
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
         assertThat(snackbarGone).isEqualTo(0)
 
         compose.mainClock.advanceTimeBy(1_000)
@@ -314,7 +324,7 @@ class TeaPickerSheetTest {
         showRemovable(TeaPickerUiState(all = listOf(hisui, minze), loading = false))
 
         compose.onNodeWithText("Minze Zitrone").performTouchInput { longClick() }
-        compose.onNodeWithText("Aus Sammlung entfernen").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Archivieren").assertIsDisplayed().performClick()
 
         assertThat(removedTeas).containsExactly("m")
     }

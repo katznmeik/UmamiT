@@ -44,7 +44,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * *Aus Sammlung entfernen* from the tea picker (TEA-04, SCR-03, D-093 point 8): the tea leaves
+ * *Archivieren* from the tea picker (TEA-04, SCR-03, D-093 point 8): the tea leaves
  * the picker and Start's *Nochmal brühen* at once; *Rückgängig* brings it back. Real Start and
  * picker view models on fake repositories.
  */
@@ -123,14 +123,14 @@ class RemoveTeaFlowTest {
 
         compose.onNodeWithText("Aufguss starten").performClick()
         compose.onAllNodes(hasText("Bio Sencha Hisui") and inPicker).onFirst().performTouchInput { longClick() }
-        compose.onNodeWithText("Aus Sammlung entfernen").performClick()
+        compose.onNodeWithText("Archivieren").performClick()
         compose.waitForIdle()
 
         assertThat(archive.archived).containsExactly(SeedData.HISUI_TEA_ID)
         compose.onAllNodes(hasText("Bio Sencha Hisui") and inPicker).assertCountEquals(0)
         compose.onAllNodes(hasText("Bio Sencha Tanabata") and inPicker).onFirst().assertIsDisplayed()
         compose.onNodeWithContentDescription("Nochmal brühen: Bio Sencha Hisui").assertDoesNotExist()
-        compose.onNodeWithText("Bio Sencha Hisui aus der Sammlung entfernt").assertIsDisplayed()
+        compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
 
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()

@@ -26,7 +26,8 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 
 /**
  * Calm empty state (03 §3.8, GEN-09): illustration, serif title, body and an
- * optional button. The illustration is decorative; the default is the
+ * optional button; without a [body] the title stands alone („Kein Tee passt zu
+ * deiner Suche."). The illustration is decorative; the default is the
  * placeholder landscape, tinted from the theme so it works in both schemes.
  * A finished illustration (a light and a dark WebP whose paper is the theme's
  * background, docs/design/assets.md) passes `illustrationTint = null`.
@@ -34,7 +35,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 @Composable
 fun EmptyState(
     title: String,
-    body: String,
+    body: String?,
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -63,13 +64,15 @@ fun EmptyState(
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(UmamiSpacing.XSmall))
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        if (body != null) {
+            Spacer(Modifier.height(UmamiSpacing.XSmall))
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(UmamiSpacing.Large))
             PillButton(text = actionLabel, onClick = onAction)

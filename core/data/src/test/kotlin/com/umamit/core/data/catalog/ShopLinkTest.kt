@@ -2,6 +2,7 @@ package com.umamit.core.data.catalog
 
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.CatalogPackage
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import org.junit.Test
@@ -73,7 +74,22 @@ class ShopLinkTest {
             .isEqualTo(PRODUCT)
     }
 
+    @Test
+    fun theReorderLinkFollowsTheCatalogTea() {
+        val bought = listOf(event(InventoryEventType.INITIAL, 50.0, at = 1))
+        val tea = CatalogTeaDetail(key = "XY0100", name = "Morgennebel", productUrl = PRODUCT, packages = packages)
+
+        // INV-09: the size bought last; before the catalog was ever loaded, the tea's own product page.
+        assertThat(ShopLink.reorderUrl("XY0100", tea, OWN, bought)).isEqualTo("$PRODUCT-50")
+        assertThat(ShopLink.reorderUrl("XY0100", null, OWN, bought)).isEqualTo(OWN)
+        // AC2: no link without a catalog key or for a tea no longer in the range.
+        assertThat(ShopLink.reorderUrl(null, null, OWN, bought)).isNull()
+        assertThat(ShopLink.reorderUrl("XY0100", tea.copy(discontinued = true), OWN, bought)).isNull()
+    }
+
     private companion object {
+        const val OWN = "https://shop.example/own/XY0100"
+
         const val PRODUCT = "https://shop.example/morgennebel-sencha/XY0100"
     }
 }

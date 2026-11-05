@@ -54,8 +54,12 @@ class BrewSetupViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(teaId: String? = SeedData.HISUI_TEA_ID, sessionId: String? = null) = BrewSetupViewModel(
-        SavedStateHandle(mapOf("teaId" to teaId, "sessionId" to sessionId)),
+    private fun viewModel(
+        teaId: String? = SeedData.HISUI_TEA_ID,
+        sessionId: String? = null,
+        recipeId: String? = null,
+    ) = BrewSetupViewModel(
+        SavedStateHandle(mapOf("teaId" to teaId, "sessionId" to sessionId, "recipeId" to recipeId)),
         collection.teas,
         collection.recipes,
         collection.vessels,
@@ -138,6 +142,18 @@ class BrewSetupViewModelTest {
         assertThat(ready.kettle).isEqualTo(Kettle(65, KettleWater.HOT))
         assertThat(ready.stockGrams).isEqualTo(100.0)
         assertThat(ready.canSaveToRecipe).isFalse()
+    }
+
+    @Test
+    fun `a recipe tapped on the tea detail opens the setup with that recipe (SCR-09)`() {
+        val westlich = viewModel().ready.recipe("Westlich")
+
+        val ready = viewModel(recipeId = westlich).ready
+
+        assertThat(ready.selectedRecipeId).isEqualTo(westlich)
+        assertThat(ready.waterMl).isEqualTo(400)
+        // A recipe that is gone (deleted meanwhile) falls back to the default.
+        assertThat(viewModel(recipeId = "gone").ready.selectedRecipeId).isEqualTo(ready.recipe("Kyusu"))
     }
 
     @Test
@@ -383,6 +399,25 @@ class BrewSetupViewModelTest {
         assertThat(vm.ready.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
         assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+    }
+
+    @Test
+    fun `Bruehen anpassen never falls back to another recipe when the session's recipe is gone (D-101)`() = runTest {
+        val default = collection.recipes.observeRecipes(SeedData.HISUI_TEA_ID).first().single { it.isDefault }
+        collection.recipes.saveRecipe(default.copy(id = "extra", name = "Extra", isDefault = false, position = 5))
+        val request = brewAgain("Bio Sencha Hisui").let { it.copy(snapshot = it.snapshot.copy(profileId = "extra")) }
+        sessions.sessions.startSession(
+            SessionStart("waiting", request.snapshot, request.steps, preAlertSeconds = 10, 0, "Europe/Berlin"),
+        )
+        starter.state.value = FakeBrewStarter.readyState(request, "waiting")
+        // Not possible through the app any more (the delete is refused, E15); the setup still never picks another.
+        collection.recipes.deleteRecipe("extra")
+
+        val vm = viewModel(teaId = null, sessionId = "waiting")
+
+        assertThat(vm.ready.selectedRecipeId).isNull()
+        assertThat(vm.ready.canSaveToRecipe).isFalse()
+        assertThat(vm.ready.steps).containsExactly(PlannedStep(StepKind.INFUSION, 60, 65))
     }
 
     @Test
