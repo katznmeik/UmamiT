@@ -930,8 +930,9 @@ v0.4.0 (D-100):
   *Aufguss* / *Spülen* / *Aufschlagen*; duration with the Schritte-Sheet's
   „Dauer wählen" and hold-to-repeat ± (5 s – 24 h); temperature in 5 °C
   steps; note. At least one step that is not *Spülen*. Add and delete steps.
-- **Recipe actions:** *Als Standard*; delete (not for the last recipe;
-  deleting the default makes the next one default).
+- **Recipe actions:** *Als Standard*; delete (not for the last recipe nor
+  the active brew session's; deleting the default makes the next one
+  default).
 - **Save:** *Speichern* clears „Rezept prüfen" (TEA-17); ✕ with changes asks
   GEN-08's question. A running brew keeps its steps.
 - No *Aufgüsse erzeugen* (series generator, PRF-05 not planned).
@@ -955,7 +956,9 @@ v0.4.0 (D-100):
     *Spülen* and can't be deleted. *Aufguss hinzufügen* appends the timer's
     *Weiterer Aufguss* (TMR-10), up to 30 steps.
   - ⋮ *Rezept löschen* asks „Rezept löschen?"; for the tea's last recipe it
-    is greyed out with „Ein Tee braucht mindestens ein Rezept."
+    is greyed out with „Ein Tee braucht mindestens ein Rezept.", for the
+    recipe of the active brew session with „Erst die Sitzung beenden" (E15,
+    D-101).
   - The editor sits in the Sammlung stack above the detail; *Speichern* and
     *Löschen* return to it.
 

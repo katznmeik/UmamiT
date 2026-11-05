@@ -2,6 +2,8 @@ package com.umamit.feature.brew.setup
 
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.RecipeRepository
+import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
@@ -24,10 +26,13 @@ import com.umamit.core.timer.engine.StepRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.yield
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -72,8 +77,21 @@ class BrewSetupFromSessionTest {
         position = if (isDefault) 0 else 1,
     )
 
-    private fun viewModel(pastSessionId: String = PAST) = BrewSetupViewModel(
-        SavedStateHandle(mapOf("pastSessionId" to pastSessionId)),
+    private fun viewModel(pastSessionId: String = PAST, recipes: RecipeRepository = collection.recipes) =
+        BrewSetupViewModel(
+            SavedStateHandle(mapOf("pastSessionId" to pastSessionId)),
+            collection.teas,
+            recipes,
+            collection.vessels,
+            collection.stock,
+            sessions.sessions,
+            settings,
+            starter,
+            FakeCatalogRepository(),
+        )
+
+    private fun viewModelFor(recipeId: String) = BrewSetupViewModel(
+        SavedStateHandle(mapOf("teaId" to TEA, "recipeId" to recipeId)),
         collection.teas,
         collection.recipes,
         collection.vessels,
@@ -90,7 +108,13 @@ class BrewSetupFromSessionTest {
      * A finished session of [profileId]: a rinse, an infusion whose set time the Schritte-Sheet changed to 75 s and
      * that ran 20 s into overtime, and a third step never started (kept from v0.4.0, Q-19).
      */
-    private suspend fun brewed(profileId: String?, profileName: String? = "Kräftig", vesselId: String = OLD_KYUSU) {
+    private suspend fun brewed(
+        profileId: String?,
+        profileName: String? = "Kräftig",
+        vesselId: String = OLD_KYUSU,
+        method: BrewMethod = BrewMethod.KYUSU,
+        preAlertSeconds: Int = 10,
+    ) {
         val snapshot = SessionSnapshot(
             teaId = TEA,
             teaName = "Sencha Morgentau",
@@ -100,7 +124,7 @@ class BrewSetupFromSessionTest {
             category = TeaCategory.GREEN,
             profileId = profileId,
             profileName = profileName,
-            method = BrewMethod.KYUSU,
+            method = method,
             vesselId = vesselId,
             vesselName = "Alte Kyusu",
             leafGrams = 4.5,
@@ -112,7 +136,7 @@ class BrewSetupFromSessionTest {
             PlannedStep(StepKind.INFUSION, 60, null),
             PlannedStep(StepKind.INFUSION, 30, 75, preAlertSeconds = 15),
         )
-        sessions.sessions.startSession(SessionStart(PAST, snapshot, planned, 10, 0, "Europe/Berlin"))
+        sessions.sessions.startSession(SessionStart(PAST, snapshot, planned, preAlertSeconds, 0, "Europe/Berlin"))
         sessions.sessions.recordStep(PAST, 0, record(10, 10))
         // *Schritte bearbeiten* while infusion 1 waited: 60 s became 75 s (04 §4, the session's set time).
         sessions.sessions.replacePendingSteps(
@@ -161,6 +185,67 @@ class BrewSetupFromSessionTest {
         assertThat(saved.waterMl).isEqualTo(180)
         assertThat(saved.steps.map { it.durationSeconds }).containsExactly(10, 75, 30).inOrder()
         assertThat(collection.recipes.observeRecipes(TEA).first()).hasSize(2)
+    }
+
+    @Test
+    fun `Im Rezept speichern into the session's recipe stores its base and method, so every temperature stays (F3)`() =
+        runTest {
+            // The recipe brews Kyusu at 70 degrees; the session brewed Gongfu at 65 degrees.
+            brewed(profileId = STRONG, method = BrewMethod.GONGFU)
+            val vm = viewModel()
+
+            vm.saveToRecipe()
+
+            val saved = collection.recipes.getRecipe(STRONG)!!
+            assertThat(saved.baseTempC).isEqualTo(65)
+            assertThat(saved.method).isEqualTo(BrewMethod.GONGFU)
+            assertThat(saved.steps).containsExactly(
+                RecipeStep(StepKind.RINSE, 10, 80, preAlertSeconds = 0),
+                RecipeStep(StepKind.INFUSION, 75),
+                RecipeStep(StepKind.INFUSION, 30, 75, preAlertSeconds = 15),
+            ).inOrder()
+            // The save settles: the setup now equals the recipe.
+            assertThat(vm.ready.canSaveToRecipe).isFalse()
+            assertThat(viewModelFor(STRONG).ready.steps.map { it.tempC }).containsExactly(80, 65, 75).inOrder()
+        }
+
+    @Test
+    fun `a double tap on Im Rezept speichern with Ohne Rezept creates one recipe, however slow the save (F4)`() =
+        runTest {
+            brewed(profileId = "deleted-recipe", profileName = "Mein Morgen")
+            Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+            // A save that suspends, as on Room: the second tap comes while the first one is still writing.
+            val slowRecipes = object : RecipeRepository by collection.recipes {
+                override suspend fun saveRecipe(recipe: Recipe): SaveRecipeResult {
+                    yield()
+                    return collection.recipes.saveRecipe(recipe)
+                }
+            }
+            val vm = viewModel(recipes = slowRecipes)
+            advanceUntilIdle()
+
+            vm.saveToRecipe()
+            vm.saveToRecipe()
+            advanceUntilIdle()
+
+            assertThat(collection.recipes.observeRecipes(TEA).first().count { it.name == "Mein Morgen" }).isEqualTo(1)
+            assertThat(vm.ready.canSaveToRecipe).isFalse()
+        }
+
+    @Test
+    fun `Ohne Rezept keeps the session's own Vorwarnung base, and the new recipe keeps it (F11)`() = runTest {
+        brewed(profileId = "deleted-recipe", profileName = "Mein Morgen", preAlertSeconds = 20)
+        val vm = viewModel()
+
+        assertThat(vm.ready.preAlertBaseSeconds).isEqualTo(20)
+        vm.startBrew()
+        assertThat(starter.starts.single().recipePreAlertSeconds).isEqualTo(20)
+
+        vm.saveToRecipe()
+
+        val created = collection.recipes.observeRecipes(TEA).first().single { it.name == "Mein Morgen" }
+        assertThat(created.preAlertSeconds).isEqualTo(20)
+        assertThat(vm.ready.preAlertBaseSeconds).isEqualTo(20)
     }
 
     @Test

@@ -15,6 +15,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -71,8 +72,11 @@ class RoomRecipeRepository @Inject constructor(private val dao: RecipeDao, priva
     override suspend fun deleteRecipe(id: String): DeleteRecipeResult = when (dao.deleteKeepingOne(id, time.nowMs())) {
         RecipeDeletion.DELETED -> DeleteRecipeResult.Deleted
         RecipeDeletion.LAST_RECIPE -> DeleteRecipeResult.LastRecipe
+        RecipeDeletion.IN_ACTIVE_SESSION -> DeleteRecipeResult.InActiveSession
         RecipeDeletion.NOT_FOUND -> DeleteRecipeResult.NotFound
     }
+
+    override fun observeActiveRecipeId(): Flow<String?> = dao.observeActiveRecipeId().distinctUntilChanged()
 }
 
 /** [VesselRepository] on Room (05 §3.4). */

@@ -68,10 +68,17 @@ interface RecipeRepository {
     suspend fun replaceSteps(recipeId: String, steps: List<RecipeStep>)
 
     /**
-     * Deletes the recipe unless it is its tea's last one (PRF-01, D-100); a deleted default passes to the
-     * first remaining recipe by position. One transaction.
+     * Deletes the recipe unless it is its tea's last one (PRF-01, D-100) or the recipe of the active brew
+     * session (E15, D-101 F12); a deleted default passes to the first remaining recipe by position. One
+     * transaction.
      */
     suspend fun deleteRecipe(id: String): DeleteRecipeResult
+
+    /**
+     * The recipe of the active brew session, or null (no session, the quick timer, or a session without a
+     * recipe): that recipe can't be deleted (E15, D-101 F12).
+     */
+    fun observeActiveRecipeId(): Flow<String?>
 }
 
 /** How [RecipeRepository.saveRecipe] ended. */
@@ -88,6 +95,12 @@ sealed interface DeleteRecipeResult {
 
     /** The tea's last recipe stays (PRF-01); nothing changed. */
     data object LastRecipe : DeleteRecipeResult
+
+    /**
+     * It is the recipe of the active brew session, so *Brühen anpassen* keeps it; nothing changed („Erst die
+     * Sitzung beenden", E15, D-101 F12).
+     */
+    data object InActiveSession : DeleteRecipeResult
 
     /** No recipe with the id (any more); nothing changed. */
     data object NotFound : DeleteRecipeResult

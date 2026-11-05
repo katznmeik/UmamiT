@@ -257,6 +257,8 @@ class ProcessDeathTest {
         assertEquals("test setup: the step and the quick timer started", TimerTestActivity.STARTED, outcome)
         val brewDeadline = TimerTestActivity.deadlineFile(context).readText().toLong()
         val quickDeadline = TimerTestActivity.quickDeadlineFile(context).readText().toLong()
+        // The real gap, so a run close to TOGETHER_MS shows in the log before it fails.
+        Log.i(TAG, "the quick timer is due ${quickDeadline - brewDeadline} ms after the brew (at most $TOGETHER_MS)")
         assertTrue(
             "test setup: the quick timer must be due together with the brew, ${quickDeadline - brewDeadline} ms after",
             quickDeadline - brewDeadline in -EARLY_TOLERANCE_MS..TOGETHER_MS,

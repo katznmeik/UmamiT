@@ -281,6 +281,8 @@
     <string name="recipe_editor_notes">Notizen</string>
     <string name="recipe_editor_delete">Rezept löschen</string>
     <string name="recipe_editor_delete_last">Ein Tee braucht mindestens ein Rezept.</string>
+    <!-- E15 (D-101 F12): the recipe of the running brew stays until the session ends. -->
+    <string name="recipe_editor_delete_brewing">Erst die Sitzung beenden</string>
     <string name="recipe_editor_delete_title">Rezept löschen?</string>
     <string name="recipe_editor_delete_text">Das Rezept ist danach weg. Deine Sitzungen im Journal bleiben.</string>
     <string name="recipe_editor_delete_confirm">Löschen</string>

@@ -39,7 +39,9 @@ sealed interface RecipeEditorUiState {
     /**
      * @property isNew *Rezept hinzufügen*: nothing is stored before *Speichern* (D-100).
      * @property isStoredDefault the stored recipe is the tea's default: *Als Standard* stays on (PRF-01).
-     * @property canDelete a stored recipe that is not its tea's last one (PRF-01).
+     * @property canDelete a stored recipe that is not its tea's last one (PRF-01) nor the running brew's.
+     * @property isBrewing the stored recipe is the running brew's: *Rezept löschen* is greyed out with „Erst die
+     * Sitzung beenden" (E15, D-101 F12).
      * @property vessels the *Gefäß* list: favourites first, then A–Z, never an archived vessel (WARE-02).
      * @property selectedVessel the form's vessel, archived or not („Kyusu 250 ml (archiviert)", D-100).
      * @property globalPreAlertSeconds the settings' Vorwarnung (SET-10): B while the recipe has none of its own.
@@ -50,6 +52,7 @@ sealed interface RecipeEditorUiState {
         val isNew: Boolean,
         val isStoredDefault: Boolean,
         val canDelete: Boolean,
+        val isBrewing: Boolean = false,
         val vessels: List<Vessel>,
         val selectedVessel: Vessel?,
         val globalPreAlertSeconds: Int,
@@ -70,6 +73,9 @@ enum class RecipeEditorMessage {
 
     /** The tea's last recipe stays (PRF-01). */
     LastRecipe,
+
+    /** The recipe of the running brew stays until the session ends (E15, D-101 F12). */
+    InActiveSession,
 }
 
 /** What the editor asks its host to do. */
@@ -114,7 +120,8 @@ class RecipeEditorViewModel @Inject constructor(
         recipes.observeRecipes(teaId).map { it.size }.distinctUntilChanged(),
         vessels.observeVessels(),
         settings.settings.map { it.preAlertSeconds }.distinctUntilChanged(),
-    ) { count, all, preAlert -> Surroundings(count, all, preAlert) }
+        recipes.observeActiveRecipeId(),
+    ) { count, all, preAlert, active -> Surroundings(count, all, preAlert, active) }
 
     private val editing: Flow<Editing> = combine(form, showErrors, saving, message) { f, show, isSaving, m ->
         Editing(f, show, isSaving, m)
@@ -135,7 +142,8 @@ class RecipeEditorViewModel @Inject constructor(
                     form = f,
                     isNew = stored == null,
                     isStoredDefault = stored?.isDefault == true,
-                    canDelete = stored != null && s.recipeCount > 1,
+                    canDelete = stored != null && s.recipeCount > 1 && stored.id != s.activeRecipeId,
+                    isBrewing = stored != null && stored.id == s.activeRecipeId,
                     vessels = s.vessels.filter { !it.isArchived }
                         .sortedWith(compareBy({ !it.isFavorite }, { it.name.lowercase() }, { it.id })),
                     selectedVessel = s.vessels.firstOrNull { it.id == f.vesselId },
@@ -188,13 +196,17 @@ class RecipeEditorViewModel @Inject constructor(
         }
     }
 
-    /** ⋮ *Löschen* of a stored recipe, never its tea's last one; a deleted default passes on (PRF-01). */
+    /**
+     * ⋮ *Löschen* of a stored recipe, never its tea's last one nor the running brew's (E15, D-101 F12); a deleted
+     * default passes on (PRF-01).
+     */
     fun delete() {
         val stored = (base.value as? Base.Stored)?.recipe ?: return
         viewModelScope.launch {
             when (recipes.deleteRecipe(stored.id)) {
                 DeleteRecipeResult.Deleted, DeleteRecipeResult.NotFound -> navigation.send(RecipeEditorEvent.Deleted)
                 DeleteRecipeResult.LastRecipe -> message.value = RecipeEditorMessage.LastRecipe
+                DeleteRecipeResult.InActiveSession -> message.value = RecipeEditorMessage.InActiveSession
             }
         }
     }
@@ -255,7 +267,12 @@ class RecipeEditorViewModel @Inject constructor(
         savedState[FORM] = value
     }
 
-    private data class Surroundings(val recipeCount: Int, val vessels: List<Vessel>, val globalPreAlertSeconds: Int)
+    private data class Surroundings(
+        val recipeCount: Int,
+        val vessels: List<Vessel>,
+        val globalPreAlertSeconds: Int,
+        val activeRecipeId: String?,
+    )
 
     private data class Editing(
         val form: RecipeForm?,
