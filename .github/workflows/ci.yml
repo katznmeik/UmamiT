@@ -1,6 +1,7 @@
-# CI quality gate (06 §7, M1-02, #11): every pull request and every push to a
-# branch is checked the same way. Tags are not built here; release.yml builds
-# releases (06 §6).
+# CI quality gate (06 §7, M1-02, #11): every pull request and every push to
+# `main` is checked the same way. A push to a PR branch runs CI once, through
+# its pull_request event, not twice (D-101). Tags are not built here;
+# release.yml builds releases (06 §6).
 #
 # Design notes:
 # - Actions are pinned to full commit SHAs, with the version in a comment
@@ -19,8 +20,9 @@ name: CI
 on:
   pull_request:
   push:
-    # Branches only: with a branch filter, pushing a tag does not trigger CI.
-    branches: ['**']
+    # `main` only: PR branches are checked through pull_request (D-101), and
+    # with a branch filter, pushing a tag does not trigger CI.
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
