@@ -42,6 +42,7 @@ enum class TeaKind {
         /** The kind from the tea's Kategorie; the catalog's style `herbal` is a „Kräutertee". */
         fun of(tea: Tea): TeaKind = when {
             tea.styleKey == HERBAL_STYLE -> HERBAL
+
             else -> when (tea.category) {
                 TeaCategory.GREEN -> GREEN
                 TeaCategory.WHITE -> WHITE

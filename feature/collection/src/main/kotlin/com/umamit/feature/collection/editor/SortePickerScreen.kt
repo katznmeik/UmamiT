@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import com.umamit.core.designsystem.component.SectionHeader
@@ -113,7 +114,7 @@ fun SortePickerScreen(onBack: () -> Unit, onPick: (styleKey: String) -> Unit, mo
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag(SortePickerTags.style(key))
-                                .clickable { onPick(key) }
+                                .clickable(role = Role.Button) { onPick(key) }
                                 .padding(horizontal = UmamiSpacing.XXSmall),
                         )
                     }
