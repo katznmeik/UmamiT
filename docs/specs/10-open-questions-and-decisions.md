@@ -686,8 +686,19 @@ font 2.0.
   is on.
 - Saving stores a step at the base temperature without its own (as the
   setup's *Im Rezept speichern*) and marks the recipe's source `USER`.
-- The detail opened above the setup (⋮ *Tee ansehen*) doesn't open the
-  editors yet, as #155's pencil there.
+
+**Build notes (Claude, 2026-11-05, v0.4.0 review, screens F2, F5–F9, F13).**
+- **F2:** the picker's group is the tea's *Kategorie* (green, white, oolong, black, dark = Pu-Erh, herbal, other); yellow
+  tea counts as „Andere"; the catalog's style `herbal` stays a „Kräutertee".
+- **F5:** the tea and recipe editors open above the detail above the setup (`SetupTeaEditorRoute`,
+  `SetupRecipeEditorRoute`); *Speichern* and *Löschen* return to that detail.
+- **F6, F13:** „*Tanabata* archiviert" · *Rückgängig* is the shell's, over whatever screen is below the closed detail
+  (Sammlung, the session page, Start under the setup), so none stays for a later Sammlung. In *Meine Tees* the FAB
+  rises above it while it shows.
+- **F7:** DETAILS shows the country's German name, not its code.
+- **F8:** a tea without a single stock event shows „–" in the `StatTriplet`, „Kein Bestand erfasst" in VORRAT and a
+  plain reorder link (no stock is invented, as in the list); *Bestand korrigieren* stays.
+- **F9:** the back arrow over a photo or hero is the shared `OverPhoto` (core:designsystem), with its own ink.
 
 **Build notes (Claude, 2026-11-05, v0.4.0 review F1: one alert gate).** Every
 menu, dialog, sheet and picker that can stay open while a timer runs uses one

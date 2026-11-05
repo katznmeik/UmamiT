@@ -530,8 +530,8 @@ same action as a custom action on the row.
 **Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
 *Alle* is split by the tea's kind, each group under a small section header
 („Grüntees", „Kräutertees"; from v0.4.0, for teas added without the
-catalog, in the Kategorie order „Grüntees", „Weiße Tees", „Oolongs",
-„Schwarztees", „Pu-Erh", „Kräutertees", „Andere", D-100), A–Z
+catalog, by the tea's Kategorie in the order „Grüntees", „Weiße Tees", „Oolongs",
+„Schwarztees", „Pu-Erh", „Kräutertees", „Andere" (yellow tea counts as „Andere"), D-100), A–Z
 within a group, groups in that order. Search results are grouped the same
 way. *Zuletzt* and *Favoriten* stay ungrouped above. With teas of only one
 kind the list has no group headers, as before.
@@ -830,7 +830,8 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   stöbern"; a search or filter without results → asset A10, „Kein Tee passt
   zu deiner Suche.".
 - **Snackbars:** „*Tanabata* archiviert" · *Rückgängig* after *Archivieren*
-  on SCR-09.
+  on SCR-09, over the screen below the closed detail, wherever that is (the
+  list, the session page, the screen under the setup). The FAB rises above it.
 - TalkBack labels on rows, chips and stars. Smooth with 500 teas
   (NFR-PERF-03).
 - **As built (#153, Claude):** the chips row starts with the sort chip
@@ -878,6 +879,11 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   *Wiederherstellen* in place of *Archivieren*.
 - **Entries:** *Meine Tees*, the setup's ⋮ *Tee ansehen* and the session
   page's tea link. It updates at once after an edit, a brew or a correction.
+  Its pencils open the tea and recipe editors in each entry, also above the
+  setup; back from an editor returns to the detail.
+- **No stock events:** the `StatTriplet` shows „–", VORRAT „Kein Bestand
+  erfasst" with *Bestand korrigieren* and a plain reorder link; no stock is
+  invented. DETAILS shows the country by its German name.
 
 ### SCR-10 Tee bearbeiten
 

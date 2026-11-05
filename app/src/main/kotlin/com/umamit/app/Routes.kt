@@ -63,6 +63,21 @@ internal data class SetupCatalogTeaRoute(val key: String)
 internal data class SetupTeaRoute(val teaId: String)
 
 /**
+ * Tee bearbeiten (SCR-10) from the pencil of the detail above the setup (F5, D-100): the tea [teaId], above
+ * [SetupTeaRoute]. Named as the editor's view model reads it (`TeaEditorViewModel.TEA_ID`).
+ */
+@Serializable
+internal data class SetupTeaEditorRoute(val teaId: String)
+
+/**
+ * Rezept bearbeiten (SCR-12) from a pencil or *Rezept hinzufügen* of the detail above the setup (F5, D-100): the
+ * recipe [recipeId] of the tea [teaId] (none: a new one), above [SetupTeaRoute]. Named as the editor's view model
+ * reads them (`RecipeEditorViewModel.TEA_ID`, `RECIPE_ID`).
+ */
+@Serializable
+internal data class SetupRecipeEditorRoute(val teaId: String, val recipeId: String? = null)
+
+/**
  * The quick timer before its *Start* (SCR-07), from Start and the tea picker. Full-screen like the setup;
  * once it runs, the timer replaces it.
  */

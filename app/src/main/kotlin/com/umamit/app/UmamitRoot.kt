@@ -37,6 +37,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
 import com.umamit.feature.brew.timer.BrewTimerRoute
 import com.umamit.feature.catalog.TeaLinkShare
+import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -164,6 +165,9 @@ internal fun UmamitRoot(
     onConsumeStartRequest: (Long) -> Unit = {},
 ) {
     val navController = rememberNavController()
+    // The tea archived on a detail, for the snackbar with *Rückgängig* on the screen below it, wherever that is: a
+    // shell's tab or stack, or the one under the setup (D-100, F6).
+    var archivedTea by rememberSaveable(stateSaver = ArchivedTea.Saver) { mutableStateOf<ArchivedTea?>(null) }
     val share by teaLinkShare.collectAsStateWithLifecycle()
     // The start destination, chosen once from the first value read: the setup until it is completed. Nothing
     // below runs before it is known, so no navigation can reach a NavHost without its graph.
@@ -301,6 +305,8 @@ internal fun UmamitRoot(
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
                     startRequest = showStart,
+                    archivedTea = archivedTea,
+                    onArchivedTeaChange = { archivedTea = it },
                 )
             }
             // A shell of its own above what was shown (D-097): back leaves it, its tabs work as the shell's.
@@ -325,6 +331,8 @@ internal fun UmamitRoot(
                     teaLinkShare = share,
                     onTakeTeaLinkShare = onTakeTeaLinkShare,
                     opening = ShellOpening.CatalogRefresh(sheetToken),
+                    archivedTea = archivedTea,
+                    onArchivedTeaChange = { archivedTea = it },
                 )
             }
             composable<OnboardingRoute> { onboardingScreen(finishSetup) }
@@ -409,6 +417,41 @@ internal fun UmamitRoot(
                                 navigateAbove(route) { popUpTo<BrewSetupRoute> { inclusive = true } }
                             }
                         },
+                        // The pencils: the editors above this detail, the alerting timer during an alert (rule 8).
+                        openEditor = { route ->
+                            unlessAlerting({ currentAlerting }, instead = openTimer) {
+                                navigateAbove(route) { launchSingleTop = true }
+                            }
+                        },
+                        onArchived = { archivedTea = it },
+                    ),
+                )
+            }
+            // Tee bearbeiten and Rezept bearbeiten above the detail above the setup (F5): *Speichern* and *Löschen*
+            // return to the detail, which shows the change.
+            composable<SetupTeaEditorRoute> { entry ->
+                val onTop = { navController.currentBackStackEntry?.id == entry.id }
+                collectionScreens.teaEditor(
+                    TeaEditorHost(
+                        onClose = dropUnlessResumed { navController.popBackStack() },
+                        onSave = { _, _ -> if (onTop()) navController.popBackStack() },
+                        alertKey = alert,
+                    ),
+                )
+            }
+            composable<SetupRecipeEditorRoute> { entry ->
+                val closeIfOnTop = {
+                    if (navController.currentBackStackEntry?.id ==
+                        entry.id
+                    ) {
+                        navController.popBackStack()
+                    }
+                }
+                collectionScreens.recipeEditor(
+                    RecipeEditorHost(
+                        onClose = dropUnlessResumed { navController.popBackStack() },
+                        onDone = { closeIfOnTop() },
+                        alertKey = alert,
                     ),
                 )
             }
@@ -582,7 +625,8 @@ private inline fun unlessAlerting(alerting: () -> Boolean, instead: () -> Unit, 
 /**
  * What the tea detail (SCR-09) above the setup gets (⋮ *Tee ansehen*, D-100): back returns to the setup;
  * *Brühen* (or a recipe's tap) hands [openSetup] a new setup of the tea, which replaces the old one;
- * *Archivieren* and *Löschen* close the detail and the setup. Each acts only while [entry] is on top, so a quick
+ * *Archivieren* and *Löschen* close the detail and the setup; its pencils open the tea and recipe editors above it
+ * (F5). Each acts only while [entry] is on top, so a quick
  * double tap or a late outcome never pops another screen (D-090).
  */
 private fun setupTeaHost(
@@ -590,6 +634,8 @@ private fun setupTeaHost(
     navController: NavHostController,
     alertKey: String?,
     openSetup: (BrewSetupRoute) -> Unit,
+    openEditor: (Any) -> Unit,
+    onArchived: (ArchivedTea) -> Unit,
 ): TeaDetailHost {
     val teaId = entry.toRoute<SetupTeaRoute>().teaId
     val onTop = { navController.currentBackStackEntry?.id == entry.id }
@@ -598,9 +644,16 @@ private fun setupTeaHost(
     return TeaDetailHost(
         onBack = { if (resumed()) navController.popBackStack() },
         onBrew = { recipeId -> if (resumed()) openSetup(BrewSetupRoute(teaId = teaId, recipeId = recipeId)) },
-        onArchived = { closeWithSetup() },
+        onArchived = {
+            // The shell below the setup shows „… archiviert" · *Rückgängig*.
+            if (onTop()) onArchived(it)
+            closeWithSetup()
+        },
         onDeleted = { closeWithSetup() },
         alertKey = alertKey,
+        onEditTea = { if (resumed()) openEditor(SetupTeaEditorRoute(teaId)) },
+        onEditRecipe = { recipeId -> if (resumed()) openEditor(SetupRecipeEditorRoute(teaId, recipeId)) },
+        onAddRecipe = { if (resumed()) openEditor(SetupRecipeEditorRoute(teaId)) },
     )
 }
 

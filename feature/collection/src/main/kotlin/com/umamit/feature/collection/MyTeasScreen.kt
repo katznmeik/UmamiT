@@ -1,5 +1,6 @@
 package com.umamit.feature.collection
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,6 +57,9 @@ fun myTeaRowTag(id: String) = "my_tea_$id"
 /** Room for the FAB below the last row. */
 private val FabClearance = 96.dp
 
+/** How far the FAB rises while the shell's snackbar „… archiviert" shows below it (F13): a snackbar and its gap. */
+private val SnackbarLift = 72.dp
+
 /** What *Meine Tees* does on a tap; the app wires the navigation (06 §3: features don't depend on each other). */
 class MyTeasActions(
     val onOpenTea: (teaId: String) -> Unit = {},
@@ -77,6 +82,7 @@ typealias FilterChange = (CollectionFilter) -> CollectionFilter
  * @param onAddWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
  * @param alertKey the alert playing now, or null: the FAB's choice and the chips' menus give way to another (rule 8).
  * @param scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
+ * @param snackbarShowing the shell's snackbar shows below the list: the FAB rises above it (F13).
  */
 @Composable
 fun MyTeasRoute(
@@ -86,6 +92,7 @@ fun MyTeasRoute(
     modifier: Modifier = Modifier,
     alertKey: String? = null,
     scrollToTopRequest: Int = 0,
+    snackbarShowing: Boolean = false,
     viewModel: MyTeasViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,6 +110,7 @@ fun MyTeasRoute(
         modifier = modifier,
         alertKey = alertKey,
         scrollToTopRequest = scrollToTopRequest,
+        snackbarShowing = snackbarShowing,
     )
 }
 
@@ -120,6 +128,7 @@ fun MyTeasContent(
     modifier: Modifier = Modifier,
     alertKey: String? = null,
     scrollToTopRequest: Int = 0,
+    snackbarShowing: Boolean = false,
     thumbnail: @Composable (path: String?) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -129,13 +138,19 @@ fun MyTeasContent(
             else -> MyTeasList(state, actions, alertKey, scrollToTopRequest, thumbnail)
         }
         if (!state.loading) {
+            val lift by animateDpAsState(
+                targetValue = if (snackbarShowing) SnackbarLift else 0.dp,
+                animationSpec = UmamiTheme.motion.standard(),
+                label = "fabLift",
+            )
             AddTeaButton(
                 alertKey = alertKey,
                 onAddFromCatalog = actions.onAddFromCatalog,
                 onAddWithoutCatalog = actions.onAddWithoutCatalog,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(UmamiSpacing.SideMargin),
+                    .padding(UmamiSpacing.SideMargin)
+                    .offset(y = -lift),
             )
         }
     }
@@ -188,7 +203,11 @@ private fun MyTeasList(
                     onClick = { actions.onOpenTea(row.id) },
                     onRestore = { actions.onRestore(row.id) },
                     thumbnail = thumbnail(row.photoPath),
-                    modifier = Modifier.animateItem(),
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = null,
+                        fadeOutSpec = null,
+                        placementSpec = UmamiTheme.motion.standard(),
+                    ),
                 )
             }
         }

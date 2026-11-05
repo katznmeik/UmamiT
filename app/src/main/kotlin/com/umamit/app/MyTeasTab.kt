@@ -36,6 +36,7 @@ internal fun MyTeasTabContent(tab: MyTeasTab) {
         modifier = tab.modifier,
         alertKey = tab.alertKey,
         scrollToTopRequest = tab.scrollToTopRequest,
+        snackbarShowing = tab.snackbarShowing,
     )
 }
 
@@ -51,6 +52,7 @@ internal fun PlaceholderMyTeas(tab: MyTeasTab) {
         ),
         modifier = tab.modifier,
         alertKey = tab.alertKey,
+        snackbarShowing = tab.snackbarShowing,
     )
 }
 

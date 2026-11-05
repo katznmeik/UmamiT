@@ -1,7 +1,9 @@
 package com.umamit.app
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -38,6 +40,8 @@ import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.brew.setup.BrewSetupViewModel
 import com.umamit.feature.brew.setup.SETUP_SAVE_TAG
 import com.umamit.feature.brew.setup.SETUP_START_TAG
+import com.umamit.feature.collection.detail.ArchivedTea
+import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.journal.session.SESSION_BREW_AGAIN_TAG
 import com.umamit.feature.journal.session.SESSION_TEA_TAG
 import com.umamit.feature.journal.session.SessionPageHost
@@ -139,7 +143,19 @@ class SessionPageFlowTest {
                     journalSources = testJournalSources(sessions, collection.teas),
                     alertKey = alertKey,
                     journalScreens = JournalStackScreens(session = { host -> Page(host) }),
-                    collectionScreens = CollectionStackScreens(tea = { Text(TEA_DETAIL) }),
+                    collectionScreens = CollectionStackScreens(
+                        tea = { host ->
+                            Column {
+                                Text(TEA_DETAIL)
+                                TextButton(onClick = { host.onArchived(ArchivedTea(TEA, "Sencha Morgentau")) }) {
+                                    Text(ARCHIVE)
+                                }
+                            }
+                        },
+                        archivedSnackbar = { archived, onDone, modifier ->
+                            ArchivedTeaSnackbar(archived, onUndo = {}, onDone = onDone, modifier = modifier)
+                        },
+                    ),
                     setupScreen = { host -> Setup(host) },
                     settings = testSettingsScreens(collection),
                     timerScreen = { _, _, _, _ -> Text(TIMER) },
@@ -245,6 +261,24 @@ class SessionPageFlowTest {
     }
 
     @Test
+    fun `archiving from that detail shows Rueckgaengig on the session page, none later in Sammlung (F6)`() {
+        show()
+        openSessionPage()
+        compose.onNodeWithTag(SESSION_TEA_TAG).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(ARCHIVE).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(TEA_DETAIL).assertDoesNotExist()
+        compose.onNodeWithText("Sitzung").assertIsDisplayed()
+        compose.onNodeWithText("Sencha Morgentau archiviert").assertIsDisplayed()
+        compose.onNodeWithText("Rückgängig").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Sencha Morgentau archiviert").assertDoesNotExist()
+    }
+
+    @Test
     fun `during an alert So nochmal bruehen opens the alerting timer, never the setup (rule 8)`() {
         show()
         openSessionPage()
@@ -263,5 +297,6 @@ class SessionPageFlowTest {
         const val PAST = "past"
         const val TIMER = "TIMER"
         const val TEA_DETAIL = "TEA_DETAIL"
+        const val ARCHIVE = "Archivieren (Attrappe)"
     }
 }
