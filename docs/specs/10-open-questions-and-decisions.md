@@ -687,6 +687,23 @@ font 2.0.
 - Saving stores a step at the base temperature without its own (as the
   setup's *Im Rezept speichern*) and marks the recipe's source `USER`.
 
+**Build notes (Claude, 2026-11-01, the remaining v0.4.0 tickets #150, #152–#155, #157).**
+- **Teaware (#157):** type and material names are German. Name 1–40 characters, volume 10–3000 ml, usable volume
+  10 ml up to the volume. A new vessel defaults to Kyusu. An archived vessel's ⋮ offers *Wiederherstellen*;
+  *Archivieren* with unsaved edits drops them.
+- **Tea detail (#154):** an archived tea's delete question offers only *Löschen* (no *Stattdessen archivieren*).
+  Session count and last brew count finished sessions only. The recipe temperature shown is the first non-rinse
+  step's. The setup takes a `recipeId` argument.
+- **Meine Tees (#153):** the sort chip comes first. *Kategorie* and *Sorte* chips show only with more than one value;
+  a chip's label shows its ticked values. *Filter zurücksetzen* keeps the sort. The A7 empty-state body text is in
+  `strings.xml`.
+- **Tea editor (#155):** a *Sorte* pick sets umami and Kategorie. The country menu sorts by German name. Validation:
+  name 1–80 characters, harvest year 1900 to this year, shading 0–60 days, package at most 10 000 g, a price needs a
+  package; the purchase date is at most today.
+- **#150:** the snackbar reads „<Tee> archiviert". *Spülen* is also on the timer screen and in the notification. The
+  SET-15 row has its detail line.
+- **#152:** Start's *Nochmal brühen* keeps brewing only the steps that ran (BRW-11, D-062).
+
 **Build notes (Claude, 2026-11-05, v0.4.0 review, screens F2, F5–F9, F13).**
 - **F2:** the picker's group is the tea's *Kategorie* (green, white, oolong, black, dark = Pu-Erh, herbal, other); yellow
   tea counts as „Andere"; the catalog's style `herbal` stays a „Kräutertee".
@@ -721,8 +738,27 @@ wählen") and *Meine Tees*' sort and filter chips and FAB choice, which used to
 refuse to open during any alert and reopened after it; now, like every other
 gated overlay, one opened during an alert stays for that alert.
 
+**Review outcome (Claude, 2026-11-05, v0.4.0 code review, docs/plans/v0.4.0-review.md).**
+- **Fixed:** F1 (one alert gate, see its block), F2, F5–F9, F13 (see the screens block), F15 (KDoc). F14: one German
+  number parser, `GermanNumber` in `core:domain`, for the add sheet and the tea editor (D-090's rule: decimal comma or
+  point, „." thousands groups of three digits, optional „€" / „g"); the editor now also reads „1.234,50 €" and
+  „1.000 g".
+- **Brew path:** F3 *Im Rezept speichern* writes method and base temperature with the steps, so a session brewed at
+  another base keeps every step's temperature and the button settles. F4 the new recipe's id is reserved before the
+  save suspends (kept in SavedState), so a double tap creates one recipe. F10 the accuracy run's alongside variant
+  fails as too slow when the screen went off less than 1 s before the quick timer's pre-alert. Nits:
+  `ProcessDeathTest` logs the real gap; the formatter artefact.
+- **PO decisions (D-101, Amended 2026-11-03):** F11 *Ohne Rezept* keeps the session's own Vorwarnung base, and the new
+  recipe saved from it stores it. F12 the running brew's recipe can't be deleted (*Rezept löschen* greyed out with
+  „Erst die Sitzung beenden"; a late delete is refused with `DeleteRecipeResult.InActiveSession`; every
+  `active_brew` session READY to FINISHED as E15); a session whose recipe is gone opens *Brühen anpassen* with no
+  recipe selected. F5 the editors open above the detail above the setup. Confirmed unchanged: Start's *Nochmal
+  brühen* brews only the steps that ran.
+- **Motion review (`/review-animations`, D-101):** see the screens block.
+- **Moved to v0.4.1 (PO, 2026-11-02):** shared formatters in `core:ui`, one editor scaffold.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
-§3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
+§3.6, §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12
 (M3), README (key decisions), 11 before (c52b0a5); plan
 `docs/plans/v0.4.0.md`. Q-19 and Q-20 resolved. Next free decision number: D-101.
