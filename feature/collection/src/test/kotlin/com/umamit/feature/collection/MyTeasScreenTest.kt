@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -58,6 +59,7 @@ class MyTeasScreenTest {
     private var fromCatalog = 0
     private var withoutCatalog = 0
     private var alertKey by mutableStateOf<String?>(null)
+    private var snackbarShowing by mutableStateOf(false)
 
     private fun show(vararg teas: Tea, stock: Map<String, Double> = emptyMap()) {
         runBlocking {
@@ -81,6 +83,7 @@ class MyTeasScreenTest {
                     onAddFromCatalog = { fromCatalog++ },
                     onAddWithoutCatalog = { withoutCatalog++ },
                     alertKey = alertKey,
+                    snackbarShowing = snackbarShowing,
                     viewModel = vm,
                 )
             }
@@ -191,6 +194,18 @@ class MyTeasScreenTest {
         compose.waitForIdle()
 
         assertThat(runBlocking { collection.teas.getTea("x")!!.isArchived }).isFalse()
+    }
+
+    @Test
+    fun theFabRisesAboveTheShellSnackbarWhileItShows() {
+        show(tea("a", "Asamushi"))
+        val resting = compose.onNodeWithTag(MY_TEAS_ADD_TAG).getUnclippedBoundsInRoot().bottom
+
+        snackbarShowing = true
+        compose.waitForIdle()
+
+        val lifted = compose.onNodeWithTag(MY_TEAS_ADD_TAG).getUnclippedBoundsInRoot().bottom
+        assertThat(lifted.value).isLessThan(resting.value - 40f)
     }
 
     @Test

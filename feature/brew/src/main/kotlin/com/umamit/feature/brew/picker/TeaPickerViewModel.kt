@@ -24,20 +24,34 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * A tea's kind, the picker's group (SCR-03, D-097), in the order the groups show: every green
- * style is a „Grüntee", style `herbal` a „Kräutertee". M3's own teas will add more kinds.
+ * A tea's kind, the picker's group (SCR-03, D-097, D-100), in the order the groups show: the
+ * Kategorie order „Grüntees", „Weiße Tees", „Oolongs", „Schwarztees", „Pu-Erh", „Kräutertees",
+ * „Andere" (yellow tea counts as „Andere").
  */
 enum class TeaKind {
     GREEN,
+    WHITE,
+    OOLONG,
+    BLACK,
+    PUERH,
     HERBAL,
+    OTHER,
     ;
 
     companion object {
-        /** The kind from the tea's style; a tea without a style counts by its category. */
+        /** The kind from the tea's Kategorie; the catalog's style `herbal` is a „Kräutertee". */
         fun of(tea: Tea): TeaKind = when {
             tea.styleKey == HERBAL_STYLE -> HERBAL
-            tea.styleKey == null && tea.category == TeaCategory.HERBAL -> HERBAL
-            else -> GREEN
+
+            else -> when (tea.category) {
+                TeaCategory.GREEN -> GREEN
+                TeaCategory.WHITE -> WHITE
+                TeaCategory.OOLONG -> OOLONG
+                TeaCategory.BLACK -> BLACK
+                TeaCategory.DARK -> PUERH
+                TeaCategory.HERBAL -> HERBAL
+                TeaCategory.YELLOW, TeaCategory.OTHER -> OTHER
+            }
         }
 
         private const val HERBAL_STYLE = "herbal"

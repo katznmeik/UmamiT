@@ -89,6 +89,24 @@ class TeaDetailViewModelTest {
     }
 
     @Test
+    fun `a tea without any stock event has no stock and a plain reorder link`() = runTest {
+        TeaDetailFixture.seed(collection, grams = 0.0)
+
+        val tea = viewModel().tea
+
+        assertThat(tea.hasStock).isFalse()
+        assertThat(tea.reorder).isNotNull()
+        assertThat(tea.reorder!!.prominent).isFalse()
+    }
+
+    @Test
+    fun `a tea with stock events has stock`() = runTest {
+        TeaDetailFixture.seed(collection)
+
+        assertThat(viewModel().tea.hasStock).isTrue()
+    }
+
+    @Test
     fun `a tea never brewed has no last brew`() = runTest {
         TeaDetailFixture.seed(collection)
 

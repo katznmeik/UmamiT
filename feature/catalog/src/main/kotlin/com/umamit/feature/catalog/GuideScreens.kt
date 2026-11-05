@@ -39,6 +39,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.OverPhoto
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -287,10 +288,8 @@ private fun Article(
             }
         }
         // As on the tea's detail: over the hero, on its own surface, it stays put while the page scrolls.
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = BACK_SURFACE_ALPHA),
-            modifier = Modifier
+        OverPhoto(
+            Modifier
                 .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start))
                 .padding(UmamiSpacing.XSmall),
         ) {
@@ -310,5 +309,4 @@ private fun shopGuidePage(articleUrl: String, slug: String): String? = try {
 /** The A11 header band's aspect ratio (the WebP is 1536 × 640). */
 private const val HEADER_RATIO = 2.4f
 private const val HERO_RATIO = 16f / 9f
-private const val BACK_SURFACE_ALPHA = 0.92f
 private val BACK_ROW_HEIGHT = 56.dp

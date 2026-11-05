@@ -145,6 +145,8 @@ internal fun UmamitApp(
     onTakeTeaLinkShare: (Long) -> Unit = {},
     opening: ShellOpening = ShellOpening.Start,
     startRequest: Long = 0L,
+    archivedTea: ArchivedTea? = null,
+    onArchivedTeaChange: (ArchivedTea?) -> Unit = {},
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
@@ -157,8 +159,6 @@ internal fun UmamitApp(
     var catalogPasteRequest by remember { mutableIntStateOf(0) }
     // *Alle einklappen* / *Alle ausklappen* in the same menu, only while the catalog's groups fold (D-098).
     val catalogFolds = remember { CatalogFoldMenu() }
-    // The tea archived on its detail, for the snackbar with *Rückgängig* on the screen below (D-100).
-    var archivedTea by rememberSaveable(stateSaver = ArchivedTea.Saver) { mutableStateOf<ArchivedTea?>(null) }
     // A shared link shows the catalog list, which loads it (CAT-17).
     LaunchedEffect(teaLinkShare?.token) {
         if (teaLinkShare != null) {
@@ -268,8 +268,7 @@ internal fun UmamitApp(
                             catalogScreens = catalogScreens,
                             collection = CollectionWiring(
                                 screens = collectionScreens,
-                                archived = archivedTea,
-                                onArchivedChange = { archivedTea = it },
+                                onArchivedChange = onArchivedTeaChange,
                                 openSetup = startNavigation.openSetupWith,
                             ),
                             catalog = { catalogModifier, scrollToTop ->
@@ -303,6 +302,7 @@ internal fun UmamitApp(
                                         scrollToTopRequest = scrollToTop,
                                         openTea = openTea,
                                         alertKey = alertKey,
+                                        snackbarShowing = archivedTea != null,
                                         addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
                                         // *Ohne Katalog*: *Sorte wählen* (SCR-11, TEA-01).
                                         addWithoutCatalog = dropUnlessResumed {
@@ -354,6 +354,13 @@ internal fun UmamitApp(
                         )
                     }
                 }
+                // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on a detail, over the screen below it,
+                // whichever tab or stack that is (D-100, F6).
+                collectionScreens.archivedSnackbar(
+                    archivedTea,
+                    { onArchivedTeaChange(null) },
+                    Modifier.align(Alignment.BottomCenter),
+                )
                 SavedSheetHost(
                     requests = journalSources.savedSheets,
                     sessions = journalSources.sessions,
@@ -613,12 +620,6 @@ private fun TabHost(
                     onPasteLink = onPasteLink,
                     onFoldCatalog = onFoldCatalog,
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
-                )
-                // „*Tanabata* archiviert" · *Rückgängig* after *Archivieren* on the detail (D-100).
-                collection.screens.archivedSnackbar(
-                    collection.archived,
-                    { collection.onArchivedChange(null) },
-                    Modifier.align(Alignment.BottomCenter),
                 )
             }
         }

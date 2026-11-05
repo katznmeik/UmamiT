@@ -1,5 +1,9 @@
 package com.umamit.feature.collection.recipe
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -36,6 +40,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -62,6 +67,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -69,12 +75,15 @@ import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.DurationPicker
 import com.umamit.core.ui.RepeatingIconButton
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 /**
  * The steps of Rezept bearbeiten (SCR-12, PRF-04): each with its drag handle (TalkBack: move up / down), its kind,
@@ -89,16 +98,33 @@ internal fun RecipeSteps(
 ) {
     val form = state.form
     val haptics = LocalHapticFeedback.current
+    val motion = UmamiTheme.motion
+    val scope = rememberCoroutineScope()
     // The dragged step (by key), how far it is off its slot, and each step's height to know when it passes one.
+    // It stays [dragged] until it has settled into its slot, so it keeps its lift and its place above the others.
     var dragged by remember { mutableStateOf<Int?>(null) }
     var offset by remember { mutableFloatStateOf(0f) }
     val heights = remember { mutableStateMapOf<Int, Int>() }
+    // The drop glides from where the finger let go into the slot (E2); a swapped neighbour glides from its old
+    // place into its new one (E1). Both are graphicsLayer only.
+    val settle = remember { Animatable(0f) }
+    var settling by remember { mutableStateOf<Job?>(null) }
+    val neighbours = remember { mutableStateMapOf<Int, Animatable<Float, AnimationVector1D>>() }
+    fun glideNeighbour(key: Int, from: Float) {
+        val anim = neighbours.getOrPut(key) { Animatable(0f) }
+        scope.launch {
+            anim.snapTo(from)
+            anim.animateTo(0f, motion.sheet())
+        }
+    }
     // „Dauer wählen" of the step [pickerFor] gives way to another alert than the one it was opened in (rule 8).
     var pickerFor by rememberSaveable { mutableStateOf<Int?>(null) }
     val picker = rememberAlertGate(alertKey)
     val currentSteps by rememberUpdatedState(form.steps)
     val drag = object : StepDrag {
         override fun start(key: Int) {
+            settling?.cancel()
+            scope.launch { settle.snapTo(0f) }
             dragged = key
             offset = 0f
         }
@@ -113,31 +139,51 @@ internal fun RecipeSteps(
             // Past half of the neighbour, the step takes its place and stays under the finger.
             if (next != null && offset > (heights[next.key] ?: 0) / 2f) {
                 offset -= heights[next.key] ?: 0
+                // The neighbour moves up by the dragged step's height: it starts where it was, below its new slot.
+                glideNeighbour(next.key, (heights[dragged] ?: 0).toFloat())
                 update { it.withStepMoved(index, index + 1) }
                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
             } else if (previous != null && offset < -(heights[previous.key] ?: 0) / 2f) {
                 offset += heights[previous.key] ?: 0
+                glideNeighbour(previous.key, -(heights[dragged] ?: 0).toFloat())
                 update { it.withStepMoved(index, index - 1) }
                 haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
             }
         }
 
         override fun end() {
-            dragged = null
+            val from = offset
             offset = 0f
+            settling = scope.launch {
+                settle.snapTo(from)
+                settle.animateTo(0f, motion.pressRelease())
+                dragged = null
+            }
         }
     }
     Column {
         form.steps.forEachIndexed { index, step ->
             key(step.key) {
                 val isDragged = dragged == step.key
+                // Lifted on the press, put down on the release: the elevation and the scale glide (E1).
+                val lift = if (isDragged) motion.press<Dp>() else motion.pressRelease()
+                val elevation by animateDpAsState(if (isDragged) DraggedElevation else 0.dp, lift, label = "stepLift")
+                val scale by animateFloatAsState(
+                    if (isDragged) DRAGGED_SCALE else 1f,
+                    if (isDragged) motion.press() else motion.pressRelease(),
+                    label = "stepScale",
+                )
                 Surface(
                     color = MaterialTheme.colorScheme.background,
-                    shadowElevation = if (isDragged) DraggedElevation else 0.dp,
+                    shadowElevation = elevation,
                     modifier = Modifier
                         .fillMaxWidth()
                         .zIndex(if (isDragged) 1f else 0f)
-                        .graphicsLayer { translationY = if (isDragged) offset else 0f }
+                        .graphicsLayer {
+                            translationY = if (isDragged) offset + settle.value else neighbours[step.key]?.value ?: 0f
+                            scaleX = scale
+                            scaleY = scale
+                        }
                         .onSizeChanged { heights[step.key] = it.height }
                         .testTag(RecipeStepTags.step(index + 1)),
                 ) {
@@ -512,3 +558,6 @@ private val KIND_ORDER = listOf(StepKind.INFUSION, StepKind.RINSE, StepKind.WHIS
 private val HandleIndent = UmamiSpacing.MinTouchTarget
 
 private val DraggedElevation = 6.dp
+
+/** The dragged step grows a little as it lifts (E1). */
+private const val DRAGGED_SCALE = 1.02f

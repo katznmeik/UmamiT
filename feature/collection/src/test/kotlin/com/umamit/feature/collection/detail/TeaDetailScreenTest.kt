@@ -80,6 +80,22 @@ class TeaDetailScreenTest {
     }
 
     @Test
+    fun `a tea without stock events shows no figure and a plain reorder link`() {
+        show(sample().copy(hasStock = false, stockGrams = 0.0, stockLevel = StockLevel.EMPTY))
+
+        compose.onNodeWithContentDescription("Vorrat: –").assertExists()
+        compose.onNodeWithText("Kein Bestand erfasst").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Leer").assertDoesNotExist()
+        compose.onNodeWithText("Bestand korrigieren").assertExists()
+    }
+
+    @Test
+    fun `DETAILS shows the country by its German name, a typed name stays`() {
+        show(sample().copy(details = sample().details.copy(originCountry = "JP")))
+        compose.onNodeWithText("Japan, Shizuoka").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun `a tea never brewed says so`() {
         show(sample().copy(sessionCount = 0, lastBrewed = null))
 

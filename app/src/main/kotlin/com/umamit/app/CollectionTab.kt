@@ -20,6 +20,7 @@ import com.umamit.feature.collection.recipe.RecipeEditorRoute
  *   another (rule 8).
  * @property addFromCatalog *Aus dem Katalog* and *Im Katalog stöbern*: the *Katalog* segment (SCR-19).
  * @property addWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
+ * @property snackbarShowing the shell's snackbar „… archiviert" shows at the bottom: the FAB rises above it (F13).
  */
 internal class MyTeasTab(
     val modifier: Modifier,
@@ -28,13 +29,14 @@ internal class MyTeasTab(
     val alertKey: String? = null,
     val addFromCatalog: () -> Unit = {},
     val addWithoutCatalog: () -> Unit = {},
+    val snackbarShowing: Boolean = false,
 )
 
 /**
  * The collection screens of the Sammlung stack: the *Meine Tees* list ([myTeas]; the app passes [MyTeasTabContent],
  * the default is „Noch keine Tees" without data), a tea's detail (SCR-09), *Sorte wählen* (SCR-11), the tea editor
- * (SCR-10), the recipe editor (SCR-12) and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the list shows
- * after *Archivieren* on the detail (D-100). The app uses the real routes; tests replace them.
+ * (SCR-10), the recipe editor (SCR-12) and the snackbar „*Tanabata* archiviert" · *Rückgängig* that the shell shows
+ * over the screen below the closed detail, wherever that is (D-100). The app uses the real routes; tests replace them.
  */
 internal class CollectionStackScreens(
     val myTeas: @Composable (MyTeasTab) -> Unit = { PlaceholderMyTeas(it) },
@@ -77,13 +79,12 @@ internal class TeaEditorHost(
 internal class RecipeEditorHost(val onClose: () -> Unit, val onDone: () -> Unit, val alertKey: String? = null)
 
 /**
- * What the Sammlung tab's collection screens get from the shell: the [screens], the tea [archived] on its detail
- * and not yet answered on the list ([onArchivedChange] sets or clears it), and [openSetup], the setup of a tea
+ * What the Sammlung tab's collection screens get from the shell: the [screens], [onArchivedChange] for the tea
+ * archived on its detail (the shell shows its snackbar), and [openSetup], the setup of a tea
  * with a recipe (null: its default) above the shell.
  */
 internal class CollectionWiring(
     val screens: CollectionStackScreens,
-    val archived: ArchivedTea?,
     val onArchivedChange: (ArchivedTea?) -> Unit,
     val openSetup: (teaId: String, recipeId: String?) -> Unit,
 )

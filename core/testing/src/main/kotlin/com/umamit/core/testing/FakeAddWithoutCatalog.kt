@@ -2,6 +2,7 @@ package com.umamit.core.testing
 
 import com.umamit.core.data.AddWithoutCatalog
 import com.umamit.core.data.AddWithoutCatalogResult
+import com.umamit.core.data.RoomAddWithoutCatalog
 import com.umamit.core.data.TeaPurchase
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.model.BrewMethod
@@ -31,7 +32,8 @@ class FakeAddWithoutCatalog(private val collection: FakeCollection) : AddWithout
         added += tea to purchase
         val teaId = "manual-${added.size}"
         collection.teas.saveTea(tea.copy(id = teaId, isArchived = false, coverPhotoId = null, recipeCheckReason = null))
-        val templates = tea.styleKey?.let(BuiltInStyles::byKey)?.recipes ?: listOf(WESTERN)
+        val templates =
+            tea.styleKey?.let(BuiltInStyles::byKey)?.recipes ?: listOf(RoomAddWithoutCatalog.WESTERN_DEFAULT)
         templates.sortedByDescending { it.isDefault }.forEachIndexed { position, template ->
             collection.recipes.saveRecipe(
                 template.copy(isDefault = position == 0).toRecipe("$teaId-recipe-$position", teaId, position),
@@ -50,10 +52,5 @@ class FakeAddWithoutCatalog(private val collection: FakeCollection) : AddWithout
             )
         }
         return AddWithoutCatalogResult.Added(teaId)
-    }
-
-    private companion object {
-        val WESTERN =
-            RecipeTemplate("Westlich", BrewMethod.WESTERN, 3.0, 250, 85, listOf(RecipeStep(StepKind.INFUSION, 180)))
     }
 }

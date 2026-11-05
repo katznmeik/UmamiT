@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
+import com.umamit.core.designsystem.component.OverPhoto
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -314,18 +315,6 @@ private fun MenuItem(label: Int, blocked: Boolean, onClick: () -> Unit) {
     )
 }
 
-@Composable
-private fun OverPhoto(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = OVER_PHOTO_ALPHA),
-        // Explicit: the translucent colour matches no scheme colour, so contentColorFor would not find its ink.
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier,
-        content = content,
-    )
-}
-
 /** 03 §5: „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · *Stattdessen archivieren* / *Löschen*. */
 @Composable
 private fun DeleteDialog(tea: TeaDetail, onArchiveInstead: () -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
@@ -381,6 +370,5 @@ private fun Hero(photo: Painter?, placeholderColor: Color) {
 
 private const val HERO_ASPECT_RATIO = 4f / 3f
 private const val PLACEHOLDER_ALPHA = 0.22f
-private const val OVER_PHOTO_ALPHA = 0.92f
 private val HERO_LEAF_SIZE = 64.dp
 private val FAB_CLEARANCE = 88.dp

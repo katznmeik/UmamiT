@@ -1,6 +1,7 @@
 package com.umamit.app
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,7 +37,10 @@ import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.feature.brew.setup.BrewSetupViewModel
+import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
+import com.umamit.feature.collection.detail.TEA_DETAIL_ADD_RECIPE_TAG
 import com.umamit.feature.collection.detail.TEA_DETAIL_BREW_TAG
+import com.umamit.feature.collection.detail.TEA_DETAIL_EDIT_TAG
 import com.umamit.feature.collection.detail.TEA_DETAIL_TAG
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.collection.detail.TeaDetailRoute
@@ -109,7 +113,32 @@ class SetupLinksFlowTest {
                     startScreen = { tab ->
                         TextButton(onClick = { tab.navigation.openSetup(ID) }) { Text(BREW) }
                     },
-                    collectionScreens = CollectionStackScreens(tea = { host -> Detail(host, photos) }),
+                    collectionScreens = CollectionStackScreens(
+                        tea = { host -> Detail(host, photos) },
+                        // Stand-ins: the routes above the detail are what is tested, not the editors.
+                        teaEditor = { host ->
+                            Column {
+                                Text(TEA_EDITOR)
+                                TextButton(onClick = host.onClose) { Text(CLOSE) }
+                                TextButton(onClick = { host.onSave(ID, false) }) { Text(SAVE) }
+                            }
+                        },
+                        recipeEditor = { host ->
+                            Column {
+                                Text(RECIPE_EDITOR)
+                                TextButton(onClick = host.onClose) { Text(CLOSE) }
+                                TextButton(onClick = host.onDone) { Text(SAVE) }
+                            }
+                        },
+                        archivedSnackbar = { archived, onDone, modifier ->
+                            ArchivedTeaSnackbar(
+                                archived = archived,
+                                onUndo = { runBlocking { archive.restore(it) } },
+                                onDone = onDone,
+                                modifier = modifier,
+                            )
+                        },
+                    ),
                     setupScreen = { host -> Setup(host) },
                     settings = testSettingsScreens(collection),
                     timerScreen = { _, _, _, _ -> Text(TIMER) },
@@ -298,12 +327,65 @@ class SetupLinksFlowTest {
         compose.onNodeWithText("Brühen starten").assertDoesNotExist()
         compose.onNodeWithText(BREW).assertIsDisplayed()
         assertThat(runBlocking { collection.teas.getTea(ID)!!.isArchived }).isTrue()
+        // The screen below the setup offers Rückgängig (F6).
+        compose.onNodeWithText("Morgennebel archiviert").assertIsDisplayed()
+        compose.onNodeWithText("Rückgängig").performClick()
+        compose.waitForIdle()
+        assertThat(runBlocking { collection.teas.getTea(ID)!!.isArchived }).isFalse()
+    }
+
+    @Test
+    fun `the pencil of that detail opens the tea editor above it, Speichern and close return to the detail (F5)`() {
+        show()
+        openSetup()
+        openTeaFromSetup()
+
+        compose.onNodeWithTag(TEA_DETAIL_EDIT_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(TEA_EDITOR).assertIsDisplayed()
+        compose.onNodeWithText(CLOSE).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
+
+        compose.onNodeWithTag(TEA_DETAIL_EDIT_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(SAVE).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
+
+        back()
+        compose.onNodeWithText("Brühen starten").assertExists()
+    }
+
+    @Test
+    fun `a recipe's pencil and Rezept hinzufuegen on that detail open the recipe editor above it (F5)`() {
+        show()
+        openSetup()
+        openTeaFromSetup()
+
+        compose.onNodeWithContentDescription("Kyusu bearbeiten").performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(RECIPE_EDITOR).assertIsDisplayed()
+        compose.onNodeWithText(SAVE).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
+
+        compose.onNodeWithTag(TEA_DETAIL_ADD_RECIPE_TAG).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText(RECIPE_EDITOR).assertIsDisplayed()
+        compose.onNodeWithText(CLOSE).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_DETAIL_TAG).assertIsDisplayed()
     }
 
     private companion object {
         const val ID = "morgennebel"
         const val BREW = "Morgennebel brühen"
         const val TIMER = "Timer (Attrappe)"
+        const val TEA_EDITOR = "Tee bearbeiten (Attrappe)"
+        const val RECIPE_EDITOR = "Rezept bearbeiten (Attrappe)"
+        const val CLOSE = "Editor schließen"
+        const val SAVE = "Editor speichern"
         val TEA = Tea(
             id = ID,
             name = "Morgennebel",

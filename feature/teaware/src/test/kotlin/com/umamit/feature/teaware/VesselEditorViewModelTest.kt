@@ -107,6 +107,20 @@ class VesselEditorViewModelTest {
     }
 
     @Test
+    fun `a second Speichern while saving stores nothing more and the state says saving`() = runTest {
+        val vm = viewModel()
+        vm.update { it.copy(name = "Gaiwan", capacity = "150") }
+        assertThat(vm.ready.saving).isFalse()
+
+        vm.save()
+        vm.save()
+
+        assertThat(vm.ready.saving).isTrue()
+        vm.events.first()
+        assertThat(collection.vessels.observeVessels().first().filter { it.name == "Gaiwan" }).hasSize(1)
+    }
+
+    @Test
     fun `an edit keeps the vessel's id, photo and recipes, and a volume edit changes no recipe`() = runTest {
         collection.teas.saveTea(Tea("t", "Hisui", TeaCategory.GREEN, TeaForm.LOOSE_LEAF))
         val recipe = Recipe(

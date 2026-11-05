@@ -58,10 +58,11 @@ class TeaPickerViewModelTest {
         archived: Boolean = false,
         type: String = "Sencha",
         style: String? = "sencha",
+        category: TeaCategory? = null,
     ) = Tea(
         id = id,
         name = name,
-        category = if (style == "herbal") TeaCategory.HERBAL else TeaCategory.GREEN,
+        category = category ?: if (style == "herbal") TeaCategory.HERBAL else TeaCategory.GREEN,
         form = TeaForm.LOOSE_LEAF,
         styleKey = style,
         teaType = type,
@@ -247,6 +248,30 @@ class TeaPickerViewModelTest {
         // Zuletzt and Favoriten stay ungrouped.
         assertThat(state.recent.map { it.id }).containsExactly("m")
         assertThat(state.favorites.map { it.id }).containsExactly("t")
+    }
+
+    @Test
+    fun `teas added without a catalog group by their Kategorie in the D-100 order`() = runTest(dispatcher) {
+        collection.teas.saveTea(tea("a", "Anderer", style = null, category = TeaCategory.OTHER))
+        collection.teas.saveTea(tea("y", "Gelber", style = null, category = TeaCategory.YELLOW))
+        collection.teas.saveTea(tea("p", "Puerh", style = "puerh", category = TeaCategory.DARK))
+        collection.teas.saveTea(tea("b", "Schwarzer", style = "black", category = TeaCategory.BLACK))
+        collection.teas.saveTea(tea("o", "Oolong", style = "oolong", category = TeaCategory.OOLONG))
+        collection.teas.saveTea(tea("w", "Weisser", style = "white", category = TeaCategory.WHITE))
+        collection.teas.saveTea(tea("g", "Gruener", style = null, category = TeaCategory.GREEN))
+        collection.teas.saveTea(tea("h", "Kraeuter", style = null, category = TeaCategory.HERBAL))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.allGroups.ids()).containsExactly(
+            TeaKind.GREEN to listOf("g"),
+            TeaKind.WHITE to listOf("w"),
+            TeaKind.OOLONG to listOf("o"),
+            TeaKind.BLACK to listOf("b"),
+            TeaKind.PUERH to listOf("p"),
+            TeaKind.HERBAL to listOf("h"),
+            TeaKind.OTHER to listOf("a", "y"),
+        ).inOrder()
     }
 
     @Test
