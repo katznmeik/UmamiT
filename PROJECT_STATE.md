@@ -32,7 +32,7 @@
 
 ## Waiting on the PO
 
-1. **v0.4.1:** grilled on 2026-11-07 and recorded as **D-104** (freshness, cost, stock history, own photos, the reset, Settings closing on a tab switch). Next: the PO runs `/mattpocock-skills:to-spec` to write the spec from D-104. Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
+1. **v0.4.1:** grilled on 2026-11-07 and recorded as **D-104** (freshness, cost, stock history, own photos, the reset, Settings closing on a tab switch). Spec **#171** written with `/to-spec` (three test seams as v0.4.0, confirmed by the PO). Next: the PO breaks it into tickets with `/to-tickets` and approves them; nothing is built before the PO starts `/implement-spec #171`. Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 
