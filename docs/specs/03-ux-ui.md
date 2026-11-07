@@ -762,6 +762,15 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 *Rezept passt*, which clears the flag of that tea only and then reads
 „„Rezept prüfen“ ist entfernt.“ (CAT-05, D-073, D-088).
 
+From v0.4.1, after the session whose completion set its tea's opening date
+(INV-06), the sheet adds the line „Packung als geöffnet markiert" with
+*Rückgängig* at its end, above *Rezept passt*; at a large font the text
+wraps beside the action. *Rückgängig* writes back the date before (none or a
+date) and the line then reads „Öffnungsdatum ist zurückgesetzt." A session
+that didn't change the date shows no line. Like *Rezept passt*, it leaves
+with the sheet when an alert starts, and a write already started is never
+cancelled (rule 8, D-104).
+
 ### SCR-07 Schnelltimer
 
 Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); tap time for a duration picker; *Start*;

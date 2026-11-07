@@ -90,12 +90,22 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         session("older", at(LocalDate.of(2026, 10, 12), 6, 48), steps = listOf(step(0, 90))),
     )
 
-    private fun capture(name: String, list: JournalList, sheetFor: String? = null, flaggedTea: Boolean = false) {
+    /**
+     * [flaggedTea]: the sheet's session is of a tea flagged „Rezept prüfen", opened before. [newPackage]: of a
+     * tea not yet opened, which the session opens.
+     */
+    private fun capture(
+        name: String,
+        list: JournalList,
+        sheetFor: String? = null,
+        flaggedTea: Boolean = false,
+        newPackage: Boolean = false,
+    ) {
         RuntimeEnvironment.setFontScale(fontScale)
         val collection = FakeCollection()
         val data = FakeSessions(collection)
         val requests = SavedSheetRequests(FakeClock())
-        val teaId = if (flaggedTea) "flagged" else null
+        val teaId = if (flaggedTea || newPackage) "hisui" else null
         if (teaId != null) {
             runBlocking {
                 collection.teas.saveTea(
@@ -104,7 +114,8 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                         "Bio Sencha Hisui",
                         category = TeaCategory.GREEN,
                         form = TeaForm.LOOSE_LEAF,
-                        recipeCheckReason = RecipeCheckReason.FROM_TEXT,
+                        openedDate = LocalDate.of(2026, 10, 1).takeUnless { newPackage },
+                        recipeCheckReason = RecipeCheckReason.FROM_TEXT.takeIf { flaggedTea },
                     ),
                 )
             }
@@ -157,5 +168,14 @@ class JournalScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         journalList(sessions.drop(1), TODAY),
         sheetFor = "sheet",
         flaggedTea = true,
+    )
+
+    /** The session that opened a new package: „Packung als geöffnet markiert" · *Rückgängig* (INV-06, D-104). */
+    @Test
+    fun savedSheetOpened() = capture(
+        "savedSheetOpened",
+        journalList(sessions.drop(1), TODAY),
+        sheetFor = "sheet",
+        newPackage = true,
     )
 }
