@@ -65,6 +65,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.data.OpenedDateChange
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -97,11 +98,14 @@ private const val UPWARD_FRICTION = 0.2f
  * What the sheet shows for one finished session.
  *
  * @property recipeCheckTeaId the session's tea when it is flagged „Rezept prüfen": the sheet offers *Rezept passt*.
+ * @property openedDate the tea and its opened date before, when this session's completion set the date: the
+ *   sheet says „Packung als geöffnet markiert" and offers *Rückgängig* (INV-06).
  */
 private data class SavedSheetContent(
     val sessionId: String,
     val summary: SavedSummary,
     val recipeCheckTeaId: String? = null,
+    val openedDate: OpenedDateChange? = null,
 )
 
 /**
@@ -116,6 +120,12 @@ private data class SavedSheetContent(
  * which clears that tea's flag and nothing else (CAT-05, D-073); it leaves
  * with the sheet when an alert starts.
  *
+ * After the session whose completion set its tea's opened date, it says
+ * „Packung als geöffnet markiert" with *Rückgängig*, which writes back the
+ * date before, none or a date (INV-06, D-104). The write is never cancelled
+ * by an alert either.
+ *
+ * @param sessions the finished session, and the opened date its completion set.
  * @param teas the session's tea, read when the sheet is due and cleared by *Rezept passt*.
  * @param windowInsets the insets below it that nothing else has applied (the rail layout's bottom).
  */
@@ -130,7 +140,7 @@ fun SavedSheetHost(
 ) {
     val pending by requests.pending.collectAsStateWithLifecycle()
     val id = pending
-    // Above the early return: a *Rezept passt* write is never cancelled by an alert starting.
+    // Above the early return: a *Rezept passt* or *Rückgängig* write is never cancelled by an alert starting.
     val writes = rememberCoroutineScope()
     LaunchedEffect(alerting, id) {
         if (alerting && id != null) requests.dismiss(id)
@@ -164,6 +174,7 @@ fun SavedSheetHost(
                 SavedSheet(
                     content = shown,
                     onRecipeOk = { teaId -> writes.launch { teas.clearRecipeCheck(teaId) } },
+                    onUndoOpening = { change -> writes.launch { sessions.undoOpenedDate(change) } },
                     onDismiss = { requests.dismiss(shown.sessionId) },
                     onHold = { pressed ->
                         held = pressed
@@ -194,7 +205,12 @@ private fun rememberSavedSheetContent(
             requests.dismiss(id)
         } else {
             val flagged = session.snapshot.teaId?.takeIf { teas.getTea(it)?.recipeCheckReason != null }
-            value = SavedSheetContent(id, savedSummary(session), recipeCheckTeaId = flagged)
+            value = SavedSheetContent(
+                id,
+                savedSummary(session),
+                recipeCheckTeaId = flagged,
+                openedDate = sessions.openedDateChange(id),
+            )
         }
     }
 }
@@ -203,6 +219,7 @@ private fun rememberSavedSheetContent(
 private fun SavedSheet(
     content: SavedSheetContent,
     onRecipeOk: (teaId: String) -> Unit,
+    onUndoOpening: (OpenedDateChange) -> Unit,
     onDismiss: () -> Unit,
     onHold: (Boolean) -> Unit,
     windowInsets: WindowInsets,
@@ -319,8 +336,45 @@ private fun SavedSheet(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    content.openedDate?.let { change -> OpenedUndo(content.sessionId) { onUndoOpening(change) } }
                     content.recipeCheckTeaId?.let { teaId -> RecipeOk(content.sessionId) { onRecipeOk(teaId) } }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * „Packung als geöffnet markiert" · *Rückgängig* (INV-06, D-104), then the line that says the date is back.
+ * The text wraps beside the action at a large font.
+ */
+@Composable
+private fun OpenedUndo(sessionId: String, onUndo: () -> Unit) {
+    var done by remember(sessionId) { mutableStateOf(false) }
+    val lineModifier = Modifier.padding(top = UmamiSpacing.XSmall)
+    if (done) {
+        Text(
+            text = stringResource(R.string.journal_saved_opened_undone),
+            modifier = lineModifier,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        Row(modifier = lineModifier, verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.journal_saved_opened),
+                modifier = Modifier.weight(1f, fill = false),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(UmamiSpacing.Small))
+            TextButton(
+                onClick = {
+                    done = true
+                    onUndo()
+                },
+            ) {
+                Text(stringResource(R.string.journal_saved_opened_undo))
             }
         }
     }

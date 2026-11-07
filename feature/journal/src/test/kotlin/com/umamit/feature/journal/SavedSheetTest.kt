@@ -27,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * The „Gespeichert" sheet (SCR-06, TMR-12): shown when the controller reports
@@ -95,9 +96,16 @@ class SavedSheetTest {
         assertThat(requests.pending.value).isNull()
     }
 
-    private fun saveTea(id: String, reason: RecipeCheckReason?) = runBlocking {
+    private fun saveTea(id: String, reason: RecipeCheckReason?, openedDate: LocalDate? = null) = runBlocking {
         collection.teas.saveTea(
-            Tea(id, "Tee $id", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF, recipeCheckReason = reason),
+            Tea(
+                id,
+                "Tee $id",
+                category = TeaCategory.GREEN,
+                form = TeaForm.LOOSE_LEAF,
+                openedDate = openedDate,
+                recipeCheckReason = reason,
+            ),
         )
     }
 
@@ -117,6 +125,34 @@ class SavedSheetTest {
         // The sheet says so instead of offering it again.
         compose.onNodeWithText("Rezept passt").assertDoesNotExist()
         compose.onNodeWithText("„Rezept prüfen“ ist entfernt.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the brew that opens the package says so, and Rueckgaengig makes the tea unopened again`() {
+        saveTea("new", null)
+        show()
+
+        controller.brew("s1", 60, teaId = "new")
+        assertThat(runBlocking { collection.teas.getTea("new") }?.openedDate).isNotNull()
+        compose.onNodeWithText("Packung als geöffnet markiert").assertIsDisplayed()
+        compose.onNodeWithText("Rückgängig").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+
+        assertThat(runBlocking { collection.teas.getTea("new") }?.openedDate).isNull()
+        compose.onNodeWithText("Rückgängig").assertDoesNotExist()
+        compose.onNodeWithText("Öffnungsdatum ist zurückgesetzt.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a brew that leaves the opened date shows no line`() {
+        saveTea("open", null, openedDate = LocalDate.of(2026, 10, 1))
+        show()
+
+        controller.brew("s1", 60, teaId = "open")
+
+        compose.onNodeWithText("Gespeichert im Journal").assertIsDisplayed()
+        compose.onNodeWithText("Packung als geöffnet markiert").assertDoesNotExist()
+        compose.onNodeWithText("Rückgängig").assertDoesNotExist()
     }
 
     @Test

@@ -86,4 +86,8 @@
     <!-- SCR-06 for a tea flagged „Rezept prüfen" (CAT-05, D-073): the recipe fits, the flag goes. -->
     <string name="journal_saved_recipe_ok">Rezept passt</string>
     <string name="journal_saved_recipe_ok_done">„Rezept prüfen“ ist entfernt.</string>
+    <!-- SCR-06 after the brew whose completion set the tea's opened date (INV-06, D-104); Rückgängig writes back the date before. -->
+    <string name="journal_saved_opened">Packung als geöffnet markiert</string>
+    <string name="journal_saved_opened_undo">Rückgängig</string>
+    <string name="journal_saved_opened_undone">Öffnungsdatum ist zurückgesetzt.</string>
 </resources>
