@@ -288,7 +288,9 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   Kräutertees only (grouped by *Sorte*), tapping it again returns to the
   green teas. The *Pur* filter does not apply in the Kräutertee view; the
   other filters still do. Search hits among the hidden kind count as hidden
-  by the filters.
+  by the filters. From v0.4.0 a chip *Grüntee* names the default view next
+  to *Kräutertee* and returns to it
+  ([D-103](10-open-questions-and-decisions.md#d-103)).
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").

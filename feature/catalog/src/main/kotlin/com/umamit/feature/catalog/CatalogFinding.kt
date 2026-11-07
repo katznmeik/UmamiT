@@ -123,6 +123,11 @@ internal fun CatalogFilterChips(
             },
         )
         MarkedChip(filter, onFilterChange)
+        // The two ranges side by side (D-103): *Grüntee* names the default view, which until v0.4.0-rc.2 showed only
+        // as „Pur"; a tap on it returns from the Kräutertees, a tap on the selected one changes nothing.
+        CatalogChip(stringResource(R.string.catalog_filter_green), !filter.herbal) {
+            onFilterChange { it.withHerbal(false) }
+        }
         CatalogChip(stringResource(R.string.catalog_filter_herbal), filter.herbal) {
             onFilterChange { it.withHerbal(!it.herbal) }
         }

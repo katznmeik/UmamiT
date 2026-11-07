@@ -30,9 +30,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The *Kräutertee* chip of Sammlung › Katalog (v0.2.1, #89; CAT-10, SCR-19, D-093) on fake data:
- * the list opens on the green teas, the chip switches to the Kräutertees grouped by *Sorte*
- * (without „Pur", Q14) and back. Invented teas (D-016).
+ * The *Grüntee* and *Kräutertee* chips of Sammlung › Katalog (v0.2.1, #89; CAT-10, SCR-19, D-093, D-103) on fake
+ * data: the list opens on the green teas with *Grüntee* selected, *Kräutertee* switches to the Kräutertees grouped by
+ * *Sorte* (without „Pur", Q14) and back, and *Grüntee* returns too. Invented teas (D-016).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -105,6 +105,33 @@ class CatalogHerbalChipTest {
         shown("Morgennebel Sencha")
         hidden("Wiesenzauber")
         compose.onNodeWithText("Tee-Kontor Kiel · 2 Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
+    }
+
+    /** D-103: the green range has its own chip, selected by default; a tap returns from the Kräutertees. */
+    @Test
+    fun grunteeIsSelectedByDefaultAndReturnsFromTheKraeutertees() {
+        show()
+        chip(R.string.catalog_filter_green).assertIsSelected()
+
+        // A tap on the selected range changes nothing.
+        chip(R.string.catalog_filter_green).performClick()
+        compose.waitForIdle()
+        chip(R.string.catalog_filter_green).assertIsSelected()
+        shown("Morgennebel Sencha")
+
+        chip(R.string.catalog_filter_herbal).performClick()
+        compose.waitForIdle()
+        chip(R.string.catalog_filter_green).assertIsNotSelected()
+        hidden("Morgennebel Sencha")
+
+        chip(R.string.catalog_filter_green).performClick()
+        compose.waitForIdle()
+
+        chip(R.string.catalog_filter_green).assertIsSelected()
+        chip(R.string.catalog_filter_herbal).assertIsNotSelected()
+        shown("Morgennebel Sencha")
+        hidden("Wiesenzauber")
+        compose.onNodeWithText("Tee-Kontor Kiel · 2\u00A0Grüntees · aktualisiert am 22. Okt.").assertIsDisplayed()
     }
 
     @Test

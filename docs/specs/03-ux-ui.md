@@ -1069,6 +1069,11 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   green teas. In the Kräutertee view „Pur" does not apply (hidden); the
   other chips still apply, and it counts in „Filter (n)".
   The header then reads „… · 38 Kräutertees · …".
+  From v0.4.0 ([D-103](10-open-questions-and-decisions.md#d-103)) a chip
+  *Grüntee* stands right before *Kräutertee*: selected in the default
+  view, so the green range is named (before, it showed only as „Pur"); a
+  tap on it returns from the Kräutertees, a tap while selected changes
+  nothing. It does not count in „Filter (n)".
 - **Filter sheet** (Material 3 modal sheet; never over an alert) for the
   rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·

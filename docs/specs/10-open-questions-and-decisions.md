@@ -323,6 +323,27 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-103"></a>
+### D-103 — A *Grüntee* chip in the catalog, directly into the final `v0.4.0` (CAT-10, SCR-19; amends D-093) · *Accepted* (PO, 2026-11-07)
+
+**Context.** The PO passed every rc.2 item and approved v0.4.0, with one
+small change for the final release: in Sammlung › Katalog the green teas,
+the list's default range, had no chip of their own, so they seemed to be
+found only under „Pur", which is the flavour filter.
+
+**Decision.** A chip *Grüntee* stands right before *Kräutertee*. It is
+selected while the list shows the green teas (the default view); a tap on it
+returns from the Kräutertee view (`withHerbal(false)`, which also clears the
+*Sorte* choice as switching did before); a tap while it is selected changes
+nothing. *Pur* keeps its meaning (no flavoured teas) and its place after the
+pair. The chip is the view's name, not a filter: it does not count in
+„Filter (n)" and *Zurücksetzen* leaves the range as before.
+
+**Release.** UI only, no data or timer change; it goes into the final
+`v0.4.0` without another rc (PO). The final's accuracy run (09 §4a) covers the
+release as planned; the PO checks the chip on the final build. Catalog
+goldens re-recorded.
+
 <a id="d-102"></a>
 ### D-102 — The PO's findings on `v0.4.0-rc.1`: journal temperature, *Löschen* on the session page, *Tee hinzufügen* in Sammlung's ⋮ menu, the keyboard (JRN-08, JRN-10, SCR-08, SCR-10, SCR-11, SCR-12, SCR-14, SCR-16; amends D-100 point 4) · *Accepted* (PO's feedback of 2026-11-07, built into rc.2)
 
@@ -5768,6 +5789,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-07 | D-103: a *Grüntee* chip before *Kräutertee* in the catalog, selected in the default view and returning from the Kräutertees (CAT-10, SCR-19; amends D-093); straight into the final `v0.4.0` after the PO approved rc.2. |
 | 2026-11-07 | D-102: the PO's findings on `v0.4.0-rc.1`: the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page with „Sitzung löschen?", the stock deduction comes back (JRN-10, pulled forward from M4); *Tee hinzufügen* moves from the FAB into Sammlung's ⋮ menu (SCR-08, amends D-100 point 4); the keyboard: `adjustResize`, the shell consumes the covered height below the content, the editors drop their second `imePadding()`. Own photos stay v0.4.1. → `v0.4.0-rc.2`. |
 | 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
 | 2026-11-03 | D-095 amended: the timer band A13 shows a sumi-e bamboo spray instead of the night landscape (PO); new A13 prompt in `docs/design/assets.md` §4, `CREDITS.md` and 03 SCR-05 updated. |

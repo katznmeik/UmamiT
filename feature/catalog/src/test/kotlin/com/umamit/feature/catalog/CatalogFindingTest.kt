@@ -18,6 +18,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
@@ -164,12 +165,13 @@ class CatalogFindingTest {
     fun aChipNarrowsTheListAndNothingMatchingOffersTheReset() {
         show()
 
-        chip(R.string.catalog_filter_new).performClick()
+        // The chip row scrolls: since D-103 *Grüntee* pushes *Neu* past the edge of the screen.
+        chip(R.string.catalog_filter_new).performScrollTo().performClick()
         compose.waitForIdle()
         shown("Tautropfen Gyokuro")
         hidden("Morgennebel Sencha")
 
-        chip(R.string.catalog_filter_organic).performClick()
+        chip(R.string.catalog_filter_organic).performScrollTo().performClick()
         compose.waitForIdle()
         shown(str(R.string.catalog_no_match))
         compose.onNodeWithText(str(R.string.catalog_reset_filters)).performClick()
