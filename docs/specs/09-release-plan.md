@@ -234,6 +234,10 @@ with *Ohne Katalog* for the test, deleted at the end.
 - [ ] *Einstellungen › Brühen & Vorrat › Bestand abziehen* off: a brew leaves the stock unchanged; on again: it is deducted.
 - [ ] The Schritte-Sheet names a rinse *Spülen*.
 
+**Final `v0.4.0` (D-103):**
+
+- [ ] Sammlung › Katalog: *Grüntee* is selected next to *Kräutertee* when the catalog opens; *Kräutertee* switches to the Kräutertees, *Grüntee* returns to the green teas; „Pur" still hides the flavoured teas.
+
 **rc.2 (D-102, the PO's findings on rc.1):**
 
 - [ ] Journal: brew a tea with its first infusion set cooler in the Schritte-Sheet (e.g. 55 °C on a 70 °C recipe): the row's meta line reads the first infusion's 55 °C, not the recipe's 70 °C.

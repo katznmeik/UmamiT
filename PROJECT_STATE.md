@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-07. **The PO passed every item of the rc.1 checklist (#160) and reported five points** (2026-11-07). Four are built as **D-102** for `v0.4.0-rc.2` (versionCode 40002): the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page (JRN-10, pulled forward from M4); *Tee hinzufügen* moved from the FAB into Sammlung's ⋮ menu (SCR-08); the keyboard no longer hides fields or leaves an empty band (`adjustResize`, the shell consumes the covered height, the editors pad once). The fifth, own photos for a tea added *Ohne Katalog*, is v0.4.1 already (D-100). rc.2 also carries the bamboo timer band (#164) and the tea-branch Start header (#165). No timer code changed, so no accuracy run for rc.2 (D-073). **Next: the PO tests rc.2** (the four rc.2 items in 09 §4 plus the band and the header), then approves #161.
+**Last updated:** 2026-11-07. **The PO approved v0.4.0** (all rc.2 items passed, checklist and design review approved in the session, recorded on #160). One small change goes straight into the final: a *Grüntee* chip before *Kräutertee* in the catalog (**D-103**). Version `0.4.0` set. **Next: #161** (merge PR #162 into `main` with a merge commit, both accuracy variants on `main`, release `v0.4.0` from `main`, close #145 and its tickets, restart the working branch from `main`).
 
 > **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
 
@@ -20,7 +20,7 @@
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | #162 (v0.4.0 milestone, draft) |
 | Latest APK | [`v0.4.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0-rc.2) (pre-release, versionCode 40002); before it `v0.4.0-rc.1` (40001, `5240a57`); stable [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (versionCode 30099, from `main` 688a23a) |
-| Decision numbers | Up to **D-102** used; the next free is **D-103** |
+| Decision numbers | Up to **D-103** used; the next free is **D-104** |
 
 ## Working agreements in effect
 
@@ -33,9 +33,9 @@
 
 ## Waiting on the PO
 
-1. **Testing `v0.4.0-rc.2`** (#160): the four rc.2 items of 09 §4 (journal temperature, *Löschen* on the session page, the ⋮ menu instead of the FAB, the keyboard on every text field), plus the bamboo timer band and the tea-branch Start header. Then the explicit approval → #161.
+1. **After the final release:** check the *Grüntee* chip on `v0.4.0` (09 §4, the final's item). Then the v0.4.1 spec (`/to-spec`).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
-3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR #162's CI results don't wake a session; the sessions check CI themselves.
+3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 
 ## v0.4.0: rc.2 out (2026-11-07)
 

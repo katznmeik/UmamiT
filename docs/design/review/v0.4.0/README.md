@@ -16,7 +16,7 @@ Naming:
 | `journal/` | The session page (#159; re-rendered for rc.2 with ⋮ *Löschen*, D-102): `SessionPage_available` (step table *geplant* / *tatsächlich* / °C, *So nochmal brühen*), `_archivedTea` (button greyed out, „Tee ist archiviert"), `_deletedTea` (name without a link, no button), the short screen. |
 | `brew/` | See below. |
 | `settings/` | *Bestand abziehen* in *Brühen & Vorrat* (`Settings_brewing`, #150) and the *Teegeschirr* row (`Settings_teaware`). The other settings renders changed only because the page grew. |
-| `catalog/` | Only F9's back arrow on the tea detail and the guide; nothing else changed. |
+| `catalog/` | F9's back arrow on the tea detail and the guide. **Final (D-103):** `Catalog_listFiltered` shows the new *Grüntee* chip before *Kräutertee*. |
 | `home/` | The Start header A3 as a sumi-e tea branch (#165, merged from `main` after rc.1): `Home_seeded` light and dark. |
 
 **`collection/`**
