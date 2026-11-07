@@ -53,6 +53,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogListing
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
 import java.time.ZoneId
 
@@ -405,7 +406,7 @@ private fun Header(listing: CatalogListing, filter: CatalogFilter, zone: ZoneId)
     val updated = listing.lastRefreshAtMillis
     Text(
         text = if (updated != null) {
-            stringResource(R.string.catalog_header, count, CatalogFormat.date(updated, zone))
+            stringResource(R.string.catalog_header, count, GermanFormat.dayShort(updated, zone))
         } else {
             stringResource(R.string.catalog_header_undated, count)
         },

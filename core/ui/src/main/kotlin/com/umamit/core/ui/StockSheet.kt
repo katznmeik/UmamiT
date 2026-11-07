@@ -155,7 +155,7 @@ private fun StockSheetContent(
         sessionLeafGrams?.let { leaf ->
             Spacer(Modifier.height(UmamiSpacing.XSmall))
             Text(
-                text = stringResource(R.string.ui_stock_session, grams(leaf)),
+                text = stringResource(R.string.ui_stock_session, GermanFormat.gramsOneDecimal(leaf)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag(STOCK_SHEET_SESSION_TAG),
@@ -194,7 +194,7 @@ object StockInput {
     fun parse(text: String): Double? = text.trim().takeIf(PATTERN::matches)?.replace(',', '.')?.toDouble()
 
     /** „23,5": [grams] to 0,1 g, never below 0 (a stock below 0 opens as leer). */
-    fun format(grams: Double): String = grams(grams.coerceIn(0.0, MAX_GRAMS))
+    fun format(grams: Double): String = GermanFormat.gramsOneDecimal(grams.coerceIn(0.0, MAX_GRAMS))
 
     /**
      * The text one 0,1 g step [up] or down from [text] (from 0 when [text] is not a total), or null when that
@@ -206,9 +206,6 @@ object StockInput {
         return next.takeIf { it >= BigDecimal.ZERO && it.toDouble() <= MAX_GRAMS }?.let { format(it.toDouble()) }
     }
 }
-
-/** „4,5": [value] in g to 0,1 g, German decimal comma. */
-private fun grams(value: Double): String = "%.1f".format(Locale.GERMAN, value)
 
 /** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
 @OptIn(ExperimentalMaterial3Api::class)

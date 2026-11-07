@@ -53,6 +53,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.reliability.ReliabilityProblem
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -337,14 +338,13 @@ private fun TeaTile(photoPath: String?) {
     }
 }
 
-private val DATE = DateTimeFormatter.ofPattern("d. MMMM", Locale.GERMAN)
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_HOUR = 3_600
 
 /** „8. Juni · 1 Min. · 65 °C" (03 §3.8, 05 §7: whole hours „4 Std.", whole minutes „3 Min." in lists, else „0:45"). */
 @Composable
 private fun recentMeta(brew: RecentBrew): String {
-    val date = DATE.format(Instant.ofEpochMilli(brew.startedAtMs).atZone(zoneOf(brew.zoneId)))
+    val date = GermanFormat.dayMonthLong(Instant.ofEpochMilli(brew.startedAtMs).atZone(zoneOf(brew.zoneId)))
     val seconds = brew.firstStepSeconds
     val duration = when {
         seconds == null -> null

@@ -57,6 +57,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogTeaDetail
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
 
 /** The catalog tea detail's scrolling content (SCR-21). */
@@ -304,7 +305,7 @@ private fun Header(tea: CatalogTeaDetail) = Column {
     tea.basePriceCentsPer100g?.let {
         Spacer(Modifier.height(UmamiSpacing.Small))
         Text(
-            text = stringResource(R.string.catalog_price_per_100g, CatalogFormat.euros(it)),
+            text = stringResource(R.string.catalog_price_per_100g, GermanFormat.euros(it)),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )

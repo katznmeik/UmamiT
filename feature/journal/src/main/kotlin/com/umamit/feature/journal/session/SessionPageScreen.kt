@@ -40,6 +40,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.journal.R
 import java.time.format.DateTimeFormatter
@@ -50,9 +51,6 @@ const val SESSION_TEA_TAG = "session_tea"
 const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
 const val SESSION_MENU_TAG = "session_menu"
-
-private val GERMAN_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
-private val GERMAN_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN)
 
 private val CHEVRON_SIZE = 20.dp
 
@@ -174,7 +172,8 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
         )
         DetailRow(
             stringResource(R.string.session_ratio),
-            page.ratioPer100Ml?.let { stringResource(R.string.session_ratio_value, oneDecimal(it)) } ?: unknown(),
+            page.ratioPer100Ml?.let { stringResource(R.string.session_ratio_value, GermanFormat.gramsOneDecimal(it)) }
+                ?: unknown(),
         )
         SectionHeader(
             title = stringResource(R.string.session_steps),
@@ -232,8 +231,8 @@ private fun TeaHeader(page: SessionPage, onOpenTea: (() -> Unit)?) {
         Text(
             text = stringResource(
                 R.string.session_started,
-                page.startedAt.format(GERMAN_DATE),
-                page.startedAt.format(GERMAN_TIME),
+                GermanFormat.day(page.startedAt),
+                GermanFormat.time(page.startedAt),
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -326,11 +325,8 @@ private fun methodLabel(method: BrewMethod): String = stringResource(
 
 @Composable
 @ReadOnlyComposable
-private fun grams(value: Double): String = stringResource(R.string.session_grams, oneDecimal(value))
+private fun grams(value: Double): String = stringResource(R.string.session_grams, GermanFormat.gramsOneDecimal(value))
 
 @Composable
 @ReadOnlyComposable
 internal fun unknown(): String = stringResource(R.string.session_unknown)
-
-/** „4,5", „4,0": one decimal, German (as the setup shows leaf and ratio). */
-private fun oneDecimal(value: Double): String = "%.1f".format(Locale.GERMAN, value)

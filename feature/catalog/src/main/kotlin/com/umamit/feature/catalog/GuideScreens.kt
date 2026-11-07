@@ -47,6 +47,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.GuideDetail
 import com.umamit.core.model.GuideLink
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
 import java.net.URI
 import java.net.URISyntaxException
@@ -128,7 +129,7 @@ fun GuideListScreen(
         state.guides.forEachIndexed { index, guide ->
             TeaListItem(
                 title = guide.title,
-                meta = guide.publishedAtMillis?.let { CatalogFormat.fullDate(it, zone) } ?: source,
+                meta = guide.publishedAtMillis?.let { GermanFormat.day(it, zone) } ?: source,
                 onClick = { onOpenGuide(guide.slug) },
                 thumbnail = image(guide.heroPath),
                 placeholderColor = UmamiTheme.extendedColors.teaTypes.sencha,
@@ -268,7 +269,7 @@ private fun Article(
                 Spacer(Modifier.height(UmamiSpacing.XXSmall))
                 Text(
                     text = guide.publishedAtMillis?.let {
-                        stringResource(R.string.guide_source_dated, CatalogFormat.fullDate(it, zone))
+                        stringResource(R.string.guide_source_dated, GermanFormat.day(it, zone))
                     } ?: stringResource(R.string.guide_source),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

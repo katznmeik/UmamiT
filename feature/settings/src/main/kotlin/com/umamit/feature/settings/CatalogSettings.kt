@@ -18,6 +18,7 @@ import com.umamit.core.data.catalog.CatalogRefreshRunner
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.ui.GermanFormat
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -55,9 +56,6 @@ class CatalogSettingsViewModel @Inject constructor(
     }
 }
 
-/** „21. Okt. 2026" (CLAUDE.md rule 4). */
-private val DATE = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
-
 /**
  * *Katalog* in the settings (SET-23): „Letzter Abruf" with the date of the last successful refresh,
  * and *Jetzt aktualisieren*, which waits while a refresh runs. Progress and result show in the
@@ -73,7 +71,7 @@ internal fun CatalogSection(state: CatalogSettingsState, onRefresh: () -> Unit, 
                 Text(
                     when {
                         state.refreshing -> stringResource(R.string.settings_catalog_refreshing)
-                        last != null -> DATE.format(Instant.ofEpochMilli(last).atZone(zone))
+                        last != null -> GermanFormat.day(last, zone)
                         else -> stringResource(R.string.settings_catalog_never)
                     },
                 )
