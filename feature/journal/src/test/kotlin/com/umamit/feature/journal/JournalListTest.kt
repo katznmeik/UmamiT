@@ -121,7 +121,7 @@ class JournalListTest {
     }
 
     @Test
-    fun `rinses and skipped steps are not infusions, and the meta shows base temperature and the first infusion`() {
+    fun `rinses and skipped steps are not infusions, and the meta shows the first infusion at the base temperature`() {
         val entry = journalList(
             listOf(
                 session(
@@ -129,10 +129,10 @@ class JournalListTest {
                     at(TODAY, 9),
                     baseTempC = 60,
                     steps = listOf(
-                        step(0, 10, kind = StepKind.RINSE),
-                        step(1, 90),
-                        step(2, 30, skipped = true),
-                        step(3, 45),
+                        step(0, 10, kind = StepKind.RINSE, tempC = 80),
+                        step(1, 90, tempC = null),
+                        step(2, 30, skipped = true, tempC = null),
+                        step(3, 45, tempC = null),
                     ),
                 ),
             ),
@@ -143,6 +143,28 @@ class JournalListTest {
         assertThat(entry.plannedInfusions).isEqualTo(3)
         assertThat(entry.temperatureC).isEqualTo(60)
         assertThat(entry.firstInfusionSeconds).isEqualTo(90)
+    }
+
+    /** The PO's finding on v0.4.0-rc.1 (D-102): a first infusion set cooler in the Schritte-Sheet showed the base. */
+    @Test
+    fun `the meta shows the first infusion's own temperature, not the recipe's base`() {
+        val entry = journalList(
+            listOf(
+                session(
+                    "cooler",
+                    at(TODAY, 9),
+                    baseTempC = 70,
+                    steps = listOf(
+                        step(0, 10, kind = StepKind.RINSE, tempC = 80),
+                        step(1, 60, tempC = 55),
+                        step(2, 30),
+                    ),
+                ),
+            ),
+            TODAY,
+        ).days.single().entries.single()
+
+        assertThat(entry.temperatureC).isEqualTo(55)
     }
 
     @Test

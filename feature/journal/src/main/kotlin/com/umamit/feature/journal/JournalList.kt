@@ -15,9 +15,10 @@ import java.time.ZoneId
 
 /**
  * One journal row (JRN-08, mockup v2): tea, time of day and the meta line
- * „55 °C · 1:00 · 3 Aufgüsse" (base temperature · first infusion · count), or
+ * „55 °C · 1:00 · 3 Aufgüsse" (the first infusion's temperature and time · count), or
  * „2 von 3 Aufgüssen" when fewer infusions were poured than planned (TMR-12).
  *
+ * @property temperatureC the first infusion's temperature as brewed (its own, else the session's base; D-102).
  * @property infusions poured infusions: ended steps that are neither a rinse nor skipped.
  * @property plannedInfusions the non-rinse steps of the plan, never-started ones included.
  */
@@ -97,7 +98,10 @@ private fun JournalSession.toEntry(): JournalEntry {
         styleKey = session.snapshot.styleKey,
         photo = coverPhoto,
         startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), zoneOf(session.zoneId)),
-        temperatureC = session.snapshot.baseTempC ?: infusionRows.firstNotNullOfOrNull { it.tempC },
+        // The first infusion as brewed: a step warmer or cooler than the base (Schritte-Sheet) shows its own
+        // temperature, not the recipe's base (D-102).
+        temperatureC = infusionRows.firstOrNull()?.let { it.tempC ?: session.snapshot.baseTempC }
+            ?: session.snapshot.baseTempC,
         firstInfusionSeconds = infusionRows.firstOrNull()?.plannedSeconds,
         infusions = poured,
         plannedInfusions = maxOf(planned, poured),

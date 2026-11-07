@@ -40,7 +40,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * *Ohne Katalog* in the Sammlung tab (TEA-01, SCR-11, SCR-10): *Meine Tees*' FAB choice opens *Sorte wählen*, a
+ * *Ohne Katalog* in the Sammlung tab (TEA-01, SCR-11, SCR-10): Sammlung's ⋮ *Tee ohne Katalog hinzufügen* (D-102)
+ * opens *Sorte wählen*, a
  * Sorte the editor of a new tea, *Speichern* the new tea's detail, whose back returns to the list; the detail's
  * pencil opens the editor of that tea, and ✕ returns to the detail. The real root and shell navigation and the real
  * editor on fakes; stand-ins for the list and the detail.
@@ -78,7 +79,6 @@ class TeaEditorFlowTest {
     private fun MyTeas(tab: MyTeasTab) {
         Column(tab.modifier) {
             Text(LIST)
-            TextButton(onClick = tab.addWithoutCatalog) { Text(ADD) }
             TextButton(onClick = { tab.openTea(SEEDED) }) { Text(SEEDED) }
         }
     }
@@ -119,6 +119,7 @@ class TeaEditorFlowTest {
     fun `Ohne Katalog adds a tea of the chosen Sorte and opens its detail`() {
         show()
         openCollection()
+        compose.onNodeWithContentDescription("Weitere Optionen").performClick()
         compose.onNodeWithText(ADD).performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Sorte wählen").assertIsDisplayed()
@@ -167,7 +168,7 @@ class TeaEditorFlowTest {
 
     private companion object {
         const val LIST = "Liste"
-        const val ADD = "Ohne Katalog hinzufügen"
+        const val ADD = "Tee ohne Katalog hinzufügen"
         const val SEEDED = "seeded"
         const val DETAIL = "Detail"
         const val EDIT = "Bearbeiten"

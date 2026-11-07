@@ -1020,7 +1020,9 @@ plus custom ones; max 20 per session.
 **JRN-08 — Journal list** `Must`
 Newest first, grouped by day („Heute", „Gestern", „Montag, 12. Oktober").
 Row (as in mockup v2): thumbnail, tea name, time of day („09:12"), meta line
-„55 °C · 1:00 · 3 Aufgüsse" (base temperature · first infusion · count),
+„55 °C · 1:00 · 3 Aufgüsse" (the first infusion's temperature as brewed, its
+own or else the session's base, and its planned time · count; the base alone
+until v0.4.0-rc.1, [D-102](10-open-questions-and-decisions.md#d-102)),
 rating if present, a subtle dot for sessions without notes. In-progress session pinned on top.
 
 **JRN-09 — Search & filters** `Should` (tea, type, rating, date range, with/without notes).
@@ -1029,8 +1031,12 @@ rating if present, a subtle dot for sessions without notes. In-progress session 
 - **v0.4.0 (D-100):** a tap on a past journal entry opens its page (SCR-16),
   read-only: the tea (tap → its detail), date and time, method, vessel,
   leaf / water / ratio, the step table (*geplant* / *tatsächlich* / °C) and
-  *So nochmal brühen* (BRW-06). *Bearbeiten*, rating, taste and *Löschen*
+  *So nochmal brühen* (BRW-06). *Bearbeiten*, rating and taste
   follow in M4.
+- **v0.4.0-rc.2 (D-102):** ⋮ *Löschen* on the page asks „Sitzung löschen?"
+  and deletes a finished session with its steps and its BREW stock event
+  (the deducted leaf is back in the stock); a session in progress is never
+  deleted. No undo.
 
 **JRN-11 — Edit session** `Must` (all fields incl. times; leaf edits update the stock deduction).
 

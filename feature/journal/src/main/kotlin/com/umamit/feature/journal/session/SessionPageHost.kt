@@ -8,9 +8,14 @@ package com.umamit.feature.journal.session
  * @property onBrewAgain *So nochmal brühen* (BRW-06): the setup prefilled with the session, by its id. The app opens
  *   the setup above the shell, through the same setup → *Brühen starten* path as every brew, or the alerting timer
  *   during an alert (rule 8).
+ * @property onDeleted *Löschen* removed the session (JRN-10, D-102): the app leaves the page.
+ * @property alertKey the alert playing now, or null: the ⋮ menu and the delete question give way to another
+ *   (rule 8).
  */
 class SessionPageHost(
     val onBack: () -> Unit,
     val onOpenTea: (teaId: String) -> Unit,
     val onBrewAgain: (sessionId: String) -> Unit,
+    val onDeleted: () -> Unit = {},
+    val alertKey: String? = null,
 )

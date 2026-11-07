@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
@@ -17,6 +19,7 @@ import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.journal.JournalSessions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -86,6 +89,24 @@ class SessionPageViewModelTest {
 
     private fun record(planned: Int, actual: Int, skipped: Boolean = false) =
         StepRecord(planned, actual, 0, 0, STARTED, STARTED + 1_000, skipped = skipped, overtimeAutoAck = false)
+
+    /** *Löschen* (D-102): the finished session goes with its BREW stock event, and the host hears `Deleted`. */
+    @Test
+    fun `delete removes the session with its stock deduction and emits Deleted`() = runTest {
+        collection.stock.addEvent(InventoryEvent("p", TEA, InventoryEventType.PURCHASE, 50.0, occurredAtMillis = 1L))
+        brewed()
+        assertThat(collection.stock.observeStock(TEA).first().remainingGrams).isEqualTo(45.5)
+        val vm = viewModel()
+        assertThat(vm.page.inProgress).isFalse()
+
+        vm.delete()
+        val event = vm.events.first()
+
+        assertThat(event).isEqualTo(SessionPageEvent.Deleted)
+        assertThat(sessions.sessions.getSession(PAST)).isNull()
+        assertThat(collection.stock.observeStock(TEA).first().remainingGrams).isEqualTo(50.0)
+        assertThat(vm.state.value).isEqualTo(SessionPageUiState.NotFound)
+    }
 
     @Test
     fun `the page shows the session as stored, with its local start, ratio and step table`() = runTest {

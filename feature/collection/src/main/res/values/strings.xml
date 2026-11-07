@@ -47,10 +47,9 @@
     <string name="my_teas_favorite">Favorit</string>
     <string name="my_teas_restore">Wiederherstellen</string>
     <string name="my_teas_restore_description">%1$s wiederherstellen</string>
-    <!-- FAB and its choice (SCR-08, D-100 point 4). -->
-    <string name="my_teas_add">Tee hinzufügen</string>
-    <string name="my_teas_add_from_catalog">Aus dem Katalog</string>
-    <string name="my_teas_add_without_catalog">Ohne Katalog</string>
+    <!-- Sammlung's ⋮ menu on Meine Tees (SCR-08, D-100 point 4; from the FAB into the menu, D-102). -->
+    <string name="my_teas_add_from_catalog">Tee aus dem Katalog hinzufügen</string>
+    <string name="my_teas_add_without_catalog">Tee ohne Katalog hinzufügen</string>
     <!-- Empty states (A7, A10). -->
     <string name="my_teas_empty_title">Noch keine Tees</string>
     <string name="my_teas_empty_body">Nimm deinen ersten Tee aus dem Katalog auf oder leg ihn ohne Katalog an.</string>

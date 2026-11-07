@@ -1,4 +1,4 @@
-# v0.4.0 design review (with `v0.4.0-rc.1`, #160)
+# v0.4.0 design review (with `v0.4.0-rc.1` and `-rc.2`, #160)
 
 These are the Roborazzi goldens that v0.4.0 added or changed (`src/test/screenshots/` of each module), scaled to 600 px wide and palette-optimised, as for v0.3.0.
 - They use synthetic sample teas and placeholder photos only, no Tee-Kontor content (D-016).
@@ -13,14 +13,14 @@ Naming:
 |---|---|
 | `collection/` | See below. |
 | `teaware/` | *Einstellungen › Teegeschirr* (#157): the list with favourites and „ARCHIVIERT" (`Teaware_list`), its empty state (`Teaware_empty`), the vessel editor (`VesselEditor_edit`, `_newErrors`, `_archived`). |
-| `journal/` | The session page (#159): `SessionPage_available` (step table *geplant* / *tatsächlich* / °C, *So nochmal brühen*), `_archivedTea` (button greyed out, „Tee ist archiviert"), `_deletedTea` (name without a link, no button), the short screen. |
+| `journal/` | The session page (#159; re-rendered for rc.2 with ⋮ *Löschen*, D-102): `SessionPage_available` (step table *geplant* / *tatsächlich* / °C, *So nochmal brühen*), `_archivedTea` (button greyed out, „Tee ist archiviert"), `_deletedTea` (name without a link, no button), the short screen. |
 | `brew/` | See below. |
 | `settings/` | *Bestand abziehen* in *Brühen & Vorrat* (`Settings_brewing`, #150) and the *Teegeschirr* row (`Settings_teaware`). The other settings renders changed only because the page grew. |
 | `catalog/` | Only F9's back arrow on the tea detail and the guide; nothing else changed. |
 | `home/` | The Start header A3 as a sumi-e tea branch (#165, merged from `main` after rc.1): `Home_seeded` light and dark. |
 
 **`collection/`**
-- **Meine Tees (#153):** `Collection_myTeas` (photo, names, Sorte, stock chip „38 g" / *Knapp* / *Leer*, star, „Rezept prüfen", sort chip first), `Collection_archived` (filter *Archiviert*), `Collection_noMatch` („Kein Tee passt zu deiner Suche."), `Collection_noTeas` (the A7 empty state); `Collection_noMatch` carries A10.
+- **Meine Tees (#153):** `Collection_myTeas` (photo, names, Sorte, stock chip „38 g" / *Knapp* / *Leer*, star, „Rezept prüfen", sort chip first), `Collection_archived` (filter *Archiviert*), `Collection_noMatch` („Kein Tee passt zu deiner Suche."), `Collection_noTeas` (the A7 empty state); `Collection_noMatch` carries A10. **rc.2 (D-102):** re-rendered without the FAB *Tee hinzufügen*, which moved into Sammlung's ⋮ menu.
 - **Tea detail (#154):** `TeaDetail_ready` (umami meter, the three figures, REZEPTE with the default, VORRAT, *Beim Tee-Kontor nachbestellen* as a text link), `TeaDetail_lowArchived` (archived: *Brühen* greyed out, the reorder link as a filled button at low stock).
 - **Tea editor and *Sorte wählen* (#155):** `TeaEditor_new`, `_newPurchase` (the *Kauf* section), `_edit`; `SortePicker` (grouped, with search).
 - **Recipe editor (#156):** `RecipeEditor_new`, `_edit` (method, vessel, base temperature, *Vorwarnung*, live ratio), `_steps` (drag handles, *Spülen*, notes).
@@ -38,6 +38,7 @@ Not rendered (behaviour, checked by tests and on the phone): archive and its *R�
 
 Known points to judge:
 - **The new timer band and Start header (#164, #165)** are not in `v0.4.0-rc.1`: they reached the milestone branch with the merge of `main` after it, so the phone shows them from rc.2.
+- **rc.2 (D-102):** *Meine Tees* without the FAB (`collection/Collection_*`); the session page's ⋮ *Löschen* and its question, the ⋮ entries on Sammlung and the keyboard are checked on the phone (09 §4, rc.2 items), not rendered.
 - **Placeholder vessel icons (#157):** the nine vessel types use simple line icons from `UmamiIcons`; final icons are not yet in `docs/design/assets.md`.
 - **A7 (no teas) and A10 (no search hit) empty states** in *Meine Tees*: the vignettes as built in; are the texts right?
 - **Tea detail, low stock (`TeaDetail_lowArchived`):** the pencil FAB sits over the right end of the filled *Beim Tee-Kontor nachbestellen* button when the page is scrolled to VORRAT. Acceptable, or should the FAB move or hide there?

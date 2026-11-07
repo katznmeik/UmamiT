@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-04
+> Status: **Living document** · Last updated: 2026-11-07
 
 ## Open questions
 
@@ -322,6 +322,59 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-102"></a>
+### D-102 — The PO's findings on `v0.4.0-rc.1`: journal temperature, *Löschen* on the session page, *Tee hinzufügen* in Sammlung's ⋮ menu, the keyboard (JRN-08, JRN-10, SCR-08, SCR-10, SCR-11, SCR-12, SCR-14, SCR-16; amends D-100 point 4) · *Accepted* (PO's feedback of 2026-11-07, built into rc.2)
+
+**Context.** The PO passed every item of the v0.4.0 checklist on rc.1 (#160)
+and reported five points. Four go into rc.2; the fifth (own photos for a tea
+added *Ohne Katalog*) is already in v0.4.1 (D-100).
+
+**Decisions.**
+
+1. **Journal temperature (bug, JRN-08).** A journal row showed the
+   session's base temperature (the recipe's), not the temperature the first
+   infusion was brewed at. The meta line now shows the **first infusion's own
+   temperature** (its step's, else the session's base), as the session page
+   and the tea detail already do. The first infusion's time stays as before.
+2. **Deleting a journal entry (JRN-10, pulled forward from M4).** The session
+   page (SCR-16) gets ⋮ *Löschen*, which asks „Sitzung löschen?" („Der
+   Eintrag verschwindet aus dem Journal. Abgezogener Vorrat kommt zurück.")
+   · *Abbrechen* / *Löschen*. A finished session is deleted with its steps
+   and its BREW stock event, so the leaf it deducted is back in the stock
+   (a brew recorded in error, the PO's case). A session in progress is never
+   deleted (the DAO refuses it: `DELETE … AND status != 'IN_PROGRESS'`); the
+   in-progress row opens the timer, not the page, so the menu is not shown
+   for it. No undo: the question is the guard. *Bearbeiten* stays M4.
+3. **No FAB on *Meine Tees* (SCR-08; amends D-100 point 4).** The extended
+   FAB *Tee hinzufügen* covered the rows (and, with the keyboard, most of the
+   list). Sammlung's ⋮ menu offers *Tee aus dem Katalog hinzufügen* (the
+   *Katalog* segment) and *Tee ohne Katalog hinzufügen* (*Sorte wählen*,
+   SCR-11) while *Meine Tees* shows; the catalog entries stay on *Katalog*.
+   The empty state's *Im Katalog stöbern* is unchanged. The snackbar
+   „… archiviert" no longer lifts anything.
+4. **Keyboard (SCR-08, SCR-10, SCR-11, SCR-12, SCR-14, SCR-19).** Two
+   findings: on *Meine Tees* a band the navigation bar's height stayed empty
+   above the keyboard; in the tea editor (and *Sorte wählen*) the fields
+   vanished behind the keyboard, leaving the green background. Fixes:
+   - `MainActivity` declares `windowSoftInputMode="adjustResize"`: the
+     keyboard is an inset the screens pad for, never a pan of the window;
+   - the shell's content consumes the height below it (the navigation bar
+     and the brew bar, which the keyboard covers) from the insets, so a
+     screen pads only for the part of the keyboard above its own bottom
+     edge (`Modifier.consumeCoveredBelow()` in `UmamitApp`);
+   - the editors (tea, recipe, vessel) and *Sorte wählen* drop their extra
+     `imePadding()`: their `Scaffold` already pads for `safeDrawing`, which
+     includes the keyboard, so the keyboard was padded for twice.
+   No screenshot test covers the keyboard (Robolectric reports no IME); the
+   PO checks it on rc.2.
+5. **Own photos** for teas added *Ohne Katalog* are v0.4.1 (D-100, SCR-28);
+   nothing changes.
+
+**Release.** All four fixes on the milestone branch → `v0.4.0-rc.2`
+(versionCode 40002). No timer code changed (the manifest attribute affects
+the keyboard only), so no accuracy run for rc.2 (D-073); the final `v0.4.0`
+from `main` runs both variants as planned. 09 §4 gets the four rc.2 items.
 
 <a id="d-101"></a>
 ### D-101 — Model and effort tiers shifted down; a fresh orchestrator session per phase, lean briefs, one milestone review (12; amends D-026, CLAUDE.md rule 5) · *Accepted* (PO, 2026-11-02)
@@ -5715,6 +5768,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-07 | D-102: the PO's findings on `v0.4.0-rc.1`: the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page with „Sitzung löschen?", the stock deduction comes back (JRN-10, pulled forward from M4); *Tee hinzufügen* moves from the FAB into Sammlung's ⋮ menu (SCR-08, amends D-100 point 4); the keyboard: `adjustResize`, the shell consumes the covered height below the content, the editors drop their second `imePadding()`. Own photos stay v0.4.1. → `v0.4.0-rc.2`. |
 | 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
 | 2026-11-03 | D-095 amended: the timer band A13 shows a sumi-e bamboo spray instead of the night landscape (PO); new A13 prompt in `docs/design/assets.md` §4, `CREDITS.md` and 03 SCR-05 updated. |
 | 2026-11-02 | D-101: tiers shifted down to save usage (T1 Sonnet low, T2 Sonnet medium, T3 Opus medium, T4 Opus high; `xhigh` only with the PO's OK, never `max`). Also a fresh orchestrator session per phase, lean briefs, one milestone review (T3, plus T4 for a changed timer path), and `PROJECT_STATE.md` trimmed to the current state (12, CLAUDE.md rule 5; amends D-026). |

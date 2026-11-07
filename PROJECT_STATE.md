@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-05. **`v0.4.0-rc.1` is out** (pre-release from `5240a57`, versionCode 40001): both accuracy variants PASS on that commit, CI green, design renders in `docs/design/review/v0.4.0/`, checklist on #160. **Next: the PO tests rc.1** (09 §4 checklist and the design review on #160); findings → rc.2 on the branch, approval → #161. **Also on 2026-11-05:** `main` merged into the branch (f754d66) to bring in the new timer band A13 (bamboo, #164) and Start header A3 (tea branch, #165), which rc.1 lacks; renders added to `docs/design/review/v0.4.0/` (`brew/TimerScreen_*`, `home/`). The merge touches only drawables, screenshot goldens and docs, no timer code. **rc.2 is needed in any case** so the PO sees both images on the phone: with the rc.1 findings, or on its own if rc.1 has none (PO, 2026-11-05).
+**Last updated:** 2026-11-07. **The PO passed every item of the rc.1 checklist (#160) and reported five points** (2026-11-07). Four are built as **D-102** for `v0.4.0-rc.2` (versionCode 40002): the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page (JRN-10, pulled forward from M4); *Tee hinzufügen* moved from the FAB into Sammlung's ⋮ menu (SCR-08); the keyboard no longer hides fields or leaves an empty band (`adjustResize`, the shell consumes the covered height, the editors pad once). The fifth, own photos for a tea added *Ohne Katalog*, is v0.4.1 already (D-100). rc.2 also carries the bamboo timer band (#164) and the tea-branch Start header (#165). No timer code changed, so no accuracy run for rc.2 (D-073). **Next: the PO tests rc.2** (the four rc.2 items in 09 §4 plus the band and the header), then approves #161.
 
 > **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
 
@@ -13,14 +13,14 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.0, `v0.4.0-rc.1` with the PO** (spec #145, PR #162 draft, D-100). All build tickets #147–#159 and the review fixes F1–F15 are merged on the branch (`docs/plans/v0.4.0-review.md`). |
-| Next phase | **PO testing rc.1** (#160). Then **rc.2** in any case (it carries #164/#165 from `main`; with an rc.2 fix round if rc.1 has findings, timer code T3+), then #161 (merge, final `v0.4.0` from `main`, both accuracy variants again per 09 §4a). |
+| Current milestone | **v0.4.0, `v0.4.0-rc.2` with the PO** (spec #145, PR #162 draft, D-100, D-102). All build tickets #147–#159, the review fixes F1–F15 (`docs/plans/v0.4.0-review.md`) and the rc.1 findings (D-102) are on the branch. |
+| Next phase | **PO testing rc.2** (#160: the rc.2 items of 09 §4, the timer band and the Start header). Then #161 (merge, final `v0.4.0` from `main`, both accuracy variants again per 09 §4a). |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038); `/implement-spec #145` given on 2026-10-31 |
 | Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | #162 (v0.4.0 milestone, draft) |
-| Latest APK | [`v0.4.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0-rc.1) (pre-release, versionCode 40001, `5240a57`); stable [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (versionCode 30099, from `main` 688a23a) |
-| Decision numbers | Up to **D-101** used; the next free is **D-102** |
+| Latest APK | [`v0.4.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0-rc.2) (pre-release, versionCode 40002); before it `v0.4.0-rc.1` (40001, `5240a57`); stable [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (versionCode 30099, from `main` 688a23a) |
+| Decision numbers | Up to **D-102** used; the next free is **D-103** |
 
 ## Working agreements in effect
 
@@ -33,12 +33,17 @@
 
 ## Waiting on the PO
 
-1. **Testing `v0.4.0-rc.1`** with the 09 §4 checklist and the design review (#160), including the new point: the tea detail's pencil FAB over the filled reorder button.
-2. After the results: a session for rc.2 (with the fixes, or just the new band and header if rc.1 has no findings); the PO checks the bamboo timer band and the tea-branch Start header on rc.2, then approves #161.
-3. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
-4. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR #162's CI results don't wake a session; the sessions check CI themselves.
+1. **Testing `v0.4.0-rc.2`** (#160): the four rc.2 items of 09 §4 (journal temperature, *Löschen* on the session page, the ⋮ menu instead of the FAB, the keyboard on every text field), plus the bamboo timer band and the tea-branch Start header. Then the explicit approval → #161.
+2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
+3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR #162's CI results don't wake a session; the sessions check CI themselves.
 
-## v0.4.0: rc.1 out
+## v0.4.0: rc.2 out (2026-11-07)
+
+- **rc.1 results (PO, 2026-11-07):** every checklist item passed; five points, recorded as **D-102**: (1) the journal row showed the base temperature, not the first infusion's (bug); (2) journal entries must be deletable; (3) the FAB *Tee hinzufügen* covers the rows → into Sammlung's ⋮; (4) the keyboard: an empty band above it on *Meine Tees*, and the editor's fields vanished behind it (every field); (5) own photos for *Ohne Katalog* teas → v0.4.1 (already planned, D-100).
+- **Fixes (this session, on branch `claude/quirky-ptolemy-ld5oet` → PR into the milestone branch):** `JournalList` takes the first infusion's `tempC ?: baseTempC`; `JournalRepository.deleteSession` → `SessionDao.deleteFinished` (never `IN_PROGRESS`), `SessionPageViewModel.delete` + `SessionPageEvent.Deleted`, ⋮ and „Sitzung löschen?" on `SessionPageScreen`, the app pops the page; `CollectionScreen` gets `onAddFromCatalog` / `onAddWithoutCatalog` menu items on *Meine Tees*, `MyTeasContent` lost the FAB and `snackbarShowing`; `MainActivity` `adjustResize`, `Modifier.consumeCoveredBelow()` in `UmamitApp`, no `imePadding()` in the tea, recipe and vessel editors and *Sorte wählen*. Specs 02, 03, 09, 10 and the plan updated. Collection goldens re-recorded (no FAB) and the review renders refreshed.
+- **Not covered by tests:** the keyboard itself (Robolectric reports no IME); the PO's rc.2 check is the test.
+
+## v0.4.0: rc.1 out (2026-11-05)
 
 - **rc phase (2026-11-05):** `5240a57` version bump; accuracy on `5240a57`: standard PASS (pre-alert p95 40 ms / max 53 ms, alert 15 / 19 ms), alongside PASS (brew 29 / 33 and 37 / 58 ms, quick timer 10 / 275 and 12 / 56 ms); CI green on `5240a57` and `cc20e1b` (renders, docs only). The first two release dispatches were refused („No successful CI run"): `release.yml` accepted only `push` CI runs, which a PR branch no longer has since step 0 (D-101). Fixed in `fe1d925` (also this repository's `pull_request` runs, never a fork's; `docs/release.md`). rc.1 published from `5240a57`, certificate checked; checklist on #160 and linked from PR #162.
 

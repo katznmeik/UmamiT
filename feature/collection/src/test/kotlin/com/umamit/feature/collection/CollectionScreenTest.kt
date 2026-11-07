@@ -13,8 +13,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Sammlung's ⋮ menu (SCR-19, CAT-07, CAT-17): *Katalog aktualisieren* and *Link einfügen* on the
- * *Katalog* segment, the settings always.
+ * Sammlung's ⋮ menu (SCR-08, SCR-19, CAT-07, CAT-17, D-102): *Tee aus dem Katalog hinzufügen* and *Tee ohne Katalog
+ * hinzufügen* on *Meine Tees*, *Katalog aktualisieren* and *Link einfügen* on the *Katalog* segment, the settings
+ * always.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
@@ -25,6 +26,8 @@ class CollectionScreenTest {
     private var refreshes = 0
     private var pastes = 0
     private var settingsOpened = 0
+    private var fromCatalog = 0
+    private var withoutCatalog = 0
     private val folds = mutableListOf<Boolean>()
 
     private fun show(segment: CollectionSegment, foldable: Boolean = false) {
@@ -38,6 +41,8 @@ class CollectionScreenTest {
                     onRefreshCatalog = { refreshes++ },
                     onPasteLink = { pastes++ },
                     onFoldCatalog = if (foldable) ({ folds += it }) else null,
+                    onAddFromCatalog = { fromCatalog++ },
+                    onAddWithoutCatalog = { withoutCatalog++ },
                 )
             }
         }
@@ -82,6 +87,29 @@ class CollectionScreenTest {
         assertThat(settingsOpened).isEqualTo(1)
         assertThat(refreshes).isEqualTo(0)
         assertThat(pastes).isEqualTo(0)
+    }
+
+    /** The FAB of rc.1 moved into the menu (D-102). */
+    @Test
+    fun myTeasOffersTeeAusDemKatalogAndTeeOhneKatalogHinzufuegen() {
+        show(CollectionSegment.MyTeas)
+
+        openMenu()
+        compose.onNodeWithText("Tee aus dem Katalog hinzufügen").performClick()
+        openMenu()
+        compose.onNodeWithText("Tee ohne Katalog hinzufügen").performClick()
+
+        assertThat(fromCatalog).isEqualTo(1)
+        assertThat(withoutCatalog).isEqualTo(1)
+    }
+
+    @Test
+    fun theCatalogSegmentHasNoAddEntries() {
+        show(CollectionSegment.Catalog)
+
+        openMenu()
+        compose.onNodeWithText("Tee aus dem Katalog hinzufügen").assertDoesNotExist()
+        compose.onNodeWithText("Tee ohne Katalog hinzufügen").assertDoesNotExist()
     }
 
     @Test

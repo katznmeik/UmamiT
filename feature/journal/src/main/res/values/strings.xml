@@ -60,6 +60,12 @@
     <string name="session_step_rinse">Spülen</string>
     <string name="session_step_whisk">Aufschlagen</string>
     <string name="session_brew_again">So nochmal brühen</string>
+    <!-- ⋮ Löschen and its question (JRN-10, D-102). -->
+    <string name="session_delete">Löschen</string>
+    <string name="session_delete_title">Sitzung löschen?</string>
+    <string name="session_delete_body">Der Eintrag verschwindet aus dem Journal. Abgezogener Vorrat kommt zurück.</string>
+    <string name="session_delete_cancel">Abbrechen</string>
+    <string name="session_delete_confirm">Löschen</string>
     <!-- BRW-06 (D-100): the session's tea is archived; the button is greyed out. -->
     <string name="session_tea_archived">Tee ist archiviert</string>
     <string name="session_restore">Wiederherstellen</string>

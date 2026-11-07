@@ -16,11 +16,9 @@ import com.umamit.feature.collection.recipe.RecipeEditorRoute
  * @property modifier its place below the segmented control.
  * @property scrollToTopRequest the tab's re-select counter (03 §2.2, D-049).
  * @property openTea opens a collection tea's detail (SCR-09) by its id, in the Sammlung tab's stack.
- * @property alertKey the alert playing now, or null: the FAB's choice and the chips' menus give way to
- *   another (rule 8).
- * @property addFromCatalog *Aus dem Katalog* and *Im Katalog stöbern*: the *Katalog* segment (SCR-19).
- * @property addWithoutCatalog *Ohne Katalog*: *Sorte wählen* (SCR-11).
- * @property snackbarShowing the shell's snackbar „… archiviert" shows at the bottom: the FAB rises above it (F13).
+ * @property alertKey the alert playing now, or null: the chips' menus give way to another (rule 8).
+ * @property addFromCatalog the empty state's *Im Katalog stöbern*: the *Katalog* segment (SCR-19). Adding a tea is
+ *   Sammlung's ⋮ menu, wired with [CollectionScreen][com.umamit.feature.collection.CollectionScreen] (D-102).
  */
 internal class MyTeasTab(
     val modifier: Modifier,
@@ -28,8 +26,6 @@ internal class MyTeasTab(
     val openTea: (teaId: String) -> Unit,
     val alertKey: String? = null,
     val addFromCatalog: () -> Unit = {},
-    val addWithoutCatalog: () -> Unit = {},
-    val snackbarShowing: Boolean = false,
 )
 
 /**

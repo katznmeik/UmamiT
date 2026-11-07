@@ -22,7 +22,6 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.collection.CollectionSegment
-import com.umamit.feature.collection.MY_TEAS_ADD_TAG
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
@@ -280,7 +279,8 @@ class ShellNavigationTest {
         start()
         tab(Tab.Collection).performClick()
 
-        compose.onNodeWithTag(MY_TEAS_ADD_TAG).performClick()
+        // Sammlung's ⋮ menu (D-102).
+        compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
         compose.onNodeWithText(str(CollectionR.string.my_teas_add_from_catalog)).performClick()
         compose.waitForIdle()
 

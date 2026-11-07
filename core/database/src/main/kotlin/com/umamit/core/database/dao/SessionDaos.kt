@@ -50,6 +50,13 @@ interface SessionDao {
     @Query("DELETE FROM brew_session WHERE id = :id")
     suspend fun delete(id: String)
 
+    /**
+     * Deletes a finished session as [delete] does; a session still in progress is left alone, so the journal's
+     * *Löschen* can never touch the running timer's row (JRN-10, D-102).
+     */
+    @Query("DELETE FROM brew_session WHERE id = :id AND status != 'IN_PROGRESS'")
+    suspend fun deleteFinished(id: String)
+
     @Query("SELECT * FROM session_step WHERE session_id = :sessionId ORDER BY position")
     suspend fun steps(sessionId: String): List<SessionStepEntity>
 
