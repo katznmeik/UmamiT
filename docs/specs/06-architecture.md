@@ -500,7 +500,10 @@ phone.
   tests, screenshot verification, `assembleDebug` and `assembleRelease`
   (R8, signed with a throwaway CI signing config so shrinking problems show
   up early), the emulator job, and the merged-manifest permission check. The
-  debug APK artifact is for Claude/CI only.
+  debug APK artifact is for Claude/CI only. A change of documentation only
+  (`docs/**`, any `*.md`, `.claude/**`) skips those jobs and still leaves a
+  successful run, so the release check accepts its commit; a manual dispatch
+  runs everything ([D-105](10-open-questions-and-decisions.md#d-105)).
 - **Acceptance on the PO's Galaxy** per milestone (checklists in [09](09-release-plan.md)).
 
 ## 8. Repository conventions

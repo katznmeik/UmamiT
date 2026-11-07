@@ -323,6 +323,32 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-105"></a>
+### D-105 — CI skips its heavy jobs for documentation-only changes (06 §7; amends D-101's CI note) · *Accepted* (PO, 2026-11-07)
+
+**Context.** Every pull request and every push to `main` ran the whole gate:
+Spotless, Detekt, Lint, every unit and screenshot test, a debug and an R8
+release build, and the emulator tests on API 35 and 36. A docs-only PR ran
+it twice, once on the PR and once on `main` after the merge, at roughly
+15–20 minutes of runner time each. The PO asked why a docs-only merge took
+so long and chose a docs-only skip.
+
+**Decision.**
+- A first job, `changes`, lists the changed files through the API (no
+  checkout): the PR's files for a pull request, the compare of `before` and
+  the pushed commit for a push.
+- When every file is documentation (`docs/**`, any `*.md`, `.claude/**`),
+  `checks`, `build` and `emulator` are skipped. Skipped jobs leave a
+  successful run, so `release.yml`'s "CI passed on the commit" check accepts
+  the commit. Nothing in the build reads these files.
+- A doubt never skips. A manual dispatch, a push without a previous commit,
+  300 or more files, an empty list or an API error all run everything.
+- Not `paths-ignore`: then a docs-only commit on `main` would have no CI run
+  at all, and a release from it would be refused.
+- **Known trade-off:** a docs-only commit on top of a red code commit reports
+  success. Code reaches `main` only through green PRs, and `release.yml`
+  runs the unit tests again before it signs.
+
 <a id="d-104"></a>
 ### D-104 — v0.4.1 grilled: freshness, cost, stock history, own photos, the catalog reset, and Settings closing on a tab switch (INV-03, INV-06, INV-08, TEA-05, WARE-01, PRF-06, CAT-13, 03 §2.2; refines D-100's v0.4.1 block) · *Accepted* (PO, 2026-11-07, grilled in the session Q1–Q19)
 
@@ -5862,6 +5888,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-07 | D-105: CI skips `checks`, `build` and `emulator` when only documentation changed (`docs/**`, `*.md`, `.claude/**`), detected by a first `changes` job from the API; skipped jobs still leave a successful run for the release check; any doubt runs everything (06 §7). |
 | 2026-11-07 | D-104: v0.4.1 grilled (Q1–Q19): freshness by thirds of the style window with best-before, labels in the list, detail and tea picker; the opened-date undo in the „Gespeichert" sheet; cost per 100 g, a recipe estimate and the real average per cup; *Nachkauf erfassen* on every detail and a history with deletable purchases and corrections; up to 10 tea photos managed in the detail pager, one photo per vessel, own photos outside the device backup; the reset keeps own recipes; Settings closes on a tab switch. |
 | 2026-11-07 | D-103: a *Grüntee* chip before *Kräutertee* in the catalog, selected in the default view and returning from the Kräutertees (CAT-10, SCR-19; amends D-093); straight into the final `v0.4.0` after the PO approved rc.2. The PO waived the final's accuracy runs for this release (no timer code changed since rc.1). |
 | 2026-11-07 | D-102: the PO's findings on `v0.4.0-rc.1`: the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page with „Sitzung löschen?", the stock deduction comes back (JRN-10, pulled forward from M4); *Tee hinzufügen* moves from the FAB into Sammlung's ⋮ menu (SCR-08, amends D-100 point 4); the keyboard: `adjustResize`, the shell consumes the covered height below the content, the editors drop their second `imePadding()`. Own photos stay v0.4.1. → `v0.4.0-rc.2`. |

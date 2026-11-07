@@ -19,7 +19,7 @@
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none |
 | Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
-| Decision numbers | Up to **D-104** used; the next free is **D-105** |
+| Decision numbers | Up to **D-105** used; the next free is **D-106** |
 
 ## Working agreements in effect
 
