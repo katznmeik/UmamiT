@@ -40,7 +40,7 @@
 
 - The PO passed every rc.2 item and approved the checklist and design review (#160). One change went straight into the final: the *Grüntee* chip before *Kräutertee* (#168, D-103).
 - #162 merged into `main` with a merge commit (`a2ff115`), CI green on it, `v0.4.0` released from `main`. The PO waived the accuracy runs on `main` for this release (D-103).
-- CI note: #168's checks job failed once in `NotificationActionsTest` (a broadcast-and-poll timer test) with no timer change; it passed on the rerun. Watch for it in later runs.
+- CI notes: two timing-dependent tests failed once each and passed on the rerun: `NotificationActionsTest` (#168's checks job, no timer change) and `UnreadableSettingsStartTest` (the final release job's unit tests, a lifecycle error). Watch for them in later runs; a repeat is worth a look.
 - #145 and its tickets #147–#161 closed.
 
 ## v0.4.0: rc.2 out (2026-11-07)
