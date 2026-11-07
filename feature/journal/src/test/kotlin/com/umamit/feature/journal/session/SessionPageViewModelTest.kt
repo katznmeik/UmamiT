@@ -95,7 +95,7 @@ class SessionPageViewModelTest {
     fun `delete removes the session with its stock deduction and emits Deleted`() = runTest {
         collection.stock.addEvent(InventoryEvent("p", TEA, InventoryEventType.PURCHASE, 50.0, occurredAtMillis = 1L))
         brewed()
-        assertThat(collection.stock.observeStock(TEA).first()?.grams).isEqualTo(45.5)
+        assertThat(collection.stock.observeStock(TEA).first().remainingGrams).isEqualTo(45.5)
         val vm = viewModel()
         assertThat(vm.page.inProgress).isFalse()
 
@@ -104,7 +104,7 @@ class SessionPageViewModelTest {
 
         assertThat(event).isEqualTo(SessionPageEvent.Deleted)
         assertThat(sessions.sessions.getSession(PAST)).isNull()
-        assertThat(collection.stock.observeStock(TEA).first()?.grams).isEqualTo(50.0)
+        assertThat(collection.stock.observeStock(TEA).first().remainingGrams).isEqualTo(50.0)
         assertThat(vm.state.value).isEqualTo(SessionPageUiState.NotFound)
     }
 

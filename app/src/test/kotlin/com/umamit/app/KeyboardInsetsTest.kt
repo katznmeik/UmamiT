@@ -1,7 +1,10 @@
 package com.umamit.app
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -24,7 +27,6 @@ import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
-import com.umamit.feature.collection.MY_TEAS_LIST_TAG
 import com.umamit.feature.collection.editor.ResourceSorteNames
 import com.umamit.feature.collection.editor.SortePickerTags
 import com.umamit.feature.collection.editor.TeaEditorRoute
@@ -62,7 +64,11 @@ class KeyboardInsetsTest {
                     activeBrewSource = NoActiveBrewSource,
                     journalSources = testJournalSources(sessions, collection.teas),
                     alertKey = MutableStateFlow(null),
-                    collectionScreens = CollectionStackScreens(teaEditor = { host -> Editor(host) }),
+                    collectionScreens = CollectionStackScreens(
+                        // A stand-in for the list that fills its place: its bottom is the shell's content edge.
+                        myTeas = { tab -> Box(tab.modifier.fillMaxSize().testTag(LIST)) },
+                        teaEditor = { host -> Editor(host) },
+                    ),
                 )
             }
         }
@@ -115,7 +121,7 @@ class KeyboardInsetsTest {
 
         showKeyboard(keyboardPx)
 
-        val listBottom = compose.onNodeWithTag(MY_TEAS_LIST_TAG).getBoundsInRoot().bottom
+        val listBottom = compose.onNodeWithTag(LIST).getBoundsInRoot().bottom
         assertThat(listBottom.value).isWithin(2f).of(keyboardTop.value)
     }
 
@@ -140,5 +146,9 @@ class KeyboardInsetsTest {
         compose.onNodeWithTag(TeaEditorTags.NOTES).performScrollTo().assertIsDisplayed()
         val notesBottom = compose.onNodeWithTag(TeaEditorTags.NOTES).getBoundsInRoot().bottom
         assertThat(notesBottom).isAtMost(keyboardTop + 1.dp)
+    }
+
+    private companion object {
+        const val LIST = "keyboard_test_list"
     }
 }

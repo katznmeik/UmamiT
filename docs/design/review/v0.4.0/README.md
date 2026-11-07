@@ -13,7 +13,7 @@ Naming:
 |---|---|
 | `collection/` | See below. |
 | `teaware/` | *Einstellungen › Teegeschirr* (#157): the list with favourites and „ARCHIVIERT" (`Teaware_list`), its empty state (`Teaware_empty`), the vessel editor (`VesselEditor_edit`, `_newErrors`, `_archived`). |
-| `journal/` | The session page (#159): `SessionPage_available` (step table *geplant* / *tatsächlich* / °C, *So nochmal brühen*), `_archivedTea` (button greyed out, „Tee ist archiviert"), `_deletedTea` (name without a link, no button), the short screen. |
+| `journal/` | The session page (#159; re-rendered for rc.2 with ⋮ *Löschen*, D-102): `SessionPage_available` (step table *geplant* / *tatsächlich* / °C, *So nochmal brühen*), `_archivedTea` (button greyed out, „Tee ist archiviert"), `_deletedTea` (name without a link, no button), the short screen. |
 | `brew/` | See below. |
 | `settings/` | *Bestand abziehen* in *Brühen & Vorrat* (`Settings_brewing`, #150) and the *Teegeschirr* row (`Settings_teaware`). The other settings renders changed only because the page grew. |
 | `catalog/` | Only F9's back arrow on the tea detail and the guide; nothing else changed. |
