@@ -15,6 +15,11 @@
 #   `main` write, which is rarely built here).
 # - The module rules (06 §3) are enforced while Gradle configures the build,
 #   so every job below fails on a forbidden module dependency.
+# - Docs-only changes (D-105): the `changes` job lists the changed files and
+#   the heavy jobs skip when every file is documentation (docs/**, any *.md,
+#   .claude/**). Skipped jobs still leave a successful run, so release.yml's
+#   "CI passed on the commit" check keeps working; nothing in the build reads
+#   these files. A manual dispatch always runs everything.
 name: CI
 
 on:
@@ -37,8 +42,64 @@ env:
   GRADLE_OPTS: -Dorg.gradle.console=plain
 
 jobs:
+  # Whether anything but documentation changed (D-105). No checkout: the file
+  # list comes from the API. For a push it is the compare of `before` and the
+  # pushed commit, for a pull request the PR's files. When the list can't be
+  # read completely (a new branch, the compare API's 300-file cap, an API
+  # error), it answers "code", so a doubt never skips a check.
+  changes:
+    name: Changed files (docs only?)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      - name: Classify the changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          code() { echo "code=true" >> "$GITHUB_OUTPUT"; echo "Full CI: $1"; exit 0; }
+          files=""
+          case "$EVENT" in
+            pull_request)
+              files="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')" \
+                || code "the PR's files could not be read"
+              ;;
+            push)
+              [[ "$BEFORE" =~ ^0+$ || -z "$BEFORE" ]] && code "no previous commit to compare"
+              compare="$(gh api "repos/$GITHUB_REPOSITORY/compare/$BEFORE...$SHA")" \
+                || code "the compare could not be read"
+              count="$(jq '.files | length' <<<"$compare")"
+              [[ "$count" -ge 300 ]] && code "$count files, more than the compare lists"
+              files="$(jq -r '.files[].filename' <<<"$compare")"
+              ;;
+            *)
+              code "$EVENT runs everything"
+              ;;
+          esac
+          [[ -z "$files" ]] && code "no changed files listed"
+          others="$(grep -Ev '^(docs/.*|\.claude/.*|(.*/)?[^/]+\.md)$' <<<"$files" || true)"
+          if [[ -n "$others" ]]; then
+            echo "Changed outside the docs:"; head -n 20 <<<"$others"
+            code "code or build files changed"
+          fi
+          echo "code=false" >> "$GITHUB_OUTPUT"
+          echo "Docs only: the checks, the build and the emulator tests are skipped."
+          echo "$files"
+
   checks:
     name: Checks (format, Detekt, Lint, unit + screenshot tests, manifest permissions)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -104,6 +165,8 @@ jobs:
 
   build:
     name: Build (debug + R8 release, throwaway signing key)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -169,9 +232,10 @@ jobs:
   # hour-long AccuracyRunTest is skipped here; accuracy.yml runs it before each
   # rc (#52, D-067) with a copy of this job's emulator setup: keep both in sync.
   #
-  # - Runs in parallel with `checks` and `build` (no `needs`): it is the slowest
-  #   job, so the PR result arrives sooner, and its result does not depend on
-  #   theirs. Superseded runs are cancelled by the concurrency group above.
+  # - Runs in parallel with `checks` and `build` (it needs only the quick
+  #   `changes` job): it is the slowest job, so the PR result arrives sooner,
+  #   and its result does not depend on theirs. Superseded runs are cancelled
+  #   by the concurrency group above.
   # - The AVD with a booted snapshot is cached per API level (first run creates
   #   it); later runs boot from the snapshot and never save it back. Bump the
   #   `-v1` suffix of the key to force a fresh AVD (e.g. after an emulator or
@@ -180,6 +244,8 @@ jobs:
   #   as the tests need.
   emulator:
     name: Emulator tests (API ${{ matrix.api-level }})
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
