@@ -28,6 +28,7 @@ import com.umamit.core.designsystem.component.StatTriplet
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.collection.R
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -126,7 +127,7 @@ private val UmamiLevel.label: Int
 internal fun Stats(tea: TeaDetail) {
     val sessionsLabel = stringResource(R.string.collection_tea_stat_sessions)
     val stockText = stockText(tea, short = true)
-    val lastBrewed = tea.lastBrewed?.format(DAY)
+    val lastBrewed = tea.lastBrewed?.let(GermanFormat::day)
     StatTriplet(
         first = StatFigure(
             icon = painterResource(UmamiIcons.Journal),
@@ -154,9 +155,6 @@ internal fun Stats(tea: TeaDetail) {
         modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.Medium),
     )
 }
-
-/** „21. Okt. 2026" (German date format, CLAUDE.md rule 4). */
-private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
 
 /** The meter's leaves: LOW fills one, VERY_HIGH all four, NONE none (05 §5). */
 private const val UMAMI_LEAVES = 4

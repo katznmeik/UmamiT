@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.GermanFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -215,11 +216,11 @@ private fun AddSheetSize.label(): String {
     val cents = priceCents
     val price = when {
         cents == null -> stringResource(R.string.catalog_package_price_on_add)
-        estimate -> stringResource(R.string.catalog_package_estimate, CatalogFormat.euros(cents))
-        else -> stringResource(R.string.catalog_package_price, CatalogFormat.euros(cents))
+        estimate -> stringResource(R.string.catalog_package_estimate, GermanFormat.euros(cents))
+        else -> stringResource(R.string.catalog_package_price, GermanFormat.euros(cents))
     }
     return listOfNotNull(
-        stringResource(R.string.catalog_package_grams, CatalogFormat.grams(grams)),
+        stringResource(R.string.catalog_package_grams, GermanFormat.gramsTrimmed(grams)),
         price,
         savingsPercent?.takeIf { it > 0 }?.let { stringResource(R.string.catalog_package_savings, it) },
     ).joinToString(stringResource(R.string.catalog_meta_separator))
@@ -265,7 +266,7 @@ private fun ColumnScope.PurchaseDate(state: AddSheetState, onDateChange: (LocalD
             .fillMaxWidth()
             .testTag(CATALOG_ADD_DATE_TAG),
     ) {
-        Text(CatalogFormat.day(state.date))
+        Text(GermanFormat.day(state.date))
     }
     if (picking) {
         val todayMillis = state.today.utcMillis()

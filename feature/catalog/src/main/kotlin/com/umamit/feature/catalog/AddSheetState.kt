@@ -2,6 +2,7 @@ package com.umamit.feature.catalog
 
 import com.umamit.core.domain.input.GermanNumber
 import com.umamit.core.model.CatalogPackage
+import com.umamit.core.ui.GermanFormat
 import java.time.LocalDate
 import kotlin.math.abs
 
@@ -106,7 +107,7 @@ data class AddSheetState(
     /** Chooses size [index] (`sizes.size`: the custom amount); its price replaces the field's. */
     fun select(index: Int): AddSheetState = copy(
         selected = index.coerceIn(0, sizes.size),
-        price = sizes.getOrNull(index)?.priceCents?.let(CatalogFormat::editableEuros).orEmpty(),
+        price = sizes.getOrNull(index)?.priceCents?.let(GermanFormat::editableEuros).orEmpty(),
         priceEdited = false,
         failed = false,
     )
@@ -135,7 +136,7 @@ data class AddSheetState(
         return if (cents != null && index == selected &&
             !priceEdited
         ) {
-            next.copy(price = CatalogFormat.editableEuros(cents))
+            next.copy(price = GermanFormat.editableEuros(cents))
         } else {
             next
         }

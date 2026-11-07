@@ -64,9 +64,9 @@ import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.reliability.ReliabilityProblem
+import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.brew.R
 import com.umamit.feature.brew.quick.QuickTimerSpace
-import com.umamit.feature.brew.setup.grams
 
 private val TimerPillMinHeight = 72.dp
 private val TimerPillMinWidth = 200.dp
@@ -366,7 +366,7 @@ private fun leafAndWater(state: TimerUiState.Active): SpokenLine? {
     val leaf = state.leafGrams?.let { grams ->
         val tenths = Math.round(grams * TENTHS_PER_GRAM)
         SpokenLine(
-            text = stringResource(R.string.brew_timer_leaf, grams(grams)),
+            text = stringResource(R.string.brew_timer_leaf, GermanFormat.gramsOneDecimal(grams)),
             description = stringResource(
                 R.string.brew_timer_leaf_description,
                 (tenths / TENTHS_PER_GRAM).toInt(),
