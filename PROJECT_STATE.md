@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-07. **The PO approved v0.4.0** (all rc.2 items passed, checklist and design review approved in the session, recorded on #160). One small change goes straight into the final: a *Grüntee* chip before *Kräutertee* in the catalog (**D-103**). Version `0.4.0` set. **Next: #161** (merge PR #162 into `main` with a merge commit, both accuracy variants on `main`, release `v0.4.0` from `main`, close #145 and its tickets, restart the working branch from `main`).
+**Last updated:** 2026-11-07. **v0.4.0 is released** from `main` (PR #162 merged as `a2ff115`; versionCode 40099). The PO approved rc.2; the final adds the catalog's *Grüntee* chip (D-103). The PO waived the final's accuracy runs for this release, since no timer code changed after rc.1 (D-103). **Next: v0.4.1** (stock history, freshness, cost per cup, own photos, *Aus Katalog zurücksetzen*): the PO starts its spec with `/to-spec`.
 
 > **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
 
@@ -13,13 +13,12 @@
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.0, `v0.4.0-rc.2` with the PO** (spec #145, PR #162 draft, D-100, D-102). All build tickets #147–#159, the review fixes F1–F15 (`docs/plans/v0.4.0-review.md`) and the rc.1 findings (D-102) are on the branch. |
-| Next phase | **PO testing rc.2** (#160: the rc.2 items of 09 §4, the timer band and the Start header). Then #161 (merge, final `v0.4.0` from `main`, both accuracy variants again per 09 §4a). |
-| Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038); `/implement-spec #145` given on 2026-10-31 |
-| Working branch | `claude/umamit-m1-start-k0jg3n` = the v0.4.0 milestone branch (PR #162) |
+| Current milestone | **v0.4.0 — done** ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), 2026-11-07, from `main` `a2ff115`; spec #145, PR #162, D-100, D-102, D-103). **Next: v0.4.1** (M3 part 2), not yet specified; the PO starts it with `/to-spec`. Then M4 → v0.5.0 |
+| Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
+| Working branch | `claude/quirky-ptolemy-ld5oet`, restarted from `main` after the merge of #162 |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | #162 (v0.4.0 milestone, draft) |
-| Latest APK | [`v0.4.0-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0-rc.2) (pre-release, versionCode 40002); before it `v0.4.0-rc.1` (40001, `5240a57`); stable [`v0.3.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.3.0) (versionCode 30099, from `main` 688a23a) |
+| Open PR | none |
+| Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
 | Decision numbers | Up to **D-103** used; the next free is **D-104** |
 
 ## Working agreements in effect
@@ -33,9 +32,16 @@
 
 ## Waiting on the PO
 
-1. **After the final release:** check the *Grüntee* chip on `v0.4.0` (09 §4, the final's item). Then the v0.4.1 spec (`/to-spec`).
+1. **v0.4.1:** the PO starts the spec with `/to-spec` (grilling first). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+
+## v0.4.0: released (2026-11-07)
+
+- The PO passed every rc.2 item and approved the checklist and design review (#160). One change went straight into the final: the *Grüntee* chip before *Kräutertee* (#168, D-103).
+- #162 merged into `main` with a merge commit (`a2ff115`), CI green on it, `v0.4.0` released from `main`. The PO waived the accuracy runs on `main` for this release (D-103).
+- CI note: #168's checks job failed once in `NotificationActionsTest` (a broadcast-and-poll timer test) with no timer change; it passed on the rerun. Watch for it in later runs.
+- #145 and its tickets #147–#161 closed.
 
 ## v0.4.0: rc.2 out (2026-11-07)
 
