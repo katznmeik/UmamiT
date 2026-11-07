@@ -57,6 +57,19 @@ interface SessionRepository {
      */
     suspend fun completeSession(sessionId: String, autoFinished: Boolean)
 
+    /**
+     * What the completion of [sessionId] did to its tea's opened date in this process (SCR-06, INV-06): the
+     * change when it set the date, for the „Gespeichert" sheet's *Rückgängig*. Null when it set nothing, when
+     * the session isn't completed, or when the date has changed since (an undo, the tea editor).
+     */
+    suspend fun openedDateChange(sessionId: String): OpenedDateChange?
+
+    /**
+     * *Rückgängig* on the „Gespeichert" sheet (SCR-06, INV-06): the tea's opened date goes back to the value
+     * before [change], none or a date. A date changed since is left alone. Offered once.
+     */
+    suspend fun undoOpenedDate(change: OpenedDateChange)
+
     /** [TimerEffect.DiscardSession] (TMR-13): deletes the session, its steps and its stock event. */
     suspend fun discardSession(sessionId: String)
 

@@ -30,11 +30,15 @@ import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
 
-/** [SessionRepository] on Room (05 §3.6, §3.7, §3.10). */
+/**
+ * [SessionRepository] on Room (05 §3.6, §3.7, §3.10). [openedDates] is the app's one memory of the opening
+ * dates completions set (SCR-06); a repository built without it keeps its own.
+ */
 class RoomSessionRepository @Inject constructor(
     private val db: UmamiDatabase,
     private val settings: SettingsRepository,
     private val time: WallClock,
+    private val openedDates: OpenedDateChanges = OpenedDateChanges(),
 ) : SessionRepository {
     private val sessions = db.sessionDao()
 
@@ -75,20 +79,23 @@ class RoomSessionRepository @Inject constructor(
      * never-started ones too, without `actual_seconds` (Q-19, D-100; until v0.3.0 they were
      * deleted here), so *So nochmal brühen* can prefill them. `planned_step_count` is the planned
      * total; `ended_at` comes from the ended rows only, and the cost from the leaf.
+     *
+     * An opened date it sets is remembered for the „Gespeichert" sheet after the transaction's block, in
+     * memory only; the transaction reads and writes what it did in v0.4.0 (SCR-06, D-104).
      */
     override suspend fun completeSession(sessionId: String, autoFinished: Boolean) {
         val deductStock = deductStock()
         val now = time.nowMs()
-        db.withTransaction {
+        val change = db.withTransaction {
             val session = sessions.get(sessionId)?.takeIf { it.status == SessionStatus.IN_PROGRESS }
-                ?: return@withTransaction
+                ?: return@withTransaction null
             val rows = sessions.steps(sessionId)
             val endedAt = rows.mapNotNull { it.endedAt }.maxOrNull() ?: now
             val teaId = session.teaId
             val events = teaId?.let { db.inventoryDao().eventsForTea(it).map { e -> e.toModel() } }
-            teaId?.let { updateOpenedDate(it, session, events.orEmpty(), now) }
+            val opened = teaId?.let { db.updateOpenedDate(it, session, events.orEmpty(), now) }
             val leaf = session.leafGrams?.takeIf { it > 0.0 }
-            if (deductStock && teaId != null && leaf != null) deductLeaf(teaId, sessionId, leaf, endedAt, now)
+            if (deductStock && teaId != null && leaf != null) db.deductLeaf(teaId, sessionId, leaf, endedAt, now)
             sessions.update(
                 session.copy(
                     status = SessionStatus.COMPLETED,
@@ -99,7 +106,33 @@ class RoomSessionRepository @Inject constructor(
                     updatedAt = now,
                 ),
             )
+            opened
         }
+        change?.let(openedDates::record)
+    }
+
+    /**
+     * The remembered change, checked against the rows: an outer transaction that rolled the completion
+     * back, or a date changed since, leaves nothing to undo.
+     */
+    override suspend fun openedDateChange(sessionId: String): OpenedDateChange? {
+        val change = openedDates.of(sessionId) ?: return null
+        return db.withTransaction {
+            change.takeIf {
+                sessions.get(sessionId)?.status == SessionStatus.COMPLETED &&
+                    db.teaDao().get(change.teaId)?.openedDate == change.openedDate
+            }
+        }
+    }
+
+    override suspend fun undoOpenedDate(change: OpenedDateChange) {
+        val now = time.nowMs()
+        db.withTransaction {
+            if (db.teaDao().get(change.teaId)?.openedDate == change.openedDate) {
+                db.teaDao().setOpenedDate(change.teaId, change.previous, now)
+            }
+        }
+        openedDates.forget(change.sessionId)
     }
 
     override suspend fun discardSession(sessionId: String) = sessions.delete(sessionId)
@@ -114,21 +147,6 @@ class RoomSessionRepository @Inject constructor(
         .first()
         .deductStock
 
-    /** The BREW stock event of a completed session (SET-15, INV-02); at most one per session. */
-    private suspend fun deductLeaf(teaId: String, sessionId: String, leafGrams: Double, endedAt: Long, now: Long) {
-        val brew = InventoryEvent(
-            id = UUID.randomUUID().toString(),
-            teaId = teaId,
-            type = InventoryEventType.BREW,
-            deltaGrams = -leafGrams,
-            occurredAtMillis = endedAt,
-            sessionId = sessionId,
-            priceCents = null,
-            currency = null,
-        )
-        db.inventoryDao().upsert(brew.toEntity(createdAt = now, updatedAt = now))
-    }
-
     override suspend fun getSession(id: String): BrewSession? = db.withTransaction {
         sessions.get(id)?.toModel(sessions.steps(id))
     }
@@ -139,40 +157,65 @@ class RoomSessionRepository @Inject constructor(
         // The rows are small; only the shown ones load their steps.
         db.withTransaction { rows.take(limit).map { it.toModel(sessions.steps(it.id)) } }
     }
-
-    /**
-     * *Geöffnet am* (INV-06): set to the session's local date when the tea has none yet, or
-     * when its latest INITIAL/PURCHASE is newer than the opened date and the stock had run
-     * out before that purchase (a new package). [events] are the tea's events before this
-     * session's deduction.
-     */
-    private suspend fun updateOpenedDate(
-        teaId: String,
-        session: BrewSessionEntity,
-        events: List<InventoryEvent>,
-        now: Long,
-    ) {
-        val tea = db.teaDao().get(teaId) ?: return
-        val zone = zoneOf(session.zoneId)
-        val opened = tea.openedDate
-        val newPackage = opened != null && events
-            .filter { it.type in PACKAGE_TYPES }
-            .maxByOrNull { it.occurredAtMillis }
-            ?.let { purchase ->
-                val stockBefore = events.filter { it.occurredAtMillis < purchase.occurredAtMillis }
-                    .sumOf { it.deltaGrams }
-                purchase.occurredAtMillis.localDate(zone) > opened && stockBefore <= EMPTY_GRAMS
-            } == true
-        if (opened == null || newPackage) db.teaDao().setOpenedDate(teaId, session.startedAt.localDate(zone), now)
-    }
-
-    private companion object {
-        /** Stock at or below this counts as run out (05 §7: grams are stored to 0.1 g). */
-        const val EMPTY_GRAMS = 0.001
-    }
 }
 
 private const val TAG = "SessionRepository"
+
+/** Stock at or below this counts as run out (05 §7: grams are stored to 0.1 g). */
+private const val EMPTY_GRAMS = 0.001
+
+/** The BREW stock event of a completed session (SET-15, INV-02); at most one per session. */
+private suspend fun UmamiDatabase.deductLeaf(
+    teaId: String,
+    sessionId: String,
+    leafGrams: Double,
+    endedAt: Long,
+    now: Long,
+) {
+    val brew = InventoryEvent(
+        id = UUID.randomUUID().toString(),
+        teaId = teaId,
+        type = InventoryEventType.BREW,
+        deltaGrams = -leafGrams,
+        occurredAtMillis = endedAt,
+        sessionId = sessionId,
+        priceCents = null,
+        currency = null,
+    )
+    inventoryDao().upsert(brew.toEntity(createdAt = now, updatedAt = now))
+}
+
+/**
+ * *Geöffnet am* (INV-06): set to the session's local date when the tea has none yet, or
+ * when its latest INITIAL/PURCHASE is newer than the opened date and the stock had run
+ * out before that purchase (a new package). [events] are the tea's events before this
+ * session's deduction. Returns the change when the date it set is a new one (SCR-06).
+ */
+private suspend fun UmamiDatabase.updateOpenedDate(
+    teaId: String,
+    session: BrewSessionEntity,
+    events: List<InventoryEvent>,
+    now: Long,
+): OpenedDateChange? {
+    val tea = teaDao().get(teaId) ?: return null
+    val zone = zoneOf(session.zoneId)
+    val opened = tea.openedDate
+    val newPackage = opened != null && events
+        .filter { it.type in PACKAGE_TYPES }
+        .maxByOrNull { it.occurredAtMillis }
+        ?.let { purchase ->
+            val stockBefore = events.filter { it.occurredAtMillis < purchase.occurredAtMillis }
+                .sumOf { it.deltaGrams }
+            purchase.occurredAtMillis.localDate(zone) > opened && stockBefore <= EMPTY_GRAMS
+        } == true
+    val date = session.startedAt.localDate(zone)
+    return if (opened == null || newPackage) {
+        teaDao().setOpenedDate(teaId, date, now)
+        OpenedDateChange(session.id, teaId, previous = opened, openedDate = date).takeIf { date != opened }
+    } else {
+        null
+    }
+}
 
 /** The local date of this wall time in [zone]. */
 private fun Long.localDate(zone: ZoneId): LocalDate = Instant.ofEpochMilli(this).atZone(zone).toLocalDate()

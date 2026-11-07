@@ -449,6 +449,61 @@ class SessionLifecycleTest {
         assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
     }
 
+    @Test
+    fun `the completion that opens a tea reports none before, and the undo restores none`() = runTest {
+        teaWithStock()
+        completeOneStep(TimerDriver(data))
+
+        val change = data.sessions.openedDateChange(SESSION_ID)
+
+        assertThat(change).isEqualTo(OpenedDateChange(SESSION_ID, "t1", previous = null, LocalDate.of(2026, 10, 22)))
+        data.sessions.undoOpenedDate(change!!)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isNull()
+        // Done once: the sheet has nothing more to undo.
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `the completion that opens a new package reports the date before, and the undo restores it`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        data.stock.addEvent(initial("old", "t1", grams = 4.0, priceCents = 100, at = START_WALL_MS - 40 * DAY_MS))
+        data.stock.addEvent(InventoryEvent("used", "t1", InventoryEventType.BREW, -4.0, START_WALL_MS - 30 * DAY_MS))
+        data.stock.addEvent(purchaseTwoDaysAgo())
+        completeOneStep(TimerDriver(data))
+
+        val change = data.sessions.openedDateChange(SESSION_ID)
+
+        assertThat(change?.previous).isEqualTo(LocalDate.of(2026, 9, 1))
+        data.sessions.undoOpenedDate(change!!)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
+    }
+
+    @Test
+    fun `a completion that leaves the opened date reports nothing`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        // Bought before it was opened: the package in use.
+        data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 60 * DAY_MS))
+
+        completeOneStep(TimerDriver(data))
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `an opened date changed since the completion is not undone`() = runTest {
+        teaWithStock()
+        completeOneStep(TimerDriver(data))
+        val change = data.sessions.openedDateChange(SESSION_ID)!!
+        // The tea editor sets another date before Rückgängig.
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(openedDate = LocalDate.of(2026, 10, 1)))
+
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+        data.sessions.undoOpenedDate(change)
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 1))
+    }
+
     /** Starts session [id] with one 60 s infusion, pours it on time and finishes. */
     private suspend fun completeOneStep(driver: TimerDriver, id: String = SESSION_ID) {
         driver.send(startEvent(infusion(60), id = id))
