@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-04
+> Status: **Living document** · Last updated: 2026-11-07
 
 ## Open questions
 
@@ -323,6 +323,80 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-103"></a>
+### D-103 — A *Grüntee* chip in the catalog, directly into the final `v0.4.0` (CAT-10, SCR-19; amends D-093) · *Accepted* (PO, 2026-11-07)
+
+**Context.** The PO passed every rc.2 item and approved v0.4.0, with one
+small change for the final release: in Sammlung › Katalog the green teas,
+the list's default range, had no chip of their own, so they seemed to be
+found only under „Pur", which is the flavour filter.
+
+**Decision.** A chip *Grüntee* stands right before *Kräutertee*. It is
+selected while the list shows the green teas (the default view); a tap on it
+returns from the Kräutertee view (`withHerbal(false)`, which also clears the
+*Sorte* choice as switching did before); a tap while it is selected changes
+nothing. *Pur* keeps its meaning (no flavoured teas) and its place after the
+pair. The chip is the view's name, not a filter: it does not count in
+„Filter (n)" and *Zurücksetzen* leaves the range as before.
+
+**Release.** UI only, no data or timer change; it goes into the final
+`v0.4.0` without another rc (PO). The final's accuracy run (09 §4a) covers the
+release as planned; the PO checks the chip on the final build. Catalog
+goldens re-recorded.
+
+<a id="d-102"></a>
+### D-102 — The PO's findings on `v0.4.0-rc.1`: journal temperature, *Löschen* on the session page, *Tee hinzufügen* in Sammlung's ⋮ menu, the keyboard (JRN-08, JRN-10, SCR-08, SCR-10, SCR-11, SCR-12, SCR-14, SCR-16; amends D-100 point 4) · *Accepted* (PO's feedback of 2026-11-07, built into rc.2)
+
+**Context.** The PO passed every item of the v0.4.0 checklist on rc.1 (#160)
+and reported five points. Four go into rc.2; the fifth (own photos for a tea
+added *Ohne Katalog*) is already in v0.4.1 (D-100).
+
+**Decisions.**
+
+1. **Journal temperature (bug, JRN-08).** A journal row showed the
+   session's base temperature (the recipe's), not the temperature the first
+   infusion was brewed at. The meta line now shows the **first infusion's own
+   temperature** (its step's, else the session's base), as the session page
+   and the tea detail already do. The first infusion's time stays as before.
+2. **Deleting a journal entry (JRN-10, pulled forward from M4).** The session
+   page (SCR-16) gets ⋮ *Löschen*, which asks „Sitzung löschen?" („Der
+   Eintrag verschwindet aus dem Journal. Abgezogener Vorrat kommt zurück.")
+   · *Abbrechen* / *Löschen*. A finished session is deleted with its steps
+   and its BREW stock event, so the leaf it deducted is back in the stock
+   (a brew recorded in error, the PO's case). A session in progress is never
+   deleted (the DAO refuses it: `DELETE … AND status != 'IN_PROGRESS'`); the
+   in-progress row opens the timer, not the page, so the menu is not shown
+   for it. No undo: the question is the guard. *Bearbeiten* stays M4.
+3. **No FAB on *Meine Tees* (SCR-08; amends D-100 point 4).** The extended
+   FAB *Tee hinzufügen* covered the rows (and, with the keyboard, most of the
+   list). Sammlung's ⋮ menu offers *Tee aus dem Katalog hinzufügen* (the
+   *Katalog* segment) and *Tee ohne Katalog hinzufügen* (*Sorte wählen*,
+   SCR-11) while *Meine Tees* shows; the catalog entries stay on *Katalog*.
+   The empty state's *Im Katalog stöbern* is unchanged. The snackbar
+   „… archiviert" no longer lifts anything.
+4. **Keyboard (SCR-08, SCR-10, SCR-11, SCR-12, SCR-14, SCR-19).** Two
+   findings: on *Meine Tees* a band the navigation bar's height stayed empty
+   above the keyboard; in the tea editor (and *Sorte wählen*) the fields
+   vanished behind the keyboard, leaving the green background. Fixes:
+   - `MainActivity` declares `windowSoftInputMode="adjustResize"`: the
+     keyboard is an inset the screens pad for, never a pan of the window;
+   - the shell's content consumes the height below it (the navigation bar
+     and the brew bar, which the keyboard covers) from the insets, so a
+     screen pads only for the part of the keyboard above its own bottom
+     edge (`Modifier.consumeCoveredBelow()` in `UmamitApp`);
+   - the editors (tea, recipe, vessel) and *Sorte wählen* drop their extra
+     `imePadding()`: their `Scaffold` already pads for `safeDrawing`, which
+     includes the keyboard, so the keyboard was padded for twice.
+   No screenshot test covers the keyboard (Robolectric reports no IME); the
+   PO checks it on rc.2.
+5. **Own photos** for teas added *Ohne Katalog* are v0.4.1 (D-100, SCR-28);
+   nothing changes.
+
+**Release.** All four fixes on the milestone branch → `v0.4.0-rc.2`
+(versionCode 40002). No timer code changed (the manifest attribute affects
+the keyboard only), so no accuracy run for rc.2 (D-073); the final `v0.4.0`
+from `main` runs both variants as planned. 09 §4 gets the four rc.2 items.
+
 <a id="d-101"></a>
 ### D-101 — Model and effort tiers shifted down; a fresh orchestrator session per phase, lean briefs, one milestone review (12; amends D-026, CLAUDE.md rule 5) · *Accepted* (PO, 2026-11-02)
 
@@ -375,6 +449,29 @@ measured):
 | B | F2, F5–F9, F13, F15 and the nits | T2, Sonnet `medium` |
 | C | F3, F4, F10–F12 | T3, Opus `medium`; T4, Opus `high`, if it touches session completion |
 | D | F14 | T2, Sonnet `medium` |
+
+**Amended (PO, 2026-11-02, completeness check of the resume note):**
+- **Nits:** only the small nits ride with the fixes (B: `Role.Button`, the vessel editor's *Speichern* with
+  `enabled = !saving`, `FakeAddWithoutCatalog`; C: the `ProcessDeathTest` gap log, the formatter artefact). The two
+  refactors, shared formatters in `core:ui` and one editor scaffold, move to v0.4.1.
+- **Motion review:** `/review-animations` is user-invocable only, so a read-only T2 reviewer (E) applies its
+  `SKILL.md` and `STANDARDS.md` to the new and changed screens, in parallel with A and C. Its findings ride with B.
+- **D runs alongside B** as its own small implementer; they share no files.
+- **CI:** `ci.yml` runs on `push` only for `main`, and pull requests keep `pull_request`. This halves the CI runs and the
+  CI events per push to a PR branch (step 0 of the fix round).
+- **Start:** the handover lives on the milestone branch, so the fix-round session starts with a prompt that names it
+  and allows pushes there (`v0.4.0-resume.md` §0).
+
+**Amended (PO, 2026-11-03, the fix round's open decisions, asked ahead of the fix-round session):**
+- **F11:** when *So nochmal brühen* opens a session whose recipe was deleted (*Ohne Rezept*), the setup uses the
+  session's own Vorwarnung base (`brew_session.pre_alert_seconds`), as Start's *Nochmal brühen* does; a recipe saved
+  from it keeps that base.
+- **F12:** deleting the recipe of the running brew is refused („Erst die Sitzung beenden"), as archiving the brewing
+  tea is; *Brühen anpassen* never falls back to another recipe.
+- **F5:** the tea detail opened from the setup's ⋮ *Tee ansehen* opens the tea and recipe editors too (routes above
+  the setup); the pencils are not hidden.
+- **Confirmed:** Start's *Nochmal brühen* keeps brewing only the steps that ran (BRW-11, D-062); only the session
+  page's *So nochmal brühen* prefills never-started steps.
 
 **Consequences.**
 - Sonnet now writes standard screens and their tests.
@@ -605,8 +702,156 @@ font 2.0.
   recipe's own Vorwarnung as the default (PRF-03, PRF-04). This replaces
   the „Claude" detail that steps only keep their stored choice.
 
+**Build notes (Claude, 2026-11-01, #148: style rows and list functions).**
+- `other` (*Andere / unbekannt*) has no umami level and no freshness window
+  (08 §3 „—"), so `TeaStyle.umami` and `freshnessDays` are nullable. The
+  generic rows' and `other`'s teaspoon weight is 2,5 g; the catalog never
+  maps to them (CAT-01), so nothing reads it.
+- The list functions are `CollectionBrowser` (`core:domain`) over
+  `CollectionRow`s (`core:model`: the tea, its `created_at`, its latest
+  session's start and its stock sum, null without stock events). GEN-10's
+  word-prefix search moved from the tea picker to `core:domain`
+  (`SearchQuery`); both use it.
+- The *Kategorie*, *Sorte* and *Vorrat* chips each allow several values
+  („any of"). *Knapp* matches *Knapp* teas only and *Leer* *Leer* teas
+  only; a tea without stock events is neither. The chips' values come from
+  the teas of the current side (archived or not), whatever the other
+  filters. Ties in every order break by name, then id.
+
+**Build notes (Claude, 2026-11-01, #158: the setup's links, archived vessel, BRW-08).**
+- ⋮ *Tee ansehen* opens the detail as a full-screen route above the setup
+  (`SetupTeaRoute`), like *Im Katalog ansehen*, whichever tab or root the
+  setup came from. On that detail, *Brühen* (or a recipe's tap) starts a
+  new setup in place of the one below, so back from it returns to where the
+  first setup began; *Archivieren* and *Löschen* close the detail and the
+  setup (no *Rückgängig* snackbar there; *Wiederherstellen* stays on the
+  archived tea's detail).
+- *Neues Gefäß …* sits below a divider at the end of the *Gefäß* list.
+  Like the ⋮, the list gives way to a new alert in its first frame
+  (rule 8).
+- The archived vessel reads „Kyusu 250 ml (archiviert)" (the setup's usual
+  vessel label with „(archiviert)" after it).
+- BRW-08 compares the exact stock with the leaf: „Nur noch 5,5 g übrig" at
+  5,6 g of leaf, „5,5 g übrig" at 5,5 g.
+
+**Build notes (Claude, 2026-11-01, #159: the session page and *So nochmal brühen*).**
+- **Routes.** The page (`JournalSessionRoute`) sits in the Journal tab's
+  stack; its tea link opens the tea's detail (SCR-09) in the same stack.
+  *So nochmal brühen* opens the setup above the shell like every other
+  entry (`BrewSetupRoute(pastSessionId)`), or the alerting timer during an
+  alert (rule 8); the timer only starts from the setup's *Brühen starten*.
+  Back from that setup returns to the page. *Archivieren* on a detail
+  opened from the page closes it; its *Rückgängig* snackbar is the
+  Sammlung list's, as from the list.
+- **Prefill.** Every stored row, in position order, at its
+  `planned_seconds` (the set time, including Schritte-Sheet changes), with
+  its kind, its temperature (the session's base where the row has none)
+  and its Vorwarnung; tea, method, vessel, leaf, water and base
+  temperature from the session's snapshot. With the session's recipe the
+  setup reads the recipe's Vorwarnung base B, as for any brew of that
+  recipe; with *Ohne Rezept* the global one.
+- ***Ohne Rezept*** is the first recipe chip whenever the session's recipe
+  is gone; another chip can be chosen, and *Ohne Rezept* brings the
+  session's values back. *Im Rezept speichern* is offered at once and
+  saves a new, non-default recipe after the tea's others, named like the
+  session's recipe (a session brewed without one: the tea's name); the new
+  recipe is then selected. At 10 recipes (PRF-01) it isn't offered.
+- **Page.** Title „Sitzung"; the tea's name in the serif with a chevron
+  (also for an archived tea, whose detail offers *Wiederherstellen*), the
+  start „22. Okt. 2026 · 09:12" in the session's zone; *Methode*, *Gefäß*,
+  *Blätter*, *Wasser*, *Verhältnis* („2,5 g / 100 ml"). The table lists
+  „Aufguss 1", „Spülen", „Aufschlagen" with *geplant* / *tatsächlich* /
+  °C; a skipped step reads „übersprungen", a never-started one „nicht
+  gebrüht", both in italics. From font scale 1,5 each step stacks
+  („geplant 1:15 · tatsächlich 1:35") instead of columns. *So nochmal
+  brühen* sits at the end of the page; „Tee ist archiviert" ·
+  *Wiederherstellen* below it.
+
+**Build notes (Claude, 2026-11-01, #156: the recipe editor).**
+- The setup's ratio scaling (`BrewScaling`, `Ratio`, `Vessel.brewMl()`, the
+  ratio per 100 ml) moved from `feature:brew` to `core:domain`, so the
+  setup and the recipe editor scale alike (WARE-03, WARE-04); no behaviour
+  change. A vessel scales the leaf from the form's leaf and water; while
+  either isn't valid, only the water is set. *Kein Gefäß* keeps both.
+- *Rezept hinzufügen* on a tea without any recipe starts from its style's
+  default recipe, else PRF-02's *Westlich*. The new recipe goes last
+  (position after the others) and is not the default unless *Als Standard*
+  is on.
+- Saving stores a step at the base temperature without its own (as the
+  setup's *Im Rezept speichern*) and marks the recipe's source `USER`.
+
+**Build notes (Claude, 2026-11-01, the remaining v0.4.0 tickets #150, #152–#155, #157).**
+- **Teaware (#157):** type and material names are German. Name 1–40 characters, volume 10–3000 ml, usable volume
+  10 ml up to the volume. A new vessel defaults to Kyusu. An archived vessel's ⋮ offers *Wiederherstellen*;
+  *Archivieren* with unsaved edits drops them.
+- **Tea detail (#154):** an archived tea's delete question offers only *Löschen* (no *Stattdessen archivieren*).
+  Session count and last brew count finished sessions only. The recipe temperature shown is the first non-rinse
+  step's. The setup takes a `recipeId` argument.
+- **Meine Tees (#153):** the sort chip comes first. *Kategorie* and *Sorte* chips show only with more than one value;
+  a chip's label shows its ticked values. *Filter zurücksetzen* keeps the sort. The A7 empty-state body text is in
+  `strings.xml`.
+- **Tea editor (#155):** a *Sorte* pick sets umami and Kategorie. The country menu sorts by German name. Validation:
+  name 1–80 characters, harvest year 1900 to this year, shading 0–60 days, package at most 10 000 g, a price needs a
+  package; the purchase date is at most today.
+- **#150:** the snackbar reads „<Tee> archiviert". *Spülen* is also on the timer screen and in the notification. The
+  SET-15 row has its detail line.
+- **#152:** Start's *Nochmal brühen* keeps brewing only the steps that ran (BRW-11, D-062).
+
+**Build notes (Claude, 2026-11-05, v0.4.0 review, screens F2, F5–F9, F13).**
+- **F2:** the picker's group is the tea's *Kategorie* (green, white, oolong, black, dark = Pu-Erh, herbal, other); yellow
+  tea counts as „Andere"; the catalog's style `herbal` stays a „Kräutertee".
+- **F5:** the tea and recipe editors open above the detail above the setup (`SetupTeaEditorRoute`,
+  `SetupRecipeEditorRoute`); *Speichern* and *Löschen* return to that detail.
+- **F6, F13:** „*Tanabata* archiviert" · *Rückgängig* is the shell's, over whatever screen is below the closed detail
+  (Sammlung, the session page, Start under the setup), so none stays for a later Sammlung. In *Meine Tees* the FAB
+  rises above it while it shows.
+- **F7:** DETAILS shows the country's German name, not its code.
+- **F8:** a tea without a single stock event shows „–" in the `StatTriplet`, „Kein Bestand erfasst" in VORRAT and a
+  plain reorder link (no stock is invented, as in the list); *Bestand korrigieren* stays.
+- **F9:** the back arrow over a photo or hero is the shared `OverPhoto` (core:designsystem), with its own ink.
+- **Motion review (`/review-animations`, D-101):** the drag reorder of the recipe steps lifts, glides and settles with
+  `press()` / `pressRelease()` / `sheet()`; *Meine Tees*' rows only move (`standard()`), without fading on every
+  search keystroke. Not taken: a permanently reserved *Im Rezept speichern* slot. It left an empty band above
+  *Brühen starten* on every unchanged setup, against SCR-04 („only when changed"); the slot still grows from its
+  top edge after a change, away from the start button (03 §3.6), and keeps its height once saved (D-058, D-062).
+
+**Build notes (Claude, 2026-11-05, v0.4.0 review F1: one alert gate).** Every
+menu, dialog, sheet and picker that can stay open while a timer runs uses one
+gate, `AlertGate` in `core:ui` (`rememberAlertGate(alertKey)`, `AlertGated`,
+`AlertGatedDropdownMenu`, `AlertGatedExposedDropdownMenu`), with the rule of
+D-058 and D-062: it remembers the alert it was opened in; another alert removes
+it in that frame (a Material menu is not composed, so its exit animation never
+shows) and closes it for good, so it does not come back after the alert. It
+survives a configuration change. It replaces the setup's `AlertGate` and
+`AlertGatedMenu`, the Vorwarnung selector's, the tea detail's and the quick
+timer's copies; view models holding a question use its rule `alertCovers`.
+New users: the tea, recipe and vessel editors (discard and delete questions,
+*Kaufdatum*, every choice field, ⋮, the step's kind, Vorwarnung and „Dauer
+wählen") and *Meine Tees*' sort and filter chips and FAB choice, which used to
+refuse to open during any alert and reopened after it; now, like every other
+gated overlay, one opened during an alert stays for that alert.
+
+**Review outcome (Claude, 2026-11-05, v0.4.0 code review, docs/plans/v0.4.0-review.md).**
+- **Fixed:** F1 (one alert gate, see its block), F2, F5–F9, F13 (see the screens block), F15 (KDoc). F14: one German
+  number parser, `GermanNumber` in `core:domain`, for the add sheet and the tea editor (D-090's rule: decimal comma or
+  point, „." thousands groups of three digits, optional „€" / „g"); the editor now also reads „1.234,50 €" and
+  „1.000 g".
+- **Brew path:** F3 *Im Rezept speichern* writes method and base temperature with the steps, so a session brewed at
+  another base keeps every step's temperature and the button settles. F4 the new recipe's id is reserved before the
+  save suspends (kept in SavedState), so a double tap creates one recipe. F10 the accuracy run's alongside variant
+  fails as too slow when the screen went off less than 1 s before the quick timer's pre-alert. Nits:
+  `ProcessDeathTest` logs the real gap; the formatter artefact.
+- **PO decisions (D-101, Amended 2026-11-03):** F11 *Ohne Rezept* keeps the session's own Vorwarnung base, and the new
+  recipe saved from it stores it. F12 the running brew's recipe can't be deleted (*Rezept löschen* greyed out with
+  „Erst die Sitzung beenden"; a late delete is refused with `DeleteRecipeResult.InActiveSession`; every
+  `active_brew` session READY to FINISHED as E15); a session whose recipe is gone opens *Brühen anpassen* with no
+  recipe selected. F5 the editors open above the detail above the setup. Confirmed unchanged: Start's *Nochmal
+  brühen* brews only the steps that ran.
+- **Motion review (`/review-animations`, D-101):** see the screens block.
+- **Moved to v0.4.1 (PO, 2026-11-02):** shared formatters in `core:ui`, one editor scaffold.
+
 **Spec updates:** 02 (TEA, PRF, WARE, INV, BRW, JRN-10, SET), 03 (§2.1,
-§3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
+§3.6, §3.8, SCR-03, SCR-04, SCR-08–SCR-16, SCR-25, §5), 04 (E10, E15 wording), 05
 (§3.1, §3.5, §6), 08 §3, 09 (§2 rows v0.4.0 and v0.4.1, §4 checklists), 12
 (M3), README (key decisions), 11 before (c52b0a5); plan
 `docs/plans/v0.4.0.md`. Q-19 and Q-20 resolved. Next free decision number: D-101.
@@ -5544,6 +5789,8 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-07 | D-103: a *Grüntee* chip before *Kräutertee* in the catalog, selected in the default view and returning from the Kräutertees (CAT-10, SCR-19; amends D-093); straight into the final `v0.4.0` after the PO approved rc.2. |
+| 2026-11-07 | D-102: the PO's findings on `v0.4.0-rc.1`: the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page with „Sitzung löschen?", the stock deduction comes back (JRN-10, pulled forward from M4); *Tee hinzufügen* moves from the FAB into Sammlung's ⋮ menu (SCR-08, amends D-100 point 4); the keyboard: `adjustResize`, the shell consumes the covered height below the content, the editors drop their second `imePadding()`. Own photos stay v0.4.1. → `v0.4.0-rc.2`. |
 | 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
 | 2026-11-03 | D-095 amended: the timer band A13 shows a sumi-e bamboo spray instead of the night landscape (PO); new A13 prompt in `docs/design/assets.md` §4, `CREDITS.md` and 03 SCR-05 updated. |
 | 2026-11-02 | D-101: tiers shifted down to save usage (T1 Sonnet low, T2 Sonnet medium, T3 Opus medium, T4 Opus high; `xhigh` only with the PO's OK, never `max`). Also a fresh orchestrator session per phase, lean briefs, one milestone review (T3, plus T4 for a changed timer path), and `PROJECT_STATE.md` trimmed to the current state (12, CLAUDE.md rule 5; amends D-026). |

@@ -1,5 +1,6 @@
 package com.umamit.core.testing
 
+import com.umamit.core.common.ClockReading
 import com.umamit.core.common.snap5
 import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
@@ -11,21 +12,29 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockSummary
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.PreAlertSettings
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerSnapshot
+import com.umamit.core.timer.engine.TimerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlin.math.roundToLong
 
 // In-memory fakes of the session repositories and the active brew store (05 §3.6, §3.7,
@@ -33,6 +42,10 @@ import kotlin.math.roundToLong
 // session's step rows, and discarding a session drops its stock event and the active brew.
 // Not modelled: the new-package rule of INV-06 (the fake sets only a missing opened date)
 // and rollbacks (FakeDatabaseTransactions runs the block as is).
+
+/** [FakeSessions.startActiveBrew]'s session: its Vorwarnung and its start. */
+private const val ACTIVE_PRE_ALERT_SECONDS = 10
+private const val ACTIVE_STARTED_AT_MS = 1_000L
 
 /** The session tables of a fake database; completion uses [collection]'s teas and stock and [settings]. */
 class FakeSessions(
@@ -47,6 +60,28 @@ class FakeSessions(
     val activeBrew = FakeActiveBrewStore(this)
     val journal = FakeJournalRepository(this)
     val transactions: DatabaseTransactions = FakeDatabaseTransactions
+
+    init {
+        // As on Room: the recipe of a session in `active_brew` can't be deleted (E15, D-101 F12).
+        collection.activeRecipeId = combine(activeRows, sessionRows) { active, rows ->
+            active.values.firstNotNullOfOrNull { row ->
+                row.activeBrew.sessionId?.let { rows[it] }?.snapshot?.profileId
+            }
+        }.distinctUntilChanged()
+    }
+
+    /** A brew session of [snapshot] (one 60 s infusion) waits in READY in `active_brew`: the running brew (E15). */
+    suspend fun startActiveBrew(snapshot: SessionSnapshot, id: String = "active") {
+        val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 70))
+        val preAlert = PreAlertSettings.inherited(null, ACTIVE_PRE_ALERT_SECONDS)
+        val start = TimerEvent.StartSession(id, steps, preAlert, longStepsOnly = false)
+        val now = ClockReading(ACTIVE_STARTED_AT_MS, ACTIVE_STARTED_AT_MS, ZoneOffset.UTC, 1)
+        val ready = BrewTimerEngine.reduce(TimerState.Idle, start, now).state
+        sessions.startSession(
+            SessionStart(id, snapshot, steps, ACTIVE_PRE_ALERT_SECONDS, ACTIVE_STARTED_AT_MS, "UTC"),
+        )
+        activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
+    }
 
     internal fun updateSession(id: String, transform: (BrewSession) -> BrewSession) = sessionRows.update { map ->
         map[id]?.let { map + (id to transform(it)) } ?: map
@@ -133,11 +168,11 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
                 )
             }
         }
+        // As on Room from v0.4.0 (Q-19, D-100): the never-started rows stay, without an actual time.
         s.updateSession(sessionId) {
             it.copy(
                 status = SessionStatus.COMPLETED,
                 plannedStepCount = it.steps.size,
-                steps = it.steps.filter { row -> row.actualSeconds != null },
                 costCents = if (leaf != null && perGram != null) (leaf * perGram).roundToLong() else null,
                 endedAtMs = endedAt,
                 autoFinished = autoFinished,
@@ -187,6 +222,14 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
         rows.values.sortedByDescending { it.startedAtMs }.map { session ->
             JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
         }
+    }
+
+    /** As on Room: a finished session goes with its stock event; one in progress stays (D-102). */
+    override suspend fun deleteSession(sessionId: String) {
+        val session = s.sessionRows.value[sessionId] ?: return
+        if (session.status == SessionStatus.IN_PROGRESS) return
+        s.collection.eventRows.update { map -> map.filterValues { it.sessionId != sessionId } }
+        s.sessionRows.update { it - sessionId }
     }
 }
 

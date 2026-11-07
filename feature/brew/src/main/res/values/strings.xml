@@ -3,7 +3,7 @@
     <!-- Schritte-Sheet (SCR-31) -->
     <string name="brew_steps_title">Schritte für diese Sitzung</string>
     <string name="brew_steps_kind_infusion">Aufguss</string>
-    <string name="brew_steps_kind_rinse">Spülaufguss</string>
+    <string name="brew_steps_kind_rinse">Spülen</string>
     <string name="brew_steps_kind_whisk">Aufschlagen</string>
     <string name="brew_steps_status_done">erledigt</string>
     <string name="brew_steps_status_running">läuft</string>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Teegeschirr (SCR-13; WARE-01, D-100), from Einstellungen › Teegeschirr (SET-30). -->
+    <string name="teaware_title">Teegeschirr</string>
+    <!-- The FAB (TalkBack). -->
+    <string name="teaware_add">Gefäß hinzufügen</string>
+    <string name="teaware_section_archived">Archiviert</string>
+    <string name="teaware_restore">Wiederherstellen</string>
+    <!-- A row's volume: „300 ml"; with a usable volume (WARE-04): „300 ml · 250 ml nutzbar". -->
+    <string name="teaware_volume">%1$d ml</string>
+    <string name="teaware_volume_usable">%1$d ml · %2$d ml nutzbar</string>
+    <!-- The star of a favourite (TalkBack). -->
+    <string name="teaware_favorite">Favorit</string>
+    <string name="teaware_empty_title">Noch kein Teegeschirr</string>
+    <string name="teaware_empty_body">Füge deine Kyusu, deinen Becher oder dein Gaiwan hinzu.</string>
+    <!-- After Archivieren in the editor (D-100): „Kyusu 250 ml archiviert" · Rückgängig. -->
+    <string name="teaware_archived">%1$s archiviert</string>
+    <string name="teaware_undo">Rückgängig</string>
+
+    <!-- Gefäß bearbeiten (SCR-14), a full-screen dialog like SCR-10. -->
+    <string name="vessel_editor_title_new">Neues Gefäß</string>
+    <string name="vessel_editor_title_edit">Gefäß bearbeiten</string>
+    <string name="vessel_editor_close">Schließen</string>
+    <string name="vessel_editor_save">Speichern</string>
+    <string name="vessel_editor_more">Weitere Optionen</string>
+    <string name="vessel_editor_archive">Archivieren</string>
+    <!-- E10: the vessel of the active brew session can't be archived. -->
+    <string name="vessel_editor_archive_blocked">Erst die Sitzung beenden</string>
+    <string name="vessel_editor_restore">Wiederherstellen</string>
+    <string name="vessel_editor_archived_note">Dieses Gefäß ist archiviert und wird beim Brühen nicht angeboten.</string>
+    <string name="vessel_editor_name">Name</string>
+    <string name="vessel_editor_type">Art</string>
+    <string name="vessel_editor_capacity">Volumen</string>
+    <string name="vessel_editor_usable">Nutzbares Volumen</string>
+    <string name="vessel_editor_usable_hint">Leer lassen, wenn du das ganze Volumen nutzt.</string>
+    <string name="vessel_editor_ml">ml</string>
+    <string name="vessel_editor_material">Material</string>
+    <string name="vessel_editor_material_none">Keine Angabe</string>
+    <string name="vessel_editor_notes">Notizen</string>
+    <string name="vessel_editor_favorite">Favorit</string>
+    <string name="vessel_editor_favorite_detail">Favoriten stehen in den Listen oben.</string>
+    <string name="vessel_editor_not_found">Dieses Gefäß gibt es nicht mehr.</string>
+    <!-- Errors at the field; Speichern refuses them. -->
+    <string name="vessel_editor_error_name_empty">Gib einen Namen ein.</string>
+    <string name="vessel_editor_error_name_long">Höchstens 40 Zeichen.</string>
+    <string name="vessel_editor_error_capacity">10 bis 3000 ml</string>
+    <string name="vessel_editor_error_usable">10 ml bis zum Volumen</string>
+
+    <!-- Vessel types (05 §5). -->
+    <string name="vessel_type_kyusu">Kyusu</string>
+    <string name="vessel_type_houhin">Houhin</string>
+    <string name="vessel_type_shiboridashi">Shiboridashi</string>
+    <string name="vessel_type_gaiwan">Gaiwan</string>
+    <string name="vessel_type_clay_teapot">Tonkanne</string>
+    <string name="vessel_type_western_teapot">Teekanne</string>
+    <string name="vessel_type_mug_infuser">Becher mit Sieb</string>
+    <string name="vessel_type_glass">Glas</string>
+    <string name="vessel_type_chawan">Chawan</string>
+    <string name="vessel_type_cold_brew_bottle">Cold-Brew-Flasche</string>
+    <string name="vessel_type_other">Andere</string>
+
+    <!-- Vessel materials (05 §5). -->
+    <string name="vessel_material_unglazed_clay">Unglasierter Ton</string>
+    <string name="vessel_material_glazed_ceramic">Glasierte Keramik</string>
+    <string name="vessel_material_porcelain">Porzellan</string>
+    <string name="vessel_material_glass">Glas</string>
+    <string name="vessel_material_cast_iron">Gusseisen</string>
+    <string name="vessel_material_stainless_steel">Edelstahl</string>
+    <string name="vessel_material_other">Anderes</string>
+</resources>

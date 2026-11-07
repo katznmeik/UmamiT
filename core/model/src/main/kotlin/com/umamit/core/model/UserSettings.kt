@@ -1,6 +1,6 @@
 package com.umamit.core.model
 
-/** The settings of 05 §6 the app has so far (M1 subset, M2 catalog), with the spec defaults. */
+/** The settings of 05 §6 the app has so far (M1 subset, M2 catalog, v0.4.0 collection), with the spec defaults. */
 data class UserSettings(
     /** The settings' format version (05 §6): 2 since v0.2.2, whose migration moved the old 10 g default (D-097). */
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
@@ -56,6 +56,10 @@ data class UserSettings(
      * view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; a key whose *Sorte* is gone is ignored.
      */
     val catalogFolded: Set<String> = emptySet(),
+    /** TEA-11, SCR-08 (v0.4.0, D-100): *Meine Tees*' sort; *Zuletzt gebrüht* by default. */
+    val collectionSort: CollectionSort = CollectionSort.LAST_BREWED,
+    /** SCR-08 (v0.4.0, D-100): the *Sammlung* segment used last; *Meine Tees* by default. */
+    val collectionSegment: CollectionSegment = CollectionSegment.MY_TEAS,
 ) {
     companion object {
         const val DEFAULT_ALERT_SOUND = "klangschale"

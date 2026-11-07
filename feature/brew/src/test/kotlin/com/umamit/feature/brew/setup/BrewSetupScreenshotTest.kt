@@ -66,6 +66,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         private val minze = PickerTea("m", "Minze Zitrone", "Kräutertee", null, kind = TeaKind.HERBAL)
 
         val kyusu = BrewSetupUiState.Ready(
+            teaId = "h",
             teaName = "Bio Sencha Hisui",
             secondaryName = null,
             stockGrams = 100.0,
@@ -213,6 +214,59 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
         BrewSetupScreen(kyusu.copy(stockGrams = 14.0, stockLevel = StockLevel.LOW))
     }
 
+    /** 3 g of a *Knapp* tea for 5,0 g of leaf: „Nur noch 3 g übrig · knapp" (BRW-08, D-100). */
+    @Test
+    fun setupShortStock() = capture("BrewSetup_shortStock") {
+        BrewSetupScreen(kyusu.copy(stockGrams = 3.0, stockLevel = StockLevel.LOW))
+    }
+
+    /** The ⋮ of a tea without a catalog entry: *Tee ansehen* alone (D-100). */
+    @Test
+    fun setupMenuOpen() = capture(
+        "BrewSetup_menuOpen",
+        act = { compose.onNodeWithContentDescription("Weitere Optionen").performClick() },
+    ) {
+        BrewSetupScreen(kyusu)
+    }
+
+    /** The *Gefäß* list open: the vessels, then *Neues Gefäß …* (WARE-02, D-100). */
+    @Test
+    fun setupVesselList() = capture(
+        "BrewSetup_vesselList",
+        act = { compose.onNodeWithContentDescription("Gefäß: Kyusu 250 ml. Ändern").performClick() },
+    ) {
+        BrewSetupScreen(kyusu)
+    }
+
+    /** A recipe's archived vessel: „Kyusu 250 ml (archiviert)" with water and leaf as stored (WARE-02, D-100). */
+    @Test
+    fun setupArchivedVessel() = capture("BrewSetup_archivedVessel") {
+        BrewSetupScreen(kyusu.copy(vessels = kyusu.vessels.drop(1), archivedVessel = kyusu.vessels.first()))
+    }
+
+    /**
+     * *So nochmal brühen* of a session whose recipe is gone (BRW-06, D-100): *Ohne Rezept* selected before the tea's
+     * recipes, the session's steps at their set times, and *Im Rezept speichern* offered.
+     */
+    @Test
+    fun setupWithoutRecipe() = capture("BrewSetup_withoutRecipe") {
+        BrewSetupScreen(
+            kyusu.copy(
+                selectedRecipeId = null,
+                withoutRecipe = true,
+                waterMl = 180,
+                leafGrams = 4.5,
+                ratioPer100Ml = 2.5,
+                steps = listOf(
+                    PlannedStep(StepKind.RINSE, 10, 80, preAlertSeconds = 0),
+                    PlannedStep(StepKind.INFUSION, 75, 65),
+                    PlannedStep(StepKind.INFUSION, 30, 75, preAlertSeconds = 15),
+                ),
+                canSaveToRecipe = true,
+            ),
+        )
+    }
+
     /** At 0 g the header reads „Leer" (INV-05). */
     @Test
     fun setupEmpty() = capture("BrewSetup_empty") { BrewSetupScreen(kyusu.copy(stockGrams = 0.0)) }
@@ -283,7 +337,7 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
     @Test
     fun pickerEmpty() = capture("TeaPicker_empty") { PickerHost(TeaPickerUiState(loading = false)) }
 
-    /** A long press on a tea: its menu with *Aus Sammlung entfernen* (SCR-03, TEA-04). */
+    /** A long press on a tea: its menu with *Archivieren* (SCR-03, TEA-04). */
     @Test
     fun pickerMenu() = capture("TeaPicker_menu", act = { longPress("Bio Sencha Tanabata") }) {
         PickerHost(TeaPickerUiState(favorites = listOf(hisui), all = listOf(hisui, tanabata), loading = false))

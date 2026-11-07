@@ -47,6 +47,12 @@ object UmamiIcons {
 
     @DrawableRes val Edit = R.drawable.ic_edit
 
+    /** A step's handle in the recipe editor: drag to reorder (SCR-12). */
+    @DrawableRes val DragHandle = R.drawable.ic_drag_handle
+
+    /** A link that leaves the app for the browser (INV-09). */
+    @DrawableRes val OpenInNew = R.drawable.ic_open_in_new
+
     @DrawableRes val Schedule = R.drawable.ic_schedule
 
     @DrawableRes val Timer = R.drawable.ic_timer
@@ -68,6 +74,21 @@ object UmamiIcons {
     @DrawableRes val Thermometer = R.drawable.ic_custom_thermometer
 
     @DrawableRes val Infusions = R.drawable.ic_custom_infusions
+
+    // Vessel types (SCR-13, placeholders, 03 §3.4)
+    @DrawableRes val Kyusu = R.drawable.ic_custom_kyusu
+
+    @DrawableRes val Teapot = R.drawable.ic_custom_teapot
+
+    @DrawableRes val Houhin = R.drawable.ic_custom_houhin
+
+    @DrawableRes val Gaiwan = R.drawable.ic_custom_gaiwan
+
+    @DrawableRes val Cup = R.drawable.ic_custom_cup
+
+    @DrawableRes val Chawan = R.drawable.ic_custom_chawan
+
+    @DrawableRes val ColdBrewBottle = R.drawable.ic_custom_bottle
 
     // Illustrations (placeholders, 03 §3.5)
     @DrawableRes val LandscapePlaceholder = R.drawable.illustration_placeholder_landscape
@@ -95,6 +116,18 @@ object UmamiIcons {
 
     /** A8: the empty catalog's vignette in the dark theme. */
     @DrawableRes val CatalogEmptyDark = R.drawable.illustration_catalog_empty_dark
+
+    /** A7: the empty *Meine Tees* vignette in the light theme (SCR-08, „Noch keine Tees"). */
+    @DrawableRes val TeasEmptyLight = R.drawable.illustration_teas_empty_light
+
+    /** A7: the empty *Meine Tees* vignette in the dark theme. */
+    @DrawableRes val TeasEmptyDark = R.drawable.illustration_teas_empty_dark
+
+    /** A10: a search or filter without results in the light theme (SCR-08, „Kein Tee passt zu deiner Suche."). */
+    @DrawableRes val NoResultsLight = R.drawable.illustration_no_results_light
+
+    /** A10: a search or filter without results in the dark theme. */
+    @DrawableRes val NoResultsDark = R.drawable.illustration_no_results_dark
 
     /** A11: the *Ratgeber* list's header band in the light theme (SCR-20). */
     @DrawableRes val GuidesHeaderLight = R.drawable.illustration_guides_header_light

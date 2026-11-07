@@ -311,7 +311,8 @@ class RecoveryTableTest {
         val session = after.sessions.getSession(id)!!
         assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)
         assertThat(session.autoFinished).isTrue()
-        assertThat(session.steps.map { it.actualSeconds }).containsExactly(60)
+        // The never-started second row is kept without an actual time (Q-19, 05 §3.7).
+        assertThat(session.steps.map { it.actualSeconds }).containsExactly(60, null).inOrder()
         assertThat(after.diagnostics.entriesOf<TimerDiagnostic.OrphanSessionEnded>().map { it.saved })
             .containsExactly(true)
     }

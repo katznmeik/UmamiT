@@ -38,6 +38,8 @@
     <!-- „Filter (2)": the filters changed from the default view. -->
     <string name="catalog_filter_button_count">Filter (%1$d)</string>
     <string name="catalog_filter_pure">Pur</string>
+    <!-- The chip of the green teas, the default view, next to Kräutertee (v0.4.0, D-103). -->
+    <string name="catalog_filter_green">Grüntee</string>
     <!-- The chip that switches the list to the shop's Kräutertees and back (v0.2.1, D-093). -->
     <string name="catalog_filter_herbal">Kräutertee</string>
     <string name="catalog_filter_available">Vorrätig</string>

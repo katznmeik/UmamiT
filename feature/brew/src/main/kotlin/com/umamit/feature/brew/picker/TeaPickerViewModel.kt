@@ -7,6 +7,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.domain.search.SearchQuery
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaOverview
@@ -20,25 +21,37 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.text.Normalizer
-import java.util.Locale
 import javax.inject.Inject
 
 /**
- * A tea's kind, the picker's group (SCR-03, D-097), in the order the groups show: every green
- * style is a „Grüntee", style `herbal` a „Kräutertee". M3's own teas will add more kinds.
+ * A tea's kind, the picker's group (SCR-03, D-097, D-100), in the order the groups show: the
+ * Kategorie order „Grüntees", „Weiße Tees", „Oolongs", „Schwarztees", „Pu-Erh", „Kräutertees",
+ * „Andere" (yellow tea counts as „Andere").
  */
 enum class TeaKind {
     GREEN,
+    WHITE,
+    OOLONG,
+    BLACK,
+    PUERH,
     HERBAL,
+    OTHER,
     ;
 
     companion object {
-        /** The kind from the tea's style; a tea without a style counts by its category. */
+        /** The kind from the tea's Kategorie; the catalog's style `herbal` is a „Kräutertee". */
         fun of(tea: Tea): TeaKind = when {
             tea.styleKey == HERBAL_STYLE -> HERBAL
-            tea.styleKey == null && tea.category == TeaCategory.HERBAL -> HERBAL
-            else -> GREEN
+
+            else -> when (tea.category) {
+                TeaCategory.GREEN -> GREEN
+                TeaCategory.WHITE -> WHITE
+                TeaCategory.OOLONG -> OOLONG
+                TeaCategory.BLACK -> BLACK
+                TeaCategory.DARK -> PUERH
+                TeaCategory.HERBAL -> HERBAL
+                TeaCategory.YELLOW, TeaCategory.OTHER -> OTHER
+            }
         }
 
         private const val HERBAL_STYLE = "herbal"
@@ -47,7 +60,7 @@ enum class TeaKind {
 
 /**
  * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
- * [removable] is false for the tea of the active brew session: *Aus Sammlung entfernen* is greyed
+ * [removable] is false for the tea of the active brew session: *Archivieren* is greyed
  * out with „Erst die Sitzung beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
  */
 data class PickerTea(
@@ -131,7 +144,7 @@ class TeaPickerViewModel @Inject constructor(
     ) { owned, recentSessions, activeTeaId, input ->
         val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId) }
         val byId = all.associateBy { it.id }
-        val term = normalized(input.search.trim())
+        val search = SearchQuery(input.search)
         TeaPickerUiState(
             recent = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
                 .mapNotNull { byId[it] }
@@ -139,7 +152,7 @@ class TeaPickerViewModel @Inject constructor(
             favorites = owned.filter { it.tea.isFavorite }.mapNotNull { byId[it.tea.id] },
             all = all,
             query = input.typed,
-            results = if (term.isEmpty() || input.typed.isBlank()) null else all.filter { it.matches(term) },
+            results = if (input.search.isBlank() || input.typed.isBlank()) null else all.filter { it.matches(search) },
             loading = false,
             removed = input.removed,
         )
@@ -150,7 +163,7 @@ class TeaPickerViewModel @Inject constructor(
     }
 
     /**
-     * *Aus Sammlung entfernen* (TEA-04, SCR-03): archives the tea at once, without a dialog; the
+     * *Archivieren* (TEA-04, SCR-03): archives the tea at once, without a dialog; the
      * snackbar then offers *Rückgängig*. The active brew session's tea is refused and stays (E15).
      */
     fun remove(teaId: String) {
@@ -192,15 +205,6 @@ class TeaPickerViewModel @Inject constructor(
     }
 }
 
-private val COMBINING_MARKS = Regex("\\p{Mn}+")
-private val WORD_BREAK = Regex("[\\s\\-–/·,()]+")
-
-/** Lower case without diacritics: „Kōridashi" → „koridashi" (GEN-10). */
-internal fun normalized(text: String): String =
-    COMBINING_MARKS.replace(Normalizer.normalize(text, Normalizer.Form.NFD), "").lowercase(Locale.GERMAN)
-
-/** A word of the name starts with [term] (already [normalized]); several words must each match a word. */
-private fun PickerTea.matches(term: String): Boolean {
-    val words = normalized(name).split(WORD_BREAK) + listOfNotNull(teaType?.let(::normalized))
-    return term.split(WORD_BREAK).filter { it.isNotEmpty() }.all { part -> words.any { it.startsWith(part) } }
-}
+/** GEN-10: every word of the [search] starts a word of the name, or the type (as a whole). */
+private fun PickerTea.matches(search: SearchQuery): Boolean =
+    search.matches(SearchQuery.words(name) + listOfNotNull(teaType?.let(SearchQuery::normalized)))

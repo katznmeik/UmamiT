@@ -91,8 +91,9 @@ class BrewSessionControllerTest {
         assertThat(session.autoFinished).isFalse()
         assertThat(session.plannedStepCount).isEqualTo(4)
         assertThat(session.costCents).isEqualTo(34) // 4 g × 8,50 € / 100 g
+        // The never-started fourth row is kept without an actual time (Q-19, 05 §3.7).
         assertThat(session.steps.map { Triple(it.position, it.actualSeconds, it.overtimeSeconds) })
-            .containsExactly(Triple(0, 13, 3), Triple(1, 60, 0), Triple(2, 32, 2))
+            .containsExactly(Triple(0, 13, 3), Triple(1, 60, 0), Triple(2, 32, 2), Triple(3, null, null))
             .inOrder()
         assertThat(session.endedAtMs).isEqualTo(h.clock.wall)
         assertThat(h.stock.observeStock(ControllerHarness.TEA_ID).first().remainingGrams).isEqualTo(96.0)

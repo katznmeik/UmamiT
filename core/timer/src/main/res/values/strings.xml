@@ -15,7 +15,7 @@
          the step kind, as on the timer screen (D-058). -->
     <string name="timer_quick_title">Schnelltimer</string>
     <string name="timer_step_infusion">Aufguss</string>
-    <string name="timer_step_rinse">Spülaufguss</string>
+    <string name="timer_step_rinse">Spülen</string>
     <string name="timer_step_whisk">Aufschlagen</string>
     <!-- Gyokuro · Aufguss 2 von 3 -->
     <string name="timer_title_step" tools:ignore="PluralsCandidate">%1$s · %2$s %3$d von %4$d</string>

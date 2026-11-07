@@ -21,6 +21,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.feature.collection.CollectionSegment
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
@@ -64,6 +65,7 @@ class ShellNavigationTest {
     private fun start(
         reduceMotion: Boolean = true,
         catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
+        collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
     ) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
@@ -72,6 +74,7 @@ class ShellNavigationTest {
                     journalSources = testJournalSources(),
                     settings = testSettingsScreens(),
                     catalogScreen = catalogScreen,
+                    collectionSegments = collectionSegments,
                 )
             }
         }
@@ -264,11 +267,61 @@ class ShellNavigationTest {
     fun collectionRemembersLastSegment() {
         start()
         tab(Tab.Collection).performClick()
-        compose.onNodeWithText(str(CollectionR.string.collection_my_teas_later_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(CollectionR.string.my_teas_empty_title)).assertIsDisplayed()
         compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).performClick()
         tab(Tab.Stats).performClick()
         tab(Tab.Collection).performClick()
         compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
+    }
+
+    @Test
+    fun meineTeesAusDemKatalogTurnsToTheCatalogSegment() {
+        start()
+        tab(Tab.Collection).performClick()
+
+        // Sammlung's ⋮ menu (D-102).
+        compose.onNodeWithContentDescription(str(DesignSystemR.string.ds_more_options)).performClick()
+        compose.onNodeWithText(str(CollectionR.string.my_teas_add_from_catalog)).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).assertIsSelected()
+    }
+
+    @Test
+    fun meineTeesImKatalogStoebernTurnsToTheCatalogSegment() {
+        start()
+        tab(Tab.Collection).performClick()
+
+        compose.onNodeWithText(str(CollectionR.string.my_teas_empty_action)).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
+    }
+
+    @Test
+    fun sammlungOpensOnTheSegmentUsedLastAndRemembersAChange() {
+        val memory = object : CollectionSegmentMemory {
+            override val remembered = MutableStateFlow<CollectionSegment?>(null)
+            val written = mutableListOf<CollectionSegment>()
+
+            override fun remember(segment: CollectionSegment) {
+                written += segment
+            }
+        }
+        start(collectionSegments = memory)
+        // Read after the shell is shown: it still opens on it.
+        memory.remembered.value = CollectionSegment.Catalog
+        compose.waitForIdle()
+
+        tab(Tab.Collection).performClick()
+        compose.onNodeWithText(str(CatalogR.string.catalog_empty_title)).assertIsDisplayed()
+
+        compose.onNodeWithText(str(CollectionR.string.collection_segment_my_teas)).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(str(CollectionR.string.my_teas_empty_title)).assertIsDisplayed()
+        assertThat(memory.written.last()).isEqualTo(CollectionSegment.MyTeas)
     }
 
     @Test

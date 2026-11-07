@@ -17,12 +17,22 @@ data class JournalSession(val session: BrewSession, val coverPhoto: File?)
 interface JournalRepository {
     /** Every session, in progress or finished, newest start first; emits again on every write. */
     fun observeSessions(): Flow<List<JournalSession>>
+
+    /**
+     * *Löschen* on the session page (JRN-10, D-102): deletes a finished session with its steps and its BREW stock
+     * event, so the leaf it deducted is back in the stock (INV-02). A session in progress, or one that is gone
+     * already, is left alone.
+     */
+    suspend fun deleteSession(sessionId: String)
 }
 
 /** [JournalRepository] on Room. */
 class RoomJournalRepository @Inject constructor(db: UmamiDatabase, private val photos: PhotoFiles) :
     JournalRepository {
     private val journal = db.journalDao()
+    private val sessions = db.sessionDao()
+
+    override suspend fun deleteSession(sessionId: String) = sessions.deleteFinished(sessionId)
 
     override fun observeSessions(): Flow<List<JournalSession>> = journal.observeSessions().map { rows ->
         rows.map { row ->

@@ -62,6 +62,9 @@ object SettingsTags {
     const val ABOUT = "SettingsAbout"
     const val RELIABILITY = "SettingsReliability"
     const val CATALOG = "SettingsCatalog"
+
+    /** The *Teegeschirr* row (SET-30, D-100). */
+    const val TEAWARE = "SettingsTeaware"
     const val LOW_STOCK = "SettingsLowStock"
 
     /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
@@ -95,6 +98,8 @@ class SettingsActions(
     val setRingUnderDnd: (Boolean) -> Unit = {},
     val setKeepScreenOn: (Boolean) -> Unit = {},
     val setDim: (Boolean) -> Unit = {},
+    /** SET-15 *Bestand abziehen* (INV-02, D-100). */
+    val setDeductStock: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
     /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, D-098). */
@@ -107,6 +112,8 @@ class SettingsActions(
     /** *Stopp*: ends a running *Alarm testen*. */
     val stopTest: () -> Unit = {},
     val openAbout: () -> Unit = {},
+    /** *Teegeschirr* (SET-30): the teaware list (SCR-13). */
+    val openTeaware: () -> Unit = {},
     /** *Jetzt aktualisieren* (SET-23). */
     val refreshCatalog: () -> Unit = {},
 )
@@ -122,6 +129,7 @@ fun SettingsRoute(
     onOpenAbout: () -> Unit,
     alertKey: String?,
     modifier: Modifier = Modifier,
+    onOpenTeaware: () -> Unit = {},
     scrollToTopRequest: Int = 0,
     viewModel: SettingsViewModel = hiltViewModel(),
     catalogViewModel: CatalogSettingsViewModel = hiltViewModel(),
@@ -171,6 +179,7 @@ fun SettingsRoute(
             setRingUnderDnd = { on -> viewModel.change { it.copy(ringUnderDnd = on) } },
             setKeepScreenOn = { on -> viewModel.change { it.copy(keepScreenOn = on) } },
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
+            setDeductStock = { on -> viewModel.change { it.copy(deductStock = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
             setLowStockReminder = { on -> viewModel.change { it.copy(lowStockReminder = on) } },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
@@ -178,6 +187,7 @@ fun SettingsRoute(
             testAlert = viewModel::testAlert,
             stopTest = viewModel::stopTest,
             openAbout = onOpenAbout,
+            openTeaware = onOpenTeaware,
             refreshCatalog = catalogViewModel::refreshNow,
         ),
         modifier = modifier,
@@ -187,8 +197,8 @@ fun SettingsRoute(
 }
 
 /**
- * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog* and
- * *Über* (SET-30).
+ * SCR-25 without state: the reliability card first, then *Timer & Alarm*, *Brühen & Vorrat*, *Katalog*,
+ * *Teegeschirr* and *Über* (SET-30).
  */
 @Composable
 fun SettingsScreen(
@@ -227,6 +237,12 @@ fun SettingsScreen(
         SectionHeader(title = stringResource(R.string.settings_section_timer), modifier = Modifier.fillMaxWidth())
         TimerSection(settings, actions, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_brewing), modifier = Modifier.fillMaxWidth())
+        SwitchRow(
+            title = stringResource(R.string.settings_deduct_stock),
+            checked = settings.deductStock,
+            onCheckedChange = actions.setDeductStock,
+            detail = stringResource(R.string.settings_deduct_stock_detail),
+        )
         SettingsRow(
             title = stringResource(R.string.settings_low_stock),
             value = stringResource(R.string.settings_low_stock_grams, settings.lowStockGrams.roundToInt()),
@@ -241,6 +257,13 @@ fun SettingsScreen(
             checked = settings.catalogDownloadPhotos,
             onCheckedChange = actions.setCatalogPhotos,
             detail = stringResource(R.string.settings_catalog_photos_detail),
+        )
+        SectionHeader(title = stringResource(R.string.settings_section_teaware), modifier = Modifier.fillMaxWidth())
+        SettingsRow(
+            title = stringResource(R.string.settings_teaware),
+            onClick = actions.openTeaware,
+            modifier = Modifier.testTag(SettingsTags.TEAWARE),
+            chevron = true,
         )
         SectionHeader(title = stringResource(R.string.settings_section_about), modifier = Modifier.fillMaxWidth())
         SettingsRow(

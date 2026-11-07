@@ -250,7 +250,9 @@ A task is never moved to a *lower* tier after it failed.
   issue, the plan and the decision. It opens them only if the pointers are
   not enough.
 - **Give the commands:** the module-scoped Gradle tasks to run and the
-  shared build lock, so the subagent doesn't have to find them.
+  shared build lock, so the subagent doesn't have to find them. Gradle output
+  goes to a log file, and the subagent reads only the failures and the result
+  line.
 - **Ask for a short report:** the branch and head, one line per item, the
   Gradle tasks with their results, tests added, and open questions. No pasted
   logs or diffs; the orchestrator reads the diff itself.
@@ -266,7 +268,11 @@ A task is never moved to a *lower* tier after it failed.
 - **Per-ticket reviews** only where the plan names one (e.g. a timer
   design).
 - **`/review-animations`** runs once per milestone, on the new and changed
-  screens, not on every UI ticket.
+  screens, not on every UI ticket. The skill is user-invocable only
+  (`disable-model-invocation`), so the orchestrator gives it to a read-only
+  T2 subagent. That subagent reads the skill's `SKILL.md` and `STANDARDS.md`
+  and applies them, in parallel with the first implementers, so its findings
+  join a later fix brief (D-101, Amended).
 
 ## 6. Prompt template for subagents
 

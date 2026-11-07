@@ -1,6 +1,7 @@
 package com.umamit.core.data.catalog
 
 import com.umamit.core.model.CatalogPackage
+import com.umamit.core.model.CatalogTeaDetail
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import kotlin.math.abs
@@ -33,5 +34,22 @@ object ShopLink {
                 sized.firstOrNull { it.label.equals(label.trim(), ignoreCase = true) }
             }
         return match?.variantUrl ?: productUrl
+    }
+
+    /**
+     * INV-09's reorder link of a collection tea with [catalogKey], its [catalogTea] (null before the catalog was
+     * ever loaded, then the tea's own [ownProductUrl] stands in) and its stock [events]: the shop page of the size
+     * bought last. AC2: null without a catalog key or for a discontinued catalog tea.
+     */
+    fun reorderUrl(
+        catalogKey: String?,
+        catalogTea: CatalogTeaDetail?,
+        ownProductUrl: String?,
+        events: List<InventoryEvent>,
+    ): String? = when {
+        catalogKey == null -> null
+        catalogTea == null -> ownProductUrl
+        catalogTea.discontinued -> null
+        else -> url(catalogTea.productUrl, catalogTea.packages, events)
     }
 }

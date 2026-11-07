@@ -332,6 +332,42 @@ class BrewStarterTest {
         assertThat(start.recipePreAlertSeconds).isEqualTo(15)
     }
 
+    @Test
+    fun `a session finished early is brewed again with its started steps only, as before (BRW-11, D-062, Q-19)`() {
+        // From v0.4.0 a completed session keeps its never-started rows, without an actual time.
+        val neverStarted = row(position = 2, StepKind.INFUSION, plannedSeconds = 60, tempC = 75).copy(
+            actualSeconds = null,
+            pausedSeconds = null,
+            overtimeSeconds = null,
+            startedAtWallMs = null,
+            endedAtWallMs = null,
+        )
+        val last = BrewSession(
+            id = "s1",
+            status = SessionStatus.COMPLETED,
+            snapshot = brewStart(infusion(1)).snapshot,
+            preAlertSeconds = 10,
+            plannedStepCount = 3,
+            costCents = null,
+            startedAtMs = 0,
+            endedAtMs = 1,
+            zoneId = "Europe/Berlin",
+            autoFinished = false,
+            steps = listOf(
+                row(position = 0, StepKind.INFUSION, plannedSeconds = 45, tempC = 65),
+                row(position = 1, StepKind.INFUSION, plannedSeconds = 10, tempC = 70),
+                neverStarted,
+            ),
+        )
+
+        val start = brewAgainStart(last)
+
+        assertThat(start.steps).containsExactly(
+            PlannedStep(StepKind.INFUSION, 45, 65),
+            PlannedStep(StepKind.INFUSION, 10, 70),
+        ).inOrder()
+    }
+
     private fun row(position: Int, kind: StepKind, plannedSeconds: Int, tempC: Int?, preAlertSeconds: Int? = null) =
         SessionStepRow(
             position = position,

@@ -27,7 +27,7 @@ object JournalSessions {
         plannedSeconds: Int,
         actualSeconds: Int? = plannedSeconds,
         kind: StepKind = StepKind.INFUSION,
-        tempC: Int? = 55,
+        tempC: Int? = null,
         skipped: Boolean = false,
     ) = SessionStepRow(
         position = position,

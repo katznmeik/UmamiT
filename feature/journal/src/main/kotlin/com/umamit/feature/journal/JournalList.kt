@@ -15,9 +15,10 @@ import java.time.ZoneId
 
 /**
  * One journal row (JRN-08, mockup v2): tea, time of day and the meta line
- * „55 °C · 1:00 · 3 Aufgüsse" (base temperature · first infusion · count), or
+ * „55 °C · 1:00 · 3 Aufgüsse" (the first infusion's temperature and time · count), or
  * „2 von 3 Aufgüssen" when fewer infusions were poured than planned (TMR-12).
  *
+ * @property temperatureC the first infusion's temperature as brewed (its own, else the session's base; D-102).
  * @property infusions poured infusions: ended steps that are neither a rinse nor skipped.
  * @property plannedInfusions the non-rinse steps of the plan, never-started ones included.
  */
@@ -80,14 +81,16 @@ private fun dayOf(date: LocalDate, today: LocalDate): JournalDay = when (date) {
 }
 
 private fun JournalSession.toEntry(): JournalEntry {
-    val infusionRows = session.steps.filter { it.kind != StepKind.RINSE }
-    val poured = infusionRows.count { it.poured }
     val inProgress = session.status == SessionStatus.IN_PROGRESS
-    // A finished session keeps only its ended rows; its plan lives on in the planned count (TMR-12).
+    // A finished session counts only its ended rows, also when it keeps its never-started ones (from
+    // v0.4.0, Q-19); its plan lives on in the planned count (TMR-12).
+    val rows = if (inProgress) session.steps else session.endedSteps
+    val infusionRows = rows.filter { it.kind != StepKind.RINSE }
+    val poured = infusionRows.count { it.poured }
     val planned = if (inProgress) {
         infusionRows.size
     } else {
-        session.plannedStepCount - session.steps.count { it.kind == StepKind.RINSE }
+        session.plannedStepCount - rows.count { it.kind == StepKind.RINSE }
     }
     return JournalEntry(
         sessionId = session.id,
@@ -95,7 +98,10 @@ private fun JournalSession.toEntry(): JournalEntry {
         styleKey = session.snapshot.styleKey,
         photo = coverPhoto,
         startedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(session.startedAtMs), zoneOf(session.zoneId)),
-        temperatureC = session.snapshot.baseTempC ?: infusionRows.firstNotNullOfOrNull { it.tempC },
+        // The first infusion as brewed: a step warmer or cooler than the base (Schritte-Sheet) shows its own
+        // temperature, not the recipe's base (D-102).
+        temperatureC = infusionRows.firstOrNull()?.let { it.tempC ?: session.snapshot.baseTempC }
+            ?: session.snapshot.baseTempC,
         firstInfusionSeconds = infusionRows.firstOrNull()?.plannedSeconds,
         infusions = poured,
         plannedInfusions = maxOf(planned, poured),
@@ -106,6 +112,7 @@ private fun JournalSession.toEntry(): JournalEntry {
 /** The „Gespeichert" sheet's summary (SCR-06): poured infusions and their steeping time together. */
 data class SavedSummary(val infusions: Int, val steepSeconds: Int)
 
+/** [SavedSummary] of [session]: poured rows are ended, so never-started ones (kept from v0.4.0, Q-19) don't count. */
 fun savedSummary(session: BrewSession): SavedSummary {
     val poured = session.steps.filter { it.kind != StepKind.RINSE && it.poured }
     return SavedSummary(poured.size, poured.sumOf { it.actualSeconds ?: 0 })

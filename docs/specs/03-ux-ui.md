@@ -88,7 +88,7 @@ App
 ├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
 │   ├── Meine Tees (SCR-08)
 │   │   ├── Tee (SCR-09) → Brühen (SCR-04), Bearbeiten (SCR-10), Rezept (SCR-12); Vorrat (SCR-29), Fotos (SCR-28) — v0.4.1
-│   │   └── Tee hinzufügen → Aus dem Katalog (SCR-19) | Ohne Katalog → Sorte wählen (SCR-11) → SCR-10
+│   │   └── ⋮ Tee aus dem Katalog hinzufügen (SCR-19) | Tee ohne Katalog hinzufügen → Sorte wählen (SCR-11) → SCR-10
 │   └── Katalog (SCR-19)
 │       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
 │       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
@@ -140,6 +140,14 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 Phone-first (Galaxy, portrait and landscape). On wider windows (landscape,
 split screen, DeX) the app uses a navigation rail and list-detail panes for
 Sammlung and Journal; no orientation lock.
+
+**Keyboard** ([D-102](10-open-questions-and-decisions.md#d-102)): the window
+never pans (`adjustResize`); the keyboard is an inset. The shell's content
+consumes the height the keyboard covers below it (navigation bar, brew bar),
+so a screen pads only for the part of the keyboard above its own bottom
+edge, and the editors pad for it once (their `Scaffold`'s `safeDrawing`
+bottom inset; no extra `imePadding()`). A focused field scrolls into view
+above the keyboard; nothing of the screen stays hidden behind it.
 
 ## 3. Visual design system
 
@@ -342,6 +350,10 @@ Compose specs of `UmamiMotion` (`core:designsystem`, read with
 - **Alerts first:** an alert's start is never delayed by a transition
   (`alertEnter`); the pulse begins on the first frame of ALERTING at full
   matcha.
+- **Overlays give way:** every menu, dialog, sheet and picker remembers the
+  alert it was opened in; another alert removes it in its first frame, without
+  an exit animation, and it stays closed after the alert (one shared gate,
+  `AlertGate` in `core:ui`; D-058, D-100 build notes F1).
 - **Unscaled alert and glow:** Compose multiplies every duration by the system
   animator duration scale. The alert pulse and the pre-alert glow run with a
   fixed scale of 1 (`UnscaledMotion`, as an `Animatable` inside
@@ -526,8 +538,8 @@ same action as a custom action on the row.
 **Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
 *Alle* is split by the tea's kind, each group under a small section header
 („Grüntees", „Kräutertees"; from v0.4.0, for teas added without the
-catalog, in the Kategorie order „Grüntees", „Weiße Tees", „Oolongs",
-„Schwarztees", „Pu-Erh", „Kräutertees", „Andere", D-100), A–Z
+catalog, by the tea's Kategorie in the order „Grüntees", „Weiße Tees", „Oolongs",
+„Schwarztees", „Pu-Erh", „Kräutertees", „Andere" (yellow tea counts as „Andere"), D-100), A–Z
 within a group, groups in that order. Search results are grouped the same
 way. *Zuletzt* and *Favoriten* stay ungrouped above. With teas of only one
 kind the list has no group headers, as before.
@@ -803,9 +815,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
 
 Segmented control [ **Meine Tees** | Katalog ] at the top, opening on the
 segment used last (`collectionSegment`); search „Deine Tees durchsuchen …";
-filter chips; sort; rows per TEA-08; FAB *Tee hinzufügen* (→ choice: *Aus
-dem Katalog* / *Ohne Katalog*). Empty: „Noch keine Tees · Im Katalog
-stöbern".
+filter chips; sort; rows per TEA-08; adding a tea in Sammlung's ⋮ menu:
+*Tee aus dem Katalog hinzufügen* / *Tee ohne Katalog hinzufügen* (a FAB
+*Tee hinzufügen* until v0.4.0-rc.1, [D-102](10-open-questions-and-decisions.md#d-102)).
+Empty: „Noch keine Tees · Im Katalog stöbern".
 
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
@@ -821,15 +834,27 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   archived teas, each with *Wiederherstellen*.
 - **Sort** (TEA-11): *Zuletzt gebrüht* (default), *Name*, *Zuletzt
   hinzugefügt*, *Vorrat*; remembered (`collectionSort`); empty teas last.
-- **FAB:** *Aus dem Katalog* switches to the *Katalog* segment (SCR-19),
-  where a tea is added as before (SCR-23); *Ohne Katalog* opens SCR-11.
+- **Adding (⋮, D-102):** *Tee aus dem Katalog hinzufügen* switches to the
+  *Katalog* segment (SCR-19), where a tea is added as before (SCR-23); *Tee
+  ohne Katalog hinzufügen* opens SCR-11. Both show only while *Meine Tees*
+  is the segment; nothing floats over the rows.
 - **Empty states:** no teas → asset A7, „Noch keine Tees · Im Katalog
   stöbern"; a search or filter without results → asset A10, „Kein Tee passt
   zu deiner Suche.".
 - **Snackbars:** „*Tanabata* archiviert" · *Rückgängig* after *Archivieren*
-  on SCR-09.
+  on SCR-09, over the screen below the closed detail, wherever that is (the
+  list, the session page, the screen under the setup).
 - TalkBack labels on rows, chips and stars. Smooth with 500 teas
   (NFR-PERF-03).
+- **As built (#153, Claude):** the chips row starts with the sort chip
+  („Zuletzt gebrüht ▾", read „Sortierung: …"); *Kategorie*, *Sorte* and
+  *Vorrat* open a menu of values to tick (the chip then names the one ticked,
+  or „Sorte (2)"); *Kategorie* and *Sorte* show only while the collection has
+  more than one value (or one is ticked). The stock chip reads „38 g übrig",
+  „Knapp, 8 g übrig" or „Leer" to TalkBack. With only archived teas, A7 shows
+  below the search and chips, so *Archiviert* stays reachable. A10 offers
+  *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
+  remembered on every change, also when the app turns to *Katalog* itself.
 
 ### SCR-09 Tee (my tea detail)
 
@@ -866,6 +891,11 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   *Wiederherstellen* in place of *Archivieren*.
 - **Entries:** *Meine Tees*, the setup's ⋮ *Tee ansehen* and the session
   page's tea link. It updates at once after an edit, a brew or a correction.
+  Its pencils open the tea and recipe editors in each entry, also above the
+  setup; back from an editor returns to the detail.
+- **No stock events:** the `StatTriplet` shows „–", VORRAT „Kein Bestand
+  erfasst" with *Bestand korrigieren* and a plain reorder link; no stock is
+  invented. DETAILS shows the country by its German name.
 
 ### SCR-10 Tee bearbeiten
 
@@ -881,6 +911,15 @@ the recipes (TEA-03). Errors show at the field (an empty name, a harvest
 year in the future) and *Speichern* refuses them; ✕ with changes asks
 „Änderungen verwerfen?" (GEN-08). Saving during a brew of the tea changes
 nothing in the running session.
+- **As built (#155, Claude):** like the vessel editor (SCR-14): errors show
+  only after the first *Speichern*, then follow the typing. The Sorte is a
+  menu of every built-in style by Kategorie; choosing one also sets the umami
+  level to the Sorte's, and on *Speichern* the tea takes the Sorte's name
+  (`tea_type`) and Kategorie (the form only for a new tea; the recipes stay).
+  *Land* offers the usual tea countries by their German name. *Kaufdatum* is
+  today by default and never later (as SCR-23); a price needs a package
+  („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
+  after an add, the new tea's detail replaces it, *Sorte wählen* included.
 
 ### SCR-11 Sorte wählen (manual add)
 
@@ -891,6 +930,9 @@ v0.4.0 (D-100): every built-in style by its Sorte name, grouped by Kategorie
 searchable, with *Andere / unbekannt* at the end (08 §3). A tap opens SCR-10
 for a new tea with the style's Sorte, Kategorie, umami level and default
 recipe.
+- **As built (#155, Claude):** the search matches the Sorte name and its
+  Kategorie (GEN-10). *Andere / unbekannt* stores no style (05 §3.1) and the
+  Kategorie *Andere*.
 
 ### SCR-12 Rezept bearbeiten
 
@@ -906,11 +948,37 @@ v0.4.0 (D-100):
   *Aufguss* / *Spülen* / *Aufschlagen*; duration with the Schritte-Sheet's
   „Dauer wählen" and hold-to-repeat ± (5 s – 24 h); temperature in 5 °C
   steps; note. At least one step that is not *Spülen*. Add and delete steps.
-- **Recipe actions:** *Als Standard*; delete (not for the last recipe;
-  deleting the default makes the next one default).
+- **Recipe actions:** *Als Standard*; delete (not for the last recipe nor
+  the active brew session's; deleting the default makes the next one
+  default).
 - **Save:** *Speichern* clears „Rezept prüfen" (TEA-17); ✕ with changes asks
   GEN-08's question. A running brew keeps its steps.
 - No *Aufgüsse erzeugen* (series generator, PRF-05 not planned).
+- **As built (#156, Claude):** a full-screen dialog like SCR-10 and SCR-14
+  (✕ · „Rezept bearbeiten" / „Neues Rezept" · *Speichern* · ⋮), sections
+  *Rezept*, *Schritte*, *Notizen*; errors show only after the first
+  *Speichern*, then follow the typing.
+  - *Rezept*: name (hint „z. B. Kyusu oder Kaltaufguss"), *Methode* (Kyusu,
+    Gongfu, Westlich, Matcha Usucha, Matcha Koicha, Kaltaufguss, Eisaufguss,
+    Eigene), *Gefäß* (*Kein Gefäß* first; it keeps leaf and water), leaf and
+    water typed („0,1 bis 100 g", „10 bis 3000 ml, in 5-ml-Schritten"), the
+    line „Verhältnis 2,0 g / 100 ml" below them, the base temperature as a
+    − / + stepper („10 °C · kalt" at 10 °C and below), *Vorwarnung* (*Wie in
+    Einstellungen · 10 s*, *Aus*, 5–30 s) and the switch *Als Standard*,
+    stored with *Speichern*; on the default recipe it stays on.
+  - Each step: the drag handle (TalkBack: „Verschieben, Schritt 2" with *Nach
+    oben* / *Nach unten verschieben*), „1 · Aufguss" opening the kind menu, ✕,
+    the duration and temperature steppers, its *Vorwarnung* selector as in
+    the Schritte-Sheet („Auto · 10 s" with the lead the timer will give) and
+    a note (≤ 120 characters). The only step that brews can't become
+    *Spülen* and can't be deleted. *Aufguss hinzufügen* appends the timer's
+    *Weiterer Aufguss* (TMR-10), up to 30 steps.
+  - ⋮ *Rezept löschen* asks „Rezept löschen?"; for the tea's last recipe it
+    is greyed out with „Ein Tee braucht mindestens ein Rezept.", for the
+    recipe of the active brew session with „Erst die Sitzung beenden" (E15,
+    D-101).
+  - The editor sits in the Sammlung stack above the detail; *Speichern* and
+    *Löschen* return to it.
 
 ### SCR-13 / SCR-14 Teegeschirr
 
@@ -948,11 +1016,18 @@ Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
 (geplant / tatsächlich / °C), rating, radar, descriptors, notes, photos.
 Actions: *Notizen hinzufügen*/*Bearbeiten*, *So nochmal brühen*, *Löschen*.
 
-v0.4.0 (D-100), read-only:
+v0.4.0 (D-100):
 - **Content:** the tea (a tap opens SCR-09), date and time, method, vessel,
   leaf / water / ratio, and the step table (*geplant* / *tatsächlich* / °C,
   with each step's kind; a step never started reads „nicht gebrüht", Q-19). Rating, radar, descriptors, notes, photos and the
-  actions *Notizen hinzufügen* / *Bearbeiten* / *Löschen* follow in M4.
+  actions *Notizen hinzufügen* / *Bearbeiten* follow in M4.
+- ***Löschen*** (v0.4.0-rc.2, [D-102](10-open-questions-and-decisions.md#d-102)):
+  ⋮ *Löschen* asks „Sitzung löschen?" · „Der Eintrag verschwindet aus dem
+  Journal. Abgezogener Vorrat kommt zurück." · *Abbrechen* / *Löschen*;
+  confirmed, the page closes and the session is gone with its stock
+  deduction. The menu and the question give way to an alert (rule 8). The
+  running session has no page (its entry opens the timer), so there is
+  nothing to delete there.
 - ***So nochmal brühen*** (BRW-06) opens the setup (SCR-04) with the session
   as brewed: tea, vessel, leaf, water and every planned step at its set
   time, never the measured time.
@@ -994,6 +1069,11 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   green teas. In the Kräutertee view „Pur" does not apply (hidden); the
   other chips still apply, and it counts in „Filter (n)".
   The header then reads „… · 38 Kräutertees · …".
+  From v0.4.0 ([D-103](10-open-questions-and-decisions.md#d-103)) a chip
+  *Grüntee* stands right before *Kräutertee*: selected in the default
+  view, so the green range is named (before, it showed only as „Pur"); a
+  tap on it returns from the Kräutertees, a tap while selected changes
+  nothing. It does not count in „Filter (n)".
 - **Filter sheet** (Material 3 modal sheet; never over an alert) for the
   rest: *Sortierung* (Sorte · Name · Preis pro 100 g), *Sorte* and
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
