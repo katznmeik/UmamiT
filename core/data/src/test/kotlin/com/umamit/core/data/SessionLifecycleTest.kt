@@ -481,10 +481,12 @@ class SessionLifecycleTest {
     @Test
     fun `a completion that leaves the opened date reports nothing`() = runTest {
         data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
-        data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 40 * DAY_MS))
+        // Bought before it was opened: the package in use.
+        data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 60 * DAY_MS))
 
         completeOneStep(TimerDriver(data))
 
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
         assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
     }
 
