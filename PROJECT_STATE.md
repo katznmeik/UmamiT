@@ -19,7 +19,7 @@
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none |
 | Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
-| Decision numbers | Up to **D-103** used; the next free is **D-104** |
+| Decision numbers | Up to **D-104** used; the next free is **D-105** |
 
 ## Working agreements in effect
 
@@ -32,7 +32,7 @@
 
 ## Waiting on the PO
 
-1. **v0.4.1:** the PO starts the spec with `/to-spec` (grilling first). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
+1. **v0.4.1:** grilled on 2026-11-07 and recorded as **D-104** (freshness, cost, stock history, own photos, the reset, Settings closing on a tab switch). Next: the PO runs `/mattpocock-skills:to-spec` to write the spec from D-104. Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 

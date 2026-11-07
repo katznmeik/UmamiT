@@ -323,6 +323,74 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-104"></a>
+### D-104 — v0.4.1 grilled: freshness, cost, stock history, own photos, the catalog reset, and Settings closing on a tab switch (INV-03, INV-06, INV-08, TEA-05, WARE-01, PRF-06, CAT-13, 03 §2.2; refines D-100's v0.4.1 block) · *Accepted* (PO, 2026-11-07, grilled in the session Q1–Q19)
+
+**Scope.** D-100's v0.4.1 items and the two review refactors (shared
+formatters in `core:ui`, one editor scaffold), plus one bug the PO found on
+v0.4.0 (point 9). The settings fix ships with v0.4.1, not as a patch first.
+
+**Decisions.**
+
+1. **Freshness labels (INV-06).** From the opening date, by thirds of the
+   style's window (08 §3): *Frisch* for the first two thirds, *Bald
+   genießen* for the last third, *Über dem Höhepunkt* after the window. No
+   label for an unopened or an empty tea. Shown in *Meine Tees*, on the tea
+   detail and, as a small chip, in the tea picker; Start is unchanged.
+2. **Best-before date.** Editable in the tea editor and shown on the
+   detail; once it has passed, the tea is *Über dem Höhepunkt*, opened or
+   not.
+3. **Opening date.** Set automatically as before (INV-06); the „Gespeichert"
+   sheet after the brew shows „Packung als geöffnet markiert" · *Rückgängig*.
+   The opening date is editable in the tea editor.
+4. **Cost (INV-08).** The detail shows the price per 100 g („12,40 € /
+   100 g", as the catalog) and two cup costs: an estimate from the default
+   recipe („ca. 0,24 € pro Tasse (Rezept)": leaf × price per gram ÷ its
+   infusions) and, from the first priced session, the real average („Ø 0,27
+   € pro Tasse aus 5 Sitzungen"; sessions brewed without a price are left
+   out). A tea without a recorded price shows no cost.
+5. **Stock (INV-03, SCR-29).** *Nachkauf erfassen* (grams, optional price,
+   date) on every tea's detail; catalog teas keep the catalog's flow too.
+   The history lists purchases, corrections and brews, newest first;
+   purchases and corrections can be deleted after a confirmation; a brew
+   leaves only with its journal entry (D-102).
+6. **Tea photos (TEA-05, SCR-28).** Up to 10 per tea, from the Android photo
+   picker one at a time (no camera); at 10, *+ Foto* is greyed out with
+   „Höchstens 10 Fotos". Managed in the detail's photo pager: *+ Foto*, *Als
+   Titelbild*, *Löschen* after a confirmation. A tea's first photo becomes
+   its cover. The cover shows everywhere a tea photo shows today (the list,
+   the detail, the setup, the timer seal, the journal, the session page). A
+   catalog tea's shop photo is just its first photo: it can lose the cover
+   or be deleted.
+7. **Vessel photos (WARE-01).** One per vessel, set, replaced or removed in
+   the vessel editor; it replaces the type icon in the *Teegeschirr* list.
+   The setup's vessel list stays compact.
+8. **Backup.** Own photos stay out of Android's device backup (its 25 MB
+   limit would otherwise risk the whole backup, D-052) until M5's manual
+   export; a phone reset loses them, catalog photos come back.
+9. **Settings close on a tab switch (03 §2.2, the PO's finding on v0.4.0).**
+   Settings is pushed onto the tab it is opened from, so it stayed there and
+   showed again on returning. From v0.4.1, leaving a tab closes Settings and
+   every screen opened from it (*Teegeschirr*, *Über*, …): the tab returns to
+   the screen it showed before Settings. Other pushed screens (a tea detail,
+   a session page) keep their place as before (D-049).
+10. ***Aus Katalog zurücksetzen* (PRF-06, CAT-13).** Replaces the
+    description and only the recipes that came from the catalog
+    (`RecipeSource`); the user's own recipes stay. If the default was a
+    catalog recipe, the new catalog default takes its place. Stock, photos,
+    notes, favourite and journal stay; not offered when the tea is no longer
+    in the catalog.
+11. **Tests.** As lean as v0.4.0: unit tests for freshness and cost, data
+    tests for the stock history, photos and the reset, Compose tests for the
+    new screens, screenshot goldens, one navigation test for the settings
+    fix. No accuracy run unless timer code changes (the timer seal only
+    shows the cover); the PO's on-device checklist per rc.
+
+**Details (Claude).** Deleting the cover makes the next photo the cover;
+the thirds are whole days, rounded down (Gyokuro, 60 days: *Frisch* days
+0–39, *Bald genießen* 40–59); deleting a purchase leaves the opening date as
+it is (the editor corrects it).
+
 <a id="d-103"></a>
 ### D-103 — A *Grüntee* chip in the catalog, directly into the final `v0.4.0` (CAT-10, SCR-19; amends D-093) · *Accepted* (PO, 2026-11-07)
 
@@ -5794,6 +5862,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-07 | D-104: v0.4.1 grilled (Q1–Q19): freshness by thirds of the style window with best-before, labels in the list, detail and tea picker; the opened-date undo in the „Gespeichert" sheet; cost per 100 g, a recipe estimate and the real average per cup; *Nachkauf erfassen* on every detail and a history with deletable purchases and corrections; up to 10 tea photos managed in the detail pager, one photo per vessel, own photos outside the device backup; the reset keeps own recipes; Settings closes on a tab switch. |
 | 2026-11-07 | D-103: a *Grüntee* chip before *Kräutertee* in the catalog, selected in the default view and returning from the Kräutertees (CAT-10, SCR-19; amends D-093); straight into the final `v0.4.0` after the PO approved rc.2. The PO waived the final's accuracy runs for this release (no timer code changed since rc.1). |
 | 2026-11-07 | D-102: the PO's findings on `v0.4.0-rc.1`: the journal row shows the first infusion's own temperature (JRN-08); ⋮ *Löschen* on the session page with „Sitzung löschen?", the stock deduction comes back (JRN-10, pulled forward from M4); *Tee hinzufügen* moves from the FAB into Sammlung's ⋮ menu (SCR-08, amends D-100 point 4); the keyboard: `adjustResize`, the shell consumes the covered height below the content, the editors drop their second `imePadding()`. Own photos stay v0.4.1. → `v0.4.0-rc.2`. |
 | 2026-11-04 | D-029 amended: sumi-e redo of A13 and A3; the Start header A3 shows a flowering tea branch, its dark version derived from the light painting (PO). `docs/design/assets.md` (shared sumi-e block, A3 and A13 prompts), `CREDITS.md` and 03 SCR-02 updated. |
