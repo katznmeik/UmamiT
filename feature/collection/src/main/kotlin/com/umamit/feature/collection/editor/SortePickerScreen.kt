@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -78,11 +77,11 @@ fun SortePickerScreen(onBack: () -> Unit, onPick: (styleKey: String) -> Unit, mo
             WindowInsetsSides.Top + WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom,
         ),
     ) { padding ->
+        // The padding holds the keyboard too (safeDrawing): no imePadding on top (D-102).
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .imePadding(),
+                .padding(padding),
         ) {
             SearchField(query) { query = it }
             LazyColumn(modifier = Modifier.fillMaxSize()) {

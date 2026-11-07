@@ -53,6 +53,7 @@ class SessionPageScreenTest {
     private val archive = FakeTeaArchive(sessions)
     private val openedTeas = mutableListOf<String>()
     private val brewedAgain = mutableListOf<String>()
+    private var deleted = 0
 
     @Before
     fun seed() = runBlocking {
@@ -102,6 +103,7 @@ class SessionPageScreenTest {
                         onBack = {},
                         onOpenTea = { openedTeas += it },
                         onBrewAgain = { brewedAgain += it },
+                        onDeleted = { deleted++ },
                     ),
                     viewModel = viewModel,
                 )
@@ -167,6 +169,29 @@ class SessionPageScreenTest {
         compose.onNodeWithTag(SESSION_TEA_TAG).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         compose.onNodeWithTag(SESSION_BREW_AGAIN_TAG).assertDoesNotExist()
         stepRow("Aufguss 2: geplant\u00A030 Sekunden, nicht gebrüht, 75 °C").assertExists()
+    }
+
+    /** ⋮ *Löschen* asks „Sitzung löschen?" first; confirmed, the session is gone and the host is told (D-102). */
+    @Test
+    fun `Loeschen asks first, then removes the session and tells the host`() {
+        show()
+
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.onNodeWithText("Löschen").performClick()
+        compose.onNodeWithText("Sitzung löschen?").assertExists()
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.waitForIdle()
+        assertThat(runBlocking { sessions.sessions.getSession(PAST) }).isNotNull()
+        assertThat(deleted).isEqualTo(0)
+
+        compose.onNodeWithTag(SESSION_MENU_TAG).performClick()
+        compose.onNodeWithText("Löschen").performClick()
+        compose.onNodeWithText("Sitzung löschen?").assertExists()
+        compose.onNodeWithText("Löschen").performClick()
+        compose.waitForIdle()
+
+        assertThat(runBlocking { sessions.sessions.getSession(PAST) }).isNull()
+        assertThat(deleted).isEqualTo(1)
     }
 
     @Test

@@ -234,6 +234,13 @@ with *Ohne Katalog* for the test, deleted at the end.
 - [ ] *Einstellungen › Brühen & Vorrat › Bestand abziehen* off: a brew leaves the stock unchanged; on again: it is deducted.
 - [ ] The Schritte-Sheet names a rinse *Spülen*.
 
+**rc.2 (D-102, the PO's findings on rc.1):**
+
+- [ ] Journal: brew a tea with its first infusion set cooler in the Schritte-Sheet (e.g. 55 °C on a 70 °C recipe): the row's meta line reads the first infusion's 55 °C, not the recipe's 70 °C.
+- [ ] Session page ⋮ *Löschen* on a brew recorded in error: „Sitzung löschen?" · *Abbrechen* keeps it; *Löschen* closes the page, the entry is gone from the journal and the tea's stock is back up by the leaf it deducted. The running session's entry still opens the timer.
+- [ ] *Meine Tees* has no FAB; Sammlung's ⋮ offers *Tee aus dem Katalog hinzufügen* (turns to *Katalog*) and *Tee ohne Katalog hinzufügen* (*Sorte wählen*); on *Katalog* the menu is as before. The rows are not covered; the snackbar „… archiviert" still shows at the bottom.
+- [ ] Keyboard: tap the search on *Meine Tees* and on *Katalog*: the list ends right above the keyboard, no empty band. *Tee ohne Katalog hinzufügen* › search in *Sorte wählen*, then in the editor *Name*, *Region*, *Notizen*, the package and the price: every field stays visible above the keyboard, the page scrolls behind it, ✕ and *Speichern* stay; the same in *Rezept bearbeiten* (name, notes, a step's note) and in *Neues Gefäß …*.
+
 ### v0.4.1 — Collection, part 2: stock, freshness, cost, photos (D-100)
 
 The M3 items kept for v0.4.1; its spec adds the rest.

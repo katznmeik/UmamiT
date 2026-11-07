@@ -2,6 +2,7 @@ package com.umamit.feature.journal.session
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,13 +38,18 @@ import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.ui.AlertGated
+import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.journal.R
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.umamit.core.designsystem.R as DsR
 
 const val SESSION_TEA_TAG = "session_tea"
 const val SESSION_BREW_AGAIN_TAG = "session_brew_again"
 const val SESSION_RESTORE_TAG = "session_restore"
+const val SESSION_MENU_TAG = "session_menu"
 
 private val GERMAN_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
 private val GERMAN_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN)
@@ -56,28 +65,35 @@ class SessionPageActions(
     val brewAgain: (sessionId: String) -> Unit = {},
     /** *Wiederherstellen* of the archived tea. */
     val restore: () -> Unit = {},
+    /** *Löschen*, confirmed in its dialog (JRN-10, D-102). */
+    val delete: () -> Unit = {},
 )
 
 /**
- * The session page (SCR-16), read-only in v0.4.0 (JRN-10, D-100): the tea (a tap opens its detail), date and time,
+ * The session page (SCR-16; JRN-10, D-100): the tea (a tap opens its detail), date and time,
  * method, vessel, leaf / water / ratio, and the step table (*geplant* / *tatsächlich* / °C, each step's kind; a step
  * never started reads „nicht gebrüht", Q-19). *So nochmal brühen* (BRW-06) opens the setup prefilled with the
  * session; for an archived tea it is greyed out with „Tee ist archiviert" and *Wiederherstellen*, for a deleted tea
- * there is neither the link nor the button. Rating, taste, notes, photos, *Bearbeiten* and *Löschen* come with M4.
+ * there is neither the link nor the button. ⋮ *Löschen* (D-102) asks „Sitzung löschen?" and removes a finished
+ * session with its stock deduction. Rating, taste, notes, photos and *Bearbeiten* come with M4.
  *
- * Nothing here covers the screen: the host opens the alerting timer in place of the setup or the tea during an alert
- * (rule 8).
+ * The menu and the question give way to another alert than the one they were opened in ([alertKey], rule 8); the
+ * host opens the alerting timer in place of the setup or the tea during an alert.
  */
 @Composable
 fun SessionPageScreen(
     state: SessionPageUiState,
     modifier: Modifier = Modifier,
     actions: SessionPageActions = SessionPageActions(),
+    alertKey: String? = null,
 ) {
+    val deleteAsk = rememberAlertGate(alertKey)
+    val deletable = state is SessionPageUiState.Ready && !state.page.inProgress
     ScreenScaffold(
         title = stringResource(R.string.session_title),
         modifier = modifier,
         navigationIcon = { BackAction(actions.back) },
+        actions = { if (deletable) SessionMenu(alertKey, onDelete = deleteAsk::open) },
         verticalArrangement = if (state is SessionPageUiState.Ready) Arrangement.Top else Arrangement.Center,
     ) {
         when (state) {
@@ -91,6 +107,54 @@ fun SessionPageScreen(
             is SessionPageUiState.Ready -> SessionContent(state.page, actions)
         }
     }
+    AlertGated(deleteAsk) {
+        DeleteDialog(
+            onDelete = {
+                deleteAsk.close()
+                actions.delete()
+            },
+            onDismiss = deleteAsk::close,
+        )
+    }
+}
+
+/** ⋮ with *Löschen* (JRN-10, D-102); the menu gives way to another alert (rule 8). */
+@Composable
+private fun SessionMenu(alertKey: String?, onDelete: () -> Unit) {
+    val menu = rememberAlertGate(alertKey)
+    Box {
+        IconButton(onClick = menu::open, modifier = Modifier.testTag(SESSION_MENU_TAG)) {
+            Icon(
+                painterResource(UmamiIcons.MoreVert),
+                contentDescription = stringResource(DsR.string.ds_more_options),
+            )
+        }
+        AlertGatedDropdownMenu(menu) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.session_delete)) },
+                onClick = {
+                    menu.close()
+                    onDelete()
+                },
+            )
+        }
+    }
+}
+
+/** „Sitzung löschen?" · *Abbrechen* / *Löschen* (03 SCR-16, D-102). */
+@Composable
+private fun DeleteDialog(onDelete: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.session_delete_title)) },
+        text = { Text(stringResource(R.string.session_delete_body)) },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.session_delete_cancel)) }
+        },
+        confirmButton = {
+            TextButton(onClick = onDelete) { Text(stringResource(R.string.session_delete_confirm)) }
+        },
+    )
 }
 
 @Composable

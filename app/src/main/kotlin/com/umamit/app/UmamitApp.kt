@@ -13,6 +13,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -45,6 +46,10 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -73,6 +78,7 @@ import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.stats.StatsScreen
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.roundToInt
 import com.umamit.feature.journal.JournalRoute as JournalTab
 
 internal fun tabTag(tab: Tab) = "tab_${tab.name}"
@@ -244,7 +250,8 @@ internal fun UmamitApp(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .consumeWindowInsets(insetBelowContent),
+                    .consumeWindowInsets(insetBelowContent)
+                    .consumeCoveredBelow(),
             ) {
                 transition.AnimatedContent(
                     modifier = Modifier.fillMaxSize(),
@@ -302,14 +309,7 @@ internal fun UmamitApp(
                                         scrollToTopRequest = scrollToTop,
                                         openTea = openTea,
                                         alertKey = alertKey,
-                                        snackbarShowing = archivedTea != null,
                                         addFromCatalog = { chooseSegment(CollectionSegment.Catalog) },
-                                        // *Ohne Katalog*: *Sorte wählen* (SCR-11, TEA-01).
-                                        addWithoutCatalog = dropUnlessResumed {
-                                            controllers.getValue(Tab.Collection).navigate(CollectionSorteRoute) {
-                                                launchSingleTop = true
-                                            }
-                                        },
                                     ),
                                 )
                             },
@@ -396,6 +396,24 @@ internal fun UmamitApp(
             )
         }
     }
+}
+
+/**
+ * The keyboard covers the navigation bar and the brew bar below the content, and its inset counts from the window's
+ * bottom edge. The content consumes that covered height, so a screen pads only for the part of the keyboard above
+ * it; without this a band the bars' height stayed empty above the keyboard (D-102).
+ */
+@Composable
+private fun Modifier.consumeCoveredBelow(): Modifier {
+    val windowHeight = LocalWindowInfo.current.containerSize.height
+    var coveredPx by remember { mutableIntStateOf(0) }
+    val covered = with(LocalDensity.current) { coveredPx.toDp() }
+    return this
+        .onGloballyPositioned { coordinates ->
+            val bottom = coordinates.positionInWindow().y + coordinates.size.height
+            coveredPx = (windowHeight - bottom).roundToInt().coerceAtLeast(0)
+        }
+        .consumeWindowInsets(PaddingValues(bottom = covered))
 }
 
 /** How a shell opens. */
@@ -597,12 +615,16 @@ private fun TabHost(
         }
         // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
         // above the shell, which opens the alerting timer instead during an alert (rule 8).
-        composable<JournalSessionRoute> {
+        // The session page (SCR-16): *Löschen* closes it, only while it is on top (D-090, D-102).
+        composable<JournalSessionRoute> { entry ->
+            val close = { if (navController.currentBackStackEntry?.id == entry.id) navController.popBackStack() }
             journal.screens.session(
                 SessionPageHost(
                     onBack = dropUnlessResumed { navController.popBackStack() },
                     onOpenTea = resumedOnly { navController.navigate(CollectionTeaRoute(it)) },
                     onBrewAgain = resumedOnly(journal.openSetupFromSession),
+                    onDeleted = { close() },
+                    alertKey = alertKey,
                 ),
             )
         }
@@ -619,6 +641,11 @@ private fun TabHost(
                     onRefreshCatalog = onRefreshCatalog,
                     onPasteLink = onPasteLink,
                     onFoldCatalog = onFoldCatalog,
+                    // ⋮ on *Meine Tees* (D-102): the *Katalog* segment, or *Sorte wählen* (SCR-11, TEA-01).
+                    onAddFromCatalog = { onSegmentChange(CollectionSegment.Catalog) },
+                    onAddWithoutCatalog = dropUnlessResumed {
+                        navController.navigate(CollectionSorteRoute) { launchSingleTop = true }
+                    },
                     myTeasContent = { modifier, scrollToTop -> myTeas(modifier, scrollToTop, openTea) },
                 )
             }

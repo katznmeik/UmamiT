@@ -1,6 +1,7 @@
 package com.umamit.feature.journal.session
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -17,13 +18,21 @@ fun SessionPageRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentHost by rememberUpdatedState(host)
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                SessionPageEvent.Deleted -> currentHost.onDeleted()
+            }
+        }
+    }
     val actions = remember(viewModel) {
         SessionPageActions(
             back = { currentHost.onBack() },
             openTea = { currentHost.onOpenTea(it) },
             brewAgain = { currentHost.onBrewAgain(it) },
             restore = viewModel::restore,
+            delete = viewModel::delete,
         )
     }
-    SessionPageScreen(state = state, modifier = modifier, actions = actions)
+    SessionPageScreen(state = state, modifier = modifier, actions = actions, alertKey = host.alertKey)
 }

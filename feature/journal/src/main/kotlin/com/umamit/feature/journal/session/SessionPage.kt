@@ -2,6 +2,7 @@ package com.umamit.feature.journal.session
 
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewSession
+import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -61,6 +62,8 @@ data class SessionPage(
     val leafGrams: Double?,
     val waterMl: Int?,
     val steps: List<SessionPageStep>,
+    /** The session still runs: the page offers no *Löschen* (JRN-10, D-102). */
+    val inProgress: Boolean = false,
 ) {
     /** Leaf per 100 ml, to 0,1 g („2,5 g / 100 ml", as in the setup); null without leaf or water. */
     val ratioPer100Ml: Double?
@@ -105,6 +108,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         leafGrams = snapshot.leafGrams,
         waterMl = snapshot.waterMl,
         steps = steps,
+        inProgress = session.status == SessionStatus.IN_PROGRESS,
     )
 }
 

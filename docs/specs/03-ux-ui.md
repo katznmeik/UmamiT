@@ -88,7 +88,7 @@ App
 ├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
 │   ├── Meine Tees (SCR-08)
 │   │   ├── Tee (SCR-09) → Brühen (SCR-04), Bearbeiten (SCR-10), Rezept (SCR-12); Vorrat (SCR-29), Fotos (SCR-28) — v0.4.1
-│   │   └── Tee hinzufügen → Aus dem Katalog (SCR-19) | Ohne Katalog → Sorte wählen (SCR-11) → SCR-10
+│   │   └── ⋮ Tee aus dem Katalog hinzufügen (SCR-19) | Tee ohne Katalog hinzufügen → Sorte wählen (SCR-11) → SCR-10
 │   └── Katalog (SCR-19)
 │       ├── Katalog-Tee (SCR-21) → In Sammlung aufnehmen (SCR-23)
 │       ├── Ratgeber (Tee-Info guides) → Artikel (SCR-20)
@@ -140,6 +140,14 @@ unsaved changes trigger GEN-08 (the Schritte-Sheet too, SCR-31, D-055).
 Phone-first (Galaxy, portrait and landscape). On wider windows (landscape,
 split screen, DeX) the app uses a navigation rail and list-detail panes for
 Sammlung and Journal; no orientation lock.
+
+**Keyboard** ([D-102](10-open-questions-and-decisions.md#d-102)): the window
+never pans (`adjustResize`); the keyboard is an inset. The shell's content
+consumes the height the keyboard covers below it (navigation bar, brew bar),
+so a screen pads only for the part of the keyboard above its own bottom
+edge, and the editors pad for it once (their `Scaffold`'s `safeDrawing`
+bottom inset; no extra `imePadding()`). A focused field scrolls into view
+above the keyboard; nothing of the screen stays hidden behind it.
 
 ## 3. Visual design system
 
@@ -807,9 +815,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
 
 Segmented control [ **Meine Tees** | Katalog ] at the top, opening on the
 segment used last (`collectionSegment`); search „Deine Tees durchsuchen …";
-filter chips; sort; rows per TEA-08; FAB *Tee hinzufügen* (→ choice: *Aus
-dem Katalog* / *Ohne Katalog*). Empty: „Noch keine Tees · Im Katalog
-stöbern".
+filter chips; sort; rows per TEA-08; adding a tea in Sammlung's ⋮ menu:
+*Tee aus dem Katalog hinzufügen* / *Tee ohne Katalog hinzufügen* (a FAB
+*Tee hinzufügen* until v0.4.0-rc.1, [D-102](10-open-questions-and-decisions.md#d-102)).
+Empty: „Noch keine Tees · Im Katalog stöbern".
 
 v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
@@ -825,14 +834,16 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   archived teas, each with *Wiederherstellen*.
 - **Sort** (TEA-11): *Zuletzt gebrüht* (default), *Name*, *Zuletzt
   hinzugefügt*, *Vorrat*; remembered (`collectionSort`); empty teas last.
-- **FAB:** *Aus dem Katalog* switches to the *Katalog* segment (SCR-19),
-  where a tea is added as before (SCR-23); *Ohne Katalog* opens SCR-11.
+- **Adding (⋮, D-102):** *Tee aus dem Katalog hinzufügen* switches to the
+  *Katalog* segment (SCR-19), where a tea is added as before (SCR-23); *Tee
+  ohne Katalog hinzufügen* opens SCR-11. Both show only while *Meine Tees*
+  is the segment; nothing floats over the rows.
 - **Empty states:** no teas → asset A7, „Noch keine Tees · Im Katalog
   stöbern"; a search or filter without results → asset A10, „Kein Tee passt
   zu deiner Suche.".
 - **Snackbars:** „*Tanabata* archiviert" · *Rückgängig* after *Archivieren*
   on SCR-09, over the screen below the closed detail, wherever that is (the
-  list, the session page, the screen under the setup). The FAB rises above it.
+  list, the session page, the screen under the setup).
 - TalkBack labels on rows, chips and stars. Smooth with 500 teas
   (NFR-PERF-03).
 - **As built (#153, Claude):** the chips row starts with the sort chip
@@ -1005,11 +1016,18 @@ Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
 (geplant / tatsächlich / °C), rating, radar, descriptors, notes, photos.
 Actions: *Notizen hinzufügen*/*Bearbeiten*, *So nochmal brühen*, *Löschen*.
 
-v0.4.0 (D-100), read-only:
+v0.4.0 (D-100):
 - **Content:** the tea (a tap opens SCR-09), date and time, method, vessel,
   leaf / water / ratio, and the step table (*geplant* / *tatsächlich* / °C,
   with each step's kind; a step never started reads „nicht gebrüht", Q-19). Rating, radar, descriptors, notes, photos and the
-  actions *Notizen hinzufügen* / *Bearbeiten* / *Löschen* follow in M4.
+  actions *Notizen hinzufügen* / *Bearbeiten* follow in M4.
+- ***Löschen*** (v0.4.0-rc.2, [D-102](10-open-questions-and-decisions.md#d-102)):
+  ⋮ *Löschen* asks „Sitzung löschen?" · „Der Eintrag verschwindet aus dem
+  Journal. Abgezogener Vorrat kommt zurück." · *Abbrechen* / *Löschen*;
+  confirmed, the page closes and the session is gone with its stock
+  deduction. The menu and the question give way to an alert (rule 8). The
+  running session has no page (its entry opens the timer), so there is
+  nothing to delete there.
 - ***So nochmal brühen*** (BRW-06) opens the setup (SCR-04) with the session
   as brewed: tea, vessel, leaf, water and every planned step at its set
   time, never the measured time.

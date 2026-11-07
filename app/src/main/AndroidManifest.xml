@@ -41,9 +41,12 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.UmamiT">
+        <!-- adjustResize: the keyboard is reported as an inset the screens pad for themselves (edge-to-edge);
+             never a pan of the whole window (D-102). -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

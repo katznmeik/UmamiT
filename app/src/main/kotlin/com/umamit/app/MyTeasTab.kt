@@ -32,27 +32,20 @@ internal fun MyTeasTabContent(tab: MyTeasTab) {
     MyTeasRoute(
         onOpenTea = tab.openTea,
         onAddFromCatalog = tab.addFromCatalog,
-        onAddWithoutCatalog = tab.addWithoutCatalog,
         modifier = tab.modifier,
         alertKey = tab.alertKey,
         scrollToTopRequest = tab.scrollToTopRequest,
-        snackbarShowing = tab.snackbarShowing,
     )
 }
 
-/** *Meine Tees* without data, for tests and previews of the shell: „Noch keine Tees" with the FAB. */
+/** *Meine Tees* without data, for tests and previews of the shell: „Noch keine Tees". */
 @Composable
 internal fun PlaceholderMyTeas(tab: MyTeasTab) {
     MyTeasContent(
         state = MyTeasUiState(loading = false),
-        actions = MyTeasActions(
-            onOpenTea = tab.openTea,
-            onAddFromCatalog = tab.addFromCatalog,
-            onAddWithoutCatalog = tab.addWithoutCatalog,
-        ),
+        actions = MyTeasActions(onOpenTea = tab.openTea, onAddFromCatalog = tab.addFromCatalog),
         modifier = tab.modifier,
         alertKey = tab.alertKey,
-        snackbarShowing = tab.snackbarShowing,
     )
 }
 

@@ -223,6 +223,14 @@ class FakeJournalRepository internal constructor(private val s: FakeSessions) : 
             JournalSession(session, session.snapshot.teaId?.let { coverPhotos.value[it] })
         }
     }
+
+    /** As on Room: a finished session goes with its stock event; one in progress stays (D-102). */
+    override suspend fun deleteSession(sessionId: String) {
+        val session = s.sessionRows.value[sessionId] ?: return
+        if (session.status == SessionStatus.IN_PROGRESS) return
+        s.collection.eventRows.update { map -> map.filterValues { it.sessionId != sessionId } }
+        s.sessionRows.update { it - sessionId }
+    }
 }
 
 /** Fake [ActiveBrewStore], one row per [TimerSlot] as on Room (05 §3.12); create it through [FakeSessions]. */
