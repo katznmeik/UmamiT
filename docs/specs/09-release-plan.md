@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-11-08 (the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -247,11 +247,26 @@ with *Ohne Katalog* for the test, deleted at the end.
 
 ### v0.4.1 — Collection, part 2: stock, freshness, cost, photos (D-100)
 
-The M3 items kept for v0.4.1; its spec adds the rest.
+From spec #171, D-104 and D-107. #180 changed the code around the session's
+completion (not its SQL), so every rc needs a PASS of both accuracy variants
+(§4a, D-073). No database migration. Steps marked „test tea" use a tea added
+with *Ohne Katalog* for the test, deleted at the end.
 
-- [ ] Add a catalog tea with a 100 g package → stock 100 g, its price per gram on the detail, recipes and photo copied.
-- [ ] Brew → stock reduced by the leaf; the cost per cup shown on the detail.
-- [ ] A catalog refresh does not change the collection tea; *Aus Katalog zurücksetzen* resets its recipes and description after a confirmation.
+- [ ] `v0.4.1-rc.1` installs over `v0.4.0` without losing data: journal, teas, recipes, photos, stock, vessels and settings are all there; a brew session running during the update still alerts on time.
+- [ ] Add a catalog tea with a 100 g package → stock 100 g, „… € / 100 g" on the detail, recipes and photo copied.
+- [ ] Brew it → stock reduced by the leaf; the detail's VORRAT shows „ca. … € pro Tasse (Rezept)" and, after the first priced session, „Ø … € pro Tasse aus 1 Sitzung". A tea without a price shows no cost.
+- [ ] Freshness: a fresh tea brewed for the first time → the „Gespeichert" sheet reads „Packung als geöffnet markiert" · *Rückgängig*; *Rückgängig* clears the opening date („Öffnungsdatum ist zurückgesetzt."); brew again and keep it. The detail's FRISCHE section shows „Geöffnet am …", DETAILS no longer shows it (D-107).
+- [ ] Freshness labels: in the tea editor set *Geöffnet am* far enough back (e.g. a Sencha opened 3 months ago) → *Bald genießen* or *Über dem Höhepunkt* in *Meine Tees*, on the detail and as a chip in the tea picker; Start is unchanged. A passed *Haltbar bis* gives *Über dem Höhepunkt* even unopened; an opening date in the future is refused at the field. An unopened or empty tea has no label.
+- [ ] *Nachkauf erfassen* on the test tea: 50 g, a price, today → stock +50 g; the history lists *Kauf* „+50 g · … €" on top. Price „0" is refused at the field; a date in the future is refused. A catalog tea's sheet has the same fields, and the catalog's own repurchase flow is still in *Katalog*.
+- [ ] *Nachkauf erfassen* on an **archived** tea brings it out of the archive (D-107).
+- [ ] Stock history: purchases, corrections (*Bestand korrigiert*) and brews (*Gebrüht*), newest first; 5 rows, then *Alle N Einträge anzeigen*. Delete a purchase: „Kauf löschen?" with the stock change; *Löschen* lowers the stock. A brew row opens its session page and has no delete. The first package stays a deletable *Kauf* (D-107).
+- [ ] Own tea photos on the test tea: *+ Foto* opens the photo picker; the photo fades in and becomes the cover (list, detail, timer seal, journal). Add a second: *+ Foto* moves to the new page. ⋮ *Als Titelbild*, ⋮ *Löschen* („Foto löschen?"). At 10 photos *+ Foto* is greyed out with „Höchstens 10 Fotos". A very large file (over 40 MB) or a broken one shows „Das Foto konnte nicht gelesen werden." and the app keeps running. A portrait photo shows upright.
+- [ ] Vessel photo: *Einstellungen › Teegeschirr* › a vessel › *Foto hinzufügen* → it replaces the type icon in the list; *Foto ersetzen* and *Foto entfernen* work. Pick a photo, swipe UmamiT away from the recent apps before *Speichern*, reopen and save: the photo is saved, or a toast says it could not be read (no crash).
+- [ ] *Aus Katalog zurücksetzen* (⋮ on a catalog tea whose catalog recipe you edited, plus an own recipe): „Aus Katalog zurücksetzen?" → *Zurücksetzen* restores the catalog recipes and description; the own recipe, stock, photos, notes, favourite and journal stay. Also offered while that tea is brewing: the running session keeps its steps and alerts on time.
+- [ ] A catalog refresh does not change a collection tea.
+- [ ] Open *Einstellungen* from Start, switch to *Journal* and back: Start shows its own screen, not Settings; the same from *Teegeschirr*. A tea detail opened in *Sammlung* keeps its place over a tab switch.
+- [ ] Editors: *Tee bearbeiten* shows *Geöffnet am* and *Haltbar bis* with date pickers in German format; *Speichern* is visible from the start (greyed while loading).
+- [ ] Delete the test tea: its photos are gone; its journal entries stay.
 
 ### M4 — Journal & statistics
 
