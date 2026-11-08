@@ -38,6 +38,7 @@ sealed interface TeaDetailUiState {
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
  * @property sessionLeafGrams the leaf the active session of this tea still deducts at its end, for the stock
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
+ * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
  * @property today the phone's day when the data last changed: *Nachkauf erfassen*'s default and latest day (INV-03).
  */
 data class TeaDetail(
@@ -66,6 +67,7 @@ data class TeaDetail(
     val inActiveBrew: Boolean = false,
     val sessionLeafGrams: Double? = null,
     val today: LocalDate = LocalDate.now(),
+    val catalogReset: CatalogResetOffer? = null,
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA
@@ -82,6 +84,12 @@ data class TeaDetail(
  * window, [bestBefore] when that date has passed (then the label is *Über dem Höhepunkt*, opened or not).
  */
 data class DetailFreshness(val label: Freshness, val openedDate: LocalDate?, val bestBefore: LocalDate?)
+
+/**
+ * ⋮ *Aus Katalog zurücksetzen* (PRF-06, CAT-13): [leftOut] of the catalog's recipes don't fit beside the tea's own
+ * recipes under [Recipe.MAX_PER_TEA]; the confirmation says so.
+ */
+data class CatalogResetOffer(val leftOut: Int)
 
 /** A photo of the hero pager (SCR-28): its file and whether it is the tea's cover. */
 data class DetailPhoto(val id: String, val path: String, val isCover: Boolean)

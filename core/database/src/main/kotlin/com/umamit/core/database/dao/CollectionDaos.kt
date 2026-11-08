@@ -179,6 +179,11 @@ abstract class RecipeDao {
     @Query("SELECT * FROM brew_profile WHERE id = :id")
     abstract suspend fun get(id: String): ProfileWithSteps?
 
+    /** The tea's recipes now, in their position order (for writes that read them in their transaction). */
+    @Transaction
+    @Query("SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name")
+    abstract suspend fun forTea(teaId: String): List<ProfileWithSteps>
+
     @Query("SELECT COUNT(*) FROM brew_step WHERE profile_id = :profileId")
     abstract suspend fun stepCount(profileId: String): Int
 
@@ -267,6 +272,14 @@ abstract class RecipeDao {
             "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
     )
     abstract fun observeActiveRecipeId(): Flow<String?>
+
+    /** [observeActiveRecipeId] now. */
+    @Query(
+        "SELECT brew_session.profile_id FROM active_brew " +
+            "JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
+    )
+    abstract suspend fun activeRecipeId(): String?
 
     /**
      * Deletes the recipe unless it is its tea's last one (PRF-01) or the recipe of the active brew session

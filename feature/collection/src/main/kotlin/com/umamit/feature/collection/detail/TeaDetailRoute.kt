@@ -43,6 +43,7 @@ fun TeaDetailRoute(
                 TeaDetailEvent.PhotoLimitReached -> context.toast(R.string.collection_tea_photo_limit)
                 TeaDetailEvent.PhotoFailed -> context.toast(R.string.collection_tea_photo_failed)
                 TeaDetailEvent.PhotoChangeFailed -> context.toast(R.string.collection_tea_photo_change_failed)
+                TeaDetailEvent.ResetFailed -> context.toast(R.string.collection_tea_reset_failed)
             }
         }
     }
@@ -65,6 +66,7 @@ fun TeaDetailRoute(
             addPhoto = pickPhoto,
             setCoverPhoto = viewModel::setCoverPhoto,
             deletePhoto = viewModel::deletePhoto,
+            resetFromCatalog = viewModel::resetFromCatalog,
         ),
         modifier = modifier,
         alertKey = host.alertKey,

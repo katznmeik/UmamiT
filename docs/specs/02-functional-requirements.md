@@ -346,6 +346,13 @@ confirmation and a choice of what to reset).
 - **v0.4.1 (D-100):** the reset takes recipes and description together after
   one confirmation (no choice); stock, photos, notes, favourite and journal
   stay. Not offered when the tea is no longer in the catalog.
+- **As built (v0.4.1, D-104, #184):** the detail's ⋮ offers it while
+  `catalog.db` holds a tea for the collection tea's `catalog_key` (a
+  discontinued one included). One transaction replaces `description` and the
+  catalog recipes (every `source` but USER; an edit makes a recipe USER) with
+  those *In Sammlung aufnehmen* derives from the current entry (the same
+  derivation; the style's recipes when the catalog has none). Details in
+  PRF-06.
 
 **CAT-14 — Bundled snapshot** `Won't`
 No catalog snapshot is bundled in the APK: the APK is publicly downloadable
@@ -665,6 +672,18 @@ First duration + increment × count, optional +5 °C per step.
 - **v0.4.1 (D-100):** *Aus Katalog zurücksetzen* resets the recipes and the
   description after a confirmation; stock, photos, notes, favourite and
   journal stay. Not offered when the tea is no longer in the catalog.
+- **As built (v0.4.1, D-104, #184):**
+  - **Recipes:** the catalog's recipes come first, its default first; the
+    user's own recipes (`source` USER) follow in their order, unchanged.
+  - **Default:** if the default was a catalog recipe, the catalog's new
+    default becomes the default; otherwise the user's default stays.
+  - **Limit:** if the total would exceed 10, the catalog recipes beyond the
+    limit are left out, and the confirmation says how many.
+  - „Rezept prüfen" (TEA-17) is cleared; stock, photos, notes, favourite,
+    archive flag and sessions stay.
+  - **Rule 8:** offered during a brew of the tea too. The running session
+    keeps its own steps; its recipe's row is rewritten, never deleted, so the
+    session keeps its link.
 
 **PRF-07 — Learn from sessions** `Must`
 If a session's actual step times differ from the plan by more than
