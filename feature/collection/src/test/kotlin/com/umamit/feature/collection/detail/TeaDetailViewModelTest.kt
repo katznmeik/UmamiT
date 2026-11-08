@@ -202,6 +202,26 @@ class TeaDetailViewModelTest {
     }
 
     @Test
+    fun `an edit of the dates shows in DETAILS and in the freshness label at once (INV-06)`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+        assertThat(vm.tea.details.openedDate).isNull()
+        assertThat(vm.tea.freshness).isNull()
+
+        collection.teas.saveTea(
+            TeaDetailFixture.tea.copy(openedDate = today.minusDays(1), bestBefore = today.plusDays(90)),
+        )
+
+        assertThat(vm.tea.details.openedDate).isEqualTo(today.minusDays(1))
+        assertThat(vm.tea.details.bestBefore).isEqualTo(today.plusDays(90))
+        assertThat(vm.tea.freshness?.openedDate).isEqualTo(today.minusDays(1))
+
+        collection.teas.saveTea(TeaDetailFixture.tea)
+        assertThat(vm.tea.details.openedDate).isNull()
+        assertThat(vm.tea.freshness).isNull()
+    }
+
+    @Test
     fun `the reorder link is a button when Knapp or Leer, a text link otherwise, with the size bought last`() =
         runTest {
             TeaDetailFixture.seed(collection)

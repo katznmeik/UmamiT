@@ -14,7 +14,8 @@ import java.time.LocalDate
 
 /**
  * Tee bearbeiten's fields as typed (SCR-10, TEA-02, D-100): numbers as text, so a half-typed value stays as it is.
- * [styleKey] null is *Andere / unbekannt*. [purchaseDate] is set only when a tea is added: then *Kauf* also offers
+ * [styleKey] null is *Andere / unbekannt*. [openedDate] and [bestBefore] are the tea's *Geöffnet am* and
+ * *Haltbar bis* (INV-06; null: unopened, none). [purchaseDate] is set only when a tea is added: then *Kauf* also offers
  * the package and its price (INV-01). Serializable, so it lives in the `SavedStateHandle`.
  */
 data class TeaEditorForm(
@@ -34,6 +35,8 @@ data class TeaEditorForm(
     val purchaseDate: LocalDate? = null,
     val packageGrams: String = "",
     val price: String = "",
+    val openedDate: LocalDate? = null,
+    val bestBefore: LocalDate? = null,
     val notes: String = "",
 ) : Serializable {
     /** The Sorte [key] (`other`: *Andere / unbekannt*) with its umami level (TEA-03: the recipes stay). */
@@ -47,6 +50,17 @@ data class TeaEditorForm(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) add(TeaFieldError.NameEmpty)
         if (trimmed.length > MAX_NAME) add(TeaFieldError.NameTooLong)
+        addAll(originErrors(today))
+        if (openedDate != null && openedDate > today) add(TeaFieldError.OpenedDateFuture)
+        if (packageGrams.isNotBlank() && parseGrams(packageGrams) == null) add(TeaFieldError.PackageGrams)
+        when {
+            price.isBlank() -> Unit
+            parseCents(price) == null -> add(TeaFieldError.Price)
+            packageGrams.isBlank() -> add(TeaFieldError.PriceWithoutPackage)
+        }
+    }
+
+    private fun originErrors(today: LocalDate): Set<TeaFieldError> = buildSet {
         if (harvestYear.isNotBlank()) {
             val year = harvestYear.trim().toIntOrNull()
             when {
@@ -58,12 +72,6 @@ data class TeaEditorForm(
             shadingDays.trim().toIntOrNull() !in SHADING_RANGE
         ) {
             add(TeaFieldError.ShadingDays)
-        }
-        if (packageGrams.isNotBlank() && parseGrams(packageGrams) == null) add(TeaFieldError.PackageGrams)
-        when {
-            price.isBlank() -> Unit
-            parseCents(price) == null -> add(TeaFieldError.Price)
-            packageGrams.isBlank() -> add(TeaFieldError.PriceWithoutPackage)
         }
     }
 
@@ -107,6 +115,8 @@ data class TeaEditorForm(
             shadingDays = shadingDays.trim().toIntOrNull(),
             processingNotes = processing.orNull(),
             vendor = vendor.orNull(),
+            openedDate = openedDate,
+            bestBefore = bestBefore,
             notes = notes.orNull(),
         )
     }
@@ -142,6 +152,8 @@ data class TeaEditorForm(
             shadingDays = tea.shadingDays?.toString().orEmpty(),
             processing = tea.processingNotes.orEmpty(),
             vendor = tea.vendor ?: if (tea.catalogKey != null) CATALOG_VENDOR else "",
+            openedDate = tea.openedDate,
+            bestBefore = tea.bestBefore,
             notes = tea.notes.orEmpty(),
         )
 
@@ -170,4 +182,5 @@ enum class TeaFieldError {
     PackageGrams,
     Price,
     PriceWithoutPackage,
+    OpenedDateFuture,
 }

@@ -99,6 +99,27 @@ class TeaDetailScreenTest {
     }
 
     @Test
+    fun `DETAILS shows the opening and best-before dates when set (TEA-02)`() {
+        show(
+            sample().copy(
+                details = sample().details.copy(
+                    openedDate = LocalDate.of(2026, 10, 8),
+                    bestBefore = LocalDate.of(2027, 3, 1),
+                ),
+            ),
+        )
+        compose.onNodeWithText("8. Okt. 2026").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("1. März 2027").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `DETAILS shows no date rows without dates`() {
+        show(sample())
+        compose.onNodeWithText("Haltbar bis").assertDoesNotExist()
+        compose.onNodeWithText("Geöffnet am").assertDoesNotExist()
+    }
+
+    @Test
     fun `FRISCHE shows the label and the opening date, read as one item`() {
         show(sample().copy(freshness = DetailFreshness(Freshness.DRINK_SOON, LocalDate.of(2026, 10, 8), null)))
 
