@@ -439,6 +439,20 @@ class SessionLifecycleTest {
     }
 
     @Test
+    fun `Nachkauf erfassen after the stock ran out counts as a new package for the opened date`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        data.stock.addEvent(initial("old", "t1", grams = 4.0, priceCents = 100, at = START_WALL_MS - 40 * DAY_MS))
+        data.stock.addEvent(InventoryEvent("used", "t1", InventoryEventType.BREW, -4.0, START_WALL_MS - 30 * DAY_MS))
+        // Recorded on the detail (INV-03) two days before the session, on the same database.
+        TestDatabase(now = START_WALL_MS - 2 * DAY_MS, db = data.db).stock
+            .recordPurchase("t1", TeaPurchase(50.0, null, LocalDate.of(2026, 10, 20)))
+
+        completeOneStep(TimerDriver(data))
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 22))
+    }
+
+    @Test
     fun `a package bought while stock remained keeps the opened date`() = runTest {
         data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
         data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 40 * DAY_MS))

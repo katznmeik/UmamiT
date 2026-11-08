@@ -1110,6 +1110,18 @@ history list (SCR-29).
   (the setup's sheet).
 - **v0.4.1 (D-100):** the history (SCR-29) and *Nachkauf erfassen* for teas
   not from the catalog (catalog teas have it in SCR-21 since M2).
+- ***Nachkauf erfassen* (v0.4.1, D-104, #181):** on every tea's detail
+  (SCR-09 VORRAT), catalog teas included; their SCR-21/23 flow with the
+  shop's sizes stays. A sheet takes the grams (required, as `GermanNumber`),
+  an optional price in € and *Kaufdatum*, today by default and never later.
+  It records one `PURCHASE` event of the grams with the price (none when left
+  empty) and the package label („50 g"): bought today at now, on an earlier
+  day at noon in the phone's zone, as INV-01's package
+  (`StockRepository.recordPurchase`). A day after today is refused and
+  nothing is written. The stock and the cost per gram follow from the events
+  at once. A purchase after the stock reached 0 g is a new package for the
+  next session's opening date (INV-06). An archived tea stays archived (only
+  SCR-23's repurchase restores one, D-093 Q6).
 
 **INV-04 — Session edits** `Must` update the linked deduction.
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.OverPhoto
@@ -65,7 +66,7 @@ const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 /**
  * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
- * save; the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
+ * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -78,6 +79,7 @@ class TeaDetailActions(
     val restore: () -> Unit = {},
     val delete: () -> Unit = {},
     val correctStock: (grams: Double) -> Unit = {},
+    val recordPurchase: (TeaPurchase) -> Unit = {},
     val openShop: (url: String) -> Unit = {},
     val addPhoto: () -> Unit = {},
     val setCoverPhoto: (photoId: String) -> Unit = {},
@@ -92,8 +94,8 @@ class TeaDetailActions(
  * *Wiederherstellen*, and *Löschen*, which asks first (03 §5); both greyed out for the tea of the active brew
  * session („Erst die Sitzung beenden", E15).
  *
- * **Alerts first (rule 8):** the menu, the delete question and the stock sheet each remember the alert they were
- * opened in ([alertKey]); another alert removes them in its first frame and closes them for good.
+ * **Alerts first (rule 8):** the menu, the delete question, the stock and the purchase sheet each remember the
+ * alert they were opened in ([alertKey]); another alert removes them in its first frame and closes them for good.
  */
 @Composable
 fun TeaDetailScreen(
@@ -131,6 +133,7 @@ private fun Detail(
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
     val stockSheet = rememberAlertGate(alertKey)
+    val purchaseSheet = rememberAlertGate(alertKey)
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -153,7 +156,12 @@ private fun Detail(
                     Header(tea)
                     Stats(tea)
                     Recipes(tea, actions)
-                    Stock(tea, onCorrect = stockSheet::open, onReorder = actions.openShop)
+                    Stock(
+                        tea,
+                        onPurchase = purchaseSheet::open,
+                        onCorrect = stockSheet::open,
+                        onReorder = actions.openShop,
+                    )
                     FreshnessSection(tea.freshness)
                     TextSection(R.string.collection_tea_section_description, tea.description)
                     TextSection(R.string.collection_tea_section_notes, tea.notes)
@@ -206,6 +214,18 @@ private fun Detail(
                 stockSheet.close()
             },
             onDismissRequest = stockSheet::close,
+        )
+    }
+    // *Nachkauf erfassen* (INV-03): as the stock sheet, gone in the frame another alert starts (rule 8).
+    AlertGated(purchaseSheet) {
+        PurchaseSheet(
+            today = tea.today,
+            alertKey = alertKey,
+            onSave = { purchase ->
+                actions.recordPurchase(purchase)
+                purchaseSheet.close()
+            },
+            onDismissRequest = purchaseSheet::close,
         )
     }
 }
