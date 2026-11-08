@@ -43,6 +43,7 @@ sealed interface TeaDetailUiState {
  * @property history VORRAT's stock history (SCR-29, D-104): every stock event, newest first.
  * @property cost VORRAT's cost lines (INV-08, D-104): price per 100 g, the default recipe's estimate and the
  *   average of the priced sessions; null without a recorded price („no price, no cost").
+ * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
  */
 data class TeaDetail(
     val id: String,
@@ -72,6 +73,7 @@ data class TeaDetail(
     val today: LocalDate = LocalDate.now(),
     val history: List<StockEntry> = emptyList(),
     val cost: TeaCost? = null,
+    val catalogReset: CatalogResetOffer? = null,
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA
@@ -108,6 +110,12 @@ data class StockEntry(
     /** A purchase or a correction can be deleted; a brew leaves only with its journal entry (D-102). */
     val canDelete: Boolean get() = kind != StockEntryKind.BREW
 }
+
+/**
+ * ⋮ *Aus Katalog zurücksetzen* (PRF-06, CAT-13): [leftOut] of the catalog's recipes don't fit beside the tea's own
+ * recipes under [Recipe.MAX_PER_TEA]; the confirmation says so.
+ */
+data class CatalogResetOffer(val leftOut: Int)
 
 /** A photo of the hero pager (SCR-28): its file and whether it is the tea's cover. */
 data class DetailPhoto(val id: String, val path: String, val isCover: Boolean)

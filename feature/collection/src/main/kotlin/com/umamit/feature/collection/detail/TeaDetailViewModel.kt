@@ -19,6 +19,9 @@ import com.umamit.core.data.TeaPurchase
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
+import com.umamit.core.data.catalog.CatalogReset
+import com.umamit.core.data.catalog.CatalogResetPlan
+import com.umamit.core.data.catalog.CatalogResetResult
 import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.FreshnessRule
@@ -72,6 +75,9 @@ sealed interface TeaDetailEvent {
 
     /** *Als Titelbild* or *Löschen* couldn't be written; nothing changed. */
     data object PhotoChangeFailed : TeaDetailEvent
+
+    /** ⋮ *Aus Katalog zurücksetzen* couldn't be written; nothing changed (PRF-06). */
+    data object ResetFailed : TeaDetailEvent
 }
 
 /**
@@ -80,7 +86,8 @@ sealed interface TeaDetailEvent {
  * *Löschen* write through the repositories; archive and delete go through [TeaArchive], which refuses the tea of
  * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save, *Nachkauf erfassen* the purchase
  * sheet's (INV-03). *+ Foto* adds the
- * picked image through [TeaPhotos] (TEA-05, SCR-28).
+ * picked image through [TeaPhotos] (TEA-05, SCR-28). ⋮ *Aus Katalog zurücksetzen* is offered while [catalogReset]
+ * has a plan for the tea and resets it through it (PRF-06, CAT-13).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -98,6 +105,7 @@ class TeaDetailViewModel @Inject constructor(
     private val photos: PhotoFiles,
     private val teaPhotos: TeaPhotos,
     private val clock: WallClock = SystemWallClock,
+    private val catalogReset: CatalogReset = NoCatalogReset,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the tea detail needs a teaId" }
 
@@ -124,13 +132,15 @@ class TeaDetailViewModel @Inject constructor(
         combine(recipes.observeRecipes(teaId), vessels.observeVessels(), teaPhotos.observePhotos(teaId), ::Triple),
         stock.observeEvents(teaId),
         brewed,
-        reorderUrl,
-    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, reorder ->
+        combine(reorderUrl, catalogReset.observePlan(teaId), ::Pair),
+    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, (reorder, resetPlan) ->
         if (overview == null) {
             TeaDetailUiState.Gone
         } else {
             TeaDetailUiState.Ready(
-                detail(overview, recipeList, vesselList, stockEvents, brew, reorder).withPhotos(overview, photoList),
+                detail(overview, recipeList, vesselList, stockEvents, brew, reorder)
+                    .withPhotos(overview, photoList)
+                    .copy(catalogReset = resetPlan?.let { CatalogResetOffer(it.leftOut) }),
             )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
@@ -209,6 +219,13 @@ class TeaDetailViewModel @Inject constructor(
     fun deletePhoto(photoId: String) {
         viewModelScope.launch {
             if (!teaPhotos.delete(teaId, photoId)) events.send(TeaDetailEvent.PhotoChangeFailed)
+        }
+    }
+
+    /** The confirmation's *Zurücksetzen* (PRF-06): the catalog's description and recipes; a failure is said once. */
+    fun resetFromCatalog() {
+        viewModelScope.launch {
+            if (catalogReset.reset(teaId) == CatalogResetResult.Failed) events.send(TeaDetailEvent.ResetFailed)
         }
     }
 
@@ -351,4 +368,11 @@ private fun detailFreshness(tea: Tea, remainingGrams: Double?, today: LocalDate)
     val label = FreshnessRule.of(tea, remainingGrams, today) ?: return null
     val passed = tea.bestBefore?.takeIf { today.isAfter(it) }
     return DetailFreshness(label, openedDate = tea.openedDate.takeIf { passed == null }, bestBefore = passed)
+}
+
+/** Without a [CatalogReset] (tests that don't need it): never offered. */
+private object NoCatalogReset : CatalogReset {
+    override fun observePlan(teaId: String): Flow<CatalogResetPlan?> = flowOf(null)
+
+    override suspend fun reset(teaId: String): CatalogResetResult = CatalogResetResult.NotInCatalog
 }
