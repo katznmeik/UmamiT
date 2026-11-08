@@ -65,7 +65,8 @@ internal fun testSettingsScreens(collection: FakeCollection = FakeCollection()):
                 onSave = host.onSave,
                 onArchive = host.onArchive,
                 // The route's vesselId arrives in the entry's SavedStateHandle, as with Hilt.
-                viewModel = viewModel { VesselEditorViewModel(
+                viewModel = viewModel {
+                    VesselEditorViewModel(
                         createSavedStateHandle(),
                         collection.vessels,
                         archive,
