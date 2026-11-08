@@ -906,6 +906,19 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **VORRAT:** „38 g übrig" with *knapp* / *leer*; *Bestand korrigieren* (the
   setup's sheet „Wie viel ist noch da?"); *Beim Tee-Kontor nachbestellen* as
   above (INV-09). Costs come with v0.4.1.
+- **VORRAT (v0.4.1, D-104, #181):** *Nachkauf erfassen* (+ icon) beside
+  *Bestand korrigieren*, both outlined, side by side where they fit, else one
+  below the other; then the reorder link, then the history (SCR-29, #185).
+  *Nachkauf erfassen* opens a sheet „Nachkauf erfassen": *Menge* (g, empty), *Preis* (€, optional, „Leer
+  lassen, wenn du ihn nicht kennst") and *Kaufdatum* („8. Nov. 2026", today by
+  default; the date picker offers no later day). A malformed amount says so at
+  its field („Gib die Menge in g an, z. B. 50.", „Gib den Preis in Euro an,
+  z. B. 12,40."), a day after today (the clock moved back) „Das Datum liegt in
+  der Zukunft."; *Erfassen* stays off until the input is valid, then records
+  the purchase (INV-03) and closes the sheet. *Abbrechen*, back or a drag
+  close it without saving; an alert removes it in its first frame (rule 8).
+  The stock updates at once. A catalog tea keeps *Beim Tee-Kontor
+  nachbestellen* and its SCR-21 *Nachkauf erfassen* with the shop's sizes.
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.

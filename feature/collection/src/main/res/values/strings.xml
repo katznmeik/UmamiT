@@ -134,6 +134,21 @@
     <string name="collection_tea_stock_none">Kein Bestand erfasst</string>
     <string name="collection_tea_stat_stock_none">–</string>
     <string name="collection_tea_stock_correct">Bestand korrigieren</string>
+    <!-- Nachkauf erfassen on VORRAT (INV-03, SCR-09, D-104). -->
+    <string name="collection_tea_stock_purchase">Nachkauf erfassen</string>
+    <string name="collection_purchase_title">Nachkauf erfassen</string>
+    <string name="collection_purchase_grams">Menge</string>
+    <string name="collection_purchase_grams_unit">g</string>
+    <string name="collection_purchase_grams_invalid">Gib die Menge in g an, z. B. 50.</string>
+    <string name="collection_purchase_price">Preis</string>
+    <string name="collection_purchase_price_unit">€</string>
+    <string name="collection_purchase_price_hint">Leer lassen, wenn du ihn nicht kennst</string>
+    <string name="collection_purchase_price_invalid">Gib den Preis in Euro an, z. B. 12,40.</string>
+    <string name="collection_purchase_date">Kaufdatum</string>
+    <string name="collection_purchase_date_ok">OK</string>
+    <string name="collection_purchase_date_future">Das Datum liegt in der Zukunft.</string>
+    <string name="collection_purchase_cancel">Abbrechen</string>
+    <string name="collection_purchase_save">Erfassen</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
     <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
