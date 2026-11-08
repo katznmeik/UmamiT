@@ -236,6 +236,64 @@ class TeaEditorViewModelTest {
     }
 
     @Test
+    fun `the opening and best-before dates are entered, changed and cleared (TEA-02, INV-06)`() = runTest {
+        val vm = viewModel(teaId = "t1")
+        assertThat(vm.ready.form.openedDate).isNull()
+        assertThat(vm.ready.form.bestBefore).isNull()
+
+        vm.update { it.copy(openedDate = LocalDate.of(2026, 10, 8), bestBefore = LocalDate.of(2027, 3, 1)) }
+        assertThat(vm.ready.hasChanges).isTrue()
+        vm.save()
+        assertThat(collection.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 8))
+        assertThat(collection.teas.getTea("t1")!!.bestBefore).isEqualTo(LocalDate.of(2027, 3, 1))
+
+        vm.update { it.copy(openedDate = LocalDate.of(2026, 10, 15)) }
+        vm.save()
+        assertThat(collection.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 15))
+
+        vm.update { it.copy(openedDate = null, bestBefore = null) }
+        vm.save()
+        assertThat(collection.teas.getTea("t1")!!.openedDate).isNull()
+        assertThat(collection.teas.getTea("t1")!!.bestBefore).isNull()
+    }
+
+    @Test
+    fun `a stored tea's dates are in the form and are no change`() = runTest {
+        collection.teas.saveTea(
+            catalogTea.copy(openedDate = LocalDate.of(2026, 10, 8), bestBefore = LocalDate.of(2027, 3, 1)),
+        )
+        val vm = viewModel(teaId = "t1")
+        assertThat(vm.ready.form.openedDate).isEqualTo(LocalDate.of(2026, 10, 8))
+        assertThat(vm.ready.form.bestBefore).isEqualTo(LocalDate.of(2027, 3, 1))
+        assertThat(vm.ready.hasChanges).isFalse()
+    }
+
+    @Test
+    fun `an opening date in the future is refused, a best-before date in the future is not`() = runTest {
+        val vm = viewModel(teaId = "t1")
+        vm.update { it.copy(openedDate = LocalDate.of(2026, 10, 23), bestBefore = LocalDate.of(2028, 1, 1)) }
+
+        vm.save()
+
+        assertThat(vm.ready.errors).containsExactly(TeaFieldError.OpenedDateFuture)
+        assertThat(collection.teas.getTea("t1")!!.openedDate).isNull()
+
+        vm.update { it.copy(openedDate = LocalDate.of(2026, 10, 22)) } // today
+        assertThat(vm.ready.errors).isEmpty()
+    }
+
+    @Test
+    fun `an untouched opening date keeps the one a brew set while the editor was open`() = runTest {
+        val vm = viewModel(teaId = "t1")
+        collection.teas.saveTea(catalogTea.copy(openedDate = LocalDate.of(2026, 10, 20)))
+
+        vm.update { it.copy(notes = "Neu") }
+        vm.save()
+
+        assertThat(collection.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 20))
+    }
+
+    @Test
     fun `an edit offers no package fields`() {
         val vm = viewModel(teaId = "t1")
         assertThat(vm.ready.isNew).isFalse()

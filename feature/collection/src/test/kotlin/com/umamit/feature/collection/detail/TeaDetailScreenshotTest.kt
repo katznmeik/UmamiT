@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -45,7 +46,7 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, tea: TeaDetail, scrollToTag: String? = null) {
+    private fun capture(name: String, tea: TeaDetail, scrollToTag: String? = null, scrollToText: String? = null) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
@@ -54,6 +55,7 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
         }
         compose.waitForIdle()
         scrollToTag?.let { compose.onNodeWithTag(it).performScrollTo() }
+        scrollToText?.let { compose.onNodeWithText(it).performScrollTo() }
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_${name}_$variant.png")
     }
@@ -69,6 +71,14 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
             freshness = DetailFreshness(Freshness.DRINK_SOON, LocalDate.of(2026, 10, 8), null),
         ),
         scrollToTag = TEA_DETAIL_FRESHNESS_TAG,
+    )
+
+    /** DETAILS with the opening and best-before dates (TEA-02). */
+    @Test
+    fun dates() = capture(
+        "dates",
+        sampleWithDates(),
+        scrollToText = "Haltbar bis",
     )
 
     /** The pager over three placeholder photos, the cover shown (SCR-28). */
@@ -118,6 +128,21 @@ class TeaDetailShortScreenScreenshotTest {
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_short_ready_font2_0.png")
     }
 
+    /** DETAILS with both dates on a short screen at font scale 2.0. */
+    @Test
+    fun dates() {
+        RuntimeEnvironment.setFontScale(2f)
+        val tea = sampleWithDates()
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                TeaDetailScreen(TeaDetailUiState.Ready(tea), TeaDetailActions(), photo = { null })
+            }
+        }
+        compose.onNodeWithText("Haltbar bis").performScrollTo()
+        compose.waitForIdle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_short_dates_font2_0.png")
+    }
+
     /** The photo limit on a short screen at font scale 2.0: „Höchstens 10 Fotos" stays inside the hero. */
     @Test
     fun photoLimit() {
@@ -143,3 +168,9 @@ private val PLACEHOLDER_PHOTO = ColorPainter(Color(0xFF8A9A7B))
 
 /** [count] placeholder photos, the first the cover. */
 private fun placeholderPhotos(count: Int) = List(count) { DetailPhoto("p$it", "/placeholder/p$it.jpg", it == 0) }
+
+/** The sample tea with the opening and best-before dates (TEA-02). */
+private fun sampleWithDates(): TeaDetail = TeaDetailScreenTest.sample().let {
+    val facts = it.details.copy(openedDate = LocalDate.of(2026, 10, 8), bestBefore = LocalDate.of(2027, 3, 1))
+    it.copy(details = facts)
+}

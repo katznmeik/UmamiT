@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -130,6 +131,91 @@ internal fun PurchaseDate(date: LocalDate, today: LocalDate, alertKey: String?, 
         }
     }
 }
+
+/**
+ * An optional day (*Geöffnet am*, *Haltbar bis*; INV-06) with Material's date picker and *Entfernen*; not after
+ * [latest] when set. [error] shows at the field. [tag] is the field's button, `[tag]Clear` its *Entfernen*.
+ */
+@Suppress("LongParameterList") // a date field's parts
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun OptionalDate(
+    @StringRes label: Int,
+    date: LocalDate?,
+    latest: LocalDate?,
+    tag: String,
+    alertKey: String?,
+    onDateChange: (LocalDate?) -> Unit,
+    @StringRes error: Int? = null,
+    @StringRes hint: Int? = null,
+) {
+    val picking = rememberAlertGate(alertKey)
+    Column(FieldModifier) {
+        Text(
+            text = stringResource(label),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            OutlinedButton(onClick = picking::open, modifier = Modifier.weight(1f).testTag(tag)) {
+                Text(date?.let(GermanFormat::day) ?: stringResource(R.string.tea_editor_date_unset))
+            }
+            if (date != null) {
+                TextButton(onClick = { onDateChange(null) }, modifier = Modifier.testTag(tag + CLEAR_SUFFIX)) {
+                    Text(stringResource(R.string.tea_editor_date_clear))
+                }
+            }
+        }
+        (error ?: hint)?.let {
+            Text(
+                text = stringResource(it),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (error !=
+                    null
+                ) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+    }
+    AlertGated(picking) {
+        val latestMillis = latest?.utcMillis()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = (date ?: latest)?.utcMillis(),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    latestMillis == null || utcTimeMillis <= latestMillis
+
+                override fun isSelectableYear(year: Int): Boolean = latest == null || year <= latest.year
+            },
+        )
+        DatePickerDialog(
+            onDismissRequest = picking::close,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { onDateChange(it.utcDate()) }
+                        picking.close()
+                    },
+                ) { Text(stringResource(R.string.tea_editor_purchase_date_ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = picking::close) {
+                    Text(stringResource(R.string.tea_editor_purchase_date_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+}
+
+internal const val CLEAR_SUFFIX = "Clear"
 
 @Suppress("LongParameterList") // a text field's parts
 @Composable

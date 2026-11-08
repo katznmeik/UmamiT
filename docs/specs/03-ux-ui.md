@@ -941,6 +941,9 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **No stock events:** the `StatTriplet` shows „–", VORRAT „Kein Bestand
   erfasst" with *Bestand korrigieren* and a plain reorder link; no stock is
   invented. DETAILS shows the country by its German name.
+- **Dates (v0.4.1, #179):** DETAILS also lists *Geöffnet am* and *Haltbar
+  bis* („21. Okt. 2026") when set, each only with a value; FRISCHE (INV-06)
+  stays as it is.
 
 ### SCR-10 Tee bearbeiten
 
@@ -965,6 +968,13 @@ nothing in the running session.
   today by default and never later (as SCR-23); a price needs a package
   („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
   after an add, the new tea's detail replaces it, *Sorte wählen* included.
+- **Frische (v0.4.1, #179):** a section after *Kauf* with *Geöffnet am*
+  (empty: „Nicht gesetzt", hint „Leer: noch ungeöffnet.") and *Haltbar bis*.
+  Each is a date button that opens Material's date picker, with *Entfernen*
+  beside it once set. The picker offers no day after today for *Geöffnet am*;
+  *Haltbar bis* has no limit. An opening date after today (e.g. a restored
+  draft) shows „Das Öffnungsdatum liegt in der Zukunft." and *Speichern*
+  refuses it.
 
 ### SCR-11 Sorte wählen (manual add)
 

@@ -456,6 +456,15 @@ date, best before, storage note), *Notizen*.
   refuses them; ✕ with unsaved changes asks GEN-08's question.
 - **v0.4.1:** photos (TEA-05) and the opened and best-before dates
   (INV-06). Tags are not planned (TEA-07).
+  - **Dates (#179):** a section *Frische* with *Geöffnet am* and *Haltbar
+    bis*, each picked with Material's date picker and cleared with
+    *Entfernen*. Clearing *Geöffnet am* makes the tea unopened again. An
+    opening date in the future is refused at the field (the picker offers no
+    later day, and a stored one shows „Das Öffnungsdatum liegt in der
+    Zukunft."); the best-before date may lie in the future. Saving changes
+    only the dates the user touched: an untouched opening date keeps the one
+    a brew set meanwhile. The freshness label is derived, so it follows at
+    once.
 
 **TEA-03 — Edit** `Must` (v0.4.0)
 All fields editable. Changing the style does not overwrite recipes. Editing a

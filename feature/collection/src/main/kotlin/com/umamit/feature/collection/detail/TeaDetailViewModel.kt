@@ -250,6 +250,8 @@ class TeaDetailViewModel @Inject constructor(
                 processing = tea.processingNotes?.takeIf { it.isNotBlank() },
                 ingredients = tea.ingredients?.takeIf { it.isNotBlank() },
                 vendor = tea.vendor?.takeIf { it.isNotBlank() },
+                openedDate = tea.openedDate,
+                bestBefore = tea.bestBefore,
                 isOrganic = tea.isOrganic,
                 isFlavored = tea.isFlavored,
             ),
