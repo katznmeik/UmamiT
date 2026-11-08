@@ -5,21 +5,19 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-07. **v0.4.0 is released** from `main` (PR #162 merged as `a2ff115`; versionCode 40099). The PO approved rc.2; the final adds the catalog's *Grüntee* chip (D-103). The PO waived the final's accuracy runs for this release, since no timer code changed after rc.1 (D-103). **Next: v0.4.1** (stock history, freshness, cost per cup, own photos, *Aus Katalog zurücksetzen*): spec #171, broken into tickets #175–#189 (approved by the PO, 2026-11-07); the PO starts the build with `/implement-spec #171`.
-
-> **Resuming v0.4.0? Read [`docs/plans/v0.4.0-resume.md`](docs/plans/v0.4.0-resume.md) next.** Its §0 has the start prompts (the rc session's is §0.1): this handover is only on the milestone branch, not on `main`. §3 has the environment setup, §5 steps 3–8 the rc phase.
+**Last updated:** 2026-11-08. **v0.4.1 build phase done:** all 13 build tickets of spec #171 (#175–#187) are merged into the milestone branch `claude/affectionate-heisenberg-8o8yfs`, draft PR #191. **Next: the review and fix round** in a fresh Opus session: [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §0 has the start prompt (this handover is only on the milestone branch).
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.0 — done** ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), 2026-11-07, from `main` `a2ff115`; spec #145, PR #162, D-100, D-102, D-103). **Next: v0.4.1** (M3 part 2): spec #171, tickets #175–#189, not started. Then M4 → v0.5.0 |
+| Current milestone | **v0.4.1** (M3 part 2): spec #171, build tickets #175–#187 merged into PR #191 (draft); next the review and fix round, then rc (#188) and release (#189). Then M4 → v0.5.0. v0.4.0 is released ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), from `main` `a2ff115`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/modest-curie-60nj6o` (ticket breakdown); the v0.4.1 build gets its own milestone branch |
+| Working branch | `claude/affectionate-heisenberg-8o8yfs` (v0.4.1 milestone branch) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none |
+| Open PR | #191 (v0.4.1 milestone, draft) |
 | Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
-| Decision numbers | Up to **D-105** used; the next free is **D-106** |
+| Decision numbers | Up to **D-106** used; the next free is **D-107** |
 
 ## Working agreements in effect
 
@@ -33,13 +31,17 @@
 
 ## Waiting on the PO
 
-1. **v0.4.1:** grilled on 2026-11-07 (**D-104**), spec **#171**, and broken into **15 tickets #175–#189** with `/to-tickets` (the PO approved the breakdown on 2026-11-07: granularity as proposed, spec sections updated per ticket in the same PR, blockers as listed). Nothing is built before the PO starts `/implement-spec #171`. Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
-   - **Tickets** (`v0.4.1-NN`, sub-issues of #171, `Blocked by` lines in each body): -01 formatters #175 · -02 editor scaffold #176 · -03 Settings on a tab switch #177 · -04 freshness labels #178 · -05 dates in the editor #179 · -06 opening-date *Rückgängig* #180 (**T4**) · -07 *Nachkauf erfassen* #181 · -08 stock history #185 · -09 cost #182 · -10 add tea photos #183 · -11 manage tea photos #186 · -12 vessel photo #187 · -13 *Aus Katalog zurücksetzen* #184 · -14 rc and checklist #188 (PO) · -15 merge and release #189.
-   - **Frontier at the start:** -01, -02, -03, -04, -06, -10, -13. Suggested first pair: -01 + -06 (the T4 ticket shouldn't wait).
-   - **Found while slicing:** `FreshnessChip` is only in 03's component table, not in the code; -04 builds it. Eight tickets touch the tea detail (-04, -05, -07, -08, -09, -10, -11, -13): merge them in sequence.
-   - **Accuracy runs:** only if -06 changes the completion transaction (D-073, D-104); -06's PR says so.
+1. **v0.4.1:** start the review and fix-round session with the prompt in [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §0 (Opus, `medium`). That session asks five questions first (§4 there). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+
+## v0.4.1: build phase (2026-11-07/08)
+
+- **Merged into PR #191**, each verified by the orchestrator (module tests, screenshot tests, lint, Detekt, the diff): #180 (-06, T4) opening-date *Rückgängig* · #175 (-01) `GermanFormat` in `core:ui` · #177 (-03) Settings closes on a tab switch · #183 (-10) own tea photos · #176 (-02) `EditorScaffold` · #178 (-04) freshness labels and `FreshnessChip` · #187 (-12) vessel photo · #179 (-05) dates in the editor · #181 (-07) *Nachkauf erfassen* · #186 (-11) *Als Titelbild* / *Löschen* · #185 (-08) stock history · #184 (-13) *Aus Katalog zurücksetzen* · #182 (-09) cost.
+- **D-106** (own photos: accepted input, EXIF reader, pager order). The motion review ran: `docs/plans/v0.4.1-motion-review.md`.
+- **#180 and accuracy:** completion's SQL is unchanged, but its code changed (the opened-date change is recorded after the inner block) → the rc runs both accuracy variants (D-073).
+- **Full gate on the build tip `4063c488`:** local `gate.sh` PASS, and CI green on it (all four jobs, both emulators).
+- Known points for the reviewers and five PO questions: `docs/plans/v0.4.1-resume.md` §3–§4.
 
 ## v0.4.0: released (2026-11-07)
 
