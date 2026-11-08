@@ -55,6 +55,19 @@ interface TeaPhotos {
      * [Photo.MAX_PER_TEA] photos. The file is written before the row and removed again when the row isn't.
      */
     suspend fun add(teaId: String, uri: String): AddPhotoResult
+
+    /**
+     * *Als Titelbild*: photo [photoId] of tea [teaId] becomes its cover; the order stays. False when the photo isn't
+     * the tea's or the write failed.
+     */
+    suspend fun setCover(teaId: String, photoId: String): Boolean
+
+    /**
+     * *Löschen*: removes photo [photoId] of tea [teaId]. In one transaction the row goes and, when it was the cover,
+     * the next photo by `position` (else the first) becomes the cover, none left → no cover; the file goes after the
+     * commit. False when the photo isn't the tea's or the write failed; then the file stays.
+     */
+    suspend fun delete(teaId: String, photoId: String): Boolean
 }
 
 /** [TeaPhotos] on Room and [PhotoFiles]; a picked image is read through the app's content resolver. */
@@ -133,6 +146,44 @@ class RoomTeaPhotos @Inject constructor(
         dao.upsertPhoto(row.toEntity(createdAt = now, updatedAt = now))
         if (dao.get(teaId)?.coverPhotoId == null) dao.setCoverPhoto(teaId, id, now)
         return AddPhotoResult.Added(id)
+    }
+
+    override suspend fun setCover(teaId: String, photoId: String): Boolean = written {
+        db.withTransaction {
+            val dao = db.teaDao()
+            val isTeas = dao.photo(photoId)?.teaId == teaId
+            if (isTeas) dao.setCoverPhoto(teaId, photoId, time.nowMs())
+            isTeas
+        }
+    }
+
+    override suspend fun delete(teaId: String, photoId: String): Boolean = written {
+        val deleted = db.withTransaction {
+            val dao = db.teaDao()
+            val photos = dao.teaPhotos(teaId)
+            val index = photos.indexOfFirst { it.id == photoId }
+            if (index >= 0) {
+                val wasCover = dao.get(teaId)?.coverPhotoId == photoId
+                dao.deletePhoto(photoId)
+                if (wasCover) {
+                    val rest = photos - photos[index]
+                    // The next by position, else the first; none left: no cover, the style's leaf shows.
+                    val next = rest.getOrNull(index) ?: rest.firstOrNull()
+                    dao.setCoverPhoto(teaId, next?.id, time.nowMs())
+                }
+            }
+            index >= 0
+        }
+        // After the commit: a failed transaction keeps the file its row still names.
+        if (deleted) files.delete(photoId)
+        deleted
+    }
+
+    /** [write] off the main thread and not cancelled halfway; false when the database refused it. */
+    private suspend fun written(write: suspend () -> Boolean): Boolean = try {
+        withContext(NonCancellable + Dispatchers.IO) { write() }
+    } catch (_: SQLException) {
+        false
     }
 }
 

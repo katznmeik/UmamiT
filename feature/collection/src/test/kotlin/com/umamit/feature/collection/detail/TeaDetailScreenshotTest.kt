@@ -5,7 +5,10 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -25,7 +28,8 @@ import java.time.LocalDate
  * The tea detail (SCR-09, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6), with the placeholder leaf
  * instead of a photo and an invented tea (D-016): the top of the page with the figures and REZEPTE, and the tea
  * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out); the photo pager
- * (SCR-28) over placeholder photos and its limit of 10; FRISCHE with *Bald genießen* (INV-06).
+ * (SCR-28) over placeholder photos and its limit of 10, the photo's ⋮ and „Foto löschen?" (#186); FRISCHE with
+ * *Bald genießen* (INV-06).
  * Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -46,7 +50,13 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, tea: TeaDetail, scrollToTag: String? = null, scrollToText: String? = null) {
+    private fun capture(
+        name: String,
+        tea: TeaDetail,
+        scrollToTag: String? = null,
+        scrollToText: String? = null,
+        then: () -> Unit = {},
+    ) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
@@ -56,6 +66,8 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
         compose.waitForIdle()
         scrollToTag?.let { compose.onNodeWithTag(it).performScrollTo() }
         scrollToText?.let { compose.onNodeWithText(it).performScrollTo() }
+        compose.waitForIdle()
+        then()
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_${name}_$variant.png")
     }
@@ -84,6 +96,28 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
     /** The pager over three placeholder photos, the cover shown (SCR-28). */
     @Test
     fun photos() = capture("photos", TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(3), photoCount = 3))
+
+    /** The second photo's ⋮ open: *Als Titelbild* and *Löschen* (#186). */
+    @Test
+    fun photoMenu() = capture(
+        "photoMenu",
+        TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(3), photoCount = 3),
+    ) {
+        compose.onNodeWithTag(TEA_DETAIL_PHOTOS_TAG).performTouchInput { swipeLeft() }
+        compose.waitForIdle()
+        compose.onNodeWithTag(TEA_DETAIL_PHOTO_MORE_TAG).performClick()
+    }
+
+    /** *Löschen* on the cover: „Foto löschen?" says the next photo becomes the cover (#186). */
+    @Test
+    fun photoDelete() = capture(
+        "photoDelete",
+        TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(3), photoCount = 3),
+    ) {
+        compose.onNodeWithTag(TEA_DETAIL_PHOTO_MORE_TAG).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Löschen").performClick()
+    }
 
     /** Ten photos: *+ Foto* greyed out with „Höchstens 10 Fotos" (TEA-05). */
     @Test

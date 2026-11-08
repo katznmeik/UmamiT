@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
  * [TeaPhotos] on [collection], as on Room: an added photo goes after the tea's others, the first becomes the
  * cover, at most [Photo.MAX_PER_TEA]. The image isn't decoded: a URI in [unreadable] is refused as unreadable,
  * any other is a 2048 × 1536 photo. With [files] each added photo also gets a (placeholder) file, so the screens
- * find its path.
+ * find its path, and a deleted one loses it. *Löschen* of the cover makes the next by position the cover.
  */
 class FakeTeaPhotos(private val collection: FakeCollection, private val files: PhotoFiles? = null) : TeaPhotos {
     /** The URIs that are no readable image. */
@@ -57,6 +57,27 @@ class FakeTeaPhotos(private val collection: FakeCollection, private val files: P
                 AddPhotoResult.Added(id)
             }
         }
+    }
+
+    override suspend fun setCover(teaId: String, photoId: String): Boolean {
+        val isTeas = collection.photoRows.value[photoId]?.owner == PhotoOwner.OfTea(teaId)
+        if (isTeas) collection.teas.setCoverPhoto(teaId, photoId)
+        return isTeas
+    }
+
+    override suspend fun delete(teaId: String, photoId: String): Boolean {
+        val photos = collection.photoRows.value.values.filter { it.owner == PhotoOwner.OfTea(teaId) }
+            .sortedBy { it.position }
+        val index = photos.indexOfFirst { it.id == photoId }
+        if (index < 0) return false
+        val wasCover = collection.teaRows.value[teaId]?.coverPhotoId == photoId
+        collection.photoRows.update { it - photoId }
+        if (wasCover) {
+            val rest = photos - photos[index]
+            collection.teas.setCoverPhoto(teaId, (rest.getOrNull(index) ?: rest.firstOrNull())?.id)
+        }
+        files?.delete(photoId)
+        return true
     }
 
     private companion object {

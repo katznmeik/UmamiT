@@ -67,6 +67,9 @@ sealed interface TeaDetailEvent {
 
     /** *+ Foto*: the photo couldn't be stored; nothing was added. */
     data object PhotoFailed : TeaDetailEvent
+
+    /** *Als Titelbild* or *Löschen* couldn't be written; nothing changed. */
+    data object PhotoChangeFailed : TeaDetailEvent
 }
 
 /**
@@ -79,7 +82,7 @@ sealed interface TeaDetailEvent {
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-@Suppress("LongParameterList") // the repositories the detail reads
+@Suppress("LongParameterList", "TooManyFunctions") // the repositories the detail reads; one function per action
 class TeaDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val teas: TeaRepository,
@@ -190,6 +193,20 @@ class TeaDetailViewModel @Inject constructor(
                 AddPhotoResult.Unreadable -> events.send(TeaDetailEvent.PhotoUnreadable)
                 AddPhotoResult.Failed -> events.send(TeaDetailEvent.PhotoFailed)
             }
+        }
+    }
+
+    /** *Als Titelbild* (TEA-05): photo [photoId] becomes the tea's cover. */
+    fun setCoverPhoto(photoId: String) {
+        viewModelScope.launch {
+            if (!teaPhotos.setCover(teaId, photoId)) events.send(TeaDetailEvent.PhotoChangeFailed)
+        }
+    }
+
+    /** The confirmation's *Löschen* (TEA-05): photo [photoId] goes; the next one becomes the cover if it was. */
+    fun deletePhoto(photoId: String) {
+        viewModelScope.launch {
+            if (!teaPhotos.delete(teaId, photoId)) events.send(TeaDetailEvent.PhotoChangeFailed)
         }
     }
 

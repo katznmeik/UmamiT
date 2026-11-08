@@ -323,6 +323,28 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-106"></a>
+### D-106 — Own photos: what a picked image may be, how it is read, and the pager's order (TEA-05, WARE-01, 06 §5.2; details of D-104) · *Accepted* (Claude, 2026-11-08, implementation details left to Claude by D-104)
+
+**Context.** D-104 fixed what own photos do (up to 10 per tea, one per
+vessel, picker only, 2048 px JPEG 85 without EXIF). Building #183, #186 and
+#187 needed a few details it left open.
+
+**Decision.**
+- **Accepted input:** any format the platform decodes (JPEG, PNG, WebP,
+  HEIF …), up to 20 000 px a side, 250 MP and 128 MB, so a 200 MP camera's
+  photo fits. Larger or undecodable files are refused, nothing is written.
+- **EXIF:** the platform `android.media.ExifInterface` reads the orientation
+  (sound since API 24; minSdk is 35), with a Lint suppression, instead of
+  adding `androidx.exifinterface`.
+- **Errors:** an unreadable tea photo or the limit shows a short toast.
+- **Pager order:** the cover first, then the others by `position`. The pager
+  is keyed by photo, so after *Als Titelbild* the same photo stays in view,
+  now first. Positions are not renumbered after a delete; the next photo by
+  `position` becomes the cover.
+- **Vessel photo:** picked in the editor and stored with *Speichern*, like
+  the other fields.
+
 <a id="d-105"></a>
 ### D-105 — CI skips its heavy jobs for documentation-only changes (06 §7; amends D-101's CI note) · *Accepted* (PO, 2026-11-07)
 
@@ -5888,6 +5910,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-08 | D-106: own photos (v0.4.1): accepted input up to 20 000 px, 250 MP and 128 MB in any platform-decodable format; platform ExifInterface; toasts for errors; the pager shows the cover first and stays on a photo after *Als Titelbild*; the vessel photo is stored with *Speichern*. |
 | 2026-11-07 | D-105: CI skips `checks`, `build` and `emulator` when only documentation changed (`docs/**`, `*.md`, `.claude/**`), detected by a first `changes` job from the API; skipped jobs still leave a successful run for the release check; any doubt runs everything (06 §7). |
 | 2026-11-07 | D-104: v0.4.1 grilled (Q1–Q19): freshness by thirds of the style window with best-before, labels in the list, detail and tea picker; the opened-date undo in the „Gespeichert" sheet; cost per 100 g, a recipe estimate and the real average per cup; *Nachkauf erfassen* on every detail and a history with deletable purchases and corrections; up to 10 tea photos managed in the detail pager, one photo per vessel, own photos outside the device backup; the reset keeps own recipes; Settings closes on a tab switch. |
 | 2026-11-07 | D-103: a *Grüntee* chip before *Kräutertee* in the catalog, selected in the default view and returning from the Kräutertees (CAT-10, SCR-19; amends D-093); straight into the final `v0.4.0` after the PO approved rc.2. The PO waived the final's accuracy runs for this release (no timer code changed since rc.1). |
