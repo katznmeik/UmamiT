@@ -40,11 +40,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.umamit.core.designsystem.component.DiscardChangesDialog
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 
@@ -144,10 +144,7 @@ fun RecipeEditorScreen(
     alertKey: String? = null,
 ) {
     val ready = state as? RecipeEditorUiState.Ready
-    val askDiscard = rememberAlertGate(alertKey)
     val askDelete = rememberAlertGate(alertKey)
-    val requestClose = { if (ready?.hasChanges == true) askDiscard.open() else actions.close() }
-    BackHandler(enabled = ready?.hasChanges == true) { askDiscard.open() }
     val snackbar = remember { SnackbarHostState() }
     val limit = stringResource(R.string.recipe_editor_limit_reached)
     val last = stringResource(R.string.recipe_editor_delete_last)
@@ -162,44 +159,26 @@ fun RecipeEditorScreen(
         actions.messageShown()
         snackbar.showSnackbar(text)
     }
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    val title = if (ready?.isNew == true) {
-                        R.string.recipe_editor_title_new
-                    } else {
-                        R.string.recipe_editor_title_edit
-                    }
-                    // One line beside ✕, Speichern and ⋮, even at font scale 2.0 on a short screen.
-                    Text(stringResource(title), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-                navigationIcon = {
-                    IconButton(onClick = requestClose) {
-                        Icon(painterResource(UmamiIcons.Close), stringResource(R.string.recipe_editor_close))
-                    }
-                },
-                actions = {
-                    if (ready != null) {
-                        TextButton(
-                            onClick = actions.save,
-                            enabled = !ready.saving,
-                            modifier = Modifier.testTag(RecipeEditorTags.SAVE),
-                        ) {
-                            Text(stringResource(R.string.recipe_editor_save))
-                        }
-                        if (!ready.isNew) {
-                            EditorMenu(ready.canDelete, ready.isBrewing, alertKey, onDelete = askDelete::open)
-                        }
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom,
+    EditorScaffold(
+        title = stringResource(
+            if (ready?.isNew == true) R.string.recipe_editor_title_new else R.string.recipe_editor_title_edit,
         ),
+        closeDescription = stringResource(R.string.recipe_editor_close),
+        saveLabel = stringResource(R.string.recipe_editor_save),
+        saveTag = RecipeEditorTags.SAVE,
+        showActions = ready != null,
+        hasChanges = ready?.hasChanges == true,
+        saving = ready?.saving == true,
+        onSave = actions.save,
+        onClose = actions.close,
+        modifier = modifier,
+        alertKey = alertKey,
+        snackbarHost = { SnackbarHost(snackbar) },
+        menu = {
+            if (ready != null && !ready.isNew) {
+                EditorMenu(ready.canDelete, ready.isBrewing, alertKey, onDelete = askDelete::open)
+            }
+        },
     ) { padding ->
         when (state) {
             RecipeEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
@@ -226,15 +205,6 @@ fun RecipeEditorScreen(
                     .verticalScroll(rememberScrollState()),
             )
         }
-    }
-    AlertGated(askDiscard) {
-        DiscardChangesDialog(
-            onKeepEditing = askDiscard::close,
-            onDiscard = {
-                askDiscard.close()
-                actions.close()
-            },
-        )
     }
     AlertGated(askDelete) {
         AlertDialog(
