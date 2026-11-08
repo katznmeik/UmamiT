@@ -3,6 +3,7 @@ package com.umamit.feature.collection.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.JournalRepository
@@ -11,12 +12,14 @@ import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaArchive
+import com.umamit.core.data.TeaPhotos
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
@@ -49,13 +52,23 @@ sealed interface TeaDetailEvent {
 
     /** *Löschen*: the detail closes. */
     data object Deleted : TeaDetailEvent
+
+    /** *+ Foto*: the picked image couldn't be read; nothing was added (TEA-05). */
+    data object PhotoUnreadable : TeaDetailEvent
+
+    /** *+ Foto*: the tea has 10 photos already; nothing was added (TEA-05). */
+    data object PhotoLimitReached : TeaDetailEvent
+
+    /** *+ Foto*: the photo couldn't be stored; nothing was added. */
+    data object PhotoFailed : TeaDetailEvent
 }
 
 /**
  * The tea detail (SCR-09, TEA-13, D-100) of the tea `teaId`: everything it shows comes from flows, so it
  * updates at once after an edit, a brew or a correction. ⋮ *Favorit*, *Archivieren*, *Wiederherstellen* and
  * *Löschen* write through the repositories; archive and delete go through [TeaArchive], which refuses the tea of
- * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save (INV-03).
+ * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save (INV-03). *+ Foto* adds the
+ * picked image through [TeaPhotos] (TEA-05, SCR-28).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -71,6 +84,7 @@ class TeaDetailViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val archive: TeaArchive,
     private val photos: PhotoFiles,
+    private val teaPhotos: TeaPhotos,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the tea detail needs a teaId" }
 
@@ -94,15 +108,17 @@ class TeaDetailViewModel @Inject constructor(
 
     val state: StateFlow<TeaDetailUiState> = combine(
         teas.observeTea(teaId),
-        combine(recipes.observeRecipes(teaId), vessels.observeVessels(), ::Pair),
+        combine(recipes.observeRecipes(teaId), vessels.observeVessels(), teaPhotos.observePhotos(teaId), ::Triple),
         stock.observeEvents(teaId),
         brewed,
         reorderUrl,
-    ) { overview, (recipeList, vesselList), stockEvents, brew, reorder ->
+    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, reorder ->
         if (overview == null) {
             TeaDetailUiState.Gone
         } else {
-            TeaDetailUiState.Ready(detail(overview, recipeList, vesselList, stockEvents, brew, reorder))
+            TeaDetailUiState.Ready(
+                detail(overview, recipeList, vesselList, stockEvents, brew, reorder).withPhotos(overview, photoList),
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
 
@@ -137,6 +153,29 @@ class TeaDetailViewModel @Inject constructor(
     /** *Bestand korrigieren*: the new total in g (INV-03). */
     fun correctStock(grams: Double) {
         viewModelScope.launch { stock.correctStock(teaId, grams) }
+    }
+
+    /** *+ Foto*: adds the image the photo picker returned (TEA-05); a refusal or failure is said once. */
+    fun addPhoto(uri: String) {
+        viewModelScope.launch {
+            when (teaPhotos.add(teaId, uri)) {
+                is AddPhotoResult.Added -> Unit
+                AddPhotoResult.LimitReached -> events.send(TeaDetailEvent.PhotoLimitReached)
+                AddPhotoResult.Unreadable -> events.send(TeaDetailEvent.PhotoUnreadable)
+                AddPhotoResult.Failed -> events.send(TeaDetailEvent.PhotoFailed)
+            }
+        }
+    }
+
+    /** The pager's photos whose files exist: the cover first, then the others by position (SCR-28). */
+    private fun TeaDetail.withPhotos(overview: TeaOverview, photoList: List<Photo>): TeaDetail {
+        val coverId = overview.coverPhoto?.id
+        val pager = photoList.sortedBy { if (it.id == coverId) -1 else it.position }
+            .mapNotNull { photo ->
+                this@TeaDetailViewModel.photos.file(photo.id).takeIf { it.isFile }
+                    ?.let { DetailPhoto(photo.id, it.path, photo.id == coverId) }
+            }
+        return copy(photos = pager, photoCount = photoList.size)
     }
 
     private fun reorderUrl(link: CatalogLink, events: List<InventoryEvent>): Flow<String?> {

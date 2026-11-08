@@ -56,7 +56,7 @@ class TeaDetailScreenTest {
     private fun show(tea: TeaDetail = sample()) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                TeaDetailScreen(TeaDetailUiState.Ready(tea), actions, alertKey = alertKey, photo = null)
+                TeaDetailScreen(TeaDetailUiState.Ready(tea), actions, alertKey = alertKey, photo = { null })
             }
         }
         compose.waitForIdle()

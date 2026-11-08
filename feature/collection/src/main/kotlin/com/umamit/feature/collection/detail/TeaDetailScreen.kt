@@ -1,6 +1,5 @@
 package com.umamit.feature.collection.detail
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -35,9 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -70,7 +65,7 @@ const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 /**
  * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
- * save; and the browser for INV-09's link.
+ * save; the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -84,6 +79,7 @@ class TeaDetailActions(
     val delete: () -> Unit = {},
     val correctStock: (grams: Double) -> Unit = {},
     val openShop: (url: String) -> Unit = {},
+    val addPhoto: () -> Unit = {},
 )
 
 /**
@@ -103,7 +99,7 @@ fun TeaDetailScreen(
     actions: TeaDetailActions,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
-    photo: Painter? = rememberPhotoPainter((state as? TeaDetailUiState.Ready)?.tea?.photoPath),
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     when (state) {
         TeaDetailUiState.Loading -> Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -128,7 +124,7 @@ private fun Detail(
     tea: TeaDetail,
     actions: TeaDetailActions,
     alertKey: String?,
-    photo: Painter?,
+    photo: @Composable (path: String) -> Painter?,
     modifier: Modifier = Modifier,
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
@@ -143,7 +139,12 @@ private fun Detail(
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                         .testTag(TEA_DETAIL_TAG),
                 ) {
-                    Hero(photo, UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey))
+                    PhotoPager(
+                        tea = tea,
+                        placeholderColor = UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey),
+                        photo = photo,
+                        onAddPhoto = actions.addPhoto,
+                    )
                     Header(tea)
                     Stats(tea)
                     Recipes(tea, actions)
@@ -346,29 +347,4 @@ private fun DeleteDialog(tea: TeaDetail, onArchiveInstead: () -> Unit, onDelete:
     )
 }
 
-@Composable
-private fun Hero(photo: Painter?, placeholderColor: Color) {
-    val heroModifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(HERO_ASPECT_RATIO)
-    if (photo != null) {
-        Image(painter = photo, contentDescription = null, modifier = heroModifier, contentScale = ContentScale.Crop)
-    } else {
-        Box(
-            modifier = heroModifier.background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(UmamiIcons.Leaf),
-                contentDescription = null,
-                tint = placeholderColor,
-                modifier = Modifier.size(HERO_LEAF_SIZE),
-            )
-        }
-    }
-}
-
-private const val HERO_ASPECT_RATIO = 4f / 3f
-private const val PLACEHOLDER_ALPHA = 0.22f
-private val HERO_LEAF_SIZE = 64.dp
 private val FAB_CLEARANCE = 88.dp

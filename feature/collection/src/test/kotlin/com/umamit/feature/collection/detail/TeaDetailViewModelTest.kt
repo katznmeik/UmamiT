@@ -13,6 +13,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.feature.collection.detail.TeaDetailFixture.CATALOG_KEY
 import com.umamit.feature.collection.detail.TeaDetailFixture.COLD_ID
 import com.umamit.feature.collection.detail.TeaDetailFixture.LAST_BREW_MS
@@ -63,6 +64,7 @@ class TeaDetailViewModelTest {
         catalog,
         archive,
         photos,
+        FakeTeaPhotos(collection, photos),
     )
 
     private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }

@@ -36,6 +36,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.feature.brew.setup.BrewSetupViewModel
 import com.umamit.feature.collection.detail.ArchivedTeaSnackbar
 import com.umamit.feature.collection.detail.TEA_DETAIL_ADD_RECIPE_TAG
@@ -164,6 +165,7 @@ class SetupLinksFlowTest {
                     catalog,
                     archive,
                     photos,
+                    FakeTeaPhotos(collection, photos),
                 )
             },
         )

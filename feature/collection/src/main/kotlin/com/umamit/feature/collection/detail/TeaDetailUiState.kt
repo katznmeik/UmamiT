@@ -2,6 +2,7 @@ package com.umamit.feature.collection.detail
 
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
@@ -22,6 +23,9 @@ sealed interface TeaDetailUiState {
  *
  * @property teaType the *Sorte* for the chip („Sencha"), if any.
  * @property photoPath the cover photo's file, if it exists.
+ * @property photos the hero pager's photos (SCR-28): the cover first, then the others in their order; only those
+ *   whose file exists.
+ * @property photoCount the tea's photo rows, for the limit of [Photo.MAX_PER_TEA].
  * @property sessionCount the tea's finished sessions (the `StatTriplet`'s *Sitzungen*).
  * @property lastBrewed the day of the latest finished session in its own time zone; null when never brewed.
  * @property stockGrams the remaining grams (Σ of the stock events; 0 without any, as the setup reads it).
@@ -41,6 +45,8 @@ data class TeaDetail(
     val styleKey: String? = null,
     val umamiLevel: UmamiLevel? = null,
     val photoPath: String? = null,
+    val photos: List<DetailPhoto> = emptyList(),
+    val photoCount: Int = photos.size,
     val sessionCount: Int = 0,
     val lastBrewed: LocalDate? = null,
     val stockGrams: Double = 0.0,
@@ -59,9 +65,15 @@ data class TeaDetail(
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA
 
+    /** *+ Foto* is greyed out at 10 photos („Höchstens 10 Fotos", TEA-05). */
+    val canAddPhoto: Boolean get() = photoCount < Photo.MAX_PER_TEA
+
     /** *Brühen* is greyed out for an archived tea („Tee ist archiviert", D-100). */
     val canBrew: Boolean get() = !isArchived
 }
+
+/** A photo of the hero pager (SCR-28): its file and whether it is the tea's cover. */
+data class DetailPhoto(val id: String, val path: String, val isCover: Boolean)
 
 /**
  * A recipe row of REZEPTE: its key values (vessel, leaf, water, temperature, steps) and whether it is the
