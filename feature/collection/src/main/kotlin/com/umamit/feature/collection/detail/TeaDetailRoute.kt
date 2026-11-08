@@ -42,6 +42,7 @@ fun TeaDetailRoute(
                 TeaDetailEvent.PhotoUnreadable -> context.toast(R.string.collection_tea_photo_unreadable)
                 TeaDetailEvent.PhotoLimitReached -> context.toast(R.string.collection_tea_photo_limit)
                 TeaDetailEvent.PhotoFailed -> context.toast(R.string.collection_tea_photo_failed)
+                TeaDetailEvent.PhotoChangeFailed -> context.toast(R.string.collection_tea_photo_change_failed)
             }
         }
     }
@@ -62,6 +63,8 @@ fun TeaDetailRoute(
             recordPurchase = viewModel::recordPurchase,
             openShop = context::openInBrowser,
             addPhoto = pickPhoto,
+            setCoverPhoto = viewModel::setCoverPhoto,
+            deletePhoto = viewModel::deletePhoto,
         ),
         modifier = modifier,
         alertKey = host.alertKey,

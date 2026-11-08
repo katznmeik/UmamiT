@@ -27,7 +27,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-/** The detail's photos (TEA-05, SCR-28, #183): the pager's photos, the cover first, *+ Foto* and its limit. */
+/**
+ * The detail's photos (TEA-05, SCR-28, #183, #186): the pager's photos, the cover first, *+ Foto* and its limit,
+ * *Als Titelbild* and *Löschen*.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TeaDetailPhotosViewModelTest {
     @get:Rule
@@ -139,5 +142,49 @@ class TeaDetailPhotosViewModelTest {
         vm.addPhoto("content://picked/eleven")
 
         assertThat(withTimeout(1_000) { vm.navigation.first() }).isEqualTo(TeaDetailEvent.PhotoLimitReached)
+    }
+
+    @Test
+    fun `Als Titelbild shows the new cover first at once`() = runTest {
+        TeaDetailFixture.seed(collection)
+        shopPhoto()
+        photos.add(TEA_ID, "content://picked/1")
+        val vm = viewModel()
+
+        vm.setCoverPhoto("photo-1")
+
+        assertThat(vm.tea.photos.map { it.id }).containsExactly("photo-1", "shop").inOrder()
+        assertThat(vm.tea.photos.map { it.isCover }).containsExactly(true, false).inOrder()
+        assertThat(vm.tea.photoPath).isEqualTo(files.file("photo-1").path)
+    }
+
+    @Test
+    fun `Loeschen of the cover makes the next photo the cover`() = runTest {
+        TeaDetailFixture.seed(collection)
+        shopPhoto()
+        photos.add(TEA_ID, "content://picked/1")
+        photos.add(TEA_ID, "content://picked/2")
+        val vm = viewModel()
+
+        vm.deletePhoto("shop")
+
+        assertThat(vm.tea.photos.map { it.id }).containsExactly("photo-1", "photo-2").inOrder()
+        assertThat(vm.tea.photos.first().isCover).isTrue()
+        assertThat(vm.tea.photoPath).isEqualTo(files.file("photo-1").path)
+        assertThat(files.file("shop").exists()).isFalse()
+    }
+
+    @Test
+    fun `Loeschen of the last photo brings back the leaf`() = runTest {
+        TeaDetailFixture.seed(collection)
+        photos.add(TEA_ID, "content://picked/1")
+        val vm = viewModel()
+
+        vm.deletePhoto("photo-1")
+
+        assertThat(vm.tea.photos).isEmpty()
+        assertThat(vm.tea.photoPath).isNull()
+        assertThat(vm.tea.canAddPhoto).isTrue()
+        assertThat(files.file("photo-1").exists()).isFalse()
     }
 }

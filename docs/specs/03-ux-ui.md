@@ -1386,7 +1386,17 @@ no screen of their own.
   nicht gelesen werden." and nothing is added.
 - **TalkBack:** the pager reads „Fotos von *Tee*", each photo „Foto 1 von 3,
   Titelbild" / „Foto 2 von 3".
-- *Als Titelbild* and *Löschen* per photo: #186.
+- **Per photo (#186):** a ⋮ on the same translucent surface sits beside
+  *+ Foto* while the tea has photos („Foto-Optionen" for TalkBack). It acts on
+  the photo shown when it was opened: *Als Titelbild* (not on the cover) and
+  *Löschen*. *Als Titelbild* moves the photo to the front with the cover-first
+  order; the pager follows it by key, so the same photo stays in view, now
+  „Foto 1 von 3, Titelbild", and the first dot fills. *Löschen* asks „Foto
+  löschen?" — „Das Foto wird aus der App entfernt." (for the cover with others
+  left: „… Das nächste Foto wird zum Titelbild.") · *Abbrechen* / *Löschen*;
+  the pager then shows the neighbouring photo, or the leaf after the last one.
+  The menu and the dialog close in the frame an alert starts (rule 8). A write
+  that fails says „Das Foto konnte nicht geändert werden." and changes nothing.
 
 ### SCR-31 Schritte-Sheet (session steps)
 

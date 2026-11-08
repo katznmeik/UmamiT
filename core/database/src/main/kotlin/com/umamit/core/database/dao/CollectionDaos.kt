@@ -129,6 +129,14 @@ interface TeaDao {
     @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
     fun observeTeaPhotos(teaId: String): Flow<List<PhotoEntity>>
 
+    /** The tea's photos in their order now (TEA-05, *Löschen*). */
+    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    suspend fun teaPhotos(teaId: String): List<PhotoEntity>
+
+    /** Deletes photo [id]'s row; a cover pointing at it is cleared by the foreign key (TEA-05). */
+    @Query("DELETE FROM photo WHERE id = :id")
+    suspend fun deletePhoto(id: String)
+
     /** How many photos the tea has (TEA-05: at most 10). */
     @Query("SELECT COUNT(*) FROM photo WHERE tea_id = :teaId")
     suspend fun photoCount(teaId: String): Int
