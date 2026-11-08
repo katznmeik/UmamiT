@@ -11,6 +11,80 @@
 
 ## Releases and plans
 
+### v0.4.1: released (2026-11-08)
+
+- PR #191 merged into `main` with a merge commit (`2b5735fc`), CI green on it (run 42517586167 on the branch tip, `main`'s run on the merge commit).
+- **Accuracy on `2b5735fc` (09 §4a):** standard PASS (pre-alert p95 41 / max 244 ms, alert 21 / 30 ms; run 42518987907, attempt 1 lost its hosted runner, the rerun passed); alongside PASS (brew pre-alert 19 / 150, alert 38 / 43 ms; quick timer pre-alert 20 / 159, alert 28 / 329 ms; run 42518990703).
+- **Release:** run 42530943942, [`v0.4.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.1) from `main` `2b5735fc` (versionCode 40199, APK SHA-256 `26eb607e…2a99`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, marked latest.
+- #171, #175–#189 closed. Working branch restarted from `main`.
+
+### v0.4.1: approved, final (2026-11-08)
+
+- **PO (in the session, 2026-11-08):** „all test passed, please release": every rc.1 checklist item passed; that is the approval of the checklist and the design review (rule 9).
+- **#189:** `umamit.version=0.4.1` (versionCode 40199) on the branch → CI green → merge PR #191 into `main` with a merge commit → both accuracy variants on the merge commit (09 §4a, required for the final) → `v0.4.1` from `main` → close #171 and its tickets, restart the branch from `main`.
+
+### v0.4.1: rc.1 out (2026-11-08)
+
+- **Version:** `0.4.1-rc.1` (versionCode 40101) in `f34c237e`. CI green on it (run 42471069183; Checks failed once on the external `kotlin-compiler-embeddable` 504 from GitHub releases and passed on the rerun of the failed job).
+- **Accuracy on `f34c237e` (D-073, #180):** standard PASS (pre-alert p95 50 / max 153 ms, alert 33 / 141 ms; run 42471222819); alongside PASS (brew pre-alert 26 / 123, alert 45 / 248 ms; quick timer pre-alert 21 / 502, alert 36 / 135 ms; run 42471225121). The first attempts failed before building: `services.gradle.org` and GitHub release downloads answered 502/504/timeouts for about 45 min; reruns only.
+- **Release:** run 42478612894, pre-release `v0.4.1-rc.1` (APK SHA-256 `a364a5cc…3673`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`.
+- **Checklist:** 09 §4 v0.4.1 block, from #171, D-104 and D-107; posted on #188 and linked from PR #191.
+- **Renders:** `docs/design/review/v0.4.1/` (110 goldens v0.4.1 added or changed, 600 px, placeholder photos), README with the points to judge.
+- **Tickets:** the acceptance checkboxes of #175–#187 ticked.
+- **Next:** the PO's results on #188. Findings → fix round (timer code never below T3) → `-rc.2`, with both accuracy variants if timer code changed. After the PO's explicit approval of checklist and design review: #189 (merge PR #191 with a merge commit, both accuracy variants on `main`'s merge commit, `v0.4.1` from `main`, restart the branch from `main`).
+
+### v0.4.1: review and fix round (2026-11-08)
+
+- **Reviews:** T3 (standards and spec) and T4 (timer path: #180's completion, #184's reset during a brew) on `aa1c110d..HEAD`: no must-fix finding; T4 verdict „safe for an rc". The motion review's S1–S5, N2 and N3 fixed; N1 left (harmless).
+- **PO answers (D-107):** a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered for discontinued, archived and brewing teas; „Vorrat" stays; the opening date only in FRISCHE.
+- **Fixes, three implementers (A T3 data, B1 and B2 T2 screens), each verified by the orchestrator:** guarded „Gespeichert" sheet; forget on a completion without a date; tests for a rolled-back completion and a brew completed after a reset; photo cap 40 MB, one buffer, OOM as unreadable; reset rolls back on a refused write and keeps the tea's description when the catalog has none; vessel pick with a persistable grant and a toast when unreadable; price 0 refused; detail stock writes show a toast on failure; one `DateField`; `WallClock.today()`; photo crossfade over a tint; *+ Foto* animates to the new page; purchase sheet slides out; editor Save always composed.
+- **Goldens re-recorded:** 5 tea detail `dates` (DETAILS without the opening date), 8 teaware photo goldens (1 px corner anti-aliasing from the tint).
+- **Not done:** ticking the tickets' checkboxes on #175–#187 (the GitHub write was refused in this session); the rc session or the final can do it.
+- **#180 and accuracy:** completion's SQL unchanged, the code around it changed → the rc runs both accuracy variants (D-073).
+- **Verification on `6d6af31a`:** local `gate.sh` PASS (format, Detekt, manifest permissions, all unit tests, Lint, screenshot tests, androidTest build). CI: build and both emulator jobs green; **Checks failed three times on an external error**, not code: spotless's `kotlin-compiler-embeddable-2.2.21.jar` is redirected from Maven Central to GitHub releases, which answered 504 (run 42464239574, attempts 1–3). The rc session's version bump runs CI again; if Checks still fails the same way, rerun later (it is outside the repo).
+- **Environment notes:** the Robolectric SDK 35 jar had to be fetched by hand again (`v0.4.0-resume.md` §3); a Gradle run that failed while the network was blocked cached "plugin not found", cleared once with `--refresh-dependencies`.
+
+### v0.4.1: build phase (2026-11-07/08)
+
+- **Merged into PR #191**, each verified by the orchestrator (module tests, screenshot tests, lint, Detekt, the diff): #180 (-06, T4) opening-date *Rückgängig* · #175 (-01) `GermanFormat` in `core:ui` · #177 (-03) Settings closes on a tab switch · #183 (-10) own tea photos · #176 (-02) `EditorScaffold` · #178 (-04) freshness labels and `FreshnessChip` · #187 (-12) vessel photo · #179 (-05) dates in the editor · #181 (-07) *Nachkauf erfassen* · #186 (-11) *Als Titelbild* / *Löschen* · #185 (-08) stock history · #184 (-13) *Aus Katalog zurücksetzen* · #182 (-09) cost.
+- **D-106** (own photos: accepted input, EXIF reader, pager order). The motion review ran: `docs/plans/v0.4.1-motion-review.md`.
+- **#180 and accuracy:** completion's SQL is unchanged, but its code changed (the opened-date change is recorded after the inner block) → the rc runs both accuracy variants (D-073).
+- **Full gate on the build tip `4063c488`:** local `gate.sh` PASS, and CI green on it (all four jobs, both emulators).
+- Known points for the reviewers and five PO questions: `docs/plans/v0.4.1-resume.md` §3–§4.
+
+### v0.4.0: released (2026-11-07)
+
+- The PO passed every rc.2 item and approved the checklist and design review (#160). One change went straight into the final: the *Grüntee* chip before *Kräutertee* (#168, D-103).
+- #162 merged into `main` with a merge commit (`a2ff115`), CI green on it, `v0.4.0` released from `main`. The PO waived the accuracy runs on `main` for this release (D-103).
+- CI notes: two timing-dependent tests failed once each and passed on the rerun: `NotificationActionsTest` (#168's checks job, no timer change) and `UnreadableSettingsStartTest` (the final release job's unit tests, a lifecycle error). Watch for them in later runs; a repeat is worth a look.
+- #145 and its tickets #147–#161 closed.
+
+### v0.4.0: rc.2 out (2026-11-07)
+
+- **rc.1 results (PO, 2026-11-07):** every checklist item passed; five points, recorded as **D-102**: (1) the journal row showed the base temperature, not the first infusion's (bug); (2) journal entries must be deletable; (3) the FAB *Tee hinzufügen* covers the rows → into Sammlung's ⋮; (4) the keyboard: an empty band above it on *Meine Tees*, and the editor's fields vanished behind it (every field); (5) own photos for *Ohne Katalog* teas → v0.4.1 (already planned, D-100).
+- **Fixes (this session, on branch `claude/quirky-ptolemy-ld5oet` → PR into the milestone branch):** `JournalList` takes the first infusion's `tempC ?: baseTempC`; `JournalRepository.deleteSession` → `SessionDao.deleteFinished` (never `IN_PROGRESS`), `SessionPageViewModel.delete` + `SessionPageEvent.Deleted`, ⋮ and „Sitzung löschen?" on `SessionPageScreen`, the app pops the page; `CollectionScreen` gets `onAddFromCatalog` / `onAddWithoutCatalog` menu items on *Meine Tees*, `MyTeasContent` lost the FAB and `snackbarShowing`; `MainActivity` `adjustResize`, `Modifier.consumeCoveredBelow()` in `UmamitApp`, no `imePadding()` in the tea, recipe and vessel editors and *Sorte wählen*. Specs 02, 03, 09, 10 and the plan updated. Collection goldens re-recorded (no FAB) and the review renders refreshed.
+- **Released (2026-11-07):** fix-round PR #166 merged into the milestone branch (`27ad3de`), CI green (all four jobs), `v0.4.0-rc.2` published from `27ad3de` (versionCode 40002, certificate verified); the rc.2 checklist is on #160.
+- **Tests:** `KeyboardInsetsTest` dispatches an IME inset to the Compose view and checks the shell's content edge and the editor's fields; the keyboard on the phone itself is the PO's rc.2 check.
+
+### v0.4.0: rc.1 out (2026-11-05)
+
+- **rc phase (2026-11-05):** `5240a57` version bump; accuracy on `5240a57`: standard PASS (pre-alert p95 40 ms / max 53 ms, alert 15 / 19 ms), alongside PASS (brew 29 / 33 and 37 / 58 ms, quick timer 10 / 275 and 12 / 56 ms); CI green on `5240a57` and `cc20e1b` (renders, docs only). The first two release dispatches were refused („No successful CI run"): `release.yml` accepted only `push` CI runs, which a PR branch no longer has since step 0 (D-101). Fixed in `fe1d925` (also this repository's `pull_request` runs, never a fork's; `docs/release.md`). rc.1 published from `5240a57`, certificate checked; checklist on #160 and linked from PR #162.
+
+- **Fix round (2026-11-05, Opus `medium` orchestrator):** step 0 (`ci.yml` runs `push` only on `main`; a push to the PR runs 4 checks, not 8). Then:
+  - A, F1 (T3): one `AlertGate` in `core:ui` for every menu, dialog, sheet and picker; the four copies deleted.
+  - C, the brew path (T3): F3, F4, F10, F11 and F12 as decided, plus the `ProcessDeathTest` gap log. Session completion untouched.
+  - E, the motion review (T2, read-only), whose findings went to B.
+  - B, the screens (T2): F2, F5–F9, F13, F15, the nits, and E's drag-reorder and list motion.
+  - D, F14 (T2): `GermanNumber` in `core:domain`.
+
+  The full local gate passed on A+C and on B+D. The orchestrator did not take E's reserved *Im Rezept speichern* slot: it left an empty band on every unchanged setup, against SCR-04 (`380d992`). All of this is recorded in D-100.
+- **Goldens:** B re-recorded 32 in `feature:catalog` (F9's back arrow). The brew setup goldens are unchanged after the slot revert.
+
+**Next** (`v0.4.0-resume.md` §5 steps 7–8):
+1. Wait for the PO's results on #160. rc findings are fixed on the branch (timer code never below T3) → `0.4.0-rc.2`, with both accuracy variants again if timer code changed (09 §4a).
+2. After the PO's explicit approval of the checklist and the design review: #161 (merge PR #162 with a merge commit, both accuracy variants on `main`'s merge commit, `v0.4.0` from `main`, restart the branch from `main`).
+3. The workflow-dispatch runs (accuracy, release) don't wake a session; check them yourself. A release needs a green CI run on the exact commit it builds, so don't push while that CI runs (a newer push cancels it).
+
 ### v0.4.0 specified (2026-10-31)
 
 - The PO grilled M3 (R1–R5, the test seams, and a glossary grilling G1–G12), recorded as **D-100**: M3 splits into
@@ -220,6 +294,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-08 | **v0.4.1 done:** PO approved rc.1 (checklist and design review); #191 merged (`2b5735fc`), both accuracy variants PASS on `main`, `v0.4.1` released (versionCode 40199, certificate verified); #171, #175–#189 closed. Next: M4 → v0.5.0. |
 | 2026-10-29 | **v0.2.1 done:** #106 merged (9a73b19), accuracy PASS on `main`, `v0.2.1` released (versionCode 20199, certificate verified); #81, #83–#94, #97, #98, #100, #102 closed. Next: v0.3.0. |
 | 2026-10-29 | **PO approved v0.2.1-rc.1** (all checklist items, design review; Vorwarnton Zimbel stays default); version 0.2.1; merge of #106 and the final release follow. |
 | 2026-10-29 | `v0.2.1-rc.1` released (f88e371, versionCode 20101, certificate verified); accuracy run PASS; checklist posted on #93; waiting for the PO. |
