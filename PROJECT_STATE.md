@@ -5,18 +5,18 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-08. **v0.4.1 review and fix round done:** milestone review (T3 + T4 timer path) with no must-fix item, the PO's five answers and the fixes are merged into the milestone branch `claude/affectionate-heisenberg-8o8yfs`, draft PR #191 (D-107). **Next: the rc session (#188)** in a fresh **Sonnet** session: [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §5 has the start prompt and the steps (this handover is only on the milestone branch).
+**Last updated:** 2026-11-08. **`v0.4.1-rc.1` is out** (#188) from `f34c237e` on the milestone branch `claude/affectionate-heisenberg-8o8yfs`, PR #191 (draft). **Next: the PO tests rc.1** with the checklist on #188 (09 §4 v0.4.1); findings → a fix round, otherwise the final (#189).
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.1** (M3 part 2): spec #171, build tickets #175–#187 and the fix round merged into PR #191 (draft); next rc (#188), then release (#189). Then M4 → v0.5.0. v0.4.0 is released ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), from `main` `a2ff115`) |
+| Current milestone | **v0.4.1** (M3 part 2): spec #171, build tickets #175–#187 and the fix round merged into PR #191 (draft); `v0.4.1-rc.1` out (#188), waiting on the PO; then the final (#189). Then M4 → v0.5.0. v0.4.0 is released ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), from `main` `a2ff115`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/affectionate-heisenberg-8o8yfs` (v0.4.1 milestone branch) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | #191 (v0.4.1 milestone, draft) |
-| Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
+| Latest APK | [`v0.4.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.1-rc.1) (pre-release, versionCode 40101, from `f34c237e`); latest full release [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
 | Decision numbers | Up to **D-107** used; the next free is **D-108** |
 
 ## Working agreements in effect
@@ -31,10 +31,20 @@
 
 ## Waiting on the PO
 
-1. **v0.4.1:** start the rc session with the prompt in [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §5 (**Sonnet**, `medium`). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
+1. **v0.4.1:** install `v0.4.1-rc.1` and work through the checklist on #188 (09 §4, v0.4.1 block); judge the renders in `docs/design/review/v0.4.1/`. Then approve, or report findings. Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
+
+## v0.4.1: rc.1 out (2026-11-08)
+
+- **Version:** `0.4.1-rc.1` (versionCode 40101) in `f34c237e`. CI green on it (run 42471069183; Checks failed once on the external `kotlin-compiler-embeddable` 504 from GitHub releases and passed on the rerun of the failed job).
+- **Accuracy on `f34c237e` (D-073, #180):** standard PASS (pre-alert p95 50 / max 153 ms, alert 33 / 141 ms; run 42471222819); alongside PASS (brew pre-alert 26 / 123, alert 45 / 248 ms; quick timer pre-alert 21 / 502, alert 36 / 135 ms; run 42471225121). The first attempts failed before building: `services.gradle.org` and GitHub release downloads answered 502/504/timeouts for about 45 min; reruns only.
+- **Release:** run 42478612894, pre-release `v0.4.1-rc.1` (APK SHA-256 `a364a5cc…3673`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`.
+- **Checklist:** 09 §4 v0.4.1 block, from #171, D-104 and D-107; posted on #188 and linked from PR #191.
+- **Renders:** `docs/design/review/v0.4.1/` (110 goldens v0.4.1 added or changed, 600 px, placeholder photos), README with the points to judge.
+- **Tickets:** the acceptance checkboxes of #175–#187 ticked.
+- **Next:** the PO's results on #188. Findings → fix round (timer code never below T3) → `-rc.2`, with both accuracy variants if timer code changed. After the PO's explicit approval of checklist and design review: #189 (merge PR #191 with a merge commit, both accuracy variants on `main`'s merge commit, `v0.4.1` from `main`, restart the branch from `main`).
 
 ## v0.4.1: review and fix round (2026-11-08)
 
