@@ -43,6 +43,7 @@ fun TeaDetailRoute(
                 TeaDetailEvent.PhotoLimitReached -> context.toast(R.string.collection_tea_photo_limit)
                 TeaDetailEvent.PhotoFailed -> context.toast(R.string.collection_tea_photo_failed)
                 TeaDetailEvent.PhotoChangeFailed -> context.toast(R.string.collection_tea_photo_change_failed)
+                TeaDetailEvent.StockChangeFailed -> context.toast(R.string.collection_tea_stock_change_failed)
                 TeaDetailEvent.ResetFailed -> context.toast(R.string.collection_tea_reset_failed)
             }
         }

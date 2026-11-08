@@ -99,16 +99,14 @@ class TeaDetailScreenTest {
     }
 
     @Test
-    fun `DETAILS shows the opening and best-before dates when set (TEA-02)`() {
+    fun `DETAILS shows the best-before day when set, the opening date only in FRISCHE (TEA-02)`() {
         show(
             sample().copy(
                 details = sample().details.copy(
-                    openedDate = LocalDate.of(2026, 10, 8),
                     bestBefore = LocalDate.of(2027, 3, 1),
                 ),
             ),
         )
-        compose.onNodeWithText("8. Okt. 2026").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("1. März 2027").performScrollTo().assertIsDisplayed()
     }
 

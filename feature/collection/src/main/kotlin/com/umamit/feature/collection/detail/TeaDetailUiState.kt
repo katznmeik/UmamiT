@@ -155,7 +155,6 @@ data class TeaFacts(
     val processing: String? = null,
     val ingredients: String? = null,
     val vendor: String? = null,
-    val openedDate: LocalDate? = null,
     val bestBefore: LocalDate? = null,
     val isOrganic: Boolean = false,
     val isFlavored: Boolean = false,

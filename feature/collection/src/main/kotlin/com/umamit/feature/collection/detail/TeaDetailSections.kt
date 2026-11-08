@@ -274,7 +274,7 @@ internal fun TextSection(title: Int, text: String?) {
     }
 }
 
-/** DETAILS: origin, cultivar, harvest, shading, processing, ingredients, vendor and dates, each only when set. */
+/** DETAILS: origin, cultivar, harvest, shading, processing, ingredients, vendor and the best-before day, each only when set. */
 @Composable
 internal fun Details(facts: TeaFacts) {
     val season = facts.harvestSeason?.label?.let { stringResource(it) }
@@ -290,7 +290,6 @@ internal fun Details(facts: TeaFacts) {
         facts.processing?.let { R.string.collection_tea_processing to it },
         facts.ingredients?.let { R.string.collection_tea_ingredients to it },
         facts.vendor?.let { R.string.collection_tea_vendor to it },
-        facts.openedDate?.let { R.string.collection_tea_opened_on to GermanFormat.day(it) },
         facts.bestBefore?.let { R.string.collection_tea_best_before_on to GermanFormat.day(it) },
     )
     if (rows.isEmpty()) return

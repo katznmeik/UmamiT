@@ -176,7 +176,7 @@
     <string name="collection_tea_history_correction">Bestand korrigiert</string>
     <string name="collection_tea_history_brew">Gebrüht</string>
     <plurals name="collection_tea_history_more">
-        <item quantity="one">%1$d Eintrag anzeigen</item>
+        <item quantity="one">Alle %1$d Einträge anzeigen</item>
         <item quantity="other">Alle %1$d Einträge anzeigen</item>
     </plurals>
     <string name="collection_tea_history_grams_up">+%1$s g</string>
@@ -214,6 +214,7 @@
     <string name="collection_tea_photo_delete_cover_body">Das Foto wird aus der App entfernt. Das nächste Foto wird zum Titelbild.</string>
     <string name="collection_tea_photo_delete_cancel">Abbrechen</string>
     <string name="collection_tea_photo_delete_confirm">Löschen</string>
+    <string name="collection_tea_stock_change_failed">Der Bestand konnte nicht geändert werden.</string>
     <string name="collection_tea_photo_change_failed">Das Foto konnte nicht geändert werden.</string>
     <!-- TalkBack: „Fotos von Morgennebel", „Foto 1 von 3, Titelbild". -->
     <string name="collection_tea_photos_description">Fotos von %1$s</string>
@@ -231,7 +232,6 @@
     <string name="collection_tea_processing">Verarbeitung</string>
     <string name="collection_tea_ingredients">Zutaten</string>
     <string name="collection_tea_vendor">Händler</string>
-    <string name="collection_tea_opened_on">Geöffnet am</string>
     <string name="collection_tea_best_before_on">Haltbar bis</string>
     <string name="collection_tea_season_first_flush">Erste Pflückung</string>
     <string name="collection_tea_season_second_flush">Zweite Pflückung</string>

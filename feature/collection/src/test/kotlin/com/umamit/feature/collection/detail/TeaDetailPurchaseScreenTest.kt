@@ -103,6 +103,18 @@ class TeaDetailPurchaseScreenTest {
     }
 
     @Test
+    fun `a price of 0 is refused like any other malformed price (INV-08)`() {
+        show()
+        openSheet()
+
+        compose.onNodeWithTag(PURCHASE_SHEET_GRAMS_TAG).performTextInput("50")
+        compose.onNodeWithTag(PURCHASE_SHEET_PRICE_TAG).performTextInput("0")
+        compose.onNodeWithText("Gib den Preis in Euro an, z. B. 12,40.").assertIsDisplayed()
+        save().assertIsNotEnabled()
+        assertThat(purchases).isEmpty()
+    }
+
+    @Test
     fun `a day after today is refused`() {
         show()
         openSheet()

@@ -160,8 +160,8 @@ data class TeaEditorForm(
         /** „50", „37,5", „1.000" → grams in (0, 10 000]; null otherwise (shared rule, F14). */
         fun parseGrams(text: String): Double? = GermanNumber.parseGrams(text)
 
-        /** „12,40", „12.4", „12", „1.234,50" → cents; null otherwise (shared rule, F14). */
-        fun parseCents(text: String): Long? = GermanNumber.parseCents(text)
+        /** „12,40", „12.4", „12", „1.234,50" → cents above 0 (INV-08); null otherwise (shared rule, F14). */
+        fun parseCents(text: String): Long? = GermanNumber.parseCents(text)?.takeIf { it > 0 }
 
         private const val CATALOG_VENDOR = "Tee-Kontor Kiel"
 

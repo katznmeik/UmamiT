@@ -203,8 +203,8 @@ private val PLACEHOLDER_PHOTO = ColorPainter(Color(0xFF8A9A7B))
 /** [count] placeholder photos, the first the cover. */
 private fun placeholderPhotos(count: Int) = List(count) { DetailPhoto("p$it", "/placeholder/p$it.jpg", it == 0) }
 
-/** The sample tea with the opening and best-before dates (TEA-02). */
+/** The sample tea with its best-before day (TEA-02). */
 private fun sampleWithDates(): TeaDetail = TeaDetailScreenTest.sample().let {
-    val facts = it.details.copy(openedDate = LocalDate.of(2026, 10, 8), bestBefore = LocalDate.of(2027, 3, 1))
+    val facts = it.details.copy(bestBefore = LocalDate.of(2027, 3, 1))
     it.copy(details = facts)
 }
