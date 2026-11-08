@@ -44,6 +44,8 @@
 - **Goldens re-recorded:** 5 tea detail `dates` (DETAILS without the opening date), 8 teaware photo goldens (1 px corner anti-aliasing from the tint).
 - **Not done:** ticking the tickets' checkboxes on #175–#187 (the GitHub write was refused in this session); the rc session or the final can do it.
 - **#180 and accuracy:** completion's SQL unchanged, the code around it changed → the rc runs both accuracy variants (D-073).
+- **Verification on `6d6af31a`:** local `gate.sh` PASS (format, Detekt, manifest permissions, all unit tests, Lint, screenshot tests, androidTest build). CI: build and both emulator jobs green; **Checks failed three times on an external error**, not code: spotless's `kotlin-compiler-embeddable-2.2.21.jar` is redirected from Maven Central to GitHub releases, which answered 504 (run 42464239574, attempts 1–3). The rc session's version bump runs CI again; if Checks still fails the same way, rerun later (it is outside the repo).
+- **Environment notes:** the Robolectric SDK 35 jar had to be fetched by hand again (`v0.4.0-resume.md` §3); a Gradle run that failed while the network was blocked cached "plugin not found", cleared once with `--refresh-dependencies`.
 
 ## v0.4.1: build phase (2026-11-07/08)
 
