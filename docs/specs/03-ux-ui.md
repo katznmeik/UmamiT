@@ -116,6 +116,15 @@ Bottom navigation bar (navigation rail on wide screens):
 - Re-selecting a tab scrolls to top; a second re-select pops to its root (D-049);
   each tab keeps its back stack.
 - Settings via the gear on Start and the ⋮ menu of the other tabs.
+- **Settings closes on a tab switch** (D-104): when the tab being left has
+  Settings in its back stack, the stack is popped to below the Settings entry,
+  so Settings and everything opened from it (*Teegeschirr*, a vessel, *Über*,
+  *Diagnose*) go. Coming back, the tab shows the screen it showed before
+  Settings was opened. A vessel editor open above Settings is dropped without
+  the discard question, as a process death would. Other pushed screens (a tea
+  detail, a session page) keep their place across a switch; re-selecting a tab
+  is unchanged (D-049). *Timer-Einstellungen* above the timer is not in a tab
+  and is not affected.
 - The active brew bar (GEN-06) sits above the navigation bar; the timer is
   full-screen without either.
 

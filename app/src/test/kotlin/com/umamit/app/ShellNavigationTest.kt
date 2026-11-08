@@ -2,6 +2,8 @@ package com.umamit.app
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
@@ -22,6 +25,9 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.feature.collection.CollectionSegment
+import com.umamit.feature.settings.SettingsTags
+import com.umamit.feature.teaware.TeawareTags
+import com.umamit.feature.teaware.VesselEditorTags
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Rule
@@ -66,6 +72,7 @@ class ShellNavigationTest {
         reduceMotion: Boolean = true,
         catalogScreen: @Composable (CatalogTab) -> Unit = { PlaceholderCatalog(it) },
         collectionSegments: CollectionSegmentMemory = CollectionSegmentMemory.None,
+        catalogScreens: CatalogStackScreens = CatalogStackScreens(),
     ) {
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = reduceMotion) {
@@ -75,6 +82,7 @@ class ShellNavigationTest {
                     settings = testSettingsScreens(),
                     catalogScreen = catalogScreen,
                     collectionSegments = collectionSegments,
+                    catalogScreens = catalogScreens,
                 )
             }
         }
@@ -128,13 +136,54 @@ class ShellNavigationTest {
     }
 
     @Test
-    fun eachTabKeepsItsBackStack() {
+    fun settingsClosesWhenItsTabIsLeft() {
         start()
         openSettingsFromStart()
         tab(Tab.Journal).performClick()
         compose.onNodeWithText(str(JournalR.string.journal_empty_title)).assertIsDisplayed()
+
         tab(Tab.Start).performClick()
-        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertIsDisplayed()
+
+        // Start shows the screen it showed before Settings was opened (03 §2.2, D-104).
+        compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertIsDisplayed()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsClosesWithEverythingOpenedFromItAnUnsavedVesselEditorIncluded() {
+        start()
+        openSettingsFromStart()
+        compose.onNodeWithTag(SettingsTags.TEAWARE).performScrollTo().performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(TeawareTags.ADD).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(VesselEditorTags.NAME).performTextInput("Gaiwan")
+
+        tab(Tab.Journal).performClick()
+        tab(Tab.Start).performClick()
+
+        // Dropped without the discard question, as a process death would (D-104).
+        compose.onNodeWithText(str(HomeR.string.home_empty_title)).assertIsDisplayed()
+        compose.onNodeWithTag(VesselEditorTags.NAME).assertDoesNotExist()
+        compose.onNodeWithTag(TeawareTags.ADD).assertDoesNotExist()
+        compose.onNodeWithText(str(SettingsR.string.settings_reliability_title)).assertDoesNotExist()
+    }
+
+    @Test
+    fun aTeaDetailKeepsItsPlaceAcrossATabSwitch() {
+        start(
+            catalogScreen = { tab -> TextButton(onClick = { tab.openTea("k") }) { Text("OPEN-TEA") } },
+            catalogScreens = CatalogStackScreens(tea = { Text("TEA-DETAIL") }),
+        )
+        tab(Tab.Collection).performClick()
+        compose.onNodeWithText(str(CollectionR.string.collection_segment_catalog)).performClick()
+        compose.onNodeWithText("OPEN-TEA").performClick()
+        compose.onNodeWithText("TEA-DETAIL").assertIsDisplayed()
+
+        tab(Tab.Journal).performClick()
+        tab(Tab.Collection).performClick()
+
+        compose.onNodeWithText("TEA-DETAIL").assertIsDisplayed()
     }
 
     @Test
