@@ -150,7 +150,8 @@ private fun PurchaseSheetContent(
             cancel = R.string.collection_purchase_cancel,
             modifier = Modifier.padding(bottom = UmamiSpacing.XSmall),
             error = form.dateError(today),
-        ) { date = it }
+            onDateChange = { date = it },
+        )
         Spacer(Modifier.height(UmamiSpacing.Small))
         Row(
             modifier = Modifier.fillMaxWidth(),

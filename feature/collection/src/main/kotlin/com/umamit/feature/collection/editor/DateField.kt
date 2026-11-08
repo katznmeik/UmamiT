@@ -44,11 +44,11 @@ internal fun DateField(
     alertKey: String?,
     @StringRes confirm: Int,
     @StringRes cancel: Int,
+    onDateChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     @StringRes error: Int? = null,
     @StringRes hint: Int? = null,
     onClear: (() -> Unit)? = null,
-    onDateChange: (LocalDate) -> Unit,
 ) {
     val picking = rememberAlertGate(alertKey)
     Column(modifier) {
