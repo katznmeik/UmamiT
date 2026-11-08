@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.ArchiveResult
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.VesselArchive
+import com.umamit.core.data.VesselPhotos
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselMaterial
@@ -79,6 +81,17 @@ data class VesselForm(
     }
 }
 
+/** The photo field's picture (SCR-14, WARE-01): the vessel's own, one just picked, or none. */
+sealed interface VesselPhoto {
+    data object None : VesselPhoto
+
+    /** The vessel's stored photo, at [path] in `photos/`. */
+    data class Stored(val path: String) : VesselPhoto
+
+    /** A photo picked in this editor, [uri] from the system picker; stored with *Speichern*. */
+    data class Picked(val uri: String) : VesselPhoto
+}
+
 /** A field *Speichern* refuses, shown at the field. */
 enum class VesselFieldError { NameEmpty, NameTooLong, CapacityRange, UsableRange }
 
@@ -94,6 +107,8 @@ sealed interface VesselEditorUiState {
      * @property saving *Speichern* is stored and the editor is closing: *Speichern* is greyed out (a second tap
      *   would store a second vessel).
      * @property archiveBlocked the vessel belongs to the active brew session: *Archivieren* is greyed out (E10).
+     * @property photo the photo field's picture; a pick or a removal counts as a change but is stored only with
+     *   *Speichern*, like every other field.
      */
     data class Ready(
         val form: VesselForm,
@@ -103,6 +118,7 @@ sealed interface VesselEditorUiState {
         val hasChanges: Boolean,
         val errors: Set<VesselFieldError>,
         val saving: Boolean = false,
+        val photo: VesselPhoto = VesselPhoto.None,
     ) : VesselEditorUiState
 }
 
@@ -120,13 +136,17 @@ sealed interface VesselEditorEvent {
  * else the stored one, the seed vessels included. Nothing is stored before *Speichern*; a volume edit
  * changes no recipe (a recipe stores its water). ⋮ *Archivieren* (never delete) is refused for the vessel
  * of the active brew session; an archived vessel offers *Wiederherstellen*. The form lives in the
- * [SavedStateHandle], so it survives a process death.
+ * [SavedStateHandle], so it survives a process death. The vessel's one photo (WARE-01) is set, replaced or
+ * removed through [VesselPhotos] after the vessel itself is stored; a photo that can't be read then is skipped.
  */
+@Suppress("TooManyFunctions") // the form, the photo change and the three menu actions each have a few
 @HiltViewModel
 class VesselEditorViewModel @Inject constructor(
     private val savedState: SavedStateHandle,
     private val vessels: VesselRepository,
     private val archive: VesselArchive,
+    private val photos: VesselPhotos,
+    private val photoFiles: PhotoFiles,
 ) : ViewModel() {
 
     private val vesselId: String? = savedState[VESSEL_ID]
@@ -136,18 +156,20 @@ class VesselEditorViewModel @Inject constructor(
     private val form = MutableStateFlow(restoreForm())
     private val showErrors = MutableStateFlow(savedState[SHOW_ERRORS] ?: false)
     private val saving = MutableStateFlow(false)
+    private val photoChange = MutableStateFlow(restorePhotoChange())
     private val navigation = Channel<VesselEditorEvent>(Channel.BUFFERED)
 
     /** One-shot requests to the host. */
     val events: Flow<VesselEditorEvent> = navigation.receiveAsFlow()
 
+    private val flags = combine(showErrors, saving, photoChange, ::Flags)
+
     val state: StateFlow<VesselEditorUiState> = combine(
         base,
         form,
-        showErrors,
+        flags,
         archive.observeActiveVesselId(),
-        saving,
-    ) { b, f, show, activeId, isSaving ->
+    ) { b, f, flag, activeId ->
         when {
             b == null -> VesselEditorUiState.Loading
 
@@ -162,9 +184,10 @@ class VesselEditorViewModel @Inject constructor(
                     isNew = stored == null,
                     isArchived = stored?.isArchived == true,
                     archiveBlocked = stored != null && stored.id == activeId,
-                    hasChanges = f != (stored?.let(VesselForm::of) ?: VesselForm()),
-                    errors = if (show) f.errors() else emptySet(),
-                    saving = isSaving,
+                    hasChanges = f != (stored?.let(VesselForm::of) ?: VesselForm()) || flag.photo != PhotoChange.Keep,
+                    errors = if (flag.showErrors) f.errors() else emptySet(),
+                    saving = flag.saving,
+                    photo = photoOf(stored, flag.photo),
                 )
             }
         }
@@ -210,10 +233,61 @@ class VesselEditorViewModel @Inject constructor(
                 saving.value = true
                 viewModelScope.launch {
                     vessels.saveVessel(vessel)
+                    applyPhoto(vessel.id)
                     base.value = Base.Stored(vessel)
                     navigation.send(VesselEditorEvent.Saved(vessel.id))
                 }
             }
+        }
+    }
+
+    /** The photo picker returned [uri]: it is shown at once and replaces the vessel's photo with *Speichern*. */
+    fun pickPhoto(uri: String) {
+        setPhotoChange(PhotoChange.Set(uri))
+    }
+
+    /** *Foto entfernen*: a stored photo goes with *Speichern*; one that was only picked is dropped. */
+    fun removePhoto() {
+        val hasStored = (base.value as? Base.Stored)?.vessel?.coverPhotoId != null
+        setPhotoChange(if (hasStored) PhotoChange.Remove else PhotoChange.Keep)
+    }
+
+    private suspend fun applyPhoto(vesselId: String) {
+        when (val change = photoChange.value) {
+            PhotoChange.Keep -> Unit
+            is PhotoChange.Set -> photos.set(vesselId, change.uri)
+            PhotoChange.Remove -> photos.remove(vesselId)
+        }
+    }
+
+    private fun photoOf(stored: Vessel?, change: PhotoChange): VesselPhoto = when (change) {
+        is PhotoChange.Set -> VesselPhoto.Picked(change.uri)
+
+        PhotoChange.Remove -> VesselPhoto.None
+
+        PhotoChange.Keep ->
+            stored?.coverPhotoId
+                ?.let { photoFiles.file(it) }
+                ?.takeIf { it.isFile }
+                ?.let { VesselPhoto.Stored(it.path) }
+                ?: VesselPhoto.None
+    }
+
+    private fun setPhotoChange(change: PhotoChange) {
+        photoChange.value = change
+        savedState[PHOTO_CHANGE] = when (change) {
+            PhotoChange.Keep -> null
+            PhotoChange.Remove -> PHOTO_REMOVE
+            is PhotoChange.Set -> PHOTO_SET + change.uri
+        }
+    }
+
+    private fun restorePhotoChange(): PhotoChange = savedState.get<String>(PHOTO_CHANGE).let { saved ->
+        when {
+            saved == null -> PhotoChange.Keep
+            saved == PHOTO_REMOVE -> PhotoChange.Remove
+            saved.startsWith(PHOTO_SET) -> PhotoChange.Set(saved.removePrefix(PHOTO_SET))
+            else -> PhotoChange.Keep
         }
     }
 
@@ -262,6 +336,17 @@ class VesselEditorViewModel @Inject constructor(
         )
     }
 
+    /** What *Speichern* does to the vessel's photo. */
+    private sealed interface PhotoChange {
+        data object Keep : PhotoChange
+
+        data object Remove : PhotoChange
+
+        data class Set(val uri: String) : PhotoChange
+    }
+
+    private data class Flags(val showErrors: Boolean, val saving: Boolean, val photo: PhotoChange)
+
     private sealed interface Base {
         data object New : Base
 
@@ -275,6 +360,9 @@ class VesselEditorViewModel @Inject constructor(
         const val VESSEL_ID = "vesselId"
 
         private const val SHOW_ERRORS = "vesselEditor.showErrors"
+        private const val PHOTO_CHANGE = "vesselEditor.photo"
+        private const val PHOTO_REMOVE = "remove"
+        private const val PHOTO_SET = "set:"
         private const val FORM_NAME = "vesselEditor.name"
         private const val FORM_TYPE = "vesselEditor.type"
         private const val FORM_CAPACITY = "vesselEditor.capacity"

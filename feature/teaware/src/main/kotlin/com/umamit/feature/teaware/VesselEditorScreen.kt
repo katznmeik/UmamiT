@@ -2,16 +2,21 @@ package com.umamit.feature.teaware
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -43,13 +48,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -60,7 +71,12 @@ import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.EditorScaffold
+import com.umamit.core.ui.PhotoPicker
+import com.umamit.core.ui.SystemPhotoPicker
 import com.umamit.core.ui.rememberAlertGate
+import com.umamit.core.ui.rememberPhotoPainter
+import com.umamit.core.ui.rememberPhotoPicker
+import com.umamit.core.ui.rememberPickedPhotoPainter
 
 /** Test tags of SCR-14. */
 object VesselEditorTags {
@@ -73,6 +89,9 @@ object VesselEditorTags {
     const val FAVORITE = "VesselEditorFavorite"
     const val SAVE = "VesselEditorSave"
     const val MORE = "VesselEditorMore"
+    const val PHOTO = "VesselEditorPhoto"
+    const val PHOTO_PICK = "VesselEditorPhotoPick"
+    const val PHOTO_REMOVE = "VesselEditorPhotoRemove"
 }
 
 /**
@@ -101,9 +120,12 @@ fun VesselEditorRoute(
     modifier: Modifier = Modifier,
     onArchive: (ArchivedVessel) -> Unit = {},
     alertKey: String? = null,
+    photoPicker: PhotoPicker = SystemPhotoPicker,
+    photo: @Composable (VesselPhoto) -> Painter? = { vesselPhotoPainter(it) },
     viewModel: VesselEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val pickPhoto = rememberPhotoPicker(photoPicker, viewModel::pickPhoto)
     val currentOnSave by rememberUpdatedState(onSave)
     val currentOnArchive by rememberUpdatedState(onArchive)
     LaunchedEffect(viewModel) {
@@ -121,10 +143,13 @@ fun VesselEditorRoute(
             save = viewModel::save,
             archive = viewModel::archive,
             restore = viewModel::restore,
+            pickPhoto = pickPhoto,
+            removePhoto = viewModel::removePhoto,
             close = onClose,
         ),
         modifier = modifier,
         alertKey = alertKey,
+        photo = photo,
     )
 }
 
@@ -134,13 +159,17 @@ class VesselEditorActions(
     val save: () -> Unit = {},
     val archive: () -> Unit = {},
     val restore: () -> Unit = {},
+    /** *Foto hinzufügen* / *Foto ersetzen*: opens the photo picker. */
+    val pickPhoto: () -> Unit = {},
+    val removePhoto: () -> Unit = {},
     /** Leaves the editor without saving. */
     val close: () -> Unit = {},
 )
 
 /**
  * SCR-14 without state, a full-screen dialog like SCR-10: ✕ · title · *Speichern* (and ⋮ for a stored
- * vessel), then name, type, volume, usable volume, material, notes and *Favorit*. No photo (v0.4.1).
+ * vessel), then the vessel's one photo (WARE-01), name, type, volume, usable volume, material, notes and
+ * *Favorit*.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,6 +178,7 @@ fun VesselEditorScreen(
     actions: VesselEditorActions,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
+    photo: @Composable (VesselPhoto) -> Painter? = { vesselPhotoPainter(it) },
 ) {
     val ready = state as? VesselEditorUiState.Ready
     EditorScaffold(
@@ -182,8 +212,9 @@ fun VesselEditorScreen(
 
             is VesselEditorUiState.Ready -> EditorFields(
                 state = state,
-                update = actions.update,
+                actions = actions,
                 alertKey = alertKey,
+                photo = photo,
                 // The padding holds the keyboard too (safeDrawing): no imePadding on top, which hid the fields
                 // behind it (D-102).
                 modifier = Modifier
@@ -240,10 +271,12 @@ private fun EditorMenu(state: VesselEditorUiState.Ready, actions: VesselEditorAc
 @Composable
 private fun EditorFields(
     state: VesselEditorUiState.Ready,
-    update: ((VesselForm) -> VesselForm) -> Unit,
+    actions: VesselEditorActions,
     alertKey: String?,
+    photo: @Composable (VesselPhoto) -> Painter?,
     modifier: Modifier = Modifier,
 ) {
+    val update = actions.update
     val form = state.form
     val errors = state.errors
     Column(
@@ -261,6 +294,7 @@ private fun EditorFields(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        PhotoField(state.photo, form.type, actions, photo, fieldModifier)
         val nameError = when {
             VesselFieldError.NameEmpty in errors -> R.string.vessel_editor_error_name_empty
             VesselFieldError.NameTooLong in errors -> R.string.vessel_editor_error_name_long
@@ -335,6 +369,83 @@ private fun EditorFields(
                 .padding(horizontal = UmamiSpacing.XXSmall),
         )
     }
+}
+
+/**
+ * The vessel's one photo at the top (WARE-01): the picture, or the type icon on a tint without one, with
+ * *Foto hinzufügen* / *Foto ersetzen* and, with a photo, *Foto entfernen*.
+ */
+@Composable
+private fun PhotoField(
+    photo: VesselPhoto,
+    type: VesselType,
+    actions: VesselEditorActions,
+    painter: @Composable (VesselPhoto) -> Painter?,
+    modifier: Modifier = Modifier,
+) {
+    val box = Modifier
+        .fillMaxWidth()
+        .height(PhotoHeight)
+        .clip(MaterialTheme.shapes.medium)
+    val emptyDescription = stringResource(R.string.vessel_editor_photo_empty_description)
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall)) {
+        when (photo) {
+            VesselPhoto.None -> Box(
+                modifier = box
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .testTag(VesselEditorTags.PHOTO)
+                    .semantics { contentDescription = emptyDescription },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(type.icon()),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(PhotoIconSize),
+                )
+            }
+
+            is VesselPhoto.Stored, is VesselPhoto.Picked -> PhotoImage(painter(photo), box)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
+            TextButton(onClick = actions.pickPhoto, modifier = Modifier.testTag(VesselEditorTags.PHOTO_PICK)) {
+                Text(
+                    stringResource(
+                        if (photo == VesselPhoto.None) {
+                            R.string.vessel_editor_photo_add
+                        } else {
+                            R.string.vessel_editor_photo_replace
+                        },
+                    ),
+                )
+            }
+            if (photo != VesselPhoto.None) {
+                TextButton(onClick = actions.removePhoto, modifier = Modifier.testTag(VesselEditorTags.PHOTO_REMOVE)) {
+                    Text(stringResource(R.string.vessel_editor_photo_remove))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoImage(painter: Painter?, modifier: Modifier = Modifier) {
+    val description = stringResource(R.string.vessel_editor_photo_description)
+    val tagged = modifier.testTag(VesselEditorTags.PHOTO)
+    if (painter != null) {
+        Image(painter, description, tagged, contentScale = ContentScale.Crop)
+    } else {
+        // Still loading or unreadable: the tint holds the place, the photo keeps its label.
+        Box(tagged.background(MaterialTheme.colorScheme.surfaceVariant).semantics { contentDescription = description })
+    }
+}
+
+/** The painter of the photo field's picture: the stored file or the picked image (SCR-14). */
+@Composable
+private fun vesselPhotoPainter(photo: VesselPhoto): Painter? = when (photo) {
+    VesselPhoto.None -> null
+    is VesselPhoto.Stored -> rememberPhotoPainter(photo.path)
+    is VesselPhoto.Picked -> rememberPickedPhotoPainter(photo.uri)
 }
 
 @Composable
@@ -421,6 +532,9 @@ private fun OptionIcon(@DrawableRes icon: Int) {
 private fun Boolean.then(value: Int): Int? = if (this) value else null
 
 private const val NOTES_MIN_LINES = 3
+
+private val PhotoHeight = 180.dp
+private val PhotoIconSize = 64.dp
 
 /** „3000" has four digits; more is never valid. */
 private const val MAX_VOLUME_DIGITS = 4

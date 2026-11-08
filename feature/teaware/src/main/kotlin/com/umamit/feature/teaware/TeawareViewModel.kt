@@ -2,6 +2,7 @@ package com.umamit.feature.teaware
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.VesselArchive
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.model.Vessel
@@ -25,6 +26,8 @@ data class VesselRow(
     /** The usable volume (WARE-04), only when it differs from [capacityMl]. */
     val usableMl: Int?,
     val isFavorite: Boolean,
+    /** The vessel's photo file (WARE-01), shown in place of the type icon; null without a photo. */
+    val photoPath: String? = null,
 )
 
 /** SCR-13's state. */
@@ -42,16 +45,19 @@ sealed interface TeawareUiState {
  * favourites first, then A–Z; the archived ones in their own part with *Wiederherstellen*.
  */
 @HiltViewModel
-class TeawareViewModel @Inject constructor(vessels: VesselRepository, private val archive: VesselArchive) :
-    ViewModel() {
+class TeawareViewModel @Inject constructor(
+    vessels: VesselRepository,
+    private val archive: VesselArchive,
+    private val photos: PhotoFiles,
+) : ViewModel() {
 
     val state: StateFlow<TeawareUiState> = vessels.observeVessels()
         .map { all ->
             val (archived, active) = all.partition { it.isArchived }
             TeawareUiState.Ready(
                 vessels = active.sortedWith(compareByDescending<Vessel> { it.isFavorite }.thenBy(byName) { it.name })
-                    .map { it.row() },
-                archived = archived.sortedWith(compareBy(byName) { it.name }).map { it.row() },
+                    .map { it.row(photos) },
+                archived = archived.sortedWith(compareBy(byName) { it.name }).map { it.row(photos) },
             )
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, TeawareUiState.Loading)
@@ -69,11 +75,12 @@ class TeawareViewModel @Inject constructor(vessels: VesselRepository, private va
     }
 }
 
-private fun Vessel.row() = VesselRow(
+private fun Vessel.row(photos: PhotoFiles) = VesselRow(
     id = id,
     name = name,
     type = type,
     capacityMl = capacityMl,
     usableMl = usableMl?.takeIf { it != capacityMl },
     isFavorite = isFavorite,
+    photoPath = coverPhotoId?.let { photos.file(it) }?.takeIf { it.isFile }?.path,
 )

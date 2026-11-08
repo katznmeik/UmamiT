@@ -16,6 +16,8 @@
     <!-- After Archivieren in the editor (D-100): „Kyusu 250 ml archiviert" · Rückgängig. -->
     <string name="teaware_archived">%1$s archiviert</string>
     <string name="teaware_undo">Rückgängig</string>
+    <!-- A vessel's photo in place of its type icon (TalkBack): „Foto von Kyusu 250 ml". -->
+    <string name="teaware_photo_description">Foto von %1$s</string>
 
     <!-- Gefäß bearbeiten (SCR-14), a full-screen dialog like SCR-10. -->
     <string name="vessel_editor_title_new">Neues Gefäß</string>
@@ -39,6 +41,12 @@
     <string name="vessel_editor_notes">Notizen</string>
     <string name="vessel_editor_favorite">Favorit</string>
     <string name="vessel_editor_favorite_detail">Favoriten stehen in den Listen oben.</string>
+    <!-- The photo field at the top (WARE-01): one photo, set, replaced or removed. -->
+    <string name="vessel_editor_photo_description">Foto des Gefäßes</string>
+    <string name="vessel_editor_photo_empty_description">Noch kein Foto</string>
+    <string name="vessel_editor_photo_add">Foto hinzufügen</string>
+    <string name="vessel_editor_photo_replace">Foto ersetzen</string>
+    <string name="vessel_editor_photo_remove">Foto entfernen</string>
     <string name="vessel_editor_not_found">Dieses Gefäß gibt es nicht mehr.</string>
     <!-- Errors at the field; Speichern refuses them. -->
     <string name="vessel_editor_error_name_empty">Gib einen Namen ein.</string>
