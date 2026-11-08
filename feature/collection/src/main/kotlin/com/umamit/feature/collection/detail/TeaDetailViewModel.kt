@@ -274,18 +274,6 @@ class TeaDetailViewModel @Inject constructor(
         )
     }
 
-    private fun Recipe.summary(vesselNames: Map<String, String>) = RecipeSummary(
-        id = id,
-        name = name,
-        isDefault = isDefault,
-        method = method,
-        vesselName = vesselId?.let(vesselNames::get),
-        leafGrams = leafGrams,
-        waterMl = waterMl,
-        tempC = steps.firstOrNull { it.kind != StepKind.RINSE }?.tempC ?: baseTempC,
-        infusions = steps.count { it.kind != StepKind.RINSE },
-    )
-
     private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
 
     private data class Brewed(val sessions: List<BrewSession>, val active: Boolean, val globals: Globals) {
@@ -308,6 +296,19 @@ private fun BrewSession.day(): LocalDate {
     val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
     return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
 }
+
+/** A recipe row of REZEPTE: its key values, the vessel by name. */
+private fun Recipe.summary(vesselNames: Map<String, String>) = RecipeSummary(
+    id = id,
+    name = name,
+    isDefault = isDefault,
+    method = method,
+    vesselName = vesselId?.let(vesselNames::get),
+    leafGrams = leafGrams,
+    waterMl = waterMl,
+    tempC = steps.firstOrNull { it.kind != StepKind.RINSE }?.tempC ?: baseTempC,
+    infusions = steps.count { it.kind != StepKind.RINSE },
+)
 
 /** A stock event as a row of VORRAT's history, on its day in [zone] (SCR-29). */
 private fun InventoryEvent.entry(zone: ZoneId) = StockEntry(

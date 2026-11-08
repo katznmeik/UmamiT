@@ -189,35 +189,30 @@ internal fun Stock(
                 Text(stringResource(R.string.collection_tea_stock_correct))
             }
         }
-        tea.reorder?.let { ReorderLink(it, onReorder) }
-        history()
-    }
-}
-
-/** INV-09's *Beim Tee-Kontor nachbestellen*: a filled button when [Reorder.prominent], else a text link. */
-@Composable
-private fun ReorderLink(reorder: Reorder, onReorder: (String) -> Unit) {
-    val label = stringResource(R.string.collection_tea_reorder)
-    val icon = painterResource(UmamiIcons.OpenInNew)
-    if (reorder.prominent) {
-        Spacer(Modifier.height(UmamiSpacing.Small))
-        PillButton(
-            text = label,
-            onClick = { onReorder(reorder.url) },
-            icon = icon,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(TEA_DETAIL_REORDER_TAG),
-        )
-    } else {
-        TextButton(
-            onClick = { onReorder(reorder.url) },
-            modifier = Modifier.testTag(TEA_DETAIL_REORDER_TAG),
-        ) {
-            Text(label)
-            Spacer(Modifier.width(UmamiSpacing.XSmall))
-            Icon(icon, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+        val reorder = tea.reorder
+        val label = stringResource(R.string.collection_tea_reorder)
+        val icon = painterResource(UmamiIcons.OpenInNew)
+        if (reorder?.prominent == true) {
+            Spacer(Modifier.height(UmamiSpacing.Small))
+            PillButton(
+                text = label,
+                onClick = { onReorder(reorder.url) },
+                icon = icon,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(TEA_DETAIL_REORDER_TAG),
+            )
+        } else if (reorder != null) {
+            TextButton(
+                onClick = { onReorder(reorder.url) },
+                modifier = Modifier.testTag(TEA_DETAIL_REORDER_TAG),
+            ) {
+                Text(label)
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Icon(icon, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+            }
         }
+        history()
     }
 }
 

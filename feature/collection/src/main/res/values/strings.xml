@@ -153,7 +153,10 @@
     <string name="collection_tea_history_purchase">Kauf</string>
     <string name="collection_tea_history_correction">Bestand korrigiert</string>
     <string name="collection_tea_history_brew">Gebrüht</string>
-    <string name="collection_tea_history_more">Alle %1$d Einträge anzeigen</string>
+    <plurals name="collection_tea_history_more">
+        <item quantity="one">%1$d Eintrag anzeigen</item>
+        <item quantity="other">Alle %1$d Einträge anzeigen</item>
+    </plurals>
     <string name="collection_tea_history_grams_up">+%1$s g</string>
     <string name="collection_tea_history_grams_down">−%1$s g</string>
     <string name="collection_tea_history_with_price">%1$s · %2$s €</string>

@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -86,7 +87,7 @@ internal fun StockHistory(
                 onClick = { expanded = true },
                 modifier = Modifier.testTag(TEA_DETAIL_HISTORY_MORE_TAG),
             ) {
-                Text(stringResource(R.string.collection_tea_history_more, history.size))
+                Text(pluralStringResource(R.plurals.collection_tea_history_more, history.size, history.size))
             }
         }
     }
