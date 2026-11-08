@@ -127,7 +127,8 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
             purchase.purchasedOn,
             time,
         )
-        addEvent(event)
+        val now = time.nowMs()
+        dao.recordPurchase(event.toEntity(createdAt = now, updatedAt = now), now)
         return event
     }
 }

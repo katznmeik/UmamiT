@@ -81,6 +81,25 @@ class StockPurchaseTest {
         assertThat(purchases().single().occurredAtMillis).isEqualTo(noon)
     }
 
+    @Test
+    fun aPurchaseRestoresAnArchivedTeaFromTheArchive() = runTest {
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(isArchived = true))
+
+        data.stock.recordPurchase("t1", TeaPurchase(50.0, null, LocalDate.of(2026, 11, 8)))
+
+        assertThat(data.teas.getTea("t1")!!.isArchived).isFalse()
+        assertThat(purchases()).hasSize(1)
+    }
+
+    @Test
+    fun aPurchaseLeavesAnActiveTeaAsItIs() = runTest {
+        val before = data.teas.getTea("t1")!!
+
+        data.stock.recordPurchase("t1", TeaPurchase(50.0, null, LocalDate.of(2026, 11, 8)))
+
+        assertThat(data.teas.getTea("t1")).isEqualTo(before)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun aDayInTheFutureIsRefused() = runTest {
         try {

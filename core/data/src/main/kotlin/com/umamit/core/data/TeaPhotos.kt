@@ -1,7 +1,11 @@
 package com.umamit.core.data
 
+import android.content.ContentResolver
 import android.content.Context
+import android.content.res.AssetFileDescriptor
 import android.database.SQLException
+import android.net.Uri
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.room.withTransaction
 import com.umamit.core.common.WallClock
@@ -22,6 +26,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.util.UUID
 import javax.inject.Inject
 
@@ -187,25 +192,30 @@ class RoomTeaPhotos @Inject constructor(
     }
 }
 
-/** The picked image at [uri] read through the content resolver and processed (06 §5.2), or null. */
-internal suspend fun loadPicked(context: Context, uri: String): EncodedPhoto? = readPicked(context, uri)?.let { bytes ->
-    withContext(Dispatchers.Default) { PhotoTranscoder.transcodePicked(bytes) }
+/**
+ * The picked image at [uri] read through the content resolver and processed (06 §5.2), or null. Running out of
+ * memory on a huge image refuses that image like an unreadable one: the timer runs in this process (rule 8, D-090).
+ */
+internal suspend fun loadPicked(context: Context, uri: String): EncodedPhoto? = try {
+    readPicked(context, uri)?.let { bytes ->
+        withContext(Dispatchers.Default) { PhotoTranscoder.transcodePicked(bytes) }
+    }
+} catch (e: OutOfMemoryError) {
+    Log.w(TAG, "Picked image too large for the memory left", e)
+    null
 }
 
 /** The bytes behind [uri], or null when it can't be opened or is larger than [MAX_PICKED_BYTES]. */
 private fun readPicked(context: Context, uri: String): ByteArray? = try {
-    context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(BUFFER_BYTES)
-        var total = 0L
-        while (true) {
-            val count = input.read(buffer)
-            if (count < 0) break
-            total += count
-            if (total > MAX_PICKED_BYTES) return null
-            out.write(buffer, 0, count)
+    val resolver = context.contentResolver
+    val parsed = uri.toUri()
+    val declared = declaredLength(resolver, parsed)
+    if (declared > MAX_PICKED_BYTES) {
+        null
+    } else {
+        resolver.openInputStream(parsed)?.use { input ->
+            if (declared > 0) readSized(input, declared.toInt()) else readRest(input, ByteArrayOutputStream())
         }
-        out.toByteArray()
     }
 } catch (_: IOException) {
     null
@@ -214,9 +224,54 @@ private fun readPicked(context: Context, uri: String): ByteArray? = try {
     null
 }
 
-/** Above a 200 MP camera JPEG; anything larger is no photo the app takes. */
-private const val MAX_PICKED_BYTES = 128L * 1024 * 1024
+/** The length the provider declares for [uri], or [AssetFileDescriptor.UNKNOWN_LENGTH]. */
+private fun declaredLength(resolver: ContentResolver, uri: Uri): Long = try {
+    resolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: AssetFileDescriptor.UNKNOWN_LENGTH
+} catch (_: IOException) {
+    // The stream is opened next and fails on its own if the file is really gone.
+    AssetFileDescriptor.UNKNOWN_LENGTH
+}
+
+/**
+ * [input] read into an array of its declared [size]: the only copy of the file in memory. A shorter stream is
+ * trimmed; a longer one is read on within [MAX_PICKED_BYTES].
+ */
+private fun readSized(input: InputStream, size: Int): ByteArray? {
+    val bytes = ByteArray(size)
+    var filled = 0
+    var count = 0
+    while (filled < size && count >= 0) {
+        count = input.read(bytes, filled, size - filled)
+        if (count > 0) filled += count
+    }
+    val next = if (filled < size) -1 else input.read()
+    return when {
+        filled < size -> bytes.copyOf(filled)
+        next < 0 -> bytes
+        else -> {
+            val out = ByteArrayOutputStream(size + BUFFER_BYTES)
+            out.write(bytes, 0, size)
+            out.write(next)
+            readRest(input, out)
+        }
+    }
+}
+
+/** [out] followed by the rest of [input], or null when the whole is larger than [MAX_PICKED_BYTES]. */
+private fun readRest(input: InputStream, out: ByteArrayOutputStream): ByteArray? {
+    val buffer = ByteArray(BUFFER_BYTES)
+    var count = input.read(buffer)
+    while (count >= 0 && out.size().toLong() + count <= MAX_PICKED_BYTES) {
+        out.write(buffer, 0, count)
+        count = input.read(buffer)
+    }
+    return if (count < 0) out.toByteArray() else null
+}
+
+/** A 200 MP camera JPEG fits; larger files are refused before they are buffered (D-106). */
+private const val MAX_PICKED_BYTES = 40L * 1024 * 1024
 private const val BUFFER_BYTES = 64 * 1024
+private const val TAG = "TeaPhotos"
 
 /** Binds [TeaPhotos] (TEA-05). */
 @Module

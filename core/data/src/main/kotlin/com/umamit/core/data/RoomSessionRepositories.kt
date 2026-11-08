@@ -80,13 +80,16 @@ class RoomSessionRepository @Inject constructor(
      * deleted here), so *So nochmal brühen* can prefill them. `planned_step_count` is the planned
      * total; `ended_at` comes from the ended rows only, and the cost from the leaf.
      *
-     * An opened date it sets is remembered for the „Gespeichert" sheet after the transaction's block, in
-     * memory only; the transaction reads and writes what it did in v0.4.0 (SCR-06, D-104).
+     * An opened date it sets is remembered for the „Gespeichert" sheet, in memory only; a completion that
+     * sets none forgets what an earlier attempt for the session remembered. The transaction reads and writes
+     * what it did in v0.4.0 (SCR-06, D-104). In production this runs inside the controller's outer
+     * transaction (`TransitionEffects.persist`), so the memory is written before that transaction commits;
+     * a rollback leaves a stale entry, which is harmless: [openedDateChange] checks it against the rows.
      */
     override suspend fun completeSession(sessionId: String, autoFinished: Boolean) {
         val deductStock = deductStock()
         val now = time.nowMs()
-        val change = db.withTransaction {
+        val completion = db.withTransaction {
             val session = sessions.get(sessionId)?.takeIf { it.status == SessionStatus.IN_PROGRESS }
                 ?: return@withTransaction null
             val rows = sessions.steps(sessionId)
@@ -106,10 +109,17 @@ class RoomSessionRepository @Inject constructor(
                     updatedAt = now,
                 ),
             )
-            opened
+            Completion(opened)
         }
-        change?.let(openedDates::record)
+        when {
+            completion == null -> Unit
+            completion.opened == null -> openedDates.forget(sessionId)
+            else -> openedDates.record(completion.opened)
+        }
     }
+
+    /** What a completion that ran did to the opened date: [opened] null when it set none. */
+    private class Completion(val opened: OpenedDateChange?)
 
     /**
      * The remembered change, checked against the rows: an outer transaction that rolled the completion
