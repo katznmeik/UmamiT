@@ -3,10 +3,12 @@ package com.umamit.feature.collection.detail
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
@@ -56,7 +59,7 @@ class TeaDetailScreenTest {
     private fun show(tea: TeaDetail = sample()) {
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                TeaDetailScreen(TeaDetailUiState.Ready(tea), actions, alertKey = alertKey, photo = null)
+                TeaDetailScreen(TeaDetailUiState.Ready(tea), actions, alertKey = alertKey, photo = { null })
             }
         }
         compose.waitForIdle()
@@ -93,6 +96,49 @@ class TeaDetailScreenTest {
     fun `DETAILS shows the country by its German name, a typed name stays`() {
         show(sample().copy(details = sample().details.copy(originCountry = "JP")))
         compose.onNodeWithText("Japan, Shizuoka").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `DETAILS shows the best-before day when set, the opening date only in FRISCHE (TEA-02)`() {
+        show(
+            sample().copy(
+                details = sample().details.copy(
+                    bestBefore = LocalDate.of(2027, 3, 1),
+                ),
+            ),
+        )
+        compose.onNodeWithText("1. März 2027").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `DETAILS shows no date rows without dates`() {
+        show(sample())
+        compose.onNodeWithText("Haltbar bis").assertDoesNotExist()
+        compose.onNodeWithText("Geöffnet am").assertDoesNotExist()
+    }
+
+    @Test
+    fun `FRISCHE shows the label and the opening date, read as one item`() {
+        show(sample().copy(freshness = DetailFreshness(Freshness.DRINK_SOON, LocalDate.of(2026, 10, 8), null)))
+
+        compose.onNodeWithTag(TEA_DETAIL_FRESHNESS_TAG).performScrollTo().assertIsDisplayed()
+            .assert(hasContentDescription("Frische: Bald genießen"))
+            .assert(hasText("Geöffnet am 8. Okt. 2026"))
+    }
+
+    @Test
+    fun `a passed best-before date names that date, no label means no FRISCHE`() {
+        show(sample().copy(freshness = DetailFreshness(Freshness.PAST_PEAK, null, LocalDate.of(2026, 11, 1))))
+        compose.onNodeWithTag(TEA_DETAIL_FRESHNESS_TAG).performScrollTo()
+            .assert(hasContentDescription("Frische: Über dem Höhepunkt"))
+            .assert(hasText("Mindestens haltbar bis 1. Nov. 2026"))
+    }
+
+    @Test
+    fun `no label, no FRISCHE`() {
+        show(sample().copy(freshness = null))
+        compose.onNodeWithTag(TEA_DETAIL_FRESHNESS_TAG).assertDoesNotExist()
+        compose.onNodeWithText("Frische", ignoreCase = true).assertDoesNotExist()
     }
 
     @Test

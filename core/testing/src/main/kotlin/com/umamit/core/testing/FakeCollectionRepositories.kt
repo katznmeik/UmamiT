@@ -5,6 +5,7 @@ import com.umamit.core.data.DeleteRecipeResult
 import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.StockRepository
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.model.InventoryEvent
@@ -23,6 +24,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlin.math.abs
 
 // In-memory fakes of the core:data repositories for tests that need no database.
@@ -186,7 +191,12 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
 
     override suspend fun addEvent(event: InventoryEvent) = c.eventRows.update { it + (event.id to event) }
 
-    override suspend fun deleteEvent(id: String) = c.eventRows.update { it - id }
+    /** As on Room: a purchase or correction goes, a BREW event (or an unknown id) is refused (D-102). */
+    override suspend fun deleteEvent(id: String): Boolean {
+        val deletable = c.eventRows.value[id]?.let { it.type != InventoryEventType.BREW } == true
+        if (deletable) c.eventRows.update { it - id }
+        return deletable
+    }
 
     /** As on Room: one ADJUSTMENT of the difference at [now], none when the stock is unchanged. */
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
@@ -205,8 +215,32 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
         return event
     }
 
-    /** The time of the next [correctStock]. */
+    /** As on Room: one PURCHASE bought today at [now], on another day at noon in [zone]; a future day is refused. */
+    override suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        require(!purchase.purchasedOn.isAfter(today)) { "A purchase is never in the future" }
+        val at = if (purchase.purchasedOn == today) {
+            now
+        } else {
+            purchase.purchasedOn.atTime(LocalTime.NOON).atZone(zone).toInstant().toEpochMilli()
+        }
+        val event = InventoryEvent(
+            id = "purchase-${c.eventRows.value.size + 1}",
+            teaId = teaId,
+            type = InventoryEventType.PURCHASE,
+            deltaGrams = purchase.grams,
+            occurredAtMillis = at,
+            priceCents = purchase.priceCents,
+        )
+        addEvent(event)
+        return event
+    }
+
+    /** The time of the next [correctStock] and [recordPurchase]. */
     var now: Long = 0L
+
+    /** The phone's zone for [recordPurchase]'s day. */
+    var zone: ZoneId = ZoneOffset.UTC
 
     private companion object {
         const val UNCHANGED_GRAMS = 1e-6

@@ -3,10 +3,12 @@ package com.umamit.feature.collection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,6 +25,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeSessions
@@ -36,6 +39,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.Instant
+import java.time.LocalDate
 
 /**
  * *Meine Tees* (SCR-08; TEA-08–TEA-11, D-100) through its view model on fakes and Compose: search, the chips,
@@ -57,6 +62,8 @@ class MyTeasScreenTest {
     private val opened = mutableListOf<String>()
     private var fromCatalog = 0
     private var alertKey by mutableStateOf<String?>(null)
+    private val clock = FakeClock()
+    private val today: LocalDate = Instant.ofEpochMilli(clock.wall).atZone(clock.zone).toLocalDate()
 
     private fun show(vararg teas: Tea, stock: Map<String, Double> = emptyMap()) {
         runBlocking {
@@ -72,6 +79,7 @@ class MyTeasScreenTest {
             settings,
             FakeTeaArchive(sessions),
             PhotoFiles(folder.newFolder()),
+            clock,
         )
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -273,6 +281,22 @@ class MyTeasScreenTest {
         compose.onNodeWithContentDescription("Sortierung: Zuletzt gebrüht").assertExists()
         compose.onNodeWithText("Favoriten").performClick()
         compose.onNodeWithText("Favoriten").assertIsSelected()
+    }
+
+    @Test
+    fun anOpenedTeaShowsItsFreshnessAndTalkBackReadsItWithTheRow() {
+        show(
+            tea("g", "Mondschatten").copy(styleKey = "gyokuro", openedDate = today.minusDays(45)),
+            tea("u", "Versiegelt").copy(styleKey = "gyokuro"),
+            stock = mapOf("g" to 30.0, "u" to 50.0),
+        )
+
+        compose.onNodeWithText("Bald genießen", useUnmergedTree = true).assertExists()
+        // The row is one TalkBack item; it reads the label with the name and the stock.
+        compose.onNodeWithTag(myTeaRowTag("g")).onChildAt(0)
+            .assert(hasContentDescription("Frische: Bald genießen"))
+        compose.onNodeWithTag(myTeaRowTag("u")).onChildAt(0)
+            .assert(hasContentDescription("Frische:", substring = true).not())
     }
 
     private fun tea(

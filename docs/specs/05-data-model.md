@@ -248,8 +248,33 @@ re-encoded from WebP to JPEG when copied), exactly one of
 `tea_id` / `session_id` / `vessel_id` (FK CASCADE), `position`, `width_px`,
 `height_px`, `byte_size`, `origin` (`PhotoOrigin`).
 When a tea is added from the catalog, the catalog photo is **copied** into
-`photo` (origin `CATALOG_COPY`) so the tea stays independent. The single
+`photo` (origin `CATALOG_COPY`) so the tea stays independent.
+
+Tea photo writes (v0.4.1, TEA-05, `TeaPhotos`):
+- **Add:** a picked image is processed (06 §5.2) and its file written to
+  `photos/` first; then, in one transaction, the row (origin `OWN`,
+  `position` = the tea's highest + 1, else 0) and, when the tea has no
+  cover, `tea.cover_photo_id`. Refused at 10 photos of the tea (checked
+  before reading the image and again in the transaction). A refused or
+  failed row deletes the file again; an unreadable image writes nothing.
+- **Order:** by `position`, then `created_at`. Catalog copies are ordinary
+  photos that can lose the cover or be deleted (#186).
+- **Set cover** (*Als Titelbild*): `tea.cover_photo_id` = the photo, only if
+  it is the tea's; positions don't change.
+- **Delete:** in one transaction the row goes and, if it was the cover,
+  `tea.cover_photo_id` becomes the next photo by that order (after the last
+  one: the first; none left: NULL). The file is deleted after the commit, so a
+  failed transaction keeps the file its row still names. Positions are not
+  renumbered (gaps are fine; *+ Foto* appends after the highest). The single
 owner is enforced by the model type (`PhotoOwner`), so no row can name two.
+Vessel photo writes (v0.4.1, WARE-01, `VesselPhotos`): at most one photo per
+vessel, origin `OWN`, `position` 0, processed like a tea photo. **Set**
+writes the new file first; then, in one transaction, the new row, then
+`vessel.cover_photo_id`, then the vessel's other photo rows are dropped; their
+files go after the commit. A failed transaction deletes the new file again;
+an unreadable image changes nothing. **Remove** clears the cover, deletes the
+row and, after the commit, the file. The editor calls these after the vessel
+row is stored by *Speichern*.
 Replacing a recipe's steps (*Im Rezept speichern*) writes new `brew_step` rows
 with new ids.
 
@@ -585,7 +610,9 @@ Time rounding for derived recipes: nearest 5 s (half up).
   (domain `file`, the settings). Everything else stays out because nothing
   includes it: `catalog.db*`, `photos/`, `catalog/`, caches, other libraries'
   databases and the no-backup storage (D-052). `BackupRulesTest` checks the
-  sets.
+  sets. The user's own tea photos (v0.4.1) are in `photos/` too, so they are
+  **not** in the device backup until M5's export (BAK-01, D-104); after a
+  restore their rows go with the sweep below.
 - **Restore detection** (D-052): an empty install marker file
   `umamit-install-marker` in `Context.noBackupFilesDir`, which no backup
   carries. When Room creates `umamit.db` (a fresh install, or cleared app

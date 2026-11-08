@@ -115,15 +115,35 @@ interface TeaDao {
     @Query("UPDATE tea SET recipe_check_reason = NULL, updated_at = :now WHERE id = :teaId")
     suspend fun clearRecipeCheck(teaId: String, now: Long)
 
-    /** *Geöffnet am* (INV-06). */
+    /** *Geöffnet am* (INV-06); null: unopened again (*Rückgängig*, SCR-06). */
     @Query("UPDATE tea SET opened_date = :openedDate, updated_at = :now WHERE id = :teaId")
-    suspend fun setOpenedDate(teaId: String, openedDate: LocalDate, now: Long)
+    suspend fun setOpenedDate(teaId: String, openedDate: LocalDate?, now: Long)
 
     @Upsert
     suspend fun upsertPhoto(photo: PhotoEntity)
 
     @Query("SELECT * FROM photo WHERE id = :id")
     suspend fun photo(id: String): PhotoEntity?
+
+    /** The tea's photos in their order (SCR-28): by `position`, then by when they were added. */
+    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    fun observeTeaPhotos(teaId: String): Flow<List<PhotoEntity>>
+
+    /** The tea's photos in their order now (TEA-05, *Löschen*). */
+    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    suspend fun teaPhotos(teaId: String): List<PhotoEntity>
+
+    /** Deletes photo [id]'s row; a cover pointing at it is cleared by the foreign key (TEA-05). */
+    @Query("DELETE FROM photo WHERE id = :id")
+    suspend fun deletePhoto(id: String)
+
+    /** How many photos the tea has (TEA-05: at most 10). */
+    @Query("SELECT COUNT(*) FROM photo WHERE tea_id = :teaId")
+    suspend fun photoCount(teaId: String): Int
+
+    /** The tea's highest photo `position`, or null without photos. */
+    @Query("SELECT MAX(position) FROM photo WHERE tea_id = :teaId")
+    suspend fun maxPhotoPosition(teaId: String): Int?
 
     /** The ids of the tea's own photos, whose files go when the tea is deleted (TEA-04, D-100). */
     @Query("SELECT id FROM photo WHERE tea_id = :teaId")
@@ -158,6 +178,11 @@ abstract class RecipeDao {
     @Transaction
     @Query("SELECT * FROM brew_profile WHERE id = :id")
     abstract suspend fun get(id: String): ProfileWithSteps?
+
+    /** The tea's recipes now, in their position order (for writes that read them in their transaction). */
+    @Transaction
+    @Query("SELECT * FROM brew_profile WHERE tea_id = :teaId ORDER BY position, name")
+    abstract suspend fun forTea(teaId: String): List<ProfileWithSteps>
 
     @Query("SELECT COUNT(*) FROM brew_step WHERE profile_id = :profileId")
     abstract suspend fun stepCount(profileId: String): Int
@@ -248,6 +273,14 @@ abstract class RecipeDao {
     )
     abstract fun observeActiveRecipeId(): Flow<String?>
 
+    /** [observeActiveRecipeId] now. */
+    @Query(
+        "SELECT brew_session.profile_id FROM active_brew " +
+            "JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.profile_id IS NOT NULL LIMIT 1",
+    )
+    abstract suspend fun activeRecipeId(): String?
+
     /**
      * Deletes the recipe unless it is its tea's last one (PRF-01) or the recipe of the active brew session
      * (E15, D-101 F12); a deleted default passes to the first remaining recipe by position.
@@ -303,6 +336,21 @@ interface VesselDao {
 
     @Query("DELETE FROM vessel WHERE id = :id")
     suspend fun delete(id: String)
+
+    /** Stores the vessel's photo row (WARE-01, 05 §3.9). */
+    @Upsert
+    suspend fun upsertPhoto(photo: PhotoEntity)
+
+    /** The ids of the vessel's photos: at most one, but a crash between two steps could leave two. */
+    @Query("SELECT id FROM photo WHERE vessel_id = :vesselId")
+    suspend fun photoIds(vesselId: String): List<String>
+
+    /** Deletes the vessel's photo rows except [keepId] (none kept: an id no photo has). */
+    @Query("DELETE FROM photo WHERE vessel_id = :vesselId AND id != :keepId")
+    suspend fun deletePhotosExcept(vesselId: String, keepId: String)
+
+    @Query("UPDATE vessel SET cover_photo_id = :photoId, updated_at = :now WHERE id = :vesselId")
+    suspend fun setCoverPhoto(vesselId: String, photoId: String?, now: Long)
 }
 
 /** A tea's stock as [InventoryDao.observeStockLevels] reads it (INV-05, INV-10). */
@@ -355,6 +403,13 @@ abstract class InventoryDao {
     @Query("DELETE FROM inventory_event WHERE id = :id")
     abstract suspend fun delete(id: String)
 
+    /**
+     * Deletes the stock history's event [id] when it is a purchase (INITIAL, PURCHASE) or a correction
+     * (ADJUSTMENT); a BREW event leaves only with its journal entry (INV-03, D-102). Returns the rows deleted.
+     */
+    @Query("DELETE FROM inventory_event WHERE id = :id AND type IN ('INITIAL', 'PURCHASE', 'ADJUSTMENT')")
+    abstract suspend fun deleteUnlessBrew(id: String): Int
+
     /** The tea's remaining stock in g: the sum of its events' deltas, 0 without any (05 §3.10). */
     @Query("SELECT COALESCE(SUM(delta_grams), 0.0) FROM inventory_event WHERE tea_id = :teaId")
     abstract suspend fun remainingGrams(teaId: String): Double
@@ -385,6 +440,19 @@ abstract class InventoryDao {
         upsert(row)
         return row
     }
+
+    /**
+     * *Nachkauf erfassen* (INV-03, D-093 Q6): the purchase [row] and, when its tea is archived, the tea out of the
+     * archive, in one transaction.
+     */
+    @Transaction
+    open suspend fun recordPurchase(row: InventoryEventEntity, now: Long) {
+        upsert(row)
+        restoreFromArchive(row.teaId, now)
+    }
+
+    @Query("UPDATE tea SET is_archived = 0, updated_at = :now WHERE id = :teaId AND is_archived = 1")
+    protected abstract suspend fun restoreFromArchive(teaId: String, now: Long)
 
     private companion object {
         /** Below this the totals are equal: sums of 0,1 g steps in doubles differ only by rounding noise. */

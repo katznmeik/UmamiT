@@ -53,6 +53,15 @@ internal object TeaEditorStates {
         hasChanges = false,
         errors = emptySet(),
     )
+
+    /** The stored tea with both dates; the opening date is the one a refused *Speichern* flags when [future]. */
+    fun withDates(future: Boolean = false) = edit.copy(
+        form = edit.form.copy(
+            openedDate = if (future) LocalDate.of(2026, 12, 1) else LocalDate.of(2026, 10, 8),
+            bestBefore = LocalDate.of(2027, 3, 1),
+        ),
+        errors = if (future) setOf(TeaFieldError.OpenedDateFuture) else emptySet(),
+    )
 }
 
 /**
@@ -100,6 +109,16 @@ class TeaEditorScreenshotTest(private val dark: Boolean, private val fontScale: 
     fun edit() = capture("TeaEditor_edit") { TeaEditorScreen(TeaEditorStates.edit, TeaEditorActions()) }
 
     @Test
+    fun freshness() = capture("TeaEditor_freshness", scrollToTag = TeaEditorTags.BEST_BEFORE) {
+        TeaEditorScreen(TeaEditorStates.withDates(), TeaEditorActions())
+    }
+
+    @Test
+    fun freshnessError() = capture("TeaEditor_freshnessError", scrollToTag = TeaEditorTags.BEST_BEFORE) {
+        TeaEditorScreen(TeaEditorStates.withDates(future = true), TeaEditorActions())
+    }
+
+    @Test
     fun sortePicker() = capture("SortePicker") { SortePickerScreen(onBack = {}, onPick = {}) }
 }
 
@@ -119,6 +138,18 @@ class TeaEditorShortScreenScreenshotTest {
 
     @Test
     fun editor() = capture("TeaEditor_new") { TeaEditorScreen(TeaEditorStates.newWithErrors, TeaEditorActions()) }
+
+    @Test
+    fun freshness() {
+        compose.setContent {
+            UmamiTheme(darkTheme = false, reduceMotion = true) {
+                TeaEditorScreen(TeaEditorStates.withDates(), TeaEditorActions())
+            }
+        }
+        compose.onNodeWithTag(TeaEditorTags.BEST_BEFORE).performScrollTo()
+        compose.waitForIdle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaEditor_freshness_short_font2_0.png")
+    }
 
     @Test
     fun sortePicker() = capture("SortePicker") { SortePickerScreen(onBack = {}, onPick = {}) }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -32,6 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /** Tee bearbeiten (SCR-10) with its view model on fakes, and Sorte wählen (SCR-11). */
 @RunWith(RobolectricTestRunner::class)
@@ -102,6 +104,74 @@ class TeaEditorScreensTest {
         compose.onNodeWithText("Das Jahr liegt in der Zukunft.").performScrollTo().assertIsDisplayed()
         assertThat(saved).isEmpty()
         assertThat(adder.added).isEmpty()
+    }
+
+    @Test
+    fun `the opening date is picked, shown in German and cleared again (INV-06)`() {
+        runBlocking {
+            collection.teas.saveTea(
+                Tea(id = "t1", name = "Morgennebel", category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF),
+            )
+        }
+        showEditor(teaId = "t1")
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE).performScrollTo().assertTextContains("Nicht gesetzt")
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE + CLEAR_SUFFIX).assertDoesNotExist()
+
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE).performClick()
+        compose.onNodeWithText("OK").performClick() // the picker starts at today
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE).performScrollTo().assertTextContains("22. Okt. 2026")
+
+        compose.onNodeWithTag(TeaEditorTags.SAVE).performClick()
+        compose.waitForIdle()
+        assertThat(runBlocking { collection.teas.getTea("t1") }!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 22))
+    }
+
+    @Test
+    fun `Entfernen clears a stored opening and best-before date and the tea is unopened again`() {
+        runBlocking {
+            collection.teas.saveTea(
+                Tea(
+                    id = "t1",
+                    name = "Morgennebel",
+                    category = TeaCategory.GREEN,
+                    form = TeaForm.LOOSE_LEAF,
+                    openedDate = LocalDate.of(2026, 10, 8),
+                    bestBefore = LocalDate.of(2027, 3, 1),
+                ),
+            )
+        }
+        showEditor(teaId = "t1")
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE).performScrollTo().assertTextContains("8. Okt. 2026")
+        compose.onNodeWithTag(TeaEditorTags.BEST_BEFORE).performScrollTo().assertTextContains("1. März 2027")
+
+        compose.onNodeWithTag(TeaEditorTags.OPENED_DATE + CLEAR_SUFFIX).performClick()
+        compose.onNodeWithTag(TeaEditorTags.BEST_BEFORE + CLEAR_SUFFIX).performClick()
+        compose.onNodeWithTag(TeaEditorTags.SAVE).performClick()
+        compose.waitForIdle()
+
+        val tea = runBlocking { collection.teas.getTea("t1") }!!
+        assertThat(tea.openedDate).isNull()
+        assertThat(tea.bestBefore).isNull()
+    }
+
+    @Test
+    fun `a stored opening date in the future is refused at the field`() {
+        runBlocking {
+            collection.teas.saveTea(
+                Tea(
+                    id = "t1",
+                    name = "Morgennebel",
+                    category = TeaCategory.GREEN,
+                    form = TeaForm.LOOSE_LEAF,
+                    openedDate = LocalDate.of(2026, 12, 1),
+                ),
+            )
+        }
+        showEditor(teaId = "t1")
+        compose.onNodeWithTag(TeaEditorTags.SAVE).performClick()
+
+        compose.onNodeWithText("Das Öffnungsdatum liegt in der Zukunft.").performScrollTo().assertIsDisplayed()
+        assertThat(saved).isEmpty()
     }
 
     @Test

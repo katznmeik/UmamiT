@@ -1,7 +1,10 @@
 package com.umamit.feature.collection.detail
 
+import com.umamit.core.domain.collection.TeaCost
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
+import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
@@ -22,16 +25,25 @@ sealed interface TeaDetailUiState {
  *
  * @property teaType the *Sorte* for the chip („Sencha"), if any.
  * @property photoPath the cover photo's file, if it exists.
+ * @property photos the hero pager's photos (SCR-28): the cover first, then the others in their order; only those
+ *   whose file exists.
+ * @property photoCount the tea's photo rows, for the limit of [Photo.MAX_PER_TEA].
  * @property sessionCount the tea's finished sessions (the `StatTriplet`'s *Sitzungen*).
  * @property lastBrewed the day of the latest finished session in its own time zone; null when never brewed.
  * @property stockGrams the remaining grams (Σ of the stock events; 0 without any, as the setup reads it).
  * @property hasStock whether the tea has any stock event; without one no figure is shown (D-100: no stock is invented).
  * @property stockLevel *Knapp* / *Leer* by the tea's own threshold, else SET-16's (INV-05).
+ * @property freshness FRISCHE's label (INV-06, D-104); null for none (unopened, empty, a style without a window).
  * @property recipes the recipes by position, the default marked.
  * @property reorder INV-09's link, or null when it offers none.
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
  * @property sessionLeafGrams the leaf the active session of this tea still deducts at its end, for the stock
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
+ * @property today the phone's day when the data last changed: *Nachkauf erfassen*'s default and latest day (INV-03).
+ * @property history VORRAT's stock history (SCR-29, D-104): every stock event, newest first.
+ * @property cost VORRAT's cost lines (INV-08, D-104): price per 100 g, the default recipe's estimate and the
+ *   average of the priced sessions; null without a recorded price („no price, no cost").
+ * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
  */
 data class TeaDetail(
     val id: String,
@@ -41,11 +53,14 @@ data class TeaDetail(
     val styleKey: String? = null,
     val umamiLevel: UmamiLevel? = null,
     val photoPath: String? = null,
+    val photos: List<DetailPhoto> = emptyList(),
+    val photoCount: Int = photos.size,
     val sessionCount: Int = 0,
     val lastBrewed: LocalDate? = null,
     val stockGrams: Double = 0.0,
     val hasStock: Boolean = true,
     val stockLevel: StockLevel = StockLevel.EMPTY,
+    val freshness: DetailFreshness? = null,
     val recipes: List<RecipeSummary> = emptyList(),
     val reorder: Reorder? = null,
     val description: String? = null,
@@ -55,13 +70,55 @@ data class TeaDetail(
     val isArchived: Boolean = false,
     val inActiveBrew: Boolean = false,
     val sessionLeafGrams: Double? = null,
+    val today: LocalDate = LocalDate.now(),
+    val history: List<StockEntry> = emptyList(),
+    val cost: TeaCost? = null,
+    val catalogReset: CatalogResetOffer? = null,
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA
 
+    /** *+ Foto* is greyed out at 10 photos („Höchstens 10 Fotos", TEA-05). */
+    val canAddPhoto: Boolean get() = photoCount < Photo.MAX_PER_TEA
+
     /** *Brühen* is greyed out for an archived tea („Tee ist archiviert", D-100). */
     val canBrew: Boolean get() = !isArchived
 }
+
+/**
+ * FRISCHE (INV-06, D-104): the [label] with the date it is counted from: [openedDate] for a label by the style's
+ * window, [bestBefore] when that date has passed (then the label is *Über dem Höhepunkt*, opened or not).
+ */
+data class DetailFreshness(val label: Freshness, val openedDate: LocalDate?, val bestBefore: LocalDate?)
+
+/** What a row of the stock history is: a purchase (the first package included), a correction or a brew. */
+enum class StockEntryKind { PURCHASE, CORRECTION, BREW }
+
+/**
+ * A row of VORRAT's stock history (INV-03, SCR-29, D-104): the event [id], its [deltaGrams] (a brew and a lowering
+ * correction negative), a purchase's [priceCents] (null: none recorded), its [day] in the phone's zone and, for a
+ * brew, the [sessionId] whose page it opens.
+ */
+data class StockEntry(
+    val id: String,
+    val kind: StockEntryKind,
+    val deltaGrams: Double,
+    val priceCents: Long?,
+    val day: LocalDate,
+    val sessionId: String? = null,
+) {
+    /** A purchase or a correction can be deleted; a brew leaves only with its journal entry (D-102). */
+    val canDelete: Boolean get() = kind != StockEntryKind.BREW
+}
+
+/**
+ * ⋮ *Aus Katalog zurücksetzen* (PRF-06, CAT-13): [leftOut] of the catalog's recipes don't fit beside the tea's own
+ * recipes under [Recipe.MAX_PER_TEA]; the confirmation says so.
+ */
+data class CatalogResetOffer(val leftOut: Int)
+
+/** A photo of the hero pager (SCR-28): its file and whether it is the tea's cover. */
+data class DetailPhoto(val id: String, val path: String, val isCover: Boolean)
 
 /**
  * A recipe row of REZEPTE: its key values (vessel, leaf, water, temperature, steps) and whether it is the
@@ -98,6 +155,7 @@ data class TeaFacts(
     val processing: String? = null,
     val ingredients: String? = null,
     val vendor: String? = null,
+    val bestBefore: LocalDate? = null,
     val isOrganic: Boolean = false,
     val isFlavored: Boolean = false,
 ) {

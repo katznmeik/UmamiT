@@ -59,7 +59,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.umamit.core.designsystem.component.DiscardChangesDialog
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -67,6 +66,7 @@ import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.EditorScaffold
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
@@ -95,6 +95,8 @@ object TeaEditorTags {
     const val PURCHASE_DATE = "TeaEditorPurchaseDate"
     const val PACKAGE = "TeaEditorPackage"
     const val PRICE = "TeaEditorPrice"
+    const val OPENED_DATE = "TeaEditorOpenedDate"
+    const val BEST_BEFORE = "TeaEditorBestBefore"
     const val NOTES = "TeaEditorNotes"
     const val SAVE = "TeaEditorSave"
 }
@@ -151,49 +153,24 @@ fun TeaEditorScreen(
     alertKey: String? = null,
 ) {
     val ready = state as? TeaEditorUiState.Ready
-    val askDiscard = rememberAlertGate(alertKey)
-    val requestClose = { if (ready?.hasChanges == true) askDiscard.open() else actions.close() }
-    BackHandler(enabled = ready?.hasChanges == true) { askDiscard.open() }
     val snackbar = remember { SnackbarHostState() }
     val failed = stringResource(R.string.tea_editor_save_failed)
     LaunchedEffect(ready?.saveFailed) { if (ready?.saveFailed == true) snackbar.showSnackbar(failed) }
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    val title = if (ready?.isNew ==
-                        true
-                    ) {
-                        R.string.tea_editor_title_new
-                    } else {
-                        R.string.tea_editor_title_edit
-                    }
-                    // One line beside ✕ and Speichern, even at font scale 2.0 on a short screen.
-                    Text(stringResource(title), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-                navigationIcon = {
-                    IconButton(onClick = requestClose) {
-                        Icon(painterResource(UmamiIcons.Close), stringResource(R.string.tea_editor_close))
-                    }
-                },
-                actions = {
-                    if (ready != null) {
-                        TextButton(
-                            onClick = actions.save,
-                            enabled = !ready.saving,
-                            modifier = Modifier.testTag(TeaEditorTags.SAVE),
-                        ) {
-                            Text(stringResource(R.string.tea_editor_save))
-                        }
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(
-            WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom,
+    EditorScaffold(
+        title = stringResource(
+            if (ready?.isNew == true) R.string.tea_editor_title_new else R.string.tea_editor_title_edit,
         ),
+        closeDescription = stringResource(R.string.tea_editor_close),
+        saveLabel = stringResource(R.string.tea_editor_save),
+        saveTag = TeaEditorTags.SAVE,
+        showActions = ready != null,
+        hasChanges = ready?.hasChanges == true,
+        saving = ready?.saving == true,
+        onSave = actions.save,
+        onClose = actions.close,
+        modifier = modifier,
+        alertKey = alertKey,
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         when (state) {
             TeaEditorUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding))
@@ -220,14 +197,5 @@ fun TeaEditorScreen(
                     .verticalScroll(rememberScrollState()),
             )
         }
-    }
-    AlertGated(askDiscard) {
-        DiscardChangesDialog(
-            onKeepEditing = askDiscard::close,
-            onDiscard = {
-                askDiscard.close()
-                actions.close()
-            },
-        )
     }
 }

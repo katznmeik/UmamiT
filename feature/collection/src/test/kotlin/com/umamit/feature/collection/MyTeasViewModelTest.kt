@@ -5,6 +5,7 @@ import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.RecipeCheckReason
@@ -14,6 +15,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UserSettings
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeSessions
@@ -31,6 +33,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.Instant
+import java.time.LocalDate
 
 /** *Meine Tees* (SCR-08; TEA-08–TEA-11, D-100) on fake repositories. Invented teas (D-016). */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,7 +54,10 @@ class MyTeasViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = MyTeasViewModel(list, settings, archive, PhotoFiles(folder.newFolder()))
+    private val clock = FakeClock()
+    private val today: LocalDate get() = Instant.ofEpochMilli(clock.wall).atZone(clock.zone).toLocalDate()
+
+    private fun viewModel() = MyTeasViewModel(list, settings, archive, PhotoFiles(folder.newFolder()), clock)
 
     private val MyTeasViewModel.ids get() = state.value.rows.map { it.id }
 
@@ -83,6 +90,28 @@ class MyTeasViewModelTest {
         }
         assertThat(rows.getValue("b").checkRecipe).isTrue()
         assertThat(rows.getValue("b").stockLevel).isNull()
+    }
+
+    @Test
+    fun `each opened tea carries its freshness label, none unopened or empty`() = runTest {
+        save(tea("f", "Frühnebel").copy(styleKey = "gyokuro", openedDate = today.minusDays(39)))
+        save(tea("s", "Spätlicht").copy(styleKey = "gyokuro", openedDate = today.minusDays(40)))
+        save(tea("p", "Altgold").copy(styleKey = "gyokuro", openedDate = today.minusDays(60)))
+        save(tea("u", "Versiegelt").copy(styleKey = "gyokuro"))
+        save(tea("b", "Vergessen").copy(styleKey = "gyokuro", bestBefore = today.minusDays(1)))
+        save(tea("e", "Ausgetrunken").copy(styleKey = "gyokuro", openedDate = today.minusDays(5)))
+        stock("e", 0.0)
+
+        val rows = viewModel().state.value.rows.associate { it.id to it.freshness }
+
+        assertThat(rows).containsExactly(
+            "f", Freshness.FRESH,
+            "s", Freshness.DRINK_SOON,
+            "p", Freshness.PAST_PEAK,
+            "u", null,
+            "b", Freshness.PAST_PEAK,
+            "e", null,
+        )
     }
 
     @Test

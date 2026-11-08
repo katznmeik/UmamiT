@@ -10,6 +10,8 @@ package com.umamit.feature.collection.detail
  *   *Rückgängig* on the screen below (D-100).
  * @property onDeleted the tea was deleted: the host closes the detail.
  * @property alertKey the alert playing now, or null: the menu, the question and the sheet give way (rule 8).
+ * @property onOpenSession a brew row of the stock history: that session's page (SCR-16, SCR-29); null where the
+ *   detail has none to open (its brew rows then open nothing).
  */
 class TeaDetailHost(
     val onBack: () -> Unit,
@@ -20,4 +22,5 @@ class TeaDetailHost(
     val onEditTea: () -> Unit = {},
     val onEditRecipe: (recipeId: String) -> Unit = {},
     val onAddRecipe: () -> Unit = {},
+    val onOpenSession: ((sessionId: String) -> Unit)? = null,
 )

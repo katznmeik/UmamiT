@@ -15,6 +15,7 @@ import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TimerSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -439,6 +440,20 @@ class SessionLifecycleTest {
     }
 
     @Test
+    fun `Nachkauf erfassen after the stock ran out counts as a new package for the opened date`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        data.stock.addEvent(initial("old", "t1", grams = 4.0, priceCents = 100, at = START_WALL_MS - 40 * DAY_MS))
+        data.stock.addEvent(InventoryEvent("used", "t1", InventoryEventType.BREW, -4.0, START_WALL_MS - 30 * DAY_MS))
+        // Recorded on the detail (INV-03) two days before the session, on the same database.
+        TestDatabase(now = START_WALL_MS - 2 * DAY_MS, db = data.db).stock
+            .recordPurchase("t1", TeaPurchase(50.0, null, LocalDate.of(2026, 10, 20)))
+
+        completeOneStep(TimerDriver(data))
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 22))
+    }
+
+    @Test
     fun `a package bought while stock remained keeps the opened date`() = runTest {
         data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
         data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 40 * DAY_MS))
@@ -447,6 +462,113 @@ class SessionLifecycleTest {
         completeOneStep(TimerDriver(data))
 
         assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
+    }
+
+    @Test
+    fun `the completion that opens a tea reports none before, and the undo restores none`() = runTest {
+        teaWithStock()
+        completeOneStep(TimerDriver(data))
+
+        val change = data.sessions.openedDateChange(SESSION_ID)
+
+        assertThat(change).isEqualTo(OpenedDateChange(SESSION_ID, "t1", previous = null, LocalDate.of(2026, 10, 22)))
+        data.sessions.undoOpenedDate(change!!)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isNull()
+        // Done once: the sheet has nothing more to undo.
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `the completion that opens a new package reports the date before, and the undo restores it`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        data.stock.addEvent(initial("old", "t1", grams = 4.0, priceCents = 100, at = START_WALL_MS - 40 * DAY_MS))
+        data.stock.addEvent(InventoryEvent("used", "t1", InventoryEventType.BREW, -4.0, START_WALL_MS - 30 * DAY_MS))
+        data.stock.addEvent(purchaseTwoDaysAgo())
+        completeOneStep(TimerDriver(data))
+
+        val change = data.sessions.openedDateChange(SESSION_ID)
+
+        assertThat(change?.previous).isEqualTo(LocalDate.of(2026, 9, 1))
+        data.sessions.undoOpenedDate(change!!)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
+    }
+
+    @Test
+    fun `a completion that leaves the opened date reports nothing`() = runTest {
+        data.teas.saveTea(tea("t1").copy(openedDate = LocalDate.of(2026, 9, 1)))
+        // Bought before it was opened: the package in use.
+        data.stock.addEvent(initial("old", "t1", grams = 50.0, priceCents = 400, at = START_WALL_MS - 60 * DAY_MS))
+
+        completeOneStep(TimerDriver(data))
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 9, 1))
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `an opened date changed since the completion is not undone`() = runTest {
+        teaWithStock()
+        completeOneStep(TimerDriver(data))
+        val change = data.sessions.openedDateChange(SESSION_ID)!!
+        // The tea editor sets another date before Rückgängig.
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(openedDate = LocalDate.of(2026, 10, 1)))
+
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+        data.sessions.undoOpenedDate(change)
+
+        assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 1))
+    }
+
+    @Test
+    fun `a completion rolled back by a failing Persist leaves no opened date to undo`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60)))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        val failingStore = object : ActiveBrewStore by data.activeBrew {
+            override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?): Unit =
+                throw IllegalStateException("persist failed")
+        }
+
+        // The controller's transition: CompleteSession, then Persist, in one outer transaction (D-054).
+        val failure = runCatching {
+            data.transactions.inTransaction {
+                data.sessions.completeSession(SESSION_ID, autoFinished = false)
+                failingStore.persist(TimerSlot.BREW, null)
+            }
+        }
+
+        assertThat(failure.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+        assertThat(session().status).isEqualTo(SessionStatus.IN_PROGRESS)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isNull()
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `a later completion that sets no opened date forgets what a rolled-back one remembered`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60)))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        runCatching {
+            data.transactions.inTransaction {
+                data.sessions.completeSession(SESSION_ID, autoFinished = false)
+                throw IllegalStateException("persist failed")
+            }
+        }
+        // Meanwhile the tea editor sets the very date the rolled-back completion would have set.
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(openedDate = LocalDate.of(2026, 10, 22)))
+
+        driver.send(TimerEvent.FinishSession)
+
+        assertThat(session().status).isEqualTo(SessionStatus.COMPLETED)
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
     }
 
     /** Starts session [id] with one 60 s infusion, pours it on time and finishes. */

@@ -3,6 +3,7 @@ package com.umamit.feature.teaware
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.ClockReading
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Recipe
@@ -19,6 +20,7 @@ import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeVesselArchive
+import com.umamit.core.testing.FakeVesselPhotos
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertSettings
@@ -33,7 +35,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.time.ZoneOffset
 
 /** The vessel editor (SCR-14; WARE-01, WARE-04, D-100) on fake repositories. */
@@ -42,6 +46,12 @@ class VesselEditorViewModelTest {
     private val collection = FakeCollection()
     private val sessions = FakeSessions(collection)
     private val archive = FakeVesselArchive(sessions)
+
+    @get:Rule
+    val folder = TemporaryFolder()
+
+    private val files by lazy { PhotoFiles(folder.newFolder("photos")) }
+    private val photos by lazy { FakeVesselPhotos(collection, files) }
 
     private val kyusu = Vessel(
         id = "k",
@@ -68,6 +78,8 @@ class VesselEditorViewModelTest {
             saved.apply { if (vesselId != null) set(VesselEditorViewModel.VESSEL_ID, vesselId) },
             collection.vessels,
             archive,
+            photos,
+            files,
         )
 
     private val VesselEditorViewModel.ready get() = state.value as VesselEditorUiState.Ready
@@ -242,6 +254,103 @@ class VesselEditorViewModelTest {
 
         assertThat(again.ready.form.name).isEqualTo("Meine Kyusu")
         assertThat(again.ready.hasChanges).isTrue()
+    }
+
+    @Test
+    fun `a picked photo is shown at once but stored only with Speichern`() = runTest {
+        val vm = viewModel("k")
+        assertThat(vm.ready.hasChanges).isFalse()
+
+        vm.pickPhoto("content://picked/1")
+
+        assertThat(vm.ready.photo).isEqualTo(VesselPhoto.Picked("content://picked/1"))
+        assertThat(vm.ready.hasChanges).isTrue()
+        assertThat(photos.set).isEmpty()
+
+        vm.save()
+        vm.events.first()
+
+        assertThat(photos.set).containsExactly("content://picked/1")
+        assertThat(collection.vessels.getVessel("k")!!.coverPhotoId).isNotEqualTo("photo-1")
+    }
+
+    @Test
+    fun `a new vessel takes its picked photo when it is saved`() = runTest {
+        val vm = viewModel()
+        vm.update { it.copy(name = "Gaiwan", capacity = "150") }
+        vm.pickPhoto("content://picked/2")
+
+        vm.save()
+        val id = (vm.events.first() as VesselEditorEvent.Saved).vesselId
+
+        assertThat(photos.set).containsExactly("content://picked/2")
+        assertThat(collection.vessels.getVessel(id)!!.coverPhotoId).isNotNull()
+    }
+
+    @Test
+    fun `the stored photo shows with its file and Foto entfernen removes it with Speichern`() = runTest {
+        photos.set("k", "content://first")
+        val path = files.file(collection.vessels.getVessel("k")!!.coverPhotoId!!).path
+        val vm = viewModel("k")
+        assertThat(vm.ready.photo).isEqualTo(VesselPhoto.Stored(path))
+        assertThat(vm.ready.hasChanges).isFalse()
+
+        vm.removePhoto()
+
+        assertThat(vm.ready.photo).isEqualTo(VesselPhoto.None)
+        assertThat(vm.ready.hasChanges).isTrue()
+        assertThat(photos.removed).isEqualTo(0)
+
+        vm.save()
+        vm.events.first()
+
+        assertThat(photos.removed).isEqualTo(1)
+        assertThat(collection.vessels.getVessel("k")!!.coverPhotoId).isNull()
+    }
+
+    @Test
+    fun `removing a photo that was only picked drops the pick and stores nothing`() = runTest {
+        collection.vessels.saveVessel(kyusu.copy(id = "bare", coverPhotoId = null))
+        val vm = viewModel("bare")
+        vm.pickPhoto("content://picked/3")
+
+        vm.removePhoto()
+
+        assertThat(vm.ready.photo).isEqualTo(VesselPhoto.None)
+        assertThat(vm.ready.hasChanges).isFalse()
+        vm.save()
+        vm.events.first()
+        assertThat(photos.set).isEmpty()
+        assertThat(photos.removed).isEqualTo(0)
+    }
+
+    @Test
+    fun `a photo change survives a process death and a second pick replaces the first`() = runTest {
+        val saved = SavedStateHandle()
+        viewModel("k", saved).apply {
+            pickPhoto("content://picked/4")
+            pickPhoto("content://picked/5")
+        }
+
+        val again = viewModel(saved = saved)
+
+        assertThat(again.ready.photo).isEqualTo(VesselPhoto.Picked("content://picked/5"))
+        assertThat(again.ready.hasChanges).isTrue()
+    }
+
+    @Test
+    fun `a photo that cannot be read leaves the vessel saved`() = runTest {
+        photos.unreadable += "content://broken"
+        val vm = viewModel("k")
+        vm.update { it.copy(name = "Meine Kyusu") }
+        vm.pickPhoto("content://broken")
+
+        vm.save()
+
+        assertThat(vm.events.first()).isEqualTo(VesselEditorEvent.PhotoUnreadable)
+        assertThat(vm.events.first()).isEqualTo(VesselEditorEvent.Saved("k"))
+        assertThat(collection.vessels.getVessel("k")!!.name).isEqualTo("Meine Kyusu")
+        assertThat(collection.vessels.getVessel("k")!!.coverPhotoId).isEqualTo("photo-1")
     }
 
     /** A brew session with [vesselId] waits in READY: the active session (E10). */

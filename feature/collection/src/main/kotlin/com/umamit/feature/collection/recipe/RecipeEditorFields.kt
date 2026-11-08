@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Vessel
+import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.editor.ChoiceField
 import com.umamit.feature.collection.editor.FieldModifier
@@ -134,7 +135,7 @@ private fun General(state: RecipeEditorUiState.Ready, actions: RecipeEditorActio
             text = if (ratio == null) {
                 stringResource(R.string.recipe_editor_ratio_unknown)
             } else {
-                stringResource(R.string.recipe_editor_ratio, RecipeForm.leafText(ratio))
+                stringResource(R.string.recipe_editor_ratio, GermanFormat.gramsOneDecimal(ratio))
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

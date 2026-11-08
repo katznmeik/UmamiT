@@ -1,5 +1,7 @@
 package com.umamit.feature.teaware
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,11 +38,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,12 +56,14 @@ import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
+import com.umamit.core.ui.rememberPhotoPainter
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** Test tags of SCR-13. */
 object TeawareTags {
     const val LIST = "TeawareList"
     const val ADD = "TeawareAdd"
+    const val PHOTO = "TeawareVesselPhoto"
 }
 
 /** A vessel the editor just archived, for the list's „*[name]* archiviert" · *Rückgängig* (D-100). */
@@ -73,6 +83,7 @@ fun TeawareRoute(
     modifier: Modifier = Modifier,
     archived: ArchivedVessel? = null,
     onArchivedSnackbarEnd: () -> Unit = {},
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
     viewModel: TeawareViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -89,6 +100,7 @@ fun TeawareRoute(
             onArchivedSnackbarEnd()
         },
         onArchivedDismiss = onArchivedSnackbarEnd,
+        photo = photo,
     )
 }
 
@@ -108,6 +120,7 @@ fun TeawareScreen(
     archived: ArchivedVessel? = null,
     onUndoArchive: (vesselId: String) -> Unit = {},
     onArchivedDismiss: () -> Unit = {},
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     ArchivedSnackbar(archived, snackbarHostState, onUndoArchive, onArchivedDismiss)
@@ -143,7 +156,7 @@ fun TeawareScreen(
                     )
                 }
             } else {
-                VesselList(state, padding, onOpenVessel, onRestore)
+                VesselList(state, padding, onOpenVessel, onRestore, photo)
             }
         }
     }
@@ -155,6 +168,7 @@ private fun VesselList(
     padding: PaddingValues,
     onOpenVessel: (String) -> Unit,
     onRestore: (String) -> Unit,
+    photo: @Composable (path: String) -> Painter?,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -165,7 +179,7 @@ private fun VesselList(
         contentPadding = PaddingValues(bottom = FabClearance),
     ) {
         items(state.vessels, key = { it.id }) { vessel ->
-            VesselListItem(vessel, onClick = { onOpenVessel(vessel.id) })
+            VesselListItem(vessel, photo, onClick = { onOpenVessel(vessel.id) })
         }
         if (state.archived.isNotEmpty()) {
             item(key = "archived-header") {
@@ -177,26 +191,49 @@ private fun VesselList(
                 )
             }
             items(state.archived, key = { "archived-${it.id}" }) { vessel ->
-                VesselListItem(vessel, onClick = { onOpenVessel(vessel.id) }, onRestore = { onRestore(vessel.id) })
+                VesselListItem(
+                    vessel,
+                    photo,
+                    onClick = { onOpenVessel(vessel.id) },
+                    onRestore = { onRestore(vessel.id) },
+                )
             }
         }
     }
 }
 
-/** A vessel: type icon, name, volume; a favourite's star; *Wiederherstellen* on an archived one. */
+/**
+ * A vessel: its photo (WARE-01) or else its type icon, name, volume; a favourite's star; *Wiederherstellen* on
+ * an archived one.
+ */
 @Composable
-private fun VesselListItem(vessel: VesselRow, onClick: () -> Unit, onRestore: (() -> Unit)? = null) {
+private fun VesselListItem(
+    vessel: VesselRow,
+    photo: @Composable (path: String) -> Painter?,
+    onClick: () -> Unit,
+    onRestore: (() -> Unit)? = null,
+) {
     val volume = vessel.usableMl?.let { stringResource(R.string.teaware_volume_usable, vessel.capacityMl, it) }
         ?: stringResource(R.string.teaware_volume, vessel.capacityMl)
     ListItem(
         headlineContent = { Text(vessel.name) },
         supportingContent = { Text(volume) },
         leadingContent = {
-            Icon(
-                painter = painterResource(vessel.type.icon()),
-                contentDescription = stringResource(vessel.type.label()),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (vessel.photoPath != null) {
+                VesselPhotoThumb(
+                    painter = photo(vessel.photoPath),
+                    description = stringResource(R.string.teaware_photo_description, vessel.name),
+                )
+            } else {
+                // As wide as a photo, so the names line up in a list of both.
+                Box(Modifier.size(ThumbSize), contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = painterResource(vessel.type.icon()),
+                        contentDescription = stringResource(vessel.type.label()),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         },
         trailingContent = when {
             onRestore != null -> {
@@ -221,6 +258,26 @@ private fun VesselListItem(vessel: VesselRow, onClick: () -> Unit, onRestore: ((
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = UmamiSpacing.XXSmall),
     )
+}
+
+/** The vessel's photo as a small rounded square where the type icon would be. */
+@Composable
+private fun VesselPhotoThumb(painter: Painter?, description: String) {
+    val modifier = Modifier.size(ThumbSize).clip(MaterialTheme.shapes.small).testTag(TeawareTags.PHOTO)
+    if (painter != null) {
+        Image(
+            painter,
+            description,
+            modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        Box(
+            modifier.background(MaterialTheme.colorScheme.surfaceVariant).semantics {
+                contentDescription = description
+            },
+        )
+    }
 }
 
 /**
@@ -255,6 +312,8 @@ private fun ArchivedSnackbar(
 }
 
 private const val UNDO_TIMEOUT_MS = 8_000L
+
+private val ThumbSize = 40.dp
 
 /** FAB height plus its margin. */
 private val FabClearance = 88.dp

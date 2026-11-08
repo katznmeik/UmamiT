@@ -2,9 +2,7 @@ package com.umamit.feature.collection.editor
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -17,8 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -28,18 +24,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -65,69 +55,63 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
-import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
 import com.umamit.feature.collection.label
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /* The inputs of Tee bearbeiten (SCR-10): text, number and choice fields and *Kaufdatum*. */
 
-/** *Kaufdatum* with Material's date picker; never after today (as the catalog's add sheet, SCR-23). */
-@OptIn(ExperimentalMaterial3Api::class)
+/** *Kaufdatum*; never after today (as the catalog's add sheet, SCR-23). */
 @Composable
 internal fun PurchaseDate(date: LocalDate, today: LocalDate, alertKey: String?, onDateChange: (LocalDate) -> Unit) {
-    val picking = rememberAlertGate(alertKey)
-    Column(FieldModifier) {
-        Text(
-            text = stringResource(R.string.tea_editor_purchase_date),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(
-            onClick = picking::open,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(TeaEditorTags.PURCHASE_DATE),
-        ) {
-            Text(DAY.format(date))
-        }
-    }
-    AlertGated(picking) {
-        val todayMillis = today.utcMillis()
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = date.utcMillis(),
-            selectableDates = object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis <= todayMillis
+    DateField(
+        label = R.string.tea_editor_purchase_date,
+        date = date,
+        latest = today,
+        tag = TeaEditorTags.PURCHASE_DATE,
+        alertKey = alertKey,
+        confirm = R.string.tea_editor_purchase_date_ok,
+        cancel = R.string.tea_editor_purchase_date_cancel,
+        modifier = FieldModifier,
+        onDateChange = onDateChange,
+    )
+}
 
-                override fun isSelectableYear(year: Int): Boolean = year <= today.year
-            },
-        )
-        DatePickerDialog(
-            onDismissRequest = picking::close,
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pickerState.selectedDateMillis?.let { onDateChange(it.utcDate()) }
-                        picking.close()
-                    },
-                ) { Text(stringResource(R.string.tea_editor_purchase_date_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = picking::close) {
-                    Text(stringResource(R.string.tea_editor_purchase_date_cancel))
-                }
-            },
-        ) {
-            DatePicker(state = pickerState)
-        }
-    }
+/**
+ * An optional day (*Geöffnet am*, *Haltbar bis*; INV-06) with *Entfernen*; not after [latest] when set. [error]
+ * shows at the field. [tag] is the field's button, `[tag]Clear` its *Entfernen*.
+ */
+@Suppress("LongParameterList") // a date field's parts
+@Composable
+internal fun OptionalDate(
+    @StringRes label: Int,
+    date: LocalDate?,
+    latest: LocalDate?,
+    tag: String,
+    alertKey: String?,
+    onDateChange: (LocalDate?) -> Unit,
+    @StringRes error: Int? = null,
+    @StringRes hint: Int? = null,
+) {
+    DateField(
+        label = label,
+        date = date,
+        latest = latest,
+        tag = tag,
+        alertKey = alertKey,
+        confirm = R.string.tea_editor_purchase_date_ok,
+        cancel = R.string.tea_editor_purchase_date_cancel,
+        modifier = FieldModifier,
+        error = error,
+        hint = hint,
+        onClear = { onDateChange(null) },
+        onDateChange = onDateChange,
+    )
 }
 
 @Suppress("LongParameterList") // a text field's parts
@@ -224,13 +208,6 @@ internal fun <T> ChoiceField(
         }
     }
 }
-
-private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
-
-/** Material's date picker counts days as UTC midnights. */
-private fun LocalDate.utcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-private fun Long.utcDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 /** Digits with a decimal comma (or dot), at most [max] characters. */
 internal fun String.decimalInput(max: Int): String = filter { it.isDigit() || it == ',' || it == '.' }.take(max)

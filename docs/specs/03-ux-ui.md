@@ -116,6 +116,15 @@ Bottom navigation bar (navigation rail on wide screens):
 - Re-selecting a tab scrolls to top; a second re-select pops to its root (D-049);
   each tab keeps its back stack.
 - Settings via the gear on Start and the ⋮ menu of the other tabs.
+- **Settings closes on a tab switch** (D-104): when the tab being left has
+  Settings in its back stack, the stack is popped to below the Settings entry,
+  so Settings and everything opened from it (*Teegeschirr*, a vessel, *Über*,
+  *Diagnose*) go. Coming back, the tab shows the screen it showed before
+  Settings was opened. A vessel editor open above Settings is dropped without
+  the discard question, as a process death would. Other pushed screens (a tea
+  detail, a session page) keep their place across a switch; re-selecting a tab
+  is unchanged (D-049). *Timer-Einstellungen* above the timer is not in a tab
+  and is not affected.
 - The active brew bar (GEN-06) sits above the navigation bar; the timer is
   full-screen without either.
 
@@ -435,7 +444,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
-| `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
+| `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
@@ -534,6 +543,11 @@ at once (no dialog), the row leaves the picker and a snackbar reads
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
 same action as a custom action on the row.
+
+**Freshness (v0.4.1, INV-06, [D-104](10-open-questions-and-decisions.md#d-104)).**
+Each tea row with a label shows a small `FreshnessChip` below its Sorte („Frisch",
+„Bald genießen", „Über dem Höhepunkt"); none for an unopened or an empty tea.
+TalkBack reads it with the row. Start's cards stay unchanged.
 
 **Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
 *Alle* is split by the tea's kind, each group under a small section header
@@ -762,6 +776,18 @@ M4 (D-061). From M2, a session of a tea flagged „Rezept prüfen" adds
 *Rezept passt*, which clears the flag of that tea only and then reads
 „„Rezept prüfen“ ist entfernt.“ (CAT-05, D-073, D-088).
 
+From v0.4.1, after the session whose completion set its tea's opening date
+(INV-06), the sheet adds the line „Packung als geöffnet markiert" with
+*Rückgängig* at its end, above *Rezept passt*; at a large font the text
+wraps beside the action. *Rückgängig* writes back the date before (none or a
+date) and the line then reads „Öffnungsdatum ist zurückgesetzt." A session
+that didn't change the date shows no line. Like *Rezept passt*, it leaves
+with the sheet when an alert starts, and a write already started is never
+cancelled (rule 8, D-104). A failed read of the change shows no line; a
+failed write of either action is logged and changes nothing else (D-090).
+Each action line and the line that replaces it share a 40 dp minimum
+height, so the sheet keeps its height when the action is tapped.
+
 ### SCR-07 Schnelltimer
 
 Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); tap time for a duration picker; *Start*;
@@ -824,8 +850,8 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
 - **Rows** (`TeaListItem`): cover, serif name, secondary name, Sorte, the
   stock chip („38 g", *Knapp*, *Leer*), a favourite star and
-  `CheckRecipeBadge`. No rating (M4) and no freshness chip (v0.4.1). A tap
-  opens SCR-09.
+  `CheckRecipeBadge`. No rating (M4); the freshness chip from v0.4.1 (see
+  below). A tap opens SCR-09.
 - **Search** (TEA-09) over name, secondary name, vendor, region, cultivar and
   notes, ignoring case and accents.
 - **Filter chips** (TEA-10): *Favoriten*, *Kategorie*, *Sorte*, *Vorrat*
@@ -855,6 +881,10 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   below the search and chips, so *Archiviert* stays reachable. A10 offers
   *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
   remembered on every change, also when the app turns to *Katalog* itself.
+- **Freshness (v0.4.1, INV-06, D-104):** the row's `FreshnessChip` follows the
+  stock chip („Frisch", „Bald genießen", „Über dem Höhepunkt"); none for an
+  unopened or an empty tea. TalkBack reads it with the row as „Frische: Bald
+  genießen".
 
 ### SCR-09 Tee (my tea detail)
 
@@ -878,17 +908,54 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   them, up to 10.
 - **VORRAT:** „38 g übrig" with *knapp* / *leer*; *Bestand korrigieren* (the
   setup's sheet „Wie viel ist noch da?"); *Beim Tee-Kontor nachbestellen* as
-  above (INV-09). Costs come with v0.4.1.
+  above (INV-09). Costs came with v0.4.1 (below).
+- **VORRAT (v0.4.1, D-104, #181):** *Nachkauf erfassen* (+ icon) beside
+  *Bestand korrigieren*, both outlined, side by side where they fit, else one
+  below the other; then the reorder link, then the history (SCR-29, #185).
+  *Nachkauf erfassen* opens a sheet „Nachkauf erfassen": *Menge* (g, empty), *Preis* (€, optional, „Leer
+  lassen, wenn du ihn nicht kennst") and *Kaufdatum* („8. Nov. 2026", today by
+  default; the date picker offers no later day). A malformed amount says so at
+  its field („Gib die Menge in g an, z. B. 50.", „Gib den Preis in Euro an,
+  z. B. 12,40."), a day after today (the clock moved back) „Das Datum liegt in
+  der Zukunft."; *Erfassen* stays off until the input is valid, then records
+  the purchase (INV-03) and closes the sheet. *Abbrechen*, back or a drag
+  close it without saving; an alert removes it in its first frame (rule 8).
+  The stock updates at once; an archived tea is restored from the archive
+  with the purchase (INV-03, D-093 Q6). A catalog tea keeps *Beim Tee-Kontor
+  nachbestellen* and its SCR-21 *Nachkauf erfassen* with the shop's sizes.
+- **Cost (v0.4.1, INV-08, D-104, #182):** in VORRAT, between „38 g übrig"
+  and the buttons, up to three smaller lines in the secondary text colour:
+  „12,40 € / 100 g", „ca. 0,24 € pro Tasse (Rezept)" (with a default
+  recipe) and, from the first priced session, „Ø 0,27 € pro Tasse aus 5
+  Sitzungen" (TalkBack: „Durchschnittlich 0,27 € pro Tasse aus 5
+  Sitzungen"). A tea without a recorded price shows none of them. They
+  update at once after a purchase, a correction or a history delete. The
+  section keeps its title „Vorrat".
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
+- **FRISCHE (v0.4.1, INV-06, D-104):** after VORRAT, only with a label: the
+  `FreshnessChip` and „Geöffnet am 21. Okt. 2026", or „Mindestens haltbar bis
+  1. Nov. 2026" once that date has passed (the label then stems from it).
+  TalkBack reads both as one item.
 - **Pencil FAB:** the tea editor (SCR-10).
+- **Hero (v0.4.1):** the photo pager with *+ Foto* (SCR-28).
 - **⋮:** *Favorit* (checked when it is one), *Archivieren*, *Löschen*. For the
   tea of the active brew session both are greyed out with „Erst die Sitzung
   beenden". *Löschen* asks with §5's dialog (*Stattdessen archivieren* /
   *Löschen*). Either closes the detail.
 - **Archived tea:** *Brühen* is greyed out with „Tee ist archiviert"; ⋮ offers
   *Wiederherstellen* in place of *Archivieren*.
+- **⋮ *Aus Katalog zurücksetzen* (v0.4.1, PRF-06, CAT-13, D-104, #184):**
+  after *Favorit*, only while the catalog holds the tea; not greyed out
+  during a brew (rule 8). It asks „Aus Katalog zurücksetzen?" — „Beschreibung
+  und Katalog-Rezepte werden durch die aktuellen aus dem Katalog ersetzt.
+  Deine eigenen Rezepte, Vorrat, Fotos, Notizen, Favorit und Journal bleiben,
+  wie sie sind." — plus, over the limit of 10, „2 Katalog-Rezepte passen
+  nicht mehr dazu (höchstens 10 Rezepte) und werden weggelassen." ·
+  *Abbrechen* / *Zurücksetzen*. The detail updates at once; a failed write
+  says „Der Tee konnte nicht zurückgesetzt werden." An alert removes the
+  question in its first frame (rule 8).
 - **Entries:** *Meine Tees*, the setup's ⋮ *Tee ansehen* and the session
   page's tea link. It updates at once after an edit, a brew or a correction.
   Its pencils open the tea and recipe editors in each entry, also above the
@@ -896,6 +963,9 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **No stock events:** the `StatTriplet` shows „–", VORRAT „Kein Bestand
   erfasst" with *Bestand korrigieren* and a plain reorder link; no stock is
   invented. DETAILS shows the country by its German name.
+- **Dates (v0.4.1, #179):** DETAILS also lists *Haltbar bis* („21. Okt.
+  2026") when set. *Geöffnet am* shows only in FRISCHE (INV-06), not twice
+  (PO decision, v0.4.1 fix round).
 
 ### SCR-10 Tee bearbeiten
 
@@ -920,6 +990,13 @@ nothing in the running session.
   today by default and never later (as SCR-23); a price needs a package
   („Zum Preis gehört eine Packung."). The editor sits in the Sammlung stack;
   after an add, the new tea's detail replaces it, *Sorte wählen* included.
+- **Frische (v0.4.1, #179):** a section after *Kauf* with *Geöffnet am*
+  (empty: „Nicht gesetzt", hint „Leer: noch ungeöffnet.") and *Haltbar bis*.
+  Each is a date button that opens Material's date picker, with *Entfernen*
+  beside it once set. The picker offers no day after today for *Geöffnet am*;
+  *Haltbar bis* has no limit. An opening date after today (e.g. a restored
+  draft) shows „Das Öffnungsdatum liegt in der Zukunft." and *Speichern*
+  refuses it.
 
 ### SCR-11 Sorte wählen (manual add)
 
@@ -991,8 +1068,18 @@ v0.4.0 (D-100):
 - **SCR-14**, full-screen dialog like SCR-10: name, type, volume, usable
   volume, material, notes, favourite. ⋮ *Archivieren* (not for the vessel of
   the active brew session: „Erst die Sitzung beenden"); there is no delete.
-  Photos come with v0.4.1. Opened from the setup's *Neues Gefäß …* it
-  returns there with the new vessel selected.
+  Opened from the setup's *Neues Gefäß …* it returns there with the new
+  vessel selected.
+
+v0.4.1 (D-104, #187, WARE-01):
+- **SCR-14** starts with the vessel's one photo: a 180 dp rounded picture, or
+  the type icon on a tint without one (TalkBack: „Noch kein Foto"), with
+  *Foto hinzufügen* (*Foto ersetzen* with a photo) and *Foto entfernen*. A
+  pick is shown at once and stored with *Speichern*; ✕ or back after a pick
+  asks „Änderungen verwerfen?".
+- **SCR-13** shows the photo as a 40 dp rounded square in place of the type
+  icon (TalkBack: „Foto von *[name]*"); the icon sits in a slot of the same
+  width so the names line up. The setup's vessel list is unchanged.
 
 ### SCR-15 Journal
 
@@ -1307,6 +1394,52 @@ AboutLibraries follows with 1.0 (D-066).
 Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
 erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
 groups, custom). SCR-28 and SCR-29 come with v0.4.1, SCR-30 with M4 (D-100).
+
+SCR-28 in v0.4.1 (D-104, #183): the photos live in the detail's hero (SCR-09),
+no screen of their own.
+- **Pager:** the hero (4:3) swipes over the tea's photos, the cover first,
+  then the others in their order; with more than one, dots on a translucent
+  pill at its lower left, beside *+ Foto*. Without photos it shows the style's leaf as before.
+- ***+ Foto*:** a rounded button over the hero's lower right corner, on the same
+  translucent surface as ← and ⋮. It opens the Android photo picker (one
+  image, no camera). The new photo shows at once; the first one becomes the
+  cover. At 10 it is greyed out with a second line „Höchstens 10 Fotos".
+- **Error:** an image that can't be read shows the toast „Das Foto konnte
+  nicht gelesen werden." and nothing is added.
+- **TalkBack:** the pager reads „Fotos von *Tee*", each photo „Foto 1 von 3,
+  Titelbild" / „Foto 2 von 3".
+- **Per photo (#186):** a ⋮ on the same translucent surface sits beside
+  *+ Foto* while the tea has photos („Foto-Optionen" for TalkBack). It acts on
+  the photo shown when it was opened: *Als Titelbild* (not on the cover) and
+  *Löschen*. *Als Titelbild* moves the photo to the front with the cover-first
+  order; the pager follows it by key, so the same photo stays in view, now
+  „Foto 1 von 3, Titelbild", and the first dot fills. *Löschen* asks „Foto
+  löschen?" — „Das Foto wird aus der App entfernt." (for the cover with others
+  left: „… Das nächste Foto wird zum Titelbild.") · *Abbrechen* / *Löschen*;
+  the pager then shows the neighbouring photo, or the leaf after the last one.
+  The menu and the dialog close in the frame an alert starts (rule 8). A write
+  that fails says „Das Foto konnte nicht geändert werden." and changes nothing.
+
+SCR-29 in v0.4.1 (D-104, #185): VORRAT on the detail (SCR-09) is the stock
+sheet; the history follows its buttons and the reorder link, no screen of
+its own. Only with stock events.
+- **Rows:** newest first, divided by hairlines: the kind („Kauf", „Bestand
+  korrigiert", „Gebrüht") over the day („20. Okt. 2026"), the amount at the
+  end („+100 g · 18,90 €", „−15 g", „−5 g"; a purchase's price only when
+  recorded). The newest five show; *Alle 7 Einträge anzeigen* reveals the
+  rest in place.
+- **Löschen:** a trash icon on a purchase or correction row asks „Kauf
+  löschen?" / „Korrektur löschen?" with „Vom 20. Okt. 2026. Dein Vorrat sinkt
+  dadurch um 100 g." (or „steigt … um" for a lowering correction) ·
+  *Abbrechen* / *Löschen*. The stock updates at once; the opening date stays.
+  An alert removes the question in its first frame, for good (rule 8).
+- **Brew rows:** no trash icon (a brew leaves only with its journal entry,
+  D-102); a chevron, and a tap opens the session page (SCR-16) in the same
+  stack. Above the setup (⋮ *Tee ansehen*) a brew row opens nothing.
+- **TalkBack:** each row is one item read as a sentence: „Kauf am 20. Okt.
+  2026: 100 g dazu für 18,90 €", „Bestand korrigiert am …: 15 g weniger",
+  „Gebrüht am …: 5 g verbraucht"; a brew row's action „Sitzung ansehen"; the
+  trash icon „Kauf vom 20. Okt. 2026 löschen".
 
 ### SCR-31 Schritte-Sheet (session steps)
 

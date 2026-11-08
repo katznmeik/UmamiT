@@ -1,6 +1,5 @@
 package com.umamit.feature.collection.detail
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -32,17 +29,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.OverPhoto
@@ -67,10 +66,16 @@ const val TEA_DETAIL_BREW_TAG = "tea_detail_brew"
 /** The pencil FAB: the tea editor (SCR-10). */
 const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 
+/** ⋮ *Aus Katalog zurücksetzen*'s confirmation (PRF-06). */
+const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
+
 /**
  * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
- * save; and the browser for INV-09's link.
+ * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
+ * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
+ * [openSession] null: brew rows open nothing).
+ * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -83,7 +88,14 @@ class TeaDetailActions(
     val restore: () -> Unit = {},
     val delete: () -> Unit = {},
     val correctStock: (grams: Double) -> Unit = {},
+    val recordPurchase: (TeaPurchase) -> Unit = {},
     val openShop: (url: String) -> Unit = {},
+    val addPhoto: () -> Unit = {},
+    val deleteStockEntry: (eventId: String) -> Unit = {},
+    val openSession: ((sessionId: String) -> Unit)? = null,
+    val setCoverPhoto: (photoId: String) -> Unit = {},
+    val deletePhoto: (photoId: String) -> Unit = {},
+    val resetFromCatalog: () -> Unit = {},
 )
 
 /**
@@ -94,8 +106,8 @@ class TeaDetailActions(
  * *Wiederherstellen*, and *Löschen*, which asks first (03 §5); both greyed out for the tea of the active brew
  * session („Erst die Sitzung beenden", E15).
  *
- * **Alerts first (rule 8):** the menu, the delete question and the stock sheet each remember the alert they were
- * opened in ([alertKey]); another alert removes them in its first frame and closes them for good.
+ * **Alerts first (rule 8):** the menu, the delete question, the stock and the purchase sheet each remember the
+ * alert they were opened in ([alertKey]); another alert removes them in its first frame and closes them for good.
  */
 @Composable
 fun TeaDetailScreen(
@@ -103,7 +115,7 @@ fun TeaDetailScreen(
     actions: TeaDetailActions,
     modifier: Modifier = Modifier,
     alertKey: String? = null,
-    photo: Painter? = rememberPhotoPainter((state as? TeaDetailUiState.Ready)?.tea?.photoPath),
+    photo: @Composable (path: String) -> Painter? = { rememberPhotoPainter(it) },
 ) {
     when (state) {
         TeaDetailUiState.Loading -> Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
@@ -128,11 +140,15 @@ private fun Detail(
     tea: TeaDetail,
     actions: TeaDetailActions,
     alertKey: String?,
-    photo: Painter?,
+    photo: @Composable (path: String) -> Painter?,
     modifier: Modifier = Modifier,
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
+    val resetAsk = rememberAlertGate(alertKey)
     val stockSheet = rememberAlertGate(alertKey)
+    val purchaseSheet = rememberAlertGate(alertKey)
+    val entryDeleteAsk = rememberAlertGate(alertKey)
+    var askedEntry by rememberSaveable { mutableStateOf<String?>(null) }
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -143,11 +159,34 @@ private fun Detail(
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                         .testTag(TEA_DETAIL_TAG),
                 ) {
-                    Hero(photo, UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey))
+                    PhotoPager(
+                        tea = tea,
+                        placeholderColor = UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey),
+                        photo = photo,
+                        alertKey = alertKey,
+                        onAddPhoto = actions.addPhoto,
+                        onSetCover = actions.setCoverPhoto,
+                        onDelete = actions.deletePhoto,
+                    )
                     Header(tea)
                     Stats(tea)
                     Recipes(tea, actions)
-                    Stock(tea, onCorrect = stockSheet::open, onReorder = actions.openShop)
+                    Stock(
+                        tea,
+                        onPurchase = purchaseSheet::open,
+                        onCorrect = stockSheet::open,
+                        onReorder = actions.openShop,
+                    ) {
+                        StockHistory(
+                            tea.history,
+                            onAskDelete = { id ->
+                                askedEntry = id
+                                entryDeleteAsk.open()
+                            },
+                            onOpenSession = actions.openSession,
+                        )
+                    }
+                    FreshnessSection(tea.freshness)
                     TextSection(R.string.collection_tea_section_description, tea.description)
                     TextSection(R.string.collection_tea_section_notes, tea.notes)
                     Details(tea.details)
@@ -173,7 +212,20 @@ private fun Detail(
             }
             BrewBar(tea, onBrew = { actions.brew(null) })
         }
-        TopActions(tea, actions, alertKey, onDelete = deleteAsk::open)
+        TopActions(tea, actions, alertKey, onDelete = deleteAsk::open, onReset = resetAsk::open)
+    }
+    // Shown only while the catalog still holds the tea; gone with the offer (PRF-06).
+    tea.catalogReset?.let { offer ->
+        AlertGated(resetAsk) {
+            ResetDialog(
+                offer = offer,
+                onReset = {
+                    resetAsk.close()
+                    actions.resetFromCatalog()
+                },
+                onDismiss = resetAsk::close,
+            )
+        }
     }
     AlertGated(deleteAsk) {
         DeleteDialog(
@@ -199,6 +251,17 @@ private fun Detail(
                 stockSheet.close()
             },
             onDismissRequest = stockSheet::close,
+        )
+    }
+    // The stock history's „Kauf löschen?" / „Korrektur löschen?" (SCR-29): as the delete question (rule 8).
+    StockEntryDeleteQuestion(tea.history, askedEntry, entryDeleteAsk, actions.deleteStockEntry)
+    // *Nachkauf erfassen* (INV-03): as the stock sheet, gone in the frame another alert starts (rule 8).
+    AlertGated(purchaseSheet) {
+        PurchaseSheet(
+            today = tea.today,
+            alertKey = alertKey,
+            onSave = actions.recordPurchase,
+            onDismissRequest = purchaseSheet::close,
         )
     }
 }
@@ -240,7 +303,13 @@ private fun BrewBar(tea: TeaDetail, onBrew: () -> Unit) {
 
 /** Back and ⋮ over the photo; each on its own surface, legible on any photo, staying put while the page scrolls. */
 @Composable
-private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: String?, onDelete: () -> Unit) {
+private fun TopActions(
+    tea: TeaDetail,
+    actions: TeaDetailActions,
+    alertKey: String?,
+    onDelete: () -> Unit,
+    onReset: () -> Unit,
+) {
     val menu = rememberAlertGate(alertKey)
     Box(
         modifier = Modifier
@@ -258,13 +327,19 @@ private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: Stri
                     )
                 }
             }
-            AlertGatedDropdownMenu(menu) { TeaMenu(tea, actions, onDelete, close = menu::close) }
+            AlertGatedDropdownMenu(menu) { TeaMenu(tea, actions, onDelete, onReset, close = menu::close) }
         }
     }
 }
 
 @Composable
-private fun ColumnScope.TeaMenu(tea: TeaDetail, actions: TeaDetailActions, onDelete: () -> Unit, close: () -> Unit) {
+private fun ColumnScope.TeaMenu(
+    tea: TeaDetail,
+    actions: TeaDetailActions,
+    onDelete: () -> Unit,
+    onReset: () -> Unit,
+    close: () -> Unit,
+) {
     DropdownMenuItem(
         text = { Text(stringResource(R.string.collection_tea_favorite)) },
         onClick = {
@@ -277,6 +352,13 @@ private fun ColumnScope.TeaMenu(tea: TeaDetail, actions: TeaDetailActions, onDel
             null
         },
     )
+    // Not blocked during a brew: the running session keeps its own steps (rule 8).
+    if (tea.catalogReset != null) {
+        MenuItem(R.string.collection_tea_reset, blocked = false) {
+            close()
+            onReset()
+        }
+    }
     if (tea.isArchived) {
         MenuItem(R.string.collection_tea_restore, blocked = false) {
             close()
@@ -346,29 +428,32 @@ private fun DeleteDialog(tea: TeaDetail, onArchiveInstead: () -> Unit, onDelete:
     )
 }
 
+/**
+ * PRF-06: „Aus Katalog zurücksetzen?" with what changes and what stays, and the catalog recipes left out over the
+ * limit of 10 · *Abbrechen* / *Zurücksetzen*.
+ */
 @Composable
-private fun Hero(photo: Painter?, placeholderColor: Color) {
-    val heroModifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(HERO_ASPECT_RATIO)
-    if (photo != null) {
-        Image(painter = photo, contentDescription = null, modifier = heroModifier, contentScale = ContentScale.Crop)
-    } else {
-        Box(
-            modifier = heroModifier.background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(UmamiIcons.Leaf),
-                contentDescription = null,
-                tint = placeholderColor,
-                modifier = Modifier.size(HERO_LEAF_SIZE),
-            )
-        }
-    }
+private fun ResetDialog(offer: CatalogResetOffer, onReset: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag(TEA_DETAIL_RESET_DIALOG_TAG),
+        title = { Text(stringResource(R.string.collection_tea_reset_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.collection_tea_reset_body))
+                if (offer.leftOut > 0) {
+                    Spacer(Modifier.height(UmamiSpacing.Small))
+                    Text(pluralStringResource(R.plurals.collection_tea_reset_limit, offer.leftOut, offer.leftOut))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.collection_tea_reset_cancel)) }
+        },
+        confirmButton = {
+            TextButton(onClick = onReset) { Text(stringResource(R.string.collection_tea_reset_confirm)) }
+        },
+    )
 }
 
-private const val HERO_ASPECT_RATIO = 4f / 3f
-private const val PLACEHOLDER_ALPHA = 0.22f
-private val HERO_LEAF_SIZE = 64.dp
 private val FAB_CLEARANCE = 88.dp

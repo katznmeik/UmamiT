@@ -21,6 +21,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogTeaSummary
+import com.umamit.core.ui.GermanFormat
 
 /**
  * The list's teas (SCR-19): under a header per *Sorte* when grouped (D-073), else one flat list
@@ -89,7 +90,7 @@ private fun TeaRow(
 ) {
     val separator = stringResource(R.string.catalog_meta_separator)
     val price = tea.basePriceCentsPer100g?.let {
-        stringResource(R.string.catalog_price_per_100g, CatalogFormat.euros(it))
+        stringResource(R.string.catalog_price_per_100g, GermanFormat.euros(it))
     }
     val badges = rowBadges(tea)
     val check = tea.recipeCheckReason != null

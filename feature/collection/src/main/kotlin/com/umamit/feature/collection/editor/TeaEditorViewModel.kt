@@ -173,7 +173,9 @@ class TeaEditorViewModel @Inject constructor(
     private suspend fun edit(stored: Tea, f: TeaEditorForm): TeaEditorEvent.Saved {
         // The newest row, so a favourite or an archive set meanwhile is kept.
         val current = teas.getTea(stored.id) ?: stored
-        val tea = f.applyTo(current, sorteNames::name, isNew = false)
+        val applied = f.applyTo(current, sorteNames::name, isNew = false)
+        // An opening date left alone keeps the one a completed brew set meanwhile (INV-06).
+        val tea = if (f.openedDate == stored.openedDate) applied.copy(openedDate = current.openedDate) else applied
         teas.saveTea(tea)
         base.value = Base.Stored(tea)
         return TeaEditorEvent.Saved(tea.id, isNew = false)

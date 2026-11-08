@@ -346,6 +346,13 @@ confirmation and a choice of what to reset).
 - **v0.4.1 (D-100):** the reset takes recipes and description together after
   one confirmation (no choice); stock, photos, notes, favourite and journal
   stay. Not offered when the tea is no longer in the catalog.
+- **As built (v0.4.1, D-104, #184):** the detail's ⋮ offers it while
+  `catalog.db` holds a tea for the collection tea's `catalog_key` (a
+  discontinued one included). One transaction replaces `description` and the
+  catalog recipes (every `source` but USER; an edit makes a recipe USER) with
+  those *In Sammlung aufnehmen* derives from the current entry (the same
+  derivation; the style's recipes when the catalog has none). Details in
+  PRF-06.
 
 **CAT-14 — Bundled snapshot** `Won't`
 No catalog snapshot is bundled in the APK: the APK is publicly downloadable
@@ -456,6 +463,15 @@ date, best before, storage note), *Notizen*.
   refuses them; ✕ with unsaved changes asks GEN-08's question.
 - **v0.4.1:** photos (TEA-05) and the opened and best-before dates
   (INV-06). Tags are not planned (TEA-07).
+  - **Dates (#179):** a section *Frische* with *Geöffnet am* and *Haltbar
+    bis*, each picked with Material's date picker and cleared with
+    *Entfernen*. Clearing *Geöffnet am* makes the tea unopened again. An
+    opening date in the future is refused at the field (the picker offers no
+    later day, and a stored one shows „Das Öffnungsdatum liegt in der
+    Zukunft."); the best-before date may lie in the future. Saving changes
+    only the dates the user touched: an untouched opening date keeps the one
+    a brew set meanwhile. The freshness label is derived, so it follows at
+    once.
 
 **TEA-03 — Edit** `Must` (v0.4.0)
 All fields editable. Changing the style does not overwrite recipes. Editing a
@@ -495,6 +511,25 @@ Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
 teas); own photos via the Android photo picker (no camera, D-100); *Als
 Titelbild* sets the cover; the EXIF rotation of #58.
 Processing rules: [06 §5.2](06-architecture.md#52-photos).
+- **Add (v0.4.1, #183, D-104):** *+ Foto* on the detail's hero picks one
+  image at a time. It goes after the tea's other photos; a tea's first photo
+  becomes its cover. An 11th is refused: at 10, *+ Foto* is greyed out with
+  „Höchstens 10 Fotos". An image that can't be read shows „Das Foto konnte
+  nicht gelesen werden." and adds nothing.
+- **Cover everywhere:** the cover shows wherever a tea photo shows: *Meine
+  Tees*, the detail, Start, the tea picker, the timer seal and the journal
+  rows. The setup (SCR-04) and the session page (SCR-16) show no tea photo
+  in v0.4.1.
+- ***Als Titelbild* (v0.4.1, #186):** the shown photo's ⋮ on the hero makes
+  it the cover; it shows at once everywhere the cover shows. Offered on every
+  photo but the cover.
+- ***Löschen* (v0.4.1, #186):** after „Foto löschen?" the photo's row goes and
+  then its file. If it was the cover, the next photo by `position` becomes the
+  cover (after the last one: the first); the last photo deleted → no cover,
+  the tea shows its type leaf again and *+ Foto* is enabled.
+- **A catalog tea's shop photo** is just its first photo (`CATALOG_COPY`): it
+  can lose the cover or be deleted like any other.
+- **Deleting a tea** removes its photo files, as before (TEA-04).
 
 **TEA-06 — Favourites** `Must` (v0.4.0)
 The detail's ⋮ *Favorit* marks or unmarks a tea; favourites show under
@@ -511,6 +546,7 @@ badge.
   (v0.4.1); the stock chip reads „38 g", *Knapp* or *Leer*. Empty states:
   „Noch keine Tees · Im Katalog stöbern" (A7) and „Kein Tee passt zu deiner
   Suche." (A10). Smooth with 500 teas (NFR-PERF-03).
+- **v0.4.1 (D-104):** the freshness chip (INV-06) after the stock chip.
 
 **TEA-09 — Search** `Must` (v0.4.0)
 Over name, secondary name, vendor, region, cultivar and notes, ignoring case
@@ -636,6 +672,25 @@ First duration + increment × count, optional +5 °C per step.
 - **v0.4.1 (D-100):** *Aus Katalog zurücksetzen* resets the recipes and the
   description after a confirmation; stock, photos, notes, favourite and
   journal stay. Not offered when the tea is no longer in the catalog.
+- **As built (v0.4.1, D-104, #184):**
+  - **Recipes:** the catalog's recipes come first, its default first; the
+    user's own recipes (`source` USER) follow in their order, unchanged.
+  - **Default:** if the default was a catalog recipe, the catalog's new
+    default becomes the default; otherwise the user's default stays.
+  - **Limit:** if the total would exceed 10, the catalog recipes beyond the
+    limit are left out, and the confirmation says how many.
+  - **Description:** the catalog tea's; when the catalog tea has none, the
+    tea keeps its current description.
+  - „Rezept prüfen" (TEA-17) is cleared; stock, photos, notes, favourite,
+    archive flag and sessions stay.
+  - **All or nothing:** a recipe write the repository refuses rolls the whole
+    reset back; it fails and nothing changes.
+  - **Rule 8:** offered during a brew of the tea too. The running session
+    keeps its own steps; its recipe's row is rewritten, never deleted, so the
+    session keeps its link.
+  - **Recipe links (accepted):** the old catalog recipes' ids are reused for
+    the new catalog recipes at new positions, so a finished session's recipe
+    link may point to a different catalog recipe after a reset.
 
 **PRF-07 — Learn from sessions** `Must`
 If a session's actual step times differ from the plan by more than
@@ -659,6 +714,17 @@ favourite.
   keep it; archived vessels sit in their own part of the list with
   *Wiederherstellen*. The vessel of the active brew session can't be
   archived until the session ends.
+- **v0.4.1 (D-104, #187):** one photo per vessel, at the top of the editor:
+  *Foto hinzufügen* opens the Android photo picker (06 §5.2), the picked image
+  is processed like a tea photo; *Foto ersetzen* swaps it (the old file is
+  deleted); *Foto entfernen* removes it. Like every field it is stored only
+  with *Speichern* and counts as a change for „Änderungen verwerfen?"; an
+  image that can't be read then (e.g. its picker grant is gone after a process
+  death) is skipped, the rest is saved and a short toast says „Das Foto konnte
+  nicht gelesen werden."; the pick's read grant is made persistable when it
+  arrives. The
+  *Teegeschirr* list shows the photo in place of the type icon (TalkBack:
+  „Foto von *[name]*"); the setup's vessel list stays unchanged.
 
 **WARE-02 — Vessel picker** `Must`
 In brew setup and recipe editor: favourites first; archived vessels are not
@@ -1073,6 +1139,32 @@ history list (SCR-29).
   (the setup's sheet).
 - **v0.4.1 (D-100):** the history (SCR-29) and *Nachkauf erfassen* for teas
   not from the catalog (catalog teas have it in SCR-21 since M2).
+- ***Nachkauf erfassen* (v0.4.1, D-104, #181):** on every tea's detail
+  (SCR-09 VORRAT), catalog teas included; their SCR-21/23 flow with the
+  shop's sizes stays. A sheet takes the grams (required, as `GermanNumber`),
+  an optional price in € and *Kaufdatum*, today by default and never later.
+  It records one `PURCHASE` event of the grams with the price (none when left
+  empty) and the package label („50 g"): bought today at now, on an earlier
+  day at noon in the phone's zone, as INV-01's package
+  (`StockRepository.recordPurchase`). A day after today is refused and
+  nothing is written. The stock and the cost per gram follow from the events
+  at once. A purchase after the stock reached 0 g is a new package for the
+  next session's opening date (INV-06). An archived tea comes out of the
+  archive in the same transaction, like SCR-23's repurchase (D-093 Q6; PO,
+  v0.4.1 fix round).
+- **History (v0.4.1, D-104, #185):** SCR-29 lists the tea's stock events
+  from `observeEvents`, newest first, each on its day in the phone's zone:
+  purchases (INITIAL and PURCHASE, „Kauf", grams and the price when
+  recorded), corrections („Bestand korrigiert", the signed difference) and
+  brews („Gebrüht", the grams used). A brew row opens its session page
+  (SCR-16).
+- **Delete (v0.4.1, D-104, #185):** a purchase (INITIAL or PURCHASE) or a
+  correction can be deleted after a confirmation
+  (`StockRepository.deleteEvent`, which returns whether it deleted). A
+  `BREW` event is refused by the repository: it leaves only with its journal
+  entry (D-102). The stock, the cost per gram and so the cost follow from the
+  remaining events at once; the tea's `opened_date` is left as it is (only
+  the editor changes it).
 
 **INV-04 — Session edits** `Must` update the linked deduction.
 
@@ -1094,6 +1186,31 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
   *Rückgängig* snackbar, and the opened and best-before dates editable in
   the tea editor. The freshness period is the style's; there is no per-tea
   period.
+- **The labels (v0.4.1, D-104):** counted in days from `opened_date` over the
+  style's window (08 §3, `BuiltInStyles`); the thirds are whole days,
+  rounded down. *Frisch* while the day is below two thirds of the window,
+  *Bald genießen* until the window's end, *Über dem Höhepunkt* from then
+  (Gyokuro, 60 days: *Frisch* days 0–39, *Bald genießen* 40–59, *Über dem
+  Höhepunkt* from day 60). A `best_before` before today makes a tea *Über dem
+  Höhepunkt*, opened or not (on the date itself it still counts as good). No
+  label for an empty tea (*Leer*, INV-05; a tea without stock events is not
+  empty), for an unopened one whose best-before has not passed, or by the
+  opening date for a style without a window (*Andere / unbekannt*, or no
+  style). `freshness_days` keeps no UI and is not read (D-100). Shown as
+  `FreshnessChip` on the *Meine Tees* row (TEA-08), in the detail's FRISCHE
+  (SCR-09) and as a small chip in the tea picker (SCR-03); Start is
+  unchanged. TalkBack reads „Frische: Bald genießen" with the row. The pure
+  rule is `FreshnessRule` in `core:domain`; a screen reads today when its
+  data changes.
+- **Rückgängig (v0.4.1, D-104):** the „snackbar" is a line on the
+  „Gespeichert" sheet (SCR-06): after the session whose completion set
+  `opened_date`, it reads „Packung als geöffnet markiert" · *Rückgängig*.
+  *Rückgängig* writes back the value before, none or a date, so the next
+  session counts as the first after the package again. No line when the
+  completion left the date as it was. The change is remembered in memory
+  only, for the sheet's 10 s; the completion's transaction reads and writes
+  what it did in v0.4.0. A date changed since (the tea editor) is left
+  alone, and the undo is offered once.
 
 **INV-07 — Low stock & freshness reminders** `Could`
 Weekly digest notification (off by default).
@@ -1110,6 +1227,24 @@ statistics.
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
   **M4:** the statistics (INS-05).
+- **v0.4.1 (D-104, #182):** the detail's VORRAT shows three lines below the
+  stock, each in cents rounded half up:
+  - **Price:** „12,40 € / 100 g", from the priced INITIAL and PURCHASE
+    events weighted by grams (`costPerGramCents`).
+  - **Estimate:** „ca. 0,24 € pro Tasse (Rezept)": the default recipe's
+    leaf × price per gram ÷ its cups. Cups are its non-rinse steps; a
+    whisk-only recipe is one cup. Without a default recipe, no estimate.
+  - **Average:** „Ø 0,27 € pro Tasse aus 5 Sitzungen" („aus 1 Sitzung"),
+    from the first finished session with a `cost_cents`: Σ `cost_cents` ÷
+    Σ cups of those sessions. A session's cups are its poured non-rinse
+    steps (ended and not skipped; never-started rows don't count); a
+    whisk-only session is one cup, and so is a priced session whose every
+    step was skipped (its leaf was used). Sessions without a cost and the
+    running one are left out. The stored `cost_cents` stays as it was at
+    completion; a later purchase changes only the price and the estimate.
+  - **No price, no cost:** without a priced INITIAL or PURCHASE event none
+    of the three lines shows (never „0 €"). The lines update at once after
+    a purchase, a correction or a history delete.
 
 **INV-09 — Reorder link** `Must`
 SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN (VORRAT in

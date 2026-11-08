@@ -1,12 +1,14 @@
 package com.umamit.core.data
 
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.RecipeDeletion
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.dao.VesselDao
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
@@ -17,6 +19,7 @@ import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 
@@ -107,10 +110,26 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
         dao.upsert(event.toEntity(createdAt = dao.get(event.id)?.createdAt ?: now, updatedAt = now))
     }
 
-    override suspend fun deleteEvent(id: String) = dao.delete(id)
+    override suspend fun deleteEvent(id: String): Boolean = dao.deleteUnlessBrew(id) > 0
 
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
         return dao.correctStock(teaId, newTotalGrams, UUID.randomUUID().toString(), time.nowMs())?.toModel()
+    }
+
+    override suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent {
+        val today = time.today()
+        require(!purchase.purchasedOn.isAfter(today)) { "A purchase is never in the future" }
+        val event = purchaseEvent(
+            teaId,
+            InventoryEventType.PURCHASE,
+            purchase.grams,
+            purchase.priceCents,
+            purchase.purchasedOn,
+            time,
+        )
+        val now = time.nowMs()
+        dao.recordPurchase(event.toEntity(createdAt = now, updatedAt = now), now)
+        return event
     }
 }

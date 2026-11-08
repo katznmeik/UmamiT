@@ -3,6 +3,10 @@ package com.umamit.feature.collection.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
+import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
 import com.umamit.core.data.JournalRepository
@@ -11,19 +15,31 @@ import com.umamit.core.data.RecipeRepository
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaArchive
+import com.umamit.core.data.TeaPhotos
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
+import com.umamit.core.data.catalog.CatalogReset
+import com.umamit.core.data.catalog.CatalogResetPlan
+import com.umamit.core.data.catalog.CatalogResetResult
 import com.umamit.core.data.catalog.ShopLink
+import com.umamit.core.domain.collection.CostRule
+import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
+import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.StockSummary
+import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -33,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -41,6 +58,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** One-shot outcomes for the host of the tea detail. */
 sealed interface TeaDetailEvent {
@@ -49,17 +68,38 @@ sealed interface TeaDetailEvent {
 
     /** *Löschen*: the detail closes. */
     data object Deleted : TeaDetailEvent
+
+    /** *+ Foto*: the picked image couldn't be read; nothing was added (TEA-05). */
+    data object PhotoUnreadable : TeaDetailEvent
+
+    /** *+ Foto*: the tea has 10 photos already; nothing was added (TEA-05). */
+    data object PhotoLimitReached : TeaDetailEvent
+
+    /** *+ Foto*: the photo couldn't be stored; nothing was added. */
+    data object PhotoFailed : TeaDetailEvent
+
+    /** *Als Titelbild* or *Löschen* couldn't be written; nothing changed. */
+    data object PhotoChangeFailed : TeaDetailEvent
+
+    /** *Bestand korrigieren*, *Nachkauf erfassen* or a history entry's *Löschen* couldn't be written (INV-03). */
+    data object StockChangeFailed : TeaDetailEvent
+
+    /** ⋮ *Aus Katalog zurücksetzen* couldn't be written; nothing changed (PRF-06). */
+    data object ResetFailed : TeaDetailEvent
 }
 
 /**
  * The tea detail (SCR-09, TEA-13, D-100) of the tea `teaId`: everything it shows comes from flows, so it
  * updates at once after an edit, a brew or a correction. ⋮ *Favorit*, *Archivieren*, *Wiederherstellen* and
  * *Löschen* write through the repositories; archive and delete go through [TeaArchive], which refuses the tea of
- * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save (INV-03).
+ * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save, *Nachkauf erfassen* the purchase
+ * sheet's (INV-03). *+ Foto* adds the
+ * picked image through [TeaPhotos] (TEA-05, SCR-28). ⋮ *Aus Katalog zurücksetzen* is offered while [catalogReset]
+ * has a plan for the tea and resets it through it (PRF-06, CAT-13).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-@Suppress("LongParameterList") // the repositories the detail reads
+@Suppress("LongParameterList", "TooManyFunctions") // the repositories the detail reads; one function per action
 class TeaDetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val teas: TeaRepository,
@@ -71,6 +111,10 @@ class TeaDetailViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val archive: TeaArchive,
     private val photos: PhotoFiles,
+    private val teaPhotos: TeaPhotos,
+    private val clock: WallClock = SystemWallClock,
+    private val catalogReset: CatalogReset = NoCatalogReset,
+    @PhotoFileContext private val photoFileContext: CoroutineContext = EmptyCoroutineContext,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the tea detail needs a teaId" }
 
@@ -94,17 +138,22 @@ class TeaDetailViewModel @Inject constructor(
 
     val state: StateFlow<TeaDetailUiState> = combine(
         teas.observeTea(teaId),
-        combine(recipes.observeRecipes(teaId), vessels.observeVessels(), ::Pair),
+        combine(recipes.observeRecipes(teaId), vessels.observeVessels(), teaPhotos.observePhotos(teaId), ::Triple),
         stock.observeEvents(teaId),
         brewed,
-        reorderUrl,
-    ) { overview, (recipeList, vesselList), stockEvents, brew, reorder ->
+        combine(reorderUrl, catalogReset.observePlan(teaId), ::Pair),
+    ) { overview, (recipeList, vesselList, photoList), stockEvents, brew, (reorder, resetPlan) ->
         if (overview == null) {
             TeaDetailUiState.Gone
         } else {
-            TeaDetailUiState.Ready(detail(overview, recipeList, vesselList, stockEvents, brew, reorder))
+            TeaDetailUiState.Ready(
+                detail(overview, recipeList, vesselList, stockEvents, brew, reorder)
+                    .withPhotos(overview, photoList)
+                    .copy(catalogReset = resetPlan?.let { CatalogResetOffer(it.leftOut) }),
+            )
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
+    }.flowOn(photoFileContext) // the photo files are checked off the main thread (the app provides IO)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
 
     /** ⋮ *Favorit* (TEA-06): marks or unmarks the tea. */
     fun toggleFavorite() {
@@ -136,7 +185,83 @@ class TeaDetailViewModel @Inject constructor(
 
     /** *Bestand korrigieren*: the new total in g (INV-03). */
     fun correctStock(grams: Double) {
-        viewModelScope.launch { stock.correctStock(teaId, grams) }
+        writeStock { stock.correctStock(teaId, grams) }
+    }
+
+    /**
+     * The history's *Löschen*, after its confirmation (INV-03, SCR-29, D-104): a purchase or a correction goes and
+     * the stock, the price and the cost follow from the events; a brew is refused by the repository (D-102). The
+     * opening date stays as it is.
+     */
+    fun deleteStockEntry(eventId: String) {
+        writeStock { stock.deleteEvent(eventId) }
+    }
+
+    /**
+     * *Nachkauf erfassen* (INV-03, D-104): one PURCHASE of the sheet's grams, price and day; the stock follows from
+     * the events. A day after today (the clock moved back since the sheet opened) is refused and nothing is written.
+     */
+    fun recordPurchase(purchase: TeaPurchase) {
+        if (purchase.purchasedOn.isAfter(clock.today())) return
+        writeStock { stock.recordPurchase(teaId, purchase) }
+    }
+
+    /** A stock write that fails (a full disk, a locked database) changes nothing and is said once (D-090). */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun writeStock(write: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                write()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: RuntimeException) {
+                events.send(TeaDetailEvent.StockChangeFailed)
+            }
+        }
+    }
+
+    /** *+ Foto*: adds the image the photo picker returned (TEA-05); a refusal or failure is said once. */
+    fun addPhoto(uri: String) {
+        viewModelScope.launch {
+            when (teaPhotos.add(teaId, uri)) {
+                is AddPhotoResult.Added -> Unit
+                AddPhotoResult.LimitReached -> events.send(TeaDetailEvent.PhotoLimitReached)
+                AddPhotoResult.Unreadable -> events.send(TeaDetailEvent.PhotoUnreadable)
+                AddPhotoResult.Failed -> events.send(TeaDetailEvent.PhotoFailed)
+            }
+        }
+    }
+
+    /** *Als Titelbild* (TEA-05): photo [photoId] becomes the tea's cover. */
+    fun setCoverPhoto(photoId: String) {
+        viewModelScope.launch {
+            if (!teaPhotos.setCover(teaId, photoId)) events.send(TeaDetailEvent.PhotoChangeFailed)
+        }
+    }
+
+    /** The confirmation's *Löschen* (TEA-05): photo [photoId] goes; the next one becomes the cover if it was. */
+    fun deletePhoto(photoId: String) {
+        viewModelScope.launch {
+            if (!teaPhotos.delete(teaId, photoId)) events.send(TeaDetailEvent.PhotoChangeFailed)
+        }
+    }
+
+    /** The confirmation's *Zurücksetzen* (PRF-06): the catalog's description and recipes; a failure is said once. */
+    fun resetFromCatalog() {
+        viewModelScope.launch {
+            if (catalogReset.reset(teaId) == CatalogResetResult.Failed) events.send(TeaDetailEvent.ResetFailed)
+        }
+    }
+
+    /** The pager's photos whose files exist: the cover first, then the others by position (SCR-28). */
+    private fun TeaDetail.withPhotos(overview: TeaOverview, photoList: List<Photo>): TeaDetail {
+        val coverId = overview.coverPhoto?.id
+        val pager = photoList.sortedBy { if (it.id == coverId) -1 else it.position }
+            .mapNotNull { photo ->
+                this@TeaDetailViewModel.photos.file(photo.id).takeIf { it.isFile }
+                    ?.let { DetailPhoto(photo.id, it.path, photo.id == coverId) }
+            }
+        return copy(photos = pager, photoCount = photoList.size)
     }
 
     private fun reorderUrl(link: CatalogLink, events: List<InventoryEvent>): Flow<String?> {
@@ -174,6 +299,7 @@ class TeaDetailViewModel @Inject constructor(
             stockGrams = grams,
             hasStock = stockEvents.isNotEmpty(),
             stockLevel = level,
+            freshness = detailFreshness(tea, if (stockEvents.isEmpty()) null else grams, clock.today()),
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
             reorder = reorderUrl?.let {
                 Reorder(
@@ -194,6 +320,7 @@ class TeaDetailViewModel @Inject constructor(
                 processing = tea.processingNotes?.takeIf { it.isNotBlank() },
                 ingredients = tea.ingredients?.takeIf { it.isNotBlank() },
                 vendor = tea.vendor?.takeIf { it.isNotBlank() },
+                bestBefore = tea.bestBefore,
                 isOrganic = tea.isOrganic,
                 isFlavored = tea.isFlavored,
             ),
@@ -201,24 +328,10 @@ class TeaDetailViewModel @Inject constructor(
             isArchived = tea.isArchived,
             inActiveBrew = brew.active,
             sessionLeafGrams = brew.sessionLeaf(),
+            today = clock.today(),
+            history = stockEvents.asReversed().map { it.entry(clock.zone()) },
+            cost = CostRule.of(StockSummary.of(stockEvents), recipeList.firstOrNull { it.isDefault }, finished),
         )
-    }
-
-    private fun Recipe.summary(vesselNames: Map<String, String>) = RecipeSummary(
-        id = id,
-        name = name,
-        isDefault = isDefault,
-        method = method,
-        vesselName = vesselId?.let(vesselNames::get),
-        leafGrams = leafGrams,
-        waterMl = waterMl,
-        tempC = steps.firstOrNull { it.kind != StepKind.RINSE }?.tempC ?: baseTempC,
-        infusions = steps.count { it.kind != StepKind.RINSE },
-    )
-
-    private fun BrewSession.day(): LocalDate {
-        val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
-        return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
     }
 
     private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
@@ -236,4 +349,51 @@ class TeaDetailViewModel @Inject constructor(
         /** The navigation argument (the route's property name). */
         const val TEA_ID = "teaId"
     }
+}
+
+/** The session's day in its own time zone (the device's for one it doesn't know). */
+private fun BrewSession.day(): LocalDate {
+    val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
+    return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
+}
+
+/** A recipe row of REZEPTE: its key values, the vessel by name. */
+private fun Recipe.summary(vesselNames: Map<String, String>) = RecipeSummary(
+    id = id,
+    name = name,
+    isDefault = isDefault,
+    method = method,
+    vesselName = vesselId?.let(vesselNames::get),
+    leafGrams = leafGrams,
+    waterMl = waterMl,
+    tempC = steps.firstOrNull { it.kind != StepKind.RINSE }?.tempC ?: baseTempC,
+    infusions = steps.count { it.kind != StepKind.RINSE },
+)
+
+/** A stock event as a row of VORRAT's history, on its day in [zone] (SCR-29). */
+private fun InventoryEvent.entry(zone: ZoneId) = StockEntry(
+    id = id,
+    kind = when (type) {
+        InventoryEventType.INITIAL, InventoryEventType.PURCHASE -> StockEntryKind.PURCHASE
+        InventoryEventType.ADJUSTMENT -> StockEntryKind.CORRECTION
+        InventoryEventType.BREW -> StockEntryKind.BREW
+    },
+    deltaGrams = deltaGrams,
+    priceCents = priceCents,
+    day = Instant.ofEpochMilli(occurredAtMillis).atZone(zone).toLocalDate(),
+    sessionId = sessionId.takeIf { type == InventoryEventType.BREW },
+)
+
+/** FRISCHE's label by FreshnessRule, with the date it stems from (INV-06, D-104). */
+private fun detailFreshness(tea: Tea, remainingGrams: Double?, today: LocalDate): DetailFreshness? {
+    val label = FreshnessRule.of(tea, remainingGrams, today) ?: return null
+    val passed = tea.bestBefore?.takeIf { today.isAfter(it) }
+    return DetailFreshness(label, openedDate = tea.openedDate.takeIf { passed == null }, bestBefore = passed)
+}
+
+/** Without a [CatalogReset] (tests that don't need it): never offered. */
+private object NoCatalogReset : CatalogReset {
+    override fun observePlan(teaId: String): Flow<CatalogResetPlan?> = flowOf(null)
+
+    override suspend fun reset(teaId: String): CatalogResetResult = CatalogResetResult.NotInCatalog
 }

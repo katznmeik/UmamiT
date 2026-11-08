@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogTeaDetail
+import com.umamit.core.ui.GermanFormat
 
 /**
  * PACKUNGEN (SCR-21, CAT-11; 08 §2.4 item 6): each size with the shop's price, an estimate
@@ -21,7 +22,7 @@ internal fun Packages(tea: CatalogTeaDetail) {
     if (tea.packages.isEmpty()) return
     Section(stringResource(R.string.catalog_tea_section_packages)) {
         tea.packages.forEach {
-            Fact(stringResource(R.string.catalog_package_grams, CatalogFormat.grams(it.grams)), it.price())
+            Fact(stringResource(R.string.catalog_package_grams, GermanFormat.gramsTrimmed(it.grams)), it.price())
         }
         if (tea.packages.any { it.priceIsEstimate && it.priceCents != null }) {
             Spacer(Modifier.height(UmamiSpacing.XSmall))
@@ -40,8 +41,8 @@ private fun CatalogPackage.price(): String {
     val cents = priceCents
     val price = when {
         cents == null -> stringResource(R.string.catalog_package_price_on_add)
-        priceIsEstimate -> stringResource(R.string.catalog_package_estimate, CatalogFormat.euros(cents))
-        else -> stringResource(R.string.catalog_package_price, CatalogFormat.euros(cents))
+        priceIsEstimate -> stringResource(R.string.catalog_package_estimate, GermanFormat.euros(cents))
+        else -> stringResource(R.string.catalog_package_price, GermanFormat.euros(cents))
     }
     return listOfNotNull(
         price,

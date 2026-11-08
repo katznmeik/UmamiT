@@ -583,6 +583,24 @@ internal fun withExifSegment(jpeg: ByteArray): ByteArray {
     return jpeg.copyOfRange(0, 2) + segment + jpeg.copyOfRange(2, jpeg.size)
 }
 
+/**
+ * [jpeg] with an APP1 „Exif" segment after SOI whose IFD0 holds only the orientation tag (0x0112) set to
+ * [orientation] (1–8), as a phone camera writes it (#58).
+ */
+internal fun withOrientation(jpeg: ByteArray, orientation: Int): ByteArray {
+    // "Exif\0\0", big-endian TIFF header (IFD0 at 8), one entry: tag 0x0112, SHORT, count 1, value; no next IFD.
+    val tiff = byteArrayOf(
+        0x4D, 0x4D, 0x00, 0x2A, 0x00, 0x00, 0x00, 0x08,
+        0x00, 0x01,
+        0x01, 0x12, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, orientation.toByte(), 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+    )
+    val payload = "Exif\u0000\u0000".encodeToByteArray() + tiff
+    val length = payload.size + 2
+    val segment = byteArrayOf(0xFF.toByte(), 0xE1.toByte(), (length shr 8).toByte(), length.toByte()) + payload
+    return jpeg.copyOfRange(0, 2) + segment + jpeg.copyOfRange(2, jpeg.size)
+}
+
 /** The decoded pixel size of [bytes]. */
 internal fun decodedSize(bytes: ByteArray): Pair<Int, Int> {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

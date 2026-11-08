@@ -15,13 +15,11 @@ import com.umamit.core.data.purchaseEvent
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.database.dao.CatalogDao
 import com.umamit.core.database.entity.CatalogTeaEntity
-import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
-import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.Tea
 import dagger.Binds
 import dagger.Module
@@ -175,7 +173,7 @@ class RoomAddFromCatalog @Inject constructor(
         val tea = entry.toTea(teaId)
         // Saving a recipe clears „Rezept prüfen" (TEA-17), so the tea's reason is written after its recipes.
         teas.saveTea(tea.copy(recipeCheckReason = null))
-        templates(entry).forEachIndexed { position, template ->
+        CatalogDerivation.templates(entry).forEachIndexed { position, template ->
             recipes.saveRecipe(template.toRecipe(UUID.randomUUID().toString(), teaId, position))
         }
         if (tea.recipeCheckReason != null) teas.saveTea(tea)
@@ -196,20 +194,9 @@ class RoomAddFromCatalog @Inject constructor(
         return teaId
     }
 
-    /** The derived recipes (CAT-04), else the style's; exactly one is the default, the default first. */
-    private fun templates(entry: CatalogTeaEntity): List<RecipeTemplate> {
-        val derived = DerivedRecipesColumn.recipes(entry.derivedRecipesJson)
-        val templates = derived.ifEmpty { style(entry).recipes }
-        val default = templates.firstOrNull { it.isDefault } ?: templates.first()
-        return listOf(default.copy(isDefault = true)) +
-            templates.filter { it !== default }.map { it.copy(isDefault = false) }
-    }
-
-    private fun style(entry: CatalogTeaEntity) = entry.styleKey?.let(BuiltInStyles::byKey) ?: BuiltInStyles.GENERIC
-
     /** The collection fields of [this] catalog tea (05 §3.1; 08 §2.3's conversion table). */
     private fun CatalogTeaEntity.toTea(id: String): Tea {
-        val style = style(this)
+        val style = CatalogDerivation.style(this)
         val match = StyleMapper.map(breadcrumb, name, teaType, isFlavored)
         val scales = CatalogColumns.tasteScales(tasteScalesJson).map { ShopScale(it.label, it.leaves) }
         val prose = descriptionText
@@ -233,7 +220,7 @@ class RoomAddFromCatalog @Inject constructor(
             harvestSeason = CollectionFields.harvestSeason(harvest, prose),
             shadingDays = CollectionFields.shadingDays(shading, prose),
             processingNotes = steaming?.take(PROCESSING_MAX),
-            description = prose?.take(DESCRIPTION_MAX),
+            description = CatalogDerivation.description(this),
             vendor = VENDOR,
             productUrl = productUrl,
             recipeCheckReason = recipeCheckReason,
@@ -257,7 +244,6 @@ class RoomAddFromCatalog @Inject constructor(
         const val NAME_MAX = 80
         const val INGREDIENTS_MAX = 1000
         const val PROCESSING_MAX = 300
-        const val DESCRIPTION_MAX = 10_000
     }
 }
 

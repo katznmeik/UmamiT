@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.umamit.core.common.stockGramsText
+import com.umamit.core.designsystem.component.FreshnessChip
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.StatFigure
@@ -44,6 +46,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.countryName
 import java.time.format.DateTimeFormatter
@@ -51,8 +54,14 @@ import java.time.format.DateTimeFormatter
 /** *Bestand korrigieren* (INV-03). */
 const val TEA_DETAIL_CORRECT_STOCK_TAG = "tea_detail_correct_stock"
 
+/** *Nachkauf erfassen* (INV-03, D-104). */
+const val TEA_DETAIL_PURCHASE_TAG = "tea_detail_purchase"
+
 /** *Beim Tee-Kontor nachbestellen* (INV-09). */
 const val TEA_DETAIL_REORDER_TAG = "tea_detail_reorder"
+
+/** FRISCHE (INV-06): the freshness chip and the date it stems from. */
+const val TEA_DETAIL_FRESHNESS_TAG = "tea_detail_freshness"
 
 /** *Rezept hinzufügen*. */
 const val TEA_DETAIL_ADD_RECIPE_TAG = "tea_detail_add_recipe"
@@ -144,27 +153,47 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
 ).joinToString(stringResource(R.string.collection_tea_recipe_separator))
 
 /**
- * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), *Bestand korrigieren* and INV-09's *Beim Tee-Kontor
- * nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link icon.
+ * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), the cost lines of a priced tea (INV-08), *Nachkauf erfassen* and
+ * *Bestand korrigieren* (INV-03; side by side where they fit, else one below the other) and INV-09's *Beim
+ * Tee-Kontor nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link
+ * icon. The stock [history] (SCR-29) follows below them.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) -> Unit) {
+internal fun Stock(
+    tea: TeaDetail,
+    onPurchase: () -> Unit,
+    onCorrect: () -> Unit,
+    onReorder: (String) -> Unit,
+    history: @Composable () -> Unit = {},
+) {
     Section(stringResource(R.string.collection_tea_section_stock)) {
         Text(
             text = stockText(tea, short = false),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        tea.cost?.let { CostLines(it) }
         Spacer(Modifier.height(UmamiSpacing.XSmall))
-        OutlinedButton(onClick = onCorrect, modifier = Modifier.testTag(TEA_DETAIL_CORRECT_STOCK_TAG)) {
-            Icon(painterResource(UmamiIcons.Edit), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
-            Spacer(Modifier.width(UmamiSpacing.XSmall))
-            Text(stringResource(R.string.collection_tea_stock_correct))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            OutlinedButton(onClick = onPurchase, modifier = Modifier.testTag(TEA_DETAIL_PURCHASE_TAG)) {
+                Icon(painterResource(UmamiIcons.Add), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Text(stringResource(R.string.collection_tea_stock_purchase))
+            }
+            OutlinedButton(onClick = onCorrect, modifier = Modifier.testTag(TEA_DETAIL_CORRECT_STOCK_TAG)) {
+                Icon(painterResource(UmamiIcons.Edit), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Text(stringResource(R.string.collection_tea_stock_correct))
+            }
         }
-        val reorder = tea.reorder ?: return@Section
+        val reorder = tea.reorder
         val label = stringResource(R.string.collection_tea_reorder)
         val icon = painterResource(UmamiIcons.OpenInNew)
-        if (reorder.prominent) {
+        if (reorder?.prominent == true) {
             Spacer(Modifier.height(UmamiSpacing.Small))
             PillButton(
                 text = label,
@@ -174,7 +203,7 @@ internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) ->
                     .fillMaxWidth()
                     .testTag(TEA_DETAIL_REORDER_TAG),
             )
-        } else {
+        } else if (reorder != null) {
             TextButton(
                 onClick = { onReorder(reorder.url) },
                 modifier = Modifier.testTag(TEA_DETAIL_REORDER_TAG),
@@ -184,6 +213,7 @@ internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) ->
                 Icon(icon, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
             }
         }
+        history()
     }
 }
 
@@ -206,6 +236,35 @@ internal fun stockText(tea: TeaDetail, short: Boolean): String = when {
     else -> stringResource(R.string.collection_tea_stock, stockGramsText(tea.stockGrams))
 }
 
+/**
+ * FRISCHE (INV-06, D-104): the freshness chip and „Geöffnet am 21. Okt. 2026", or „Mindestens haltbar bis …" once
+ * that date has passed; only with a label. TalkBack reads both as one item.
+ */
+@Composable
+internal fun FreshnessSection(freshness: DetailFreshness?) {
+    if (freshness == null) return
+    val line = freshness.bestBefore?.let {
+        stringResource(R.string.collection_tea_freshness_best_before, GermanFormat.day(it))
+    } ?: freshness.openedDate?.let { stringResource(R.string.collection_tea_freshness_opened, GermanFormat.day(it)) }
+    Section(stringResource(R.string.collection_tea_section_freshness)) {
+        Column(
+            modifier = Modifier
+                .testTag(TEA_DETAIL_FRESHNESS_TAG)
+                .semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            FreshnessChip(freshness.label)
+            if (line != null) {
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
 /** BESCHREIBUNG or NOTIZEN: only with content. */
 @Composable
 internal fun TextSection(title: Int, text: String?) {
@@ -215,7 +274,10 @@ internal fun TextSection(title: Int, text: String?) {
     }
 }
 
-/** DETAILS: origin, cultivar, harvest, shading, processing, ingredients and vendor, each only when set. */
+/**
+ * DETAILS: origin, cultivar, harvest, shading, processing, ingredients, vendor and the best-before day, each only
+ * when set.
+ */
 @Composable
 internal fun Details(facts: TeaFacts) {
     val season = facts.harvestSeason?.label?.let { stringResource(it) }
@@ -231,6 +293,7 @@ internal fun Details(facts: TeaFacts) {
         facts.processing?.let { R.string.collection_tea_processing to it },
         facts.ingredients?.let { R.string.collection_tea_ingredients to it },
         facts.vendor?.let { R.string.collection_tea_vendor to it },
+        facts.bestBefore?.let { R.string.collection_tea_best_before_on to GermanFormat.day(it) },
     )
     if (rows.isEmpty()) return
     Section(stringResource(R.string.collection_tea_section_details)) {

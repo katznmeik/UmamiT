@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="collection_title">Sammlung</string>
     <string name="collection_segment_my_teas">Meine Tees</string>
     <string name="collection_segment_catalog">Katalog</string>
@@ -102,15 +102,30 @@
     </plurals>
     <string name="collection_tea_delete_archive_instead">Stattdessen archivieren</string>
     <string name="collection_tea_delete_confirm">Löschen</string>
+    <!-- ⋮ Aus Katalog zurücksetzen (PRF-06, CAT-13, D-104): only while the catalog holds the tea. -->
+    <string name="collection_tea_reset">Aus Katalog zurücksetzen</string>
+    <string name="collection_tea_reset_title">Aus Katalog zurücksetzen?</string>
+    <string name="collection_tea_reset_body">Beschreibung und Katalog-Rezepte werden durch die aktuellen aus dem Katalog ersetzt. Deine eigenen Rezepte, Vorrat, Fotos, Notizen, Favorit und Journal bleiben, wie sie sind.</string>
+    <plurals name="collection_tea_reset_limit">
+        <item quantity="one">Ein Katalog-Rezept passt nicht mehr dazu (höchstens 10 Rezepte) und wird weggelassen.</item>
+        <item quantity="other">%1$d Katalog-Rezepte passen nicht mehr dazu (höchstens 10 Rezepte) und werden weggelassen.</item>
+    </plurals>
+    <string name="collection_tea_reset_cancel">Abbrechen</string>
+    <string name="collection_tea_reset_confirm">Zurücksetzen</string>
+    <string name="collection_tea_reset_failed">Der Tee konnte nicht zurückgesetzt werden.</string>
     <!-- The snackbar on the screen below the closed detail (TEA-04, 03 §5). -->
     <string name="collection_tea_archived">%1$s archiviert</string>
     <string name="collection_tea_undo">Rückgängig</string>
     <!-- Sections, given in sentence case (shown uppercase). -->
     <string name="collection_tea_section_recipes">Rezepte</string>
     <string name="collection_tea_section_stock">Vorrat</string>
+    <string name="collection_tea_section_freshness">Frische</string>
     <string name="collection_tea_section_description">Beschreibung</string>
     <string name="collection_tea_section_notes">Notizen</string>
     <string name="collection_tea_section_details">Details</string>
+    <!-- FRISCHE (INV-06, D-104): the date the label stems from; %1$s is a date („21. Okt. 2026"). -->
+    <string name="collection_tea_freshness_opened">Geöffnet am %1$s</string>
+    <string name="collection_tea_freshness_best_before">Mindestens haltbar bis %1$s</string>
     <!-- REZEPTE: „Kyusu 250 ml · 5 g · 250 ml · 70 °C · 3 Aufgüsse". -->
     <string name="collection_tea_recipe_default">Standard</string>
     <string name="collection_tea_recipe_separator">" · "</string>
@@ -130,8 +145,81 @@
     <string name="collection_tea_stock_none">Kein Bestand erfasst</string>
     <string name="collection_tea_stat_stock_none">–</string>
     <string name="collection_tea_stock_correct">Bestand korrigieren</string>
+    <!-- VORRAT's cost of a priced tea (INV-08, D-104): price per 100 g, recipe estimate, real average. -->
+    <string name="collection_tea_cost_price">%1$s € / 100 g</string>
+    <string name="collection_tea_cost_recipe">ca. %1$s € pro Tasse (Rezept)</string>
+    <plurals name="collection_tea_cost_average">
+        <item quantity="one">Ø %1$s € pro Tasse aus %2$d Sitzung</item>
+        <item quantity="other">Ø %1$s € pro Tasse aus %2$d Sitzungen</item>
+    </plurals>
+    <plurals name="collection_tea_cost_average_spoken">
+        <item quantity="one">Durchschnittlich %1$s € pro Tasse aus %2$d Sitzung</item>
+        <item quantity="other">Durchschnittlich %1$s € pro Tasse aus %2$d Sitzungen</item>
+    </plurals>
+    <!-- Nachkauf erfassen on VORRAT (INV-03, SCR-09, D-104). -->
+    <string name="collection_tea_stock_purchase">Nachkauf erfassen</string>
+    <string name="collection_purchase_title">Nachkauf erfassen</string>
+    <string name="collection_purchase_grams">Menge</string>
+    <string name="collection_purchase_grams_unit">g</string>
+    <string name="collection_purchase_grams_invalid">Gib die Menge in g an, z. B. 50.</string>
+    <string name="collection_purchase_price">Preis</string>
+    <string name="collection_purchase_price_unit">€</string>
+    <string name="collection_purchase_price_hint">Leer lassen, wenn du ihn nicht kennst</string>
+    <string name="collection_purchase_price_invalid">Gib den Preis in Euro an, z. B. 12,40.</string>
+    <string name="collection_purchase_date">Kaufdatum</string>
+    <string name="collection_purchase_date_ok">OK</string>
+    <string name="collection_purchase_date_future">Das Datum liegt in der Zukunft.</string>
+    <string name="collection_purchase_cancel">Abbrechen</string>
+    <string name="collection_purchase_save">Erfassen</string>
+    <!-- VORRAT's stock history (SCR-29, INV-03, D-104): newest first; a brew row opens its session. -->
+    <string name="collection_tea_history_purchase">Kauf</string>
+    <string name="collection_tea_history_correction">Bestand korrigiert</string>
+    <string name="collection_tea_history_brew">Gebrüht</string>
+    <plurals name="collection_tea_history_more">
+        <item quantity="one">Alle %1$d Einträge anzeigen</item>
+        <item quantity="other">Alle %1$d Einträge anzeigen</item>
+    </plurals>
+    <string name="collection_tea_history_grams_up">+%1$s g</string>
+    <string name="collection_tea_history_grams_down">−%1$s g</string>
+    <string name="collection_tea_history_with_price">%1$s · %2$s €</string>
+    <!-- TalkBack: „Kauf am 20. Okt. 2026: 100 g dazu für 18,90 €". -->
+    <string name="collection_tea_history_purchase_description">Kauf am %1$s: %2$s g dazu</string>
+    <string name="collection_tea_history_purchase_priced_description">Kauf am %1$s: %2$s g dazu für %3$s €</string>
+    <string name="collection_tea_history_correction_up_description">Bestand korrigiert am %1$s: %2$s g mehr</string>
+    <string name="collection_tea_history_correction_down_description">Bestand korrigiert am %1$s: %2$s g weniger</string>
+    <string name="collection_tea_history_brew_description">Gebrüht am %1$s: %2$s g verbraucht</string>
+    <string name="collection_tea_history_open_session">Sitzung ansehen</string>
+    <string name="collection_tea_history_delete_purchase">Kauf vom %1$s löschen</string>
+    <string name="collection_tea_history_delete_correction">Korrektur vom %1$s löschen</string>
+    <string name="collection_tea_history_delete_purchase_title">Kauf löschen?</string>
+    <string name="collection_tea_history_delete_correction_title">Korrektur löschen?</string>
+    <!-- The question's line: deleting +100 g lowers the stock, deleting −15 g raises it. -->
+    <string name="collection_tea_history_delete_lowers">Vom %1$s. Dein Vorrat sinkt dadurch um %2$s g.</string>
+    <string name="collection_tea_history_delete_raises">Vom %1$s. Dein Vorrat steigt dadurch um %2$s g.</string>
+    <string name="collection_tea_history_delete_cancel">Abbrechen</string>
+    <string name="collection_tea_history_delete_confirm">Löschen</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
+    <string name="collection_tea_photo_add">+ Foto</string>
+    <string name="collection_tea_photo_limit">Höchstens 10 Fotos</string>
+    <string name="collection_tea_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
+    <string name="collection_tea_photo_failed">Das Foto konnte nicht gespeichert werden.</string>
+    <!-- Per photo (SCR-28, TEA-05, #186): ⋮ *Als Titelbild* and *Löschen* after a confirmation. -->
+    <string name="collection_tea_photo_more">Foto-Optionen</string>
+    <string name="collection_tea_photo_set_cover">Als Titelbild</string>
+    <string name="collection_tea_photo_delete">Löschen</string>
+    <string name="collection_tea_photo_delete_title">Foto löschen?</string>
+    <string name="collection_tea_photo_delete_body">Das Foto wird aus der App entfernt.</string>
+    <string name="collection_tea_photo_delete_cover_body">Das Foto wird aus der App entfernt. Das nächste Foto wird zum Titelbild.</string>
+    <string name="collection_tea_photo_delete_cancel">Abbrechen</string>
+    <string name="collection_tea_photo_delete_confirm">Löschen</string>
+    <string name="collection_tea_stock_change_failed">Der Bestand konnte nicht geändert werden.</string>
+    <string name="collection_tea_photo_change_failed">Das Foto konnte nicht geändert werden.</string>
+    <!-- TalkBack: „Fotos von Morgennebel", „Foto 1 von 3, Titelbild". -->
+    <string name="collection_tea_photos_description">Fotos von %1$s</string>
+    <string name="collection_tea_photo_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <string name="collection_tea_photo_cover_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d, Titelbild</string>
     <!-- DETAILS, each only when set. -->
     <string name="collection_tea_origin">Herkunft</string>
     <string name="collection_tea_cultivar">Kultivar</string>
@@ -144,6 +232,7 @@
     <string name="collection_tea_processing">Verarbeitung</string>
     <string name="collection_tea_ingredients">Zutaten</string>
     <string name="collection_tea_vendor">Händler</string>
+    <string name="collection_tea_best_before_on">Haltbar bis</string>
     <string name="collection_tea_season_first_flush">Erste Pflückung</string>
     <string name="collection_tea_season_second_flush">Zweite Pflückung</string>
     <string name="collection_tea_season_summer">Sommer</string>
@@ -220,6 +309,13 @@
     <string name="tea_editor_processing_hint">z. B. Chumushi</string>
     <string name="tea_editor_vendor">Händler</string>
     <string name="tea_editor_purchase_date">Kaufdatum</string>
+    <string name="tea_editor_section_freshness">Frische</string>
+    <string name="tea_editor_opened_date">Geöffnet am</string>
+    <string name="tea_editor_opened_date_hint">Leer: noch ungeöffnet.</string>
+    <string name="tea_editor_best_before">Haltbar bis</string>
+    <string name="tea_editor_date_unset">Nicht gesetzt</string>
+    <string name="tea_editor_date_clear">Entfernen</string>
+    <string name="tea_editor_error_opened_future">Das Öffnungsdatum liegt in der Zukunft.</string>
     <string name="tea_editor_purchase_date_ok">OK</string>
     <string name="tea_editor_purchase_date_cancel">Abbrechen</string>
     <string name="tea_editor_package">Packung</string>

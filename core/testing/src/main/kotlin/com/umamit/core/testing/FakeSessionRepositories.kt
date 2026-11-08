@@ -6,6 +6,7 @@ import com.umamit.core.data.ActiveBrewStore
 import com.umamit.core.data.DatabaseTransactions
 import com.umamit.core.data.JournalRepository
 import com.umamit.core.data.JournalSession
+import com.umamit.core.data.OpenedDateChange
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.SessionStart
 import com.umamit.core.data.SettingsRepository
@@ -40,8 +41,9 @@ import kotlin.math.roundToLong
 // In-memory fakes of the session repositories and the active brew store (05 §3.6, §3.7,
 // §3.12). They share their rows like the database: the store's snapshot writes the
 // session's step rows, and discarding a session drops its stock event and the active brew.
-// Not modelled: the new-package rule of INV-06 (the fake sets only a missing opened date)
-// and rollbacks (FakeDatabaseTransactions runs the block as is).
+// Not modelled: the new-package rule of INV-06 (the fake sets only a missing opened date, and
+// reports that for SCR-06's Rückgängig as Room does) and rollbacks (FakeDatabaseTransactions
+// runs the block as is).
 
 /** [FakeSessions.startActiveBrew]'s session: its Vorwarnung and its start. */
 private const val ACTIVE_PRE_ALERT_SECONDS = 10
@@ -90,6 +92,9 @@ class FakeSessions(
 
 /** Fake [SessionRepository]; create it through [FakeSessions]. */
 class FakeSessionRepository internal constructor(private val s: FakeSessions) : SessionRepository {
+    /** The opening dates completions set, by session (SCR-06). */
+    private val openedDates = mutableMapOf<String, OpenedDateChange>()
+
     override suspend fun startSession(start: SessionStart) = s.sessionRows.update { map ->
         check(start.id !in map) { "session ${start.id} exists" }
         map + (
@@ -153,6 +158,7 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
             if (tea.openedDate == null) {
                 val opened = Instant.ofEpochMilli(session.startedAtMs).atZone(ZoneId.of(session.zoneId)).toLocalDate()
                 s.collection.teas.saveTea(tea.copy(openedDate = opened))
+                openedDates[sessionId] = OpenedDateChange(sessionId, teaId, previous = null, openedDate = opened)
             }
             if (deductStock && leaf != null) {
                 s.collection.stock.addEvent(
@@ -178,6 +184,17 @@ class FakeSessionRepository internal constructor(private val s: FakeSessions) : 
                 autoFinished = autoFinished,
             )
         }
+    }
+
+    override suspend fun openedDateChange(sessionId: String): OpenedDateChange? = openedDates[sessionId]?.takeIf {
+        s.sessionRows.value[sessionId]?.status == SessionStatus.COMPLETED &&
+            s.collection.teaRows.value[it.teaId]?.openedDate == it.openedDate
+    }
+
+    override suspend fun undoOpenedDate(change: OpenedDateChange) {
+        val tea = s.collection.teaRows.value[change.teaId]
+        if (tea?.openedDate == change.openedDate) s.collection.teas.saveTea(tea.copy(openedDate = change.previous))
+        openedDates.remove(change.sessionId)
     }
 
     override suspend fun discardSession(sessionId: String) {
