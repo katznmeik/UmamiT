@@ -108,9 +108,13 @@
     <!-- Sections, given in sentence case (shown uppercase). -->
     <string name="collection_tea_section_recipes">Rezepte</string>
     <string name="collection_tea_section_stock">Vorrat</string>
+    <string name="collection_tea_section_freshness">Frische</string>
     <string name="collection_tea_section_description">Beschreibung</string>
     <string name="collection_tea_section_notes">Notizen</string>
     <string name="collection_tea_section_details">Details</string>
+    <!-- FRISCHE (INV-06, D-104): the date the label stems from; %1$s is a date („21. Okt. 2026"). -->
+    <string name="collection_tea_freshness_opened">Geöffnet am %1$s</string>
+    <string name="collection_tea_freshness_best_before">Mindestens haltbar bis %1$s</string>
     <!-- REZEPTE: „Kyusu 250 ml · 5 g · 250 ml · 70 °C · 3 Aufgüsse". -->
     <string name="collection_tea_recipe_default">Standard</string>
     <string name="collection_tea_recipe_separator">" · "</string>

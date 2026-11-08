@@ -2,15 +2,19 @@ package com.umamit.feature.collection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.common.WallClock
 import com.umamit.core.data.CollectionListEntry
 import com.umamit.core.data.CollectionListRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.domain.collection.CollectionBrowser
+import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.CollectionFilter
 import com.umamit.core.model.CollectionRow
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,13 +27,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
  * A tea of *Meine Tees* as its row shows it (TEA-08, D-100): cover, name, secondary name, Sorte, the stock chip
- * („38 g", *Knapp*, *Leer*; none without stock events), the favourite star and „Rezept prüfen". An archived tea
- * ([isArchived], under *Archiviert*) offers *Wiederherstellen*.
+ * („38 g", *Knapp*, *Leer*; none without stock events), the freshness label (INV-06, D-104), the favourite star and
+ * „Rezept prüfen". An archived tea ([isArchived], under *Archiviert*) offers *Wiederherstellen*.
  *
+ * @property freshness *Frisch*, *Bald genießen* or *Über dem Höhepunkt*; null for none (FreshnessRule).
  * @property photoPath the cover photo's file, or null for the leaf placeholder (03 §3.5).
  */
 data class MyTeaRow(
@@ -40,6 +47,7 @@ data class MyTeaRow(
     val category: TeaCategory,
     val remainingGrams: Double?,
     val stockLevel: StockLevel?,
+    val freshness: Freshness? = null,
     val isFavorite: Boolean,
     val checkRecipe: Boolean,
     val isArchived: Boolean,
@@ -101,6 +109,7 @@ class MyTeasViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val archive: TeaArchive,
     private val photos: PhotoFiles,
+    private val clock: WallClock = SystemWallClock,
 ) : ViewModel() {
     private val filter = MutableStateFlow(CollectionFilter())
 
@@ -114,9 +123,10 @@ class MyTeasViewModel @Inject constructor(
     ) { all, filter, sort ->
         val listing = CollectionBrowser.listing(all.map { it.first }, filter, sort)
         val paths = all.associate { it.first.tea.id to it.second }
+        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
         MyTeasUiState(
             loading = false,
-            rows = listing.rows.map { it.toUi(paths[it.tea.id]) },
+            rows = listing.rows.map { it.toUi(paths[it.tea.id], today) },
             filter = filter,
             sort = sort,
             categories = listing.categories,
@@ -147,7 +157,7 @@ class MyTeasViewModel @Inject constructor(
     private fun CollectionListEntry.withPhoto(): Pair<CollectionRow, String?> =
         row to coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path
 
-    private fun CollectionRow.toUi(photoPath: String?) = MyTeaRow(
+    private fun CollectionRow.toUi(photoPath: String?, today: LocalDate) = MyTeaRow(
         id = tea.id,
         name = tea.name,
         secondaryName = tea.secondaryName?.takeIf(String::isNotBlank),
@@ -155,6 +165,7 @@ class MyTeasViewModel @Inject constructor(
         category = tea.category,
         remainingGrams = remainingGrams,
         stockLevel = stockLevel,
+        freshness = FreshnessRule.of(tea, remainingGrams, today),
         isFavorite = tea.isFavorite,
         checkRecipe = tea.recipeCheckReason != null,
         isArchived = tea.isArchived,

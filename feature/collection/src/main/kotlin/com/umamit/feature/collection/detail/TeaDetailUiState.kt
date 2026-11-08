@@ -1,6 +1,7 @@
 package com.umamit.feature.collection.detail
 
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
@@ -31,6 +32,7 @@ sealed interface TeaDetailUiState {
  * @property stockGrams the remaining grams (Σ of the stock events; 0 without any, as the setup reads it).
  * @property hasStock whether the tea has any stock event; without one no figure is shown (D-100: no stock is invented).
  * @property stockLevel *Knapp* / *Leer* by the tea's own threshold, else SET-16's (INV-05).
+ * @property freshness FRISCHE's label (INV-06, D-104); null for none (unopened, empty, a style without a window).
  * @property recipes the recipes by position, the default marked.
  * @property reorder INV-09's link, or null when it offers none.
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
@@ -52,6 +54,7 @@ data class TeaDetail(
     val stockGrams: Double = 0.0,
     val hasStock: Boolean = true,
     val stockLevel: StockLevel = StockLevel.EMPTY,
+    val freshness: DetailFreshness? = null,
     val recipes: List<RecipeSummary> = emptyList(),
     val reorder: Reorder? = null,
     val description: String? = null,
@@ -71,6 +74,12 @@ data class TeaDetail(
     /** *Brühen* is greyed out for an archived tea („Tee ist archiviert", D-100). */
     val canBrew: Boolean get() = !isArchived
 }
+
+/**
+ * FRISCHE (INV-06, D-104): the [label] with the date it is counted from: [openedDate] for a label by the style's
+ * window, [bestBefore] when that date has passed (then the label is *Über dem Höhepunkt*, opened or not).
+ */
+data class DetailFreshness(val label: Freshness, val openedDate: LocalDate?, val bestBefore: LocalDate?)
 
 /** A photo of the hero pager (SCR-28): its file and whether it is the tea's cover. */
 data class DetailPhoto(val id: String, val path: String, val isCover: Boolean)

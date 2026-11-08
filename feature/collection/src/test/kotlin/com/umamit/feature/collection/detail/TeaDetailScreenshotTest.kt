@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.StockLevel
 import org.junit.Rule
 import org.junit.Test
@@ -17,12 +18,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.LocalDate
 
 /**
  * The tea detail (SCR-09, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6), with the placeholder leaf
  * instead of a photo and an invented tea (D-016): the top of the page with the figures and REZEPTE, and the tea
  * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out); the photo pager
- * (SCR-28) over placeholder photos and its limit of 10.
+ * (SCR-28) over placeholder photos and its limit of 10; FRISCHE with *Bald genießen* (INV-06).
  * Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -58,6 +60,16 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun ready() = capture("ready", TeaDetailScreenTest.sample())
+
+    /** FRISCHE (INV-06, D-104): *Bald genießen*, opened 8 Oct 2026. */
+    @Test
+    fun freshness() = capture(
+        "freshness",
+        TeaDetailScreenTest.sample().copy(
+            freshness = DetailFreshness(Freshness.DRINK_SOON, LocalDate.of(2026, 10, 8), null),
+        ),
+        scrollToTag = TEA_DETAIL_FRESHNESS_TAG,
+    )
 
     /** The pager over three placeholder photos, the cover shown (SCR-28). */
     @Test

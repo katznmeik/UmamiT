@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.umamit.core.common.stockGramsText
+import com.umamit.core.designsystem.component.FreshnessChip
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.StatFigure
@@ -44,6 +45,7 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.ui.GermanFormat
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.countryName
 import java.time.format.DateTimeFormatter
@@ -53,6 +55,9 @@ const val TEA_DETAIL_CORRECT_STOCK_TAG = "tea_detail_correct_stock"
 
 /** *Beim Tee-Kontor nachbestellen* (INV-09). */
 const val TEA_DETAIL_REORDER_TAG = "tea_detail_reorder"
+
+/** FRISCHE (INV-06): the freshness chip and the date it stems from. */
+const val TEA_DETAIL_FRESHNESS_TAG = "tea_detail_freshness"
 
 /** *Rezept hinzufügen*. */
 const val TEA_DETAIL_ADD_RECIPE_TAG = "tea_detail_add_recipe"
@@ -204,6 +209,35 @@ internal fun stockText(tea: TeaDetail, short: Boolean): String = when {
         stringResource(R.string.collection_tea_stock_low, stockGramsText(tea.stockGrams))
 
     else -> stringResource(R.string.collection_tea_stock, stockGramsText(tea.stockGrams))
+}
+
+/**
+ * FRISCHE (INV-06, D-104): the freshness chip and „Geöffnet am 21. Okt. 2026", or „Mindestens haltbar bis …" once
+ * that date has passed; only with a label. TalkBack reads both as one item.
+ */
+@Composable
+internal fun FreshnessSection(freshness: DetailFreshness?) {
+    if (freshness == null) return
+    val line = freshness.bestBefore?.let {
+        stringResource(R.string.collection_tea_freshness_best_before, GermanFormat.day(it))
+    } ?: freshness.openedDate?.let { stringResource(R.string.collection_tea_freshness_opened, GermanFormat.day(it)) }
+    Section(stringResource(R.string.collection_tea_section_freshness)) {
+        Column(
+            modifier = Modifier
+                .testTag(TEA_DETAIL_FRESHNESS_TAG)
+                .semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            FreshnessChip(freshness.label)
+            if (line != null) {
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
 }
 
 /** BESCHREIBUNG or NOTIZEN: only with content. */

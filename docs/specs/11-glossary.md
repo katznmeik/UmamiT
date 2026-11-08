@@ -51,6 +51,7 @@
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
+| **Frische (Frisch, Bald genießen, Über dem Höhepunkt)** | A tea's freshness label (INV-06, from v0.4.1): by thirds of its style's window from the opening date, or *Über dem Höhepunkt* once its best-before date has passed. None for an unopened or an empty tea. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2); *Leer* at 0 g (INV-05). |
 | **Low-stock card / reminder** | The card on Start for one *Knapp* or *Leer* tea (INV-10), which *Ausblenden* hides for that tea until its next purchase; and, from v0.3.0, the daily notification listing every *Knapp* or *Leer* tea, which ignores *Ausblenden*. An archived tea appears in neither. |
 | **Archivieren / Wiederherstellen** | *Archivieren* puts a tea or a vessel away: it leaves the lists and pickers but keeps its recipes, stock and journal entries; *Wiederherstellen* brings it back. The one word for it everywhere (formerly „Aus Sammlung entfernen" in the tea picker). Not *Ausblenden*, which only hides a low-stock card. |

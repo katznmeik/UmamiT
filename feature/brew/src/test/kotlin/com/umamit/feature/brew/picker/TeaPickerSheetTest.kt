@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.Freshness
 import com.umamit.core.ui.AlertGate
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.rememberAlertGate
@@ -68,6 +70,17 @@ class TeaPickerSheetTest {
         assertThat(catalog).isEqualTo(1)
         assertThat(picked).isEmpty()
         assertThat(quick).isEqualTo(0)
+    }
+
+    @Test
+    fun `a tea's small freshness chip is read with its row`() {
+        show(TeaPickerUiState(all = listOf(hisui.copy(freshness = Freshness.DRINK_SOON), tanabata), loading = false))
+
+        compose.onNodeWithText("Bald genießen", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasClickAction() and hasText("Bio Sencha Hisui"))
+            .assert(hasContentDescription("Frische: Bald genießen"))
+        compose.onNode(hasClickAction() and hasText("Bio Sencha Tanabata"))
+            .assert(!hasContentDescription("Frische:", substring = true))
     }
 
     @Test
