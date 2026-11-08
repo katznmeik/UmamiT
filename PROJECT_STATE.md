@@ -36,6 +36,11 @@
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
 
+## v0.4.1: approved, final (2026-11-08)
+
+- **PO (in the session, 2026-11-08):** „all test passed, please release": every rc.1 checklist item passed; that is the approval of the checklist and the design review (rule 9).
+- **#189:** `umamit.version=0.4.1` (versionCode 40199) on the branch → CI green → merge PR #191 into `main` with a merge commit → both accuracy variants on the merge commit (09 §4a, required for the final) → `v0.4.1` from `main` → close #171 and its tickets, restart the branch from `main`.
+
 ## v0.4.1: rc.1 out (2026-11-08)
 
 - **Version:** `0.4.1-rc.1` (versionCode 40101) in `f34c237e`. CI green on it (run 42471069183; Checks failed once on the external `kotlin-compiler-embeddable` 504 from GitHub releases and passed on the rerun of the failed job).
