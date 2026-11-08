@@ -23,6 +23,7 @@ import com.umamit.core.data.catalog.ShopLink
 import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
@@ -163,6 +164,15 @@ class TeaDetailViewModel @Inject constructor(
     }
 
     /**
+     * The history's *Löschen*, after its confirmation (INV-03, SCR-29, D-104): a purchase or a correction goes and
+     * the stock, the price and the cost follow from the events; a brew is refused by the repository (D-102). The
+     * opening date stays as it is.
+     */
+    fun deleteStockEntry(eventId: String) {
+        viewModelScope.launch { stock.deleteEvent(eventId) }
+    }
+
+    /**
      * *Nachkauf erfassen* (INV-03, D-104): one PURCHASE of the sheet's grams, price and day; the stock follows from
      * the events. A day after today (the clock moved back since the sheet opened) is refused and nothing is written.
      */
@@ -260,6 +270,7 @@ class TeaDetailViewModel @Inject constructor(
             inActiveBrew = brew.active,
             sessionLeafGrams = brew.sessionLeaf(),
             today = clock.today(),
+            history = stockEvents.asReversed().map { it.entry(clock.zone()) },
         )
     }
 
@@ -297,6 +308,20 @@ private fun BrewSession.day(): LocalDate {
     val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
     return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
 }
+
+/** A stock event as a row of VORRAT's history, on its day in [zone] (SCR-29). */
+private fun InventoryEvent.entry(zone: ZoneId) = StockEntry(
+    id = id,
+    kind = when (type) {
+        InventoryEventType.INITIAL, InventoryEventType.PURCHASE -> StockEntryKind.PURCHASE
+        InventoryEventType.ADJUSTMENT -> StockEntryKind.CORRECTION
+        InventoryEventType.BREW -> StockEntryKind.BREW
+    },
+    deltaGrams = deltaGrams,
+    priceCents = priceCents,
+    day = Instant.ofEpochMilli(occurredAtMillis).atZone(zone).toLocalDate(),
+    sessionId = sessionId.takeIf { type == InventoryEventType.BREW },
+)
 
 private fun WallClock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
 

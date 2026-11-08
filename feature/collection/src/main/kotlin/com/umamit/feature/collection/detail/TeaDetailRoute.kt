@@ -62,6 +62,8 @@ fun TeaDetailRoute(
             recordPurchase = viewModel::recordPurchase,
             openShop = context::openInBrowser,
             addPhoto = pickPhoto,
+            deleteStockEntry = viewModel::deleteStockEntry,
+            openSession = host.onOpenSession,
         ),
         modifier = modifier,
         alertKey = host.alertKey,

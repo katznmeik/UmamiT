@@ -149,6 +149,30 @@
     <string name="collection_purchase_date_future">Das Datum liegt in der Zukunft.</string>
     <string name="collection_purchase_cancel">Abbrechen</string>
     <string name="collection_purchase_save">Erfassen</string>
+    <!-- VORRAT's stock history (SCR-29, INV-03, D-104): newest first; a brew row opens its session. -->
+    <string name="collection_tea_history_purchase">Kauf</string>
+    <string name="collection_tea_history_correction">Bestand korrigiert</string>
+    <string name="collection_tea_history_brew">Gebrüht</string>
+    <string name="collection_tea_history_more">Alle %1$d Einträge anzeigen</string>
+    <string name="collection_tea_history_grams_up">+%1$s g</string>
+    <string name="collection_tea_history_grams_down">−%1$s g</string>
+    <string name="collection_tea_history_with_price">%1$s · %2$s €</string>
+    <!-- TalkBack: „Kauf am 20. Okt. 2026: 100 g dazu für 18,90 €". -->
+    <string name="collection_tea_history_purchase_description">Kauf am %1$s: %2$s g dazu</string>
+    <string name="collection_tea_history_purchase_priced_description">Kauf am %1$s: %2$s g dazu für %3$s €</string>
+    <string name="collection_tea_history_correction_up_description">Bestand korrigiert am %1$s: %2$s g mehr</string>
+    <string name="collection_tea_history_correction_down_description">Bestand korrigiert am %1$s: %2$s g weniger</string>
+    <string name="collection_tea_history_brew_description">Gebrüht am %1$s: %2$s g verbraucht</string>
+    <string name="collection_tea_history_open_session">Sitzung ansehen</string>
+    <string name="collection_tea_history_delete_purchase">Kauf vom %1$s löschen</string>
+    <string name="collection_tea_history_delete_correction">Korrektur vom %1$s löschen</string>
+    <string name="collection_tea_history_delete_purchase_title">Kauf löschen?</string>
+    <string name="collection_tea_history_delete_correction_title">Korrektur löschen?</string>
+    <!-- The question's line: deleting +100 g lowers the stock, deleting −15 g raises it. -->
+    <string name="collection_tea_history_delete_lowers">Vom %1$s. Dein Vorrat sinkt dadurch um %2$s g.</string>
+    <string name="collection_tea_history_delete_raises">Vom %1$s. Dein Vorrat steigt dadurch um %2$s g.</string>
+    <string name="collection_tea_history_delete_cancel">Abbrechen</string>
+    <string name="collection_tea_history_delete_confirm">Löschen</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
     <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
