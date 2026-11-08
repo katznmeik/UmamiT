@@ -14,6 +14,13 @@ import java.io.File
 fun rememberPhotoPainter(path: String?): Painter? = path?.let { rememberAsyncImagePainter(model = File(it)) }
 
 /**
+ * The painter of an image the photo picker just returned as [uri] (a content URI), before it is processed and
+ * stored (SCR-14). Coil loads it off the main thread.
+ */
+@Composable
+fun rememberPickedPhotoPainter(uri: String): Painter = rememberAsyncImagePainter(model = uri)
+
+/**
  * The painter of a tea photo stored at [path], showing [fallback] without one, while it
  * loads and when it cannot be read, so a layout that reserves the photo's space never
  * depends on whether or when the file arrives (SCR-05, D-058).

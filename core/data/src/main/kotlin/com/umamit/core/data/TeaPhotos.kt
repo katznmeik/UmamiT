@@ -93,8 +93,7 @@ class RoomTeaPhotos @Inject constructor(
     }
 
     /** The picked image at [uri] processed (06 §5.2), or null when it can't be read or decoded. */
-    private suspend fun processed(uri: String): EncodedPhoto? =
-        read(uri)?.let { bytes -> withContext(Dispatchers.Default) { PhotoTranscoder.transcodePicked(bytes) } }
+    private suspend fun processed(uri: String): EncodedPhoto? = loadPicked(context, uri)
 
     /** Writes [photo]'s file, then its row; a row that isn't written takes the file with it. */
     private suspend fun store(teaId: String, photo: EncodedPhoto): AddPhotoResult {
@@ -135,35 +134,38 @@ class RoomTeaPhotos @Inject constructor(
         if (dao.get(teaId)?.coverPhotoId == null) dao.setCoverPhoto(teaId, id, now)
         return AddPhotoResult.Added(id)
     }
-
-    /** The bytes behind [uri], or null when it can't be opened or is larger than [MAX_PICKED_BYTES]. */
-    private fun read(uri: String): ByteArray? = try {
-        context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-            val out = ByteArrayOutputStream()
-            val buffer = ByteArray(BUFFER_BYTES)
-            var total = 0L
-            while (true) {
-                val count = input.read(buffer)
-                if (count < 0) break
-                total += count
-                if (total > MAX_PICKED_BYTES) return null
-                out.write(buffer, 0, count)
-            }
-            out.toByteArray()
-        }
-    } catch (_: IOException) {
-        null
-    } catch (_: SecurityException) {
-        // The picker's grant is gone (the app was restarted meanwhile).
-        null
-    }
-
-    private companion object {
-        /** Above a 200 MP camera JPEG; anything larger is no photo the app takes. */
-        const val MAX_PICKED_BYTES = 128L * 1024 * 1024
-        const val BUFFER_BYTES = 64 * 1024
-    }
 }
+
+/** The picked image at [uri] read through the content resolver and processed (06 §5.2), or null. */
+internal suspend fun loadPicked(context: Context, uri: String): EncodedPhoto? = readPicked(context, uri)?.let { bytes ->
+    withContext(Dispatchers.Default) { PhotoTranscoder.transcodePicked(bytes) }
+}
+
+/** The bytes behind [uri], or null when it can't be opened or is larger than [MAX_PICKED_BYTES]. */
+private fun readPicked(context: Context, uri: String): ByteArray? = try {
+    context.contentResolver.openInputStream(uri.toUri())?.use { input ->
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(BUFFER_BYTES)
+        var total = 0L
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            total += count
+            if (total > MAX_PICKED_BYTES) return null
+            out.write(buffer, 0, count)
+        }
+        out.toByteArray()
+    }
+} catch (_: IOException) {
+    null
+} catch (_: SecurityException) {
+    // The picker's grant is gone (the app was restarted meanwhile).
+    null
+}
+
+/** Above a 200 MP camera JPEG; anything larger is no photo the app takes. */
+private const val MAX_PICKED_BYTES = 128L * 1024 * 1024
+private const val BUFFER_BYTES = 64 * 1024
 
 /** Binds [TeaPhotos] (TEA-05). */
 @Module

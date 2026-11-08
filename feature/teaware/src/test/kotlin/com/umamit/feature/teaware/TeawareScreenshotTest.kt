@@ -1,6 +1,8 @@
 package com.umamit.feature.teaware
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -52,6 +54,19 @@ class TeawareScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         TeawareScreen(state = TeawareStates.list, onBack = {}, onOpenVessel = {}, onAddVessel = {}, onRestore = {})
     }
 
+    /** The list with photos in place of two type icons (WARE-01); placeholder squares, no real photos (D-016). */
+    @Test
+    fun listWithPhotos() = capture("Teaware_listPhotos") {
+        TeawareScreen(
+            state = TeawareStates.listWithPhotos,
+            onBack = {},
+            onOpenVessel = {},
+            onAddVessel = {},
+            onRestore = {},
+            photo = { PLACEHOLDER_PHOTO },
+        )
+    }
+
     @Test
     fun empty() = capture("Teaware_empty") {
         TeawareScreen(
@@ -68,6 +83,16 @@ class TeawareScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         VesselEditorScreen(state = TeawareStates.editor, actions = VesselEditorActions())
     }
 
+    /** The photo field filled (WARE-01): the picture with *Foto ersetzen* and *Foto entfernen*. */
+    @Test
+    fun editorWithPhoto() = capture("VesselEditor_photo") {
+        VesselEditorScreen(
+            state = TeawareStates.editor.copy(photo = VesselPhoto.Stored("/photos/k.jpg")),
+            actions = VesselEditorActions(),
+            photo = { PLACEHOLDER_PHOTO },
+        )
+    }
+
     @Test
     fun newWithErrors() = capture("VesselEditor_newErrors") {
         VesselEditorScreen(state = TeawareStates.newWithErrors, actions = VesselEditorActions())
@@ -82,8 +107,17 @@ class TeawareScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     }
 }
 
+/** A plain washi-green square in place of a photo (D-016: no real photos in renders). */
+private val PLACEHOLDER_PHOTO = ColorPainter(Color(0xFF8A9A7B))
+
 /** Synthetic states of SCR-13 and SCR-14 for the goldens. */
 internal object TeawareStates {
+    val listWithPhotos: TeawareUiState.Ready get() = list.copy(
+        vessels = list.vessels.mapIndexed { index, row ->
+            if (index < 2) row.copy(photoPath = "/photos/${row.id}.jpg") else row
+        },
+    )
+
     val list = TeawareUiState.Ready(
         vessels = listOf(
             VesselRow("k", "Kyusu 250 ml", VesselType.KYUSU, 300, 250, isFavorite = true),

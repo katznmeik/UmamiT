@@ -315,6 +315,21 @@ interface VesselDao {
 
     @Query("DELETE FROM vessel WHERE id = :id")
     suspend fun delete(id: String)
+
+    /** Stores the vessel's photo row (WARE-01, 05 §3.9). */
+    @Upsert
+    suspend fun upsertPhoto(photo: PhotoEntity)
+
+    /** The ids of the vessel's photos: at most one, but a crash between two steps could leave two. */
+    @Query("SELECT id FROM photo WHERE vessel_id = :vesselId")
+    suspend fun photoIds(vesselId: String): List<String>
+
+    /** Deletes the vessel's photo rows except [keepId] (none kept: an id no photo has). */
+    @Query("DELETE FROM photo WHERE vessel_id = :vesselId AND id != :keepId")
+    suspend fun deletePhotosExcept(vesselId: String, keepId: String)
+
+    @Query("UPDATE vessel SET cover_photo_id = :photoId, updated_at = :now WHERE id = :vesselId")
+    suspend fun setCoverPhoto(vesselId: String, photoId: String?, now: Long)
 }
 
 /** A tea's stock as [InventoryDao.observeStockLevels] reads it (INV-05, INV-10). */

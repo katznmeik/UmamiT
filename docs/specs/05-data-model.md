@@ -260,6 +260,14 @@ Tea photo writes (v0.4.1, TEA-05, `TeaPhotos`):
 - **Order:** by `position`, then `created_at`. Catalog copies are ordinary
   photos that can lose the cover or be deleted (#186). The single
 owner is enforced by the model type (`PhotoOwner`), so no row can name two.
+Vessel photo writes (v0.4.1, WARE-01, `VesselPhotos`): at most one photo per
+vessel, origin `OWN`, `position` 0, processed like a tea photo. **Set**
+writes the new file first; then, in one transaction, the new row, then
+`vessel.cover_photo_id`, then the vessel's other photo rows are dropped; their
+files go after the commit. A failed transaction deletes the new file again;
+an unreadable image changes nothing. **Remove** clears the cover, deletes the
+row and, after the commit, the file. The editor calls these after the vessel
+row is stored by *Speichern*.
 Replacing a recipe's steps (*Im Rezept speichern*) writes new `brew_step` rows
 with new ids.
 
