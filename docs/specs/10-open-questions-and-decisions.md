@@ -323,6 +323,44 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-107"></a>
+### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
+
+**Context.** The milestone review of `aa1c110d..HEAD` (T3 standards and spec,
+T4 timer path for #180 and #184) and the motion review found no must-fix
+item. The T4 verdict: the timer path is safe for an rc. Five questions from
+the build went to the PO.
+
+**PO answers.**
+1. *Nachkauf erfassen* for an **archived** tea brings it out of the archive,
+   like SCR-23's repurchase (INV-03; amends D-104 point 5).
+2. The tea's first package stays in the history as *Kauf* and stays deletable.
+3. *Aus Katalog zurücksetzen* stays offered for a discontinued tea, an
+   archived tea and while that tea is brewing.
+4. The section title stays „Vorrat".
+5. The opening date shows only in FRISCHE, no longer in DETAILS (SCR-09).
+
+**Fixes (review findings).**
+- No unhandled exception from the „Gespeichert" sheet: *Rückgängig*,
+  *Rezept passt* and the opened-date read are guarded (SCR-06); a completion
+  that sets no date forgets an earlier attempt's entry; tests for a rolled-back
+  completion and a brew completed after a reset.
+- Picked photos: 40 MB cap, one buffer, an out-of-memory error counts as
+  unreadable (D-106 amended). A vessel pick keeps a persistable grant and an
+  unreadable one shows a toast (WARE-01).
+- The reset rolls back on a refused recipe write and keeps the tea's own
+  description when the catalog has none; reused catalog recipe ids may point
+  a finished session to another catalog recipe (accepted, PRF-06).
+- Price „0" is refused (INV-08); stock writes on the detail show a toast on a
+  database error; one `DateField`; `WallClock.today()`; photo file checks off
+  the main thread; `VesselPhotos.remove` catches like `set`.
+- Motion (v0.4.1 motion review S1–S5, N2, N3): the purchase sheet slides
+  out; photos fade in over a tint (200 ms, none with reduce motion); *+ Foto*
+  travels to the new page; the pager dots fade; the next page is composed
+  ahead; the „Gespeichert" sheet's lines keep their height; the editor's
+  Save is always there, disabled while loading. N1 (Settings popped inside
+  the fading tab) is left as harmless.
+
 <a id="d-106"></a>
 ### D-106 — Own photos: what a picked image may be, how it is read, and the pager's order (TEA-05, WARE-01, 06 §5.2; details of D-104) · *Accepted* (Claude, 2026-11-08, implementation details left to Claude by D-104)
 
@@ -5916,6 +5954,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |
 | 2026-11-08 | D-106: own photos (v0.4.1): accepted input up to 20 000 px, 250 MP and 128 MB in any platform-decodable format; platform ExifInterface; toasts for errors; the pager shows the cover first and stays on a photo after *Als Titelbild*; the vessel photo is stored with *Speichern*. |
 | 2026-11-07 | D-105: CI skips `checks`, `build` and `emulator` when only documentation changed (`docs/**`, `*.md`, `.claude/**`), detected by a first `changes` job from the API; skipped jobs still leave a successful run for the release check; any doubt runs everything (06 §7). |
 | 2026-11-07 | D-104: v0.4.1 grilled (Q1–Q19): freshness by thirds of the style window with best-before, labels in the list, detail and tea picker; the opened-date undo in the „Gespeichert" sheet; cost per 100 g, a recipe estimate and the real average per cup; *Nachkauf erfassen* on every detail and a history with deletable purchases and corrections; up to 10 tea photos managed in the detail pager, one photo per vessel, own photos outside the device backup; the reset keeps own recipes; Settings closes on a tab switch. |

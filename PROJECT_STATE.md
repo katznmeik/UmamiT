@@ -5,19 +5,19 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-08. **v0.4.1 build phase done:** all 13 build tickets of spec #171 (#175–#187) are merged into the milestone branch `claude/affectionate-heisenberg-8o8yfs`, draft PR #191. **Next: the review and fix round** in a fresh Opus session: [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §0 has the start prompt (this handover is only on the milestone branch).
+**Last updated:** 2026-11-08. **v0.4.1 review and fix round done:** milestone review (T3 + T4 timer path) with no must-fix item, the PO's five answers and the fixes are merged into the milestone branch `claude/affectionate-heisenberg-8o8yfs`, draft PR #191 (D-107). **Next: the rc session (#188)** in a fresh **Sonnet** session: [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §5 has the start prompt and the steps (this handover is only on the milestone branch).
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.4.1** (M3 part 2): spec #171, build tickets #175–#187 merged into PR #191 (draft); next the review and fix round, then rc (#188) and release (#189). Then M4 → v0.5.0. v0.4.0 is released ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), from `main` `a2ff115`) |
+| Current milestone | **v0.4.1** (M3 part 2): spec #171, build tickets #175–#187 and the fix round merged into PR #191 (draft); next rc (#188), then release (#189). Then M4 → v0.5.0. v0.4.0 is released ([`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0), from `main` `a2ff115`) |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/affectionate-heisenberg-8o8yfs` (v0.4.1 milestone branch) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | #191 (v0.4.1 milestone, draft) |
 | Latest APK | [`v0.4.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.0) (full release, versionCode 40099, from `main` `a2ff115`); rcs `v0.4.0-rc.1` (40001) and `-rc.2` (40002) |
-| Decision numbers | Up to **D-106** used; the next free is **D-107** |
+| Decision numbers | Up to **D-107** used; the next free is **D-108** |
 
 ## Working agreements in effect
 
@@ -31,9 +31,19 @@
 
 ## Waiting on the PO
 
-1. **v0.4.1:** start the review and fix-round session with the prompt in [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §0 (Opus, `medium`). That session asks five questions first (§4 there). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
+1. **v0.4.1:** start the rc session with the prompt in [`docs/plans/v0.4.1-resume.md`](docs/plans/v0.4.1-resume.md) §5 (**Sonnet**, `medium`). Also check the catalog's *Grüntee* chip on `v0.4.0` (09 §4, the final's item).
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
+4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
+
+## v0.4.1: review and fix round (2026-11-08)
+
+- **Reviews:** T3 (standards and spec) and T4 (timer path: #180's completion, #184's reset during a brew) on `aa1c110d..HEAD`: no must-fix finding; T4 verdict „safe for an rc". The motion review's S1–S5, N2 and N3 fixed; N1 left (harmless).
+- **PO answers (D-107):** a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered for discontinued, archived and brewing teas; „Vorrat" stays; the opening date only in FRISCHE.
+- **Fixes, three implementers (A T3 data, B1 and B2 T2 screens), each verified by the orchestrator:** guarded „Gespeichert" sheet; forget on a completion without a date; tests for a rolled-back completion and a brew completed after a reset; photo cap 40 MB, one buffer, OOM as unreadable; reset rolls back on a refused write and keeps the tea's description when the catalog has none; vessel pick with a persistable grant and a toast when unreadable; price 0 refused; detail stock writes show a toast on failure; one `DateField`; `WallClock.today()`; photo crossfade over a tint; *+ Foto* animates to the new page; purchase sheet slides out; editor Save always composed.
+- **Goldens re-recorded:** 5 tea detail `dates` (DETAILS without the opening date), 8 teaware photo goldens (1 px corner anti-aliasing from the tint).
+- **Not done:** ticking the tickets' checkboxes on #175–#187 (the GitHub write was refused in this session); the rc session or the final can do it.
+- **#180 and accuracy:** completion's SQL unchanged, the code around it changed → the rc runs both accuracy variants (D-073).
 
 ## v0.4.1: build phase (2026-11-07/08)
 
