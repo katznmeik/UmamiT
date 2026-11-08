@@ -1,5 +1,6 @@
 package com.umamit.feature.collection.detail
 
+import com.umamit.core.domain.collection.TeaCost
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
@@ -40,6 +41,8 @@ sealed interface TeaDetailUiState {
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
  * @property today the phone's day when the data last changed: *Nachkauf erfassen*'s default and latest day (INV-03).
  * @property history VORRAT's stock history (SCR-29, D-104): every stock event, newest first.
+ * @property cost VORRAT's cost lines (INV-08, D-104): price per 100 g, the default recipe's estimate and the
+ *   average of the priced sessions; null without a recorded price („no price, no cost").
  */
 data class TeaDetail(
     val id: String,
@@ -68,6 +71,7 @@ data class TeaDetail(
     val sessionLeafGrams: Double? = null,
     val today: LocalDate = LocalDate.now(),
     val history: List<StockEntry> = emptyList(),
+    val cost: TeaCost? = null,
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA

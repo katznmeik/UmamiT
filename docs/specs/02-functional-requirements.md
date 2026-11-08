@@ -1197,6 +1197,24 @@ statistics.
   completion.
 - **v0.4.1 (D-100):** price per gram and cost per cup on the tea detail.
   **M4:** the statistics (INS-05).
+- **v0.4.1 (D-104, #182):** the detail's VORRAT shows three lines below the
+  stock, each in cents rounded half up:
+  - **Price:** „12,40 € / 100 g", from the priced INITIAL and PURCHASE
+    events weighted by grams (`costPerGramCents`).
+  - **Estimate:** „ca. 0,24 € pro Tasse (Rezept)": the default recipe's
+    leaf × price per gram ÷ its cups. Cups are its non-rinse steps; a
+    whisk-only recipe is one cup. Without a default recipe, no estimate.
+  - **Average:** „Ø 0,27 € pro Tasse aus 5 Sitzungen" („aus 1 Sitzung"),
+    from the first finished session with a `cost_cents`: Σ `cost_cents` ÷
+    Σ cups of those sessions. A session's cups are its poured non-rinse
+    steps (ended and not skipped; never-started rows don't count); a
+    whisk-only session is one cup, and so is a priced session whose every
+    step was skipped (its leaf was used). Sessions without a cost and the
+    running one are left out. The stored `cost_cents` stays as it was at
+    completion; a later purchase changes only the price and the estimate.
+  - **No price, no cost:** without a priced INITIAL or PURCHASE event none
+    of the three lines shows (never „0 €"). The lines update at once after
+    a purchase, a correction or a history delete.
 
 **INV-09 — Reorder link** `Must`
 SCR-09 shows „Beim Tee-Kontor nachbestellen" in VORRAT & KOSTEN (VORRAT in
