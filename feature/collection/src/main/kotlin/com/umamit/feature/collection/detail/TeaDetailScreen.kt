@@ -29,6 +29,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,8 +72,10 @@ const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
 /**
  * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
- * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; *+ Foto*, the photo picker (TEA-05); and
- * the confirmed *Aus Katalog zurücksetzen* (PRF-06).
+ * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
+ * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
+ * [openSession] null: brew rows open nothing).
+ * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -86,6 +91,8 @@ class TeaDetailActions(
     val recordPurchase: (TeaPurchase) -> Unit = {},
     val openShop: (url: String) -> Unit = {},
     val addPhoto: () -> Unit = {},
+    val deleteStockEntry: (eventId: String) -> Unit = {},
+    val openSession: ((sessionId: String) -> Unit)? = null,
     val setCoverPhoto: (photoId: String) -> Unit = {},
     val deletePhoto: (photoId: String) -> Unit = {},
     val resetFromCatalog: () -> Unit = {},
@@ -140,6 +147,8 @@ private fun Detail(
     val resetAsk = rememberAlertGate(alertKey)
     val stockSheet = rememberAlertGate(alertKey)
     val purchaseSheet = rememberAlertGate(alertKey)
+    val entryDeleteAsk = rememberAlertGate(alertKey)
+    var askedEntry by rememberSaveable { mutableStateOf<String?>(null) }
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -167,7 +176,16 @@ private fun Detail(
                         onPurchase = purchaseSheet::open,
                         onCorrect = stockSheet::open,
                         onReorder = actions.openShop,
-                    )
+                    ) {
+                        StockHistory(
+                            tea.history,
+                            onAskDelete = { id ->
+                                askedEntry = id
+                                entryDeleteAsk.open()
+                            },
+                            onOpenSession = actions.openSession,
+                        )
+                    }
                     FreshnessSection(tea.freshness)
                     TextSection(R.string.collection_tea_section_description, tea.description)
                     TextSection(R.string.collection_tea_section_notes, tea.notes)
@@ -235,6 +253,8 @@ private fun Detail(
             onDismissRequest = stockSheet::close,
         )
     }
+    // The stock history's „Kauf löschen?" / „Korrektur löschen?" (SCR-29): as the delete question (rule 8).
+    StockEntryDeleteQuestion(tea.history, askedEntry, entryDeleteAsk, actions.deleteStockEntry)
     // *Nachkauf erfassen* (INV-03): as the stock sheet, gone in the frame another alert starts (rule 8).
     AlertGated(purchaseSheet) {
         PurchaseSheet(

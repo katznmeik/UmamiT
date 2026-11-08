@@ -64,6 +64,8 @@ fun TeaDetailRoute(
             recordPurchase = viewModel::recordPurchase,
             openShop = context::openInBrowser,
             addPhoto = pickPhoto,
+            deleteStockEntry = viewModel::deleteStockEntry,
+            openSession = host.onOpenSession,
             setCoverPhoto = viewModel::setCoverPhoto,
             deletePhoto = viewModel::deletePhoto,
             resetFromCatalog = viewModel::resetFromCatalog,

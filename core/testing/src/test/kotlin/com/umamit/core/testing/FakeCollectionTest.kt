@@ -79,6 +79,22 @@ class FakeCollectionTest {
     }
 
     @Test
+    fun deletesPurchasesAndCorrectionsButRefusesABrewAsOnRoom() = runTest {
+        collection.stock.addEvent(InventoryEvent("e1", "t1", InventoryEventType.INITIAL, 100.0, 1L))
+        collection.stock.addEvent(InventoryEvent("p1", "t1", InventoryEventType.PURCHASE, 50.0, 2L))
+        collection.stock.addEvent(InventoryEvent("b1", "t1", InventoryEventType.BREW, -5.0, 3L, sessionId = "s1"))
+        collection.stock.addEvent(InventoryEvent("a1", "t1", InventoryEventType.ADJUSTMENT, -10.0, 4L))
+
+        assertThat(collection.stock.deleteEvent("b1")).isFalse()
+        assertThat(collection.stock.deleteEvent("p1")).isTrue()
+        assertThat(collection.stock.deleteEvent("a1")).isTrue()
+        assertThat(collection.stock.deleteEvent("e1")).isTrue()
+        assertThat(collection.stock.deleteEvent("gone")).isFalse()
+
+        assertThat(collection.stock.observeEvents("t1").first().map { it.id }).containsExactly("b1")
+    }
+
+    @Test
     fun followsTheRecipeRulesOfPrf01AndTea17() = runTest {
         collection.teas.saveTea(
             Tea("t1", "Hisui", TeaCategory.GREEN, TeaForm.LOOSE_LEAF, recipeCheckReason = RecipeCheckReason.FROM_TEXT),

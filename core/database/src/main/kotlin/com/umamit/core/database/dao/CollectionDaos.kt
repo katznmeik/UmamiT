@@ -403,6 +403,13 @@ abstract class InventoryDao {
     @Query("DELETE FROM inventory_event WHERE id = :id")
     abstract suspend fun delete(id: String)
 
+    /**
+     * Deletes the stock history's event [id] when it is a purchase (INITIAL, PURCHASE) or a correction
+     * (ADJUSTMENT); a BREW event leaves only with its journal entry (INV-03, D-102). Returns the rows deleted.
+     */
+    @Query("DELETE FROM inventory_event WHERE id = :id AND type IN ('INITIAL', 'PURCHASE', 'ADJUSTMENT')")
+    abstract suspend fun deleteUnlessBrew(id: String): Int
+
     /** The tea's remaining stock in g: the sum of its events' deltas, 0 without any (05 §3.10). */
     @Query("SELECT COALESCE(SUM(delta_grams), 0.0) FROM inventory_event WHERE tea_id = :teaId")
     abstract suspend fun remainingGrams(teaId: String): Double

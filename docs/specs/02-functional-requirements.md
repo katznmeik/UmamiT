@@ -1141,6 +1141,19 @@ history list (SCR-29).
   at once. A purchase after the stock reached 0 g is a new package for the
   next session's opening date (INV-06). An archived tea stays archived (only
   SCR-23's repurchase restores one, D-093 Q6).
+- **History (v0.4.1, D-104, #185):** SCR-29 lists the tea's stock events
+  from `observeEvents`, newest first, each on its day in the phone's zone:
+  purchases (INITIAL and PURCHASE, „Kauf", grams and the price when
+  recorded), corrections („Bestand korrigiert", the signed difference) and
+  brews („Gebrüht", the grams used). A brew row opens its session page
+  (SCR-16).
+- **Delete (v0.4.1, D-104, #185):** a purchase (INITIAL or PURCHASE) or a
+  correction can be deleted after a confirmation
+  (`StockRepository.deleteEvent`, which returns whether it deleted). A
+  `BREW` event is refused by the repository: it leaves only with its journal
+  entry (D-102). The stock, the cost per gram and so the cost follow from the
+  remaining events at once; the tea's `opened_date` is left as it is (only
+  the editor changes it).
 
 **INV-04 — Session edits** `Must` update the linked deduction.
 

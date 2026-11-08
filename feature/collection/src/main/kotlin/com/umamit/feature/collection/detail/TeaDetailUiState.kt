@@ -38,8 +38,9 @@ sealed interface TeaDetailUiState {
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
  * @property sessionLeafGrams the leaf the active session of this tea still deducts at its end, for the stock
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
- * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
  * @property today the phone's day when the data last changed: *Nachkauf erfassen*'s default and latest day (INV-03).
+ * @property history VORRAT's stock history (SCR-29, D-104): every stock event, newest first.
+ * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
  */
 data class TeaDetail(
     val id: String,
@@ -67,6 +68,7 @@ data class TeaDetail(
     val inActiveBrew: Boolean = false,
     val sessionLeafGrams: Double? = null,
     val today: LocalDate = LocalDate.now(),
+    val history: List<StockEntry> = emptyList(),
     val catalogReset: CatalogResetOffer? = null,
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
@@ -84,6 +86,26 @@ data class TeaDetail(
  * window, [bestBefore] when that date has passed (then the label is *Über dem Höhepunkt*, opened or not).
  */
 data class DetailFreshness(val label: Freshness, val openedDate: LocalDate?, val bestBefore: LocalDate?)
+
+/** What a row of the stock history is: a purchase (the first package included), a correction or a brew. */
+enum class StockEntryKind { PURCHASE, CORRECTION, BREW }
+
+/**
+ * A row of VORRAT's stock history (INV-03, SCR-29, D-104): the event [id], its [deltaGrams] (a brew and a lowering
+ * correction negative), a purchase's [priceCents] (null: none recorded), its [day] in the phone's zone and, for a
+ * brew, the [sessionId] whose page it opens.
+ */
+data class StockEntry(
+    val id: String,
+    val kind: StockEntryKind,
+    val deltaGrams: Double,
+    val priceCents: Long?,
+    val day: LocalDate,
+    val sessionId: String? = null,
+) {
+    /** A purchase or a correction can be deleted; a brew leaves only with its journal entry (D-102). */
+    val canDelete: Boolean get() = kind != StockEntryKind.BREW
+}
 
 /**
  * ⋮ *Aus Katalog zurücksetzen* (PRF-06, CAT-13): [leftOut] of the catalog's recipes don't fit beside the tea's own

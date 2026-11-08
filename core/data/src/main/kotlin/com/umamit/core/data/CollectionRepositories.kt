@@ -128,7 +128,12 @@ interface StockRepository {
 
     suspend fun addEvent(event: InventoryEvent)
 
-    suspend fun deleteEvent(id: String)
+    /**
+     * Deletes the history entry [id] (INV-03, SCR-29, D-104): a purchase (INITIAL or PURCHASE) or a correction
+     * (ADJUSTMENT). A BREW event is refused: it leaves only with its journal entry (D-102). The tea's
+     * `opened_date` is never touched. Returns whether an event was deleted.
+     */
+    suspend fun deleteEvent(id: String): Boolean
 
     /**
      * *Bestand korrigieren* (INV-03, BRW-02, D-093 point 7): sets the tea's stock to [newTotalGrams] (0 = leer)

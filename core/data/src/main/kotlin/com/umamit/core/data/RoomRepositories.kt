@@ -109,7 +109,7 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
         dao.upsert(event.toEntity(createdAt = dao.get(event.id)?.createdAt ?: now, updatedAt = now))
     }
 
-    override suspend fun deleteEvent(id: String) = dao.delete(id)
+    override suspend fun deleteEvent(id: String): Boolean = dao.deleteUnlessBrew(id) > 0
 
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
