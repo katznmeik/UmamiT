@@ -5,13 +5,18 @@ import com.umamit.core.common.ClockReading
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Freshness
+import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeTeaArchive
 import com.umamit.core.timer.engine.BrewTimerEngine
@@ -33,6 +38,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 /** The tea picker (SCR-03): *Zuletzt*, *Favoriten*, *Alle* and the search (GEN-10). */
@@ -83,8 +90,17 @@ class TeaPickerViewModelTest {
 
     private val archive = FakeTeaArchive(sessions)
 
-    private fun viewModel() =
-        TeaPickerViewModel(collection.teas, sessions.sessions, archive, PhotoFiles(folder.newFolder("photos")))
+    private val clock = FakeClock()
+    private val today: LocalDate get() = Instant.ofEpochMilli(clock.wall).atZone(clock.zone).toLocalDate()
+
+    private fun viewModel() = TeaPickerViewModel(
+        collection.teas,
+        sessions.sessions,
+        archive,
+        PhotoFiles(folder.newFolder("photos")),
+        FakeCollectionList(sessions),
+        clock,
+    )
 
     /** A brew session of [teaId] waits in READY: the active session (E15). */
     private suspend fun activeSession(teaId: String, name: String) {
@@ -152,6 +168,29 @@ class TeaPickerViewModelTest {
         vm.setQuery("")
         advanceUntilIdle()
         assertThat(vm.state.value.results).isNull()
+    }
+
+    @Test
+    fun `each tea carries its freshness label, none unopened or empty`() = runTest(dispatcher) {
+        // Sencha: 45 days, Frisch on days 0–29, Bald genießen on 30–44.
+        collection.teas.saveTea(tea("f", "Frühnebel").copy(openedDate = today.minusDays(29)))
+        collection.teas.saveTea(tea("s", "Spätlicht").copy(openedDate = today.minusDays(30)))
+        collection.teas.saveTea(tea("u", "Versiegelt"))
+        collection.teas.saveTea(tea("e", "Ausgetrunken").copy(openedDate = today.minusDays(3)))
+        collection.stock.addEvent(InventoryEvent("e1", "e", InventoryEventType.INITIAL, 0.0, occurredAtMillis = 1L))
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.all.associate { it.id to it.freshness }).containsExactly(
+            "f",
+            Freshness.FRESH,
+            "s",
+            Freshness.DRINK_SOON,
+            "u",
+            null,
+            "e",
+            null,
+        )
     }
 
     @Test

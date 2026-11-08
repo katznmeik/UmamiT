@@ -1,6 +1,7 @@
 package com.umamit.feature.collection
 
 import com.umamit.core.model.CollectionFilter
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TeaCategory
 
@@ -13,6 +14,7 @@ internal object MyTeasStates {
         secondaryName: String? = null,
         grams: Double? = null,
         level: StockLevel? = null,
+        freshness: Freshness? = null,
         isFavorite: Boolean = false,
         checkRecipe: Boolean = false,
         isArchived: Boolean = false,
@@ -24,6 +26,7 @@ internal object MyTeasStates {
         category = TeaCategory.GREEN,
         remainingGrams = grams,
         stockLevel = level,
+        freshness = freshness,
         isFavorite = isFavorite,
         checkRecipe = checkRecipe,
         isArchived = isArchived,
@@ -31,10 +34,19 @@ internal object MyTeasStates {
     )
 
     private val rows = listOf(
-        row("1", "Morgentau", "Sencha", "Asamushi aus Shizuoka", 38.0, StockLevel.AVAILABLE, isFavorite = true),
-        row("2", "Mondschatten", "Gyokuro", "Beschattet, 21 Tage", 8.0, StockLevel.LOW),
+        row(
+            "1",
+            "Morgentau",
+            "Sencha",
+            "Asamushi aus Shizuoka",
+            38.0,
+            StockLevel.AVAILABLE,
+            Freshness.FRESH,
+            isFavorite = true,
+        ),
+        row("2", "Mondschatten", "Gyokuro", "Beschattet, 21 Tage", 8.0, StockLevel.LOW, Freshness.DRINK_SOON),
         row("3", "Flusskiesel", "Kabusecha", grams = 0.0, level = StockLevel.EMPTY, checkRecipe = true),
-        row("4", "Herbstwind", "Hojicha", "Geröstet", 120.0, StockLevel.AVAILABLE),
+        row("4", "Herbstwind", "Hojicha", "Geröstet", 120.0, StockLevel.AVAILABLE, Freshness.PAST_PEAK),
         row("5", "Bergnebel", "Genmaicha", isFavorite = true),
         row("6", "Kirschblüte", "Sencha", "Aromatisiert", 55.5, StockLevel.AVAILABLE),
     )
