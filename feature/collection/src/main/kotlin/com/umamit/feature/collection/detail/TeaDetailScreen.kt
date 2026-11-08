@@ -149,6 +149,7 @@ private fun Detail(
                     Stats(tea)
                     Recipes(tea, actions)
                     Stock(tea, onCorrect = stockSheet::open, onReorder = actions.openShop)
+                    FreshnessSection(tea.freshness)
                     TextSection(R.string.collection_tea_section_description, tea.description)
                     TextSection(R.string.collection_tea_section_notes, tea.notes)
                     Details(tea.details)

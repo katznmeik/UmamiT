@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.designsystem.component.FreshnessChip
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -305,9 +306,9 @@ private fun Section(title: String?, teas: List<PickerTea>, actions: TeaRowAction
 }
 
 /**
- * A tea of the picker. A long press opens its menu with *Archivieren*, greyed out with
- * „Erst die Sitzung beenden" for the active session's tea (E15); TalkBack offers the removal as a
- * custom action on the row (SCR-03).
+ * A tea of the picker, with its small freshness chip (INV-06, D-104), read with the row. A long
+ * press opens its menu with *Archivieren*, greyed out with „Erst die Sitzung beenden" for the
+ * active session's tea (E15); TalkBack offers the removal as a custom action on the row (SCR-03).
  */
 @Composable
 private fun TeaRow(tea: PickerTea, actions: TeaRowActions, showDivider: Boolean) {
@@ -318,6 +319,7 @@ private fun TeaRow(tea: PickerTea, actions: TeaRowActions, showDivider: Boolean)
             title = tea.name,
             meta = tea.teaType.orEmpty(),
             onClick = { actions.pick(tea.id) },
+            badges = tea.freshness?.let { freshness -> { FreshnessChip(freshness, compact = true) } },
             thumbnail = rememberPhotoPainter(tea.photoPath),
             showDivider = showDivider,
             onLongClick = { menuOpen = true },

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.umamit.core.common.stockGramsText
 import com.umamit.core.designsystem.component.CheckRecipeBadge
+import com.umamit.core.designsystem.component.FreshnessChip
 import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
@@ -272,9 +273,10 @@ private fun CheckMark(checked: Boolean) {
 }
 
 /**
- * A tea's row (TEA-08): cover, serif name, secondary name, Sorte, the stock chip and „Rezept prüfen", the
- * favourite's star; an archived tea ends with *Wiederherstellen*. TalkBack reads the row as one item, the stock
- * as „38 g übrig" / „Knapp, 8 g übrig" / „Leer", the star as „Favorit".
+ * A tea's row (TEA-08): cover, serif name, secondary name, Sorte, the stock chip, the freshness chip (INV-06) and
+ * „Rezept prüfen", the favourite's star; an archived tea ends with *Wiederherstellen*. TalkBack reads the row as
+ * one item, the stock as „38 g übrig" / „Knapp, 8 g übrig" / „Leer", the freshness as „Frische: Bald genießen",
+ * the star as „Favorit".
  */
 @Composable
 internal fun MyTeaItem(
@@ -284,7 +286,7 @@ internal fun MyTeaItem(
     thumbnail: Painter?,
     modifier: Modifier = Modifier,
 ) {
-    val hasBadges = row.stockLevel != null || row.checkRecipe
+    val hasBadges = row.stockLevel != null || row.freshness != null || row.checkRecipe
     TeaListItem(
         title = row.name,
         subtitle = row.secondaryName,
@@ -296,6 +298,7 @@ internal fun MyTeaItem(
         badges = if (hasBadges) {
             {
                 StockChip(row)
+                row.freshness?.let { FreshnessChip(it) }
                 if (row.checkRecipe) CheckRecipeBadge()
             }
         } else {

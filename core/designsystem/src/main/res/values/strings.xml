@@ -88,4 +88,11 @@
 
     <!-- CheckRecipeBadge (03 §3.8, CAT-05). -->
     <string name="ds_check_recipe">Rezept prüfen</string>
+
+    <!-- FreshnessChip (03 §3.8, INV-06, D-104). -->
+    <string name="ds_freshness_fresh">Frisch</string>
+    <string name="ds_freshness_drink_soon">Bald genießen</string>
+    <string name="ds_freshness_past_peak">Über dem Höhepunkt</string>
+    <!-- %1$s is the label („Bald genießen"). -->
+    <string name="ds_freshness_description">Frische: %1$s</string>
 </resources>

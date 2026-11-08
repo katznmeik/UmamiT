@@ -3,6 +3,8 @@ package com.umamit.feature.collection.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.common.WallClock
 import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
@@ -17,6 +19,7 @@ import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.data.catalog.ShopLink
+import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.Photo
@@ -24,6 +27,7 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -85,6 +89,7 @@ class TeaDetailViewModel @Inject constructor(
     private val archive: TeaArchive,
     private val photos: PhotoFiles,
     private val teaPhotos: TeaPhotos,
+    private val clock: WallClock = SystemWallClock,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the tea detail needs a teaId" }
 
@@ -213,6 +218,7 @@ class TeaDetailViewModel @Inject constructor(
             stockGrams = grams,
             hasStock = stockEvents.isNotEmpty(),
             stockLevel = level,
+            freshness = detailFreshness(tea, if (stockEvents.isEmpty()) null else grams, clock.today()),
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
             reorder = reorderUrl?.let {
                 Reorder(
@@ -275,4 +281,13 @@ class TeaDetailViewModel @Inject constructor(
         /** The navigation argument (the route's property name). */
         const val TEA_ID = "teaId"
     }
+}
+
+private fun WallClock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
+
+/** FRISCHE's label by FreshnessRule, with the date it stems from (INV-06, D-104). */
+private fun detailFreshness(tea: Tea, remainingGrams: Double?, today: LocalDate): DetailFreshness? {
+    val label = FreshnessRule.of(tea, remainingGrams, today) ?: return null
+    val passed = tea.bestBefore?.takeIf { today.isAfter(it) }
+    return DetailFreshness(label, openedDate = tea.openedDate.takeIf { passed == null }, bestBefore = passed)
 }

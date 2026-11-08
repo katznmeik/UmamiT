@@ -444,7 +444,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
-| `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen" |
+| `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
@@ -543,6 +543,11 @@ at once (no dialog), the row leaves the picker and a snackbar reads
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
 same action as a custom action on the row.
+
+**Freshness (v0.4.1, INV-06, [D-104](10-open-questions-and-decisions.md#d-104)).**
+Each tea row with a label shows a small `FreshnessChip` below its Sorte („Frisch",
+„Bald genießen", „Über dem Höhepunkt"); none for an unopened or an empty tea.
+TalkBack reads it with the row. Start's cards stay unchanged.
 
 **Tea groups (v0.2.2, [D-097](10-open-questions-and-decisions.md#d-097)).**
 *Alle* is split by the tea's kind, each group under a small section header
@@ -842,8 +847,8 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)) replaces the M1
 placeholder („Deine Sammlung folgt bald …", D-069):
 - **Rows** (`TeaListItem`): cover, serif name, secondary name, Sorte, the
   stock chip („38 g", *Knapp*, *Leer*), a favourite star and
-  `CheckRecipeBadge`. No rating (M4) and no freshness chip (v0.4.1). A tap
-  opens SCR-09.
+  `CheckRecipeBadge`. No rating (M4); the freshness chip from v0.4.1 (see
+  below). A tap opens SCR-09.
 - **Search** (TEA-09) over name, secondary name, vendor, region, cultivar and
   notes, ignoring case and accents.
 - **Filter chips** (TEA-10): *Favoriten*, *Kategorie*, *Sorte*, *Vorrat*
@@ -873,6 +878,10 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   below the search and chips, so *Archiviert* stays reachable. A10 offers
   *Filter zurücksetzen* (search and chips off; the sort stays). The segment is
   remembered on every change, also when the app turns to *Katalog* itself.
+- **Freshness (v0.4.1, INV-06, D-104):** the row's `FreshnessChip` follows the
+  stock chip („Frisch", „Bald genießen", „Über dem Höhepunkt"); none for an
+  unopened or an empty tea. TalkBack reads it with the row as „Frische: Bald
+  genießen".
 
 ### SCR-09 Tee (my tea detail)
 
@@ -900,6 +909,10 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
+- **FRISCHE (v0.4.1, INV-06, D-104):** after VORRAT, only with a label: the
+  `FreshnessChip` and „Geöffnet am 21. Okt. 2026", or „Mindestens haltbar bis
+  1. Nov. 2026" once that date has passed (the label then stems from it).
+  TalkBack reads both as one item.
 - **Pencil FAB:** the tea editor (SCR-10).
 - **Hero (v0.4.1):** the photo pager with *+ Foto* (SCR-28).
 - **⋮:** *Favorit* (checked when it is one), *Archivieren*, *Löschen*. For the

@@ -41,6 +41,7 @@ import com.umamit.core.testing.FakeCatalogRefreshRunner
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakeCollectionList
 import com.umamit.core.testing.FakeExactPrices
 import com.umamit.core.testing.FakeGuideRepository
 import com.umamit.core.testing.FakeLowStockRepository
@@ -167,7 +168,13 @@ class CatalogBrewFlowTest {
                 )
             },
             pickerViewModel = viewModel {
-                TeaPickerViewModel(collection.teas, sessions.sessions, FakeTeaArchive(sessions), photos)
+                TeaPickerViewModel(
+                    collection.teas,
+                    sessions.sessions,
+                    FakeTeaArchive(sessions),
+                    photos,
+                    FakeCollectionList(sessions),
+                )
             },
         )
     }

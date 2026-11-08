@@ -4,11 +4,13 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
@@ -33,6 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.Instant
 import java.time.LocalDate
 
 /** The tea detail's view model (SCR-09, TEA-04, TEA-06, TEA-13, INV-09; D-100). */
@@ -65,7 +68,11 @@ class TeaDetailViewModelTest {
         archive,
         photos,
         FakeTeaPhotos(collection, photos),
+        clock,
     )
+
+    private val clock = FakeClock()
+    private val today: LocalDate get() = Instant.ofEpochMilli(clock.wall).atZone(clock.zone).toLocalDate()
 
     private val photos by lazy { PhotoFiles(folder.newFolder("photos")) }
 
@@ -106,6 +113,25 @@ class TeaDetailViewModelTest {
         TeaDetailFixture.seed(collection)
 
         assertThat(viewModel().tea.hasStock).isTrue()
+    }
+
+    @Test
+    fun `FRISCHE shows the label with its opening date, none for an unopened or an empty tea`() = runTest {
+        // Sencha: 45 days, Frisch on days 0–29.
+        val opened = today.minusDays(31)
+        TeaDetailFixture.seed(collection, TeaDetailFixture.tea.copy(openedDate = opened))
+        val vm = viewModel()
+        assertThat(vm.tea.freshness).isEqualTo(DetailFreshness(Freshness.DRINK_SOON, opened, null))
+
+        collection.teas.saveTea(TeaDetailFixture.tea.copy(openedDate = null))
+        assertThat(vm.tea.freshness).isNull()
+
+        val passed = today.minusDays(1)
+        collection.teas.saveTea(TeaDetailFixture.tea.copy(openedDate = null, bestBefore = passed))
+        assertThat(vm.tea.freshness).isEqualTo(DetailFreshness(Freshness.PAST_PEAK, null, passed))
+
+        vm.correctStock(0.0)
+        assertThat(vm.tea.freshness).isNull()
     }
 
     @Test

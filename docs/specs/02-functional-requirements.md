@@ -522,6 +522,7 @@ badge.
   (v0.4.1); the stock chip reads „38 g", *Knapp* or *Leer*. Empty states:
   „Noch keine Tees · Im Katalog stöbern" (A7) and „Kein Tee passt zu deiner
   Suche." (A10). Smooth with 500 teas (NFR-PERF-03).
+- **v0.4.1 (D-104):** the freshness chip (INV-06) after the stock chip.
 
 **TEA-09 — Search** `Must` (v0.4.0)
 Over name, secondary name, vendor, region, cultivar and notes, ignoring case
@@ -1113,6 +1114,22 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
   *Rückgängig* snackbar, and the opened and best-before dates editable in
   the tea editor. The freshness period is the style's; there is no per-tea
   period.
+- **The labels (v0.4.1, D-104):** counted in days from `opened_date` over the
+  style's window (08 §3, `BuiltInStyles`); the thirds are whole days,
+  rounded down. *Frisch* while the day is below two thirds of the window,
+  *Bald genießen* until the window's end, *Über dem Höhepunkt* from then
+  (Gyokuro, 60 days: *Frisch* days 0–39, *Bald genießen* 40–59, *Über dem
+  Höhepunkt* from day 60). A `best_before` before today makes a tea *Über dem
+  Höhepunkt*, opened or not (on the date itself it still counts as good). No
+  label for an empty tea (*Leer*, INV-05; a tea without stock events is not
+  empty), for an unopened one whose best-before has not passed, or by the
+  opening date for a style without a window (*Andere / unbekannt*, or no
+  style). `freshness_days` keeps no UI and is not read (D-100). Shown as
+  `FreshnessChip` on the *Meine Tees* row (TEA-08), in the detail's FRISCHE
+  (SCR-09) and as a small chip in the tea picker (SCR-03); Start is
+  unchanged. TalkBack reads „Frische: Bald genießen" with the row. The pure
+  rule is `FreshnessRule` in `core:domain`; a screen reads today when its
+  data changes.
 - **Rückgängig (v0.4.1, D-104):** the „snackbar" is a line on the
   „Gespeichert" sheet (SCR-06): after the session whose completion set
   `opened_date`, it reads „Packung als geöffnet markiert" · *Rückgängig*.

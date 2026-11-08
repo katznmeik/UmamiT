@@ -2,12 +2,17 @@ package com.umamit.feature.brew.picker
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.umamit.core.common.SystemWallClock
+import com.umamit.core.common.WallClock
 import com.umamit.core.data.ArchiveResult
+import com.umamit.core.data.CollectionListRepository
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.SessionRepository
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaRepository
+import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.domain.search.SearchQuery
+import com.umamit.core.model.Freshness
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaOverview
@@ -19,8 +24,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 /**
@@ -62,6 +71,7 @@ enum class TeaKind {
  * A tea of the picker: its name, type and cover photo file (null: the leaf placeholder, 03 §3.5).
  * [removable] is false for the tea of the active brew session: *Archivieren* is greyed
  * out with „Erst die Sitzung beenden" (TEA-04, E15). [kind] is its group in *Alle* (D-097).
+ * [freshness] is its small freshness chip (INV-06, D-104); null for none.
  */
 data class PickerTea(
     val id: String,
@@ -70,6 +80,7 @@ data class PickerTea(
     val photoPath: String?,
     val removable: Boolean = true,
     val kind: TeaKind = TeaKind.GREEN,
+    val freshness: Freshness? = null,
 )
 
 /** The teas of one [kind] in *Alle* or the search results, in their order (A–Z; SCR-03, D-097). */
@@ -121,7 +132,8 @@ data class TeaPickerUiState(
  * collection in three sections, and an instant local search (GEN-10:
  * case- and diacritics-insensitive word prefixes, debounced 150 ms). A long
  * press removes a tea from the collection: archived, with undo, except the
- * active brew session's (TEA-04, E15).
+ * active brew session's (TEA-04, E15). Each tea carries its freshness label by its stock
+ * ([stockRows], INV-06, D-104).
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -130,19 +142,28 @@ class TeaPickerViewModel @Inject constructor(
     sessions: SessionRepository,
     private val archive: TeaArchive,
     private val photos: PhotoFiles,
+    stockRows: CollectionListRepository,
+    private val clock: WallClock = SystemWallClock,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val removed = MutableStateFlow<PickerTea?>(null)
 
     private val input = combine(query.asStateFlow(), query.debounce(SEARCH_DEBOUNCE_MS), removed, ::Input)
 
+    /** Each tea's remaining grams; a tea without stock events is absent (not empty). */
+    private val stock = stockRows.observeRows()
+        .map { rows -> rows.mapNotNull { e -> e.row.remainingGrams?.let { e.row.tea.id to it } }.toMap() }
+        .distinctUntilChanged()
+
     val state: StateFlow<TeaPickerUiState> = combine(
         teas.observeOwnedTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
         archive.observeActiveTeaId(),
         input,
-    ) { owned, recentSessions, activeTeaId, input ->
-        val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId) }
+        stock,
+    ) { owned, recentSessions, activeTeaId, input, grams ->
+        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+        val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId, grams[it.tea.id], today) }
         val byId = all.associateBy { it.id }
         val search = SearchQuery(input.search)
         TeaPickerUiState(
@@ -185,13 +206,14 @@ class TeaPickerViewModel @Inject constructor(
         removed.value = null
     }
 
-    private fun TeaOverview.toPickerTea(removable: Boolean) = PickerTea(
+    private fun TeaOverview.toPickerTea(removable: Boolean, remainingGrams: Double?, today: LocalDate) = PickerTea(
         id = tea.id,
         name = tea.name,
         teaType = tea.teaType,
         photoPath = coverPhoto?.let { photos.file(it.id) }?.takeIf { it.isFile }?.path,
         removable = removable,
         kind = TeaKind.of(tea),
+        freshness = FreshnessRule.of(tea, remainingGrams, today),
     )
 
     private data class Input(val typed: String, val search: String, val removed: PickerTea?)
