@@ -156,6 +156,12 @@ internal fun UmamitApp(
 ) {
     val controllers = Tab.entries.associateWith { rememberNavController() }
     var selected by rememberSaveable { mutableStateOf(opening.firstTab) }
+
+    // Every turn to another tab goes through here: Settings never stays open in the tab left (03 §2.2, D-104).
+    val select: (Tab) -> Unit = { tab ->
+        controllers.leave(selected, turningTo = tab)
+        selected = tab
+    }
     val segments = rememberSegmentChoice(opening, collectionSegments)
     val chooseSegment: (CollectionSegment) -> Unit = segments::choose
     val brewFlow = rememberCatalogBrewFlow(controllers.getValue(Tab.Collection))
@@ -170,7 +176,7 @@ internal fun UmamitApp(
         if (teaLinkShare != null) {
             controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
             chooseSegment(CollectionSegment.Catalog)
-            selected = Tab.Collection
+            select(Tab.Collection)
         }
     }
     // A further tap on a refresh notification while this shell shows: back to the catalog list (D-097).
@@ -178,13 +184,13 @@ internal fun UmamitApp(
         brewFlow.leaveFor(Tab.Collection)
         controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
         chooseSegment(CollectionSegment.Catalog)
-        selected = Tab.Collection
+        select(Tab.Collection)
     }
     // The daily low-stock reminder's tap (INV-11): Start at its root.
     OnNewToken(startRequest) {
         brewFlow.quit()
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
-        selected = Tab.Start
+        select(Tab.Start)
     }
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
@@ -210,7 +216,7 @@ internal fun UmamitApp(
             progress.collect { transitionState.seekTo(it.progress, Tab.Start) }
             // Back from the picker's catalog flow returns to the picker.
             brewFlow.leaveFor(Tab.Start)
-            selected = Tab.Start
+            select(Tab.Start)
         } catch (e: CancellationException) {
             transitionState.snapTo(selected)
             throw e
@@ -225,7 +231,7 @@ internal fun UmamitApp(
                     onClick = {
                         if (tab != selected) {
                             brewFlow.leaveFor(tab)
-                            selected = tab
+                            select(tab)
                         } else {
                             reselection.reselect(tab, controllers.getValue(tab))
                         }
@@ -321,7 +327,7 @@ internal fun UmamitApp(
                                     CatalogTeaHost(onBack = onBack, alerting = alerting) { teaId ->
                                         // Saved in the picker's flow: the setup of that tea (D-073, D-088).
                                         brewFlow.finish {
-                                            selected = Tab.Start
+                                            select(Tab.Start)
                                             startNavigation.openSetup(teaId)
                                         }
                                     },
@@ -332,19 +338,19 @@ internal fun UmamitApp(
                                     StartTab(
                                         openSettings = openSettings,
                                         scrollToTopRequest = scrollToTop,
-                                        showJournal = { selected = Tab.Journal },
+                                        showJournal = { select(Tab.Journal) },
                                         openCatalog = {
                                             // The list, not a screen left open in Sammlung (D-090).
                                             controllers.getValue(Tab.Collection).popToRoot(Tab.Collection)
                                             chooseSegment(CollectionSegment.Catalog)
-                                            selected = Tab.Collection
+                                            select(Tab.Collection)
                                         },
                                         alertKey = alertKey,
                                         navigation = startNavigation,
                                         openCatalogForBrew = {
                                             brewFlow.start()
                                             chooseSegment(CollectionSegment.Catalog)
-                                            selected = Tab.Collection
+                                            select(Tab.Collection)
                                         },
                                         pickerReturn = brewFlow.pickerReturn,
                                         onPickerReturned = brewFlow::pickerReturned,
@@ -781,6 +787,20 @@ private fun TabHost(
             )
         }
     }
+}
+
+/**
+ * The shell turns from [tab] to [turningTo]: when [tab]'s stack has Settings, it is popped to below that entry, so
+ * Settings and everything opened from it (*Teegeschirr*, a vessel editor, *Über*, *Diagnose*) close, unsaved edits
+ * dropped without the discard question. Other pushed screens stay (03 §2.2, D-104).
+ */
+private fun Map<Tab, NavHostController>.leave(tab: Tab, turningTo: Tab) {
+    if (turningTo != tab) getValue(tab).closeSettings()
+}
+
+/** Pops this stack to below its Settings entry ([leave]); a stack without one is left as it is. */
+private fun NavHostController.closeSettings() {
+    popBackStack<SettingsRoute>(inclusive = true)
 }
 
 /** Pops this tab's stack to [tab]'s root; a tab never shown has no graph yet, so only a deeper stack is popped. */

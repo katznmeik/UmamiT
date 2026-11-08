@@ -12,6 +12,7 @@ import com.umamit.core.model.Vessel
 import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.ui.DurationSteps
+import com.umamit.core.ui.GermanFormat
 import java.io.Serializable
 import java.util.Locale
 
@@ -91,7 +92,7 @@ data class RecipeForm(
         return copy(
             vesselId = vessel.id,
             water = ml.toString(),
-            leaf = scaled?.let(::leafText) ?: leaf,
+            leaf = scaled?.let(GermanFormat::gramsOneDecimal) ?: leaf,
         )
     }
 
@@ -217,7 +218,7 @@ data class RecipeForm(
             name = recipe.name,
             method = recipe.method,
             vesselId = recipe.vesselId,
-            leaf = leafText(recipe.leafGrams),
+            leaf = GermanFormat.gramsOneDecimal(recipe.leafGrams),
             water = recipe.waterMl.toString(),
             baseTempC = recipe.baseTempC,
             preAlertSeconds = recipe.preAlertSeconds,
@@ -237,9 +238,6 @@ data class RecipeForm(
         fun parseWater(text: String): Int? = text.trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }
             ?.toIntOrNull()
             ?.takeIf { it in BrewScaling.MIN_WATER_ML..BrewScaling.MAX_WATER_ML && it % WATER_UNIT == 0 }
-
-        /** 4.5 → „4,5" (German decimal comma, 05 §7). */
-        fun leafText(grams: Double): String = "%.1f".format(Locale.GERMAN, grams)
 
         private fun tempStep(tempC: Int, up: Boolean): Int {
             val next = if (up) {

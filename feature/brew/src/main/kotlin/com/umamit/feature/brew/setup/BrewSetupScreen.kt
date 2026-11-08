@@ -57,6 +57,7 @@ import com.umamit.core.timer.engine.StepStatus
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedDropdownMenu
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.RecipeCheckNote
 import com.umamit.core.ui.StockSheet
 import com.umamit.core.ui.rememberAlertGate
@@ -149,7 +150,7 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
         )
         AmountRow(
             label = stringResource(R.string.brew_setup_leaf),
-            value = stringResource(R.string.brew_setup_grams, grams(state.leafGrams)),
+            value = stringResource(R.string.brew_setup_grams, GermanFormat.gramsOneDecimal(state.leafGrams)),
             less = stringResource(R.string.brew_setup_leaf_less),
             more = stringResource(R.string.brew_setup_leaf_more),
             onStep = actions.stepLeaf,
@@ -460,7 +461,7 @@ private fun AmountRow(label: String, value: String, less: String, more: String, 
 @Composable
 private fun RatioRow(state: BrewSetupUiState.Ready, onLock: (Boolean) -> Unit) {
     val lock = stringResource(R.string.brew_setup_ratio_lock)
-    val ratio = stringResource(R.string.brew_setup_ratio, grams(state.ratioPer100Ml))
+    val ratio = stringResource(R.string.brew_setup_ratio, GermanFormat.gramsOneDecimal(state.ratioPer100Ml))
     // One switch node: TalkBack reads the label and the ratio, then „ein" or „aus" (03 §6).
     Row(
         modifier = Modifier
@@ -477,6 +478,3 @@ private fun RatioRow(state: BrewSetupUiState.Ready, onLock: (Boolean) -> Unit) {
         Switch(checked = state.ratioLocked, onCheckedChange = null)
     }
 }
-
-/** „4,0" (German decimal comma, 05 §7). */
-internal fun grams(value: Double): String = "%.1f".format(Locale.GERMAN, value)

@@ -1105,6 +1105,15 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
   *Rückgängig* snackbar, and the opened and best-before dates editable in
   the tea editor. The freshness period is the style's; there is no per-tea
   period.
+- **Rückgängig (v0.4.1, D-104):** the „snackbar" is a line on the
+  „Gespeichert" sheet (SCR-06): after the session whose completion set
+  `opened_date`, it reads „Packung als geöffnet markiert" · *Rückgängig*.
+  *Rückgängig* writes back the value before, none or a date, so the next
+  session counts as the first after the package again. No line when the
+  completion left the date as it was. The change is remembered in memory
+  only, for the sheet's 10 s; the completion's transaction reads and writes
+  what it did in v0.4.0. A date changed since (the tea editor) is left
+  alone, and the undo is offered once.
 
 **INV-07 — Low stock & freshness reminders** `Could`
 Weekly digest notification (off by default).

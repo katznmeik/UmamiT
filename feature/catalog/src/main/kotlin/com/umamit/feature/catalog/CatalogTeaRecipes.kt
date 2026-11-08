@@ -22,6 +22,7 @@ import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
 import com.umamit.core.model.StepKind
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.RecipeCheckNote
 import java.util.Locale
 
@@ -64,7 +65,7 @@ private fun Recipe(recipe: RecipeTemplate) {
                 )
             }
         }
-        val grams = "%.1f".format(Locale.GERMAN, recipe.leafGrams)
+        val grams = GermanFormat.gramsOneDecimal(recipe.leafGrams)
         Text(
             text = if (recipe.baseTempC <= COLD_MAX_C) {
                 stringResource(R.string.catalog_tea_recipe_values_cold, grams, recipe.waterMl)

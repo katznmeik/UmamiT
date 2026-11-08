@@ -34,15 +34,13 @@ import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.ui.GermanFormat
 import java.io.File
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private const val TITLE_MAX_LINES = 2
 private val ThumbnailSize = 48.dp
-private val GERMAN_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMAN)
-private val GERMAN_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d. MMMM", Locale.GERMAN)
-private val GERMAN_DAY_WITH_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d. MMMM yyyy", Locale.GERMAN)
 
 /**
  * The journal (SCR-15 minimal, JRN-08): read-only, the in-progress session
@@ -150,7 +148,7 @@ private fun JournalRow(
                     )
                     Spacer(Modifier.width(UmamiSpacing.Small))
                     Text(
-                        text = entry.timeOfDay.format(GERMAN_TIME),
+                        text = GermanFormat.time(entry.timeOfDay),
                         modifier = Modifier.alignByBaseline(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -213,7 +211,7 @@ private fun metaParts(entry: JournalEntry, firstInfusion: String?): List<String>
 private fun dayTitle(day: JournalDay): String = when (day) {
     JournalDay.Today -> stringResource(R.string.journal_today)
     JournalDay.Yesterday -> stringResource(R.string.journal_yesterday)
-    is JournalDay.On -> day.date.format(if (day.thisYear) GERMAN_DAY else GERMAN_DAY_WITH_YEAR)
+    is JournalDay.On -> GermanFormat.weekdayDay(day.date, withYear = !day.thisYear)
 }
 
 /** The leaf placeholder's colour per tea style (03 §3.1 tea-type colours, 08 §2 style keys). */

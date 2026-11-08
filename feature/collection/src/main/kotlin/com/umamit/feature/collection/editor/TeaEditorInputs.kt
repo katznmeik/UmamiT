@@ -67,6 +67,7 @@ import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.AlertGatedExposedDropdownMenu
+import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.collection.R
 import com.umamit.feature.collection.detail.label
@@ -96,7 +97,7 @@ internal fun PurchaseDate(date: LocalDate, today: LocalDate, alertKey: String?, 
                 .fillMaxWidth()
                 .testTag(TeaEditorTags.PURCHASE_DATE),
         ) {
-            Text(DAY.format(date))
+            Text(GermanFormat.day(date))
         }
     }
     AlertGated(picking) {
@@ -224,8 +225,6 @@ internal fun <T> ChoiceField(
         }
     }
 }
-
-private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d. MMM yyyy", Locale.GERMAN)
 
 /** Material's date picker counts days as UTC midnights. */
 private fun LocalDate.utcMillis(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()

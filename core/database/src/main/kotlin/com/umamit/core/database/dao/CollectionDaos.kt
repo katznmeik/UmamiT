@@ -115,9 +115,9 @@ interface TeaDao {
     @Query("UPDATE tea SET recipe_check_reason = NULL, updated_at = :now WHERE id = :teaId")
     suspend fun clearRecipeCheck(teaId: String, now: Long)
 
-    /** *Geöffnet am* (INV-06). */
+    /** *Geöffnet am* (INV-06); null: unopened again (*Rückgängig*, SCR-06). */
     @Query("UPDATE tea SET opened_date = :openedDate, updated_at = :now WHERE id = :teaId")
-    suspend fun setOpenedDate(teaId: String, openedDate: LocalDate, now: Long)
+    suspend fun setOpenedDate(teaId: String, openedDate: LocalDate?, now: Long)
 
     @Upsert
     suspend fun upsertPhoto(photo: PhotoEntity)
