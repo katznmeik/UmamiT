@@ -38,6 +38,7 @@ sealed interface TeaDetailUiState {
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
  * @property sessionLeafGrams the leaf the active session of this tea still deducts at its end, for the stock
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
+ * @property today the phone's day when the data last changed: *Nachkauf erfassen*'s default and latest day (INV-03).
  */
 data class TeaDetail(
     val id: String,
@@ -64,6 +65,7 @@ data class TeaDetail(
     val isArchived: Boolean = false,
     val inActiveBrew: Boolean = false,
     val sessionLeafGrams: Double? = null,
+    val today: LocalDate = LocalDate.now(),
 ) {
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA

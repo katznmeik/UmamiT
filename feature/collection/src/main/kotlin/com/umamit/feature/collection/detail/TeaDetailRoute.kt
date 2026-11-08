@@ -59,6 +59,7 @@ fun TeaDetailRoute(
             restore = viewModel::restore,
             delete = viewModel::delete,
             correctStock = viewModel::correctStock,
+            recordPurchase = viewModel::recordPurchase,
             openShop = context::openInBrowser,
             addPhoto = pickPhoto,
         ),

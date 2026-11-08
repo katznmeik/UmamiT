@@ -7,6 +7,7 @@ import com.umamit.core.database.dao.RecipeDeletion
 import com.umamit.core.database.dao.TeaDao
 import com.umamit.core.database.dao.VesselDao
 import com.umamit.core.model.InventoryEvent
+import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.RecipeStep
@@ -17,6 +18,7 @@ import com.umamit.core.model.Vessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 
@@ -112,5 +114,20 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {
         require(newTotalGrams.isFinite() && newTotalGrams >= 0.0) { "A stock total is at least 0 g" }
         return dao.correctStock(teaId, newTotalGrams, UUID.randomUUID().toString(), time.nowMs())?.toModel()
+    }
+
+    override suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent {
+        val today = Instant.ofEpochMilli(time.nowMs()).atZone(time.zone()).toLocalDate()
+        require(!purchase.purchasedOn.isAfter(today)) { "A purchase is never in the future" }
+        val event = purchaseEvent(
+            teaId,
+            InventoryEventType.PURCHASE,
+            purchase.grams,
+            purchase.priceCents,
+            purchase.purchasedOn,
+            time,
+        )
+        addEvent(event)
+        return event
     }
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +53,9 @@ import java.time.format.DateTimeFormatter
 
 /** *Bestand korrigieren* (INV-03). */
 const val TEA_DETAIL_CORRECT_STOCK_TAG = "tea_detail_correct_stock"
+
+/** *Nachkauf erfassen* (INV-03, D-104). */
+const val TEA_DETAIL_PURCHASE_TAG = "tea_detail_purchase"
 
 /** *Beim Tee-Kontor nachbestellen* (INV-09). */
 const val TEA_DETAIL_REORDER_TAG = "tea_detail_reorder"
@@ -149,11 +153,14 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
 ).joinToString(stringResource(R.string.collection_tea_recipe_separator))
 
 /**
- * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), *Bestand korrigieren* and INV-09's *Beim Tee-Kontor
- * nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link icon.
+ * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), *Nachkauf erfassen* and *Bestand korrigieren* (INV-03; side by
+ * side where they fit, else one below the other) and INV-09's *Beim Tee-Kontor nachbestellen*: a filled button
+ * when *Knapp* or *Leer*, otherwise a text link with the external-link icon. The stock history (SCR-29) follows
+ * below them.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) -> Unit) {
+internal fun Stock(tea: TeaDetail, onPurchase: () -> Unit, onCorrect: () -> Unit, onReorder: (String) -> Unit) {
     Section(stringResource(R.string.collection_tea_section_stock)) {
         Text(
             text = stockText(tea, short = false),
@@ -161,10 +168,20 @@ internal fun Stock(tea: TeaDetail, onCorrect: () -> Unit, onReorder: (String) ->
             color = MaterialTheme.colorScheme.onSurface,
         )
         Spacer(Modifier.height(UmamiSpacing.XSmall))
-        OutlinedButton(onClick = onCorrect, modifier = Modifier.testTag(TEA_DETAIL_CORRECT_STOCK_TAG)) {
-            Icon(painterResource(UmamiIcons.Edit), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
-            Spacer(Modifier.width(UmamiSpacing.XSmall))
-            Text(stringResource(R.string.collection_tea_stock_correct))
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(UmamiSpacing.XSmall),
+        ) {
+            OutlinedButton(onClick = onPurchase, modifier = Modifier.testTag(TEA_DETAIL_PURCHASE_TAG)) {
+                Icon(painterResource(UmamiIcons.Add), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Text(stringResource(R.string.collection_tea_stock_purchase))
+            }
+            OutlinedButton(onClick = onCorrect, modifier = Modifier.testTag(TEA_DETAIL_CORRECT_STOCK_TAG)) {
+                Icon(painterResource(UmamiIcons.Edit), contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+                Spacer(Modifier.width(UmamiSpacing.XSmall))
+                Text(stringResource(R.string.collection_tea_stock_correct))
+            }
         }
         val reorder = tea.reorder ?: return@Section
         val label = stringResource(R.string.collection_tea_reorder)

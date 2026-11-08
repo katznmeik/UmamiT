@@ -15,6 +15,7 @@ import com.umamit.core.data.SettingsRepository
 import com.umamit.core.data.StockRepository
 import com.umamit.core.data.TeaArchive
 import com.umamit.core.data.TeaPhotos
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.VesselRepository
 import com.umamit.core.data.catalog.CatalogRepository
@@ -71,7 +72,8 @@ sealed interface TeaDetailEvent {
  * The tea detail (SCR-09, TEA-13, D-100) of the tea `teaId`: everything it shows comes from flows, so it
  * updates at once after an edit, a brew or a correction. ⋮ *Favorit*, *Archivieren*, *Wiederherstellen* and
  * *Löschen* write through the repositories; archive and delete go through [TeaArchive], which refuses the tea of
- * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save (INV-03). *+ Foto* adds the
+ * the active brew session (E15). *Bestand korrigieren* is the stock sheet's save, *Nachkauf erfassen* the purchase
+ * sheet's (INV-03). *+ Foto* adds the
  * picked image through [TeaPhotos] (TEA-05, SCR-28).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -160,6 +162,15 @@ class TeaDetailViewModel @Inject constructor(
         viewModelScope.launch { stock.correctStock(teaId, grams) }
     }
 
+    /**
+     * *Nachkauf erfassen* (INV-03, D-104): one PURCHASE of the sheet's grams, price and day; the stock follows from
+     * the events. A day after today (the clock moved back since the sheet opened) is refused and nothing is written.
+     */
+    fun recordPurchase(purchase: TeaPurchase) {
+        if (purchase.purchasedOn.isAfter(clock.today())) return
+        viewModelScope.launch { stock.recordPurchase(teaId, purchase) }
+    }
+
     /** *+ Foto*: adds the image the photo picker returned (TEA-05); a refusal or failure is said once. */
     fun addPhoto(uri: String) {
         viewModelScope.launch {
@@ -246,6 +257,7 @@ class TeaDetailViewModel @Inject constructor(
             isArchived = tea.isArchived,
             inActiveBrew = brew.active,
             sessionLeafGrams = brew.sessionLeaf(),
+            today = clock.today(),
         )
     }
 
@@ -260,11 +272,6 @@ class TeaDetailViewModel @Inject constructor(
         tempC = steps.firstOrNull { it.kind != StepKind.RINSE }?.tempC ?: baseTempC,
         infusions = steps.count { it.kind != StepKind.RINSE },
     )
-
-    private fun BrewSession.day(): LocalDate {
-        val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
-        return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
-    }
 
     private data class Globals(val lowStockGrams: Double, val deductStock: Boolean)
 
@@ -281,6 +288,12 @@ class TeaDetailViewModel @Inject constructor(
         /** The navigation argument (the route's property name). */
         const val TEA_ID = "teaId"
     }
+}
+
+/** The session's day in its own time zone (the device's for one it doesn't know). */
+private fun BrewSession.day(): LocalDate {
+    val zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault())
+    return Instant.ofEpochMilli(startedAtMs).atZone(zone).toLocalDate()
 }
 
 private fun WallClock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()

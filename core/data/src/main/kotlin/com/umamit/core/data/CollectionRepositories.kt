@@ -138,6 +138,16 @@ interface StockRepository {
      * @throws IllegalArgumentException when [newTotalGrams] is negative or not a number.
      */
     suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent?
+
+    /**
+     * *Nachkauf erfassen* (INV-03, SCR-09 VORRAT, D-104): one `PURCHASE` event of the [purchase]'s grams and
+     * price (none: no price) on its day; bought today, now, on another day that day at noon in the phone's
+     * zone (as INV-01's package). A purchase after the stock reached 0 g is the next session's new package
+     * (INV-06). Returns the event written.
+     *
+     * @throws IllegalArgumentException when the day is after today.
+     */
+    suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent
 }
 
 /** The settings of 05 §6 (M1 subset) and the seed markers. */

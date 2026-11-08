@@ -57,6 +57,28 @@ class FakeCollectionTest {
     }
 
     @Test
+    fun recordsAPurchaseAsOnRoomAndRefusesTheFuture() = runTest {
+        // 8 Nov 2026, 15:00 UTC.
+        collection.stock.now = 1_794_150_000_000L
+        val today = LocalDate.of(2026, 11, 8)
+
+        val written = collection.stock.recordPurchase("t1", TeaPurchase(50.0, 600, today))
+        collection.stock.recordPurchase("t1", TeaPurchase(20.0, null, today.minusDays(6)))
+
+        val events = collection.stock.observeEvents("t1").first()
+        assertThat(events.map { it.type }).containsExactly(InventoryEventType.PURCHASE, InventoryEventType.PURCHASE)
+        assertThat(events.last()).isEqualTo(written)
+        assertThat(written.occurredAtMillis).isEqualTo(1_794_150_000_000L)
+        assertThat(written.priceCents).isEqualTo(600)
+        // 2 Nov 2026 at noon UTC.
+        assertThat(events.first().occurredAtMillis).isEqualTo(1_793_620_800_000L)
+        assertThat(collection.stock.observeStock("t1").first().remainingGrams).isWithin(1e-9).of(70.0)
+        val future = runCatching { collection.stock.recordPurchase("t1", TeaPurchase(5.0, null, today.plusDays(1))) }
+        assertThat(future.exceptionOrNull()).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(collection.stock.observeEvents("t1").first()).hasSize(2)
+    }
+
+    @Test
     fun followsTheRecipeRulesOfPrf01AndTea17() = runTest {
         collection.teas.saveTea(
             Tea("t1", "Hisui", TeaCategory.GREEN, TeaForm.LOOSE_LEAF, recipeCheckReason = RecipeCheckReason.FROM_TEXT),
