@@ -719,7 +719,10 @@ favourite.
   is processed like a tea photo; *Foto ersetzen* swaps it (the old file is
   deleted); *Foto entfernen* removes it. Like every field it is stored only
   with *Speichern* and counts as a change for „Änderungen verwerfen?"; an
-  image that can't be read then is skipped and the rest is saved. The
+  image that can't be read then (e.g. its picker grant is gone after a process
+  death) is skipped, the rest is saved and a short toast says „Das Foto konnte
+  nicht gelesen werden."; the pick's read grant is made persistable when it
+  arrives. The
   *Teegeschirr* list shows the photo in place of the type icon (TalkBack:
   „Foto von *[name]*"); the setup's vessel list stays unchanged.
 

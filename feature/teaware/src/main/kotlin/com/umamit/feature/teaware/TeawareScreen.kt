@@ -265,7 +265,12 @@ private fun VesselListItem(
 private fun VesselPhotoThumb(painter: Painter?, description: String) {
     val modifier = Modifier.size(ThumbSize).clip(MaterialTheme.shapes.small).testTag(TeawareTags.PHOTO)
     if (painter != null) {
-        Image(painter, description, modifier, contentScale = ContentScale.Crop)
+        Image(
+            painter,
+            description,
+            modifier.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentScale = ContentScale.Crop,
+        )
     } else {
         Box(
             modifier.background(MaterialTheme.colorScheme.surfaceVariant).semantics {

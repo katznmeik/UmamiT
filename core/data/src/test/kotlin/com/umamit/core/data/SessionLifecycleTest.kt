@@ -14,8 +14,8 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.StepRecord
-import com.umamit.core.timer.engine.TimerSnapshot
 import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TimerSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow

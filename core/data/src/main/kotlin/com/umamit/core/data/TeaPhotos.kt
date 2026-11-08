@@ -247,7 +247,9 @@ private fun readSized(input: InputStream, size: Int): ByteArray? {
     val next = if (filled < size) -1 else input.read()
     return when {
         filled < size -> bytes.copyOf(filled)
+
         next < 0 -> bytes
+
         else -> {
             val out = ByteArrayOutputStream(size + BUFFER_BYTES)
             out.write(bytes, 0, size)

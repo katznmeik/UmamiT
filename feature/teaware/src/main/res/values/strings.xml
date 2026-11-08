@@ -47,6 +47,7 @@
     <string name="vessel_editor_photo_add">Foto hinzufügen</string>
     <string name="vessel_editor_photo_replace">Foto ersetzen</string>
     <string name="vessel_editor_photo_remove">Foto entfernen</string>
+    <string name="vessel_editor_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
     <string name="vessel_editor_not_found">Dieses Gefäß gibt es nicht mehr.</string>
     <!-- Errors at the field; Speichern refuses them. -->
     <string name="vessel_editor_error_name_empty">Gib einen Namen ein.</string>

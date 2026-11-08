@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.CollectionListEntry
 import com.umamit.core.data.CollectionListRepository
 import com.umamit.core.data.PhotoFiles
@@ -123,7 +124,7 @@ class MyTeasViewModel @Inject constructor(
     ) { all, filter, sort ->
         val listing = CollectionBrowser.listing(all.map { it.first }, filter, sort)
         val paths = all.associate { it.first.tea.id to it.second }
-        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+        val today = clock.today()
         MyTeasUiState(
             loading = false,
             rows = listing.rows.map { it.toUi(paths[it.tea.id], today) },

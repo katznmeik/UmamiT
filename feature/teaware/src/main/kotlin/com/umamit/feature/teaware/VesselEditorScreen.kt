@@ -1,5 +1,6 @@
 package com.umamit.feature.teaware
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -125,14 +127,22 @@ fun VesselEditorRoute(
     viewModel: VesselEditorViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val pickPhoto = rememberPhotoPicker(photoPicker, viewModel::pickPhoto)
+    val context = LocalContext.current
+    val pickPhoto = rememberPhotoPicker(photoPicker, viewModel::pickPhoto, persistGrant = true)
     val currentOnSave by rememberUpdatedState(onSave)
     val currentOnArchive by rememberUpdatedState(onArchive)
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 is VesselEditorEvent.Saved -> currentOnSave(event.vesselId)
+
                 is VesselEditorEvent.Archived -> currentOnArchive(ArchivedVessel(event.vesselId, event.name))
+
+                VesselEditorEvent.PhotoUnreadable -> Toast.makeText(
+                    context,
+                    R.string.vessel_editor_photo_unreadable,
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
         }
     }
@@ -433,7 +443,13 @@ private fun PhotoImage(painter: Painter?, modifier: Modifier = Modifier) {
     val description = stringResource(R.string.vessel_editor_photo_description)
     val tagged = modifier.testTag(VesselEditorTags.PHOTO)
     if (painter != null) {
-        Image(painter, description, tagged, contentScale = ContentScale.Crop)
+        // The tint under the image, so a photo fading in comes out of the placeholder's colour.
+        Image(
+            painter,
+            description,
+            tagged.background(MaterialTheme.colorScheme.surfaceVariant),
+            contentScale = ContentScale.Crop,
+        )
     } else {
         // Still loading or unreadable: the tint holds the place, the photo keeps its label.
         Box(tagged.background(MaterialTheme.colorScheme.surfaceVariant).semantics { contentDescription = description })

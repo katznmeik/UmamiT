@@ -1,5 +1,7 @@
 package com.umamit.core.common
 
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -33,6 +35,9 @@ interface WallClock {
     /** The device's current time zone. */
     fun zone(): ZoneId
 }
+
+/** The calendar date of [WallClock.nowMs] in [WallClock.zone]. */
+fun WallClock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
 
 /** The device's wall clock and time zone (`System.currentTimeMillis()`, the default zone). */
 object SystemWallClock : WallClock {

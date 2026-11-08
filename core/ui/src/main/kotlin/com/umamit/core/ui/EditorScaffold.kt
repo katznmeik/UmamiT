@@ -65,12 +65,15 @@ fun EditorScaffold(
                     }
                 },
                 actions = {
-                    if (showActions) {
-                        TextButton(onClick = onSave, enabled = !saving, modifier = Modifier.testTag(saveTag)) {
-                            Text(saveLabel)
-                        }
-                        menu()
+                    // Always composed, so the bar does not gain a control once the editor has loaded.
+                    TextButton(
+                        onClick = onSave,
+                        enabled = showActions && !saving,
+                        modifier = Modifier.testTag(saveTag),
+                    ) {
+                        Text(saveLabel)
                     }
+                    if (showActions) menu()
                 },
             )
         },

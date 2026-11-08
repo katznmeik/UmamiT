@@ -248,7 +248,7 @@ private fun PagerPhoto(
         Image(
             painter = painter,
             contentDescription = description,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().background(placeholderColor.copy(alpha = PLACEHOLDER_ALPHA)),
             contentScale = ContentScale.Crop,
         )
     } else {

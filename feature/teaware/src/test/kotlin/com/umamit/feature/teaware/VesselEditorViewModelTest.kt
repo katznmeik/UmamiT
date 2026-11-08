@@ -346,8 +346,9 @@ class VesselEditorViewModelTest {
         vm.pickPhoto("content://broken")
 
         vm.save()
-        vm.events.first()
 
+        assertThat(vm.events.first()).isEqualTo(VesselEditorEvent.PhotoUnreadable)
+        assertThat(vm.events.first()).isEqualTo(VesselEditorEvent.Saved("k"))
         assertThat(collection.vessels.getVessel("k")!!.name).isEqualTo("Meine Kyusu")
         assertThat(collection.vessels.getVessel("k")!!.coverPhotoId).isEqualTo("photo-1")
     }
