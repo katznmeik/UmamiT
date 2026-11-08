@@ -75,7 +75,7 @@ class CostRuleTest {
         assertThat(cost?.recipeCupCents).isNull()
     }
 
-    /** A step row as the session stores it: [poured] ended with an actual time, else skipped (zeros) or never started. */
+    /** A step row as stored: [poured] ended with an actual time, else skipped (zeros), or never [started]. */
     private fun row(position: Int, kind: StepKind, poured: Boolean = true, started: Boolean = true) = SessionStepRow(
         position = position,
         kind = kind,
