@@ -1,11 +1,16 @@
 package com.umamit.feature.teaware
 
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,16 +21,20 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeCollection
+import com.umamit.core.testing.FakePhotoPicker
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeVesselArchive
+import com.umamit.core.testing.FakeVesselPhotos
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -41,12 +50,18 @@ class TeawareScreensTest {
     private val archive = FakeVesselArchive(FakeSessions(collection))
     private var alertKey by mutableStateOf<String?>(null)
 
+    @get:Rule
+    val folder = TemporaryFolder()
+
+    private val files by lazy { PhotoFiles(folder.newFolder("photos")) }
+    private val photos by lazy { FakeVesselPhotos(collection, files) }
+
     private fun save(vararg vessels: Vessel) = runBlocking { vessels.forEach { collection.vessels.saveVessel(it) } }
 
     private fun stored(): List<Vessel> = runBlocking { collection.vessels.observeVessels().first() }
 
     private fun showList(archived: ArchivedVessel? = null, onOpen: (String) -> Unit = {}, onAdd: () -> Unit = {}) {
-        val vm = TeawareViewModel(collection.vessels, archive)
+        val vm = TeawareViewModel(collection.vessels, archive, files)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 TeawareRoute(
@@ -54,6 +69,7 @@ class TeawareScreensTest {
                     onOpenVessel = onOpen,
                     onAddVessel = onAdd,
                     archived = archived,
+                    photo = { ColorPainter(Color(PLACEHOLDER)) },
                     viewModel = vm,
                 )
             }
@@ -65,9 +81,10 @@ class TeawareScreensTest {
         onSave: (String) -> Unit = {},
         onArchive: (ArchivedVessel) -> Unit = {},
         onClose: () -> Unit = {},
+        picker: FakePhotoPicker = FakePhotoPicker(),
     ) {
         val saved = SavedStateHandle().apply { if (vesselId != null) set(VesselEditorViewModel.VESSEL_ID, vesselId) }
-        val vm = VesselEditorViewModel(saved, collection.vessels, archive)
+        val vm = VesselEditorViewModel(saved, collection.vessels, archive, photos, files)
         compose.setContent {
             UmamiTheme(darkTheme = false, reduceMotion = true) {
                 VesselEditorRoute(
@@ -75,6 +92,8 @@ class TeawareScreensTest {
                     onSave = onSave,
                     onArchive = onArchive,
                     alertKey = alertKey,
+                    photoPicker = picker,
+                    photo = { ColorPainter(Color(PLACEHOLDER)) },
                     viewModel = vm,
                 )
             }
@@ -290,5 +309,100 @@ class TeawareScreensTest {
 
         compose.onNodeWithText("Erst die Sitzung beenden").assertIsDisplayed()
         compose.onNodeWithText("Archivieren").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the list shows a vessel's photo in place of its type icon, TalkBack reads it`() {
+        files.write("p1", byteArrayOf(1))
+        save(
+            Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300, coverPhotoId = "p1"),
+            Vessel("g", "Gaiwan", VesselType.GAIWAN, 120),
+        )
+        showList()
+
+        compose.onNodeWithContentDescription("Foto von Kyusu 250 ml").assertIsDisplayed()
+        compose.onAllNodesWithTag(TeawareTags.PHOTO, useUnmergedTree = true).assertCountEquals(1)
+        // The vessel with a photo has no type icon; the one without keeps it.
+        compose.onNodeWithContentDescription("Kyusu").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Gaiwan").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the editor without a photo offers Foto hinzufuegen, picks one and stores it with Speichern`() {
+        save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300))
+        val picker = FakePhotoPicker(Uri.parse("content://picked/1"))
+        showEditor("k", picker = picker)
+
+        compose.onNodeWithContentDescription("Noch kein Foto").assertIsDisplayed()
+        compose.onNodeWithTag(VesselEditorTags.PHOTO_REMOVE).assertDoesNotExist()
+        compose.onNodeWithText("Foto hinzufügen").performClick()
+        compose.waitForIdle()
+
+        assertThat(picker.launches).isEqualTo(1)
+        compose.onNodeWithContentDescription("Foto des Gefäßes").assertIsDisplayed()
+        compose.onNodeWithText("Foto ersetzen").assertIsDisplayed()
+        assertThat(photos.set).isEmpty()
+
+        compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
+        compose.waitForIdle()
+
+        assertThat(photos.set).containsExactly("content://picked/1")
+        assertThat(stored().single().coverPhotoId).isNotNull()
+    }
+
+    @Test
+    fun `Foto ersetzen replaces the stored photo and Foto entfernen removes it`() {
+        save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300))
+        runBlocking { photos.set("k", "content://old") }
+        val old = stored().single().coverPhotoId!!
+        val picker = FakePhotoPicker(Uri.parse("content://picked/2"))
+        showEditor("k", picker = picker)
+
+        compose.onNodeWithContentDescription("Foto des Gefäßes").assertIsDisplayed()
+        compose.onNodeWithText("Foto ersetzen").performClick()
+        compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
+        compose.waitForIdle()
+
+        val replaced = stored().single().coverPhotoId!!
+        assertThat(replaced).isNotEqualTo(old)
+        assertThat(files.file(old).exists()).isFalse()
+        assertThat(files.file(replaced).exists()).isTrue()
+    }
+
+    @Test
+    fun `Foto entfernen takes the photo away with Speichern`() {
+        save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300))
+        runBlocking { photos.set("k", "content://old") }
+        val old = stored().single().coverPhotoId!!
+        showEditor("k")
+
+        compose.onNodeWithText("Foto entfernen").performClick()
+        compose.onNodeWithContentDescription("Noch kein Foto").assertIsDisplayed()
+        assertThat(stored().single().coverPhotoId).isEqualTo(old)
+
+        compose.onNodeWithTag(VesselEditorTags.SAVE).performClick()
+        compose.waitForIdle()
+
+        assertThat(stored().single().coverPhotoId).isNull()
+        assertThat(files.file(old).exists()).isFalse()
+    }
+
+    @Test
+    fun `leaving the editor after picking a photo asks Aenderungen verwerfen and stores nothing`() {
+        save(Vessel("k", "Kyusu 250 ml", VesselType.KYUSU, 300))
+        var closed = false
+        showEditor("k", onClose = { closed = true }, picker = FakePhotoPicker(Uri.parse("content://picked/3")))
+
+        compose.onNodeWithText("Foto hinzufügen").performClick()
+        compose.onNodeWithContentDescription("Schließen").performClick()
+
+        compose.onNodeWithText("Änderungen verwerfen?").assertIsDisplayed()
+        assertThat(closed).isFalse()
+        assertThat(photos.set).isEmpty()
+    }
+
+    private companion object {
+        /** A plain washi-green square in place of a photo (D-016: no real photos in tests or renders). */
+        const val PLACEHOLDER = 0xFF8A9A7B
     }
 }

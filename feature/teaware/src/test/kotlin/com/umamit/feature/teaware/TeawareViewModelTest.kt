@@ -1,6 +1,7 @@
 package com.umamit.feature.teaware
 
 import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.PhotoFiles
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
 import com.umamit.core.testing.FakeCollection
@@ -14,7 +15,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /** The teaware list (SCR-13; WARE-01, D-100) on fake repositories. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -22,13 +25,18 @@ class TeawareViewModelTest {
     private val collection = FakeCollection()
     private val archive = FakeVesselArchive(FakeSessions(collection))
 
+    @get:Rule
+    val folder = TemporaryFolder()
+
+    private val files by lazy { PhotoFiles(folder.newFolder("photos")) }
+
     @Before
     fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = TeawareViewModel(collection.vessels, archive)
+    private fun viewModel() = TeawareViewModel(collection.vessels, archive, files)
 
     private val TeawareViewModel.ready get() = state.value as TeawareUiState.Ready
 
@@ -77,5 +85,19 @@ class TeawareViewModelTest {
 
         assertThat(state.vessels).isEmpty()
         assertThat(state.archived).isEmpty()
+    }
+
+    @Test
+    fun `a row carries the path of the vessel's photo file, none without a photo or a file`() = runTest {
+        files.write("p1", byteArrayOf(1))
+        collection.vessels.saveVessel(Vessel("k", "Kyusu", VesselType.KYUSU, 300, coverPhotoId = "p1"))
+        collection.vessels.saveVessel(Vessel("g", "Gaiwan", VesselType.GAIWAN, 120))
+        collection.vessels.saveVessel(Vessel("b", "Becher", VesselType.MUG_INFUSER, 400, coverPhotoId = "lost"))
+
+        val rows = viewModel().ready.vessels.associateBy { it.id }
+
+        assertThat(rows.getValue("k").photoPath).isEqualTo(files.file("p1").path)
+        assertThat(rows.getValue("g").photoPath).isNull()
+        assertThat(rows.getValue("b").photoPath).isNull()
     }
 }

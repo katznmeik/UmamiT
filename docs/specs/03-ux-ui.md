@@ -1010,8 +1010,18 @@ v0.4.0 (D-100):
 - **SCR-14**, full-screen dialog like SCR-10: name, type, volume, usable
   volume, material, notes, favourite. ⋮ *Archivieren* (not for the vessel of
   the active brew session: „Erst die Sitzung beenden"); there is no delete.
-  Photos come with v0.4.1. Opened from the setup's *Neues Gefäß …* it
-  returns there with the new vessel selected.
+  Opened from the setup's *Neues Gefäß …* it returns there with the new
+  vessel selected.
+
+v0.4.1 (D-104, #187, WARE-01):
+- **SCR-14** starts with the vessel's one photo: a 180 dp rounded picture, or
+  the type icon on a tint without one (TalkBack: „Noch kein Foto"), with
+  *Foto hinzufügen* (*Foto ersetzen* with a photo) and *Foto entfernen*. A
+  pick is shown at once and stored with *Speichern*; ✕ or back after a pick
+  asks „Änderungen verwerfen?".
+- **SCR-13** shows the photo as a 40 dp rounded square in place of the type
+  icon (TalkBack: „Foto von *[name]*"); the icon sits in a slot of the same
+  width so the names line up. The setup's vessel list is unchanged.
 
 ### SCR-15 Journal
 

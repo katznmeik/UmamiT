@@ -670,6 +670,14 @@ favourite.
   keep it; archived vessels sit in their own part of the list with
   *Wiederherstellen*. The vessel of the active brew session can't be
   archived until the session ends.
+- **v0.4.1 (D-104, #187):** one photo per vessel, at the top of the editor:
+  *Foto hinzufügen* opens the Android photo picker (06 §5.2), the picked image
+  is processed like a tea photo; *Foto ersetzen* swaps it (the old file is
+  deleted); *Foto entfernen* removes it. Like every field it is stored only
+  with *Speichern* and counts as a change for „Änderungen verwerfen?"; an
+  image that can't be read then is skipped and the rest is saved. The
+  *Teegeschirr* list shows the photo in place of the type icon (TalkBack:
+  „Foto von *[name]*"); the setup's vessel list stays unchanged.
 
 **WARE-02 — Vessel picker** `Must`
 In brew setup and recipe editor: favourites first; archived vessels are not
