@@ -959,9 +959,9 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **No stock events:** the `StatTriplet` shows „–", VORRAT „Kein Bestand
   erfasst" with *Bestand korrigieren* and a plain reorder link; no stock is
   invented. DETAILS shows the country by its German name.
-- **Dates (v0.4.1, #179):** DETAILS also lists *Geöffnet am* and *Haltbar
-  bis* („21. Okt. 2026") when set, each only with a value; FRISCHE (INV-06)
-  stays as it is.
+- **Dates (v0.4.1, #179):** DETAILS also lists *Haltbar bis* („21. Okt.
+  2026") when set. *Geöffnet am* shows only in FRISCHE (INV-06), not twice
+  (PO decision, v0.4.1 fix round).
 
 ### SCR-10 Tee bearbeiten
 

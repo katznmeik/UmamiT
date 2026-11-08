@@ -260,10 +260,7 @@ private fun Detail(
         PurchaseSheet(
             today = tea.today,
             alertKey = alertKey,
-            onSave = { purchase ->
-                actions.recordPurchase(purchase)
-                purchaseSheet.close()
-            },
+            onSave = actions.recordPurchase,
             onDismissRequest = purchaseSheet::close,
         )
     }

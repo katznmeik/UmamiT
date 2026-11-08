@@ -38,6 +38,7 @@ import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -55,6 +57,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 /** One-shot outcomes for the host of the tea detail. */
 sealed interface TeaDetailEvent {
@@ -75,6 +79,9 @@ sealed interface TeaDetailEvent {
 
     /** *Als Titelbild* or *Löschen* couldn't be written; nothing changed. */
     data object PhotoChangeFailed : TeaDetailEvent
+
+    /** *Bestand korrigieren*, *Nachkauf erfassen* or a history entry's *Löschen* couldn't be written (INV-03). */
+    data object StockChangeFailed : TeaDetailEvent
 
     /** ⋮ *Aus Katalog zurücksetzen* couldn't be written; nothing changed (PRF-06). */
     data object ResetFailed : TeaDetailEvent
@@ -106,6 +113,7 @@ class TeaDetailViewModel @Inject constructor(
     private val teaPhotos: TeaPhotos,
     private val clock: WallClock = SystemWallClock,
     private val catalogReset: CatalogReset = NoCatalogReset,
+    @PhotoFileContext private val photoFileContext: CoroutineContext = EmptyCoroutineContext,
 ) : ViewModel() {
     private val teaId: String = checkNotNull(savedState[TEA_ID]) { "the tea detail needs a teaId" }
 
@@ -143,7 +151,8 @@ class TeaDetailViewModel @Inject constructor(
                     .copy(catalogReset = resetPlan?.let { CatalogResetOffer(it.leftOut) }),
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
+    }.flowOn(photoFileContext) // the photo files are checked off the main thread (the app provides IO)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TeaDetailUiState.Loading)
 
     /** ⋮ *Favorit* (TEA-06): marks or unmarks the tea. */
     fun toggleFavorite() {
@@ -175,7 +184,7 @@ class TeaDetailViewModel @Inject constructor(
 
     /** *Bestand korrigieren*: the new total in g (INV-03). */
     fun correctStock(grams: Double) {
-        viewModelScope.launch { stock.correctStock(teaId, grams) }
+        writeStock { stock.correctStock(teaId, grams) }
     }
 
     /**
@@ -184,7 +193,7 @@ class TeaDetailViewModel @Inject constructor(
      * opening date stays as it is.
      */
     fun deleteStockEntry(eventId: String) {
-        viewModelScope.launch { stock.deleteEvent(eventId) }
+        writeStock { stock.deleteEvent(eventId) }
     }
 
     /**
@@ -193,7 +202,21 @@ class TeaDetailViewModel @Inject constructor(
      */
     fun recordPurchase(purchase: TeaPurchase) {
         if (purchase.purchasedOn.isAfter(clock.today())) return
-        viewModelScope.launch { stock.recordPurchase(teaId, purchase) }
+        writeStock { stock.recordPurchase(teaId, purchase) }
+    }
+
+    /** A stock write that fails (a full disk, a locked database) changes nothing and is said once (D-090). */
+    @Suppress("TooGenericExceptionCaught", "SwallowedException")
+    private fun writeStock(write: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                write()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: RuntimeException) {
+                events.send(TeaDetailEvent.StockChangeFailed)
+            }
+        }
     }
 
     /** *+ Foto*: adds the image the photo picker returned (TEA-05); a refusal or failure is said once. */
@@ -296,7 +319,6 @@ class TeaDetailViewModel @Inject constructor(
                 processing = tea.processingNotes?.takeIf { it.isNotBlank() },
                 ingredients = tea.ingredients?.takeIf { it.isNotBlank() },
                 vendor = tea.vendor?.takeIf { it.isNotBlank() },
-                openedDate = tea.openedDate,
                 bestBefore = tea.bestBefore,
                 isOrganic = tea.isOrganic,
                 isFlavored = tea.isFlavored,
