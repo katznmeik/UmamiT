@@ -131,6 +131,13 @@ class RoomVesselPhotos @Inject constructor(
         false
     } catch (_: IOException) {
         false
+    } catch (e: CancellationException) {
+        throw e
+    } catch (
+        // Rule 8: as in set(), a bug in the removal fails the removal, never the app (D-090).
+        @Suppress("TooGenericExceptionCaught", "SwallowedException") e: RuntimeException,
+    ) {
+        false
     }
 }
 

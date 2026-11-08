@@ -28,10 +28,13 @@ import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeSource
 import com.umamit.core.model.RecipeStep
 import com.umamit.core.model.RecipeTemplate
+import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TimerSlot
+import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -217,6 +220,61 @@ class CatalogResetTest {
         assertThat(data.recipes.observeActiveRecipeId().first()).isEqualTo("old1")
         assertThat(data.recipes.getRecipe("old1")).isNotNull()
         assertThat(recipesNow().map { it.name }).containsExactly("Kyusu neu", "Kalt neu", "Eigenes 0").inOrder()
+    }
+
+    @Test
+    fun `a brew running through the reset completes as usual`() = runTest {
+        catalog(entry())
+        collectionTea(catalogDefault = true, own = 1, oldCatalog = 2)
+        val snapshot = snapshotOf(teaId = TEA_ID).copy(profileId = "old1", profileName = "Alt 1")
+        val driver = TimerDriver(data) { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks(), snapshot)
+        }
+        driver.send(startEvent(infusion(60)))
+        driver.send(TimerEvent.Start)
+
+        assertThat(reset.reset(TEA_ID)).isEqualTo(CatalogResetResult.Reset(leftOut = 0))
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        driver.send(TimerEvent.FinishSession)
+
+        val session = data.sessions.getSession(SESSION_ID)!!
+        assertThat(session.status).isEqualTo(SessionStatus.COMPLETED)
+        assertThat(session.snapshot.profileId).isEqualTo("old1")
+        val brews = data.stock.observeEvents(TEA_ID).first().filter { it.type == InventoryEventType.BREW }
+        assertThat(brews.map { it.sessionId }).containsExactly(SESSION_ID)
+        assertThat(data.activeBrew.read(TimerSlot.BREW)).isNull()
+    }
+
+    @Test
+    fun `the active brew's recipe keeps its row when it is not the first catalog recipe`() = runTest {
+        // One new catalog recipe for two old ones: one old row goes, and it must not be the active one.
+        catalog(entry(recipes = listOf(NEW_KYUSU)))
+        collectionTea(catalogDefault = true, own = 1, oldCatalog = 2)
+        val snapshot = snapshotOf(teaId = TEA_ID).copy(profileId = "old1", profileName = "Alt 1")
+        val driver = TimerDriver(data) { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks(), snapshot)
+        }
+        driver.send(startEvent(infusion(60)))
+
+        assertThat(reset.reset(TEA_ID)).isEqualTo(CatalogResetResult.Reset(leftOut = 0))
+
+        val recipes = recipesNow()
+        assertThat(recipes.map { it.id }).containsExactly("old1", "own0").inOrder()
+        assertThat(recipes[0].name).isEqualTo("Kyusu neu")
+        assertThat(data.recipes.getRecipe("old0")).isNull()
+        assertThat(data.recipes.observeActiveRecipeId().first()).isEqualTo("old1")
+    }
+
+    @Test
+    fun `a catalog tea without a description leaves the tea's own`() = runTest {
+        catalog(entry().copy(descriptionText = null))
+        collectionTea()
+
+        assertThat(reset.reset(TEA_ID)).isEqualTo(CatalogResetResult.Reset(leftOut = 0))
+
+        assertThat(data.teas.getTea(TEA_ID)!!.description).isEqualTo("Die alte Beschreibung.")
     }
 
     @Test

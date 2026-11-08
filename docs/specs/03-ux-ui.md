@@ -783,7 +783,10 @@ wraps beside the action. *Rückgängig* writes back the date before (none or a
 date) and the line then reads „Öffnungsdatum ist zurückgesetzt." A session
 that didn't change the date shows no line. Like *Rezept passt*, it leaves
 with the sheet when an alert starts, and a write already started is never
-cancelled (rule 8, D-104).
+cancelled (rule 8, D-104). A failed read of the change shows no line; a
+failed write of either action is logged and changes nothing else (D-090).
+Each action line and the line that replaces it share a 40 dp minimum
+height, so the sheet keeps its height when the action is tapped.
 
 ### SCR-07 Schnelltimer
 
@@ -917,7 +920,8 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   der Zukunft."; *Erfassen* stays off until the input is valid, then records
   the purchase (INV-03) and closes the sheet. *Abbrechen*, back or a drag
   close it without saving; an alert removes it in its first frame (rule 8).
-  The stock updates at once. A catalog tea keeps *Beim Tee-Kontor
+  The stock updates at once; an archived tea is restored from the archive
+  with the purchase (INV-03, D-093 Q6). A catalog tea keeps *Beim Tee-Kontor
   nachbestellen* and its SCR-21 *Nachkauf erfassen* with the shop's sizes.
 - **Cost (v0.4.1, INV-08, D-104, #182):** in VORRAT, between „38 g übrig"
   and the buttons, up to three smaller lines in the secondary text colour:

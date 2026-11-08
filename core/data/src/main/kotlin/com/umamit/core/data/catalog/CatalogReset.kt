@@ -2,7 +2,9 @@ package com.umamit.core.data.catalog
 
 import android.database.SQLException
 import androidx.room.withTransaction
+import com.umamit.core.data.DeleteRecipeResult
 import com.umamit.core.data.RecipeRepository
+import com.umamit.core.data.SaveRecipeResult
 import com.umamit.core.data.TeaRepository
 import com.umamit.core.data.toModel
 import com.umamit.core.database.UmamiDatabase
@@ -54,6 +56,8 @@ sealed interface CatalogResetResult {
  *   are replaced by the derived ones, placed first, the default first; the user's recipes follow in their order.
  * - **Default:** a catalog default passes to the new catalog default; the user's own default stays.
  * - **Limit:** beyond [Recipe.MAX_PER_TEA] the catalog recipes over the limit are left out.
+ * - **Description:** the catalog's; the tea keeps its own when the catalog tea has none.
+ * - **Refusals:** a recipe write the repository refuses rolls the whole reset back ([CatalogResetResult.Failed]).
  * - **„Rezept prüfen"** is cleared (TEA-17); stock, photos, notes, favourite, archive flag and sessions stay.
  * - **Rule 8:** a running brew keeps its snapshot; its recipe row is rewritten, never deleted, so the session
  *   keeps its link.
@@ -127,16 +131,26 @@ class RoomCatalogReset @Inject constructor(
         val active = dao.activeRecipeId()
         val reused = oldCatalog.map { it.id }.sortedByDescending { it == active }
         val kept = templates.take(split.fits)
-        reused.drop(kept.size).forEach { recipes.deleteRecipe(it) }
+        // A refused write throws: the transaction rolls back and the reset ends as Failed.
+        reused.drop(kept.size).forEach { id ->
+            val deleted = recipes.deleteRecipe(id)
+            check(deleted == DeleteRecipeResult.Deleted) { "Catalog recipe $id not deleted: $deleted" }
+        }
         kept.forEachIndexed { position, template ->
             val id = reused.getOrNull(position) ?: UUID.randomUUID().toString()
             val recipe = template.toRecipe(id, teaId, position).copy(isDefault = catalogDefault && position == 0)
-            recipes.saveRecipe(recipe)
+            save(recipe)
         }
-        own.forEachIndexed { index, recipe -> recipes.saveRecipe(recipe.copy(position = kept.size + index)) }
-        // Saving a recipe clears „Rezept prüfen" (TEA-17); the tea is written last with the new description.
-        teas.saveTea(tea.copy(description = description, recipeCheckReason = null))
+        own.forEachIndexed { index, recipe -> save(recipe.copy(position = kept.size + index)) }
+        // Saving a recipe clears „Rezept prüfen" (TEA-17); the tea is written last with the new description,
+        // or its own when the catalog tea has none.
+        teas.saveTea(tea.copy(description = description ?: tea.description, recipeCheckReason = null))
         return CatalogResetResult.Reset(split.leftOut)
+    }
+
+    private suspend fun save(recipe: Recipe) {
+        val saved = recipes.saveRecipe(recipe)
+        check(saved == SaveRecipeResult.Saved) { "Recipe ${recipe.id} not saved: $saved" }
     }
 
     /** How [derived] catalog recipes fit beside [current]'s own recipes under [Recipe.MAX_PER_TEA]. */

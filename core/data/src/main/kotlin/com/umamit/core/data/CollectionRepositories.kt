@@ -148,7 +148,8 @@ interface StockRepository {
      * *Nachkauf erfassen* (INV-03, SCR-09 VORRAT, D-104): one `PURCHASE` event of the [purchase]'s grams and
      * price (none: no price) on its day; bought today, now, on another day that day at noon in the phone's
      * zone (as INV-01's package). A purchase after the stock reached 0 g is the next session's new package
-     * (INV-06). Returns the event written.
+     * (INV-06). An archived tea comes out of the archive in the same transaction, like SCR-23's repurchase
+     * (D-093 Q6). Returns the event written.
      *
      * @throws IllegalArgumentException when the day is after today.
      */

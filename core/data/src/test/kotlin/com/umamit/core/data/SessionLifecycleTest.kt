@@ -14,6 +14,7 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.engine.StepRecord
+import com.umamit.core.timer.engine.TimerSnapshot
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -516,6 +517,58 @@ class SessionLifecycleTest {
         data.sessions.undoOpenedDate(change)
 
         assertThat(data.teas.getTea("t1")!!.openedDate).isEqualTo(LocalDate.of(2026, 10, 1))
+    }
+
+    @Test
+    fun `a completion rolled back by a failing Persist leaves no opened date to undo`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60)))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        val failingStore = object : ActiveBrewStore by data.activeBrew {
+            override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?): Unit =
+                throw IllegalStateException("persist failed")
+        }
+
+        // The controller's transition: CompleteSession, then Persist, in one outer transaction (D-054).
+        val failure = runCatching {
+            data.transactions.inTransaction {
+                data.sessions.completeSession(SESSION_ID, autoFinished = false)
+                failingStore.persist(TimerSlot.BREW, null)
+            }
+        }
+
+        assertThat(failure.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+        assertThat(session().status).isEqualTo(SessionStatus.IN_PROGRESS)
+        assertThat(data.teas.getTea("t1")!!.openedDate).isNull()
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
+    }
+
+    @Test
+    fun `a later completion that sets no opened date forgets what a rolled-back one remembered`() = runTest {
+        teaWithStock()
+        val driver = TimerDriver(data)
+        driver.send(startEvent(infusion(60)))
+        driver.send(TimerEvent.Start)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.send(TimerEvent.Poured)
+        runCatching {
+            data.transactions.inTransaction {
+                data.sessions.completeSession(SESSION_ID, autoFinished = false)
+                throw IllegalStateException("persist failed")
+            }
+        }
+        // Meanwhile the tea editor sets the very date the rolled-back completion would have set.
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(openedDate = LocalDate.of(2026, 10, 22)))
+
+        driver.send(TimerEvent.FinishSession)
+
+        assertThat(session().status).isEqualTo(SessionStatus.COMPLETED)
+        assertThat(data.sessions.openedDateChange(SESSION_ID)).isNull()
     }
 
     /** Starts session [id] with one 60 s infusion, pours it on time and finishes. */

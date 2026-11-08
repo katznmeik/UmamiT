@@ -174,8 +174,10 @@ per EXIF (#58), resize to 2048 px, JPEG 85, strip EXIF; store in
 `ActivityResultContract` provided through `LocalPhotoPicker`; the fake in
 `core:testing` answers at once). A picked image may be any format the
 platform decodes (JPEG, PNG, WebP, HEIF …) up to 20 000 px a side and
-250 MP (a 200 MP camera's photo fits), read up to 128 MB; it is never held
-at full resolution. One that can't be read or decoded is refused and nothing
+250 MP (a 200 MP camera's photo fits), read up to 40 MB into one array of
+the provider's declared length (D-106); it is never held at full
+resolution. One that can't be read or decoded, or that runs out of memory,
+is refused and nothing
 is stored (`PhotoTranscoder.transcodePicked`, `RoomTeaPhotos`).
 Catalog photos: downloaded to `filesDir/catalog/`, resized to 1200 px WebP
 (quality 80) plus a WebP list thumbnail with a 256 px short side (never

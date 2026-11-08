@@ -441,6 +441,19 @@ abstract class InventoryDao {
         return row
     }
 
+    /**
+     * *Nachkauf erfassen* (INV-03, D-093 Q6): the purchase [row] and, when its tea is archived, the tea out of the
+     * archive, in one transaction.
+     */
+    @Transaction
+    open suspend fun recordPurchase(row: InventoryEventEntity, now: Long) {
+        upsert(row)
+        restoreFromArchive(row.teaId, now)
+    }
+
+    @Query("UPDATE tea SET is_archived = 0, updated_at = :now WHERE id = :teaId AND is_archived = 1")
+    protected abstract suspend fun restoreFromArchive(teaId: String, now: Long)
+
     private companion object {
         /** Below this the totals are equal: sums of 0,1 g steps in doubles differ only by rounding noise. */
         const val UNCHANGED_GRAMS = 1e-6

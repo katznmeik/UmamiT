@@ -679,11 +679,18 @@ First duration + increment × count, optional +5 °C per step.
     default becomes the default; otherwise the user's default stays.
   - **Limit:** if the total would exceed 10, the catalog recipes beyond the
     limit are left out, and the confirmation says how many.
+  - **Description:** the catalog tea's; when the catalog tea has none, the
+    tea keeps its current description.
   - „Rezept prüfen" (TEA-17) is cleared; stock, photos, notes, favourite,
     archive flag and sessions stay.
+  - **All or nothing:** a recipe write the repository refuses rolls the whole
+    reset back; it fails and nothing changes.
   - **Rule 8:** offered during a brew of the tea too. The running session
     keeps its own steps; its recipe's row is rewritten, never deleted, so the
     session keeps its link.
+  - **Recipe links (accepted):** the old catalog recipes' ids are reused for
+    the new catalog recipes at new positions, so a finished session's recipe
+    link may point to a different catalog recipe after a reset.
 
 **PRF-07 — Learn from sessions** `Must`
 If a session's actual step times differ from the plan by more than
@@ -1139,8 +1146,9 @@ history list (SCR-29).
   (`StockRepository.recordPurchase`). A day after today is refused and
   nothing is written. The stock and the cost per gram follow from the events
   at once. A purchase after the stock reached 0 g is a new package for the
-  next session's opening date (INV-06). An archived tea stays archived (only
-  SCR-23's repurchase restores one, D-093 Q6).
+  next session's opening date (INV-06). An archived tea comes out of the
+  archive in the same transaction, like SCR-23's repurchase (D-093 Q6; PO,
+  v0.4.1 fix round).
 - **History (v0.4.1, D-104, #185):** SCR-29 lists the tea's stock events
   from `observeEvents`, newest first, each on its day in the phone's zone:
   purchases (INITIAL and PURCHASE, „Kauf", grams and the price when

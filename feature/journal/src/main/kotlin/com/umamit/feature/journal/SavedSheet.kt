@@ -1,5 +1,6 @@
 package com.umamit.feature.journal
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -74,6 +76,7 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.controller.SavedSheetRequests
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -86,6 +89,12 @@ private val SheetMaxWidth = 560.dp
 private val HandleWidth = 32.dp
 private val HandleHeight = 4.dp
 private const val HANDLE_ALPHA = 0.4f
+
+/**
+ * An action line and the line that replaces it share this minimum height (a text button's), so the sheet
+ * keeps its height when the action is tapped (motion review N2).
+ */
+private val ActionLineMinHeight = 40.dp
 
 /** A drag further down than this, or a fling faster than [DISMISS_VELOCITY], dismisses the sheet. */
 private val DismissDistance = 48.dp
@@ -173,8 +182,12 @@ fun SavedSheetHost(
             content?.let { shown ->
                 SavedSheet(
                     content = shown,
-                    onRecipeOk = { teaId -> writes.launch { teas.clearRecipeCheck(teaId) } },
-                    onUndoOpening = { change -> writes.launch { sessions.undoOpenedDate(change) } },
+                    onRecipeOk = { teaId ->
+                        writes.launch { guarded("Rezept passt not written", Unit) { teas.clearRecipeCheck(teaId) } }
+                    },
+                    onUndoOpening = { change ->
+                        writes.launch { guarded("Opened date not undone", Unit) { sessions.undoOpenedDate(change) } }
+                    },
                     onDismiss = { requests.dismiss(shown.sessionId) },
                     onHold = { pressed ->
                         held = pressed
@@ -209,11 +222,28 @@ private fun rememberSavedSheetContent(
                 id,
                 savedSummary(session),
                 recipeCheckTeaId = flagged,
-                openedDate = sessions.openedDateChange(id),
+                // A failed read offers no undo line; the sheet still shows.
+                openedDate = guarded("Opened date change not read", null) { sessions.openedDateChange(id) },
             )
         }
     }
 }
+
+/**
+ * [block], or [fallback] when it fails: the timer runs in this process, so a failed sheet write or read
+ * fails that action, never the app (rule 8, D-090). Cancellation is passed on.
+ */
+@Suppress("TooGenericExceptionCaught")
+private suspend fun <T> guarded(what: String, fallback: T, block: suspend () -> T): T = try {
+    block()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Log.w(TAG, what, e)
+    fallback
+}
+
+private const val TAG = "SavedSheet"
 
 @Composable
 private fun SavedSheet(
@@ -351,14 +381,9 @@ private fun SavedSheet(
 @Composable
 private fun OpenedUndo(sessionId: String, onUndo: () -> Unit) {
     var done by remember(sessionId) { mutableStateOf(false) }
-    val lineModifier = Modifier.padding(top = UmamiSpacing.XSmall)
+    val lineModifier = Modifier.padding(top = UmamiSpacing.XSmall).heightIn(min = ActionLineMinHeight)
     if (done) {
-        Text(
-            text = stringResource(R.string.journal_saved_opened_undone),
-            modifier = lineModifier,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        DoneLine(stringResource(R.string.journal_saved_opened_undone), lineModifier)
     } else {
         Row(modifier = lineModifier, verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -384,16 +409,13 @@ private fun OpenedUndo(sessionId: String, onUndo: () -> Unit) {
 @Composable
 private fun RecipeOk(sessionId: String, onClick: () -> Unit) {
     var done by remember(sessionId) { mutableStateOf(false) }
+    val lineModifier = Modifier.heightIn(min = ActionLineMinHeight)
     if (done) {
-        Text(
-            text = stringResource(R.string.journal_saved_recipe_ok_done),
-            modifier = Modifier.padding(top = UmamiSpacing.XSmall),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        DoneLine(stringResource(R.string.journal_saved_recipe_ok_done), lineModifier)
     } else {
         // No side padding: its label lines up with the lines above.
         TextButton(
+            modifier = lineModifier,
             onClick = {
                 done = true
                 onClick()
@@ -404,5 +426,17 @@ private fun RecipeOk(sessionId: String, onClick: () -> Unit) {
         ) {
             Text(stringResource(R.string.journal_saved_recipe_ok))
         }
+    }
+}
+
+/** The line that says an action is done, centred in the action's height. */
+@Composable
+private fun DoneLine(text: String, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }

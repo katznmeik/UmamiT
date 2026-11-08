@@ -332,8 +332,11 @@ vessel, picker only, 2048 px JPEG 85 without EXIF). Building #183, #186 and
 
 **Decision.**
 - **Accepted input:** any format the platform decodes (JPEG, PNG, WebP,
-  HEIF …), up to 20 000 px a side, 250 MP and 128 MB, so a 200 MP camera's
-  photo fits. Larger or undecodable files are refused, nothing is written.
+  HEIF …), up to 20 000 px a side, 250 MP and 40 MB, so a 200 MP camera's
+  photo fits. Larger or undecodable files are refused, nothing is written;
+  so is one the memory left can't hold (an out-of-memory error counts as
+  unreadable: the timer runs in this process). *v0.4.1 fix round:* the cap
+  was 128 MB, plus a second copy of the buffer.
 - **EXIF:** the platform `android.media.ExifInterface` reads the orientation
   (sound since API 24; minSdk is 35), with a Lint suppression, instead of
   adding `androidx.exifinterface`.
@@ -401,7 +404,10 @@ v0.4.0 (point 9). The settings fix ships with v0.4.1, not as a patch first.
    date) on every tea's detail; catalog teas keep the catalog's flow too.
    The history lists purchases, corrections and brews, newest first;
    purchases and corrections can be deleted after a confirmation; a brew
-   leaves only with its journal entry (D-102).
+   leaves only with its journal entry (D-102). *Amended (PO, v0.4.1 fix
+   round, 2026-11-08):* a purchase recorded for an archived tea restores it
+   from the archive in the same transaction, like SCR-23's repurchase
+   (D-093 Q6).
 6. **Tea photos (TEA-05, SCR-28).** Up to 10 per tea, from the Android photo
    picker one at a time (no camera); at 10, *+ Foto* is greyed out with
    „Höchstens 10 Fotos". Managed in the detail's photo pager: *+ Foto*, *Als
