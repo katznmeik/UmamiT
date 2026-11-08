@@ -95,6 +95,8 @@ object TeaEditorTags {
     const val PURCHASE_DATE = "TeaEditorPurchaseDate"
     const val PACKAGE = "TeaEditorPackage"
     const val PRICE = "TeaEditorPrice"
+    const val OPENED_DATE = "TeaEditorOpenedDate"
+    const val BEST_BEFORE = "TeaEditorBestBefore"
     const val NOTES = "TeaEditorNotes"
     const val SAVE = "TeaEditorSave"
 }

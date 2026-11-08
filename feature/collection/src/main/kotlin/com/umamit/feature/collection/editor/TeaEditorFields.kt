@@ -92,6 +92,7 @@ internal fun EditorFields(
         General(state, update, alertKey)
         Origin(state, update, alertKey)
         Purchase(state, update, alertKey)
+        Freshness(state, update, alertKey)
         Section(R.string.tea_editor_section_notes) {
             TextInput(
                 value = state.form.notes,
@@ -303,6 +304,35 @@ private fun Purchase(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         }
+    }
+}
+
+/** *Frische*: when the package was opened (empty: unopened) and its best-before date (INV-06, D-104). */
+@Composable
+private fun Freshness(
+    state: TeaEditorUiState.Ready,
+    update: ((TeaEditorForm) -> TeaEditorForm) -> Unit,
+    alertKey: String?,
+) {
+    Section(R.string.tea_editor_section_freshness) {
+        OptionalDate(
+            label = R.string.tea_editor_opened_date,
+            date = state.form.openedDate,
+            latest = state.today,
+            tag = TeaEditorTags.OPENED_DATE,
+            alertKey = alertKey,
+            onDateChange = { day -> update { it.copy(openedDate = day) } },
+            error = (TeaFieldError.OpenedDateFuture in state.errors).then(R.string.tea_editor_error_opened_future),
+            hint = R.string.tea_editor_opened_date_hint,
+        )
+        OptionalDate(
+            label = R.string.tea_editor_best_before,
+            date = state.form.bestBefore,
+            latest = null,
+            tag = TeaEditorTags.BEST_BEFORE,
+            alertKey = alertKey,
+            onDateChange = { day -> update { it.copy(bestBefore = day) } },
+        )
     }
 }
 

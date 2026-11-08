@@ -157,6 +157,8 @@
     <string name="collection_tea_processing">Verarbeitung</string>
     <string name="collection_tea_ingredients">Zutaten</string>
     <string name="collection_tea_vendor">Händler</string>
+    <string name="collection_tea_opened_on">Geöffnet am</string>
+    <string name="collection_tea_best_before_on">Haltbar bis</string>
     <string name="collection_tea_season_first_flush">Erste Pflückung</string>
     <string name="collection_tea_season_second_flush">Zweite Pflückung</string>
     <string name="collection_tea_season_summer">Sommer</string>
@@ -233,6 +235,13 @@
     <string name="tea_editor_processing_hint">z. B. Chumushi</string>
     <string name="tea_editor_vendor">Händler</string>
     <string name="tea_editor_purchase_date">Kaufdatum</string>
+    <string name="tea_editor_section_freshness">Frische</string>
+    <string name="tea_editor_opened_date">Geöffnet am</string>
+    <string name="tea_editor_opened_date_hint">Leer: noch ungeöffnet.</string>
+    <string name="tea_editor_best_before">Haltbar bis</string>
+    <string name="tea_editor_date_unset">Nicht gesetzt</string>
+    <string name="tea_editor_date_clear">Entfernen</string>
+    <string name="tea_editor_error_opened_future">Das Öffnungsdatum liegt in der Zukunft.</string>
     <string name="tea_editor_purchase_date_ok">OK</string>
     <string name="tea_editor_purchase_date_cancel">Abbrechen</string>
     <string name="tea_editor_package">Packung</string>
