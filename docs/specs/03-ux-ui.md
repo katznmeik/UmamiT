@@ -934,6 +934,16 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   *Löschen*). Either closes the detail.
 - **Archived tea:** *Brühen* is greyed out with „Tee ist archiviert"; ⋮ offers
   *Wiederherstellen* in place of *Archivieren*.
+- **⋮ *Aus Katalog zurücksetzen* (v0.4.1, PRF-06, CAT-13, D-104, #184):**
+  after *Favorit*, only while the catalog holds the tea; not greyed out
+  during a brew (rule 8). It asks „Aus Katalog zurücksetzen?" — „Beschreibung
+  und Katalog-Rezepte werden durch die aktuellen aus dem Katalog ersetzt.
+  Deine eigenen Rezepte, Vorrat, Fotos, Notizen, Favorit und Journal bleiben,
+  wie sie sind." — plus, over the limit of 10, „2 Katalog-Rezepte passen
+  nicht mehr dazu (höchstens 10 Rezepte) und werden weggelassen." ·
+  *Abbrechen* / *Zurücksetzen*. The detail updates at once; a failed write
+  says „Der Tee konnte nicht zurückgesetzt werden." An alert removes the
+  question in its first frame (rule 8).
 - **Entries:** *Meine Tees*, the setup's ⋮ *Tee ansehen* and the session
   page's tea link. It updates at once after an edit, a brew or a correction.
   Its pencils open the tea and recipe editors in each entry, also above the

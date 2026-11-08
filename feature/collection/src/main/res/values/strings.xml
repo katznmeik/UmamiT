@@ -102,6 +102,17 @@
     </plurals>
     <string name="collection_tea_delete_archive_instead">Stattdessen archivieren</string>
     <string name="collection_tea_delete_confirm">Löschen</string>
+    <!-- ⋮ Aus Katalog zurücksetzen (PRF-06, CAT-13, D-104): only while the catalog holds the tea. -->
+    <string name="collection_tea_reset">Aus Katalog zurücksetzen</string>
+    <string name="collection_tea_reset_title">Aus Katalog zurücksetzen?</string>
+    <string name="collection_tea_reset_body">Beschreibung und Katalog-Rezepte werden durch die aktuellen aus dem Katalog ersetzt. Deine eigenen Rezepte, Vorrat, Fotos, Notizen, Favorit und Journal bleiben, wie sie sind.</string>
+    <plurals name="collection_tea_reset_limit">
+        <item quantity="one">Ein Katalog-Rezept passt nicht mehr dazu (höchstens 10 Rezepte) und wird weggelassen.</item>
+        <item quantity="other">%1$d Katalog-Rezepte passen nicht mehr dazu (höchstens 10 Rezepte) und werden weggelassen.</item>
+    </plurals>
+    <string name="collection_tea_reset_cancel">Abbrechen</string>
+    <string name="collection_tea_reset_confirm">Zurücksetzen</string>
+    <string name="collection_tea_reset_failed">Der Tee konnte nicht zurückgesetzt werden.</string>
     <!-- The snackbar on the screen below the closed detail (TEA-04, 03 §5). -->
     <string name="collection_tea_archived">%1$s archiviert</string>
     <string name="collection_tea_undo">Rückgängig</string>

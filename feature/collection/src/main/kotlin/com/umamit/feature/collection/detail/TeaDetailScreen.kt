@@ -66,12 +66,16 @@ const val TEA_DETAIL_BREW_TAG = "tea_detail_brew"
 /** The pencil FAB: the tea editor (SCR-10). */
 const val TEA_DETAIL_EDIT_TAG = "tea_detail_edit"
 
+/** ⋮ *Aus Katalog zurücksetzen*'s confirmation (PRF-06). */
+const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
+
 /**
  * What the tea detail does: back; *Brühen* with a recipe (null: the default); the editors (SCR-10, SCR-12); ⋮
  * *Favorit*, *Archivieren*, *Wiederherstellen*, *Löschen* (the dialog's confirmed delete); *Bestand korrigieren*'s
  * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
  * [openSession] null: brew rows open nothing).
+ * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -91,6 +95,7 @@ class TeaDetailActions(
     val openSession: ((sessionId: String) -> Unit)? = null,
     val setCoverPhoto: (photoId: String) -> Unit = {},
     val deletePhoto: (photoId: String) -> Unit = {},
+    val resetFromCatalog: () -> Unit = {},
 )
 
 /**
@@ -139,6 +144,7 @@ private fun Detail(
     modifier: Modifier = Modifier,
 ) {
     val deleteAsk = rememberAlertGate(alertKey)
+    val resetAsk = rememberAlertGate(alertKey)
     val stockSheet = rememberAlertGate(alertKey)
     val purchaseSheet = rememberAlertGate(alertKey)
     val entryDeleteAsk = rememberAlertGate(alertKey)
@@ -206,7 +212,20 @@ private fun Detail(
             }
             BrewBar(tea, onBrew = { actions.brew(null) })
         }
-        TopActions(tea, actions, alertKey, onDelete = deleteAsk::open)
+        TopActions(tea, actions, alertKey, onDelete = deleteAsk::open, onReset = resetAsk::open)
+    }
+    // Shown only while the catalog still holds the tea; gone with the offer (PRF-06).
+    tea.catalogReset?.let { offer ->
+        AlertGated(resetAsk) {
+            ResetDialog(
+                offer = offer,
+                onReset = {
+                    resetAsk.close()
+                    actions.resetFromCatalog()
+                },
+                onDismiss = resetAsk::close,
+            )
+        }
     }
     AlertGated(deleteAsk) {
         DeleteDialog(
@@ -287,7 +306,13 @@ private fun BrewBar(tea: TeaDetail, onBrew: () -> Unit) {
 
 /** Back and ⋮ over the photo; each on its own surface, legible on any photo, staying put while the page scrolls. */
 @Composable
-private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: String?, onDelete: () -> Unit) {
+private fun TopActions(
+    tea: TeaDetail,
+    actions: TeaDetailActions,
+    alertKey: String?,
+    onDelete: () -> Unit,
+    onReset: () -> Unit,
+) {
     val menu = rememberAlertGate(alertKey)
     Box(
         modifier = Modifier
@@ -305,13 +330,19 @@ private fun TopActions(tea: TeaDetail, actions: TeaDetailActions, alertKey: Stri
                     )
                 }
             }
-            AlertGatedDropdownMenu(menu) { TeaMenu(tea, actions, onDelete, close = menu::close) }
+            AlertGatedDropdownMenu(menu) { TeaMenu(tea, actions, onDelete, onReset, close = menu::close) }
         }
     }
 }
 
 @Composable
-private fun ColumnScope.TeaMenu(tea: TeaDetail, actions: TeaDetailActions, onDelete: () -> Unit, close: () -> Unit) {
+private fun ColumnScope.TeaMenu(
+    tea: TeaDetail,
+    actions: TeaDetailActions,
+    onDelete: () -> Unit,
+    onReset: () -> Unit,
+    close: () -> Unit,
+) {
     DropdownMenuItem(
         text = { Text(stringResource(R.string.collection_tea_favorite)) },
         onClick = {
@@ -324,6 +355,13 @@ private fun ColumnScope.TeaMenu(tea: TeaDetail, actions: TeaDetailActions, onDel
             null
         },
     )
+    // Not blocked during a brew: the running session keeps its own steps (rule 8).
+    if (tea.catalogReset != null) {
+        MenuItem(R.string.collection_tea_reset, blocked = false) {
+            close()
+            onReset()
+        }
+    }
     if (tea.isArchived) {
         MenuItem(R.string.collection_tea_restore, blocked = false) {
             close()
@@ -389,6 +427,34 @@ private fun DeleteDialog(tea: TeaDetail, onArchiveInstead: () -> Unit, onDelete:
         },
         confirmButton = {
             TextButton(onClick = onDelete) { Text(stringResource(R.string.collection_tea_delete_confirm)) }
+        },
+    )
+}
+
+/**
+ * PRF-06: „Aus Katalog zurücksetzen?" with what changes and what stays, and the catalog recipes left out over the
+ * limit of 10 · *Abbrechen* / *Zurücksetzen*.
+ */
+@Composable
+private fun ResetDialog(offer: CatalogResetOffer, onReset: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag(TEA_DETAIL_RESET_DIALOG_TAG),
+        title = { Text(stringResource(R.string.collection_tea_reset_title)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.collection_tea_reset_body))
+                if (offer.leftOut > 0) {
+                    Spacer(Modifier.height(UmamiSpacing.Small))
+                    Text(pluralStringResource(R.plurals.collection_tea_reset_limit, offer.leftOut, offer.leftOut))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.collection_tea_reset_cancel)) }
+        },
+        confirmButton = {
+            TextButton(onClick = onReset) { Text(stringResource(R.string.collection_tea_reset_confirm)) }
         },
     )
 }
