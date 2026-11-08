@@ -905,7 +905,7 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   them, up to 10.
 - **VORRAT:** „38 g übrig" with *knapp* / *leer*; *Bestand korrigieren* (the
   setup's sheet „Wie viel ist noch da?"); *Beim Tee-Kontor nachbestellen* as
-  above (INV-09). Costs come with v0.4.1.
+  above (INV-09). Costs came with v0.4.1 (below).
 - **VORRAT (v0.4.1, D-104, #181):** *Nachkauf erfassen* (+ icon) beside
   *Bestand korrigieren*, both outlined, side by side where they fit, else one
   below the other; then the reorder link, then the history (SCR-29, #185).
@@ -919,6 +919,14 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   close it without saving; an alert removes it in its first frame (rule 8).
   The stock updates at once. A catalog tea keeps *Beim Tee-Kontor
   nachbestellen* and its SCR-21 *Nachkauf erfassen* with the shop's sizes.
+- **Cost (v0.4.1, INV-08, D-104, #182):** in VORRAT, between „38 g übrig"
+  and the buttons, up to three smaller lines in the secondary text colour:
+  „12,40 € / 100 g", „ca. 0,24 € pro Tasse (Rezept)" (with a default
+  recipe) and, from the first priced session, „Ø 0,27 € pro Tasse aus 5
+  Sitzungen" (TalkBack: „Durchschnittlich 0,27 € pro Tasse aus 5
+  Sitzungen"). A tea without a recorded price shows none of them. They
+  update at once after a purchase, a correction or a history delete. The
+  section keeps its title „Vorrat".
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.

@@ -145,6 +145,17 @@
     <string name="collection_tea_stock_none">Kein Bestand erfasst</string>
     <string name="collection_tea_stat_stock_none">–</string>
     <string name="collection_tea_stock_correct">Bestand korrigieren</string>
+    <!-- VORRAT's cost of a priced tea (INV-08, D-104): price per 100 g, recipe estimate, real average. -->
+    <string name="collection_tea_cost_price">%1$s € / 100 g</string>
+    <string name="collection_tea_cost_recipe">ca. %1$s € pro Tasse (Rezept)</string>
+    <plurals name="collection_tea_cost_average">
+        <item quantity="one">Ø %1$s € pro Tasse aus %2$d Sitzung</item>
+        <item quantity="other">Ø %1$s € pro Tasse aus %2$d Sitzungen</item>
+    </plurals>
+    <plurals name="collection_tea_cost_average_spoken">
+        <item quantity="one">Durchschnittlich %1$s € pro Tasse aus %2$d Sitzung</item>
+        <item quantity="other">Durchschnittlich %1$s € pro Tasse aus %2$d Sitzungen</item>
+    </plurals>
     <!-- Nachkauf erfassen on VORRAT (INV-03, SCR-09, D-104). -->
     <string name="collection_tea_stock_purchase">Nachkauf erfassen</string>
     <string name="collection_purchase_title">Nachkauf erfassen</string>

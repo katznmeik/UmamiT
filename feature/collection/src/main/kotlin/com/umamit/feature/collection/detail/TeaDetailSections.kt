@@ -153,10 +153,10 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
 ).joinToString(stringResource(R.string.collection_tea_recipe_separator))
 
 /**
- * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), *Nachkauf erfassen* and *Bestand korrigieren* (INV-03; side by
- * side where they fit, else one below the other) and INV-09's *Beim Tee-Kontor nachbestellen*: a filled button
- * when *Knapp* or *Leer*, otherwise a text link with the external-link icon. The stock [history] (SCR-29) follows
- * below them.
+ * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), the cost lines of a priced tea (INV-08), *Nachkauf erfassen* and
+ * *Bestand korrigieren* (INV-03; side by side where they fit, else one below the other) and INV-09's *Beim
+ * Tee-Kontor nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link
+ * icon. The stock [history] (SCR-29) follows below them.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -173,6 +173,7 @@ internal fun Stock(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        tea.cost?.let { CostLines(it) }
         Spacer(Modifier.height(UmamiSpacing.XSmall))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),

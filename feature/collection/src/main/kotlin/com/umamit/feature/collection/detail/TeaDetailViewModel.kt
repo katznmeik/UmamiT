@@ -23,6 +23,7 @@ import com.umamit.core.data.catalog.CatalogReset
 import com.umamit.core.data.catalog.CatalogResetPlan
 import com.umamit.core.data.catalog.CatalogResetResult
 import com.umamit.core.data.catalog.ShopLink
+import com.umamit.core.domain.collection.CostRule
 import com.umamit.core.domain.collection.FreshnessRule
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
@@ -32,6 +33,7 @@ import com.umamit.core.model.Recipe
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.StockSummary
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.Vessel
@@ -305,6 +307,7 @@ class TeaDetailViewModel @Inject constructor(
             sessionLeafGrams = brew.sessionLeaf(),
             today = clock.today(),
             history = stockEvents.asReversed().map { it.entry(clock.zone()) },
+            cost = CostRule.of(StockSummary.of(stockEvents), recipeList.firstOrNull { it.isDefault }, finished),
         )
     }
 
