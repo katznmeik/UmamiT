@@ -513,7 +513,15 @@ Processing rules: [06 §5.2](06-architecture.md#52-photos).
   Tees*, the detail, Start, the tea picker, the timer seal and the journal
   rows. The setup (SCR-04) and the session page (SCR-16) show no tea photo
   in v0.4.1.
-- **A catalog tea's shop photo** is just its first photo (`CATALOG_COPY`).
+- ***Als Titelbild* (v0.4.1, #186):** the shown photo's ⋮ on the hero makes
+  it the cover; it shows at once everywhere the cover shows. Offered on every
+  photo but the cover.
+- ***Löschen* (v0.4.1, #186):** after „Foto löschen?" the photo's row goes and
+  then its file. If it was the cover, the next photo by `position` becomes the
+  cover (after the last one: the first); the last photo deleted → no cover,
+  the tea shows its type leaf again and *+ Foto* is enabled.
+- **A catalog tea's shop photo** is just its first photo (`CATALOG_COPY`): it
+  can lose the cover or be deleted like any other.
 - **Deleting a tea** removes its photo files, as before (TEA-04).
 
 **TEA-06 — Favourites** `Must` (v0.4.0)

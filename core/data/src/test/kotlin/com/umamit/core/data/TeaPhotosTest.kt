@@ -125,6 +125,122 @@ class TeaPhotosTest {
         assertThat(decodedSize(files.file(id).readBytes())).isEqualTo(200 to 400)
     }
 
+    private suspend fun added(teaId: String = "t1"): String =
+        (photos.add(teaId, picked(syntheticJpeg(200, 150))) as AddPhotoResult.Added).photoId
+
+    private suspend fun coverId(teaId: String = "t1"): String? = data.teas.getTea(teaId)!!.coverPhotoId
+
+    @Test
+    fun `Als Titelbild makes a photo the cover and keeps the order`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val first = added()
+        val second = added()
+
+        assertThat(photos.setCover("t1", second)).isTrue()
+
+        assertThat(coverId()).isEqualTo(second)
+        assertThat(data.teas.observeTea("t1").first()!!.coverPhoto?.id).isEqualTo(second)
+        assertThat(photos.observePhotos("t1").first().map { it.id }).containsExactly(first, second).inOrder()
+    }
+
+    @Test
+    fun `Als Titelbild refuses a photo of another tea`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.teas.saveTea(tea("t2"))
+        val own = added("t1")
+        val foreign = added("t2")
+
+        assertThat(photos.setCover("t1", foreign)).isFalse()
+
+        assertThat(coverId("t1")).isEqualTo(own)
+    }
+
+    @Test
+    fun `deleting a photo removes its row and its file and leaves the cover`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val first = added()
+        val second = added()
+
+        assertThat(photos.delete("t1", second)).isTrue()
+
+        assertThat(photos.observePhotos("t1").first().map { it.id }).containsExactly(first)
+        assertThat(files.file(second).exists()).isFalse()
+        assertThat(files.file(first).exists()).isTrue()
+        assertThat(coverId()).isEqualTo(first)
+    }
+
+    @Test
+    fun `deleting the cover makes the next photo by position the cover`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val first = added()
+        val second = added()
+        val third = added()
+        photos.setCover("t1", second)
+
+        photos.delete("t1", second)
+
+        assertThat(coverId()).isEqualTo(third)
+        photos.delete("t1", third)
+        // Nothing after the last one: the first by position.
+        assertThat(coverId()).isEqualTo(first)
+    }
+
+    @Test
+    fun `deleting the last photo leaves the tea without a cover`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val only = added()
+
+        assertThat(photos.delete("t1", only)).isTrue()
+
+        assertThat(photos.observePhotos("t1").first()).isEmpty()
+        assertThat(coverId()).isNull()
+        assertThat(storedFiles()).isEmpty()
+    }
+
+    @Test
+    fun `a catalog tea's shop photo can lose the cover and be deleted`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.teas.savePhoto(Photo("shop", PhotoOwner.OfTea("t1"), PhotoOrigin.CATALOG_COPY, 10, 10, 4))
+        files.write("shop", byteArrayOf(1, 2, 3, 4))
+        data.teas.setCoverPhoto("t1", "shop")
+        val own = added()
+
+        assertThat(photos.setCover("t1", own)).isTrue()
+        assertThat(coverId()).isEqualTo(own)
+        photos.setCover("t1", "shop")
+        assertThat(photos.delete("t1", "shop")).isTrue()
+
+        assertThat(coverId()).isEqualTo(own)
+        assertThat(files.file("shop").exists()).isFalse()
+        assertThat(photos.observePhotos("t1").first().map { it.id }).containsExactly(own)
+    }
+
+    @Test
+    fun `a photo of another tea is not deleted`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.teas.saveTea(tea("t2"))
+        val foreign = added("t2")
+
+        assertThat(photos.delete("t1", foreign)).isFalse()
+
+        assertThat(photos.observePhotos("t2").first().map { it.id }).containsExactly(foreign)
+        assertThat(files.file(foreign).exists()).isTrue()
+    }
+
+    @Test
+    fun `a failed delete keeps the file`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val only = added()
+        data.db.openHelper.writableDatabase.execSQL(
+            "CREATE TRIGGER refuse BEFORE DELETE ON photo BEGIN SELECT RAISE(ABORT, 'refused'); END",
+        )
+
+        assertThat(photos.delete("t1", only)).isFalse()
+
+        assertThat(files.file(only).exists()).isTrue()
+        assertThat(coverId()).isEqualTo(only)
+    }
+
     @Test
     fun `deleting the tea still removes its own photo files`() = runTest {
         data.teas.saveTea(tea("t1"))

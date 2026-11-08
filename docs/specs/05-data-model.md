@@ -258,7 +258,14 @@ Tea photo writes (v0.4.1, TEA-05, `TeaPhotos`):
   before reading the image and again in the transaction). A refused or
   failed row deletes the file again; an unreadable image writes nothing.
 - **Order:** by `position`, then `created_at`. Catalog copies are ordinary
-  photos that can lose the cover or be deleted (#186). The single
+  photos that can lose the cover or be deleted (#186).
+- **Set cover** (*Als Titelbild*): `tea.cover_photo_id` = the photo, only if
+  it is the tea's; positions don't change.
+- **Delete:** in one transaction the row goes and, if it was the cover,
+  `tea.cover_photo_id` becomes the next photo by that order (after the last
+  one: the first; none left: NULL). The file is deleted after the commit, so a
+  failed transaction keeps the file its row still names. Positions are not
+  renumbered (gaps are fine; *+ Foto* appends after the highest). The single
 owner is enforced by the model type (`PhotoOwner`), so no row can name two.
 Vessel photo writes (v0.4.1, WARE-01, `VesselPhotos`): at most one photo per
 vessel, origin `OWN`, `position` 0, processed like a tea photo. **Set**

@@ -141,6 +141,16 @@
     <string name="collection_tea_photo_limit">Höchstens 10 Fotos</string>
     <string name="collection_tea_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
     <string name="collection_tea_photo_failed">Das Foto konnte nicht gespeichert werden.</string>
+    <!-- Per photo (SCR-28, TEA-05, #186): ⋮ *Als Titelbild* and *Löschen* after a confirmation. -->
+    <string name="collection_tea_photo_more">Foto-Optionen</string>
+    <string name="collection_tea_photo_set_cover">Als Titelbild</string>
+    <string name="collection_tea_photo_delete">Löschen</string>
+    <string name="collection_tea_photo_delete_title">Foto löschen?</string>
+    <string name="collection_tea_photo_delete_body">Das Foto wird aus der App entfernt.</string>
+    <string name="collection_tea_photo_delete_cover_body">Das Foto wird aus der App entfernt. Das nächste Foto wird zum Titelbild.</string>
+    <string name="collection_tea_photo_delete_cancel">Abbrechen</string>
+    <string name="collection_tea_photo_delete_confirm">Löschen</string>
+    <string name="collection_tea_photo_change_failed">Das Foto konnte nicht geändert werden.</string>
     <!-- TalkBack: „Fotos von Morgennebel", „Foto 1 von 3, Titelbild". -->
     <string name="collection_tea_photos_description">Fotos von %1$s</string>
     <string name="collection_tea_photo_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>

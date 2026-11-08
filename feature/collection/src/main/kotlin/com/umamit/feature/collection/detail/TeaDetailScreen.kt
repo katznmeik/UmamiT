@@ -80,6 +80,8 @@ class TeaDetailActions(
     val correctStock: (grams: Double) -> Unit = {},
     val openShop: (url: String) -> Unit = {},
     val addPhoto: () -> Unit = {},
+    val setCoverPhoto: (photoId: String) -> Unit = {},
+    val deletePhoto: (photoId: String) -> Unit = {},
 )
 
 /**
@@ -143,7 +145,10 @@ private fun Detail(
                         tea = tea,
                         placeholderColor = UmamiTheme.extendedColors.teaTypes.forStyle(tea.styleKey),
                         photo = photo,
+                        alertKey = alertKey,
                         onAddPhoto = actions.addPhoto,
+                        onSetCover = actions.setCoverPhoto,
+                        onDelete = actions.deletePhoto,
                     )
                     Header(tea)
                     Stats(tea)
