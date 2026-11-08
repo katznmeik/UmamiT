@@ -495,6 +495,17 @@ Up to 10 photos per tea (catalog photo pre-attached as cover for catalog
 teas); own photos via the Android photo picker (no camera, D-100); *Als
 Titelbild* sets the cover; the EXIF rotation of #58.
 Processing rules: [06 §5.2](06-architecture.md#52-photos).
+- **Add (v0.4.1, #183, D-104):** *+ Foto* on the detail's hero picks one
+  image at a time. It goes after the tea's other photos; a tea's first photo
+  becomes its cover. An 11th is refused: at 10, *+ Foto* is greyed out with
+  „Höchstens 10 Fotos". An image that can't be read shows „Das Foto konnte
+  nicht gelesen werden." and adds nothing.
+- **Cover everywhere:** the cover shows wherever a tea photo shows: *Meine
+  Tees*, the detail, Start, the tea picker, the timer seal and the journal
+  rows. The setup (SCR-04) and the session page (SCR-16) show no tea photo
+  in v0.4.1.
+- **A catalog tea's shop photo** is just its first photo (`CATALOG_COPY`).
+- **Deleting a tea** removes its photo files, as before (TEA-04).
 
 **TEA-06 — Favourites** `Must` (v0.4.0)
 The detail's ⋮ *Favorit* marks or unmarks a tea; favourites show under

@@ -1,12 +1,16 @@
 package com.umamit.core.data
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -106,14 +110,44 @@ internal object PhotoTranscoder {
     fun transcode(bytes: ByteArray, targets: List<PhotoTarget>): List<EncodedPhoto>? =
         transcode(bytes, targets, SHOP_SOURCES)
 
+    /** Larger picked photos are refused before decoding; above a 200 MP phone camera's 16320 × 12240. */
+    const val MAX_PICKED_SIDE_PX = 20_000
+    const val MAX_PICKED_PIXELS = 250_000_000L
+
+    /**
+     * A photo the user picked (TEA-05, SCR-28, #58) as a collection photo ([PhotoTarget.COVER]: ≤ 2048 px, JPEG
+     * 85): any format the platform decodes (JPEG, PNG, WebP, HEIF …), turned upright by its EXIF orientation,
+     * with no metadata. Null when it doesn't decode or is larger than [MAX_PICKED_SIDE_PX] / [MAX_PICKED_PIXELS].
+     */
+    fun transcodePicked(bytes: ByteArray): EncodedPhoto? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val acceptable = bounds.outMimeType != null &&
+            bounds.outWidth in 1..MAX_PICKED_SIDE_PX &&
+            bounds.outHeight in 1..MAX_PICKED_SIDE_PX &&
+            bounds.outWidth.toLong() * bounds.outHeight <= MAX_PICKED_PIXELS
+        if (!acceptable) return null
+        return decode(bytes, bounds, listOf(PhotoTarget.COVER), ExifOrientation.of(bytes))?.single()
+    }
+
     private fun transcode(bytes: ByteArray, targets: List<PhotoTarget>, mimes: Set<String>): List<EncodedPhoto>? {
         require(targets.isNotEmpty()) { "no target" }
         val bounds = acceptableBounds(bytes, mimes) ?: return null
+        return decode(bytes, bounds, targets, ExifOrientation.NORMAL)
+    }
+
+    /** [bytes] of [bounds] decoded once with sampling and encoded to each of [targets], turned by [orientation]. */
+    private fun decode(
+        bytes: ByteArray,
+        bounds: BitmapFactory.Options,
+        targets: List<PhotoTarget>,
+        orientation: Int,
+    ): List<EncodedPhoto>? {
         val longSide = max(bounds.outWidth, bounds.outHeight)
         val neededLongSide = targets.maxOf { (longSide * it.scaleFor(bounds.outWidth, bounds.outHeight)).roundToInt() }
         val options = BitmapFactory.Options().apply { inSampleSize = sampleSize(longSide, neededLongSide) }
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.let { decoded ->
-            targets.map { encode(decoded, it) }.also { decoded.recycle() }
+            targets.map { encode(decoded, it, orientation) }.also { decoded.recycle() }
         }
     }
 
@@ -136,7 +170,7 @@ internal object PhotoTranscoder {
         return sample
     }
 
-    private fun encode(decoded: Bitmap, target: PhotoTarget): EncodedPhoto {
+    private fun encode(decoded: Bitmap, target: PhotoTarget, orientation: Int): EncodedPhoto {
         val factor = target.scaleFor(decoded.width, decoded.height)
         val scaled = if (factor < 1f) {
             decoded.scale(
@@ -146,12 +180,14 @@ internal object PhotoTranscoder {
         } else {
             decoded
         }
+        val upright = ExifOrientation.upright(scaled, orientation)
         // A transparent PNG or WebP goes onto white, as the shop shows it; JPEG has no alpha (D-091).
-        val opaque = if (scaled.hasAlpha()) onWhite(scaled) else scaled
+        val opaque = if (upright.hasAlpha()) onWhite(upright) else upright
         val out = ByteArrayOutputStream()
         opaque.compress(target.format.compressFormat, target.quality, out)
         val photo = EncodedPhoto(out.toByteArray(), opaque.width, opaque.height, target.format)
-        if (opaque !== scaled) opaque.recycle()
+        if (opaque !== upright) opaque.recycle()
+        if (upright !== scaled) upright.recycle()
         if (scaled !== decoded) scaled.recycle()
         return photo
     }
@@ -165,6 +201,48 @@ internal object PhotoTranscoder {
             }
             flat.setHasAlpha(false)
         }
+}
+
+/**
+ * A picked photo's EXIF orientation (#58), applied once to the decoded pixels. The platform's ExifInterface is
+ * sound from API 24, so the AndroidX copy isn't needed at minSdk 35.
+ */
+@SuppressLint("ExifInterface")
+private object ExifOrientation {
+    // The EXIF orientation values (TIFF tag 0x0112).
+    const val NORMAL = 1
+    private const val FLIP_HORIZONTAL = 2
+    private const val ROTATE_180 = 3
+    private const val FLIP_VERTICAL = 4
+    private const val TRANSPOSE = 5
+    private const val ROTATE_90 = 6
+    private const val TRANSVERSE = 7
+    private const val ROTATE_270 = 8
+
+    /** The EXIF orientation of [bytes] (1–8), or normal without one or when it can't be read (#58). */
+    fun of(bytes: ByteArray): Int = try {
+        android.media.ExifInterface(ByteArrayInputStream(bytes))
+            .getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, NORMAL)
+    } catch (_: IOException) {
+        NORMAL
+    }
+
+    /** [image] turned and mirrored as EXIF [orientation] says (#58); [image] itself when it is upright. */
+    @Suppress("MagicNumber") // the rotations in degrees
+    fun upright(image: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+            ROTATE_180 -> matrix.setRotate(180f)
+            FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+            TRANSPOSE -> matrix.apply { setRotate(90f) }.postScale(-1f, 1f)
+            ROTATE_90 -> matrix.setRotate(90f)
+            TRANSVERSE -> matrix.apply { setRotate(-90f) }.postScale(-1f, 1f)
+            ROTATE_270 -> matrix.setRotate(-90f)
+            else -> return image
+        }
+        return Bitmap.createBitmap(image, 0, 0, image.width, image.height, matrix, true)
+    }
 }
 
 /** The image formats the transcoder reads, told apart by their bytes, only when complete (D-091). */

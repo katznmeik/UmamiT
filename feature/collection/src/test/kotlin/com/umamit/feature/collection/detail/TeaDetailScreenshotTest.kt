@@ -1,5 +1,7 @@
 package com.umamit.feature.collection.detail
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
@@ -19,7 +21,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The tea detail (SCR-09, D-100) in light and dark at font scale 1.0 and 2.0 (03 §6), with the placeholder leaf
  * instead of a photo and an invented tea (D-016): the top of the page with the figures and REZEPTE, and the tea
- * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out).
+ * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out); the photo pager
+ * (SCR-28) over placeholder photos and its limit of 10.
  * Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -44,7 +47,7 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
-                TeaDetailScreen(TeaDetailUiState.Ready(tea), TeaDetailActions(), photo = null)
+                TeaDetailScreen(TeaDetailUiState.Ready(tea), TeaDetailActions(), photo = { PLACEHOLDER_PHOTO })
             }
         }
         compose.waitForIdle()
@@ -55,6 +58,17 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun ready() = capture("ready", TeaDetailScreenTest.sample())
+
+    /** The pager over three placeholder photos, the cover shown (SCR-28). */
+    @Test
+    fun photos() = capture("photos", TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(3), photoCount = 3))
+
+    /** Ten photos: *+ Foto* greyed out with „Höchstens 10 Fotos" (TEA-05). */
+    @Test
+    fun photoLimit() = capture(
+        "photoLimit",
+        TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(10), photoCount = 10),
+    )
 
     @Test
     fun lowAndArchived() = capture(
@@ -83,10 +97,37 @@ class TeaDetailShortScreenScreenshotTest {
         RuntimeEnvironment.setFontScale(2f)
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
-                TeaDetailScreen(TeaDetailUiState.Ready(TeaDetailScreenTest.sample()), TeaDetailActions(), photo = null)
+                TeaDetailScreen(TeaDetailUiState.Ready(TeaDetailScreenTest.sample()), TeaDetailActions(), photo = {
+                    null
+                })
             }
         }
         compose.waitForIdle()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_short_ready_font2_0.png")
     }
+
+    /** The photo limit on a short screen at font scale 2.0: „Höchstens 10 Fotos" stays inside the hero. */
+    @Test
+    fun photoLimit() {
+        RuntimeEnvironment.setFontScale(2f)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                TeaDetailScreen(
+                    TeaDetailUiState.Ready(
+                        TeaDetailScreenTest.sample().copy(photos = placeholderPhotos(10), photoCount = 10),
+                    ),
+                    TeaDetailActions(),
+                    photo = { PLACEHOLDER_PHOTO },
+                )
+            }
+        }
+        compose.waitForIdle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/TeaDetail_short_photoLimit_font2_0.png")
+    }
 }
+
+/** A plain washi-green square in place of a photo (D-016: no real photos in renders). */
+private val PLACEHOLDER_PHOTO = ColorPainter(Color(0xFF8A9A7B))
+
+/** [count] placeholder photos, the first the cover. */
+private fun placeholderPhotos(count: Int) = List(count) { DetailPhoto("p$it", "/placeholder/p$it.jpg", it == 0) }

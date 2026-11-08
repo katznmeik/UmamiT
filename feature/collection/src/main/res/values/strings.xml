@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="collection_title">Sammlung</string>
     <string name="collection_segment_my_teas">Meine Tees</string>
     <string name="collection_segment_catalog">Katalog</string>
@@ -132,6 +132,15 @@
     <string name="collection_tea_stock_correct">Bestand korrigieren</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
+    <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
+    <string name="collection_tea_photo_add">+ Foto</string>
+    <string name="collection_tea_photo_limit">Höchstens 10 Fotos</string>
+    <string name="collection_tea_photo_unreadable">Das Foto konnte nicht gelesen werden.</string>
+    <string name="collection_tea_photo_failed">Das Foto konnte nicht gespeichert werden.</string>
+    <!-- TalkBack: „Fotos von Morgennebel", „Foto 1 von 3, Titelbild". -->
+    <string name="collection_tea_photos_description">Fotos von %1$s</string>
+    <string name="collection_tea_photo_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d</string>
+    <string name="collection_tea_photo_cover_description" tools:ignore="PluralsCandidate">Foto %1$d von %2$d, Titelbild</string>
     <!-- DETAILS, each only when set. -->
     <string name="collection_tea_origin">Herkunft</string>
     <string name="collection_tea_cultivar">Kultivar</string>

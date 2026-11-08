@@ -21,6 +21,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.testing.FakeTeaArchive
+import com.umamit.core.testing.FakeTeaPhotos
 import com.umamit.core.ui.STOCK_SHEET_FIELD_TAG
 import com.umamit.feature.collection.detail.TeaDetailFixture.TEA_ID
 import kotlinx.coroutines.runBlocking
@@ -79,6 +80,7 @@ class TeaDetailRouteTest {
                             FakeCatalogRepository(details = listOf(TeaDetailFixture.catalogTea)),
                             archive,
                             photos,
+                            FakeTeaPhotos(collection, photos),
                         )
                     },
                 )

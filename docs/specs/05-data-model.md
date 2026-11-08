@@ -248,7 +248,17 @@ re-encoded from WebP to JPEG when copied), exactly one of
 `tea_id` / `session_id` / `vessel_id` (FK CASCADE), `position`, `width_px`,
 `height_px`, `byte_size`, `origin` (`PhotoOrigin`).
 When a tea is added from the catalog, the catalog photo is **copied** into
-`photo` (origin `CATALOG_COPY`) so the tea stays independent. The single
+`photo` (origin `CATALOG_COPY`) so the tea stays independent.
+
+Tea photo writes (v0.4.1, TEA-05, `TeaPhotos`):
+- **Add:** a picked image is processed (06 §5.2) and its file written to
+  `photos/` first; then, in one transaction, the row (origin `OWN`,
+  `position` = the tea's highest + 1, else 0) and, when the tea has no
+  cover, `tea.cover_photo_id`. Refused at 10 photos of the tea (checked
+  before reading the image and again in the transaction). A refused or
+  failed row deletes the file again; an unreadable image writes nothing.
+- **Order:** by `position`, then `created_at`. Catalog copies are ordinary
+  photos that can lose the cover or be deleted (#186). The single
 owner is enforced by the model type (`PhotoOwner`), so no row can name two.
 Replacing a recipe's steps (*Im Rezept speichern*) writes new `brew_step` rows
 with new ids.
@@ -585,7 +595,9 @@ Time rounding for derived recipes: nearest 5 s (half up).
   (domain `file`, the settings). Everything else stays out because nothing
   includes it: `catalog.db*`, `photos/`, `catalog/`, caches, other libraries'
   databases and the no-backup storage (D-052). `BackupRulesTest` checks the
-  sets.
+  sets. The user's own tea photos (v0.4.1) are in `photos/` too, so they are
+  **not** in the device backup until M5's export (BAK-01, D-104); after a
+  restore their rows go with the sweep below.
 - **Restore detection** (D-052): an empty install marker file
   `umamit-install-marker` in `Context.noBackupFilesDir`, which no backup
   carries. When Room creates `umamit.db` (a fresh install, or cleared app
