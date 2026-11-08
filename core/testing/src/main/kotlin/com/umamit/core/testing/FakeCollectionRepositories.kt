@@ -191,7 +191,12 @@ class FakeStockRepository internal constructor(private val c: FakeCollection) : 
 
     override suspend fun addEvent(event: InventoryEvent) = c.eventRows.update { it + (event.id to event) }
 
-    override suspend fun deleteEvent(id: String) = c.eventRows.update { it - id }
+    /** As on Room: a purchase or correction goes, a BREW event (or an unknown id) is refused (D-102). */
+    override suspend fun deleteEvent(id: String): Boolean {
+        val deletable = c.eventRows.value[id]?.let { it.type != InventoryEventType.BREW } == true
+        if (deletable) c.eventRows.update { it - id }
+        return deletable
+    }
 
     /** As on Room: one ADJUSTMENT of the difference at [now], none when the stock is unchanged. */
     override suspend fun correctStock(teaId: String, newTotalGrams: Double): InventoryEvent? {

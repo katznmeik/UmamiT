@@ -678,6 +678,10 @@ private fun TabHost(
                         navController.navigate(CollectionRecipeEditorRoute(teaId, recipeId))
                     },
                     onAddRecipe = dropUnlessResumed { navController.navigate(CollectionRecipeEditorRoute(teaId)) },
+                    // A brew row of VORRAT's history: its session page in this stack (SCR-16, SCR-29).
+                    onOpenSession = resumedOnly { sessionId: String ->
+                        navController.navigate(JournalSessionRoute(sessionId))
+                    },
                 ),
             )
         }

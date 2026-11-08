@@ -1398,6 +1398,27 @@ no screen of their own.
   The menu and the dialog close in the frame an alert starts (rule 8). A write
   that fails says „Das Foto konnte nicht geändert werden." and changes nothing.
 
+SCR-29 in v0.4.1 (D-104, #185): VORRAT on the detail (SCR-09) is the stock
+sheet; the history follows its buttons and the reorder link, no screen of
+its own. Only with stock events.
+- **Rows:** newest first, divided by hairlines: the kind („Kauf", „Bestand
+  korrigiert", „Gebrüht") over the day („20. Okt. 2026"), the amount at the
+  end („+100 g · 18,90 €", „−15 g", „−5 g"; a purchase's price only when
+  recorded). The newest five show; *Alle 7 Einträge anzeigen* reveals the
+  rest in place.
+- **Löschen:** a trash icon on a purchase or correction row asks „Kauf
+  löschen?" / „Korrektur löschen?" with „Vom 20. Okt. 2026. Dein Vorrat sinkt
+  dadurch um 100 g." (or „steigt … um" for a lowering correction) ·
+  *Abbrechen* / *Löschen*. The stock updates at once; the opening date stays.
+  An alert removes the question in its first frame, for good (rule 8).
+- **Brew rows:** no trash icon (a brew leaves only with its journal entry,
+  D-102); a chevron, and a tap opens the session page (SCR-16) in the same
+  stack. Above the setup (⋮ *Tee ansehen*) a brew row opens nothing.
+- **TalkBack:** each row is one item read as a sentence: „Kauf am 20. Okt.
+  2026: 100 g dazu für 18,90 €", „Bestand korrigiert am …: 15 g weniger",
+  „Gebrüht am …: 5 g verbraucht"; a brew row's action „Sitzung ansehen"; the
+  trash icon „Kauf vom 20. Okt. 2026 löschen".
+
 ### SCR-31 Schritte-Sheet (session steps)
 
 Bottom sheet that edits the steps of **this session only** (D-036). Opened
