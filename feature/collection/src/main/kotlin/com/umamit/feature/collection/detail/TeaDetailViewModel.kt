@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.AddPhotoResult
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.DeleteResult
@@ -382,8 +383,6 @@ private fun InventoryEvent.entry(zone: ZoneId) = StockEntry(
     day = Instant.ofEpochMilli(occurredAtMillis).atZone(zone).toLocalDate(),
     sessionId = sessionId.takeIf { type == InventoryEventType.BREW },
 )
-
-private fun WallClock.today(): LocalDate = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
 
 /** FRISCHE's label by FreshnessRule, with the date it stems from (INV-06, D-104). */
 private fun detailFreshness(tea: Tea, remainingGrams: Double?, today: LocalDate): DetailFreshness? {

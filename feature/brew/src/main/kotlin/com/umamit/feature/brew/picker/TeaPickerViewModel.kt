@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.common.SystemWallClock
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.CollectionListRepository
 import com.umamit.core.data.PhotoFiles
@@ -162,7 +163,7 @@ class TeaPickerViewModel @Inject constructor(
         input,
         stock,
     ) { owned, recentSessions, activeTeaId, input, grams ->
-        val today = Instant.ofEpochMilli(clock.nowMs()).atZone(clock.zone()).toLocalDate()
+        val today = clock.today()
         val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId, grams[it.tea.id], today) }
         val byId = all.associateBy { it.id }
         val search = SearchQuery(input.search)

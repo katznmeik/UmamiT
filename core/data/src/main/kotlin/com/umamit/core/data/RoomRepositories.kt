@@ -1,6 +1,7 @@
 package com.umamit.core.data
 
 import com.umamit.core.common.WallClock
+import com.umamit.core.common.today
 import com.umamit.core.database.dao.InventoryDao
 import com.umamit.core.database.dao.RecipeDao
 import com.umamit.core.database.dao.RecipeDeletion
@@ -117,7 +118,7 @@ class RoomStockRepository @Inject constructor(private val dao: InventoryDao, pri
     }
 
     override suspend fun recordPurchase(teaId: String, purchase: TeaPurchase): InventoryEvent {
-        val today = Instant.ofEpochMilli(time.nowMs()).atZone(time.zone()).toLocalDate()
+        val today = time.today()
         require(!purchase.purchasedOn.isAfter(today)) { "A purchase is never in the future" }
         val event = purchaseEvent(
             teaId,

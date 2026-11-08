@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.SetVesselPhotoResult
 import com.umamit.core.data.VesselArchive
 import com.umamit.core.data.VesselPhotos
 import com.umamit.core.data.VesselRepository
@@ -129,6 +130,9 @@ sealed interface VesselEditorEvent {
 
     /** *Archivieren*: close; the list below shows „*[name]* archiviert" · *Rückgängig* (D-100). */
     data class Archived(val vesselId: String, val name: String) : VesselEditorEvent
+
+    /** The picked image could not be read at *Speichern* (grant gone or no image): a toast; the rest is saved. */
+    data object PhotoUnreadable : VesselEditorEvent
 }
 
 /**
@@ -137,7 +141,8 @@ sealed interface VesselEditorEvent {
  * changes no recipe (a recipe stores its water). ⋮ *Archivieren* (never delete) is refused for the vessel
  * of the active brew session; an archived vessel offers *Wiederherstellen*. The form lives in the
  * [SavedStateHandle], so it survives a process death. The vessel's one photo (WARE-01) is set, replaced or
- * removed through [VesselPhotos] after the vessel itself is stored; a photo that can't be read then is skipped.
+ * removed through [VesselPhotos] after the vessel itself is stored; a photo that can't be read then is skipped,
+ * with a short toast.
  */
 @Suppress("TooManyFunctions") // the form, the photo change and the three menu actions each have a few
 @HiltViewModel
@@ -233,7 +238,8 @@ class VesselEditorViewModel @Inject constructor(
                 saving.value = true
                 viewModelScope.launch {
                     vessels.saveVessel(vessel)
-                    applyPhoto(vessel.id)
+                    val photoUnreadable = applyPhoto(vessel.id)
+                    if (photoUnreadable) navigation.send(VesselEditorEvent.PhotoUnreadable)
                     base.value = Base.Stored(vessel)
                     navigation.send(VesselEditorEvent.Saved(vessel.id))
                 }
@@ -252,12 +258,14 @@ class VesselEditorViewModel @Inject constructor(
         setPhotoChange(if (hasStored) PhotoChange.Remove else PhotoChange.Keep)
     }
 
-    private suspend fun applyPhoto(vesselId: String) {
+    /** Applies the photo change; true when a picked image could not be read. */
+    private suspend fun applyPhoto(vesselId: String): Boolean {
         when (val change = photoChange.value) {
             PhotoChange.Keep -> Unit
-            is PhotoChange.Set -> photos.set(vesselId, change.uri)
+            is PhotoChange.Set -> return photos.set(vesselId, change.uri) == SetVesselPhotoResult.Unreadable
             PhotoChange.Remove -> photos.remove(vesselId)
         }
+        return false
     }
 
     private fun photoOf(stored: Vessel?, change: PhotoChange): VesselPhoto = when (change) {
