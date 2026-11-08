@@ -10,4 +10,7 @@ dependencies {
     // Fakes of the BrewSessionController's ports and clocks (spec #40 seam 2).
     api(project(":core:timer"))
     api(libs.kotlinx.coroutines.core)
+    // FakePhotoPicker implements core:ui's photo picker port, an ActivityResultContract (TEA-05).
+    api(project(":core:ui"))
+    implementation(libs.androidx.activity.compose)
 }

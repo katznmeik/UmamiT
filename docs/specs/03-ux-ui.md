@@ -901,6 +901,7 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
 - **Pencil FAB:** the tea editor (SCR-10).
+- **Hero (v0.4.1):** the photo pager with *+ Foto* (SCR-28).
 - **⋮:** *Favorit* (checked when it is one), *Archivieren*, *Löschen*. For the
   tea of the active brew session both are greyed out with „Erst die Sitzung
   beenden". *Löschen* asks with §5's dialog (*Stattdessen archivieren* /
@@ -1325,6 +1326,21 @@ AboutLibraries follows with 1.0 (D-066).
 Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
 erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
 groups, custom). SCR-28 and SCR-29 come with v0.4.1, SCR-30 with M4 (D-100).
+
+SCR-28 in v0.4.1 (D-104, #183): the photos live in the detail's hero (SCR-09),
+no screen of their own.
+- **Pager:** the hero (4:3) swipes over the tea's photos, the cover first,
+  then the others in their order; with more than one, dots on a translucent
+  pill at its lower left, beside *+ Foto*. Without photos it shows the style's leaf as before.
+- ***+ Foto*:** a rounded button over the hero's lower right corner, on the same
+  translucent surface as ← and ⋮. It opens the Android photo picker (one
+  image, no camera). The new photo shows at once; the first one becomes the
+  cover. At 10 it is greyed out with a second line „Höchstens 10 Fotos".
+- **Error:** an image that can't be read shows the toast „Das Foto konnte
+  nicht gelesen werden." and nothing is added.
+- **TalkBack:** the pager reads „Fotos von *Tee*", each photo „Foto 1 von 3,
+  Titelbild" / „Foto 2 von 3".
+- *Als Titelbild* and *Löschen* per photo: #186.
 
 ### SCR-31 Schritte-Sheet (session steps)
 

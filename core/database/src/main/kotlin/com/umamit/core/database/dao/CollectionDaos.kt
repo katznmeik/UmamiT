@@ -125,6 +125,18 @@ interface TeaDao {
     @Query("SELECT * FROM photo WHERE id = :id")
     suspend fun photo(id: String): PhotoEntity?
 
+    /** The tea's photos in their order (SCR-28): by `position`, then by when they were added. */
+    @Query("SELECT * FROM photo WHERE tea_id = :teaId ORDER BY position, created_at, id")
+    fun observeTeaPhotos(teaId: String): Flow<List<PhotoEntity>>
+
+    /** How many photos the tea has (TEA-05: at most 10). */
+    @Query("SELECT COUNT(*) FROM photo WHERE tea_id = :teaId")
+    suspend fun photoCount(teaId: String): Int
+
+    /** The tea's highest photo `position`, or null without photos. */
+    @Query("SELECT MAX(position) FROM photo WHERE tea_id = :teaId")
+    suspend fun maxPhotoPosition(teaId: String): Int?
+
     /** The ids of the tea's own photos, whose files go when the tea is deleted (TEA-04, D-100). */
     @Query("SELECT id FROM photo WHERE tea_id = :teaId")
     suspend fun photoIds(teaId: String): List<String>
