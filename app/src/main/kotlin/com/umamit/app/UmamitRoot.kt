@@ -361,9 +361,11 @@ internal fun UmamitRoot(
                     SetupHost(
                         // Only while resumed: a quick double tap never pops the shell under it (D-090).
                         onBack = dropUnlessResumed { navController.popBackStack() },
-                        // The timer replaces the setup, so back from the timer returns to where the brew began.
-                        onOpenTimer = {
-                            navController.navigate(TimerRoute(TimerSlot.BREW)) {
+                        // The timer replaces the setup, so back from the timer returns to where the brew began. It is
+                        // the timer of the slot the brew started in (BREW_2 for a second brew, D-108), or of the tea's
+                        // own session; null during an alert: the timer in front.
+                        onOpenTimer = { slot ->
+                            navController.navigate(TimerRoute(slot)) {
                                 popUpTo<BrewSetupRoute> { inclusive = true }
                                 launchSingleTop = true
                             }

@@ -8,12 +8,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.model.TimerSlot
 
 /**
  * The setup route (SCR-04). Its arguments are the view model's `teaId`, `sessionId`, `recipeId` and
  * `pastSessionId` ([BrewSetupViewModel.TEA_ID], [BrewSetupViewModel.SESSION_ID], [BrewSetupViewModel.RECIPE_ID],
  * [BrewSetupViewModel.PAST_SESSION_ID]; the last for *So nochmal brühen*, BRW-06).
- * [onOpenTimer] runs once the session waits in READY (TMR-01); [onOpenCatalog] opens the tea's
+ * [onOpenTimer] runs once the session waits in READY (TMR-01), with its slot (D-108: the second brew's is
+ * `BREW_2`; null: the timer in front); [onOpenCatalog] opens the tea's
  * catalog page (SCR-21) by its catalog key, from ⋮ *Im Katalog ansehen* (D-098); [onOpenTea] the tea's detail
  * (SCR-09) by its id, from ⋮ *Tee ansehen* (D-100).
  *
@@ -24,7 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun BrewSetupRoute(
     onBack: () -> Unit,
-    onOpenTimer: () -> Unit,
+    onOpenTimer: (TimerSlot?) -> Unit,
     modifier: Modifier = Modifier,
     onOpenCatalog: (String) -> Unit = {},
     onOpenTea: (String) -> Unit = {},
@@ -45,7 +47,7 @@ fun BrewSetupRoute(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                BrewSetupEvent.OpenTimer -> currentOnOpenTimer()
+                is BrewSetupEvent.OpenTimer -> currentOnOpenTimer(event.slot)
             }
         }
     }
@@ -65,7 +67,7 @@ fun BrewSetupRoute(
             saveStepsToRecipe = viewModel::saveStepsToRecipe,
             saveToRecipe = viewModel::saveToRecipe,
             start = viewModel::startBrew,
-            confirmRestart = viewModel::confirmRestart,
+            endTimer = viewModel::endTimerAndStart,
             dismissQuestion = viewModel::dismissQuestion,
             correctStock = viewModel::correctStock,
             openCatalog = { key -> currentOnOpenCatalog(key) },

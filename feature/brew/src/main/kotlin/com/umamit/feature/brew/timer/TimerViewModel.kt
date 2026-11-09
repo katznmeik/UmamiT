@@ -65,12 +65,33 @@ class TimerViewModel @Inject constructor(
     fun state(slot: TimerSlot): StateFlow<TimerUiState> = timer.state(slot)
 
     /**
-     * What the brew's seal shows (SCR-05, D-095): the session tea's style and the file of
+     * What [slot]'s seal shows (SCR-05, D-095): its session tea's style and the file of
      * its cover photo; null without a brew session (the quick timer has no seal) or before the session is read.
-     * It follows the brew's slot, so it is there while the quick timer is in front of the controller (D-098).
-     * The screen shows the type-coloured leaf until the photo is read, or without one.
+     * It follows that brew slot, so it is there while another timer is in front of the controller (D-098), and each
+     * of two brews has its own (D-108). The screen shows the type-coloured leaf until the photo is read, or without
+     * one.
      */
-    val teaSeal: StateFlow<TimerTeaSeal?> = timer.state(TimerSlot.BREW)
+    fun teaSeal(slot: TimerSlot): StateFlow<TimerTeaSeal?> = seals[slot] ?: NO_SEAL
+
+    /**
+     * [slot]'s session tea's stock for READY's line (BRW-11, D-098): „38 g übrig", „14 g übrig · knapp" or „Leer",
+     * live as the stock changes; each of two brews has its own (D-108). Read here from the inventory, never through
+     * the engine or the controller, so nothing on the alarm path waits for it. Null for the quick timer, a session
+     * whose tea is not in the collection (none, deleted or removed), before it is read and after a failed read
+     * (logged).
+     */
+    fun teaStock(slot: TimerSlot): StateFlow<TimerStock?> = stocks[slot] ?: NO_STOCK
+
+    // Read from the start for both brew slots, so a screen opened on either has them as soon as they are read.
+    private val seals = BREW_SLOTS.associateWith { slot -> slotSeal(slot, sessions, teas, photos) }
+    private val stocks = BREW_SLOTS.associateWith { slot -> slotStock(slot, sessions, teas, stock, settings) }
+
+    private fun slotSeal(
+        slot: TimerSlot,
+        sessions: SessionRepository,
+        teas: TeaRepository,
+        photos: PhotoFiles,
+    ): StateFlow<TimerTeaSeal?> = timer.state(slot)
         .map { (it as? TimerUiState.Active)?.sessionId }
         .distinctUntilChanged()
         .flatMapLatest { id ->
@@ -90,13 +111,13 @@ class TimerViewModel @Inject constructor(
         .catch { emit(null) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    /**
-     * The session tea's stock for READY's line (BRW-11, D-098): „38 g übrig", „14 g übrig · knapp" or „Leer",
-     * live as the stock changes. Read here from the inventory, never through the engine or the controller, so
-     * nothing on the alarm path waits for it. Null for the quick timer, a session whose tea is not in the
-     * collection (none, deleted or removed), before it is read and after a failed read (logged).
-     */
-    val teaStock: StateFlow<TimerStock?> = timer.state(TimerSlot.BREW)
+    private fun slotStock(
+        slot: TimerSlot,
+        sessions: SessionRepository,
+        teas: TeaRepository,
+        stock: StockRepository,
+        settings: SettingsRepository,
+    ): StateFlow<TimerStock?> = timer.state(slot)
         .map { (it as? TimerUiState.Active)?.sessionId }
         .distinctUntilChanged()
         .flatMapLatest { id ->
@@ -167,3 +188,7 @@ private fun stockOf(
 }
 
 private const val TAG = "UmamiTTimerScreen"
+
+private val BREW_SLOTS = listOf(TimerSlot.BREW, TimerSlot.BREW_2)
+private val NO_SEAL: StateFlow<TimerTeaSeal?> = MutableStateFlow<TimerTeaSeal?>(null).asStateFlow()
+private val NO_STOCK: StateFlow<TimerStock?> = MutableStateFlow<TimerStock?>(null).asStateFlow()

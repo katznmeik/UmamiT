@@ -16,6 +16,7 @@ import com.umamit.core.testing.FakeCollection
 import com.umamit.core.testing.FakeSessions
 import com.umamit.core.testing.FakeSettingsRepository
 import com.umamit.core.timer.controller.BrewStart
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
@@ -317,24 +318,58 @@ class BrewSetupViewModelTest {
         assertThat(start.snapshot.method).isEqualTo(BrewMethod.KYUSU)
         assertThat(start.steps.map { it.plannedSeconds }).containsExactly(60, 10, 10).inOrder()
         assertThat(start.recipePreAlertSeconds).isNull()
-        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
     }
 
     @Test
-    fun `a second session asks first, and Beenden und neu starten replaces it (TMR-21)`() = runTest {
-        starter.state.value = FakeBrewStarter.readyState(brewAgain("Bio Sencha Tanabata"), "other")
+    fun `a second tea starts as the second brew without asking, and its timer opens (D-108)`() = runTest {
+        starter.startSession(brewAgain("Bio Sencha Tanabata"))
         val vm = viewModel()
 
         vm.startBrew()
-        assertThat(vm.ready.question).isEqualTo(ActiveSessionQuestion(teaName = "Bio Sencha Tanabata"))
-        assertThat(starter.starts).isEmpty()
 
-        vm.confirmRestart()
+        assertThat(vm.ready.question).isNull()
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
+        // The brew just started, not the one in BREW.
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW_2))
+    }
+
+    @Test
+    fun `a tea with an active session opens that session instead of a second one (D-108)`() = runTest {
+        starter.startQuickTimer(90)
+        starter.startSession(brewAgain("Bio Sencha Hisui"))
+        val vm = viewModel()
+
+        vm.startBrew()
+
+        assertThat(vm.ready.question).isNull()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
+    }
+
+    @Test
+    fun `with two timers active it asks which to end and ends only the chosen one (TMR-21 AC5)`() = runTest {
+        starter.startSession(brewAgain("Bio Sencha Tanabata"))
+        starter.startQuickTimer(90)
+        val vm = viewModel()
+
+        vm.startBrew()
+        assertThat(vm.ready.question).isEqualTo(
+            StartQuestion.ChooseTimer(
+                listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata"), TimerToEnd(TimerSlot.QUICK, null)),
+            ),
+        )
+        assertThat(starter.starts).hasSize(1)
+
+        vm.endTimerAndStart(TimerSlot.BREW)
 
         assertThat(vm.ready.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
-        assertThat(starter.starts.single().snapshot.teaName).isEqualTo("Bio Sencha Hisui")
-        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
     }
 
     @Test
@@ -348,27 +383,31 @@ class BrewSetupViewModelTest {
         assertThat(starter.starts).hasSize(1)
         assertThat(starter.replaced).isEqualTo(0)
         assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
-        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
     }
 
     @Test
-    fun `Abbrechen keeps the active session`() = runTest {
-        starter.state.value = FakeBrewStarter.readyState(brewAgain("Bio Sencha Tanabata"), "other")
+    fun `Abbrechen keeps both active timers`() = runTest {
+        starter.startSession(brewAgain("Bio Sencha Tanabata"))
+        starter.startQuickTimer(90)
         val vm = viewModel()
 
         vm.startBrew()
         vm.dismissQuestion()
 
         assertThat(vm.ready.question).isNull()
-        assertThat(starter.starts).isEmpty()
+        assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
     }
 
     @Test
     fun `an alert closes the question (rule 8)`() = runTest {
-        val waiting = FakeBrewStarter.readyState(brewAgain("Bio Sencha Tanabata"), "other")
-        starter.state.value = waiting
+        starter.startQuickTimer(90)
+        starter.startSession(brewAgain("Bio Sencha Tanabata"))
+        val waiting = checkNotNull(starter.activeIn(TimerSlot.BREW))
         val vm = viewModel()
         vm.startBrew()
+        assertThat(vm.ready.question).isNotNull()
 
         starter.state.value = waiting.copy(
             phase = com.umamit.core.model.TimerPhase.ALERTING,
@@ -398,7 +437,27 @@ class BrewSetupViewModelTest {
 
         assertThat(vm.ready.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
-        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
+    }
+
+    @Test
+    fun `Bruehen anpassen of the second brew starts it over in its own slot, the first stays (D-108)`() = runTest {
+        starter.startSession(brewAgain("Bio Sencha Tanabata"))
+        val request = brewAgain("Bio Sencha Hisui")
+        starter.startSession(request)
+        val waiting = checkNotNull(starter.activeIn(TimerSlot.BREW_2)?.sessionId)
+        sessions.sessions.startSession(
+            SessionStart(waiting, request.snapshot, request.steps, preAlertSeconds = 10, 0, "Europe/Berlin"),
+        )
+        val vm = viewModel(teaId = null, sessionId = waiting)
+
+        vm.startBrew()
+
+        assertThat(vm.ready.question).isNull()
+        assertThat(starter.replaced).isEqualTo(1)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(starter.activeIn(TimerSlot.BREW_2)?.sessionId).isNotEqualTo(waiting)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW_2))
     }
 
     @Test
@@ -419,6 +478,26 @@ class BrewSetupViewModelTest {
         assertThat(vm.ready.canSaveToRecipe).isFalse()
         assertThat(vm.ready.steps).containsExactly(PlannedStep(StepKind.INFUSION, 60, 65))
     }
+
+    @Test
+    fun `the tea's active session counts with its leaf also as the second brew behind another timer (D-108)`() =
+        runTest {
+            starter.startSession(brewAgain("Bio Sencha Tanabata"))
+            val request = brewAgain("Bio Sencha Hisui")
+            starter.startSession(request)
+            val hisui = checkNotNull(starter.activeIn(TimerSlot.BREW_2)?.sessionId)
+            sessions.sessions.startSession(
+                SessionStart(hisui, request.snapshot, request.steps, preAlertSeconds = 10, 0, "Europe/Berlin"),
+            )
+            // The other brew in front, as after a tap on its row.
+            val first = checkNotNull(starter.activeIn(TimerSlot.BREW))
+            starter.other.value = checkNotNull(starter.activeIn(TimerSlot.BREW_2))
+            starter.state.value = first
+
+            val vm = viewModel()
+
+            assertThat(vm.ready.sessionLeafGrams).isEqualTo(request.snapshot.leafGrams)
+        }
 
     @Test
     fun `an unknown tea shows the not-found state`() {

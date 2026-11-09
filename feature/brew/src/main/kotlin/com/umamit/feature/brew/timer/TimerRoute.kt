@@ -56,8 +56,6 @@ fun BrewTimerRoute(
     val recovered by viewModel.recovered.collectAsStateWithLifecycle()
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
     val problem by viewModel.reliabilityProblem.collectAsStateWithLifecycle()
-    val seal by viewModel.teaSeal.collectAsStateWithLifecycle()
-    val stock by viewModel.teaStock.collectAsStateWithLifecycle()
     val currentOnClose by rememberUpdatedState(onClose)
     // The timer this route shows, once known: kept across a configuration change and process death.
     var pinned by rememberSaveable { mutableStateOf(slot) }
@@ -91,6 +89,11 @@ fun BrewTimerRoute(
                 }
             }
             val other = view.other
+            // The shown brew's own tea: each of two brews has its seal and stock (D-108).
+            val seal by remember(viewModel, active.slot) { viewModel.teaSeal(active.slot) }
+                .collectAsStateWithLifecycle()
+            val stock by remember(viewModel, active.slot) { viewModel.teaStock(active.slot) }
+                .collectAsStateWithLifecycle()
             TimerScreen(
                 state = active,
                 nowElapsedMs = remember(viewModel) { viewModel::nowElapsedMs },
@@ -124,8 +127,8 @@ internal class TimerRouteView(val shown: TimerUiState.Active?, val other: TimerU
 /**
  * The route's view of the slots ([brew], [brew2], [quick]) and the controller's [front] (D-098, D-108): a ringing
  * alert first, in the slot order (rule 8; a held alert does not ring); else the [pinned] slot's timer, or, with
- * none pinned yet, the one in front; null when that timer is not active. The other active timer is the row. The
- * screens for two brews come with v0.5.0-03; until then a second brew's route shows it like the first's.
+ * none pinned yet, the one in front; null when that timer is not active. The other active timer is the row: the
+ * quick timer, or the other brew session with its own seal and stock on its own route (v0.5.0-03).
  */
 internal fun timerRouteView(
     pinned: TimerSlot?,

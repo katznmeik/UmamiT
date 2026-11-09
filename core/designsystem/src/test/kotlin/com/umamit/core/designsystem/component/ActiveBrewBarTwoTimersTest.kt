@@ -112,6 +112,48 @@ class ActiveBrewBarTwoTimersTest {
     }
 
     @Test
+    fun `two brews show both, and a held brew reads wartet with its tea and step (D-108)`() {
+        val kamille = ActiveBrew(
+            title = "Kamille",
+            step = "Aufguss 1/2",
+            stepDescription = "Aufguss 1 von 2",
+            remainingSeconds = 0,
+            liquorColor = Color.Yellow,
+            alerting = false,
+            held = true,
+        )
+        show(hisui.copy(alerting = true, overtimeSeconds = 3), kamille)
+
+        compose.onNodeWithContentDescription(
+            "Jetzt abgießen: Bio Sencha Hisui, Aufguss 2 von 4, 3 Sekunden überzogen. Zum Timer",
+        )
+            .assertHasClickAction()
+        compose.onNodeWithText("wartet", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription(
+            "Kamille, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss. Zum Timer",
+        )
+            .assertHasClickAction()
+    }
+
+    @Test
+    fun `two running brews read each with its tea, step and time (D-108)`() {
+        val kamille = ActiveBrew(
+            title = "Kamille",
+            step = "Aufguss 1/2",
+            stepDescription = "Aufguss 1 von 2",
+            remainingSeconds = 48,
+            liquorColor = Color.Yellow,
+        )
+        show(hisui, kamille)
+
+        compose.onNodeWithContentDescription(brewDescription).assertHasClickAction()
+        compose.onNodeWithContentDescription("Laufender Aufguss: Kamille, Aufguss 1 von 2, noch 48 Sekunden. Zum Timer")
+            .performClick()
+        compose.onNodeWithText("0:48", useUnmergedTree = true).assertExists()
+        assertThat(quickClicks).isEqualTo(1)
+    }
+
+    @Test
     fun `one timer alone keeps the full bar`() {
         show(hisui, alongside = null)
 

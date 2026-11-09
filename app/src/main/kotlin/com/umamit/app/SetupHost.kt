@@ -1,10 +1,13 @@
 package com.umamit.app
 
+import com.umamit.core.model.TimerSlot
+
 /**
  * What the setup route (SCR-04) gets from the root.
  *
  * @property onBack leaves the setup.
- * @property onOpenTimer the session waits in READY: the timer replaces the setup (TMR-01).
+ * @property onOpenTimer the session waits in READY: the timer of its slot replaces the setup (TMR-01; null: the
+ *   one in front, D-108).
  * @property onOpenCatalog ⋮ *Im Katalog ansehen*: the catalog tea's detail (SCR-21) above the setup (D-098).
  * @property onOpenTea ⋮ *Tee ansehen*: the collection tea's detail (SCR-09) above the setup (D-100).
  * @property onNewVessel *Neues Gefäß …*: the vessel editor (SCR-14) above the setup (WARE-02, D-100).
@@ -13,7 +16,7 @@ package com.umamit.app
  */
 internal class SetupHost(
     val onBack: () -> Unit,
-    val onOpenTimer: () -> Unit,
+    val onOpenTimer: (TimerSlot?) -> Unit,
     val onOpenCatalog: (key: String) -> Unit = {},
     val onOpenTea: (teaId: String) -> Unit = {},
     val onNewVessel: () -> Unit = {},

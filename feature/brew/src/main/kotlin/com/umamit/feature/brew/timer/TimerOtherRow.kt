@@ -60,7 +60,8 @@ private const val TABULAR_FIGURES = "tnum"
 
 /**
  * The slim row for the other active timer below the band (SCR-05, SCR-07, D-098 Q3): on the brew „⏱ Schnelltimer
- * 2:14" („· Pausiert 2:14"), on the quick timer „🍃 Tanabata · Aufguss 2 · 0:48" („· bereit", „· fertig"), its
+ * 2:14" („· Pausiert 2:14") or the other brew session „🍃 Hisui · Aufguss 2 · 0:48" (D-108; a held alert „· wartet"),
+ * on the quick timer „🍃 Tanabata · Aufguss 2 · 0:48" („· bereit", „· fertig"), its
  * countdown ticking, with a small *Pause* / *Weiter* for that timer's running or paused step. A tap on the row
  * opens that timer ([onOpen]); the button sends its event to that timer only ([onEvent]). A long name gives way
  * first (ellipsis), down to its first few letters; where even then the step does not fit on the row's one line (a
@@ -208,7 +209,11 @@ private fun plainDetail(other: TimerUiState.Active, time: String): String = when
     TimerPhase.READY -> stringResource(R.string.brew_timer_other_ready)
 
     TimerPhase.ALERTING -> stringResource(
-        if (other.isQuick) R.string.brew_timer_other_done else R.string.brew_timer_other_alert,
+        when {
+            other.isQuick -> R.string.brew_timer_other_done
+            other.alertHeld -> R.string.brew_timer_other_held
+            else -> R.string.brew_timer_other_alert
+        },
     )
 
     TimerPhase.FINISHED -> stringResource(R.string.brew_timer_other_done)
@@ -221,9 +226,15 @@ private fun stepDetail(other: TimerUiState.Active, step: TimerUiStep, time: Stri
     val number = other.stepIndex + 1
     return when (other.phase) {
         TimerPhase.RUNNING -> stringResource(R.string.brew_timer_other_step, kind, number, time)
+
         TimerPhase.PAUSED -> stringResource(R.string.brew_timer_other_step_paused, kind, number, time)
+
         TimerPhase.READY -> stringResource(R.string.brew_timer_other_step_ready, kind, number)
-        TimerPhase.ALERTING -> stringResource(R.string.brew_timer_other_alert)
+
+        TimerPhase.ALERTING -> stringResource(
+            if (other.alertHeld) R.string.brew_timer_other_held else R.string.brew_timer_other_alert,
+        )
+
         TimerPhase.FINISHED -> stringResource(R.string.brew_timer_other_done)
     }
 }

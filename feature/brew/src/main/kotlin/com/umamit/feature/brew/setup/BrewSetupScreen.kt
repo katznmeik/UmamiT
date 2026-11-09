@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.common.stockGramsText
 import com.umamit.core.designsystem.component.BackAction
 import com.umamit.core.designsystem.component.EmptyState
-import com.umamit.core.designsystem.component.FinishActiveSessionDialog
 import com.umamit.core.designsystem.component.KettleHint
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.ScreenScaffold
@@ -211,11 +210,7 @@ private fun SetupContent(state: BrewSetupUiState.Ready, actions: BrewSetupAction
     // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
     val question = state.question?.takeIf { state.alertKey == null }
     if (question != null) {
-        FinishActiveSessionDialog(
-            teaName = question.teaName,
-            onRestart = actions.confirmRestart,
-            onCancel = actions.dismissQuestion,
-        )
+        StartQuestionDialog(question, onEnd = actions.endTimer, onCancel = actions.dismissQuestion)
     }
 }
 

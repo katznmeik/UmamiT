@@ -323,4 +323,42 @@ class TimerComponentScreenshotTest(private val dark: Boolean, private val fontSc
             )
         }
     }
+
+    /**
+     * The bar with two brew sessions (D-108): both halves running, in the slot order; then the first alerting with
+     * the second's alert held („wartet", calm).
+     */
+    @Test
+    fun activeBrewBarTwoBrews() = capture("ActiveBrewBar_twoBrews") {
+        val hisui = ActiveBrew(
+            title = "Bio Sencha Hisui",
+            step = "Aufguss 2/4",
+            stepDescription = "Aufguss 2 von 4",
+            remainingSeconds = 72,
+            liquorColor = liquor().green,
+        )
+        val kamille = ActiveBrew(
+            title = "Kamille",
+            step = "Aufguss 1/2",
+            stepDescription = "Aufguss 1 von 2",
+            remainingSeconds = 48,
+            liquorColor = liquor().green,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(UmamiSpacing.Small)) {
+            ActiveBrewBar(
+                brew = hisui,
+                progress = { 0.4f },
+                onClick = {},
+                alongside = kamille,
+                alongsideProgress = { 0.7f },
+            )
+            ActiveBrewBar(
+                brew = hisui.copy(remainingSeconds = 0, alerting = true, overtimeSeconds = 3),
+                progress = { 1f },
+                onClick = {},
+                alongside = kamille.copy(remainingSeconds = 0, held = true),
+                alongsideProgress = { 1f },
+            )
+        }
+    }
 }

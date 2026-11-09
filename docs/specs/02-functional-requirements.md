@@ -94,7 +94,12 @@ While a session or quick timer is active, top-level screens show a compact bar
 above the navigation bar with tea name, step („Aufguss 2/4") and live remaining
 time; tapping it opens the timer (SCR-05). While the step alerts, the bar turns
 static matcha with „Jetzt abgießen!" and the overtime counting up (03 §3.8,
-D-055).
+D-055). With two active timers (v0.3.0 a brew and the quick timer, D-098;
+v0.5.0 also two brew sessions, D-108) it holds both in the slot order, each
+half with its live countdown and its own tap, which opens that timer; an
+alerting half takes the alert style alone, a held one shows that it waits
+(„wartet" for a brew, „fertig" for the quick timer). TalkBack reads each
+half with its tea, step and time.
 
 **GEN-07 — State survives everything** `Must`
 No input or timer state is lost on rotation, theme change, multi-window, or
@@ -1023,6 +1028,15 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
     logs or discards it as above, never the other.
   - AC6: Two brew sessions survive swiping the app away, process death, a
     reboot and an app update, each in its own slot (04 §7).
+  - **Screens (v0.5.0-03, #201).** A start of another tea while one timer
+    is active opens the new session's timer (the second brew's, not the
+    first's). A start of a tea with an active session opens that session,
+    asking nothing. „Welchen Timer beenden?" is asked by *Nochmal brühen*,
+    the setup's *Brühen starten* and SCR-07's *Start* (reached from Start's
+    *Schnelltimer*); one full-width button per active timer in the slot
+    order, *Abbrechen* keeps both. During an alert no question shows: the
+    alerting timer opens instead (rule 8). *Brühen anpassen* replaces the
+    waiting session in its own slot.
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
@@ -1053,8 +1067,11 @@ automatic rule of TMR-23) and Live Update; not logged.
     only 10 min after it started ringing. Two sounds never play at once
     (04 §9.3).
 - **Two brews (v0.5.0, D-108).** AC1–AC4 hold for two brew sessions too:
-  the bar and each timer screen show both (SCR-02, SCR-05; the screens come
-  with v0.5.0-03); the Live Update is the one that ends next. **Alarm
+  the bar and each timer screen show both (SCR-02, SCR-05: the other brew
+  in the slim row, „🍃 Hisui · Aufguss 2 · 0:48", with its own
+  *Pause*/*Weiter*; a tap opens it, back returns); the Live Update is the one
+  that ends next. A held brew reads „wartet" in the bar and the row and
+  „Fertig, wartet auf den anderen Aufguss" in its quiet notification. **Alarm
   order:** the first alarm rings; a brew alarm due while the other brew
   alarm rings waits and rings right after *Abgegossen* with its overtime,
   ending silently only 10 min after it started ringing. A brew still goes

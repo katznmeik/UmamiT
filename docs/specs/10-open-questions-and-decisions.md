@@ -515,6 +515,49 @@ the tickets (`/to-tickets`); nothing is built before the PO starts
   `BREW_2` timer (its alert, its notification's tap), with the other active
   timer in the slim row, so a second brew is never left without a screen.
 
+**Build notes (Claude, 2026-11-09, #201: two brews on screen).**
+- **The screens read the refusal, never decide admission.** A small seam in
+  `core:timer` (`StartRefusal`, `refusalOf`) turns the controller's refusal
+  into what a screen does: `ActiveTimerExists` naming a brew session opens
+  that session's slot, naming the quick timer asks „Schnelltimer beenden und
+  neu starten?", `TwoTimersActive` asks „Welchen Timer beenden?" with the
+  active slots in the slot order. Start, the setup and SCR-07 share it; the
+  answer calls `finishActiveAndStart(…, ending)` /
+  `finishActiveAndStartQuickTimer(…, ending)`. No engine or controller
+  behaviour changed.
+- **The timer that opens.** After an accepted brew start the screens open
+  the slot of the session that was not active before (`startedSlot`), so a
+  second brew from Start or the setup shows itself, not the first
+  (`HomeEvent.OpenTimer(slot)`, `BrewSetupEvent.OpenTimer(slot)`, the setup
+  host's `onOpenTimer(slot)`). A refusal during an alert opens the timer in
+  front (null slot), as before (rule 8).
+- **Same gesture.** On Start a second tile tap within 1 s of an accepted
+  start is ignored, also for another tea (S6, #54): before v0.5.0 the
+  refusal did this; now it would start a second brew.
+- **The card.** Start's *Aufguss fortsetzen* shows the first brew in the slot
+  order and opens it; with only `BREW_2` active it shows that one. *Aufguss
+  starten* stays hidden while a brew is active, as in v0.3.0; a second brew
+  starts from *Nochmal brühen*, *Favoriten* or a tea's page.
+- **The bar** takes the first two active timers in the slot order and names
+  their slots (`ActiveBrewSource.barSlots`), so each half opens its own
+  timer, `BREW_2` included. A held brew reads „wartet" (the quick timer
+  keeps v0.3.0's „fertig"); its TalkBack text names the step; its quiet
+  notification 5 reads „Fertig, wartet auf den anderen Aufguss". The slim
+  row shows „· wartet" for a held brew.
+- **„Welchen Timer beenden?"** is `ChooseTimerToEndDialog` in
+  `core:designsystem`: a short line, one full-width outlined button per
+  timer (a long tea name wraps to two lines) and *Abbrechen*.
+- **Two sessions in the other screens.** The picker's „can't remove" and the
+  vessel editor's archive block read every active session's tea or vessel
+  (`observeActiveTeaIds`, `observeActiveVesselIds`); the setup's stock line
+  finds the tea's session in either brew slot. The tea detail still reads
+  the single `observeActiveTeaId` (left for the low-stock work in
+  `feature:collection`); its archive and delete stay guarded by the
+  controller-side `EXISTS` checks of #200.
+- **Fakes.** `FakeBrewStarter` follows the v0.5.0 admission (first free
+  brew slot, same tea refused naming its session, `TwoTimersActive` for a
+  third timer) and returns the start's outcome after ending a timer.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 

@@ -13,6 +13,7 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.model.Vessel
 import com.umamit.core.model.VesselType
@@ -333,7 +334,7 @@ class BrewSetupFromSessionTest {
         assertThat(start.steps.map { it.plannedSeconds }).containsExactly(10, 75, 30).inOrder()
         assertThat(start.snapshot.profileId).isNull()
         assertThat(start.snapshot.leafGrams).isEqualTo(4.5)
-        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(BrewSetupEvent.OpenTimer(TimerSlot.BREW))
     }
 
     @Test

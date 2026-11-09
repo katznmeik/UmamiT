@@ -24,7 +24,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.ui.DURATION_PICKER_TOTAL_TAG
-import com.umamit.feature.brew.setup.ActiveSessionQuestion
+import com.umamit.feature.brew.setup.StartQuestion
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,7 +64,7 @@ class QuickTimerScreenTest {
                             state = state.copy(preAlertChoice = it)
                         },
                         start = { calls += "start" },
-                        confirmRestart = { calls += "restart" },
+                        endTimer = { calls += "restart $it" },
                         dismissQuestion = { calls += "dismiss" },
                     ),
                 )
@@ -156,12 +156,12 @@ class QuickTimerScreenTest {
 
     @Test
     fun `while another quick timer is active, Start asks Schnelltimer beenden und neu starten (D-098)`() {
-        show(QuickTimerUiState(question = ActiveSessionQuestion(teaName = null)))
+        show(QuickTimerUiState(question = StartQuestion.RestartQuick))
 
         compose.onNodeWithText("Schnelltimer beenden und neu starten?").assertExists()
         compose.onNodeWithText("Beenden & neu starten").performClick()
 
-        assertThat(calls).containsExactly("restart")
+        assertThat(calls).containsExactly("restart QUICK")
     }
 
     @Test
@@ -284,7 +284,7 @@ class QuickTimerScreenTest {
 
     @Test
     fun `the second-timer question never shows over an alert (rule 8)`() {
-        show(QuickTimerUiState(question = ActiveSessionQuestion(null), alertKey = "s1:0:1"))
+        show(QuickTimerUiState(question = StartQuestion.RestartQuick, alertKey = "s1:0:1"))
 
         compose.onNode(isDialog()).assertDoesNotExist()
     }

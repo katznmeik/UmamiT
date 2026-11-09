@@ -10,7 +10,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.timer.engine.PreAlertChoice
-import com.umamit.feature.brew.setup.ActiveSessionQuestion
+import com.umamit.feature.brew.setup.StartQuestion
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -97,6 +97,6 @@ class QuickTimerScreenshotTest(private val appDark: Boolean, private val fontSca
     fun question() = capture(
         "question",
         // The second quick timer's question (D-098): „Schnelltimer beenden und neu starten?".
-        QuickTimerUiState(durationSeconds = 120, question = ActiveSessionQuestion(teaName = null)),
+        QuickTimerUiState(durationSeconds = 120, question = StartQuestion.RestartQuick),
     )
 }

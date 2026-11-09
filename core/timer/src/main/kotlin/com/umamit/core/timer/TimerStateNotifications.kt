@@ -60,13 +60,19 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
     /**
      * Notification 5, the other active timer (04 §8.2, D-098), on `timer_other` (LOW, silent, never promoted):
      * the title and text of its phase, a countdown while it runs, its own actions; a held quick alert reads
-     * „Fertig, wartet auf den Aufguss" and has no full-screen intent. It opens the timer.
+     * „Fertig, wartet auf den Aufguss", a held brew „Fertig, wartet auf den anderen Aufguss" (D-108), and neither
+     * has a full-screen intent. It opens the timer.
      */
     fun other(state: TimerUiState.Active, now: ClockReading): Notification {
         val countdown = state.phase == TimerPhase.RUNNING && !state.longStep
         val text = when {
-            state.alertHeld -> context.getString(R.string.timer_text_quick_held)
+            // A held brew waits for the other brew's alert (D-108), a held quick alert for the brew's (D-098).
+            state.alertHeld -> context.getString(
+                if (state.sessionId != null) R.string.timer_text_brew_held else R.string.timer_text_quick_held,
+            )
+
             state.alerting -> texts.alertText(state)
+
             else -> texts.text(state, now)
         }
         return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_TIMER_OTHER)

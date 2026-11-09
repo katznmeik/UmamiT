@@ -24,6 +24,7 @@ import com.umamit.core.testing.FakeTimerReliability
 import com.umamit.core.testing.lowStockCard
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -278,7 +279,7 @@ class HomeViewModelTest {
         assertThat(start.recipePreAlertSeconds).isEqualTo(15)
         assertThat((starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active).phase)
             .isEqualTo(TimerPhase.READY)
-        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
         assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
     }
 
@@ -314,7 +315,7 @@ class HomeViewModelTest {
 
         assertThat(starter.starts).hasSize(1)
         assertThat(vm.state.value.question).isNull()
-        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
     }
 
     @Test
@@ -339,21 +340,108 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `brewing again while a session is active asks first (TMR-21)`() = runTest {
+    fun `brewing again another tea while one brew is active starts the second brew and opens it (D-108)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        now += LATER_MS
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
+        // The new brew opens, not the one in BREW (D-108).
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW_2))
+        // The card stays the first brew's; the bar shows both.
+        assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Tanabata")
+    }
+
+    @Test
+    fun `brewing again a tea with an active session opens that session, asking nothing (D-108)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         now += LATER_MS
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.events.first()
+        vm.events.first()
+        now += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        assertThat(vm.state.value.question).isEqualTo(HomeQuestion("Bio Sencha Tanabata"))
 
-        vm.confirmRestart()
+        assertThat(vm.state.value.question).isNull()
+        assertThat(starter.starts).hasSize(2)
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW_2))
+    }
+
+    @Test
+    fun `a third start asks which timer to end and ends only the chosen one (TMR-21 AC5)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        vm.events.first()
+        now += LATER_MS
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        assertThat(vm.state.value.question).isEqualTo(
+            HomeQuestion(
+                listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata"), TimerToEnd(TimerSlot.QUICK, null)),
+            ),
+        )
+
+        vm.endTimerAndStart(TimerSlot.QUICK)
+
         assertThat(vm.state.value.question).isNull()
         assertThat(starter.replaced).isEqualTo(1)
-        assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNull()
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW_2))
+    }
+
+    @Test
+    fun `ending the first of two brews for a third starts it in the freed slot (TMR-21 AC5)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        brewed("s3", KAMAIRICHA_TEA_ID, "Kamairicha", at = 3_000, 30)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        now += LATER_MS
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += LATER_MS
+        vm.brewAgain(KAMAIRICHA_TEA_ID)
+        assertThat(vm.state.value.question?.timers?.map { it.teaName })
+            .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui").inOrder()
+
+        vm.endTimerAndStart(TimerSlot.BREW)
+
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Kamairicha")
+        assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.state.value.active?.teaName).isEqualTo("Kamairicha")
+    }
+
+    @Test
+    fun `the card shows the second brew once the first has ended, and opens it (SCR-02, D-108)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        val second = checkNotNull(starter.activeIn(TimerSlot.BREW)).copy(inSlot = TimerSlot.BREW_2)
+
+        starter.state.value = second
+
+        assertThat(vm.state.value.active).isEqualTo(second)
+        assertThat(vm.state.value.active?.slot).isEqualTo(TimerSlot.BREW_2)
     }
 
     @Test
@@ -407,35 +495,43 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `Abbrechen keeps the active session`() = runTest {
+    fun `Abbrechen keeps both active timers`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         now += LATER_MS
-        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        assertThat(vm.state.value.question).isNotNull()
 
         vm.dismissQuestion()
 
         assertThat(vm.state.value.question).isNull()
         assertThat(starter.starts).hasSize(1)
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
     }
 
     @Test
-    fun `brewing again while the active step alerts opens the timer instead of asking (rule 8)`() = runTest {
+    fun `a third start while a step alerts opens the alerting timer instead of asking (rule 8)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
-        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
-        val active = starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        val active = starter.state.value as TimerUiState.Active
         starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
         now += LATER_MS
 
-        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
 
         assertThat(vm.state.value.question).isNull()
-        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer)
+        // The timer in front: the alerting one.
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(null))
         assertThat(starter.starts).hasSize(1)
     }
 
@@ -443,11 +539,14 @@ class HomeViewModelTest {
     fun `an alert closes the question (rule 8)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         now += LATER_MS
-        vm.brewAgain(SeedData.HISUI_TEA_ID)
-        val active = starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        assertThat(vm.state.value.question).isNotNull()
+        val active = starter.state.value as TimerUiState.Active
 
         starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
 
@@ -483,5 +582,6 @@ class HomeViewModelTest {
     private companion object {
         /** A deliberate later tap, past the double-tap window. */
         const val LATER_MS = 5_000L
+        const val KAMAIRICHA_TEA_ID = "kamairicha"
     }
 }

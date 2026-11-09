@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.umamit.core.designsystem.component.FinishActiveSessionDialog
 import com.umamit.core.designsystem.component.PillButton
 import com.umamit.core.designsystem.component.TimerRing
 import com.umamit.core.designsystem.component.TimerRingDefaults
@@ -41,11 +40,13 @@ import com.umamit.core.designsystem.text.spokenDuration
 import com.umamit.core.designsystem.theme.SteepingTheme
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.ui.AlertGated
 import com.umamit.core.ui.DurationPicker
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.R
+import com.umamit.feature.brew.setup.StartQuestionDialog
 import com.umamit.feature.brew.steps.PreAlertDropdown
 import com.umamit.feature.brew.steps.preAlertSpoken
 import com.umamit.feature.brew.timer.CircledIconButton
@@ -70,7 +71,8 @@ class QuickTimerActions(
     val select: (seconds: Int) -> Unit = {},
     val selectPreAlert: (PreAlertChoice) -> Unit = {},
     val start: () -> Unit = {},
-    val confirmRestart: () -> Unit = {},
+    /** The answer to the question: that slot's timer ends, then this one runs (D-098, D-108). */
+    val endTimer: (TimerSlot) -> Unit = {},
     val dismissQuestion: () -> Unit = {},
 )
 
@@ -113,11 +115,7 @@ fun QuickTimerScreen(state: QuickTimerUiState, actions: QuickTimerActions, modif
         // Never over an alert, by construction (the view model also closes it).
         val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
-            FinishActiveSessionDialog(
-                teaName = question.teaName,
-                onRestart = actions.confirmRestart,
-                onCancel = actions.dismissQuestion,
-            )
+            StartQuestionDialog(question, onEnd = actions.endTimer, onCancel = actions.dismissQuestion)
         }
     }
 }
