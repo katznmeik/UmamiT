@@ -468,6 +468,53 @@ the tickets (`/to-tickets`); nothing is built before the PO starts
   runs the v0.3.0 pair (with its old checks) and all three slots. With one
   brew and one quick timer the controller tests pass unchanged.
 
+**Build notes (Claude, 2026-11-09, #200: two brews in the controller).**
+- **Admission.** A brew start goes to the first free brew slot (`BREW`,
+  then `BREW_2`) while at most one other timer is active. A start of a tea
+  with an active session (same `tea_id`) goes to that session's slot, where
+  the engine refuses it as `ActiveTimerExists` naming it, as before v0.5.0;
+  so v0.4.1's screens and their tests keep working, and the screens of
+  v0.5.0-03 open that session. A start while two timers are active is
+  refused with the new `RejectionReason.TwoTimersActive(active slots)`,
+  which only the controller gives. A quick timer while one is active stays
+  `ActiveTimerExists` („Schnelltimer beenden und neu starten?"): ending a
+  brew would not free the quick slot. Nothing is written for a refusal.
+- **Ending the chosen timer.** `finishActiveAndStart(request, ending)` and
+  `startQuickTimer(…, ending)` (the `BrewStarter` methods take the slot
+  too, default the v0.4.1 slot) end that slot's timer in the start's turn,
+  as *Beenden & neu starten* did: a session saved with „Sitzung
+  gespeichert" or discarded silently, the quick timer cancelled.
+- **The slot travels with the timer.** `TimerUiState.Active` carries
+  `inSlot` = `BREW_2` for a second brew (null otherwise, so `slot` still
+  follows the kind for `BREW` and `QUICK` and a copy with another kind
+  stays right), the alert player remembers
+  the slot of the alert it plays (`alertCompleted` reaches that slot, not
+  the kind's), notification roles and the timer in front work over the
+  active slots in the slot order, and `ActiveBrewSnapshot` no longer picks
+  its slot: the store writes the row under the slot it is given and refuses
+  only a row of the other kind (`fitsIn`). No schema change: `BREW_2` is a
+  new value of the TEXT key (umamit.db v4 stays frozen), tested side by
+  side with `BREW`.
+- **Recovery, first-rung keeps the sound (open point a of #196).** While
+  the first turn recovers in the slot order, a slot not yet recovered counts
+  with its restored row for the hold of `recover`: a brew whose deadline
+  passed while the process was dead recovers held when a later slot's row
+  was ringing, instead of taking the sound and holding the alert that rang
+  first. The arbitration settles once after all slots are recovered, not
+  after each (which could release an alert held for a slot not yet read).
+  With one brew and the quick timer the result is that of v0.3.0.
+- **Also per session.** The orphan cleanup after a device restore keeps the
+  sessions of both brew slots, and the archive and delete guards for teas
+  and vessels (E15) check every active session (`EXISTS` queries; the
+  single-value `observeActive…Id` flows the screens read stay for -03).
+- **Diagnostics.** `FireTime` maps a line's slot by its prefix, so
+  `BREW2.` lines parse back as `BREW_2` for the accuracy variant of -04.
+- **Left for v0.5.0-03.** The active brew bar, Start and the setup's view
+  models still read `BREW` and `QUICK`, and `FakeBrewStarter` keeps the
+  v0.4.1 rules for their tests. Only the timer route already shows a
+  `BREW_2` timer (its alert, its notification's tap), with the other active
+  timer in the slim row, so a second brew is never left without a screen.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 

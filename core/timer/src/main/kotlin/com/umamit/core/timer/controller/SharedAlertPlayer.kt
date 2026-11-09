@@ -22,13 +22,16 @@ internal class SharedAlertPlayer(
     /** The alert the player plays, between `StartAlert` and its end or a `StopAlert` that reached it. */
     private var playingAlert: StepAlert? = null
 
+    /** The slot of [playingAlert]: two brew sessions share the kind of timer, never the slot (D-108). */
+    private var playingSlot: TimerSlot? = null
+
     private val sound = PlayerSound(PRE_ALERT_RING_MS)
 
     /** When each waiting pre-alert was due, for the player's log once it plays (D-068). */
     private val waitingScheduled = mutableMapOf<TimerSlot, ScheduledTime?>()
 
     /** The slot whose alert plays (its watchdog follows it); null while none plays. */
-    val alertPlayingIn: TimerSlot? get() = playingAlert?.let { slotOf(it.kind) }
+    val alertPlayingIn: TimerSlot? get() = playingSlot.takeIf { playingAlert != null }
 
     /** True while the alert of the alerting [state] plays. */
     fun isPlaying(state: TimerState.Alerting): Boolean = playingAlert == stepAlertOf(state)
@@ -44,6 +47,7 @@ internal class SharedAlertPlayer(
         waitingScheduled.remove(slot)
         alert.startAlert(stepAlert, dueTimeOf(slot, state))
         playingAlert = stepAlert
+        playingSlot = slot
     }
 
     /**
@@ -69,14 +73,16 @@ internal class SharedAlertPlayer(
     }
 
     /**
-     * The player reported the end of [ended]: true when it is the playing alert, which then no longer plays;
-     * false for any other (stopped, or an earlier step's), which must change nothing.
+     * The player reported the end of [ended]: its slot when it is the playing alert, which then no longer plays;
+     * null for any other (stopped, or an earlier step's), which must change nothing.
      */
-    fun alertEnded(ended: StepAlert): Boolean {
-        if (ended != playingAlert) return false
+    fun alertEnded(ended: StepAlert): TimerSlot? {
+        if (ended != playingAlert) return null
+        val slot = playingSlot
         playingAlert = null
-        sound.alertEnded(slotOf(ended.kind))
-        return true
+        playingSlot = null
+        slot?.let(sound::alertEnded)
+        return slot
     }
 
     /**

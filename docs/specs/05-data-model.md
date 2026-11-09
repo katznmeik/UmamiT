@@ -352,13 +352,14 @@ are nullable (#30). A device restore clears the row (§8).
 
 | Column | Type | Notes |
 |---|---|---|
-| `slot` | TEXT | **PK**, replaces `id`: `BREW` (a brew session, `is_quick_timer` 0) or `QUICK` (a quick timer, `is_quick_timer` 1). A row whose `slot` and `is_quick_timer` disagree makes the snapshot invalid |
-| `alert_ringing_since_elapsed_ms`, `alert_ringing_since_wall_ms` | INTEGER | ALERTING only: when the alert last started ringing (`ringingSince`, 04 §9.3); null = held (a quick alert waiting for the brew's) or not alerting. A brew row in ALERTING always has it. The quick slot's overtime timeout is 10 min after it; the wall value rebases it after a reboot |
+| `slot` | TEXT | **PK**, replaces `id`: `BREW` (a brew session, `is_quick_timer` 0) or `QUICK` (a quick timer, `is_quick_timer` 1); from v0.5.0 also `BREW_2`, a second brew session (`is_quick_timer` 0; D-108), with no schema change: the slot is stored by name, so the table holds up to two rows of any two slots. A row whose `slot` and `is_quick_timer` disagree (a quick row in a brew slot, a brew row in `QUICK`) makes the snapshot invalid |
+| `alert_ringing_since_elapsed_ms`, `alert_ringing_since_wall_ms` | INTEGER | ALERTING only: when the alert last started ringing (`ringingSince`, 04 §9.3); null = held (an alert waiting for another slot's: a quick alert for a brew's, from v0.5.0 also a brew's for the other brew's) or not alerting. Every slot's overtime timeout is 10 min after it; the wall value rebases it after a reboot |
 
 All other columns stay as above, per row. `ActiveBrewStore` reads and writes
-the snapshot per slot: a write touches only its slot's row (and, for the
+the snapshot per slot: a write touches only its slot's row (and, for a
 brew slot, its session's step rows), clearing a slot deletes only its row,
-and a device restore clears both (§8).
+and a device restore clears all (§8). The snapshot does not name its brew
+slot; the store writes it under the slot it is given.
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
@@ -508,7 +509,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `VesselMaterial` | `UNGLAZED_CLAY`, `GLAZED_CERAMIC`, `PORCELAIN`, `GLASS`, `CAST_IRON`, `STAINLESS_STEEL`, `OTHER` |
 | `SessionStatus` | `IN_PROGRESS`, `COMPLETED`, `MANUAL` |
 | `TimerPhase` | `READY`, `RUNNING`, `PAUSED`, `ALERTING`, `FINISHED` |
-| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098) |
+| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098); `BREW_2` from v0.5.0 (D-108) |
 | `InventoryEventType` | `INITIAL`, `PURCHASE`, `BREW`, `ADJUSTMENT` |
 | `PhotoOrigin` | `OWN`, `CATALOG_COPY` |
 | `RecipeSource` | `CATALOG_TABLE`, `CATALOG_TEXT`, `STYLE_DEFAULT`, `USER` |

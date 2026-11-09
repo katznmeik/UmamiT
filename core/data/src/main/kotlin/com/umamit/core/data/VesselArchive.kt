@@ -31,7 +31,7 @@ class RoomVesselArchive @Inject constructor(private val db: UmamiDatabase, priva
 
     override suspend fun archive(vesselId: String): ArchiveResult = db.withTransaction {
         when {
-            db.activeBrewDao().activeVesselId() == vesselId -> ArchiveResult.InActiveSession
+            db.activeBrewDao().isActiveVessel(vesselId) -> ArchiveResult.InActiveSession
             db.vesselDao().setArchived(vesselId, archived = true, now = time.nowMs()) == 0 -> ArchiveResult.NotFound
             else -> ArchiveResult.Archived
         }

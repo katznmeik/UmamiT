@@ -15,6 +15,7 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.DueTimes
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.PreAlertSettings
+import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
@@ -48,15 +49,15 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
 
 /**
  * The single owner of the timer state (04 §2.1, §4; D-056): every brew
- * session and quick timer goes through it. It runs two slots (04 §3.3,
- * D-098), the brew slot for brew sessions and the quick slot for the quick
- * timer, each with its own engine state, alarms, alert watchdog and stored
- * row ([ControllerSlots], [TimerSlotStore]): a brew session and a quick timer
- * run side by side (TMR-21, TMR-22). A second brew slot (`BREW_2`, D-108)
- * exists but admits no timer yet. One alert player serves all, arbitrated
- * after every event ([AlertArbitration], [TransitionEffects]): the brew's
- * alert first, a quick alert due meanwhile held until the brew's is
- * acknowledged, never two sounds at once (04 §9.3). Each input runs in one turn of one
+ * session and quick timer goes through it. It runs three slots (04 §3.3,
+ * D-098, D-108), the brew slots `BREW` and `BREW_2` for brew sessions and the
+ * quick slot for the quick timer, each with its own engine state, alarms, alert
+ * watchdog and stored row ([ControllerSlots], [TimerSlotStore]); any two timers
+ * are active at once: two brew sessions, or a brew session and the quick timer
+ * (GEN-03, TMR-21, TMR-22). One alert player serves all, arbitrated after every
+ * event ([AlertArbitration], [TransitionEffects]): the first alarm rings, a
+ * deadline due meanwhile is held until that alert is acknowledged (a brew still
+ * preempts a ringing quick alert), never two sounds at once (04 §9.3). Each input runs in one turn of one
  * event lock: the clocks are read inside the lock, once per reduce (D-054);
  * the engine's effects then run in the order of D-047 ([TransitionEffects]):
  * the data effects and `Persist` in one database transaction, then
@@ -88,7 +89,7 @@ class BrewSessionController @Inject constructor(
     private val recovery = ProcessRecovery()
     private val sideBySide = SideBySide()
 
-    /** The brew and the quick slot; read and written only inside [lock]. */
+    /** The brew slots and the quick slot; read and written only inside [lock]. */
     private val slots = ControllerSlots(ports.alarms)
 
     /**
@@ -113,10 +114,12 @@ class BrewSessionController @Inject constructor(
     val recovered: StateFlow<Boolean> = mutableRecovered.asStateFlow()
 
     /**
-     * *Brühen starten* (TMR-01): starts a brew session waiting in READY, in the brew slot, alongside a quick
-     * timer (D-098). The pre-alert inherits the recipe's value, else the global setting, frozen now (04 §5).
-     * Returns `Rejected(ActiveTimerExists)` while another brew session is active (TMR-21); then nothing is
-     * written.
+     * *Brühen starten* (TMR-01): starts a brew session waiting in READY, in the first free brew slot (`BREW`, then
+     * `BREW_2`), beside the other active timer (D-098, D-108). The pre-alert inherits the recipe's value, else the
+     * global setting, frozen now (04 §5). Nothing is written when it is refused: with
+     * `Rejected(ActiveTimerExists)` naming the session of the same tea (TMR-21, D-108: a tea has at most one active
+     * session, which the UI opens instead), with `Rejected(TwoTimersActive)` naming the active slots while two
+     * timers are active („Welchen Timer beenden?", GEN-03).
      */
     suspend fun startSession(request: BrewStart): TransitionOutcome {
         val start = PendingStart(request, settings.current().preAlertSeconds)
@@ -124,17 +127,17 @@ class BrewSessionController @Inject constructor(
     }
 
     /**
-     * *Beenden & neu starten* (TMR-21, D-054): the answer to „Erst die … -Sitzung beenden?".
-     * In one turn, so nothing gets in between, the active brew session ends as by *Sitzung beenden*
-     * (saved, or discarded without a completed infusion: the dialog was the confirmation), and
-     * [request] starts. A quick timer is never touched (D-098). The finish's „Gespeichert" sheet
-     * becomes the notification „Sitzung gespeichert" (TMR-14): the new session's timer is in front.
-     * Returns the start's outcome.
+     * *Beenden & neu starten* (TMR-21, D-054, D-108): the answer to „Welchen Timer beenden?" (and to the
+     * questions of the screens before v0.5.0). In one turn, so nothing gets in between, the active timer of
+     * [ending] ends, a brew session as by *Sitzung beenden* (saved, or discarded without a completed infusion: the
+     * dialog was the confirmation), the quick timer as by *Abbrechen* (*Fertig* while alerting), and [request]
+     * starts as by [startSession]. No other timer is touched. The finish's „Gespeichert" sheet becomes the
+     * notification „Sitzung gespeichert" (TMR-14): the new session's timer is in front. Returns the start's outcome.
      */
-    suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome {
+    suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot = TimerSlot.BREW): TransitionOutcome {
         val start = PendingStart(request, settings.current().preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            sideBySide.endActive(TimerSlot.BREW)
+            sideBySide.endActive(ending)
             start.handle()
         }
     }
@@ -149,8 +152,10 @@ class BrewSessionController @Inject constructor(
             longStepsOnly = BrewTimerEngine.longStepsOnly(request.snapshot.method),
         )
 
-        /** Inside a turn: the start in the brew slot at the current clocks. */
+        /** Inside a turn: the start in its brew slot ([SideBySide.brewSlotFor]) at the clocks now, or its refusal. */
         suspend fun handle(): TransitionOutcome {
+            val slot = sideBySide.brewSlotFor(request.snapshot.teaId)
+                ?: return TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
             val now = clocks.read()
             val start = SessionStart(
                 id = event.sessionId,
@@ -160,7 +165,7 @@ class BrewSessionController @Inject constructor(
                 startedAtMs = now.wallMs,
                 zoneId = now.zone.id,
             )
-            return sideBySide.start(TimerSlot.BREW, event, now, start)
+            return sideBySide.start(slot, event, now, start)
         }
     }
 
@@ -171,21 +176,27 @@ class BrewSessionController @Inject constructor(
      * in READY in the quick slot, alongside a brew session (D-098); nothing is
      * recorded. Returns `Rejected(ActiveTimerExists)` while another quick timer
      * is active and `Rejected(InvalidQuickTimer)` for a duration outside
-     * 5 s – 24 h or a choice other than 0 or 5–30 s. With [run], its step starts
+     * 5 s – 24 h or a choice other than 0 or 5–30 s, and `Rejected(TwoTimersActive)` naming the brew slots while
+     * two brew sessions are active (GEN-03, D-108: „Welchen Timer beenden?"). With [run], its step starts
      * in the same turn (SCR-07's *Start*). With [finishActive] it is „Schnelltimer
      * beenden und neu starten?" (D-054, D-065, D-098): in the same turn the
      * active quick timer first ends (*Abbrechen*, or *Fertig* while alerting);
-     * the brew is never touched.
+     * the brew is never touched. With [ending] the timer of that slot ends first instead, a brew session as by
+     * *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108).
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
         preAlertSeconds: Int? = null,
         run: Boolean = false,
         finishActive: Boolean = false,
+        ending: TimerSlot? = null,
     ): TransitionOutcome {
         val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            if (finishActive) sideBySide.endActive(TimerSlot.QUICK)
+            (ending ?: TimerSlot.QUICK.takeIf { finishActive })?.let { sideBySide.endActive(it) }
+            if (!sideBySide.quickStartAdmitted()) {
+                return@inTurn TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
+            }
             val outcome = sideBySide.start(TimerSlot.QUICK, event, clocks.read())
             // SCR-07's *Start* (D-065): READY and running in one turn, so no input lands between them and a
             // cancelled caller never leaves a waiting quick timer behind.
@@ -248,11 +259,9 @@ class BrewSessionController @Inject constructor(
      */
     suspend fun alertCompleted(alert: StepAlert): TransitionOutcome = inTurn {
         val now = clocks.read()
-        if (effects.alertEnded(alert, now)) {
-            handle(slotOf(alert.kind), TimerEvent.AlertCompleted, now, EventSource.ALERT_PLAYER)
-        } else {
-            TransitionOutcome.Ignored
-        }
+        effects.alertEnded(alert, now)?.let { slot ->
+            handle(slot, TimerEvent.AlertCompleted, now, EventSource.ALERT_PLAYER)
+        } ?: TransitionOutcome.Ignored
     }
 
     /**
@@ -338,13 +347,28 @@ class BrewSessionController @Inject constructor(
         /** The persisted state is unread and a retry comes: an alarm set again, the in-process wake-up. */
         val retrying: Boolean get() = !done && !retriesStopped
 
+        /**
+         * While the first turn recovers the slots one by one: the restored states of the slots not recovered yet,
+         * which the arbitration counts for the hold of a recovery (04 §7.2, D-108), so a brew whose deadline passed
+         * while the process was dead never takes the sound from a brew that was already ringing. Empty otherwise.
+         */
+        var notYetRecovered: Map<TimerSlot, TimerState> = emptyMap()
+            private set
+
+        /** The first turn is recovering the slots; the arbitration settles once all of them are (04 §7.2). */
+        var inProgress = false
+            private set
+
         /** Since when (elapsed) the reads of the persisted state have failed; null while none failed. */
         private var failingSinceMs: Long? = null
 
         /**
          * In the first turn of the process: the persisted state of each slot is restored and
-         * `recover` applied once, the brew slot first (04 §7.2, D-098), so its alarms, service,
-         * notification and an unplayed alert come back; then the alarms of every slot without a
+         * `recover` applied once, in the slot order `BREW`, `BREW_2`, `QUICK` (04 §7.2, D-098, D-108), so
+         * its alarms, service, notification and an unplayed alert come back; a slot recovers held while
+         * another slot's alert rings that it does not preempt, whether that slot was recovered already or
+         * rang before the process died (the alert that rang first keeps the sound). Then the arbitration
+         * settles once (a held alert left without a ringing one rings), the alarms of every slot without a
          * timer are cancelled (a quick timer of v0.2.2 set its alarms under the brew slot's codes,
          * 04 §6.2), and the sessions a device restore left in progress are ended (E11). A read
          * that fails is tried again in a later turn, less and less often ([RecoveryBackoff]).
@@ -360,8 +384,13 @@ class BrewSessionController @Inject constructor(
             }
             done = true
             val now = clocks.read()
-            // The brew slot first; one reboot notice for both once both are recovered (04 §7.3).
+            // In the slot order; one reboot notice for all once all are recovered (04 §7.3).
+            inProgress = true
+            notYetRecovered = persisted.mapValues { it.value.state }.filterValues { it is TimerState.Active }
             val rebooted = persisted.filter { (slot, restored) -> recoverSlot(slots[slot], restored, now) }.keys
+            notYetRecovered = emptyMap()
+            inProgress = false
+            sideBySide.settle()
             effects.notifyResumedAfterReboot(rebooted.toList())
             persisted.filterValues { it.state !is TimerState.Active }.keys.forEach { idle ->
                 attempt { ports.alarms.reconcile(idle, DueTimes.NONE) }
@@ -371,9 +400,11 @@ class BrewSessionController @Inject constructor(
             attempt { effects.roles.dropStaleOther() }?.let { Log.w(TAG, "stale notification 5 not removed", it) }
             // After the recovered state is published: the screens may now trust Idle.
             mutableRecovered.value = true
-            // After the timer and its alert: the sessions a device restore (E11) left in progress.
-            val restoredBrew = persisted[TimerSlot.BREW]?.state as? TimerState.Active
-            persistedTimer.endOrphans((restoredBrew?.session?.kind as? SessionKind.Brew)?.sessionId, now)
+            // After the timers and their alerts: the sessions a device restore (E11) left in progress.
+            val restoredBrews = persisted.values.mapNotNull {
+                ((it.state as? TimerState.Active)?.session?.kind as? SessionKind.Brew)?.sessionId
+            }
+            persistedTimer.endOrphans(restoredBrews.toSet(), now)
         }
 
         /**
@@ -386,6 +417,7 @@ class BrewSessionController @Inject constructor(
             now: ClockReading,
         ): Boolean {
             val active = restored.state as? TimerState.Active ?: return false
+            notYetRecovered = notYetRecovered - slot.id
             slot.timer = active
             slot.restoredForAlarmLog = active
             handle(slot.id, TimerEvent.Recover, now, EventSource.RECOVERY, startDetails = restored.details)
@@ -439,16 +471,37 @@ class BrewSessionController @Inject constructor(
     }
 
     /**
-     * The two slots side by side (04 §3.3, §9.3, TMR-21, TMR-22; D-098), used only inside [lock]: a brew
-     * session starts in the brew slot and a quick timer in the quick slot, each while the other slot runs;
-     * only a second start in the same slot is refused (`ActiveTimerExists`, by the engine), and *Beenden &
-     * neu starten* ends the timer of that slot only. After every accepted event the alert arbitration
-     * settles the slots.
+     * The slots side by side (04 §3.3, §9.3, GEN-03, TMR-21, TMR-22; D-098, D-108), used only inside [lock]: at
+     * most two timers are active. A brew session starts in a free brew slot and a quick timer in the quick slot,
+     * each while one other timer runs; a start of a tea that has an active session goes to its slot, where the
+     * engine refuses it (`ActiveTimerExists`), and so does a quick timer while one is active; any other start
+     * while two timers are active is refused as `TwoTimersActive`. *Beenden & neu starten* ends the timer of
+     * one slot only. After every accepted event the alert arbitration settles the slots.
      */
     private inner class SideBySide {
+        /** The slots with an active timer, in the slot order. */
+        fun activeSlots(): List<TimerSlot> = slots.filter { it.active != null }.map { it.id }
+
         /**
-         * *Beenden & neu starten* in [slot] (TMR-21, D-054, D-098): its timer ends as by *Sitzung beenden*,
-         * *Abgegossen* or *Abbrechen* ([endingEventOf]); the other slot's timer is never touched.
+         * The brew slot a start of tea [teaId] goes to (D-108): the slot of that tea's active session (whose engine
+         * refuses the start), else the first free brew slot while fewer than two timers are active; null while two
+         * other timers are active.
+         */
+        fun brewSlotFor(teaId: String?): TimerSlot? {
+            val brews = slots.filter { it.id.isBrew }
+            return brews.firstOrNull { teaId != null && it.active != null && it.details?.teaId == teaId }?.id
+                ?: brews.firstOrNull { it.active == null }?.id?.takeIf { activeSlots().size < MAX_ACTIVE }
+        }
+
+        /**
+         * Whether a quick timer may go to the quick slot: it is active (the engine refuses the start,
+         * `ActiveTimerExists`), or fewer than two timers are active (D-108).
+         */
+        fun quickStartAdmitted(): Boolean = slots[TimerSlot.QUICK].active != null || activeSlots().size < MAX_ACTIVE
+
+        /**
+         * *Beenden & neu starten* in [slot] (TMR-21, D-054, D-098, D-108): its timer ends as by *Sitzung beenden*,
+         * *Abgegossen* or *Abbrechen* ([endingEventOf]); no other slot's timer is touched.
          */
         suspend fun endActive(slot: TimerSlot) {
             slots[slot].active?.let {
@@ -514,7 +567,8 @@ class BrewSessionController @Inject constructor(
         val inSlot = slots[slot]
         val before = inSlot.timer
         val due = TimerAlarmKind.of(event)?.let { scheduled(before, it, slot) }
-        val sent = AlertArbitration.eventFor(slot, event, slots.states)
+        // While recovering, a slot not recovered yet counts with its restored state (04 §7.2, D-108).
+        val sent = AlertArbitration.eventFor(slot, event, slots.states + recovery.notYetRecovered)
         val transition = BrewTimerEngine.reduce(before, sent, now)
         effects.record(
             TimerDiagnostic.EventHandled(
@@ -533,7 +587,8 @@ class BrewSessionController @Inject constructor(
             val active = transition.state is TimerState.Active
             inSlot.details = if (active) startDetails ?: inSlot.details else null
             effects.run(slot, transition, now, start, inSlot.details, savedSheetAsNotification, scheduled = due)
-            sideBySide.settle()
+            // During the first turn's recovery the slots settle once all are recovered (04 §7.2).
+            if (!recovery.inProgress) sideBySide.settle()
         }
         rearmWakeUp()
         return transition.outcome
@@ -573,6 +628,9 @@ class BrewSessionController @Inject constructor(
 
     private companion object {
         const val TAG = "UmamiTTimer"
+
+        /** At most two timers are active at once (GEN-03, D-108). */
+        const val MAX_ACTIVE = 2
 
         /** The events a user sends from the app or a notification (04 §3.2, §10). */
         val USER_EVENTS: Set<TimerEvent> = setOf(

@@ -51,6 +51,7 @@ fun BrewTimerRoute(
     val context = LocalContext.current
     val front by viewModel.state.collectAsStateWithLifecycle()
     val brew by remember(viewModel) { viewModel.state(TimerSlot.BREW) }.collectAsStateWithLifecycle()
+    val brew2 by remember(viewModel) { viewModel.state(TimerSlot.BREW_2) }.collectAsStateWithLifecycle()
     val quick by remember(viewModel) { viewModel.state(TimerSlot.QUICK) }.collectAsStateWithLifecycle()
     val recovered by viewModel.recovered.collectAsStateWithLifecycle()
     val settings by viewModel.screenSettings.collectAsStateWithLifecycle()
@@ -64,7 +65,7 @@ fun BrewTimerRoute(
         viewModel.refreshReliability()
         onPauseOrDispose {}
     }
-    val view = timerRouteView(pinned, brew, quick, front)
+    val view = timerRouteView(pinned, brew, quick, front, brew2)
     when (val active = view.shown) {
         null -> if (recovered) {
             // Restored after process death (from recents, or a notification of a session the new process has not
@@ -76,6 +77,7 @@ fun BrewTimerRoute(
                     viewModel.state(TimerSlot.BREW).value,
                     viewModel.state(TimerSlot.QUICK).value,
                     viewModel.state.value,
+                    viewModel.state(TimerSlot.BREW_2).value,
                 )
                 if (now.shown == null) currentOnClose()
             }
@@ -120,27 +122,27 @@ fun BrewTimerRoute(
 internal class TimerRouteView(val shown: TimerUiState.Active?, val other: TimerUiState.Active?)
 
 /**
- * The route's view of the two slots ([brew], [quick]) and the controller's [front] (D-098): a ringing alert first,
- * the brew's before the quick timer's (rule 8; a held alert does not ring); else the [pinned] slot's timer, or, with
- * none pinned yet, the one in front; null when that timer is not active. The other slot's active timer is the row.
+ * The route's view of the slots ([brew], [brew2], [quick]) and the controller's [front] (D-098, D-108): a ringing
+ * alert first, in the slot order (rule 8; a held alert does not ring); else the [pinned] slot's timer, or, with
+ * none pinned yet, the one in front; null when that timer is not active. The other active timer is the row. The
+ * screens for two brews come with v0.5.0-03; until then a second brew's route shows it like the first's.
  */
 internal fun timerRouteView(
     pinned: TimerSlot?,
     brew: TimerUiState,
     quick: TimerUiState,
     front: TimerUiState,
+    brew2: TimerUiState = TimerUiState.Idle,
 ): TimerRouteView {
     fun activeIn(slot: TimerSlot?): TimerUiState.Active? = when (slot) {
-        // The second brew slot admits no timer yet (D-108, v0.5.0-01).
-        null, TimerSlot.BREW_2 -> null
-
+        null -> null
         TimerSlot.BREW -> brew as? TimerUiState.Active
-
+        TimerSlot.BREW_2 -> brew2 as? TimerUiState.Active
         TimerSlot.QUICK -> quick as? TimerUiState.Active
     }
-    val shown = activeIn(TimerSlot.BREW)?.takeIf { it.ringing }
-        ?: activeIn(TimerSlot.QUICK)?.takeIf { it.ringing }
+    val shown = TimerSlot.entries.firstNotNullOfOrNull { slot -> activeIn(slot)?.takeIf { it.ringing } }
         ?: if (pinned == null) front as? TimerUiState.Active else activeIn(pinned)
-    val other = activeIn(shown?.slot?.other)
+    val other = TimerSlot.entries.filter { it != shown?.slot }.firstNotNullOfOrNull { activeIn(it) }
+        ?.takeIf { shown != null }
     return TimerRouteView(shown, other)
 }

@@ -108,17 +108,19 @@ class ControllerHarness(
     /** Moves time forward by [seconds], letting the in-process wake-up fire whenever it comes due. */
     suspend fun advanceSeconds(seconds: Long) = wakeUp.advanceBy(seconds * MS_PER_SECOND)
 
-    /** Tea „t1" with 100 g bought for 8,50 € a day before the session (8.5 ct/g). */
-    suspend fun teaWithStock() {
-        teas.saveTea(Tea(id = TEA_ID, name = TEA_NAME, category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF))
+    /**
+     * Tea [id] („t1" by default) with 100 g bought for [priceCents] (8,50 €: 8.5 ct/g) a day before the session.
+     */
+    suspend fun teaWithStock(id: String = TEA_ID, name: String = TEA_NAME, priceCents: Long = 850) {
+        teas.saveTea(Tea(id = id, name = name, category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF))
         stock.addEvent(
             InventoryEvent(
-                id = "buy",
-                teaId = TEA_ID,
+                id = if (id == TEA_ID) "buy" else "buy-$id",
+                teaId = id,
                 type = InventoryEventType.INITIAL,
                 deltaGrams = 100.0,
                 occurredAtMillis = clock.wall - DAY_MS,
-                priceCents = 850,
+                priceCents = priceCents,
             ),
         )
     }
@@ -152,22 +154,28 @@ class ControllerHarness(
     companion object {
         const val TEA_ID = "t1"
         const val TEA_NAME = "Bio Sencha Hisui"
+
+        /** A second tea for a second brew session (D-108). */
+        const val TEA_2_ID = "t2"
+        const val TEA_2_NAME = "Gyokuro Asahi"
         const val MS_PER_SECOND = 1_000L
         const val DAY_MS = 24 * 3_600_000L
     }
 }
 
-/** The request of *Brühen starten* for tea „t1" with 4 g and 200 ml in the „Kyusu" recipe. */
+/** The request of *Brühen starten* for tea [teaId] („t1" by default) with 4 g and 200 ml in the „Kyusu" recipe. */
 fun brewStart(
     vararg steps: PlannedStep,
     recipePreAlertSeconds: Int? = null,
     method: BrewMethod = BrewMethod.KYUSU,
     leafGrams: Double? = 4.0,
     waterMl: Int? = 200,
+    teaId: String? = ControllerHarness.TEA_ID,
+    teaName: String = ControllerHarness.TEA_NAME,
 ) = BrewStart(
     snapshot = SessionSnapshot(
-        teaId = ControllerHarness.TEA_ID,
-        teaName = ControllerHarness.TEA_NAME,
+        teaId = teaId,
+        teaName = teaName,
         teaSecondaryName = "Hisui",
         teaType = "Sencha",
         styleKey = "sencha",

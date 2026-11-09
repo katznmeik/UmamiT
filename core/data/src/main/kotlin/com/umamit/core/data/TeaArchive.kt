@@ -80,7 +80,7 @@ class RoomTeaArchive @Inject constructor(
 
     override suspend fun archive(teaId: String): ArchiveResult = db.withTransaction {
         when {
-            db.activeBrewDao().activeTeaId() == teaId -> ArchiveResult.InActiveSession
+            db.activeBrewDao().isActiveTea(teaId) -> ArchiveResult.InActiveSession
             db.teaDao().setArchived(teaId, archived = true, now = time.nowMs()) == 0 -> ArchiveResult.NotFound
             else -> ArchiveResult.Archived
         }
@@ -96,7 +96,7 @@ class RoomTeaArchive @Inject constructor(
             when {
                 db.teaDao().get(teaId) == null -> DeleteResult.NotFound
 
-                db.activeBrewDao().activeTeaId() == teaId -> DeleteResult.InActiveSession
+                db.activeBrewDao().isActiveTea(teaId) -> DeleteResult.InActiveSession
 
                 else -> {
                     photoIds = db.teaDao().photoIds(teaId)

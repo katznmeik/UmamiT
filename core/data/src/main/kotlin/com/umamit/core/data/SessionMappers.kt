@@ -9,6 +9,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
 import java.util.UUID
@@ -170,7 +171,8 @@ internal fun SessionStepRow.toEntity(sessionId: String, now: Long) = SessionStep
     preAlertSeconds = preAlertSeconds,
 )
 
-internal fun ActiveBrewSnapshot.toEntity(createdAt: Long, updatedAt: Long) = ActiveBrewEntity(
+/** This row as [slot]'s `active_brew` row (umamit.db v4: `BREW`, `BREW_2` or `QUICK`, stored by name). */
+internal fun ActiveBrewSnapshot.toEntity(slot: TimerSlot, createdAt: Long, updatedAt: Long) = ActiveBrewEntity(
     slot = slot,
     sessionId = sessionId,
     isQuickTimer = isQuickTimer,
