@@ -316,6 +316,15 @@ class ProcessDeathTest {
         assertSecondHeld()
 
         // 3. Not poured: the second rings once the replayed sound has ended (D-109).
+        awaitSecondAfterTheFirstSound(replayed)
+    }
+
+    /**
+     * The second brew's alert after [replayed], the first's, has ended its sound (D-109): a new alert notification
+     * with its full-screen intent; the first stays „Jetzt abgießen!" as notification 5; the log's alert sounds are
+     * the first's first and the second's once, last.
+     */
+    private fun awaitSecondAfterTheFirstSound(replayed: StatusBarNotification) {
         val secondAlert = eventually("the second brew's alert after the first's sound", ALERT_CYCLE + ALERT_TIMEOUT) {
             postedNotification(TimerNotifications.ID_ALERT)?.takeIf { it.notification.text() == SECOND_ALERT_TEXT }
         }

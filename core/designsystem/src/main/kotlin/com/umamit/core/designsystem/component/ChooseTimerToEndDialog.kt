@@ -18,9 +18,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.umamit.core.designsystem.R
 import com.umamit.core.designsystem.theme.UmamiSpacing
 
-/** An answer of [ChooseTimerToEndDialog]: the quick timer, or a brew session of [teaName] (null: tea unknown). */
-data class TimerChoice(val teaName: String?, val quick: Boolean)
-
 /**
  * „Welchen Timer beenden?" (TMR-21, D-108): while two timers are active, a third start asks which one ends. One button
  * per active timer in the slot order ([timers]), named by its tea, „Schnelltimer" for the quick timer and „Aufguss"
