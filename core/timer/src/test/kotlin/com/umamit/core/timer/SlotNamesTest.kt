@@ -47,6 +47,15 @@ class SlotNamesTest {
             "com.umamit.core.timer.action.TIMER_ALARM.QUICK.MIDNIGHT",
             "com.umamit.core.timer.action.TIMER_ALARM.QUICK.ALERT_WATCHDOG",
         ).inOrder()
+        assertThat(actions(TimerSlot.BREW_2)).containsExactly(
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.PRE_ALERT",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.DEADLINE",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.OVERTIME_TIMEOUT",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.IDLE_DEMOTE",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.QUICK_CANCEL",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.MIDNIGHT",
+            "com.umamit.core.timer.action.TIMER_ALARM.BREW2.ALERT_WATCHDOG",
+        ).inOrder()
     }
 
     @Test
@@ -77,6 +86,16 @@ class SlotNamesTest {
             "com.umamit.core.timer.action.NOTIFICATION.QUICK.FINISH_SESSION",
             "com.umamit.core.timer.action.NOTIFICATION.QUICK.CANCEL",
         ).inOrder()
+        assertThat(intents(TimerSlot.BREW_2).map { it.action }).containsExactly(
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.START",
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.PAUSE",
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.RESUME",
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.POURED",
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.FINISH_SESSION",
+            "com.umamit.core.timer.action.NOTIFICATION.BREW2.CANCEL",
+        ).inOrder()
+        val codes = TimerSlot.entries.flatMap { slot -> events.map { TimerActionReceiver.requestCodeOf(it, slot) } }
+        assertThat(codes).containsNoDuplicates()
         TimerSlot.entries.forEach { slot ->
             assertThat(intents(slot).map(TimerActionReceiver::slotOf)).containsExactlyElementsIn(events.map { slot })
             assertThat(intents(slot).map(TimerActionReceiver::eventOf)).containsExactlyElementsIn(events).inOrder()

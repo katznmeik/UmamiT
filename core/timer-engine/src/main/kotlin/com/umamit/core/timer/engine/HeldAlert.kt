@@ -7,12 +7,13 @@ import com.umamit.core.timer.engine.TimerEffect.StopAlert
 import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 /*
- * The held alert of 04 §3.3 and §9.3 (D-098): only a quick timer is held, while the brew alerts. A held alert
- * has no sound, no alert notification and no silent end; its overtime still runs from its deadline. The
- * controller sends `alertHold` and `alertRingStart` ([AlertArbitration]); neither is a user interaction.
+ * The held alert of 04 §3.3 and §9.3 (D-098, D-108): a brew session or the quick timer is held while another
+ * slot's alert rings that it does not preempt. A held alert has no sound, no alert notification and no silent
+ * end; its overtime still runs from its deadline. The controller sends `alertHold` and `alertRingStart`
+ * ([AlertArbitration]); neither is a user interaction.
  */
 
-/** `alertHold` and `alertRingStart` of a quick timer in [state] at [now]; null where they do not apply. */
+/** `alertHold` and `alertRingStart` of the timer in [state] at [now]; null where they do not apply. */
 internal fun onArbitration(state: TimerState.Active, event: TimerEvent, now: ClockReading): TimerTransition? =
     when (event) {
         TimerEvent.AlertHold -> when (state) {
@@ -27,7 +28,7 @@ internal fun onArbitration(state: TimerState.Active, event: TimerEvent, now: Clo
     }
 
 /**
- * The quick deadline while the brew alerts: ALERTING held, however late (a quick timer that could not ring is
+ * A deadline while another slot's alert rings: ALERTING held, however late (a timer that could not ring is
  * never ended silently). The service is ensured as for any alert, and the notification shows it waiting.
  */
 internal fun holdAtDeadline(state: TimerState.Running): TimerTransition = accepted(
@@ -35,20 +36,24 @@ internal fun holdAtDeadline(state: TimerState.Running): TimerTransition = accept
     side = listOf(StartForeground, UpdateNotification),
 )
 
-/** Preemption: the brew alert takes over, so the ringing quick alert stops and waits again, not reported played. */
+/** Preemption: another slot's alert takes over, so this ringing alert stops and waits again, not reported played. */
 internal fun holdAgain(state: TimerState.Alerting): TimerTransition = accepted(
     state.copy(alertPlayed = false, ringingSinceElapsedMs = null, ringingSinceWallMs = null),
     side = listOf(StopAlert, UpdateNotification),
 )
 
 /**
- * Release: the brew left ALERTING, so the held alert rings now, its full length (SET-14) and its silent end
+ * Release: no other alert rings, so the held alert rings now, its full length (SET-14) and its silent end
  * 10 min from now; the notification takes the screen (full-screen intent) as at a deadline.
  */
 internal fun ringStart(state: TimerState.Alerting, now: ClockReading): TimerTransition = accepted(
     state.copy(alertPlayed = false, ringingSinceElapsedMs = now.elapsedMs, ringingSinceWallMs = now.wallMs),
     side = listOf(StartForeground, StartAlert, UpdateNotification),
 )
+
+/** [this] `StopAlert` when leaving [state] stops a sound: it alerts and is not held (a held alert plays nothing). */
+internal fun StopAlert.unlessHeld(state: TimerState.Active): StopAlert? =
+    takeIf { state is TimerState.Alerting && !state.held }
 
 /** The step of [state] alerting since its deadline, ringing since the given time, or held (null). */
 internal fun alertingOf(state: TimerState.Running, ringingSinceElapsedMs: Long?, ringingSinceWallMs: Long?) =

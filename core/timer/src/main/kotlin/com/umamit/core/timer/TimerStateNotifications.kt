@@ -212,12 +212,21 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         const val RC_RESUMED = 305
         const val RC_CONTENT_QUICK = 306
         const val RC_FULL_SCREEN_QUICK = 307
+        const val RC_CONTENT_BREW_2 = 308
+        const val RC_FULL_SCREEN_BREW_2 = 309
 
         /** The content intent's request code of [slot]'s notifications (1, 2, 4, 5). */
-        fun contentCodeOf(slot: TimerSlot): Int = if (slot == TimerSlot.QUICK) RC_CONTENT_QUICK else RC_CONTENT
+        fun contentCodeOf(slot: TimerSlot): Int = when (slot) {
+            TimerSlot.BREW -> RC_CONTENT
+            TimerSlot.BREW_2 -> RC_CONTENT_BREW_2
+            TimerSlot.QUICK -> RC_CONTENT_QUICK
+        }
 
         /** The full-screen intent's request code of [slot]'s alert. */
-        fun fullScreenCodeOf(slot: TimerSlot): Int =
-            if (slot == TimerSlot.QUICK) RC_FULL_SCREEN_QUICK else RC_FULL_SCREEN
+        fun fullScreenCodeOf(slot: TimerSlot): Int = when (slot) {
+            TimerSlot.BREW -> RC_FULL_SCREEN
+            TimerSlot.BREW_2 -> RC_FULL_SCREEN_BREW_2
+            TimerSlot.QUICK -> RC_FULL_SCREEN_QUICK
+        }
     }
 }

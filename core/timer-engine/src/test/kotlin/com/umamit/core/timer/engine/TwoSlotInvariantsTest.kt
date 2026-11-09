@@ -7,19 +7,23 @@ import org.junit.Test
 import kotlin.random.Random
 
 /**
- * The seeded invariant test of 04 §12 for two slots with the alert arbitration of 04 §9.3 (D-098): a brew
- * session and a quick timer side by side, random user events to either slot, the due events of both (the brew's
- * first, the quick slot's through [AlertArbitration.quickEvent]), the player's reports, process deaths and
- * reboots; after every event the controller's [AlertArbitration.settle] and [PlayerSound.release], as each turn
- * does. An independent player oracle checks the sound: never two sounds, the brew's alert never cut by the quick
- * slot, a pre-alert never over another slot's sound. And the states: the brew never held, never two slots
- * ringing, a held quick alert always rings before its silent end, every slot's due event handled.
+ * The seeded invariant test of 04 §12 for several slots with the alert arbitration of 04 §9.3 (D-098, D-108):
+ * timers side by side, random user events to any slot, the due events of every slot in the slot order (each
+ * through [AlertArbitration.eventFor]), the player's reports, process deaths and reboots; after every event the
+ * controller's [AlertArbitration.settle] and [PlayerSound.release], as each turn does. An independent player
+ * oracle checks the sound: never two sounds, an alert taken from another only by a brew from the quick timer, a
+ * pre-alert never over another slot's sound. And the states: never two slots ringing, a held alert waits only
+ * while another rings and always rings before its silent end, every slot's due event handled.
+ *
+ * Two configurations: the v0.3.0 pair (one brew session and the quick timer), where the brew is also never held
+ * and a quick alert never starts while the brew alerts; and all three slots (two brew sessions and the quick
+ * timer), where the pure rules hold for any set of active slots.
  */
 class TwoSlotInvariantsTest {
 
     @Test
     fun `random two-timer sequences keep the arbitration invariants`() {
-        repeat(RUNS) { seed -> Run(Random(seed), seed).go() }
+        repeat(RUNS) { seed -> Run(Random(seed), seed, PAIR).go() }
 
         assertWithMessage("arbitration events accepted").that(accepted)
             .containsAtLeast("AlertHold", "AlertRingStart", "RecoverHeld", "AlertCompleted", "OvertimeTimeout")
@@ -31,6 +35,25 @@ class TwoSlotInvariantsTest {
             "pre-alert waited, then consumed",
             "quick silent end after ringing",
             "both running",
+        )
+    }
+
+    @Test
+    fun `random three-slot sequences keep the arbitration invariants`() {
+        repeat(RUNS) { seed -> Run(Random(seed), seed, TimerSlot.entries).go() }
+
+        assertWithMessage("arbitration events accepted").that(accepted)
+            .containsAtLeast("AlertHold", "AlertRingStart", "RecoverHeld", "AlertCompleted", "OvertimeTimeout")
+        assertWithMessage("situations reached").that(situations).containsAtLeast(
+            "preemption",
+            "held at deadline",
+            "brew held at deadline",
+            "released",
+            "brew released",
+            "brew silent end after ringing",
+            "pre-alert waited, then played",
+            "pre-alert waited, then consumed",
+            "two brews running",
         )
     }
 
@@ -46,30 +69,27 @@ class TwoSlotInvariantsTest {
         data class PreAlert(override val slot: TimerSlot, val untilMs: Long) : Playing
     }
 
-    private inner class Run(private val random: Random, private val seed: Int) {
+    private inner class Run(private val random: Random, private val seed: Int, private val slots: List<TimerSlot>) {
         private val clocks = VirtualClocks()
-        private val states = mutableMapOf<TimerSlot, TimerState>(TimerSlot.BREW to TimerState.Idle)
+        private val states = slots.associateWith<TimerSlot, TimerState> { TimerState.Idle }.toMutableMap()
+        private val brewSlots = slots.filter { it.isBrew }
         private var sound = PlayerSound(RING_MS)
         private var playing: Playing? = null
         private var n = 0
         private var label = ""
 
-        init {
-            states[TimerSlot.QUICK] = TimerState.Idle
-        }
-
-        private val brew get() = states.getValue(TimerSlot.BREW)
-        private val quick get() = states.getValue(TimerSlot.QUICK)
+        /** The v0.3.0 pair: one brew slot, which is never held. */
+        private val pair = brewSlots.size == 1
 
         fun go() {
             repeat(EVENTS_PER_RUN) {
                 n = it
                 advanceClock()
                 when (val pick = random.nextInt(100)) {
-                    in 0..5 -> send(TimerSlot.BREW, randomSession())
+                    in 0..5 -> send(brewSlots.random(random), randomSession())
                     in 6..9 -> send(TimerSlot.QUICK, randomQuick())
-                    in 10..13 -> quickAlongside()
-                    in 14..40 -> send(randomSlot(), userEvents.random(random))
+                    in 10..13 -> alongside()
+                    in 14..40 -> send(slots.random(random), userEvents.random(random))
                     in 41..60 -> dueEvents()
                     in 61..75 -> onTime()
                     in 76..88 -> playerReports()
@@ -80,19 +100,19 @@ class TwoSlotInvariantsTest {
             }
         }
 
-        /** The due events of both slots, the brew's first, as the alarm and the wake-up deliver them (04 §4). */
+        /** The due events of every slot, in the slot order, as the alarm and the wake-up deliver them (04 §4). */
         private fun dueEvents() {
-            TimerSlot.entries.forEach { slot ->
+            slots.forEach { slot ->
                 BrewTimerEngine.dueEvents(states.getValue(slot), clocks.now()).forEach { send(slot, it) }
             }
         }
 
         /**
-         * The next alarm or wake-up comes on time: the clock moves to the earliest due time of either slot, or to
+         * The next alarm or wake-up comes on time: the clock moves to the earliest due time of any slot, or to
          * the end of a pre-alert another one waits for, and that turn runs (04 §4).
          */
         private fun onTime() {
-            val next = TimerSlot.entries.flatMap { slot ->
+            val next = slots.flatMap { slot ->
                 val due = BrewTimerEngine.dueTimes(states.getValue(slot))
                 listOfNotNull(due.preAlertAtElapsedMs, due.deadlineElapsedMs, due.overtimeTimeoutAtElapsedMs)
             }.plus(listOfNotNull(sound.nextReleaseAtElapsedMs())).filter { it >= clocks.elapsed }.minOrNull()
@@ -102,18 +122,27 @@ class TwoSlotInvariantsTest {
         }
 
         /**
-         * Start's *Schnelltimer* while a brew step runs, ending within a few seconds of it, so the two timers'
-         * pre-alerts and deadlines meet (S1).
+         * A second timer while a brew step runs, ending within a few seconds of it, so the two timers' pre-alerts
+         * and deadlines meet (S1): Start's *Schnelltimer*, or with two brew slots also a second brew session.
          */
-        private fun quickAlongside() {
-            val running = brew as? TimerState.Running ?: return send(TimerSlot.QUICK, randomQuick())
-            val left = ((running.deadlineElapsedMs - clocks.elapsed) / 1_000).toInt()
+        private fun alongside() {
+            val running = brewSlots.firstNotNullOfOrNull { slot ->
+                (states.getValue(slot) as? TimerState.Running)?.let { slot to it }
+            } ?: return send(TimerSlot.QUICK, randomQuick())
+            val (brewSlot, step) = running
+            val left = ((step.deadlineElapsedMs - clocks.elapsed) / 1_000).toInt()
             val seconds = (left + random.nextInt(-4, 5)).coerceIn(15, 3_000)
-            send(
-                TimerSlot.QUICK,
-                TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = 10, preAlertSeconds = null),
-            )
-            send(TimerSlot.QUICK, TimerEvent.Start)
+            val secondBrew = brewSlots.firstOrNull { it != brewSlot }?.takeIf { random.nextBoolean() }
+            if (secondBrew == null) {
+                send(
+                    TimerSlot.QUICK,
+                    TimerEvent.StartQuickTimer(seconds, globalPreAlertSeconds = 10, preAlertSeconds = null),
+                )
+                send(TimerSlot.QUICK, TimerEvent.Start)
+            } else {
+                send(secondBrew, session(PlannedStep(StepKind.INFUSION, seconds, tempC = 60, randomPreAlert())))
+                send(secondBrew, TimerEvent.Start)
+            }
         }
 
         /** The player ran an alert's whole cycle and reports it (at least 15 s, Normal). */
@@ -125,41 +154,60 @@ class TwoSlotInvariantsTest {
             send(alert.slot, TimerEvent.AlertCompleted)
         }
 
-        /** The process died (and maybe the phone rebooted): a new one recovers both slots, the brew first. */
+        /**
+         * The process died (and maybe the phone rebooted): a new one starts silent with every slot idle, then
+         * restores each slot's persisted timer and recovers it, in the slot order, as the controller does.
+         */
         private fun processRestart(reboot: Boolean) {
             if (reboot) clocks.reboot(offMs = random.nextLong(0, 900_000), upMs = 30_000)
             sound = PlayerSound(RING_MS)
             playing = null
-            send(TimerSlot.BREW, TimerEvent.Recover)
-            send(TimerSlot.QUICK, TimerEvent.Recover)
+            val persisted = states.toMap()
+            slots.forEach { states[it] = TimerState.Idle }
+            slots.forEach { slot ->
+                states[slot] = persisted.getValue(slot)
+                send(slot, TimerEvent.Recover)
+            }
         }
 
         /** One event of [slot] in a turn, then the arbitration and the waiting pre-alerts, as the controller does. */
         private fun send(slot: TimerSlot, original: TimerEvent) {
-            val event = if (slot == TimerSlot.QUICK) AlertArbitration.quickEvent(original, brew) else original
-            if (event != original && event == TimerEvent.AlertHold && quick is TimerState.Running) {
+            val event = AlertArbitration.eventFor(slot, original, states)
+            if (event != original && event == TimerEvent.AlertHold && states.getValue(slot) is TimerState.Running) {
                 situations += "held at deadline"
+                if (slot.isBrew) situations += "brew held at deadline"
             }
-            apply(slot, event)
-            AlertArbitration.settle(brew, quick)?.let { settle ->
-                if (settle == TimerEvent.AlertHold) situations += "preemption"
-                if (settle == TimerEvent.AlertRingStart) situations += "released"
-                apply(TimerSlot.QUICK, settle)
-            }
+            if (apply(slot, event)) settle()
             release()
         }
 
-        private fun apply(slot: TimerSlot, event: TimerEvent) {
+        /** The controller settles after every accepted event, until the slots agree. */
+        private fun settle() {
+            repeat(slots.size * 2) {
+                val settle = AlertArbitration.settle(states) ?: return
+                if (settle.event == TimerEvent.AlertHold) situations += "preemption"
+                if (settle.event == TimerEvent.AlertRingStart) {
+                    situations += "released"
+                    if (settle.slot.isBrew) situations += "brew released"
+                }
+                if (!apply(settle.slot, settle.event)) return
+            }
+            error("seed $seed, event $n: the arbitration does not settle in $states")
+        }
+
+        /** [event] to [slot]; true when it was accepted. */
+        private fun apply(slot: TimerSlot, event: TimerEvent): Boolean {
             val before = states.getValue(slot)
             val now = clocks.now()
             val transition = BrewTimerEngine.reduce(before, event, now)
             label = "seed $seed, event $n: $event to $slot in ${before::class.simpleName}"
-            if (transition.outcome != TransitionOutcome.Accepted) return
+            if (transition.outcome != TransitionOutcome.Accepted) return false
             accepted += event::class.simpleName.orEmpty()
             states[slot] = transition.state
             checkSilentEnd(slot, before, event, transition.state)
             transition.effects.forEach { effect -> play(slot, effect, transition.state) }
             checkSnapshot(slot)
+            return true
         }
 
         /** The controller's side of the player for one effect of [slot], against the oracle. */
@@ -169,12 +217,16 @@ class TwoSlotInvariantsTest {
                 TimerEffect.StartAlert -> {
                     val other = sounding()?.takeIf { it.slot != slot }
                     if (other is Playing.Alert) {
-                        assertWithMessage("$label: only the brew's alert takes the player from the other's alert")
-                            .that(slot).isEqualTo(TimerSlot.BREW)
+                        assertWithMessage("$label: only a brew's alert takes the player, and from the quick timer's")
+                            .that(slot.isBrew && !other.slot.isBrew).isTrue()
                     }
-                    if (slot == TimerSlot.QUICK) {
+                    if (!slot.isBrew) {
+                        assertWithMessage("$label: a quick alert never starts while a brew rings")
+                            .that(brewSlots.none { states.getValue(it).rings }).isTrue()
+                    }
+                    if (pair && !slot.isBrew) {
                         assertWithMessage("$label: a quick alert never starts while the brew alerts")
-                            .that(brew).isNotInstanceOf(TimerState.Alerting::class.java)
+                            .that(states.getValue(TimerSlot.BREW)).isNotInstanceOf(TimerState.Alerting::class.java)
                     }
                     sound.alertStarted(slot)
                     playing = Playing.Alert(slot, now)
@@ -183,7 +235,7 @@ class TwoSlotInvariantsTest {
                 TimerEffect.StopAlert -> {
                     val other = sounding()?.takeIf { it.slot != slot }
                     val stops = sound.mayStop(slot, now)
-                    assertWithMessage("$label: a stop never silences the other slot's sound")
+                    assertWithMessage("$label: a stop never silences another slot's sound")
                         .that(stops).isEqualTo(other == null)
                     if (stops) playing = null
                 }
@@ -193,17 +245,14 @@ class TwoSlotInvariantsTest {
                     if (sound.preAlertDue(slot, deadline, now)) {
                         startPreAlert(slot, deadline)
                     } else {
-                        assertWithMessage("$label: a pre-alert waits only for the other slot's sound")
-                            .that(sounding()?.slot).isEqualTo(other(slot))
-                        waited += slot
+                        assertWithMessage("$label: a pre-alert waits only for another slot's sound")
+                            .that(sounding()?.slot.let { it != null && it != slot }).isTrue()
                     }
                 }
 
                 else -> Unit
             }
         }
-
-        private val waited = mutableSetOf<TimerSlot>()
 
         /** The waiting pre-alerts whose sound ended, as at the end of every turn. */
         private fun release() {
@@ -233,47 +282,58 @@ class TwoSlotInvariantsTest {
         private fun sounding(): Playing? =
             playing?.takeUnless { it is Playing.PreAlert && it.untilMs <= clocks.elapsed }
 
-        /** A quick timer that could not ring never ends silently; a ringing one only 10 min after it began. */
+        /**
+         * A step ended without the user (the overtime timeout, a late deadline, recovery): a held alert never ends
+         * silently, a ringing one only 10 min after it began ringing, and a late deadline only if it could ring.
+         */
         private fun checkSilentEnd(slot: TimerSlot, before: TimerState, event: TimerEvent, after: TimerState) {
-            if (slot != TimerSlot.QUICK || after != TimerState.Idle || event in endingUserEvents) return
+            if (before !is TimerState.WithDeadline || after is TimerState.WithDeadline || event in userEvents) return
+            val kind = if (slot.isBrew) "brew" else "quick"
             when (before) {
                 is TimerState.Alerting -> {
-                    assertWithMessage("$label: a held quick alert never ends silently").that(before.held).isFalse()
+                    assertWithMessage("$label: a held alert never ends silently").that(before.held).isFalse()
                     // On the wall clock, which survives a reboot (the wall moves only forward in this test).
                     val ringingFor = clocks.wall - checkNotNull(before.ringingSinceWallMs)
-                    assertWithMessage("$label: a quick alert ends silently only 10 min after it began ringing")
+                    assertWithMessage("$label: an alert ends silently only 10 min after it began ringing")
                         .that(ringingFor).isAtLeast(OVERTIME_TIMEOUT_MS)
-                    situations += "quick silent end after ringing"
+                    situations += "$kind silent end after ringing"
                 }
 
                 is TimerState.Running -> assertWithMessage(
-                    "$label: a late quick deadline ends it only if it could ring",
+                    "$label: a late deadline ends a timer only if it could ring",
                 )
-                    .that(brew).isNotInstanceOf(TimerState.Alerting::class.java)
-
-                else -> Unit
+                    .that(AlertArbitration.eventFor(slot, TimerEvent.DeadlineReached, states))
+                    .isEqualTo(TimerEvent.DeadlineReached)
             }
         }
 
         private fun checkStates() {
-            val brewAlert = brew as? TimerState.Alerting
-            assertWithMessage("$label: the brew is never held").that(brewAlert?.held ?: false).isFalse()
-            val quickRings = (quick as? TimerState.Alerting)?.held == false
-            assertWithMessage("$label: never two slots ringing").that(brewAlert != null && quickRings).isFalse()
-            assertWithMessage("$label: a held quick alert waits only for the brew's")
-                .that((quick as? TimerState.Alerting)?.held == true && brewAlert == null).isFalse()
-            if (brew is TimerState.Running && quick is TimerState.Running) situations += "both running"
+            val alerts = slots.mapNotNull { slot ->
+                (states.getValue(slot) as? TimerState.Alerting)?.let { slot to it }
+            }
+            val ringing = alerts.filterNot { (_, alert) -> alert.held }
+            assertWithMessage("$label: never two slots ringing").that(ringing.size).isAtMost(1)
+            assertWithMessage("$label: a held alert waits only while another slot rings")
+                .that(alerts.isNotEmpty() && ringing.isEmpty()).isFalse()
+            if (pair) {
+                val brewAlert = states.getValue(TimerSlot.BREW) as? TimerState.Alerting
+                assertWithMessage("$label: the brew is never held").that(brewAlert?.held ?: false).isFalse()
+                if (slots.all { states.getValue(it) is TimerState.Running }) situations += "both running"
+            }
+            if (brewSlots.size > 1 && brewSlots.all { states.getValue(it) is TimerState.Running }) {
+                situations += "two brews running"
+            }
             checkNothingOverdue()
         }
 
-        /** Every slot's due event is accepted (as the quick slot gets it), so no wake-up spins (D-048). */
+        /** Every slot's due event is accepted (as the arbitration hands it on), so no wake-up spins (D-048). */
         private fun checkNothingOverdue() {
             val now = clocks.now()
-            TimerSlot.entries.forEach { slot ->
+            slots.forEach { slot ->
                 val state = states.getValue(slot)
                 if (state is TimerState.Active && state.session.bootCount != now.bootCount) return@forEach
                 BrewTimerEngine.dueEvents(state, now).forEach { due ->
-                    val event = if (slot == TimerSlot.QUICK) AlertArbitration.quickEvent(due, brew) else due
+                    val event = AlertArbitration.eventFor(slot, due, states)
                     assertWithMessage("$label: the due $event of $slot is accepted")
                         .that(BrewTimerEngine.reduce(state, event, now).outcome).isEqualTo(TransitionOutcome.Accepted)
                 }
@@ -287,7 +347,7 @@ class TwoSlotInvariantsTest {
         }
 
         private fun advanceClock() {
-            val targets = TimerSlot.entries.flatMap { slot ->
+            val targets = slots.flatMap { slot ->
                 val due = BrewTimerEngine.dueTimes(states.getValue(slot))
                 listOfNotNull(due.preAlertAtElapsedMs, due.deadlineElapsedMs, due.overtimeTimeoutAtElapsedMs)
             }.filter { it >= clocks.elapsed }
@@ -303,16 +363,14 @@ class TwoSlotInvariantsTest {
             }
         }
 
-        private fun randomSlot() = if (random.nextBoolean()) TimerSlot.BREW else TimerSlot.QUICK
-
-        private fun randomSession() = TimerEvent.StartSession(
-            "session-${random.nextInt()}",
-            List(random.nextInt(1, 4)) {
+        private fun randomSession() = session(
+            *Array(random.nextInt(1, 4)) {
                 PlannedStep(StepKind.INFUSION, random.nextInt(15, 120), tempC = 60, randomPreAlert())
             },
-            PRE_ALERT,
-            longStepsOnly = false,
         )
+
+        private fun session(vararg steps: PlannedStep) =
+            TimerEvent.StartSession("session-${random.nextInt()}", steps.toList(), PRE_ALERT, longStepsOnly = false)
 
         private fun randomQuick() = TimerEvent.StartQuickTimer(
             durationSeconds = random.nextInt(15, 120),
@@ -325,9 +383,9 @@ class TwoSlotInvariantsTest {
             1 -> 5
             else -> random.nextInt(1, 7) * 5
         }
-
-        private fun other(slot: TimerSlot) = if (slot == TimerSlot.BREW) TimerSlot.QUICK else TimerSlot.BREW
     }
+
+    private val TimerState.rings: Boolean get() = this is TimerState.Alerting && !held
 
     private val userEvents = listOf(
         TimerEvent.Start, TimerEvent.Start, TimerEvent.Pause, TimerEvent.Resume, TimerEvent.Poured,
@@ -335,13 +393,13 @@ class TwoSlotInvariantsTest {
         TimerEvent.FinishSession, TimerEvent.Discard,
     )
 
-    /** The user events that end a quick timer on purpose (*Fertig*, *Abbrechen*). */
-    private val endingUserEvents = setOf(TimerEvent.Poured, TimerEvent.Cancel)
-
     private companion object {
         const val RUNS = 300
         const val EVENTS_PER_RUN = 120
         const val RING_MS = 3_450L
         const val ALERT_CYCLE_MS = 15_000L
+
+        /** The v0.3.0 pair: one brew session and the quick timer. */
+        val PAIR = listOf(TimerSlot.BREW, TimerSlot.QUICK)
     }
 }

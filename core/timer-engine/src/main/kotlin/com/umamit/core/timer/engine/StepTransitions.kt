@@ -116,8 +116,14 @@ internal fun deadlineReached(state: TimerState.Running): TimerTransition = accep
 
 internal fun alertCompleted(state: TimerState.Alerting): TimerTransition = accepted(state.copy(alertPlayed = true))
 
-internal fun poured(state: TimerState.Alerting, now: ClockReading): TimerTransition =
-    moveOn(state, StepStatus.DONE, endedRecord(state, now), now, leaveEffects = listOf(StopAlert))
+/** *Abgegossen*: the step is recorded and its alert stops; a held alert played nothing, so nothing stops. */
+internal fun poured(state: TimerState.Alerting, now: ClockReading): TimerTransition = moveOn(
+    state,
+    StepStatus.DONE,
+    endedRecord(state, now),
+    now,
+    leaveEffects = listOfNotNull(StopAlert.unlessHeld(state)),
+)
 
 internal fun endStepNow(state: TimerState.StepStarted, now: ClockReading): TimerTransition =
     moveOn(state, StepStatus.DONE, endedRecord(state, now), now, leaveEffects = emptyList())

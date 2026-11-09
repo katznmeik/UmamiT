@@ -59,27 +59,27 @@ sealed interface TimerEvent {
     data object Recover : TimerEvent
 
     /**
-     * [Recover] while the brew slot alerts (04 §7.2 two slots, D-098): the controller sends it to the quick slot
-     * in place of `recover` when the brew slot is ALERTING after its own recovery. A quick timer past its
-     * deadline is then held ([AlertHold]), however long ago its deadline was, and a ringing quick alert goes
-     * back to held, without a sound of its own; every other state recovers as by [Recover]. A brew session
-     * recovers as by [Recover] (the brew is never held). Not a user interaction.
+     * [Recover] while another slot's alert rings (04 §7.2 two slots; D-098, D-108): the controller sends it in
+     * place of `recover` when, after the earlier slots' recovery, an alert rings that this slot does not preempt
+     * ([AlertArbitration]). A timer past its deadline is then held ([AlertHold]), however long ago its deadline
+     * was, and a ringing alert goes back to held, without a sound of its own; every other state recovers as by
+     * [Recover]. A brew session and the quick timer alike. Not a user interaction.
      */
     data object RecoverHeld : TimerEvent
 
     /**
-     * The controller holds the quick timer's alert because the brew alerts (04 §3.3, §9.3; D-098): at a due
-     * deadline (in place of [DeadlineReached], however late) the quick timer goes ALERTING held, without a sound,
-     * an alert notification or a silent end; a ringing quick alert stops its sound and is held again
-     * (preemption), not reported played. Ignored for a brew session (the brew is never held), for a held alert,
+     * The controller holds the timer's alert because another slot's alert rings (04 §3.3, §9.3; D-098, D-108):
+     * at a due deadline (in place of [DeadlineReached], however late) the timer goes ALERTING held, without a
+     * sound, an alert notification or a silent end; a ringing alert stops its sound and is held again
+     * (preemption), not reported played. A brew session and the quick timer alike; ignored for a held alert,
      * before the deadline and in every other state. Not a user interaction.
      */
     data object AlertHold : TimerEvent
 
     /**
-     * The controller releases a held quick alert (04 §9.3, D-098): the brew slot left ALERTING. The alert rings
-     * now, with its overtime from its own deadline, and its silent end comes 10 min from now. Ignored unless the
-     * state is a held alert. Not a user interaction.
+     * The controller releases a held alert (04 §9.3; D-098, D-108): no alert rings any more, and its deadline came
+     * first. The alert rings now, with its overtime from its own deadline, and its silent end comes 10 min from
+     * now. Ignored unless the state is a held alert. Not a user interaction.
      */
     data object AlertRingStart : TimerEvent
 

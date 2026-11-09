@@ -18,7 +18,7 @@ internal fun dispatch(state: TimerState, event: TimerEvent, now: ClockReading): 
 
         event == TimerEvent.Recover -> recover(state, now)
 
-        event == TimerEvent.RecoverHeld -> recover(state, now, holdAlert = state.session.kind == SessionKind.Quick)
+        event == TimerEvent.RecoverHeld -> recover(state, now, holdAlert = true)
 
         event.isStart -> null
 
@@ -30,9 +30,13 @@ internal fun dispatch(state: TimerState, event: TimerEvent, now: ClockReading): 
     return transition ?: notAccepted(state, event)
 }
 
-/** An event of the current boot in an active state: the waiting timeouts, the step lifecycle, the kind's events. */
+/**
+ * An event of the current boot in an active state: the waiting timeouts, the step lifecycle, the arbitration's
+ * hold and release (either kind, 04 §9.3), the kind's events.
+ */
 private fun onActive(state: TimerState.Active, event: TimerEvent, now: ClockReading) =
-    onWaitingTimeout(state, event, now) ?: onStepEvent(state, event, now) ?: onKindEvent(state, event, now)
+    onWaitingTimeout(state, event, now) ?: onStepEvent(state, event, now) ?: onArbitration(state, event, now)
+        ?: onKindEvent(state, event, now)
 
 private fun onKindEvent(state: TimerState.Active, event: TimerEvent, now: ClockReading) = when (state.session.kind) {
     is SessionKind.Brew -> onBrewEvent(state, event, now)

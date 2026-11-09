@@ -52,7 +52,8 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
  * D-098), the brew slot for brew sessions and the quick slot for the quick
  * timer, each with its own engine state, alarms, alert watchdog and stored
  * row ([ControllerSlots], [TimerSlotStore]): a brew session and a quick timer
- * run side by side (TMR-21, TMR-22). One alert player serves both, arbitrated
+ * run side by side (TMR-21, TMR-22). A second brew slot (`BREW_2`, D-108)
+ * exists but admits no timer yet. One alert player serves all, arbitrated
  * after every event ([AlertArbitration], [TransitionEffects]): the brew's
  * alert first, a quick alert due meanwhile held until the brew's is
  * acknowledged, never two sounds at once (04 §9.3). Each input runs in one turn of one
@@ -469,13 +470,13 @@ class BrewSessionController @Inject constructor(
         }
 
         /**
-         * The alert arbitration after an accepted event (04 §9.3, D-098): a quick alert that still rings while the
-         * brew alerts is held (preemption), a held one rings once the brew no longer alerts (release), in the
-         * same turn.
+         * The alert arbitration after an accepted event (04 §9.3; D-098, D-108), in the same turn: a ringing alert
+         * that does not keep the sound is held (preemption: a quick alert while a brew alerts), a held one rings
+         * once no alert rings (release). Each accepted correction settles again ([handle]).
          */
         suspend fun settle() {
-            val event = AlertArbitration.settle(slots.brew, slots.quick) ?: return
-            handle(TimerSlot.QUICK, event, clocks.read(), EventSource.ARBITRATION)
+            val correction = AlertArbitration.settle(slots.states) ?: return
+            handle(correction.slot, correction.event, clocks.read(), EventSource.ARBITRATION)
         }
     }
 
@@ -497,8 +498,9 @@ class BrewSessionController @Inject constructor(
     /**
      * One event of [slot] in the current lock turn at [now]; the wake-up is re-armed after it, accepted or
      * not. [savedSheetAsNotification]: the transition's saved sheet is posted as „Sitzung gespeichert"
-     * instead (D-054). The quick slot gets [event] as the arbitration maps it while the brew alerts (its
-     * deadline holds, its recovery recovers held); after an accepted event the slots are settled (04 §9.3).
+     * instead (D-054). The slot gets [event] as the arbitration maps it while another slot's alert rings that it
+     * does not preempt (its deadline holds, its recovery recovers held); after an accepted event the slots are
+     * settled (04 §9.3).
      */
     private suspend fun handle(
         slot: TimerSlot,
@@ -512,7 +514,7 @@ class BrewSessionController @Inject constructor(
         val inSlot = slots[slot]
         val before = inSlot.timer
         val due = TimerAlarmKind.of(event)?.let { scheduled(before, it, slot) }
-        val sent = if (slot == TimerSlot.QUICK) AlertArbitration.quickEvent(event, slots.brew) else event
+        val sent = AlertArbitration.eventFor(slot, event, slots.states)
         val transition = BrewTimerEngine.reduce(before, sent, now)
         effects.record(
             TimerDiagnostic.EventHandled(

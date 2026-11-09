@@ -10,10 +10,10 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 import org.junit.Test
 
 /**
- * The held quick alert (04 §3.3, §9.3; D-098, PO Q2, R2-Q2, S1): a quick timer whose deadline comes while the
- * brew alerts waits in ALERTING without a sound (`alertHold`), and rings when the controller releases it
+ * The held alert (04 §3.3, §9.3; D-098, PO Q2, R2-Q2, S1; D-108): a timer whose deadline comes while another
+ * slot's alert rings waits in ALERTING without a sound (`alertHold`), and rings when the controller releases it
  * (`alertRingStart`). Its overtime runs from its own deadline; its 10-min silent end counts from when it starts
- * ringing, and a held alert has none. The brew is never held.
+ * ringing, and a held alert has none. From v0.5.0 a brew session is held the same way, while another brew rings.
  */
 class HeldAlertTest {
 
@@ -147,19 +147,157 @@ class HeldAlertTest {
     }
 
     @Test
-    fun `the brew is never held`() {
-        val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
+    fun `a brew deadline held while another brew rings waits without a sound and without a silent end`() {
+        val driver = runningBrew(60)
         driver.clocks.advanceSeconds(60)
+
+        val effects = driver.send(TimerEvent.AlertHold)
+
+        val held = driver.state as TimerState.Alerting
+        assertThat(held.held).isTrue()
+        assertThat(held.alertPlayed).isFalse()
+        assertThat(held.deadlineElapsedMs).isEqualTo(START_ELAPSED_MS + 60_000)
+        assertThat(effects).containsExactly(Persist, NO_ALARMS, StartForeground, UpdateNotification).inOrder()
+        assertThat(BrewTimerEngine.dueTimes(held)).isEqualTo(DueTimes.NONE)
+        // However long it waits, a held brew is never acknowledged silently.
+        driver.clocks.advanceSeconds(25 * 60)
+        assertThat(BrewTimerEngine.dueEvents(driver.state, driver.clocks.now())).isEmpty()
+        assertThat(driver.send(TimerEvent.OvertimeTimeout)).isEmpty()
+    }
+
+    @Test
+    fun `a held brew rings on release with its overtime from its deadline and its silent end from its ringing`() {
+        val driver = runningBrew(60)
+        driver.clocks.advanceSeconds(60)
+        val deadline = START_ELAPSED_MS + 60_000
+        driver.send(TimerEvent.AlertHold)
+        driver.clocks.advanceSeconds(12 * 60)
+
+        val effects = driver.send(TimerEvent.AlertRingStart)
+
+        val ringing = driver.state as TimerState.Alerting
+        val ringStart = deadline + 12 * 60_000
+        assertThat(ringing.ringingSinceElapsedMs).isEqualTo(ringStart)
+        assertThat(effects).containsExactly(
+            Persist,
+            TimerEffect.ScheduleAlarms(DueTimes(overtimeTimeoutAtElapsedMs = ringStart + tenMinutes)),
+            StartForeground,
+            StartAlert,
+            UpdateNotification,
+        ).inOrder()
+        // „+12:00": the overtime counts from its own deadline.
+        assertThat(driver.display()).isEqualTo(TimerDisplay(remainingSeconds = 0, overtimeSeconds = 12 * 60))
+
+        driver.clocks.advance(tenMinutes - 1)
+        assertThat(driver.send(TimerEvent.OvertimeTimeout)).isEmpty()
+        driver.clocks.advance(1)
+        driver.send(TimerEvent.OvertimeTimeout)
+        // Counted as poured on time, with the auto-ack flag, and the session waits.
+        assertThat(driver.state).isInstanceOf(TimerState.Finished::class.java)
+        assertThat(driver.recordOf(0).overtimeAutoAck).isTrue()
+    }
+
+    @Test
+    fun `Abgegossen on a released brew 13 min after its deadline records its real overtime`() {
+        val driver = runningBrew(60)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.AlertHold)
+        driver.clocks.advanceSeconds(12 * 60)
+        driver.send(TimerEvent.AlertRingStart)
+        driver.clocks.advanceSeconds(60)
+
+        driver.send(TimerEvent.Poured)
+
+        // Rung for 1 min only: poured by the user, not by the overtime timeout (whose 10 min count from ringing).
+        val record = driver.recordOf(0)
+        assertThat(record.overtimeAutoAck).isFalse()
+        assertThat(record.overtimeSeconds).isEqualTo(13 * 60)
+        assertThat(record.actualSeconds).isEqualTo(60 + 13 * 60)
+    }
+
+    @Test
+    fun `a ringing brew preempted by another brew stops its sound and is held again, never reported played`() {
+        val driver = runningBrew(60)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.DeadlineReached)
+        driver.clocks.advanceSeconds(20)
+        driver.send(TimerEvent.AlertCompleted)
+
+        val effects = driver.send(TimerEvent.AlertHold)
+
+        val held = driver.state as TimerState.Alerting
+        assertThat(held.held).isTrue()
+        assertThat(held.alertPlayed).isFalse()
+        assertThat(effects).containsExactly(Persist, NO_ALARMS, StopAlert, UpdateNotification).inOrder()
+        assertThat(driver.send(TimerEvent.AlertCompleted)).isEmpty()
         assertThat(driver.send(TimerEvent.AlertHold)).isEmpty()
-        assertThat(driver.outcome).isEqualTo(TransitionOutcome.Ignored)
+    }
+
+    @Test
+    fun `a brew that rings at its deadline rings since its deadline and ends silently 10 min after it`() {
+        val driver = runningBrew(60)
+        driver.clocks.advanceSeconds(61)
 
         driver.send(TimerEvent.DeadlineReached)
+
         val alerting = driver.state as TimerState.Alerting
-        assertThat(driver.send(TimerEvent.AlertHold)).isEmpty()
-        assertThat(driver.state).isSameInstanceAs(alerting)
-        // Its silent end stays 10 min after its deadline.
+        assertThat(alerting.ringingSinceElapsedMs).isEqualTo(START_ELAPSED_MS + 60_000)
         assertThat(BrewTimerEngine.dueTimes(alerting))
             .isEqualTo(DueTimes(overtimeTimeoutAtElapsedMs = START_ELAPSED_MS + 60_000 + tenMinutes))
+    }
+
+    @Test
+    fun `Abgegossen, Sitzung beenden and verwerfen on a held brew stop no sound it never played`() {
+        listOf(TimerEvent.Poured, TimerEvent.FinishSession, TimerEvent.Discard).forEach { event ->
+            val driver = runningBrew(60)
+            driver.clocks.advanceSeconds(60)
+            driver.send(TimerEvent.AlertHold)
+            driver.clocks.advanceSeconds(42)
+
+            val effects = driver.send(event)
+
+            assertThat(driver.outcome).isEqualTo(TransitionOutcome.Accepted)
+            assertThat(effects).doesNotContain(StopAlert)
+            if (event == TimerEvent.Poured) {
+                // Its overtime counts from its own deadline: „+0:42".
+                assertThat(driver.recordOf(0).overtimeSeconds).isEqualTo(42)
+            }
+        }
+    }
+
+    @Test
+    fun `a held brew survives the snapshot round trip and recovers held`() {
+        val driver = runningBrew(60)
+        driver.clocks.advanceSeconds(60)
+        driver.send(TimerEvent.AlertHold)
+        val held = driver.state
+        assertThat(BrewTimerEngine.snapshot(held)!!.activeBrew.alertRingingSinceElapsedMs).isNull()
+        assertThat(BrewTimerEngine.restore(BrewTimerEngine.snapshot(held))).isEqualTo(held)
+
+        driver.clocks.advanceSeconds(30 * 60)
+        val effects = driver.send(TimerEvent.Recover)
+
+        assertThat((driver.state as TimerState.Alerting).held).isTrue()
+        assertThat(effects).containsExactly(Persist, NO_ALARMS, StartForeground, UpdateNotification).inOrder()
+    }
+
+    @Test
+    fun `recovery while another brew alerts holds a brew past its deadline, however late, or ringing`() {
+        val late = runningBrew(60)
+        late.clocks.advanceSeconds(60 + 25 * 60)
+        val lateEffects = late.send(TimerEvent.RecoverHeld)
+        assertThat((late.state as TimerState.Alerting).held).isTrue()
+        assertThat(lateEffects).containsExactly(Persist, NO_ALARMS, StartForeground, UpdateNotification).inOrder()
+
+        val ringing = runningBrew(60)
+        ringing.clocks.advanceSeconds(60)
+        ringing.send(TimerEvent.DeadlineReached)
+        ringing.send(TimerEvent.AlertCompleted)
+        ringing.clocks.advanceSeconds(30)
+        ringing.send(TimerEvent.RecoverHeld)
+        val held = ringing.state as TimerState.Alerting
+        assertThat(held.held).isTrue()
+        assertThat(held.alertPlayed).isFalse()
     }
 
     @Test
@@ -183,10 +321,12 @@ class HeldAlertTest {
     }
 
     @Test
-    fun `an alerting brew row stored without its ringing start rings since its deadline`() {
-        val driver = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
+    fun `a played brew alert stored without its ringing start rings since its deadline`() {
+        val driver = runningBrew(60)
         driver.clocks.advanceSeconds(60)
         driver.send(TimerEvent.DeadlineReached)
+        // A row an interim build of v0.3.0 wrote: a held alert is never reported played, so this one rang.
+        driver.send(TimerEvent.AlertCompleted)
         val alerting = driver.state as TimerState.Alerting
         val snapshot = BrewTimerEngine.snapshot(alerting)!!
         val withoutRinging = snapshot.copy(
@@ -241,18 +381,18 @@ class HeldAlertTest {
     }
 
     @Test
-    fun `recovery while the brew alerts restores a quick timer before its deadline and a brew as usual`() {
+    fun `recovery while another slot alerts restores a timer before its deadline as usual`() {
         val quick = runningQuick(60)
         quick.clocks.advanceSeconds(30)
         val running = quick.state
         quick.send(TimerEvent.RecoverHeld)
         assertThat(quick.state).isEqualTo(running)
 
-        val brew = sessionWith(infusion(60)).apply { send(TimerEvent.Start) }
-        brew.clocks.advanceSeconds(61)
-        val effects = brew.send(TimerEvent.RecoverHeld)
-        assertThat((brew.state as TimerState.Alerting).held).isFalse()
-        assertThat(effects).contains(StartAlert)
+        val brew = runningBrew(60)
+        brew.clocks.advanceSeconds(30)
+        val brewRunning = brew.state
+        brew.send(TimerEvent.RecoverHeld)
+        assertThat(brew.state).isEqualTo(brewRunning)
     }
 
     @Test
@@ -286,6 +426,9 @@ class HeldAlertTest {
         val thrown = runCatching(block).exceptionOrNull()
         assertThat(thrown).isInstanceOf(IllegalArgumentException::class.java)
     }
+
+    /** A brew session of one infusion of [seconds], running since [START_ELAPSED_MS]. */
+    private fun runningBrew(seconds: Int) = sessionWith(infusion(seconds)).apply { send(TimerEvent.Start) }
 
     /** A quick timer of [seconds] with *Aus*, started at [START_ELAPSED_MS]. */
     private fun runningQuick(seconds: Int) = EngineDriver().apply {

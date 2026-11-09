@@ -443,6 +443,31 @@ asks the PO only where they change behaviour the PO sees).**
 the tickets (`/to-tickets`); nothing is built before the PO starts
 `/implement-spec` on it.
 
+**Build notes (Claude, 2026-11-09, #196: arbitration over any slots).**
+- **Rules (04 §9.3).** A deadline or recovery is held while another slot's
+  alert *rings* (not merely alerts: after every settle a ringing alert
+  exists whenever one alerts, and this keeps a ringing brew's
+  `ringingSince` when an earlier slot recovers held). Of several ringing
+  alerts the brew's keeps the sound, else the one that started ringing
+  first; a release goes to the held alert whose deadline came first, ties
+  in the slot order `BREW`, `BREW_2`, `QUICK`. A held brew is not released
+  ahead of an earlier quick deadline; with at most two active timers a held
+  brew and a held quick timer never meet.
+- **Held brew in the engine.** Its overtime timeout and the auto-ack of a
+  late *Abgegossen* count from `ringingSince`; leaving a held alert sends no
+  `StopAlert`. A brew row stored without a ringing start is held; only a
+  row reported played (interim v0.3.0 builds) still rings since its
+  deadline. The controller now settles every slot, so such a row rings at
+  recovery instead of staying silent.
+- **Names.** `BREW_2` is stored as `BREW_2`; its alarms 301–307, its
+  notification actions 440–445, its content and full-screen intents 308 and
+  309, prefix `BREW2.`. Recovery reads and cancels the empty slot's alarms
+  like any idle slot's.
+- **Tests changed, not only added.** `HeldAlertTest`'s „the brew is never
+  held" and its brew recovery became held-brew tests; `TwoSlotInvariantsTest`
+  runs the v0.3.0 pair (with its old checks) and all three slots. With one
+  brew and one quick timer the controller tests pass unchanged.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 
