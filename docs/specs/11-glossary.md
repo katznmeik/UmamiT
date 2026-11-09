@@ -50,7 +50,7 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
-| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default) and *Kräutertee* today. A catalog tea's kind comes from its style; folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. |
+| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default), *Schwarztee*, *Weißer Tee*, *Oolong*, *Pu-Erh*, *Kräutertee*, *Rotbusch*, *Früchtetee* and *Chai*, in that chip order. A catalog tea's kind comes from its style (a chai's is *Chai* whatever its base tea, #206); folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Frische (Frisch, Bald genießen, Über dem Höhepunkt)** | A tea's freshness label (INV-06, from v0.4.1): by thirds of its style's window from the opening date, or *Über dem Höhepunkt* once its best-before date has passed. None for an unopened or an empty tea. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2; from v0.5.0 the tea's own *Knapp ab* when set); *Leer* at 0 g (INV-05). |
@@ -65,7 +65,10 @@
 | **Sideloading** | Installing an APK directly (here from GitHub Releases) instead of from a store. |
 | **snap5** | Rounding a temperature to the nearest 5 °C (half up). |
 | **Collection** | The user's own teas (UI name: Sammlung › Meine Tees). |
-| **Kategorie** | The broad class of a tea: Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee. |
+| **Kategorie** | The broad class of a tea (`TeaCategory`): Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee, and from v0.5.0 Rotbusch and Früchtetee (#206), else Andere. A chai has no Kategorie of its own: it takes its base tea's (Schwarzer Tee, Rotbusch, Grüntee, …), else Andere. |
+| **Chai** | A spiced tea blend; in the catalog the kind *Chai* (style `chai`, #206). The shop files each chai under its base tea's section, so a tea whose name says „Chai" is one; its *Sorte* and Kategorie are its base tea's. |
+| **Rotbusch (Rooibos)** | The South African red bush infusion, and the shop's *Rotbusch* section with green rooibos and honeybush; catalog kind and Kategorie *Rotbusch* (`ROOIBOS`, style `rooibos`, #206). |
+| **Früchtetee** | A fruit infusion; the shop's section, catalog kind and Kategorie *Früchtetee* (`FRUIT`, style `fruit`, #206). |
 | **Sorte** | The kind of a tea as the user sees it (Gyokuro, Sencha, Bancha …): the shop's *Sorte* for a catalog tea, or the one picked in *Sorte wählen* for a tea added without the catalog. Each Sorte belongs to one Kategorie. |
 | **Style** | The built-in reference entry behind a Sorte, with its default recipe and freshness period. The user sees a style only by its Sorte name, never its values directly. |
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |

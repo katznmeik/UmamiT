@@ -474,7 +474,7 @@ up). Table `catalog_guide_staging` has exactly its columns (D-087).
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
 flagged, photos), `parser_version` (v7 from v0.2.1 with the Kräutertees,
-v8 from v0.5.0 with the black teas, v9 with the white teas, oolongs and Pu-Erhs (#205); a kind is still to come while the latest
+v8 from v0.5.0 with the black teas, v9 with the white teas, oolongs and Pu-Erhs (#205), v10 with the Rotbusch, Früchtetee and Chai (#206); a kind is still to come while the latest
 successful row has a version below its section's, SCR-19's hint),
 `error_summary`. The counts of a
 successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
@@ -508,7 +508,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 | Enum | Values |
 |---|---|
-| `TeaCategory` | `GREEN`, `WHITE`, `YELLOW`, `OOLONG`, `BLACK`, `DARK`, `HERBAL`, `OTHER` |
+| `TeaCategory` | `GREEN`, `WHITE`, `YELLOW`, `OOLONG`, `BLACK`, `DARK`, `HERBAL`, `ROOIBOS`, `FRUIT`, `OTHER` (`ROOIBOS` and `FRUIT` from v0.5.0, #206: the shop's Rotbusch and Früchtetee; stored by name, so no schema change. A chai takes its base tea's category, else `OTHER`) |
 | `TeaForm` | `LOOSE_LEAF`, `POWDER`, `TEA_BAG`, `COMPRESSED` |
 | `UmamiLevel` | `NONE`, `LOW`, `MEDIUM`, `HIGH`, `VERY_HIGH` |
 | `HarvestSeason` | `FIRST_FLUSH`, `SECOND_FLUSH`, `SUMMER`, `AUTUMN`, `WINTER`, `UNKNOWN` |
@@ -771,8 +771,11 @@ run's own (the v0.2.1 pattern above, 08 §2.4 item 3); a refresh that stops
 or fails keeps the old skip list, so the next one reads them again. The
 white teas, oolongs and Pu-Erhs (#205) are a second step, parser v9, by the
 same rule: a catalog an rc refreshed with v8 re-reads its `NOT_GREEN`
-entries once more; a v0.4.1 catalog still re-reads only once. Still no
-schema change.
+entries once more; a v0.4.1 catalog still re-reads only once. The
+Rotbusch, Früchtetee and Chai (#206) are a third step, parser v10, by the
+same rule (a catalog an rc refreshed with v9 re-reads once more). Still no
+schema change: `ROOIBOS` and `FRUIT` are new values of the TEXT column
+`tea.category`.
 
 ## 10. Volume assumptions
 

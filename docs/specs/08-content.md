@@ -34,6 +34,7 @@ parser (NFR-MAINT-04).
 | Kräutertee section (v0.2.1) | `/tee/kraeutertee/` with `bio-kraeutertee/`, `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`, `mate-lapacho/` (sitemap, 2026-10-29); products carry `TK…` base numbers. Its pages have the same structure as the green teas' (breadcrumb, buy box, properties, brewing grid, typically one `st-zubereitung-westlich` row with a per-litre amount, a temperature and one infusion). Fruit tea (`/tee/fruechtetee/`) and rooibos (`/tee/rotbusch/`) are separate sections. |
 | Black tea section (v0.5.0) | `/tee/schwarzer-tee/` with `bio-schwarztee/`, `klassischer-schwarztee/`, `darjeeling/`, `nepal/`, `ceylon/`, `assam/`, `china/`, `taiwan/`, `japan/`, `andere-regionen/`, `teemischung-blends/`, `aromatisierter-schwarztee/`, `flugtee-<year>/` (sitemap, 2026-11-09); the Japan tree has `/tee/japantee/koucha-schwarztee/`. Products carry mostly `TS…` base numbers (≈ 110 in the sitemap), some `AT…`. **Live check (#203, 2026-11-09, 6 product pages at ≤ 1 req/s, structure only, D-016):** the page shows **one** breadcrumb, Tee › Schwarzer Tee › <sub-section> (the product's main category); 5 of 6 were filed under `klassischer-schwarztee/` even where the name names a region (Darjeeling, Assam, Ceylon), the flavoured one under `aromatisierter-schwarztee/`, so the region comes from the name as often as from the sub-section. Brewing grid: header *Menge · Temperatur · 1. Aufguss*, one `st-zubereitung-westlich` row (a per-litre amount `~…g/L`, or per bag `1Stk/…ml` for a tea-bag product; 100 °C; a minute range), no Kyusu or Gongfu row. Taste scales (`.st-scales-usp`): *Komplexität*, *Bitterstoffe*, *Süße*, *Fruchtig*, *Würzig*, *Floral* (no *Umami*); the flavoured and the tea-bag page had none. Properties: *Anbaugebiete* („<region> / <country>"), *Aroma* („naturbelassen …" or the flavour), *Geschmack* (a comma list), *Hersteller …*, *Saison*; no *Kultivare*, no badges. Otherwise the green pages' structure (§2.3). The shop's *Aufgussbeutel* (`/tee/aufgussbeutel/`, a format), a maker's section (`/tee/tee-von-<maker>/…`) and `/tee/multipacks-sets-zum-probieren/` (with `schwarztee-sets/`, …) are no tea sections. |
 | White, oolong and Pu-Erh sections (v0.5.0, #205) | `/tee/weisser-tee/` with `bio-weisser-tee/`, `klassischer-weisser-tee/`, `aromatisierter-weisser-tee/`; `/tee/oolong/` with `bio-oolong/`, `klassischer-oolong-tee/`, `taiwan/`, `china/`, `andere-regionen/`, a tea master's page (`tee-von-meister-<name>/`), `aromatisierter-oolong-tee/`; `/tee/pu-erh/` with `sheng/`, `shou/`, `aged/`, `loose-leaf-loser-pu-erh/` and two makers' pages (`pu-erh-von-<maker>/`) (sitemap, 2026-11-09). The Japan tree has `/tee/japantee/oolong/` and `/tee/japantee/weisstee/`. Base numbers: `TW…` (white, ≈ 20 in the sitemap; one yellow tea among them is filed under the green section), `TO…` (oolong, ≈ 23), `PE…` (Pu-Erh, ≈ 16; cake variants carry suffixes such as `-Fladen`). **Live check (#205, 2026-11-09, 9 product pages, 3 per section, at ≤ 1 req/s, structure only, D-016):** again **one** breadcrumb, Tee › <section> › <sub-section>; the Taiwan oolong sat under `klassischer-oolong-tee/`, a flavoured one under `aromatisierter-oolong-tee/` without an *Aroma* property, the Pu-Erhs under `sheng/` and `shou/` (a loose aged Sheng under `sheng/`). Grids: a classic white tea has a `st-zubereitung-westlich` row (`~…g/L`, ~80 °C, ~2 min) **and** a `st-zubereitung-china` row (gaiwan icon, `~…g/150ml`, ~80 °C, three infusions in seconds); flavoured white teas and oolongs one western row (`~8–10g/L`, 80–95 °C, 2–3 min); a classic oolong one Gongfu row (`2-3g/150ml`, ~95 °C, three infusions); every Pu-Erh one Gongfu row (`~4–5g/120ml`, ~100 °C, a first infusion as a seconds range `~5-15 Sek`, then two of ~10 s). Properties as for black teas, plus *Kultivare* on some oolongs and Pu-Erhs. |
+| Rotbusch, Früchtetee and Chai sections (v0.5.0, #206) | `/tee/rotbusch/` with `bio-rotbusch/`, `klassischer-rotbusch/`, `aromatisierter-rotbusch/`, `gruener-rotbusch/`; `/tee/fruechtetee/` with `bio-fruechtetee/`, `klassischer-fruechtetee/`; `/tee/chaitee/` with no sub-section (sitemap, 2026-11-09). Base numbers: `TR…` (Rotbusch, honeybush and some cocoa-husk teas), `TF…` (Früchtetee); the chais carry their base tea's prefix (`TS…`, `TR…`, `TG…`, `TK…`). **Live check (#206, 2026-11-09, robots.txt, the sitemap, 9 product pages, 3 per section, and the chai section's one listing page, at ≤ 1 req/s, one at a time, structure only, D-016):** again **one** breadcrumb, Tee › <section> › <sub-section>; a plain green rooibos sat under `klassischer-rotbusch/`. **No product carries `/tee/chaitee/` in its breadcrumb:** the chai section's listing (17 products) shows black, green and rooibos chais filed under their base section's flavoured sub-section (`aromatisierter-schwarztee/`, `aromatisierter-rotbusch/`, the green section), herbal chais and spice blends under `kraeuterteemischungen/`; a spice blend's page had no brewing grid. Every grid with values had one `st-zubereitung-westlich` row: `~10g/L`, 100 °C, `~5 Min` (one fruit tea `~10 Min`, the black chai `2-3 Min`); no Kyusu, Gongfu or cold row, no taste scales. Properties *Aroma* (missing on some), *Geschmack*, *Hersteller …*, *Saison*; an ingredients line („Zutaten: …") in the description. No page is in the repository. |
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
 | Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. **Sold-out products are left out** (checked 2026-10-28, D-094): e.g. „Bio Sencha Kirishima Yabukita" (TG0170) and „Bio Sencha Gabalong" (TG0577), every size unavailable, are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan › Sencha) but not in the sitemap; on page 1 of the Sencha listing, 3 of 24 products were missing. Known teas missing from the sitemap are therefore re-checked (§2.4 item 5, CAT-16), and a single tea can be fetched from its shop link (§2.4 item 9, CAT-17). Paginated listings stay off-limits (`Disallow: */?`). |
@@ -107,7 +108,8 @@ the prose, whose years are travel reports, founding years and link texts
    tencha, aracha, „Grüntee", …) or it carries a steaming or shading badge,
    and neither its name nor its path names another tea (Koucha/Wakoucha,
    Oolong, Schwarz-, Weiß- or Kräutertee) or teaware (Kyusu, Kanne, Chawan,
-   Set, …); otherwise it is skipped (D-089). A product of the green sections
+   Set, …); otherwise it is skipped (D-089). From v0.5.0 (#206) one that names
+   Wakoucha, Oolong or Weißtee is that kind's tea instead (below). A product of the green sections
    whose name says set („Set" as a word, „3er-Set", „Probierset",
    „Geschenkset", „Jubiläumsset", …; not „Setouchi" or „Sunset") or whose
    breadcrumb is a set category (`…-sets`, `teesets`) is a set without a set
@@ -179,6 +181,28 @@ the prose, whose years are travel reports, founding years and link texts
    (a v0.5.0 rc) re-reads its `NOT_GREEN` entries once more, the same way;
    a v0.4.1 catalog re-reads once, with everything. Each new kind's view
    shows its own hint until then.
+   **Rotbusch, Früchtetee and Chai (v0.5.0, #206):** three more entries of
+   `TeaSections`, same rules: `/tee/rotbusch/` → kind *Rotbusch*, category
+   `ROOIBOS`, style `rooibos`; `/tee/fruechtetee/` → kind *Früchtetee*,
+   category `FRUIT`, style `fruit`; `/tee/chaitee/` → kind *Chai*, style
+   `chai`. *Sorte*: Rotbusch — the `gruener-rotbusch/` sub-section, else the
+   name („Honeybush", „Grüner Rotbusch"), else none; Früchtetee — none. The
+   shop files every chai under its base tea's section (§2.2), so a tea of any
+   section whose name says „Chai" (or „Chaitee") as a word is a chai: style
+   `chai`, kind *Chai*, category its section's (`BLACK`, `ROOIBOS`, `GREEN`,
+   `HERBAL`, …), *Sorte* the base (Schwarztee, Rotbusch, Grüntee, Kräutertee,
+   …). One filed in `/tee/chaitee/` takes the base its name or ingredients
+   name (Rotbusch/Rooibos/Honeybush, Schwarztee/Assam/…, Grüntee/Sencha),
+   else category `OTHER` and no *Sorte*. **Japan tea families (#206):** a
+   product of the Japan tree without a type level whose name names another
+   tea — Wakoucha/Koucha, Oolong, Weißtee — is a tea of that section, *Sorte*
+   „Japan" like the Japan tree's own black, oolong and white sections
+   (amending the D-089 rule above, by D-108 point 4: every tea under *Tee*);
+   teaware and sets there stay out. **Re-read:** these are parser **v10**, a
+   step of their own, by the v9 rule: a catalog last refreshed by v9 re-reads
+   its `NOT_GREEN` entries once more; the three new views show their hints
+   until then. A known black chai of an rc catalog moves to *Chai* with that
+   refresh, since every product is re-parsed with the new parser version.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section). In the Kräutertee section, teaware is
    left out by its name (Kalebasse, Bombilla, Filter, Dose, Kanne, Becher,
@@ -552,6 +576,10 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | the shop's *Weißer Tee* section `/tee/weisser-tee/` (and `/tee/japantee/weisstee/`; v0.5.0, #205), whatever a green keyword names | flavoured (*Aroma*, ingredients, or `aromatisierter-weisser-tee`) → `flavored_white`; else `white_generic`. Category `WHITE`; never flagged; form as above |
 | the shop's *Oolong* section `/tee/oolong/` (and `/tee/japantee/oolong/`; v0.5.0, #205) | flavoured (*Aroma*, ingredients, or `aromatisierter-oolong-tee`) → `flavored_oolong`; else `oolong_generic`. Category `OOLONG`; never flagged; form as above |
 | the shop's *Pu-Erh* section `/tee/pu-erh/` (v0.5.0, #205) | „Sheng" / „Shou" as a word in the *Sorte* or name → `sheng` / `shou`; else `dark_generic`. Category `DARK`, umami `NONE`; never flagged; form as above |
+| the shop's *Rotbusch* section `/tee/rotbusch/` (v0.5.0, #206) | `rooibos`, flavoured or not. Category `ROOIBOS`, umami `NONE`; never flagged; form as above |
+| the shop's *Früchtetee* section `/tee/fruechtetee/` (v0.5.0, #206) | `fruit`. Category `FRUIT`, umami `NONE`; never flagged; form as above |
+| „Chai" / „Chaitee" as a word in the name, in any section, or the shop's `/tee/chaitee/` section (v0.5.0, #206) | `chai`. Category: the section's (`BLACK`, `ROOIBOS`, `GREEN` for a green section, `HERBAL`, …); in `/tee/chaitee/` the base the name or ingredients name, else `OTHER`. Umami `NONE`; never flagged |
+| a Japan tea family's page (no type level) + „Koucha"/„Wakoucha", „Oolong", „Weißtee" in the name (v0.5.0, #206) | the black, oolong or white section's style as above (*Sorte* „Japan") |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
 | tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
@@ -693,6 +721,9 @@ days after opening.
 | `flavored_oolong` | Aromatisierter Oolong | LOW | 120 | 2,5 | WESTERN 2 g / 250 ml / 95 °C: 3:00, one infusion (v0.5.0, #205) |
 | `sheng` | Sheng Pu-Erh | NONE | 365 | 2,5 | GONGFU 5 g / 120 ml / 100 °C: 0:10, 0:10, 0:10, 0:15, 0:20, 0:30 · WESTERN 3 g / 250 ml / 100 °C: 3:00 (v0.5.0, #205) |
 | `shou` | Shou Pu-Erh | NONE | 365 | 2,5 | GONGFU 4 g / 120 ml / 100 °C: 0:10, 0:10, 0:10, 0:15, 0:20, 0:30 · WESTERN 3 g / 250 ml / 100 °C: 3:00 (v0.5.0, #205) |
+| `rooibos` | Rotbusch | NONE | 180 | 2,5 | WESTERN 2,5 g / 250 ml / 100 °C: 5:00, one infusion (v0.5.0, #206) |
+| `fruit` | Früchtetee | NONE | 180 | 3,5 | WESTERN 2,5 g / 250 ml / 100 °C: 5:00, one infusion (v0.5.0, #206) |
+| `chai` | Chai | NONE | 120 | 2,5 | WESTERN 2,5 g / 250 ml / 100 °C: 5:00, one infusion (v0.5.0, #206; the style's category is `OTHER`, a catalog chai's its base tea's) |
 | `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW, LOW, NONE, NONE | 90 | — | WESTERN 3 g / 250 ml, one infusion 3:00 at 85 / 95 / 95 / 100 °C, for manually added non-green teas (Q-20, D-100) |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
@@ -726,6 +757,13 @@ green tea does (§2.5); the default is the row of the style's default method
 (western for the white and oolong rows, Gongfu for Sheng and Shou), else
 the grid's first row. *Sorte wählen* lists each row in its Kategorie's
 group, the generic row last.
+The catalog's Rotbusch teas, Früchtetees and chais (#206) use `rooibos`,
+`fruit` and `chai`: the live check's one western row (~10 g/L, 100 °C, ~5
+min) in the mug; the shop gave no cold values, so no cold brew and no Kyusu.
+*Sorte wählen* lists `rooibos` under *Rotbusch* and `fruit` under
+*Früchtetee*, new Kategorien after *Kräutertee*; `chai`, whose Kategorie is
+`OTHER` when chosen there, sits above *Andere / unbekannt* in the last,
+unheaded group.
 
 ## 4. Tasting descriptor vocabulary
 
