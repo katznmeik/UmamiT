@@ -53,7 +53,7 @@ class TimerStateActivity : Activity() {
         /** Where the activity writes the state it shows (app-private, shared by both processes). */
         fun stateFile(context: Context): File = File(context.filesDir, "timer-test-state.txt")
 
-        /** Where it writes each slot's state, one line each: `BREW RUNNING|<deadline>`, `QUICK IDLE`. */
+        /** Where it writes each slot's state, one line each in slot order: `BREW RUNNING|<deadline>`, `BREW_2 IDLE`, `QUICK IDLE`. */
         fun slotsFile(context: Context): File = File(context.filesDir, "timer-test-slots.txt")
 
         fun intent(context: Context): Intent = Intent(context, TimerStateActivity::class.java)
