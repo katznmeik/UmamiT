@@ -112,7 +112,7 @@ class CatalogRefresherTest {
             content = "50 g",
             reference = "(36,00 € / 100 g)",
         )
-        product(BLACK, "Abendglut Assam – 100g", "XY0300", SyntheticShop.BLACK_TEA_PATH)
+        product(BLACK, "Abendglut Assam – 100g", "XY0300", SyntheticShop.TEA_BAGS_PATH)
         product(TEAPOT, "Kanne aus Ton", "XY0500", SyntheticShop.TEAWARE_PATH)
         listed += listOf(
             "/geschenk-set/XY0400SET",

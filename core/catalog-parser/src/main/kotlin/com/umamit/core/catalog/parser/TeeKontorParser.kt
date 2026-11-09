@@ -1,5 +1,6 @@
 package com.umamit.core.catalog.parser
 
+import com.umamit.core.model.CatalogKind
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -22,14 +23,23 @@ object TeeKontorParser {
     /**
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
      * selectors or the fields read change. v7 (v0.2.1, D-093): the Kräutertee section is in scope.
+     * v8 (v0.5.0, D-108): the shop's other tea sections, one step for the whole release.
      */
-    const val PARSER_VERSION = 7
+    const val PARSER_VERSION = 8
 
     /**
-     * The first parser version that keeps Kräutertees (D-093). After a last successful refresh of
-     * an older parser, the skip list's not-green entries are classified once more (05 §9, 08 §2.4).
+     * The first parser version of the current scope: the latest [TeaSection.since]. After a last
+     * successful refresh of an older parser, the skip list's not-green entries are classified once
+     * more (05 §9, 08 §2.4 item 3).
      */
-    const val HERBAL_SINCE_VERSION = 7
+    val SCOPE_SINCE_VERSION: Int = TeaSections.ALL.maxOf { it.since }
+
+    /**
+     * The catalog kinds still to come for a catalog whose last successful refresh ran parser
+     * [parserVersion]: those of the sections a later parser brought (SCR-19's hint).
+     */
+    fun kindsSince(parserVersion: Int): Set<CatalogKind> =
+        TeaSections.ALL.filter { it.since > parserVersion }.map { it.kind }.toSet()
 
     /** Parses [body] (the HTML of [pageUrl], charset from the page, else UTF-8). */
     fun parseProduct(body: ByteArray, pageUrl: String): ProductParse {

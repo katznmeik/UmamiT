@@ -1210,7 +1210,13 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   (≈ 16 min, einmalig)" with *Jetzt laden*, which starts the refresh and
   opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
   empty it takes the no-match notice's place; the header still reads
-  „… · 0 Kräutertees · …".
+  „… · 0 Kräutertees · …". From v0.5.0 (D-108, #203) each pending kind's
+  view shows its own hint the same way: „Schwarztees kommen mit dem nächsten
+  Abruf (≈ 30 min, einmalig)", and the Kräutertee hint says ≈ 30 min too.
+- **Schwarztee (v0.5.0, D-108, #203):** the chip *Schwarztee* sits between
+  *Grüntee* and *Kräutertee*; its view is grouped by *Sorte* with folding,
+  the header reads „… · 186 Schwarztees · …", and „Pur" and Umami apply to
+  the green view only, as in the Kräutertee view.
 - **Merken (v0.2.2, CAT-18, [D-097](10-open-questions-and-decisions.md#d-097)):**
   each row of a tea not in the collection ends with a bookmark toggle
   (48 dp target, outlined / filled, TalkBack „Merken" / „Gemerkt"; a short
@@ -1569,7 +1575,7 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Catalog refresh, storage full | „Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?" · „Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh cancelled | „Laden abgebrochen" · „Dein bisheriger Katalog bleibt erhalten." |
 | Tee per Link: not a shop tea link (CAT-17) | „Das ist kein Tee-Link von Tee-Kontor Kiel." |
-| Tee per Link: not green or herbal (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." |
+| Tee per Link: not in the catalog's sections (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün-, Schwarz- und Kräutertees)." |
 | Tee per Link: a refresh runs (CAT-17) | „Gerade läuft ein Abruf – versuch es danach." |
 | Tee per Link: no tea at the link (404/410, a redirect, another 4xx, no or another product; CAT-17, #98) | „Unter diesem Link gibt es im Shop keinen Tee." |
 | Tee per Link: the page can't be read (robots.txt, over the body limit, no breadcrumb; CAT-17, #98) | „Diese Shop-Seite kann die App nicht lesen." |

@@ -65,7 +65,7 @@ class CatalogHerbalViewTest {
 
     private fun show(catalog: List<CatalogTeaSummary> = teas, herbalPending: Boolean = false) {
         repository = FakeCatalogRepository(CatalogOverview(catalog, FakeClock.DEFAULT_WALL_MS))
-        repository.herbalPending.value = herbalPending
+        repository.pendingKinds.value = if (herbalPending) setOf(CatalogKind.HERBAL) else emptySet()
         val viewModel = CatalogViewModel(repository, refresh)
         compose.setContent {
             UmamiTheme(reduceMotion = true) {
@@ -149,7 +149,8 @@ class CatalogHerbalViewTest {
     fun filterZuruecksetzenInTheKraeuterteeViewStaysInTheView() {
         show()
         switchToHerbal()
-        chip(R.string.catalog_filter_new).performClick()
+        // The chip row scrolls: with a third kind chip „Neu" starts off screen (#203).
+        chip(R.string.catalog_filter_new).performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText(str(R.string.catalog_no_match)).assertIsDisplayed()
 
@@ -194,7 +195,7 @@ class CatalogHerbalViewTest {
         switchToHerbal()
         compose.onNodeWithText(hint).assertIsDisplayed()
 
-        repository.herbalPending.value = false
+        repository.pendingKinds.value = emptySet()
         repository.catalog.value = CatalogOverview(teas, FakeClock.DEFAULT_WALL_MS)
         compose.waitForIdle()
 

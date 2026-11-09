@@ -87,7 +87,7 @@ class CatalogHerbalRefreshTest {
             brewRows = listOf("westlich" to listOf("~12g/L", "100°C", "~8 Min")),
         )
         product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH)
-        product(BLACK, "Abendglut Assam – 100g", SyntheticShop.BLACK_TEA_PATH)
+        product(BLACK, "Abendglut Assam – 100g", SyntheticShop.TEA_BAGS_PATH)
         product(HERBAL_SET, "Kräuter Probierset", SyntheticShop.HERBAL_PATH)
     }
 
@@ -228,7 +228,7 @@ class CatalogHerbalRefreshTest {
         assertThat(dao.skipList().map { it.baseKey }).contains(HERBAL_KEY)
         assertThat(dao.tea(HERBAL_KEY)).isNull()
 
-        product(BLACK, "Abendglut Assam – 100g", SyntheticShop.BLACK_TEA_PATH)
+        product(BLACK, "Abendglut Assam – 100g", SyntheticShop.TEA_BAGS_PATH)
         requests.clear()
         val outcome = refresher().refresh()
 

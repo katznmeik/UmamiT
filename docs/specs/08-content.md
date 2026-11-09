@@ -32,6 +32,7 @@ parser (NFR-MAINT-04).
 | Host | All pages and images on `www.tee-kontor-kiel.de` (`/media/…` originals, `/thumbnail/…_{W}x{W}.jpg`). This is the only allow-listed host. |
 | `robots.txt` | `Allow: /`, but `Disallow: */?` (so paginated listings `?p=N` are off-limits), `*/widgets/`, `*/navigation/`, `*/bundles/`, account/checkout. No crawl-delay. Sitemap: `/sitemap.xml`. |
 | Kräutertee section (v0.2.1) | `/tee/kraeutertee/` with `bio-kraeutertee/`, `mono-kraeuter/`, `kraeuterteemischungen/`, `ayurveda-wellness/`, `mate-lapacho/` (sitemap, 2026-10-29); products carry `TK…` base numbers. Its pages have the same structure as the green teas' (breadcrumb, buy box, properties, brewing grid, typically one `st-zubereitung-westlich` row with a per-litre amount, a temperature and one infusion). Fruit tea (`/tee/fruechtetee/`) and rooibos (`/tee/rotbusch/`) are separate sections. |
+| Black tea section (v0.5.0) | `/tee/schwarzer-tee/` with `bio-schwarztee/`, `klassischer-schwarztee/`, `darjeeling/`, `nepal/`, `ceylon/`, `assam/`, `china/`, `taiwan/`, `japan/`, `andere-regionen/`, `teemischung-blends/`, `aromatisierter-schwarztee/`, `flugtee-<year>/` (sitemap, 2026-11-09); the Japan tree has `/tee/japantee/koucha-schwarztee/`. Products carry mostly `TS…` base numbers (≈ 110 in the sitemap), some `AT…`. **Live check (#203, 2026-11-09, 6 product pages at ≤ 1 req/s, structure only, D-016):** the page shows **one** breadcrumb, Tee › Schwarzer Tee › <sub-section> (the product's main category); 5 of 6 were filed under `klassischer-schwarztee/` even where the name names a region (Darjeeling, Assam, Ceylon), the flavoured one under `aromatisierter-schwarztee/`, so the region comes from the name as often as from the sub-section. Brewing grid: header *Menge · Temperatur · 1. Aufguss*, one `st-zubereitung-westlich` row (a per-litre amount `~…g/L`, or per bag `1Stk/…ml` for a tea-bag product; 100 °C; a minute range), no Kyusu or Gongfu row. Taste scales (`.st-scales-usp`): *Komplexität*, *Bitterstoffe*, *Süße*, *Fruchtig*, *Würzig*, *Floral* (no *Umami*); the flavoured and the tea-bag page had none. Properties: *Anbaugebiete* („<region> / <country>"), *Aroma* („naturbelassen …" or the flavour), *Geschmack* (a comma list), *Hersteller …*, *Saison*; no *Kultivare*, no badges. Otherwise the green pages' structure (§2.3). The shop's *Aufgussbeutel* (`/tee/aufgussbeutel/`, a format), a maker's section (`/tee/tee-von-<maker>/…`) and `/tee/multipacks-sets-zum-probieren/` (with `schwarztee-sets/`, …) are no tea sections. |
 | Green tea sections | `/tee/gruener-tee/` with `japan/`, `china/`, `taiwan/`, `andere-regionen/`, `aromatisierter-gruentee/`, `bio-gruentee/`, `klassischer-gruentee/`, `matcha-teepulver/`, `shincha-<year>/` (year in slug). Japan by type: `/tee/gruener-tee/japan/{sencha,shincha,kabusecha,gyokuro,matcha,kukicha,bancha,houjicha,kamairicha,tamaryokucha,genmaicha,mizudashi-kaltaufgussbeutel}/`. A parallel tree exists at `/tee/japantee/<sorte>/`. Matcha also at `/matcha/matcha-teepulver/` (exclude `matcha-sets/`, `matchaschalen-chawan/`, `matchazubehoer/`, `leckeres-mit-matcha/`). |
 | Size | Section „Grüner Tee" shows **295 products**, one card per parent product, incl. sets and a few non-tea items; after de-duplication ≈ 260–280 teas. |
 | Discovery | **Sitemap** (`/sitemap.xml` → one `.xml.gz`, ~4,000 URLs, updated daily): ~3,500 product URLs (every size variant has its own URL), ~300 `/tee-info/<slug>` articles, all categories. No category info in the sitemap → classification via the product page breadcrumb. **Sold-out products are left out** (checked 2026-10-28, D-094): e.g. „Bio Sencha Kirishima Yabukita" (TG0170) and „Bio Sencha Gabalong" (TG0577), every size unavailable, are normal indexable green-tea pages (breadcrumb Grüner Tee › Japan › Sencha) but not in the sitemap; on page 1 of the Sencha listing, 3 of 24 products were missing. Known teas missing from the sitemap are therefore re-checked (§2.4 item 5, CAT-16), and a single tea can be fetched from its shop link (§2.4 item 9, CAT-17). Paginated listings stay off-limits (`Disallow: */?`). |
@@ -53,7 +54,7 @@ parser (NFR-MAINT-04).
 | Taste scales | `.st-scales-usp .container`: label without its colon (Umami, Bitterstoffe, …) + count of filled leaves (`scale-full-leaf.svg`) out of 5 | `taste_scales_json`; Umami scale → `umami_level` (§2.6) |
 | Description | `.product-detail-description-text` paragraphs, without staff tip blocks (`.st-teamtipp`, D-076), sanitised (§2.8, D-078) | `description_html`, `description_text`; also the source of brewing prose and „Zutaten: …" |
 | Ingredients | Paragraph starting „Zutaten:" | `ingredients` |
-| Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` | `is_flavored` |
+| Flavoured | *Aroma* ≠ „naturbelassen" (e.g. „natürlich aromatisiert") **or** ingredients beyond tea (roasted rice and footnotes don't count, D-078), **or** breadcrumb `aromatisierter-gruentee` (from v0.5.0 also `aromatisierter-schwarztee`, D-108) | `is_flavored` |
 | Brewing grid | `div.st-zubereitung`: header `.st-zubereitung-header-col` (Menge, Temperatur, 1./2./3. Aufguss); rows `.st-zubereitung-value` with class `st-zubereitung-japan` (Kyusu icon), `st-zubereitung-westlich` (western icon) or `st-zubereitung-china` (Gongfu, D-089); strip `.st-zubereitung-mobilelabel`. Intro text is always „Unsere Angaben sind Richtwerte …" (ignored) | `brew_table_raw` (JSON per row) |
 | Brewing prose | Description paragraphs that are brewing instructions: two of temperature (°C, also „80°"), time (Sek, Min, Std) and amount per volume (g, TL or tea bags per ml or l: „1 Beutel auf 0,3–0,5 Liter"), or one of them with a brewing word (Zubereitung, Aufguss, Ziehzeit, Dosierung, …); tasting notes, package sizes and storage hints are not (D-082), nor is any paragraph naming a video, whatever values it names (D-089) | `brew_text_raw` |
 | Variants | `form[data-variant-switch]` → `.product-detail-configurator-option` labels („10g", „50g", „250g 3% gespart¹"); each variant is a separate URL/SKU; other sizes' prices are **not** on the parent page | `catalog_package` (grams, savings %) |
@@ -136,6 +137,29 @@ the prose, whose years are travel reports, founding years and link texts
    them before adding the run's own skip entries. A refresh that stops or
    fails keeps the old skip list, so the next one classifies them again;
    after the first successful v7 refresh, never again. No schema change.
+   **Black teas (v0.5.0, D-108, #203):** products under `/tee/schwarzer-tee/`
+   (and the Japan tree's `/tee/japantee/koucha-schwarztee/`) are kept as
+   kind *Schwarztee*, category `BLACK`, with a black style (§2.6, §3). The
+   tea sections beyond the green ones are entries of one list in the parser
+   (`TeaSections`: paths, the parser version that brought them, kind, how
+   they name *Sorte* and style); a product is a tea of the section of its
+   deepest breadcrumb crumb in one, so one filed under a format or maker
+   section (*Aufgussbeutel*, a maker's page) is classified by a tea section
+   in its breadcrumb and skipped (`NOT_GREEN`) without one. Sets (by number,
+   name or set category), sale duplicates, multipacks and teaware (by name or
+   a `zubehoer`/`geschirr` segment, item 4) stay out as in the other
+   sections; a product under a green section and another section is green.
+   *Sorte*: the title of a sub-section that names a kind of tea (Darjeeling,
+   Nepal, Ceylon, Assam, China, Taiwan, Japan, *Flugtee <year>*; the Japan
+   tree's black teas „Japan"); the sub-sections *Bio*, *klassisch*,
+   *aromatisiert*, the blends and *andere Regionen* leave it to the name
+   (Darjeeling, Assam, Ceylon, Nepal, the first named), else empty. The
+   Kräutertees keep every sub-section as their *Sorte*. **Re-read:** parser
+   v8 is the one version step of v0.5.0. While the latest successful
+   refresh ran a parser before v8, a refresh treats the `NOT_GREEN` skip
+   entries as due and its swap deletes them (the v7 pattern above); a
+   refresh that stops or fails keeps the old skip list. Until then the
+   Schwarztee view shows its hint (SCR-19), as the Kräutertee view did.
 4. Exclude products whose ingredients contain no tea at all (e.g. „Ingwer
    Shot" in the flavoured section). In the Kräutertee section, teaware is
    left out by its name (Kalebasse, Bombilla, Filter, Dose, Kanne, Becher,
@@ -505,6 +529,7 @@ Style from the breadcrumb's last segment, else name keywords (the name and the *
 | „Mizucha" in the name, under any breadcrumb (D-091) | as Mizudashi: style from breadcrumb or name else `green_generic` (not flagged); default recipe = cold brew; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | `aromatisierter-gruentee` | `flavored_green` |
 | the shop's *Kräutertee* section `/tee/kraeutertee/` (v0.2.1, D-093), whatever the name names | `herbal` (category `HERBAL`, umami `NONE`; not flagged); form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
+| the shop's *Schwarzer Tee* section `/tee/schwarzer-tee/` (and `/tee/japantee/koucha-schwarztee/`; v0.5.0, D-108), whatever a green keyword in the name names | flavoured (*Aroma*, ingredients, or the `aromatisierter-schwarztee` sub-section) → `flavored_black`; else „Darjeeling" / „Assam" / „Ceylon" in the *Sorte* or name → `darjeeling` / `assam` / `ceylon`; else `black_generic`. Category `BLACK`, umami `NONE`; never flagged; form TEA_BAG with „Aufgussbeutel"/„Teebeutel" in the name, else loose leaf |
 | China/Taiwan/andere-regionen + name „Long Jing"/„Lung Ching" / „Bi Luo Chun", „Bi Lo Chun", „Pi Lo Chun" / „Anji" / a Korean grade („Ujeon", „Woojeon", „Sejak", „Jungjak", „Joongjak", „Daejak") | `longjing` / `bi_luo_chun` / `anji_bai_cha` / `korean_green` (D-089) |
 | *Anbaugebiete* Korea, no keyword | `korean_green` (D-089) |
 | tea bags („Aufgussbeutel", „Teebeutel") | the style as above, form TEA_BAG (D-089) |
@@ -638,6 +663,10 @@ days after opening.
 | `flavored_green` | Aromatisierter Grüntee | LOW | 120 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:30, 3:00 |
 | `green_generic` | Grüntee (sonstiger) | MEDIUM | 90 | 2,5 | WESTERN 3 g / 250 ml / 80 °C: 2:00, 2:30 · GONGFU 5 g / 100 ml / 80 °C: 0:15, 0:20, 0:25, 0:35, 0:50 |
 | `herbal` | Kräutertee | NONE | 180 | 1,5 | WESTERN 2 g / 250 ml / 100 °C, vessel Becher: one infusion 6:00; no cold brew, no Kyusu (v0.2.1: catalog Kräutertees, CAT-01, PO, D-093). The shop's brewing grid or text wins (§2.5); „Rezept prüfen" (`FROM_STYLE_DEFAULT`) only when the shop gives no values, as for green teas. A Kräutertee keeps the infusions the shop gives: the PO's second western infusion (§2.5 step 5) is for green teas only. The „Coldbrew geeignet" badge alone adds no cold brew; the shop's own cold values (a „kalt" row or cold-brew prose) do (§2.5 step 6) |
+| `darjeeling` | Darjeeling | NONE | 120 | 2,0 | WESTERN 2,5 g / 250 ml / 95 °C: 2:30, one infusion (v0.5.0, D-108) |
+| `assam` | Assam | NONE | 180 | 3,0 | WESTERN 2,5 g / 250 ml / 100 °C: 3:00, one infusion |
+| `ceylon` | Ceylon | NONE | 180 | 2,5 | WESTERN 2,5 g / 250 ml / 100 °C: 3:00, one infusion |
+| `flavored_black` | Aromatisierter Schwarztee | NONE | 120 | 2,5 | WESTERN 2,5 g / 250 ml / 100 °C: 3:00, one infusion |
 | `white_generic`, `oolong_generic`, `black_generic`, `dark_generic` | Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh | LOW, LOW, NONE, NONE | 90 | — | WESTERN 3 g / 250 ml, one infusion 3:00 at 85 / 95 / 95 / 100 °C, for manually added non-green teas (Q-20, D-100) |
 | `other` | Andere | — | — | 2,5 | WESTERN 3 g / 250 ml / 85 °C: 3:00 |
 
@@ -649,8 +678,16 @@ take precedence for catalog teas. The green rows are code in `core:domain`
 v0.4.0, for teas added without the catalog: *Sorte wählen* (SCR-11) lists
 every row by its Sorte name, grouped by Kategorie, with `other` as *Andere /
 unbekannt* (D-100). The four generic rows' values are the PO's (Q-20,
-D-100). The catalog
-stays green and herbal (CAT-01).
+D-100). From v0.5.0 the catalog's black teas use the black rows
+(`darjeeling`, `assam`, `ceylon`, `flavored_black`, with `black_generic` as
+the fallback; D-108, #203): well-known starting points (2,5 g / 250 ml is
+the shop's usual ~10 g/L in the mug), cross-checked against the shop's black
+grids of the live check (§2.2: 100 °C, 2–3 min, one infusion; Darjeeling at
+95 °C for its first flushes). As for every catalog tea, the shop's grid and
+text win (§2.5), „Rezept prüfen" shows only without shop values, and the
+PO's second western infusion (§2.5 step 5) and the „Coldbrew geeignet"
+badge's cold brew stay green-only. *Sorte wählen* lists them under
+*Schwarzer Tee*.
 
 ## 4. Tasting descriptor vocabulary
 

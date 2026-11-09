@@ -16,8 +16,8 @@ import com.umamit.core.model.UmamiLevel
  * @property umami the style's umami level; null for `other` (*Andere / unbekannt*, 08 §3: „—").
  * @property freshnessDays suggested days to drink the tea after opening; null for `other` (08 §3: „—").
  * @property gramsPerTeaspoon converts teaspoon amounts of the shop's prose (08 §2.5). The catalog maps
- *   only to green and herbal styles (CAT-01), so the other categories' rows (08 §3: „—") carry `other`'s
- *   2,5 g, which nothing reads.
+ *   to the green, herbal and (v0.5.0, D-108) black styles (CAT-01); the generic rows of the other
+ *   categories (08 §3: „—") carry `other`'s 2,5 g, which nothing reads yet.
  * @property recipes the style's recipes in 08 §3's order; the first is the default.
  * @property japanese a Japanese tea: its Kyusu row is its default recipe (08 §2.5 step 1).
  * @property category the tea category (*Kategorie*) of a tea of this style (05 §3.1): green, herbal for
@@ -132,6 +132,11 @@ object BuiltInStyles {
         // The other categories (v0.4.0, Q-20, D-100): one western infusion of 3:00 at the category's temperature.
         generic("white_generic", TeaCategory.WHITE, UmamiLevel.LOW, tempC = 85),
         generic("oolong_generic", TeaCategory.OOLONG, UmamiLevel.LOW, tempC = 95),
+        // The catalog's black teas (v0.5.0, D-108): the mug, one infusion; the shop's grid wins (08 §2.5).
+        black("darjeeling", freshness = 120, teaspoon = 2.0, tempC = 95, seconds = 150),
+        black("assam", freshness = 180, teaspoon = 3.0, tempC = 100, seconds = 3 * MINUTE),
+        black("ceylon", freshness = 180, teaspoon = 2.5, tempC = 100, seconds = 3 * MINUTE),
+        black("flavored_black", freshness = 120, teaspoon = 2.5, tempC = 100, seconds = 3 * MINUTE),
         generic("black_generic", TeaCategory.BLACK, UmamiLevel.NONE, tempC = 95),
         generic("dark_generic", TeaCategory.DARK, UmamiLevel.NONE, tempC = 100),
         // *Andere / unbekannt* (08 §3): no umami level and no freshness window.
@@ -218,6 +223,22 @@ private fun japanese(key: String, umami: UmamiLevel, freshness: Int, teaspoon: D
 
 private fun other(key: String, umami: UmamiLevel, freshness: Int, teaspoon: Double, vararg recipes: RecipeTemplate) =
     style(key, umami, freshness, teaspoon, japanese = false, recipes = recipes)
+
+private const val BLACK_LEAF_GRAMS = 2.5
+
+/**
+ * A black style of the catalog (v0.5.0, D-108; 08 §3): no umami, WESTERN [BLACK_LEAF_GRAMS] g / 250 ml (the
+ * shop's ~10 g/L in the mug), one infusion of [seconds] at [tempC].
+ */
+private fun black(key: String, freshness: Int, teaspoon: Double, tempC: Int, seconds: Int) = style(
+    key,
+    UmamiLevel.NONE,
+    freshness,
+    teaspoon,
+    japanese = false,
+    recipes = arrayOf(western(BLACK_LEAF_GRAMS, tempC, seconds)),
+    category = TeaCategory.BLACK,
+)
 
 /** A generic row of another category (Q-20, D-100): WESTERN 3 g / 250 ml, one infusion of 3:00 at [tempC]. */
 private fun generic(key: String, category: TeaCategory, umami: UmamiLevel, tempC: Int) = style(

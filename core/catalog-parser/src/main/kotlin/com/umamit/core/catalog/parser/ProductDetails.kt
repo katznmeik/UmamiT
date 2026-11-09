@@ -213,6 +213,9 @@ private object Flavour {
         "genmaicha", "tencha", "kabusecha", "shincha", "tamaryokucha", "kamairicha",
     )
 
+    /** A flavoured sub-section: `aromatisierter-gruentee`, from v0.5.0 `aromatisierter-schwarztee` (D-108). */
+    private val FLAVOURED_SECTION = Regex("""/aromatisierte[rs]?-""")
+
     /** Genmaicha's roasted rice is a classic blend, not a flavouring. */
     private val RICE = listOf("reis", "genmai")
 
@@ -223,7 +226,7 @@ private object Flavour {
     fun isFlavored(aroma: String?, ingredients: String?, breadcrumb: List<Crumb>): Boolean =
         (aroma != null && !aroma.contains("naturbelassen", ignoreCase = true)) ||
             (ingredients != null && beyondTea(ingredients)) ||
-            breadcrumb.any { "aromatisierter-gruentee" in it.path }
+            breadcrumb.any { FLAVOURED_SECTION.containsMatchIn(it.path) }
 
     private fun beyondTea(ingredients: String): Boolean = ingredients.split(SEPARATOR)
         .map { it.replace(PARENTHESES, " ").trim().trimEnd('.', '*').trim().lowercase() }

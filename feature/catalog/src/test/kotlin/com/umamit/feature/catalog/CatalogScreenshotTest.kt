@@ -104,6 +104,15 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 .copy(kind = CatalogKind.HERBAL, originCountry = "Deutschland"),
             catalogTea("XK1400", "Abendruhe", "Ayurveda & Wellness", 1290)
                 .copy(kind = CatalogKind.HERBAL, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+            // Schwarztees (v0.5.0, #203, D-108): only in the Schwarztee view.
+            catalogTea("XB1500", "Nebelhang Darjeeling Second Flush", "Darjeeling", 1890, thumbnailPath = "darj")
+                .copy(kind = CatalogKind.BLACK, originCountry = "Darjeeling / Indien", isNew = true),
+            catalogTea("XB1600", "Flussbiegung Assam", "Assam", 990, thumbnailPath = "assam")
+                .copy(kind = CatalogKind.BLACK, originCountry = "Assam / Indien", owned = true),
+            catalogTea("XB1700", "Hochland Ceylon", "Ceylon", 1090)
+                .copy(kind = CatalogKind.BLACK, originCountry = "Ceylon / Sri Lanka", isOrganic = true),
+            catalogTea("XB1800", "Abendrot Bergamotte", teaType = null, basePriceCentsPer100g = 890)
+                .copy(kind = CatalogKind.BLACK, isFlavored = true),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -326,6 +335,40 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /** The Schwarztee view (v0.5.0, #203, D-108): its chip selected, grouped by *Sorte*, flavoured teas shown. */
+    @Test
+    fun listBlack() = capture("listBlack") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The Schwarztee view before the first refresh after the update to v0.5.0 (#203): the hint with *Jetzt laden*. */
+    @Test
+    fun listBlackPending() = capture("listBlackPending") {
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(
+                    TEAS.filterNot { it.kind == CatalogKind.BLACK },
+                    filter,
+                    null,
+                    FakeClock.DEFAULT_WALL_MS,
+                ),
+                filter = filter,
+                loading = false,
+                pendingKinds = setOf(CatalogKind.BLACK),
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+        )
+    }
+
     /**
      * The Kräutertee view before the first refresh after the update (v0.2.1, #91, D-093 Q20): no
      * Kräutertees yet, the hint with *Jetzt laden* instead of the no-match notice.
@@ -339,7 +382,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 listing = CatalogBrowser.listing(greenOnly, filter, null, FakeClock.DEFAULT_WALL_MS),
                 filter = filter,
                 loading = false,
-                herbalPending = true,
+                pendingKinds = setOf(CatalogKind.HERBAL),
             ),
             onLoad = {},
             onShowProgress = {},

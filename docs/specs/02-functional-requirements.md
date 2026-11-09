@@ -189,6 +189,16 @@ sweets, and items containing no tea (D-091).
   1–2 min to the first load (NFR-PERF-11 stays ≤ 20 min); the first refresh
   after the update re-classifies everything once (≈ 16 min, accepted by the
   PO).
+- **Black teas (v0.5.0, D-108, #203):** the shop's *Schwarzer Tee* section
+  (`/tee/schwarzer-tee/`, and the Japan tree's `koucha-schwarztee/`) is
+  loaded too, as kind *Schwarztee* with category `BLACK` and the black styles
+  of [08 §3](08-content.md#3-built-in-tea-styles) (`darjeeling`, `assam`,
+  `ceylon`, `flavored_black`, `black_generic`). A product filed under a
+  format or maker section (*Aufgussbeutel*, a maker's page) is classified by
+  a tea section in its breadcrumb and skipped without one. Sets, multipacks,
+  sale duplicates and teaware stay out as above. The first refresh after the
+  update re-reads the skip list's not-green products once (05 §9, 08 §2.4
+  item 3); the first-load budget is NFR-PERF-11's.
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -227,6 +237,13 @@ after a session with a flagged tea, the „Gespeichert" sheet (SCR-06) offers
 Every catalog tea is mapped to a built-in style (STY) by its *Sorte* or name
 (e.g. „Gyokuro" → `gyokuro`), providing umami level, freshness window and
 fallback recipe. Unmapped teas use `green_generic` and are flagged.
+A tea of another section takes its section's style, never flagged: a
+Kräutertee `herbal`; a black tea `flavored_black` when flavoured, else
+`darjeeling`, `assam` or `ceylon` by its *Sorte* or name, else
+`black_generic` (v0.5.0, D-108; [08 §2.6](08-content.md#26-style-mapping-and-umami-level)).
+The shop's grid and text win over the style's values; „Rezept prüfen" shows
+only without shop values (CAT-05). The PO's second western infusion stays
+green-only.
 
 **CAT-07 — Refresh** `Must`
 *Katalog aktualisieren* (Sammlung › Katalog, overflow, and Settings) fetches
@@ -307,8 +324,16 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   the chip row is rendered from the list, and a new kind is a new entry in
   it. „Pur" as the default and the umami filter apply to the green kind
   only. Search hits hidden by the filters are counted per other kind, and
-  *Alle zeigen* switches to the kind with the most of them. No visible
-  change in v0.5.0 (prefactor, #199).
+  *Alle zeigen* switches to the kind with the most of them. The prefactor
+  (#199) changed nothing visible.
+- **Schwarztee (v0.5.0, #203):** the kind *Schwarztee* (key `black`, the
+  black styles) has its chip between *Grüntee* and *Kräutertee*; its view
+  is grouped by *Sorte* (Darjeeling, Assam, Ceylon, Nepal, …) with folding,
+  and the header reads „N Schwarztees". Until the first successful refresh
+  after the update its view shows „Schwarztees kommen mit dem nächsten Abruf
+  (≈ 30 min, einmalig)" with *Jetzt laden*, as the Kräutertee view did in
+  v0.2.1 (a kind is pending while the last successful refresh ran a parser
+  older than its section's, 05 §9).
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").
@@ -384,7 +409,7 @@ refresh, every catalog tea whose article number is missing from the sitemap
 gets its own product page fetched once, within the refresh's limits and stop
 rules (CAT-07 AC2). This is part of network use (a) of GEN-01, not a new use.
 - AC1: Answer 200, the canonical URL is that product page, and the breadcrumb
-  is still green or herbal tea (CAT-01) → the tea is kept with the page's
+  is still in a tea section of the catalog (CAT-01) → the tea is kept with the page's
   data and stock („nicht vorrätig" when no size is available); it never
   counts as „nicht mehr im Sortiment".
 - AC2: 404/410, a redirect away from the product (its `Location`, never
@@ -414,13 +439,13 @@ its shop link. This is network use (d) of GEN-01.
   shop session (`robots.txt` respected, ≤ 2 requests/second, stop on a
   challenge, HTTP 429 or `Retry-After`). Offline, it shows a message and
   sends nothing.
-- AC4: A green or herbal tea (CAT-01) is stored in the catalog as a regular
+- AC4: A tea of the catalog's sections (CAT-01: green, black, Kräutertee) is stored in the catalog as a regular
   entry (photo per SET-22) and its detail (SCR-21) opens with *In Sammlung
   aufnehmen* / *Nachkauf erfassen* as usual; the exact price is fetched on
   adding (GEN-01 (c)). A sold-out tea shows „nicht vorrätig". It is not
   marked „Neu".
-- AC5: Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur
-  Grün- und Kräutertees)." and nothing is stored.
+- AC5: Not in those sections → „Dieser Tee gehört nicht zum Katalog (nur
+  Grün-, Schwarz- und Kräutertees)." and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
   entry. When the page can't refresh it without a stop (offline, no tea at
   the link, a page the app can't read), the detail opens as it was and the

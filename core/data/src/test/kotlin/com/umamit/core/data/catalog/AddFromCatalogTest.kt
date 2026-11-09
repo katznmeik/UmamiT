@@ -455,6 +455,39 @@ class AddFromCatalogTest {
         assertThat(add.add(purchase(key = "XK0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
     }
 
+    @Test
+    fun `a black tea is added as BLACK with its style, Sorte, recipe and stock`() = runTest {
+        // v0.5.0, #203, D-108: a black tea is added and repurchased as a green tea is (CAT-12, CAT-13).
+        val black = sencha(key = "XB0200", name = "Nebelhang Darjeeling", recipes = null, styleKey = "darjeeling").copy(
+            shopCategory = "Tee › Schwarzer Tee › Darjeeling",
+            teaType = "Darjeeling",
+            breadcrumb = "/tee/schwarzer-tee/darjeeling/",
+            originCountry = "Indien",
+            tasteScalesJson = null,
+            shading = null,
+            steaming = null,
+        )
+        catalog(black to packages("XB0200"))
+
+        val teaId = (add.add(purchase(key = "XB0200")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.category).isEqualTo(TeaCategory.BLACK)
+        assertThat(tea.styleKey).isEqualTo("darjeeling")
+        assertThat(tea.teaType).isEqualTo("Darjeeling")
+        assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.NONE)
+        assertThat(tea.form).isEqualTo(TeaForm.LOOSE_LEAF)
+        // Without stored recipes the style's (08 §3): one western infusion, no second one (green-only).
+        val recipe = data.recipes.observeRecipes(teaId).first().single()
+        assertThat(recipe.method).isEqualTo(BrewMethod.WESTERN)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(2.5 to 250)
+        assertThat(recipe.baseTempC).isEqualTo(95)
+        assertThat(recipe.steps).containsExactly(RecipeStep(StepKind.INFUSION, 150))
+        assertThat(data.stock.observeEvents(teaId).first().single().type).isEqualTo(InventoryEventType.INITIAL)
+
+        assertThat(add.add(purchase(key = "XB0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
+    }
+
     private companion object {
         val BERLIN: ZoneId = ZoneId.of("Europe/Berlin")
         val TODAY: LocalDate = LocalDate.of(2026, 10, 25)

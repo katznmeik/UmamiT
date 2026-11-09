@@ -7,6 +7,7 @@ import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.data.catalog.CatalogRepository
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaDetail
@@ -48,10 +49,10 @@ class FakeCatalogRepository(
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = details.map { it[key] }
 
-    /** The Kräutertees still to come (D-093 Q20); tests set it. */
-    val herbalPending = MutableStateFlow(false)
+    /** The catalog kinds still to come (D-093 Q20, D-108); tests set it. */
+    val pendingKinds = MutableStateFlow(emptySet<CatalogKind>())
 
-    override fun observeHerbalPending(): Flow<Boolean> = herbalPending
+    override fun observePendingKinds(): Flow<Set<CatalogKind>> = pendingKinds
 }
 
 /** In-memory Merkliste (CAT-18): tests read and set [marked]. */

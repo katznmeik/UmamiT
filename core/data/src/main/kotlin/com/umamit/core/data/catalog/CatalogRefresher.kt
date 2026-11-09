@@ -273,8 +273,9 @@ class CatalogRefresher(
         var skippedKnown = 0
 
         /**
-         * The last successful refresh ran a parser before Kräutertees: this one classifies the skip
-         * list's not-green entries again and, on success, replaces them (05 §9, D-093 Q12).
+         * The last successful refresh ran a parser before the current scope (Kräutertees v7, black
+         * teas v8): this one classifies the skip list's not-green entries again and, on success,
+         * replaces them (05 §9, D-093 Q12, D-108).
          */
         var reclassifyNotGreen = false
         var photosStored = 0
@@ -495,7 +496,7 @@ class CatalogRefresher(
             val skipList = dao.skipList()
             run.reclassifyNotGreen =
                 (dao.lastSuccessParserVersion() ?: TeeKontorParser.PARSER_VERSION) <
-                TeeKontorParser.HERBAL_SINCE_VERSION
+                TeeKontorParser.SCOPE_SINCE_VERSION
             val notGreen = skipList.filter { it.reason == CatalogSkipReason.NOT_GREEN }.map { it.baseKey }.toSet()
             val fresh = dao.skippedSince(run.startedAt - SKIP_RECHECK_MS).toSet() -
                 (if (run.reclassifyNotGreen) notGreen else emptySet())
@@ -559,8 +560,8 @@ class CatalogRefresher(
 
         private suspend fun classify(group: ProductGroup, page: ProductPage) {
             when (page.scope) {
-                // Kräutertees are kept next to the green teas, told apart by their style (D-093).
-                CatalogScope.GREEN, CatalogScope.HERBAL -> {
+                // The other sections' teas are kept next to the green teas, told apart by their style (D-093, D-108).
+                CatalogScope.GREEN, CatalogScope.HERBAL, CatalogScope.TEA -> {
                     run.entries += CatalogEntry.of(group, page)
                     run.green++
                     if (page.lacksRequiredField) run.lackingRequired++
@@ -685,7 +686,7 @@ class CatalogRefresher(
             }
             classify(tea.group, page)
             when (page.scope) {
-                CatalogScope.GREEN, CatalogScope.HERBAL -> run.unlistedKept++
+                CatalogScope.GREEN, CatalogScope.HERBAL, CatalogScope.TEA -> run.unlistedKept++
                 CatalogScope.NOT_GREEN, CatalogScope.SET -> gone(tea.key, "${tea.url.encodedPath} out of scope")
                 CatalogScope.UNKNOWN -> unread(tea.key, "${tea.url.encodedPath} has no breadcrumb")
             }

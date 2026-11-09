@@ -33,12 +33,47 @@ object SyntheticShop {
         "Früchtetee" to "/tee/fruechtetee/",
     )
 
-    /** A black tea's path: out of scope. */
+    /**
+     * A black tea's path in an invented region sub-section (`/tee/schwarzer-tee/<sub-section>/`):
+     * in scope from v0.5.0 (D-108), its sub-section's title its *Sorte*.
+     */
     val BLACK_TEA_PATH = listOf(
         "Tee" to "/tee/",
         "Schwarzer Tee" to "/tee/schwarzer-tee/",
         "Indien" to "/tee/schwarzer-tee/indien/",
     )
+
+    /** The shop's black-tea sub-sections as path segments (08 §2.2, sitemap 2026-11-09): the section root and one of them. */
+    private fun blackPath(title: String, segment: String) = listOf(
+        "Tee" to "/tee/",
+        "Schwarzer Tee" to "/tee/schwarzer-tee/",
+        title to "/tee/schwarzer-tee/$segment/",
+    )
+
+    /** A black tea of the Darjeeling sub-section, a kind: its *Sorte* is the sub-section's title. */
+    val DARJEELING_PATH = blackPath("Darjeeling", "darjeeling")
+
+    /** A black tea of the „klassisch" sub-section, no kind: its *Sorte* comes from its name. */
+    val BLACK_CLASSIC_PATH = blackPath("Klassischer Schwarztee", "klassischer-schwarztee")
+
+    /** A black tea of the flavoured sub-section. */
+    val BLACK_FLAVOURED_PATH = blackPath("Aromatisierter Schwarztee", "aromatisierter-schwarztee")
+
+    /** A black tea of the blends sub-section. */
+    val BLACK_BLENDS_PATH = blackPath("Teemischung / Blends", "teemischung-blends")
+
+    /** The shop's tea-bag section (`/tee/aufgussbeutel/`): a format, no tea section of its own. */
+    val TEA_BAGS_PATH = listOf("Tee" to "/tee/", "Aufgussbeutel" to "/tee/aufgussbeutel/")
+
+    /** A maker's section under `/tee/` (invented maker): no tea section of its own. */
+    val MAKER_PATH = listOf(
+        "Tee" to "/tee/",
+        "Tee von Erika Beispiel" to "/tee/tee-von-erika-beispiel/",
+        "Die Teewerkstatt" to "/tee/tee-von-erika-beispiel/die-teewerkstatt/",
+    )
+
+    /** A brewing grid as black teas have it (one western row, 08 §2.2): ~10 g/L, 100 °C, 2–3 min. */
+    val BLACK_BREW_ROWS = listOf("westlich" to listOf("~10g/L", "100°C", "2-3 Min"))
 
     /** Teaware: out of scope. */
     val TEAWARE_PATH = listOf(

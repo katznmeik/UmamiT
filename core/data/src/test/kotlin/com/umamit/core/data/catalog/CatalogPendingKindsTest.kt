@@ -8,6 +8,7 @@ import com.umamit.core.catalog.parser.TeeKontorParser
 import com.umamit.core.database.CatalogDatabase
 import com.umamit.core.database.entity.CatalogRefreshLogEntity
 import com.umamit.core.database.entity.CatalogRefreshStatus
+import com.umamit.core.model.CatalogKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -19,13 +20,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Whether the Kräutertees are still to come (v0.2.1, #91; D-093 Q20, SCR-19): true while the last
- * successful refresh ran a parser from before the Kräutertees, so the first refresh after the
- * update hasn't run yet; false before any refresh (the empty catalog has its own state) and after.
+ * Which catalog kinds are still to come (v0.2.1 #91, v0.5.0 #203; D-093 Q20, D-108, SCR-19): those
+ * whose section a parser after the last successful refresh's brought, so the first refresh after
+ * the update hasn't run yet; none before any refresh (the empty catalog has its own state) and after.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
-class CatalogHerbalPendingTest {
+class CatalogPendingKindsTest {
     @get:Rule
     val folder = TemporaryFolder()
 
@@ -59,35 +60,48 @@ class CatalogHerbalPendingTest {
         )
     }
 
-    private suspend fun pending() = repository.observeHerbalPending().first()
-
-    private val before = TeeKontorParser.HERBAL_SINCE_VERSION - 1
+    private suspend fun pending() = repository.observePendingKinds().first()
 
     @Test
     fun beforeAnyRefreshNothingIsPending() = runTest {
-        assertThat(pending()).isFalse()
+        assertThat(pending()).isEmpty()
     }
 
     @Test
-    fun aCatalogFromBeforeTheUpdateWaitsForTheKraeutertees() = runTest {
-        refreshLog(before)
+    fun aCatalogOfV041WaitsForTheBlackTeas() = runTest {
+        refreshLog(PARSER_V041)
 
-        assertThat(pending()).isTrue()
+        assertThat(pending()).containsExactly(CatalogKind.BLACK)
+    }
+
+    @Test
+    fun aCatalogOfV020WaitsForTheKraeuterteesAndTheBlackTeas() = runTest {
+        refreshLog(PARSER_V020)
+
+        assertThat(pending()).containsExactly(CatalogKind.HERBAL, CatalogKind.BLACK)
     }
 
     @Test
     fun aStoppedRefreshAfterTheUpdateKeepsThemPending() = runTest {
-        refreshLog(before)
-        refreshLog(TeeKontorParser.HERBAL_SINCE_VERSION, CatalogRefreshStatus.FAILED)
+        refreshLog(PARSER_V041)
+        refreshLog(TeeKontorParser.PARSER_VERSION, CatalogRefreshStatus.FAILED)
 
-        assertThat(pending()).isTrue()
+        assertThat(pending()).containsExactly(CatalogKind.BLACK)
     }
 
     @Test
     fun theFirstSuccessfulRefreshAfterTheUpdateBringsThem() = runTest {
-        refreshLog(before)
-        refreshLog(TeeKontorParser.HERBAL_SINCE_VERSION)
+        refreshLog(PARSER_V020)
+        refreshLog(TeeKontorParser.PARSER_VERSION)
 
-        assertThat(pending()).isFalse()
+        assertThat(pending()).isEmpty()
+    }
+
+    private companion object {
+        /** v0.2.0's parser: neither Kräutertees nor black teas. */
+        const val PARSER_V020 = 6
+
+        /** v0.4.1's parser: Kräutertees, no black teas. */
+        const val PARSER_V041 = 7
     }
 }

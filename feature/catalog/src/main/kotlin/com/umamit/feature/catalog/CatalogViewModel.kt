@@ -12,6 +12,7 @@ import com.umamit.core.data.catalog.GuideRepository
 import com.umamit.core.data.catalog.TeaLinkLoader
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogSort
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,8 +39,8 @@ import javax.inject.Inject
  * @property refresh the refresh's progress or result for the sheet.
  * @property loading true until the catalog was read once (then nothing is shown yet).
  * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
- * @property herbalPending the Kräutertees are still to come with the first refresh after the
- *   update (D-093 Q20): the *Kräutertee* view shows its hint with *Jetzt laden*.
+ * @property pendingKinds the kinds still to come with the first refresh after the update (D-093 Q20,
+ *   D-108): each one's view shows its hint with *Jetzt laden*.
  * @property folded the folded *Sorte* groups of both views as `catalogFolded` keys (CAT-10, D-098).
  */
 data class CatalogUiState(
@@ -48,7 +49,7 @@ data class CatalogUiState(
     val refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     val loading: Boolean = true,
     val guideCount: Int = 0,
-    val herbalPending: Boolean = false,
+    val pendingKinds: Set<CatalogKind> = emptySet(),
     val folded: Set<String> = emptySet(),
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
@@ -102,15 +103,15 @@ class CatalogViewModel @Inject constructor(
         filter,
         refresh.state,
         guides.observeGuides().map { it.size },
-        combine(repository.observeHerbalPending(), folds.observeFolded(), ::Pair),
-    ) { listing, filter, refreshState, guideCount, (herbalPending, folded) ->
+        combine(repository.observePendingKinds(), folds.observeFolded(), ::Pair),
+    ) { listing, filter, refreshState, guideCount, (pendingKinds, folded) ->
         CatalogUiState(
             listing = listing,
             filter = filter,
             refresh = refreshState,
             loading = false,
             guideCount = guideCount,
-            herbalPending = herbalPending,
+            pendingKinds = pendingKinds,
             folded = folded,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())

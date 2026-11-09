@@ -440,7 +440,10 @@ own size (08 §2.4 items 6–7, D-081).
 Table `catalog_skip`: `base_key` PK, `reason` (`NOT_GREEN`, `SET`,
 `NO_TEA`), `checked_at` — base numbers from the sitemap that were classified
 as out of scope, so later refreshes don't fetch them again (re-checked after
-90 days).
+90 days). From v0.5.0 `NOT_GREEN` means „in no tea section of the catalog"
+(D-108: a product outside the green, black and Kräutertee sections, or
+teaware filed there); the stored value keeps its name, so rows of earlier
+versions stay readable.
 
 ### 4.2b CatalogImageFailure
 
@@ -470,7 +473,10 @@ up). Table `catalog_guide_staging` has exactly its columns (D-087).
 
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
-flagged, photos), `parser_version`, `error_summary`. The counts of a
+flagged, photos), `parser_version` (v7 from v0.2.1 with the Kräutertees,
+v8 from v0.5.0 with the black teas; a kind is still to come while the latest
+successful row has a version below its section's, SCR-19's hint),
+`error_summary`. The counts of a
 successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
 counts the teas flagged „Rezept prüfen" since this refresh (new ones
 included), `photos_count` the photos downloaded; a failed run logs zeros.
@@ -541,7 +547,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
 | `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
-| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, D-108), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |
@@ -754,6 +760,16 @@ stock warning, `MIGRATION_4_5` in `UMAMI_MIGRATIONS`:
   builder. `SchemaVersionsTest` opens v1–v5; the v1–v4 JSON keep their
   version and identity hash (`check-frozen-schemas.sh`). The v0.5.0 rc
   checklist installs it over v0.4.1 (09 §4).
+
+**catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
+a black tea is a `catalog_tea` row told apart by its style key (one of the
+black styles, 08 §3), like the Kräutertees by `herbal`. The parser version
+steps to 8 once for the release. While the latest successful refresh in
+`catalog_refresh_log` ran a parser before v8, a refresh treats the
+`NOT_GREEN` skip entries as due and its swap deletes them before adding the
+run's own (the v0.2.1 pattern above, 08 §2.4 item 3); a refresh that stops
+or fails keeps the old skip list, so the next one reads them again. Later
+sections of v0.5.0 are entries of the same step, not a second one.
 
 ## 10. Volume assumptions
 
