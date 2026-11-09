@@ -8,6 +8,7 @@ import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.reliability.CheckState
 import com.umamit.core.timer.reliability.ReliabilityCheck
@@ -217,11 +218,24 @@ class SettingsScreenshotTest(private val dark: Boolean, private val fontScale: F
         )
     }
 
-    /** Switched off: the time row is gone. */
+    /** *Aus*: the time row is gone. */
     @Test
-    fun settingsReminderOff() = capture("Settings_reminderOff", scrollToText = "Tägliche Vorrats-Erinnerung") {
+    fun settingsReminderOff() = capture("Settings_reminderOff", scrollToText = "Vorrats-Erinnerung") {
         SettingsScreen(
-            settings = UserSettings(lowStockReminder = false),
+            settings = UserSettings(lowStockReminderInterval = LowStockReminderInterval.OFF),
+            status = ReliabilityStatus.AllOk,
+            alerting = false,
+            onBack = {},
+            actions = SettingsActions(),
+            catalog = CatalogSettingsState(lastRefreshAtMillis = LAST_REFRESH_MS),
+        )
+    }
+
+    /** SET-28's choices with *Alle 3 Tage* picked (D-108 point 7). */
+    @Test
+    fun settingsReminderIntervalDialog() = capture("Settings_reminderInterval", clickText = "Alle 3 Tage") {
+        SettingsScreen(
+            settings = UserSettings(lowStockReminderInterval = LowStockReminderInterval.EVERY_3_DAYS),
             status = ReliabilityStatus.AllOk,
             alerting = false,
             onBack = {},

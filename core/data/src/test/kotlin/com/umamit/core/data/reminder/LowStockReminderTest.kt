@@ -18,6 +18,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.common.WallClock
 import com.umamit.core.data.LowStockRepository
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.LowStockTea
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeLowStockRepository
@@ -174,14 +175,14 @@ class LowStockReminderTest {
         runJobAt(at(18, 0))
         assertThat(posted()).isNotNull()
 
-        settings.update { it.copy(lowStockReminder = false) }
+        settings.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.OFF) }
         runCurrent()
 
         assertThat(pending()).isNull()
         assertThat(shadowOf(notifications).allNotifications).isEmpty()
 
         clock.now = at(19, 0)
-        settings.update { it.copy(lowStockReminder = true) }
+        settings.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.DAILY) }
         runCurrent()
         // Today had its reminder: the next one is tomorrow at 18:00.
         assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(23))
@@ -275,14 +276,79 @@ class LowStockReminderTest {
     }
 
     @Test
-    fun aDayWithoutALowTeaPostsNothingAndTheNextDayIsScheduled() = runTest {
+    fun aDayWithoutALowTeaPostsNothingKeepsTheDateAndTheNextDayIsScheduled() = runTest {
+        // v0.5.0 (D-108, #198): only a posted reminder stores its date.
+        settings.update { it.copy(lowStockReminderLastDate = "2026-10-29") }
         startApp()
 
         runJobAt(at(18, 0))
 
         assertThat(shadowOf(notifications).allNotifications).isEmpty()
-        assertThat(settings.settings.first().lowStockReminderLastDate).isEqualTo("2026-10-30")
+        assertThat(settings.settings.first().lowStockReminderLastDate).isEqualTo("2026-10-29")
         assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(24))
+    }
+
+    @Test
+    fun aPostedReminderStoresItsDate() = runTest {
+        lowStock.reminder = three
+        startApp()
+
+        runJobAt(at(18, 0))
+
+        assertThat(posted()).isNotNull()
+        assertThat(settings.settings.first().lowStockReminderLastDate).isEqualTo("2026-10-30")
+    }
+
+    @Test
+    fun everyTwoDaysTheNextRunIsTwoDaysAfterThePost() = runTest {
+        settings.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.EVERY_2_DAYS) }
+        lowStock.reminder = three
+        startApp()
+
+        runJobAt(at(18, 0))
+
+        assertThat(posted()).isNotNull()
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(48))
+    }
+
+    @Test
+    fun weeklyWaitsSevenDaysFromTheLastPostThenTriesEachDayUntilATeaIsDue() = runTest {
+        settings.update {
+            it.copy(lowStockReminderInterval = LowStockReminderInterval.WEEKLY, lowStockReminderLastDate = "2026-10-26")
+        }
+        startApp()
+        // Posted Monday 2026-10-26: the next run is Monday 2026-11-02 at 18:00.
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.DAYS.toMillis(3) + TimeUnit.HOURS.toMillis(8))
+
+        // That day has no tea due: nothing, the date stays, Tuesday tries again.
+        runJobAt(at(18, 0, LocalDate.of(2026, 11, 2)))
+        assertThat(posted()).isNull()
+        assertThat(settings.settings.first().lowStockReminderLastDate).isEqualTo("2026-10-26")
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(24))
+
+        // Tuesday has one: it posts, and the week counts from Tuesday.
+        lowStock.reminder = listOf(LowStockTea("t1", "Tanabata", 12.0))
+        runJobAt(at(18, 0, LocalDate.of(2026, 11, 3)))
+        assertThat(posted()).isNotNull()
+        assertThat(settings.settings.first().lowStockReminderLastDate).isEqualTo("2026-11-03")
+        assertThat(pending()!!.initialDelayMillis).isEqualTo(TimeUnit.DAYS.toMillis(7))
+    }
+
+    @Test
+    fun aChangedIntervalReschedulesTheJob() = runTest {
+        settings.update { it.copy(lowStockReminderLastDate = "2026-10-29") }
+        startApp()
+        val first = pending()!!
+        // Daily: posted yesterday, so today at 18:00.
+        assertThat(first.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(8))
+
+        settings.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.EVERY_3_DAYS) }
+        runCurrent()
+
+        val second = pending()!!
+        assertThat(second.id).isNotEqualTo(first.id)
+        // Every 3 days from 2026-10-29: 2026-11-01 at 18:00.
+        assertThat(second.initialDelayMillis).isEqualTo(TimeUnit.HOURS.toMillis(56))
     }
 
     @Test

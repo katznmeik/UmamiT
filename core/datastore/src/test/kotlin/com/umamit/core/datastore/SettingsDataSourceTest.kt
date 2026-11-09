@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +32,7 @@ class SettingsDataSourceTest {
         val source = dataSource()
         val settings = source.settings.first()
 
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
         assertThat(settings.onboardingCompleted).isFalse()
         assertThat(settings.theme).isEqualTo(ThemeMode.SYSTEM)
         assertThat(settings.dynamicColor).isFalse()
@@ -50,7 +51,7 @@ class SettingsDataSourceTest {
         assertThat(settings.dismissedHints).isEmpty()
         assertThat(settings.catalogDownloadPhotos).isTrue()
         assertThat(settings.quickTimerPreAlert).isNull()
-        assertThat(settings.lowStockReminder).isTrue()
+        assertThat(settings.lowStockReminderInterval).isEqualTo(LowStockReminderInterval.DAILY)
         assertThat(settings.lowStockReminderTime).isEqualTo(18 * 60)
         assertThat(settings.lowStockReminderLastDate).isNull()
         assertThat(settings.catalogFolded).isEmpty()
@@ -98,7 +99,7 @@ class SettingsDataSourceTest {
             dismissedHints = setOf("swipe", "stock"),
             catalogDownloadPhotos = false,
             quickTimerPreAlert = 20,
-            lowStockReminder = false,
+            lowStockReminderInterval = LowStockReminderInterval.WEEKLY,
             lowStockReminderTime = 7 * 60 + 30,
             lowStockReminderLastDate = "2026-10-30",
             catalogFolded = setOf("green/Bancha", "herbal/-"),
@@ -173,7 +174,7 @@ class SettingsDataSourceTest {
 
     @Test
     fun aFileOfVersion022WithoutALautstaerkeReadsHundredPercentWithoutAMigration() = runTest {
-        // SET-27 is new in v0.3.0 (D-098): a missing key reads as its default, `schemaVersion` stays 2 (05 §6).
+        // SET-27 is new in v0.3.0 (D-098): a missing key reads as its default, no step of its own (05 §6).
         val file = File(folder.root, "v022.json")
         file.writeText("""{"schemaVersion":2,"alertSound":"glocke","lowStockGrams":20.0,"seedDataCreated":true}""")
         val source = dataSource(file)
@@ -181,10 +182,10 @@ class SettingsDataSourceTest {
         val settings = source.settings.first()
 
         assertThat(settings.alertVolumePercent).isEqualTo(100)
-        // SET-28 and SET-29 (INV-11) too: the reminder is on at 18:00 after the update.
-        assertThat(settings.lowStockReminder).isTrue()
+        // SET-28 and SET-29 (INV-11) too: the reminder is on (daily) at 18:00 after the update.
+        assertThat(settings.lowStockReminderInterval).isEqualTo(LowStockReminderInterval.DAILY)
         assertThat(settings.lowStockReminderTime).isEqualTo(1080)
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
         assertThat(settings.alertSound).isEqualTo("glocke")
         assertThat(settings.lowStockGrams).isEqualTo(20.0)
         assertThat(source.seedDataCreated.first()).isTrue()
@@ -192,7 +193,7 @@ class SettingsDataSourceTest {
 
     @Test
     fun aFileOfVersion030Rc1WithoutBeiNichtStoerenKlingelnReadsOnWithoutAMigration() = runTest {
-        // SET-32 is new in v0.3.0-rc.2 (D-099): a missing key reads as its default, on; `schemaVersion` stays 2.
+        // SET-32 is new in v0.3.0-rc.2 (D-099): a missing key reads as its default, on; no step of its own.
         val file = File(folder.root, "v030rc1.json")
         file.writeText("""{"schemaVersion":2,"alertVolumePercent":40,"vibration":false,"seedDataCreated":true}""")
         val source = dataSource(file)
@@ -200,7 +201,7 @@ class SettingsDataSourceTest {
         val settings = source.settings.first()
 
         assertThat(settings.ringUnderDnd).isTrue()
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
         assertThat(settings.alertVolumePercent).isEqualTo(40)
         assertThat(settings.vibration).isFalse()
     }
@@ -215,7 +216,7 @@ class SettingsDataSourceTest {
 
         val migrated = source.settings.first()
         assertThat(migrated.lowStockGrams).isEqualTo(15.0)
-        assertThat(migrated.schemaVersion).isEqualTo(2)
+        assertThat(migrated.schemaVersion).isEqualTo(3)
         assertThat(migrated.preAlertSeconds).isEqualTo(20)
         assertThat(source.seedDataCreated.first()).isTrue()
 
@@ -235,7 +236,7 @@ class SettingsDataSourceTest {
         val settings = dataSource(file).settings.first()
 
         assertThat(settings.lowStockGrams).isEqualTo(20.0)
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
     }
 
     @Test
@@ -248,14 +249,14 @@ class SettingsDataSourceTest {
 
     @Test
     fun aFileOfVersion022WithoutFoldedGroupsReadsNoneFoldedWithoutAMigration() = runTest {
-        // `catalogFolded` is new in v0.3.0 (CAT-10, D-098): a missing key reads ∅, `schemaVersion` stays 2 (05 §6).
+        // `catalogFolded` is new in v0.3.0 (CAT-10, D-098): a missing key reads ∅, no step of its own (05 §6).
         val file = File(folder.root, "v022-folded.json")
         file.writeText("""{"schemaVersion":2,"alertSound":"glocke","seedDataCreated":true}""")
 
         val settings = dataSource(file).settings.first()
 
         assertThat(settings.catalogFolded).isEmpty()
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
         assertThat(settings.alertSound).isEqualTo("glocke")
     }
 
@@ -276,7 +277,7 @@ class SettingsDataSourceTest {
 
     @Test
     fun aFileOfVersion030WithoutTheCollectionKeysReadsTheDefaultsWithoutAMigration() = runTest {
-        // The v0.4.0 keys (D-100): a missing key reads its default, `schemaVersion` stays 2 (05 §6).
+        // The v0.4.0 keys (D-100): a missing key reads its default, no step of its own (05 §6).
         val file = File(folder.root, "v030-collection.json")
         file.writeText("""{"schemaVersion":2,"catalogFolded":["green/Bancha"],"seedDataCreated":true}""")
 
@@ -284,7 +285,7 @@ class SettingsDataSourceTest {
 
         assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
         assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
-        assertThat(settings.schemaVersion).isEqualTo(2)
+        assertThat(settings.schemaVersion).isEqualTo(3)
         assertThat(settings.catalogFolded).containsExactly("green/Bancha")
     }
 
@@ -298,5 +299,64 @@ class SettingsDataSourceTest {
         assertThat(settings.collectionSort).isEqualTo(CollectionSort.LAST_BREWED)
         assertThat(settings.collectionSegment).isEqualTo(CollectionSegment.MY_TEAS)
         assertThat(settings.alertSound).isEqualTo("glocke")
+    }
+
+    @Test
+    fun theV050StepTurnsTheReminderSwitchIntoItsIntervalOnce() = runTest {
+        // SET-28 (D-108 point 7, #198): a stored „on" reads as *Täglich*, „off" as *Aus*; the rest stays.
+        for ((stored, interval) in listOf(
+            true to LowStockReminderInterval.DAILY,
+            false to LowStockReminderInterval.OFF,
+        )) {
+            val file = File(folder.root, "v041-$stored.json")
+            file.writeText(
+                """{"schemaVersion":2,"lowStockReminder":$stored,"lowStockReminderTime":1290,""" +
+                    """"lowStockReminderLastDate":"2026-11-08","seedDataCreated":true}""",
+            )
+            val firstStart = CoroutineScope(coroutineContext + Job())
+            val source = SettingsDataSource(settingsDataStore(firstStart) { file })
+
+            val migrated = source.settings.first()
+            assertThat(migrated.schemaVersion).isEqualTo(3)
+            assertThat(migrated.lowStockReminderInterval).isEqualTo(interval)
+            assertThat(migrated.lowStockReminderTime).isEqualTo(1290)
+            assertThat(migrated.lowStockReminderLastDate).isEqualTo("2026-11-08")
+            assertThat(source.seedDataCreated.first()).isTrue()
+
+            // The PO then picks *Alle 3 Tage*: the next start keeps it, the step never runs again.
+            source.update { it.copy(lowStockReminderInterval = LowStockReminderInterval.EVERY_3_DAYS) }
+            firstStart.cancel()
+            firstStart.coroutineContext.job.join()
+
+            assertThat(dataSource(file).settings.first().lowStockReminderInterval)
+                .isEqualTo(LowStockReminderInterval.EVERY_3_DAYS)
+        }
+    }
+
+    @Test
+    fun anOlderFileWithoutTheReminderKeyReadsDaily() = runTest {
+        // A file of v0.2.x had no SET-28 key: it read „on", so it reads *Täglich*.
+        val file = File(folder.root, "v021-reminder.json")
+        file.writeText("""{"schemaVersion":1,"lowStockGrams":10.0}""")
+
+        val settings = dataSource(file).settings.first()
+
+        assertThat(settings.lowStockReminderInterval).isEqualTo(LowStockReminderInterval.DAILY)
+        assertThat(settings.schemaVersion).isEqualTo(3)
+    }
+
+    @Test
+    fun eachReminderIntervalIsStoredAndReadBackAndAnUnknownNameReadsDaily() = runTest {
+        val source = dataSource()
+        for (interval in LowStockReminderInterval.entries) {
+            source.update { it.copy(lowStockReminderInterval = interval) }
+
+            assertThat(source.settings.first().lowStockReminderInterval).isEqualTo(interval)
+        }
+        val file = File(folder.root, "odd-interval.json")
+        file.writeText("""{"schemaVersion":3,"lowStockReminderInterval":"HOURLY","lowStockReminder":false}""")
+
+        assertThat(dataSource(file).settings.first().lowStockReminderInterval)
+            .isEqualTo(LowStockReminderInterval.DAILY)
     }
 }

@@ -71,9 +71,14 @@
     <string name="settings_low_stock_detail">Ab dieser Menge erinnert dich Start ans Nachbestellen.</string>
     <string name="settings_low_stock_less">5 g weniger</string>
     <string name="settings_low_stock_more">5 g mehr</string>
-    <!-- The daily low-stock reminder (SET-28, SET-29, INV-11; D-098). -->
-    <string name="settings_low_stock_reminder">Tägliche Vorrats-Erinnerung</string>
-    <string name="settings_low_stock_reminder_detail">Listet jeden Tag alle knappen und leeren Tees.</string>
+    <!-- The low-stock reminder (SET-28, SET-29, INV-11; D-098) and its interval (v0.5.0, D-108). -->
+    <string name="settings_low_stock_reminder">Vorrats-Erinnerung</string>
+    <string name="settings_low_stock_reminder_detail">Listet alle knappen und leeren Tees.</string>
+    <string name="settings_low_stock_reminder_daily">Täglich</string>
+    <string name="settings_low_stock_reminder_every_2_days">Alle 2 Tage</string>
+    <string name="settings_low_stock_reminder_every_3_days">Alle 3 Tage</string>
+    <string name="settings_low_stock_reminder_weekly">Wöchentlich</string>
+    <string name="settings_low_stock_reminder_off">Aus</string>
     <string name="settings_low_stock_reminder_time">Uhrzeit</string>
     <!-- 24 h, as German clocks read: „18:00", „07:05". -->
     <string name="settings_low_stock_reminder_time_value">%1$02d:%2$02d</string>

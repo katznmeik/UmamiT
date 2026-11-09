@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -31,6 +32,7 @@ import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CatalogOverview
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRefreshRunner
 import com.umamit.core.testing.FakeCatalogRepository
@@ -297,24 +299,46 @@ class SettingsTest {
     }
 
     @Test
-    fun `the daily reminder is on at 18 00 and switching it off hides its time (SET-28, SET-29)`() {
+    fun `the reminder is daily at 18 00 and Aus hides its time (SET-28, SET-29)`() {
         show()
-        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).performScrollTo().assertIsOn()
-        compose.onNodeWithText("Listet jeden Tag alle knappen und leeren Tees.").assertIsDisplayed()
+        compose.onNodeWithText("Vorrats-Erinnerung").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Täglich").assertIsDisplayed()
         compose.onNodeWithText("Uhrzeit").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("18:00").assertIsDisplayed()
 
-        clickRow("Tägliche Vorrats-Erinnerung")
+        clickRow("Vorrats-Erinnerung")
+        compose.onNodeWithText("Listet alle knappen und leeren Tees.").assertIsDisplayed()
+        compose.onNode(hasText("Aus") and isSelectable()).performClick()
+        compose.onNodeWithText("Fertig").performClick()
         compose.waitForIdle()
 
-        assertThat(stored()).isEqualTo(UserSettings(lowStockReminder = false))
-        compose.onNode(hasText("Tägliche Vorrats-Erinnerung") and isToggleable()).assertIsOff()
+        assertThat(stored()).isEqualTo(UserSettings(lowStockReminderInterval = LowStockReminderInterval.OFF))
         compose.onNodeWithText("Uhrzeit").assertDoesNotExist()
+        compose.onNodeWithText("Aus").performScrollTo().assertIsDisplayed()
+    }
 
-        clickRow("Tägliche Vorrats-Erinnerung")
-        compose.waitForIdle()
-        assertThat(stored().lowStockReminder).isTrue()
-        compose.onNodeWithText("18:00").performScrollTo().assertIsDisplayed()
+    @Test
+    fun `each reminder interval can be picked and shows its time (SET-28, D-108)`() {
+        show()
+        val choices = listOf(
+            "Alle 2 Tage" to LowStockReminderInterval.EVERY_2_DAYS,
+            "Alle 3 Tage" to LowStockReminderInterval.EVERY_3_DAYS,
+            "Wöchentlich" to LowStockReminderInterval.WEEKLY,
+            "Täglich" to LowStockReminderInterval.DAILY,
+        )
+        var row = "Täglich"
+        for ((label, interval) in choices) {
+            clickRow(row)
+            compose.onNode(hasText(label) and isSelectable()).assertIsNotSelected().performClick()
+            compose.onNode(hasText(label) and isSelectable()).assertIsSelected()
+            compose.onNodeWithText("Fertig").performClick()
+            compose.waitForIdle()
+
+            assertThat(stored().lowStockReminderInterval).isEqualTo(interval)
+            compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("18:00").performScrollTo().assertIsDisplayed()
+            row = label
+        }
     }
 
     @Test
