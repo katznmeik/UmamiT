@@ -76,7 +76,7 @@ internal fun StartTabContent(
         actions = HomeActions(
             openSettings = tab.openSettings,
             startBrew = picker::open,
-            // *Aufguss fortsetzen* shows a brew (SCR-02, D-098, D-108), so it opens that brew, never the timer in front.
+            // *Aufguss fortsetzen* shows a brew (SCR-02, D-098, D-108): it opens that brew, not the timer in front.
             openTimer = navigation.openTimerOf,
             quickTimer = navigation.openQuickTimer,
             openSetup = navigation.openSetup,

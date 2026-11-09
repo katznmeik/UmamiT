@@ -210,7 +210,7 @@ class HomeViewModel @Inject constructor(
         // A second tap (on this or another tile) while the first start is in flight would only be
         // refused and leave a stale TMR-21 question on Start (#54 S6, as D-065 for the quick timer).
         // A tap on another tile right after a start is the same gesture, not a second brew (#54 S6, D-108).
-        if (starting || startedJustNow()) return
+        if (starting || startedJustNow) return
         starting = true
         viewModelScope.launch {
             try {
@@ -277,13 +277,11 @@ class HomeViewModel @Inject constructor(
 
     /** The session this view model has just started is in [slot]: the timer is opening already (#54 S6). */
     private fun isDoubleTap(slot: TimerSlot): Boolean =
-        startedJustNow() && starter.activeIn(slot)?.sessionId == started?.sessionId
+        startedJustNow && starter.activeIn(slot)?.sessionId == started?.sessionId
 
     /** This view model started a session less than a tap's window ago. */
-    private fun startedJustNow(): Boolean {
-        val last = started ?: return false
-        return clock.elapsedMs() - last.atElapsedMs < DOUBLE_TAP_WINDOW_MS
-    }
+    private val startedJustNow: Boolean
+        get() = started?.let { clock.elapsedMs() - it.atElapsedMs < DOUBLE_TAP_WINDOW_MS } ?: false
 
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
 

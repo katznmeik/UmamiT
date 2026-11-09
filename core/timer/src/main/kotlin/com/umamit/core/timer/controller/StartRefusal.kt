@@ -4,7 +4,10 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 
-/** One answer of „Welchen Timer beenden?" (TMR-21, D-108): the active timer of [slot], [teaName] (null: Schnelltimer). */
+/**
+ * One answer of „Welchen Timer beenden?" (TMR-21, D-108): the active timer of [slot], named by [teaName] (null:
+ * Schnelltimer).
+ */
 data class TimerToEnd(val slot: TimerSlot, val teaName: String?)
 
 /**

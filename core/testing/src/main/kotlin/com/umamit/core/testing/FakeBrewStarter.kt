@@ -54,10 +54,10 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome {
         val teaId = request.snapshot.teaId
-        val same = active().firstOrNull { teaId != null && it.sessionId?.let(teaOf::get) == teaId }
+        val same = active.firstOrNull { teaId != null && it.sessionId?.let(teaOf::get) == teaId }
         return when {
             same != null -> TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(same.kind))
-            active().size >= MAX_ACTIVE -> twoTimersActive()
+            active.size >= MAX_ACTIVE -> twoTimersActive
             else -> accept(request, BREW_SLOTS.first { activeIn(it) == null })
         }
     }
@@ -68,15 +68,15 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     }
 
     override suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome {
-        val active = activeIn(TimerSlot.QUICK)
+        val quick = activeIn(TimerSlot.QUICK)
         return when {
-            active != null -> TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(active.kind))
+            quick != null -> TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(quick.kind))
 
             durationSeconds !in QUICK_MIN_SECONDS..QUICK_MAX_SECONDS ||
                 (preAlertSeconds != null && preAlertSeconds != 0 && preAlertSeconds !in QUICK_PRE_ALERT_SECONDS) ->
                 TransitionOutcome.Rejected(RejectionReason.InvalidQuickTimer)
 
-            active().size >= MAX_ACTIVE -> twoTimersActive()
+            active.size >= MAX_ACTIVE -> twoTimersActive
 
             else -> acceptQuick(durationSeconds, preAlertSeconds)
         }
@@ -92,10 +92,10 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     }
 
     /** The active timers in the slot order. */
-    private fun active(): List<TimerUiState.Active> = TimerSlot.entries.mapNotNull(::activeIn)
+    private val active: List<TimerUiState.Active> get() = TimerSlot.entries.mapNotNull(::activeIn)
 
-    private fun twoTimersActive() =
-        TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(active().map { it.slot }))
+    private val twoTimersActive
+        get() = TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(active.map { it.slot }))
 
     private fun acceptQuick(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome {
         quickStarts += durationSeconds
