@@ -337,13 +337,15 @@ is the first's step of 60 s and the second's of 66 s, both with a 10 s
 *Vorwarnung*, and the next pair starts with *Start* on both notifications.
 The pre-alerts come at 50 s and 56 s (the first's has rung out, 04 §9.3), the
 first's alert at 60 s and the second's deadline at 66 s, while the first's
-alert rings: the second alert is **held**. The test waits until the hold is in
-the log, taps *Abgegossen* on the first alert, which releases the second
-(it rings with its overtime), reads its sound start and taps *Abgegossen* on
-it. Gated against the same targets: both brews' pre-alerts and the first
-brew's alerts. The held alert is late by design (by the time to
-*Abgegossen*, about 6–7 s): its hold and the delay from the release to its
-sound are **reported apart and never gated**. The test fails as a setup error
+alert sounds (SET-14 *Normal*, at least 7.5 s): the second alert is
+**held**. The test waits until the hold is in the log and does not pour the
+first: from v0.5.0's fix round (D-109) the hold ends when the first alert's
+sound ends, which releases the second (it rings with its overtime); the test
+reads its sound start and taps *Abgegossen* on the second alert, then on the
+first, which still alerts without sound. Gated against the same targets: both
+brews' pre-alerts and the first brew's alerts. The held alert is late by
+design (until the first's sound ends, about 1.5–9 s): its hold and the delay
+from the release to its sound are **reported apart and never gated**. The test fails as a setup error
 if the two steps did not overlap as designed (the second's pre-alert less
 than 4.5 s after the first's or not before the first's alert, its deadline
 not after the first's alert, or its alert rang without a hold). It takes
@@ -408,7 +410,8 @@ variant and the ref. GitHub dispatches only workflows whose file exists on
 - **`two-brews`:** the heading ends in „· two brews"; the table has the rows
   *Brew 1* (pre-alert, alert) and *Brew 2* (pre-alert), all gated. A second
   table lists *Brew 2 · Alert (held)*: *Held* p50 / max (the designed wait
-  for *Abgegossen*), *Release → sound* p50 / p95 / max, the handled deadline
+  for the end of the first alert's sound, D-109), *Release → sound* p50 / p95
+  / max, the handled deadline
   and *Within target* („yes/no (not gated)"). „**Result: PASS**" needs the
   three gated rows on target and all 50 step pairs of both brews. *Slowest …*
   names brew 1's pre-alert and alert, brew 2's pre-alert and its held alert

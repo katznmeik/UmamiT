@@ -349,6 +349,44 @@ the accuracy run's held-alert design (#202: the hold now ends at the first
 alert's sound end, not at *Abgegossen*) and the 09 §4 checklist follow in the
 v0.5.0 fix round. Tier T4 (rule 8).
 
+**Build notes (v0.5.0 fix round, T4 timer path, #194; Claude).**
+- *Sounds.* `AlertArbitration` holds and keeps only for an alert that
+  **sounds**: ALERTING, not held, not `alertPlayed` (the player's
+  `alertCompleted` at the end of SET-14 *Alarmdauer*). The release goes to the
+  held alert whose deadline came first once none sounds. A brew alert whose
+  sound ended no longer holds or preempts anything: a quick or brew deadline
+  after it rings at once. A recovered ALERTING row reported played is not
+  replayed and holds nothing. The invariant test now checks „at most one
+  slot sounds" and „a held alert waits only while another sounds"; its v0.3.0
+  rule „a quick alert never starts while the brew alerts" became „… while a
+  brew's alert sounds".
+- *Front.* Of two alerts not held, the one that started ringing last
+  (`ringingSince`, in the UI state) is in front, leads the notifications
+  (notification 2 with its full-screen intent) and takes the timer route; the
+  silent first is notification 5 („Jetzt abgießen!", *Abgegossen*), whose
+  *Abgegossen* never stops the released sound (`PlayerSound.mayStop`).
+- *Deadline order.* A turn's due events and the first turn's recovery take
+  the brew slots first, as before, and of the brews the earlier deadline
+  first (wall clock for recovery), so the step whose deadline came first
+  rings (04 §9.3).
+- *Answers.* „Welchen Timer beenden?" carries the brew session's id; the
+  controller ends the slot only while it holds that session, else the start is
+  refused again (`TwoTimersActive`) and the question asked anew. A session
+  whose row was unreadable at recovery is matched to a start by the tea of its
+  stored session, read in the start's turn. The dialog labels a brew without
+  its tea's name „Aufguss", never „Schnelltimer".
+- *Log.* A handled event and a recovery name the slot of the quick timer and
+  the second brew (`event BREW2.Poured …`, `recovery: stored QUICK.ALERTING …`),
+  the first brew's none; the accuracy parser takes that prefix as optional.
+- *Codes.* The second brew's alarm codes 301–307 equal notification intent
+  codes; they never share a pending intent (a broadcast to the alarm receiver
+  is none of the notification intents), now pinned by a test.
+- *Tests changed under D-109.* None of the controller tests that release on
+  *Abgegossen* changed (the fake player reports no end unless a test sends
+  it); new tests release on the sound's end. Changed: the invariant test's
+  rules above, and the two-brews accuracy run, which no longer pours the
+  first brew to release the second (09 §4a).
+
 <a id="d-108"></a>
 ### D-108 — v0.5.0: two brew sessions, the whole Tee-Kontor tea range, a per-tea stock warning, a flavour filter (GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09, INV-10, INV-11, SET-28, SET-29, NFR-PERF-11; amends D-034, D-093 point 1, D-098 point 1, NG6, NG7) · *Accepted* (PO, 2026-11-09, grilled in two rounds of four questions; details marked „Claude" are Claude's defaults for the spec)
 

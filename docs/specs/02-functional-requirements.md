@@ -1150,10 +1150,13 @@ automatic rule of TMR-23) and Live Update; not logged.
   - AC3: The lock screen's Live Update shows the timer that ends next; the
     other is a quiet notification (04 §8.3).
   - AC4: **Alarm order.** The brew alarm comes first. A quick alarm due
-    while the brew alarm is on waits; a ringing quick alarm gives way at
-    once to a brew alarm. The waiting one rings right after *Abgegossen*
-    with its overtime („+12:00"), however long it waited, and ends silently
-    only 10 min after it started ringing. Two sounds never play at once
+    while the brew alarm sounds waits; a ringing quick alarm gives way at
+    once to a brew alarm. The waiting one rings as soon as the brew alarm
+    has stopped sounding (its *Alarmdauer*, SET-14, ended, or *Abgegossen*;
+    D-109), with its overtime („+0:12"), however long it waited, and ends
+    silently only 10 min after it started ringing. Meanwhile the brew stays
+    „Jetzt abgießen!" without sound. A quick alarm due after the brew
+    alarm's sound has ended rings at once. Two sounds never play at once
     (04 §9.3).
 - **Two brews (v0.5.0, D-108).** AC1–AC4 hold for two brew sessions too:
   the bar and each timer screen show both (SCR-02, SCR-05: the other brew
@@ -1162,10 +1165,13 @@ automatic rule of TMR-23) and Live Update; not logged.
   that ends next. A held brew reads „wartet" in the bar and the row and
   „Fertig, wartet auf den anderen Aufguss" in its quiet notification. **Alarm
   order:** the first alarm rings; a brew alarm due while the other brew
-  alarm rings waits and rings right after *Abgegossen* with its overtime,
-  ending silently only 10 min after it started ringing. A brew still goes
-  before a quick timer due at the same time, and a ringing quick alarm still
-  gives way to a brew alarm.
+  alarm sounds waits and rings as soon as that alarm has stopped sounding
+  (D-109; its *Alarmdauer* ended, or *Abgegossen*), with its overtime,
+  ending silently only 10 min after it started ringing; the first stays
+  „Jetzt abgießen!" without sound. Of two brews due at once (a late alarm,
+  a long process death) the one whose deadline came first rings. A brew
+  still goes before a quick timer due at the same time, and a ringing quick
+  alarm still gives way to a brew alarm.
 
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
