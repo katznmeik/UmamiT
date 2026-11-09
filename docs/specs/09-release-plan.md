@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-11-09 (v0.5.0 inserted before M4, which becomes v0.6.0, D-108; the accuracy variant two-brews, all three per v0.5.0 rc and final, #202; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (the v0.5.0 checklist, D-108, D-109; v0.5.0 inserted before M4, which becomes v0.6.0, D-108; the accuracy variant two-brews, all three per v0.5.0 rc and final, #202; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -268,6 +268,35 @@ with *Ohne Katalog* for the test, deleted at the end.
 - [ ] Open *Einstellungen* from Start, switch to *Journal* and back: Start shows its own screen, not Settings; the same from *Teegeschirr*. A tea detail opened in *Sammlung* keeps its place over a tab switch.
 - [ ] Editors: *Tee bearbeiten* shows *Geöffnet am* and *Haltbar bis* with date pickers in German format; *Speichern* is visible from the start (greyed while loading).
 - [ ] Delete the test tea: its photos are gone; its journal entries stay.
+
+### v0.5.0 — Two active timers, the whole tea range, per-tea stock warning, flavour filter (D-108, D-109)
+
+v0.5.0 changes timer code throughout, so every `v0.5.0-rc.N` needs a PASS of
+**all three** accuracy variants first (§4a: `standard`, `alongside`, `two-brews`).
+
+**Update and timers**
+- [ ] `v0.5.0-rc.1` installs over `v0.4.1` without losing data (umamit.db v4 → v5): journal, teas, recipes, photos, stock, Merkliste and settings are there; a brew session waiting or steeping during the update still alerts on time, and so does a Schnelltimer; the Vorrats-Erinnerung keeps its on/off as *Täglich* / *Aus*.
+- [ ] Morning case: brew tea A, finish infusion 1 and leave it waiting. From Start (*Nochmal brühen* or a tea's page) start tea B: no question. B's screen shows the slim row „🍃 A · Aufguss 2 bereit"; a tap opens A, back returns. The bar on Start, Journal, Sammlung and Statistik shows both; each half opens its own timer. Later continue A's infusion 2: it continues where it stopped.
+- [ ] Both steeping, screen off: each Vorwarnung and alarm comes on time; the lock screen's Live Update shows the timer that ends next, the other is a quiet notification.
+- [ ] Held alarm (D-109): A's step ends first and rings; don't pour. B's step ends while A still sounds: B waits („wartet" in the bar and row). As soon as A's alarm stops sounding (*Alarmdauer*), B rings with its overtime; A stays „Jetzt abgießen!" silently. Never two sounds at once. *Abgegossen* on A still works afterwards.
+- [ ] Due together: start two short steps a second apart. The one whose deadline came first rings; the other follows as above.
+- [ ] Same tea: with A active, *Nochmal brühen* on A opens A's running session, no second session of A.
+- [ ] Third start: with two timers active, *Aufguss starten* is hidden on Start (PO, D-108 build notes); *Nochmal brühen* on a third tea, the setup's *Start* and Start's *Schnelltimer* ask „Welchen Timer beenden?" with one button per timer and *Abbrechen*. Ending a session logs it with „Sitzung gespeichert" (or discards it without an infusion); the other timer keeps running.
+- [ ] One brew and a Schnelltimer behave as in v0.3.0, except D-109: a Schnelltimer due while the brew alarm rings starts ringing as soon as the brew alarm stops sounding.
+- [ ] Swipe the app away with two brews, phone locked: both alert on time. Restart the phone with two brews waiting: after unlocking both are back; the midnight rule ends each on its own.
+- [ ] Two sessions give two journal entries, each with its own stock deduction and cost.
+
+**Catalog**
+- [ ] The first *Katalog aktualisieren* after the update re-reads the shop once: it finishes within about 35 min (≈ 900 teas), with the progress notification and *Abbrechen*; a hint shows on each new category until then. Note the duration and the „… neu" summary in #207.
+- [ ] The chip row reads *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh · Kräutertee · Rotbusch · Früchtetee · Chai*; *Grüntee* is the default; the selected chip scrolls into view (also after *Alle zeigen*). Each view is grouped by its *Sorte* (e.g. Darjeeling, Assam; Sheng, Shou) with foldable groups; the header counts the category („186 Schwarztees").
+- [ ] A search for a black tea from the green view says it is hidden and *Alle zeigen* opens *Schwarztee*.
+- [ ] Add a Darjeeling and a chai to the collection: *Meine Tees*' *Kategorie* shows *Schwarzer Tee* for both; their recipes come from the shop (no „Rezept prüfen" when the shop gives values). A shared shop link to a white tea or a Rotbusch adds it.
+- [ ] Filter sheet: *Geschmack* chips (most frequent first) and scale rows (*Egal · ab 1 … ab 5*). „nussig" + „süß" narrows the list; „Süße ab 3" too; *Filter (n)* counts them; *Zurücksetzen* clears them; switching to Kräutertee drops notes it doesn't have. TalkBack reads „Süße ab 3, ausgewählt".
+
+**Stock**
+- [ ] Tea detail › VORRAT: *Warnung* off on a *Knapp* tea: no Start card, no line in the reminder, the reorder link is a plain link; the „knapp" chip stays. A *Nachkauf* does not switch it back on.
+- [ ] *Knapp ab*: type 30 and press *Fertig* on a tea with 25 g: it becomes *Knapp* at once (chip, Start card, setup marker). Empty means 15 g. Typing 600 shows the error and keeps the stored value.
+- [ ] *Einstellungen › Brühen & Vorrat › Vorrats-Erinnerung*: *Alle 2 Tage* at a time a few minutes ahead with a *Knapp* tea: one notification; the next one only two days later. *Aus* hides the time.
 
 ### M4 — Journal & statistics
 
