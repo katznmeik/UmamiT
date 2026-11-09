@@ -165,7 +165,7 @@ private fun TasteScaleGroup(scale: TasteScaleOption, filter: CatalogFilter, onFi
             chosen == null,
             description = stringResource(R.string.catalog_scale_any_description, scale.label),
         ) { onFilterChange { it.withMinScale(scale.key, null) } }
-        (1..TasteScale.MAX_LEAVES).forEach { leaves ->
+        for (leaves in 1..TasteScale.MAX_LEAVES) {
             CatalogChip(
                 stringResource(R.string.catalog_scale_min, leaves),
                 chosen == leaves,
