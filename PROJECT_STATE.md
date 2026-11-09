@@ -5,17 +5,17 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-09. `v0.4.1` is released; M3 is done. The PO's feedback after v0.4.1 (four points) is grilled into **[D-108](docs/specs/10-open-questions-and-decisions.md#d-108)**: a release **v0.5.0** comes before M4, which becomes **v0.6.0**. The spec is **[#194](https://github.com/katznmeik/UmamiT/issues/194)** (`ready-for-agent`, six test seams confirmed by the PO). Its 13 tickets **#196–#208** are published and approved by the PO. **Next: the build**, when the PO starts `/implement-spec #194`, in a fresh session (Opus `medium`); nothing is built before the PO starts `/implement-spec` on the new spec.
+**Last updated:** 2026-11-09. `v0.4.1` is released; M3 is done. The PO's feedback after v0.4.1 (four points) is grilled into **[D-108](docs/specs/10-open-questions-and-decisions.md#d-108)**: a release **v0.5.0** comes before M4, which becomes **v0.6.0**. The spec is **[#194](https://github.com/katznmeik/UmamiT/issues/194)** (`ready-for-agent`, six test seams confirmed by the PO). Its 13 tickets **#196–#208** are published and approved by the PO. **The build is running:** the PO started `/implement-spec #194` on 2026-11-09; plan `docs/plans/v0.5.0.md`; nothing is built before the PO starts `/implement-spec` on the new spec.
 
 ## Phase
 
 | Item | Status |
 |---|---|
-| Current milestone | **v0.5.0** (feedback on v0.4.1, D-108, 09 §2): specified in [#194](https://github.com/katznmeik/UmamiT/issues/194), tickets #196–#208 (approved); next is the build on the PO's `/implement-spec #194` (each ticket carries its spec edits into the milestone PR). Then **M4 → v0.6.0** (Journal & statistics). M3 is done: v0.4.0 and [`v0.4.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.1) (from `main` `2b5735fc`) are released |
+| Current milestone | **v0.5.0** (feedback on v0.4.1, D-108, 09 §2): specified in [#194](https://github.com/katznmeik/UmamiT/issues/194), tickets #196–#208 (approved); **build started 2026-11-09** on the PO's `/implement-spec #194` (plan `docs/plans/v0.5.0.md`; each ticket carries its spec edits into the milestone PR). Then **M4 → v0.6.0** (Journal & statistics). M3 is done: v0.4.0 and [`v0.4.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.1) (from `main` `2b5735fc`) are released |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
 | Working branch | `claude/focused-gauss-vg06j0` (from `main` `b14c9604`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none |
+| Open PR | the v0.5.0 milestone PR (draft) |
 | Latest APK | [`v0.4.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.4.1) (full release, versionCode 40199, from `main` `2b5735fc`, certificate verified); rc `v0.4.1-rc.1` (40101) |
 | Decision numbers | Up to **D-108** used; the next free is **D-109** |
 
@@ -31,7 +31,7 @@
 
 ## Waiting on the PO
 
-1. **v0.5.0 (D-108):** nothing blocking. Spec #194 and tickets #196–#208 are published; the build waits for the PO to start `/implement-spec #194`. Still open from v0.4.0: check the catalog's *Grüntee* chip (09 §4, v0.4.0's final item); v0.5.0 extends that chip row.
+1. **v0.5.0 (D-108):** nothing blocking. Spec #194 and tickets #196–#208 are published; the build runs (started by the PO 2026-11-09). Still open from v0.4.0: check the catalog's *Grüntee* chip (09 §4, v0.4.0's final item); v0.5.0 extends that chip row.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.
