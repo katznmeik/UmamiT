@@ -323,6 +323,32 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-109"></a>
+### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)
+
+**Context.** The T4 review of the v0.5.0 timer path found that a held alarm
+waited until *Abgegossen* on the other timer, or until its 10-min overtime
+timeout, even after the other alarm's sound had ended (SET-14 *Alarmdauer*,
+e.g. *Normal* ≈ 15 s). Example: brew A rings at 10:00 and the PO does not
+pour; brew B's deadline at 10:02 is held with no sound and only a quiet
+notification, so B could steep up to 8 minutes too long without a cue.
+
+**Decision (PO).** A held alarm rings as soon as the alarm that keeps the
+sound has **stopped sounding** (its *Alarmdauer* ended, or it was silenced),
+not only after *Abgegossen*. The first timer stays ALERTING on screen
+(„Jetzt abgießen!", overtime counting) without sound; the released one rings
+its full *Alarmdauer* with its overtime. Two sounds still never overlap, and
+the order stays: the alarm that rang first keeps the sound while it sounds; a
+brew still preempts a ringing quick alarm. The rule is the same for two brews
+and for a quick timer held behind a brew (it amends D-098 point 2 as well).
+
+**Consequences.** The arbitration's „rings" becomes „sounds" (the player's
+report of the alert's end releases the held slot). The held alert's silent
+end still counts 10 min from when it started ringing. 04 §9.3, 02 TMR-22 AC4,
+the accuracy run's held-alert design (#202: the hold now ends at the first
+alert's sound end, not at *Abgegossen*) and the 09 §4 checklist follow in the
+v0.5.0 fix round. Tier T4 (rule 8).
+
 <a id="d-108"></a>
 ### D-108 — v0.5.0: two brew sessions, the whole Tee-Kontor tea range, a per-tea stock warning, a flavour filter (GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09, INV-10, INV-11, SET-28, SET-29, NFR-PERF-11; amends D-034, D-093 point 1, D-098 point 1, NG6, NG7) · *Accepted* (PO, 2026-11-09, grilled in two rounds of four questions; details marked „Claude" are Claude's defaults for the spec)
 
@@ -6441,6 +6467,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |
 | 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |
 | 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |
 | 2026-11-08 | D-106: own photos (v0.4.1): accepted input up to 20 000 px, 250 MP and 128 MB in any platform-decodable format; platform ExifInterface; toasts for errors; the pager shows the cover first and stays on a photo after *Als Titelbild*; the vessel photo is stored with *Speichern*. |
