@@ -19,8 +19,8 @@ internal val TimerState.OnStep.plannedMs: Long
  * The current step ended now. Before the deadline (Running, Paused) it ends
  * early, without overtime. At or after the deadline (Alerting, or Running
  * before the deadline event was processed) it counts as poured: overtime =
- * now − deadline, and the actual time includes it. From 10 min of overtime on
- * it is the overtime timeout's auto-ack record, as on recovery.
+ * now − deadline, and the actual time includes it. Once the overtime timeout
+ * has come ([pouredRecord]) it is that timeout's auto-ack record, as on recovery.
  */
 internal fun endedRecord(state: TimerState.StepStarted, now: ClockReading): StepRecord = when (state) {
     is TimerState.Alerting -> pouredRecord(state, now)
@@ -69,9 +69,16 @@ internal fun skippedRecord(state: TimerState.Ready): StepRecord = StepRecord(
 internal fun autoAckRecord(state: TimerState.WithDeadline): StepRecord =
     state.record(state.plannedMs, state.pausedTotalMs, 0, state.deadlineWallMs).copy(overtimeAutoAck = true)
 
-/** Poured at [now], after the deadline; from 10 min of overtime on, the overtime timeout's record (D-053). */
+/**
+ * Poured at [now], after the deadline; once the overtime timeout has come, its record (D-053): 10 min after the
+ * deadline for a running step, 10 min after an alert last started ringing (a released held alert, D-108).
+ */
 private fun pouredRecord(state: TimerState.WithDeadline, now: ClockReading): StepRecord {
-    if (isOvertimeTimedOut(state.deadlineElapsedMs, now)) return autoAckRecord(state)
+    val timedOut = when (state) {
+        is TimerState.Alerting -> state.isTimedOut(now)
+        is TimerState.Running -> isOvertimeTimedOut(state.deadlineElapsedMs, now)
+    }
+    if (timedOut) return autoAckRecord(state)
     val overtimeMs = now.elapsedMs - state.deadlineElapsedMs
     return state.record(state.plannedMs + overtimeMs, state.pausedTotalMs, overtimeMs, now.wallMs)
 }

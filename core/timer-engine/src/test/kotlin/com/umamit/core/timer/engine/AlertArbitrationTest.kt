@@ -118,6 +118,119 @@ class AlertArbitrationTest {
         assertThat(sound.mayStop(TimerSlot.QUICK, nowElapsedMs = RING_MS)).isTrue()
     }
 
+    @Test
+    fun `of two ringing alerts the one that rang first keeps the sound and the other is held`() {
+        val first = brewAt(seconds = 60, held = false)
+        val later = brewAt(seconds = 90, held = false)
+
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to later, TimerSlot.BREW_2 to first)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW, TimerEvent.AlertHold))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to later)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertHold))
+        // Rang at the same moment: the slot order decides (BREW, BREW_2, QUICK).
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to first)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertHold))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to held(90)))).isNull()
+    }
+
+    @Test
+    fun `a brew never preempts a brew, so a brew deadline while another brew rings is held`() {
+        val ringing = mapOf(TimerSlot.BREW to brewAt(seconds = 60, held = false))
+
+        assertThat(AlertArbitration.eventFor(TimerSlot.BREW_2, TimerEvent.DeadlineReached, ringing))
+            .isEqualTo(TimerEvent.AlertHold)
+        assertThat(AlertArbitration.eventFor(TimerSlot.BREW_2, TimerEvent.Recover, ringing))
+            .isEqualTo(TimerEvent.RecoverHeld)
+        assertThat(AlertArbitration.eventFor(TimerSlot.BREW_2, TimerEvent.Poured, ringing)).isEqualTo(TimerEvent.Poured)
+        // Its own alert never holds a slot.
+        assertThat(AlertArbitration.eventFor(TimerSlot.BREW, TimerEvent.DeadlineReached, ringing))
+            .isEqualTo(TimerEvent.DeadlineReached)
+        // A held alert holds nothing.
+        val held = mapOf(TimerSlot.BREW to held(60))
+        assertThat(AlertArbitration.eventFor(TimerSlot.BREW_2, TimerEvent.DeadlineReached, held))
+            .isEqualTo(TimerEvent.DeadlineReached)
+    }
+
+    @Test
+    fun `a brew preempts a ringing quick alert, and a quick deadline is held while any brew rings`() {
+        val quickRinging = quickAt(held = false)
+        val brew2Ringing = brewAt(seconds = 90, held = false)
+
+        assertThat(
+            AlertArbitration.eventFor(
+                TimerSlot.BREW_2,
+                TimerEvent.DeadlineReached,
+                mapOf(TimerSlot.QUICK to quickRinging),
+            ),
+        ).isEqualTo(TimerEvent.DeadlineReached)
+        // The quick alert rang first, yet the brew keeps the sound.
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW_2 to brew2Ringing, TimerSlot.QUICK to quickRinging)))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertHold))
+        assertThat(
+            AlertArbitration.eventFor(
+                TimerSlot.QUICK,
+                TimerEvent.DeadlineReached,
+                mapOf(TimerSlot.BREW_2 to brew2Ringing),
+            ),
+        ).isEqualTo(TimerEvent.AlertHold)
+    }
+
+    @Test
+    fun `a release goes to the held slot whose deadline came first, a brew before a quick timer at the same time`() {
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to held(90), TimerSlot.BREW_2 to held(60))))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertRingStart))
+        assertThat(
+            AlertArbitration.settle(
+                mapOf(
+                    TimerSlot.BREW to TimerState.Idle,
+                    TimerSlot.BREW_2 to held(90),
+                    TimerSlot.QUICK to quickAt(true),
+                ),
+            ),
+        ).isEqualTo(AlertArbitration.SlotEvent(TimerSlot.QUICK, TimerEvent.AlertRingStart))
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW_2 to held(60), TimerSlot.QUICK to quickAt(true))))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertRingStart))
+        // While one rings, the held ones wait.
+        assertThat(
+            AlertArbitration.settle(
+                mapOf(
+                    TimerSlot.BREW to brewAt(90, held = false),
+                    TimerSlot.BREW_2 to held(60),
+                    TimerSlot.QUICK to quickAt(true),
+                ),
+            ),
+        ).isNull()
+    }
+
+    @Test
+    fun `a pre-alert waits for the sound of any other slot, and plays once that has ended`() {
+        val sound = PlayerSound(RING_MS)
+        sound.alertStarted(TimerSlot.BREW_2)
+
+        assertThat(sound.preAlertDue(TimerSlot.BREW, deadlineElapsedMs = 20_000, nowElapsedMs = 0)).isFalse()
+        assertThat(sound.preAlertDue(TimerSlot.QUICK, deadlineElapsedMs = 30_000, nowElapsedMs = 0)).isFalse()
+        assertThat(sound.mayStop(TimerSlot.BREW, nowElapsedMs = 0)).isFalse()
+
+        sound.alertEnded(TimerSlot.BREW_2)
+        // One plays (the slot order first); the other waits for it to ring out.
+        assertThat(sound.release(1_000) { if (it == TimerSlot.BREW) 20_000L else 30_000L })
+            .containsExactly(PlayerSound.Waiting(TimerSlot.BREW, 20_000))
+        assertThat(sound.waitingPreAlerts).containsExactly(PlayerSound.Waiting(TimerSlot.QUICK, 30_000))
+        assertThat(sound.nextReleaseAtElapsedMs()).isEqualTo(1_000 + RING_MS)
+        assertThat(sound.release(1_000 + RING_MS) { 30_000L })
+            .containsExactly(PlayerSound.Waiting(TimerSlot.QUICK, 30_000))
+    }
+
+    /** A brew session's alert at the end of its one infusion of [seconds]: ringing since its deadline, or held. */
+    private fun brewAt(seconds: Int, held: Boolean): TimerState = sessionWith(infusion(seconds)).apply {
+        send(TimerEvent.Start)
+        clocks.advanceSeconds(seconds.toLong())
+        send(if (held) TimerEvent.AlertHold else TimerEvent.DeadlineReached)
+    }.state
+
+    /** A brew alert held since its deadline [seconds] after the start. */
+    private fun held(seconds: Int): TimerState = brewAt(seconds, held = true)
+
     private fun alertingBrew(): TimerState = sessionWith(infusion(60)).apply {
         send(TimerEvent.Start)
         clocks.advanceSeconds(60)

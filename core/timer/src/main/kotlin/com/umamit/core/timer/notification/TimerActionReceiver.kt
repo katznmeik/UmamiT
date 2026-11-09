@@ -87,25 +87,35 @@ class TimerActionReceiver : BroadcastReceiver() {
 
         /** The event of an action broadcast made by [intent]; null for any other intent. */
         fun eventOf(intent: Intent): TimerEvent? = intent.action?.takeIf { it.startsWith(ACTION_PREFIX) }
-            ?.let { EVENTS[it.removePrefix(ACTION_PREFIX).removePrefix(TimerSlot.QUICK.namePrefix)] }
+            ?.let { EVENTS[it.removePrefix(ACTION_PREFIX).removePrefix(slotOf(intent).namePrefix)] }
 
-        /** The slot of an action broadcast made by [intent]: the quick slot's, else the brew slot's. */
-        fun slotOf(intent: Intent): TimerSlot =
-            if (intent.action?.startsWith(ACTION_PREFIX + TimerSlot.QUICK.namePrefix) == true) {
-                TimerSlot.QUICK
-            } else {
-                TimerSlot.BREW
-            }
+        /**
+         * The slot of an action broadcast made by [intent]: the slot whose name prefix it carries, else the brew
+         * slot's (whose actions have none).
+         */
+        fun slotOf(intent: Intent): TimerSlot = TimerSlot.entries.firstOrNull { slot ->
+            slot.namePrefix.isNotEmpty() && intent.action?.startsWith(ACTION_PREFIX + slot.namePrefix) == true
+        } ?: TimerSlot.BREW
 
         /** The state key of a dismissal made by [dismissIntent]; null for any other intent. */
         fun dismissedKeyOf(intent: Intent): String? =
             intent.takeIf { it.action == ACTION_DISMISSED }?.getStringExtra(EXTRA_KEY)
 
-        /** The request code of [event]'s PendingIntent in [slot]: 400 + its index, 420 + it for the quick slot. */
+        /**
+         * The request code of [event]'s PendingIntent in [slot]: 400 + its index, 420 + it for the quick slot,
+         * 440 + it for the second brew slot (D-108).
+         */
         internal fun requestCodeOf(event: TimerEvent, slot: TimerSlot = TimerSlot.BREW): Int =
-            REQUEST_CODE_BASE + (if (slot == TimerSlot.QUICK) QUICK_CODE_OFFSET else 0) + EVENTS.values.indexOf(event)
+            REQUEST_CODE_BASE + offsetOf(slot) + EVENTS.values.indexOf(event)
+
+        private fun offsetOf(slot: TimerSlot): Int = when (slot) {
+            TimerSlot.BREW -> 0
+            TimerSlot.QUICK -> QUICK_CODE_OFFSET
+            TimerSlot.BREW_2 -> BREW_2_CODE_OFFSET
+        }
 
         private const val REQUEST_CODE_BASE = 400
         private const val QUICK_CODE_OFFSET = 20
+        private const val BREW_2_CODE_OFFSET = 40
     }
 }

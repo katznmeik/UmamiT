@@ -195,6 +195,35 @@ class ProcessRestartTest {
     }
 
     @Test
+    fun `a brew alert stored held rings in the new process, since no other alert rings (D-108)`() = runTest {
+        before.controller.startSession(brewStart(infusion(60)))
+        before.controller.send(TimerEvent.Start)
+        before.advanceSeconds(60)
+        val id = before.sessionId
+        assertThat(before.active.ringing).isTrue()
+
+        // Stored without its ringing start and not reported played: a held brew alert (04 §3.3).
+        val after = before.processRestarted()
+        after.store.readAs = { snapshot ->
+            snapshot?.copy(
+                activeBrew = snapshot.activeBrew.copy(
+                    alertRingingSinceElapsedMs = null,
+                    alertRingingSinceWallMs = null,
+                ),
+            )
+        }
+        after.clock.advanceBy(12 * 60_000L)
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        // Released at once: a held alert always rings, and its silent end counts from now.
+        assertThat(after.active.phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(after.active.ringing).isTrue()
+        assertThat(after.alert.started.map { it.kind }).containsExactly(SessionKind.Brew(id))
+        assertThat(after.alarms.armed(TimerSlot.BREW).overtimeTimeoutAtElapsedMs)
+            .isEqualTo(after.clock.elapsed + 10 * 60_000L)
+    }
+
+    @Test
     fun `a failed read is retried in the same turn, so the deadline alarm still alerts`() = runTest {
         before.controller.startSession(brewStart(infusion(60), recipePreAlertSeconds = 0))
         before.controller.send(TimerEvent.Start)

@@ -3,58 +3,98 @@ package com.umamit.core.timer.engine
 import com.umamit.core.model.TimerSlot
 
 /**
- * The alert arbitration of 04 §9.3 (D-098; PO Q2, R2-Q2, S1) between the controller's two slots, as pure rules
+ * The alert arbitration of 04 §9.3 (D-098, D-108; PO Q2, R2-Q2, S1) over the controller's slots, as pure rules
  * the controller applies in every turn. The engine stays a single-timer state machine; these rules decide which
- * events the quick slot gets so that only one slot rings, and the brew's alert first:
+ * events a slot gets so that only one slot rings at a time:
  *
- * - **Priority:** the brew is never held. A quick deadline (or a quick timer's recovery) while the brew slot is
- *   ALERTING becomes [TimerEvent.AlertHold] ([TimerEvent.RecoverHeld]) instead ([quickEvent]).
- * - **Preemption:** a quick alert that still rings when the brew starts alerting is held again ([settle]).
- * - **Release:** a held quick alert rings as soon as the brew slot is no longer ALERTING ([settle]).
+ * - **Hold:** a deadline (or a recovery) of a slot while another slot's alert rings becomes
+ *   [TimerEvent.AlertHold] ([TimerEvent.RecoverHeld]) instead ([eventFor]), unless the slot preempts that alert:
+ *   a brew preempts a ringing quick alert, a brew never preempts a brew, the quick timer never preempts.
+ * - **Keeper:** of several ringing alerts one keeps the sound and every other is held again ([settle]): a brew's
+ *   before the quick timer's, else the one that started ringing first, else the first in the slot order
+ *   (BREW, BREW_2, QUICK).
+ * - **Release:** when no alert rings, the held alert whose deadline came first rings ([settle]); at the same
+ *   deadline the first in the slot order, so a brew before the quick timer.
  *
- * Which sound the one player may play at a moment is [PlayerSound]'s part.
+ * With one brew in [TimerSlot.BREW] and the quick timer these are the rules of v0.3.0: the brew is never held,
+ * a quick alert waits for the brew's. Which sound the one player may play at a moment is [PlayerSound]'s part.
  */
 object AlertArbitration {
 
+    /** The event [event] of [slot] becomes, an arbitration event of [slot] after a turn ([settle]). */
+    data class SlotEvent(val slot: TimerSlot, val event: TimerEvent)
+
     /**
-     * The event the quick slot gets for [event] while the brew slot is in [brew]: while the brew alerts, its
-     * deadline holds the quick alert ([TimerEvent.AlertHold]) and its recovery recovers held
-     * ([TimerEvent.RecoverHeld]); every other event as it is.
+     * The event [slot] gets for [event] while the slots are in [states] (a slot not in it is idle): while another
+     * slot's alert rings that [slot] does not preempt, its deadline holds its alert ([TimerEvent.AlertHold]) and
+     * its recovery recovers held ([TimerEvent.RecoverHeld]); every other event as it is.
      */
-    fun quickEvent(event: TimerEvent, brew: TimerState): TimerEvent = when {
-        brew !is TimerState.Alerting -> event
-        event == TimerEvent.DeadlineReached -> TimerEvent.AlertHold
-        event == TimerEvent.Recover -> TimerEvent.RecoverHeld
-        else -> event
+    fun eventFor(slot: TimerSlot, event: TimerEvent, states: Map<TimerSlot, TimerState>): TimerEvent {
+        val waits = states.any { (other, state) -> other != slot && state.rings && !preempts(slot, other) }
+        return when {
+            !waits -> event
+            event == TimerEvent.DeadlineReached -> TimerEvent.AlertHold
+            event == TimerEvent.Recover -> TimerEvent.RecoverHeld
+            else -> event
+        }
     }
 
     /**
-     * After an event of either slot: the event the quick slot in [quick] needs so that at most one slot rings,
-     * the brew in [brew] first. [TimerEvent.AlertHold] while the brew alerts and the quick alert rings
-     * (preemption), [TimerEvent.AlertRingStart] when the brew no longer alerts and the quick alert is held
-     * (release); null when the two already agree.
+     * After an event of any slot: the next event a slot in [states] needs so that exactly one alert rings while
+     * any slot alerts. [TimerEvent.AlertHold] for a ringing alert that is not the keeper (preemption, first),
+     * [TimerEvent.AlertRingStart] for the held alert released while none rings; null when the slots agree. The
+     * controller handles it and settles again, until null.
      */
-    fun settle(brew: TimerState, quick: TimerState): TimerEvent? {
-        val alert = quick as? TimerState.Alerting ?: return null
-        val brewAlerts = brew is TimerState.Alerting
+    fun settle(states: Map<TimerSlot, TimerState>): SlotEvent? {
+        val alerts = TimerSlot.entries.mapNotNull { slot -> (states[slot] as? TimerState.Alerting)?.let { slot to it } }
+        val ringing = alerts.filter { (_, alert) -> !alert.held }
+        val keeper = ringing.minWithOrNull(
+            compareBy<Pair<TimerSlot, TimerState.Alerting>> { (slot, _) -> !slot.isBrew }
+                .thenBy { (_, alert) -> alert.ringingSinceElapsedMs },
+        )?.first
+        val preempted = ringing.firstOrNull { (slot, _) -> slot != keeper }?.first
         return when {
-            brewAlerts && !alert.held -> TimerEvent.AlertHold
-            !brewAlerts && alert.held -> TimerEvent.AlertRingStart
-            else -> null
+            preempted != null -> SlotEvent(preempted, TimerEvent.AlertHold)
+
+            keeper != null -> null
+
+            else -> alerts.minByOrNull { (_, alert) -> alert.deadlineElapsedMs }
+                ?.let { (slot, _) -> SlotEvent(slot, TimerEvent.AlertRingStart) }
         }
     }
+
+    /**
+     * [eventFor] the quick slot while the brew slot is in [brew]: the rules for the v0.3.0 pair of one brew session
+     * and the quick timer.
+     */
+    fun quickEvent(event: TimerEvent, brew: TimerState): TimerEvent =
+        eventFor(TimerSlot.QUICK, event, mapOf(TimerSlot.BREW to brew))
+
+    /**
+     * [settle] for the v0.3.0 pair of a brew in [brew] and the quick timer in [quick]: the event the quick slot
+     * needs, [TimerEvent.AlertHold] while the brew alerts and the quick alert rings (preemption),
+     * [TimerEvent.AlertRingStart] when the brew no longer alerts and the quick alert is held (release); null when
+     * the two already agree.
+     */
+    fun settle(brew: TimerState, quick: TimerState): TimerEvent? =
+        settle(mapOf(TimerSlot.BREW to brew, TimerSlot.QUICK to quick))?.takeIf { it.slot == TimerSlot.QUICK }?.event
+
+    /** Whether a deadline of [slot] takes the sound from [ringing]'s alert: a brew's from the quick timer's. */
+    private fun preempts(slot: TimerSlot, ringing: TimerSlot): Boolean = slot.isBrew && !ringing.isBrew
+
+    private val TimerState.rings: Boolean get() = this is TimerState.Alerting && !held
 }
 
 /**
- * The one alert player's sound as the controller's arbitration sees it (04 §5, §9.3; D-098): never two sounds
- * at once, and a cue of one slot never cuts the other slot's alert.
+ * The one alert player's sound as the controller's arbitration sees it (04 §5, §9.3; D-098, D-108): never two sounds
+ * at once, and a cue of one slot never cuts another slot's alert.
  *
  * - An alert ([alertStarted]) takes the player, cutting any pre-alert that still rings, as within one slot. It
  *   ends with the player's report or the slot's `StopAlert` ([alertEnded]).
- * - A `StopAlert` of one slot reaches the player only when the other slot does not own the sound ([mayStop]):
+ * - A `StopAlert` of one slot reaches the player only when no other slot owns the sound ([mayStop]):
  *   the preempted quick alert's stop must not silence the brew's alert, and *Fertig* on a held alert must not
  *   cut the brew's pre-alert.
- * - A pre-alert due while the other slot's alert or pre-alert sounds waits ([preAlertDue]) until that sound
+ * - A pre-alert due while another slot's alert or pre-alert sounds waits ([preAlertDue]) until that sound
  *   ends, then plays only if at least 1 s of its step is left, else it is consumed silently ([release]). A
  *   pre-alert rings for [preAlertRingMs] (the longest pre-alert sound and the player's release margin), which
  *   the controller does not hear end.
@@ -73,7 +113,7 @@ class PlayerSound(private val preAlertRingMs: Long) {
         data class PreAlert(override val slot: TimerSlot, val untilElapsedMs: Long) : Sound
     }
 
-    /** A pre-alert of [slot] waiting for the other slot's sound, for the step that ends at [deadlineElapsedMs]. */
+    /** A pre-alert of [slot] waiting for another slot's sound, for the step that ends at [deadlineElapsedMs]. */
     data class Waiting(val slot: TimerSlot, val deadlineElapsedMs: Long)
 
     private var sound: Sound? = null
@@ -100,7 +140,7 @@ class PlayerSound(private val preAlertRingMs: Long) {
     }
 
     /**
-     * Whether a `StopAlert` of [slot] at [nowElapsedMs] may stop the player: not while the other slot's alert or
+     * Whether a `StopAlert` of [slot] at [nowElapsedMs] may stop the player: not while another slot's alert or
      * pre-alert sounds. The stop of [slot]'s own alert also ends it here.
      */
     fun mayStop(slot: TimerSlot, nowElapsedMs: Long): Boolean {
@@ -112,7 +152,7 @@ class PlayerSound(private val preAlertRingMs: Long) {
 
     /**
      * A pre-alert of [slot] is due at [nowElapsedMs] for its step ending at [deadlineElapsedMs]: true when it
-     * plays now (it then owns the sound), false when it waits for the other slot's sound.
+     * plays now (it then owns the sound), false when it waits for another slot's sound.
      */
     fun preAlertDue(slot: TimerSlot, deadlineElapsedMs: Long, nowElapsedMs: Long): Boolean {
         if (blocked(slot, nowElapsedMs)) {

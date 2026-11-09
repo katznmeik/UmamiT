@@ -131,8 +131,11 @@ internal fun timerRouteView(
     front: TimerUiState,
 ): TimerRouteView {
     fun activeIn(slot: TimerSlot?): TimerUiState.Active? = when (slot) {
-        null -> null
+        // The second brew slot admits no timer yet (D-108, v0.5.0-01).
+        null, TimerSlot.BREW_2 -> null
+
         TimerSlot.BREW -> brew as? TimerUiState.Active
+
         TimerSlot.QUICK -> quick as? TimerUiState.Active
     }
     val shown = activeIn(TimerSlot.BREW)?.takeIf { it.ringing }

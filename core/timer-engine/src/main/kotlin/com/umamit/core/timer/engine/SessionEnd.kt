@@ -63,6 +63,9 @@ internal fun midnightTimeout(state: TimerState.Waiting): TimerTransition {
     )
 }
 
-/** Leaving an active state for Idle: stop the alert and the service (which removes the timer notifications). */
+/**
+ * Leaving an active state for Idle: stop the alert (a held one played nothing) and the service (which removes
+ * the timer notifications).
+ */
 private fun sessionEndEffects(state: TimerState.Active): List<TimerEffect> =
-    listOfNotNull(StopAlert.takeIf { state is TimerState.Alerting }, StopForeground)
+    listOfNotNull(StopAlert.unlessHeld(state), StopForeground)

@@ -38,8 +38,8 @@ before that Android 16 / One UI 8 (minimum Android 15, API 35; target SDK 36).
 | **Session** | One brewing of one tea (`BrewSession`), made of steps. |
 | **Step** | One timed unit: RINSE, INFUSION or WHISK, with planned duration and optional temperature. |
 | **Short / long step** | Planned duration < 10 min / ≥ 10 min (`LONG_STEP_THRESHOLD`). Cold and ice brews are always long steps. **From v0.3.0 (D-098, #122):** the threshold is **60 min (3600 s)**; a long step is every step of a cold or ice brew and any step ≥ 60 min, all others are short. One pure function in `core:timer-engine` (`isLongStep`) decides it; the setup and the Schritte-Sheet call it. The duration rounding of PRF-04 / TMR-10 (5 s below 10 min, whole minutes from 10 min) is a separate constant and stays. |
-| **Slot** (v0.3.0) | One of the controller's two places for an active timer: `BREW` (a brew session) and `QUICK` (a quick timer), each with its own engine state (§3.3, D-098). |
-| **Held alert** (v0.3.0) | A quick timer in ALERTING that may not sound yet because the brew slot alerts; it rings when the brew slot leaves ALERTING (§9.3). |
+| **Slot** (v0.3.0) | One of the controller's places for an active timer: `BREW` (a brew session) and `QUICK` (a quick timer), each with its own engine state (§3.3, D-098); from v0.5.0 also `BREW_2`, a second brew session (D-108). At most two are active. |
+| **Held alert** (v0.3.0) | A timer in ALERTING that may not sound yet because another slot's alert rings (a quick timer while a brew rings; from v0.5.0 also a brew while the other brew rings); it rings when no alert rings and its deadline came first (§9.3). |
 | **Deadline** | Monotonic time (`SystemClock.elapsedRealtime()`) at which the running step ends. |
 | **Pre-alert** | Soft tick *N* seconds before the deadline (TMR-23). |
 | **Overtime** | Time between deadline and the user tapping *Abgegossen*. |
@@ -184,34 +184,48 @@ Engine rules (D-047):
   the brew session, „Schnelltimer beenden und neu starten?" only the quick
   timer (D-098).
 
-### 3.3 Two slots (v0.3.0, D-098)
+### 3.3 Slots (v0.3.0, D-098; v0.5.0, D-108)
 
-The engine stays a single-timer state machine. The controller holds two
-**slots**, `BREW` and `QUICK`, each with its own engine state, `DueTimes`,
-exact alarms (§6.2), watchdog, snapshot row (§7.1) and `alertPlayed`. Both
-share the controller's event lock, the turn order and the alert player.
+The engine stays a single-timer state machine. The controller holds three
+**slots** in a fixed order, `BREW`, `BREW_2` and `QUICK`, each with its own
+engine state, `DueTimes`, exact alarms (§6.2), watchdog, snapshot row (§7.1)
+and `alertPlayed`. All share the controller's event lock, the turn order and
+the alert player. `BREW` and `BREW_2` hold brew sessions, `QUICK` the quick
+timer; **at most two timers** are active in all. The slot names are stored
+keys (`active_brew.slot`, alarm broadcasts, the accuracy run) and never
+change; `BREW_2` names its alarms and actions with the prefix `BREW2.` and
+uses the request codes 301–307 (§6.2).
 - **Admission.** `startSession` goes to the brew slot, `startQuickTimer` to
   the quick slot. A start is rejected as `ActiveTimerExists` only when its
   own slot is active; the other slot is never touched. So either timer
-  starts while the other runs (TMR-21, TMR-22).
+  starts while the other runs (TMR-21, TMR-22). Until v0.5.0-02 (#200) the
+  controller has the `BREW_2` slot but admits no timer into it.
 - **Events.** Every user event names its slot (the screen, the notification
   action, the bar); a time-based event comes from its slot's alarm or
   wake-up. One turn handles one event of one slot, then applies the
-  arbitration of §9.3 across both.
+  arbitration of §9.3 across all slots.
 - **Held alert in the engine.** ALERTING carries `ringingSince` (elapsed and
-  wall; null = held). The controller sends `alertHold` (preemption, or a
-  deadline while the brew alerts), `alertRingStart` (release) and, in place
-  of `recover` while the brew alerts after its own recovery, `recoverHeld`
-  (§7.2); none is an interaction, and the engine ignores the hold for a brew
-  session. A quick alert that rings at its deadline rings since its deadline,
-  as before v0.3.0 (#134 build notes in D-098). `dueTimes.overtimeTimeoutAt` of the quick slot is
-  `ringingSince` + 10 min and has no value while held; the brew slot is
-  never held and keeps deadline + 10 min. `deadlineReached` at or after
+  wall; null = held), for a brew session and the quick timer alike. The
+  controller sends `alertHold` (preemption, or a deadline while another
+  slot's alert rings that it does not preempt), `alertRingStart` (release)
+  and, in place of `recover` while such an alert rings after the earlier
+  slots' recovery, `recoverHeld` (§7.2); none is an interaction. An alert
+  that rings at its deadline rings since its deadline, as before v0.3.0
+  (#134 build notes in D-098). `dueTimes.overtimeTimeoutAt` of every slot is
+  `ringingSince` + 10 min and has no value while held, so a brew that rang
+  at its deadline keeps deadline + 10 min and a held brew counts its
+  10 min from its release, as the quick timer does (D-108). *Abgegossen* on
+  a released brew records its overtime from its own deadline; the step is
+  the overtime timeout's auto-ack only once that timeout has come. Leaving
+  a held alert (*Abgegossen*, *Fertig*, *Sitzung beenden*, *verwerfen*)
+  sends no `StopAlert`: it played nothing. `deadlineReached` at or after
   deadline + 10 min applies `overtimeTimeout` only for a timer that could
-  have rung; a quick timer reaching its deadline while the brew alerts is
-  held instead, however late.
+  have rung; a timer reaching its deadline while it must wait is held
+  instead, however late. A brew row stored without `ringingSince` is held;
+  only one reported played (a row an interim build of v0.3.0 wrote) rings
+  since its deadline.
 - **Independence.** *Sitzung beenden*, *Sitzung verwerfen*, *Pause*, every
-  step action and the brew's idle and midnight rules act on the brew slot
+  step action and the brew's idle and midnight rules act on their brew slot
   only; *Abbrechen*, *Pause* and the 30-min cancel of the quick timer on the
   quick slot only.
 
@@ -466,6 +480,11 @@ length.
   that fires first is handled as today: recovery runs before it, and the
   §3.2 guards make it harmless.
 
+  **Second brew slot (v0.5.0, D-108).** `BREW_2` uses the same fields with
+  request codes **301–307** and the name prefix `BREW2.` for its alarm
+  broadcasts and notification actions; the codes and names of `BREW` and
+  `QUICK` never change.
+
   The alert watchdog is no `DueTimes` field and `ScheduleAlarms` leaves it
   alone: the controller sets it at the end of every turn. While a step runs
   it is the **deadline guard**, 90 s after the deadline (D-068); the deadline
@@ -658,6 +677,12 @@ above, with its overtime timeout counted from `ringingSince` when it had
 already rung. A held alert survives process death, a reboot and an app
 update; recovery never plays two sounds, and the brew alert is replayed
 first.
+
+From v0.5.0 (D-108) the rows are restored in the slot order (`BREW`,
+`BREW_2`, `QUICK`), each slot getting `recoverHeld` in place of `recover`
+while an earlier slot's alert rings that it does not preempt (§9.3), then
+the arbitration settles: a held alert left without a ringing one is
+released. With one brew and the quick timer this is the paragraph above.
 
 ### 7.3 Reboot
 
@@ -1026,10 +1051,27 @@ ceiling, length within 20 ms, mono 48 kHz Vorbis ≤ 60 KB, and at least
 (`PreAlertSound`, stored keys of 05 §6): an own recording of the PO later is
 one more entry, shorter than 5 s.
 
-### 9.3 Two timers: alert arbitration (v0.3.0, D-098)
+### 9.3 Two timers: alert arbitration (v0.3.0, D-098; v0.5.0, D-108)
 
-One alert player serves both slots; the controller decides which slot may
+One alert player serves all slots; the controller decides which slot may
 sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
+The rules are pure (`AlertArbitration`, `PlayerSound`) and hold for any set
+of active slots in the slot order (§3.3); at most two timers are active:
+- **Hold.** A deadline (or a recovery) of a slot while another slot's alert
+  rings is held (`alertHold`, `recoverHeld`), unless the slot preempts that
+  alert: **a brew preempts a ringing quick alert; a brew never preempts a
+  brew**; the quick timer never preempts.
+- **Keeper.** Of several ringing alerts one keeps the sound and every other
+  is held again: a brew's before the quick timer's, else **the one that
+  started ringing first**, else the first in the slot order.
+- **Release.** When no alert rings, **the held alert whose deadline came
+  first** rings (`alertRingStart`); at the same deadline the first in the
+  slot order, so a brew before the quick timer.
+
+With one brew session and the quick timer this is the table below, as in
+v0.3.0; with two brew sessions the step whose deadline came first rings and
+the other is held until *Abgegossen* (or the first's other end), then rings
+with its overtime („+0:42").
 
 | Situation | Result |
 |---|---|
@@ -1038,19 +1080,22 @@ sound, at the end of every turn. Never two sounds at once (PO Q2, R2-Q2, S1).
 | Both deadlines in the same turn (or within the brew alert) | Brew alerts; quick goes ALERTING **held** (`alertHold`): no sound, no notification 2, no full-screen intent, no overtime timeout. |
 | Brew deadline while the quick alert rings | **Preemption**, same turn: the quick sound stops, the brew alert starts, the quick slot goes back to held. The quick alert is not reported completed. |
 | Brew leaves ALERTING (*Abgegossen*, *Sitzung beenden*, *verwerfen*, its overtime timeout) with quick held | **Release**, same turn: `alertRingStart`; the quick alert rings with its overtime from its own deadline („+12:00"); its overtime timeout is 10 min from now; its full-screen intent brings SCR-07 to the front. |
-| A pre-alert due while the other slot's alert sound plays or its pre-alert rings | Waits until that sound ends; played if ≥ 1 s of its step is left, else consumed (§5). |
-| An alert due while the other slot's pre-alert rings | The alert cuts it at once (as within one slot). |
+| Brew deadline while the other brew's alert rings (v0.5.0) | The new deadline is **held**; the ringing brew keeps the sound. |
+| A ringing brew leaves ALERTING with the other brew held (v0.5.0) | **Release**, same turn, as for the quick alert: it rings with its overtime from its own deadline, its overtime timeout 10 min from now. |
+| A pre-alert due while another slot's alert sound plays or its pre-alert rings | Waits until that sound ends; played if ≥ 1 s of its step is left, else consumed (§5). |
+| An alert due while another slot's pre-alert rings | The alert cuts it at once (as within one slot). |
 
 - **Waiting for a pre-alert's end:** the player does not report it, so the
   controller counts a pre-alert as ringing for the longest pre-alert sound
   plus the player's 250 ms release (3.45 s); a pre-alert waiting for an alert
   plays when the player reports the alert's end or the alert is stopped.
-- **Overtime timeout of a quick alert:** 10 min after it last started
-  ringing (S1). Every release restarts the alert length (SET-14) and the
-  10 min, so a held alert always rings in full before it ends silently.
+- **Overtime timeout of an alert:** 10 min after it last started ringing
+  (S1; for a brew too from v0.5.0, D-108). Every release restarts the alert
+  length (SET-14) and the 10 min, so a held alert always rings in full
+  before it ends silently.
 - **At least once:** `alertCompleted` is per slot; a held or preempted alert
   is never reported completed, so recovery replays it (D-047). The alert
-  watchdog runs per slot; a held quick alert needs none (the brew slot's
+  watchdog runs per slot; a held alert needs none (the ringing slot's
   watchdog restarts the process, and recovery holds it again).
 - **Visuals:** the brew's alert surface hides the quick row (SCR-05); the
   bar shows a held quick timer as „fertig" without the alert style (03 §3.8).
@@ -1137,7 +1182,7 @@ after 10 min of ringing stay; it has no idle demote or midnight timeout.
 
 | Level | Tests |
 |---|---|
-| Unit | **v0.3.0 (D-098):** the long-step rule at 599/600/3599/3600 s for hot steps and any length for cold and ice brew; a 20-min hot step's automatic and explicit pre-alert scheduled and played, a 60-min one none; a running 15-min hot step stored by v0.2.2 as a long step recovered with its pre-alert while it is still ahead (#127); the held alert (overtime from the deadline, timeout from `ringingSince`, preemption and release) and its snapshot round trip; the seeded invariant test extended to two slots with arbitration (never two sounds, the brew never held, a held quick alert always rings before its silent end, every slot's due event handled). Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
+| Unit | **v0.5.0 (D-108, #196):** the arbitration rules over three slots (the alert that rang first keeps the sound, a release to the held slot whose deadline came first, a brew never preempting a brew, a brew before the quick timer, a pre-alert waiting for any other slot); the held brew in the engine (held at its deadline however late, its overtime timeout from `ringingSince`, its recorded overtime from its deadline, no `StopAlert` when leaving it, its snapshot round trip and `recoverHeld`); the seeded invariant test over the v0.3.0 pair and over all three slots; the names and request codes of `BREW_2` (301–307, `BREW2.`) beside the unchanged ones. **v0.3.0 (D-098):** the long-step rule at 599/600/3599/3600 s for hot steps and any length for cold and ice brew; a 20-min hot step's automatic and explicit pre-alert scheduled and played, a 60-min one none; a running 15-min hot step stored by v0.2.2 as a long step recovered with its pre-alert while it is still ahead (#127); the held alert (overtime from the deadline, timeout from `ringingSince`, preemption and release) and its snapshot round trip; the seeded invariant test extended to two slots with arbitration (never two sounds, the brew never held, a held quick alert always rings before its silent end, every slot's due event handled). Every transition in §3.2; pre-alert computation and skip rules (from v0.2.1 per step: the automatic rule at the boundaries 14/15/19/20/30/45 s and B = 0, 5, 30 s, explicit values, the running step's choice changed, D-093; the quick timer's
 choice *Automatisch*, *Aus* and explicit, through snapshot and recovery,
 D-097); idempotency; rounding; recorded data; recovery table with fake clocks and boot counts; idle/overtime timeouts; the midnight rule with both Europe/Berlin DST changes; stale clock readings. The seeded invariant test checks after every event: the foreground-service contract against an independent oracle (§4), the pre-alert tick at most once per step and only ≥ 1 s before the deadline, a due pre-alert kept by edits, the snapshot round trip, and that no due event is ignored (also after an ignored event). |
 | Robolectric | **v0.3.0 (D-098):** a brew with a running quick timer; both due within 1 s; the brew preempting a ringing quick alert; a quick alert held for 12 min, then ringing with „+12:00"; *Beenden & neu starten* only within a slot; process death with both active, incl. a held alert; a pre-alert during the other slot's alert; the slots' request codes never colliding and a v0.2.2 quick timer's old codes recovered; the Live Update following the next due slot (promotion switching after a pause and when one ends, notification 5 never promoted, no orphan after either ends or after a process death, a long step ending next shown by the service, a demoted brew giving way); a new alert while another alert is notification 2 (preemption, a quick alert released when the brew session ends during its alert) posted as a new notification, whose full-screen intent System UI launches (a shadow rule: only an added notification launches one); a 15-min hot step with service, countdown Live Update and Vorwarnung, also after a process death, beside a quick timer and after the update from v0.2.2 (#127); `USAGE_ALARM`, gain at 10/50/100 %, the ringer-mode and DND matrix, the alarm-volume-0 check; from `v0.3.0-rc.2` (D-099) the DND policy read in priority mode (alarms allowed, blocked, none to read) and the matrix with SET-32 on and off for every cue, every cycle, *Alarm testen* and *Anhören*. Controller + Room; notification content per phase; alarm scheduling (from v0.2.2 also a quick timer's pre-alert alarm, its mark in the UI state and the pre-alert sound played, D-097); ringer-mode matrix of `AlertPlayer`; the takeover of a stale foreground notification, with shadows that add AOSP's notification rules (D-084). |

@@ -430,7 +430,7 @@ class AccuracyRunTest {
     private fun alertOf(slot: TimerSlot): Notification? = activeNotification(TimerNotifications.ID_ALERT)?.takeIf {
         when (slot) {
             TimerSlot.QUICK -> it.text() == quickTitle
-            TimerSlot.BREW -> it.text()?.startsWith(TimerTestActivity.TEA) == true
+            TimerSlot.BREW, TimerSlot.BREW_2 -> it.text()?.startsWith(TimerTestActivity.TEA) == true
         }
     }
 
