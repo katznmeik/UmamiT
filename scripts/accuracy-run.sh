@@ -7,8 +7,9 @@
 #
 # Usage: ./gradlew :core:timer:assembleDebugAndroidTest && scripts/accuracy-run.sh
 #   ACCURACY_STEPS            steps to run (default 50; fewer only to try the workflow)
-#   ACCURACY_VARIANT          standard (default) or alongside: a quick timer beside
-#                             every step, both timers measured (D-098, #137)
+#   ACCURACY_VARIANT          standard (default); alongside: a quick timer beside
+#                             every step, both timers measured (D-098, #137); two-brews:
+#                             two overlapping brew sessions, the second held (D-108, #202)
 #   ACCURACY_INJECT_DELAY_MS  gate check: every pre-alert and alert this many ms late (default 0)
 #   ACCURACY_OUT              report directory (default build/accuracy)
 #
@@ -32,8 +33,8 @@ if ! [[ "$steps" =~ ^[0-9]+$ ]] || ((steps < 1 || steps > 200)); then
   echo "::error::ACCURACY_STEPS must be a number from 1 to 200, was '$steps'."
   exit 2
 fi
-if [[ "$variant" != standard && "$variant" != alongside ]]; then
-  echo "::error::ACCURACY_VARIANT must be standard or alongside, was '$variant'."
+if [[ "$variant" != standard && "$variant" != alongside && "$variant" != two-brews ]]; then
+  echo "::error::ACCURACY_VARIANT must be standard, alongside or two-brews, was '$variant'."
   exit 2
 fi
 if ! [[ "$delay" =~ ^[0-9]+$ ]] || ((delay > 60000)); then
