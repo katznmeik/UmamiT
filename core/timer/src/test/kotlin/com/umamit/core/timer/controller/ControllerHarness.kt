@@ -132,9 +132,13 @@ class ControllerHarness(
     /**
      * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
      * on the same database, settings and clocks, its alarms on [alarmPort] (the default: a fake).
-     * Close only one of the two harnesses.
+     * Close only one of the two harnesses. With [db] the new process opens that database instead (an update's
+     * migrated one), which the caller closes.
      */
-    fun processRestarted(alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null): ControllerHarness =
+    fun processRestarted(
+        alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null,
+        db: UmamiDatabase = this.db,
+    ): ControllerHarness =
         ControllerHarness(
             clock = clock,
             settings = settings,
