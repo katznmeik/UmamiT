@@ -111,6 +111,7 @@ class Migration4To5Test {
 
     private fun populateV4(db: SupportSQLiteDatabase) {
         populateCollection(db)
+        db.insert("catalog_bookmark", "catalog_key" to "TG0002", "created_at" to 8L)
         populateTimers(db)
     }
 
@@ -174,7 +175,6 @@ class Migration4To5Test {
             "id" to "adjust-1", "tea_id" to "tea-1", "type" to "ADJUSTMENT", "delta_grams" to -2.0,
             "note" to "Korrektur", "occurred_at" to 1_100_000L, "created_at" to 7L, "updated_at" to 7L,
         )
-        db.insert("catalog_bookmark", "catalog_key" to "TG0002", "created_at" to 8L)
     }
 
     /** The brew session running in slot BREW (step 1 with its own 20 s) and a quick timer running in QUICK. */
