@@ -1,6 +1,7 @@
 package com.umamit.core.catalog.parser
 
 import com.umamit.core.model.CatalogKind
+import com.umamit.core.model.TeaCategory
 
 /**
  * One of the shop's tea sections beyond the green ones (08 §2.2, §2.4 item 3): the Kräutertees
@@ -23,6 +24,8 @@ import com.umamit.core.model.CatalogKind
  *   „andere Regionen" leave it to the name ([namedSorten]).
  * @property namedSorten name keywords and the *Sorte* each gives, the first that matches.
  * @property style the style key of a tea by its name and *Sorte* (`text`) and whether it is flavoured.
+ * @property category the tea category of its teas, and of a chai filed there (its base tea, #206).
+ * @property baseName the *Sorte* of a chai filed there (#206): the base tea as the shop names it.
  */
 internal data class TeaSection(
     val roots: List<Root>,
@@ -31,6 +34,8 @@ internal data class TeaSection(
     val scope: CatalogScope = CatalogScope.TEA,
     val everySubSectionIsASorte: Boolean = false,
     val namedSorten: List<Pair<Regex, String>> = emptyList(),
+    val category: TeaCategory,
+    val baseName: String?,
     val style: (text: String, flavoured: Boolean) -> String,
 ) {
     /** A path of the section and the *Sorte* of a tea filed at it, if any. */
@@ -87,6 +92,8 @@ internal object TeaSections {
         kind = CatalogKind.HERBAL,
         scope = CatalogScope.HERBAL,
         everySubSectionIsASorte = true,
+        category = TeaCategory.HERBAL,
+        baseName = "Kräutertee",
         style = { _, _ -> "herbal" },
     )
 
@@ -102,6 +109,8 @@ internal object TeaSections {
         ),
         since = 8,
         kind = CatalogKind.BLACK,
+        category = TeaCategory.BLACK,
+        baseName = "Schwarztee",
         namedSorten = BLACK_REGIONS.map { (pattern, _, sorte) -> pattern to sorte },
         style = { text, flavoured ->
             if (flavoured) {
@@ -136,6 +145,8 @@ internal object TeaSections {
         roots = listOf(TeaSection.Root("/tee/weisser-tee/"), japan("weisstee")),
         since = V9,
         kind = CatalogKind.WHITE,
+        category = TeaCategory.WHITE,
+        baseName = "Weißer Tee",
         namedSorten = named(
             """bai\s*mu\s*dan|pai\s*mu\s*tan""" to "Bai Mu Dan",
             """silver\s*needle|yin\s*zhen""" to "Silver Needle",
@@ -154,6 +165,8 @@ internal object TeaSections {
         roots = listOf(TeaSection.Root("/tee/oolong/"), japan("oolong")),
         since = V9,
         kind = CatalogKind.OOLONG,
+        category = TeaCategory.OOLONG,
+        baseName = "Oolong",
         namedSorten = named("taiwan|formosa" to "Taiwan", "china" to "China"),
         style = { _, flavoured -> if (flavoured) FLAVORED_OOLONG else OOLONG_GENERIC },
     )
@@ -171,6 +184,8 @@ internal object TeaSections {
         roots = listOf(TeaSection.Root("/tee/pu-erh/")),
         since = V9,
         kind = CatalogKind.DARK,
+        category = TeaCategory.DARK,
+        baseName = "Pu-Erh",
         namedSorten = listOf(SHENG to "Sheng", SHOU to "Shou"),
         style = { text, _ ->
             when {
@@ -181,11 +196,97 @@ internal object TeaSections {
         },
     )
 
+    /** The first parser version of the Rotbusch, Früchtetee and Chai (#206). */
+    private const val V10 = 10
+
+    /**
+     * The Rotbusch teas (v0.5.0, parser v10, #206): `/tee/rotbusch/`, category `ROOIBOS`, style `rooibos`,
+     * flavoured or not. Its green-rooibos sub-section is the *Sorte*; Bio, klassisch and aromatisiert leave it
+     * to the name („Honeybush", „Grüner Rotbusch").
+     */
+    val ROOIBOS = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/rotbusch/")),
+        since = V10,
+        kind = CatalogKind.ROOIBOS,
+        category = TeaCategory.ROOIBOS,
+        baseName = "Rotbusch",
+        namedSorten = named("honeybush" to "Honeybush", """grün(er)?\s+(rotbusch|rooibos)""" to "Grüner Rotbusch"),
+        style = { _, _ -> "rooibos" },
+    )
+
+    /** The Früchtetees (v0.5.0, parser v10, #206): `/tee/fruechtetee/`, category `FRUIT`, style `fruit`. */
+    val FRUIT = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/fruechtetee/")),
+        since = V10,
+        kind = CatalogKind.FRUIT,
+        category = TeaCategory.FRUIT,
+        baseName = "Früchtetee",
+        style = { _, _ -> "fruit" },
+    )
+
+    /**
+     * The shop's chai section (v0.5.0, parser v10, #206): `/tee/chaitee/`, style `chai`. The shop files its chais
+     * under their base tea's section (live check #206), so a tea of any section whose name says chai is one too
+     * ([isChai]); filed here, its base comes from its name or ingredients ([chaiBase]), else `OTHER`.
+     */
+    val CHAI = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/chaitee/")),
+        since = V10,
+        kind = CatalogKind.CHAI,
+        category = TeaCategory.OTHER,
+        baseName = null,
+        style = { _, _ -> CHAI_STYLE },
+    )
+
+    /** The style of every chai. */
+    const val CHAI_STYLE = "chai"
+
+    /** „Chai" or „Chaitee" as a word: „Masala Chai", not „Chaiyaphum". */
+    private val CHAI_NAME = Regex("""(?<!\p{L})chai(tee)?(?!\p{L})""", RegexOption.IGNORE_CASE)
+
+    /** The base teas a chai's name or ingredients may name, the first that matches; each its category and *Sorte*. */
+    private val CHAI_BASES: List<Triple<Regex, TeaCategory, String>> = listOf(
+        Triple("rotbusch|rooibos|honeybush", TeaCategory.ROOIBOS, "Rotbusch"),
+        Triple("""schwarz(er)?\s*tee|black\s+tea|assam|ceylon|darjeeling""", TeaCategory.BLACK, "Schwarztee"),
+        Triple("""grün(er)?\s*tee|green\s+tea|sencha""", TeaCategory.GREEN, "Grüntee"),
+    ).map { (pattern, category, sorte) -> Triple(Regex(pattern, RegexOption.IGNORE_CASE), category, sorte) }
+
+    /** Whether [name] says chai. */
+    fun isChai(name: String?): Boolean = name != null && CHAI_NAME.containsMatchIn(name)
+
+    /** The base tea's category and *Sorte* the first of [texts] names (a chai's name, then its ingredients). */
+    fun chaiBase(vararg texts: String?): Pair<TeaCategory, String>? =
+        texts.filterNotNull().firstNotNullOfOrNull { text ->
+            CHAI_BASES.firstOrNull { (pattern, _, _) -> pattern.containsMatchIn(text) }?.let { (_, category, sorte) ->
+                category to sorte
+            }
+        }
+
     /** Every section, in the order of their [TeaSection.since]. */
-    val ALL: List<TeaSection> = listOf(HERBAL, BLACK, WHITE, OOLONG, DARK)
+    val ALL: List<TeaSection> = listOf(HERBAL, BLACK, WHITE, OOLONG, DARK, ROOIBOS, FRUIT, CHAI)
 
     /** The section [path] lies in; null for none. */
     fun of(path: String): TeaSection? = ALL.firstOrNull { it.rootOf(path) != null }
+
+    /** Another tea by name on a Japan page without a type level (a tea family's): Wakoucha, Oolong, Weißtee. */
+    private val JAPAN_BY_NAME: List<Pair<Regex, TeaSection>> = listOf(
+        Regex("koucha", RegexOption.IGNORE_CASE) to BLACK,
+        Regex("oolong", RegexOption.IGNORE_CASE) to OOLONG,
+        Regex("""wei(ß|ss)(er)?\s*tee|white\s+tea""", RegexOption.IGNORE_CASE) to WHITE,
+    )
+    private const val JAPAN_TREE = "/tee/japantee/"
+
+    /**
+     * The section of a Japan-tree product [name]d after another tea at [path], a tea family's or garden's page
+     * that is no section of its own (v0.5.0, #206; 08 §2.4 item 3): its *Sorte* is „Japan". Null elsewhere.
+     */
+    fun ofJapanName(path: String?, name: String?): TeaSection? =
+        name?.takeIf { path != null && normalised(path).startsWith(JAPAN_TREE) && of(path) == null }
+            ?.let { text -> JAPAN_BY_NAME.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second }
+
+    /** The section of [breadcrumb] ([of]), else that its deepest Japan crumb and [name] give ([ofJapanName]). */
+    fun of(breadcrumb: List<Crumb>, name: String?): TeaSection? =
+        of(breadcrumb) ?: ofJapanName(breadcrumb.lastOrNull()?.path, name)
 
     /** The section of [breadcrumb]'s deepest crumb in one; null for none. */
     fun of(breadcrumb: List<Crumb>): TeaSection? = breadcrumb.asReversed().firstNotNullOfOrNull { of(it.path) }

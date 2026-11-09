@@ -68,19 +68,39 @@ class CatalogPendingKindsTest {
     }
 
     @Test
-    fun aCatalogOfV041WaitsForTheBlackTeasAndTheSectionsOfV9() = runTest {
+    fun aCatalogOfV041WaitsForTheBlackTeasAndTheSectionsOfV9AndV10() = runTest {
         refreshLog(PARSER_V041)
 
-        assertThat(
-            pending(),
-        ).containsExactly(CatalogKind.BLACK, CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
+        assertThat(pending()).containsExactly(
+            CatalogKind.BLACK,
+            CatalogKind.WHITE,
+            CatalogKind.OOLONG,
+            CatalogKind.DARK,
+            CatalogKind.ROOIBOS,
+            CatalogKind.FRUIT,
+            CatalogKind.CHAI,
+        )
     }
 
     @Test
     fun aCatalogAnRcRefreshedWithParserV8WaitsForTheWhiteTeasOolongsAndPuErhs() = runTest {
         refreshLog(PARSER_V8)
 
-        assertThat(pending()).containsExactly(CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
+        assertThat(pending()).containsExactly(
+            CatalogKind.WHITE,
+            CatalogKind.OOLONG,
+            CatalogKind.DARK,
+            CatalogKind.ROOIBOS,
+            CatalogKind.FRUIT,
+            CatalogKind.CHAI,
+        )
+    }
+
+    @Test
+    fun aCatalogAnRcRefreshedWithParserV9WaitsForTheRotbuschFruechteteeAndChai() = runTest {
+        refreshLog(PARSER_V9)
+
+        assertThat(pending()).containsExactly(CatalogKind.ROOIBOS, CatalogKind.FRUIT, CatalogKind.CHAI)
     }
 
     @Test
@@ -95,6 +115,9 @@ class CatalogPendingKindsTest {
             CatalogKind.WHITE,
             CatalogKind.OOLONG,
             CatalogKind.DARK,
+            CatalogKind.ROOIBOS,
+            CatalogKind.FRUIT,
+            CatalogKind.CHAI,
         )
     }
 
@@ -103,9 +126,15 @@ class CatalogPendingKindsTest {
         refreshLog(PARSER_V041)
         refreshLog(TeeKontorParser.PARSER_VERSION, CatalogRefreshStatus.FAILED)
 
-        assertThat(
-            pending(),
-        ).containsExactly(CatalogKind.BLACK, CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
+        assertThat(pending()).containsExactly(
+            CatalogKind.BLACK,
+            CatalogKind.WHITE,
+            CatalogKind.OOLONG,
+            CatalogKind.DARK,
+            CatalogKind.ROOIBOS,
+            CatalogKind.FRUIT,
+            CatalogKind.CHAI,
+        )
     }
 
     @Test
@@ -125,5 +154,8 @@ class CatalogPendingKindsTest {
 
         /** The black teas' parser (#203), which an rc of v0.5.0 may have refreshed with. */
         const val PARSER_V8 = 8
+
+        /** The white teas', oolongs' and Pu-Erhs' parser (#205), which an rc of v0.5.0 may have refreshed with. */
+        const val PARSER_V9 = 9
     }
 }

@@ -403,6 +403,8 @@ internal val TeaCategory.label: Int
         TeaCategory.BLACK -> R.string.my_teas_category_black
         TeaCategory.DARK -> R.string.my_teas_category_dark
         TeaCategory.HERBAL -> R.string.my_teas_category_herbal
+        TeaCategory.ROOIBOS -> R.string.my_teas_category_rooibos
+        TeaCategory.FRUIT -> R.string.my_teas_category_fruit
         TeaCategory.OTHER -> R.string.my_teas_category_other
     }
 

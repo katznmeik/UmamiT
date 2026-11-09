@@ -97,7 +97,8 @@ class CatalogHerbalChipTest {
         shown("Zitronenwiese")
         chip(R.string.catalog_filter_pure).assertDoesNotExist()
         hidden("Morgennebel Sencha")
-        shown(str(R.string.catalog_filter_button_count, 1))
+        // The row shows the selected chip (#206): *Filter* may sit left of the screen.
+        compose.onNodeWithText(str(R.string.catalog_filter_button_count, 1)).performScrollTo().assertIsDisplayed()
 
         chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()

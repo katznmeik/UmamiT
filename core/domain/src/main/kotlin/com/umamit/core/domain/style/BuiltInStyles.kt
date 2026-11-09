@@ -185,6 +185,11 @@ object BuiltInStyles {
             category = TeaCategory.DARK,
         ),
         generic("dark_generic", TeaCategory.DARK, UmamiLevel.NONE, tempC = 100),
+        // The catalog's Rotbusch, Früchtetee and Chai (v0.5.0, #206): the shop's one western row (~10 g/L, 100 °C,
+        // ~5 min), no cold brew. A chai's category is its base tea's (the catalog sets it); the style's is `OTHER`.
+        infusionStyle("rooibos", INFUSION_FRESHNESS_DAYS, teaspoon = 2.5, category = TeaCategory.ROOIBOS),
+        infusionStyle("fruit", INFUSION_FRESHNESS_DAYS, teaspoon = FRUIT_TEASPOON_GRAMS, category = TeaCategory.FRUIT),
+        infusionStyle("chai", FLAVOURED_FRESHNESS_DAYS, teaspoon = 2.5, category = TeaCategory.OTHER),
         // *Andere / unbekannt* (08 §3): no umami level and no freshness window.
         style(
             "other",
@@ -300,5 +305,22 @@ private fun generic(key: String, category: TeaCategory, umami: UmamiLevel, tempC
     OTHER_TEASPOON_GRAMS,
     japanese = false,
     recipes = arrayOf(western(GENERIC_LEAF_GRAMS, tempC, GENERIC_INFUSION_SECONDS)),
+    category = category,
+)
+
+private const val INFUSION_FRESHNESS_DAYS = 180
+private const val FRUIT_TEASPOON_GRAMS = 3.5
+
+/**
+ * A style of the catalog's Rotbusch, Früchtetee or Chai (v0.5.0, #206; 08 §3): no umami, WESTERN
+ * [BLACK_LEAF_GRAMS] g / 250 ml (the shop's ~10 g/L), one infusion of 5:00 at 100 °C.
+ */
+private fun infusionStyle(key: String, freshness: Int, teaspoon: Double, category: TeaCategory) = style(
+    key,
+    UmamiLevel.NONE,
+    freshness,
+    teaspoon,
+    japanese = false,
+    recipes = arrayOf(western(BLACK_LEAF_GRAMS, 100, 5 * MINUTE)),
     category = category,
 )

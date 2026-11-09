@@ -54,7 +54,13 @@ class CatalogKindTest {
             CatalogKind.OOLONG,
             CatalogKind.DARK,
             CatalogKind.HERBAL,
+            CatalogKind.ROOIBOS,
+            CatalogKind.FRUIT,
+            CatalogKind.CHAI,
         ).inOrder()
+        assertThat(CatalogKind.of("rooibos")).isEqualTo(CatalogKind.ROOIBOS)
+        assertThat(CatalogKind.of("fruit")).isEqualTo(CatalogKind.FRUIT)
+        assertThat(CatalogKind.of("chai")).isEqualTo(CatalogKind.CHAI)
         assertThat(CatalogKind.of("flavored_white")).isEqualTo(CatalogKind.WHITE)
         assertThat(CatalogKind.of("oolong_generic")).isEqualTo(CatalogKind.OOLONG)
         assertThat(CatalogKind.of("sheng")).isEqualTo(CatalogKind.DARK)

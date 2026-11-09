@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- SCR-19 empty state (never loaded, 08 §7; D-073): the entry point when the first-start setup is done. -->
     <string name="catalog_empty_title">Der Katalog ist noch leer.</string>
-    <string name="catalog_empty_body">Lade alle Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
+    <string name="catalog_empty_body">Lade alle Tees von Tee-Kontor Kiel, von Grüntee bis Chai, um offline darin zu stöbern.</string>
     <string name="catalog_load">Katalog laden</string>
     <!-- While a first load runs and its sheet is closed. -->
     <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>
@@ -37,6 +37,19 @@
         <item quantity="one">%1$d Pu-Erh</item>
         <item quantity="other">%1$d Pu-Erhs</item>
     </plurals>
+    <!-- The header's count in the views of the Rotbusch teas, fruit teas and chais (v0.5.0, #206). -->
+    <plurals name="catalog_rooibos_count">
+        <item quantity="one">%1$d Rotbuschtee</item>
+        <item quantity="other">%1$d Rotbuschtees</item>
+    </plurals>
+    <plurals name="catalog_fruit_count">
+        <item quantity="one">%1$d Früchtetee</item>
+        <item quantity="other">%1$d Früchtetees</item>
+    </plurals>
+    <plurals name="catalog_chai_count">
+        <item quantity="one">%1$d Chai</item>
+        <item quantity="other">%1$d Chais</item>
+    </plurals>
     <!-- The header's count in the Gemerkt view (v0.2.2, CAT-18): „… · 4 gemerkt · …". -->
     <plurals name="catalog_marked_count">
         <item quantity="one">%1$d gemerkt</item>
@@ -66,6 +79,10 @@
     <string name="catalog_filter_white">Weißer Tee</string>
     <string name="catalog_filter_oolong">Oolong</string>
     <string name="catalog_filter_dark">Pu-Erh</string>
+    <!-- The chips of the shop's Rotbusch teas, fruit teas and chais (v0.5.0, #206). -->
+    <string name="catalog_filter_rooibos">Rotbusch</string>
+    <string name="catalog_filter_fruit">Früchtetee</string>
+    <string name="catalog_filter_chai">Chai</string>
     <string name="catalog_filter_available">Vorrätig</string>
     <string name="catalog_filter_organic">Bio</string>
     <string name="catalog_filter_new">Neu</string>
@@ -122,6 +139,10 @@
     <string name="catalog_white_pending">Weiße Tees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
     <string name="catalog_oolong_pending">Oolongs kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
     <string name="catalog_dark_pending">Pu-Erhs kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <!-- The views of the Rotbusch teas, fruit teas and chais before the first refresh with parser v10 (SCR-19, #206). -->
+    <string name="catalog_rooibos_pending">Rotbuschtees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <string name="catalog_fruit_pending">Früchtetees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <string name="catalog_chai_pending">Chais kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
     <string name="catalog_herbal_load_now">Jetzt laden</string>
     <!-- Search hits the filters hide (D-073: flavoured teas are searchable but hidden). -->
     <plurals name="catalog_hidden_matches">
@@ -184,7 +205,7 @@
     <string name="tea_link_loading">Tee wird geladen …</string>
     <string name="tea_link_close">Schließen</string>
     <string name="tea_link_not_a_tea_link">Das ist kein Tee-Link von Tee-Kontor Kiel.</string>
-    <string name="tea_link_not_in_catalog">Dieser Tee gehört nicht zum Katalog (nur Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs).</string>
+    <string name="tea_link_not_in_catalog">Dieser Artikel gehört nicht zum Katalog (nur Tees, ohne Sets und Zubehör).</string>
     <string name="tea_link_refresh_running">Gerade läuft ein Abruf – versuch es danach.</string>
     <!-- 404/410, a redirect (never followed), another 4xx, or a page of no or another product. -->
     <string name="tea_link_no_tea_page">Unter diesem Link gibt es im Shop keinen Tee.</string>

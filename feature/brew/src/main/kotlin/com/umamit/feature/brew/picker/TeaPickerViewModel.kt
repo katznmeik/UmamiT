@@ -55,12 +55,19 @@ enum class TeaKind {
 
             else -> when (tea.category) {
                 TeaCategory.GREEN -> GREEN
+
                 TeaCategory.WHITE -> WHITE
+
                 TeaCategory.OOLONG -> OOLONG
+
                 TeaCategory.BLACK -> BLACK
+
                 TeaCategory.DARK -> PUERH
+
                 TeaCategory.HERBAL -> HERBAL
-                TeaCategory.YELLOW, TeaCategory.OTHER -> OTHER
+
+                // Rotbusch and Früchtetee (#206) have no group of their own in *Alle* (D-097).
+                TeaCategory.YELLOW, TeaCategory.ROOIBOS, TeaCategory.FRUIT, TeaCategory.OTHER -> OTHER
             }
         }
 

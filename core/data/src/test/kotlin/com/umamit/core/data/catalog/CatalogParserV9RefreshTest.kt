@@ -80,7 +80,7 @@ class CatalogParserV9RefreshTest {
         product(WHITE, "Nebelgarten – 50g", SyntheticShop.WHITE_CLASSIC_PATH, SyntheticShop.WHITE_BREW_ROWS)
         product(OOLONG, "Bergnebel Oolong – 50g", SyntheticShop.OOLONG_TAIWAN_PATH, SyntheticShop.GONGFU_ROWS)
         product(SHENG, "2019 Nebelberg Bing Cha – 357g", SyntheticShop.SHENG_PATH, SyntheticShop.GONGFU_ROWS)
-        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH, SyntheticShop.BLACK_BREW_ROWS)
+        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.SWEETS_PATH, SyntheticShop.BLACK_BREW_ROWS)
     }
 
     @After
@@ -147,8 +147,11 @@ class CatalogParserV9RefreshTest {
     @Test
     fun aCatalogOfParserV8ReReadsItsNotGreenEntriesOnceAndKeepsTheNewKinds() = runTest {
         skipListOfParserV8()
-        assertThat(repository.observePendingKinds().first())
-            .containsExactly(CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
+        assertThat(repository.observePendingKinds().first()).containsAtLeast(
+            CatalogKind.WHITE,
+            CatalogKind.OOLONG,
+            CatalogKind.DARK,
+        )
 
         val outcome = refresher().refresh()
 

@@ -134,6 +134,27 @@ class MyTeasScreenTest {
     }
 
     @Test
+    fun kategorieOffersRotbuschAndFruechtetee() {
+        // v0.5.0, #206: the catalog's Rotbusch and Früchtetee are Kategorien of their own; a chai takes its base's.
+        show(
+            tea("a", "Asamushi"),
+            tea("r", "Sonnenfeld", category = TeaCategory.ROOIBOS),
+            tea("c", "Savanne Chai", category = TeaCategory.ROOIBOS),
+            tea("f", "Beerenwolke", category = TeaCategory.FRUIT),
+        )
+
+        compose.onNodeWithText("Kategorie").performClick()
+        compose.onAllNodesWithText("Früchtetee").onLast().assertExists()
+        compose.onAllNodesWithText("Rotbusch").onLast().performClick()
+        compose.waitForIdle()
+
+        row("r").assertExists()
+        row("c").assertExists()
+        row("f").assertDoesNotExist()
+        row("a").assertDoesNotExist()
+    }
+
+    @Test
     fun sorteFiltersByTheTeasSorte() {
         show(tea("a", "Asamushi", teaType = "Sencha"), tea("b", "Bancha", teaType = "Bancha"))
 

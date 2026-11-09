@@ -2,6 +2,7 @@ package com.umamit.core.catalog.parser
 
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.domain.style.TeaStyle
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
 
@@ -14,6 +15,7 @@ import com.umamit.core.model.UmamiLevel
  * @property unmapped neither breadcrumb nor name named a style: [style] is `green_generic` and
  *   the tea is flagged `UNMAPPED_STYLE`.
  * @property coldBrewDefault a cold-brew bag (Mizudashi) or a Mizucha: its default recipe is the cold brew.
+ * @property category the tea's category: its style's, but a chai's is its base tea's (v0.5.0, #206).
  */
 data class StyleMatch(
     val style: TeaStyle,
@@ -21,6 +23,7 @@ data class StyleMatch(
     val japanese: Boolean,
     val unmapped: Boolean,
     val coldBrewDefault: Boolean,
+    val category: TeaCategory = style.category,
 )
 
 /** Maps a catalog tea to a built-in style (CAT-06): the breadcrumb's last segment, else name keywords (08 §2.6). */
@@ -89,17 +92,30 @@ object StyleMapper {
      * The style of a tea in the category [categoryPath] (`/tee/gruener-tee/japan/sencha/`) named
      * [name], with the shop's *Sorte* [teaType]. A flavoured sencha is `flavored_green`, and a
      * flavoured tea no keyword names is too (it is no unknown green tea); one from Korea
-     * ([originCountry], *Anbaugebiete*) no keyword names is a Korean green.
+     * ([originCountry], *Anbaugebiete*) no keyword names is a Korean green. A tea whose name says chai, or
+     * filed in the chai section, is a `chai` of its base tea's category (v0.5.0, #206): its section's, green
+     * for a green section's, else the one its name or [ingredients] name, else `OTHER`.
      */
+    @Suppress("LongParameterList")
     fun map(
         categoryPath: String?,
         name: String?,
         teaType: String? = null,
         isFlavored: Boolean = false,
         originCountry: String? = null,
+        ingredients: String? = null,
     ): StyleMatch {
-        val section = categoryPath?.let(TeaSections::of)
-        if (section != null) return ofSection(section, listOfNotNull(name, teaType), isFlavored)
+        val section = categoryPath?.let { TeaSections.of(it) ?: TeaSections.ofJapanName(it, name) }
+        val names = listOfNotNull(name, teaType)
+        if (section == TeaSections.CHAI || TeaSections.isChai(name)) {
+            val category = when (section) {
+                null -> TeaCategory.GREEN
+                TeaSections.CHAI -> TeaSections.chaiBase(name, ingredients)?.first ?: TeaCategory.OTHER
+                else -> section.category
+            }
+            return ofSection(TeaSections.CHAI, names, isFlavored).copy(category = category)
+        }
+        if (section != null) return ofSection(section, names, isFlavored)
         val segment = categoryPath?.trimEnd('/')?.substringAfterLast('/')?.lowercase().orEmpty()
         val text = listOfNotNull(name, teaType).joinToString(" ")
         val byName = KEYWORDS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second
@@ -135,6 +151,7 @@ object StyleMapper {
         japanese = false,
         unmapped = false,
         coldBrewDefault = false,
+        category = section.category,
     )
 
     /**

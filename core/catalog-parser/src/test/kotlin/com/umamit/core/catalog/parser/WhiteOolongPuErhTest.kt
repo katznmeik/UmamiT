@@ -230,13 +230,15 @@ class WhiteOolongPuErhTest {
 
     @Test
     fun theNewSectionsAreAVersionStepOfTheirOwn() {
-        assertThat(TeeKontorParser.PARSER_VERSION).isEqualTo(9)
-        assertThat(TeeKontorParser.SCOPE_SINCE_VERSION).isEqualTo(9)
+        // v9's kinds come after v8; #206's v10 adds its own (RooibosFruitChaiTest).
+        val v10 = setOf(CatalogKind.ROOIBOS, CatalogKind.FRUIT, CatalogKind.CHAI)
         assertThat(
-            TeeKontorParser.kindsSince(8),
+            TeeKontorParser.kindsSince(8) - v10,
         ).containsExactly(CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
-        assertThat(TeeKontorParser.kindsSince(7))
+        assertThat(TeeKontorParser.kindsSince(7) - v10)
             .containsExactly(CatalogKind.BLACK, CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
-        assertThat(TeeKontorParser.kindsSince(9)).isEmpty()
+        assertThat(
+            TeeKontorParser.kindsSince(9),
+        ).containsNoneOf(CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
     }
 }

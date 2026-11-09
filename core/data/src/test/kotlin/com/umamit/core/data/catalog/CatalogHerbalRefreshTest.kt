@@ -86,7 +86,7 @@ class CatalogHerbalRefreshTest {
             SyntheticShop.HERBAL_PATH,
             brewRows = listOf("westlich" to listOf("~12g/L", "100°C", "~8 Min")),
         )
-        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH)
+        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.SWEETS_PATH)
         product(BLACK, "Abendglut Assam – 100g", SyntheticShop.TEA_BAGS_PATH)
         product(HERBAL_SET, "Kräuter Probierset", SyntheticShop.HERBAL_PATH)
     }

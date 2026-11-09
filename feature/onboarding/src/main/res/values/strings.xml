@@ -31,7 +31,7 @@
 
     <!-- Catalog page (ONB-03, SCR-01 page 3; CAT-07). -->
     <string name="onboarding_catalog_title">Katalog laden</string>
-    <string name="onboarding_catalog_body">Alle Grün- und Kräutertees von Tee-Kontor Kiel offline verfügbar machen. Das erste Laden dauert etwa eine Viertelstunde; die App kannst du währenddessen schon nutzen.</string>
+    <string name="onboarding_catalog_body">Alle Tees von Tee-Kontor Kiel offline verfügbar machen, von Grüntee bis Chai. Das erste Laden dauert etwa eine halbe Stunde; die App kannst du währenddessen schon nutzen.</string>
     <string name="onboarding_catalog_load">Katalog jetzt laden</string>
     <string name="onboarding_catalog_later">Später</string>
     <string name="onboarding_catalog_starting">Sitemap wird gelesen …</string>

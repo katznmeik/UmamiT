@@ -56,6 +56,9 @@ private val SORTE_NAMES: Map<String, Int> = mapOf(
     "flavored_black" to R.string.sorte_flavored_black,
     "black_generic" to R.string.sorte_black_generic,
     "dark_generic" to R.string.sorte_dark_generic,
+    "rooibos" to R.string.sorte_rooibos,
+    "fruit" to R.string.sorte_fruit,
+    "chai" to R.string.sorte_chai,
     OTHER_STYLE_KEY to R.string.sorte_other,
 )
 
@@ -78,7 +81,10 @@ abstract class SorteNamesModule {
     abstract fun sorteNames(impl: ResourceSorteNames): SorteNames
 }
 
-/** A Kategorie's styles in *Sorte wählen*; [category] null: *Andere / unbekannt* at the end, without a heading. */
+/**
+ * A Kategorie's styles in *Sorte wählen*; [category] null: the styles of no Kategorie of their own (`chai`, #206) and
+ * *Andere / unbekannt* last, at the end without a heading.
+ */
 data class SorteGroup(val category: TeaCategory?, val styleKeys: List<String>)
 
 /** *Sorte wählen*'s list (SCR-11, TEA-01, D-100) as a pure function. */
@@ -91,6 +97,8 @@ object SortePicker {
         TeaCategory.BLACK,
         TeaCategory.DARK,
         TeaCategory.HERBAL,
+        TeaCategory.ROOIBOS,
+        TeaCategory.FRUIT,
     )
 
     /**
@@ -103,7 +111,10 @@ object SortePicker {
         val styles = BuiltInStyles.all
         val groups = ORDER.map { category ->
             SorteGroup(category, styles.filter { it.category == category && it.key != OTHER_STYLE_KEY }.map { it.key })
-        } + SorteGroup(null, listOf(OTHER_STYLE_KEY))
+        } + SorteGroup(
+            null,
+            styles.filter { it.category == TeaCategory.OTHER }.map { it.key }.sortedBy { it == OTHER_STYLE_KEY },
+        )
         return groups.map { group ->
             val categoryWords = group.category?.let { SearchQuery.words(categoryName(it)) }.orEmpty()
             group.copy(

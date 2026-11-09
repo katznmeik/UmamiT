@@ -38,6 +38,8 @@
     <string name="my_teas_category_black">Schwarzer Tee</string>
     <string name="my_teas_category_dark">Pu-Erh</string>
     <string name="my_teas_category_herbal">Kräutertee</string>
+    <string name="my_teas_category_rooibos">Rotbusch</string>
+    <string name="my_teas_category_fruit">Früchtetee</string>
     <string name="my_teas_category_other">Andere</string>
     <!-- A row: the stock chip and the star (TalkBack). -->
     <string name="my_teas_stock_grams">%1$s g</string>
@@ -278,6 +280,9 @@
     <string name="sorte_flavored_black">Aromatisierter Schwarztee</string>
     <string name="sorte_black_generic">Schwarzer Tee</string>
     <string name="sorte_dark_generic">Pu-Erh</string>
+    <string name="sorte_rooibos">Rotbusch</string>
+    <string name="sorte_fruit">Früchtetee</string>
+    <string name="sorte_chai">Chai</string>
     <string name="sorte_other">Andere / unbekannt</string>
 
     <!-- SCR-11 Sorte wählen (TEA-01, D-100). -->

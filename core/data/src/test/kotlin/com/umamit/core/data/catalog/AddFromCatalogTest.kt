@@ -7,6 +7,7 @@ import android.graphics.Color
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RoomTeaArchive
@@ -525,6 +526,46 @@ class AddFromCatalogTest {
         assertThat(recipe.method).isEqualTo(BrewMethod.GONGFU)
         assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(5.0 to 120)
         assertThat(recipe.baseTempC).isEqualTo(100)
+    }
+
+    @Test
+    fun `a Rotbusch, a Fruechtetee and the chais are added with their own or their base tea's category`() = runTest {
+        // v0.5.0, #206, D-108: ROOIBOS and FRUIT; a chai takes its base tea's category, else OTHER.
+        fun tea(key: String, name: String, styleKey: String, breadcrumb: String, ingredients: String? = null) =
+            sencha(key = key, name = name, recipes = null, styleKey = styleKey).copy(
+                teaType = null,
+                breadcrumb = breadcrumb,
+                ingredients = ingredients,
+                tasteScalesJson = null,
+                shading = null,
+                steaming = null,
+            )
+        catalog(
+            tea(
+                "XR0200",
+                "Sonnenfeld Rotbusch",
+                "rooibos",
+                "/tee/rotbusch/klassischer-rotbusch/",
+            ) to packages("XR0200"),
+            tea("XF0300", "Beerenwolke", "fruit", "/tee/fruechtetee/klassischer-fruechtetee/") to packages("XF0300"),
+            tea("XR0400", "Rotbusch Chai Savanne", "chai", "/tee/rotbusch/aromatisierter-rotbusch/") to
+                packages("XR0400"),
+            tea("XS0500", "Gewürzmarkt Chai", "chai", "/tee/schwarzer-tee/aromatisierter-schwarztee/") to
+                packages("XS0500"),
+            tea("XC0600", "Karawane", "chai", "/tee/chaitee/", ingredients = "Zimt, Ingwer, Kardamom") to
+                packages("XC0600"),
+        )
+
+        listOf(
+            "XR0200" to TeaCategory.ROOIBOS,
+            "XF0300" to TeaCategory.FRUIT,
+            "XR0400" to TeaCategory.ROOIBOS,
+            "XS0500" to TeaCategory.BLACK,
+            "XC0600" to TeaCategory.OTHER,
+        ).forEach { (key, category) ->
+            val teaId = (add.add(purchase(key = key)) as AddFromCatalogResult.Added).teaId
+            assertWithMessage(key).that(data.teas.getTea(teaId)!!.category).isEqualTo(category)
+        }
     }
 
     private companion object {

@@ -9,6 +9,8 @@ package com.umamit.core.catalog.parser
  * `/tee/japantee/teefamilien/<family>/`; live sample 2, D-089) is a green tea when its name names
  * a green type, or its badges say steamed or shaded, and neither its name nor its path names
  * another tea (Wakoucha, Oolong, …) or teaware; its *Sorte* is the green type its name names.
+ * From v0.5.0 (#206) one whose name names Wakoucha (Koucha), Oolong or Weißtee is a tea of that
+ * section, *Sorte* „Japan" ([TeaSections.ofJapanName]).
  *
  * From v0.2.1 (D-093) the shop's Kräutertee section is in scope too, as [CatalogScope.HERBAL],
  * and from v0.5.0 (D-108) its black-tea section, as [CatalogScope.TEA]: the [TeaSections], each
@@ -99,6 +101,8 @@ internal object GreenTeaScope {
     private val SET_IN_PATH = Regex("""(^|-)(tee)?sets?(-|$)""")
 
     private const val GREEN_SECTION = "/tee/gruener-tee/"
+    private const val GREEN_TEA = "Grüntee"
+    private const val JAPAN = "Japan"
     private const val MATCHA_POWDER = "/matcha/matcha-teepulver/"
     private val JAPAN_TEA = listOf("tee", "japantee")
 
@@ -110,7 +114,7 @@ internal object GreenTeaScope {
     fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope {
         val green =
             breadcrumb.any { isGreen(it.path) } || (isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge))
-        val section = if (green) null else TeaSections.of(breadcrumb)?.takeUnless { isTeaware(breadcrumb, name) }
+        val section = if (green) null else TeaSections.of(breadcrumb, name)?.takeUnless { isTeaware(breadcrumb, name) }
         return when {
             breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
             !green && section == null -> CatalogScope.NOT_GREEN
@@ -137,12 +141,29 @@ internal object GreenTeaScope {
      * without a type level the type its [name] names; for a tea of another section the *Sorte* its
      * section gives ([TeaSection.sorte]); null without one.
      */
-    fun teaType(breadcrumb: List<Crumb>, name: String? = null): String? =
-        breadcrumb.lastOrNull { isGreen(it.path) && isType(segments(it.path).lastOrNull()) }?.title
-            ?: name?.takeIf { breadcrumb.none { isGreen(it.path) } && isJapanTeaOfNoType(breadcrumb) }
-                ?.let(::namedType)
-            ?: breadcrumb.takeIf { crumbs -> crumbs.none { isGreen(it.path) } }
-                ?.let { crumbs -> TeaSections.of(crumbs)?.sorte(crumbs, name) }
+    fun teaType(breadcrumb: List<Crumb>, name: String? = null): String? {
+        val green = breadcrumb.any { isGreen(it.path) }
+        val section = if (green) null else TeaSections.of(breadcrumb)
+        return when {
+            // A chai's *Sorte* is its base tea (#206): its section's, else the one its name names.
+            TeaSections.isChai(name) || section == TeaSections.CHAI -> when {
+                green -> GREEN_TEA
+                section != null && section != TeaSections.CHAI -> section.baseName
+                else -> TeaSections.chaiBase(name)?.second
+            }
+
+            green -> breadcrumb.lastOrNull { isGreen(it.path) && isType(segments(it.path).lastOrNull()) }?.title
+
+            section != null -> section.sorte(breadcrumb, name)
+
+            // Another tea on a Japan tea family's page (#206): a tea from Japan.
+            TeaSections.of(breadcrumb, name) != null -> JAPAN
+
+            isJapanTeaOfNoType(breadcrumb) -> name?.let(::namedType)
+
+            else -> null
+        }
+    }
 
     private fun isGreen(path: String): Boolean {
         val normal = normalised(path)
