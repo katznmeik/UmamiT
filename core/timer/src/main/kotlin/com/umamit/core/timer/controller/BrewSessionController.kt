@@ -56,7 +56,7 @@ data class BrewStart(val snapshot: SessionSnapshot, val steps: List<PlannedStep>
  * are active at once: two brew sessions, or a brew session and the quick timer
  * (GEN-03, TMR-21, TMR-22). One alert player serves all, arbitrated after every
  * event ([AlertArbitration], [TransitionEffects]): the first alarm rings, a
- * deadline due meanwhile is held until that alert is acknowledged (a brew still
+ * deadline due meanwhile is held until that alert's sound has ended (D-109; a brew still
  * preempts a ringing quick alert), never two sounds at once (04 §9.3). Each input runs in one turn of one
  * event lock: the clocks are read inside the lock, once per reduce (D-054);
  * the engine's effects then run in the order of D-047 ([TransitionEffects]):
@@ -544,9 +544,9 @@ class BrewSessionController @Inject constructor(
         }
 
         /**
-         * The alert arbitration after an accepted event (04 §9.3; D-098, D-108), in the same turn: a ringing alert
-         * that does not keep the sound is held (preemption: a quick alert while a brew alerts), a held one rings
-         * once no alert rings (release). Each accepted correction settles again ([handle]).
+         * The alert arbitration after an accepted event (04 §9.3; D-098, D-108, D-109), in the same turn: a sounding
+         * alert that does not keep the sound is held (preemption: a quick alert while a brew's sounds), a held one
+         * rings once no alert sounds (release). Each accepted correction settles again ([handle]).
          */
         suspend fun settle() {
             val correction = AlertArbitration.settle(slots.states) ?: return
@@ -580,7 +580,7 @@ class BrewSessionController @Inject constructor(
     /**
      * One event of [slot] in the current lock turn at [now]; the wake-up is re-armed after it, accepted or
      * not. [savedSheetAsNotification]: the transition's saved sheet is posted as „Sitzung gespeichert"
-     * instead (D-054). The slot gets [event] as the arbitration maps it while another slot's alert rings that it
+     * instead (D-054). The slot gets [event] as the arbitration maps it while another slot's alert sounds that it
      * does not preempt (its deadline holds, its recovery recovers held); after an accepted event the slots are
      * settled (04 §9.3).
      */

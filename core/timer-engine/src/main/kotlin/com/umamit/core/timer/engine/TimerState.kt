@@ -102,7 +102,7 @@ sealed interface TimerState {
      * @property alertPlayed the alert ran its full cycle ([TimerEvent.AlertCompleted], `alert_played`).
      *   The alert is at-least-once: recovery replays `StartAlert` while this is false (04 §7.2).
      * @property ringingSinceElapsedMs when the alert last started ringing (`ringingSince`, 04 §3.3, §9.3; D-098,
-     *   D-108); null while the alert is held because another slot's alert rings ([held]). An alert that rang at
+     *   D-108); null while the alert is held because another slot's alert sounds ([held]). An alert that rang at
      *   its deadline rings since its deadline. A held alert rings from its release ([TimerEvent.AlertRingStart]),
      *   and its silent end counts from then, for a brew session and the quick timer alike.
      * @property ringingSinceWallMs the same on the wall clock, for reboot recovery; null with it.

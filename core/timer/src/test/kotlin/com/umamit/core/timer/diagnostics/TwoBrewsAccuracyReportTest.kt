@@ -8,8 +8,8 @@ import org.junit.Test
 
 /**
  * The accuracy run's variant `two-brews` (04 §12, TMR-30; D-108, #202): two overlapping brew sessions, the second's
- * alert held behind the first's until the first's sound has ended (04 §9.3, D-109). Both pre-alerts and the first brew's alerts are gated;
- * the held alert's hold and its release's own delay are reported apart and never gated.
+ * alert held behind the first's until the first's sound has ended (04 §9.3, D-109). Both pre-alerts and the first
+ * brew's alerts are gated; the held alert's hold and its release's own delay are reported apart and never gated.
  */
 class TwoBrewsAccuracyReportTest {
     @Test
