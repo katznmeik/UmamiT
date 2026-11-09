@@ -1,12 +1,14 @@
 package com.umamit.feature.home
 
+import com.umamit.core.model.TimerSlot
+
 /** What a tap on Start does (SCR-02). */
 class HomeActions(
     val openSettings: () -> Unit = {},
     /** *Aufguss starten*: the tea picker (SCR-03). */
     val startBrew: () -> Unit = {},
-    /** *Aufguss fortsetzen*: the brew's timer (SCR-05). */
-    val openTimer: () -> Unit = {},
+    /** *Aufguss fortsetzen*: the timer of the card's brew, in its slot (SCR-05, D-108). */
+    val openTimer: (TimerSlot) -> Unit = {},
     /** *Schnelltimer* (SCR-07). */
     val quickTimer: () -> Unit = {},
     /** *Nochmal brühen* on a tea (BRW-11). */
@@ -17,8 +19,8 @@ class HomeActions(
     val showJournal: () -> Unit = {},
     /** The empty state's *Katalog öffnen*. */
     val openCatalog: () -> Unit = {},
-    /** *Beenden & neu starten* (TMR-21). */
-    val confirmRestart: () -> Unit = {},
+    /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): that slot's timer ends, then the brew starts. */
+    val endTimer: (TimerSlot) -> Unit = {},
     /** *Abbrechen* of the question. */
     val dismissQuestion: () -> Unit = {},
     /** The reliability banner's *Beheben* (TMR-31). */

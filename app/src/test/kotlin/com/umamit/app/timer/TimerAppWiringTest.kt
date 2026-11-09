@@ -87,6 +87,12 @@ class TimerAppWiringTest {
             state.value = front
         }
 
+        /** The timers of [timers]' slots, every other slot idle, [front] in front. */
+        fun showSlots(timers: Map<TimerSlot, TimerUiState>, front: TimerUiState) {
+            slots.forEach { (slot, flow) -> flow.value = timers[slot] ?: TimerUiState.Idle }
+            state.value = front
+        }
+
         override fun state(slot: TimerSlot) = slots.getValue(slot)
 
         override suspend fun send(slot: TimerSlot, event: TimerEvent) = TransitionOutcome.Ignored
@@ -161,6 +167,7 @@ class TimerAppWiringTest {
         val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope)
         backgroundScope.launch { source.activeBrew.collect {} }
         backgroundScope.launch { source.alongside.collect {} }
+        backgroundScope.launch { source.barSlots.collect {} }
         runCurrent()
 
         assertThat(source.activeBrew.value?.title).isEqualTo("Hisui")
@@ -173,5 +180,35 @@ class TimerAppWiringTest {
         runCurrent()
         assertThat(source.activeBrew.value?.title).isEqualTo("Schnelltimer")
         assertThat(source.alongside.value).isNull()
+        assertThat(source.barSlots.value).containsExactly(TimerSlot.QUICK)
+    }
+
+    @Test
+    fun `with two brews the bar has both in the slot order, each half naming its slot (D-108)`() = runTest {
+        val timer = FakeTimer(TimerUiState.Idle)
+        val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val first = active(TimerPhase.RUNNING, deadline = 60_000)
+        val second = active(TimerPhase.ALERTING, deadline = 0)
+            .copy(kind = SessionKind.Brew("s2"), teaName = "Kamille", inSlot = TimerSlot.BREW_2, alertHeld = true)
+        // The second brew is in front (started last): the bar keeps the slot order.
+        timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to second), front = second)
+        val source = TimerActiveBrewSource(timer, clock(), resources, backgroundScope)
+        backgroundScope.launch { source.activeBrew.collect {} }
+        backgroundScope.launch { source.alongside.collect {} }
+        backgroundScope.launch { source.barSlots.collect {} }
+        runCurrent()
+
+        assertThat(source.activeBrew.value?.title).isEqualTo("Hisui")
+        assertThat(source.alongside.value?.title).isEqualTo("Kamille")
+        // The held second brew waits for the other's *Abgegossen* (04 §9.3).
+        assertThat(source.alongside.value?.held).isTrue()
+        assertThat(source.barSlots.value).containsExactly(TimerSlot.BREW, TimerSlot.BREW_2).inOrder()
+
+        // The first ends: the second has the bar alone.
+        timer.showSlots(mapOf(TimerSlot.BREW_2 to second), front = second)
+        runCurrent()
+        assertThat(source.activeBrew.value?.title).isEqualTo("Kamille")
+        assertThat(source.alongside.value).isNull()
+        assertThat(source.barSlots.value).containsExactly(TimerSlot.BREW_2)
     }
 }

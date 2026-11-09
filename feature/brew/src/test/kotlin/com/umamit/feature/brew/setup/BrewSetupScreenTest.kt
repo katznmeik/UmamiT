@@ -29,6 +29,7 @@ import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeCollection
@@ -195,42 +196,46 @@ class BrewSetupScreenTest {
     fun `a start refused during an alert opens the timer instead of asking (rule 8)`() {
         starter.state.value = FakeBrewStarter.readyState(tanabata(), "other")
             .copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+        starter.other.value = FakeBrewStarter.quickRunningState(90)
         show()
 
         tapStart()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Erst die Bio Sencha Tanabata-Sitzung beenden?").assertDoesNotExist()
+        compose.onNodeWithText("Welchen Timer beenden?").assertDoesNotExist()
         assertThat(timerOpened).isEqualTo(1)
         assertThat(starter.starts).isEmpty()
     }
 
     @Test
-    fun `a second session asks first - Beenden und neu starten replaces it (TMR-21)`() {
+    fun `with two timers active it asks which to end - the chosen one ends, the brew starts (TMR-21, D-108)`() {
         starter.state.value = FakeBrewStarter.readyState(tanabata(), "other")
+        starter.other.value = FakeBrewStarter.quickRunningState(90)
         show()
 
         tapStart()
-        compose.onNodeWithText("Erst die Bio Sencha Tanabata-Sitzung beenden?").assertIsDisplayed()
+        compose.onNodeWithText("Welchen Timer beenden?").assertIsDisplayed()
         assertThat(timerOpened).isEqualTo(0)
 
-        compose.onNodeWithText("Beenden & neu starten").performClick()
+        compose.onNodeWithContentDescription("Bio Sencha Tanabata beenden").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Erst die Bio Sencha Tanabata-Sitzung beenden?").assertDoesNotExist()
+        compose.onNodeWithText("Welchen Timer beenden?").assertDoesNotExist()
         assertThat(starter.replaced).isEqualTo(1)
+        assertThat(starter.activeIn(TimerSlot.QUICK)).isNotNull()
         assertThat(timerOpened).isEqualTo(1)
     }
 
     @Test
-    fun `Abbrechen keeps the active session`() {
+    fun `Abbrechen keeps both active timers`() {
         starter.state.value = FakeBrewStarter.readyState(tanabata(), "other")
+        starter.other.value = FakeBrewStarter.quickRunningState(90)
         show()
 
         tapStart()
         compose.onNodeWithText("Abbrechen").performClick()
 
-        compose.onNodeWithText("Erst die Bio Sencha Tanabata-Sitzung beenden?").assertDoesNotExist()
+        compose.onNodeWithText("Welchen Timer beenden?").assertDoesNotExist()
         assertThat(starter.starts).isEmpty()
     }
 

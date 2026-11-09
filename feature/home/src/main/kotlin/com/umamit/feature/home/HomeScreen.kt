@@ -37,8 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
 import com.umamit.core.designsystem.component.EmptyState
-import com.umamit.core.designsystem.component.FinishActiveSessionDialog
 import com.umamit.core.designsystem.component.PrimaryActionCard
 import com.umamit.core.designsystem.component.ReliabilityBanner
 import com.umamit.core.designsystem.component.ScreenScaffold
@@ -106,7 +106,7 @@ fun HomeScreen(
             if (!empty) Header()
             val active = state.active
             if (active != null) {
-                ActiveCard(active, nowElapsedMs, actions.openTimer)
+                ActiveCard(active, nowElapsedMs) { actions.openTimer(active.slot) }
             } else if (!state.collectionEmpty && !state.loading) {
                 PrimaryActionCard(
                     title = stringResource(R.string.home_start_brew),
@@ -140,9 +140,9 @@ fun HomeScreen(
         // Alerts first (rule 8): never over an alert, by construction (the view model also closes it).
         val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
-            FinishActiveSessionDialog(
-                teaName = question.teaName,
-                onRestart = actions.confirmRestart,
+            ChooseTimerToEndDialog(
+                timers = question.timers.map { it.teaName },
+                onEnd = { index -> actions.endTimer(question.timers[index].slot) },
                 onCancel = actions.dismissQuestion,
             )
         }

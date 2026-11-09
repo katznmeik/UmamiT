@@ -38,6 +38,12 @@ internal class FakeBrewTimer(initial: TimerUiState = TimerUiState.Idle, recovere
         state.value = front
     }
 
+    /** The timers of [timers]' slots, every other slot idle, and [front] in front (two brews, D-108). */
+    fun showSlots(timers: Map<TimerSlot, TimerUiState>, front: TimerUiState) {
+        slots.forEach { (slot, flow) -> flow.value = timers[slot] ?: TimerUiState.Idle }
+        state.value = front
+    }
+
     override fun state(slot: TimerSlot): StateFlow<TimerUiState> = slots.getValue(slot)
 
     override suspend fun send(slot: TimerSlot, event: TimerEvent): TransitionOutcome {

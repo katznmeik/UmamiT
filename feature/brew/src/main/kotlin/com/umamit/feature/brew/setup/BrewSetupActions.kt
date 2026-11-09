@@ -1,5 +1,6 @@
 package com.umamit.feature.brew.setup
 
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.steps.SaveToRecipeRequest
 
@@ -17,7 +18,8 @@ class BrewSetupActions(
     val saveStepsToRecipe: (SaveToRecipeRequest) -> Unit = {},
     val saveToRecipe: () -> Unit = {},
     val start: () -> Unit = {},
-    val confirmRestart: () -> Unit = {},
+    /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): that slot's timer ends, then the brew starts. */
+    val endTimer: (TimerSlot) -> Unit = {},
     val dismissQuestion: () -> Unit = {},
     /** *Speichern* in „Wie viel ist noch da?": the tea's new total in g (BRW-02, INV-03). */
     val correctStock: (Double) -> Unit = {},

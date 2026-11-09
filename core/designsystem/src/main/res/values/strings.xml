@@ -70,6 +70,9 @@
     <!-- A held quick alert in the bar beside the brew's (v0.3.0, 03 §3.8, D-098): it waits for *Abgegossen*. -->
     <string name="ds_active_brew_held">fertig</string>
     <string name="ds_active_brew_held_description">%1$s, fertig, wartet auf den Aufguss. Zum Timer</string>
+    <!-- A brew held behind the other brew's alert (D-108): it rings after that one's „Abgegossen". -->
+    <string name="ds_active_brew_held_brew">wartet</string>
+    <string name="ds_active_brew_held_brew_description">%1$s, %2$s fertig, wartet auf den anderen Aufguss. Zum Timer</string>
     <string name="ds_active_brew_alerting_description">Jetzt abgießen: %1$s, %2$s, %3$s überzogen. Zum Timer</string>
     <string name="ds_active_brew_alerting_description_no_overtime">Jetzt abgießen: %1$s, %2$s. Zum Timer</string>
     <string name="ds_active_brew_alerting_description_no_step">Jetzt abgießen: %1$s, %2$s überzogen. Zum Timer</string>
@@ -85,6 +88,12 @@
     <string name="ds_finish_active_quick_title">Schnelltimer beenden und neu starten?</string>
     <string name="ds_finish_active_restart">Beenden &amp; neu starten</string>
     <string name="ds_finish_active_cancel">Abbrechen</string>
+
+    <!-- Third start (TMR-21, D-108): „Welchen Timer beenden?" with one button per active timer. -->
+    <string name="ds_choose_timer_title">Welchen Timer beenden?</string>
+    <string name="ds_choose_timer_text">Es laufen schon zwei Timer. Der gewählte endet, dann startet der neue.</string>
+    <string name="ds_choose_timer_quick">Schnelltimer</string>
+    <string name="ds_choose_timer_end_description">%1$s beenden</string>
 
     <!-- CheckRecipeBadge (03 §3.8, CAT-05). -->
     <string name="ds_check_recipe">Rezept prüfen</string>

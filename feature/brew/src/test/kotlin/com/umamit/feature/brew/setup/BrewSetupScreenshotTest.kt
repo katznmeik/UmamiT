@@ -28,6 +28,8 @@ import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TimerSlot
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.feature.brew.picker.PickerTea
 import com.umamit.feature.brew.picker.TeaKind
@@ -289,7 +291,13 @@ class BrewSetupScreenshotTest(private val dark: Boolean, private val fontScale: 
 
     @Test
     fun setupSecondSessionQuestion() = capture("BrewSetup_question") {
-        BrewSetupScreen(kyusu.copy(question = ActiveSessionQuestion("Bio Sencha Tanabata")))
+        BrewSetupScreen(
+            kyusu.copy(
+                question = StartQuestion.ChooseTimer(
+                    listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata"), TimerToEnd(TimerSlot.QUICK, null)),
+                ),
+            ),
+        )
     }
 
     @Test

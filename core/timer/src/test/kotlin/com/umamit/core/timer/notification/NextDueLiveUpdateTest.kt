@@ -260,6 +260,27 @@ class NextDueLiveUpdateTest {
         }
 
     @Test
+    fun `a brew held behind the other brew's alert says it waits for that brew, quietly as 5 (D-108)`() =
+        runBlocking<Unit> {
+            harness.teaWithStock(ControllerHarness.TEA_2_ID, ControllerHarness.TEA_2_NAME)
+            controller.startSession(brewStart(infusion(30, preAlert = 0)))
+            controller.send(TimerSlot.BREW, TimerEvent.Start)
+            controller.startSession(
+                brewStart(
+                    infusion(40, preAlert = 0),
+                    teaId = ControllerHarness.TEA_2_ID,
+                    teaName = ControllerHarness.TEA_2_NAME,
+                ),
+            )
+            controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+            harness.advanceSeconds(40)
+            deliver()
+
+            assertThat(activeIds()).containsExactly(TimerNotifications.ID_ALERT, TimerNotifications.ID_OTHER)
+            assertThat(posted(TimerNotifications.ID_OTHER).text()).isEqualTo("Fertig, wartet auf den anderen Aufguss")
+        }
+
+    @Test
     fun `the other timer's start during an alert does not take the screen a second time`() = runBlocking<Unit> {
         controller.startSession(brewStart(infusion(60, preAlert = 0)))
         controller.startQuickTimer(30, preAlertSeconds = 0, run = true)

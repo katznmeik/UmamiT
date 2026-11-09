@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -25,7 +26,9 @@ import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
@@ -150,6 +153,32 @@ class TimerOtherRowTest {
         assertThat(otherEvents).containsExactly(TimerEvent.Pause, TimerEvent.Resume).inOrder()
         assertThat(opened).isEqualTo(1)
         assertThat(events).isEmpty()
+    }
+
+    @Test
+    fun `a brew shows the other brew with its step, read as one element, and pauses only that brew (D-108)`() {
+        val second = TimerStates.running(remainingMs = 48_000)
+            .copy(kind = SessionKind.Brew("s2"), teaName = "Hisui", inSlot = TimerSlot.BREW_2)
+        show(TimerStates.running(remainingMs = 20_000), second)
+
+        // TalkBack reads the row with its tea, step and time, and what a tap does.
+        compose.onNodeWithTag(TIMER_OTHER_ROW_TAG).assert(hasText("Hisui") and hasText("· Aufguss 1 · 0:48"))
+        compose.onNodeWithContentDescription("Aufguss pausieren").performClick()
+        row().performSemanticsAction(SemanticsActions.OnClick)
+
+        assertThat(otherEvents).containsExactly(TimerEvent.Pause)
+        assertThat(opened).isEqualTo(1)
+        assertThat(events).isEmpty()
+    }
+
+    @Test
+    fun `a held other brew reads wartet, without a button (D-108)`() {
+        val held = TimerStates.alerting()
+            .copy(kind = SessionKind.Brew("s2"), teaName = "Hisui", inSlot = TimerSlot.BREW_2, alertHeld = true)
+        show(TimerStates.running(), held)
+
+        rowText("· wartet").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Aufguss pausieren").assertDoesNotExist()
     }
 
     /** At the largest font the name and the step do not both fit on the row's line: the step gives way first. */

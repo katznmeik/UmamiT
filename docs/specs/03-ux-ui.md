@@ -446,7 +446,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
-| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
 | `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
@@ -503,6 +503,8 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
   *Aufguss starten* (the bar shows it); with both timers the card shows the
   brew, never switching to the quick timer, and its tap opens the brew.
+  With two brew sessions (v0.5.0, D-108) the card shows the first in the
+  slot order and opens that one; the bar shows both.
 - **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
   opens SCR-07 and starts a quick timer alongside it, without a question;
   while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
@@ -510,6 +512,14 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   asks „Schnelltimer beenden und neu starten?" (*Beenden & neu starten* /
   *Abbrechen*; §5). The active brew bar above the navigation bar shows both
   timers (§3.8).
+- **Two brews (v0.5.0, D-108).** *Nochmal brühen* of another tea starts the
+  second brew beside the first, without a question, and opens it; of a tea
+  with an active session it opens that session. While two timers are
+  active it asks „Welchen Timer beenden?": the title, „Es laufen schon zwei
+  Timer. Der gewählte endet, dann startet der neue.", one full-width
+  outlined button per active timer in the slot order (the tea's name or
+  *Schnelltimer*; TalkBack „*Hisui* beenden") and *Abbrechen*. The setup
+  (SCR-04) and SCR-07's *Start* ask the same. Never over an alert (rule 8).
 - **Alarm volume (v0.3.0, D-098).** The reliability banner also shows
   „Alarmlautstärke ist aus" with *Beheben* (the system's sound settings)
   when the phone's alarm volume is 0 (TMR-31).
@@ -738,6 +748,12 @@ TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
   body style, its countdown ticking, and a small text button *Pause* /
   *Weiter* for the quick timer only. A tap on the row opens SCR-07; back
   returns to this screen. Paused: „⏱ Schnelltimer · Pausiert 2:14".
+- **Row for the other brew (v0.5.0, D-108).** With two brew sessions each
+  brew's screen shows the other in the same row: „🍃 Hisui · Aufguss 2 ·
+  0:48" („· bereit", „· Pausiert 0:48", „· fertig"; a held alert „· wartet")
+  with *Pause*/*Weiter* for that brew only; a tap opens it, back returns.
+  TalkBack reads the row as one element with tea, step and time. The space,
+  alert and motion rules below hold for it as for the quick timer's row.
 - **Space.** The row's height is reserved in every phase of a brew while a
   quick timer is active, so the pill never moves when the row comes or goes
   within a phase; when the quick timer starts or ends, the band gives way
@@ -825,6 +841,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
 - **Held alert.** A quick timer that ends while the brew alerts waits
   silently; its alert surface shows after the brew's *Abgegossen*, with
   the overtime from its own deadline („+12:00").
+- **Two brews (v0.5.0, D-108).** While two brew sessions are active, *Start*
+  asks „Welchen Timer beenden?" with both brews and *Abbrechen* (SCR-02);
+  the chosen session ends as by *Sitzung beenden*, then the quick timer
+  runs.
 - **Polish 1: calm *Vorwarnung* row.** The row is anchored at its label:
   „Vorwarnung" keeps its x position for every choice (*Automatisch*, *Aus*,
   20 s, „· zu kurz"), and the selector grows to its right (#133).

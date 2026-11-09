@@ -101,6 +101,7 @@ class TeaArchiveTest {
         assertThat(archive.archive("t2")).isEqualTo(ArchiveResult.InActiveSession)
         assertThat(archive.delete("t2")).isEqualTo(DeleteResult.InActiveSession)
         assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.InActiveSession)
+        assertThat(archive.observeActiveTeaIds().first()).containsExactly("t1", "t2")
         assertThat(data.teas.getTea("t2")!!.isArchived).isFalse()
     }
 

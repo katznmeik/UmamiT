@@ -159,12 +159,13 @@ class TeaPickerViewModel @Inject constructor(
     val state: StateFlow<TeaPickerUiState> = combine(
         teas.observeOwnedTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
-        archive.observeActiveTeaId(),
+        // Every active session's tea, in either brew slot (E15, D-108).
+        archive.observeActiveTeaIds(),
         input,
         stock,
-    ) { owned, recentSessions, activeTeaId, input, grams ->
+    ) { owned, recentSessions, activeTeaIds, input, grams ->
         val today = clock.today()
-        val all = owned.map { it.toPickerTea(removable = it.tea.id != activeTeaId, grams[it.tea.id], today) }
+        val all = owned.map { it.toPickerTea(removable = it.tea.id !in activeTeaIds, grams[it.tea.id], today) }
         val byId = all.associateBy { it.id }
         val search = SearchQuery(input.search)
         TeaPickerUiState(

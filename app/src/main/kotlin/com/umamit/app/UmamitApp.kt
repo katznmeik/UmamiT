@@ -195,6 +195,7 @@ internal fun UmamitApp(
     val reselection = remember { TabReselection() }
     val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
     val alongside by activeBrewSource.alongside.collectAsStateWithLifecycle()
+    val barSlots by activeBrewSource.barSlots.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
         ?: NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
     val motion = UmamiTheme.motion
@@ -382,18 +383,19 @@ internal fun UmamitApp(
                 )
             }
             // Slot above the bar; a tap opens the timer. Without a bar to consume them, the rail
-            // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own (D-098).
+            // layout leaves the system bar insets to the brew bar. With two timers, each half opens its own slot's
+            // timer (D-098, D-108: also the second brew's).
             ActiveBrewBar(
                 brew = activeBrew,
                 progress = activeBrewSource.progress,
                 onClick = if (alongside != null) {
-                    { onOpenTimerOf(TimerSlot.BREW) }
+                    { onOpenTimerOf(barSlots.getOrElse(0) { TimerSlot.BREW }) }
                 } else {
                     onOpenTimer
                 },
                 alongside = alongside,
                 alongsideProgress = activeBrewSource.alongsideProgress,
-                onAlongsideClick = { onOpenTimerOf(TimerSlot.QUICK) },
+                onAlongsideClick = { onOpenTimerOf(barSlots.getOrElse(1) { TimerSlot.QUICK }) },
                 windowInsets = if (!rail) {
                     WindowInsets(0)
                 } else {

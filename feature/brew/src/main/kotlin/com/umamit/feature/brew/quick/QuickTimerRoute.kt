@@ -36,7 +36,7 @@ fun QuickTimerRoute(
             select = viewModel::select,
             selectPreAlert = viewModel::selectPreAlert,
             start = viewModel::start,
-            confirmRestart = viewModel::confirmRestart,
+            endTimer = viewModel::endTimerAndStart,
             dismissQuestion = viewModel::dismissQuestion,
         )
     }

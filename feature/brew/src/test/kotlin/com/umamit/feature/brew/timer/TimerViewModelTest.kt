@@ -120,15 +120,16 @@ class TimerViewModelTest {
         startHisuiSession("s1")
         val vm = viewModel()
         // No cover photo yet: the seal shows the leaf in the style's colour.
-        assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
+        assertThat(vm.teaSeal(TimerSlot.BREW).value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
 
         collection.teas.savePhoto(Photo("p1", PhotoOwner.OfTea(SeedData.HISUI_TEA_ID), PhotoOrigin.OWN, 10, 10, 3))
         photos.write("p1", byteArrayOf(1, 2, 3))
         collection.teas.setCoverPhoto(SeedData.HISUI_TEA_ID, "p1")
-        assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = photos.file("p1").path))
+        assertThat(vm.teaSeal(TimerSlot.BREW).value)
+            .isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = photos.file("p1").path))
 
         timer.show(TimerStates.quick(TimerPhase.RUNNING))
-        assertThat(vm.teaSeal.value).isNull()
+        assertThat(vm.teaSeal(TimerSlot.BREW).value).isNull()
     }
 
     @Test
@@ -141,10 +142,56 @@ class TimerViewModelTest {
             timer.show(brew = TimerStates.ready(), quick = quick, front = quick)
             val vm = viewModel()
 
-            assertThat(vm.teaSeal.value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
-            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+            assertThat(vm.teaSeal(TimerSlot.BREW).value).isEqualTo(TimerTeaSeal(styleKey = "sencha", photoPath = null))
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(38.0, StockLevel.AVAILABLE))
             assertThat(vm.state(TimerSlot.QUICK).value).isEqualTo(quick)
         }
+
+    @Test
+    fun `with two brews each slot's seal and stock are its own session's tea, whichever is in front (D-108)`() =
+        runTest {
+            collection.teas.saveTea(SeedData.hisui)
+            collection.teas.saveTea(SeedData.tanabata)
+            buy(38.0)
+            startHisuiSession("s1")
+            startTanabataSession("s2")
+            val first = TimerStates.ready()
+            val second = TimerStates.running()
+                .copy(kind = SessionKind.Brew("s2"), teaName = "Bio Sencha Tanabata", inSlot = TimerSlot.BREW_2)
+            timer.showSlots(mapOf(TimerSlot.BREW to first, TimerSlot.BREW_2 to second), front = second)
+            val vm = viewModel()
+
+            assertThat(vm.teaSeal(TimerSlot.BREW).value?.styleKey).isEqualTo("sencha")
+            assertThat(vm.teaSeal(TimerSlot.BREW_2).value?.styleKey).isEqualTo("asamushi")
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(38.0, StockLevel.AVAILABLE))
+            // Tanabata has no packages: „Leer", not the first brew's 38 g.
+            assertThat(vm.teaStock(TimerSlot.BREW_2).value).isEqualTo(TimerStock(0.0, StockLevel.EMPTY))
+            // The quick timer has no seal and no stock line.
+            assertThat(vm.teaSeal(TimerSlot.QUICK).value).isNull()
+            assertThat(vm.teaStock(TimerSlot.QUICK).value).isNull()
+        }
+
+    private suspend fun startTanabataSession(id: String) {
+        val snapshot = SessionSnapshot(
+            teaId = SeedData.TANABATA_TEA_ID,
+            teaName = "Bio Sencha Tanabata",
+            teaSecondaryName = null,
+            teaType = "Sencha",
+            styleKey = "asamushi",
+            category = null,
+            profileId = null,
+            profileName = "Kyusu",
+            method = BrewMethod.KYUSU,
+            vesselId = SeedData.KYUSU_VESSEL_ID,
+            vesselName = "Kyusu",
+            leafGrams = 5.0,
+            waterMl = 250,
+            baseTempC = 70,
+        )
+        sessions.sessions.startSession(
+            SessionStart(id, snapshot, listOf(PlannedStep(StepKind.INFUSION, 45, 70)), 15, 1_000, "UTC"),
+        )
+    }
 
     @Test
     fun `READY's stock follows the tea's stock live, Knapp at the threshold and Leer at 0 g (BRW-11, D-098)`() =
@@ -154,15 +201,15 @@ class TimerViewModelTest {
             startHisuiSession("s1")
             timer.show(TimerStates.ready())
             val vm = viewModel()
-            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(38.0, StockLevel.AVAILABLE))
 
             // SET-16's „Knapp ab" is 15 g, inclusive.
             collection.stock.correctStock(SeedData.HISUI_TEA_ID, 15.0)
-            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 15.0, level = StockLevel.LOW))
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(15.0, StockLevel.LOW))
             collection.stock.correctStock(SeedData.HISUI_TEA_ID, 14.0)
-            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 14.0, level = StockLevel.LOW))
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(14.0, StockLevel.LOW))
             collection.stock.correctStock(SeedData.HISUI_TEA_ID, 0.0)
-            assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 0.0, level = StockLevel.EMPTY))
+            assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(0.0, StockLevel.EMPTY))
         }
 
     @Test
@@ -172,7 +219,7 @@ class TimerViewModelTest {
         startHisuiSession("s1")
         timer.show(TimerStates.ready())
 
-        assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 18.0, level = StockLevel.LOW))
+        assertThat(viewModel().teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(18.0, StockLevel.LOW))
     }
 
     @Test
@@ -181,7 +228,7 @@ class TimerViewModelTest {
         startHisuiSession("s1")
         timer.show(TimerStates.ready())
 
-        assertThat(viewModel().teaStock.value).isEqualTo(TimerStock(grams = 0.0, level = StockLevel.EMPTY))
+        assertThat(viewModel().teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(0.0, StockLevel.EMPTY))
     }
 
     @Test
@@ -190,19 +237,19 @@ class TimerViewModelTest {
         startHisuiSession("s1", teaId = null)
         timer.show(TimerStates.ready())
         val vm = viewModel()
-        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isNull()
 
         startHisuiSession("s2")
         timer.show(TimerStates.ready().copy(kind = SessionKind.Brew("s2")))
-        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isNull()
         collection.teas.saveTea(SeedData.hisui.copy(isArchived = true))
         buy(38.0)
-        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isNull()
         collection.teas.saveTea(SeedData.hisui)
-        assertThat(vm.teaStock.value).isEqualTo(TimerStock(grams = 38.0, level = StockLevel.AVAILABLE))
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isEqualTo(TimerStock(38.0, StockLevel.AVAILABLE))
 
         timer.show(TimerStates.quick(TimerPhase.READY))
-        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isNull()
     }
 
     @Test
@@ -215,7 +262,7 @@ class TimerViewModelTest {
         timer.show(TimerStates.ready())
         val vm = viewModel()
 
-        assertThat(vm.teaStock.value).isNull()
+        assertThat(vm.teaStock(TimerSlot.BREW).value).isNull()
         assertThat(vm.state.value).isEqualTo(TimerStates.ready())
         vm.send(TimerSlot.BREW, TimerEvent.Start)
         timer.show(TimerStates.running())

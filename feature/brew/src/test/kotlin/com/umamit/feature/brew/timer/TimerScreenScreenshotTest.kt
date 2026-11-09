@@ -15,7 +15,9 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.feature.brew.timer.TimerStates.NOW
 import org.junit.Rule
 import org.junit.Test
@@ -133,6 +135,26 @@ class TimerScreenScreenshotTest(private val appDark: Boolean, private val fontSc
         photo = SealPhoto.None,
         stock = null,
         other = TimerStates.running(remainingMs = 48_000),
+    )
+
+    // --- Two brews (D-108): the other brew session's row below the band ------------------------
+
+    /** A brew with the other brew's row „🍃 Hisui · Aufguss 2 · 0:48" and its *Pause*. */
+    @Test
+    fun runningWithBrewRow() = capture(
+        "Running_brewRow",
+        TimerStates.running(remainingMs = 20_000),
+        other = TimerStates.running(remainingMs = 48_000, stepIndex = 1)
+            .copy(kind = SessionKind.Brew("s2"), teaName = "Hisui", inSlot = TimerSlot.BREW_2),
+    )
+
+    /** A brew's alert while the other brew's alert waits (held): the row is hidden, its space kept (rule 8). */
+    @Test
+    fun alertingWithBrewHeld() = capture(
+        "Alerting_brewHeld",
+        TimerStates.alerting(overtimeMs = 7_000),
+        other = TimerStates.alerting(overtimeMs = 2_000)
+            .copy(kind = SessionKind.Brew("s2"), teaName = "Hisui", inSlot = TimerSlot.BREW_2, alertHeld = true),
     )
 
     /** The tea is *Knapp* (BRW-11, D-098): „14 g übrig · knapp" under the leaf and water. */

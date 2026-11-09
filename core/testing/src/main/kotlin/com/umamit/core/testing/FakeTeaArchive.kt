@@ -24,6 +24,10 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
         active[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessions[it] }?.snapshot?.teaId
     }.distinctUntilChanged()
 
+    override fun observeActiveTeaIds(): Flow<Set<String>> = combine(s.activeRows, s.sessionRows) { active, sessions ->
+        active.values.mapNotNull { sessions[it.activeBrew.sessionId]?.snapshot?.teaId }.toSet()
+    }.distinctUntilChanged()
+
     override suspend fun archive(teaId: String): ArchiveResult {
         val tea = s.collection.teas.getTea(teaId)
         return when {
@@ -74,8 +78,11 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
 class FakeVesselArchive(private val s: FakeSessions) : VesselArchive {
     val archived = mutableListOf<String>()
 
-    override fun observeActiveVesselId(): Flow<String?> = combine(s.activeRows, s.sessionRows) { active, sessions ->
-        active[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessions[it] }?.snapshot?.vesselId
+    override fun observeActiveVesselIds(): Flow<Set<String>> = combine(s.activeRows, s.sessionRows) {
+            active,
+            sessions,
+        ->
+        active.values.mapNotNull { sessions[it.activeBrew.sessionId]?.snapshot?.vesselId }.toSet()
     }.distinctUntilChanged()
 
     override suspend fun archive(vesselId: String): ArchiveResult {

@@ -4,6 +4,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.KettleWater
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 
 /** What the setup (SCR-04) shows. */
@@ -56,7 +57,7 @@ sealed interface BrewSetupUiState {
         val steps: List<PlannedStep>,
         val preAlertBaseSeconds: Int,
         val canSaveToRecipe: Boolean,
-        val question: ActiveSessionQuestion?,
+        val question: StartQuestion?,
         val alertKey: String?,
         val sessionLeafGrams: Double? = null,
         val stockLevel: StockLevel? = null,
@@ -86,11 +87,11 @@ data class VesselOption(val id: String, val name: String, val brewMl: Int) {
 /** The kettle hint of the first step (BRW-10). */
 data class Kettle(val tempC: Int, val water: KettleWater)
 
-/** „Erst die *[teaName]*-Sitzung beenden?" (TMR-21); [teaName] is null for the quick timer. */
-data class ActiveSessionQuestion(val teaName: String?)
-
 /** What the setup asks its host to do once. */
-enum class BrewSetupEvent {
-    /** The session waits in READY: open the timer (TMR-01). */
-    OpenTimer,
+sealed interface BrewSetupEvent {
+    /**
+     * Open the timer of [slot] (TMR-01): the session just started waits in READY there, or the tea's active session
+     * opens instead of a second one (D-108); null: the one in front (an alert, rule 8).
+     */
+    data class OpenTimer(val slot: TimerSlot?) : BrewSetupEvent
 }
