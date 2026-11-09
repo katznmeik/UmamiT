@@ -59,16 +59,16 @@ sealed interface TimerEvent {
     data object Recover : TimerEvent
 
     /**
-     * [Recover] while another slot's alert rings (04 §7.2 two slots; D-098, D-108): the controller sends it in
-     * place of `recover` when, after the earlier slots' recovery, an alert rings that this slot does not preempt
-     * ([AlertArbitration]). A timer past its deadline is then held ([AlertHold]), however long ago its deadline
+     * [Recover] while another slot's alert sounds (04 §7.2 two slots; D-098, D-108, D-109): the controller sends
+     * it in place of `recover` when, after the earlier slots' recovery, an alert sounds that this slot does not
+     * preempt ([AlertArbitration]). A timer past its deadline is then held ([AlertHold]), however long ago its deadline
      * was, and a ringing alert goes back to held, without a sound of its own; every other state recovers as by
      * [Recover]. A brew session and the quick timer alike. Not a user interaction.
      */
     data object RecoverHeld : TimerEvent
 
     /**
-     * The controller holds the timer's alert because another slot's alert rings (04 §3.3, §9.3; D-098, D-108):
+     * The controller holds the timer's alert because another slot's alert sounds (04 §3.3, §9.3; D-098, D-109):
      * at a due deadline (in place of [DeadlineReached], however late) the timer goes ALERTING held, without a
      * sound, an alert notification or a silent end; a ringing alert stops its sound and is held again
      * (preemption), not reported played. A brew session and the quick timer alike; ignored for a held alert,
@@ -77,8 +77,8 @@ sealed interface TimerEvent {
     data object AlertHold : TimerEvent
 
     /**
-     * The controller releases a held alert (04 §9.3; D-098, D-108): no alert rings any more, and its deadline came
-     * first. The alert rings now, with its overtime from its own deadline, and its silent end comes 10 min from
+     * The controller releases a held alert (04 §9.3; D-098, D-109): no alert sounds any more, and its deadline
+     * came first. The alert rings now, with its overtime from its own deadline, and its silent end comes 10 min from
      * now. Ignored unless the state is a held alert. Not a user interaction.
      */
     data object AlertRingStart : TimerEvent

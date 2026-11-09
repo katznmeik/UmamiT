@@ -203,6 +203,32 @@ class AlertArbitrationTest {
     }
 
     @Test
+    fun `an alert whose sound has ended holds nothing, and the held alert behind it rings (D-109)`() {
+        val brewPlayed = played(brewAt(seconds = 60, held = false))
+        val quickPlayed = played(quickAt(held = false))
+
+        // A deadline behind an alert that no longer sounds rings at once, for a brew and the quick timer alike.
+        listOf(TimerSlot.BREW_2, TimerSlot.QUICK).forEach { slot ->
+            assertThat(AlertArbitration.eventFor(slot, TimerEvent.DeadlineReached, mapOf(TimerSlot.BREW to brewPlayed)))
+                .isEqualTo(TimerEvent.DeadlineReached)
+            assertThat(AlertArbitration.eventFor(slot, TimerEvent.Recover, mapOf(TimerSlot.BREW to brewPlayed)))
+                .isEqualTo(TimerEvent.Recover)
+        }
+        assertThat(AlertArbitration.quickEvent(TimerEvent.DeadlineReached, brewPlayed))
+            .isEqualTo(TimerEvent.DeadlineReached)
+        // The keeper's sound ended: the held alert is released, the keeper stays alerting as it is.
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.BREW_2 to held(90))))
+            .isEqualTo(AlertArbitration.SlotEvent(TimerSlot.BREW_2, TimerEvent.AlertRingStart))
+        assertThat(AlertArbitration.settle(brewPlayed, quickAt(held = true))).isEqualTo(TimerEvent.AlertRingStart)
+        // One sounds, one has sounded: nothing to hold.
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewPlayed, TimerSlot.BREW_2 to brewAt(90, false))))
+            .isNull()
+        assertThat(AlertArbitration.settle(mapOf(TimerSlot.BREW to brewAt(90, false), TimerSlot.QUICK to quickPlayed)))
+            .isNull()
+        assertThat(AlertArbitration.settle(brewPlayed, quickPlayed)).isNull()
+    }
+
+    @Test
     fun `a pre-alert waits for the sound of any other slot, and plays once that has ended`() {
         val sound = PlayerSound(RING_MS)
         sound.alertStarted(TimerSlot.BREW_2)
@@ -227,6 +253,11 @@ class AlertArbitrationTest {
         clocks.advanceSeconds(seconds.toLong())
         send(if (held) TimerEvent.AlertHold else TimerEvent.DeadlineReached)
     }.state
+
+    /** [alert] after the player reported its sound's end (`alertCompleted`): it still alerts, without sound. */
+    private fun played(alert: TimerState): TimerState =
+        BrewTimerEngine.reduce(alert, TimerEvent.AlertCompleted, VirtualClocks().now()).state
+            .also { assertThat((it as TimerState.Alerting).alertPlayed).isTrue() }
 
     /** A brew alert held since its deadline [seconds] after the start. */
     private fun held(seconds: Int): TimerState = brewAt(seconds, held = true)

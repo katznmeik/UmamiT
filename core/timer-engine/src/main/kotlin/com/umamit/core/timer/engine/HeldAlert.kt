@@ -8,7 +8,7 @@ import com.umamit.core.timer.engine.TimerEffect.UpdateNotification
 
 /*
  * The held alert of 04 §3.3 and §9.3 (D-098, D-108): a brew session or the quick timer is held while another
- * slot's alert rings that it does not preempt. A held alert has no sound, no alert notification and no silent
+ * slot's alert sounds that it does not preempt. A held alert has no sound, no alert notification and no silent
  * end; its overtime still runs from its deadline. The controller sends `alertHold` and `alertRingStart`
  * ([AlertArbitration]); neither is a user interaction.
  */
@@ -28,7 +28,7 @@ internal fun onArbitration(state: TimerState.Active, event: TimerEvent, now: Clo
     }
 
 /**
- * A deadline while another slot's alert rings: ALERTING held, however late (a timer that could not ring is
+ * A deadline while another slot's alert sounds: ALERTING held, however late (a timer that could not ring is
  * never ended silently). The service is ensured as for any alert, and the notification shows it waiting.
  */
 internal fun holdAtDeadline(state: TimerState.Running): TimerTransition = accepted(
@@ -43,8 +43,8 @@ internal fun holdAgain(state: TimerState.Alerting): TimerTransition = accepted(
 )
 
 /**
- * Release: no other alert rings, so the held alert rings now, its full length (SET-14) and its silent end
- * 10 min from now; the notification takes the screen (full-screen intent) as at a deadline.
+ * Release: no other alert sounds (D-109), so the held alert rings now, its full length (SET-14) and its silent
+ * end 10 min from now; the notification takes the screen (full-screen intent) as at a deadline.
  */
 internal fun ringStart(state: TimerState.Alerting, now: ClockReading): TimerTransition = accepted(
     state.copy(alertPlayed = false, ringingSinceElapsedMs = now.elapsedMs, ringingSinceWallMs = now.wallMs),

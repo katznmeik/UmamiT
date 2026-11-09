@@ -12,12 +12,13 @@ import kotlin.random.Random
  * through [AlertArbitration.eventFor]), the player's reports, process deaths and reboots; after every event the
  * controller's [AlertArbitration.settle] and [PlayerSound.release], as each turn does. An independent player
  * oracle checks the sound: never two sounds, an alert taken from another only by a brew from the quick timer, a
- * pre-alert never over another slot's sound. And the states: never two slots ringing, a held alert waits only
- * while another rings and always rings before its silent end, every slot's due event handled.
+ * pre-alert never over another slot's sound. And the states: never two slots sounding (alerting, not held, the
+ * sound not reported ended), a held alert waits only while another sounds (D-109: not while one whose sound ended
+ * still alerts) and always rings before its silent end, every slot's due event handled.
  *
- * Two configurations: the v0.3.0 pair (one brew session and the quick timer), where the brew is also never held
- * and a quick alert never starts while the brew alerts; and all three slots (two brew sessions and the quick
- * timer), where the pure rules hold for any set of active slots.
+ * Two configurations: the v0.3.0 pair (one brew session and the quick timer), where the brew is also never held;
+ * and all three slots (two brew sessions and the quick timer), where the pure rules hold for any set of active
+ * slots. In both a quick alert never starts while a brew's sounds.
  */
 class TwoSlotInvariantsTest {
 
@@ -35,6 +36,7 @@ class TwoSlotInvariantsTest {
             "pre-alert waited, then consumed",
             "quick silent end after ringing",
             "both running",
+            "released behind an alert whose sound ended",
         )
     }
 
@@ -54,6 +56,8 @@ class TwoSlotInvariantsTest {
             "pre-alert waited, then played",
             "pre-alert waited, then consumed",
             "two brews running",
+            "released behind an alert whose sound ended",
+            "two brews alerting unheld",
         )
     }
 
@@ -189,6 +193,9 @@ class TwoSlotInvariantsTest {
                 if (settle.event == TimerEvent.AlertRingStart) {
                     situations += "released"
                     if (settle.slot.isBrew) situations += "brew released"
+                    if (states.values.any { it is TimerState.Alerting && !it.held }) {
+                        situations += "released behind an alert whose sound ended"
+                    }
                 }
                 if (!apply(settle.slot, settle.event)) return
             }
@@ -221,12 +228,8 @@ class TwoSlotInvariantsTest {
                             .that(slot.isBrew && !other.slot.isBrew).isTrue()
                     }
                     if (!slot.isBrew) {
-                        assertWithMessage("$label: a quick alert never starts while a brew rings")
-                            .that(brewSlots.none { states.getValue(it).rings }).isTrue()
-                    }
-                    if (pair && !slot.isBrew) {
-                        assertWithMessage("$label: a quick alert never starts while the brew alerts")
-                            .that(states.getValue(TimerSlot.BREW)).isNotInstanceOf(TimerState.Alerting::class.java)
+                        assertWithMessage("$label: a quick alert never starts while a brew's alert sounds")
+                            .that(brewSlots.none { states.getValue(it).sounds }).isTrue()
                     }
                     sound.alertStarted(slot)
                     playing = Playing.Alert(slot, now)
@@ -311,10 +314,13 @@ class TwoSlotInvariantsTest {
             val alerts = slots.mapNotNull { slot ->
                 (states.getValue(slot) as? TimerState.Alerting)?.let { slot to it }
             }
-            val ringing = alerts.filterNot { (_, alert) -> alert.held }
-            assertWithMessage("$label: never two slots ringing").that(ringing.size).isAtMost(1)
-            assertWithMessage("$label: a held alert waits only while another slot rings")
-                .that(alerts.isNotEmpty() && ringing.isEmpty()).isFalse()
+            val sounding = alerts.filter { (_, alert) -> alert.sounds }
+            assertWithMessage("$label: never two slots sounding").that(sounding.size).isAtMost(1)
+            assertWithMessage("$label: a held alert waits only while another slot's alert sounds (D-109)")
+                .that(alerts.any { (_, alert) -> alert.held } && sounding.isEmpty()).isFalse()
+            if (alerts.count { (slot, alert) -> slot.isBrew && !alert.held } > 1) {
+                situations += "two brews alerting unheld"
+            }
             if (pair) {
                 val brewAlert = states.getValue(TimerSlot.BREW) as? TimerState.Alerting
                 assertWithMessage("$label: the brew is never held").that(brewAlert?.held ?: false).isFalse()
@@ -385,7 +391,8 @@ class TwoSlotInvariantsTest {
         }
     }
 
-    private val TimerState.rings: Boolean get() = this is TimerState.Alerting && !held
+    /** The alert sounds (D-109): alerting, not held, its sound not reported ended. */
+    private val TimerState.sounds: Boolean get() = this is TimerState.Alerting && !held && !alertPlayed
 
     private val userEvents = listOf(
         TimerEvent.Start, TimerEvent.Start, TimerEvent.Pause, TimerEvent.Resume, TimerEvent.Poured,
