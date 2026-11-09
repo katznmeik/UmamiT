@@ -605,6 +605,8 @@ v5).**
   dates) were re-recorded with the new ones.
 
 **Build notes (Claude, 2026-11-09, #198: the reminder interval).**
+- **PO (2026-11-09):** with two timers active, *Aufguss starten* stays hidden on
+  Start (the build's choice below, confirmed in the session).
 - **Model.** `LowStockReminderInterval` (DAILY, EVERY_2_DAYS, EVERY_3_DAYS,
   WEEKLY, OFF with their days) replaces the Boolean in `UserSettings`. The
   file keeps the old `lowStockReminder` key for the `schemaVersion` 3 step
@@ -724,6 +726,8 @@ v5).**
   name the new kinds; #206 extends them again.
 
 **Build notes (Claude, 2026-11-09, #206: Rotbusch, Früchtetee and Chai).**
+- **PO (2026-11-09):** a chai is recognised by its name in any tea section
+  (below), confirmed in the session.
 - **Live check (structure only, 08 §2.2).** robots.txt, the sitemap, 9
   product pages (3 per section) and the chai section's one listing page, at
   ≤ 1 request/s, one at a time; no challenge, no 429. One breadcrumb per
