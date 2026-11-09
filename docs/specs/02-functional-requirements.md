@@ -194,6 +194,14 @@ sweets, and items containing no tea (D-091).
   sale duplicates and teaware stay out as above. The first refresh after the
   update re-reads the skip list's not-green products once (05 §9, 08 §2.4
   item 3); the first-load budget is NFR-PERF-11's.
+- **White teas, oolongs and Pu-Erhs (v0.5.0, #205):** the shop's *Weißer
+  Tee* (`/tee/weisser-tee/`, and the Japan tree's `weisstee/`), *Oolong*
+  (`/tee/oolong/`, and the Japan tree's `oolong/`) and *Pu-Erh*
+  (`/tee/pu-erh/`) sections are loaded too, as kinds *Weißer Tee*, *Oolong*
+  and *Pu-Erh* with categories `WHITE`, `OOLONG` and `DARK`, by the same
+  rules as the black teas. They are parser v9: a catalog last refreshed by
+  parser v8 (a v0.5.0 release candidate) re-reads its not-green products once
+  more; a v0.4.1 catalog re-reads once (08 §2.4 item 3).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -235,7 +243,11 @@ fallback recipe. Unmapped teas use `green_generic` and are flagged.
 A tea of another section takes its section's style, never flagged: a
 Kräutertee `herbal`; a black tea `flavored_black` when flavoured, else
 `darjeeling`, `assam` or `ceylon` by its *Sorte* or name, else
-`black_generic` (v0.5.0, D-108; [08 §2.6](08-content.md#26-style-mapping-and-umami-level)).
+`black_generic` (v0.5.0, D-108; [08 §2.6](08-content.md#26-style-mapping-and-umami-level));
+a white tea `flavored_white` when flavoured, else `white_generic`; an oolong
+`flavored_oolong`, else `oolong_generic`; a Pu-Erh `sheng` or `shou` by its
+*Sorte* or name, else `dark_generic` (#205). A Gongfu row of the shop's grid
+becomes a Gongfu recipe, as for green teas.
 The shop's grid and text win over the style's values; „Rezept prüfen" shows
 only without shop values (CAT-05). The PO's second western infusion stays
 green-only.
@@ -329,6 +341,15 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   (≈ 30 min, einmalig)" with *Jetzt laden*, as the Kräutertee view did in
   v0.2.1 (a kind is pending while the last successful refresh ran a parser
   older than its section's, 05 §9).
+- **Weißer Tee, Oolong, Pu-Erh (v0.5.0, #205):** the kinds *Weißer Tee*
+  (key `white`), *Oolong* (key `oolong`) and *Pu-Erh* (key `dark`) have their
+  chips after *Schwarztee*, in the order *Grüntee · Schwarztee · Weißer Tee ·
+  Oolong · Pu-Erh · Kräutertee* (D-108 point 5); each view is grouped by
+  *Sorte* (Bai Mu Dan, …; Taiwan, China, …; Sheng, Shou, Aged) with folding
+  of its own, and the header reads „N Weiße Tees", „N Oolongs", „N Pu-Erhs".
+  Until the first successful refresh with parser v9 each view shows its own
+  hint („Weiße Tees / Oolongs / Pu-Erhs kommen mit dem nächsten Abruf
+  (≈ 30 min, einmalig)") with *Jetzt laden*.
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").
@@ -434,13 +455,13 @@ its shop link. This is network use (d) of GEN-01.
   shop session (`robots.txt` respected, ≤ 2 requests/second, stop on a
   challenge, HTTP 429 or `Retry-After`). Offline, it shows a message and
   sends nothing.
-- AC4: A tea of the catalog's sections (CAT-01: green, black, Kräutertee) is stored in the catalog as a regular
+- AC4: A tea of the catalog's sections (CAT-01: green, black, white, oolong, Pu-Erh, Kräutertee) is stored in the catalog as a regular
   entry (photo per SET-22) and its detail (SCR-21) opens with *In Sammlung
   aufnehmen* / *Nachkauf erfassen* as usual; the exact price is fetched on
   adding (GEN-01 (c)). A sold-out tea shows „nicht vorrätig". It is not
   marked „Neu".
 - AC5: Not in those sections → „Dieser Tee gehört nicht zum Katalog (nur
-  Grün-, Schwarz- und Kräutertees)." and nothing is stored.
+  Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs)." and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
   entry. When the page can't refresh it without a stop (offline, no tea at
   the link, a page the app can't read), the detail opens as it was and the

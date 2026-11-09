@@ -474,7 +474,7 @@ up). Table `catalog_guide_staging` has exactly its columns (D-087).
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
 flagged, photos), `parser_version` (v7 from v0.2.1 with the Kräutertees,
-v8 from v0.5.0 with the black teas; a kind is still to come while the latest
+v8 from v0.5.0 with the black teas, v9 with the white teas, oolongs and Pu-Erhs (#205); a kind is still to come while the latest
 successful row has a version below its section's, SCR-19's hint),
 `error_summary`. The counts of a
 successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
@@ -547,7 +547,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
 | `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
-| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, D-108), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, D-108), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |
@@ -768,8 +768,11 @@ steps to 8 once for the release. While the latest successful refresh in
 `catalog_refresh_log` ran a parser before v8, a refresh treats the
 `NOT_GREEN` skip entries as due and its swap deletes them before adding the
 run's own (the v0.2.1 pattern above, 08 §2.4 item 3); a refresh that stops
-or fails keeps the old skip list, so the next one reads them again. Later
-sections of v0.5.0 are entries of the same step, not a second one.
+or fails keeps the old skip list, so the next one reads them again. The
+white teas, oolongs and Pu-Erhs (#205) are a second step, parser v9, by the
+same rule: a catalog an rc refreshed with v8 re-reads its `NOT_GREEN`
+entries once more; a v0.4.1 catalog still re-reads only once. Still no
+schema change.
 
 ## 10. Volume assumptions
 
