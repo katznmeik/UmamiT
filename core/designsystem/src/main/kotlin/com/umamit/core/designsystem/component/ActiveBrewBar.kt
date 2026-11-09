@@ -261,14 +261,11 @@ private fun BarHalfContent(half: BarHalf, modifier: Modifier = Modifier) {
                     )
                     when {
                         brew.held -> Text(
-                            // A held brew waits for the other brew's *Abgegossen* (D-108); a quick alert is „fertig".
+                            // A held brew waits for the other brew's sound (D-108, D-109); a quick alert is „fertig".
                             text = stringResource(
-                                if (brew.step !=
-                                    null
-                                ) {
-                                    R.string.ds_active_brew_held_brew
-                                } else {
-                                    R.string.ds_active_brew_held
+                                when {
+                                    brew.step != null -> R.string.ds_active_brew_held_brew
+                                    else -> R.string.ds_active_brew_held
                                 },
                             ),
                             style = MaterialTheme.typography.bodyMedium,

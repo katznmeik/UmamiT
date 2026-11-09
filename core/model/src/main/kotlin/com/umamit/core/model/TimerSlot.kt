@@ -4,7 +4,8 @@ package com.umamit.core.model
  * A slot of the timer controller (04 §3.3; D-098, D-108): each active timer runs in its own slot, with its own
  * engine state, due times, exact alarms, alert watchdog and `active_brew` row. [BREW] and [BREW_2] hold brew
  * sessions, [QUICK] the quick timer; the controller admits at most two active slots in all. The declaration order
- * is the controller's fixed order of recovery and due events (BREW, BREW_2, QUICK). Stored by name as the key
+ * is the controller's fixed slot order (BREW, BREW_2, QUICK): of recovery and due events after the brews by deadline
+ * (04 §9.3), of the arbitration's ties and of the notifications. Stored by name as the key
  * `active_brew.slot` (umamit.db v4, 05 §3.12), so a name never changes its meaning and is never renamed.
  */
 enum class TimerSlot {
@@ -12,8 +13,8 @@ enum class TimerSlot {
     BREW,
 
     /**
-     * A second brew session beside [BREW] (D-108); its alarms use the request codes 301–307. Dormant until
-     * v0.5.0-02: the controller has the slot but admits no timer into it yet.
+     * A second brew session beside [BREW] (D-108): a brew start takes it while [BREW] holds a session and at most
+     * one timer is active. Its alarms use the request codes 301–307.
      */
     BREW_2,
 
