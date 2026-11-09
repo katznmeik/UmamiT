@@ -64,6 +64,7 @@ class ControllerHarness(
         .build(),
 ) {
     val log = TimerPortLog()
+
     /** The real session repository, whose [FlakySessions.failNextGets] makes session row reads throw. */
     val sessions = FlakySessions(RoomSessionRepository(db, settings, clock))
     val teas = RoomTeaRepository(db.teaDao(), clock)
@@ -138,14 +139,13 @@ class ControllerHarness(
     fun processRestarted(
         alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null,
         db: UmamiDatabase = this.db,
-    ): ControllerHarness =
-        ControllerHarness(
-            clock = clock,
-            settings = settings,
-            db = db,
-            notificationPorts = notificationPorts,
-            alarmPort = alarmPort,
-        )
+    ): ControllerHarness = ControllerHarness(
+        clock = clock,
+        settings = settings,
+        db = db,
+        notificationPorts = notificationPorts,
+        alarmPort = alarmPort,
+    )
 
     /**
      * The database came to a new phone (or a reset one) in a device backup (E11, 05 §8): restore

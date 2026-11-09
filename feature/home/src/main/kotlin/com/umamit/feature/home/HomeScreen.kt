@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
-import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.PrimaryActionCard
 import com.umamit.core.designsystem.component.ReliabilityBanner
@@ -46,6 +45,7 @@ import com.umamit.core.designsystem.component.ScreenScaffold
 import com.umamit.core.designsystem.component.SectionHeader
 import com.umamit.core.designsystem.component.SettingsGearAction
 import com.umamit.core.designsystem.component.TeaListItem
+import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
 import com.umamit.core.designsystem.theme.UmamiShape

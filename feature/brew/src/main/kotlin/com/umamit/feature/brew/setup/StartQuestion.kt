@@ -2,8 +2,8 @@ package com.umamit.feature.brew.setup
 
 import androidx.compose.runtime.Composable
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
-import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.designsystem.component.FinishActiveSessionDialog
+import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.StartRefusal
 import com.umamit.core.timer.controller.TimerToEnd
