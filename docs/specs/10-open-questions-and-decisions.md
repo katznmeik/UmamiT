@@ -836,6 +836,41 @@ v5).**
 - **TalkBack.** The chips are `FilterChip`s (state read as selected); a
   scale chip's description names its scale („Süße ab 3", „Süße egal").
 
+**Build notes (Claude, 2026-11-09, the v0.5.0 review fix round outside the
+timer path: the T3 review and the motion review,
+`docs/plans/v0.5.0-motion-review.md`).**
+- **A chai's category on *In Sammlung aufnehmen* (#206, user story 36).**
+  The stored `breadcrumb` is now the path the style was mapped from
+  (`ProductPage.stylePath`): the deepest crumb for a green tea, else the
+  deepest crumb in a tea section, as `CatalogRecipes` maps it. A black
+  chai also filed under *Aufgussbeutel* used to become GREEN on the copy,
+  which mapped the format's path. A row stored before keeps its old path
+  until the next refresh rewrites it; the content hash covers `breadcrumb`,
+  so such a tea counts once as changed.
+- **Taste notes** split at „,", „/" and the word „und" („fruchtig/süß",
+  „mild und grasig"), never inside a word („Wunderbar").
+- ***Knapp ab*** is saved when the input is done (*Fertig*, focus loss, the
+  detail closing), not per keystroke: per-keystroke writes, each a read
+  then a save in its own coroutine, could land out of order („12" stored
+  1 g), and a final invalid „600" kept the „60" typed on the way. VORRAT's
+  writes now run one after another behind a mutex, and a write that has
+  started finishes when the detail closes (`NonCancellable`).
+- **Texts.** *Fotos laden* says „zusammen etwa 80–100 MB" (NFR-PERF-11);
+  the channel „Vorrat" is described „Erinnerung an knappe und leere Tees",
+  as SET-28 is no longer daily only. 06 §5.4 describes the interval.
+- **Motion (03 §3.6, D-041, D-055).** VORRAT's reorder link and button
+  take the same 8 + 48 dp (S1); the kind row reveals its chip only on a
+  real kind change, remembered across the row leaving the list, with the
+  `standard` token instead of Compose's default spring (S2, S3); *Alle
+  zeigen* into another kind jumps the list back to the chip row at once
+  (N1); a pending kind's view leaves out the list's refreshing row while
+  its hint shows (N2); the *Warnung* switch moves at the tap (N3).
+- **For M5's backup code (no change now).** Schema 5's `tea` has
+  `low_stock_warning` as its last column, as the migration appends it,
+  but `5.json` lists the columns in the entity's order. Room compares
+  columns by name, so both pass; a backup or restore must likewise go by
+  column names, never by position.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 

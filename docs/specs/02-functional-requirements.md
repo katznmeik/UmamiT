@@ -314,7 +314,8 @@ edge, WebP) and stored locally, with a small thumbnail for the lists
 unchanged photos are not downloaded again, nor photos that failed for good
 while their URL stays the same (D-091). JPEG, PNG and WebP sources are read
 (D-091). About 25–35 MB for the whole
-catalog (D-073). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
+catalog (D-073); from v0.5.0, with every tea section, about 80–100 MB
+(NFR-PERF-11, D-108). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
 no photo and keeps those already stored (D-078).
 
 **CAT-09 — Tee-Info guides** `Should`

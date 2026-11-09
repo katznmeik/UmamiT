@@ -1,6 +1,6 @@
 # 07 · Non-Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (NFR-PERF-11 with every tea section, D-108; 2026-10-28: NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
 > v0.2: single user, single device (Samsung Galaxy, Android 17 / One UI 9),
 > no store; catalog network access.
 
