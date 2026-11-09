@@ -294,6 +294,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Date | Summary |
 |---|---|
+| 2026-11-09 | **PO feedback after v0.4.1** (four points) grilled in two rounds into **D-108**: v0.5.0 before M4 (M4 → v0.6.0): any two active timers, every tea section of the shop with one category chip at a time, per-tea stock warning with its own threshold and a global reminder interval, a flavour filter (taste notes and scales). 01 NG6/NG7 retired, 09 §2 row added. Next: the v0.5.0 spec and tickets. |
 | 2026-11-08 | **v0.4.1 done:** PO approved rc.1 (checklist and design review); #191 merged (`2b5735fc`), both accuracy variants PASS on `main`, `v0.4.1` released (versionCode 40199, certificate verified); #171, #175–#189 closed. Next: M4 → v0.5.0. |
 | 2026-10-29 | **v0.2.1 done:** #106 merged (9a73b19), accuracy PASS on `main`, `v0.2.1` released (versionCode 20199, certificate verified); #81, #83–#94, #97, #98, #100, #102 closed. Next: v0.3.0. |
 | 2026-10-29 | **PO approved v0.2.1-rc.1** (all checklist items, design review; Vorwarnton Zimbel stays default); version 0.2.1; merge of #106 and the final release follow. |
