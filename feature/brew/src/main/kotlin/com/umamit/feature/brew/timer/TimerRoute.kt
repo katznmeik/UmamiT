@@ -16,6 +16,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.controller.lastRinging
 import com.umamit.core.timer.reliability.startFirstIntent
 import com.umamit.core.ui.rememberPhotoPainter
 
@@ -126,8 +127,8 @@ internal class TimerRouteView(val shown: TimerUiState.Active?, val other: TimerU
 
 /**
  * The route's view of the slots ([brew], [brew2], [quick]) and the controller's [front] (D-098, D-108): a ringing
- * alert first, in the slot order (rule 8; a held alert does not ring); else the [pinned] slot's timer, or, with
- * none pinned yet, the one in front; null when that timer is not active. The other active timer is the row: the
+ * alert first, of two the one that rang last, whose sound plays (rule 8, D-109; a held alert does not ring, one whose
+ * sound ended stays the row); else the [pinned] slot's timer, or, with none pinned yet, the one in front; null when that timer is not active. The other active timer is the row: the
  * quick timer, or the other brew session with its own seal and stock on its own route (v0.5.0-03).
  */
 internal fun timerRouteView(
@@ -143,7 +144,7 @@ internal fun timerRouteView(
         TimerSlot.BREW_2 -> brew2 as? TimerUiState.Active
         TimerSlot.QUICK -> quick as? TimerUiState.Active
     }
-    val shown = TimerSlot.entries.firstNotNullOfOrNull { slot -> activeIn(slot)?.takeIf { it.ringing } }
+    val shown = TimerSlot.entries.mapNotNull(::activeIn).lastRinging()
         ?: if (pinned == null) front as? TimerUiState.Active else activeIn(pinned)
     val other = TimerSlot.entries.filter { it != shown?.slot }.firstNotNullOfOrNull { activeIn(it) }
         ?.takeIf { shown != null }

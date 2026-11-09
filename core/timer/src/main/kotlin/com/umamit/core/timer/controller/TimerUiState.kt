@@ -63,8 +63,10 @@ sealed interface TimerUiState {
      *   (BRW-11, D-097); null without one and for the quick timer.
      * @property waterMl the session's planned water in ml, from its session row, for READY's „250 ml Wasser"
      *   (BRW-11, D-097); null without one (*Ohne Gefäß*) and for the quick timer.
-     * @property alertHeld ALERTING: the alert waits for another slot's ringing alert (04 §9.3, D-098, D-108): no
-     *   sound, no alert notification; it rings once that alert is acknowledged.
+     * @property alertHeld ALERTING: the alert waits for another slot's sounding alert (04 §9.3, D-098, D-108): no
+     *   sound, no alert notification; it rings once that alert's sound has ended (D-109).
+     * @property ringingSinceElapsedMs ALERTING, not held: when its alert last started ringing (04 §3.3), so of two
+     *   alerts that are not held the one that rang last, whose sound plays, is in front (D-109).
      * @property inSlot the controller slot of this timer when it is not the first slot of its [kind]: `BREW_2` for a
      *   second brew session (D-108); null for `BREW` and `QUICK`, so a copy with another kind follows its kind.
      */
@@ -91,6 +93,7 @@ sealed interface TimerUiState {
         val waterMl: Int? = null,
         val alertHeld: Boolean = false,
         val inSlot: TimerSlot? = null,
+        val ringingSinceElapsedMs: Long? = null,
     ) : TimerUiState {
         /**
          * The controller slot of this timer (04 §3.3): its user events go there. A brew session runs in `BREW` or
@@ -134,6 +137,14 @@ sealed interface TimerUiState {
 fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { it.ringing }?.let {
     "${it.sessionId ?: "quick"}:${it.stepIndex}:${it.deadlineWallMs}"
 }
+
+/**
+ * Of the ringing alerts in [this] list (in the slot order), the one that started ringing last (04 §9.3, D-109): the
+ * alert whose sound plays, or played last, while the other one whose sound ended still alerts; on a tie the first in
+ * the slot order. Null when none rings.
+ */
+fun List<TimerUiState.Active>.lastRinging(): TimerUiState.Active? =
+    filter { it.ringing }.maxByOrNull { it.ringingSinceElapsedMs ?: Long.MIN_VALUE }
 
 private const val MS_PER_SECOND = 1_000L
 
@@ -210,5 +221,6 @@ internal fun uiStateOf(
         waterMl = details?.waterMl,
         alertHeld = (state as? TimerState.Alerting)?.held ?: false,
         inSlot = slot?.takeIf { it != slotOf(state.session.kind) },
+        ringingSinceElapsedMs = (state as? TimerState.Alerting)?.ringingSinceElapsedMs,
     )
 }

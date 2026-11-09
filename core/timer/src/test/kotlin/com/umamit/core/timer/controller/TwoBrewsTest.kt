@@ -130,6 +130,71 @@ class TwoBrewsTest {
     }
 
     @Test
+    fun `a held brew rings once the first alert's sound has ended, the first still alerting silently`() = runTest {
+        // D-109: the first brew is not poured; its Alarmdauer ends 10 s after its deadline.
+        h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.advanceSeconds(10)
+        h.controller.startSession(secondTea(infusion(55, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+        val first = SessionKind.Brew(checkNotNull(active(TimerSlot.BREW).sessionId))
+        val second = SessionKind.Brew(checkNotNull(active(TimerSlot.BREW_2).sessionId))
+        h.advanceSeconds(50)
+        val firstDeadline = checkNotNull(active(TimerSlot.BREW).deadlineElapsedMs)
+        h.advanceSeconds(5)
+        assertThat(active(TimerSlot.BREW_2).alertHeld).isTrue()
+        val firstAlert = checkNotNull(h.alert.playing)
+        h.advanceSeconds(5)
+
+        h.controller.alertCompleted(firstAlert)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(second)
+        assertThat(active(TimerSlot.BREW_2).ringing).isTrue()
+        assertThat(active(TimerSlot.BREW_2).display(h.clock.elapsed).overtimeSeconds).isEqualTo(5)
+        assertThat(h.alarms.armed(TimerSlot.BREW_2).overtimeTimeoutAtElapsedMs).isEqualTo(h.clock.elapsed + 600_000)
+        // The first stays „Jetzt abgießen!" without sound, its silent end 10 min after its own deadline.
+        assertThat(active(TimerSlot.BREW).phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(active(TimerSlot.BREW).alertHeld).isFalse()
+        assertThat(h.alarms.armed(TimerSlot.BREW).overtimeTimeoutAtElapsedMs).isEqualTo(firstDeadline + 600_000)
+        // The released alert takes the screens and the alert notification; the first is notification 5.
+        assertThat(h.active.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(h.service.foreground?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(h.service.fullScreen).isTrue()
+        assertThat(h.notifier.other?.slot).isEqualTo(TimerSlot.BREW)
+        assertThat(h.notifier.other?.phase).isEqualTo(TimerPhase.ALERTING)
+
+        // *Abgegossen* on the first never cuts the second's sound.
+        h.controller.send(TimerSlot.BREW, TimerEvent.Poured)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(second)
+        assertThat(h.alert.started.map { it.kind }).containsExactly(first, second).inOrder()
+        assertThat(h.service.foreground?.slot).isEqualTo(TimerSlot.BREW_2)
+    }
+
+    @Test
+    fun `a brew deadline after the other brew's sound has ended rings at once`() = runTest {
+        h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.advanceSeconds(10)
+        h.controller.startSession(secondTea(infusion(70, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+        val second = SessionKind.Brew(checkNotNull(active(TimerSlot.BREW_2).sessionId))
+        h.advanceSeconds(65)
+        h.controller.alertCompleted(checkNotNull(h.alert.playing))
+
+        h.advanceSeconds(15)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(second)
+        assertThat(active(TimerSlot.BREW_2).ringing).isTrue()
+        // It rang at its deadline, so its silent end is 10 min after it.
+        assertThat(h.alarms.armed(TimerSlot.BREW_2).overtimeTimeoutAtElapsedMs)
+            .isEqualTo(checkNotNull(active(TimerSlot.BREW_2).deadlineElapsedMs) + 600_000)
+        assertThat(h.active.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(h.service.foreground?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(active(TimerSlot.BREW).phase).isEqualTo(TimerPhase.ALERTING)
+    }
+
+    @Test
     fun `the second brew goes before a quick timer due at the same instant`() = runTest {
         h.controller.startSession(brewStart(infusion(60)))
         h.controller.startSession(secondTea(infusion(60, preAlert = 0)))

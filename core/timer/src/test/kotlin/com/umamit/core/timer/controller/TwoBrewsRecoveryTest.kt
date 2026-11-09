@@ -97,6 +97,30 @@ class TwoBrewsRecoveryTest {
     }
 
     @Test
+    fun `a recovered alert whose sound had ended holds nothing - the other brew past its deadline rings`() = runTest {
+        // D-109: the first brew alerts, its sound ended before the kill; the second's deadline passes while dead.
+        before.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        before.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        before.controller.startSession(secondTea(infusion(90, preAlert = 0)))
+        before.controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+        before.advanceSeconds(60)
+        before.advanceSeconds(15)
+        before.controller.alertCompleted(checkNotNull(before.alert.playing))
+        val second = SessionKind.Brew(checkNotNull(before.active(TimerSlot.BREW_2).sessionId))
+
+        val after = before.processRestarted()
+        after.clock.advanceBy(30_000)
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        // The first is not replayed (it played), so it holds nothing.
+        assertThat(after.alert.started.map { it.kind }).containsExactly(second)
+        assertThat(after.active(TimerSlot.BREW_2).ringing).isTrue()
+        assertThat(after.active(TimerSlot.BREW).phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(after.active(TimerSlot.BREW).alertHeld).isFalse()
+        assertThat(after.service.foreground?.slot).isEqualTo(TimerSlot.BREW_2)
+    }
+
+    @Test
     fun `a brew whose deadline passed while dead never takes the sound from a brew already ringing`() = runTest {
         // The second brew rings; the first's deadline comes only after the process died.
         before.controller.startSession(brewStart(infusion(120, preAlert = 0)))

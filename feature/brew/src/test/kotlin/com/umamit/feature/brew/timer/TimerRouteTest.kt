@@ -219,6 +219,23 @@ class TimerRouteTest {
     }
 
     @Test
+    fun `a quick alert released once the brew's sound ended takes the brew's route`() {
+        // D-109: the brew alerts on without sound; the quick alert that rang after it is the one that sounds.
+        val timer = FakeBrewTimer()
+        val alert = TimerStates.alerting(stepIndex = 0).copy(ringingSinceElapsedMs = TimerStates.NOW - 20_000)
+        val held = TimerStates.quick(TimerPhase.ALERTING).copy(alertHeld = true)
+        timer.show(brew = alert, quick = held, front = alert)
+        show(timer, slot = TimerSlot.BREW)
+
+        val released = TimerStates.quick(TimerPhase.ALERTING).copy(ringingSinceElapsedMs = TimerStates.NOW)
+        timer.show(brew = alert, quick = released, front = released)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Fertig").assertExists()
+        compose.onNodeWithText("Abgegossen").assertDoesNotExist()
+    }
+
+    @Test
     fun `the route closes when its timer ends while the other runs on`() {
         val timer = FakeBrewTimer()
         timer.show(brew = brewRunning, quick = quickRunning, front = quickRunning)

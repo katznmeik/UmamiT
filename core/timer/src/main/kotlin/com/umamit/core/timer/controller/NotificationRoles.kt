@@ -155,15 +155,15 @@ internal class NotificationRoles(
 
 /**
  * The slot whose timer ends next among the [active] timers in the slot order (04 §8.3, D-098, D-108, PO Q5), the
- * Live Update's: the ringing alert (the first in the slot order); else a running timer before a waiting one; of
- * two running, the earlier deadline (the first in the slot order on a tie, so a brew before the quick timer); of
- * two waiting, the first in the slot order, unless it went quiet (TMR-14) and the other has not. Null while every
- * slot is idle.
+ * Live Update's: the ringing alert (of two, the one that rang last, whose sound plays, D-109); else a running timer
+ * before a waiting one; of two running, the earlier deadline (the first in the slot order on a tie, so a brew before
+ * the quick timer); of two waiting, the first in the slot order, unless it went quiet (TMR-14) and the other has
+ * not. Null while every slot is idle.
  */
 internal fun dueNext(active: List<TimerUiState.Active>): TimerSlot? {
     val running = active.filter { it.phase == TimerPhase.RUNNING }
     return (
-        active.firstOrNull { it.ringing }
+        active.lastRinging()
             ?: running.minByOrNull { checkNotNull(it.deadlineElapsedMs) }
             ?: active.firstOrNull { !it.demoted }
             ?: active.firstOrNull()

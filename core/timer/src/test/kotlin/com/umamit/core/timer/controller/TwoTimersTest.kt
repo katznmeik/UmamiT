@@ -145,6 +145,57 @@ class TwoTimersTest {
     }
 
     @Test
+    fun `the held quick alert rings once the brew's sound has ended, the brew still alerting silently`() = runTest {
+        // D-109: the brew is not poured; its Alarmdauer ends 15 s after its deadline.
+        h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.advanceSeconds(5)
+        h.controller.startQuickTimer(60, preAlertSeconds = 0, run = true)
+        h.advanceSeconds(60)
+        assertThat(active(TimerSlot.QUICK).alertHeld).isTrue()
+        val brewAlert = checkNotNull(h.alert.playing)
+        h.advanceSeconds(10)
+
+        h.controller.alertCompleted(brewAlert)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(SessionKind.Quick)
+        assertThat(active(TimerSlot.QUICK).ringing).isTrue()
+        assertThat(active(TimerSlot.QUICK).display(h.clock.elapsed).overtimeSeconds).isEqualTo(10)
+        assertThat(h.alarms.armed(TimerSlot.QUICK).overtimeTimeoutAtElapsedMs).isEqualTo(h.clock.elapsed + 600_000)
+        assertThat(active(TimerSlot.BREW).phase).isEqualTo(TimerPhase.ALERTING)
+        assertThat(active(TimerSlot.BREW).alertHeld).isFalse()
+        assertThat(h.active.slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(h.service.foreground?.slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(h.service.fullScreen).isTrue()
+        assertThat(h.notifier.other?.slot).isEqualTo(TimerSlot.BREW)
+        assertThat(h.notifier.other?.phase).isEqualTo(TimerPhase.ALERTING)
+
+        // *Abgegossen* on the brew never cuts the quick alert's sound.
+        h.controller.send(TimerSlot.BREW, TimerEvent.Poured)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(SessionKind.Quick)
+        assertThat(h.service.foreground?.slot).isEqualTo(TimerSlot.QUICK)
+    }
+
+    @Test
+    fun `a quick deadline after the brew's sound has ended rings at once, as without a brew`() = runTest {
+        h.controller.startSession(brewStart(infusion(30, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.controller.startQuickTimer(60, preAlertSeconds = 0, run = true)
+        h.advanceSeconds(30)
+        h.controller.alertCompleted(checkNotNull(h.alert.playing))
+
+        h.advanceSeconds(30)
+
+        assertThat(h.alert.playing?.kind).isEqualTo(SessionKind.Quick)
+        assertThat(active(TimerSlot.QUICK).ringing).isTrue()
+        assertThat(h.alarms.armed(TimerSlot.QUICK).overtimeTimeoutAtElapsedMs)
+            .isEqualTo(checkNotNull(active(TimerSlot.QUICK).deadlineElapsedMs) + 600_000)
+        assertThat(h.active.slot).isEqualTo(TimerSlot.QUICK)
+        assertThat(active(TimerSlot.BREW).phase).isEqualTo(TimerPhase.ALERTING)
+    }
+
+    @Test
     fun `a brew deadline while the quick alert rings takes the player at once and holds the quick alert`() = runTest {
         h.controller.startSession(brewStart(infusion(40, preAlert = 0)))
         h.controller.send(TimerSlot.BREW, TimerEvent.Start)

@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * What the screens see of the slots (04 §3.3, D-098, D-108): each slot's UI state, and [state], the timer in
- * front: the slot whose alert rings (in the slot order, though after the arbitration only one rings), else the
- * slot the user started or used last in the app ([focus]), else the first other active one, else Idle. Written
- * inside the controller's event lock.
+ * front: the slot whose alert rings, of two the one that rang last (its sound plays, the other's ended, D-109),
+ * else the slot the user started or used last in the app ([focus]), else the first other active one, else Idle.
+ * Written inside the controller's event lock.
  */
 internal class SlotScreens {
     private val front = MutableStateFlow<TimerUiState>(TimerUiState.Idle)
@@ -41,7 +41,7 @@ internal class SlotScreens {
     }
 
     private fun publish() {
-        front.value = TimerSlot.entries.firstNotNullOfOrNull { slot -> get(slot)?.takeIf { it.ringing } }
+        front.value = active.lastRinging()
             ?: get(focus)
             ?: TimerSlot.entries.firstNotNullOfOrNull(::get)
             ?: TimerUiState.Idle
