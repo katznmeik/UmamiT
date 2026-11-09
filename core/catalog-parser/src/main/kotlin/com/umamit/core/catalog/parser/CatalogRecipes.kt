@@ -33,8 +33,10 @@ data class CatalogRecipes(
 
         /** Maps [page] to its style and derives its recipes from its grid, prose and cold-brew badge. */
         fun derive(page: ProductPage): CatalogRecipes {
+            // A tea of another section by its section's crumb, though it is also filed under a format (D-108).
+            val path = if (page.scope == CatalogScope.GREEN) page.categoryPath else TeaSections.pathIn(page.breadcrumb)
             val mapped = StyleMapper.map(
-                page.categoryPath,
+                path ?: page.categoryPath,
                 page.name,
                 page.teaType,
                 page.isFlavored,

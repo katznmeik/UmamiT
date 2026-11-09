@@ -98,7 +98,8 @@ object StyleMapper {
         isFlavored: Boolean = false,
         originCountry: String? = null,
     ): StyleMatch {
-        if (categoryPath != null && HerbalSection.contains(categoryPath)) return herbal(listOfNotNull(name, teaType))
+        val section = categoryPath?.let(TeaSections::of)
+        if (section != null) return ofSection(section, listOfNotNull(name, teaType), isFlavored)
         val segment = categoryPath?.trimEnd('/')?.substringAfterLast('/')?.lowercase().orEmpty()
         val text = listOfNotNull(name, teaType).joinToString(" ")
         val byName = KEYWORDS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second
@@ -123,11 +124,13 @@ object StyleMapper {
     }
 
     /**
-     * A Kräutertee (v0.2.1, D-093): the `herbal` style whatever its name names (a „Kräuter-Sencha"
-     * of the herbal section is no sencha), never flagged; in bags when its name says so.
+     * A tea of another tea section ([TeaSections]): its section's style, whatever a green keyword in
+     * its name names (a „Kräuter-Sencha" of the herbal section is no sencha), never flagged; in bags
+     * when its name says so. A Kräutertee is `herbal` (v0.2.1, D-093), a black tea one of the black
+     * styles (v0.5.0, D-108).
      */
-    private fun herbal(names: List<String>): StyleMatch = StyleMatch(
-        style = requireNotNull(BuiltInStyles.byKey(HERBAL)),
+    private fun ofSection(section: TeaSection, names: List<String>, isFlavored: Boolean): StyleMatch = StyleMatch(
+        style = requireNotNull(BuiltInStyles.byKey(section.style(names.joinToString(" "), isFlavored))),
         form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
         japanese = false,
         unmapped = false,
@@ -166,7 +169,7 @@ object StyleMapper {
 
     /**
      * The umami level (08 §2.6): the shop's Umami scale (0 → NONE … 4–5 → VERY_HIGH), else the style's.
-     * The catalog maps only to green and herbal styles (CAT-01), which all have one.
+     * The catalog maps only to the styles of its sections (CAT-01), which all have one.
      */
     fun umamiLevel(scales: List<ShopScale>, style: TeaStyle): UmamiLevel =
         scales.firstOrNull { it.label.equals("Umami", ignoreCase = true) }
@@ -174,7 +177,6 @@ object StyleMapper {
             ?: requireNotNull(style.umami) { "catalog style ${style.key} without an umami level" }
 
     private const val FLAVORED = "flavored_green"
-    private const val HERBAL = "herbal"
     private const val KOREAN_GREEN = "korean_green"
 
     /** *Anbaugebiete* Korea: a green tea no keyword names is a Korean green (D-089). */

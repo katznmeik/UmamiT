@@ -44,7 +44,10 @@ class SortePickerTest {
         assertThat(all.first().styleKeys).containsAtLeast("gyokuro", "sencha", "matcha", "green_generic").inOrder()
         assertThat(all.first().styleKeys).hasSize(19)
         assertThat(all.last().styleKeys).containsExactly("other")
-        assertThat(all.flatMap { it.styleKeys }).hasSize(25)
+        // v0.5.0 (D-108): the black group holds the catalog's black styles, the generic row last.
+        assertThat(all.single { it.category == TeaCategory.BLACK }.styleKeys)
+            .containsExactly("darjeeling", "assam", "ceylon", "flavored_black", "black_generic").inOrder()
+        assertThat(all.flatMap { it.styleKeys }).hasSize(29)
     }
 
     @Test

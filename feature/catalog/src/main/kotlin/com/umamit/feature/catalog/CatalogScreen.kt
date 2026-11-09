@@ -353,10 +353,10 @@ private fun CatalogList(
         if (filter.marked) {
             markedNotices(listing)
         } else {
-            // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
-            val herbalHint = filter.kind == CatalogKind.HERBAL && state.herbalPending
-            if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
-            if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
+            // Before the first refresh after the update a new kind is still to come (D-093 Q20, D-108).
+            val pendingHint = filter.kind in state.pendingKinds
+            if (pendingHint) item(key = "kind_pending") { PendingKindRow(filter.kind, state.isRefreshing, actions) }
+            if (listing.sections.isEmpty() && !(pendingHint && listing.totalCount == 0)) {
                 item(key = "no_match") {
                     NoticeRow(
                         stringResource(R.string.catalog_no_match),
@@ -454,13 +454,13 @@ private fun GuidesRow(count: Int, onOpenGuides: () -> Unit) {
 }
 
 /**
- * The *Kräutertee* view's hint before the first refresh after the update (SCR-19, D-093 Q20):
- * *Jetzt laden* starts the refresh, or, while one runs, *Fortschritt anzeigen* opens its sheet.
+ * A kind's view's hint before the first refresh after the update that brings it (SCR-19, D-093 Q20,
+ * D-108): *Jetzt laden* starts the refresh, or, while one runs, *Fortschritt anzeigen* opens its sheet.
  */
 @Composable
-private fun HerbalPendingRow(refreshing: Boolean, actions: ListActions) {
+private fun PendingKindRow(kind: CatalogKind, refreshing: Boolean, actions: ListActions) {
     NoticeRow(
-        text = stringResource(R.string.catalog_herbal_pending),
+        text = stringResource(kind.pendingHint),
         action = stringResource(if (refreshing) R.string.catalog_show_progress else R.string.catalog_herbal_load_now),
         onAction = if (refreshing) actions.onShowProgress else actions.onLoad,
     )

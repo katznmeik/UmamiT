@@ -19,7 +19,8 @@ class BuiltInStylesTest {
             "gyokuro", "kabusecha", "sencha", "fukamushi_sencha", "shincha", "matcha", "karigane", "bancha",
             "hojicha", "hojicha_powder", "genmaicha", "kamairicha", "tamaryokucha", "longjing", "anji_bai_cha",
             "bi_luo_chun", "korean_green", "flavored_green", "green_generic", "herbal",
-            "white_generic", "oolong_generic", "black_generic", "dark_generic", "other",
+            "white_generic", "oolong_generic", "darjeeling", "assam", "ceylon", "flavored_black", "black_generic",
+            "dark_generic", "other",
         ).inOrder()
         assertThat(BuiltInStyles.byKey("nope")).isNull()
     }
@@ -82,6 +83,40 @@ class BuiltInStylesTest {
     }
 
     @Test
+    fun theBlackRowsOfTheCatalogBrewOneWesternInfusionInTheMug() {
+        // 08 §3 (v0.5.0, D-108): 2,5 g / 250 ml (the shop's ~10 g/L), one infusion; no umami, no cold brew.
+        data class Expected(val key: String, val fresh: Int, val teaspoon: Double, val tempC: Int, val seconds: Int)
+        val expected = listOf(
+            Expected("darjeeling", 120, 2.0, 95, 150),
+            Expected("assam", 180, 3.0, 100, 180),
+            Expected("ceylon", 180, 2.5, 100, 180),
+            Expected("flavored_black", 120, 2.5, 100, 180),
+        )
+        for (row in expected) {
+            val style = BuiltInStyles.byKey(row.key)!!
+            val check = assertWithMessage(row.key)
+            check.that(style.category).isEqualTo(TeaCategory.BLACK)
+            check.that(style.umami).isEqualTo(UmamiLevel.NONE)
+            check.that(style.freshnessDays).isEqualTo(row.fresh)
+            check.that(style.gramsPerTeaspoon).isEqualTo(row.teaspoon)
+            check.that(style.japanese).isFalse()
+            check.that(style.coldBrew).isNull()
+            check.that(style.recipes).containsExactly(
+                RecipeTemplate(
+                    name = "Westlich",
+                    method = BrewMethod.WESTERN,
+                    leafGrams = 2.5,
+                    waterMl = 250,
+                    baseTempC = row.tempC,
+                    steps = listOf(RecipeStep(StepKind.INFUSION, row.seconds)),
+                    source = RecipeSource.STYLE_DEFAULT,
+                    isDefault = true,
+                ),
+            )
+        }
+    }
+
+    @Test
     fun otherHasNoUmamiAndNoFreshnessWindow() {
         // 08 §3: „Andere" — umami and freshness „—", 2,5 g/TL, WESTERN 3 g / 250 ml / 85 °C: 3:00.
         val other = BuiltInStyles.byKey("other")!!
@@ -111,7 +146,7 @@ class BuiltInStylesTest {
                 TeaCategory.HERBAL, 1,
                 TeaCategory.WHITE, 1,
                 TeaCategory.OOLONG, 1,
-                TeaCategory.BLACK, 1,
+                TeaCategory.BLACK, 5,
                 TeaCategory.DARK, 1,
                 TeaCategory.OTHER, 1,
             )

@@ -106,7 +106,7 @@ class CatalogLaterRefreshTest {
         product(SPLIT_100, "Abendrot Sencha – 100g", photo = "abendrot100", price = "29,00 €")
         product(KABUSE, "Schattenblatt Kabusecha – 100g", photo = "kabuse")
         product(BANCHA, "Herbstlaub Bancha – 100g", photo = "bancha")
-        product(BLACK, "Abendglut Assam – 100g", photo = "assam", breadcrumb = SyntheticShop.BLACK_TEA_PATH)
+        product(BLACK, "Abendglut Assam – 100g", photo = "assam", breadcrumb = SyntheticShop.TEA_BAGS_PATH)
     }
 
     @After

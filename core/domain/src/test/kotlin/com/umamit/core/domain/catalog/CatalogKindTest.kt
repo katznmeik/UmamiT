@@ -47,7 +47,7 @@ class CatalogKindTest {
         assertThat(CatalogKind.of(null)).isEqualTo(CatalogKind.GREEN)
         assertThat(CatalogKind.of("oolong")).isEqualTo(CatalogKind.GREEN)
         assertThat(CatalogKind.of("oolong", kinds)).isEqualTo(oolong)
-        assertThat(CatalogKind.ALL).containsExactly(CatalogKind.GREEN, CatalogKind.HERBAL).inOrder()
+        assertThat(CatalogKind.ALL).containsExactly(CatalogKind.GREEN, CatalogKind.BLACK, CatalogKind.HERBAL).inOrder()
         assertThat(CatalogFilter.DEFAULT.kind).isEqualTo(CatalogKind.GREEN)
     }
 

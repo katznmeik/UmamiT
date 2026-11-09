@@ -186,7 +186,8 @@ class TeeKontorParserTest {
             listOf("Matcha" to "/matcha/", "Matcha Teepulver" to "/matcha/matcha-teepulver/") to CatalogScope.GREEN,
             listOf("Matcha" to "/matcha/", "Matcha Sets" to "/matcha/matcha-sets/") to CatalogScope.NOT_GREEN,
             listOf("Matcha" to "/matcha/", "Chawan" to "/matcha/matchaschalen-chawan/") to CatalogScope.NOT_GREEN,
-            SyntheticShop.BLACK_TEA_PATH to CatalogScope.NOT_GREEN,
+            SyntheticShop.BLACK_TEA_PATH to CatalogScope.TEA,
+            SyntheticShop.TEA_BAGS_PATH to CatalogScope.NOT_GREEN,
             SyntheticShop.TEAWARE_PATH to CatalogScope.NOT_GREEN,
         )
         cases.forEach { (path, scope) ->
