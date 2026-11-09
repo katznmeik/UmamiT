@@ -75,7 +75,7 @@ const val TEA_DETAIL_RESET_DIALOG_TAG = "tea_detail_reset_dialog"
  * and *Nachkauf erfassen*'s saves (INV-03); the browser for INV-09's link; and *+ Foto*, the photo picker (TEA-05).
  * The stock history's confirmed *Löschen* of a purchase or correction, and a brew row's session page (SCR-29;
  * [openSession] null: brew rows open nothing).
- * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06).
+ * The confirmed ⋮ *Aus Katalog zurücksetzen* (PRF-06). VORRAT's *Warnung* and *Knapp ab* (D-108).
  */
 class TeaDetailActions(
     val back: () -> Unit = {},
@@ -96,6 +96,8 @@ class TeaDetailActions(
     val setCoverPhoto: (photoId: String) -> Unit = {},
     val deletePhoto: (photoId: String) -> Unit = {},
     val resetFromCatalog: () -> Unit = {},
+    val setStockWarning: (on: Boolean) -> Unit = {},
+    val setLowStockGrams: (grams: Int?) -> Unit = {},
 )
 
 /**
@@ -176,6 +178,8 @@ private fun Detail(
                         onPurchase = purchaseSheet::open,
                         onCorrect = stockSheet::open,
                         onReorder = actions.openShop,
+                        onWarning = actions.setStockWarning,
+                        onThreshold = actions.setLowStockGrams,
                     ) {
                         StockHistory(
                             tea.history,

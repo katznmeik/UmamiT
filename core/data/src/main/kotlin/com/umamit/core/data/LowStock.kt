@@ -23,9 +23,10 @@ import javax.inject.Inject
  */
 interface LowStockRepository {
     /**
-     * The card, or null: the non-archived tea with stock events whose stock is *Knapp* or *Leer* (INV-05; its
-     * own `low_stock_grams`, else SET-16's „Knapp ab", inclusive) with the least stock left, skipping hidden
-     * ones. One card at a time; the next most urgent tea takes the slot of a hidden one.
+     * The card, or null: the non-archived tea with stock events and its stock warning on (D-108) whose stock is
+     * *Knapp* or *Leer* (INV-05; its own `low_stock_grams`, else SET-16's „Knapp ab", inclusive) with the least
+     * stock left, skipping hidden ones. One card at a time; the next most urgent tea takes the slot of a hidden
+     * one or of one with its warning off.
      */
     fun observeCard(): Flow<LowStockCard?>
 
@@ -33,9 +34,9 @@ interface LowStockRepository {
     suspend fun hide(card: LowStockCard)
 
     /**
-     * The daily reminder's teas (INV-11): every non-archived tea with stock events that is *Knapp* or *Leer*
-     * by the card's rules (a tea's own threshold first, inclusive), **including** the ones hidden with
-     * *Ausblenden*; least stock first, then by name. Empty when there is none.
+     * The daily reminder's teas (INV-11): every non-archived tea with stock events and its stock warning on that
+     * is *Knapp* or *Leer* by the card's rules (a tea's own threshold first, inclusive), **including** the ones
+     * hidden with *Ausblenden*; least stock first, then by name. Empty when there is none.
      */
     suspend fun reminderTeas(): List<LowStockTea>
 }
@@ -52,10 +53,7 @@ class RoomLowStockRepository @Inject constructor(
         settings.settings.map { Choice(it.lowStockGrams, it.lowStockHidden) }.distinctUntilChanged(),
     ) { levels, choice ->
         // Least stock first already: the first one that is Knapp or Leer and not hidden.
-        levels.firstOrNull { level ->
-            StockLevel.of(level.remainingGrams, level.lowStockGrams ?: choice.thresholdGrams) != StockLevel.AVAILABLE &&
-                level.hideKey() !in choice.hidden
-        }
+        levels.firstOrNull { level -> level.warns(choice.thresholdGrams) && level.hideKey() !in choice.hidden }
     }.distinctUntilChanged().flatMapLatest { level ->
         if (level == null) {
             flowOf(null)
@@ -86,7 +84,7 @@ class RoomLowStockRepository @Inject constructor(
         val threshold = settings.settings.first().lowStockGrams
         // Least stock first already. `lowStockHidden` is not read: hiding the card never hides the problem.
         return dao.observeStockLevels().first()
-            .filter { StockLevel.of(it.remainingGrams, it.lowStockGrams ?: threshold) != StockLevel.AVAILABLE }
+            .filter { it.warns(threshold) }
             .map { LowStockTea(teaId = it.teaId, teaName = it.name, remainingGrams = it.remainingGrams) }
     }
 
@@ -103,6 +101,13 @@ class RoomLowStockRepository @Inject constructor(
 
     private data class Choice(val thresholdGrams: Double, val hidden: Set<String>)
 }
+
+/**
+ * Whether the tea warns: its stock warning is on (D-108) and its stock is *Knapp* or *Leer* by its own threshold,
+ * else [globalGrams] (SET-16), inclusive (INV-05).
+ */
+private fun TeaStockLevel.warns(globalGrams: Double): Boolean =
+    lowStockWarning && StockLevel.of(remainingGrams, lowStockGrams ?: globalGrams) != StockLevel.AVAILABLE
 
 /** `<tea id>/<latest INITIAL or PURCHASE event id>` (05 §6 `lowStockHidden`); a tea without one ends in „/". */
 private fun TeaStockLevel.hideKey(): String = "$teaId/${lastPurchaseId.orEmpty()}"

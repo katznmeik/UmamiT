@@ -70,6 +70,8 @@ fun TeaDetailRoute(
             setCoverPhoto = viewModel::setCoverPhoto,
             deletePhoto = viewModel::deletePhoto,
             resetFromCatalog = viewModel::resetFromCatalog,
+            setStockWarning = viewModel::setStockWarning,
+            setLowStockGrams = viewModel::setLowStockGrams,
         ),
         modifier = modifier,
         alertKey = host.alertKey,

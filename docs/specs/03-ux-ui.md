@@ -951,6 +951,19 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   Sitzungen"). A tea without a recorded price shows none of them. They
   update at once after a purchase, a correction or a history delete. The
   section keeps its title „Vorrat".
+- **Stock warning (v0.5.0, INV-05, INV-09, INV-10, INV-11, D-108, #197):** in
+  VORRAT after the reorder link, above a hairline and before the history:
+  - *Warnung*, one row with a switch (on by default) and „Startkarte und
+    Erinnerung, wenn der Vorrat knapp wird"; the row is the switch, and
+    TalkBack reads it with its state. Off: no Start card, no reminder line,
+    and the reorder link stays a text link; the *Knapp* / *Leer* label stays.
+  - *Knapp ab*, a field in whole grams with the suffix „g" and the line
+    „Leer lassen für die Vorgabe aus den Einstellungen (15 g)" (SET-16's
+    value). Each valid input (empty, or 1–500) is saved at once and the
+    label, card, reminder, setup marker and reorder highlight follow it;
+    anything else says „Gib 1 bis 500 g an oder lass das Feld leer." at the
+    field and keeps the stored value. Shown with the warning off too.
+  - Neither is in the tea editor (SCR-10); the detail is their one place.
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.

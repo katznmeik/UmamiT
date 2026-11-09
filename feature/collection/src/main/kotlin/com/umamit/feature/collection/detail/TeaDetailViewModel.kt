@@ -60,6 +60,7 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.math.roundToInt
 
 /** One-shot outcomes for the host of the tea detail. */
 sealed interface TeaDetailEvent {
@@ -160,6 +161,29 @@ class TeaDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val tea = teas.getTea(teaId) ?: return@launch
             teas.saveTea(tea.copy(isFavorite = !tea.isFavorite))
+        }
+    }
+
+    /** VORRAT's *Warnung* (D-108): the tea's stock warning on or off; a purchase never changes it. */
+    fun setStockWarning(on: Boolean) {
+        updateTea { it.copy(lowStockWarning = on) }
+    }
+
+    /**
+     * VORRAT's *Knapp ab* (D-108): the tea's own threshold in whole grams 1–500, null for the global one (SET-16).
+     * A value outside is refused and the stored one kept.
+     */
+    fun setLowStockGrams(grams: Int?) {
+        if (grams != null && grams !in Tea.OWN_LOW_STOCK_GRAMS) return
+        updateTea { it.copy(lowStockGrams = grams?.toDouble()) }
+    }
+
+    /** Writes the newest row of the tea changed by [change]; nothing when it is gone or unchanged. */
+    private fun updateTea(change: (Tea) -> Tea) {
+        viewModelScope.launch {
+            val tea = teas.getTea(teaId) ?: return@launch
+            val changed = change(tea)
+            if (changed != tea) teas.saveTea(changed)
         }
     }
 
@@ -301,13 +325,16 @@ class TeaDetailViewModel @Inject constructor(
             stockLevel = level,
             freshness = detailFreshness(tea, if (stockEvents.isEmpty()) null else grams, clock.today()),
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
+            // With the warning off the link stays a text link, Knapp or not (INV-09 AC1, D-108).
             reorder = reorderUrl?.let {
                 Reorder(
                     it,
-                    prominent =
-                    stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
+                    prominent = tea.lowStockWarning && stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
                 )
             },
+            stockWarning = tea.lowStockWarning,
+            ownLowStockGrams = tea.lowStockGrams?.roundToInt(),
+            globalLowStockGrams = brew.globals.lowStockGrams.roundToInt(),
             description = tea.description?.takeIf { it.isNotBlank() },
             notes = tea.notes?.takeIf { it.isNotBlank() },
             details = TeaFacts(

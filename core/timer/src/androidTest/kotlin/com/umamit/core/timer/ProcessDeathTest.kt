@@ -286,7 +286,7 @@ class ProcessDeathTest {
         )
         assertEquals(
             "both timers restored as they ran",
-            "BREW RUNNING|$brewDeadline\nQUICK RUNNING|$quickDeadline",
+            "BREW RUNNING|$brewDeadline\nBREW_2 IDLE\nQUICK RUNNING|$quickDeadline",
             TimerStateActivity.slotsFile(context).readText(),
         )
         eventually("notification 1 posted again after the kill ($kill)", START_TIMEOUT) {

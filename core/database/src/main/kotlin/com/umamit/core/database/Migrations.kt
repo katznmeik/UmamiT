@@ -114,8 +114,21 @@ private val ACTIVE_BREW_V3_COLUMNS = ACTIVE_BREW_V3_KEPT.joinToString { (name, _
 private val ACTIVE_BREW_V3_COLUMN_DEFINITIONS = ACTIVE_BREW_V3_KEPT.joinToString { (name, type) -> "`$name` $type" }
 
 /**
+ * Schema 4 → 5 (v0.5.0, INV-09, INV-10, INV-11, D-108): the per-tea stock warning. `tea` gains `low_stock_warning`
+ * (INTEGER NOT NULL DEFAULT 1, appended as the last column), so every existing tea keeps its warning on, as it was;
+ * its own `low_stock_grams` stays as it is. No other table changes, so a brew session and a quick timer running
+ * during the update keep their slots and alert on time (rule 8). Room runs it in one transaction: it applies whole or
+ * not at all, and the database is never opened destructively (05 §9).
+ */
+internal val MIGRATION_4_5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `tea` ADD COLUMN `low_stock_warning` INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
+/**
  * Every migration of `umamit.db` (05 §9). [umamiDatabaseBuilder] registers exactly these, and
  * `SchemaVersionsTest` opens a database of every committed schema version with that builder,
  * so a version bump whose migration is missing here fails the unit tests.
  */
-internal val UMAMI_MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+internal val UMAMI_MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
