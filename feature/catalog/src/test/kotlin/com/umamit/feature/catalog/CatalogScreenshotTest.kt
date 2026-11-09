@@ -25,6 +25,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogTeaDetail
@@ -96,13 +97,13 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 .copy(originCountry = "Japan", discontinued = true, marked = true),
             // Kräutertees (v0.2.1, D-093): only in the Kräutertee view.
             catalogTea("XK1100", "Wiesenzauber", "Kräutermischungen", 890, thumbnailPath = "wiese")
-                .copy(isHerbal = true, isOrganic = true, isNew = true, marked = true),
+                .copy(kind = CatalogKind.HERBAL, isOrganic = true, isNew = true, marked = true),
             catalogTea("XK1200", "Zitronenwiese mit Apfelstückchen", "Kräutermischungen", 790)
-                .copy(isHerbal = true, isFlavored = true, owned = true),
+                .copy(kind = CatalogKind.HERBAL, isFlavored = true, owned = true),
             catalogTea("XK1300", "Bergminze", "Einzelkräuter", 1190, thumbnailPath = "minze")
-                .copy(isHerbal = true, originCountry = "Deutschland"),
+                .copy(kind = CatalogKind.HERBAL, originCountry = "Deutschland"),
             catalogTea("XK1400", "Abendruhe", "Ayurveda & Wellness", 1290)
-                .copy(isHerbal = true, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+                .copy(kind = CatalogKind.HERBAL, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -317,7 +318,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun listHerbal() = capture("listHerbal") {
         CatalogContent(
-            state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true)),
+            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
@@ -331,8 +332,8 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
      */
     @Test
     fun listHerbalPending() = capture("listHerbalPending") {
-        val filter = CatalogFilter.DEFAULT.withHerbal(true)
-        val greenOnly = TEAS.filterNot { it.isHerbal }
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)
+        val greenOnly = TEAS.filterNot { (it.kind == CatalogKind.HERBAL) }
         CatalogContent(
             state = CatalogUiState(
                 listing = CatalogBrowser.listing(greenOnly, filter, null, FakeClock.DEFAULT_WALL_MS),
@@ -387,7 +388,7 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     fun filterSheetHerbal() {
         assumeTrue(fontScale == 1f)
         capture("filterSheetHerbal") {
-            val state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true).copy(organicOnly = true))
+            val state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL).copy(organicOnly = true))
             CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
             CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
             }, onDismissRequest = {})

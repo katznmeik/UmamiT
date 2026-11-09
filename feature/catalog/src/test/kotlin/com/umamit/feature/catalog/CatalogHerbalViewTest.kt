@@ -21,6 +21,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.CatalogRefreshProgress
 import com.umamit.core.data.catalog.CatalogRefreshState
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.testing.FakeCatalogRefreshRunner
@@ -45,7 +46,7 @@ class CatalogHerbalViewTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun herbal(key: String, name: String, sorte: String): CatalogTeaSummary =
-        catalogTea(key, name, sorte).copy(isHerbal = true, originCountry = "Deutschland")
+        catalogTea(key, name, sorte).copy(kind = CatalogKind.HERBAL, originCountry = "Deutschland")
 
     private val green = listOf(
         catalogTea("XY0100", "Morgennebel Sencha").copy(originCountry = "Japan"),

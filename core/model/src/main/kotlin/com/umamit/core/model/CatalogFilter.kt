@@ -14,8 +14,8 @@ enum class FlavourFilter { ALL, PURE, FLAVOURED }
  * @property types the *Sorten* to show; empty = every one.
  * @property origins the growing countries to show; empty = every one.
  * @property minUmami only teas whose umami scale reaches this level; null = no umami filter.
- * @property herbal the *Kräutertee* view (v0.2.1, D-093): the Kräutertees instead of the green
- *   teas. [flavour] („Pur", Q14) and [minUmami] (Q19) don't apply in it.
+ * @property kind the catalog kind shown (D-108): the green teas by default, or another one such as the
+ *   *Kräutertee* view (v0.2.1, D-093). [flavour] („Pur", Q14) and [minUmami] (Q19) apply to the green kind only.
  * @property marked the *Gemerkt* view (v0.2.2, CAT-18, D-097): every marked tea, green and herbal,
  *   sold out or no longer in the range, grouped by *Sorte*; only [search] applies in it. The other
  *   filters are kept for when the view is left.
@@ -31,41 +31,44 @@ data class CatalogFilter(
     val availableOnly: Boolean = true,
     val newOnly: Boolean = false,
     val sort: CatalogSort = CatalogSort.TYPE,
-    val herbal: Boolean = false,
+    val kind: CatalogKind = CatalogKind.GREEN,
     val marked: Boolean = false,
 ) {
+    /** The default kind is shown: the green-only rules („Pur", Umami) apply. */
+    val isGreen: Boolean get() = kind == CatalogKind.GREEN
+
     /**
      * The filters that differ from the default view, without search and sort (the filter button's
-     * count); the *Kräutertee* chip counts, „Pur" and Umami don't in its view (SCR-19).
+     * count); a kind chip other than the default counts, „Pur" and Umami don't in its view (SCR-19).
      */
     val changedFilters: Int
         get() = listOf(
             types.isNotEmpty(),
             origins.isNotEmpty(),
             organicOnly,
-            !herbal && flavour != FlavourFilter.PURE,
-            !herbal && minUmami != null,
+            isGreen && flavour != FlavourFilter.PURE,
+            isGreen && minUmami != null,
             ownedOnly,
             !availableOnly,
             newOnly,
-            herbal,
+            !isGreen,
         ).count { it }
 
-    /** These filters without any: every tea of the current range (green or herbal), same search and sort. */
+    /** These filters without any: every tea of the current range of the kind, same search and sort. */
     fun withoutFilters(): CatalogFilter = CatalogFilter(
         search = search,
         flavour = FlavourFilter.ALL,
         availableOnly = false,
         sort = sort,
-        herbal = herbal,
+        kind = kind,
     )
 
     /**
-     * The *Kräutertee* chip (SCR-19, D-093): the Kräutertees ([herbal]) or the green teas; the
-     * *Sorten* chosen belong to the other kind and are dropped, the rest is kept.
+     * A kind chip (SCR-19, D-093, D-108): the teas of [kind] instead of the current kind; the *Sorten*
+     * chosen belong to the other kind and are dropped, the rest is kept.
      */
-    fun withHerbal(herbal: Boolean): CatalogFilter =
-        if (herbal == this.herbal) this else copy(herbal = herbal, types = emptySet())
+    fun withKind(kind: CatalogKind): CatalogFilter =
+        if (kind == this.kind) this else copy(kind = kind, types = emptySet())
 
     companion object {
         /** The list's default view (D-073). */
@@ -81,7 +84,7 @@ data class CatalogSection(val teaType: String?, val teas: List<CatalogTeaSummary
  *
  * @property sections the teas that match, in order; one section per *Sorte* when grouped, else one.
  * @property grouped the sections are *Sorten* (sort by type).
- * @property totalCount every tea of the current range of the shown kind (green or herbal), for the
+ * @property totalCount every tea of the current range of the shown kind, for the
  *   header („274 Grüntees", „38 Kräutertees", CAT-07 AC6).
  * @property hiddenMatches search hits the filters hide („searchable but hidden", D-073), those of the
  *   other kind included (CAT-10); 0 without a search.
@@ -89,7 +92,8 @@ data class CatalogSection(val teaType: String?, val teas: List<CatalogTeaSummary
  * @property origins every growing country of the shown kind, for the filter sheet.
  * @property lastRefreshAtMillis when the last successful refresh finished (CAT-07 AC6).
  * @property catalogCount every tea of the current range, green and herbal: none = never loaded.
- * @property hiddenInOtherView the [hiddenMatches] of the other kind, shown by the other view.
+ * @property hiddenInOtherKinds the [hiddenMatches] of each other kind, shown by that kind's view; kinds
+ *   without a hidden hit are left out.
  */
 data class CatalogListing(
     val sections: List<CatalogSection>,
@@ -100,8 +104,11 @@ data class CatalogListing(
     val origins: List<String>,
     val lastRefreshAtMillis: Long?,
     val catalogCount: Int = totalCount,
-    val hiddenInOtherView: Int = 0,
+    val hiddenInOtherKinds: Map<CatalogKind, Int> = emptyMap(),
 ) {
+    /** The [hiddenMatches] that belong to any other kind. */
+    val hiddenInOtherView: Int get() = hiddenInOtherKinds.values.sum()
+
     val teas: List<CatalogTeaSummary> get() = sections.flatMap { it.teas }
 
     companion object {

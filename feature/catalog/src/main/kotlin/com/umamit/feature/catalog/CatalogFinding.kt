@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.FlavourFilter
 
 /** A change of the list's search, filters or sort (CAT-10): applied to the current [CatalogFilter]. */
@@ -125,13 +126,12 @@ internal fun CatalogFilterChips(
         MarkedChip(filter, onFilterChange)
         // The two ranges side by side (D-103): *Grüntee* names the default view, which until v0.4.0-rc.2 showed only
         // as „Pur"; a tap on it returns from the Kräutertees, a tap on the selected one changes nothing.
-        CatalogChip(stringResource(R.string.catalog_filter_green), !filter.herbal) {
-            onFilterChange { it.withHerbal(false) }
+        CatalogKind.ALL.forEach { kind ->
+            CatalogChip(stringResource(kind.chipLabel), filter.kind == kind) {
+                onFilterChange { it.withKind(if (it.kind == kind) CatalogKind.GREEN else kind) }
+            }
         }
-        CatalogChip(stringResource(R.string.catalog_filter_herbal), filter.herbal) {
-            onFilterChange { it.withHerbal(!it.herbal) }
-        }
-        if (!filter.herbal) {
+        if (filter.isGreen) {
             CatalogChip(stringResource(R.string.catalog_filter_pure), filter.flavour == FlavourFilter.PURE) {
                 onFilterChange {
                     it.copy(flavour = if (it.flavour == FlavourFilter.PURE) FlavourFilter.ALL else FlavourFilter.PURE)

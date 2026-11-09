@@ -19,8 +19,8 @@ object CatalogBrowser {
         .thenBy { it.key }
 
     /**
-     * The list of [teas] as [filter] shows it: the green teas of the current range, or in the
-     * *Kräutertee* view its Kräutertees (v0.2.1, D-093); search hits of the other kind count as
+     * The list of [teas] as [filter] shows it: the teas of the filter's catalog kind (D-108): the green teas, or in the
+     * *Kräutertee* view its Kräutertees (v0.2.1, D-093); search hits of the other kinds count as
      * hidden (CAT-10). In the *Gemerkt* view (CAT-18, D-097) every marked tea, of either kind and
      * whatever its stock, the discontinued ones included, grouped by *Sorte*; only the search
      * applies there, and nothing counts as hidden.
@@ -37,9 +37,9 @@ object CatalogBrowser {
     ): CatalogListing {
         val current = teas.filterNot { it.discontinued }
         if (filter.marked) return markedListing(teas, current, filter, searchHits, lastRefreshAtMillis)
-        val range = current.filter { it.isHerbal == filter.herbal }
+        val range = current.filter { it.kind == filter.kind }
         val found = if (searchHits == null) current else current.filter { it.key in searchHits }
-        val shown = found.filter { it.isHerbal == filter.herbal && filter.admits(it) }
+        val shown = found.filter { it.kind == filter.kind && filter.admits(it) }
         val grouped = filter.sort == CatalogSort.TYPE
         val sections = when (filter.sort) {
             CatalogSort.TYPE -> bySorte(shown)
@@ -62,7 +62,11 @@ object CatalogBrowser {
             origins = range.flatMap { it.originCountries }.distinct().sortedWith(collator),
             lastRefreshAtMillis = lastRefreshAtMillis,
             catalogCount = current.size,
-            hiddenInOtherView = if (searchHits == null) 0 else found.count { it.isHerbal != filter.herbal },
+            hiddenInOtherKinds = if (searchHits == null) {
+                emptyMap()
+            } else {
+                found.filter { it.kind != filter.kind }.groupingBy { it.kind }.eachCount()
+            },
         )
     }
 
@@ -76,7 +80,7 @@ object CatalogBrowser {
     ): CatalogListing {
         val marked = teas.filter { it.marked }
         val shown = if (searchHits == null) marked else marked.filter { it.key in searchHits }
-        val range = current.filter { it.isHerbal == filter.herbal }
+        val range = current.filter { it.kind == filter.kind }
         return CatalogListing(
             sections = bySorte(shown),
             grouped = true,
@@ -112,7 +116,7 @@ object CatalogBrowser {
         admitsSwitches(tea)
 
     /** „Pur" doesn't apply to Kräutertees (D-093 Q14). */
-    private fun CatalogFilter.admitsFlavour(tea: CatalogTeaSummary): Boolean = herbal || when (flavour) {
+    private fun CatalogFilter.admitsFlavour(tea: CatalogTeaSummary): Boolean = !isGreen || when (flavour) {
         FlavourFilter.ALL -> true
         FlavourFilter.PURE -> !tea.isFlavored
         FlavourFilter.FLAVOURED -> tea.isFlavored
@@ -120,7 +124,7 @@ object CatalogBrowser {
 
     /** Kräutertees have no umami: the filter is hidden in their view (D-093 Q19) and doesn't apply. */
     private fun CatalogFilter.admitsUmami(tea: CatalogTeaSummary): Boolean {
-        val min = minUmami?.takeUnless { herbal } ?: return true
+        val min = minUmami?.takeIf { isGreen } ?: return true
         return tea.umamiLevel?.let { it >= min } ?: false
     }
 
