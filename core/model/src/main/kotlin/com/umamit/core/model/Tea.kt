@@ -42,7 +42,12 @@ data class Tea(
     val isFavorite: Boolean = false,
     val isArchived: Boolean = false,
     val coverPhotoId: String? = null,
-)
+) {
+    companion object {
+        /** A tea's own „Knapp ab" (SCR-09, D-108): whole grams from 1 to 500. */
+        val OWN_LOW_STOCK_GRAMS: IntRange = 1..500
+    }
+}
 
 /** A tea with what lists and the brew setup show next to it: its default recipe and cover photo. */
 data class TeaOverview(val tea: Tea, val defaultRecipe: Recipe?, val coverPhoto: Photo?)
