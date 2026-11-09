@@ -78,7 +78,10 @@ enum class TimerAlarmKind(
         /** The quick slot's block of request codes (201–207, D-098). */
         private const val QUICK_CODES = 200
 
-        /** The second brew slot's block of request codes (301–307, D-108). */
+        /**
+         * The second brew slot's block of request codes (301–307, D-108). The timer's notification intents use 301–309
+         * too, but none is a broadcast to the alarm receiver, so no pending intent is shared (PendingIntentCodesTest).
+         */
         private const val BREW_2_CODES = 300
 
         /** The kinds of the [DueTimes] fields, which `ScheduleAlarms` reconciles (04 §6.2). */

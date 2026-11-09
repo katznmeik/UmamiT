@@ -211,6 +211,9 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         }
 
     private companion object {
+        // These codes equal the second brew slot's alarm codes 301–307 (TimerAlarmKind, D-108) by design: an alarm is
+        // a broadcast to TimerAlarmReceiver, which none of these intents is, so Android never takes one for the other
+        // (PendingIntentCodesTest pins it). The dismissal (303) is a broadcast to TimerActionReceiver.
         const val RC_CONTENT = 301
         const val RC_FULL_SCREEN = 302
         const val RC_DISMISS = 303
