@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * The daily low-stock reminder's teas (INV-11, D-098; ticket #130) on the collection in memory: every
@@ -33,8 +34,11 @@ class LowStockReminderQueryTest {
         name: String = "Tee $id",
         archived: Boolean = false,
         ownThreshold: Double? = null,
+        warning: Boolean = true,
     ) {
-        data.teas.saveTea(tea(id, name).copy(isArchived = archived, lowStockGrams = ownThreshold))
+        data.teas.saveTea(
+            tea(id, name).copy(isArchived = archived, lowStockGrams = ownThreshold, lowStockWarning = warning),
+        )
         data.stock.addEvent(initial("$id-buy", id, 50.0, 900, at = 1L))
         data.stock.addEvent(
             InventoryEvent("$id-used", id, InventoryEventType.ADJUSTMENT, grams - 50.0, 2L, currency = null),
@@ -89,5 +93,25 @@ class LowStockReminderQueryTest {
         teaWith("t2", grams = 10.0, name = "Eigene Schwelle niedrig", ownThreshold = 5.0)
 
         assertThat(names()).containsExactly("Eigene Schwelle hoch")
+    }
+
+    @Test
+    fun anEmptyOwnThresholdMeansTheGlobalOne() = runTest {
+        teaWith("t1", grams = 25.0, name = "Eigene Schwelle", ownThreshold = 25.0)
+        teaWith("t2", grams = 15.0, name = "Global")
+        teaWith("t3", grams = 16.0, name = "Global, darüber")
+
+        assertThat(names()).containsExactly("Global", "Eigene Schwelle").inOrder()
+    }
+
+    @Test
+    fun aTeaWithItsWarningOffHasNoLineAlsoAfterAPurchase() = runTest {
+        teaWith("t1", grams = 2.0, name = "Nie wieder", warning = false)
+        teaWith("t2", grams = 10.0, name = "Hisui")
+        assertThat(names()).containsExactly("Hisui")
+
+        data.stock.recordPurchase("t1", TeaPurchase(5.0, priceCents = null, purchasedOn = LocalDate.of(1970, 1, 1)))
+
+        assertThat(names()).containsExactly("Hisui")
     }
 }

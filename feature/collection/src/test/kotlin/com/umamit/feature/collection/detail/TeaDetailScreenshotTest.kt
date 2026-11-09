@@ -29,7 +29,7 @@ import java.time.LocalDate
  * instead of a photo and an invented tea (D-016): the top of the page with the figures and REZEPTE, and the tea
  * *Knapp* and archived, scrolled to VORRAT (the filled reorder button, *Brühen* greyed out); the photo pager
  * (SCR-28) over placeholder photos and its limit of 10, the photo's ⋮ and „Foto löschen?" (#186); FRISCHE with
- * *Bald genießen* (INV-06).
+ * *Bald genießen* (INV-06); VORRAT's stock warning on and off with *Knapp ab* (D-108).
  * Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -38,6 +38,9 @@ import java.time.LocalDate
 class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: Float) {
 
     companion object {
+        /** BESCHREIBUNG of [TeaDetailScreenTest.sample]. */
+        private const val DESCRIPTION_START = "Ein erfundener Sencha mit grasiger Frische und weichem Nachklang."
+
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "dark={0}, fontScale={1}")
         fun parameters(): List<Array<Any>> = listOf(false, true).flatMap { dark ->
@@ -137,6 +140,32 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
             isFavorite = true,
         ),
         scrollToTag = TEA_DETAIL_REORDER_TAG,
+    )
+
+    /**
+     * VORRAT's stock warning (D-108): a *Knapp* tea with *Warnung* off keeps its label and a text link; *Knapp ab*
+     * holds its own 20 g (light, dark, 200 % font).
+     */
+    @Test
+    fun stockWarningOff() = capture(
+        "stockWarningOff",
+        TeaDetailScreenTest.sample().copy(
+            stockGrams = 12.0,
+            stockLevel = StockLevel.LOW,
+            reorder = Reorder(TeaDetailScreenTest.URL, prominent = false),
+            stockWarning = false,
+            ownLowStockGrams = 20,
+        ),
+        // The description below the field, so the whole field shows above the FAB.
+        scrollToText = DESCRIPTION_START,
+    )
+
+    /** VORRAT's stock warning on with an empty *Knapp ab*: the global 15 g greyed in the field (D-108). */
+    @Test
+    fun stockWarningOn() = capture(
+        "stockWarningOn",
+        TeaDetailScreenTest.sample(),
+        scrollToText = DESCRIPTION_START,
     )
 }
 

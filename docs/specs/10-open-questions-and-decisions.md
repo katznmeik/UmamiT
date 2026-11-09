@@ -515,6 +515,25 @@ the tickets (`/to-tickets`); nothing is built before the PO starts
   `BREW_2` timer (its alert, its notification's tap), with the other active
   timer in the slim row, so a second brew is never left without a screen.
 
+**Build notes (Claude, 2026-11-09, #197: per-tea stock warning, umamit.db
+v5).**
+- **Schema.** `MIGRATION_4_5` only adds `tea.low_stock_warning INTEGER NOT
+  NULL DEFAULT 1` (05 §9); the entity declares the same default, so a fresh
+  v5 database and a migrated one validate alike.
+- **One rule for card and reminder.** `RoomLowStockRepository` reads the
+  warning with the stock levels and leaves a tea with it off out of both;
+  a purchase writes only its event and the archive flag, so it never touches
+  the warning (tested on the repository and the detail).
+- **Where it is set.** Only on SCR-09's VORRAT, not in the tea editor
+  (allowed by D-108, not needed): *Warnung* as one switch row, *Knapp ab* as
+  a whole-gram field below it, both shown with the warning off. Each valid
+  input (empty or 1–500) is written at once, as the detail does with
+  *Favorit*; anything else is refused at the field and in the view model.
+  An empty field names SET-16's current value in its hint.
+- **Goldens.** Adding the two controls to VORRAT moves everything below it,
+  so the detail's goldens that show VORRAT's lower part (history, FRISCHE,
+  dates) were re-recorded with the new ones.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 

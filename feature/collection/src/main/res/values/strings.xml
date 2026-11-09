@@ -199,6 +199,13 @@
     <string name="collection_tea_history_delete_cancel">Abbrechen</string>
     <string name="collection_tea_history_delete_confirm">Löschen</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
+    <!-- VORRAT's per-tea stock warning (SCR-09, INV-10, INV-11, D-108). -->
+    <string name="collection_tea_stock_warning">Warnung</string>
+    <string name="collection_tea_stock_warning_detail">Startkarte und Erinnerung, wenn der Vorrat knapp wird</string>
+    <string name="collection_tea_stock_threshold">Knapp ab</string>
+    <string name="collection_tea_stock_threshold_unit">g</string>
+    <string name="collection_tea_stock_threshold_hint">Leer lassen für die Vorgabe aus den Einstellungen (%1$d g)</string>
+    <string name="collection_tea_stock_threshold_error">Gib 1 bis 500 g an oder lass das Feld leer.</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
     <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
     <string name="collection_tea_photo_add">+ Foto</string>
