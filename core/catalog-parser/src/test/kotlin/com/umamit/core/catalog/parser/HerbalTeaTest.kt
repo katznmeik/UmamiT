@@ -51,7 +51,8 @@ class HerbalTeaTest {
     @Test
     fun fruitTeaAndOtherSectionsStayOut() {
         assertThat(herbalPage(breadcrumb = SyntheticShop.FRUIT_TEA_PATH).scope).isEqualTo(CatalogScope.NOT_GREEN)
-        assertThat(herbalPage(breadcrumb = SyntheticShop.BLACK_TEA_PATH).scope).isEqualTo(CatalogScope.NOT_GREEN)
+        // From v0.5.0 the black teas are a section of their own (D-108), never herbal.
+        assertThat(herbalPage(breadcrumb = SyntheticShop.BLACK_TEA_PATH).scope).isEqualTo(CatalogScope.TEA)
     }
 
     @Test

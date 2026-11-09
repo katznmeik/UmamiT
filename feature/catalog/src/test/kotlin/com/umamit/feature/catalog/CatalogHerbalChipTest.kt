@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
@@ -83,7 +84,7 @@ class CatalogHerbalChipTest {
         shown("Morgennebel Sencha")
         hidden("Wiesenzauber")
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
@@ -98,7 +99,7 @@ class CatalogHerbalChipTest {
         hidden("Morgennebel Sencha")
         shown(str(R.string.catalog_filter_button_count, 1))
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_herbal).assertIsNotSelected()
@@ -115,17 +116,17 @@ class CatalogHerbalChipTest {
         chip(R.string.catalog_filter_green).assertIsSelected()
 
         // A tap on the selected range changes nothing.
-        chip(R.string.catalog_filter_green).performClick()
+        chip(R.string.catalog_filter_green).performScrollTo().performClick()
         compose.waitForIdle()
         chip(R.string.catalog_filter_green).assertIsSelected()
         shown("Morgennebel Sencha")
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
         chip(R.string.catalog_filter_green).assertIsNotSelected()
         hidden("Morgennebel Sencha")
 
-        chip(R.string.catalog_filter_green).performClick()
+        chip(R.string.catalog_filter_green).performScrollTo().performClick()
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_green).assertIsSelected()
@@ -156,7 +157,7 @@ class CatalogHerbalChipTest {
         // Before the first refresh after the update the catalog has green teas only (Q20 is #91's hint).
         show(teas.filterNot { (it.kind == CatalogKind.HERBAL) })
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
 
         compose.onNodeWithText("Tee-Kontor Kiel · 0 Kräutertees · aktualisiert am 22. Okt.").assertIsDisplayed()

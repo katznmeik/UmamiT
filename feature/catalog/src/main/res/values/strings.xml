@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- SCR-19 empty state (never loaded, 08 §7; D-073): the entry point when the first-start setup is done. -->
     <string name="catalog_empty_title">Der Katalog ist noch leer.</string>
-    <string name="catalog_empty_body">Lade alle Grün- und Kräutertees von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
+    <string name="catalog_empty_body">Lade alle Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs von Tee-Kontor Kiel, um offline darin zu stöbern.</string>
     <string name="catalog_load">Katalog laden</string>
     <!-- While a first load runs and its sheet is closed. -->
     <string name="catalog_loading_body">Der Katalog wird gerade geladen.</string>
@@ -18,6 +18,24 @@
     <plurals name="catalog_herbal_count">
         <item quantity="one">%1$d Kräutertee</item>
         <item quantity="other">%1$d Kräutertees</item>
+    </plurals>
+    <!-- The header's count in the Schwarztee view (v0.5.0, D-108): „… · 186 Schwarztees · …". -->
+    <plurals name="catalog_black_count">
+        <item quantity="one">%1$d Schwarztee</item>
+        <item quantity="other">%1$d Schwarztees</item>
+    </plurals>
+    <!-- The header's count in the views of the white teas, oolongs and Pu-Erhs (v0.5.0, #205). -->
+    <plurals name="catalog_white_count">
+        <item quantity="one">%1$d Weißer Tee</item>
+        <item quantity="other">%1$d Weiße Tees</item>
+    </plurals>
+    <plurals name="catalog_oolong_count">
+        <item quantity="one">%1$d Oolong</item>
+        <item quantity="other">%1$d Oolongs</item>
+    </plurals>
+    <plurals name="catalog_dark_count">
+        <item quantity="one">%1$d Pu-Erh</item>
+        <item quantity="other">%1$d Pu-Erhs</item>
     </plurals>
     <!-- The header's count in the Gemerkt view (v0.2.2, CAT-18): „… · 4 gemerkt · …". -->
     <plurals name="catalog_marked_count">
@@ -42,6 +60,12 @@
     <string name="catalog_filter_green">Grüntee</string>
     <!-- The chip that switches the list to the shop's Kräutertees and back (v0.2.1, D-093). -->
     <string name="catalog_filter_herbal">Kräutertee</string>
+    <!-- The chip of the shop's black teas (v0.5.0, D-108). -->
+    <string name="catalog_filter_black">Schwarztee</string>
+    <!-- The chips of the shop's white teas, oolongs and Pu-Erhs (v0.5.0, #205). -->
+    <string name="catalog_filter_white">Weißer Tee</string>
+    <string name="catalog_filter_oolong">Oolong</string>
+    <string name="catalog_filter_dark">Pu-Erh</string>
     <string name="catalog_filter_available">Vorrätig</string>
     <string name="catalog_filter_organic">Bio</string>
     <string name="catalog_filter_new">Neu</string>
@@ -91,7 +115,13 @@
     <string name="catalog_mark">Merken</string>
     <string name="catalog_marked">Gemerkt</string>
     <!-- The Kräutertee view before the first refresh after the update (SCR-19, D-093 Q20). -->
-    <string name="catalog_herbal_pending">Kräutertees kommen mit dem nächsten Abruf (≈ 16 min, einmalig)</string>
+    <string name="catalog_herbal_pending">Kräutertees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <!-- The Schwarztee view before the first refresh after the update to v0.5.0 (SCR-19, D-108). -->
+    <string name="catalog_black_pending">Schwarztees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <!-- The views of the white teas, oolongs and Pu-Erhs before the first refresh with parser v9 (SCR-19, #205). -->
+    <string name="catalog_white_pending">Weiße Tees kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <string name="catalog_oolong_pending">Oolongs kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
+    <string name="catalog_dark_pending">Pu-Erhs kommen mit dem nächsten Abruf (≈ 30 min, einmalig)</string>
     <string name="catalog_herbal_load_now">Jetzt laden</string>
     <!-- Search hits the filters hide (D-073: flavoured teas are searchable but hidden). -->
     <plurals name="catalog_hidden_matches">
@@ -154,7 +184,7 @@
     <string name="tea_link_loading">Tee wird geladen …</string>
     <string name="tea_link_close">Schließen</string>
     <string name="tea_link_not_a_tea_link">Das ist kein Tee-Link von Tee-Kontor Kiel.</string>
-    <string name="tea_link_not_in_catalog">Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees).</string>
+    <string name="tea_link_not_in_catalog">Dieser Tee gehört nicht zum Katalog (nur Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs).</string>
     <string name="tea_link_refresh_running">Gerade läuft ein Abruf – versuch es danach.</string>
     <!-- 404/410, a redirect (never followed), another 4xx, or a page of no or another product. -->
     <string name="tea_link_no_tea_page">Unter diesem Link gibt es im Shop keinen Tee.</string>

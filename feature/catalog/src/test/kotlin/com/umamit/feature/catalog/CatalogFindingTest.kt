@@ -121,12 +121,12 @@ class CatalogFindingTest {
     fun oneTapOnPurShowsTheFlavouredTeas() {
         show()
 
-        chip(R.string.catalog_filter_pure).performClick()
+        chip(R.string.catalog_filter_pure).performScrollTo().performClick()
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_pure).assertIsNotSelected()
         shown("Kirsch Sencha")
-        compose.onNodeWithText(str(R.string.catalog_filter_button_count, 1)).assertIsDisplayed()
+        compose.onNodeWithText(str(R.string.catalog_filter_button_count, 1)).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -184,7 +184,7 @@ class CatalogFindingTest {
     fun theFilterSheetSortsAndFiltersAndAnAlertRemovesIt() {
         show()
 
-        chip(R.string.catalog_filter_button).performClick()
+        chip(R.string.catalog_filter_button).performScrollTo().performClick()
         compose.waitForIdle()
         val sheet = compose.onNodeWithTag(CATALOG_FILTER_SHEET_TAG)
         sheet.assertIsDisplayed()

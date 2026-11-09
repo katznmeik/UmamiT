@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -151,7 +152,7 @@ class CatalogFoldingTest {
         hidden("Namenloser Grüner")
         shown("Röstreis Genmaicha")
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
 
         // The Kräutertee view keeps its own: Mischungen folded there.
@@ -217,7 +218,7 @@ class CatalogFoldingTest {
         bookmarks.marked.value = setOf("XY0200")
         show()
 
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         shown("Herbstlaub Bancha")

@@ -84,7 +84,7 @@ class CatalogRefresherDetailTest {
         routes[SITEMAP] = { text(SyntheticShop.urlSet(listed.map { "$base$it" })) }
         product(SENCHA, "XY0100", SyntheticShop.SENCHA_PATH, photo = "sencha")
         product(GYOKURO, "XY0200", GYOKURO_PATH, photo = "gyokuro")
-        product(BLACK, "XY0300", SyntheticShop.BLACK_TEA_PATH, photo = "assam")
+        product(BLACK, "XY0300", SyntheticShop.TEA_BAGS_PATH, photo = "assam")
         routes[photoRoute("sencha")] = { jpeg(syntheticJpeg(2400, 1600)) }
         routes[photoRoute("gyokuro")] = { jpeg(syntheticJpeg(600, 900)) }
         routes[photoRoute("assam")] = { jpeg(syntheticJpeg(100, 100)) }

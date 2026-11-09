@@ -10,9 +10,11 @@ package com.umamit.core.catalog.parser
  * a green type, or its badges say steamed or shaded, and neither its name nor its path names
  * another tea (Wakoucha, Oolong, …) or teaware; its *Sorte* is the green type its name names.
  *
- * From v0.2.1 (D-093) the shop's Kräutertee section is in scope too, as [CatalogScope.HERBAL]
- * with its sub-section as the *Sorte*; fruit tea and rooibos stay out, and so does teaware filed
- * there (a gourd, a filter, a tin; 08 §2.4 item 4), as [CatalogScope.NOT_GREEN].
+ * From v0.2.1 (D-093) the shop's Kräutertee section is in scope too, as [CatalogScope.HERBAL],
+ * and from v0.5.0 (D-108) its black-tea section, as [CatalogScope.TEA]: the [TeaSections], each
+ * naming its *Sorte*. Teaware filed there (a gourd, a filter, a tin; 08 §2.4 item 4) stays out, as
+ * [CatalogScope.NOT_GREEN], and so does a product of a format or maker section (*Aufgussbeutel*)
+ * whose breadcrumb names no tea section.
  */
 internal object GreenTeaScope {
     /** The green types of the Japan trees (08 §2.2), as path segments. */
@@ -66,7 +68,7 @@ internal object GreenTeaScope {
     )
 
     /**
-     * Teaware in the name of a product of the Kräutertee section (08 §2.4 item 4): the Japan rule's
+     * Teaware in the name of a product of another tea section (08 §2.4 item 4; Kräutertee first): the Japan rule's
      * words plus the mate gear and accessories the section may file („Mate-Kalebasse", „Bombilla",
      * „Teefilter", „Teedose", „Teesieb", „Messlöffel", „Zubehör"). A word or the end of a compound
      * („Glaskanne"), never the start of one, so „Filterbeutel" or „Siebenkraut" stay teas.
@@ -108,17 +110,20 @@ internal object GreenTeaScope {
     fun scope(breadcrumb: List<Crumb>, name: String? = null, greenBadge: Boolean = false): CatalogScope {
         val green =
             breadcrumb.any { isGreen(it.path) } || (isJapanTeaOfNoType(breadcrumb) && saysGreen(name, greenBadge))
-        val herbal = !green && breadcrumb.any { HerbalSection.contains(it.path) } && !isTeaware(breadcrumb, name)
+        val section = if (green) null else TeaSections.of(breadcrumb)?.takeUnless { isTeaware(breadcrumb, name) }
         return when {
             breadcrumb.isEmpty() -> CatalogScope.UNKNOWN
-            !green && !herbal -> CatalogScope.NOT_GREEN
+            !green && section == null -> CatalogScope.NOT_GREEN
             isSet(breadcrumb, name) -> CatalogScope.SET
-            herbal -> CatalogScope.HERBAL
+            section != null -> section.scope
             else -> CatalogScope.GREEN
         }
     }
 
-    /** Teaware by its [name] or an accessories segment of its breadcrumb: no tea (08 §2.4 item 4). */
+    /**
+     * Teaware by its [name] or an accessories segment of its breadcrumb, in a section other than the
+     * green ones: no tea (08 §2.4 item 4).
+     */
     private fun isTeaware(breadcrumb: List<Crumb>, name: String?): Boolean =
         (name != null && TEAWARE_IN_HERBAL_NAME.containsMatchIn(name)) ||
             breadcrumb.any { crumb -> segments(crumb.path).any { TEAWARE_IN_PATH.containsMatchIn(it) } }
@@ -129,14 +134,15 @@ internal object GreenTeaScope {
 
     /**
      * The title of the deepest breadcrumb item that is a green type, e.g. „Sencha"; for a Japan tea
-     * without a type level the type its [name] names; for a Kräutertee its sub-section
-     * ([HerbalSection.sorte]); null without one.
+     * without a type level the type its [name] names; for a tea of another section the *Sorte* its
+     * section gives ([TeaSection.sorte]); null without one.
      */
     fun teaType(breadcrumb: List<Crumb>, name: String? = null): String? =
         breadcrumb.lastOrNull { isGreen(it.path) && isType(segments(it.path).lastOrNull()) }?.title
             ?: name?.takeIf { breadcrumb.none { isGreen(it.path) } && isJapanTeaOfNoType(breadcrumb) }
                 ?.let(::namedType)
-            ?: breadcrumb.takeIf { crumbs -> crumbs.none { isGreen(it.path) } }?.let(HerbalSection::sorte)
+            ?: breadcrumb.takeIf { crumbs -> crumbs.none { isGreen(it.path) } }
+                ?.let { crumbs -> TeaSections.of(crumbs)?.sorte(crumbs, name) }
 
     private fun isGreen(path: String): Boolean {
         val normal = normalised(path)

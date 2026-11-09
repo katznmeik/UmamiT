@@ -17,11 +17,26 @@ data class CatalogKind(val key: String, val styleKeys: Set<String> = emptySet())
         /** The green teas, the default kind: every tea no other kind claims. */
         val GREEN = CatalogKind("green")
 
+        /**
+         * The *Schwarztees* (v0.5.0, D-108): the teas of the built-in black styles (08 §3), the
+         * shop's `/tee/schwarzer-tee/` section.
+         */
+        val BLACK = CatalogKind("black", setOf("black_generic", "darjeeling", "assam", "ceylon", "flavored_black"))
+
+        /** The *Weißen Tees* (v0.5.0, D-108, #205): the shop's `/tee/weisser-tee/` section. */
+        val WHITE = CatalogKind("white", setOf("white_generic", "flavored_white"))
+
+        /** The *Oolongs* (v0.5.0, D-108, #205): the shop's `/tee/oolong/` section. */
+        val OOLONG = CatalogKind("oolong", setOf("oolong_generic", "flavored_oolong"))
+
+        /** The *Pu-Erhs* (v0.5.0, D-108, #205): the shop's `/tee/pu-erh/` section, category `DARK`. */
+        val DARK = CatalogKind("dark", setOf("dark_generic", "sheng", "shou"))
+
         /** The *Kräutertees* (v0.2.1, D-093): the teas of the built-in style `herbal`. */
         val HERBAL = CatalogKind("herbal", setOf("herbal"))
 
-        /** The kinds in the order of the chips; [GREEN] first. */
-        val ALL: List<CatalogKind> = listOf(GREEN, HERBAL)
+        /** The kinds in the order of the chips (D-108 point 5); [GREEN] first. */
+        val ALL: List<CatalogKind> = listOf(GREEN, BLACK, WHITE, OOLONG, DARK, HERBAL)
 
         /** The kind of a tea of style [styleKey] among [kinds]; [GREEN] when none claims it. */
         fun of(styleKey: String?, kinds: List<CatalogKind> = ALL): CatalogKind =

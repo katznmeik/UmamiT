@@ -613,6 +613,89 @@ v5).**
   `Home_activeSession` goldens were re-recorded with the card's start below
   the brew; `Home_question` stays as it was.
 
+**Build notes (Claude, 2026-11-09, #203: the black teas end to end).**
+- **Live check (structure only, 08 §2.2).** robots.txt, the sitemap and 6
+  black-tea product pages at ≤ 1 request/s with a plain user agent; no
+  challenge, no 429. Each page shows one breadcrumb (the main category): 5
+  of 6 sat under *Klassischer Schwarztee* although their names name a
+  region, so the *Sorte* and style fall back to the name. Grids have one
+  western row (per litre or per bag, 100 °C, a minute range). No page is
+  stored in the repository; fixtures stay synthetic (D-016).
+- **Sections as entries.** The parser's `TeaSections` list holds the
+  Kräutertee section (since v7, every sub-section a *Sorte*, style
+  `herbal`) and the black section (since v8, kind sub-sections only, name
+  keywords, the black styles), each with its kind. A product's section is
+  that of its deepest breadcrumb crumb in one; teaware by name or segment is
+  out in every such section. Its teas get the new scope `CatalogScope.TEA`
+  (Kräutertees keep `HERBAL`), which the refresh and the link loader keep
+  like green ones; #205/#206 add entries and styles, no new mechanism.
+- **One version step.** `PARSER_VERSION` = 8; `SCOPE_SINCE_VERSION` is the
+  latest section's `since` (8), the threshold of the one-time re-read
+  (replacing `HERBAL_SINCE_VERSION`). The later sections of v0.5.0 keep
+  `since` = 8, so the re-read on the first refresh after the update covers
+  them whatever lands later in the release. An rc refreshed with v8 before
+  a later section landed does not re-read again; the skip entries' 90-day
+  re-check brings those (rc testing only; the PO's v0.4.1 catalog re-reads
+  once with whatever v0.5.0 holds).
+- **Pending kinds.** `observeHerbalPending()` became
+  `observePendingKinds(): Set<CatalogKind>`, the kinds of the sections newer
+  than the last successful refresh's parser; each kind's view shows its
+  own hint (`catalog_black_pending`, `catalog_herbal_pending`). The
+  Kräutertee hint now says ≈ 30 min too: a catalog from before v0.2.1
+  re-reads every section at once.
+- **Styles.** `darjeeling`, `assam`, `ceylon`, `flavored_black` join
+  `black_generic` in `BuiltInStyles` (08 §3) and in *Sorte wählen*'s
+  *Schwarzer Tee* group; `CatalogKind.BLACK` claims the five keys, its chip
+  sits between *Grüntee* and *Kräutertee*. Nepal, China and the other
+  regions brew as `black_generic`. A flavoured black tea is
+  `flavored_black` whatever region its name names; flavoured by *Aroma*,
+  ingredients or any `aromatisierte[rs]-` sub-section.
+- **Japan tree.** `/tee/japantee/koucha-schwarztee/` is a root of the black
+  section with *Sorte* „Japan". Wakoucha on a tea family's page (no type
+  level) stays out, as before (D-089): open for #205 with the other Japan
+  types.
+- **Texts.** The empty catalog's body and the link's „nicht im Katalog"
+  name the black teas (CAT-17 AC5); #205/#206 extend them.
+
+**Build notes (Claude, 2026-11-09, #205: white tea, oolong and Pu-Erh).**
+- **Live check (structure only, 08 §2.2).** robots.txt and 9 product pages
+  (3 per section, from the sitemap) at ≤ 1 request/s, one at a time; no
+  challenge, no 429. One breadcrumb per page again; a Taiwan oolong was
+  filed under *klassisch*, so the oolong *Sorte* falls back to the name.
+  Classic white teas have a western and a Gongfu (gaiwan) row, flavoured
+  white teas and oolongs one western row, classic oolongs and every Pu-Erh
+  one Gongfu row. A yellow tea with a `TW…` number is filed under the green
+  section and stays green. No page is in the repository.
+- **A version step of its own (amends #203's „one step").** The three
+  sections are entries of `TeaSections` with `since` = 9 and
+  `PARSER_VERSION` = 9 (the orchestrator's rule against the ticket's „no
+  new step"): an rc catalog refreshed with v8 re-reads its `NOT_GREEN`
+  entries once more, instead of waiting for the 90-day re-check; a v0.4.1
+  catalog still re-reads once with everything. `kindsSince(8)` is
+  {`WHITE`, `OOLONG`, `DARK`}, so each new view shows its hint on such an rc.
+- **Kinds and styles.** `CatalogKind.WHITE` (`white`: `flavored_white`,
+  `white_generic`), `OOLONG` (`oolong`: `flavored_oolong`,
+  `oolong_generic`) and `DARK` (`dark`: `sheng`, `shou`, `dark_generic`);
+  chips in D-108 point 5's order. The generic rows keep the PO's Q-20
+  values; new rows only where the shop's grids differ (08 §3). The Pu-Erh
+  rows default to Gongfu; the white and oolong rows to western, so a white
+  tea with both grid rows defaults to its western row and keeps the Gongfu
+  row as a second recipe; a tea with only a Gongfu row defaults to it.
+  `BuiltInStyles` lists each category's generic row last, so *Sorte
+  wählen* shows the specific rows first (as for black).
+- ***Sorte*.** Kind sub-sections as ticketed; a tea master's or maker's page
+  (`…-von-…`) and `loose-leaf-loser-pu-erh/` are no kind. White teas'
+  sub-sections name no kind, so their *Sorte* comes from three well-known
+  names (Bai Mu Dan, Silver Needle, Shou Mei; Claude) to give the view
+  groups. „Sheng"/„Shou" match as words („Yesheng" is wild, not Sheng).
+- **Japan tree.** `/tee/japantee/oolong/` and `/tee/japantee/weisstee/` are
+  roots of the oolong and white sections with *Sorte* „Japan", like
+  `koucha-schwarztee/`. Wakoucha on a tea family's page stays out: the
+  sections are matched by path, and a family page names no tea section
+  (D-089's name rule is green-only). Open for the PO if such teas matter.
+- **Texts.** The empty catalog's body and the link's „nicht im Katalog"
+  name the new kinds; #206 extends them again.
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 
