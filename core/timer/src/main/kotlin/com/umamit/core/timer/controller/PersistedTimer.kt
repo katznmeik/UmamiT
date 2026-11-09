@@ -111,6 +111,13 @@ internal class PersistedTimer(
         return sessionId?.let { id -> guarded(now) { sessions.getSession(id)?.snapshot }?.value }
     }
 
+    /**
+     * The tea of the stored brew session [sessionId] (#194), for a session whose row could not be read at recovery;
+     * null without a tea, without the row, or when the read fails again (logged).
+     */
+    suspend fun teaIdOf(sessionId: String, now: ClockReading): String? =
+        guarded(now) { sessions.getSession(sessionId)?.snapshot?.teaId }?.value
+
     /** Runs [read]; a failure of any kind is logged as [TimerDiagnostic.RecoveryFailed] and gives null. */
     @Suppress("TooGenericExceptionCaught") // a storage failure of any kind is logged, never fatal (rule 8)
     private suspend fun <T> guarded(now: ClockReading, read: suspend () -> T): Read<T>? = try {

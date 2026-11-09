@@ -148,11 +148,15 @@ class QuickTimerViewModel @Inject constructor(
      * the active quick timer, never the brew (D-098); „Welchen Timer beenden?" the brew session chosen (D-108).
      */
     fun endTimerAndStart(slot: TimerSlot) {
-        if (pending.value == null) return
+        val asked = pending.value ?: return
+        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
+        val session = (asked.question as? StartQuestion.ChooseTimer)?.timers?.firstOrNull { it.slot == slot }?.sessionId
         pending.value = null
         val seconds = duration.value
         val preAlert = preAlertSeconds()
-        viewModelScope.launch { handle(starter.finishActiveAndStartQuickTimer(seconds, preAlert, ending = slot)) }
+        viewModelScope.launch {
+            handle(starter.finishActiveAndStartQuickTimer(seconds, preAlert, ending = slot, endingSession = session))
+        }
     }
 
     /** *Abbrechen*: the active timer stays. */

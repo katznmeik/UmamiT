@@ -358,7 +358,10 @@ class BrewSetupViewModelTest {
         vm.startBrew()
         assertThat(vm.ready.question).isEqualTo(
             StartQuestion.ChooseTimer(
-                listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata"), TimerToEnd(TimerSlot.QUICK, null)),
+                listOf(
+                    TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata", "session-1"),
+                    TimerToEnd(TimerSlot.QUICK, null),
+                ),
             ),
         )
         assertThat(starter.starts).hasSize(1)

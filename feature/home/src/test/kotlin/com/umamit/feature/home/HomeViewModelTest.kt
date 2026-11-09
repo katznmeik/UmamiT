@@ -27,6 +27,7 @@ import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.StepRecord
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.CheckState
@@ -394,7 +395,10 @@ class HomeViewModelTest {
         vm.brewAgain(SeedData.HISUI_TEA_ID)
         assertThat(vm.state.value.question).isEqualTo(
             HomeQuestion(
-                listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata"), TimerToEnd(TimerSlot.QUICK, null)),
+                listOf(
+                    TimerToEnd(TimerSlot.BREW, "Bio Sencha Tanabata", "session-1"),
+                    TimerToEnd(TimerSlot.QUICK, null),
+                ),
             ),
         )
 
@@ -406,6 +410,29 @@ class HomeViewModelTest {
         assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Tanabata")
         assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW_2))
+    }
+
+    @Test
+    fun `an answer for a session that ended meanwhile ends no other session and asks again`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        vm.events.first()
+        now += LATER_MS
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        // While the question is open, Tanabata's session ends and another session takes the brew slot.
+        val tanabata = checkNotNull(starter.activeIn(TimerSlot.BREW))
+        val replacement = tanabata.copy(kind = SessionKind.Brew("session-9"), teaName = "Kamairicha")
+        if (starter.state.value == tanabata) starter.state.value = replacement else starter.other.value = replacement
+
+        vm.endTimerAndStart(TimerSlot.BREW)
+
+        assertThat(starter.replaced).isEqualTo(0)
+        assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Kamairicha")
+        assertThat(vm.state.value.question?.timers?.map { it.sessionId }).containsExactly("session-9", null).inOrder()
     }
 
     @Test

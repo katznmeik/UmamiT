@@ -132,12 +132,18 @@ class BrewSessionController @Inject constructor(
      * [ending] ends, a brew session as by *Sitzung beenden* (saved, or discarded without a completed infusion: the
      * dialog was the confirmation), the quick timer as by *Abbrechen* (*Fertig* while alerting), and [request]
      * starts as by [startSession]. No other timer is touched. The finish's „Gespeichert" sheet becomes the
-     * notification „Sitzung gespeichert" (TMR-14): the new session's timer is in front. Returns the start's outcome.
+     * notification „Sitzung gespeichert" (TMR-14): the new session's timer is in front. With [endingSession] (the
+     * answer's brew session, [TimerToEnd.sessionId]) a slot that now holds another session is not ended, so the
+     * start is refused as before while two timers are still active (#194). Returns the start's outcome.
      */
-    suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot = TimerSlot.BREW): TransitionOutcome {
+    suspend fun finishActiveAndStart(
+        request: BrewStart,
+        ending: TimerSlot = TimerSlot.BREW,
+        endingSession: String? = null,
+    ): TransitionOutcome {
         val start = PendingStart(request, settings.current().preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            sideBySide.endActive(ending)
+            sideBySide.endActive(ending, endingSession)
             start.handle()
         }
     }
@@ -154,7 +160,7 @@ class BrewSessionController @Inject constructor(
 
         /** Inside a turn: the start in its brew slot ([SideBySide.brewSlotFor]) at the clocks now, or its refusal. */
         suspend fun handle(): TransitionOutcome {
-            val slot = sideBySide.brewSlotFor(request.snapshot.teaId)
+            val slot = sideBySide.brewSlotFor(request.snapshot.teaId, clocks.read())
                 ?: return TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
             val now = clocks.read()
             val start = SessionStart(
@@ -182,7 +188,8 @@ class BrewSessionController @Inject constructor(
      * beenden und neu starten?" (D-054, D-065, D-098): in the same turn the
      * active quick timer first ends (*Abbrechen*, or *Fertig* while alerting);
      * the brew is never touched. With [ending] the timer of that slot ends first instead, a brew session as by
-     * *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108).
+     * *Sitzung beenden* (the answer to „Welchen Timer beenden?", D-108), and only while it is [endingSession] when
+     * that is given (#194).
      */
     suspend fun startQuickTimer(
         durationSeconds: Int,
@@ -190,10 +197,11 @@ class BrewSessionController @Inject constructor(
         run: Boolean = false,
         finishActive: Boolean = false,
         ending: TimerSlot? = null,
+        endingSession: String? = null,
     ): TransitionOutcome {
         val event = TimerEvent.StartQuickTimer(durationSeconds, settings.current().preAlertSeconds, preAlertSeconds)
         return inTurn(serviceStartAllowed = true) {
-            (ending ?: TimerSlot.QUICK.takeIf { finishActive })?.let { sideBySide.endActive(it) }
+            (ending ?: TimerSlot.QUICK.takeIf { finishActive })?.let { sideBySide.endActive(it, endingSession) }
             if (!sideBySide.quickStartAdmitted()) {
                 return@inTurn TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(sideBySide.activeSlots()))
             }
@@ -491,13 +499,18 @@ class BrewSessionController @Inject constructor(
         /**
          * The brew slot a start of tea [teaId] goes to (D-108): the slot of that tea's active session (whose engine
          * refuses the start), else the first free brew slot while fewer than two timers are active; null while two
-         * other timers are active.
+         * other timers are active. A session whose row could not be read at recovery (no details) is matched by the
+         * tea of its stored session, read now ([teaIdOf]), so a tea never gets a second session (#194).
          */
-        fun brewSlotFor(teaId: String?): TimerSlot? {
+        suspend fun brewSlotFor(teaId: String?, now: ClockReading): TimerSlot? {
             val brews = slots.filter { it.id.isBrew }
-            return brews.firstOrNull { teaId != null && it.active != null && it.details?.teaId == teaId }?.id
+            return brews.firstOrNull { teaId != null && it.active != null && teaIdOf(it, now) == teaId }?.id
                 ?: brews.firstOrNull { it.active == null }?.id?.takeIf { activeSlots().size < MAX_ACTIVE }
         }
+
+        /** The tea of [slot]'s brew session: from its details, else from its stored session row; null if unknown. */
+        private suspend fun teaIdOf(slot: ControllerSlot, now: ClockReading): String? = slot.details?.teaId
+            ?: (slot.active?.session?.kind as? SessionKind.Brew)?.let { persistedTimer.teaIdOf(it.sessionId, now) }
 
         /**
          * Whether a quick timer may go to the quick slot: it is active (the engine refuses the start,
@@ -507,12 +520,14 @@ class BrewSessionController @Inject constructor(
 
         /**
          * *Beenden & neu starten* in [slot] (TMR-21, D-054, D-098, D-108): its timer ends as by *Sitzung beenden*,
-         * *Abgegossen* or *Abbrechen* ([endingEventOf]); no other slot's timer is touched.
+         * *Abgegossen* or *Abbrechen* ([endingEventOf]); no other slot's timer is touched. With [sessionId] (the brew
+         * session the answer named) only while the slot still holds that session: one that started there meanwhile
+         * stays (#194).
          */
-        suspend fun endActive(slot: TimerSlot) {
-            slots[slot].active?.let {
-                handle(slot, endingEventOf(it), clocks.read(), EventSource.APP, savedSheetAsNotification = true)
-            }
+        suspend fun endActive(slot: TimerSlot, sessionId: String? = null) {
+            val active = slots[slot].active ?: return
+            if (sessionId != null && (active.session.kind as? SessionKind.Brew)?.sessionId != sessionId) return
+            handle(slot, endingEventOf(active), clocks.read(), EventSource.APP, savedSheetAsNotification = true)
         }
 
         /**

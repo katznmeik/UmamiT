@@ -9,8 +9,10 @@ import com.umamit.core.data.RoomDatabaseTransactions
 import com.umamit.core.data.RoomSessionRepository
 import com.umamit.core.data.RoomStockRepository
 import com.umamit.core.data.RoomTeaRepository
+import com.umamit.core.data.SessionRepository
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
@@ -35,6 +37,7 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerSnapshot
 import kotlinx.coroutines.CompletableDeferred
+import java.io.IOException
 import javax.inject.Provider
 
 /**
@@ -61,7 +64,8 @@ class ControllerHarness(
         .build(),
 ) {
     val log = TimerPortLog()
-    val sessions = RoomSessionRepository(db, settings, clock)
+    /** The real session repository, whose [FlakySessions.failNextGets] makes session row reads throw. */
+    val sessions = FlakySessions(RoomSessionRepository(db, settings, clock))
     val teas = RoomTeaRepository(db.teaDao(), clock)
     val stock = RoomStockRepository(db.inventoryDao(), clock)
 
@@ -201,6 +205,19 @@ fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
 /** The persist of [phase] (null: the row was cleared) in the shared port log. */
 data class Persisted(val phase: TimerPhase?) : PortCall
+
+/** A session repository whose next [failNextGets] reads of a session row throw, as a passing database error does. */
+class FlakySessions(private val real: SessionRepository) : SessionRepository by real {
+    var failNextGets = 0
+
+    override suspend fun getSession(id: String): BrewSession? {
+        if (failNextGets > 0) {
+            failNextGets--
+            throw IOException("session row unreadable")
+        }
+        return real.getSession(id)
+    }
+}
 
 /**
  * The real [ActiveBrewStore] with a test handle on the slot methods the controller uses (umamit.db v4): each

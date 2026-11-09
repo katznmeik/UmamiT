@@ -4,9 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.TimerPhase
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
+import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 import com.umamit.core.timer.engine.TimerEvent
 import com.umamit.core.timer.engine.TimerState
+import com.umamit.core.timer.engine.TransitionOutcome
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -117,6 +119,25 @@ class TwoBrewsRecoveryTest {
         after.controller.send(TimerSlot.BREW_2, TimerEvent.Poured)
 
         assertThat(after.alert.started.map { it.kind }).containsExactly(second, first).inOrder()
+    }
+
+    @Test
+    fun `a session whose row was unreadable at recovery still keeps its tea from a second session`() = runTest {
+        before.controller.startSession(brewStart(infusion(60, preAlert = 0)))
+        val first = checkNotNull(before.active(TimerSlot.BREW).sessionId)
+
+        val after = before.processRestarted()
+        after.sessions.failNextGets = 1
+        after.controller.recover(RecoveryTrigger.APP_START)
+        assertThat(after.active(TimerSlot.BREW).teaName).isNull()
+
+        // Its tea is read from the stored session: the start opens that session instead of a second one (TMR-21).
+        val outcome = after.controller.startSession(brewStart(infusion(30)))
+
+        assertThat(outcome).isEqualTo(
+            TransitionOutcome.Rejected(RejectionReason.ActiveTimerExists(SessionKind.Brew(first))),
+        )
+        assertThat(after.controller.state(TimerSlot.BREW_2).value).isEqualTo(TimerUiState.Idle)
     }
 
     @Test

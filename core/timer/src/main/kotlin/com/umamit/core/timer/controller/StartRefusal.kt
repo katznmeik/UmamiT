@@ -5,10 +5,14 @@ import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.SessionKind
 
 /**
- * One answer of „Welchen Timer beenden?" (TMR-21, D-108): the active timer of [slot], named by [teaName] (null:
- * Schnelltimer).
+ * One answer of „Welchen Timer beenden?" (TMR-21, D-108): the active timer of [slot], named by [teaName] (null: the
+ * quick timer, or a brew session whose tea is unknown), and its brew session [sessionId] (null: the quick timer).
+ * The controller ends the slot only while it still holds that session (#194).
  */
-data class TimerToEnd(val slot: TimerSlot, val teaName: String?)
+data class TimerToEnd(val slot: TimerSlot, val teaName: String?, val sessionId: String? = null) {
+    /** Whether this answer is the quick timer („Schnelltimer"); a brew without its tea's name is not (#194). */
+    val quick: Boolean get() = !slot.isBrew
+}
 
 /**
  * What a screen does with a refused start (TMR-21, TMR-22, D-108), read from the [BrewStarter]'s refusal and its
@@ -41,7 +45,7 @@ fun BrewStarter.refusalOf(reason: RejectionReason): StartRefusal? = when (reason
 
     is RejectionReason.TwoTimersActive ->
         reason.active
-            .mapNotNull { slot -> activeIn(slot)?.let { TimerToEnd(slot, it.teaName) } }
+            .mapNotNull { slot -> activeIn(slot)?.let { TimerToEnd(slot, it.teaName, it.sessionId) } }
             .takeIf { it.isNotEmpty() }
             ?.let(StartRefusal::ChooseTimer)
 

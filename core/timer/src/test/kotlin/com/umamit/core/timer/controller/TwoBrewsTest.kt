@@ -287,6 +287,36 @@ class TwoBrewsTest {
     }
 
     @Test
+    fun `an answer for a session that ended meanwhile never ends the session now in its slot`() = runTest {
+        h.controller.startSession(brewStart(infusion(60)))
+        val answered = checkNotNull(active(TimerSlot.BREW).sessionId)
+        h.controller.startSession(secondTea(infusion(60)))
+        assertThat(h.controller.startQuickTimer(90, run = true))
+            .isInstanceOf(TransitionOutcome.Rejected::class.java)
+        // While „Welchen Timer beenden?" is open, that session ends and a new one of the same tea takes its slot.
+        h.controller.send(TimerSlot.BREW, TimerEvent.Discard)
+        h.controller.startSession(brewStart(infusion(45)))
+        val now = checkNotNull(active(TimerSlot.BREW).sessionId)
+
+        val quick = h.controller.startQuickTimer(90, run = true, ending = TimerSlot.BREW, endingSession = answered)
+        val brew = h.controller.finishActiveAndStart(
+            brewStart(infusion(30), teaId = null, teaName = "Ohne Tee"),
+            ending = TimerSlot.BREW,
+            endingSession = answered,
+        )
+
+        val both = TransitionOutcome.Rejected(RejectionReason.TwoTimersActive(listOf(TimerSlot.BREW, TimerSlot.BREW_2)))
+        assertThat(quick).isEqualTo(both)
+        assertThat(brew).isEqualTo(both)
+        assertThat(active(TimerSlot.BREW).sessionId).isEqualTo(now)
+        assertThat(ui(TimerSlot.QUICK)).isEqualTo(TimerUiState.Idle)
+        // The answer for the session in the slot ends it as before.
+        assertThat(h.controller.startQuickTimer(90, run = true, ending = TimerSlot.BREW, endingSession = now))
+            .isEqualTo(TransitionOutcome.Accepted)
+        assertThat(ui(TimerSlot.BREW)).isEqualTo(TimerUiState.Idle)
+    }
+
+    @Test
     fun `beside a quick timer a brew start of another tea asks too, and ending the quick timer makes room`() = runTest {
         h.controller.startSession(brewStart(infusion(60)))
         h.controller.startQuickTimer(90, run = true)

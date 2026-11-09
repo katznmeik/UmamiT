@@ -55,6 +55,28 @@ class HomeScreenQuestionTest {
     }
 
     @Test
+    fun `a brew whose tea is unknown is an Aufguss, never the Schnelltimer`() {
+        val ended = mutableListOf<TimerSlot>()
+        val unnamed = HomeQuestion(
+            listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Hisui", "s1"), TimerToEnd(TimerSlot.BREW_2, null, "s2")),
+        )
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                HomeScreen(
+                    state = HomeUiState(loading = false, question = unnamed),
+                    nowElapsedMs = { 0L },
+                    actions = HomeActions(endTimer = { ended += it }),
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Schnelltimer beenden").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Aufguss beenden").performClick()
+
+        assertThat(ended).containsExactly(TimerSlot.BREW_2)
+    }
+
+    @Test
     fun `Aufguss starten shows beside one active brew and is gone with two timers (SCR-02, D-108)`() {
         val brew = FakeBrewStarter.quickRunningState(
             60,

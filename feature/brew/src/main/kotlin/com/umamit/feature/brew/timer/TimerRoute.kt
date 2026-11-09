@@ -128,8 +128,9 @@ internal class TimerRouteView(val shown: TimerUiState.Active?, val other: TimerU
 /**
  * The route's view of the slots ([brew], [brew2], [quick]) and the controller's [front] (D-098, D-108): a ringing
  * alert first, of two the one that rang last, whose sound plays (rule 8, D-109; a held alert does not ring, one whose
- * sound ended stays the row); else the [pinned] slot's timer, or, with none pinned yet, the one in front; null when that timer is not active. The other active timer is the row: the
- * quick timer, or the other brew session with its own seal and stock on its own route (v0.5.0-03).
+ * sound ended stays the row); else the [pinned] slot's timer, or, with none pinned yet, the one in front; null when
+ * that timer is not active. The other active timer is the row: the quick timer, or the other brew session with its
+ * own seal and stock on its own route (v0.5.0-03).
  */
 internal fun timerRouteView(
     pinned: TimerSlot?,

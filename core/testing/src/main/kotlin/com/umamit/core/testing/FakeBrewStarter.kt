@@ -23,7 +23,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
  * start of a tea with an active session is refused as `ActiveTimerExists` naming that session, a second quick timer
  * as `ActiveTimerExists(Quick)`, and any other start while two timers are active as `TwoTimersActive` with the active
  * slots; otherwise the session waits in READY with the request's steps and the quick timer runs at once, in front.
- * *Beenden & neu starten* ends the timer of the slot given, then starts as above. [state] is the timer in front (a
+ * *Beenden & neu starten* ends the timer of the slot given (only while it holds the session given, if one is), then
+ * starts as above. [state] is the timer in front (a
  * test sets it to place one timer), [other] the one beside it. [starts] records every accepted request in order,
  * [quickStarts] every accepted quick timer's duration and [quickPreAlerts] its *Vorwarnung* choice (null
  * *Automatisch*, 0 *Aus*, else 5–30 s; D-097).
@@ -62,8 +63,12 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
         }
     }
 
-    override suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot): TransitionOutcome {
-        if (end(ending)) replaced++
+    override suspend fun finishActiveAndStart(
+        request: BrewStart,
+        ending: TimerSlot,
+        endingSession: String?,
+    ): TransitionOutcome {
+        if (end(ending, endingSession)) replaced++
         return startSession(request)
     }
 
@@ -86,8 +91,9 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
         durationSeconds: Int,
         preAlertSeconds: Int?,
         ending: TimerSlot,
+        endingSession: String?,
     ): TransitionOutcome {
-        if (end(ending)) replaced++
+        if (end(ending, endingSession)) replaced++
         return startQuickTimer(durationSeconds, preAlertSeconds)
     }
 
@@ -120,8 +126,13 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
         state.value = timer
     }
 
-    /** Ends the active timer of [slot]; true when there was one. The other one comes to the front. */
-    private fun end(slot: TimerSlot): Boolean = when {
+    /**
+     * Ends the active timer of [slot], while it is [sessionId] when that is given; true when there was one. The other
+     * one comes to the front.
+     */
+    private fun end(slot: TimerSlot, sessionId: String?): Boolean = when {
+        sessionId != null && activeIn(slot)?.sessionId != sessionId -> false
+
         (state.value as? TimerUiState.Active)?.slot == slot -> {
             state.value = other.value
             other.value = TimerUiState.Idle

@@ -209,7 +209,10 @@ class QuickTimerViewModelTest {
             vm.start()
             assertThat(vm.state.value.question).isEqualTo(
                 StartQuestion.ChooseTimer(
-                    listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Hisui"), TimerToEnd(TimerSlot.BREW_2, "Kamille")),
+                    listOf(
+                        TimerToEnd(TimerSlot.BREW, "Bio Sencha Hisui", "s1"),
+                        TimerToEnd(TimerSlot.BREW_2, "Kamille", "s2"),
+                    ),
                 ),
             )
             assertThat(events).isEmpty()

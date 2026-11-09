@@ -40,9 +40,14 @@ interface BrewStarter {
     /**
      * *Beenden & neu starten* (TMR-21, D-108): the timer of [ending] ends, a session as by
      * *Sitzung beenden* (saved, or discarded without a completed non-rinse
-     * step), the quick timer as by *Abbrechen*; then [request] starts. No other timer is touched (D-098).
+     * step), the quick timer as by *Abbrechen*; then [request] starts. No other timer is touched (D-098). With
+     * [endingSession] (the answer's [TimerToEnd.sessionId]) the slot ends only while it still holds that session.
      */
-    suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot = TimerSlot.BREW): TransitionOutcome
+    suspend fun finishActiveAndStart(
+        request: BrewStart,
+        ending: TimerSlot = TimerSlot.BREW,
+        endingSession: String? = null,
+    ): TransitionOutcome
 
     /**
      * *Start* on the quick timer (SCR-07, TMR-22, 04 §10): one infusion of
@@ -59,12 +64,14 @@ interface BrewStarter {
 
     /**
      * „Schnelltimer beenden und neu starten?" (D-098): the active quick timer ends, then this one runs; the brew
-     * stays. With [ending] a brew slot, that session ends instead, as by *Sitzung beenden* (D-108).
+     * stays. With [ending] a brew slot, that session ends instead, as by *Sitzung beenden* (D-108), and with
+     * [endingSession] only while the slot still holds that session.
      */
     suspend fun finishActiveAndStartQuickTimer(
         durationSeconds: Int,
         preAlertSeconds: Int? = null,
         ending: TimerSlot = TimerSlot.QUICK,
+        endingSession: String? = null,
     ): TransitionOutcome
 }
 
@@ -83,8 +90,11 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
 
     override suspend fun startSession(request: BrewStart): TransitionOutcome = controller.startSession(request)
 
-    override suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot): TransitionOutcome =
-        controller.finishActiveAndStart(request, ending)
+    override suspend fun finishActiveAndStart(
+        request: BrewStart,
+        ending: TimerSlot,
+        endingSession: String?,
+    ): TransitionOutcome = controller.finishActiveAndStart(request, ending, endingSession)
 
     override suspend fun startQuickTimer(durationSeconds: Int, preAlertSeconds: Int?): TransitionOutcome =
         controller.startQuickTimer(durationSeconds, preAlertSeconds, run = true)
@@ -93,7 +103,14 @@ class ControllerBrewStarter @Inject constructor(private val controller: BrewSess
         durationSeconds: Int,
         preAlertSeconds: Int?,
         ending: TimerSlot,
-    ): TransitionOutcome = controller.startQuickTimer(durationSeconds, preAlertSeconds, run = true, ending = ending)
+        endingSession: String?,
+    ): TransitionOutcome = controller.startQuickTimer(
+        durationSeconds,
+        preAlertSeconds,
+        run = true,
+        ending = ending,
+        endingSession = endingSession,
+    )
 }
 
 /**

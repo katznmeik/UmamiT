@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
+import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.designsystem.component.EmptyState
 import com.umamit.core.designsystem.component.PrimaryActionCard
 import com.umamit.core.designsystem.component.ReliabilityBanner
@@ -132,7 +133,7 @@ fun HomeScreen(
         val question = state.question?.takeIf { state.alertKey == null }
         if (question != null) {
             ChooseTimerToEndDialog(
-                timers = question.timers.map { it.teaName },
+                timers = question.timers.map { TimerChoice(it.teaName, it.quick) },
                 onEnd = { index -> actions.endTimer(question.timers[index].slot) },
                 onCancel = actions.dismissQuestion,
             )

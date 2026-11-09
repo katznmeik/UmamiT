@@ -213,7 +213,8 @@ class BrewSetupViewModel @Inject constructor(
         val adjusted = TimerSlot.entries.firstOrNull { starter.activeIn(it)?.isAdjustable() == true }
         val before = starter.activeSessionIds()
         val outcome = if (adjusted != null) {
-            starter.finishActiveAndStart(request, ending = adjusted)
+            val session = starter.activeIn(adjusted)?.sessionId
+            starter.finishActiveAndStart(request, ending = adjusted, endingSession = session)
         } else {
             starter.startSession(request)
         }
@@ -222,11 +223,14 @@ class BrewSetupViewModel @Inject constructor(
 
     /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): the timer of [slot] ends, then the brew starts. */
     fun endTimerAndStart(slot: TimerSlot) {
-        val request = pending.value?.request ?: return
+        val asked = pending.value ?: return
+        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
+        val session = (asked.question as? StartQuestion.ChooseTimer)?.timers?.firstOrNull { it.slot == slot }?.sessionId
         pending.value = null
         viewModelScope.launch {
             val before = starter.activeSessionIds()
-            handle(starter.finishActiveAndStart(request, ending = slot), request, before)
+            val outcome = starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
+            handle(outcome, asked.request, before)
         }
     }
 

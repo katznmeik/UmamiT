@@ -93,6 +93,7 @@
     <string name="ds_choose_timer_title">Welchen Timer beenden?</string>
     <string name="ds_choose_timer_text">Es laufen schon zwei Timer. Der gewählte endet, dann startet der neue.</string>
     <string name="ds_choose_timer_quick">Schnelltimer</string>
+    <string name="ds_choose_timer_brew">Aufguss</string>
     <string name="ds_choose_timer_end_description">%1$s beenden</string>
 
     <!-- CheckRecipeBadge (03 §3.8, CAT-05). -->
