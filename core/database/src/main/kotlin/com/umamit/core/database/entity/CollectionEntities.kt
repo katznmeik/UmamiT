@@ -68,6 +68,8 @@ data class TeaEntity(
     @ColumnInfo(name = "best_before") val bestBefore: LocalDate?,
     @ColumnInfo(name = "freshness_days") val freshnessDays: Int?,
     @ColumnInfo(name = "low_stock_grams") val lowStockGrams: Double?,
+    /** The stock warning (INV-10, INV-11, INV-09 AC1; D-108): 0 leaves the tea out of the card and the reminder. */
+    @ColumnInfo(name = "low_stock_warning", defaultValue = "1") val lowStockWarning: Boolean = true,
     @ColumnInfo(name = "storage_note") val storageNote: String?,
     @ColumnInfo(name = "notes") val notes: String?,
     @ColumnInfo(name = "recipe_check_reason") val recipeCheckReason: RecipeCheckReason?,
