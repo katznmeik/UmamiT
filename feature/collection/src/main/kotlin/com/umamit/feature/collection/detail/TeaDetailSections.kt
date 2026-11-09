@@ -1,6 +1,17 @@
 package com.umamit.feature.collection.detail
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import com.umamit.core.model.Tea
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -59,6 +70,12 @@ const val TEA_DETAIL_PURCHASE_TAG = "tea_detail_purchase"
 
 /** *Beim Tee-Kontor nachbestellen* (INV-09). */
 const val TEA_DETAIL_REORDER_TAG = "tea_detail_reorder"
+
+/** VORRAT's *Warnung* (D-108): the row is the switch. */
+const val TEA_DETAIL_STOCK_WARNING_TAG = "tea_detail_stock_warning"
+
+/** VORRAT's *Knapp ab* (D-108): the tea's own threshold in g. */
+const val TEA_DETAIL_STOCK_THRESHOLD_TAG = "tea_detail_stock_threshold"
 
 /** FRISCHE (INV-06): the freshness chip and the date it stems from. */
 const val TEA_DETAIL_FRESHNESS_TAG = "tea_detail_freshness"
@@ -156,7 +173,8 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
  * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), the cost lines of a priced tea (INV-08), *Nachkauf erfassen* and
  * *Bestand korrigieren* (INV-03; side by side where they fit, else one below the other) and INV-09's *Beim
  * Tee-Kontor nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link
- * icon. The stock [history] (SCR-29) follows below them.
+ * icon. Then the tea's stock warning (D-108): *Warnung* on or off and *Knapp ab*, its own threshold. The stock
+ * [history] (SCR-29) follows below them.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -165,6 +183,8 @@ internal fun Stock(
     onPurchase: () -> Unit,
     onCorrect: () -> Unit,
     onReorder: (String) -> Unit,
+    onWarning: (Boolean) -> Unit = {},
+    onThreshold: (grams: Int?) -> Unit = {},
     history: @Composable () -> Unit = {},
 ) {
     Section(stringResource(R.string.collection_tea_section_stock)) {
@@ -213,9 +233,85 @@ internal fun Stock(
                 Icon(icon, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
             }
         }
+        StockWarning(tea, onWarning, onThreshold)
         history()
     }
 }
+
+/**
+ * *Warnung* (one row, one switch: TalkBack reads „Warnung", its detail and its state) and *Knapp ab*: the tea's own
+ * threshold in whole grams, empty for SET-16's, which the field's hint names. Each valid input is written at once
+ * (empty, or 1–500 g); anything else says so at the field and keeps the stored value (D-108). Both stay while the
+ * warning is off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
+ */
+@Composable
+private fun StockWarning(tea: TeaDetail, onWarning: (Boolean) -> Unit, onThreshold: (grams: Int?) -> Unit) {
+    Spacer(Modifier.height(UmamiSpacing.XSmall))
+    HorizontalDivider(thickness = UmamiSpacing.Hairline, color = MaterialTheme.colorScheme.outlineVariant)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = ROW_MIN_HEIGHT)
+            .toggleable(value = tea.stockWarning, role = Role.Switch, onValueChange = onWarning)
+            .padding(vertical = UmamiSpacing.XSmall)
+            .testTag(TEA_DETAIL_STOCK_WARNING_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.collection_tea_stock_warning),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(R.string.collection_tea_stock_warning_detail),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(UmamiSpacing.Small))
+        Switch(checked = tea.stockWarning, onCheckedChange = null)
+    }
+    var text by rememberSaveable(tea.id) { mutableStateOf(tea.ownLowStockGrams?.toString().orEmpty()) }
+    val invalid = text.isNotEmpty() && text.toIntOrNull() !in Tea.OWN_LOW_STOCK_GRAMS
+    OutlinedTextField(
+        value = text,
+        onValueChange = { typed ->
+            val digits = typed.filter(Char::isDigit).take(THRESHOLD_DIGITS)
+            if (digits != text) {
+                text = digits
+                val grams = digits.toIntOrNull()
+                if (digits.isEmpty()) {
+                    onThreshold(null)
+                } else if (grams != null && grams in Tea.OWN_LOW_STOCK_GRAMS) {
+                    onThreshold(grams)
+                }
+            }
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = UmamiSpacing.XSmall)
+            .testTag(TEA_DETAIL_STOCK_THRESHOLD_TAG),
+        label = { Text(stringResource(R.string.collection_tea_stock_threshold)) },
+        placeholder = { Text(tea.globalLowStockGrams.toString()) },
+        suffix = { Text(stringResource(R.string.collection_tea_stock_threshold_unit)) },
+        supportingText = {
+            Text(
+                if (invalid) {
+                    stringResource(R.string.collection_tea_stock_threshold_error)
+                } else {
+                    stringResource(R.string.collection_tea_stock_threshold_hint, tea.globalLowStockGrams)
+                },
+            )
+        },
+        isError = invalid,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+    )
+}
+
+/** „500": the longest valid *Knapp ab*; a fourth digit is never taken. */
+private const val THRESHOLD_DIGITS = 3
 
 /**
  * „38 g übrig", „14 g übrig · knapp", „Leer"; [short]: „38 g" for the `StatTriplet`. A tea without any stock event

@@ -3,7 +3,15 @@ package com.umamit.feature.collection.detail
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -52,6 +60,8 @@ class TeaDetailScreenTest {
         delete = { calls += "delete" },
         correctStock = { calls += "stock:$it" },
         openShop = { calls += "shop:$it" },
+        setStockWarning = { calls += "warning:$it" },
+        setLowStockGrams = { calls += "threshold:$it" },
     )
 
     private var alertKey by mutableStateOf<String?>(null)
@@ -330,6 +340,54 @@ class TeaDetailScreenTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(STOCK_SHEET_FIELD_TAG).assertDoesNotExist()
+        assertThat(calls).isEmpty()
+    }
+
+    @Test
+    fun `VORRAT's Warnung is one switch that TalkBack reads with its state`() {
+        show()
+        val warning = compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo()
+
+        warning.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        warning.assertIsOn()
+        warning.assert(hasText("Warnung", substring = true))
+        warning.performClick()
+
+        assertThat(calls).containsExactly("warning:false")
+    }
+
+    @Test
+    fun `with the warning off the switch reads off and a tap switches it on`() {
+        show(sample().copy(stockWarning = false))
+
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo().assertIsOff().performClick()
+
+        assertThat(calls).containsExactly("warning:true")
+    }
+
+    @Test
+    fun `Knapp ab shows the global threshold when empty and writes whole grams`() {
+        show()
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        compose.onNodeWithText("Vorgabe aus den Einstellungen (15 g)", substring = true).assertExists()
+
+        field.performTextInput("25")
+        field.performTextClearance()
+
+        assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+    }
+
+    @Test
+    fun `Knapp ab shows the tea's own threshold and refuses one outside 1 to 500 g`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        field.assert(hasText("20"))
+
+        field.performTextReplacement("0")
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
+        field.performTextReplacement("501")
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
+
         assertThat(calls).isEmpty()
     }
 
