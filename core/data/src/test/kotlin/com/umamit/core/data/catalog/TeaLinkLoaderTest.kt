@@ -474,8 +474,8 @@ class TeaLinkLoaderTest {
     }
 
     @Test
-    fun aFruitTeaIsNotStored() = runTest {
-        product(BLACK, "Beerenwiese – 100g", breadcrumb = SyntheticShop.FRUIT_TEA_PATH)
+    fun aProductOfNoTeaSectionIsNotStored() = runTest {
+        product(BLACK, "Beerenwiese – 100g", breadcrumb = SyntheticShop.SWEETS_PATH)
 
         assertThat(loader().load("$SHOP$BLACK")).isEqualTo(TeaLinkOutcome.NotInCatalog)
         assertThat(dao.keys()).isEmpty()

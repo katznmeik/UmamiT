@@ -84,7 +84,7 @@ class CatalogBlackRefreshTest {
         product(DARJEELING, "Nebelhang Darjeeling – 100g", SyntheticShop.DARJEELING_PATH)
         product(BLACK_SET, "Darjeeling Probierset 3x50g", SyntheticShop.DARJEELING_PATH)
         product(TEA_BAGS, "Kontor Morgentee 20 Aufgussbeutel", SyntheticShop.TEA_BAGS_PATH)
-        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH)
+        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.SWEETS_PATH)
     }
 
     @After
@@ -210,7 +210,7 @@ class CatalogBlackRefreshTest {
         assertThat(dao.tea(DARJEELING_KEY)).isNull()
         assertThat(repository.observePendingKinds().first()).contains(CatalogKind.BLACK)
 
-        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH)
+        product(FRUIT, "Beerenwolke – 100g", SyntheticShop.SWEETS_PATH)
         requests.clear()
         val outcome = refresher().refresh()
 

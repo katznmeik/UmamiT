@@ -35,8 +35,20 @@ data class CatalogKind(val key: String, val styleKeys: Set<String> = emptySet())
         /** The *Kräutertees* (v0.2.1, D-093): the teas of the built-in style `herbal`. */
         val HERBAL = CatalogKind("herbal", setOf("herbal"))
 
+        /** The *Rotbusch* teas (v0.5.0, D-108, #206): the shop's `/tee/rotbusch/` section, category `ROOIBOS`. */
+        val ROOIBOS = CatalogKind("rooibos", setOf("rooibos"))
+
+        /** The *Früchtetees* (v0.5.0, D-108, #206): the shop's `/tee/fruechtetee/` section, category `FRUIT`. */
+        val FRUIT = CatalogKind("fruit", setOf("fruit"))
+
+        /**
+         * The *Chais* (v0.5.0, D-108, #206): the teas of style `chai`, the shop's `/tee/chaitee/` section, whose
+         * teas the shop files under their base tea's section (category: the base's, else `OTHER`).
+         */
+        val CHAI = CatalogKind("chai", setOf("chai"))
+
         /** The kinds in the order of the chips (D-108 point 5); [GREEN] first. */
-        val ALL: List<CatalogKind> = listOf(GREEN, BLACK, WHITE, OOLONG, DARK, HERBAL)
+        val ALL: List<CatalogKind> = listOf(GREEN, BLACK, WHITE, OOLONG, DARK, HERBAL, ROOIBOS, FRUIT, CHAI)
 
         /** The kind of a tea of style [styleKey] among [kinds]; [GREEN] when none claims it. */
         fun of(styleKey: String?, kinds: List<CatalogKind> = ALL): CatalogKind =

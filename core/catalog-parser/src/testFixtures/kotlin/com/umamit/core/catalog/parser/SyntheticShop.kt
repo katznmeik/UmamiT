@@ -27,10 +27,16 @@ object SyntheticShop {
         "Wiesenmischungen" to "/tee/kraeutertee/wiesenmischungen/",
     )
 
-    /** A fruit tea's path: out of scope, like rooibos (D-093). */
+    /** A fruit tea filed in the section itself: in scope from v0.5.0 (parser v10, #206), before that out (D-093). */
     val FRUIT_TEA_PATH = listOf(
         "Tee" to "/tee/",
         "Früchtetee" to "/tee/fruechtetee/",
+    )
+
+    /** An invented shop section of no tea (sweets): out of scope in every version. */
+    val SWEETS_PATH = listOf(
+        "Leckereien" to "/leckereien/",
+        "Gebäck" to "/leckereien/gebaeck/",
     )
 
     /**
@@ -70,6 +76,8 @@ object SyntheticShop {
     )
 
     private val WHITE = "Weißer Tee" to "weisser-tee"
+    private val ROOIBOS = "Rotbusch" to "rotbusch"
+    private val FRUIT = "Früchtetee" to "fruechtetee"
     private val OOLONG = "Oolong" to "oolong"
     private val PU_ERH = "Pu-Erh" to "pu-erh"
 
@@ -105,6 +113,27 @@ object SyntheticShop {
 
     /** A Pu-Erh of a maker's page (invented maker): its *Sorte* from its name. */
     val PU_ERH_MAKER_PATH = sectionPath(PU_ERH, "Pu-Erh von Erika Beispiel", "pu-erh-von-erika-beispiel")
+
+    /** A rooibos of the „klassisch" sub-section (v0.5.0, #206): no kind, its *Sorte* from its name. */
+    val ROOIBOS_CLASSIC_PATH = sectionPath(ROOIBOS, "Klassischer Rotbusch", "klassischer-rotbusch")
+
+    /** A rooibos of the flavoured sub-section, where the shop also files its rooibos chais (live check #206). */
+    val ROOIBOS_FLAVOURED_PATH = sectionPath(ROOIBOS, "Aromatisierter Rotbusch", "aromatisierter-rotbusch")
+
+    /** A rooibos of the green-rooibos sub-section, a kind: its *Sorte* is the sub-section's title. */
+    val ROOIBOS_GREEN_PATH = sectionPath(ROOIBOS, "Grüner Rotbusch", "gruener-rotbusch")
+
+    /** A fruit tea of the „klassisch" sub-section (v0.5.0, #206). */
+    val FRUIT_CLASSIC_PATH = sectionPath(FRUIT, "Klassischer Früchtetee", "klassischer-fruechtetee")
+
+    /** A tea filed in the shop's chai section itself (`/tee/chaitee/`, which has no sub-sections). */
+    val CHAI_PATH = listOf("Tee" to "/tee/", "Chaitee" to "/tee/chaitee/")
+
+    /**
+     * The grid of a rooibos, fruit tea or chai (live check #206, 08 §2.2): one western row per litre,
+     * 100 °C, a few minutes. Values invented in the shop's shape.
+     */
+    val INFUSION_BREW_ROWS = listOf("westlich" to listOf("~10g/L", "100°C", "~5 Min"))
 
     /**
      * A white tea's grid as the shop shows it (live check #205, 08 §2.2): a western row per litre and

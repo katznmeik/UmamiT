@@ -469,8 +469,11 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    (ONB-06), below *Weiter*.
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
-3. *Katalog laden* — „Alle Grün- und Kräutertees von Tee-Kontor Kiel offline verfügbar
-   machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
+3. *Katalog laden* — „Alle Tees von Tee-Kontor Kiel offline verfügbar machen,
+   von Grüntee bis Chai. Das erste Laden dauert etwa eine halbe Stunde; die App
+   kannst du währenddessen schon nutzen." (v0.5.0, #206: the whole range and
+   NFR-PERF-11's ≈ 25–30 min; until then „Grün- und Kräutertees … etwa eine
+   Viertelstunde") · *Katalog jetzt laden* (progress inline) / *Später*. After
    *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
    in its service with its notification (ONB-03, D-079). *Katalog jetzt
    laden* ends a seed photo download still running first, so two jobs never
@@ -1049,6 +1052,9 @@ recipe.
 - **As built (#155, Claude):** the search matches the Sorte name and its
   Kategorie (GEN-10). *Andere / unbekannt* stores no style (05 §3.1) and the
   Kategorie *Andere*.
+- **v0.5.0 (#206):** the Kategorien *Rotbusch* and *Früchtetee* follow
+  *Kräutertee*, each with its one row; *Chai* (Kategorie *Andere* when chosen
+  here) sits above *Andere / unbekannt* in the last, unheaded group.
 
 ### SCR-12 Rezept bearbeiten
 
@@ -1240,6 +1246,18 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   parser v9. The empty catalog's body names them too: „Lade alle Grün-,
   Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs von Tee-Kontor Kiel,
   um offline darin zu stöbern."
+- **Rotbusch, Früchtetee, Chai (v0.5.0, #206):** their chips close the row,
+  *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh · Kräutertee ·
+  Rotbusch · Früchtetee · Chai* (D-108 point 5); each view is grouped by
+  *Sorte* with folding, its header reads „… · 3 Rotbuschtees / 2 Früchtetees
+  / 9 Chais · …", and each shows its own pending hint until the first refresh
+  with parser v10. Whenever the kind changes (a tap, *Alle zeigen*, back from
+  *Gemerkt*), the row scrolls just enough to show the selected chip with the
+  side margin, animated unless motion is reduced; only the row scrolls, not
+  the list. The empty catalog's body: „Lade alle Tees von Tee-Kontor Kiel,
+  von Grüntee bis Chai, um offline darin zu stöbern." A link's „nicht im
+  Katalog" reads „Dieser Artikel gehört nicht zum Katalog (nur Tees, ohne
+  Sets und Zubehör)."
 - **Merken (v0.2.2, CAT-18, [D-097](10-open-questions-and-decisions.md#d-097)):**
   each row of a tea not in the collection ends with a bookmark toggle
   (48 dp target, outlined / filled, TalkBack „Merken" / „Gemerkt"; a short

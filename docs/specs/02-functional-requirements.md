@@ -207,6 +207,18 @@ sweets, and items containing no tea (D-091).
   rules as the black teas. They are parser v9: a catalog last refreshed by
   parser v8 (a v0.5.0 release candidate) re-reads its not-green products once
   more; a v0.4.1 catalog re-reads once (08 §2.4 item 3).
+- **Rotbusch, Früchtetee and Chai (v0.5.0, #206):** the shop's *Rotbusch*
+  (`/tee/rotbusch/`) and *Früchtetee* (`/tee/fruechtetee/`) sections are
+  loaded too, as kinds *Rotbusch* and *Früchtetee* with the new categories
+  `ROOIBOS` and `FRUIT`; *Chai* is a kind of its own (style `chai`). The
+  shop files each chai under its base tea's section (live check, 08 §2.2),
+  so a tea of any section whose name says „Chai" is a chai, of its section's
+  category (black, rooibos, green, Kräutertee); one filed in `/tee/chaitee/`
+  itself takes the base its name or ingredients name, else `OTHER`. A
+  product of a Japan tea family's page that names another tea (Wakoucha,
+  Oolong, Weißtee) is a tea of that kind, *Sorte* „Japan". They are parser
+  v10: a catalog last refreshed by parser v9 re-reads its not-green
+  products once more (08 §2.4 item 3).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -251,7 +263,8 @@ Kräutertee `herbal`; a black tea `flavored_black` when flavoured, else
 `black_generic` (v0.5.0, D-108; [08 §2.6](08-content.md#26-style-mapping-and-umami-level));
 a white tea `flavored_white` when flavoured, else `white_generic`; an oolong
 `flavored_oolong`, else `oolong_generic`; a Pu-Erh `sheng` or `shou` by its
-*Sorte* or name, else `dark_generic` (#205). A Gongfu row of the shop's grid
+*Sorte* or name, else `dark_generic` (#205); a Rotbusch `rooibos`, a
+Früchtetee `fruit`, a chai `chai`, flavoured or not (#206). A Gongfu row of the shop's grid
 becomes a Gongfu recipe, as for green teas.
 The shop's grid and text win over the style's values; „Rezept prüfen" shows
 only without shop values (CAT-05). The PO's second western infusion stays
@@ -355,6 +368,17 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   Until the first successful refresh with parser v9 each view shows its own
   hint („Weiße Tees / Oolongs / Pu-Erhs kommen mit dem nächsten Abruf
   (≈ 30 min, einmalig)") with *Jetzt laden*.
+- **Rotbusch, Früchtetee, Chai (v0.5.0, #206):** the kinds *Rotbusch* (key
+  `rooibos`), *Früchtetee* (key `fruit`) and *Chai* (key `chai`) close the
+  chip row, *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh ·
+  Kräutertee · Rotbusch · Früchtetee · Chai* (D-108 point 5). Their views
+  are grouped by *Sorte* (Rotbusch: Grüner Rotbusch, Honeybush; Chai: its
+  base, Schwarztee, Rotbusch, Grüntee, Kräutertee) with folding, and the
+  header reads „N Rotbuschtees", „N Früchtetees", „N Chais". Until the first
+  successful refresh with parser v10 each view shows its own hint
+  („… kommen mit dem nächsten Abruf (≈ 30 min, einmalig)"). The chip row
+  scrolls so the selected kind's chip is in view whenever the kind changes,
+  by a tap or by *Alle zeigen*.
 - **Flavour filter (v0.5.0, D-108 point 8, #204):** the filter sheet adds
   the shop's taste notes (*Geschmack*, 08 §2.3) and taste scales, for the
   kind shown; they apply in every kind's view.
@@ -479,13 +503,13 @@ its shop link. This is network use (d) of GEN-01.
   shop session (`robots.txt` respected, ≤ 2 requests/second, stop on a
   challenge, HTTP 429 or `Retry-After`). Offline, it shows a message and
   sends nothing.
-- AC4: A tea of the catalog's sections (CAT-01: green, black, white, oolong, Pu-Erh, Kräutertee) is stored in the catalog as a regular
+- AC4: A tea of the catalog's sections (CAT-01: green, black, white, oolong, Pu-Erh, Kräutertee, Rotbusch, Früchtetee, Chai) is stored in the catalog as a regular
   entry (photo per SET-22) and its detail (SCR-21) opens with *In Sammlung
   aufnehmen* / *Nachkauf erfassen* as usual; the exact price is fetched on
   adding (GEN-01 (c)). A sold-out tea shows „nicht vorrätig". It is not
   marked „Neu".
-- AC5: Not in those sections → „Dieser Tee gehört nicht zum Katalog (nur
-  Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs)." and nothing is stored.
+- AC5: Not in those sections → „Dieser Artikel gehört nicht zum Katalog (nur
+  Tees, ohne Sets und Zubehör)." (#206) and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
   entry. When the page can't refresh it without a stop (offline, no tea at
   the link, a page the app can't read), the detail opens as it was and the
@@ -642,7 +666,7 @@ full-text index and no tags (D-100, 05 §3.1).
 Favoriten, *Kategorie* (`TeaCategory`: Grüntee, Oolong …), *Sorte* (the
 tea's display Sorte: Gyokuro, Sencha …), Vorrat (*Knapp* / *Leer*),
 Aromatisiert, *Archiviert* (only archived teas, each with
-*Wiederherstellen*) (D-100).
+*Wiederherstellen*) (D-100). From v0.5.0 (#206) *Kategorie* also offers Rotbusch and Früchtetee when present; a catalog chai counts under its base tea's Kategorie.
 
 **TEA-11 — Sorting** `Must`
 *Zuletzt gebrüht* (default), *Name*, *Zuletzt hinzugefügt*, *Vorrat*

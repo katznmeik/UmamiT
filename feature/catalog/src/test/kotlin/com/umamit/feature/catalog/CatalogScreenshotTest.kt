@@ -375,6 +375,20 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /**
+     * The full chip row (v0.5.0, #206, D-108 point 5) on a screen wide enough for all of it: *Filter*, *Gemerkt*, the
+     * nine kinds in their order with *Chai* selected, then the switches.
+     */
+    @Test
+    @Config(qualifiers = "w2400dp-h120dp-mdpi")
+    fun chipRow() = capture("chipRow") {
+        CatalogFilterChips(
+            filter = CatalogFilter.DEFAULT.withKind(CatalogKind.CHAI),
+            onFilterChange = {},
+            onOpenFilters = {},
+        )
+    }
+
     /** The Schwarztee view before the first refresh after the update to v0.5.0 (#203): the hint with *Jetzt laden*. */
     @Test
     fun listBlackPending() = capture("listBlackPending") {

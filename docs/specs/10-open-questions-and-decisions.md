@@ -723,6 +723,69 @@ v5).**
 - **Texts.** The empty catalog's body and the link's „nicht im Katalog"
   name the new kinds; #206 extends them again.
 
+**Build notes (Claude, 2026-11-09, #206: Rotbusch, Früchtetee and Chai).**
+- **Live check (structure only, 08 §2.2).** robots.txt, the sitemap, 9
+  product pages (3 per section) and the chai section's one listing page, at
+  ≤ 1 request/s, one at a time; no challenge, no 429. One breadcrumb per
+  page; every grid one western row (~10 g/L, 100 °C, ~5 min). **No product
+  has `/tee/chaitee/` as its breadcrumb**: the shop lists its chais there but
+  files each under its base tea's section (black and rooibos chais under the
+  flavoured sub-sections, herbal chais and spice blends under the
+  Kräutertees, a green chai under the green section).
+- **Chai by name (amends the ticket's „`/tee/chaitee/` → Chai").** Matching
+  by path alone would leave the *Chai* view empty, so a tea of any section
+  whose name says „Chai" / „Chaitee" as a word is style `chai`, kind *Chai*,
+  category its section's (green for a green section's), *Sorte* the base
+  („Schwarztee", „Rotbusch", „Grüntee", „Kräutertee", …). `/tee/chaitee/`
+  is still a section (since v10) for a product filed there: its base from
+  the name, then the ingredients (Rotbusch/Rooibos/Honeybush,
+  Schwarztee/Assam/Ceylon/Darjeeling, Grüntee/Sencha), else `OTHER` and no
+  *Sorte*. A spice blend without „Chai" in its name stays a Kräutertee. The
+  catalog stores no category, so the copy into the collection takes it from
+  the same mapping (`StyleMatch.category`, with the ingredients) while it
+  maps to the stored style.
+- **Kinds, styles, categories.** `CatalogKind.ROOIBOS` (`rooibos`),
+  `FRUIT` (`fruit`), `CHAI` (`chai`), last in the chip order; styles
+  `rooibos` (ROOIBOS), `fruit` (FRUIT) and `chai` (OTHER), all the live
+  check's row, no cold brew, no Kyusu. `TeaCategory` gains `ROOIBOS` and
+  `FRUIT` before `OTHER` (stored by name, no schema change): *Meine Tees*'
+  *Kategorie* filter offers them when present, *Sorte wählen* has their
+  groups after *Kräutertee*, `chai` sits above *Andere / unbekannt*. The
+  brew picker's *Alle* groups (D-097) have no group of their own for them:
+  they show under *Andere*. Journal and statistics have no category mapping
+  yet (M4), and the backup stores the category by name.
+- ***Sorte*.** Rotbusch: the `gruener-rotbusch/` sub-section, else the name
+  („Honeybush" first, then „Grüner Rotbusch"); Bio, klassisch and
+  aromatisiert are no kind. Früchtetee: none (its sub-sections are Bio and
+  klassisch).
+- **Wakoucha (follow-up c, decided by 08 §2.4 item 3 and D-108 point 4).**
+  A Japan-tree product without a type level (a tea family's or garden's
+  page) whose name names Koucha/Wakoucha, Oolong or Weißtee is now that
+  section's tea with *Sorte* „Japan", like the Japan tree's
+  `koucha-schwarztee/`, `oolong/` and `weisstee/`: the catalog holds every
+  tea under *Tee*, and D-089's skip of such names only kept the catalog
+  green. Teaware and sets there stay out; green names stay green.
+  `TeeKontorParserTest`'s three skip cases became kept cases.
+- **Version.** Parser **v10**, the sections' `since` 10: a catalog an rc
+  refreshed with v9 re-reads its `NOT_GREEN` entries once more
+  (`CatalogParserV10RefreshTest`), and every known tea is parsed again with
+  the new version, so a black chai moves from *Schwarztee* to *Chai*.
+- **Chip row (follow-up a).** The row scrolls the selected kind's chip into
+  view whenever the kind changes (a tap, *Alle zeigen*, back from
+  *Gemerkt*), by the chips' measured spans, only the row and not the list
+  (a bring-into-view request would scroll the list too); animated unless
+  motion is reduced. The views' goldens with a kind chip off screen moved
+  with it; a new `chipRow` golden shows the full row on a wide canvas.
+- **Texts (follow-up b).** The setup's *Katalog laden* and Settings' refresh
+  detail say „Alle Tees von Tee-Kontor Kiel …, von Grüntee bis Chai" and
+  „etwa eine halbe Stunde" (NFR-PERF-11's ≈ 25–30 min); the empty catalog
+  „Lade alle Tees von Tee-Kontor Kiel, von Grüntee bis Chai, …"; a link
+  outside the catalog „Dieser Artikel gehört nicht zum Katalog (nur Tees,
+  ohne Sets und Zubehör)." (CAT-17 AC5).
+- **Fixtures.** The synthetic fruit-tea path that stood for „out of scope"
+  in older tests is in scope now; those tests use an invented sweets
+  section instead.
+
 **Build notes (Claude, 2026-11-09, #204: the flavour filter).**
 - **Notes.** The list rows now read `taste_notes` too (no schema change);
   a tea's notes are its *Geschmack* split at commas. A note's key is the

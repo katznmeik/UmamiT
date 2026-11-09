@@ -12,6 +12,9 @@ internal val CatalogKind.chipLabel: Int
         CatalogKind.OOLONG -> R.string.catalog_filter_oolong
         CatalogKind.DARK -> R.string.catalog_filter_dark
         CatalogKind.HERBAL -> R.string.catalog_filter_herbal
+        CatalogKind.ROOIBOS -> R.string.catalog_filter_rooibos
+        CatalogKind.FRUIT -> R.string.catalog_filter_fruit
+        CatalogKind.CHAI -> R.string.catalog_filter_chai
         else -> R.string.catalog_filter_green
     }
 
@@ -23,6 +26,9 @@ internal val CatalogKind.countPlural: Int
         CatalogKind.OOLONG -> R.plurals.catalog_oolong_count
         CatalogKind.DARK -> R.plurals.catalog_dark_count
         CatalogKind.HERBAL -> R.plurals.catalog_herbal_count
+        CatalogKind.ROOIBOS -> R.plurals.catalog_rooibos_count
+        CatalogKind.FRUIT -> R.plurals.catalog_fruit_count
+        CatalogKind.CHAI -> R.plurals.catalog_chai_count
         else -> R.plurals.catalog_tea_count
     }
 
@@ -33,5 +39,8 @@ internal val CatalogKind.pendingHint: Int
         CatalogKind.WHITE -> R.string.catalog_white_pending
         CatalogKind.OOLONG -> R.string.catalog_oolong_pending
         CatalogKind.DARK -> R.string.catalog_dark_pending
+        CatalogKind.ROOIBOS -> R.string.catalog_rooibos_pending
+        CatalogKind.FRUIT -> R.string.catalog_fruit_pending
+        CatalogKind.CHAI -> R.string.catalog_chai_pending
         else -> R.string.catalog_herbal_pending
     }
