@@ -15,8 +15,8 @@ package com.umamit.core.model
  *   „Rezept prüfen" badge; null when it came straight from the shop's grid.
  * @property isNew first seen in the latest successful refresh (CAT-10 „Neu", D-083).
  * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
- * @property isHerbal one of the shop's Kräutertees (style `herbal`, v0.2.1, D-093): shown in the
- *   *Kräutertee* view only.
+ * @property kind the catalog kind, from the tea's style (D-108): a *Kräutertee* (style `herbal`, v0.2.1,
+ *   D-093) is shown in the *Kräutertee* view only.
  * @property marked on the Merkliste (*Merken*, CAT-18, D-097).
  * @property discontinued no longer in the range, kept for a collection tea or a mark (CAT-07 AC4,
  *   CAT-18 AC3): shown in the *Gemerkt* view only, as „Nicht mehr im Sortiment".
@@ -36,7 +36,7 @@ data class CatalogTeaSummary(
     val recipeCheckReason: RecipeCheckReason? = null,
     val isNew: Boolean = false,
     val owned: Boolean = false,
-    val isHerbal: Boolean = false,
+    val kind: CatalogKind = CatalogKind.GREEN,
     val marked: Boolean = false,
     val discontinued: Boolean = false,
 ) {

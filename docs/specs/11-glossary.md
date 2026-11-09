@@ -50,6 +50,7 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
+| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default) and *Kräutertee* today. A catalog tea's kind comes from its style; folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Frische (Frisch, Bald genießen, Über dem Höhepunkt)** | A tea's freshness label (INV-06, from v0.4.1): by thirds of its style's window from the opening date, or *Über dem Höhepunkt* once its best-before date has passed. None for an unopened or an empty tea. |
 | **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2; from v0.5.0 the tea's own *Knapp ab* when set); *Leer* at 0 g (INV-05). |

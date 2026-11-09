@@ -64,7 +64,7 @@ data class CatalogUiState(
         get() = !loading && !isEmpty && filter.sort == CatalogSort.TYPE && !filter.marked && filter.search.isBlank()
 
     /** Whether the group of [teaType] (null = „Ohne Sorte") is folded in the view shown. */
-    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.herbal, teaType) in folded
+    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.kind, teaType) in folded
 }
 
 /**
@@ -134,7 +134,7 @@ class CatalogViewModel @Inject constructor(
     /** A tap on the header of [teaType]'s group (null = „Ohne Sorte"): folds or unfolds it in the view (D-098). */
     fun toggleFold(teaType: String?) {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val key = CatalogFoldKey.of(shown.filter.herbal, teaType)
+        val key = CatalogFoldKey.of(shown.filter.kind, teaType)
         viewModelScope.launch { folds.update { if (key in it) it - key else it + key } }
     }
 
@@ -144,16 +144,16 @@ class CatalogViewModel @Inject constructor(
      */
     fun foldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val herbal = shown.filter.herbal
+        val kind = shown.filter.kind
         val types = shown.listing.types + shown.listing.sections.map { it.teaType } + null
-        val keys = types.map { CatalogFoldKey.of(herbal, it) }.toSet()
+        val keys = types.map { CatalogFoldKey.of(kind, it) }.toSet()
         viewModelScope.launch { folds.update { it + keys } }
     }
 
     /** ⋮ *Alle ausklappen*: every group of the view shown, also keys of a *Sorte* that is gone (D-098). */
     fun unfoldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val prefix = CatalogFoldKey.prefix(shown.filter.herbal)
+        val prefix = CatalogFoldKey.prefix(shown.filter.kind)
         viewModelScope.launch { folds.update { folded -> folded.filterNot { it.startsWith(prefix) }.toSet() } }
     }
 

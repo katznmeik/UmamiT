@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.testing.FakeCatalogBookmarkRepository
@@ -51,7 +52,7 @@ class CatalogMerklisteTest {
         catalogTea("XY0300", "Kirschblüte Sencha").copy(isFlavored = true),
         catalogTea("XY0400", "Schattenblatt Kabusecha", "Kabusecha").copy(owned = true),
         catalogTea("XY0170", "Nebelhang Sencha").copy(discontinued = true),
-        catalogTea("XK0300", "Wiesenzauber", "Mischungen").copy(isHerbal = true, originCountry = null),
+        catalogTea("XK0300", "Wiesenzauber", "Mischungen").copy(kind = CatalogKind.HERBAL, originCountry = null),
     )
     private val bookmarks = FakeCatalogBookmarkRepository()
 

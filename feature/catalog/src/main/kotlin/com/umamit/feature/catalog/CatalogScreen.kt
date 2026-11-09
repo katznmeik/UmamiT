@@ -52,6 +52,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.ui.GermanFormat
 import com.umamit.core.ui.rememberPhotoPainter
@@ -353,7 +354,7 @@ private fun CatalogList(
             markedNotices(listing)
         } else {
             // Before the first refresh after the update the Kräutertees are still to come (D-093 Q20).
-            val herbalHint = filter.herbal && state.herbalPending
+            val herbalHint = filter.kind == CatalogKind.HERBAL && state.herbalPending
             if (herbalHint) item(key = "herbal_pending") { HerbalPendingRow(state.isRefreshing, actions) }
             if (listing.sections.isEmpty() && !(herbalHint && listing.totalCount == 0)) {
                 item(key = "no_match") {
@@ -362,7 +363,7 @@ private fun CatalogList(
                         stringResource(R.string.catalog_reset_filters),
                     ) {
                         actions.onFilterChange {
-                            CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, herbal = it.herbal)
+                            CatalogFilter.DEFAULT.copy(search = it.search, sort = it.sort, kind = it.kind)
                         }
                     }
                 }
@@ -391,17 +392,15 @@ private fun CatalogList(
  */
 internal fun showAll(filter: CatalogFilter, listing: CatalogListing): CatalogFilter {
     val all = filter.withoutFilters()
-    return if (listing.hiddenMatches == listing.hiddenInOtherView) all.withHerbal(!filter.herbal) else all
+    if (listing.hiddenMatches != listing.hiddenInOtherView) return all
+    // Every hidden hit is of other kinds: the kind with the most of them (the first found on a tie).
+    return listing.hiddenInOtherKinds.maxByOrNull { it.value }?.let { all.withKind(it.key) } ?: all
 }
 
 /** „Tee-Kontor Kiel · 274 Grüntees · aktualisiert am 21. Okt." („38 Kräutertees", „4 gemerkt" in their views). */
 @Composable
 private fun Header(listing: CatalogListing, filter: CatalogFilter, zone: ZoneId) {
-    val plurals = when {
-        filter.marked -> R.plurals.catalog_marked_count
-        filter.herbal -> R.plurals.catalog_herbal_count
-        else -> R.plurals.catalog_tea_count
-    }
+    val plurals = if (filter.marked) R.plurals.catalog_marked_count else filter.kind.countPlural
     val count = pluralStringResource(plurals, listing.totalCount, listing.totalCount)
     val updated = listing.lastRefreshAtMillis
     Text(

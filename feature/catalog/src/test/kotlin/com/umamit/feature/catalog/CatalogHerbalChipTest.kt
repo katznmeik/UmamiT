@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.testing.FakeCatalogRefreshRunner
@@ -41,7 +42,7 @@ class CatalogHerbalChipTest {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     private fun herbal(key: String, name: String, sorte: String): CatalogTeaSummary =
-        catalogTea(key, name, sorte).copy(isHerbal = true, originCountry = null)
+        catalogTea(key, name, sorte).copy(kind = CatalogKind.HERBAL, originCountry = null)
 
     private val teas = listOf(
         catalogTea("XY0100", "Morgennebel Sencha"),
@@ -153,7 +154,7 @@ class CatalogHerbalChipTest {
     @Test
     fun anEmptyKraeuterteeViewIsNoEmptyCatalog() {
         // Before the first refresh after the update the catalog has green teas only (Q20 is #91's hint).
-        show(teas.filterNot { it.isHerbal })
+        show(teas.filterNot { (it.kind == CatalogKind.HERBAL) })
 
         chip(R.string.catalog_filter_herbal).performClick()
         compose.waitForIdle()

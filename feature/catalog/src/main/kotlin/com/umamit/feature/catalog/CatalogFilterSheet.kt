@@ -72,7 +72,7 @@ internal fun CatalogFilterSheet(
             ChoiceGroup(stringResource(R.string.catalog_filter_origins), listing.origins, filter.origins) { value ->
                 onFilterChange { it.copy(origins = it.origins.toggle(value)) }
             }
-            if (!filter.herbal) {
+            if (filter.isGreen) {
                 FlavourGroup(filter, onFilterChange)
                 UmamiGroup(filter, onFilterChange)
             }
@@ -84,7 +84,7 @@ internal fun CatalogFilterSheet(
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = {
-                    onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, herbal = it.herbal) }
+                    onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, kind = it.kind) }
                 }) {
                     Text(stringResource(R.string.catalog_filter_reset))
                 }
