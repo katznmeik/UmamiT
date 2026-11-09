@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-07
+> Status: **Living document** · Last updated: 2026-11-09
 
 ## Open questions
 
@@ -322,6 +322,126 @@ personal data or shop content).
 - Signing: Claude generates the key, the backup file and the fingerprint
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
+
+<a id="d-108"></a>
+### D-108 — v0.5.0: two brew sessions, the whole Tee-Kontor tea range, a per-tea stock warning, a flavour filter (GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09, INV-10, INV-11, SET-28, SET-29, NFR-PERF-11; amends D-034, D-093 point 1, D-098 point 1, NG6, NG7) · *Accepted* (PO, 2026-11-09, grilled in two rounds of four questions; details marked „Claude" are Claude's defaults for the spec)
+
+**Context.** After v0.4.1 the PO gave four points of feedback:
+1. Two tea sessions must be possible at once, against the earlier „one
+   brew at a time" (D-034, D-098): e.g. a green tea in the morning, a herbal
+   tea later, then the green tea's second infusion after lunch. More than two
+   are not needed.
+2. The catalog's categories follow Tee-Kontor's: black teas and their
+   kinds, white tea and so on, not only green and Kräutertee.
+3. The low-stock warning is set per tea, can be switched off for a tea for
+   good (the PO wants no more of it), and its reminder interval is more
+   flexible (daily, every other day, weekly …).
+4. The catalog filter gains the flavour profiles.
+
+The shop's sitemap (read 2026-11-09) has these sections under `/tee/`:
+*Grüner Tee*, *Japantee*, *Schwarzer Tee* (Bio, klassisch, Darjeeling,
+Nepal, Ceylon, Assam, China, Taiwan, Japan, andere Regionen, Blends,
+aromatisiert, *Flugtee <year>*), *Weißer Tee* (Bio, klassisch, aromatisiert),
+*Oolong* (Bio, klassisch, Taiwan, China, andere Regionen, a tea master's
+page, aromatisiert), *Pu-Erh* (Sheng, Shou, Aged, lose, two makers' pages),
+*Rotbusch*, *Kräutertee*, *Früchtetee*, *Chaitee*, plus *Aufgussbeutel*
+(a format), a maker's section and *Multipacks & Sets*. About 1 360 base
+numbers in all (teaware and sweets included), against ≈ 300 catalog teas
+today.
+
+**Amends.** D-034 („starting a second tea keeps the confirmation") and
+D-098 point 1 / D-093 point 1 (one brew plus one quick timer): from v0.5.0
+any **two** active timers. NG6 (non-green teas not in the catalog) and NG7
+(no concurrent timers) are retired; 01 §5.2 says so.
+
+**Decisions (PO).**
+1. **Release.** One release before M4: **v0.5.0** with all four points.
+   M4 (journal & statistics) becomes **v0.6.0**; M5 stays 1.0.
+2. **Two active timers in total.** Any two: two brew sessions, or one brew
+   session and one quick timer. A third start asks which one to end.
+3. **Seeing and ringing two brews** like a brew and a quick timer in v0.3.0
+   (TMR-22 AC1–AC4): the bar shows both, each timer screen shows the other
+   in a slim row with its own *Pause*/*Weiter*, the Live Update follows the
+   timer that ends next; the first alarm rings and the other waits until
+   *Abgegossen*; two sounds never play at once.
+4. **Catalog scope: everything under *Tee*.** Every tea section of the
+   shop: green (as today), black, white, oolong, Pu-Erh, Kräutertee,
+   Rotbusch, Früchtetee and Chai. Still excluded: sets and multipacks, sale
+   duplicates, teaware, accessories, sweets and items containing no tea
+   (CAT-01, D-091). The PO accepts the larger catalog, storage and first
+   load.
+5. **One category at a time.** A chip row *Grüntee · Schwarztee ·
+   Weißer Tee · Oolong · Pu-Erh · Kräutertee · Rotbusch · Früchtetee ·
+   Chai* (extending today's *Grüntee* / *Kräutertee* chips, D-103); *Grüntee*
+   stays the default view; each view is grouped by its *Sorte* (e.g.
+   Darjeeling, Assam, Sheng) with foldable groups (CAT-10).
+6. **Per-tea stock warning: on/off and an own threshold.** On each tea
+   (tea detail, VORRAT): *Warnung* on or off and its own *Knapp* threshold
+   in g (default the 15 g of INV-05). Off means no Start card (INV-10), no
+   reminder line (INV-11) and no highlighted reorder button (INV-09 AC1).
+   The *Knapp* / *Leer* chips still show, since they state the stock.
+7. **Reminder interval: global, four choices.** In Settings, with SET-28:
+   *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich* (and *Aus*), at the
+   time of SET-29. One notification lists every tea due. Per tea only
+   on/off.
+8. **Flavour filter: taste notes and taste scales.** The shop's taste notes
+   (*Geschmack*: fruchtig, mild, süß, blumig, …) as multi-select chips, and
+   the shop's taste scales (Süße, Bitterstoffe, Fruchtig, Nussig, Würzig,
+   Röstnoten, Komplexität, …) as „mindestens N" like today's Umami filter.
+
+**Defaults for the spec (Claude; the spec session may refine them and
+asks the PO only where they change behaviour the PO sees).**
+- **Same tea twice.** A tea has at most one active session: starting a tea
+  that is already active (*Nochmal brühen*, the setup, a recipe) opens that
+  session instead of a second one. A quick timer is never tied to a tea.
+- **Third start.** „Welchen Timer beenden?" with one button per active
+  timer (tea name or *Schnelltimer*) and *Abbrechen*; the timer chosen is
+  ended as by *Sitzung beenden* (logged with „Sitzung gespeichert", TMR-14)
+  or *Abbrechen* for a quick timer, then the new one starts.
+- **Alarm order between two brews.** The step whose deadline came first
+  rings; the other is held and rings right after *Abgegossen* with its
+  overtime, by the held-alert rule of 04 §3 / §9.3 (now for a brew slot
+  too). A brew still goes before a quick timer due at the same time.
+- **Each session keeps its own rules.** Idle demote, the midnight
+  auto-finish, the stock deduction and the journal entry apply per session
+  (TMR-14); *Sitzung beenden* acts on one session only.
+- **Categories.** `TeaCategory` gains `ROOIBOS` and `FRUIT` (05 §5);
+  Chai teas take the category of their base tea when the breadcrumb or
+  ingredients name it, else `OTHER`, and show under the *Chai* chip by
+  their shop section. A product filed in several sections (e.g. also under
+  *Aufgussbeutel* or a maker's page) is classified by its tea section. Each
+  new kind gets its style rows in 08 §3 (e.g. Darjeeling, Assam, Ceylon,
+  Sheng, Shou, Rooibos, Früchtetee, Chai) with the shop's values first, as
+  for green teas (§2.5); the generic rows (Q-20) stay the fallback. The PO's
+  second western infusion (§2.5 step 5) stays green-only.
+- **Re-classification.** The first refresh after the update deletes the
+  `NOT_GREEN` skip rows once and re-reads them (as v0.2.1 did for the
+  Kräutertees, 05 §6). Estimate (Claude): ≈ 900 catalog teas, the first
+  load after the update ≈ 25–30 min and ≈ 80–100 MB of photos; NFR-PERF-11
+  gets the new budget in the spec, later refreshes stay ≤ 5 min plus the
+  new teas' photos.
+- **Flavour filter.** Notes come from the loaded catalog (only words that
+  occur in the current category view, sorted by count); several notes
+  narrow the list (all must match). A scale filter shows only the scales
+  that occur in the view. Both sit in the filter sheet and add to the
+  active-filter count; search is unchanged.
+- **Stock warning.** The threshold is whole grams 1–500, empty = the
+  global 15 g; *Warnung aus* is remembered on the tea (a new column, so a
+  tested Room migration). A tea with the warning off is left out of INV-10
+  and INV-11 until it is switched on again; a purchase does not switch it
+  back on. The interval counts from the day of the last reminder shown: a
+  reminder is posted at the set time on the first day that is at least N
+  days later and has a tea due (*Wöchentlich* = 7 days); a day with no tea
+  due posts nothing and moves nothing.
+- **Tiers.** The two-brew controller, alarms and persistence: T4 (rule 8,
+  04 §12 must pass, both accuracy variants per rc). The migration: T4. The
+  catalog classification and refresh budget: T4; the chips, filter and
+  stock-warning UI: T2–T3.
+
+**Next.** A fresh session writes the v0.5.0 spec as a GitHub issue
+(`/to-spec`) with the spec edits (01, 02, 03, 04, 05, 07, 08, 09, 11), then
+the tickets (`/to-tickets`); nothing is built before the PO starts
+`/implement-spec` on it.
 
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
@@ -5954,6 +6074,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |
 | 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |
 | 2026-11-08 | D-106: own photos (v0.4.1): accepted input up to 20 000 px, 250 MP and 128 MB in any platform-decodable format; platform ExifInterface; toasts for errors; the pager shows the cover first and stays on a photo after *Als Titelbild*; the vessel photo is stored with *Speichern*. |
 | 2026-11-07 | D-105: CI skips `checks`, `build` and `emulator` when only documentation changed (`docs/**`, `*.md`, `.claude/**`), detected by a first `changes` job from the API; skipped jobs still leave a successful run for the release check; any doubt runs everything (06 §7). |

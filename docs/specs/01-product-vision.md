@@ -1,6 +1,6 @@
 # 01 · Product Vision & Scope
 
-> Status: **Draft v0.2** · Last updated: 2026-10-21
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (NG6, NG7 retired, D-108)
 > v0.2 reflects the product-owner interview of 2026-10-21 (personal use, German,
 > Tee-Kontor catalog, timer details). See [10 · Decisions](10-open-questions-and-decisions.md).
 
@@ -82,8 +82,8 @@ Japanese tagline: **「お茶で、いい時間を。」**
 | NG3 | Social features. |
 | NG4 | Ordering or buying from Tee-Kontor inside the app (the app links to the product page at most). |
 | NG5 | Caffeine/health tracking or health claims. |
-| NG6 | Non-green teas from Tee-Kontor (black, oolong, …) in the first catalog import. Teas of any kind can still be added manually. |
-| NG7 | Multiple concurrent timers. |
+| NG6 | ~~Non-green teas from Tee-Kontor (black, oolong, …) in the first catalog import.~~ Retired by D-108: from v0.5.0 the catalog loads every tea section of the shop (Kräutertees since v0.2.1, D-093). |
+| NG7 | ~~Multiple concurrent timers.~~ Retired by D-108: from v0.5.0 any two active timers (two brew sessions, or a brew and a quick timer; one brew and one quick timer since v0.3.0, D-098); never more than two. |
 | NG8 | Languages other than German; imperial units. |
 
 ## 6. Scope overview
