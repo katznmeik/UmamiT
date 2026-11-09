@@ -505,6 +505,12 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   brew, never switching to the quick timer, and its tap opens the brew.
   With two brew sessions (v0.5.0, D-108) the card shows the first in the
   slot order and opens that one; the bar shows both.
+- **Aufguss starten beside one timer (v0.5.0, D-108).** *Aufguss starten*
+  shows while fewer than two timers are active: alone, below the card of one
+  active brew (v0.3.0 hid it while a brew was active), or with a quick timer
+  alone. With two active timers (two brews, or a brew and a quick timer) it
+  is hidden; *Nochmal brühen* and the setup's *Start* then ask „Welchen Timer
+  beenden?" (below).
 - **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
   opens SCR-07 and starts a quick timer alongside it, without a question;
   while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
@@ -1392,7 +1398,12 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - *Brühen & Vorrat* gets the switch „Tägliche Vorrats-Erinnerung" (SET-28,
   on) with „Listet jeden Tag alle knappen und leeren Tees." and, while it is
   on, „Uhrzeit" with the time („18:00", SET-29), which opens Material 3's
-  time picker (24 h).
+  time picker (24 h). From v0.5.0 ([D-108](10-open-questions-and-decisions.md#d-108),
+  #198) the switch is the row „Vorrats-Erinnerung" with its choice as the
+  value („Täglich"); it opens a choice dialog with „Listet alle knappen und
+  leeren Tees." and *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich ·
+  Aus* (a pick is stored at once, *Fertig* closes). „Uhrzeit" shows while
+  the choice is not *Aus*.
 - *Timer & Alarm* gets the switch „Bei „Nicht stören" klingeln" (SET-32,
   on; [D-099](10-open-questions-and-decisions.md#d-099)) below *Alarmdauer*,
   with „Vorwarnung und Alarm klingen, wenn „Nicht stören" Alarme erlaubt".

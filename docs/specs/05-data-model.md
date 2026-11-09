@@ -523,7 +523,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 | Field | Type | Default | Req. |
 |---|---|---|---|
-| `schemaVersion` | Int | 1 | |
+| `schemaVersion` | Int | 1 | 2 from v0.2.2 (D-097), 3 from v0.5.0 (`lowStockReminderInterval`, D-108); a fresh install runs every step |
 | `onboardingCompleted` | Boolean | false | ONB-04 |
 | `theme` | SYSTEM/LIGHT/DARK | SYSTEM | SET-05 |
 | `dynamicColor` | Boolean | false | SET-06 |
@@ -538,9 +538,10 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockHidden` | Set<String> | ∅ | INV-10 (v0.2.2, D-097): `<tea id>/<event id>` of the latest INITIAL/PURCHASE event when *Ausblenden* was tapped; a newer purchase shows the card again |
 | `alertVolumePercent` | Int (10…100) | 100 | SET-27 (v0.3.0, D-098): the gain of Vorwarnung and alarm on the alarm stream; a written value is snapped to 10 and clamped to 10…100, so the app itself can never silence a cue |
 | `ringUnderDnd` | Boolean | true | SET-32 (v0.3.0, D-099): a silent report under a Do Not Disturb that lets alarms through rings; a file of `v0.3.0-rc.1` or older has no key and reads true |
-| `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
+| `lowStockReminder` | Boolean | true | SET-28's switch of v0.3.0 (D-098): read only by the `schemaVersion` 3 step; from v0.5.0 written as „`lowStockReminderInterval` is not OFF" |
+| `lowStockReminderInterval` | DAILY/EVERY_2_DAYS/EVERY_3_DAYS/WEEKLY/OFF | DAILY | SET-28, INV-11 (v0.5.0, D-108): every 1, 2, 3 or 7 days, or off. Settings `schemaVersion` 3 turns a stored `lowStockReminder` true into DAILY and false into OFF once; an unknown name reads DAILY |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
-| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
+| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last reminder that was posted, which the interval counts from (v0.5.0, D-108); a due day with nothing to post leaves it (until v0.4.1 it also counted such a day). Not shown |
 | `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
