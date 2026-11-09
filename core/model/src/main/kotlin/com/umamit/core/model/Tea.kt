@@ -29,7 +29,13 @@ data class Tea(
     val openedDate: LocalDate? = null,
     val bestBefore: LocalDate? = null,
     val freshnessDays: Int? = null,
+    /** The tea's own „Knapp ab" in whole grams 1–500 (SCR-09, D-108); null: SET-16's global threshold. */
     val lowStockGrams: Double? = null,
+    /**
+     * The stock warning (D-108): off leaves the tea out of Start's card (INV-10) and the reminder (INV-11) and keeps
+     * its reorder link a text link (INV-09 AC1); its *Knapp* / *Leer* labels stay. A purchase never switches it on.
+     */
+    val lowStockWarning: Boolean = true,
     val storageNote: String? = null,
     val notes: String? = null,
     val recipeCheckReason: RecipeCheckReason? = null,

@@ -42,6 +42,7 @@ class TeaAndRecipeRepositoryTest {
             shadingDays = 10,
             openedDate = LocalDate.of(2026, 10, 21),
             lowStockGrams = 15.5,
+            lowStockWarning = false,
         )
         data.teas.saveTea(tea)
 

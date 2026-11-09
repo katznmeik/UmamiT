@@ -11,6 +11,7 @@ import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import java.time.LocalDate
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +41,7 @@ class LowStockTest {
         catalogKey: String? = null,
         archived: Boolean = false,
         ownThreshold: Double? = null,
+        warning: Boolean = true,
     ) {
         data.teas.saveTea(
             tea(id, name).copy(
@@ -47,6 +49,7 @@ class LowStockTest {
                 styleKey = "sencha",
                 isArchived = archived,
                 lowStockGrams = ownThreshold,
+                lowStockWarning = warning,
             ),
         )
         data.stock.addEvent(initial("$id-buy", id, 50.0, 900, at = 1L))
@@ -110,6 +113,47 @@ class LowStockTest {
     fun aTeasOwnThresholdWinsOverTheSetting() = runTest {
         teaWith("t1", grams = 25.0, ownThreshold = 30.0)
         teaWith("t2", grams = 10.0, ownThreshold = 5.0)
+
+        assertThat(card()?.teaId).isEqualTo("t1")
+    }
+
+    @Test
+    fun aTeasOwnThresholdIsFollowedAtOnce() = runTest {
+        teaWith("t1", grams = 25.0)
+        assertThat(card()).isNull()
+
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(lowStockGrams = 25.0))
+        assertThat(card()?.teaId).isEqualTo("t1")
+
+        // Emptied again, the global „Knapp ab" (15 g) counts.
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(lowStockGrams = null))
+        assertThat(card()).isNull()
+    }
+
+    @Test
+    fun aTeaWithItsWarningOffShowsNoCardAndTheNextTeaTakesTheSlot() = runTest {
+        teaWith("t1", grams = 2.0, warning = false)
+        assertThat(card()).isNull()
+
+        teaWith("t2", grams = 10.0)
+        assertThat(card()?.teaId).isEqualTo("t2")
+    }
+
+    @Test
+    fun aPurchaseNeverSwitchesTheWarningBackOn() = runTest {
+        teaWith("t1", grams = 2.0, warning = false)
+
+        data.stock.recordPurchase("t1", TeaPurchase(5.0, priceCents = 300, purchasedOn = LocalDate.of(1970, 1, 1)))
+
+        assertThat(data.teas.getTea("t1")!!.lowStockWarning).isFalse()
+        assertThat(card()).isNull()
+    }
+
+    @Test
+    fun switchedOnAgainTheTeaShowsAtOnce() = runTest {
+        teaWith("t1", grams = 2.0, warning = false)
+
+        data.teas.saveTea(data.teas.getTea("t1")!!.copy(lowStockWarning = true))
 
         assertThat(card()?.teaId).isEqualTo("t1")
     }

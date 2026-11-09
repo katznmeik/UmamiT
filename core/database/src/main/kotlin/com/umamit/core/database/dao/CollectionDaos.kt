@@ -361,6 +361,7 @@ data class TeaStockLevel(
     @ColumnInfo(name = "catalog_key") val catalogKey: String?,
     @ColumnInfo(name = "product_url") val productUrl: String?,
     @ColumnInfo(name = "low_stock_grams") val lowStockGrams: Double?,
+    @ColumnInfo(name = "low_stock_warning") val lowStockWarning: Boolean,
     @ColumnInfo(name = "remaining_grams") val remainingGrams: Double,
     @ColumnInfo(name = "last_purchase_id") val lastPurchaseId: String?,
 )
@@ -369,13 +370,14 @@ data class TeaStockLevel(
 abstract class InventoryDao {
     /**
      * Every non-archived tea that has stock events, with its remaining stock and the id of its latest INITIAL
-     * or PURCHASE event (INV-05, INV-10): what Start's low-stock card is chosen from. Least stock first,
-     * then by name.
+     * or PURCHASE event and its stock warning (INV-05, INV-10, D-108): what Start's low-stock card and the
+     * reminder are chosen from. Least stock first, then by name.
      */
     @Query(
         """
         SELECT t.id AS tea_id, t.name AS name, t.style_key AS style_key, t.catalog_key AS catalog_key,
             t.product_url AS product_url, t.low_stock_grams AS low_stock_grams,
+            t.low_stock_warning AS low_stock_warning,
             SUM(e.delta_grams) AS remaining_grams,
             (SELECT p.id FROM inventory_event p
                 WHERE p.tea_id = t.id AND p.type IN ('INITIAL', 'PURCHASE')
