@@ -57,7 +57,8 @@ internal fun quick(
 /**
  * The second brew of two-brews step [step] (D-108): 66 s with a 10 s pre-alert from the step's start, so its
  * pre-alert comes at 56 s, handled and played [preAlertMs] late, and its deadline at 66 s, handled 15 ms late while
- * the first brew's alert rings, held [heldMs] until *Abgegossen* and sounding [releaseMs] after its release.
+ * the first brew's alert sounds, held [heldMs] until that sound ended (D-109) and sounding [releaseMs] after its
+ * release.
  */
 internal fun second(step: Int, preAlertMs: Long, heldMs: Long, releaseMs: Long) = SecondBrewStepFireTimes(
     step = step,

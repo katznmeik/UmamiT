@@ -8,7 +8,7 @@ import org.junit.Test
 
 /**
  * The accuracy run's variant `two-brews` (04 §12, TMR-30; D-108, #202): two overlapping brew sessions, the second's
- * alert held behind the first's until *Abgegossen* (04 §9.3). Both pre-alerts and the first brew's alerts are gated;
+ * alert held behind the first's until the first's sound has ended (04 §9.3, D-109). Both pre-alerts and the first brew's alerts are gated;
  * the held alert's hold and its release's own delay are reported apart and never gated.
  */
 class TwoBrewsAccuracyReportTest {
@@ -29,7 +29,11 @@ class TwoBrewsAccuracyReportTest {
         assertThat(markdown).contains(
             "50 × 60 s steps with the screen off, pre-alert 10 s (04 §12, TMR-30), each with a second brew " +
                 "session alongside (D-108): steps of 66 s with pre-alert 10 s started with the first's, so its " +
-                "alert comes while the first's rings and is held until *Abgegossen* (04 §9.3).",
+                "alert comes while the first's sounds and is held until that sound has ended (04 §9.3, D-109).",
+        )
+        assertThat(markdown).contains(
+            "Held alert of brew 2 (04 §9.3): its deadline comes while brew 1's alert sounds, so it is held until " +
+                "that sound has ended (D-109), by design, and rings then with its overtime.",
         )
         assertThat(markdown).contains(
             "**Result: PASS** · target p95 ≤ 250 ms, max ≤ 1000 ms, for both brews' pre-alerts and the first " +

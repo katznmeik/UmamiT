@@ -63,6 +63,9 @@ class TimerTestActivity : Activity() {
                 Log.i(TAG, "Second brew's step of $secondSeconds s: start $started, Start $running")
                 outcomes += "second start" to started
                 outcomes += "second Start" to running
+                deadlineOf(controller, TimerSlot.BREW_2)?.let {
+                    secondDeadlineFile(this@TimerTestActivity).writeTextAtomically(it.toString())
+                }
             }
             // A quick timer running alongside (D-098); with quickRestart it replaces the active one, as
             // „Schnelltimer beenden und neu starten?" does, and the brew is never touched.
@@ -120,6 +123,9 @@ class TimerTestActivity : Activity() {
 
         /** Where the activity writes the running step's deadline on the wall clock. */
         fun deadlineFile(context: Context): File = File(context.filesDir, "timer-test-deadline.txt")
+
+        /** Where the activity writes the second brew's running step's deadline on the wall clock (D-108). */
+        fun secondDeadlineFile(context: Context): File = File(context.filesDir, "timer-test-second-deadline.txt")
 
         /** Where the activity writes the running quick timer's deadline on the wall clock. */
         fun quickDeadlineFile(context: Context): File = File(context.filesDir, "timer-test-quick-deadline.txt")

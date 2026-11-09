@@ -32,8 +32,8 @@ data class AccuracyRun(
 /**
  * The second brew session of the accuracy run's variant `two-brews` (04 §12, 09 §4a; D-108, #202): steps of
  * [stepSeconds] with a pre-alert of [preAlertSeconds], started with each of the first session's steps. Its pre-alert
- * comes between the first's pre-alert and alert, and its deadline while the first's alert rings, so it is held until
- * *Abgegossen* and then rings with its overtime (04 §9.3).
+ * comes between the first's pre-alert and alert, and its deadline while the first's alert sounds, so it is held until
+ * that sound has ended and then rings with its overtime (04 §9.3, D-109).
  */
 data class SecondBrew(val stepSeconds: Int, val preAlertSeconds: Int)
 
@@ -295,8 +295,9 @@ class AccuracyReport(
         second?.let { second ->
             appendLine()
             appendLine(
-                "Held alert of brew 2 (04 §9.3): its deadline comes while brew 1's alert rings, so it is held " +
-                    "until *Abgegossen* by design and rings then with its overtime. *Held* is that designed delay; " +
+                "Held alert of brew 2 (04 §9.3): its deadline comes while brew 1's alert sounds, so it is held " +
+                    "until that sound has ended (D-109), by design, and rings then with its overtime. *Held* is " +
+                    "that designed delay; " +
                     "*Release → sound* is the player's start after the release, shown against the target but " +
                     "not gated.",
             )
@@ -473,8 +474,8 @@ private val AccuracyRun.besideEachStep: String
             "then one of ${it.acrossSeconds} s across the step's pre-alert and alert"
     } ?: twoBrews?.let {
         ", each with a second brew session alongside (D-108): steps of ${it.stepSeconds} s with pre-alert " +
-            "${it.preAlertSeconds} s started with the first's, so its alert comes while the first's rings " +
-            "and is held until *Abgegossen* (04 §9.3)"
+            "${it.preAlertSeconds} s started with the first's, so its alert comes while the first's sounds " +
+            "and is held until that sound has ended (04 §9.3, D-109)"
     }.orEmpty()
 
 /** What the verdict's target covers, after the target; empty for the standard run. */

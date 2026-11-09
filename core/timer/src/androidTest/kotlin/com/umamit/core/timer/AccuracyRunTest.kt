@@ -76,10 +76,10 @@ import kotlin.time.TimeSource
  * **Variant `two-brews`** (D-108, #202; 09 §4a): two brew sessions side by side, started together. Each step
  * pair is the first brew's step of [STEP] and the second's of [SECOND_STEP], both with a pre-alert of 10 s: the
  * pre-alerts come at 50 s and 56 s (the first's has rung out), the first's alert at 60 s, and the second's deadline
- * at 66 s while the first's alert rings, so it is held (04 §9.3). Only once that hold is in the log does the test
- * tap *Abgegossen* on the first's alert; the second's alert then rings, and its sound start after the release is
- * read. Both pre-alerts and the first's alert are measured against the target; the held alert's hold and its
- * release's own delay are reported apart and never gated, as the hold is by design.
+ * at 66 s while the first's alert sounds (SET-14 *Normal*, at least 7.5 s), so it is held (04 §9.3). The test does
+ * not pour the first: the second's alert rings once the first's sound has ended (D-109), and its sound start after
+ * the release is read; then both are poured. Both pre-alerts and the first's alert are measured against the target;
+ * the held alert's hold and its release's own delay are reported apart and never gated, as the hold is by design.
  *
  * It takes about 55 minutes (`alongside` about an hour, `two-brews` a little less), so the regular emulator job
  * skips it: it runs only with the instrumentation argument `umamitAccuracy=true`, which `scripts/accuracy-run.sh`
@@ -374,11 +374,12 @@ class AccuracyRunTest {
     }
 
     /**
-     * One step pair [number] of the variant `two-brews` (D-108, 04 §9.3), both brews running from about the same
-     * moment: the screen off; brew 1's pre-alert (at 50 s), brew 2's (at 56 s, after brew 1's has rung out), brew 1's
-     * alert (at 60 s) and brew 2's deadline (at 66 s), held while brew 1's alert rings, all read from the log; only
-     * then *Abgegossen* on brew 1's alert, which releases brew 2's: its sound start after the release is read, then
-     * *Abgegossen* on it. Each brew's cues go to [steps] and [secondSteps] as soon as they are complete.
+     * One step pair [number] of the variant `two-brews` (D-108, D-109, 04 §9.3), both brews running from about the
+     * same moment: the screen off; brew 1's pre-alert (at 50 s), brew 2's (at 56 s, after brew 1's has rung out),
+     * brew 1's alert (at 60 s) and brew 2's deadline (at 66 s), held while brew 1's alert sounds, all read from the
+     * log. Brew 1 is not poured: once its sound has ended, brew 2's alert rings and its sound start after the release
+     * is read; then *Abgegossen* on brew 2's alert and on brew 1's, which still alerts silently. Each brew's cues go to
+     * [steps] and [secondSteps] as soon as they are complete.
      */
     private fun runStepTwoBrews(
         number: Int,
@@ -388,9 +389,7 @@ class AccuracyRunTest {
         brewNotificationWith(pause, "brew 1's step $number running", TEA)
         brewNotificationWith(pause, "brew 2's step $number running", SECOND_TEA)
         screenOff("in step $number")
-        val alert = eventually("brew 1's alert (ID 2) of step $number", STEP + ALERT_TIMEOUT) {
-            alertOf(TimerSlot.BREW)
-        }
+        eventually("brew 1's alert (ID 2) of step $number", STEP + ALERT_TIMEOUT) { alertOf(TimerSlot.BREW) }
         val cues = eventually(
             "step $number's cues in the diagnostics log, brew 2's deadline held behind brew 1's alert",
             SECOND_STEP - STEP + ALERT_TIMEOUT,
@@ -404,8 +403,8 @@ class AccuracyRunTest {
                 "${cues.secondHold.deltaMs} ms, ${cues.secondHold.source})",
         )
         steps += first
-        tap(alert, poured)
-        val secondAlert = eventually("brew 2's released alert (ID 2) of step $number", TIMEOUT) {
+        // D-109: brew 1 is not poured; brew 2's alert rings once brew 1's sound (at most 15 s) has ended.
+        val secondAlert = eventually("brew 2's alert (ID 2) of step $number after brew 1's sound", RELEASE_TIMEOUT) {
             alertOf(TimerSlot.BREW_2)
         }
         val released = eventually("brew 2's released alert sound of step $number in the diagnostics log", TIMEOUT) {
@@ -415,7 +414,12 @@ class AccuracyRunTest {
         Log.i(TAG, "step $number/$plannedSteps: brew 2 held alert ${held.summary()}")
         secondSteps += SecondBrewStepFireTimes(number, cues.secondPreAlert, held)
         tap(secondAlert, poured)
-        eventually("brew 2's alert of step $number gone after $poured", TIMEOUT) {
+        // Brew 1 still alerts without sound; it is the alert (ID 2) again once brew 2's is poured.
+        val firstSilent = eventually("brew 1's silent alert of step $number after brew 2's", TIMEOUT) {
+            alertOf(TimerSlot.BREW)
+        }
+        tap(firstSilent, poured)
+        eventually("both alerts of step $number gone after $poured", TIMEOUT) {
             Unit.takeIf { activeNotification(TimerNotifications.ID_ALERT) == null }
         }
     }
@@ -452,7 +456,7 @@ class AccuracyRunTest {
         } ?: return null
         check("step $number: one held deadline of brew 2 expected, got $holds", holds.size == 1)
         check(
-            "step $number: brew 2's alert rang before brew 1's was acknowledged, not held (04 §9.3): ${second.second}",
+            "step $number: brew 2's alert rang while brew 1's sounded, not held (04 §9.3): ${second.second}",
             second.second.none { it.kind == TimerAlarmKind.DEADLINE },
         )
         checkOverlap(number, cues)
@@ -765,7 +769,9 @@ class AccuracyRunTest {
         /**
          * `two-brews`: the second brew's steps, started with the first's 60 s. Its pre-alert at 56 s comes after the
          * first's (at 50 s) has rung out ([PRE_ALERT_RING_GAP]) and before the first's alert (at 60 s), so neither
-         * waits; its deadline at 66 s comes while the first's alert rings and is held until *Abgegossen* (04 §9.3).
+         * waits; its deadline at 66 s comes while the first's alert sounds and is held until that sound has ended
+         * (04 §9.3, D-109): at least 7.5 s after the first's alert at 60 s, as SET-14 *Normal* repeats its tone up to
+         * 15 s.
          */
         private val SECOND_STEP = 66.seconds
         private const val SECOND_PRE_ALERT_SECONDS = 10
@@ -777,6 +783,9 @@ class AccuracyRunTest {
          */
         private val PRE_ALERT_RING_GAP = 4.5.seconds
         private val TIMEOUT = 10.seconds
+
+        /** `two-brews`: brew 2's release comes at most 15 s (SET-14 *Normal*) after brew 1's alert, plus a margin. */
+        private val RELEASE_TIMEOUT = 15.seconds + TIMEOUT
 
         /**
          * A start in the timer process through [TimerTestActivity]: its process, the activity and the outcome file,
