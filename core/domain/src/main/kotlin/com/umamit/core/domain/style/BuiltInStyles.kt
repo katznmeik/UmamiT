@@ -129,8 +129,28 @@ object BuiltInStyles {
             recipes = arrayOf(western(2.0, 100, 6 * MINUTE)),
             category = TeaCategory.HERBAL,
         ),
-        // The other categories (v0.4.0, Q-20, D-100): one western infusion of 3:00 at the category's temperature.
+        // The catalog's flavoured white teas and oolongs (v0.5.0, #205): the shop's western row in the mug.
+        // The other categories' generic rows (v0.4.0, Q-20, D-100) close each group: one western infusion
+        // of 3:00 at the category's temperature.
+        style(
+            "flavored_white",
+            UmamiLevel.LOW,
+            FLAVOURED_FRESHNESS_DAYS,
+            2.5,
+            japanese = false,
+            recipes = arrayOf(western(2.5, 80, 2 * MINUTE)),
+            category = TeaCategory.WHITE,
+        ),
         generic("white_generic", TeaCategory.WHITE, UmamiLevel.LOW, tempC = 85),
+        style(
+            "flavored_oolong",
+            UmamiLevel.LOW,
+            FLAVOURED_FRESHNESS_DAYS,
+            2.5,
+            japanese = false,
+            recipes = arrayOf(western(2.0, 95, 3 * MINUTE)),
+            category = TeaCategory.OOLONG,
+        ),
         generic("oolong_generic", TeaCategory.OOLONG, UmamiLevel.LOW, tempC = 95),
         // The catalog's black teas (v0.5.0, D-108): the mug, one infusion; the shop's grid wins (08 §2.5).
         black("darjeeling", freshness = 120, teaspoon = 2.0, tempC = 95, seconds = 150),
@@ -138,6 +158,32 @@ object BuiltInStyles {
         black("ceylon", freshness = 180, teaspoon = 2.5, tempC = 100, seconds = 3 * MINUTE),
         black("flavored_black", freshness = 120, teaspoon = 2.5, tempC = 100, seconds = 3 * MINUTE),
         generic("black_generic", TeaCategory.BLACK, UmamiLevel.NONE, tempC = 95),
+        // The catalog's Pu-Erhs (v0.5.0, #205): the shop's Gongfu row (gaiwan, 120 ml, boiling, ~10 s), then the
+        // usual longer infusions; the mug as the second recipe.
+        style(
+            "sheng",
+            UmamiLevel.NONE,
+            PU_ERH_FRESHNESS_DAYS,
+            OTHER_TEASPOON_GRAMS,
+            japanese = false,
+            recipes = arrayOf(
+                gongfu(5.0, 100, 10, 10, 10, 15, 20, 30, water = PU_ERH_GONGFU_ML),
+                western(GENERIC_LEAF_GRAMS, 100, GENERIC_INFUSION_SECONDS),
+            ),
+            category = TeaCategory.DARK,
+        ),
+        style(
+            "shou",
+            UmamiLevel.NONE,
+            PU_ERH_FRESHNESS_DAYS,
+            OTHER_TEASPOON_GRAMS,
+            japanese = false,
+            recipes = arrayOf(
+                gongfu(4.0, 100, 10, 10, 10, 15, 20, 30, water = PU_ERH_GONGFU_ML),
+                western(GENERIC_LEAF_GRAMS, 100, GENERIC_INFUSION_SECONDS),
+            ),
+            category = TeaCategory.DARK,
+        ),
         generic("dark_generic", TeaCategory.DARK, UmamiLevel.NONE, tempC = 100),
         // *Andere / unbekannt* (08 §3): no umami level and no freshness window.
         style(
@@ -188,8 +234,8 @@ private fun kyusu(leaf: Double, water: Int, temp: Int, vararg steps: Timed) = Re
 private const val GONGFU_ML = 100
 private const val MUG_ML = 250
 
-private fun gongfu(leaf: Double, temp: Int, vararg seconds: Int) =
-    RecipeTemplate("Gongfu", BrewMethod.GONGFU, leaf, GONGFU_ML, temp, seconds.map { infusion(it) })
+private fun gongfu(leaf: Double, temp: Int, vararg seconds: Int, water: Int = GONGFU_ML) =
+    RecipeTemplate("Gongfu", BrewMethod.GONGFU, leaf, water, temp, seconds.map { infusion(it) })
 
 private fun western(leaf: Double, temp: Int, vararg seconds: Int) =
     RecipeTemplate("Westlich", BrewMethod.WESTERN, leaf, MUG_ML, temp, seconds.map { infusion(it) })
@@ -239,6 +285,12 @@ private fun black(key: String, freshness: Int, teaspoon: Double, tempC: Int, sec
     recipes = arrayOf(western(BLACK_LEAF_GRAMS, tempC, seconds)),
     category = TeaCategory.BLACK,
 )
+
+private const val FLAVOURED_FRESHNESS_DAYS = 120
+private const val PU_ERH_FRESHNESS_DAYS = 365
+
+/** The Pu-Erhs' gaiwan (v0.5.0, #205): the shop's Gongfu rows give ~4–5 g per 120 ml. */
+private const val PU_ERH_GONGFU_ML = 120
 
 /** A generic row of another category (Q-20, D-100): WESTERN 3 g / 250 ml, one infusion of 3:00 at [tempC]. */
 private fun generic(key: String, category: TeaCategory, umami: UmamiLevel, tempC: Int) = style(

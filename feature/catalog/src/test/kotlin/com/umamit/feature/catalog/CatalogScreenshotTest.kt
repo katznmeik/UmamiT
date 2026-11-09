@@ -347,6 +347,34 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         )
     }
 
+    /**
+     * The Pu-Erh view (v0.5.0, #205, D-108): its chip selected, grouped by *Sorte* (Sheng, Shou, Aged), on its own
+     * invented teas so the other goldens' lists stay as they are.
+     */
+    @Test
+    fun listDark() = capture("listDark") {
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.DARK)
+        val puErhs = listOf(
+            catalogTea("XP1900", "2019 Nebelberg Bing Cha", "Sheng", 2490, thumbnailPath = "sheng")
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China", isNew = true),
+            catalogTea("XP2000", "Waldboden Shou", "Shou", 1290)
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China", owned = true),
+            catalogTea("XP2100", "1999 Hafenlager", "Aged", 6900, thumbnailPath = "aged")
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China"),
+        )
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(TEAS + puErhs, filter, null, FakeClock.DEFAULT_WALL_MS),
+                filter = filter,
+                loading = false,
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
     /** The Schwarztee view before the first refresh after the update to v0.5.0 (#203): the hint with *Jetzt laden*. */
     @Test
     fun listBlackPending() = capture("listBlackPending") {

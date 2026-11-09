@@ -4,7 +4,8 @@ import com.umamit.core.model.CatalogKind
 
 /**
  * One of the shop's tea sections beyond the green ones (08 §2.2, §2.4 item 3): the Kräutertees
- * from v0.2.1 (D-093), the black teas from v0.5.0 (D-108). A product with a crumb in a section is a
+ * from v0.2.1 (D-093), the black teas from v0.5.0 (D-108, parser v8), the white teas, oolongs and
+ * Pu-Erhs with parser v9 (#205). A product with a crumb in a section is a
  * tea of it, whatever format or maker section it is also filed under (*Aufgussbeutel*, a maker's
  * page); the section of the deepest such crumb wins.
  *
@@ -58,8 +59,11 @@ internal data class TeaSection(
     }
 
     private companion object {
-        /** Sub-sections that name no kind of tea, by their last path segment (D-108). */
-        val NOT_A_KIND = Regex("""^(bio|klassisch|aromatisiert)|blend|andere-regionen""")
+        /**
+         * Sub-sections that name no kind of tea, by their last path segment (D-108): from #205 also a
+         * tea master's or maker's page (`tee-von-meister-…`, `pu-erh-von-…`) and the loose Pu-Erhs.
+         */
+        val NOT_A_KIND = Regex("""^(bio|klassisch|aromatisiert)|blend|andere-regionen|(^|-)von-|^loose|loser""")
     }
 }
 
@@ -108,8 +112,77 @@ internal object TeaSections {
         },
     )
 
+    private const val WHITE_GENERIC = "white_generic"
+    private const val FLAVORED_WHITE = "flavored_white"
+    private const val OOLONG_GENERIC = "oolong_generic"
+    private const val FLAVORED_OOLONG = "flavored_oolong"
+    private const val DARK_GENERIC = "dark_generic"
+
+    /** The first parser version of the white teas, oolongs and Pu-Erhs (#205). */
+    private const val V9 = 9
+
+    /** The Japan tree's section of another tea (`/tee/japantee/oolong/`): its teas' *Sorte* is „Japan". */
+    private fun japan(segment: String) = TeaSection.Root("/tee/japantee/$segment/", sorte = "Japan")
+
+    private fun named(vararg sorten: Pair<String, String>) =
+        sorten.map { (pattern, sorte) -> Regex(pattern, RegexOption.IGNORE_CASE) to sorte }
+
+    /**
+     * The white teas (v0.5.0, parser v9, #205): `/tee/weisser-tee/` and the Japan tree's `weisstee/`. Its
+     * sub-sections (Bio, klassisch, aromatisiert) name no kind, so the *Sorte* is the white kind its name
+     * names; a flavoured one is `flavored_white`, else `white_generic`.
+     */
+    val WHITE = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/weisser-tee/"), japan("weisstee")),
+        since = V9,
+        kind = CatalogKind.WHITE,
+        namedSorten = named(
+            """bai\s*mu\s*dan|pai\s*mu\s*tan""" to "Bai Mu Dan",
+            """silver\s*needle|yin\s*zhen""" to "Silver Needle",
+            """shou\s*mei""" to "Shou Mei",
+        ),
+        style = { _, flavoured -> if (flavoured) FLAVORED_WHITE else WHITE_GENERIC },
+    )
+
+    /**
+     * The oolongs (v0.5.0, parser v9, #205): `/tee/oolong/` and the Japan tree's `oolong/`. The Taiwan and
+     * China sub-sections are the *Sorte*; Bio, klassisch, aromatisiert, andere Regionen and the tea master's
+     * page leave it to the name („Taiwan", „Formosa" → Taiwan; „China" → China). A flavoured one is
+     * `flavored_oolong`, else `oolong_generic`.
+     */
+    val OOLONG = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/oolong/"), japan("oolong")),
+        since = V9,
+        kind = CatalogKind.OOLONG,
+        namedSorten = named("taiwan|formosa" to "Taiwan", "china" to "China"),
+        style = { _, flavoured -> if (flavoured) FLAVORED_OOLONG else OOLONG_GENERIC },
+    )
+
+    /** „Sheng" and „Shou" as words: „Yesheng" (wild) is neither. */
+    private val SHENG = Regex("""\bsheng\b""", RegexOption.IGNORE_CASE)
+    private val SHOU = Regex("""\bshou\b""", RegexOption.IGNORE_CASE)
+
+    /**
+     * The Pu-Erhs (v0.5.0, parser v9, #205): `/tee/pu-erh/`, category `DARK`. The Sheng, Shou and Aged
+     * sub-sections are the *Sorte*; the loose Pu-Erhs and the makers' pages leave it to the name (Sheng,
+     * Shou). Style `sheng` or `shou` by the *Sorte* or name, else `dark_generic`.
+     */
+    val DARK = TeaSection(
+        roots = listOf(TeaSection.Root("/tee/pu-erh/")),
+        since = V9,
+        kind = CatalogKind.DARK,
+        namedSorten = listOf(SHENG to "Sheng", SHOU to "Shou"),
+        style = { text, _ ->
+            when {
+                SHENG.containsMatchIn(text) -> "sheng"
+                SHOU.containsMatchIn(text) -> "shou"
+                else -> DARK_GENERIC
+            }
+        },
+    )
+
     /** Every section, in the order of their [TeaSection.since]. */
-    val ALL: List<TeaSection> = listOf(HERBAL, BLACK)
+    val ALL: List<TeaSection> = listOf(HERBAL, BLACK, WHITE, OOLONG, DARK)
 
     /** The section [path] lies in; null for none. */
     fun of(path: String): TeaSection? = ALL.firstOrNull { it.rootOf(path) != null }

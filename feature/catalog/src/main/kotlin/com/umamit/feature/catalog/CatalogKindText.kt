@@ -8,14 +8,20 @@ import com.umamit.core.model.CatalogKind
 internal val CatalogKind.chipLabel: Int
     @StringRes get() = when (this) {
         CatalogKind.BLACK -> R.string.catalog_filter_black
+        CatalogKind.WHITE -> R.string.catalog_filter_white
+        CatalogKind.OOLONG -> R.string.catalog_filter_oolong
+        CatalogKind.DARK -> R.string.catalog_filter_dark
         CatalogKind.HERBAL -> R.string.catalog_filter_herbal
         else -> R.string.catalog_filter_green
     }
 
-/** The list header's count of the kind's teas („274 Grüntees", „186 Schwarztees", „38 Kräutertees"). */
+/** The list header's count of the kind's teas („274 Grüntees", „186 Schwarztees", „12 Pu-Erhs", „38 Kräutertees"). */
 internal val CatalogKind.countPlural: Int
     @PluralsRes get() = when (this) {
         CatalogKind.BLACK -> R.plurals.catalog_black_count
+        CatalogKind.WHITE -> R.plurals.catalog_white_count
+        CatalogKind.OOLONG -> R.plurals.catalog_oolong_count
+        CatalogKind.DARK -> R.plurals.catalog_dark_count
         CatalogKind.HERBAL -> R.plurals.catalog_herbal_count
         else -> R.plurals.catalog_tea_count
     }
@@ -24,5 +30,8 @@ internal val CatalogKind.countPlural: Int
 internal val CatalogKind.pendingHint: Int
     @StringRes get() = when (this) {
         CatalogKind.BLACK -> R.string.catalog_black_pending
+        CatalogKind.WHITE -> R.string.catalog_white_pending
+        CatalogKind.OOLONG -> R.string.catalog_oolong_pending
+        CatalogKind.DARK -> R.string.catalog_dark_pending
         else -> R.string.catalog_herbal_pending
     }

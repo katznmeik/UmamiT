@@ -62,6 +62,65 @@ object SyntheticShop {
     /** A black tea of the blends sub-section. */
     val BLACK_BLENDS_PATH = blackPath("Teemischung / Blends", "teemischung-blends")
 
+    /** A path of one of the shop's tea sections beyond green and black (08 §2.2): the section root and a sub-section. */
+    private fun sectionPath(section: Pair<String, String>, title: String, segment: String) = listOf(
+        "Tee" to "/tee/",
+        section.first to "/tee/${section.second}/",
+        title to "/tee/${section.second}/$segment/",
+    )
+
+    private val WHITE = "Weißer Tee" to "weisser-tee"
+    private val OOLONG = "Oolong" to "oolong"
+    private val PU_ERH = "Pu-Erh" to "pu-erh"
+
+    /** A white tea of the „klassisch" sub-section (v0.5.0, D-108): no kind, its *Sorte* from its name. */
+    val WHITE_CLASSIC_PATH = sectionPath(WHITE, "Klassischer Weißer Tee", "klassischer-weisser-tee")
+
+    /** A white tea of the flavoured sub-section. */
+    val WHITE_FLAVOURED_PATH = sectionPath(WHITE, "Aromatisierter Weißer Tee", "aromatisierter-weisser-tee")
+
+    /** An oolong of the Taiwan sub-section, a kind: its *Sorte* is the sub-section's title. */
+    val OOLONG_TAIWAN_PATH = sectionPath(OOLONG, "Taiwan", "taiwan")
+
+    /** An oolong of the „klassisch" sub-section. */
+    val OOLONG_CLASSIC_PATH = sectionPath(OOLONG, "Klassischer Oolong", "klassischer-oolong-tee")
+
+    /** An oolong of the flavoured sub-section. */
+    val OOLONG_FLAVOURED_PATH = sectionPath(OOLONG, "Aromatisierter Oolong", "aromatisierter-oolong-tee")
+
+    /** An oolong of a tea master's page (invented master): its *Sorte* from its name. */
+    val OOLONG_MASTER_PATH = sectionPath(OOLONG, "Tee von Meister Beispiel", "tee-von-meister-beispiel")
+
+    /** A Pu-Erh of the Sheng sub-section. */
+    val SHENG_PATH = sectionPath(PU_ERH, "Sheng", "sheng")
+
+    /** A Pu-Erh of the Shou sub-section. */
+    val SHOU_PATH = sectionPath(PU_ERH, "Shou", "shou")
+
+    /** A Pu-Erh of the Aged sub-section. */
+    val PU_ERH_AGED_PATH = sectionPath(PU_ERH, "Aged", "aged")
+
+    /** A Pu-Erh of the loose-leaf sub-section: no kind, its *Sorte* from its name. */
+    val PU_ERH_LOOSE_PATH = sectionPath(PU_ERH, "Loser Pu-Erh", "loose-leaf-loser-pu-erh")
+
+    /** A Pu-Erh of a maker's page (invented maker): its *Sorte* from its name. */
+    val PU_ERH_MAKER_PATH = sectionPath(PU_ERH, "Pu-Erh von Erika Beispiel", "pu-erh-von-erika-beispiel")
+
+    /**
+     * A white tea's grid as the shop shows it (live check #205, 08 §2.2): a western row per litre and
+     * a Gongfu row (gaiwan) with three infusions. Values invented in the shop's shape.
+     */
+    val WHITE_BREW_ROWS = listOf(
+        "westlich" to listOf("~10g/L", "~80°C", "~2 Min"),
+        "china" to listOf("~2g/150ml", "~80°C", "~90 Sek", "~60 Sek", "~45 Sek"),
+    )
+
+    /** A flavoured tea's grid: one western row per litre (live check #205). */
+    val FLAVOURED_WESTERN_ROWS = listOf("westlich" to listOf("~8g/L", "~95°C", "~3 Min"))
+
+    /** An oolong's or Pu-Erh's grid: one Gongfu row with three infusions, a range first (live check #205). */
+    val GONGFU_ROWS = listOf("china" to listOf("~5g/120ml", "~100°C", "~5-15 Sek", "~10 Sek", "~10 Sek"))
+
     /** The shop's tea-bag section (`/tee/aufgussbeutel/`): a format, no tea section of its own. */
     val TEA_BAGS_PATH = listOf("Tee" to "/tee/", "Aufgussbeutel" to "/tee/aufgussbeutel/")
 

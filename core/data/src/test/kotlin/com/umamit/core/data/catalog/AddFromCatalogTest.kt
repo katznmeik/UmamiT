@@ -488,6 +488,45 @@ class AddFromCatalogTest {
         assertThat(add.add(purchase(key = "XB0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
     }
 
+    @Test
+    fun `a white tea, an oolong and a Pu-Erh are added with their category and style`() = runTest {
+        // v0.5.0, #205, D-108: each new kind's tea carries its TeaCategory and style into the collection.
+        fun tea(key: String, name: String, styleKey: String, teaType: String?, breadcrumb: String) =
+            sencha(key = key, name = name, recipes = null, styleKey = styleKey).copy(
+                teaType = teaType,
+                breadcrumb = breadcrumb,
+                tasteScalesJson = null,
+                shading = null,
+                steaming = null,
+            )
+        catalog(
+            tea("XW0200", "Mandelwolke", "flavored_white", null, "/tee/weisser-tee/aromatisierter-weisser-tee/") to
+                packages("XW0200"),
+            tea("XO0300", "Bergnebel Oolong", "oolong_generic", "Taiwan", "/tee/oolong/taiwan/") to packages("XO0300"),
+            tea("XP0400", "Nebelberg Bing Cha", "sheng", "Sheng", "/tee/pu-erh/sheng/") to packages("XP0400"),
+        )
+
+        val expected = listOf(
+            Triple("XW0200", TeaCategory.WHITE, "flavored_white"),
+            Triple("XO0300", TeaCategory.OOLONG, "oolong_generic"),
+            Triple("XP0400", TeaCategory.DARK, "sheng"),
+        )
+        val ids = expected.map { (key, category, styleKey) ->
+            val teaId = (add.add(purchase(key = key)) as AddFromCatalogResult.Added).teaId
+            val added = data.teas.getTea(teaId)!!
+            assertThat(added.category).isEqualTo(category)
+            assertThat(added.styleKey).isEqualTo(styleKey)
+            assertThat(added.umamiLevel).isNotNull()
+            teaId
+        }
+        // A Sheng without stored recipes brews its style's Gongfu default (08 §3).
+        val shengId = ids.last()
+        val recipe = data.recipes.observeRecipes(shengId).first().first { it.isDefault }
+        assertThat(recipe.method).isEqualTo(BrewMethod.GONGFU)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(5.0 to 120)
+        assertThat(recipe.baseTempC).isEqualTo(100)
+    }
+
     private companion object {
         val BERLIN: ZoneId = ZoneId.of("Europe/Berlin")
         val TODAY: LocalDate = LocalDate.of(2026, 10, 25)

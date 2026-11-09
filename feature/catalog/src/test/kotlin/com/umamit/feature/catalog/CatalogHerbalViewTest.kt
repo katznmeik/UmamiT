@@ -84,13 +84,15 @@ class CatalogHerbalViewTest {
     private fun sheetNode(@StringRes id: Int) = compose.onNode(hasText(str(id)) and inSheet)
 
     private fun openSheet() {
-        compose.onNode(hasText(str(R.string.catalog_filter_button), substring = true) and isChip).performClick()
+        compose.onNode(
+            hasText(str(R.string.catalog_filter_button), substring = true) and isChip,
+        ).performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(CATALOG_FILTER_SHEET_TAG).assertIsDisplayed()
     }
 
     private fun switchToHerbal() {
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
     }
 
@@ -131,7 +133,7 @@ class CatalogHerbalViewTest {
     fun zuruecksetzenInTheKraeuterteeViewResetsTheFiltersAndStaysInTheView() {
         show()
         switchToHerbal()
-        chip(R.string.catalog_filter_organic).performClick()
+        chip(R.string.catalog_filter_organic).performScrollTo().performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Wiesenzauber").assertDoesNotExist()
 

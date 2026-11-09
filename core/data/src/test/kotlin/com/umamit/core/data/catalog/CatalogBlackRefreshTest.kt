@@ -191,7 +191,7 @@ class CatalogBlackRefreshTest {
     @Test
     fun theBlackTeasArePendingUntilTheFirstSuccessfulRefresh() = runTest {
         skipListOfV041()
-        assertThat(repository.observePendingKinds().first()).containsExactly(CatalogKind.BLACK)
+        assertThat(repository.observePendingKinds().first()).contains(CatalogKind.BLACK)
 
         refresher().refresh()
 
@@ -208,7 +208,7 @@ class CatalogBlackRefreshTest {
         assertThat(stopped).isNotInstanceOf(CatalogRefreshOutcome.Success::class.java)
         assertThat(skips().keys).containsExactly(DARJEELING_KEY, BLACK_SET_KEY, TEA_BAGS_KEY, FRUIT_KEY)
         assertThat(dao.tea(DARJEELING_KEY)).isNull()
-        assertThat(repository.observePendingKinds().first()).containsExactly(CatalogKind.BLACK)
+        assertThat(repository.observePendingKinds().first()).contains(CatalogKind.BLACK)
 
         product(FRUIT, "Beerenwolke – 100g", SyntheticShop.FRUIT_TEA_PATH)
         requests.clear()

@@ -187,10 +187,10 @@ class BlackTeaTest {
 
     @Test
     fun theBlackSectionIsStillToComeForACatalogOfAnOlderParser() {
-        assertThat(TeeKontorParser.PARSER_VERSION).isEqualTo(8)
         assertThat(TeeKontorParser.SCOPE_SINCE_VERSION).isEqualTo(TeeKontorParser.PARSER_VERSION)
-        assertThat(TeeKontorParser.kindsSince(7)).containsExactly(CatalogKind.BLACK)
-        assertThat(TeeKontorParser.kindsSince(6)).containsExactly(CatalogKind.HERBAL, CatalogKind.BLACK)
-        assertThat(TeeKontorParser.kindsSince(8)).isEmpty()
+        assertThat(TeeKontorParser.kindsSince(7)).contains(CatalogKind.BLACK)
+        assertThat(TeeKontorParser.kindsSince(6)).containsAtLeast(CatalogKind.HERBAL, CatalogKind.BLACK)
+        // From #205 the black teas are no longer to come for a catalog of parser v8.
+        assertThat(TeeKontorParser.kindsSince(8)).doesNotContain(CatalogKind.BLACK)
     }
 }

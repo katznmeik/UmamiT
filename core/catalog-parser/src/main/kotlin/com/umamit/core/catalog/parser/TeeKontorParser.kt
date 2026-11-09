@@ -23,9 +23,10 @@ object TeeKontorParser {
     /**
      * The selector version (06 §5.3), stored with each refresh (05 §4.4). Raise it whenever the
      * selectors or the fields read change. v7 (v0.2.1, D-093): the Kräutertee section is in scope.
-     * v8 (v0.5.0, D-108): the shop's other tea sections, one step for the whole release.
+     * v8 (v0.5.0, D-108): the black teas. v9 (v0.5.0, #205): the white teas, oolongs and Pu-Erhs, a
+     * step of their own, so a catalog an rc refreshed with v8 re-reads its skipped products once more.
      */
-    const val PARSER_VERSION = 8
+    const val PARSER_VERSION = 9
 
     /**
      * The first parser version of the current scope: the latest [TeaSection.since]. After a last

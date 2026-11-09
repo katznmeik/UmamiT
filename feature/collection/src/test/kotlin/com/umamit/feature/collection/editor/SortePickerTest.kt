@@ -47,7 +47,14 @@ class SortePickerTest {
         // v0.5.0 (D-108): the black group holds the catalog's black styles, the generic row last.
         assertThat(all.single { it.category == TeaCategory.BLACK }.styleKeys)
             .containsExactly("darjeeling", "assam", "ceylon", "flavored_black", "black_generic").inOrder()
-        assertThat(all.flatMap { it.styleKeys }).hasSize(29)
+        // #205: the white, oolong and Pu-Erh groups hold the catalog's styles of their kinds, the generic row last.
+        assertThat(all.single { it.category == TeaCategory.WHITE }.styleKeys)
+            .containsExactly("flavored_white", "white_generic").inOrder()
+        assertThat(all.single { it.category == TeaCategory.OOLONG }.styleKeys)
+            .containsExactly("flavored_oolong", "oolong_generic").inOrder()
+        assertThat(all.single { it.category == TeaCategory.DARK }.styleKeys)
+            .containsExactly("sheng", "shou", "dark_generic").inOrder()
+        assertThat(all.flatMap { it.styleKeys }).hasSize(33)
     }
 
     @Test

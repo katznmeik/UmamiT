@@ -20,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Which catalog kinds are still to come (v0.2.1 #91, v0.5.0 #203; D-093 Q20, D-108, SCR-19): those
+ * Which catalog kinds are still to come (v0.2.1 #91, v0.5.0 #203, #205; D-093 Q20, D-108, SCR-19): those
  * whose section a parser after the last successful refresh's brought, so the first refresh after
  * the update hasn't run yet; none before any refresh (the empty catalog has its own state) and after.
  */
@@ -68,17 +68,34 @@ class CatalogPendingKindsTest {
     }
 
     @Test
-    fun aCatalogOfV041WaitsForTheBlackTeas() = runTest {
+    fun aCatalogOfV041WaitsForTheBlackTeasAndTheSectionsOfV9() = runTest {
         refreshLog(PARSER_V041)
 
-        assertThat(pending()).containsExactly(CatalogKind.BLACK)
+        assertThat(
+            pending(),
+        ).containsExactly(CatalogKind.BLACK, CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
+    }
+
+    @Test
+    fun aCatalogAnRcRefreshedWithParserV8WaitsForTheWhiteTeasOolongsAndPuErhs() = runTest {
+        refreshLog(PARSER_V8)
+
+        assertThat(pending()).containsExactly(CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
     }
 
     @Test
     fun aCatalogOfV020WaitsForTheKraeuterteesAndTheBlackTeas() = runTest {
         refreshLog(PARSER_V020)
 
-        assertThat(pending()).containsExactly(CatalogKind.HERBAL, CatalogKind.BLACK)
+        assertThat(
+            pending(),
+        ).containsExactly(
+            CatalogKind.HERBAL,
+            CatalogKind.BLACK,
+            CatalogKind.WHITE,
+            CatalogKind.OOLONG,
+            CatalogKind.DARK,
+        )
     }
 
     @Test
@@ -86,7 +103,9 @@ class CatalogPendingKindsTest {
         refreshLog(PARSER_V041)
         refreshLog(TeeKontorParser.PARSER_VERSION, CatalogRefreshStatus.FAILED)
 
-        assertThat(pending()).containsExactly(CatalogKind.BLACK)
+        assertThat(
+            pending(),
+        ).containsExactly(CatalogKind.BLACK, CatalogKind.WHITE, CatalogKind.OOLONG, CatalogKind.DARK)
     }
 
     @Test
@@ -103,5 +122,8 @@ class CatalogPendingKindsTest {
 
         /** v0.4.1's parser: Kräutertees, no black teas. */
         const val PARSER_V041 = 7
+
+        /** The black teas' parser (#203), which an rc of v0.5.0 may have refreshed with. */
+        const val PARSER_V8 = 8
     }
 }

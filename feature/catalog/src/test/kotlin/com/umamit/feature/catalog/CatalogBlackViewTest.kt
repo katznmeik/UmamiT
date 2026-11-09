@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -89,7 +90,7 @@ class CatalogBlackViewTest {
     private fun hidden(text: String) = compose.onNodeWithText(text).assertDoesNotExist()
 
     private fun switchToBlack() {
-        chip(R.string.catalog_filter_black).performClick()
+        chip(R.string.catalog_filter_black).performScrollTo().performClick()
         compose.waitForIdle()
     }
 
@@ -125,7 +126,7 @@ class CatalogBlackViewTest {
         shown("Flussbiegung Assam")
         assertThat(runBlocking { settings.settings.first().catalogFolded }).containsExactly("black/Darjeeling")
 
-        chip(R.string.catalog_filter_black).performClick()
+        chip(R.string.catalog_filter_black).performScrollTo().performClick()
         compose.waitForIdle()
         shown("Herbstlaub Bancha")
     }
@@ -157,7 +158,7 @@ class CatalogBlackViewTest {
         shown(str(R.string.catalog_herbal_load_now))
         hidden(str(R.string.catalog_no_match))
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
         hidden(hint)
         hidden(str(R.string.catalog_herbal_pending))
