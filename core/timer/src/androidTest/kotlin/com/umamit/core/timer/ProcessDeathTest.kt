@@ -406,7 +406,7 @@ class ProcessDeathTest {
 
     /** The quick timer's deadline in the log, handled as the hold behind the brew's alert (04 §9.3); null before. */
     private fun quickDeadlineHeld(): FireTime? = runBlocking { log.entries() }
-        .filter { it.message.startsWith("event AlertHold ") }
+        .filter { it.message.startsWith("event QUICK.AlertHold ") }
         .firstNotNullOfOrNull { FireTime.parse(it.message) }
         ?.takeIf { it.slot == TimerSlot.QUICK && it.kind == TimerAlarmKind.DEADLINE }
 

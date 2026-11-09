@@ -435,6 +435,7 @@ class BrewSessionController @Inject constructor(
                     rebooted = rebooted,
                     decision = recoveryDecision(active, slot.timer, effects.player::isPlaying),
                     service = BrewTimerEngine.needsService(slot.timer),
+                    slot = slot.id,
                 ),
             )
             return rebooted
@@ -592,6 +593,7 @@ class BrewSessionController @Inject constructor(
                 from = (before as? TimerState.Active)?.phase,
                 to = (transition.state as? TimerState.Active)?.phase,
                 scheduled = due,
+                slot = slot,
             ),
         )
         if (transition.outcome == TransitionOutcome.Accepted) {

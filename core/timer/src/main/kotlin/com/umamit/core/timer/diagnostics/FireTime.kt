@@ -19,7 +19,9 @@ import com.umamit.core.timer.engine.TimerEvent
  *   10:01:00.140 (mono 5060140) delta +140 ms` (the part on the start since D-092).
  *
  * A quick timer's line names its slot before the kind (`QUICK.DEADLINE scheduled …`; D-098, #137), the
- * second brew session's too (`BREW2.DEADLINE …`; D-108); the first brew's has none, as with one timer. The
+ * second brew session's too (`BREW2.DEADLINE …`; D-108); the first brew's has none, as with one timer. Since
+ * v0.5.0's fix round the handled event names it as well (`event BREW2.DeadlineReached from ALARM: …`, #194); the
+ * slot is read from the timing part, so a line of an earlier version parses alike. The
  * sound of a quick alert released after a hold (04 §9.3) reads
  * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 …`: due at its release, with its [heldMs], so it never
  * pairs with its handled deadline and a hold never counts as lateness.
@@ -62,7 +64,9 @@ data class FireTime(
             """(?:(\w+)\.)?(\w+) (?:held (\d+) ms, released|scheduled) (\S+) \(mono (-?\d+)\) actual (\S+) """ +
                 """\(mono (-?\d+)\) delta ([+-]\d+) ms"""
 
-        private val ACCEPTED = Regex("""^event (\w+) from (\w+): \w+ -> \w+ accepted \| $TIMING$""")
+        // The event's own slot prefix (`QUICK.`, `BREW2.`, #194) is optional, so lines of earlier versions parse too;
+        // the slot comes from the timing part.
+        private val ACCEPTED = Regex("""^event (?:\w+\.)?(\w+) from (\w+): \w+ -> \w+ accepted \| $TIMING$""")
 
         // An empty second group, so both regexes share the group numbers below.
         private val PLAYED = Regex("""^alert (\w+)(): .* \| $TIMING$""")

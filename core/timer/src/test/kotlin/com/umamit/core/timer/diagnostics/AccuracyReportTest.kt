@@ -165,6 +165,7 @@ class AccuracyReportTest {
         )
         val alert = TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 25, slot = TimerSlot.BREW_2))
 
+        assertThat(deadline).startsWith("event BREW2.DeadlineReached from ALARM: ")
         assertThat(deadline).contains("| BREW2.DEADLINE scheduled 10:00:00.000")
         assertThat(FireTime.parse(deadline)?.slot).isEqualTo(TimerSlot.BREW_2)
         assertThat(FireTime.parse(deadline)?.kind).isEqualTo(TimerAlarmKind.DEADLINE)
@@ -555,6 +556,7 @@ class AccuracyReportTest {
         from = TimerPhase.RUNNING,
         to = TimerPhase.RUNNING,
         scheduled = ScheduledTime(TimerAlarmKind.of(event)!!, clock.elapsed - lateMs, slot),
+        slot = slot,
     )
 
     private fun played(cue: AlertCue, lateMs: Long?, slot: TimerSlot = TimerSlot.BREW) = TimerDiagnostic.AlertPlayed(

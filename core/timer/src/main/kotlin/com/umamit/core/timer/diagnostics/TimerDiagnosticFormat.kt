@@ -25,7 +25,9 @@ import java.time.format.DateTimeFormatter
  * and the sound of a quick alert released after a hold (04 §9.3) its hold and its release in place of the schedule:
  * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 (mono 5720000) actual … delta +15 ms`;
  *
- * every other timer entry the monotonic time and boot it was read at. Only
+ * every other timer entry the monotonic time and boot it was read at. A handled event and a recovery name the slot
+ * of the quick timer or the second brew before the event or the stored phase (`event QUICK.Cancel from APP: …`,
+ * `recovery: stored BREW2.ALERTING -> …`), the first brew's none, as with one timer (#194). Only
  * plain values are written, never a model's `toString()`, so no note text
  * can reach the log; tea names do not appear either.
  */
@@ -36,7 +38,7 @@ object TimerDiagnosticFormat {
     @Suppress("CyclomaticComplexMethod") // one flat branch per entry type, checked exhaustive by the compiler
     fun message(entry: TimerDiagnostic): String = when (entry) {
         is TimerDiagnostic.EventHandled ->
-            "event ${eventName(entry.event)} from ${entry.source}: " +
+            "event ${entry.slot.named(eventName(entry.event))} from ${entry.source}: " +
                 "${phase(entry.from)} -> ${phase(entry.to)} ${outcome(entry.outcome)} | " +
                 (entry.scheduled?.let { timing(it, entry.at) } ?: clocks(entry.at))
 
@@ -95,7 +97,8 @@ object TimerDiagnosticFormat {
                 (if (entry.alreadyRecovered) ": already done in this process" else "") + " | ${clocks(entry.at)}"
 
         is TimerDiagnostic.Recovered ->
-            "recovery: stored ${entry.from}" + (if (entry.rebooted) " from before a reboot" else "") +
+            "recovery: stored ${entry.slot.named(entry.from.name)}" +
+                (if (entry.rebooted) " from before a reboot" else "") +
                 " -> ${phase(entry.to)}: ${entry.decision.name.lowercase().replace('_', ' ')}, " +
                 (if (entry.service) "with" else "without") + " the service | ${clocks(entry.at)}"
 
