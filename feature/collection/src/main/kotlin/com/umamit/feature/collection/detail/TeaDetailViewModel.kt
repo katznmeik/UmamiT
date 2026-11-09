@@ -41,6 +41,7 @@ import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,6 +55,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -121,6 +125,9 @@ class TeaDetailViewModel @Inject constructor(
 
     private val events = Channel<TeaDetailEvent>(Channel.BUFFERED)
 
+    /** VORRAT's writes of the tea, one at a time ([updateTea]). */
+    private val writes = Mutex()
+
     /** Archive and delete outcomes, once each. */
     val navigation: Flow<TeaDetailEvent> = events.receiveAsFlow()
 
@@ -179,12 +186,20 @@ class TeaDetailViewModel @Inject constructor(
         updateTea { it.copy(lowStockGrams = grams?.toDouble()) }
     }
 
-    /** Writes the newest row of the tea changed by [change]; nothing when it is gone or unchanged. */
+    /**
+     * Writes the newest row of the tea changed by [change]; nothing when it is gone or unchanged. The writes go one
+     * after another ([writes]), so a slow earlier one never overwrites a later one, and a write that has started
+     * finishes when the detail closes (*Knapp ab* commits as the field goes, D-108).
+     */
     private fun updateTea(change: (Tea) -> Tea) {
         viewModelScope.launch {
-            val tea = teas.getTea(teaId) ?: return@launch
-            val changed = change(tea)
-            if (changed != tea) teas.saveTea(changed)
+            withContext(NonCancellable) {
+                writes.withLock {
+                    val tea = teas.getTea(teaId) ?: return@withLock
+                    val changed = change(tea)
+                    if (changed != tea) teas.saveTea(changed)
+                }
+            }
         }
     }
 

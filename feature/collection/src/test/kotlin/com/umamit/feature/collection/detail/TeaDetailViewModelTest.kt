@@ -4,10 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.TeaPurchase
+import com.umamit.core.data.TeaRepository
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.Tea
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.model.UserSettings
@@ -24,6 +26,7 @@ import com.umamit.feature.collection.detail.TeaDetailFixture.LAST_BREW_MS
 import com.umamit.feature.collection.detail.TeaDetailFixture.PRODUCT_URL
 import com.umamit.feature.collection.detail.TeaDetailFixture.STANDARD_ID
 import com.umamit.feature.collection.detail.TeaDetailFixture.TEA_ID
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -58,9 +61,9 @@ class TeaDetailViewModelTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel() = TeaDetailViewModel(
+    private fun viewModel(teas: TeaRepository = collection.teas) = TeaDetailViewModel(
         SavedStateHandle(mapOf("teaId" to TEA_ID)),
-        collection.teas,
+        teas,
         collection.recipes,
         collection.vessels,
         collection.stock,
@@ -301,6 +304,37 @@ class TeaDetailViewModelTest {
         vm.setLowStockGrams(501)
 
         assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isEqualTo(500.0)
+    }
+
+    @Test
+    fun `VORRAT's writes go one after another, so a slow earlier write never overwrites a later one`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val teas = SlowFirstRead(collection.teas)
+        val vm = viewModel(teas)
+        val firstRead = CompletableDeferred<Unit>()
+        teas.gate = firstRead
+
+        vm.setLowStockGrams(1) // its read of the tea waits
+        vm.setLowStockGrams(12)
+        vm.setStockWarning(false)
+        firstRead.complete(Unit)
+
+        val stored = collection.teas.getTea(TEA_ID)!!
+        assertThat(stored.lowStockGrams).isEqualTo(12.0)
+        assertThat(stored.lowStockWarning).isFalse()
+    }
+
+    /** [getTea] waits for [gate] once: the first write's read is slow. */
+    private class SlowFirstRead(private val inner: TeaRepository) : TeaRepository by inner {
+        var gate: CompletableDeferred<Unit>? = null
+
+        override suspend fun getTea(id: String): Tea? {
+            gate?.let {
+                gate = null
+                it.await()
+            }
+            return inner.getTea(id)
+        }
     }
 
     @Test
