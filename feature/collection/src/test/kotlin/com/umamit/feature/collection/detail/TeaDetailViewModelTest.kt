@@ -270,25 +270,24 @@ class TeaDetailViewModelTest {
     }
 
     @Test
-    fun `the tea's own threshold drives Knapp and the reorder highlight at once, empty is the global one`() =
-        runTest {
-            TeaDetailFixture.seed(collection)
-            val vm = viewModel()
-            vm.correctStock(20.0)
-            assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+    fun `the tea's own threshold drives Knapp and the reorder highlight at once, empty is the global one`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+        vm.correctStock(20.0)
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
 
-            vm.setLowStockGrams(20)
+        vm.setLowStockGrams(20)
 
-            assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isEqualTo(20.0)
-            assertThat(vm.tea.ownLowStockGrams).isEqualTo(20)
-            assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.LOW)
-            assertThat(vm.tea.reorder?.prominent).isTrue()
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isEqualTo(20.0)
+        assertThat(vm.tea.ownLowStockGrams).isEqualTo(20)
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.LOW)
+        assertThat(vm.tea.reorder?.prominent).isTrue()
 
-            vm.setLowStockGrams(null)
-            assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isNull()
-            assertThat(vm.tea.ownLowStockGrams).isNull()
-            assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
-        }
+        vm.setLowStockGrams(null)
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isNull()
+        assertThat(vm.tea.ownLowStockGrams).isNull()
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+    }
 
     @Test
     fun `a threshold outside 1 to 500 g is refused and the stored one kept`() = runTest {

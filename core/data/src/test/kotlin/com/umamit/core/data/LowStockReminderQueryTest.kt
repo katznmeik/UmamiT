@@ -6,12 +6,12 @@ import com.umamit.core.model.InventoryEventType
 import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.test.runTest
-import java.time.LocalDate
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * The daily low-stock reminder's teas (INV-11, D-098; ticket #130) on the collection in memory: every

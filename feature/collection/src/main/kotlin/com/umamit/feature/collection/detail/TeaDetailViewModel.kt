@@ -327,7 +327,10 @@ class TeaDetailViewModel @Inject constructor(
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
             // With the warning off the link stays a text link, Knapp or not (INV-09 AC1, D-108).
             reorder = reorderUrl?.let {
-                Reorder(it, prominent = tea.lowStockWarning && stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE)
+                Reorder(
+                    it,
+                    prominent = tea.lowStockWarning && stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
+                )
             },
             stockWarning = tea.lowStockWarning,
             ownLowStockGrams = tea.lowStockGrams?.roundToInt(),

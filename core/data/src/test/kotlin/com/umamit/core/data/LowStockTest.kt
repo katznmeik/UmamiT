@@ -11,12 +11,12 @@ import com.umamit.core.testing.FakeCatalogRepository
 import com.umamit.core.testing.FakeSettingsRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import java.time.LocalDate
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * Start's low-stock card (INV-05, INV-10, SET-16, D-097; spec #108 seam 4) on the collection in memory:

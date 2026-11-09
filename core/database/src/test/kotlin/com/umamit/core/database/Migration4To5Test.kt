@@ -110,6 +110,12 @@ class Migration4To5Test {
     // --- The v4 fixture: synthetic values only (D-016).
 
     private fun populateV4(db: SupportSQLiteDatabase) {
+        populateCollection(db)
+        populateTimers(db)
+    }
+
+    /** Two teas (with and without their own threshold), a photo, a vessel, a recipe, the journal and stock. */
+    private fun populateCollection(db: SupportSQLiteDatabase) {
         db.insert(
             "tea",
             "id" to "tea-1", "name" to "Sencha Probe", "secondary_name" to "Probe", "catalog_key" to "TG0001",
@@ -169,7 +175,10 @@ class Migration4To5Test {
             "note" to "Korrektur", "occurred_at" to 1_100_000L, "created_at" to 7L, "updated_at" to 7L,
         )
         db.insert("catalog_bookmark", "catalog_key" to "TG0002", "created_at" to 8L)
-        // The running brew session of slot BREW: step 1 with its own 20 s.
+    }
+
+    /** The brew session running in slot BREW (step 1 with its own 20 s) and a quick timer running in QUICK. */
+    private fun populateTimers(db: SupportSQLiteDatabase) {
         db.session("live-1", "IN_PROGRESS", endedAt = null)
         db.sessionStep("live-1", 0, actual = 60, startedAt = 2_000_000L, endedAt = 2_000_060L)
         db.sessionStep("live-1", 1, startedAt = WALL, preAlert = 20)
