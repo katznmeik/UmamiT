@@ -3,6 +3,7 @@ package com.umamit.feature.catalog
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -152,15 +153,15 @@ internal fun CatalogFilterChips(
         // as „Pur"; a tap on it returns from the Kräutertees, a tap on the selected one changes nothing.
         CatalogKind.ALL.forEach { kind ->
             key(kind.key) {
-                CatalogChip(
-                    label = stringResource(kind.chipLabel),
-                    selected = filter.kind == kind,
-                    modifier = Modifier.onPlaced { chip ->
+                Box(
+                    Modifier.onPlaced { chip ->
                         val start = side + chip.positionInParent().x.roundToInt()
                         kindChips[kind] = start until start + chip.size.width
                     },
                 ) {
-                    onFilterChange { it.withKind(if (it.kind == kind) CatalogKind.GREEN else kind) }
+                    CatalogChip(stringResource(kind.chipLabel), filter.kind == kind) {
+                        onFilterChange { it.withKind(if (it.kind == kind) CatalogKind.GREEN else kind) }
+                    }
                 }
             }
         }
@@ -221,14 +222,12 @@ internal fun switchOptions(filter: CatalogFilter): List<SwitchOption> = listOf(
 internal fun CatalogChip(
     label: String,
     selected: Boolean,
-    modifier: Modifier = Modifier,
     leadingIcon: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
-        modifier = modifier,
         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
         leadingIcon = leadingIcon,
         border = FilterChipDefaults.filterChipBorder(

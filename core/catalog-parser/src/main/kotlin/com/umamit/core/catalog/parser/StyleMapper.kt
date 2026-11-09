@@ -105,17 +105,7 @@ object StyleMapper {
         originCountry: String? = null,
         ingredients: String? = null,
     ): StyleMatch {
-        val section = categoryPath?.let { TeaSections.of(it) ?: TeaSections.ofJapanName(it, name) }
-        val names = listOfNotNull(name, teaType)
-        if (section == TeaSections.CHAI || TeaSections.isChai(name)) {
-            val category = when (section) {
-                null -> TeaCategory.GREEN
-                TeaSections.CHAI -> TeaSections.chaiBase(name, ingredients)?.first ?: TeaCategory.OTHER
-                else -> section.category
-            }
-            return ofSection(TeaSections.CHAI, names, isFlavored).copy(category = category)
-        }
-        if (section != null) return ofSection(section, names, isFlavored)
+        sectionMatch(categoryPath, name, teaType, isFlavored, ingredients)?.let { return it }
         val segment = categoryPath?.trimEnd('/')?.substringAfterLast('/')?.lowercase().orEmpty()
         val text = listOfNotNull(name, teaType).joinToString(" ")
         val byName = KEYWORDS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second
@@ -143,16 +133,35 @@ object StyleMapper {
      * A tea of another tea section ([TeaSections]): its section's style, whatever a green keyword in
      * its name names (a „Kräuter-Sencha" of the herbal section is no sencha), never flagged; in bags
      * when its name says so. A Kräutertee is `herbal` (v0.2.1, D-093), a black tea one of the black
-     * styles (v0.5.0, D-108).
+     * styles (v0.5.0, D-108), a chai `chai` (#206); null for a tea of no section whose name says no chai.
      */
-    private fun ofSection(section: TeaSection, names: List<String>, isFlavored: Boolean): StyleMatch = StyleMatch(
-        style = requireNotNull(BuiltInStyles.byKey(section.style(names.joinToString(" "), isFlavored))),
-        form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
-        japanese = false,
-        unmapped = false,
-        coldBrewDefault = false,
-        category = section.category,
-    )
+    private fun sectionMatch(
+        categoryPath: String?,
+        name: String?,
+        teaType: String?,
+        isFlavored: Boolean,
+        ingredients: String?,
+    ): StyleMatch? {
+        val section = categoryPath?.let { TeaSections.of(it) ?: TeaSections.ofJapanName(it, name) }
+        if (section == null && !TeaSections.isChai(name)) return null
+        val names = listOfNotNull(name, teaType)
+        val chai = section == TeaSections.CHAI || TeaSections.isChai(name)
+        // A chai's category is its base tea's (#206): its section's, green outside one, else what its texts name.
+        val category = when (section) {
+            null -> TeaCategory.GREEN
+            TeaSections.CHAI -> TeaSections.chaiBase(name, ingredients)?.first ?: TeaCategory.OTHER
+            else -> section.category
+        }
+        val styleSection = if (chai) TeaSections.CHAI else requireNotNull(section)
+        return StyleMatch(
+            style = requireNotNull(BuiltInStyles.byKey(styleSection.style(names.joinToString(" "), isFlavored))),
+            form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
+            japanese = false,
+            unmapped = false,
+            coldBrewDefault = false,
+            category = category,
+        )
+    }
 
     /**
      * The style key by the breadcrumb's [segment], else the name's [byName]; null when neither
