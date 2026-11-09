@@ -2,6 +2,7 @@ package com.umamit.core.data.catalog
 
 import android.util.Log
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.CatalogKind
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -18,7 +19,7 @@ import javax.inject.Inject
  * Remembered across app starts in the setting `catalogFolded`.
  */
 interface CatalogFoldRepository {
-    /** The keys of the folded groups, both views. */
+    /** The keys of the folded groups, every kind's view. */
     fun observeFolded(): Flow<Set<String>>
 
     /** Replaces the folded keys by [transform] of them, atomically. A failed write is logged and changes nothing. */
@@ -34,17 +35,18 @@ interface CatalogFoldRepository {
     }
 }
 
-/** The key of a folded group in `catalogFolded` (05 §6, D-098): `<view>/<sorte key>`, „Ohne Sorte" as `<view>/-`. */
+/**
+ * The key of a folded group in `catalogFolded` (05 §6, D-098, D-108): `<kind key>/<sorte key>`, „Ohne Sorte" as
+ * `<kind key>/-`. The kinds `green` and `herbal` keep the keys of v0.4.1.
+ */
 object CatalogFoldKey {
-    private const val GREEN = "green"
-    private const val HERBAL = "herbal"
     private const val UNTYPED = "-"
 
-    /** The group of [teaType] (null = „Ohne Sorte") in the Kräutertee view when [herbal], else the green one. */
-    fun of(herbal: Boolean, teaType: String?): String = "${prefix(herbal)}${teaType ?: UNTYPED}"
+    /** The group of [teaType] (null = „Ohne Sorte") in the view of [kind]. */
+    fun of(kind: CatalogKind, teaType: String?): String = "${prefix(kind)}${teaType ?: UNTYPED}"
 
-    /** Every key of the Kräutertee view when [herbal], else of the green one, starts with this. */
-    fun prefix(herbal: Boolean): String = "${if (herbal) HERBAL else GREEN}/"
+    /** Every key of the view of [kind] starts with this. */
+    fun prefix(kind: CatalogKind): String = "${kind.key}/"
 }
 
 /** [CatalogFoldRepository] on the setting `catalogFolded`. */

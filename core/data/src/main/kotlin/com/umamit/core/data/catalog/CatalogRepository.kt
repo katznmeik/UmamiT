@@ -9,6 +9,7 @@ import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogPackage
@@ -123,7 +124,7 @@ class RoomCatalogRepository @Inject constructor(
             recipeCheckReason = recipeCheckReason,
             isNew = isNew,
             owned = key in ownedKeys,
-            isHerbal = styleKey == HERBAL_STYLE,
+            kind = CatalogKind.of(styleKey),
             marked = key in marked,
             discontinued = discontinued,
         )
@@ -131,9 +132,6 @@ class RoomCatalogRepository @Inject constructor(
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */
         const val UMAMI_SCALE = "Umami"
-
-        /** The style of the shop's Kräutertees (08 §3, D-093): a herbal tea is told apart by it. */
-        const val HERBAL_STYLE = "herbal"
     }
 
     override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()

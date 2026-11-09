@@ -291,11 +291,22 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   by the filters. From v0.4.0 a chip *Grüntee* names the default view next
   to *Kräutertee* and returns to it
   ([D-103](10-open-questions-and-decisions.md#d-103)).
+- **Catalog kind (v0.5.0, D-108):** the chips *Grüntee* and *Kräutertee* are
+  the two entries of the list of *catalog kinds* (see the glossary). A
+  catalog tea's kind comes from its style (style `herbal` = Kräutertee,
+  every other style = green, the default kind); the filter holds one kind,
+  the chip row is rendered from the list, and a new kind is a new entry in
+  it. „Pur" as the default and the umami filter apply to the green kind
+  only. Search hits hidden by the filters are counted per other kind, and
+  *Alle zeigen* switches to the kind with the most of them. No visible
+  change in v0.5.0 (prefactor, #199).
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").
   - AC1: Folded groups are remembered across app starts, separately for the
-    green and the Kräutertee view (setting `catalogFolded`).
+    green and the Kräutertee view, in general per catalog kind (setting
+    `catalogFolded`, keys `<kind key>/<Sorte>`; the stored `green/…` and
+    `herbal/…` entries of v0.4.1 stay valid).
   - AC2: A non-empty search shows every hit unfolded; clearing it restores
     the folding.
   - AC3: The catalog's ⋮ offers *Alle einklappen* and *Alle ausklappen*.

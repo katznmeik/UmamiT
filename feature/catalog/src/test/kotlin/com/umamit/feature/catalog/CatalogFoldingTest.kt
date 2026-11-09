@@ -26,6 +26,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.SettingsCatalogFoldRepository
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.UserSettings
@@ -62,7 +63,7 @@ class CatalogFoldingTest {
         catalogTea("XY0210", "Flussufer Bancha", "Bancha"),
         catalogTea("XY0300", "Röstreis Genmaicha", "Genmaicha"),
         catalogTea("XY0400", "Namenloser Grüner", null),
-        catalogTea("XK0100", "Wiesenzauber", "Mischungen").copy(isHerbal = true, originCountry = null),
+        catalogTea("XK0100", "Wiesenzauber", "Mischungen").copy(kind = CatalogKind.HERBAL, originCountry = null),
     )
     private var settings = FakeSettingsRepository()
     private val bookmarks = FakeCatalogBookmarkRepository()
