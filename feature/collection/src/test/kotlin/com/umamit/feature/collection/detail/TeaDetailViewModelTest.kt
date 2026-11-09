@@ -8,6 +8,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeCatalogRepository
@@ -387,6 +388,23 @@ class TeaDetailViewModelTest {
         assertThat(archive.archived).isEmpty()
         assertThat(archive.deleted).isEmpty()
         assertThat(vm.tea.isArchived).isFalse()
+    }
+
+    @Test
+    fun `the tea's brew in the second brew slot counts as active beside another tea's (D-108)`() = runTest {
+        TeaDetailFixture.seed(collection)
+        TeaDetailFixture.activeSession(sessions, teaId = "other", sessionId = "first")
+        TeaDetailFixture.activeSession(sessions, slot = TimerSlot.BREW_2, sessionId = "second")
+        val vm = viewModel()
+
+        assertThat(vm.tea.inActiveBrew).isTrue()
+        assertThat(vm.tea.sessionLeafGrams).isEqualTo(5.0)
+
+        vm.archive()
+        vm.delete()
+
+        assertThat(archive.archived).isEmpty()
+        assertThat(archive.deleted).isEmpty()
     }
 
     @Test

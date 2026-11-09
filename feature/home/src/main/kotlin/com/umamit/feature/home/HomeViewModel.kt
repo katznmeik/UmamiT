@@ -76,6 +76,9 @@ data class HomeQuestion(val timers: List<TimerToEnd>)
  *   (GEN-06). Never the quick timer (SCR-02, D-098): alone it leaves *Aufguss starten*, beside a brew the card stays
  *   the brew's; the active brew bar shows it. With two brew sessions the first in the slot order (`BREW`, then
  *   `BREW_2`; D-108); the bar shows both.
+ * @property twoTimersActive two timers are active, the most there may be (D-108): *Aufguss starten* is hidden, and a
+ *   start from *Nochmal brühen* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
+ *   card of one active brew (v0.5.0; v0.3.0 hid it while a brew was active).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
@@ -85,6 +88,7 @@ data class HomeUiState(
     val loading: Boolean = true,
     val collectionEmpty: Boolean = false,
     val active: TimerUiState.Active? = null,
+    val twoTimersActive: Boolean = false,
     val brewAgain: List<HomeTea> = emptyList(),
     val recent: List<RecentBrew> = emptyList(),
     val favorites: List<HomeTea> = emptyList(),
@@ -127,12 +131,13 @@ class HomeViewModel @Inject constructor(
         teas.observeTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
         // The card is the brew's (SCR-02, D-098): a quick timer alone leaves *Aufguss starten*, the bar shows it.
-        combine(starter.state, starter.observeActive(TimerSlot.BREW), starter.observeActive(TimerSlot.BREW_2)) {
-                front,
-                brew,
-                brew2,
-            ->
-            Timers(front, brew ?: brew2)
+        combine(
+            starter.state,
+            starter.observeActive(TimerSlot.BREW),
+            starter.observeActive(TimerSlot.BREW_2),
+            starter.observeActive(TimerSlot.QUICK),
+        ) { front, brew, brew2, quick ->
+            Timers(front, brew ?: brew2, active = listOfNotNull(brew, brew2, quick).size)
         },
         pending,
         reliabilityProblem,
@@ -146,6 +151,7 @@ class HomeViewModel @Inject constructor(
             loading = false,
             collectionEmpty = owned.isEmpty(),
             active = timers.brew,
+            twoTimersActive = timers.active >= MAX_ACTIVE_TIMERS,
             brewAgain = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
                 .mapNotNull { byId[it] }
                 .take(SHOWN)
@@ -304,7 +310,7 @@ class HomeViewModel @Inject constructor(
     private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
 
     /** The timer in front of the controller (its alert first) and the first active brew session (D-108). */
-    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?)
+    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?, val active: Int)
 
     private class Started(val sessionId: String, val atElapsedMs: Long)
 
@@ -319,5 +325,8 @@ class HomeViewModel @Inject constructor(
         const val DOUBLE_TAP_WINDOW_MS = 1_000L
 
         const val TAG = "UmamiTHome"
+
+        /** Any two timers at once, never a third (D-108). */
+        const val MAX_ACTIVE_TIMERS = 2
     }
 }

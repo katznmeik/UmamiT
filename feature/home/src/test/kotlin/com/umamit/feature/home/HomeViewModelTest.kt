@@ -460,6 +460,39 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `Aufguss starten stays while fewer than two timers are active (SCR-02, D-108)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        val vm = viewModel()
+        assertThat(vm.state.value.twoTimersActive).isFalse()
+
+        // One brew: its card, and *Aufguss starten* for the second.
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        assertThat(vm.state.value.active).isNotNull()
+        assertThat(vm.state.value.twoTimersActive).isFalse()
+
+        // Two brews: no third start from the card; *Nochmal brühen* asks „Welchen Timer beenden?".
+        now += LATER_MS
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        assertThat(starter.activeIn(TimerSlot.BREW_2)).isNotNull()
+        assertThat(vm.state.value.twoTimersActive).isTrue()
+    }
+
+    @Test
+    fun `a brew and a Schnelltimer are two timers too (SCR-02, D-108)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        starter.startQuickTimer(90)
+        assertThat(vm.state.value.twoTimersActive).isFalse()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.state.value.twoTimersActive).isTrue()
+    }
+
+    @Test
     fun `a Schnelltimer alone leaves Aufguss starten and Nochmal bruehen on Start (SCR-02, D-098)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)

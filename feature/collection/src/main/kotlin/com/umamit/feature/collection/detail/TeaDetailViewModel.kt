@@ -126,7 +126,8 @@ class TeaDetailViewModel @Inject constructor(
 
     private val brewed: Flow<Brewed> = combine(
         journal.observeSessions().map { list -> list.map { it.session }.filter { it.snapshot.teaId == teaId } },
-        archive.observeActiveTeaId().map { it == teaId }.distinctUntilChanged(),
+        // Either brew slot (v0.5.0, D-108): the tea's session may be the second brew.
+        archive.observeActiveTeaIds().map { teaId in it }.distinctUntilChanged(),
         settings.settings.map { Globals(it.lowStockGrams, it.deductStock) }.distinctUntilChanged(),
     ) { sessions, active, globals -> Brewed(sessions, active, globals) }
 
