@@ -33,9 +33,49 @@ import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.LowStockReminderInterval
+import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertSound
 import com.umamit.core.timer.alert.PreAlertSound
 import kotlin.math.roundToInt
+
+/** The open dialog of SCR-25, if any; [onDismiss] closes it. */
+@Composable
+internal fun SettingsDialogs(
+    dialog: SettingsDialog?,
+    settings: UserSettings,
+    actions: SettingsActions,
+    onDismiss: () -> Unit,
+) {
+    when (dialog) {
+        SettingsDialog.Tone -> ToneDialog(settings.alertSound, actions, onDismiss = onDismiss)
+
+        SettingsDialog.PreAlert -> PreAlertDialog(settings.preAlertSeconds, actions.setPreAlert, onDismiss)
+
+        SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions, onDismiss)
+
+        SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock, onDismiss)
+
+        SettingsDialog.ReminderInterval -> ReminderIntervalDialog(
+            selected = settings.lowStockReminderInterval,
+            onSelect = actions.setLowStockReminderInterval,
+            onDismiss = onDismiss,
+        )
+
+        SettingsDialog.ReminderTime -> ReminderTimeDialog(
+            minuteOfDay = settings.lowStockReminderTime,
+            onConfirm = { minute ->
+                actions.setLowStockReminderTime(minute)
+                onDismiss()
+            },
+            onDismiss = onDismiss,
+        )
+
+        SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength, onDismiss)
+
+        null -> Unit
+    }
+}
 
 /** The SET-10 choices: off, then 5 to 30 s in steps of 5. */
 private val PRE_ALERT_CHOICES = listOf(0, 5, 10, 15, 20, 25, 30)
@@ -129,6 +169,33 @@ internal fun AlertLengthDialog(selected: AlertLength, onSelect: (AlertLength) ->
                 detail = stringResource(detail),
                 selected = length == selected,
                 onClick = { onSelect(length) },
+            )
+        }
+    }
+}
+
+/**
+ * SET-28 *Vorrats-Erinnerung* (INV-11, D-108 point 7): what it lists, then *Täglich · Alle 2 Tage · Alle 3 Tage ·
+ * Wöchentlich · Aus*; a pick is stored at once.
+ */
+@Composable
+internal fun ReminderIntervalDialog(
+    selected: LowStockReminderInterval,
+    onSelect: (LowStockReminderInterval) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ChoiceDialog(title = stringResource(R.string.settings_low_stock_reminder), onDismiss = onDismiss) {
+        Text(
+            text = stringResource(R.string.settings_low_stock_reminder_detail),
+            modifier = Modifier.padding(bottom = UmamiSpacing.XSmall),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LowStockReminderInterval.entries.forEach { interval ->
+            ChoiceRow(
+                label = stringResource(interval.label()),
+                selected = interval == selected,
+                onClick = { onSelect(interval) },
             )
         }
     }

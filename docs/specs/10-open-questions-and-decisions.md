@@ -577,6 +577,42 @@ v5).**
   so the detail's goldens that show VORRAT's lower part (history, FRISCHE,
   dates) were re-recorded with the new ones.
 
+**Build notes (Claude, 2026-11-09, #198: the reminder interval).**
+- **Model.** `LowStockReminderInterval` (DAILY, EVERY_2_DAYS, EVERY_3_DAYS,
+  WEEKLY, OFF with their days) replaces the Boolean in `UserSettings`. The
+  file keeps the old `lowStockReminder` key for the `schemaVersion` 3 step
+  (`SchemaV3Migration`, after `SchemaV2Migration`) and writes it as „not
+  OFF", so the file stays consistent.
+- **Two dates in one.** Only a posted reminder writes
+  `lowStockReminderLastDate`. A due run with no tea posts nothing, removes an
+  older notification, and schedules its successor as for a failed run
+  (`scheduleNext(skipToday = true)`): the next try is tomorrow's set time,
+  never a second run that day, without a second stored date. After an app
+  start that finds no waiting job the day may run once more; it posts only
+  if a tea became due.
+- **Due date.** `LowStockReminderSchedule` takes the interval's days: the
+  next run is the set time on the later of today (tomorrow when today was
+  handled) and last posted date + N. A change of the interval replaces the
+  job, as a change of the time does.
+- **The row.** SET-28 is a `SettingsRow` („Vorrats-Erinnerung", value
+  „Täglich") opening a choice dialog like *Alarmdauer*; „Listet alle knappen
+  und leeren Tees." moved from the row into the dialog. The settings goldens
+  that show the row (or a dialog over it) were re-recorded, plus a new
+  `Settings_reminderInterval`.
+
+**Build notes (Claude, 2026-11-09, follow-ups of #201).**
+- **The tea detail** reads every active session (`observeActiveTeaIds`), so
+  a tea brewed in `BREW_2` beside another tea counts as active: archive and
+  delete are refused and the stock sheet names the leaf it still deducts.
+- **Aufguss starten beside one timer** (supersedes the #201 note „stays
+  hidden while a brew is active"). Start shows it while fewer than two
+  timers are active (`HomeUiState.twoTimersActive`, from the three slots),
+  below the card of one brew; with two it is hidden, and *Nochmal brühen* or
+  the setup's *Start* asks „Welchen Timer beenden?" as before. Hiding it at
+  two keeps a start that can only end in the question off the card. The
+  `Home_activeSession` goldens were re-recorded with the card's start below
+  the brew; `Home_question` stays as it was.
+
 **Build notes (Claude, 2026-11-09, #203: the black teas end to end).**
 - **Live check (structure only, 08 §2.2).** robots.txt, the sitemap and 6
   black-tea product pages at ≤ 1 request/s with a plain user agent; no

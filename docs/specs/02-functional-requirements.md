@@ -1356,6 +1356,8 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
 Weekly digest notification (off by default).
 - **v0.3.0 (D-098):** low stock has its own daily reminder (INV-11); this
   digest keeps only freshness.
+- **v0.5.0 (D-108):** the low-stock reminder's interval (SET-28) may be
+  weekly too; this digest still keeps only freshness.
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
@@ -1421,8 +1423,8 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
   on; only the switch does. Its *Knapp* / *Leer* labels (INV-05) and the
   setup's marker (BRW-08) stay.
 
-**INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
-Once a day at the time of SET-29 (default 18:00) one quiet notification
+**INV-11 — Low-stock reminder** `Should` (v0.3.0, D-098; interval from v0.5.0, D-108)
+At the time of SET-29 (default 18:00), daily or at SET-28's interval, one quiet notification
 lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
 with lines „Tanabata · 14 g", „Hisui · leer"; one tea is named, „Tanabata
 wird knapp" or, empty, „Hisui ist leer" (as INV-10 says it). A tap opens
@@ -1432,12 +1434,20 @@ Start.
   never.
 - AC2: No notification on a day without such a tea; never a sound,
   vibration or full-screen intent (channel „Vorrat", low importance).
-- AC3: Switched off with SET-28 (default on). From v0.5.0 (D-108, #197) a
+- AC3: Switched off with SET-28 (default on; from v0.5.0 *Aus*, default *Täglich*). From v0.5.0 (D-108, #197) a
   tea with its stock warning off (INV-10 AC4) has no line, also after a
   purchase; a tea's own threshold (INV-05) decides its line like the card's.
 - AC4: Inexact by design (within about 15 min); it never wakes the phone
   with an exact alarm and never disturbs a running timer or its alert
   (rule 8).
+- AC5 (v0.5.0, D-108 point 7, #198): SET-28 is *Täglich · Alle 2 Tage ·
+  Alle 3 Tage · Wöchentlich · Aus* (N = 1, 2, 3, 7). The interval counts
+  from the date of the last reminder that was **posted**: a reminder is due
+  on the first date at least N days later, at the set time. A due day with
+  no tea due posts nothing and leaves the date, so the next day tries again.
+  A run late on a due day posts at once; a run more than 30 min early waits;
+  a DST change keeps the set time on the clock. A stored „on" reads as
+  *Täglich* and „off" as *Aus* (settings `schemaVersion` 3, 05 §6).
 
 ---
 
@@ -1489,8 +1499,8 @@ Every chart has an accessible table alternative.
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
 | SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
-| SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
-| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
+| SET-28 | Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
+| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |

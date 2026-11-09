@@ -65,8 +65,9 @@ internal const val HOME_ACTIVE_CARD_TAG = "home_active_card"
 internal const val HOME_HEADER_HEIGHT_DP = 120
 
 /**
- * Start (SCR-02): the header illustration, *Aufguss starten* (or *Aufguss
- * fortsetzen* with a live countdown while a timer is active, GEN-06),
+ * Start (SCR-02): the header illustration, *Aufguss fortsetzen* with a live
+ * countdown while a brew is active (GEN-06), *Aufguss starten* while fewer than
+ * two timers are active (D-108),
  * *Schnelltimer*, *Nochmal brühen*, *Zuletzt gebrüht* and *Favoriten*; with
  * an empty collection the calm empty state (GEN-09). The second-session
  * question never covers an alert: the view model closes it when one starts.
@@ -104,17 +105,7 @@ fun HomeScreen(
             // The empty state brings its own landscape; one is enough.
             val empty = state.collectionEmpty && state.brewAgain.isEmpty() && state.recent.isEmpty()
             if (!empty) Header()
-            val active = state.active
-            if (active != null) {
-                ActiveCard(active, nowElapsedMs) { actions.openTimer(active.slot) }
-            } else if (!state.collectionEmpty && !state.loading) {
-                PrimaryActionCard(
-                    title = stringResource(R.string.home_start_brew),
-                    subtitle = stringResource(R.string.home_start_brew_subtitle),
-                    onClick = actions.startBrew,
-                    modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin),
-                )
-            }
+            BrewCards(state, nowElapsedMs, actions)
             QuickTimerEntry(actions.quickTimer)
             if (empty) {
                 EmptyState(
@@ -148,6 +139,30 @@ fun HomeScreen(
         }
     }
 }
+
+/**
+ * *Aufguss fortsetzen* for the active brew (GEN-06), and *Aufguss starten* while fewer than two timers are
+ * active (D-108): beside one active timer a second may start; with two the card's start is gone.
+ */
+@Composable
+private fun BrewCards(state: HomeUiState, nowElapsedMs: () -> Long, actions: HomeActions) =
+    Column(modifier = Modifier.fillMaxWidth()) {
+        val active = state.active
+        if (active != null) {
+            ActiveCard(active, nowElapsedMs) { actions.openTimer(active.slot) }
+        }
+        if (!state.twoTimersActive && !state.collectionEmpty && !state.loading) {
+            PrimaryActionCard(
+                title = stringResource(R.string.home_start_brew),
+                subtitle = stringResource(R.string.home_start_brew_subtitle),
+                onClick = actions.startBrew,
+                modifier = Modifier
+                    .padding(horizontal = UmamiSpacing.SideMargin)
+                    // Below the active card, apart from it.
+                    .padding(top = if (active != null) UmamiSpacing.Small else 0.dp),
+            )
+        }
+    }
 
 @Composable
 private fun Lists(state: HomeUiState, actions: HomeActions) = Column(modifier = Modifier.fillMaxWidth()) {

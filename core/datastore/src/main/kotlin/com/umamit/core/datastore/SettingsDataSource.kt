@@ -7,6 +7,7 @@ import androidx.datastore.core.Serializer
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.CollectionSegment
 import com.umamit.core.model.CollectionSort
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.ThemeMode
 import com.umamit.core.model.UserSettings
 import kotlinx.coroutines.CoroutineScope
@@ -31,7 +32,8 @@ import javax.inject.Inject
 data class StoredSettings(
     /**
      * A file without the key predates the versioning, so it reads as 1; [SchemaV2Migration] moves every
-     * file of version 1 to [UserSettings.CURRENT_SCHEMA_VERSION] once, a fresh install's defaults included.
+     * file of version 1 to 2 and [SchemaV3Migration] every file below 3 to 3, each once, a fresh install's
+     * defaults included ([UserSettings.CURRENT_SCHEMA_VERSION]).
      */
     val schemaVersion: Int = 1,
     val onboardingCompleted: Boolean = false,
@@ -49,8 +51,13 @@ data class StoredSettings(
     val deductStock: Boolean = true,
     val lowStockGrams: Double = UserSettings.DEFAULT_LOW_STOCK_GRAMS,
     val lowStockHidden: Set<String> = emptySet(),
-    /** SET-28, SET-29 and the reminder's last date (INV-11, v0.3.0, D-098); a file of v0.2.2 reads the defaults. */
+    /**
+     * SET-28's switch of v0.3.0 (D-098): read only by [SchemaV3Migration]; from v0.5.0 written as „the interval
+     * is not *Aus*", so the file stays consistent.
+     */
     val lowStockReminder: Boolean = true,
+    /** SET-28's interval (v0.5.0, D-108); SET-29 and the last posted date (INV-11, v0.3.0, D-098). */
+    val lowStockReminderInterval: String = LowStockReminderInterval.DAILY.name,
     val lowStockReminderTime: Int = UserSettings.DEFAULT_LOW_STOCK_REMINDER_TIME,
     val lowStockReminderLastDate: String? = null,
     val keepScreenOn: Boolean = true,
@@ -122,6 +129,28 @@ internal object SchemaV2Migration : DataMigration<StoredSettings> {
 }
 
 /**
+ * Settings `schemaVersion` 2 → 3 (v0.5.0, SET-28, D-108 point 7): the reminder's switch becomes its interval,
+ * „on" *Täglich* and „off" *Aus*, so the update changes nothing until the PO picks another. A fresh install
+ * (or a file without the key) reads „on", so *Täglich*.
+ */
+internal object SchemaV3Migration : DataMigration<StoredSettings> {
+    private const val VERSION = 3
+
+    override suspend fun shouldMigrate(currentData: StoredSettings): Boolean = currentData.schemaVersion < VERSION
+
+    override suspend fun migrate(currentData: StoredSettings): StoredSettings = currentData.copy(
+        schemaVersion = VERSION,
+        lowStockReminderInterval = if (currentData.lowStockReminder) {
+            LowStockReminderInterval.DAILY.name
+        } else {
+            LowStockReminderInterval.OFF.name
+        },
+    )
+
+    override suspend fun cleanUp() = Unit
+}
+
+/**
  * The settings DataStore on the file of [produceFile], with the settings migrations (05 §6). The app
  * and the tests open it here, so both run the same migrations.
  */
@@ -130,7 +159,7 @@ fun settingsDataStore(
     produceFile: () -> File,
 ): DataStore<StoredSettings> = DataStoreFactory.create(
     serializer = SettingsSerializer,
-    migrations = listOf(SchemaV2Migration),
+    migrations = listOf(SchemaV2Migration, SchemaV3Migration),
     scope = scope,
     produceFile = produceFile,
 )
@@ -188,7 +217,7 @@ private fun StoredSettings.toModel() = UserSettings(
     deductStock = deductStock,
     lowStockGrams = lowStockGrams,
     lowStockHidden = lowStockHidden,
-    lowStockReminder = lowStockReminder,
+    lowStockReminderInterval = enumOrDefault(lowStockReminderInterval, LowStockReminderInterval.DAILY),
     lowStockReminderTime = lowStockReminderTime,
     lowStockReminderLastDate = lowStockReminderLastDate,
     keepScreenOn = keepScreenOn,
@@ -216,7 +245,8 @@ private fun UserSettings.toStored(markersOf: StoredSettings) = StoredSettings(
     deductStock = deductStock,
     lowStockGrams = lowStockGrams,
     lowStockHidden = lowStockHidden,
-    lowStockReminder = lowStockReminder,
+    lowStockReminder = lowStockReminderInterval.isOn,
+    lowStockReminderInterval = lowStockReminderInterval.name,
     lowStockReminderTime = lowStockReminderTime,
     lowStockReminderLastDate = lowStockReminderLastDate,
     keepScreenOn = keepScreenOn,

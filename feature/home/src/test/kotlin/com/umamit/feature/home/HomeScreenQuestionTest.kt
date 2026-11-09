@@ -7,12 +7,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerSlot
+import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.timer.controller.TimerToEnd
+import com.umamit.core.timer.engine.SessionKind
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,6 +52,30 @@ class HomeScreenQuestionTest {
         compose.onNodeWithContentDescription("Bio Sencha Hisui beenden").performClick()
 
         assertThat(ended).containsExactly(TimerSlot.QUICK, TimerSlot.BREW).inOrder()
+    }
+
+    @Test
+    fun `Aufguss starten shows beside one active brew and is gone with two timers (SCR-02, D-108)`() {
+        val brew = FakeBrewStarter.quickRunningState(
+            60,
+        ).copy(kind = SessionKind.Brew("s1"), teaName = "Bio Sencha Hisui")
+        var state by mutableStateOf(HomeUiState(loading = false, active = brew))
+        var picks = 0
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                HomeScreen(state = state, nowElapsedMs = { 0L }, actions = HomeActions(startBrew = { picks++ }))
+            }
+        }
+        compose.onNodeWithTag(HOME_ACTIVE_CARD_TAG).assertIsDisplayed()
+
+        compose.onNodeWithText("Aufguss starten").assertIsDisplayed().performClick()
+        assertThat(picks).isEqualTo(1)
+
+        state = state.copy(twoTimersActive = true)
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Aufguss starten").assertDoesNotExist()
+        compose.onNodeWithTag(HOME_ACTIVE_CARD_TAG).assertIsDisplayed()
     }
 
     @Test

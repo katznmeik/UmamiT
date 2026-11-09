@@ -11,10 +11,11 @@ import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /**
- * One run of the daily low-stock reminder (INV-11, 06 §5.4, D-098), as [LowStockReminderWorker] runs it:
- * - **Due** ([LowStockReminderSchedule.isDue]: no run yet on this local date, and at most 30 min before the
- *   set time): it lists every *Knapp* or *Leer* tea ([LowStockRepository.reminderTeas], hidden ones
- *   included), notes the date, and posts notification 12, or removes yesterday's when there is none.
+ * One run of the low-stock reminder (INV-11, 06 §5.4, D-098; interval D-108), as [LowStockReminderWorker] runs it:
+ * - **Due** ([LowStockReminderSchedule.isDue]: at least SET-28's N days after the last posted reminder, and at
+ *   most 30 min before the set time): it lists every *Knapp* or *Leer* tea ([LowStockRepository.reminderTeas],
+ *   hidden ones included). With one or more it posts notification 12 and notes the date; with none it posts
+ *   nothing, removes an older one and leaves the date, so the next day tries again.
  * - **Not due** (a run far too early after a clock or DST change, or a second one that day): nothing.
  * - Either way it schedules the next run. A run that fails in any way (an unreadable database or settings file,
  *   a bug) is logged and skips the day: the job still succeeds, so the run it appended is never failed with it,
@@ -40,10 +41,10 @@ class LowStockReminderRun @Inject constructor(
             Log.w(TAG, "Low-stock reminder skipped", e)
             Outcome.FAILED
         }
-        // Switched off: the switch cancelled the job already; a run that slipped through does nothing.
+        // Switched off: *Aus* cancelled the job already; a run that slipped through does nothing.
         if (outcome == Outcome.OFF) return
         try {
-            scheduler.scheduleNext(skipToday = outcome == Outcome.FAILED)
+            scheduler.scheduleNext(skipToday = outcome == Outcome.FAILED || outcome == Outcome.NOTHING_DUE)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -55,23 +56,34 @@ class LowStockReminderRun @Inject constructor(
     /** Posts today's reminder when it is due; what happened. */
     private suspend fun remind(): Outcome {
         val current = settings.settings.first()
-        if (!current.lowStockReminder) return Outcome.OFF
+        val interval = current.lowStockReminderInterval
+        if (!interval.isOn) return Outcome.OFF
         val now = clock.nowMs()
         val zone = clock.zone()
-        if (LowStockReminderSchedule.isDue(now, zone, current.lowStockReminderTime, current.lastReminderDate())) {
-            val teas = lowStock.reminderTeas()
-            val date = LowStockReminderSchedule.dateOf(now, zone).toString()
-            settings.update { it.copy(lowStockReminderLastDate = date) }
-            if (teas.isEmpty()) {
-                LowStockReminderNotifications.cancel(context)
-            } else {
-                LowStockReminderNotifications.post(context, teas)
-            }
+        val due = LowStockReminderSchedule.isDue(
+            nowMs = now,
+            zone = zone,
+            minuteOfDay = current.lowStockReminderTime,
+            everyDays = interval.days,
+            lastPosted = current.lastReminderDate(),
+        )
+        return if (due) post(LowStockReminderSchedule.dateOf(now, zone).toString()) else Outcome.DONE
+    }
+
+    /** Posts the reminder of [date] and notes the date, or with no tea due only removes an older one. */
+    private suspend fun post(date: String): Outcome {
+        val teas = lowStock.reminderTeas()
+        if (teas.isEmpty()) {
+            LowStockReminderNotifications.cancel(context)
+            return Outcome.NOTHING_DUE
         }
+        settings.update { it.copy(lowStockReminderLastDate = date) }
+        LowStockReminderNotifications.post(context, teas)
         return Outcome.DONE
     }
 
-    private enum class Outcome { DONE, OFF, FAILED }
+    /** [NOTHING_DUE] and [FAILED] count today as had, so the next run waits for tomorrow. */
+    private enum class Outcome { DONE, NOTHING_DUE, OFF, FAILED }
 
     private companion object {
         const val TAG = "UmamiTStockReminder"

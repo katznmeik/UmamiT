@@ -152,5 +152,8 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
     fun activeSession() = capture("activeSession", seeded.copy(active = running))
 
     @Test
-    fun question() = capture("question", seeded.copy(active = running, question = TWO_TIMERS_QUESTION))
+    fun question() = capture(
+        "question",
+        seeded.copy(active = running, twoTimersActive = true, question = TWO_TIMERS_QUESTION),
+    )
 }
