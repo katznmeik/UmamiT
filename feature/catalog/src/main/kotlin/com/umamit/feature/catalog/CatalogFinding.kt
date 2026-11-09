@@ -1,5 +1,7 @@
 package com.umamit.feature.catalog
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -25,8 +28,11 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onPlaced
@@ -52,6 +58,9 @@ import kotlin.math.roundToInt
 
 /** A change of the list's search, filters or sort (CAT-10): applied to the current [CatalogFilter]. */
 typealias FilterChange = (CatalogFilter) -> CatalogFilter
+
+/** The chip row's item key in the catalog list. */
+internal const val CHIPS_KEY = "chips"
 
 /** The catalog's search field (SCR-19). */
 const val CATALOG_SEARCH_TAG = "catalog_search"
@@ -100,7 +109,7 @@ internal fun CatalogSearchField(filter: CatalogFilter, onFilterChange: (FilterCh
  * *Kräutertee* (v0.2.1, D-093: the Kräutertees instead of the green teas, and back), „Pur" (not
  * in the Kräutertee view, Q14), „Vorrätig" (both on in the default view, D-073), „Bio", „Neu"
  * and „Im Besitz". The row scrolls to the selected kind's chip whenever it changes (#206): nine kinds are wider
- * than the screen, and *Alle zeigen* may pick one off it.
+ * than the screen, and *Alle zeigen* may pick one off it. A row that comes back into the list keeps its position.
  */
 @Composable
 internal fun CatalogFilterChips(
@@ -113,12 +122,21 @@ internal fun CatalogFilterChips(
     // Each kind chip's start and width in the row's content (px), to scroll the selected one into view (#206).
     val kindChips = remember { mutableStateMapOf<CatalogKind, IntRange>() }
     val side = with(LocalDensity.current) { UmamiSpacing.SideMargin.roundToPx() }
-    val reduceMotion = UmamiTheme.reduceMotion
+    val motion = UmamiTheme.motion
+    // The kind last brought into view; saved, so a row that scrolls back into the list keeps the user's own
+    // position (motion review v0.5.0 S2): the row reveals the kind only when it really changes.
+    var revealedKind by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(filter.kind, filter.marked) {
-        if (!filter.marked) {
-            val chip = snapshotFlow { kindChips[filter.kind] }.filterNotNull().first()
-            scroll.reveal(chip, side, animate = !reduceMotion)
+        if (filter.marked) {
+            revealedKind = null // the row is rebuilt when *Gemerkt* ends: reveal again then
+            return@LaunchedEffect
         }
+        if (revealedKind == filter.kind.key) return@LaunchedEffect
+        val instant = revealedKind == null // first shown, or rebuilt after *Gemerkt*: no travel
+        withFrameNanos { } // this frame's spans, after a *Filter* label that changed with the kind
+        val chip = snapshotFlow { kindChips[filter.kind] }.filterNotNull().first()
+        scroll.reveal(chip, side, if (instant) snap() else motion.standard())
+        revealedKind = filter.kind.key
     }
     Row(
         modifier = Modifier
@@ -181,16 +199,33 @@ internal fun CatalogFilterChips(
 }
 
 /**
+ * A kind change from off the chip row (*Alle zeigen*) brings the row at [chipsIndex] back at once: the old list's
+ * index would open the new kind mid-list, its chip out of sight (motion review v0.5.0 N1). From a chip the row is on
+ * screen and nothing moves; no animated travel through content that was just replaced.
+ */
+@Composable
+internal fun ChipRowOnKindChange(listState: LazyListState, kind: CatalogKind, chipsIndex: Int) {
+    var listedKind by rememberSaveable { mutableStateOf(kind.key) }
+    val index by rememberUpdatedState(chipsIndex)
+    LaunchedEffect(kind) {
+        if (kind.key == listedKind) return@LaunchedEffect
+        listedKind = kind.key
+        if (listState.layoutInfo.visibleItemsInfo.none { it.key == CHIPS_KEY }) listState.scrollToItem(index)
+    }
+}
+
+/**
  * Scrolls the row just enough to show the [chip] (its span in the content, px) with the side margin [side] around it;
  * nothing when it is in view already. Only the row scrolls, never the list around it.
  */
-private suspend fun ScrollState.reveal(chip: IntRange, side: Int, animate: Boolean) {
+private suspend fun ScrollState.reveal(chip: IntRange, side: Int, spec: AnimationSpec<Float>) {
     val target = when {
         chip.first - side < value -> chip.first - side
         chip.last + 1 + side > value + viewportSize -> chip.last + 1 + side - viewportSize
         else -> return
     }.coerceIn(0, maxValue)
-    if (animate) animateScrollTo(target) else scrollTo(target)
+    // A motion token (S3), `snap()` under reduce motion; a finger on the row cancels it through the scroll mutex.
+    if (target != value) animateScrollTo(target, spec)
 }
 
 /** *Gemerkt* (CAT-18, D-097): the Merkliste's view, and back to the view before it. */
