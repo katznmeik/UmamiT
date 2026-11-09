@@ -20,6 +20,9 @@ package com.umamit.core.model
  * @property marked on the Merkliste (*Merken*, CAT-18, D-097).
  * @property discontinued no longer in the range, kept for a collection tea or a mark (CAT-07 AC4,
  *   CAT-18 AC3): shown in the *Gemerkt* view only, as „Nicht mehr im Sortiment".
+ * @property tasteNotes the shop's taste notes (*Geschmack*, 08 §2.3) one by one, as the shop writes them
+ *   („fruchtig", „mild"), for the flavour filter (D-108 point 8).
+ * @property tasteScales the shop's taste scales (Umami, Süße, Bitterstoffe, …) in the shop's order.
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -39,6 +42,8 @@ data class CatalogTeaSummary(
     val kind: CatalogKind = CatalogKind.GREEN,
     val marked: Boolean = false,
     val discontinued: Boolean = false,
+    val tasteNotes: List<String> = emptyList(),
+    val tasteScales: List<TasteScale> = emptyList(),
 ) {
     /** The growing countries one by one (the shop joins several with „, "). */
     val originCountries: List<String>

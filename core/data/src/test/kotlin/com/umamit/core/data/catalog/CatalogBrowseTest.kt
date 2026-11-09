@@ -80,6 +80,8 @@ class CatalogBrowseTest {
         umami: Int? = null,
         flagged: Boolean = false,
         style: String? = null,
+        notes: String? = null,
+        scales: String? = umami?.let { """{"Umami":$it,"Bitterstoffe":1}""" },
     ) = CatalogTeaEntity(
         key = key,
         name = name,
@@ -93,7 +95,8 @@ class CatalogBrowseTest {
         cultivar = cultivar,
         isOrganic = organic,
         isFlavored = flavored,
-        tasteScalesJson = umami?.let { """{"Umami":$it,"Bitterstoffe":1}""" },
+        tasteScalesJson = scales,
+        tasteNotes = notes,
         breadcrumb = null,
         descriptionText = description,
         recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT.takeIf { flagged },
@@ -301,6 +304,23 @@ class CatalogBrowseTest {
         assertThat(tea.recipeCheckReason).isEqualTo(RecipeCheckReason.FROM_STYLE_DEFAULT)
         assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.HIGH)
         assertThat(tea.originCountry).isEqualTo("Japan")
+    }
+
+    @Test
+    fun theFlavourFilterReadsTheShopsGeschmackAndScales() = runTest {
+        refresh(
+            tea("XY0100", "Morgennebel", notes = "fruchtig, mild, süß", scales = """{"Umami":4,"Süße":3}"""),
+            tea("XY0200", "Abendrot", notes = "Mild, grasig", scales = """{"Süße":1,"Bitterstoffe":2}"""),
+            tea("XY0300", "Bergwind"),
+        )
+
+        val listing = browse(all)
+        assertThat(listing.teas.first { it.name == "Morgennebel" }.tasteNotes)
+            .containsExactly("fruchtig", "mild", "süß").inOrder()
+        assertThat(listing.tasteNotes.first().label).isEqualTo("mild")
+        assertThat(listing.tasteScales.map { it.label }).containsExactly("Süße", "Bitterstoffe").inOrder()
+        assertThat(names(all.copy(notes = setOf("mild")))).containsExactly("Abendrot", "Morgennebel")
+        assertThat(names(all.copy(minScales = mapOf("suße" to 2)))).containsExactly("Morgennebel")
     }
 
     /** Two green teas and three Kräutertees (v0.2.1, D-093), one of them flavoured, one sold out. */

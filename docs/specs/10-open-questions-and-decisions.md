@@ -723,6 +723,26 @@ v5).**
 - **Texts.** The empty catalog's body and the link's „nicht im Katalog"
   name the new kinds; #206 extends them again.
 
+**Build notes (Claude, 2026-11-09, #204: the flavour filter).**
+- **Notes.** The list rows now read `taste_notes` too (no schema change);
+  a tea's notes are its *Geschmack* split at commas. A note's key is the
+  note normalised like search (GEN-10: lower case, no diacritics, single
+  spaces), compared whole; the chip shows the note's most frequent
+  spelling in lower case. Offered from the kind's current range, not the
+  filtered list (as *Sorte*), so choosing a note never removes the others.
+- **Scales.** Keyed the same way by label; „ab 1" to „ab 5" (Claude: every
+  leaf count, since „ab 1" means „has any"); the Umami scale is never
+  offered, in any view (it stays the green view's own filter). A scale
+  minimum counts once each in „Filter (n)" like Umami, the notes once
+  together like *Sorte*.
+- **Kind change.** The listing carries each kind's note and scale keys;
+  the view model prunes the filter on any kind change (chip, *Alle
+  zeigen*), so no control needs to know. Claude: scales are pruned too,
+  since a minimum on a scale the view lacks would empty it with no chip to
+  undo it.
+- **TalkBack.** The chips are `FilterChip`s (state read as selected); a
+  scale chip's description names its scale („Süße ab 3", „Süße egal").
+
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
 

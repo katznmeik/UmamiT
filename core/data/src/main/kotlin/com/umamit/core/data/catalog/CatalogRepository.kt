@@ -108,8 +108,13 @@ class RoomCatalogRepository @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    private fun CatalogListRow.toSummary(ownedKeys: Set<String>, marked: Set<String>, discontinued: Boolean = false) =
-        CatalogTeaSummary(
+    private fun CatalogListRow.toSummary(
+        ownedKeys: Set<String>,
+        marked: Set<String>,
+        discontinued: Boolean = false,
+    ): CatalogTeaSummary {
+        val scales = CatalogColumns.tasteScales(tasteScalesJson)
+        return CatalogTeaSummary(
             key = key,
             name = name ?: key,
             secondaryName = secondaryName,
@@ -120,15 +125,17 @@ class RoomCatalogRepository @Inject constructor(
             originCountry = originCountry,
             isOrganic = isOrganic,
             isFlavored = isFlavored,
-            umamiLeaves = CatalogColumns.tasteScales(tasteScalesJson)
-                .firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
+            umamiLeaves = scales.firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
             recipeCheckReason = recipeCheckReason,
             isNew = isNew,
             owned = key in ownedKeys,
             kind = CatalogKind.of(styleKey),
             marked = key in marked,
             discontinued = discontinued,
+            tasteNotes = CatalogColumns.tasteNotes(tasteNotes),
+            tasteScales = scales,
         )
+    }
 
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */

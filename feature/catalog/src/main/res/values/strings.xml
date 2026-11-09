@@ -88,6 +88,13 @@
     <string name="catalog_umami_medium">ab mittel</string>
     <string name="catalog_umami_high">ab hoch</string>
     <string name="catalog_umami_very_high">sehr hoch</string>
+    <!-- The flavour filter (v0.5.0, D-108 point 8): the shop's *Geschmack* words and taste scales. -->
+    <string name="catalog_filter_taste_notes">Geschmack</string>
+    <string name="catalog_scale_any">Egal</string>
+    <string name="catalog_scale_min">ab %1$d</string>
+    <!-- TalkBack for a scale chip, e.g. „Süße egal", „Süße ab 3" (the chip's state is read after it). -->
+    <string name="catalog_scale_any_description">%1$s egal</string>
+    <string name="catalog_scale_min_description">%1$s ab %2$d</string>
     <string name="catalog_filter_more">Weitere</string>
     <string name="catalog_filter_reset">Zurücksetzen</string>
     <string name="catalog_filter_done">Fertig</string>

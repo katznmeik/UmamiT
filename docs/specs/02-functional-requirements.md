@@ -355,6 +355,25 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   Until the first successful refresh with parser v9 each view shows its own
   hint („Weiße Tees / Oolongs / Pu-Erhs kommen mit dem nächsten Abruf
   (≈ 30 min, einmalig)") with *Jetzt laden*.
+- **Flavour filter (v0.5.0, D-108 point 8, #204):** the filter sheet adds
+  the shop's taste notes (*Geschmack*, 08 §2.3) and taste scales, for the
+  kind shown; they apply in every kind's view.
+  - AC1: *Geschmack* offers, as multi-select chips, every note that occurs
+    in the current range of the kind shown (whatever the other filters),
+    most frequent first, ties by name. A tea matches when it names
+    **every** chosen note; notes compare whole, normalised like search
+    (GEN-10: case and diacritics ignored, so „Süß" and „süß" are one note,
+    „mild" does not match „mildsüß").
+  - AC2: Each shop scale that occurs in the range (Süße, Bitterstoffe,
+    Fruchtig, Nussig, Würzig, Röstnoten, Komplexität, Floral …), most
+    frequent first, offers *Egal · ab 1 · … · ab 5* leaves, like the umami
+    filter; a tea without the scale never reaches a minimum. Umami stays
+    its own filter and is not offered among the scales.
+  - AC3: The chosen notes count once in „Filter (n)", each scale with a
+    minimum counts once; *Zurücksetzen* and „Filter zurücksetzen" clear
+    them. A kind change keeps only the notes and scales the new kind's range
+    has. Search hits they hide count as hidden; *Gemerkt* applies only the
+    search, as before.
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").

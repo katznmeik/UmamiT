@@ -124,8 +124,15 @@ class CatalogViewModel @Inject constructor(
     private var linkJob: Job? = null
     private var lastShare: Long? = null
 
-    /** A changed search, filter or sort. */
-    fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update(transform)
+    /**
+     * A changed search, filter or sort. A kind change keeps only the taste notes and scales the new kind's range has
+     * (D-108 point 8), whichever control changed the kind.
+     */
+    fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update { old ->
+        val new = transform(old)
+        val listing = state.value.listing
+        if (new.kind == old.kind || listing.flavoursByKind.isEmpty()) new else new.keepingFlavoursOf(listing)
+    }
 
     /** A row's bookmark toggle (CAT-18): marks or unmarks the tea [key]. */
     fun toggleMark(key: String, marked: Boolean) {

@@ -466,6 +466,44 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         }
     }
 
+    /**
+     * The filter sheet's taste notes and scales (v0.5.0, #204, D-108 point 8), two notes and one scale chosen; light
+     * and dark, font scale 1.0 and 2.0. Invented notes and scales on the green teas (D-016).
+     */
+    @Test
+    fun filterSheetTaste() {
+        val notes = listOf(
+            listOf("mild", "süß", "grasig"),
+            listOf("mild", "süß", "fruchtig", "blumig"),
+            listOf("mild", "frisch"),
+            listOf("süß", "fruchtig"),
+            listOf("mild", "herb", "nussig"),
+        )
+        val scales = listOf(
+            listOf(TasteScale("Umami", 4), TasteScale("Süße", 3), TasteScale("Bitterstoffe", 1)),
+            listOf(TasteScale("Umami", 5), TasteScale("Süße", 4), TasteScale("Komplexität", 3)),
+            listOf(TasteScale("Süße", 2), TasteScale("Bitterstoffe", 2), TasteScale("Röstnoten", 4)),
+        )
+        val teas = TEAS.mapIndexed { index, tea ->
+            if (tea.kind != CatalogKind.GREEN) {
+                tea
+            } else {
+                tea.copy(tasteNotes = notes[index % notes.size], tasteScales = scales[index % scales.size])
+            }
+        }
+        val filter = CatalogFilter(notes = setOf("mild", "suß"), minScales = mapOf("suße" to 3))
+        val listing = CatalogBrowser.listing(teas, filter, null, FakeClock.DEFAULT_WALL_MS)
+        capture("filterSheetTaste", scrollToText = "Weitere") {
+            CatalogContent(
+                state = CatalogUiState(listing = listing, filter = filter, loading = false),
+                onLoad = {},
+                onShowProgress = {},
+                zone = FakeClock.BERLIN,
+            )
+            CatalogFilterSheet(filter = filter, listing = listing, onFilterChange = {}, onDismissRequest = {})
+        }
+    }
+
     /** The filter sheet over the list, at font scale 1.0 only. */
     @Test
     fun filterSheet() {

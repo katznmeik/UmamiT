@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.icon.UmamiIcons
@@ -176,11 +178,13 @@ internal fun CatalogChip(
     label: String,
     selected: Boolean,
     leadingIcon: (@Composable () -> Unit)? = null,
+    description: String? = null,
     onClick: () -> Unit,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
+        modifier = if (description == null) Modifier else Modifier.semantics { contentDescription = description },
         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
         leadingIcon = leadingIcon,
         border = FilterChipDefaults.filterChipBorder(

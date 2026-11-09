@@ -1210,6 +1210,15 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Herkunft* and the switches Vorrätig, Bio, Neu, Im Besitz stay), and
   *Zurücksetzen* as well as „Filter zurücksetzen" reset the filters but stay
   in the Kräutertee view (#91).
+  From v0.5.0 (D-108 point 8, #204) the sheet adds, after *Umami* and in
+  every kind's view: *Geschmack* (multi-select chips of the shop's taste
+  notes in the view, most frequent first; a tea must name every one
+  chosen) and one row per shop taste scale in the view but Umami, titled by
+  the scale („Süße", „Bitterstoffe" …) with *Egal · ab 1 · ab 2 · ab 3 ·
+  ab 4 · ab 5*. Both count in „Filter (n)" (the notes once, each scale with
+  a minimum once) and are cleared by *Zurücksetzen*. TalkBack reads each
+  chip's state (ausgewählt / nicht ausgewählt), a scale chip with its scale
+  („Süße ab 3").
 - **Kräutertee hint (v0.2.1, D-093 Q20):** until the first successful refresh
   after the update (the last one ran a parser from before the Kräutertees),
   the Kräutertee view shows „Kräutertees kommen mit dem nächsten Abruf

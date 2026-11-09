@@ -67,6 +67,9 @@ internal object CatalogColumns {
             (value as? JsonPrimitive)?.intOrNull?.let { TasteScale(label, it.coerceIn(0, TasteScale.MAX_LEAVES)) }
         }
 
+    /** The shop's *Geschmack* („fruchtig, mild, süß", 08 §2.3) note by note, trimmed; empty when none. */
+    fun tasteNotes(text: String?): List<String> = text.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
     fun brewTable(json: String?): List<BrewTableRow> = (parse(json) as? JsonArray).orEmpty().mapNotNull { row ->
         val fields = row as? JsonObject ?: return@mapNotNull null
         val kind = fields[KIND].text() ?: return@mapNotNull null
