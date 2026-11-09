@@ -403,7 +403,7 @@ Table `catalog_tea`
 | `is_organic`, `is_flavored`, `cold_brew_suitable` | INTEGER | badges / aroma / ingredients |
 | `aroma`, `taste_notes`, `manufacturer`, `season`, `matcha_grade` | TEXT | properties table |
 | `taste_scales_json` | TEXT | shop scales, e.g. `{"Umami":4,"Bitterstoffe":1}` |
-| `breadcrumb` | TEXT | category path of the product page |
+| `breadcrumb` | TEXT | category path of the product page: its deepest crumb; for a tea of another section than the green ones, the deepest crumb in a tea section, the path its style and category were mapped from (v0.5.0, #206, D-108) |
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
 | `description_text` | TEXT | plain text of the description, for search (D-076) |
@@ -548,7 +548,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockReminderInterval` | DAILY/EVERY_2_DAYS/EVERY_3_DAYS/WEEKLY/OFF | DAILY | SET-28, INV-11 (v0.5.0, D-108): every 1, 2, 3 or 7 days, or off. Settings `schemaVersion` 3 turns a stored `lowStockReminder` true into DAILY and false into OFF once; an unknown name reads DAILY |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
 | `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last reminder that was posted, which the interval counts from (v0.5.0, D-108); a due day with nothing to post leaves it (until v0.4.1 it also counted such a day). Not shown |
-| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, D-108), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, `rooibos`, `fruit`, `chai`, D-108, #206), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |

@@ -31,6 +31,9 @@ internal object CatalogColumns {
     private const val LABEL = "label"
     private const val TEXT = "text"
 
+    /** „,", „/" or the word „und" between two notes. */
+    private val NOTE_SEPARATOR = Regex("""[,/]|\s+und\s+""", RegexOption.IGNORE_CASE)
+
     fun tasteScalesJson(scales: List<ShopScale>): String? = scales.takeIf { it.isNotEmpty() }?.let {
         buildJsonObject { it.forEach { scale -> put(scale.label, scale.leaves) } }.toString()
     }
@@ -67,8 +70,12 @@ internal object CatalogColumns {
             (value as? JsonPrimitive)?.intOrNull?.let { TasteScale(label, it.coerceIn(0, TasteScale.MAX_LEAVES)) }
         }
 
-    /** The shop's *Geschmack* („fruchtig, mild, süß", 08 §2.3) note by note, trimmed; empty when none. */
-    fun tasteNotes(text: String?): List<String> = text.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    /**
+     * The shop's *Geschmack* („fruchtig, mild, süß", 08 §2.3) note by note, trimmed; empty when none. The shop also
+     * joins notes with „/" or „ und " („fruchtig/süß", „mild und grasig").
+     */
+    fun tasteNotes(text: String?): List<String> =
+        text.orEmpty().split(NOTE_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
 
     fun brewTable(json: String?): List<BrewTableRow> = (parse(json) as? JsonArray).orEmpty().mapNotNull { row ->
         val fields = row as? JsonObject ?: return@mapNotNull null

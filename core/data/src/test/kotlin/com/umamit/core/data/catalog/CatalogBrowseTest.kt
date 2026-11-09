@@ -323,6 +323,15 @@ class CatalogBrowseTest {
         assertThat(names(all.copy(minScales = mapOf("suße" to 2)))).containsExactly("Morgennebel")
     }
 
+    @Test
+    fun aGeschmackNoteListSplitsOnCommasSlashesAndUnd() = runTest {
+        // The shop also writes „fruchtig/süß" and „mild und grasig" (08 §2.3 *Geschmack*).
+        refresh(tea("XY0100", "Morgennebel", notes = "fruchtig/süß, mild und grasig, Wunderbar"))
+
+        assertThat(browse(all).teas.single().tasteNotes)
+            .containsExactly("fruchtig", "süß", "mild", "grasig", "Wunderbar").inOrder()
+    }
+
     /** Two green teas and three Kräutertees (v0.2.1, D-093), one of them flavoured, one sold out. */
     private suspend fun greenAndHerbal() = refresh(
         tea("XY0100", "Morgennebel", "Sencha", umami = 4),

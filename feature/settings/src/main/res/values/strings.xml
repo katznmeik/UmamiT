@@ -85,7 +85,7 @@
     <string name="settings_time_confirm">OK</string>
     <string name="settings_time_cancel">Abbrechen</string>
 
-    <!-- Katalog (SET-30; SET-23; SET-22: CAT-08, D-073, about 25–35 MB for the whole catalog). -->
+    <!-- Katalog (SET-30; SET-23; SET-22: CAT-08, D-073; from v0.5.0 about 80–100 MB for the whole catalog, NFR-PERF-11, D-108). -->
     <string name="settings_section_catalog">Katalog</string>
     <string name="settings_catalog_last_refresh">Letzter Abruf</string>
     <string name="settings_catalog_never">Noch nie</string>
@@ -93,7 +93,7 @@
     <string name="settings_catalog_refresh_now">Jetzt aktualisieren</string>
     <string name="settings_catalog_refresh_detail">Lädt alle Tees von Tee-Kontor Kiel, von Grüntee bis Chai. Das erste Laden dauert etwa eine halbe Stunde, spätere Aktualisierungen wenige Minuten; es läuft auch bei gesperrtem Handy weiter.</string>
     <string name="settings_catalog_photos">Fotos laden</string>
-    <string name="settings_catalog_photos_detail">Beim Aktualisieren ein Foto je Tee laden, zusammen etwa 30 MB</string>
+    <string name="settings_catalog_photos_detail">Beim Aktualisieren ein Foto je Tee laden, zusammen etwa 80–100 MB</string>
 
     <!-- Teegeschirr (SET-30, v0.4.0, D-100): one row that opens the teaware list (SCR-13). -->
     <string name="settings_section_teaware">Teegeschirr</string>

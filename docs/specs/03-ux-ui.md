@@ -964,14 +964,21 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   VORRAT after the reorder link, above a hairline and before the history:
   - *Warnung*, one row with a switch (on by default) and „Startkarte und
     Erinnerung, wenn der Vorrat knapp wird"; the row is the switch, and
-    TalkBack reads it with its state. Off: no Start card, no reminder line,
+    TalkBack reads it with its state. The switch moves at the tap, before
+    the stored value comes back (v0.5.0 motion review N3). Off: no Start card, no reminder line,
     and the reorder link stays a text link; the *Knapp* / *Leer* label stays.
   - *Knapp ab*, a field in whole grams with the suffix „g" and the line
     „Leer lassen für die Vorgabe aus den Einstellungen (15 g)" (SET-16's
-    value). Each valid input (empty, or 1–500) is saved at once and the
-    label, card, reminder, setup marker and reorder highlight follow it;
-    anything else says „Gib 1 bis 500 g an oder lass das Feld leer." at the
-    field and keeps the stored value. Shown with the warning off too.
+    value). The input is saved when it is done (*Fertig* on the keyboard,
+    the field losing focus or the detail closing; v0.5.0 review), not per
+    keystroke, and only a valid one (empty, or 1–500); the label, card,
+    reminder, setup marker and reorder highlight then follow it. Anything
+    else says „Gib 1 bis 500 g an oder lass das Feld leer." at the field and
+    keeps the stored value, also a „600" that passed a valid „60". Shown with
+    the warning off too.
+  - The reorder link and the highlighted button take the same height
+    (8 + 48 dp), so *Warnung* and *Knapp ab* never move when a tap or an
+    input there switches between them (motion review S1).
   - Neither is in the tea editor (SCR-10); the detail is their one place.
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
@@ -1229,7 +1236,10 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   after the update (the last one ran a parser from before the Kräutertees),
   the Kräutertee view shows „Kräutertees kommen mit dem nächsten Abruf
   (≈ 16 min, einmalig)" with *Jetzt laden*, which starts the refresh and
-  opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
+  opens its sheet (*Fortschritt anzeigen* while one runs; from v0.5.0 the
+  list's „Der Katalog wird aktualisiert …" row is then left out in that
+  view, so the hint never moves under the finger that tapped *Jetzt laden*;
+  motion review N2). When the view is
   empty it takes the no-match notice's place; the header still reads
   „… · 0 Kräutertees · …". From v0.5.0 (D-108, #203) each pending kind's
   view shows its own hint the same way: „Schwarztees kommen mit dem nächsten
@@ -1253,8 +1263,11 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   / 9 Chais · …", and each shows its own pending hint until the first refresh
   with parser v10. Whenever the kind changes (a tap, *Alle zeigen*, back from
   *Gemerkt*), the row scrolls just enough to show the selected chip with the
-  side margin, animated unless motion is reduced; only the row scrolls, not
-  the list. The empty catalog's body: „Lade alle Tees von Tee-Kontor Kiel,
+  side margin, with the `standard` token (§3.6; at once under reduced
+  motion, and at the row's first show); only the row scrolls. A row that
+  scrolls back into the list keeps where the user left it (motion review
+  S2, S3). When the kind changes while the chip row is out of view (*Alle
+  zeigen* at the list's end), the list jumps back to the row at once (N1). The empty catalog's body: „Lade alle Tees von Tee-Kontor Kiel,
   von Grüntee bis Chai, um offline darin zu stöbern." A link's „nicht im
   Katalog" reads „Dieser Artikel gehört nicht zum Katalog (nur Tees, ohne
   Sets und Zubehör)."
@@ -1425,7 +1438,8 @@ Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 ([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
 between them: „Letzter Abruf" with the date of the last successful refresh
 („21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
-switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"). v0.2.1 adds
+switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"; from v0.5.0 „zusammen etwa
+80–100 MB", NFR-PERF-11, D-108). v0.2.1 adds
 *Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093). v0.2.2 adds
 the section *Brühen & Vorrat* between *Timer & Alarm* and *Katalog* with
 „Knapp ab" (SET-16, 0–500 g in 5 g steps, „15 g"; D-097).

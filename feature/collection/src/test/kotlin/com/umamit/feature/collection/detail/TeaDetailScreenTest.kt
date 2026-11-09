@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -357,6 +358,17 @@ class TeaDetailScreenTest {
     }
 
     @Test
+    fun `the Warnung switch moves at the tap, before the stored value comes back`() {
+        show() // the stored value stays on: nothing writes it here
+        val warning = compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo()
+
+        warning.performClick()
+
+        warning.assertIsOff()
+        assertThat(calls).containsExactly("warning:false")
+    }
+
+    @Test
     fun `with the warning off the switch reads off and a tap switches it on`() {
         show(sample().copy(stockWarning = false))
 
@@ -366,15 +378,36 @@ class TeaDetailScreenTest {
     }
 
     @Test
-    fun `Knapp ab shows the global threshold when empty and writes whole grams`() {
+    fun `Knapp ab shows the global threshold when empty and writes whole grams when the input is done`() {
         show()
         val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
         compose.onNodeWithText("Vorgabe aus den Einstellungen (15 g)", substring = true).assertExists()
 
         field.performTextInput("25")
+        assertThat(calls).isEmpty() // nothing per keystroke: „2" is never written
+        field.performImeAction()
         field.performTextClearance()
+        field.performImeAction()
 
         assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+    }
+
+    @Test
+    fun `Knapp ab writes only the final value, also when the detail closes while it is typed`() {
+        var shown by mutableStateOf(true)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                if (shown) TeaDetailScreen(TeaDetailUiState.Ready(sample()), actions, alertKey = null, photo = { null })
+            }
+        }
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+
+        field.performTextInput("1")
+        field.performTextInput("2")
+        shown = false
+        compose.waitForIdle()
+
+        assertThat(calls).containsExactly("threshold:12")
     }
 
     @Test
@@ -384,10 +417,27 @@ class TeaDetailScreenTest {
         field.assert(hasText("20"))
 
         field.performTextReplacement("0")
+        field.performImeAction()
         compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
         field.performTextReplacement("501")
+        field.performImeAction()
         compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
 
+        assertThat(calls).isEmpty()
+    }
+
+    @Test
+    fun `an invalid final Knapp ab keeps the stored value, though a valid one was typed on the way`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+
+        field.performTextClearance()
+        field.performTextInput("6")
+        field.performTextInput("0")
+        field.performTextInput("0") // „600": „6" and „60" are valid on the way
+        field.performImeAction()
+
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
         assertThat(calls).isEmpty()
     }
 

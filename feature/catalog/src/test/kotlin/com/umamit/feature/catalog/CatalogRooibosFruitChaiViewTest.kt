@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -154,6 +155,26 @@ class CatalogRooibosFruitChaiViewTest {
 
         chip(R.string.catalog_filter_chai).assertIsSelected().assertIsDisplayed()
         shown("Karawane Chai")
+    }
+
+    @Test
+    fun theChipRowKeepsTheUsersOwnScrollWhenItComesBackIntoTheList() {
+        // Motion review S2 (v0.5.0): enough chais to scroll the chip row out of the list.
+        show(teas + (1..30).map { of(CatalogKind.CHAI, "XC1%03d".format(it), "Chai Nummer $it", "Schwarztee") })
+        switchTo(R.string.catalog_filter_chai)
+        val filterChip = compose.onNodeWithText(str(R.string.catalog_filter_button), substring = true) // „Filter (1)"
+        filterChip.performScrollTo() // the user scrolls the row back to its start, *Chai* out of view
+        compose.waitForIdle()
+        filterChip.assertIsDisplayed()
+
+        compose.onNodeWithTag(CATALOG_LIST_TAG).performScrollToIndex(30)
+        compose.waitForIdle()
+        compose.onNodeWithTag(CATALOG_LIST_TAG).performScrollToIndex(0)
+        compose.waitForIdle()
+
+        // The row came back where the user left it: no reveal they did not ask for.
+        filterChip.assertIsDisplayed()
+        chip(R.string.catalog_filter_chai).assertIsSelected()
     }
 
     @Test

@@ -339,6 +339,16 @@ private fun CatalogList(
     }
     val listing = state.listing
     val filter = state.filter
+    // While the shown kind's hint is there, its own action is the progress link: no second refreshing row above it
+    // pushes the hint down under the finger that tapped *Jetzt laden* (motion review v0.5.0 N2).
+    val refreshingRow = state.isRefreshing && (filter.marked || filter.kind !in state.pendingKinds)
+    // header, refreshing?, guides?, search, chips
+    ChipRowOnKindChange(
+        listState,
+        filter.kind,
+        chipsIndex =
+        1 + listOf(refreshingRow, state.guideCount > 0).count { it } + 1,
+    )
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -346,10 +356,10 @@ private fun CatalogList(
         state = listState,
     ) {
         item(key = "header") { Header(listing, filter, zone) }
-        if (state.isRefreshing) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
+        if (refreshingRow) item(key = "refreshing") { RefreshingRow(actions.onShowProgress) }
         if (state.guideCount > 0) item(key = "guides") { GuidesRow(state.guideCount, actions.onOpenGuides) }
         item(key = "search") { CatalogSearchField(filter, actions.onFilterChange) }
-        item(key = "chips") { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
+        item(key = CHIPS_KEY) { CatalogFilterChips(filter, actions.onFilterChange, actions.onOpenFilters) }
         if (filter.marked) {
             markedNotices(listing)
         } else {

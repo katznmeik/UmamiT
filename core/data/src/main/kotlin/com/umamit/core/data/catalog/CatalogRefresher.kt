@@ -1052,7 +1052,8 @@ private fun ProductPage.toEntity(base: String, seenAt: Long, recipes: CatalogRec
     season = season,
     matchaGrade = matchaGrade,
     tasteScalesJson = CatalogColumns.tasteScalesJson(tasteScales),
-    breadcrumb = categoryPath,
+    // The path the style was mapped from, so a collection copy maps the same (#206, user story 36).
+    breadcrumb = stylePath,
     ingredients = ingredients,
     descriptionHtml = descriptionHtml,
     descriptionText = descriptionText,

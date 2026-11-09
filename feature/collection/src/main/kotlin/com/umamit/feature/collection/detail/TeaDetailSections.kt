@@ -202,8 +202,10 @@ internal fun Stock(
         val reorder = tea.reorder
         val label = stringResource(R.string.collection_tea_reorder)
         val icon = painterResource(UmamiIcons.OpenInNew)
+        // Both forms take the same height (8 + 48 dp), so *Warnung* and *Knapp ab* below never move when a tap or a
+        // keystroke there switches between them (motion review v0.5.0 S1); only the style swaps.
+        if (reorder != null) Spacer(Modifier.height(UmamiSpacing.Small))
         if (reorder?.prominent == true) {
-            Spacer(Modifier.height(UmamiSpacing.Small))
             PillButton(
                 text = label,
                 onClick = { onReorder(reorder.url) },
@@ -215,7 +217,7 @@ internal fun Stock(
         } else if (reorder != null) {
             TextButton(
                 onClick = { onReorder(reorder.url) },
-                modifier = Modifier.testTag(TEA_DETAIL_REORDER_TAG),
+                modifier = Modifier.heightIn(min = UmamiSpacing.MinTouchTarget).testTag(TEA_DETAIL_REORDER_TAG),
             ) {
                 Text(label)
                 Spacer(Modifier.width(UmamiSpacing.XSmall))

@@ -107,6 +107,14 @@ data class ProductPage(
     /** The deepest category path, e.g. `/tee/gruener-tee/japan/sencha/` (05 §4.1 `breadcrumb`). */
     val categoryPath: String? get() = breadcrumb.lastOrNull()?.path
 
+    /**
+     * The path the style and category are mapped from (05 §4.1 `breadcrumb`): [categoryPath] for a green tea, else the
+     * deepest crumb in a tea section, as another section's tea is also filed under a format such as *Aufgussbeutel*
+     * (D-108); a collection copy maps the same path (CAT-12, #206).
+     */
+    val stylePath: String?
+        get() = if (scope == CatalogScope.GREEN) categoryPath else TeaSections.pathIn(breadcrumb) ?: categoryPath
+
     /** The category titles, e.g. „Tee › Grüner Tee › Japan › Sencha" (05 §4.1 `shop_category`). */
     val shopCategory: String? get() = breadcrumb.takeIf { it.isNotEmpty() }?.joinToString(" › ") { it.title }
 

@@ -8,6 +8,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.catalog.parser.CatalogRecipes
+import com.umamit.core.catalog.parser.CatalogScope
+import com.umamit.core.catalog.parser.Crumb
+import com.umamit.core.catalog.parser.ProductPage
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RoomTeaArchive
@@ -566,6 +570,38 @@ class AddFromCatalogTest {
             val teaId = (add.add(purchase(key = key)) as AddFromCatalogResult.Added).teaId
             assertWithMessage(key).that(data.teas.getTea(teaId)!!.category).isEqualTo(category)
         }
+    }
+
+    @Test
+    fun `a black chai also filed under a format section is added as BLACK, as the parser maps it`() = runTest {
+        // User story 36, #206: the tea's deepest crumb is the shop's Aufgussbeutel (a format, no tea section).
+        val page = ProductPage(
+            articleNumber = "XS0700",
+            key = "XS0700",
+            productUrl = "https://shop.example/abendlicht-chai/XS0700",
+            name = "Abendlicht Chai Aufgussbeutel",
+            secondaryName = null,
+            breadcrumb = listOf(
+                Crumb("Tee", "/tee/"),
+                Crumb("Schwarzer Tee", "/tee/schwarzer-tee/"),
+                Crumb("Aromatisierter Schwarztee", "/tee/schwarzer-tee/aromatisierter-schwarztee/"),
+                Crumb("Aufgussbeutel", "/tee/aufgussbeutel/"),
+            ),
+            scope = CatalogScope.TEA,
+            teaType = null,
+            priceCents = 650,
+            packageGrams = 40.0,
+            basePriceCentsPer100g = 1625,
+            available = true,
+        )
+        catalog(page.toEntity("XS0700", NOW - 1) to packages("XS0700"))
+
+        val teaId = (add.add(purchase(key = "XS0700")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.styleKey).isEqualTo("chai")
+        assertThat(tea.category).isEqualTo(CatalogRecipes.derive(page).category)
+        assertThat(tea.category).isEqualTo(TeaCategory.BLACK)
     }
 
     private companion object {
