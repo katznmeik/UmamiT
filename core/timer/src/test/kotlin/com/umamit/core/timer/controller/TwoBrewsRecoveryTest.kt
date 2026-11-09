@@ -97,6 +97,29 @@ class TwoBrewsRecoveryTest {
     }
 
     @Test
+    fun `two brews past their deadlines after a death - the one whose deadline came first rings`() = runTest {
+        before.controller.startSession(brewStart(infusion(62, preAlert = 0)))
+        before.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        before.controller.startSession(secondTea(infusion(60, preAlert = 0)))
+        before.controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+        val first = SessionKind.Brew(checkNotNull(before.active(TimerSlot.BREW).sessionId))
+        val second = SessionKind.Brew(checkNotNull(before.active(TimerSlot.BREW_2).sessionId))
+        before.advanceSeconds(10)
+
+        val after = before.processRestarted()
+        after.clock.advanceBy(60_000)
+        after.controller.recover(RecoveryTrigger.APP_START)
+
+        assertThat(after.alert.started.map { it.kind }).containsExactly(second)
+        assertThat(after.active(TimerSlot.BREW_2).ringing).isTrue()
+        assertThat(after.active(TimerSlot.BREW).alertHeld).isTrue()
+
+        after.controller.send(TimerSlot.BREW_2, TimerEvent.Poured)
+
+        assertThat(after.alert.started.map { it.kind }).containsExactly(second, first).inOrder()
+    }
+
+    @Test
     fun `a recovered alert whose sound had ended holds nothing - the other brew past its deadline rings`() = runTest {
         // D-109: the first brew alerts, its sound ended before the kill; the second's deadline passes while dead.
         before.controller.startSession(brewStart(infusion(60, preAlert = 0)))

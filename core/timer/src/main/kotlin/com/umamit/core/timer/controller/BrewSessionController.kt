@@ -364,9 +364,11 @@ class BrewSessionController @Inject constructor(
 
         /**
          * In the first turn of the process: the persisted state of each slot is restored and
-         * `recover` applied once, in the slot order `BREW`, `BREW_2`, `QUICK` (04 §7.2, D-098, D-108), so
+         * `recover` applied once, the brew slots first, by deadline (wall clock, which a reboot keeps), so of two
+         * brews whose deadlines passed while the process was dead the one whose deadline came first rings
+         * (04 §9.3), else in the slot order `BREW`, `BREW_2`, `QUICK` (04 §7.2, D-098, D-108), so
          * its alarms, service, notification and an unplayed alert come back; a slot recovers held while
-         * another slot's alert rings that it does not preempt, whether that slot was recovered already or
+         * another slot's alert sounds that it does not preempt, whether that slot was recovered already or
          * rang before the process died (the alert that rang first keeps the sound). Then the arbitration
          * settles once (a held alert left without a ringing one rings), the alarms of every slot without a
          * timer are cancelled (a quick timer of v0.2.2 set its alarms under the brew slot's codes,
@@ -387,11 +389,14 @@ class BrewSessionController @Inject constructor(
             // In the slot order; one reboot notice for all once all are recovered (04 §7.3).
             inProgress = true
             notYetRecovered = persisted.mapValues { it.value.state }.filterValues { it is TimerState.Active }
-            val rebooted = persisted.filter { (slot, restored) -> recoverSlot(slots[slot], restored, now) }.keys
+            val rebooted = persisted.entries.sortedWith(recoveryOrder)
+                .filter { (slot, restored) -> recoverSlot(slots[slot], restored, now) }
+                .map { it.key }
+                .sorted()
             notYetRecovered = emptyMap()
             inProgress = false
             sideBySide.settle()
-            effects.notifyResumedAfterReboot(rebooted.toList())
+            effects.notifyResumedAfterReboot(rebooted)
             persisted.filterValues { it.state !is TimerState.Active }.keys.forEach { idle ->
                 attempt { ports.alarms.reconcile(idle, DueTimes.NONE) }
                     ?.let { Log.w(TAG, "alarms of the idle $idle slot not cancelled", it) }
@@ -534,12 +539,20 @@ class BrewSessionController @Inject constructor(
     }
 
     /**
-     * Every time-based event due now in either slot, the brew slot first, each slot's in the
-     * engine's order (04 §4); one made obsolete by an earlier one is ignored.
+     * Every time-based event due now in any slot, each slot's in the engine's order (04 §4); one made obsolete by
+     * an earlier one is ignored. The brew slots go first, as before v0.5.0 (a brew preempts the quick timer, so it
+     * never cuts a quick alert it would start); of the brews one whose deadline is due goes first, by deadline, so
+     * of two brew deadlines handled in one turn (a late alarm) the step whose deadline came first rings (04 §9.3).
      */
     private suspend fun handleDue(source: EventSource) {
         var anyDue = false
-        slots.forEach { slot ->
+        val now = clocks.read()
+        slots.sortedWith(
+            compareBy<ControllerSlot> { !it.id.isBrew }.thenBy(nullsLast()) { slot ->
+                (slot.timer as? TimerState.Running)?.deadlineElapsedMs
+                    ?.takeIf { TimerEvent.DeadlineReached in BrewTimerEngine.dueEvents(slot.timer, now) }
+            },
+        ).forEach { slot ->
             val due = BrewTimerEngine.dueEvents(slot.timer, clocks.read())
             due.forEach { handle(slot.id, it, clocks.read(), source) }
             anyDue = anyDue || due.isNotEmpty()
@@ -628,6 +641,14 @@ class BrewSessionController @Inject constructor(
 
     private companion object {
         const val TAG = "UmamiTTimer"
+
+        /**
+         * The order of recovery ([ProcessRecovery.once]): the brew slots first (a brew preempts the quick timer, so
+         * it never cuts a quick alert it would start), each by its deadline on the wall clock, then the slot order.
+         */
+        val recoveryOrder: Comparator<Map.Entry<TimerSlot, PersistedTimer.Restored>> =
+            compareBy<Map.Entry<TimerSlot, PersistedTimer.Restored>> { !it.key.isBrew }
+                .thenBy(nullsLast()) { (it.value.state as? TimerState.WithDeadline)?.deadlineWallMs }
 
         /** At most two timers are active at once (GEN-03, D-108). */
         const val MAX_ACTIVE = 2

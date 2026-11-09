@@ -172,6 +172,23 @@ class TwoBrewsTest {
     }
 
     @Test
+    fun `both brews due in one turn - the one whose deadline came first rings, not the first slot`() = runTest {
+        h.controller.startSession(brewStart(infusion(62, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW, TimerEvent.Start)
+        h.controller.startSession(secondTea(infusion(60, preAlert = 0)))
+        h.controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+        val second = SessionKind.Brew(checkNotNull(active(TimerSlot.BREW_2).sessionId))
+        // Both deadlines have passed when the first slot's late alarm arrives (Doze), 2 s apart.
+        h.clock.advanceBy(63_000)
+
+        h.controller.onAlarm(TimerSlot.BREW, TimerAlarmKind.DEADLINE)
+
+        assertThat(h.alert.started.map { it.kind }).containsExactly(second)
+        assertThat(active(TimerSlot.BREW_2).ringing).isTrue()
+        assertThat(active(TimerSlot.BREW).alertHeld).isTrue()
+    }
+
+    @Test
     fun `a brew deadline after the other brew's sound has ended rings at once`() = runTest {
         h.controller.startSession(brewStart(infusion(60, preAlert = 0)))
         h.controller.send(TimerSlot.BREW, TimerEvent.Start)
