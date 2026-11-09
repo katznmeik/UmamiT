@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.Photo
 import com.umamit.core.model.PhotoOrigin
 import com.umamit.core.model.PhotoOwner
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.TimerEvent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -85,6 +86,22 @@ class TeaArchiveTest {
 
         assertThat(archive.observeActiveTeaId().first()).isNull()
         assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.Archived)
+    }
+
+    @Test
+    fun `with two brew sessions the tea of either can't be archived or deleted (D-108)`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        data.teas.saveTea(tea("t2"))
+        TimerDriver(data, slot = TimerSlot.BREW).send(startEvent(infusion(60)))
+        val second = TimerDriver(data, slot = TimerSlot.BREW_2) { id, steps, preAlert ->
+            sessionStart(id, steps, preAlert, TestClocks(), snapshotOf(teaId = "t2"))
+        }
+        second.send(startEvent(infusion(60), id = "session-2"))
+
+        assertThat(archive.archive("t2")).isEqualTo(ArchiveResult.InActiveSession)
+        assertThat(archive.delete("t2")).isEqualTo(DeleteResult.InActiveSession)
+        assertThat(archive.archive("t1")).isEqualTo(ArchiveResult.InActiveSession)
+        assertThat(data.teas.getTea("t2")!!.isArchived).isFalse()
     }
 
     @Test

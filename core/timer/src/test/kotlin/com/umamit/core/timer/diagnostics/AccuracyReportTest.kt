@@ -157,6 +157,21 @@ class AccuracyReportTest {
         assertThat(FireTime.parsePlayed(brewAlert)?.slot).isEqualTo(TimerSlot.BREW)
     }
 
+    @Test
+    fun `the second brew's lines name BREW2 and parse back with its slot (D-108)`() {
+        clock.advanceBy(25)
+        val deadline = TimerDiagnosticFormat.message(
+            handled(TimerEvent.DeadlineReached, EventSource.ALARM, TransitionOutcome.Accepted, 25, TimerSlot.BREW_2),
+        )
+        val alert = TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 25, slot = TimerSlot.BREW_2))
+
+        assertThat(deadline).contains("| BREW2.DEADLINE scheduled 10:00:00.000")
+        assertThat(FireTime.parse(deadline)?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(FireTime.parse(deadline)?.kind).isEqualTo(TimerAlarmKind.DEADLINE)
+        assertThat(FireTime.parsePlayed(alert)?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(FireTime.parsePlayed(alert)?.deltaMs).isEqualTo(25)
+    }
+
     /**
      * A quick deadline reached while the brew alerts is handled as a hold (04 §9.3, D-098): its line is the
      * quick timer's handled deadline, so a held alert shows in the report as handled on time but sounding late.

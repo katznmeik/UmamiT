@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -74,10 +74,12 @@
 | **Session** | One brewing occasion recorded in the journal; its detail page (SCR-16) opens from a journal entry. |
 | **Nochmal brühen / So nochmal brühen** | *Nochmal brühen* (Start, BRW-11) starts one of the last three teas at once in READY with its last session's values. *So nochmal brühen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
-| **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most one active brew session and at most one active quick timer at the same time (from v0.3.0; until then one active timer in total). |
+| **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most **two** at the same time from v0.5.0: two brew sessions, or one brew session and one quick timer; a tea has at most one active session (D-108). v0.3.0–v0.4.1: one brew session and one quick timer; until then one active timer in total. |
+| **Slot** | One of the timer controller's places for an active timer, each with its own state, alarms and stored row: `BREW` and `BREW_2` for brew sessions, `QUICK` for the quick timer (04 §3.3, D-098, D-108). Their fixed order `BREW`, `BREW_2`, `QUICK` is the order of recovery and of ties. Internal: the UI shows teas and *Schnelltimer*, never slot names. |
+| **Held alert** | A step alert that waits silently because another timer's alert rings: its deadline has passed and its overtime counts, but it has no sound, no alert notification and no silent end until it rings, right after the other alert is acknowledged (04 §9.3; for the quick timer from v0.3.0, for a second brew session from v0.5.0). |
 | **Teaware / vessel** | A brewing vessel with capacity (kyusu, gaiwan, …). |
 | **Ratio** | Leaf grams per 100 ml of water. |
-| **Active brew bar** | The persistent mini-timer shown above the navigation bar while an active timer exists; with a brew session and a quick timer it shows both. |
+| **Active brew bar** | The persistent mini-timer shown above the navigation bar while an active timer exists; with two active timers (a brew session and a quick timer, or two brew sessions) it shows both. |
 | **Short / long step** | A long step is every step of a cold or ice brew, and any step of at least 60 minutes (from v0.3.0; until then 10 minutes). Long steps have no pre-alert and show „Fertig um …“; all other steps are short steps. |
 | **Full-screen intent** | A notification that turns the screen on and opens an activity over the lock screen; used for the step alert (`USE_FULL_SCREEN_INTENT`). |
 | **Schritte-Sheet** | Session-only step editor (SCR-31). |

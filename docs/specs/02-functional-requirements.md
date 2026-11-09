@@ -74,8 +74,12 @@ or pastes (CAT-17, v0.2.1).
 
 **GEN-02 — No accounts** `Must`
 
-**GEN-03 — Single active timer** `Must`
+**GEN-03 — At most two active timers** `Must`
 At most one brew session or quick timer is active at any time.
+- **v0.5.0 (D-108):** at most **two** timers are active at once, in all:
+  two brew sessions, or one brew session and one quick timer (TMR-21,
+  TMR-22). A tea has at most one active session. A third start asks which
+  timer to end (TMR-21).
 
 **GEN-04 — German & metric** `Must`
 UI language German (`de-DE`) only; units °C, g, ml; German number, date and
@@ -951,6 +955,10 @@ later at work).
   logged with the notification „Sitzung gespeichert" instead of the saved
   sheet; without a completed non-rinse step it is discarded (04 §3.2,
   D-054).
+- **Per session (v0.5.0, D-108).** With two brew sessions each has its own
+  idle time, 30-min quiet notification and midnight; one session's waiting,
+  interaction or end never moves the other's. Each is logged as its own
+  journal entry with its own stock deduction and cost.
 
 **TMR-15 — Background & lock screen** `Must`
 The timer continues when leaving the app or locking the phone.
@@ -996,6 +1004,25 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
     the quick timer running; its *Abbrechen* leaves the brew running.
   - AC3: Both survive swiping the app away, process death, a reboot and an
     app update (04 §7).
+- **v0.5.0 (D-108): two brew sessions.** A brew of another tea starts
+  while one brew session runs, without a question, as the second brew
+  session (slot `BREW_2`, 04 §3.3); both keep their plan, leaf, vessel and
+  step progress, and every action acts on its own session only. Starting a
+  tea that already has an active session (*Nochmal brühen*, the setup, a
+  recipe) opens that session instead of a second one. While two timers are
+  active, any start asks „Welchen Timer beenden?" with one button per active
+  timer (the tea name or *Schnelltimer*) and *Abbrechen*; the timer chosen
+  ends as by *Beenden & neu starten* (a session logged with „Sitzung
+  gespeichert", or discarded silently without a completed non-rinse step;
+  the quick timer as by *Abbrechen*), then the new one starts. A second
+  quick timer still asks „Schnelltimer beenden und neu starten?" (TMR-22).
+  - AC4: With a green tea waiting between infusions, a herbal tea's
+    session starts without a question; the green tea continues later where
+    it stopped.
+  - AC5: A third start offers both active timers and *Abbrechen*; ending one
+    logs or discards it as above, never the other.
+  - AC6: Two brew sessions survive swiping the app away, process death, a
+    reboot and an app update, each in its own slot (04 §7).
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
@@ -1025,6 +1052,14 @@ automatic rule of TMR-23) and Live Update; not logged.
     with its overtime („+12:00"), however long it waited, and ends silently
     only 10 min after it started ringing. Two sounds never play at once
     (04 §9.3).
+- **Two brews (v0.5.0, D-108).** AC1–AC4 hold for two brew sessions too:
+  the bar and each timer screen show both (SCR-02, SCR-05; the screens come
+  with v0.5.0-03); the Live Update is the one that ends next. **Alarm
+  order:** the first alarm rings; a brew alarm due while the other brew
+  alarm rings waits and rings right after *Abgegossen* with its overtime,
+  ending silently only 10 min after it started ringing. A brew still goes
+  before a quick timer due at the same time, and a ringing quick alarm still
+  gives way to a brew alarm.
 
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
@@ -1447,7 +1482,7 @@ SCR-05.
 | ONB-02 (v0.1), ONB-04/05 (v0.1) | Unit selection, sample teas | German/metric only; catalog replaces samples (IDs reused for new meaning in v0.2 — no code existed) |
 | TMR-04 | −10 s / +10 s buttons | PO wants a calm running screen (Pause only) |
 | TMR-24/25 | Spoken countdown, tabletop layout | Not needed |
-| TMR-40 | Multiple concurrent timers | One at a time until v0.2.2; partly revived in v0.3.0: one quick timer alongside one brew session, never more (TMR-21, TMR-22, D-093, D-098) |
+| TMR-40 | Multiple concurrent timers | One at a time until v0.2.2; partly revived in v0.3.0: one quick timer alongside one brew session (TMR-21, TMR-22, D-093, D-098); from v0.5.0 any two timers, two brew sessions included, never more than two and never two quick timers (GEN-03, D-108) |
 | SET-01…04, SET-07, SET-08 | Units, teaspoons, language, leaf precision | German/metric only |
 | SET-12 | Start first step immediately | Always wait for the user |
 | SET-13 | Alarm stream choice | Alert always follows ringer mode; from v0.3.0 always the alarm stream, with *Lautstärke* (SET-27, D-098) |

@@ -18,8 +18,9 @@ import com.umamit.core.timer.engine.TimerEvent
  *   outputs 12 ms, sound ready | DEADLINE scheduled 10:01:00.000 (mono 5060000) actual
  *   10:01:00.140 (mono 5060140) delta +140 ms` (the part on the start since D-092).
  *
- * A quick timer's line names its slot before the kind (`QUICK.DEADLINE scheduled …`; D-098, #137);
- * the brew's has none, as with one timer. The sound of a quick alert released after a hold (04 §9.3) reads
+ * A quick timer's line names its slot before the kind (`QUICK.DEADLINE scheduled …`; D-098, #137), the
+ * second brew session's too (`BREW2.DEADLINE …`; D-108); the first brew's has none, as with one timer. The
+ * sound of a quick alert released after a hold (04 §9.3) reads
  * `QUICK.DEADLINE held 720000 ms, released 10:12:00.000 …`: due at its release, with its [heldMs], so it never
  * pairs with its handled deadline and a hold never counts as lateness.
  *
@@ -108,7 +109,9 @@ data class FireTime(
             val slot = if (values[SLOT].isEmpty()) {
                 TimerSlot.BREW
             } else {
-                TimerSlot.entries.firstOrNull { it.name == values[SLOT] && it != TimerSlot.BREW } ?: return null
+                // The slot's own prefix: `QUICK.`, `BREW2.` (D-108).
+                TimerSlot.entries.firstOrNull { it != TimerSlot.BREW && it.namePrefix == values[SLOT] + "." }
+                    ?: return null
             }
             return FireTime(
                 kind = kind,

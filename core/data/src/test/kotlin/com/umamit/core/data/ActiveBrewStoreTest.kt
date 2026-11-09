@@ -285,6 +285,43 @@ class ActiveBrewStoreTest {
     }
 
     @Test
+    fun `two brew sessions hold BREW and BREW_2 at once, stored by name, each write keeping the other`() = runTest {
+        data.teas.saveTea(tea("t1"))
+        val first = TimerDriver(data, slot = TimerSlot.BREW)
+        val second = TimerDriver(data, slot = TimerSlot.BREW_2)
+        suspend fun step(name: String, driver: TimerDriver, event: TimerEvent, advanceSeconds: Long = 0) {
+            driver.clocks.advanceSeconds(advanceSeconds)
+            driver.send(event)
+            assertStored(TimerSlot.BREW, "$name, first", first.state)
+            assertStored(TimerSlot.BREW_2, "$name, second", second.state)
+        }
+
+        step("First ready", first, startEvent(infusion(60), infusion(20)))
+        step("Second ready", second, startEvent(rinse(10), infusion(45), id = "session-2"))
+        step("First running", first, TimerEvent.Start, advanceSeconds = 3)
+        step("Second ready after skipping the rinse", second, TimerEvent.SkipStep, advanceSeconds = 2)
+        step("Second running", second, TimerEvent.Start, advanceSeconds = 5)
+        step("Second alerting", second, TimerEvent.DeadlineReached, advanceSeconds = 45)
+        step("First held at its deadline", first, TimerEvent.AlertHold, advanceSeconds = 60)
+        step("Second finished after the pour", second, TimerEvent.Poured, advanceSeconds = 4)
+        step("First released", first, TimerEvent.AlertRingStart)
+
+        // umamit.db v4 needs no change: the key is the slot's name (05 §3.12, D-108).
+        val slots = data.db.query("SELECT slot FROM active_brew ORDER BY slot", null).use { cursor ->
+            generateSequence { cursor.takeIf { it.moveToNext() }?.getString(0) }.toList()
+        }
+        assertThat(slots).containsExactly("BREW", "BREW_2").inOrder()
+        assertThat((BrewTimerEngine.restore(data.activeBrew.read(TimerSlot.BREW)) as TimerState.Alerting).held)
+            .isFalse()
+        assertThat(data.sessions.getSession("session-2")!!.steps.map { it.skipped }).containsExactly(true, false)
+
+        data.activeBrew.clear(TimerSlot.BREW_2)
+
+        assertThat(data.activeBrew.read(TimerSlot.BREW_2)).isNull()
+        assertStored(TimerSlot.BREW, "first after clearing the second slot", first.state)
+    }
+
+    @Test
     fun `clearing one slot leaves the other slot and the brew session`() = runTest {
         data.teas.saveTea(tea("t1"))
         val brew = TimerDriver(data, slot = TimerSlot.BREW).run {

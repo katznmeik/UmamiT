@@ -62,8 +62,15 @@ data class ActiveBrewSnapshot(
     val alertRingingSinceElapsedMs: Long? = null,
     val alertRingingSinceWallMs: Long? = null,
 ) {
-    /** The slot of this row's kind: [TimerSlot.QUICK] for the quick timer, else [TimerSlot.BREW] (05 §3.12). */
+    /**
+     * The first slot of this row's kind: [TimerSlot.QUICK] for the quick timer, else [TimerSlot.BREW] (05 §3.12). A
+     * brew session may also run in [TimerSlot.BREW_2] (D-108): the row itself does not say which brew slot it is
+     * stored in, so a store writes it under the slot it is given ([fitsIn]).
+     */
     val slot: TimerSlot get() = if (isQuickTimer) TimerSlot.QUICK else TimerSlot.BREW
+
+    /** Whether this row may be stored in [slot]: a brew session's in a brew slot, the quick timer's in `QUICK`. */
+    fun fitsIn(slot: TimerSlot): Boolean = slot.isBrew != isQuickTimer
 }
 
 /**

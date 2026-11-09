@@ -31,7 +31,7 @@ internal class PersistedTimer(
     data class Restored(val state: TimerState, val details: SessionDetails?)
 
     /**
-     * The persisted state of every slot at [now], the brew slot first (04 §7.2, D-098). A snapshot
+     * The persisted state of every slot at [now], in the slot order (04 §7.2, D-098, D-108). A snapshot
      * `restore` refuses is cleared and logged and counts as none, so no wrong timer runs. A failed
      * read of either slot is logged and the reads are tried again after short pauses
      * ([READ_RETRY_PAUSES_MS]); null when every try failed, so the controller makes the turn come
@@ -41,8 +41,9 @@ internal class PersistedTimer(
         val snapshots = readWithRetries(now) ?: return null
         return snapshots.value.mapValues { (slot, snapshot) ->
             val state = try {
-                // A damaged row of the other kind in this slot is refused like any snapshot restore refuses.
-                require(snapshot == null || snapshot.activeBrew.slot == slot) { "a $slot row of the other kind" }
+                // A damaged row of the other kind in this slot is refused like any snapshot restore refuses; a brew
+                // session's row reads in either brew slot (D-108).
+                require(snapshot == null || snapshot.activeBrew.fitsIn(slot)) { "a $slot row of the other kind" }
                 BrewTimerEngine.restore(snapshot)
             } catch (e: IllegalArgumentException) {
                 effects.record(TimerDiagnostic.SnapshotUnreadable(now, e))
@@ -80,7 +81,8 @@ internal class PersistedTimer(
     }
 
     /**
-     * Ends every session still in progress other than [activeSessionId] (04 §7.2, E11): a
+     * Ends every session still in progress other than [activeSessionIds], those of the restored brew slots
+     * (04 §7.2, E11, D-108): a
      * session whose `active_brew` row is gone, after a device restore or because its stored
      * timer was unreadable, would otherwise stay in progress forever. It is saved when it has a
      * completed infusion (a non-rinse step ended and not skipped), as the app's own finish
@@ -88,9 +90,9 @@ internal class PersistedTimer(
      * start tries again.
      */
     @Suppress("TooGenericExceptionCaught") // a storage failure of any kind is logged, never fatal (rule 8)
-    suspend fun endOrphans(activeSessionId: String?, now: ClockReading) {
+    suspend fun endOrphans(activeSessionIds: Set<String>, now: ClockReading) {
         try {
-            sessions.inProgressSessionIds().filter { it != activeSessionId }.forEach { id ->
+            sessions.inProgressSessionIds().filter { it !in activeSessionIds }.forEach { id ->
                 val session = sessions.getSession(id) ?: return@forEach
                 val saved = session.steps.any { it.kind != StepKind.RINSE && it.actualSeconds != null && !it.skipped }
                 if (saved) sessions.completeSession(id, autoFinished = true) else sessions.discardSession(id)

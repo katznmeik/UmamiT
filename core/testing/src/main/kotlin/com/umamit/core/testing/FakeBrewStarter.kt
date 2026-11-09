@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * Fake [BrewStarter] with the controller's observable rules (GEN-03, TMR-21, TMR-22, D-098): one brew session
- * and one quick timer may be active at once; a start while a timer of its own kind is active is refused,
+ * Fake [BrewStarter] with the controller's observable rules of v0.3.0 (GEN-03, TMR-21, TMR-22, D-098): one brew
+ * session and one quick timer may be active at once; a start while a timer of its own kind is active is refused
+ * (the screens of v0.5.0-03 bring the second brew session of D-108 to it),
  * otherwise the session waits in READY with the request's steps and the quick timer runs at once, in front;
  * *Beenden & neu starten* replaces the active one of its own kind only. [state] is the timer in front (a test
  * sets it to place one timer), [other] the one beside it. [starts] records every accepted request in order,
@@ -54,8 +55,8 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
         return TransitionOutcome.Accepted
     }
 
-    override suspend fun finishActiveAndStart(request: BrewStart): TransitionOutcome {
-        if (end(TimerSlot.BREW)) replaced++
+    override suspend fun finishActiveAndStart(request: BrewStart, ending: TimerSlot): TransitionOutcome {
+        if (end(ending)) replaced++
         accept(request)
         return TransitionOutcome.Accepted
     }
@@ -76,8 +77,9 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
     override suspend fun finishActiveAndStartQuickTimer(
         durationSeconds: Int,
         preAlertSeconds: Int?,
+        ending: TimerSlot,
     ): TransitionOutcome {
-        if (end(TimerSlot.QUICK)) replaced++
+        if (end(ending)) replaced++
         return startQuickTimer(durationSeconds, preAlertSeconds)
     }
 
@@ -95,7 +97,8 @@ class FakeBrewStarter(initial: TimerUiState = TimerUiState.Idle) : BrewStarter {
 
     /** [timer] starts in front; the active timer of the other slot moves beside it. */
     private fun inFront(timer: TimerUiState.Active) {
-        other.value = activeIn(timer.slot.other)
+        other.value = listOf(state.value, other.value).filterIsInstance<TimerUiState.Active>()
+            .firstOrNull { it.slot != timer.slot }
             ?: TimerUiState.Idle
         state.value = timer
     }

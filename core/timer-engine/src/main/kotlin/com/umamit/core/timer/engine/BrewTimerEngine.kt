@@ -2,6 +2,7 @@ package com.umamit.core.timer.engine
 
 import com.umamit.core.common.ClockReading
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.TimerSlot
 
 /**
  * The result of one [BrewTimerEngine.reduce]: the new [state], the [effects]
@@ -28,6 +29,12 @@ sealed interface RejectionReason {
 
     /** A session or quick timer is already [active] (GEN-03, TMR-21: „Erst die … -Sitzung beenden?"). */
     data class ActiveTimerExists(val active: SessionKind) : RejectionReason
+
+    /**
+     * Two timers are already active in [active], in the slot order (GEN-03, TMR-21, D-108): a third start needs one
+     * of them ended first („Welchen Timer beenden?"). The controller refuses the start with it; the engine never does.
+     */
+    data class TwoTimersActive(val active: List<TimerSlot>) : RejectionReason
 
     /**
      * `editSteps` would change, remove or reorder an ended step, or change the started step other than in its
