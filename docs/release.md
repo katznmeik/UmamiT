@@ -93,28 +93,33 @@ In short:
    takes about an hour.
 2. **From v0.3.0 (D-098, #137) dispatch it twice**, once per `variant`:
    `standard` (the brew steps alone, as before) and `alongside` (a quick
-   timer beside every step, both timers measured). Both runs of one commit
-   go in parallel:
+   timer beside every step, both timers measured). **From v0.5.0 (D-108,
+   #202) three times**: also `two-brews` (two overlapping brew sessions, the
+   second's alert held behind the first's until *Abgegossen*), for every rc
+   and the final. The runs of one commit go in parallel:
 
    ```bash
    gh workflow run accuracy.yml --ref <branch> -f ref=<full-sha> -f api-level=36 -f variant=standard
    gh workflow run accuracy.yml --ref <branch> -f ref=<full-sha> -f api-level=36 -f variant=alongside
+   gh workflow run accuracy.yml --ref <branch> -f ref=<full-sha> -f api-level=36 -f variant=two-brews
    ```
 
 3. Each job summary must say **Result: PASS** (p95 ≤ 250 ms and max ≤ 1 s for
    the pre-alert and the alert, all 50 steps; in `alongside` for the brew and
-   the quick timer). Link both runs in the rc's announcement.
+   the quick timer; in `two-brews` for both brews' pre-alerts and the first
+   brew's alerts, while the held alert is reported apart and not gated).
+   Link every run in the rc's announcement.
 4. Then bump the version and dispatch `release.yml`. If the bump is the only
    change since the runs, they still count.
 
 After a change of the workflow or the test, prove the gate once with a run
-that must **fail**, e.g. `-f variant=alongside -f steps=3 -f inject-delay-ms=1500`
+that must **fail**, e.g. `-f variant=two-brews -f steps=3 -f inject-delay-ms=1500`
 (09 §4a).
 
 Locally, with a device or emulator attached, the same test runs with
 `./gradlew :core:timer:assembleDebugAndroidTest && scripts/accuracy-run.sh`
-(report in `build/accuracy/`; `ACCURACY_VARIANT=alongside` for the second
-variant).
+(report in `build/accuracy/`; `ACCURACY_VARIANT=alongside` or
+`ACCURACY_VARIANT=two-brews` for the other variants).
 
 ## Checking the fingerprint on the phone
 

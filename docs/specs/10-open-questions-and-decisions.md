@@ -515,6 +515,33 @@ the tickets (`/to-tickets`); nothing is built before the PO starts
   `BREW_2` timer (its alert, its notification's tap), with the other active
   timer in the slim row, so a second brew is never left without a screen.
 
+**Build notes (Claude, 2026-11-09, #202: the accuracy variant `two-brews`).**
+- **Overlap.** Both sessions start in one turn sequence of the test
+  activity (first „Testtee" in `BREW`, then „Zweittee" in `BREW_2`, no
+  `tea_id`), the next step pair with *Start* on the first's notification,
+  then the second's. Steps of 60 s and 66 s, both with a 10 s *Vorwarnung*:
+  the second's pre-alert (56 s) comes after the first's has rung out (the
+  3.45 s of 04 §9.3) and before the first's alert (60 s), so neither waits;
+  its deadline (66 s) comes while the first's alert rings and is held. The
+  test taps *Abgegossen* on the first alert only once the hold is in the
+  log, so every pair has exactly one held alert. A pair that did not overlap
+  so (gap under 4.5 s, a deadline not after the first's alert, an alert that
+  rang unheld) fails as a setup error, never as lateness.
+- **What is gated.** Brew 1's pre-alert and alert and brew 2's pre-alert,
+  with p95 ≤ 250 ms and max ≤ 1 s, all 50 pairs. Brew 2's alert is late by
+  design (the hold, ≈ the time to *Abgegossen*), so it is reported in its
+  own table: the hold, the delay from the release to the sound start (the
+  log's `held … ms, released …` timing, D-098) and the handled deadline, with
+  *Within target* „(not gated)". Claude's choice: the release delay is shown
+  against the target but does not gate either, as the brief asks for the
+  held alert to be reported apart.
+- **Report.** One block per brew slot (*Brew 1*, *Brew 2*), the alongside
+  layout; the CSV gains `held_ms` only in this variant. `standard` and
+  `alongside` write exactly what they did (their tests unchanged). Artifact
+  `accuracy-two-brews-api-<level>`, its own concurrency group by variant.
+- **Duration.** About 60–65 min for 50 pairs (66 s plus the taps each),
+  within the job's 115 min.
+
 **Build notes (Claude, 2026-11-09, #201: two brews on screen).**
 - **The screens read the refusal, never decide admission.** A small seam in
   `core:timer` (`StartRefusal`, `refusalOf`) turns the controller's refusal

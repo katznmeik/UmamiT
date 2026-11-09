@@ -20,8 +20,13 @@
 #   exactly as before v0.3.0, so its results compare with the earlier runs;
 #   `alongside` runs the same steps with a quick timer beside every step and
 #   measures both timers against the same target. Every v0.3.0 rc needs a PASS
-#   of both (09 §4a). Each variant has its own concurrency group, so the two
+#   of both (09 §4a). Each variant has its own concurrency group, so the
 #   runs of one commit go in parallel.
+# - A third variant (v0.5.0, D-108, #202): `two-brews` runs two overlapping
+#   brew sessions per step pair; both pre-alerts and the first's alerts are
+#   measured against the target, the second's alert, held behind the first's
+#   until *Abgegossen* by design (04 §9.3), is reported apart and not gated.
+#   Every v0.5.0 rc and the final need a PASS of all three (09 §4a).
 name: Timer accuracy
 run-name: >-
   Timer accuracy · ${{ inputs.variant }} · ${{ inputs.ref }}${{ inputs.inject-delay-ms != '0'
@@ -35,9 +40,11 @@ on:
         required: true
         default: claude/umamit-m1-start-k0jg3n
       variant:
-        description: standard (the brew steps alone) or alongside (a quick timer beside every step, both measured)
+        description: >-
+          standard (the brew steps alone), alongside (a quick timer beside every step, both measured) or
+          two-brews (two overlapping brew sessions, the second's alert held behind the first's)
         type: choice
-        options: [standard, alongside]
+        options: [standard, alongside, two-brews]
         default: standard
       api-level:
         description: Emulator API level
@@ -68,7 +75,8 @@ jobs:
     name: Accuracy ${{ inputs.variant }} (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
     # About 55 min of steps (50 × 60 s plus taps; `alongside` about 65 min with
-    # its quick timers), 10–15 min of build and emulator boot, and margin.
+    # its quick timers, `two-brews` about 60–65 min with 50 pairs of 60 s and
+    # 66 s steps), 10–15 min of build and emulator boot, and margin.
     timeout-minutes: 115
     strategy:
       fail-fast: false
@@ -78,8 +86,9 @@ jobs:
       AVD_TARGET: google_apis
       AVD_ARCH: x86_64
       AVD_PROFILE: pixel_6
-      # `accuracy-api-36` for the standard run, as before; `accuracy-alongside-api-36`.
-      ARTIFACT: accuracy-${{ inputs.variant == 'alongside' && 'alongside-' || '' }}api-${{ matrix.api-level }}
+      # `accuracy-api-36` for the standard run, as before; `accuracy-alongside-api-36`,
+      # `accuracy-two-brews-api-36`.
+      ARTIFACT: accuracy-${{ inputs.variant != 'standard' && format('{0}-', inputs.variant) || '' }}api-${{ matrix.api-level }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

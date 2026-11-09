@@ -27,7 +27,8 @@ import java.io.File
  * By default the session has one step without a pre-alert, so its deadline alarm is its only
  * alarm; the accuracy run (#52) starts sessions of several steps with a pre-alert. A quick timer
  * can run alongside (D-098), started after the brew's step, or alone beside a brew that runs
- * already ([quickIntent]), as Start's *Schnelltimer* starts it.
+ * already ([quickIntent]), as Start's *Schnelltimer* starts it. A second brew session of another tea can start
+ * right after the first ([twoBrewsIntent], D-108).
  */
 class TimerTestActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +40,8 @@ class TimerTestActivity : Activity() {
         val quickSeconds = intent.getIntExtra(EXTRA_QUICK_SECONDS, 0)
         val quickPreAlertSeconds = intent.getIntExtra(EXTRA_QUICK_PRE_ALERT, 0)
         val quickRestart = intent.getBooleanExtra(EXTRA_QUICK_RESTART, false)
+        val secondSeconds = intent.getIntExtra(EXTRA_SECOND_SECONDS, 0)
+        val secondPreAlertSeconds = intent.getIntExtra(EXTRA_SECOND_PRE_ALERT, 0)
         val controller = (application as TimerTestApplication).controller
         CoroutineScope(Dispatchers.Main).launch {
             val outcomes = mutableListOf<Pair<String, TransitionOutcome>>()
@@ -51,6 +54,15 @@ class TimerTestActivity : Activity() {
                 deadlineOf(controller, TimerSlot.BREW)?.let {
                     deadlineFile(this@TimerTestActivity).writeTextAtomically(it.toString())
                 }
+            }
+            // A second brew session of another tea right after the first (D-108): it goes to the slot BREW_2.
+            if (secondSeconds > 0) {
+                val request = brew(secondSeconds, coldBrew, steps, secondPreAlertSeconds, tea = SECOND_TEA)
+                val started = controller.startSession(request)
+                val running = controller.send(TimerSlot.BREW_2, TimerEvent.Start)
+                Log.i(TAG, "Second brew's step of $secondSeconds s: start $started, Start $running")
+                outcomes += "second start" to started
+                outcomes += "second Start" to running
             }
             // A quick timer running alongside (D-098); with quickRestart it replaces the active one, as
             // „Schnelltimer beenden und neu starten?" does, and the brew is never touched.
@@ -91,9 +103,14 @@ class TimerTestActivity : Activity() {
         private const val EXTRA_QUICK_SECONDS = "quickSeconds"
         private const val EXTRA_QUICK_PRE_ALERT = "quickPreAlertSeconds"
         private const val EXTRA_QUICK_RESTART = "quickRestart"
+        private const val EXTRA_SECOND_SECONDS = "secondSeconds"
+        private const val EXTRA_SECOND_PRE_ALERT = "secondPreAlertSeconds"
 
         /** The tea of the test session; the alert notification shows it after the restart. */
         const val TEA = "Testtee"
+
+        /** The tea of the second brew session (D-108); neither name starts with the other. */
+        const val SECOND_TEA = "Zweittee"
 
         /** The outcome when the step started and runs. */
         const val STARTED = "started"
@@ -135,6 +152,22 @@ class TimerTestActivity : Activity() {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         /**
+         * Two brew sessions of [steps] infusions started together (D-108): the first ([TEA], slot `BREW`) of
+         * [seconds] with the pre-alert [preAlertSeconds], then the second ([SECOND_TEA], slot `BREW_2`) of
+         * [secondSeconds] with the pre-alert [secondPreAlertSeconds], both running.
+         */
+        fun twoBrewsIntent(
+            context: Context,
+            seconds: Int,
+            secondSeconds: Int,
+            steps: Int,
+            preAlertSeconds: Int,
+            secondPreAlertSeconds: Int,
+        ): Intent = intent(context, seconds, steps = steps, preAlertSeconds = preAlertSeconds)
+            .putExtra(EXTRA_SECOND_SECONDS, secondSeconds)
+            .putExtra(EXTRA_SECOND_PRE_ALERT, secondPreAlertSeconds)
+
+        /**
          * Only a quick timer of [seconds] with the *Vorwarnung* [preAlertSeconds] (0: *Aus*), beside the brew
          * session that runs, as Start's *Schnelltimer* starts it (D-098); with [restart] it replaces the
          * active quick timer („Schnelltimer beenden und neu starten?").
@@ -148,28 +181,29 @@ class TimerTestActivity : Activity() {
                 quickRestart = restart,
             )
 
-        private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int) = BrewStart(
-            snapshot = SessionSnapshot(
-                teaId = null,
-                teaName = TEA,
-                teaSecondaryName = null,
-                teaType = null,
-                styleKey = null,
-                category = null,
-                profileId = null,
-                profileName = null,
-                method = if (coldBrew) BrewMethod.COLD_BREW else BrewMethod.KYUSU,
-                vesselId = null,
-                vesselName = null,
-                leafGrams = null,
-                waterMl = null,
-                baseTempC = 60,
-            ),
-            // Each step's own explicit pre-alert, 0 = Aus (TMR-23, D-093).
-            steps = List(steps) {
-                PlannedStep(StepKind.INFUSION, seconds, tempC = 60, preAlertSeconds = preAlertSeconds)
-            },
-            recipePreAlertSeconds = 0,
-        )
+        private fun brew(seconds: Int, coldBrew: Boolean, steps: Int, preAlertSeconds: Int, tea: String = TEA) =
+            BrewStart(
+                snapshot = SessionSnapshot(
+                    teaId = null,
+                    teaName = tea,
+                    teaSecondaryName = null,
+                    teaType = null,
+                    styleKey = null,
+                    category = null,
+                    profileId = null,
+                    profileName = null,
+                    method = if (coldBrew) BrewMethod.COLD_BREW else BrewMethod.KYUSU,
+                    vesselId = null,
+                    vesselName = null,
+                    leafGrams = null,
+                    waterMl = null,
+                    baseTempC = 60,
+                ),
+                // Each step's own explicit pre-alert, 0 = Aus (TMR-23, D-093).
+                steps = List(steps) {
+                    PlannedStep(StepKind.INFUSION, seconds, tempC = 60, preAlertSeconds = preAlertSeconds)
+                },
+                recipePreAlertSeconds = 0,
+            )
     }
 }
