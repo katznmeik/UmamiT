@@ -1244,6 +1244,13 @@ Leer (≤ 0 g), Knapp (≤ threshold, default **15 g** from v0.2.2, D-097; was
 10 g), Vorrätig. Empty teas stay
 in *Meine Tees* with a „Leer" chip and are sorted to the bottom in every sort
 order; they are never archived automatically.
+- **v0.5.0 (D-108, #197): the tea's own threshold.** The threshold is the
+  tea's own *Knapp ab* (`tea.low_stock_grams`, whole grams 1–500, set on
+  SCR-09's VORRAT) when it has one, else SET-16. The *Knapp* / *Leer* labels
+  everywhere (the list, the detail, the setup's marker BRW-08), Start's card
+  (INV-10), the reminder (INV-11) and the reorder highlight (INV-09 AC1)
+  follow it at once. The labels stay with the tea's stock warning off
+  (INV-10): they state the stock.
 
 **INV-06 — Opened date & freshness** `Should`
 *Geöffnet am* is set automatically (snackbar *Rückgängig*) on the first
@@ -1331,6 +1338,8 @@ offered, it opens the product page (`product_url`).
   AC4), show no link.
 - **AC3:** the app makes no request itself; the browser opens the page
   (GEN-01).
+- **v0.5.0 (D-108, #197):** with the tea's stock warning off (INV-10), the
+  link stays a text link, *Knapp* or *Leer* or not.
 
 **INV-10 — Low-stock card on Start** `Should` (v0.2.2, D-097)
 When a tea's stock is *Knapp* or *Leer* (INV-05), Start's nudge slot (SCR-02)
@@ -1343,6 +1352,12 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
   PURCHASE event; then the next most urgent tea, if any, shows.
 - AC3: The card is part of the Start list; it never covers or delays an
   alert.
+- **AC4, the stock warning (v0.5.0, D-108, #197):** each tea has a stock
+  warning, on by default (`tea.low_stock_warning`, SCR-09's *Warnung*). A tea
+  with it off never shows the card; the next most urgent tea takes the slot.
+  A purchase clears *Ausblenden* (AC2) but never switches the warning back
+  on; only the switch does. Its *Knapp* / *Leer* labels (INV-05) and the
+  setup's marker (BRW-08) stay.
 
 **INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
 Once a day at the time of SET-29 (default 18:00) one quiet notification
@@ -1355,8 +1370,9 @@ Start.
   never.
 - AC2: No notification on a day without such a tea; never a sound,
   vibration or full-screen intent (channel „Vorrat", low importance).
-- AC3: Switched off with SET-28 (default on); no per-tea switch (removing
-  the tea stops it).
+- AC3: Switched off with SET-28 (default on). From v0.5.0 (D-108, #197) a
+  tea with its stock warning off (INV-10 AC4) has no line, also after a
+  purchase; a tea's own threshold (INV-05) decides its line like the card's.
 - AC4: Inexact by design (within about 15 min); it never wakes the phone
   with an exact alarm and never disturbs a running timer or its alert
   (rule 8).
@@ -1410,7 +1426,7 @@ Every chart has an accessible table alternative.
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
-| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
+| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
 | SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
 | SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |

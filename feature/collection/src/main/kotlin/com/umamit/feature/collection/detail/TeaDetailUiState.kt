@@ -8,6 +8,7 @@ import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.StockLevel
 import com.umamit.core.model.UmamiLevel
+import com.umamit.core.model.UserSettings
 import java.time.LocalDate
 
 /** The tea detail (SCR-09). */
@@ -36,6 +37,10 @@ sealed interface TeaDetailUiState {
  * @property freshness FRISCHE's label (INV-06, D-104); null for none (unopened, empty, a style without a window).
  * @property recipes the recipes by position, the default marked.
  * @property reorder INV-09's link, or null when it offers none.
+ * @property stockWarning VORRAT's *Warnung* (D-108): off, the tea has no Start card, no reminder line and a plain
+ *   reorder link; its *Knapp* / *Leer* label stays.
+ * @property ownLowStockGrams VORRAT's *Knapp ab*, the tea's own threshold in whole grams; null: the global one.
+ * @property globalLowStockGrams SET-16's „Knapp ab" in whole grams, which an empty *Knapp ab* means.
  * @property inActiveBrew the tea of the active brew session: *Archivieren* and *Löschen* are greyed out (E15).
  * @property sessionLeafGrams the leaf the active session of this tea still deducts at its end, for the stock
  *   sheet's line (D-096); null without one or with *Bestand abziehen* off.
@@ -63,6 +68,9 @@ data class TeaDetail(
     val freshness: DetailFreshness? = null,
     val recipes: List<RecipeSummary> = emptyList(),
     val reorder: Reorder? = null,
+    val stockWarning: Boolean = true,
+    val ownLowStockGrams: Int? = null,
+    val globalLowStockGrams: Int = UserSettings.DEFAULT_LOW_STOCK_GRAMS.toInt(),
     val description: String? = null,
     val notes: String? = null,
     val details: TeaFacts = TeaFacts(),

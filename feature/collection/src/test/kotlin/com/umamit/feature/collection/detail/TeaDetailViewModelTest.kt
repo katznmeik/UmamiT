@@ -3,6 +3,7 @@ package com.umamit.feature.collection.detail
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.PhotoFiles
+import com.umamit.core.data.TeaPurchase
 import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.Freshness
 import com.umamit.core.model.HarvestSeason
@@ -234,6 +235,72 @@ class TeaDetailViewModelTest {
             assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.EMPTY)
             assertThat(vm.tea.reorder?.prominent).isTrue()
         }
+
+    @Test
+    fun `VORRAT shows the stock warning on and the global threshold by default`() = runTest {
+        TeaDetailFixture.seed(collection)
+
+        val tea = viewModel().tea
+
+        assertThat(tea.stockWarning).isTrue()
+        assertThat(tea.ownLowStockGrams).isNull()
+        assertThat(tea.globalLowStockGrams).isEqualTo(15)
+    }
+
+    @Test
+    fun `with the warning off a Knapp tea keeps its label and a text link, also after a purchase`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+
+        vm.setStockWarning(false)
+        vm.correctStock(12.0)
+
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockWarning).isFalse()
+        assertThat(vm.tea.stockWarning).isFalse()
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.LOW)
+        assertThat(vm.tea.reorder).isEqualTo(Reorder("$PRODUCT_URL-50", prominent = false))
+
+        vm.recordPurchase(TeaPurchase(1.0, priceCents = null, purchasedOn = today))
+        assertThat(vm.tea.stockWarning).isFalse()
+        assertThat(vm.tea.reorder?.prominent).isFalse()
+
+        vm.setStockWarning(true)
+        assertThat(vm.tea.stockWarning).isTrue()
+        assertThat(vm.tea.reorder?.prominent).isTrue()
+    }
+
+    @Test
+    fun `the tea's own threshold drives Knapp and the reorder highlight at once, empty is the global one`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+        vm.correctStock(20.0)
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+
+        vm.setLowStockGrams(20)
+
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isEqualTo(20.0)
+        assertThat(vm.tea.ownLowStockGrams).isEqualTo(20)
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.LOW)
+        assertThat(vm.tea.reorder?.prominent).isTrue()
+
+        vm.setLowStockGrams(null)
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isNull()
+        assertThat(vm.tea.ownLowStockGrams).isNull()
+        assertThat(vm.tea.stockLevel).isEqualTo(StockLevel.AVAILABLE)
+    }
+
+    @Test
+    fun `a threshold outside 1 to 500 g is refused and the stored one kept`() = runTest {
+        TeaDetailFixture.seed(collection)
+        val vm = viewModel()
+        vm.setLowStockGrams(500)
+        assertThat(vm.tea.ownLowStockGrams).isEqualTo(500)
+
+        vm.setLowStockGrams(0)
+        vm.setLowStockGrams(501)
+
+        assertThat(collection.teas.getTea(TEA_ID)!!.lowStockGrams).isEqualTo(500.0)
+    }
 
     @Test
     fun `no reorder link without a catalog key or for a discontinued catalog tea`() = runTest {

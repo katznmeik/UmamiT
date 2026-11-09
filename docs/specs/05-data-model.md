@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -80,7 +80,8 @@ Table `tea`
 | `opened_date` | TEXT | | ISO date |
 | `best_before` | TEXT | | ISO date |
 | `freshness_days` | INTEGER | | override |
-| `low_stock_grams` | REAL | | override |
+| `low_stock_grams` | REAL | | the tea's own *Knapp ab* (whole grams 1–500 from v0.5.0); null = SET-16 |
+| `low_stock_warning` | INTEGER | ✓ | stock warning (v5, D-108): 0 leaves the tea out of INV-10 and INV-11 and keeps INV-09's link plain; default 1 |
 | `storage_note` | TEXT | | ≤ 120 |
 | `notes` | TEXT | | ≤ 5000 |
 | `recipe_check_reason` | TEXT | | `RecipeCheckReason`; null = no flag (CAT-05, TEA-17) |
@@ -99,7 +100,9 @@ no index and no migration.
 From v0.4.0 (D-100) the editors write the tea's fields; `low_stock_grams`
 and `freshness_days` have no UI (no per-tea threshold or freshness period),
 and `opened_date`, `best_before` and `storage_note` become editable with
-v0.4.1. Deleting a tea removes its recipes, steps, stock events and photo
+v0.4.1. From v0.5.0 (D-108, #197) SCR-09's VORRAT writes
+`low_stock_warning` (*Warnung*) and `low_stock_grams` (*Knapp ab*); a
+purchase changes neither. `freshness_days` keeps no UI. Deleting a tea removes its recipes, steps, stock events and photo
 rows by cascade and its photo files after the commit; sessions keep their
 snapshot with `tea_id` NULL.
 
@@ -742,6 +745,21 @@ quick timer's own pre-alert, `MIGRATION_2_3` in `UMAMI_MIGRATIONS`:
   builder. `SchemaVersionsTest` opens v1–v4; the v1, v2 and v3 JSON stay
   byte-identical (`check-frozen-schemas.sh`). The v0.3.0 rc checklist
   installs it over v0.2.2 (09 §4).
+
+**umamit.db v5 (v0.5.0, D-108, #197).** One schema step for the per-tea
+stock warning, `MIGRATION_4_5` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE tea ADD COLUMN low_stock_warning INTEGER NOT NULL DEFAULT 1`
+  (last column): every existing tea keeps its warning on, as before.
+  `low_stock_grams` keeps its values; from v0.5.0 it has a UI (SCR-09).
+- No other table changes: the brew session and the quick timer running
+  during the update keep their slots and alert on time (rule 8).
+- One transaction, never destructive. Tests: `Migration4To5Test` from a
+  populated v4 database (a tea with its own `low_stock_grams` and one
+  without, a running brew session in `BREW` and a running quick timer in
+  `QUICK`); every row and value checked, then opened with the production
+  builder. `SchemaVersionsTest` opens v1–v5; the v1–v4 JSON keep their
+  version and identity hash (`check-frozen-schemas.sh`). The v0.5.0 rc
+  checklist installs it over v0.4.1 (09 §4).
 
 **catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
 a black tea is a `catalog_tea` row told apart by its style key (one of the
