@@ -26,7 +26,7 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 
 | File | Asset | Source | Licence |
 |---|---|---|---|
-| `core/designsystem/src/main/res/font/alegreya_sans_{light,regular,medium}.ttf` | Alegreya Sans Light/Regular/Medium (D-110; replaced Cormorant Garamond, D-027), the static fonts subset to Latin + German with `lnum`/`tnum` (03 §3.2) | [google/fonts `ofl/alegreyasans`](https://github.com/google/fonts/tree/main/ofl/alegreyasans) (`AlegreyaSans-{Light,Regular,Medium}.ttf`), © 2013 the Alegreya Sans Project Authors | SIL Open Font License 1.1 (`core/designsystem/licenses/AlegreyaSans-OFL.txt`) |
+| `core/designsystem/src/main/res/font/alegreya_sans_{light,regular,medium}.ttf` | Alegreya Sans Light/Regular/Medium (D-110), the static fonts subset to Latin + German with `lnum`/`tnum` (03 §3.2) | [google/fonts `ofl/alegreyasans`](https://github.com/google/fonts/tree/main/ofl/alegreyasans) (`AlegreyaSans-{Light,Regular,Medium}.ttf`), © 2013 the Alegreya Sans Project Authors | SIL Open Font License 1.1 (`core/designsystem/licenses/AlegreyaSans-OFL.txt`) |
 
 ## Icons
 
