@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1 is built (D-110; tickets #213–#216 on draft PR #219); the review and fix round is next** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1 is built, reviewed and fixed (D-110; tickets #213–#216 on draft PR #219); the rc `v0.5.1-rc.1` is next** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): built, the review and fix round is next
+## Feedback round v0.5.1 (in progress): reviewed and fixed, the rc is next
 
 The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
@@ -32,23 +32,36 @@ a sans in place of the serif font. Spec issue #212, plan
     are re-recorded.
 - **Motion review: done** (`docs/plans/v0.5.1-motion-review.md`; S1 and N1
   are built).
-- **Next phase (fresh session, Opus `medium`): the review and fix round**
-  (#217, first part):
-  1. One T3 milestone review of `main...HEAD` (standards and spec). No T4
-     review: no timer code changed.
-  2. Known inputs for the fix brief:
-     - motion review N2: `key(brew.teaId)` around Start's rows
-       (`HomeScreen.kt`);
-     - 03 §3.2 lists the features `calt` and `ccmp`; the bundled subset has
-       `case`, `liga`, `lnum`, `locl`, `onum`, `pnum`, `tnum`, `kern`
-       (upstream has no `calt`): correct the spec text;
-     - #214: the quieter colour is checked only by the goldens;
-     - D-110 has no build notes yet (the `VisualTransformation`, S1, N1).
-  3. Check CI on PR #219 (the sessions check CI themselves).
-- **Then (may be Sonnet): the rc** (#217, second part):
-  `umamit.version=0.5.1-rc.1`, renders in `docs/design/review/v0.5.1/`,
-  dispatch `release.yml` from the PR branch, the PO's checklist (09 §4
-  „v0.5.1"). **Then** #218 after the PO's approval (accuracy run first).
+- **Review and fix round: done** (2026-11-10; #217, first part).
+  - CI on `df9959c3` was green on all jobs; nothing to fix.
+  - Milestone review (T3): no must-fix; two should-fix (D-096's stale Start
+    note; TalkBack could not tell the shown global *Knapp ab* value from an
+    own one) and ten nits. No T4 review: no timer code changed.
+  - Fix round (T2, own worktree; merge `c24e9e90`): all twelve findings and
+    the four known items (rows keyed by tea; the font feature list in 03
+    §3.2; `ShowsGlobalTest` for the quieter colour; D-110's build notes).
+    New behaviour: TalkBack reads the state „Vorgabe" while *Knapp ab* shows
+    the global value (03 SCR-09, string in `feature:collection`). The filter
+    sheet dismisses only once hidden, with a test for the slide-out path.
+    No golden changed.
+  - The full local gate passed on `c24e9e90` (spotlessCheck, detekt,
+    checkManifestPermissions, testDebugUnitTest, lint, verifyRoborazziDebug,
+    assembleDebugAndroidTest). A fresh container needs the Robolectric SDK 35
+    jar fetched first (`v0.4.0-resume.md` §3).
+- **Next phase (fresh session, Sonnet `medium` is enough): the rc** (#217,
+  second part):
+  1. Check CI on PR #219 for the head of the PR branch.
+  2. `umamit.version=0.5.1-rc.1` in `gradle.properties`.
+  3. Design review renders (light and dark, placeholder images only) in
+     `docs/design/review/v0.5.1/` with a README: Start, tea detail *Knapp
+     ab*, the filter sheet, the font.
+  4. CI green on the rc commit; dispatch `release.yml` (`ref` the PR branch,
+     `version` `0.5.1-rc.1`); verify the pre-release and its certificate.
+  5. Update the PR body and #217; notify the PO for the checklist (09 §4
+     „v0.5.1") and the design review. Keep the PR in draft until the PO
+     approves.
+- **Then** #218 after the PO's approval (accuracy run first, 09 §4a; merge;
+  final `v0.5.1` from `main`).
 - The branch `claude/modest-ptolemy-86vgji` is contained in the PR branch
   and no longer needed.
 
