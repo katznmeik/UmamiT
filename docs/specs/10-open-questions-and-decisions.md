@@ -323,6 +323,137 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-110"></a>
+### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** On `v0.5.1-rc.1` the PO saw „a different window" for a split
+second after a tap on a *Zuletzt gebrüht* row, before the timer. A read-only
+diagnosis (three investigators, one adversarial check; no device) found no
+other route: the brew starts before the navigation, so Start recomposes with
+the active brew (the card *Aufguss fortsetzen* is inserted, everything below
+jumps down, with a second timer *Aufguss starten* goes, and the shell's
+active brew bar grows in) while the timer route fades in over the kept shell
+(`fade`, 300 ms). The same happened behind v0.5.0's *Nochmal brühen* tiles;
+D-110's full-width rows made it conspicuous. The PO confirmed that this is
+what they saw.
+
+**Decision (the PO's answers).**
+1. **Start keeps still.** From an accepted *Nochmal brühen* until the timer
+   covers Start, Start keeps its layout from before the tap: no *Aufguss
+   fortsetzen* card appears, *Aufguss starten* stays, and the active brew bar
+   does not grow in. The route transition into the timer (`fade`, D-041)
+   stays as it is. (Chosen over: also animating the card's arrival; changing
+   the transition; leaving it for v0.5.1.)
+2. **Fixed now**, as a fix round on v0.5.1 with `v0.5.1-rc.2` (ticket under
+   #212).
+
+**Details (Claude).**
+- The hold is presentation only. It never delays the start, the navigation,
+  an alert, the „Welchen Timer beenden?" question or a refusal (rule 8); a
+  start that is refused, ignored or asks the question releases it at once.
+- It ends when Start is no longer on screen (the timer covers it), so on the
+  way back Start is already laid out with the card and the bar; if the timer
+  never opens, it ends by itself after a short time (Claude: about 1 s).
+- No timer code changes (`core:timer`, the controller, the timer route); the
+  implementer is still T3, because the change sits on the brew-start
+  hand-off.
+- Not part of this: the same hand-off from the setup, the picker or the
+  Journal, which leave from other screens.
+
+**Build notes (Claude, 2026-11-10, #220).**
+- The hold lives in `StartHandOff`, owned by `HomeViewModel`: it is set just
+  before the start (the start itself is not delayed) and applied last on `HomeUiState`, reading
+  the hold as it is now, so no emission from the start on shows the new
+  card. Only `active` and `twoTimersActive` are held; the alert, the
+  question, the recent rows and the rest stay live.
+- Released at once by a start that is not accepted (refused, ignored, the
+  question, a failure) and by a new alert; otherwise when `HomeRoute` leaves
+  the composition (the timer route's fade has finished, or another tab
+  shows) or after 1 s.
+- The answer of „Welchen Timer beenden?" holds the same way: it is also a
+  *Nochmal brühen* from Start that opens the timer.
+- The shell learns of it through `StartTab.brewBarHold`: the Start tab hands
+  it the hand-off's `handingOff` snapshot state, which is written on the
+  tap's thread before the start, so the bar reads it in the frame the new
+  brew arrives. While held, a bar that was not shown stays away; a bar
+  already shown stays live (a second timer only splits it, it does not grow).
+
+### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists, and D-096's Start note) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** After v0.5.0 the PO gave four points of feedback: Start's
+*Nochmal brühen* and *Zuletzt gebrüht* do nearly the same and should be one
+section with six teas; the tea detail's *Knapp ab* should show its current
+value; the long catalog filter sheet needs a *Fertig* that is in reach; a
+serif reads badly on a small display and needs a sans alternative that fits
+the design. Claude first implemented all four without the process (a draft
+on the working branch); the PO stopped that, and the points were then
+grilled one question at a time. CLAUDE.md rule 1 now says that feedback is
+never a go.
+
+**Decision (the PO's answers).**
+
+1. **One list on Start (SCR-02, BRW-11).**
+   - Q1: the merged section is called *Zuletzt gebrüht*.
+   - Q2: the six teas are six `TeaListItem` rows (not tiles).
+   - Q3: a row's second line is the tea's last brew as before: date, first
+     infusion's duration and temperature („8. Juni · 1 Min. · 65 °C").
+   - Q4: a tap on a row brews the tea again at once (BRW-11: the timer in
+     READY with the last values; „Welchen Timer beenden?" with two active
+     timers). The row has a chevron; TalkBack names the tap „Nochmal
+     brühen".
+   - Q5: *Alle anzeigen* opens the Journal, as before.
+   - Q6: teas removed from the collection (archived or deleted) are left
+     out; their sessions stay in the Journal.
+   - From the feedback itself: six teas instead of three.
+2. **Knapp ab shows its value (SCR-09).**
+   - Q7: without a value of the tea's own, the field shows the global one
+     (SET-16, e.g. „15") in the quieter secondary text colour; an own value
+     shows in the normal colour. The line „Leer lassen für die Vorgabe aus
+     den Einstellungen (15 g)" stays. Nothing is stored for the tea.
+   - Q8: a tap empties the field, with the greyed „15" as its placeholder;
+     typing sets the tea's own value, and left empty the field shows the
+     global value again when it is left.
+3. **Filter sheet (SCR-19).** Q9: the title row stays in place above the
+   scrolling groups with a small *Fertig* at its end; *Zurücksetzen* stays
+   at the end of the list.
+4. **Display font (03 §3.2; amends D-027).**
+   - Q10: **Alegreya Sans** (SIL OFL 1.1) replaces Cormorant Garamond,
+     chosen by the PO from a rendered comparison with Zen Kaku Gothic New,
+     Jost and Figtree. The final judgement is on the phone with the rc.
+   - Q11: body text and labels stay in the system sans.
+   - Q12: the timer digits become Alegreya Sans Light, with tabular figures.
+5. **Release.** Q13: its own release **v0.5.1** before M4 (which stays
+   v0.6.0).
+
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- A row shows the tea's current name and cover photo (not the session's
+  snapshot name), since it stands for the tea to brew.
+- „Most recently brewed" is by a tea's last finished session, among the last
+  50 sessions, as *Nochmal brühen* did (D-062).
+- The quieter colour of Q7 is `onSurfaceVariant`.
+- The font keeps the weights (Light, Regular, Medium), sizes, roles and the
+  Latin subset of D-027's font; `lnum` on titles and `lnum, tnum` on the
+  timer digits, guarded by the existing jitter test. The About screen's
+  licence line and `CREDITS.md` name the new font.
+- No schema, timer-logic or network change, so the accuracy run is needed
+  only before the final release (09 §4a).
+- Every screenshot golden is re-recorded for the font. The mockups
+  (`docs/design/mockup-v2-*`) still show the serif and the two Start
+  sections; 03 §1's review notes say which wins.
+
+**Build notes (v0.5.1, #213–#217; Claude).**
+- #214: the global value in *Knapp ab* is drawn by a `VisualTransformation`
+  over an empty field; as the field's text it could mix with typing
+  („1525"). TalkBack reads the state „Vorgabe" while it is shown.
+- #215, motion review: S1, *Fertig* slides the sheet out and dismisses it
+  only once it is hidden (reduce motion dismisses directly); N1, a hairline
+  under the pinned title while the groups are scrolled.
+- #213: Start's rows are keyed by tea (N2).
+- #216: the bundled Alegreya Sans feature list (`case`, `liga`, `lnum`,
+  `locl`, `onum`, `pnum`, `tnum`, `kern`; 03 §3.2), and all screenshot goldens
+  were re-recorded for the font.
+
 <a id="d-109"></a>
 ### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)
 
@@ -3070,7 +3201,7 @@ doubt) where it touches them.
   - Undo lasts 8 s, or longer when accessibility recommends it. Closing the
     picker drops the undo.
   - TalkBack's custom action shows only for removable teas.
-  - Start's „Zuletzt gebrüht" keeps the removed tea's photo.
+  - Start's „Zuletzt gebrüht" keeps the removed tea's photo (superseded by D-110 Q6: removed teas leave the list).
 - **Images:** they are in `drawable-nodpi`, picked by the app theme, as for
   A2, A3 and A5. A8 also fills the catalog's other empty states.
 
@@ -6529,6 +6660,7 @@ T4 Opus `high`; `xhigh` only with the PO's OK.
 ### D-027 — Application ID and display font · *Accepted* (PO, 2026-10-21)
 
 Application ID `com.umamit.app`; serif display font Cormorant Garamond (OFL).
+The font was replaced by the sans Alegreya Sans in v0.5.1 (D-110).
 
 <a id="d-028"></a>
 ### D-028 — No smartwatch support · *Accepted* (PO, 2026-10-21)
@@ -6540,6 +6672,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-10 | D-110: PO feedback after v0.5.0 → v0.5.1: Start's *Nochmal brühen* and *Zuletzt gebrüht* become one section of six teas whose rows brew again; *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* is pinned beside the title; the display font becomes Alegreya Sans in place of Cormorant Garamond (amends D-027). 02 BRW-11, 03 §1, §3.2, SCR-02, SCR-09, SCR-19, 09 and 11 updated. |
 | 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |
 | 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |
 | 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |

@@ -393,6 +393,45 @@ class TeaDetailScreenTest {
     }
 
     @Test
+    fun `Knapp ab shows the value in effect - the global one when empty, only the input while typing`() {
+        show()
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        field.assert(hasText("15")) // empty and not focused: SET-16's value (D-110)
+
+        field.performTextInput("25")
+        field.assert(hasText("25")) // the input alone, never „1525"
+        field.assert(!hasText("1525"))
+        field.performImeAction()
+        field.assert(hasText("25"))
+
+        field.performTextClearance()
+        field.performImeAction() // *Fertig* with nothing typed: the tea's own value is gone
+        field.assert(hasText("15"))
+        assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+    }
+
+    @Test
+    fun `Knapp ab tells TalkBack that the shown value is the Vorgabe, only without an own value`() {
+        val hasDefaultState = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Vorgabe")
+        show()
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo().assert(hasDefaultState)
+    }
+
+    @Test
+    fun `Knapp ab has no Vorgabe state with an own value`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun `Knapp ab shows the tea's own value when it has one, not the global one`() {
+        show(sample().copy(ownLowStockGrams = 20))
+
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo().assert(hasText("20"))
+    }
+
+    @Test
     fun `Knapp ab writes only the final value, also when the detail closes while it is typed`() {
         var shown by mutableStateOf(true)
         compose.setContent {

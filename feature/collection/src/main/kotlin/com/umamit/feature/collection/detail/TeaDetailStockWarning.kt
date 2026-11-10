@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,12 +27,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.Tea
@@ -39,10 +48,10 @@ import com.umamit.feature.collection.R
 
 /**
  * *Warnung* (one row, one switch: TalkBack reads „Warnung", its detail and its state) and *Knapp ab*: the tea's own
- * threshold in whole grams, empty for SET-16's, which the field's hint names. The input is written when it is done
- * (*Fertig*, the field losing focus or the detail closing), and only a valid one (empty, or 1–500 g); anything else
- * says so at the field and keeps the stored value (D-108). Both stay while the
- * warning is off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
+ * threshold in whole grams, empty for SET-16's, which the field then shows (D-110) and its hint names. The input is
+ * written when it is done (*Fertig*, the field losing focus or the detail closing), and only a valid one (empty, or
+ * 1–500 g); anything else says so at the field and keeps the stored value (D-108). Both stay while the warning is
+ * off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
  */
 @Composable
 internal fun StockWarning(tea: TeaDetail, onWarning: (Boolean) -> Unit, onThreshold: (grams: Int?) -> Unit) {
@@ -96,6 +105,8 @@ private fun WarningRow(on: Boolean, onWarning: (Boolean) -> Unit) {
 /**
  * *Knapp ab*: whole grams, written once the input is done and only when valid, so „12" never stores „1" on the way
  * and a final „600" keeps the stored value, not the „60" typed before it (D-108); anything else said at the field.
+ * The field always shows the value in effect (D-110): without one of the tea's own, SET-16's in the quieter
+ * colour while the field is not focused; focused, it is empty with the greyed placeholder, as before.
  */
 @Composable
 private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
@@ -103,7 +114,11 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     // The input not yet written: set by a keystroke, cleared once it is committed.
     var pending by rememberSaveable(tea.id) { mutableStateOf(false) }
     val invalid = text.isNotEmpty() && text.toIntOrNull() !in Tea.OWN_LOW_STOCK_GRAMS
+    var focused by remember { mutableStateOf(false) }
+    // No threshold of its own: the global one is the value in effect.
+    val showsGlobal = text.isEmpty() && !focused
     val focus = LocalFocusManager.current
+    val transformation = rememberGlobalTransformation(showsGlobal, tea.globalLowStockGrams)
     val commit by rememberUpdatedState {
         if (pending) {
             pending = false
@@ -128,7 +143,11 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = UmamiSpacing.XSmall)
-            .onFocusChanged { if (!it.isFocused) commit() }
+            .onFocusChanged {
+                focused = it.isFocused
+                if (!it.isFocused) commit()
+            }
+            .defaultValueState(showsGlobal)
             .testTag(TEA_DETAIL_STOCK_THRESHOLD_TAG),
         label = { Text(stringResource(R.string.collection_tea_stock_threshold)) },
         placeholder = { Text(tea.globalLowStockGrams.toString()) },
@@ -144,6 +163,10 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         },
         isError = invalid,
         singleLine = true,
+        visualTransformation = transformation,
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedTextColor = with(MaterialTheme.colorScheme) { if (showsGlobal) onSurfaceVariant else onSurface },
+        ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(
             onDone = {
@@ -151,6 +174,36 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
                 focus.clearFocus()
             },
         ),
+    )
+}
+
+/** SET-16's value in the quieter colour while [showsGlobal], else none; allocated once per value and colour. */
+@Composable
+private fun rememberGlobalTransformation(showsGlobal: Boolean, globalGrams: Int): VisualTransformation {
+    val quieter = MaterialTheme.colorScheme.onSurfaceVariant
+    val shown = remember(globalGrams, quieter) { ShowsGlobal(globalGrams.toString(), quieter) }
+    return if (showsGlobal) shown else VisualTransformation.None
+}
+
+/** TalkBack tells the shown default from an own value: the state „Vorgabe" while [showsGlobal] (D-110). */
+@Composable
+private fun Modifier.defaultValueState(showsGlobal: Boolean): Modifier {
+    val state = stringResource(R.string.collection_tea_stock_threshold_default_state)
+    return semantics { if (showsGlobal) stateDescription = state }
+}
+
+/**
+ * Shows SET-16's value in an empty, unfocused field without ever making it the field's text: the input stays what was
+ * typed, so „25" is never „1525" (D-110).
+ */
+internal data class ShowsGlobal(private val shown: String, private val colour: Color) : VisualTransformation {
+    override fun filter(text: AnnotatedString) = TransformedText(
+        AnnotatedString(shown, SpanStyle(color = colour)),
+        object : OffsetMapping {
+            override fun originalToTransformed(offset: Int) = 0
+
+            override fun transformedToOriginal(offset: Int) = 0
+        },
     )
 }
 

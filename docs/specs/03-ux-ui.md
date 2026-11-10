@@ -22,7 +22,7 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 | Background | Warm off-white "washi paper" | `background`/`surface` tokens (§3.1) |
 | Primary colour | Deep matcha/olive green (*Start Steeping* card, FAB) | `primary` |
 | Dark surface | Deep forest green-black (timer) | Timer always uses the dark "Steeping" scheme |
-| Display type | Elegant serif for titles and tea names | Serif display font (§3.2) |
+| Display type | Elegant serif for titles and tea names | Display font Alegreya Sans (§3.2, D-110) |
 | Labels | Small, letter-spaced uppercase labels („ZULETZT GEBRÜHT") | `labelOverline` |
 | Imagery | Ink-wash mountains, tea leaves, moody tea photography | Illustrations + Tee-Kontor product photos |
 | Logo | Two-leaf tea sprig | App icon & splash |
@@ -54,6 +54,8 @@ added by the PO on 2026-10-21. They are the **current visual reference** (they s
 | All | German labels, nav Start · Journal · Sammlung · Statistik, Samsung frame, palette and typography match the spec | Adopted as reference |
 | Start (board) | Section label misspelt „ZULETZT GERÜHRT" | Spec wins: „ZULETZT GEBRÜHT" (the single Start mockup is correct) |
 | Start (both) | Greeting text „Guter Tee schenkt …" under the header | Spec wins: no greeting text, header illustration only (D-035) |
+| Start (both) | NOCHMAL BRÜHEN tiles above ZULETZT GEBRÜHT | Spec wins from v0.5.1 (D-110): one section ZULETZT GEBRÜHT, whose rows brew again |
+| All | Serif titles and timer digits | Spec wins from v0.5.1 (D-110): the humanist sans Alegreya Sans (§3.2) |
 | Start (both) | No *Schnelltimer* entry and no FAVORITEN section | Spec wins: both are present (SCR-02) |
 | Start (both) | ZULETZT GEBRÜHT rows in a free-form layout | Spec wins: rows use the `TeaListItem` format (§3.8) |
 | Start (single) | The *Matcha* thumbnail shows a brown liquor (looks like hōjicha) | Image glitch; real thumbnails are tea photos |
@@ -79,7 +81,7 @@ App
 │   ├── Aufguss starten → Teeauswahl (SCR-03) → Brühen (SCR-04) → Timer (SCR-05) → Gespeichert-Sheet (SCR-06)
 │   │   ├── Schritte-Sheet (SCR-31) from SCR-04 *Bearb.* and the timer
 │   │   └── from SCR-04 (v0.4.0): ⋮ Tee ansehen → Tee (SCR-09); Gefäß › Neues Gefäß … → SCR-14
-│   ├── Nochmal brühen (recent teas) → Timer READY (SCR-05, BRW-11)
+│   ├── Zuletzt gebrüht (six recent teas; a tap is *Nochmal brühen*) → Timer READY (SCR-05, BRW-11, D-110)
 │   ├── Schnelltimer (SCR-07)
 │   └── Einstellungen (SCR-25) — top-bar action
 ├── Journal (SCR-15)
@@ -236,14 +238,23 @@ Dynamic colour is off by default (SET-06).
 
 | Role | Font | Size / line height |
 |---|---|---|
-| Timer digits | Cormorant Garamond **Light** with `lnum` + `tnum` font features (lining, tabular figures) | 72–96 sp |
-| Headline („Journal") | Serif display | 28 / 36 sp |
-| Title (tea names) | Serif display | 20–22 / 28 sp |
+| Timer digits | Alegreya Sans **Light** with `lnum` + `tnum` font features (lining, tabular figures) | 72–96 sp |
+| Headline („Journal") | Display sans (Alegreya Sans) | 28 / 36 sp |
+| Title (tea names) | Display sans (Alegreya Sans) | 20–22 / 28 sp |
 | Body | System sans | 14–16 / 20–24 sp |
 | Label | System sans | 12–14 sp |
 | Overline | System sans, uppercase, +0.12 em tracking | 11 / 16 sp |
 
-- Serif: bundled OFL font **Cormorant Garamond** (D-027), Light + Regular +
+- **Display font from v0.5.1 (D-110): Alegreya Sans**, a humanist sans with
+  a calligraphic stroke, in place of the serif Cormorant Garamond: the PO's
+  feedback was that a serif reads badly on the phone's small display. Bundled
+  OFL font, the static Light + Regular + Medium, with the same Latin subset
+  as below. Its bundled features are `case`, `liga`, `lnum`, `locl`, `onum`,
+  `pnum`, `tnum` and `kern` (upstream has no `calt`; `ccmp` is not kept). Its default figures are proportional old-style too, so
+  the styles keep `lnum` and the timer digits `lnum, tnum`. The sizes and
+  roles are unchanged; wherever this document says „serif" for a title, the
+  display sans is meant.
+- Until v0.5.0, serif: bundled OFL font **Cormorant Garamond** (D-027), Light + Regular +
   Medium, Latin subset incl. German umlauts/ß. Subsetting keeps the `lnum`
   and `tnum` OpenType features for the timer digits. *Done in M1-04 (#29):*
   static instances at wght 300/400/500 of the Google Fonts variable font,
@@ -491,16 +502,29 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 │ │    Tee wählen und los    │ │
 │ └──────────────────────────┘ │
 │ ⏱ Schnelltimer               │
-│ NOCHMAL BRÜHEN               │  3 last brewed teas, tap → timer READY (BRW-11)
-│ (○ Gyokuro) (○ Sencha) (○ …) │
-│ ZULETZT GEBRÜHT  Alle anzeigen│  last 3 sessions
-│ (○) Sencha Asamushi    ★ 4,5 │
+│ ZULETZT GEBRÜHT  Alle anzeigen│  6 last brewed teas, tap → timer READY (BRW-11)
+│ (○) Sencha Asamushi        › │
 │     8. Juni · 3 Min. · 80 °C │
 │ FAVORITEN                    │
 └──────────────────────────────┘
 │ Start · Journal · Sammlung · Statistik │
 ```
 
+- **One list of recent teas (v0.5.1, D-110).** *Zuletzt gebrüht* shows the
+  six most recently brewed distinct teas of the collection as `TeaListItem`
+  rows with a chevron: the tea's name and photo, and its last session's
+  „8. Juni · 3 Min. · 80 °C". A tap on a row is *Nochmal brühen* (BRW-11;
+  TalkBack names the action so); *Alle anzeigen* opens the journal. Until
+  v0.5.0 Start had two sections for this: three round tiles *Nochmal
+  brühen* and the last three sessions under *Zuletzt gebrüht*, whose rows
+  did nothing. Below, „*Nochmal brühen*" means the tap on such a row.
+- **Start holds still on the way to the timer (v0.5.1, D-111).** From an
+  accepted *Nochmal brühen* until the timer covers Start, Start keeps its
+  layout from before the tap: the *Aufguss fortsetzen* card does not appear,
+  *Aufguss starten* stays, and the active brew bar does not grow in under the
+  timer's fade (§3.6). The hold is presentation only: an alert, the question
+  „Welchen Timer beenden?" and a refused start show at once. Back on Start,
+  the card and the bar are there.
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
   Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
@@ -557,8 +581,8 @@ sheet and the picker give way and no setup opens during it ([D-088](10-open-ques
 A long press on a tea row opens a small menu with *Archivieren* (until v0.3.0
 „Aus Sammlung entfernen"; with a haptic tick). Choosing it archives the tea
 at once (no dialog), the row leaves the picker and a snackbar reads
-„*Tanabata* archiviert" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
-*Favoriten* and Start's *Nochmal brühen* too; the journal keeps its entries
+„*Tanabata* archiviert" · *Rückgängig* (restores it in place). The tea leaves the picker's *Zuletzt* and
+*Favoriten* and Start's *Zuletzt gebrüht* and *Favoriten* too; the journal keeps its entries
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
 same action as a custom action on the row.
@@ -969,7 +993,11 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
     and the reorder link stays a text link; the *Knapp* / *Leer* label stays.
   - *Knapp ab*, a field in whole grams with the suffix „g" and the line
     „Leer lassen für die Vorgabe aus den Einstellungen (15 g)" (SET-16's
-    value). The input is saved when it is done (*Fertig* on the keyboard,
+    value). The field always shows the value in effect (v0.5.1, D-110):
+    the tea's own, or without one SET-16's („15") in the quieter
+    on-surface-variant colour; tapped, that gives way to the empty field
+    with the greyed „15". TalkBack announces the shown global value with
+    the state „Vorgabe", so it tells the default from an own value. The input is saved when it is done (*Fertig* on the keyboard,
     the field losing focus or the detail closing; v0.5.0 review), not per
     keystroke, and only a valid one (empty, or 1–500); the label, card,
     reminder, setup marker and reorder highlight then follow it. Anything
@@ -1218,7 +1246,10 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Herkunft* (several each, from the catalog's own values), *Aroma* (Alle ·
   Pur · Aromatisiert), *Umami* (Egal · ab mittel · ab hoch · sehr hoch, from
   the shop's umami scale), the chips' switches again; *Zurücksetzen* returns
-  to the default view and keeps the search. In the Kräutertee view (v0.2.1,
+  to the default view and keeps the search. From v0.5.1 (D-110) the title
+  row stays in place above the scrolling groups with *Fertig* at its end,
+  so the sheet closes from any scroll position without scrolling to the
+  end of the long list; *Zurücksetzen* stays at the end of the list. In the Kräutertee view (v0.2.1,
   D-093 Q19) *Aroma* and *Umami* are left out (*Sortierung*, *Sorte*,
   *Herkunft* and the switches Vorrätig, Bio, Neu, Im Besitz stay), and
   *Zurücksetzen* as well as „Filter zurücksetzen" reset the filters but stay

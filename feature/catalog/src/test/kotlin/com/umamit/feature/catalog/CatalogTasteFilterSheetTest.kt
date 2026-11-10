@@ -4,9 +4,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,6 +18,7 @@ import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.TasteScale
 import com.umamit.core.testing.catalogTea
 import org.junit.Rule
@@ -68,5 +72,51 @@ class CatalogTasteFilterSheetTest {
         assertThat(filter.notes).isEmpty()
         assertThat(filter.minScales).isEmpty()
         compose.onNodeWithText("fruchtig").assertIsNotSelected()
+    }
+
+    @Test
+    fun fertigIsPinnedClosesTheSheetFromTheListEndAndResetKeepsSearchAndKind() {
+        var filter by mutableStateOf(CatalogFilter(search = "nebel", kind = CatalogKind.BLACK, notes = setOf("mild")))
+        var dismissed = 0
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                CatalogFilterSheet(
+                    filter = filter,
+                    listing = CatalogBrowser.listing(teas, filter, null, null),
+                    onFilterChange = { change -> filter = change(filter) },
+                    onDismissRequest = { dismissed++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Zurücksetzen").performScrollTo().performClick()
+        assertThat(filter.notes).isEmpty()
+        assertThat(filter.search).isEqualTo("nebel")
+        assertThat(filter.kind).isEqualTo(CatalogKind.BLACK)
+
+        compose.onAllNodesWithText("Fertig").assertCountEquals(1)
+        compose.onNodeWithText("Fertig").assertIsDisplayed().performClick()
+        compose.waitForIdle()
+        assertThat(dismissed).isEqualTo(1)
+    }
+
+    @Test
+    fun fertigSlidesTheSheetOutAndDismissesOnceWithMotionOn() {
+        var dismissed = 0
+        compose.setContent {
+            UmamiTheme(reduceMotion = false) {
+                CatalogFilterSheet(
+                    filter = CatalogFilter(),
+                    listing = CatalogBrowser.listing(teas, CatalogFilter(), null, null),
+                    onFilterChange = {},
+                    onDismissRequest = { dismissed++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Fertig").performClick()
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        assertThat(dismissed).isEqualTo(1)
     }
 }

@@ -96,7 +96,7 @@ Answer the questions in order and take the first tier that matches:
 | Gradle project skeleton, version catalog, convention plugins, **all** module stubs (before parallel work) | T2 |
 | Probe release `v0.0.1-probe` (exact alarm, FGS, Live Update, full-screen alert, synthesised sound) | T3 |
 | CI emulator job (GitHub Actions, API 35/36) | T3 |
-| Design system: colour tokens, typography (Cormorant Garamond), shapes, core components | T2 |
+| Design system: colour tokens, typography (display sans Alegreya Sans, D-110), shapes, core components | T2 |
 | Navigation shell with placeholder tabs | T1 |
 | `BrewTimerEngine` state machine + exhaustive unit tests | T3 (design reviewed at T4) |
 | Background strategy implementation: exact alarms, FGS, wake lock, receivers, boot recovery | T4 |
@@ -222,6 +222,10 @@ A task is never moved to a *lower* tier after it failed.
   release.
   - Each phase ends with a handover: `PROJECT_STATE.md`, plus a resume note
     in `docs/plans/` when a phase stops part-way (as `v0.4.0-resume.md`).
+  - The session's last message to the PO ends with the ready-to-paste
+    prompt for the next session, in a code block: model and effort, branch
+    and PR, the phase and its steps by pointer, and where it stops (PO,
+    2026-11-10).
   - One session never carries a whole milestone. The session that ran M1 to
     v0.4.0 lasted 11 days, and every turn and every CI wake-up re-sent its
     long context.

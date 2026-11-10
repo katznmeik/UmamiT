@@ -168,7 +168,7 @@ fun GuideArticleRoute(
 }
 
 /**
- * The stateless article (SCR-20): the hero image (if any), the serif title, the source line
+ * The stateless article (SCR-20): the hero image (if any), the display title, the source line
  * „Tee-Kontor Kiel · Tee-Info" with the date, the converted text and *Im Browser öffnen*.
  * [image] loads a local image file; tests pass placeholder images.
  */

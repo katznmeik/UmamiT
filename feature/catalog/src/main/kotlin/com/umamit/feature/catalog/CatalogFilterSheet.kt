@@ -1,5 +1,6 @@
 package com.umamit.feature.catalog
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -10,12 +11,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -29,6 +38,7 @@ import com.umamit.core.model.FlavourFilter
 import com.umamit.core.model.TasteScale
 import com.umamit.core.model.TasteScaleOption
 import com.umamit.core.model.UmamiLevel
+import kotlinx.coroutines.launch
 
 /** The filter sheet (SCR-19). */
 const val CATALOG_FILTER_SHEET_TAG = "catalog_filter_sheet"
@@ -38,7 +48,8 @@ const val CATALOG_FILTER_SHEET_TAG = "catalog_filter_sheet"
  * (several each, from the catalog's own values in [listing]), aroma, umami and the chips'
  * switches, and the shop's taste notes and scales of the view (D-108 point 8). In the *Kräutertee*
  * view aroma („Pur", Q14) and umami (Q19) don't apply and are left out. *Zurücksetzen* returns to the default
- * view (D-073) of the kind shown and keeps the search.
+ * view (D-073) of the kind shown and keeps the search. The title row with *Fertig* stays in place above the
+ * scrolling groups (D-110), so the sheet closes from any scroll position; *Zurücksetzen* ends the list.
  * The caller never composes it during an alert (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,25 +60,62 @@ internal fun CatalogFilterSheet(
     onFilterChange: (FilterChange) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    val reduceMotion = UmamiTheme.reduceMotion
+    val sheetState = rememberCatalogSheetState(reduceMotion)
+    val scope = rememberCoroutineScope()
+    val scroll = rememberScrollState()
+    // Set by *Fertig*: the sheet is on its way out, so a second tap does nothing.
+    var leaving by remember { mutableStateOf(false) }
+    // Slides out (not under reduce motion), then the host removes it.
+    val leave = {
+        if (!leaving) {
+            leaving = true
+            scope.launch { if (!reduceMotion) sheetState.hide() }.invokeOnCompletion {
+                // Also fires on cancellation: dismiss only once hidden (M3 pattern), else stay usable.
+                if (reduceMotion || !sheetState.isVisible) onDismissRequest() else leaving = false
+            }
+        }
+    }
+    // The hairline under the title row shows that groups scroll under it.
+    val dividerAlpha by animateFloatAsState(
+        targetValue = if (scroll.canScrollBackward) 1f else 0f,
+        animationSpec = UmamiTheme.motion.fade(),
+        label = "filterSheetDivider",
+    )
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
-        sheetState = rememberCatalogSheetState(UmamiTheme.reduceMotion),
+        sheetState = sheetState,
         modifier = Modifier.testTag(CATALOG_FILTER_SHEET_TAG),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Column(
+        // Pinned: *Fertig* is reachable wherever the list is scrolled to (D-110).
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-                .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.SideMargin, bottom = UmamiSpacing.Large),
+                .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(R.string.catalog_filter_sheet_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
             )
+            TextButton(onClick = leave) { Text(stringResource(R.string.catalog_filter_done)) }
+        }
+        HorizontalDivider(
+            modifier = Modifier.alpha(dividerAlpha),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scroll)
+                .navigationBarsPadding()
+                .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.SideMargin, bottom = UmamiSpacing.Large),
+        ) {
             SortGroup(filter, onFilterChange)
             ChoiceGroup(stringResource(R.string.catalog_filter_types), listing.types, filter.types) { value ->
                 onFilterChange { it.copy(types = it.types.toggle(value)) }
@@ -91,7 +139,6 @@ internal fun CatalogFilterSheet(
                 TextButton(onClick = { onFilterChange { it.resetFilters() } }) {
                     Text(stringResource(R.string.catalog_filter_reset))
                 }
-                TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.catalog_filter_done)) }
             }
         }
     }

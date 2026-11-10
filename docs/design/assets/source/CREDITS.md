@@ -1,7 +1,7 @@
 # Credits for bundled assets
 
 Every image and sound in the app is either our own work or public domain /
-CC0. The exceptions are the display font (SIL OFL 1.1, D-027) and the Material
+CC0. The exceptions are the display font (SIL OFL 1.1, D-110) and the Material
 Symbols icons (Apache 2.0), whose licence texts are committed in
 `core/designsystem/licenses/`. Third-party files record their source URL and licence here; the About
 screen shows this list (`docs/design/assets.md` §2, D-036). Never add
@@ -26,7 +26,7 @@ Tee-Kontor photos or texts (CLAUDE.md rule 3).
 
 | File | Asset | Source | Licence |
 |---|---|---|---|
-| `core/designsystem/src/main/res/font/cormorant_garamond_{light,regular,medium}.ttf` | Cormorant Garamond Light/Regular/Medium (D-027), static instances (wght 300/400/500) of the variable font, subset to Latin + German with `lnum`/`tnum` (03 §3.2) | [google/fonts `ofl/cormorantgaramond`](https://github.com/google/fonts/tree/main/ofl/cormorantgaramond) (`CormorantGaramond[wght].ttf`), © 2015 the Cormorant Project Authors | SIL Open Font License 1.1 (`core/designsystem/licenses/CormorantGaramond-OFL.txt`) |
+| `core/designsystem/src/main/res/font/alegreya_sans_{light,regular,medium}.ttf` | Alegreya Sans Light/Regular/Medium (D-110), the static fonts subset to Latin + German with `lnum`/`tnum` (03 §3.2) | [google/fonts `ofl/alegreyasans`](https://github.com/google/fonts/tree/main/ofl/alegreyasans) (`AlegreyaSans-{Light,Regular,Medium}.ttf`), © 2013 the Alegreya Sans Project Authors | SIL Open Font License 1.1 (`core/designsystem/licenses/AlegreyaSans-OFL.txt`) |
 
 ## Icons
 

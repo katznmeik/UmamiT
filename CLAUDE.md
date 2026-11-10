@@ -19,13 +19,27 @@ installed from GitHub Releases, not a store.
 3. Read the spec sections for the task (`docs/specs/README.md` is the index).
 
 At the end of every session (or milestone), update `PROJECT_STATE.md`,
-commit and push.
+commit and push. Whenever the work continues in a new session (the next
+phase, or a phase that stops part-way), end the session's last message with
+the **ready-to-paste prompt for that session**, in a code block: the model
+and effort to pick, the branch and PR, the phase and its steps by pointer
+(`PROJECT_STATE.md`, the plan, the tickets), and where it stops.
 
 ## Hard rules
 
 1. **No development without the PO's explicit go.** `PROJECT_STATE.md`
    records whether the go was given. Until then, only specs, plans and docs
    are changed.
+   - **Feedback from the PO is input to the process, never a go to
+     implement.** Every change to app behaviour or design, however small,
+     goes through: grilling round (questions to the PO as selectable
+     options) → specs and decision (to-spec) → tickets → `/implement-spec`
+     with delegation by tier. Claude never decides open design questions
+     alone, never records a decision as 'Accepted (PO)' unless the PO
+     answered that point, and never writes implementation code as the
+     orchestrator. Only if the PO explicitly says 'skip the process' for a
+     named task may steps be skipped. If unsure whether something is small
+     enough to skip a step: it is not; ask.
 2. **The specs are the source of truth** (`docs/specs/`). When behaviour
    changes, update the spec in the same PR and record decisions in
    `docs/specs/10-open-questions-and-decisions.md`. Reference requirement IDs
@@ -107,7 +121,7 @@ commit and push.
 | SDK | min 35, target/compile 36 |
 | Stack | Kotlin 2, Compose, Material 3, Room, DataStore, Hilt, WorkManager, OkHttp, Jsoup, Coil 3 |
 | Navigation | Start · Journal · Sammlung (Meine Tees / Katalog) · Statistik |
-| Design | `docs/design/mockup-v2-*.png` (current), serif Cormorant Garamond, washi/matcha palette (`docs/specs/03-ux-ui.md`) |
+| Design | `docs/design/mockup-v2-*.png` (current), display sans Alegreya Sans (D-110; the mockups still show the earlier serif), washi/matcha palette (`docs/specs/03-ux-ui.md`) |
 | Images to produce | `docs/design/assets.md` |
 | Milestones | M0 specs → M1 timer → M2 catalog → M3 collection → M4 journal & stats → M5 1.0 |
 | Current plan | `docs/plans/` (e.g. `M1-timer.md`) |

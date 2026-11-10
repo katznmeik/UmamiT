@@ -18,7 +18,7 @@ import com.umamit.core.designsystem.motion.rememberSystemReduceMotion
 val LocalUmamiDarkTheme = staticCompositionLocalOf { false }
 
 /**
- * The UmamiT theme (03 §3): „Washi" light or „Steeping" dark, Cormorant Garamond
+ * The UmamiT theme (03 §3): „Washi" light or „Steeping" dark, Alegreya Sans
  * type, shapes, the extended colours and the motion specs.
  *
  * @param dynamicColor Material You colours; off by default (SET-06).

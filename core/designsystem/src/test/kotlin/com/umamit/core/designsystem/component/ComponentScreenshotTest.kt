@@ -164,7 +164,7 @@ class ComponentScreenshotTest(private val dark: Boolean, private val fontScale: 
         }
     }
 
-    /** Umlauts, ß and ẞ in serif titles and sans overlines (03 §3.2). */
+    /** Umlauts, ß and ẞ in display titles and sans overlines (03 §3.2). */
     @Test
     fun typeScale() = capture("TypeScale") {
         val type = MaterialTheme.typography

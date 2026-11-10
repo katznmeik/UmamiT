@@ -9,7 +9,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -35,6 +35,7 @@ import com.umamit.core.timer.engine.StepRecord
 import com.umamit.feature.brew.picker.TEA_PICKER_TAG
 import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.home.HomeViewModel
+import com.umamit.feature.home.homeRecentTag
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -126,7 +127,7 @@ class RemoveTeaFlowTest {
     fun `a removed tea leaves the picker and Nochmal bruehen, Rueckgaengig brings it back`() {
         seed()
         show()
-        compose.onNodeWithContentDescription("Nochmal brühen: Bio Sencha Hisui").assertExists()
+        compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).assertExists()
 
         compose.onNodeWithText("Aufguss starten").performClick()
         compose.onAllNodes(hasText("Bio Sencha Hisui") and inPicker).onFirst().performTouchInput { longClick() }
@@ -136,14 +137,14 @@ class RemoveTeaFlowTest {
         assertThat(archive.archived).containsExactly(SeedData.HISUI_TEA_ID)
         compose.onAllNodes(hasText("Bio Sencha Hisui") and inPicker).assertCountEquals(0)
         compose.onAllNodes(hasText("Bio Sencha Tanabata") and inPicker).onFirst().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Nochmal brühen: Bio Sencha Hisui").assertDoesNotExist()
+        compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).assertDoesNotExist()
         compose.onNodeWithText("Bio Sencha Hisui archiviert").assertIsDisplayed()
 
         compose.onNodeWithText("Rückgängig").performClick()
         compose.waitForIdle()
 
         compose.onAllNodes(hasText("Bio Sencha Hisui") and inPicker).onFirst().assertExists()
-        compose.onNodeWithContentDescription("Nochmal brühen: Bio Sencha Hisui").assertExists()
+        compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).assertExists()
         assertThat(runBlocking { collection.teas.getTea(SeedData.HISUI_TEA_ID)!!.isArchived }).isFalse()
     }
 }

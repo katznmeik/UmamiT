@@ -40,8 +40,12 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -147,22 +151,27 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `Nochmal bruehen shows the three most recently brewed distinct teas, Zuletzt the last three sessions`() =
+    fun `Zuletzt gebrueht shows the six most recently brewed distinct teas, each with its last session (D-110)`() =
         runTest {
             seed()
-            collection.teas.saveTea(SeedData.hisui.copy(id = "third", name = "Gyokuro"))
-            collection.teas.saveTea(SeedData.hisui.copy(id = "fourth", name = "Bancha"))
-            brewed("s1", "fourth", "Bancha", at = 1_000, 60)
-            brewed("s2", "third", "Gyokuro", at = 2_000, 90)
+            // Seven teas brewed, oldest first: the oldest of them is not shown.
+            (1..5).forEach { n ->
+                collection.teas.saveTea(SeedData.hisui.copy(id = "tea$n", name = "Tee $n"))
+                brewed("old$n", "tea$n", "Tee $n", at = n * 100L, 90)
+            }
             brewed("s3", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 3_000, 45, 10)
             brewed("s4", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 4_000, 60, 10, 10)
             brewed("s5", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 5_000, 45)
 
             val state = viewModel().state.value
 
-            assertThat(state.brewAgain.map { it.name })
-                .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui", "Gyokuro").inOrder()
-            assertThat(state.recent.map { it.sessionId }).containsExactly("s5", "s4", "s3").inOrder()
+            assertThat(state.recent.map { it.teaName })
+                .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui", "Tee 5", "Tee 4", "Tee 3", "Tee 2")
+                .inOrder()
+            // A tea brewed twice shows once, with its last session.
+            assertThat(state.recent.map { it.sessionId })
+                .containsExactly("s5", "s4", "old5", "old4", "old3", "old2").inOrder()
+            assertThat(state.recent[0].teaId).isEqualTo(SeedData.TANABATA_TEA_ID)
             assertThat(state.recent[1].infusions).isEqualTo(3)
             assertThat(state.recent[1].firstStepSeconds).isEqualTo(60)
             assertThat(state.recent[1].tempC).isEqualTo(65)
@@ -175,20 +184,19 @@ class HomeViewModelTest {
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
         collection.teas.saveTea(SeedData.tanabata.copy(isArchived = true))
 
-        assertThat(viewModel().state.value.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+        assertThat(viewModel().state.value.recent.map { it.teaId }).containsExactly(SeedData.HISUI_TEA_ID)
     }
 
     @Test
-    fun `a removed tea keeps its name and photo under Zuletzt gebrueht, like the journal (D-093 Q13)`() = runTest {
+    fun `a removed tea leaves Zuletzt gebrueht, a kept one shows its cover photo (BRW-11, D-110)`() = runTest {
         seed()
         val photos = PhotoFiles(folder.newFolder("photos"))
         photos.write("cover", byteArrayOf(1, 2, 3))
         collection.teas.savePhoto(Photo("cover", PhotoOwner.OfTea(SeedData.TANABATA_TEA_ID), PhotoOrigin.OWN, 1, 1, 3))
         collection.teas.setCoverPhoto(SeedData.TANABATA_TEA_ID, "cover")
         brewed("s1", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 1_000, 45)
-        collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
 
-        val state = HomeViewModel(
+        val home = HomeViewModel(
             collection.teas,
             sessions.sessions,
             starter,
@@ -196,11 +204,15 @@ class HomeViewModelTest {
             photos,
             reliability,
             lowStock,
-        ).state.value
+        )
 
-        assertThat(state.brewAgain).isEmpty()
-        assertThat(state.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
-        assertThat(state.recent.single().photoPath).isEqualTo(photos.file("cover").path)
+        assertThat(home.state.value.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(home.state.value.recent.single().photoPath).isEqualTo(photos.file("cover").path)
+
+        // Removed, the tea cannot be brewed again from Start; the journal keeps its sessions (D-093 Q13).
+        collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
+
+        assertThat(home.state.value.recent).isEmpty()
     }
 
     @Test
@@ -281,6 +293,8 @@ class HomeViewModelTest {
         assertThat((starter.state.value as com.umamit.core.timer.controller.TimerUiState.Active).phase)
             .isEqualTo(TimerPhase.READY)
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        // The timer covers Start (D-111).
+        vm.handOff.startLeft()
         assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
     }
 
@@ -302,7 +316,7 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun `a double tap on a tile starts once and leaves no question on Start (S6)`() = runTest {
+    fun `a double tap on a row starts once and leaves no question on Start (S6)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
@@ -348,9 +362,11 @@ class HomeViewModelTest {
         val vm = viewModel()
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
         assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        vm.handOff.startLeft()
         now += LATER_MS
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
 
         assertThat(vm.state.value.question).isNull()
         assertThat(starter.replaced).isEqualTo(0)
@@ -451,6 +467,7 @@ class HomeViewModelTest {
             .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui").inOrder()
 
         vm.endTimerAndStart(TimerSlot.BREW)
+        vm.handOff.startLeft()
 
         assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Kamairicha")
         assertThat(starter.activeIn(TimerSlot.BREW_2)?.teaName).isEqualTo("Bio Sencha Hisui")
@@ -463,6 +480,7 @@ class HomeViewModelTest {
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
         val second = checkNotNull(starter.activeIn(TimerSlot.BREW)).copy(inSlot = TimerSlot.BREW_2)
 
         starter.state.value = second
@@ -496,12 +514,14 @@ class HomeViewModelTest {
 
         // One brew: its card, and *Aufguss starten* for the second.
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
         assertThat(vm.state.value.active).isNotNull()
         assertThat(vm.state.value.twoTimersActive).isFalse()
 
         // Two brews: no third start from the card; *Nochmal brühen* asks „Welchen Timer beenden?".
         now += LATER_MS
         vm.brewAgain(SeedData.TANABATA_TEA_ID)
+        vm.handOff.startLeft()
         assertThat(starter.activeIn(TimerSlot.BREW_2)).isNotNull()
         assertThat(vm.state.value.twoTimersActive).isTrue()
     }
@@ -515,6 +535,7 @@ class HomeViewModelTest {
         assertThat(vm.state.value.twoTimersActive).isFalse()
 
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
 
         assertThat(vm.state.value.twoTimersActive).isTrue()
     }
@@ -529,7 +550,7 @@ class HomeViewModelTest {
 
         // No brew replaces the card: the bar shows the quick timer.
         assertThat(state.active).isNull()
-        assertThat(state.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+        assertThat(state.recent.map { it.teaId }).containsExactly(SeedData.HISUI_TEA_ID)
     }
 
     @Test
@@ -538,6 +559,7 @@ class HomeViewModelTest {
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         val vm = viewModel()
         vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
 
         starter.startQuickTimer(90)
 
@@ -615,6 +637,175 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `an accepted Nochmal bruehen holds Start still until Start has left, never showing the new card (D-111)`() =
+        runTest {
+            seed()
+            brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+            val vm = viewModel()
+            val seen = mutableListOf<HomeUiState>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { seen += it } }
+
+            vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+            // The start and the timer are not delayed (rule 8)…
+            assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Hisui")
+            assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+            // …but no state shows the new card while the timer opens over Start.
+            assertThat(seen.map { it.active }).containsNoneIn(listOf(starter.activeIn(TimerSlot.BREW)))
+            assertThat(vm.state.value.active).isNull()
+            assertThat(vm.handOff.handingOff.value).isTrue()
+
+            vm.handOff.startLeft()
+
+            // The way back: the card is already there.
+            assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+            assertThat(vm.handOff.handingOff.value).isFalse()
+        }
+
+    @Test
+    fun `with queued dispatch no emission from the start shows the new card while held (D-111)`() = runTest {
+        // Queued, not unconfined: the controller's new state is published before the state's combine runs, so an
+        // emission computed from it must still read the hold.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch(StandardTestDispatcher(testScheduler)) { vm.state.collect { seen += it } }
+        runCurrent()
+        assertThat(vm.state.value.loading).isFalse()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        // Only what is due now: the hold's own 1 s timeout stays pending.
+        runCurrent()
+
+        val card = starter.activeIn(TimerSlot.BREW)
+        assertThat(card?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        assertThat(seen.map { it.active }).containsNoneIn(listOf(card))
+        assertThat(vm.state.value.active).isNull()
+
+        vm.handOff.startLeft()
+        runCurrent()
+
+        assertThat(vm.state.value.active).isEqualTo(card)
+        assertThat(seen.last().active).isEqualTo(card)
+    }
+
+    @Test
+    fun `a second brew keeps Aufguss starten and the first card while the timer opens (D-111, D-108)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.handOff.startLeft()
+        val card = vm.state.value.active
+        now += LATER_MS
+
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+
+        assertThat(starter.activeIn(TimerSlot.BREW_2)).isNotNull()
+        assertThat(vm.state.value.active).isEqualTo(card)
+        assertThat(vm.state.value.twoTimersActive).isFalse()
+
+        vm.handOff.startLeft()
+
+        assertThat(vm.state.value.twoTimersActive).isTrue()
+    }
+
+    @Test
+    fun `the hold begins before the start and a refused start releases it at once (D-111)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        lateinit var vm: HomeViewModel
+        val heldDuringStart = mutableListOf<Boolean>()
+        val watching = object : BrewStarter by starter {
+            override suspend fun startSession(request: BrewStart): TransitionOutcome {
+                heldDuringStart += vm.handOff.handingOff.value
+                return starter.startSession(request)
+            }
+        }
+        vm = viewModel(watching)
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        vm.events.first()
+        vm.handOff.startLeft()
+        now += LATER_MS
+
+        // The tea's own session: refused, the timer opens, nothing is held.
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(heldDuringStart).containsExactly(true, true).inOrder()
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        assertThat(vm.handOff.handingOff.value).isFalse()
+        assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+    }
+
+    @Test
+    fun `an ignored start holds nothing (D-111)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val ignoring = object : BrewStarter by starter {
+            override suspend fun startSession(request: BrewStart) = TransitionOutcome.Ignored
+        }
+        val vm = viewModel(ignoring)
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        assertThat(vm.handOff.handingOff.value).isFalse()
+    }
+
+    @Test
+    fun `the question is never held - it shows at once with Start as it is (TMR-21, D-111)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
+        starter.state.value = FakeBrewStarter.quickRunningState(90)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        now += LATER_MS
+
+        // The first start is still held (the timer never covered Start); the third start asks.
+        vm.brewAgain(SeedData.TANABATA_TEA_ID)
+
+        assertThat(vm.state.value.question).isNotNull()
+        assertThat(vm.handOff.handingOff.value).isFalse()
+        assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.state.value.twoTimersActive).isTrue()
+    }
+
+    @Test
+    fun `a new alert releases the hold (rule 8, D-111)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        assertThat(vm.handOff.handingOff.value).isTrue()
+        val active = starter.state.value as TimerUiState.Active
+
+        starter.state.value = active.copy(phase = TimerPhase.ALERTING, deadlineElapsedMs = 1, deadlineWallMs = 1)
+
+        assertThat(vm.handOff.handingOff.value).isFalse()
+        assertThat(vm.state.value.alertKey).isNotNull()
+        assertThat(vm.state.value.active?.phase).isEqualTo(TimerPhase.ALERTING)
+    }
+
+    @Test
+    fun `the hold ends by itself after about a second if the timer never opens (D-111)`() = runTest {
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+
+        advanceTimeBy(HOLD_ALMOST_MS)
+        assertThat(vm.state.value.active).isNull()
+
+        advanceTimeBy(HOLD_REST_MS)
+        assertThat(vm.handOff.handingOff.value).isFalse()
+        assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
+    }
+
+    @Test
     fun `the banner follows the checks when read again, and Beheben asks for the missing one (TMR-31)`() {
         val vm = viewModel()
         assertThat(vm.state.value.reliabilityProblem).isNull()
@@ -643,5 +834,9 @@ class HomeViewModelTest {
         /** A deliberate later tap, past the double-tap window. */
         const val LATER_MS = 5_000L
         const val KAMAIRICHA_TEA_ID = "kamairicha"
+
+        /** Just short of the hold's timeout, and the rest past it (D-111). */
+        const val HOLD_ALMOST_MS = 990L
+        const val HOLD_REST_MS = 20L
     }
 }

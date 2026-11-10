@@ -120,7 +120,7 @@ class BrewAgainOnControllerTest {
         teas.saveTea(hisui)
         brewOnce(hisui.id, hisui.name)
         val start = startViewModel()
-        assertThat(settled(start).brewAgain.map { it.id }).containsExactly(hisui.id)
+        assertThat(settled(start).recent.map { it.teaId }).containsExactly(hisui.id)
 
         start.brewAgain(hisui.id)
         withTimeout(TIMEOUT_MS) {
@@ -194,7 +194,7 @@ class BrewAgainOnControllerTest {
 
     /** Start's state once the repositories have answered. */
     private suspend fun settled(start: HomeViewModel) = withTimeout(TIMEOUT_MS) {
-        while (start.state.value.loading || start.state.value.brewAgain.isEmpty()) {
+        while (start.state.value.loading || start.state.value.recent.isEmpty()) {
             shadowOf(Looper.getMainLooper()).idle()
             delay(POLL_MS)
         }
