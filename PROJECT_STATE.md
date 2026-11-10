@@ -19,15 +19,16 @@ a sans in place of the serif font).
   it. It ships as **v0.5.1 before M4**.
 - **Tickets: done.** Spec issue #212, tickets #213–#218; plan
   `docs/plans/v0.5.1.md` (tiers, order, the draft question).
-- **Next:** the PO decides about the draft and starts
+- **Next:** the PO approves the tickets and starts
   `/implement-spec #212` (delegation by tier; CLAUDE.md rule 1), ideally
   in a fresh session (12 §5.1; Opus `medium` or Sonnet is enough for these
   tickets). Nothing is built before that.
 - **Branch `claude/modest-ptolemy-86vgji` holds an unapproved code draft**
   (in the WIP commit `75e4198b`): Claude implemented all four points
   without the process. Its behaviour matches the PO's later answers, but it
-  was not delegated, not reviewed, and its goldens are not re-recorded. The
-  PO decides whether the implementers start from it or from `main`'s code.
+  was not delegated, not reviewed, and its goldens are not re-recorded. **The
+  PO decided (2026-11-10): the implementers start from it**, review it
+  against their ticket and complete tests and goldens.
   The version is back at `0.5.0`.
 - No PR, no release. Font comparison render: shown to the PO in the session
   (not in the repository).
