@@ -5,33 +5,52 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1 is specified (D-110) and waits for the PO's go on its tickets** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1 is built (D-110; tickets #213–#216 on draft PR #219); the review and fix round is next** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): specified, waiting for the PO's go on the tickets
+## Feedback round v0.5.1 (in progress): built, the review and fix round is next
 
-The PO gave four points of feedback on v0.5.0 on 2026-11-10 (Start's two
+The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
-a sans in place of the serif font).
+a sans in place of the serif font. Spec issue #212, plan
+`docs/plans/v0.5.1.md`, draft milestone PR **#219** from
+`claude/wonderful-davinci-fu8tqi`.
 
-- **Grilling: done** (Q1–Q13, 2026-11-10). **To-spec: done**: D-110 holds
-  the PO's answers, with Claude's unasked details marked as such; 02 BRW-11,
-  03 (§1, §3.2, SCR-02, SCR-09, SCR-19), 09 (§2, §4 v0.5.1) and 11 follow
-  it. It ships as **v0.5.1 before M4**.
-- **Tickets: done.** Spec issue #212, tickets #213–#218; plan
-  `docs/plans/v0.5.1.md` (tiers, order, the draft question).
-- **Next:** the PO approves the tickets and starts
-  `/implement-spec #212` (delegation by tier; CLAUDE.md rule 1), ideally
-  in a fresh session (12 §5.1; Opus `medium` or Sonnet is enough for these
-  tickets). Nothing is built before that.
-- **Branch `claude/modest-ptolemy-86vgji` holds an unapproved code draft**
-  (in the WIP commit `75e4198b`): Claude implemented all four points
-  without the process. Its behaviour matches the PO's later answers, but it
-  was not delegated, not reviewed, and its goldens are not re-recorded. **The
-  PO decided (2026-11-10): the implementers start from it**, review it
-  against their ticket and complete tests and goldens.
-  The version is back at `0.5.0`.
-- No PR, no release. Font comparison render: shown to the PO in the session
-  (not in the repository).
+- **Build phase: done** (2026-11-10, started by the PO with
+  `/implement-spec #212`). #213–#216 are merged into the PR branch (head
+  `ba89af29` before this handover). Each implementer started from the draft
+  `75e4198b` and reviewed its part; the full local gate passed on the merged
+  branch (spotlessCheck, detekt, checkManifestPermissions, testDebugUnitTest,
+  lint, verifyRoborazziDebug, assembleDebugAndroidTest).
+  - #213 (T2): the draft stood; a test for the row's tap and its TalkBack
+    label was added.
+  - #214 (T2): the global value is drawn by a `VisualTransformation`, the
+    field's text stays empty (the draft made it the text, which could give
+    „1525").
+  - #215 (T1): with the motion review's S1 (*Fertig* slides the sheet out)
+    and N1 (a hairline under the pinned title while scrolled).
+  - #216 (T2): the draft's fonts, licence and roles stood; all 708 goldens
+    are re-recorded.
+- **Motion review: done** (`docs/plans/v0.5.1-motion-review.md`; S1 and N1
+  are built).
+- **Next phase (fresh session, Opus `medium`): the review and fix round**
+  (#217, first part):
+  1. One T3 milestone review of `main...HEAD` (standards and spec). No T4
+     review: no timer code changed.
+  2. Known inputs for the fix brief:
+     - motion review N2: `key(brew.teaId)` around Start's rows
+       (`HomeScreen.kt`);
+     - 03 §3.2 lists the features `calt` and `ccmp`; the bundled subset has
+       `case`, `liga`, `lnum`, `locl`, `onum`, `pnum`, `tnum`, `kern`
+       (upstream has no `calt`): correct the spec text;
+     - #214: the quieter colour is checked only by the goldens;
+     - D-110 has no build notes yet (the `VisualTransformation`, S1, N1).
+  3. Check CI on PR #219 (the sessions check CI themselves).
+- **Then (may be Sonnet): the rc** (#217, second part):
+  `umamit.version=0.5.1-rc.1`, renders in `docs/design/review/v0.5.1/`,
+  dispatch `release.yml` from the PR branch, the PO's checklist (09 §4
+  „v0.5.1"). **Then** #218 after the PO's approval (accuracy run first).
+- The branch `claude/modest-ptolemy-86vgji` is contained in the PR branch
+  and no longer needed.
 
 ## Phase
 
@@ -39,9 +58,9 @@ a sans in place of the serif font).
 |---|---|
 | Current milestone | **M4 → v0.6.0** (Journal & statistics, 09 §M4): not yet specified or planned. v0.5.0 is done: [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) from `main` `db2ba2b3` |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/modest-ptolemy-86vgji` (from `main`; holds the unapproved v0.5.1 draft, see above) |
+| Working branch | `claude/wonderful-davinci-fu8tqi` (draft PR #219; contains `claude/modest-ptolemy-86vgji`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
-| Open PR | none |
+| Open PR | **#219** (draft): v0.5.1 milestone PR |
 | Latest APK | [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
 | Decision numbers | Up to **D-110** used; the next free is **D-111** |
 
