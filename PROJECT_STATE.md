@@ -17,9 +17,12 @@ a sans in place of the serif font).
   the PO's answers, with Claude's unasked details marked as such; 02 BRW-11,
   03 (§1, §3.2, SCR-02, SCR-09, SCR-19), 09 (§2, §4 v0.5.1) and 11 follow
   it. It ships as **v0.5.1 before M4**.
-- **Next:** the spec issue and tickets, then the PO starts
-  `/implement-spec` (delegation by tier; CLAUDE.md rule 1). Nothing is
-  built before that.
+- **Tickets: done.** Spec issue #212, tickets #213–#218; plan
+  `docs/plans/v0.5.1.md` (tiers, order, the draft question).
+- **Next:** the PO decides about the draft and starts
+  `/implement-spec #212` (delegation by tier; CLAUDE.md rule 1), ideally
+  in a fresh session (12 §5.1; Opus `medium` or Sonnet is enough for these
+  tickets). Nothing is built before that.
 - **Branch `claude/modest-ptolemy-86vgji` holds an unapproved code draft**
   (in the WIP commit `75e4198b`): Claude implemented all four points
   without the process. Its behaviour matches the PO's later answers, but it
