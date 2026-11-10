@@ -31,8 +31,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.Tea
@@ -40,11 +44,10 @@ import com.umamit.feature.collection.R
 
 /**
  * *Warnung* (one row, one switch: TalkBack reads „Warnung", its detail and its state) and *Knapp ab*: the tea's own
- * threshold in whole grams, empty for SET-16's, which the field then shows as its value (D-110) and its hint names.
- * The input is written when it is done
- * (*Fertig*, the field losing focus or the detail closing), and only a valid one (empty, or 1–500 g); anything else
- * says so at the field and keeps the stored value (D-108). Both stay while the
- * warning is off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
+ * threshold in whole grams, empty for SET-16's, which the field then shows (D-110) and its hint names. The input is
+ * written when it is done (*Fertig*, the field losing focus or the detail closing), and only a valid one (empty, or
+ * 1–500 g); anything else says so at the field and keeps the stored value (D-108). Both stay while the warning is
+ * off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
  */
 @Composable
 internal fun StockWarning(tea: TeaDetail, onWarning: (Boolean) -> Unit, onThreshold: (grams: Int?) -> Unit) {
@@ -99,7 +102,7 @@ private fun WarningRow(on: Boolean, onWarning: (Boolean) -> Unit) {
  * *Knapp ab*: whole grams, written once the input is done and only when valid, so „12" never stores „1" on the way
  * and a final „600" keeps the stored value, not the „60" typed before it (D-108); anything else said at the field.
  * The field always shows the value in effect (D-110): without one of the tea's own, SET-16's in the quieter
- * colour while the field is not being edited; in the field it is the greyed placeholder, as before.
+ * colour while the field is not focused; focused, it is empty with the greyed placeholder, as before.
  */
 @Composable
 private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
@@ -124,7 +127,7 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     }
     DisposableEffect(Unit) { onDispose { commit() } }
     OutlinedTextField(
-        value = if (showsGlobal) tea.globalLowStockGrams.toString() else text,
+        value = text,
         onValueChange = { typed ->
             val digits = typed.filter(Char::isDigit).take(THRESHOLD_DIGITS)
             if (digits != text) {
@@ -154,6 +157,13 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         },
         isError = invalid,
         singleLine = true,
+        visualTransformation = if (showsGlobal) {
+            ShowsGlobal(
+                tea.globalLowStockGrams.toString(),
+            )
+        } else {
+            VisualTransformation.None
+        },
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedTextColor = with(MaterialTheme.colorScheme) { if (showsGlobal) onSurfaceVariant else onSurface },
         ),
@@ -164,6 +174,21 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
                 focus.clearFocus()
             },
         ),
+    )
+}
+
+/**
+ * Shows SET-16's value in an empty, unfocused field without ever making it the field's text: the input stays what was
+ * typed, so „25" is never „1525" (D-110).
+ */
+private class ShowsGlobal(private val shown: String) : VisualTransformation {
+    override fun filter(text: AnnotatedString) = TransformedText(
+        AnnotatedString(shown),
+        object : OffsetMapping {
+            override fun originalToTransformed(offset: Int) = 0
+
+            override fun transformedToOriginal(offset: Int) = 0
+        },
     )
 }
 

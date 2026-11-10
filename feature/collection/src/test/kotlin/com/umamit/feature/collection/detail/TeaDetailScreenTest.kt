@@ -382,19 +382,39 @@ class TeaDetailScreenTest {
         show()
         val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
         compose.onNodeWithText("Vorgabe aus den Einstellungen (15 g)", substring = true).assertExists()
-        // The value in effect shows in the field (D-110), and gives way to the input.
-        field.assert(hasText("15"))
 
         field.performTextInput("25")
-        field.assert(hasText("25"))
         assertThat(calls).isEmpty() // nothing per keystroke: „2" is never written
         field.performImeAction()
         field.performTextClearance()
         field.performImeAction()
 
         assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
-        // *Fertig* left the field: emptied, it shows the global threshold again.
+    }
+
+    @Test
+    fun `Knapp ab shows the value in effect - the global one when empty, only the input while typing`() {
+        show()
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        field.assert(hasText("15")) // empty and not focused: SET-16's value (D-110)
+
+        field.performTextInput("25")
+        field.assert(hasText("25")) // the input alone, never „1525"
+        field.assert(!hasText("1525"))
+        field.performImeAction()
+        field.assert(hasText("25"))
+
+        field.performTextClearance()
+        field.performImeAction() // *Fertig* with nothing typed: the tea's own value is gone
         field.assert(hasText("15"))
+        assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+    }
+
+    @Test
+    fun `Knapp ab shows the tea's own value when it has one, not the global one`() {
+        show(sample().copy(ownLowStockGrams = 20))
+
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo().assert(hasText("20"))
     }
 
     @Test
