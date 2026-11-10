@@ -193,7 +193,9 @@ internal fun UmamitApp(
         select(Tab.Start)
     }
     val reselection = remember { TabReselection() }
-    val activeBrew by activeBrewSource.activeBrew.collectAsStateWithLifecycle()
+    val brewBarHold = remember { BrewBarHold() }
+    // While Start hands off to the timer, a bar not shown before stays away (D-111).
+    val activeBrew = heldBar(activeBrewSource.activeBrew.collectAsStateWithLifecycle().value, brewBarHold.held)
     val alongside by activeBrewSource.alongside.collectAsStateWithLifecycle()
     val barSlots by activeBrewSource.barSlots.collectAsStateWithLifecycle()
     val resolvedLayout = layoutType
@@ -355,6 +357,7 @@ internal fun UmamitApp(
                                         },
                                         pickerReturn = brewFlow.pickerReturn,
                                         onPickerReturned = brewFlow::pickerReturned,
+                                        brewBarHold = brewBarHold,
                                     ),
                                 )
                             },

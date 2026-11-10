@@ -1,10 +1,17 @@
 package com.umamit.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.umamit.core.designsystem.component.ActiveBrew
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.ui.rememberAlertGate
 import com.umamit.feature.brew.picker.TeaPickerHost
@@ -38,6 +45,7 @@ internal class StartNavigation(
  *   or repurchase then opens the setup of that tea (D-073, D-088).
  * @property pickerReturn the picker flow was left without a save: Start opens the picker again,
  *   unless an alert plays ([onPickerReturned] confirms it was seen).
+ * @property brewBarHold where Start tells the shell that it hands off to the timer (D-111).
  */
 internal class StartTab(
     val openSettings: () -> Unit,
@@ -49,7 +57,34 @@ internal class StartTab(
     val openCatalogForBrew: () -> Unit = {},
     val pickerReturn: Boolean = false,
     val onPickerReturned: () -> Unit = {},
+    val brewBarHold: BrewBarHold = BrewBarHold(),
 )
+
+/**
+ * Start's hand-off to the timer, for the shell (D-111): while Start holds still after *Nochmal brühen*, the active
+ * brew bar does not grow in. The Start tab sets [source] to its view model's snapshot state, so the shell reads it
+ * in the frame the new brew arrives.
+ */
+internal class BrewBarHold {
+    var source: State<Boolean>? by mutableStateOf(null)
+
+    /** Start holds still now. */
+    val held: Boolean get() = source?.value == true
+}
+
+/**
+ * The bar's brew while Start hands off to the timer (D-111): [held], a bar that was not shown stays away, so it does
+ * not grow in under the timer's fade; one already shown stays live. Released, it is [brew] again.
+ */
+@Composable
+internal fun heldBar(brew: ActiveBrew?, held: Boolean): ActiveBrew? {
+    val shown = remember { BarShown(brew != null) }
+    SideEffect { if (!held) shown.value = brew != null }
+    return brew.takeIf { !held || shown.value }
+}
+
+/** Whether the bar was shown in the last frame without a hold. */
+private class BarShown(var value: Boolean)
 
 /**
  * Start with its view model and the tea picker (SCR-02, SCR-03): the app's Start tab. Tests pass
@@ -71,6 +106,11 @@ internal fun StartTabContent(
             currentOnPickerReturned()
             if (tab.alertKey == null) picker.open()
         }
+    }
+    val hold = tab.brewBarHold
+    DisposableEffect(hold, homeViewModel) {
+        hold.source = homeViewModel.handOff.handingOff
+        onDispose { hold.source = null }
     }
     HomeRoute(
         actions = HomeActions(

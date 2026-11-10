@@ -360,6 +360,24 @@ what they saw.
 - Not part of this: the same hand-off from the setup, the picker or the
   Journal, which leave from other screens.
 
+**Build notes (Claude, 2026-11-10, #220).**
+- The hold lives in `StartHandOff`, owned by `HomeViewModel`: it is set just
+  before the start (the start itself is not delayed) and applied last on `HomeUiState`, reading
+  the hold as it is now, so no emission from the start on shows the new
+  card. Only `active` and `twoTimersActive` are held; the alert, the
+  question, the recent rows and the rest stay live.
+- Released at once by a start that is not accepted (refused, ignored, the
+  question, a failure) and by a new alert; otherwise when `HomeRoute` leaves
+  the composition (the timer route's fade has finished, or another tab
+  shows) or after 1 s.
+- The answer of „Welchen Timer beenden?" holds the same way: it is also a
+  *Nochmal brühen* from Start that opens the timer.
+- The shell learns of it through `StartTab.brewBarHold`: the Start tab hands
+  it the hand-off's `handingOff` snapshot state, which is written on the
+  tap's thread before the start, so the bar reads it in the frame the new
+  brew arrives. While held, a bar that was not shown stays away; a bar
+  already shown stays live (a second timer only splits it, it does not grow).
+
 ### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists, and D-096's Start note) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
 
 **Context.** After v0.5.0 the PO gave four points of feedback: Start's

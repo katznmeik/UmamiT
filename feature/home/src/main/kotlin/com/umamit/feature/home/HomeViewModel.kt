@@ -127,6 +127,12 @@ class HomeViewModel @Inject constructor(
     private val lowStock: LowStockRepository,
 ) : ViewModel() {
     private val pending = MutableStateFlow<Pending?>(null)
+
+    /**
+     * Start holds still while *Nochmal brühen* opens the timer (D-111); its route calls [StartHandOff.startLeft] when
+     * Start leaves the screen, and the shell's bar reads [StartHandOff.handingOff].
+     */
+    val handOff = StartHandOff(viewModelScope)
     private val reliabilityProblem = MutableStateFlow(reliability.problem())
     private val navigation = Channel<HomeEvent>(Channel.BUFFERED)
 
@@ -174,6 +180,9 @@ class HomeViewModel @Inject constructor(
     ) { home, card ->
         // A plain card of the list (rule 8: never over an alert); only with teas to remind of.
         home.copy(lowStock = card.takeUnless { home.collectionEmpty })
+    }.combine(handOff.changes) { home, _ ->
+        // The alert, the question and the rest stay live (rule 8).
+        handOff.applyTo(home)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 
     init {
@@ -181,6 +190,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             starter.state.collect { timer ->
                 val alert = timer.alertKey()
+                handOff.alertChanged(alert)
                 pending.update { it?.takeUnless { p -> alertCovers(alert, p.openedIn) } }
             }
         }
@@ -226,7 +236,11 @@ class HomeViewModel @Inject constructor(
                     .firstOrNull { it.snapshot.teaId == teaId } ?: return@launch
                 val request = brewAgainStart(last)
                 val before = starter.activeSessionIds()
-                handle(starter.startSession(request), request, before)
+                // Start holds still while the timer opens (D-111).
+                val outcome = handOff.holdingStill(state.value, starter.state.value.alertKey()) {
+                    starter.startSession(request)
+                }
+                handle(outcome, request, before)
             } finally {
                 starting = false
             }
@@ -246,7 +260,9 @@ class HomeViewModel @Inject constructor(
         pending.value = null
         viewModelScope.launch {
             val before = starter.activeSessionIds()
-            val outcome = starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
+            val outcome = handOff.holdingStill(state.value, starter.state.value.alertKey()) {
+                starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
+            }
             handle(outcome, asked.request, before)
         }
     }

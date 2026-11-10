@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,7 +23,8 @@ import com.umamit.core.timer.reliability.startFirstIntent
  * Start (SCR-02) with its view model. *Nochmal brühen* opens the timer once
  * the session waits in READY ([onOpenTimer]); the other taps go to the host
  * through [actions], whose *Nochmal brühen* and question callbacks the route
- * replaces with the view model's.
+ * replaces with the view model's. From an accepted *Nochmal brühen* until Start leaves the screen it holds
+ * still ([HomeViewModel.handOff], D-111).
  */
 @Composable
 fun HomeRoute(
@@ -39,6 +41,10 @@ fun HomeRoute(
     LifecycleResumeEffect(viewModel) {
         viewModel.refreshReliability()
         onPauseOrDispose {}
+    }
+    // Start left the screen (the timer covers it, D-111): the way back shows it as it is.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.handOff.startLeft() }
     }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
