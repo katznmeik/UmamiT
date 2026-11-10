@@ -27,11 +27,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
@@ -114,6 +118,7 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     // No threshold of its own: the global one is the value in effect.
     val showsGlobal = text.isEmpty() && !focused
     val focus = LocalFocusManager.current
+    val transformation = rememberGlobalTransformation(showsGlobal, tea.globalLowStockGrams)
     val commit by rememberUpdatedState {
         if (pending) {
             pending = false
@@ -142,6 +147,7 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
                 focused = it.isFocused
                 if (!it.isFocused) commit()
             }
+            .defaultValueState(showsGlobal)
             .testTag(TEA_DETAIL_STOCK_THRESHOLD_TAG),
         label = { Text(stringResource(R.string.collection_tea_stock_threshold)) },
         placeholder = { Text(tea.globalLowStockGrams.toString()) },
@@ -157,13 +163,7 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         },
         isError = invalid,
         singleLine = true,
-        visualTransformation = if (showsGlobal) {
-            ShowsGlobal(
-                tea.globalLowStockGrams.toString(),
-            )
-        } else {
-            VisualTransformation.None
-        },
+        visualTransformation = transformation,
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedTextColor = with(MaterialTheme.colorScheme) { if (showsGlobal) onSurfaceVariant else onSurface },
         ),
@@ -177,13 +177,28 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     )
 }
 
+/** SET-16's value in the quieter colour while [showsGlobal], else none; allocated once per value and colour. */
+@Composable
+private fun rememberGlobalTransformation(showsGlobal: Boolean, globalGrams: Int): VisualTransformation {
+    val quieter = MaterialTheme.colorScheme.onSurfaceVariant
+    val shown = remember(globalGrams, quieter) { ShowsGlobal(globalGrams.toString(), quieter) }
+    return if (showsGlobal) shown else VisualTransformation.None
+}
+
+/** TalkBack tells the shown default from an own value: the state „Vorgabe" while [showsGlobal] (D-110). */
+@Composable
+private fun Modifier.defaultValueState(showsGlobal: Boolean): Modifier {
+    val state = stringResource(R.string.collection_tea_stock_threshold_default_state)
+    return semantics { if (showsGlobal) stateDescription = state }
+}
+
 /**
  * Shows SET-16's value in an empty, unfocused field without ever making it the field's text: the input stays what was
  * typed, so „25" is never „1525" (D-110).
  */
-private class ShowsGlobal(private val shown: String) : VisualTransformation {
+internal data class ShowsGlobal(private val shown: String, private val colour: Color) : VisualTransformation {
     override fun filter(text: AnnotatedString) = TransformedText(
-        AnnotatedString(shown),
+        AnnotatedString(shown, SpanStyle(color = colour)),
         object : OffsetMapping {
             override fun originalToTransformed(offset: Int) = 0
 

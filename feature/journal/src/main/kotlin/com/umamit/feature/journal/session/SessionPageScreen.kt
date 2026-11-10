@@ -184,7 +184,7 @@ private fun SessionContent(page: SessionPage, actions: SessionPageActions) {
     }
 }
 
-/** The tea's name in the serif, a link to its detail while the tea is in the collection or archived. */
+/** The tea's name in the display font, a link to its detail while the tea is in the collection or archived. */
 @Composable
 private fun TeaHeader(page: SessionPage, onOpenTea: (() -> Unit)?) {
     Column(modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall)) {

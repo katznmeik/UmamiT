@@ -30,7 +30,7 @@ private const val SUBTITLE_ALPHA = 0.8f
 
 /**
  * The primary call to action on Start (03 §3.8): a dark-green card with a leaf,
- * a serif title, an optional subtitle and a chevron. Decorative icons are
+ * a display title, an optional subtitle and a chevron. Decorative icons are
  * silent; TalkBack reads title and subtitle as one button.
  */
 @Composable

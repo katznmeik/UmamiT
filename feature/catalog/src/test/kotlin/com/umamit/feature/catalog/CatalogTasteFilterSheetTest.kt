@@ -99,4 +99,24 @@ class CatalogTasteFilterSheetTest {
         compose.waitForIdle()
         assertThat(dismissed).isEqualTo(1)
     }
+
+    @Test
+    fun fertigSlidesTheSheetOutAndDismissesOnceWithMotionOn() {
+        var dismissed = 0
+        compose.setContent {
+            UmamiTheme(reduceMotion = false) {
+                CatalogFilterSheet(
+                    filter = CatalogFilter(),
+                    listing = CatalogBrowser.listing(teas, CatalogFilter(), null, null),
+                    onFilterChange = {},
+                    onDismissRequest = { dismissed++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Fertig").performClick()
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        assertThat(dismissed).isEqualTo(1)
+    }
 }

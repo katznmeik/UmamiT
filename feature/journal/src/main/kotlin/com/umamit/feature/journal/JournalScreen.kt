@@ -113,7 +113,7 @@ private fun Group(
     }
 }
 
-/** A row as in mockup v2: round photo, serif tea name with the time of day on the right, the meta line. */
+/** A row as in mockup v2: round photo, display-font tea name with the time of day on the right, the meta line. */
 @Composable
 private fun JournalRow(
     entry: JournalEntry,
