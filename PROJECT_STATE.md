@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-09. `v0.4.1` is released; M3 is done. **v0.5.0** (PO feedback after v0.4.1, [D-108](docs/specs/10-open-questions-and-decisions.md#d-108), spec [#194](https://github.com/katznmeik/UmamiT/issues/194)) is built on PR [#210](https://github.com/katznmeik/UmamiT/pull/210): tickets #196–#206 done, reviews and two fix rounds done, D-109 decided. **[`v0.5.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0-rc.1) is out** (from `e53cc2b0`, CI green, all three accuracy variants PASS). **Waiting on the PO:** the on-device checklist (#207) and the design review (`docs/design/review/v0.5.0/`). Next phase: a fix round and `-rc.2` on findings, or #208 (final) on the PO's explicit approval.
+**Last updated:** 2026-11-09. `v0.4.1` is released; M3 is done. **v0.5.0** (PO feedback after v0.4.1, [D-108](docs/specs/10-open-questions-and-decisions.md#d-108), spec [#194](https://github.com/katznmeik/UmamiT/issues/194)) is built on PR [#210](https://github.com/katznmeik/UmamiT/pull/210): tickets #196–#206 done, reviews and two fix rounds done, D-109 decided. **[`v0.5.0-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0-rc.1) is out** (from `e53cc2b0`, CI green, all three accuracy variants PASS). **The PO approved rc.1** (checklist and design review, 2026-11-10); #208 runs: `0.5.0` (50099) → merge #210 → accuracy on `main` → `v0.5.0` from `main`.
 
 ## Phase
 

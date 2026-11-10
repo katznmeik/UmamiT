@@ -11,6 +11,11 @@
 
 ## Releases and plans
 
+### v0.5.0: approved, final (2026-11-10)
+
+- **PO (in the session, 2026-11-10):** „All tests passed, no feedback so far, please release": every rc.1 checklist item on #207 passed; that is the approval of the checklist and the design review (rule 9).
+- **#208:** `umamit.version=0.5.0` (versionCode 50099) on the branch → CI green → merge PR #210 into `main` with a merge commit → all three accuracy variants on the merge commit (09 §4a) → `v0.5.0` from `main` → close #194 and #196–#208, restart the branch from `main`.
+
 ### v0.5.0: rc.1 out (2026-11-09)
 
 - **Build:** the PO's `/implement-spec #194`; tickets #196–#206 built on PR #210 by implementer subagents at the tiers in `docs/plans/v0.5.0.md`, each verified by the orchestrator (full local gate, diff, CI). One test fix: `ProcessDeathTest` now expects the dormant `BREW_2 IDLE` line.
