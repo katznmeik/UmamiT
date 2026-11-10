@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1) is out (D-110; draft PR #219); waiting on the PO's checklist and design review** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) is out (D-110, D-111; draft PR #219); waiting on the PO's check of the Start hand-off and the explicit approval** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): rc.1 out, waiting on the PO
+## Feedback round v0.5.1 (in progress): rc.2 out, waiting on the PO
 
 The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
@@ -59,10 +59,36 @@ a sans in place of the serif font. Spec issue #212, plan
     (APK SHA-256 `645a6184…0e6d`), certificate `a500e2c6…2f67` =
     `signing/release-cert-sha256.txt`.
   - PR #219's body and #217 are updated; the PR stays in draft.
-- **Waiting on the PO:** install `v0.5.1-rc.1` over `v0.5.0`, go through
-  the checklist (09 §4 „v0.5.1", also in PR #219), judge the font on the
-  phone and the design review (`docs/design/review/v0.5.1/`). Approval in a
-  session or as a PR comment; feedback goes through the process (rule 1).
+- **Feedback on rc.1 and fix round: done** (2026-11-10; D-111, #220).
+  - The PO: the one list on Start looks good, but a tap on a *Zuletzt
+    gebrüht* row shows a different screen for a split second before the
+    timer. Diagnosis (confirmed by the PO): Start rearranges with the new
+    brew (card, bar) under the timer route's fade. The PO chose „Start
+    holds still" and gave the go for the fix round and rc.2.
+  - Specs in `0a092ce4`: D-111, 03 SCR-02, 09 §4 „v0.5.1" (last point).
+  - Built at T3 (Opus `medium`) in `debc7351`, reviewed through two lenses
+    (rule 8 at T3, spec at T2; no must-fix, two should-fix on test
+    strength), review fixes in `bee40f17`. New: `StartHandOff`
+    (`feature:home`), `BrewBarHold`/`heldBar` (`app`), tests in
+    `HomeViewModelTest` and `BrewAgainHandOffTest`. No timer code, no
+    route transition and no golden changed.
+  - Claude's details, not put to the PO (D-111 build notes): the answer to
+    „Welchen Timer beenden?" holds Start the same way; a bar already shown
+    stays live while held.
+  - The full local gate passed on `cd19b70a`.
+- **rc.2: done** (2026-11-10).
+  - Commit `cd19b70a`: `umamit.version=0.5.1-rc.2` (versionCode 50102).
+    CI green (run 42874910092).
+  - Release run 42878477934: pre-release
+    [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2)
+    (APK SHA-256 `aee6a142…9402`), certificate `a500e2c6…2f67` =
+    `signing/release-cert-sha256.txt`.
+- **Waiting on the PO:** rc.1's checklist points are ticked in PR #219.
+  Open: install `v0.5.1-rc.2` over rc.1 and check the last point of 09 §4
+  „v0.5.1" (a row tap fades straight into the timer; back on Start the
+  card and the bar are there), the design review
+  (`docs/design/review/v0.5.1/`) and the explicit approval, in a session or
+  as a PR comment. Feedback goes through the process (rule 1).
 - **Next phase after the PO's explicit approval (fresh session, Sonnet
   `medium`): #218.** Accuracy run first (09 §4a); `umamit.version=0.5.1`;
   CI green; PR out of draft and merged with a merge commit; final `v0.5.1`
@@ -81,7 +107,7 @@ a sans in place of the serif font. Spec issue #212, plan
 | Working branch | `claude/wonderful-davinci-fu8tqi` (draft PR #219; contains `claude/modest-ptolemy-86vgji`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **#219** (draft): v0.5.1 milestone PR |
-| Latest APK | rc [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1) (pre-release, 50101, from `06cf4ea8`, certificate verified); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
+| Latest APK | rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) (pre-release, 50102, from `cd19b70a`, certificate verified); rc `v0.5.1-rc.1` (50101); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
 | Decision numbers | Up to **D-111** used; the next free is **D-112** |
 
 ## Working agreements in effect
@@ -97,7 +123,7 @@ a sans in place of the serif font. Spec issue #212, plan
 
 ## Waiting on the PO
 
-0. **v0.5.1-rc.1:** the on-device checklist (09 §4 „v0.5.1") and the design review, then the explicit approval (above).
+0. **v0.5.1-rc.2:** the check of the Start hand-off (09 §4 „v0.5.1", last point) and the design review, then the explicit approval (above).
 1. **M4 → v0.6.0:** nothing blocking; the next step is specifying M4 (e.g. `/to-spec`) when the PO wants to start.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
