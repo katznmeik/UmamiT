@@ -11,6 +11,13 @@
 
 ## Releases and plans
 
+### v0.5.0: released (2026-11-10)
+
+- PR #210 merged into `main` with a merge commit (`db2ba2b3`); CI green on the branch tip `9ab3c689` and on `main`'s merge commit (run 42773576913).
+- **Accuracy on `db2ba2b3` (09 §4a, API 36, 50 steps), all PASS:** standard (pre-alert p95 65 / max 154 ms, alert 25 / 225 ms; run 42773655399); alongside (brew pre-alert 19 / 350, alert 39 / 40 ms; quick timer pre-alert 13 / 313, alert 25 / 248 ms; run 42773594216); two-brews (brew 1 pre-alert 36 / 167, alert 14 / 31 ms; brew 2 pre-alert 12 / 53 ms; brew 2's held alert held 7979 / 8039 ms, release → sound p95 10 / max 14 ms, not gated; run 42773597724). The first standard dispatch failed to reach GitHub and was sent again.
+- **Release:** run 42781616158, [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) from `main` `db2ba2b3` (versionCode 50099, APK SHA-256 `1a91bdb6…89bd`), certificate `a500e2c6…2f67` = `signing/release-cert-sha256.txt`, marked latest.
+- #194, #196–#208 closed (by the merge). Working branch restarted from `main`.
+
 ### v0.5.0: approved, final (2026-11-10)
 
 - **PO (in the session, 2026-11-10):** „All tests passed, no feedback so far, please release": every rc.1 checklist item on #207 passed; that is the approval of the checklist and the design review (rule 9).
@@ -295,6 +302,7 @@ ticket) and a T4 review of the whole slice were applied (D-046 … D-055).
 
 | Topic | Agreed |
 |---|---|
+| 2026-11-10 | **v0.5.0 done:** PO approved rc.1 (checklist and design review); #210 merged (`db2ba2b3`), all three accuracy variants PASS on `main`, `v0.5.0` released (versionCode 50099, certificate verified); #194, #196–#208 closed. Next: M4 → v0.6.0. |
 | 2026-11-09 | **v0.5.0 built, rc.1 out:** `/implement-spec #194`, tickets #196–#206 on PR #210; T3/T4/motion reviews and two fix rounds; D-109 (held alarm rings once the other stops sounding). `0.5.0-rc.1` (`e53cc2b0`): CI green, all three accuracy variants PASS, pre-release published, checklist on #207. Next: the PO's checklist and design review. |
 | Start | 2026-10-22 09:05 Europe/Berlin via a scheduled task in session `session_01TEa8Scj1c19uHy7ruNYZYJ`; `/implement-spec` on spec #6 (tickets #8–#17) |
 | Parallelism | At most **2** implementer subagents at a time |
