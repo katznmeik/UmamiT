@@ -518,10 +518,9 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
         }
     }
 
-    /** The filter sheet over the list, at font scale 1.0 only. */
+    /** The filter sheet over the list; the title wraps at font scale 2.0 and *Fertig* stays whole (D-110). */
     @Test
     fun filterSheet() {
-        assumeTrue(fontScale == 1f)
         capture("filterSheet") {
             val state = listState(filter = CatalogFilter(types = setOf("Gyokuro"), minUmami = UmamiLevel.HIGH))
             CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
