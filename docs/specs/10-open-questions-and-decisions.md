@@ -324,7 +324,7 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-110"></a>
-### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
+### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists, and D-096's Start note) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
 
 **Context.** After v0.5.0 the PO gave four points of feedback: Start's
 *Nochmal brühen* and *Zuletzt gebrüht* do nearly the same and should be one
@@ -387,6 +387,18 @@ never a go.
 - Every screenshot golden is re-recorded for the font. The mockups
   (`docs/design/mockup-v2-*`) still show the serif and the two Start
   sections; 03 §1's review notes say which wins.
+
+**Build notes (v0.5.1, #213–#217; Claude).**
+- #214: the global value in *Knapp ab* is drawn by a `VisualTransformation`
+  over an empty field; as the field's text it could mix with typing
+  („1525"). TalkBack reads the state „Vorgabe" while it is shown.
+- #215, motion review: S1, *Fertig* slides the sheet out and dismisses it
+  only once it is hidden (reduce motion dismisses directly); N1, a hairline
+  under the pinned title while the groups are scrolled.
+- #213: Start's rows are keyed by tea (N2).
+- #216: the bundled Alegreya Sans feature list (`case`, `liga`, `lnum`,
+  `locl`, `onum`, `pnum`, `tnum`, `kern`; 03 §3.2), and all screenshot goldens
+  were re-recorded for the font.
 
 <a id="d-109"></a>
 ### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)
@@ -3135,7 +3147,7 @@ doubt) where it touches them.
   - Undo lasts 8 s, or longer when accessibility recommends it. Closing the
     picker drops the undo.
   - TalkBack's custom action shows only for removable teas.
-  - Start's „Zuletzt gebrüht" keeps the removed tea's photo.
+  - Start's „Zuletzt gebrüht" keeps the removed tea's photo (superseded by D-110 Q6: removed teas leave the list).
 - **Images:** they are in `drawable-nodpi`, picked by the app theme, as for
   A2, A3 and A5. A8 also fills the catalog's other empty states.
 

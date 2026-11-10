@@ -22,7 +22,7 @@ The PO's brand mockup defines the **look and feel**. Its screens are
 | Background | Warm off-white "washi paper" | `background`/`surface` tokens (§3.1) |
 | Primary colour | Deep matcha/olive green (*Start Steeping* card, FAB) | `primary` |
 | Dark surface | Deep forest green-black (timer) | Timer always uses the dark "Steeping" scheme |
-| Display type | Elegant serif for titles and tea names | Serif display font (§3.2) |
+| Display type | Elegant serif for titles and tea names | Display font Alegreya Sans (§3.2, D-110) |
 | Labels | Small, letter-spaced uppercase labels („ZULETZT GEBRÜHT") | `labelOverline` |
 | Imagery | Ink-wash mountains, tea leaves, moody tea photography | Illustrations + Tee-Kontor product photos |
 | Logo | Two-leaf tea sprig | App icon & splash |
@@ -248,8 +248,9 @@ Dynamic colour is off by default (SET-06).
 - **Display font from v0.5.1 (D-110): Alegreya Sans**, a humanist sans with
   a calligraphic stroke, in place of the serif Cormorant Garamond: the PO's
   feedback was that a serif reads badly on the phone's small display. Bundled
-  OFL font, the static Light + Regular + Medium, with the same subset and
-  features as below. Its default figures are proportional old-style too, so
+  OFL font, the static Light + Regular + Medium, with the same Latin subset
+  as below. Its bundled features are `case`, `liga`, `lnum`, `locl`, `onum`,
+  `pnum`, `tnum` and `kern` (upstream has no `calt`; `ccmp` is not kept). Its default figures are proportional old-style too, so
   the styles keep `lnum` and the timer digits `lnum, tnum`. The sizes and
   roles are unchanged; wherever this document says „serif" for a title, the
   display sans is meant.
@@ -573,8 +574,8 @@ sheet and the picker give way and no setup opens during it ([D-088](10-open-ques
 A long press on a tea row opens a small menu with *Archivieren* (until v0.3.0
 „Aus Sammlung entfernen"; with a haptic tick). Choosing it archives the tea
 at once (no dialog), the row leaves the picker and a snackbar reads
-„*Tanabata* archiviert" · *Rückgängig* (restores it in place). The tea leaves *Zuletzt*,
-*Favoriten* and Start's *Nochmal brühen* too; the journal keeps its entries
+„*Tanabata* archiviert" · *Rückgängig* (restores it in place). The tea leaves the picker's *Zuletzt* and
+*Favoriten* and Start's *Zuletzt gebrüht* and *Favoriten* too; the journal keeps its entries
 with name and photo. For the tea of the active brew session the item is
 greyed out with „Erst die Sitzung beenden" (PO, D-093). TalkBack offers the
 same action as a custom action on the row.
@@ -988,7 +989,8 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
     value). The field always shows the value in effect (v0.5.1, D-110):
     the tea's own, or without one SET-16's („15") in the quieter
     on-surface-variant colour; tapped, that gives way to the empty field
-    with the greyed „15". The input is saved when it is done (*Fertig* on the keyboard,
+    with the greyed „15". TalkBack announces the shown global value with
+    the state „Vorgabe", so it tells the default from an own value. The input is saved when it is done (*Fertig* on the keyboard,
     the field losing focus or the detail closing; v0.5.0 review), not per
     keystroke, and only a valid one (empty, or 1–500); the label, card,
     reminder, setup marker and reorder highlight then follow it. Anything

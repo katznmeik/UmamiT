@@ -1,7 +1,6 @@
 package com.umamit.feature.home
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -26,8 +26,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
 import com.umamit.core.designsystem.component.EmptyState
@@ -170,15 +168,18 @@ private fun Lists(state: HomeUiState, actions: HomeActions) = Column(modifier = 
             onShowAll = actions.showJournal,
         )
         state.recent.forEachIndexed { i, brew ->
-            TeaListItem(
-                title = brew.teaName,
-                meta = recentMeta(brew),
-                modifier = Modifier.testTag(homeRecentTag(brew.teaId)),
-                onClick = { actions.brewAgain(brew.teaId) },
-                onClickLabel = brewAgain,
-                thumbnail = rememberPhotoPainter(brew.photoPath),
-                showDivider = i < state.recent.lastIndex,
-            )
+            // Keyed by tea, so a row keeps its state when the list reorders (motion review N2).
+            key(brew.teaId) {
+                TeaListItem(
+                    title = brew.teaName,
+                    meta = recentMeta(brew),
+                    modifier = Modifier.testTag(homeRecentTag(brew.teaId)),
+                    onClick = { actions.brewAgain(brew.teaId) },
+                    onClickLabel = brewAgain,
+                    thumbnail = rememberPhotoPainter(brew.photoPath),
+                    showDivider = i < state.recent.lastIndex,
+                )
+            }
         }
     }
     if (state.favorites.isNotEmpty()) {

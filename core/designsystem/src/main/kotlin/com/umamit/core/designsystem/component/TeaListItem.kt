@@ -46,7 +46,7 @@ private const val PLACEHOLDER_FILL_ALPHA = 0.22f
 private const val TITLE_MAX_LINES = 2
 
 /**
- * A tea row (03 §3.8): 48 dp round thumbnail, serif title, meta line
+ * A tea row (03 §3.8): 48 dp round thumbnail, display title, meta line
  * („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider. Without a
  * [thumbnail], a leaf in the tea type's [placeholderColor] stands in (03 §3.5).
  * TalkBack reads the row as one item; with [onClick] it is a button with a chevron, whose action TalkBack names
@@ -65,6 +65,7 @@ fun TeaListItem(
     meta: String,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
     rating: Float? = null,
     thumbnail: Painter? = null,
     placeholderColor: Color = UmamiTheme.extendedColors.teaTypes.other,
@@ -75,7 +76,6 @@ fun TeaListItem(
     onLongClickLabel: String? = null,
     customActions: List<CustomAccessibilityAction> = emptyList(),
     trailing: (@Composable () -> Unit)? = null,
-    onClickLabel: String? = null,
 ) {
     Column(modifier = modifier) {
         Row(

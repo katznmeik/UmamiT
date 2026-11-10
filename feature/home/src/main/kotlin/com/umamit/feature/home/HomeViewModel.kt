@@ -215,9 +215,9 @@ class HomeViewModel @Inject constructor(
 
     /** *Nochmal brühen* (BRW-11): the tea's last session again, waiting in READY. */
     fun brewAgain(teaId: String) {
-        // A second tap (on this or another tile) while the first start is in flight would only be
+        // A second tap (on this or another row) while the first start is in flight would only be
         // refused and leave a stale TMR-21 question on Start (#54 S6, as D-065 for the quick timer).
-        // A tap on another tile right after a start is the same gesture, not a second brew (#54 S6, D-108).
+        // A tap on another row right after a start is the same gesture, not a second brew (#54 S6, D-108).
         if (starting || startedJustNow) return
         starting = true
         viewModelScope.launch {
@@ -328,7 +328,7 @@ class HomeViewModel @Inject constructor(
         /** Enough recent sessions to find six distinct teas. */
         const val RECENT_SESSIONS_WINDOW = 50
 
-        /** A second tile tap this soon after a start is the same gesture, not a new brew (#54 S6). */
+        /** A second row tap this soon after a start is the same gesture, not a new brew (#54 S6). */
         const val DOUBLE_TAP_WINDOW_MS = 1_000L
 
         const val TAG = "UmamiTHome"

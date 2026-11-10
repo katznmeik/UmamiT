@@ -273,7 +273,7 @@ private fun CheckMark(checked: Boolean) {
 }
 
 /**
- * A tea's row (TEA-08): cover, serif name, secondary name, Sorte, the stock chip, the freshness chip (INV-06) and
+ * A tea's row (TEA-08): cover, display name, secondary name, Sorte, the stock chip, the freshness chip (INV-06) and
  * „Rezept prüfen", the favourite's star; an archived tea ends with *Wiederherstellen*. TalkBack reads the row as
  * one item, the stock as „38 g übrig" / „Knapp, 8 g übrig" / „Leer", the freshness as „Frische: Bald genießen",
  * the star as „Favorit".

@@ -411,6 +411,20 @@ class TeaDetailScreenTest {
     }
 
     @Test
+    fun `Knapp ab tells TalkBack that the shown value is the Vorgabe, only without an own value`() {
+        val hasDefaultState = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Vorgabe")
+        show()
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo().assert(hasDefaultState)
+    }
+
+    @Test
+    fun `Knapp ab has no Vorgabe state with an own value`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
     fun `Knapp ab shows the tea's own value when it has one, not the global one`() {
         show(sample().copy(ownLowStockGrams = 20))
 

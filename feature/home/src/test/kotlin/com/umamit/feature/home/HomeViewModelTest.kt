@@ -310,7 +310,7 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun `a double tap on a tile starts once and leaves no question on Start (S6)`() = runTest {
+    fun `a double tap on a row starts once and leaves no question on Start (S6)`() = runTest {
         seed()
         brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)

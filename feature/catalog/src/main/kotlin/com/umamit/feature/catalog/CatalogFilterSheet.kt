@@ -70,7 +70,10 @@ internal fun CatalogFilterSheet(
     val leave = {
         if (!leaving) {
             leaving = true
-            scope.launch { if (!reduceMotion) sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
+            scope.launch { if (!reduceMotion) sheetState.hide() }.invokeOnCompletion {
+                // Also fires on cancellation: dismiss only once hidden (M3 pattern), else stay usable.
+                if (reduceMotion || !sheetState.isVisible) onDismissRequest() else leaving = false
+            }
         }
     }
     // The hairline under the title row shows that groups scroll under it.

@@ -38,7 +38,7 @@ import com.umamit.core.model.GuideDocument
 import com.umamit.core.model.GuideInline
 
 /**
- * A guide's converted article (SCR-20, 08 §2.7): headings in the serif, paragraphs with bold,
+ * A guide's converted article (SCR-20, 08 §2.7): headings in the display font, paragraphs with bold,
  * italics and links, lists, and the images from local files only (NFR-SEC-04). A link reports
  * its stored target to [onLink]; where it leads is the caller's decision.
  *

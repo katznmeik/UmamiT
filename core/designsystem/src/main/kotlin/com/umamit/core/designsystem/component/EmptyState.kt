@@ -25,7 +25,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiSpacing
 
 /**
- * Calm empty state (03 §3.8, GEN-09): illustration, serif title, body and an
+ * Calm empty state (03 §3.8, GEN-09): illustration, display title, body and an
  * optional button; without a [body] the title stands alone („Kein Tee passt zu
  * deiner Suche."). The illustration is decorative; the default is the
  * placeholder landscape, tinted from the theme so it works in both schemes.
