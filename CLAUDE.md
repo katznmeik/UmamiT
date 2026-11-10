@@ -19,7 +19,11 @@ installed from GitHub Releases, not a store.
 3. Read the spec sections for the task (`docs/specs/README.md` is the index).
 
 At the end of every session (or milestone), update `PROJECT_STATE.md`,
-commit and push.
+commit and push. Whenever the work continues in a new session (the next
+phase, or a phase that stops part-way), end the session's last message with
+the **ready-to-paste prompt for that session**, in a code block: the model
+and effort to pick, the branch and PR, the phase and its steps by pointer
+(`PROJECT_STATE.md`, the plan, the tickets), and where it stops.
 
 ## Hard rules
 

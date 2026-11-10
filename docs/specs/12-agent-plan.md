@@ -222,6 +222,10 @@ A task is never moved to a *lower* tier after it failed.
   release.
   - Each phase ends with a handover: `PROJECT_STATE.md`, plus a resume note
     in `docs/plans/` when a phase stops part-way (as `v0.4.0-resume.md`).
+  - The session's last message to the PO ends with the ready-to-paste
+    prompt for the next session, in a code block: model and effort, branch
+    and PR, the phase and its steps by pointer, and where it stops (PO,
+    2026-11-10).
   - One session never carries a whole milestone. The session that ran M1 to
     v0.4.0 lasted 11 days, and every turn and every CI wake-up re-sent its
     long context.
