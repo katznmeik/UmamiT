@@ -47,6 +47,7 @@ import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.model.AlertLength
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.UserSettings
 import com.umamit.core.timer.alert.AlertSound
 import com.umamit.core.timer.alert.PreAlertSound
@@ -69,13 +70,22 @@ object SettingsTags {
 
     /** SET-29 *Uhrzeit* of the daily low-stock reminder. */
     const val REMINDER_TIME = "SettingsReminderTime"
+    const val REMINDER_INTERVAL = "SettingsReminderInterval"
 
     /** The *Lautstärke* slider (SET-27). */
     const val VOLUME = "SettingsVolume"
 }
 
 /** The dialogs of SCR-25; saveable by name. */
-internal enum class SettingsDialog { Tone, PreAlert, PreAlertSound, AlertLength, LowStock, ReminderTime }
+internal enum class SettingsDialog {
+    Tone,
+    PreAlert,
+    PreAlertSound,
+    AlertLength,
+    LowStock,
+    ReminderInterval,
+    ReminderTime,
+}
 
 /** What the rows of SCR-25 do. */
 class SettingsActions(
@@ -102,8 +112,8 @@ class SettingsActions(
     val setDeductStock: (Boolean) -> Unit = {},
     /** SET-16 „Knapp ab" in g (0–500 in steps of 5). */
     val setLowStock: (Double) -> Unit = {},
-    /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, D-098). */
-    val setLowStockReminder: (Boolean) -> Unit = {},
+    /** SET-28 *Vorrats-Erinnerung*: its interval or *Aus* (INV-11, D-098, D-108). */
+    val setLowStockReminderInterval: (LowStockReminderInterval) -> Unit = {},
     /** SET-29 *Uhrzeit*: the minute of the day, 0…1439. */
     val setLowStockReminderTime: (Int) -> Unit = {},
     /** SET-22 *Katalog: Fotos laden*. */
@@ -181,7 +191,9 @@ fun SettingsRoute(
             setDim = { on -> viewModel.change { it.copy(dimWhileSteeping = on) } },
             setDeductStock = { on -> viewModel.change { it.copy(deductStock = on) } },
             setLowStock = { grams -> viewModel.change { it.copy(lowStockGrams = grams) } },
-            setLowStockReminder = { on -> viewModel.change { it.copy(lowStockReminder = on) } },
+            setLowStockReminderInterval = { interval ->
+                viewModel.change { it.copy(lowStockReminderInterval = interval) }
+            },
             setLowStockReminderTime = { minute -> viewModel.change { it.copy(lowStockReminderTime = minute) } },
             setCatalogPhotos = { on -> viewModel.change { it.copy(catalogDownloadPhotos = on) } },
             testAlert = viewModel::testAlert,
@@ -249,7 +261,7 @@ fun SettingsScreen(
             onClick = { if (!alerting) dialog = SettingsDialog.LowStock },
             modifier = Modifier.testTag(SettingsTags.LOW_STOCK),
         )
-        ReminderRows(settings, actions, openDialog = { if (!alerting) dialog = it })
+        ReminderRows(settings, openDialog = { if (!alerting) dialog = it })
         SectionHeader(title = stringResource(R.string.settings_section_catalog), modifier = Modifier.fillMaxWidth())
         CatalogSection(catalog, onRefresh = actions.refreshCatalog)
         SwitchRow(
@@ -273,33 +285,7 @@ fun SettingsScreen(
             chevron = true,
         )
     }
-    if (!alerting) {
-        when (dialog) {
-            SettingsDialog.Tone -> ToneDialog(settings.alertSound, actions, onDismiss = { dialog = null })
-
-            SettingsDialog.PreAlert -> PreAlertDialog(settings.preAlertSeconds, actions.setPreAlert) { dialog = null }
-
-            SettingsDialog.PreAlertSound -> PreAlertSoundDialog(settings.preAlertSound, actions) { dialog = null }
-
-            SettingsDialog.LowStock -> LowStockDialog(settings.lowStockGrams, actions.setLowStock) { dialog = null }
-
-            SettingsDialog.ReminderTime -> ReminderTimeDialog(
-                minuteOfDay = settings.lowStockReminderTime,
-                onConfirm = { minute ->
-                    actions.setLowStockReminderTime(minute)
-                    dialog = null
-                },
-                onDismiss = { dialog = null },
-            )
-
-            SettingsDialog.AlertLength -> AlertLengthDialog(settings.alertLength, actions.setAlertLength) {
-                dialog =
-                    null
-            }
-
-            null -> Unit
-        }
-    }
+    if (!alerting) SettingsDialogs(dialog, settings, actions, onDismiss = { dialog = null })
 }
 
 /** The *Timer-Zuverlässigkeit* card (SET-24): one row per check, *Beheben* on a missing one. */

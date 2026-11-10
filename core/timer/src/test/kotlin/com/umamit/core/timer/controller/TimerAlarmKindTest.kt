@@ -42,6 +42,21 @@ class TimerAlarmKindTest {
     }
 
     @Test
+    fun `the second brew slot uses 301 to 307 for the same kinds (D-108)`() {
+        val codes = TimerAlarmKind.entries.associate { it.name to it.requestCodeIn(TimerSlot.BREW_2) }
+
+        assertThat(codes).containsExactly(
+            "PRE_ALERT", 301,
+            "DEADLINE", 302,
+            "OVERTIME_TIMEOUT", 303,
+            "IDLE_DEMOTE", 304,
+            "QUICK_CANCEL", 305,
+            "MIDNIGHT", 306,
+            "ALERT_WATCHDOG", 307,
+        )
+    }
+
+    @Test
     fun `no two alarms of the two slots share a request code`() {
         val codes = TimerSlot.entries.flatMap { slot -> TimerAlarmKind.entries.map { it.requestCodeIn(slot) } }
 

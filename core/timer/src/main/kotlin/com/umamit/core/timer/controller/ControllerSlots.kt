@@ -28,8 +28,9 @@ internal class ControllerSlot(val id: TimerSlot, alarms: TimerAlarmPort) {
 }
 
 /**
- * The controller's two slots, the brew slot first: the order of recovery and of due events (04 §3.3, §7.2).
- * From v0.3.0 each admits its own timer (D-098): a brew session and a quick timer run side by side.
+ * The controller's slots in their fixed order (BREW, BREW_2, QUICK): the order of recovery and of due events
+ * (04 §3.3, §7.2). Any two of them hold a timer at once (D-098, D-108): two brew sessions, or a brew session and
+ * the quick timer.
  */
 internal class ControllerSlots(alarms: TimerAlarmPort) : Iterable<ControllerSlot> {
     private val slots = TimerSlot.entries.map { ControllerSlot(it, alarms) }
@@ -38,14 +39,14 @@ internal class ControllerSlots(alarms: TimerAlarmPort) : Iterable<ControllerSlot
 
     override fun iterator(): Iterator<ControllerSlot> = slots.iterator()
 
-    /** The brew slot's engine state. */
-    val brew: TimerState get() = get(TimerSlot.BREW).timer
-
-    /** The quick slot's engine state. */
-    val quick: TimerState get() = get(TimerSlot.QUICK).timer
+    /** Every slot's engine state, for the alert arbitration (04 §9.3). */
+    val states: Map<TimerSlot, TimerState> get() = slots.associate { it.id to it.timer }
 }
 
-/** The slot of a timer of [kind] (04 §3.3): a brew session's or the quick timer's. */
+/**
+ * The first slot of a timer of [kind] (04 §3.3): `BREW` for a brew session, which may also run in `BREW_2`
+ * (D-108), `QUICK` for the quick timer.
+ */
 internal fun slotOf(kind: SessionKind): TimerSlot = when (kind) {
     is SessionKind.Brew -> TimerSlot.BREW
     SessionKind.Quick -> TimerSlot.QUICK

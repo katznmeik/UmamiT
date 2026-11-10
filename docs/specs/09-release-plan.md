@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-11-09 (v0.5.0 inserted before M4, which becomes v0.6.0, D-108; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (the v0.5.0 checklist, D-108, D-109; v0.5.0 inserted before M4, which becomes v0.6.0, D-108; the accuracy variant two-brews, all three per v0.5.0 rc and final, #202; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -46,7 +46,7 @@
 | **v0.3.0** | **Quick timer alongside a brew, long hot steps, feedback on v0.2.2-rc.1** (D-098; spec #124, tickets #125–#139; #122, #123; plan `docs/plans/v0.3.0.md`) | One brew session and one quick timer at once in two controller slots, the brew alarm first with a held quick alert, a row for the other timer on each timer screen and both in the bar, the Live Update for the timer due next (umamit.db v4 with a tested migration); hot steps of 10–59 min with countdown and Vorwarnung (long steps from 60 min); Vorwarnung and alarm on the alarm volume with *Lautstärke* and the „Alarmlautstärke ist aus" check; setup ⋮ *Im Katalog ansehen*; a daily low-stock reminder; foldable *Sorte* groups; stock on READY; two SCR-07 polish items; each rc needs both accuracy variants (§4a) | TMR-18, TMR-21, TMR-22, TMR-23, TMR-31, BRW-02, BRW-11, INV-07, INV-11, CAT-10, SET-24, SET-27–SET-29, SET-31 | v0.3.0 |
 | **v0.4.0** | **Collection (M3), part 1: brewing** (D-100; spec #145; plan `docs/plans/v0.4.0.md`) | *Meine Tees* with in-memory search, *Kategorie*/*Sorte* filters and a remembered sort; tea detail; tea editor and *Ohne Katalog* with *Sorte wählen* (every built-in style); recipe editor (drag, step kinds, several recipes); teaware in *Einstellungen* and *Neues Gefäß …* in the setup (archive only); favourites; *Archivieren* everywhere, *Löschen*, *Wiederherstellen*; setup ⋮ *Tee ansehen*; BRW-08; tappable journal entries and the read-only session page with *So nochmal brühen*; TEA-17 fix; *Bestand abziehen*; the accuracy test's waits. No database migration; the rc carrying the test-wait fix and the final need both accuracy variants (§4a) | TEA-01–TEA-04, TEA-06, TEA-08–TEA-11, TEA-13, TEA-17, STY-01, PRF-01–PRF-04, WARE-01–WARE-04, INV-01, INV-03 (correction on the detail), INV-09, BRW-01, BRW-02, BRW-06, BRW-08, JRN-10 (read-only part), SET-15, SET-30 | v0.4.0 |
 | **v0.4.1** | **Collection (M3), part 2: stock, freshness, cost, photos** (D-100; its own spec after v0.4.0) | Stock history (SCR-29) and *Nachkauf erfassen* for teas not from the catalog; freshness labels, the opened-date snackbar, opened and best-before dates in the editor; price per gram and cost per cup; own photos from the photo picker (up to 10, cover, #58 rotation) for teas and vessels; *Aus Katalog zurücksetzen* (recipes and description) | INV-03, INV-06, INV-08, TEA-05, TEA-02 (dates), WARE-01 (photo), PRF-06, CAT-13 | v0.4.1 |
-| **v0.5.0** | **Feedback on v0.4.1** (D-108; spec and tickets next) | Any two active timers: two brew sessions, or a brew and a quick timer, with the v0.3.0 alarm order, slim row and bar; the catalog loads every tea section of the shop (black, white, oolong, Pu-Erh, Rotbusch, Früchtetee, Chai besides green and Kräutertee) with one category chip at a time and new style rows; per-tea stock warning (on/off, own threshold) and a global reminder interval; a catalog filter by taste notes and taste scales; each rc needs both accuracy variants (§4a) | GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09–INV-11, SET-28, SET-29, NFR-PERF-11 (exact list in the spec) | v0.5.0 |
+| **v0.5.0** | **Feedback on v0.4.1** (D-108; spec and tickets next) | Any two active timers: two brew sessions, or a brew and a quick timer, with the v0.3.0 alarm order, slim row and bar; the catalog loads every tea section of the shop (black, white, oolong, Pu-Erh, Rotbusch, Früchtetee, Chai besides green and Kräutertee) with one category chip at a time and new style rows; per-tea stock warning (on/off, own threshold) and a global reminder interval; a catalog filter by taste notes and taste scales; each rc and the final need all three accuracy variants: standard, alongside, two-brews (§4a, #202) | GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09–INV-11, SET-28, SET-29, NFR-PERF-11 (exact list in the spec) | v0.5.0 |
 | **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.6.0 (was v0.5.0 until D-108) |
 | **M5** | **Data & polish → 1.0** | Device backup verification (rules exist since M1), simple manual export (no in-app restore, D-036), reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log extended to the catalog, final illustrations | BAK-01, BAK-05, BAK-06, SET-*, NFR-* | **v1.0.0** |
 
@@ -269,6 +269,35 @@ with *Ohne Katalog* for the test, deleted at the end.
 - [ ] Editors: *Tee bearbeiten* shows *Geöffnet am* and *Haltbar bis* with date pickers in German format; *Speichern* is visible from the start (greyed while loading).
 - [ ] Delete the test tea: its photos are gone; its journal entries stay.
 
+### v0.5.0 — Two active timers, the whole tea range, per-tea stock warning, flavour filter (D-108, D-109)
+
+v0.5.0 changes timer code throughout, so every `v0.5.0-rc.N` needs a PASS of
+**all three** accuracy variants first (§4a: `standard`, `alongside`, `two-brews`).
+
+**Update and timers**
+- [ ] `v0.5.0-rc.1` installs over `v0.4.1` without losing data (umamit.db v4 → v5): journal, teas, recipes, photos, stock, Merkliste and settings are there; a brew session waiting or steeping during the update still alerts on time, and so does a Schnelltimer; the Vorrats-Erinnerung keeps its on/off as *Täglich* / *Aus*.
+- [ ] Morning case: brew tea A, finish infusion 1 and leave it waiting. From Start (*Nochmal brühen* or a tea's page) start tea B: no question. B's screen shows the slim row „🍃 A · Aufguss 2 bereit"; a tap opens A, back returns. The bar on Start, Journal, Sammlung and Statistik shows both; each half opens its own timer. Later continue A's infusion 2: it continues where it stopped.
+- [ ] Both steeping, screen off: each Vorwarnung and alarm comes on time; the lock screen's Live Update shows the timer that ends next, the other is a quiet notification.
+- [ ] Held alarm (D-109): A's step ends first and rings; don't pour. B's step ends while A still sounds: B waits („wartet" in the bar and row). As soon as A's alarm stops sounding (*Alarmdauer*), B rings with its overtime; A stays „Jetzt abgießen!" silently. Never two sounds at once. *Abgegossen* on A still works afterwards.
+- [ ] Due together: start two short steps a second apart. The one whose deadline came first rings; the other follows as above.
+- [ ] Same tea: with A active, *Nochmal brühen* on A opens A's running session, no second session of A.
+- [ ] Third start: with two timers active, *Aufguss starten* is hidden on Start (PO, D-108 build notes); *Nochmal brühen* on a third tea, the setup's *Start* and Start's *Schnelltimer* ask „Welchen Timer beenden?" with one button per timer and *Abbrechen*. Ending a session logs it with „Sitzung gespeichert" (or discards it without an infusion); the other timer keeps running.
+- [ ] One brew and a Schnelltimer behave as in v0.3.0, except D-109: a Schnelltimer due while the brew alarm rings starts ringing as soon as the brew alarm stops sounding.
+- [ ] Swipe the app away with two brews, phone locked: both alert on time. Restart the phone with two brews waiting: after unlocking both are back; the midnight rule ends each on its own.
+- [ ] Two sessions give two journal entries, each with its own stock deduction and cost.
+
+**Catalog**
+- [ ] The first *Katalog aktualisieren* after the update re-reads the shop once: it finishes within about 35 min (≈ 900 teas), with the progress notification and *Abbrechen*; a hint shows on each new category until then. Note the duration and the „… neu" summary in #207.
+- [ ] The chip row reads *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh · Kräutertee · Rotbusch · Früchtetee · Chai*; *Grüntee* is the default; the selected chip scrolls into view (also after *Alle zeigen*). Each view is grouped by its *Sorte* (e.g. Darjeeling, Assam; Sheng, Shou) with foldable groups; the header counts the category („186 Schwarztees").
+- [ ] A search for a black tea from the green view says it is hidden and *Alle zeigen* opens *Schwarztee*.
+- [ ] Add a Darjeeling and a chai to the collection: *Meine Tees*' *Kategorie* shows *Schwarzer Tee* for both; their recipes come from the shop (no „Rezept prüfen" when the shop gives values). A shared shop link to a white tea or a Rotbusch adds it.
+- [ ] Filter sheet: *Geschmack* chips (most frequent first) and scale rows (*Egal · ab 1 … ab 5*). „nussig" + „süß" narrows the list; „Süße ab 3" too; *Filter (n)* counts them; *Zurücksetzen* clears them; switching to Kräutertee drops notes it doesn't have. TalkBack reads „Süße ab 3, ausgewählt".
+
+**Stock**
+- [ ] Tea detail › VORRAT: *Warnung* off on a *Knapp* tea: no Start card, no line in the reminder, the reorder link is a plain link; the „knapp" chip stays. A *Nachkauf* does not switch it back on.
+- [ ] *Knapp ab*: type 30 and press *Fertig* on a tea with 25 g: it becomes *Knapp* at once (chip, Start card, setup marker). Empty means 15 g. Typing 600 shows the error and keeps the stored value.
+- [ ] *Einstellungen › Brühen & Vorrat › Vorrats-Erinnerung*: *Alle 2 Tage* at a time a few minutes ahead with a *Knapp* tea: one notification; the next one only two days later. *Aus* hides the time.
+
 ### M4 — Journal & statistics
 
 - [ ] Finishing shows the „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* appears only when times differ.
@@ -325,6 +354,32 @@ a setup error if it was too slow to have the screen off again 5 s before the
 step's pre-alert. The standard variant is unchanged, so its results compare
 with the runs before v0.3.0.
 
+**Three variants (v0.5.0, D-108, #202).** From v0.5.0 `variant` also takes
+`two-brews`: two brew sessions side by side, as two teas at once. **Every
+v0.5.0 rc and the final `v0.5.0` need a PASS of all three variants**
+(`standard`, `alongside`, `two-brews`) on their commit; from then on every rc
+that touches timer code does, and every final.
+
+How `two-brews` overlaps (#202): both sessions start together (the first,
+„Testtee", in slot `BREW`; the second, „Zweittee", in `BREW_2`); each step pair
+is the first's step of 60 s and the second's of 66 s, both with a 10 s
+*Vorwarnung*, and the next pair starts with *Start* on both notifications.
+The pre-alerts come at 50 s and 56 s (the first's has rung out, 04 §9.3), the
+first's alert at 60 s and the second's deadline at 66 s, while the first's
+alert sounds (SET-14 *Normal*, at least 7.5 s): the second alert is
+**held**. The test waits until the hold is in the log and does not pour the
+first: from v0.5.0's fix round (D-109) the hold ends when the first alert's
+sound ends, which releases the second (it rings with its overtime); the test
+reads its sound start and taps *Abgegossen* on the second alert, then on the
+first, which still alerts without sound. Gated against the same targets: both
+brews' pre-alerts and the first brew's alerts. The held alert is late by
+design (until the first's sound ends, about 1.5–9 s): its hold and the delay
+from the release to its sound are **reported apart and never gated**. The test fails as a setup error
+if the two steps did not overlap as designed (the second's pre-alert less
+than 4.5 s after the first's or not before the first's alert, its deadline
+not after the first's alert, or its alert rang without a hold). It takes
+about 60–65 minutes.
+
 **Dispatching.** Use the GitHub Actions API or tool (`workflow_dispatch` of
 `accuracy.yml`), with the PR branch as the workflow's ref. The inputs are:
 
@@ -334,12 +389,12 @@ with the runs before v0.3.0.
 | `api-level` | `36` | `36`, `35` or `both` (one job per level, in parallel) |
 | `steps` | `50` | `50` for the rc gate; fewer only to try the workflow |
 | `inject-delay-ms` | `0` | Gate check only: every pre-alert and alert this many ms late; such a run must **fail** |
-| `variant` (v0.3.0) | `standard` | `standard` or `alongside` (a quick timer running alongside the brew steps) |
+| `variant` (v0.3.0, v0.5.0) | `standard` | `standard`, `alongside` (a quick timer running alongside the brew steps) or `two-brews` (two overlapping brew sessions) |
 
 With the `gh` CLI the same dispatch is
 `gh workflow run accuracy.yml --ref <branch> -f ref=<branch-or-sha> -f api-level=36 -f variant=standard`,
-and again with `-f variant=alongside`. Each variant has its own concurrency
-group, so the two runs of one commit go in parallel; the run's name says the
+and again with `-f variant=alongside` and `-f variant=two-brews`. Each variant has its own concurrency
+group, so the runs of one commit go in parallel; the run's name says the
 variant and the ref. GitHub dispatches only workflows whose file exists on
 `main`; the version at `--ref` runs (D-039, D-070).
 
@@ -381,6 +436,18 @@ variant and the ref. GitHub dispatches only workflows whose file exists on
   (`BREW`, `QUICK`), the quick timer's rows of a step before the brew's. The
   quick timer's lines in `diagnostics.txt` name it (`QUICK.DEADLINE`, 06
   §5.6).
+- **`two-brews`:** the heading ends in „· two brews"; the table has the rows
+  *Brew 1* (pre-alert, alert) and *Brew 2* (pre-alert), all gated. A second
+  table lists *Brew 2 · Alert (held)*: *Held* p50 / max (the designed wait
+  for the end of the first alert's sound, D-109), *Release → sound* p50 / p95
+  / max, the handled deadline
+  and *Within target* („yes/no (not gated)"). „**Result: PASS**" needs the
+  three gated rows on target and all 50 step pairs of both brews. *Slowest …*
+  names brew 1's pre-alert and alert, brew 2's pre-alert and its held alert
+  (with the hold). The artifact is `accuracy-two-brews-api-<level>`; its CSV
+  has the column `timer` (`BREW`, `BREW_2`) and a last column `held_ms`, set
+  only on the held alert's row, whose sound start is timed from its release.
+  The second brew's lines name it (`BREW2.DEADLINE`, D-108).
 - A failed run blocks the rc. Find the cause from the CSV and the log lines,
   fix it (rule 8), and run again. A flaky emulator start (no report at all)
   may simply be re-run once.
@@ -391,6 +458,9 @@ around 1.5 s; the gate check changes nothing in the app. For the change of
 #137 it is the `alongside` variant (`-f variant=alongside -f steps=3
 -f inject-delay-ms=1500`): both timers' rows must show about 1.5 s and **no**;
 the injected delay moves the quick timer's alarms as well as the brew's.
+For #202 it is the `two-brews` variant (`-f variant=two-brews -f steps=3
+-f inject-delay-ms=1500`): the three gated rows must show about 1.5 s and
+**no**.
 
 On the phone, the same numbers come from *Einstellungen › Über › Diagnose*
 (the M1 checklist above): the emulator neither dozes within a 60 s step nor

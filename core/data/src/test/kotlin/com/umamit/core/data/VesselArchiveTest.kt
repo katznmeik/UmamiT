@@ -54,14 +54,14 @@ class VesselArchiveTest {
         data.vessels.saveVessel(kyusu)
         data.vessels.saveVessel(Vessel("v2", "Becher", VesselType.MUG_INFUSER, 250))
         data.teas.saveTea(tea("t1"))
-        assertThat(archive.observeActiveVesselId().first()).isNull()
+        assertThat(archive.observeActiveVesselIds().first()).isEmpty()
         val snapshot = snapshotOf(teaId = "t1").copy(vesselId = "v1")
         val driver = TimerDriver(data) { id, steps, preAlert ->
             sessionStart(id, steps, preAlert, TestClocks(), snapshot)
         }
         driver.send(startEvent(infusion(60)))
 
-        assertThat(archive.observeActiveVesselId().first()).isEqualTo("v1")
+        assertThat(archive.observeActiveVesselIds().first()).containsExactly("v1")
         assertThat(archive.archive("v1")).isEqualTo(ArchiveResult.InActiveSession)
         assertThat(data.vessels.getVessel("v1")!!.isArchived).isFalse()
         assertThat(archive.archive("v2")).isEqualTo(ArchiveResult.Archived)
@@ -72,7 +72,7 @@ class VesselArchiveTest {
         driver.send(TimerEvent.Poured)
         driver.send(TimerEvent.FinishSession)
 
-        assertThat(archive.observeActiveVesselId().first()).isNull()
+        assertThat(archive.observeActiveVesselIds().first()).isEmpty()
         assertThat(archive.archive("v1")).isEqualTo(ArchiveResult.Archived)
     }
 }

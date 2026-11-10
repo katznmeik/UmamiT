@@ -186,7 +186,8 @@ class TeeKontorParserTest {
             listOf("Matcha" to "/matcha/", "Matcha Teepulver" to "/matcha/matcha-teepulver/") to CatalogScope.GREEN,
             listOf("Matcha" to "/matcha/", "Matcha Sets" to "/matcha/matcha-sets/") to CatalogScope.NOT_GREEN,
             listOf("Matcha" to "/matcha/", "Chawan" to "/matcha/matchaschalen-chawan/") to CatalogScope.NOT_GREEN,
-            SyntheticShop.BLACK_TEA_PATH to CatalogScope.NOT_GREEN,
+            SyntheticShop.BLACK_TEA_PATH to CatalogScope.TEA,
+            SyntheticShop.TEA_BAGS_PATH to CatalogScope.NOT_GREEN,
             SyntheticShop.TEAWARE_PATH to CatalogScope.NOT_GREEN,
         )
         cases.forEach { (path, scope) ->
@@ -226,9 +227,10 @@ class TeeKontorParserTest {
             Case(family, "Bergdorf Frühling – 100g", CatalogScope.GREEN, badges = listOf("Dämpfung: Chumushi")),
             // Nothing says green, or the name says another tea or teaware: skipped.
             Case(family, "Bergdorf Frühling – 100g", CatalogScope.NOT_GREEN),
-            Case(family, "Bergdorf Wakoucha – 50g", CatalogScope.NOT_GREEN),
-            Case(family, "Bergdorf Benifuuki Koucha – 50g", CatalogScope.NOT_GREEN),
-            Case(family, "Bergdorf Oolong – 50g", CatalogScope.NOT_GREEN),
+            // From v0.5.0 (#206) another tea named there is a tea of its section from Japan.
+            Case(family, "Bergdorf Wakoucha – 50g", CatalogScope.TEA, "Japan"),
+            Case(family, "Bergdorf Benifuuki Koucha – 50g", CatalogScope.TEA, "Japan"),
+            Case(family, "Bergdorf Oolong – 50g", CatalogScope.TEA, "Japan"),
             Case(family, "Bergdorf Kyusu für Sencha", CatalogScope.NOT_GREEN),
         ).forEach { case ->
             val page = parse(

@@ -76,14 +76,14 @@ internal fun StartTabContent(
         actions = HomeActions(
             openSettings = tab.openSettings,
             startBrew = picker::open,
-            // *Aufguss fortsetzen* shows the brew (SCR-02, D-098), so it opens the brew, never the timer in front.
-            openTimer = { navigation.openTimerOf(TimerSlot.BREW) },
+            // *Aufguss fortsetzen* shows a brew (SCR-02, D-098, D-108): it opens that brew, not the timer in front.
+            openTimer = navigation.openTimerOf,
             quickTimer = navigation.openQuickTimer,
             openSetup = navigation.openSetup,
             showJournal = tab.showJournal,
             openCatalog = tab.openCatalog,
         ),
-        onOpenTimer = navigation.openTimer,
+        onOpenTimer = { slot -> slot?.let(navigation.openTimerOf) ?: navigation.openTimer() },
         scrollToTopRequest = tab.scrollToTopRequest,
         viewModel = homeViewModel,
     )

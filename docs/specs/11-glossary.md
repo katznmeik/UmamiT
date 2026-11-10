@@ -1,6 +1,6 @@
 # 11 · Glossary
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (active timer, slot, held alert for v0.5.0, D-108; 2026-10-31: Archivieren / Löschen / Wiederherstellen, step kinds, v0.4.0 grilling; 2026-10-30: Merkliste, Knapp, D-097; quick timer, active timer, long step from v0.3.0)
 
 ## Tea terms
 
@@ -50,9 +50,11 @@
 | **Rezept** | UI name for a brew profile (recipe). |
 | **Rezept prüfen** | Flag on a tea whose recipe was not taken directly from the shop's brewing table. |
 | **Pre-alert (Vorwarnung)** | A short sound (*Vorwarnton*) a few seconds before a step ends, so the kyusu can be picked up; per step *Automatisch*, *Aus* or 5–30 s (TMR-23). Long steps have none. |
+| **Catalog kind (Katalogart)** | One range of the catalog list with its own chip in Sammlung › Katalog (CAT-10, v0.5.0, D-108): *Grüntee* (the default), *Schwarztee*, *Weißer Tee*, *Oolong*, *Pu-Erh*, *Kräutertee*, *Rotbusch*, *Früchtetee* and *Chai*, in that chip order. A catalog tea's kind comes from its style (a chai's is *Chai* whatever its base tea, #206); folds are remembered per kind; „Pur" and the umami filter apply to the green kind only. |
 | **Merkliste (Merken, Gemerkt)** | Catalog teas marked for later without adding them to the collection (CAT-18, v0.2.2). Not *Favoriten*, which are the user's own teas. |
 | **Frische (Frisch, Bald genießen, Über dem Höhepunkt)** | A tea's freshness label (INV-06, from v0.4.1): by thirds of its style's window from the opening date, or *Über dem Höhepunkt* once its best-before date has passed. None for an unopened or an empty tea. |
-| **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2); *Leer* at 0 g (INV-05). |
+| **Knapp** | Stock status of a tea at or below the threshold (SET-16, 15 g from v0.2.2; from v0.5.0 the tea's own *Knapp ab* when set); *Leer* at 0 g (INV-05). |
+| **Stock warning** (*Warnung*) | Per tea, on by default (v0.5.0, D-108): whether its *Knapp* / *Leer* stock shows the Start card (INV-10), a reminder line (INV-11) and the filled reorder button (INV-09). Off, the tea stays quiet but keeps its *Knapp* / *Leer* label; a purchase never switches it back on. Set with *Knapp ab*, the tea's own threshold, on the tea detail's VORRAT. |
 | **Low-stock card / reminder** | The card on Start for one *Knapp* or *Leer* tea (INV-10), which *Ausblenden* hides for that tea until its next purchase; and, from v0.3.0, the daily notification listing every *Knapp* or *Leer* tea, which ignores *Ausblenden*. An archived tea appears in neither. |
 | **Archivieren / Wiederherstellen** | *Archivieren* puts a tea or a vessel away: it leaves the lists and pickers but keeps its recipes, stock and journal entries; *Wiederherstellen* brings it back. The one word for it everywhere (formerly „Aus Sammlung entfernen" in the tea picker). Not *Ausblenden*, which only hides a low-stock card. |
 | **Löschen** | Deleting a tea for good: it and its recipes, stock and photos are gone; its journal entries stay with its name. Vessels are never deleted, only archived. |
@@ -63,7 +65,10 @@
 | **Sideloading** | Installing an APK directly (here from GitHub Releases) instead of from a store. |
 | **snap5** | Rounding a temperature to the nearest 5 °C (half up). |
 | **Collection** | The user's own teas (UI name: Sammlung › Meine Tees). |
-| **Kategorie** | The broad class of a tea: Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee. |
+| **Kategorie** | The broad class of a tea (`TeaCategory`): Grüntee, Weißer Tee, Oolong, Schwarzer Tee, Pu-Erh, Kräutertee, and from v0.5.0 Rotbusch and Früchtetee (#206), else Andere. A chai has no Kategorie of its own: it takes its base tea's (Schwarzer Tee, Rotbusch, Grüntee, …), else Andere. |
+| **Chai** | A spiced tea blend; in the catalog the kind *Chai* (style `chai`, #206). The shop files each chai under its base tea's section, so a tea whose name says „Chai" is one; its *Sorte* and Kategorie are its base tea's. |
+| **Rotbusch (Rooibos)** | The South African red bush infusion, and the shop's *Rotbusch* section with green rooibos and honeybush; catalog kind and Kategorie *Rotbusch* (`ROOIBOS`, style `rooibos`, #206). |
+| **Früchtetee** | A fruit infusion; the shop's section, catalog kind and Kategorie *Früchtetee* (`FRUIT`, style `fruit`, #206). |
 | **Sorte** | The kind of a tea as the user sees it (Gyokuro, Sencha, Bancha …): the shop's *Sorte* for a catalog tea, or the one picked in *Sorte wählen* for a tea added without the catalog. Each Sorte belongs to one Kategorie. |
 | **Style** | The built-in reference entry behind a Sorte, with its default recipe and freshness period. The user sees a style only by its Sorte name, never its values directly. |
 | **Brew profile** | A per-tea recipe: method, leaf, water, temperature, steps. |
@@ -72,10 +77,12 @@
 | **Session** | One brewing occasion recorded in the journal; its detail page (SCR-16) opens from a journal entry. |
 | **Nochmal brühen / So nochmal brühen** | *Nochmal brühen* (Start, BRW-11) starts one of the last three teas at once in READY with its last session's values. *So nochmal brühen* (on a session's detail page, from v0.4.0) opens the brew setup with that session's values as brewed, to check before *Start*. |
 | **Quick timer (Schnelltimer)** | A countdown without a tea; nothing is recorded (TMR-22). Not a session. |
-| **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most one active brew session and at most one active quick timer at the same time (from v0.3.0; until then one active timer in total). |
+| **Active timer** | A brew session or a quick timer that is running, paused, waiting or alerting. At most **two** at the same time from v0.5.0: two brew sessions, or one brew session and one quick timer; a tea has at most one active session (D-108). v0.3.0–v0.4.1: one brew session and one quick timer; until then one active timer in total. |
+| **Slot** | One of the timer controller's places for an active timer, each with its own state, alarms and stored row: `BREW` and `BREW_2` for brew sessions, `QUICK` for the quick timer (04 §3.3, D-098, D-108). Their fixed order `BREW`, `BREW_2`, `QUICK` is the order of recovery and of ties. Internal: the UI shows teas and *Schnelltimer*, never slot names. |
+| **Held alert** | A step alert that waits silently because another timer's alert rings: its deadline has passed and its overtime counts, but it has no sound, no alert notification and no silent end until it rings, right after the other alert is acknowledged (04 §9.3; for the quick timer from v0.3.0, for a second brew session from v0.5.0). |
 | **Teaware / vessel** | A brewing vessel with capacity (kyusu, gaiwan, …). |
 | **Ratio** | Leaf grams per 100 ml of water. |
-| **Active brew bar** | The persistent mini-timer shown above the navigation bar while an active timer exists; with a brew session and a quick timer it shows both. |
+| **Active brew bar** | The persistent mini-timer shown above the navigation bar while an active timer exists; with two active timers (a brew session and a quick timer, or two brew sessions) it shows both. |
 | **Short / long step** | A long step is every step of a cold or ice brew, and any step of at least 60 minutes (from v0.3.0; until then 10 minutes). Long steps have no pre-alert and show „Fertig um …“; all other steps are short steps. |
 | **Full-screen intent** | A notification that turns the screen on and opens an activity over the lock screen; used for the step alert (`USE_FULL_SCREEN_INTENT`). |
 | **Schritte-Sheet** | Session-only step editor (SCR-31). |

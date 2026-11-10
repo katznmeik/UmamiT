@@ -1,0 +1,198 @@
+package com.umamit.feature.catalog
+
+import android.content.Context
+import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
+import com.google.common.truth.Truth.assertThat
+import com.umamit.core.data.catalog.SettingsCatalogFoldRepository
+import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
+import com.umamit.core.model.CatalogOverview
+import com.umamit.core.model.CatalogTeaSummary
+import com.umamit.core.testing.FakeCatalogRefreshRunner
+import com.umamit.core.testing.FakeCatalogRepository
+import com.umamit.core.testing.FakeClock
+import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.testing.catalogTea
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * The *Rotbusch*, *Früchtetee* and *Chai* views of Sammlung › Katalog (v0.5.0, #206; CAT-10, SCR-19, D-108) on fake
+ * data: each chip with its header count and *Sorte* groups, folds kept per view, the chip row scrolled to the
+ * selected chip (also after *Alle zeigen*), and each view's hint before the first refresh with parser v10.
+ * Invented teas (D-016).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w411dp-h891dp-xhdpi")
+class CatalogRooibosFruitChaiViewTest {
+    @get:Rule
+    val compose = createAndroidComposeRule<ComponentActivity>()
+
+    private fun of(kind: CatalogKind, key: String, name: String, sorte: String?): CatalogTeaSummary =
+        catalogTea(key, name, sorte).copy(kind = kind, originCountry = null)
+
+    private val green = listOf(catalogTea("XY0100", "Morgennebel Sencha"))
+    private val teas = green + listOf(
+        of(CatalogKind.ROOIBOS, "XR0100", "Sonnenfeld Rotbusch", null),
+        of(CatalogKind.ROOIBOS, "XR0200", "Pfirsichtal", "Grüner Rotbusch"),
+        of(CatalogKind.ROOIBOS, "XR0300", "Kapwind Honeybush", "Honeybush"),
+        of(CatalogKind.FRUIT, "XF0100", "Beerenwolke", null),
+        of(CatalogKind.FRUIT, "XF0200", "Apfelgarten", null),
+        of(CatalogKind.CHAI, "XC0100", "Gewürzmarkt Chai", "Schwarztee"),
+        of(CatalogKind.CHAI, "XC0200", "Rotbusch Chai Savanne", "Rotbusch"),
+        of(CatalogKind.CHAI, "XC0300", "Karawane Chai", null),
+    )
+    private val settings = FakeSettingsRepository()
+
+    private fun str(@StringRes id: Int, vararg args: Any): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
+
+    private fun show(catalog: List<CatalogTeaSummary> = teas, pending: Set<CatalogKind> = emptySet()) {
+        val repository = FakeCatalogRepository(CatalogOverview(catalog, FakeClock.DEFAULT_WALL_MS))
+        repository.pendingKinds.value = pending
+        val viewModel = CatalogViewModel(
+            repository,
+            FakeCatalogRefreshRunner(),
+            folds = SettingsCatalogFoldRepository(settings),
+        )
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                CatalogRoute(alerting = false, onOpenTea = {}, viewModel = viewModel)
+            }
+        }
+        compose.waitForIdle()
+    }
+
+    private val isChip = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
+
+    private fun chip(@StringRes id: Int) = compose.onNode(hasText(str(id)) and isChip)
+
+    private fun switchTo(@StringRes chip: Int) {
+        chip(chip).performScrollTo().performClick()
+        compose.waitForIdle()
+    }
+
+    private fun shown(text: String) = compose.onNodeWithText(text).assertIsDisplayed()
+
+    private fun hidden(text: String) = compose.onNodeWithText(text).assertDoesNotExist()
+
+    @Test
+    fun eachChipShowsItsKindsTeasBySorteWithTheirCount() {
+        show()
+        hidden("Sonnenfeld Rotbusch")
+
+        switchTo(R.string.catalog_filter_rooibos)
+        chip(R.string.catalog_filter_rooibos).assertIsSelected()
+        shown("Tee-Kontor Kiel · 3\u00a0Rotbuschtees · aktualisiert am 22. Okt.")
+        compose.onNodeWithTag(catalogGroupTag("Grüner Rotbusch")).assertIsDisplayed()
+        compose.onNodeWithTag(catalogGroupTag("Honeybush")).assertIsDisplayed()
+        compose.onNodeWithTag(catalogGroupTag(null)).assertIsDisplayed()
+        hidden("Beerenwolke")
+
+        switchTo(R.string.catalog_filter_fruit)
+        shown("Tee-Kontor Kiel · 2\u00a0Früchtetees · aktualisiert am 22. Okt.")
+        shown("Apfelgarten")
+        hidden("Pfirsichtal")
+
+        switchTo(R.string.catalog_filter_chai)
+        shown("Tee-Kontor Kiel · 3\u00a0Chais · aktualisiert am 22. Okt.")
+        compose.onNodeWithTag(catalogGroupTag("Schwarztee")).assertIsDisplayed()
+        compose.onNodeWithTag(catalogGroupTag("Rotbusch")).assertIsDisplayed()
+        hidden("Morgennebel Sencha")
+    }
+
+    @Test
+    fun aFoldedSorteIsKeptPerView() {
+        show()
+        switchTo(R.string.catalog_filter_rooibos)
+        compose.onNodeWithTag(catalogGroupTag("Honeybush")).performClick()
+        compose.waitForIdle()
+        hidden("Kapwind Honeybush")
+
+        switchTo(R.string.catalog_filter_chai)
+        compose.onNodeWithTag(catalogGroupTag("Rotbusch")).performClick()
+        compose.waitForIdle()
+        hidden("Rotbusch Chai Savanne")
+        shown("Gewürzmarkt Chai")
+
+        assertThat(runBlocking { settings.settings.first().catalogFolded })
+            .containsExactly("rooibos/Honeybush", "chai/Rotbusch")
+    }
+
+    @Test
+    fun theChipRowScrollsToTheSelectedChip() {
+        show()
+        switchTo(R.string.catalog_filter_chai)
+        // Back to green by its chip: the row scrolls back to it, and to *Chai* again when it is picked.
+        switchTo(R.string.catalog_filter_green)
+        chip(R.string.catalog_filter_green).assertIsDisplayed()
+
+        compose.onNodeWithTag(CATALOG_SEARCH_TAG).performTextInput("chai")
+        compose.waitForIdle()
+        // Three chais (one named Rotbusch) are hidden in the green view: *Alle zeigen* opens the chais, off screen.
+        compose.onNodeWithText(str(R.string.catalog_show_all)).performClick()
+        compose.waitForIdle()
+
+        chip(R.string.catalog_filter_chai).assertIsSelected().assertIsDisplayed()
+        shown("Karawane Chai")
+    }
+
+    @Test
+    fun theChipRowKeepsTheUsersOwnScrollWhenItComesBackIntoTheList() {
+        // Motion review S2 (v0.5.0): enough chais to scroll the chip row out of the list.
+        show(teas + (1..30).map { of(CatalogKind.CHAI, "XC1%03d".format(it), "Chai Nummer $it", "Schwarztee") })
+        switchTo(R.string.catalog_filter_chai)
+        val filterChip = compose.onNodeWithText(str(R.string.catalog_filter_button), substring = true) // „Filter (1)"
+        filterChip.performScrollTo() // the user scrolls the row back to its start, *Chai* out of view
+        compose.waitForIdle()
+        filterChip.assertIsDisplayed()
+
+        compose.onNodeWithTag(CATALOG_LIST_TAG).performScrollToIndex(30)
+        compose.waitForIdle()
+        compose.onNodeWithTag(CATALOG_LIST_TAG).performScrollToIndex(0)
+        compose.waitForIdle()
+
+        // The row came back where the user left it: no reveal they did not ask for.
+        filterChip.assertIsDisplayed()
+        chip(R.string.catalog_filter_chai).assertIsSelected()
+    }
+
+    @Test
+    fun beforeTheFirstRefreshWithParserV10EachNewViewShowsItsOwnHint() {
+        show(green, pending = setOf(CatalogKind.ROOIBOS, CatalogKind.FRUIT, CatalogKind.CHAI))
+
+        switchTo(R.string.catalog_filter_rooibos)
+        shown(str(R.string.catalog_rooibos_pending))
+        hidden(str(R.string.catalog_no_match))
+
+        switchTo(R.string.catalog_filter_fruit)
+        shown(str(R.string.catalog_fruit_pending))
+
+        switchTo(R.string.catalog_filter_chai)
+        shown(str(R.string.catalog_chai_pending))
+        shown(str(R.string.catalog_herbal_load_now))
+
+        switchTo(R.string.catalog_filter_dark)
+        hidden(str(R.string.catalog_chai_pending))
+    }
+}

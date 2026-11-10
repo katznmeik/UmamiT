@@ -74,8 +74,12 @@ or pastes (CAT-17, v0.2.1).
 
 **GEN-02 — No accounts** `Must`
 
-**GEN-03 — Single active timer** `Must`
+**GEN-03 — At most two active timers** `Must`
 At most one brew session or quick timer is active at any time.
+- **v0.5.0 (D-108):** at most **two** timers are active at once, in all:
+  two brew sessions, or one brew session and one quick timer (TMR-21,
+  TMR-22). A tea has at most one active session. A third start asks which
+  timer to end (TMR-21).
 
 **GEN-04 — German & metric** `Must`
 UI language German (`de-DE`) only; units °C, g, ml; German number, date and
@@ -90,7 +94,12 @@ While a session or quick timer is active, top-level screens show a compact bar
 above the navigation bar with tea name, step („Aufguss 2/4") and live remaining
 time; tapping it opens the timer (SCR-05). While the step alerts, the bar turns
 static matcha with „Jetzt abgießen!" and the overtime counting up (03 §3.8,
-D-055).
+D-055). With two active timers (v0.3.0 a brew and the quick timer, D-098;
+v0.5.0 also two brew sessions, D-108) it holds both in the slot order, each
+half with its live countdown and its own tap, which opens that timer; an
+alerting half takes the alert style alone, a held one shows that it waits
+(„wartet" for a brew, „fertig" for the quick timer). TalkBack reads each
+half with its tea, step and time.
 
 **GEN-07 — State survives everything** `Must`
 No input or timer state is lost on rotation, theme change, multi-window, or
@@ -180,6 +189,36 @@ sweets, and items containing no tea (D-091).
   1–2 min to the first load (NFR-PERF-11 stays ≤ 20 min); the first refresh
   after the update re-classifies everything once (≈ 16 min, accepted by the
   PO).
+- **Black teas (v0.5.0, D-108, #203):** the shop's *Schwarzer Tee* section
+  (`/tee/schwarzer-tee/`, and the Japan tree's `koucha-schwarztee/`) is
+  loaded too, as kind *Schwarztee* with category `BLACK` and the black styles
+  of [08 §3](08-content.md#3-built-in-tea-styles) (`darjeeling`, `assam`,
+  `ceylon`, `flavored_black`, `black_generic`). A product filed under a
+  format or maker section (*Aufgussbeutel*, a maker's page) is classified by
+  a tea section in its breadcrumb and skipped without one. Sets, multipacks,
+  sale duplicates and teaware stay out as above. The first refresh after the
+  update re-reads the skip list's not-green products once (05 §9, 08 §2.4
+  item 3); the first-load budget is NFR-PERF-11's.
+- **White teas, oolongs and Pu-Erhs (v0.5.0, #205):** the shop's *Weißer
+  Tee* (`/tee/weisser-tee/`, and the Japan tree's `weisstee/`), *Oolong*
+  (`/tee/oolong/`, and the Japan tree's `oolong/`) and *Pu-Erh*
+  (`/tee/pu-erh/`) sections are loaded too, as kinds *Weißer Tee*, *Oolong*
+  and *Pu-Erh* with categories `WHITE`, `OOLONG` and `DARK`, by the same
+  rules as the black teas. They are parser v9: a catalog last refreshed by
+  parser v8 (a v0.5.0 release candidate) re-reads its not-green products once
+  more; a v0.4.1 catalog re-reads once (08 §2.4 item 3).
+- **Rotbusch, Früchtetee and Chai (v0.5.0, #206):** the shop's *Rotbusch*
+  (`/tee/rotbusch/`) and *Früchtetee* (`/tee/fruechtetee/`) sections are
+  loaded too, as kinds *Rotbusch* and *Früchtetee* with the new categories
+  `ROOIBOS` and `FRUIT`; *Chai* is a kind of its own (style `chai`). The
+  shop files each chai under its base tea's section (live check, 08 §2.2),
+  so a tea of any section whose name says „Chai" is a chai, of its section's
+  category (black, rooibos, green, Kräutertee); one filed in `/tee/chaitee/`
+  itself takes the base its name or ingredients name, else `OTHER`. A
+  product of a Japan tea family's page that names another tea (Wakoucha,
+  Oolong, Weißtee) is a tea of that kind, *Sorte* „Japan". They are parser
+  v10: a catalog last refreshed by parser v9 re-reads its not-green
+  products once more (08 §2.4 item 3).
 
 **CAT-02 — One entry per tea** `Must`
 Size variants (10 g … 1000 g, each a separate article in the shop) and teas
@@ -218,6 +257,18 @@ after a session with a flagged tea, the „Gespeichert" sheet (SCR-06) offers
 Every catalog tea is mapped to a built-in style (STY) by its *Sorte* or name
 (e.g. „Gyokuro" → `gyokuro`), providing umami level, freshness window and
 fallback recipe. Unmapped teas use `green_generic` and are flagged.
+A tea of another section takes its section's style, never flagged: a
+Kräutertee `herbal`; a black tea `flavored_black` when flavoured, else
+`darjeeling`, `assam` or `ceylon` by its *Sorte* or name, else
+`black_generic` (v0.5.0, D-108; [08 §2.6](08-content.md#26-style-mapping-and-umami-level));
+a white tea `flavored_white` when flavoured, else `white_generic`; an oolong
+`flavored_oolong`, else `oolong_generic`; a Pu-Erh `sheng` or `shou` by its
+*Sorte* or name, else `dark_generic` (#205); a Rotbusch `rooibos`, a
+Früchtetee `fruit`, a chai `chai`, flavoured or not (#206). A Gongfu row of the shop's grid
+becomes a Gongfu recipe, as for green teas.
+The shop's grid and text win over the style's values; „Rezept prüfen" shows
+only without shop values (CAT-05). The PO's second western infusion stays
+green-only.
 
 **CAT-07 — Refresh** `Must`
 *Katalog aktualisieren* (Sammlung › Katalog, overflow, and Settings) fetches
@@ -263,7 +314,8 @@ edge, WebP) and stored locally, with a small thumbnail for the lists
 unchanged photos are not downloaded again, nor photos that failed for good
 while their URL stays the same (D-091). JPEG, PNG and WebP sources are read
 (D-091). About 25–35 MB for the whole
-catalog (D-073). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
+catalog (D-073); from v0.5.0, with every tea section, about 80–100 MB
+(NFR-PERF-11, D-108). With SET-22 *Katalog: Fotos laden* off, a refresh fetches
 no photo and keeps those already stored (D-078).
 
 **CAT-09 — Tee-Info guides** `Should`
@@ -291,11 +343,69 @@ umami level, „im Besitz" (owned), available, *Neu*. Sort: name, price per
   by the filters. From v0.4.0 a chip *Grüntee* names the default view next
   to *Kräutertee* and returns to it
   ([D-103](10-open-questions-and-decisions.md#d-103)).
+- **Catalog kind (v0.5.0, D-108):** the chips *Grüntee* and *Kräutertee* are
+  the two entries of the list of *catalog kinds* (see the glossary). A
+  catalog tea's kind comes from its style (style `herbal` = Kräutertee,
+  every other style = green, the default kind); the filter holds one kind,
+  the chip row is rendered from the list, and a new kind is a new entry in
+  it. „Pur" as the default and the umami filter apply to the green kind
+  only. Search hits hidden by the filters are counted per other kind, and
+  *Alle zeigen* switches to the kind with the most of them. The prefactor
+  (#199) changed nothing visible.
+- **Schwarztee (v0.5.0, #203):** the kind *Schwarztee* (key `black`, the
+  black styles) has its chip between *Grüntee* and *Kräutertee*; its view
+  is grouped by *Sorte* (Darjeeling, Assam, Ceylon, Nepal, …) with folding,
+  and the header reads „N Schwarztees". Until the first successful refresh
+  after the update its view shows „Schwarztees kommen mit dem nächsten Abruf
+  (≈ 30 min, einmalig)" with *Jetzt laden*, as the Kräutertee view did in
+  v0.2.1 (a kind is pending while the last successful refresh ran a parser
+  older than its section's, 05 §9).
+- **Weißer Tee, Oolong, Pu-Erh (v0.5.0, #205):** the kinds *Weißer Tee*
+  (key `white`), *Oolong* (key `oolong`) and *Pu-Erh* (key `dark`) have their
+  chips after *Schwarztee*, in the order *Grüntee · Schwarztee · Weißer Tee ·
+  Oolong · Pu-Erh · Kräutertee* (D-108 point 5); each view is grouped by
+  *Sorte* (Bai Mu Dan, …; Taiwan, China, …; Sheng, Shou, Aged) with folding
+  of its own, and the header reads „N Weiße Tees", „N Oolongs", „N Pu-Erhs".
+  Until the first successful refresh with parser v9 each view shows its own
+  hint („Weiße Tees / Oolongs / Pu-Erhs kommen mit dem nächsten Abruf
+  (≈ 30 min, einmalig)") with *Jetzt laden*.
+- **Rotbusch, Früchtetee, Chai (v0.5.0, #206):** the kinds *Rotbusch* (key
+  `rooibos`), *Früchtetee* (key `fruit`) and *Chai* (key `chai`) close the
+  chip row, *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh ·
+  Kräutertee · Rotbusch · Früchtetee · Chai* (D-108 point 5). Their views
+  are grouped by *Sorte* (Rotbusch: Grüner Rotbusch, Honeybush; Chai: its
+  base, Schwarztee, Rotbusch, Grüntee, Kräutertee) with folding, and the
+  header reads „N Rotbuschtees", „N Früchtetees", „N Chais". Until the first
+  successful refresh with parser v10 each view shows its own hint
+  („… kommen mit dem nächsten Abruf (≈ 30 min, einmalig)"). The chip row
+  scrolls so the selected kind's chip is in view whenever the kind changes,
+  by a tap or by *Alle zeigen*.
+- **Flavour filter (v0.5.0, D-108 point 8, #204):** the filter sheet adds
+  the shop's taste notes (*Geschmack*, 08 §2.3) and taste scales, for the
+  kind shown; they apply in every kind's view.
+  - AC1: *Geschmack* offers, as multi-select chips, every note that occurs
+    in the current range of the kind shown (whatever the other filters),
+    most frequent first, ties by name. A tea matches when it names
+    **every** chosen note; notes compare whole, normalised like search
+    (GEN-10: case and diacritics ignored, so „Süß" and „süß" are one note,
+    „mild" does not match „mildsüß").
+  - AC2: Each shop scale that occurs in the range (Süße, Bitterstoffe,
+    Fruchtig, Nussig, Würzig, Röstnoten, Komplexität, Floral …), most
+    frequent first, offers *Egal · ab 1 · … · ab 5* leaves, like the umami
+    filter; a tea without the scale never reaches a minimum. Umami stays
+    its own filter and is not offered among the scales.
+  - AC3: The chosen notes count once in „Filter (n)", each scale with a
+    minimum counts once; *Zurücksetzen* and „Filter zurücksetzen" clear
+    them. A kind change keeps only the notes and scales the new kind's range
+    has. Search hits they hide count as hidden; *Gemerkt* applies only the
+    search, as before.
 - **Foldable groups (v0.3.0, D-098).** In the grouped default and
   Kräutertee views a tap on a *Sorte* header folds or unfolds its teas; the
   header shows a chevron and the count („Bancha · 12").
   - AC1: Folded groups are remembered across app starts, separately for the
-    green and the Kräutertee view (setting `catalogFolded`).
+    green and the Kräutertee view, in general per catalog kind (setting
+    `catalogFolded`, keys `<kind key>/<Sorte>`; the stored `green/…` and
+    `herbal/…` entries of v0.4.1 stay valid).
   - AC2: A non-empty search shows every hit unfolded; clearing it restores
     the folding.
   - AC3: The catalog's ⋮ offers *Alle einklappen* and *Alle ausklappen*.
@@ -364,7 +474,7 @@ refresh, every catalog tea whose article number is missing from the sitemap
 gets its own product page fetched once, within the refresh's limits and stop
 rules (CAT-07 AC2). This is part of network use (a) of GEN-01, not a new use.
 - AC1: Answer 200, the canonical URL is that product page, and the breadcrumb
-  is still green or herbal tea (CAT-01) → the tea is kept with the page's
+  is still in a tea section of the catalog (CAT-01) → the tea is kept with the page's
   data and stock („nicht vorrätig" when no size is available); it never
   counts as „nicht mehr im Sortiment".
 - AC2: 404/410, a redirect away from the product (its `Location`, never
@@ -394,13 +504,13 @@ its shop link. This is network use (d) of GEN-01.
   shop session (`robots.txt` respected, ≤ 2 requests/second, stop on a
   challenge, HTTP 429 or `Retry-After`). Offline, it shows a message and
   sends nothing.
-- AC4: A green or herbal tea (CAT-01) is stored in the catalog as a regular
+- AC4: A tea of the catalog's sections (CAT-01: green, black, white, oolong, Pu-Erh, Kräutertee, Rotbusch, Früchtetee, Chai) is stored in the catalog as a regular
   entry (photo per SET-22) and its detail (SCR-21) opens with *In Sammlung
   aufnehmen* / *Nachkauf erfassen* as usual; the exact price is fetched on
   adding (GEN-01 (c)). A sold-out tea shows „nicht vorrätig". It is not
   marked „Neu".
-- AC5: Not green or herbal → „Dieser Tee gehört nicht zum Katalog (nur
-  Grün- und Kräutertees)." and nothing is stored.
+- AC5: Not in those sections → „Dieser Artikel gehört nicht zum Katalog (nur
+  Tees, ohne Sets und Zubehör)." (#206) and nothing is stored.
 - AC6: Already in the catalog → its detail opens, and the page refreshes the
   entry. When the page can't refresh it without a stop (offline, no tea at
   the link, a page the app can't read), the detail opens as it was and the
@@ -557,7 +667,7 @@ full-text index and no tags (D-100, 05 §3.1).
 Favoriten, *Kategorie* (`TeaCategory`: Grüntee, Oolong …), *Sorte* (the
 tea's display Sorte: Gyokuro, Sencha …), Vorrat (*Knapp* / *Leer*),
 Aromatisiert, *Archiviert* (only archived teas, each with
-*Wiederherstellen*) (D-100).
+*Wiederherstellen*) (D-100). From v0.5.0 (#206) *Kategorie* also offers Rotbusch and Früchtetee when present; a catalog chai counts under its base tea's Kategorie.
 
 **TEA-11 — Sorting** `Must`
 *Zuletzt gebrüht* (default), *Name*, *Zuletzt hinzugefügt*, *Vorrat*
@@ -940,6 +1050,10 @@ later at work).
   logged with the notification „Sitzung gespeichert" instead of the saved
   sheet; without a completed non-rinse step it is discarded (04 §3.2,
   D-054).
+- **Per session (v0.5.0, D-108).** With two brew sessions each has its own
+  idle time, 30-min quiet notification and midnight; one session's waiting,
+  interaction or end never moves the other's. Each is logged as its own
+  journal entry with its own stock deduction and cost.
 
 **TMR-15 — Background & lock screen** `Must`
 The timer continues when leaving the app or locking the phone.
@@ -985,6 +1099,34 @@ Starting while another is active: „Erst die *Gyokuro*-Sitzung beenden?"
     the quick timer running; its *Abbrechen* leaves the brew running.
   - AC3: Both survive swiping the app away, process death, a reboot and an
     app update (04 §7).
+- **v0.5.0 (D-108): two brew sessions.** A brew of another tea starts
+  while one brew session runs, without a question, as the second brew
+  session (slot `BREW_2`, 04 §3.3); both keep their plan, leaf, vessel and
+  step progress, and every action acts on its own session only. Starting a
+  tea that already has an active session (*Nochmal brühen*, the setup, a
+  recipe) opens that session instead of a second one. While two timers are
+  active, any start asks „Welchen Timer beenden?" with one button per active
+  timer (the tea name or *Schnelltimer*) and *Abbrechen*; the timer chosen
+  ends as by *Beenden & neu starten* (a session logged with „Sitzung
+  gespeichert", or discarded silently without a completed non-rinse step;
+  the quick timer as by *Abbrechen*), then the new one starts. A second
+  quick timer still asks „Schnelltimer beenden und neu starten?" (TMR-22).
+  - AC4: With a green tea waiting between infusions, a herbal tea's
+    session starts without a question; the green tea continues later where
+    it stopped.
+  - AC5: A third start offers both active timers and *Abbrechen*; ending one
+    logs or discards it as above, never the other.
+  - AC6: Two brew sessions survive swiping the app away, process death, a
+    reboot and an app update, each in its own slot (04 §7).
+  - **Screens (v0.5.0-03, #201).** A start of another tea while one timer
+    is active opens the new session's timer (the second brew's, not the
+    first's). A start of a tea with an active session opens that session,
+    asking nothing. „Welchen Timer beenden?" is asked by *Nochmal brühen*,
+    the setup's *Brühen starten* and SCR-07's *Start* (reached from Start's
+    *Schnelltimer*); one full-width button per active timer in the slot
+    order, *Abbrechen* keeps both. During an alert no question shows: the
+    alerting timer opens instead (rule 8). *Brühen anpassen* replaces the
+    waiting session in its own slot.
 
 **TMR-22 — Quick timer** `Should`
 SCR-07: countdown without a tea: chips 0:30, 1:00, 1:30, 2:00, 3:00, 5:00,
@@ -1009,11 +1151,28 @@ automatic rule of TMR-23) and Live Update; not logged.
   - AC3: The lock screen's Live Update shows the timer that ends next; the
     other is a quiet notification (04 §8.3).
   - AC4: **Alarm order.** The brew alarm comes first. A quick alarm due
-    while the brew alarm is on waits; a ringing quick alarm gives way at
-    once to a brew alarm. The waiting one rings right after *Abgegossen*
-    with its overtime („+12:00"), however long it waited, and ends silently
-    only 10 min after it started ringing. Two sounds never play at once
+    while the brew alarm sounds waits; a ringing quick alarm gives way at
+    once to a brew alarm. The waiting one rings as soon as the brew alarm
+    has stopped sounding (its *Alarmdauer*, SET-14, ended, or *Abgegossen*;
+    D-109), with its overtime („+0:12"), however long it waited, and ends
+    silently only 10 min after it started ringing. Meanwhile the brew stays
+    „Jetzt abgießen!" without sound. A quick alarm due after the brew
+    alarm's sound has ended rings at once. Two sounds never play at once
     (04 §9.3).
+- **Two brews (v0.5.0, D-108).** AC1–AC4 hold for two brew sessions too:
+  the bar and each timer screen show both (SCR-02, SCR-05: the other brew
+  in the slim row, „🍃 Hisui · Aufguss 2 · 0:48", with its own
+  *Pause*/*Weiter*; a tap opens it, back returns); the Live Update is the one
+  that ends next. A held brew reads „wartet" in the bar and the row and
+  „Fertig, wartet auf den anderen Aufguss" in its quiet notification. **Alarm
+  order:** the first alarm rings; a brew alarm due while the other brew
+  alarm sounds waits and rings as soon as that alarm has stopped sounding
+  (D-109; its *Alarmdauer* ended, or *Abgegossen*), with its overtime,
+  ending silently only 10 min after it started ringing; the first stays
+  „Jetzt abgießen!" without sound. Of two brews due at once (a late alarm,
+  a long process death) the one whose deadline came first rings. A brew
+  still goes before a quick timer due at the same time, and a ringing quick
+  alarm still gives way to a brew alarm.
 
 **TMR-23 — Pre-alert tick** `Must`
 A soft tick sound (plus short haptic) **N seconds before the end** of each
@@ -1173,6 +1332,13 @@ Leer (≤ 0 g), Knapp (≤ threshold, default **15 g** from v0.2.2, D-097; was
 10 g), Vorrätig. Empty teas stay
 in *Meine Tees* with a „Leer" chip and are sorted to the bottom in every sort
 order; they are never archived automatically.
+- **v0.5.0 (D-108, #197): the tea's own threshold.** The threshold is the
+  tea's own *Knapp ab* (`tea.low_stock_grams`, whole grams 1–500, set on
+  SCR-09's VORRAT) when it has one, else SET-16. The *Knapp* / *Leer* labels
+  everywhere (the list, the detail, the setup's marker BRW-08), Start's card
+  (INV-10), the reminder (INV-11) and the reorder highlight (INV-09 AC1)
+  follow it at once. The labels stay with the tea's stock warning off
+  (INV-10): they state the stock.
 
 **INV-06 — Opened date & freshness** `Should`
 *Geöffnet am* is set automatically (snackbar *Rückgängig*) on the first
@@ -1216,6 +1382,8 @@ reached 0 g before that purchase; freshness from the style's window: „Frisch",
 Weekly digest notification (off by default).
 - **v0.3.0 (D-098):** low stock has its own daily reminder (INV-11); this
   digest keeps only freshness.
+- **v0.5.0 (D-108):** the low-stock reminder's interval (SET-28) may be
+  weekly too; this digest still keeps only freshness.
 
 **INV-08 — Cost** `Must`
 Cost per gram from purchase events (weighted by grams of each purchase); cost
@@ -1260,6 +1428,8 @@ offered, it opens the product page (`product_url`).
   AC4), show no link.
 - **AC3:** the app makes no request itself; the browser opens the page
   (GEN-01).
+- **v0.5.0 (D-108, #197):** with the tea's stock warning off (INV-10), the
+  link stays a text link, *Knapp* or *Leer* or not.
 
 **INV-10 — Low-stock card on Start** `Should` (v0.2.2, D-097)
 When a tea's stock is *Knapp* or *Leer* (INV-05), Start's nudge slot (SCR-02)
@@ -1272,9 +1442,15 @@ leer") with *Nachbestellen* (INV-09's link; only when INV-09 offers it) and
   PURCHASE event; then the next most urgent tea, if any, shows.
 - AC3: The card is part of the Start list; it never covers or delays an
   alert.
+- **AC4, the stock warning (v0.5.0, D-108, #197):** each tea has a stock
+  warning, on by default (`tea.low_stock_warning`, SCR-09's *Warnung*). A tea
+  with it off never shows the card; the next most urgent tea takes the slot.
+  A purchase clears *Ausblenden* (AC2) but never switches the warning back
+  on; only the switch does. Its *Knapp* / *Leer* labels (INV-05) and the
+  setup's marker (BRW-08) stay.
 
-**INV-11 — Daily low-stock reminder** `Should` (v0.3.0, D-098)
-Once a day at the time of SET-29 (default 18:00) one quiet notification
+**INV-11 — Low-stock reminder** `Should` (v0.3.0, D-098; interval from v0.5.0, D-108)
+At the time of SET-29 (default 18:00), daily or at SET-28's interval, one quiet notification
 lists every tea that is *Knapp* or *Leer* (INV-05): „3 Tees werden knapp",
 with lines „Tanabata · 14 g", „Hisui · leer"; one tea is named, „Tanabata
 wird knapp" or, empty, „Hisui ist leer" (as INV-10 says it). A tap opens
@@ -1284,11 +1460,20 @@ Start.
   never.
 - AC2: No notification on a day without such a tea; never a sound,
   vibration or full-screen intent (channel „Vorrat", low importance).
-- AC3: Switched off with SET-28 (default on); no per-tea switch (removing
-  the tea stops it).
+- AC3: Switched off with SET-28 (default on; from v0.5.0 *Aus*, default *Täglich*). From v0.5.0 (D-108, #197) a
+  tea with its stock warning off (INV-10 AC4) has no line, also after a
+  purchase; a tea's own threshold (INV-05) decides its line like the card's.
 - AC4: Inexact by design (within about 15 min); it never wakes the phone
   with an exact alarm and never disturbs a running timer or its alert
   (rule 8).
+- AC5 (v0.5.0, D-108 point 7, #198): SET-28 is *Täglich · Alle 2 Tage ·
+  Alle 3 Tage · Wöchentlich · Aus* (N = 1, 2, 3, 7). The interval counts
+  from the date of the last reminder that was **posted**: a reminder is due
+  on the first date at least N days later, at the set time. A due day with
+  no tea due posts nothing and leaves the date, so the next day tries again.
+  A run late on a due day posts at once; a run more than 30 min early waits;
+  a DST change keeps the set time on the clock. A stored „on" reads as
+  *Täglich* and „off" as *Aus* (settings `schemaVersion` 3, 05 §6).
 
 ---
 
@@ -1339,9 +1524,9 @@ Every chart has an accessible table alternative.
 | SET-14 | Alarmdauer (alert length) | Kurz (1×) / Normal (bis 15 s) / Lang (bis Bestätigung, max. 2 Min) — Normal | Should |
 | SET-32 | Bei „Nicht stören" klingeln (below *Alarmdauer*; v0.3.0, D-099) | **an**. On: while Do Not Disturb lets alarms through („Nur Alarme", or priority mode whose policy allows alarms), Vorwarnung and alarm ring even when the phone reports silent, as with the ringer on normal (sound, plus vibration per SET-11). Off: the reported ringer mode decides (as in `v0.3.0-rc.1`). *Alarm testen* and *Anhören* follow it (04 §9.1) | Must |
 | SET-15 | Bestand abziehen (auto-deduct, INV-02; first row of *Brühen & Vorrat*, v0.4.0, D-100; until then without a row) | an | Must |
-| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once) | Should |
-| SET-28 | Tägliche Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; v0.3.0, D-098) | an | Should |
-| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is on; v0.3.0, D-098) | **18:00** | Should |
+| SET-16 | Schwelle „knapp" („Knapp ab", in *Brühen & Vorrat*; row new in v0.2.2, D-097) | 0–500 g in 5 g steps — **15 g** (was 10 g; a stored 10 g becomes 15 g once); a tea's own *Knapp ab* (SCR-09, 1–500 g, v0.5.0, D-108) wins over it | Should |
+| SET-28 | Vorrats-Erinnerung (INV-11, in *Brühen & Vorrat*; a switch „Tägliche Vorrats-Erinnerung" in v0.3.0, D-098; from v0.5.0 *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich · Aus*, D-108) | Täglich | Should |
+| SET-29 | Uhrzeit (the reminder's time; INV-11, time picker, shown while SET-28 is not *Aus*; v0.3.0, D-098) | **18:00** | Should |
 | SET-17 | Bildschirm beim Brühen anlassen | an | Must |
 | SET-25 | Beim Ziehen abdunkeln (TMR-17) | an | Should |
 | SET-18 | Geänderte Zeiten anbieten (PRF-07) | an | Should |
@@ -1420,7 +1605,7 @@ SCR-05.
 | ONB-02 (v0.1), ONB-04/05 (v0.1) | Unit selection, sample teas | German/metric only; catalog replaces samples (IDs reused for new meaning in v0.2 — no code existed) |
 | TMR-04 | −10 s / +10 s buttons | PO wants a calm running screen (Pause only) |
 | TMR-24/25 | Spoken countdown, tabletop layout | Not needed |
-| TMR-40 | Multiple concurrent timers | One at a time until v0.2.2; partly revived in v0.3.0: one quick timer alongside one brew session, never more (TMR-21, TMR-22, D-093, D-098) |
+| TMR-40 | Multiple concurrent timers | One at a time until v0.2.2; partly revived in v0.3.0: one quick timer alongside one brew session (TMR-21, TMR-22, D-093, D-098); from v0.5.0 any two timers, two brew sessions included, never more than two and never two quick timers (GEN-03, D-108) |
 | SET-01…04, SET-07, SET-08 | Units, teaspoons, language, leaf precision | German/metric only |
 | SET-12 | Start first step immediately | Always wait for the user |
 | SET-13 | Alarm stream choice | Alert always follows ringer mode; from v0.3.0 always the alarm stream, with *Lautstärke* (SET-27, D-098) |

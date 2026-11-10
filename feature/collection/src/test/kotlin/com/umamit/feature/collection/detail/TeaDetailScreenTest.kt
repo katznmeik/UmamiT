@@ -3,10 +3,15 @@ package com.umamit.feature.collection.detail
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -15,7 +20,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.BrewMethod
@@ -52,6 +61,8 @@ class TeaDetailScreenTest {
         delete = { calls += "delete" },
         correctStock = { calls += "stock:$it" },
         openShop = { calls += "shop:$it" },
+        setStockWarning = { calls += "warning:$it" },
+        setLowStockGrams = { calls += "threshold:$it" },
     )
 
     private var alertKey by mutableStateOf<String?>(null)
@@ -330,6 +341,103 @@ class TeaDetailScreenTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag(STOCK_SHEET_FIELD_TAG).assertDoesNotExist()
+        assertThat(calls).isEmpty()
+    }
+
+    @Test
+    fun `VORRAT's Warnung is one switch that TalkBack reads with its state`() {
+        show()
+        val warning = compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo()
+
+        warning.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+        warning.assertIsOn()
+        warning.assert(hasText("Warnung", substring = true))
+        warning.performClick()
+
+        assertThat(calls).containsExactly("warning:false")
+    }
+
+    @Test
+    fun `the Warnung switch moves at the tap, before the stored value comes back`() {
+        show() // the stored value stays on: nothing writes it here
+        val warning = compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo()
+
+        warning.performClick()
+
+        warning.assertIsOff()
+        assertThat(calls).containsExactly("warning:false")
+    }
+
+    @Test
+    fun `with the warning off the switch reads off and a tap switches it on`() {
+        show(sample().copy(stockWarning = false))
+
+        compose.onNodeWithTag(TEA_DETAIL_STOCK_WARNING_TAG).performScrollTo().assertIsOff().performClick()
+
+        assertThat(calls).containsExactly("warning:true")
+    }
+
+    @Test
+    fun `Knapp ab shows the global threshold when empty and writes whole grams when the input is done`() {
+        show()
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        compose.onNodeWithText("Vorgabe aus den Einstellungen (15 g)", substring = true).assertExists()
+
+        field.performTextInput("25")
+        assertThat(calls).isEmpty() // nothing per keystroke: „2" is never written
+        field.performImeAction()
+        field.performTextClearance()
+        field.performImeAction()
+
+        assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+    }
+
+    @Test
+    fun `Knapp ab writes only the final value, also when the detail closes while it is typed`() {
+        var shown by mutableStateOf(true)
+        compose.setContent {
+            UmamiTheme(reduceMotion = true) {
+                if (shown) TeaDetailScreen(TeaDetailUiState.Ready(sample()), actions, alertKey = null, photo = { null })
+            }
+        }
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+
+        field.performTextInput("1")
+        field.performTextInput("2")
+        shown = false
+        compose.waitForIdle()
+
+        assertThat(calls).containsExactly("threshold:12")
+    }
+
+    @Test
+    fun `Knapp ab shows the tea's own threshold and refuses one outside 1 to 500 g`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+        field.assert(hasText("20"))
+
+        field.performTextReplacement("0")
+        field.performImeAction()
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
+        field.performTextReplacement("501")
+        field.performImeAction()
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
+
+        assertThat(calls).isEmpty()
+    }
+
+    @Test
+    fun `an invalid final Knapp ab keeps the stored value, though a valid one was typed on the way`() {
+        show(sample().copy(ownLowStockGrams = 20))
+        val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
+
+        field.performTextClearance()
+        field.performTextInput("6")
+        field.performTextInput("0")
+        field.performTextInput("0") // „600": „6" and „60" are valid on the way
+        field.performImeAction()
+
+        compose.onNodeWithText("Gib 1 bis 500 g an", substring = true).assertExists()
         assertThat(calls).isEmpty()
     }
 

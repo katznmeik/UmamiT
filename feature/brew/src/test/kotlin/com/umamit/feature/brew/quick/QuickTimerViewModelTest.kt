@@ -7,10 +7,11 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.model.UserSettings
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeSettingsRepository
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.SessionKind
-import com.umamit.feature.brew.setup.ActiveSessionQuestion
+import com.umamit.feature.brew.setup.StartQuestion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -170,7 +171,7 @@ class QuickTimerViewModelTest {
 
             vm.start()
 
-            assertThat(vm.state.value.question).isEqualTo(ActiveSessionQuestion(teaName = null))
+            assertThat(vm.state.value.question).isEqualTo(StartQuestion.RestartQuick)
             assertThat(events).isEmpty()
         }
 
@@ -186,7 +187,7 @@ class QuickTimerViewModelTest {
         vm.selectPreAlert(PreAlertChoice.Off)
         vm.start()
 
-        vm.confirmRestart()
+        vm.endTimerAndStart(TimerSlot.QUICK)
 
         assertThat(starter.replaced).isEqualTo(1)
         assertThat(starter.quickStarts).containsExactly(90, 120).inOrder()
@@ -195,6 +196,35 @@ class QuickTimerViewModelTest {
         assertThat(vm.state.value.question).isNull()
         assertThat(events).containsExactly(QuickTimerEvent.OpenTimer)
     }
+
+    @Test
+    fun `Start while two brews are active asks which to end and ends only the chosen one (TMR-21 AC5, D-108)`() =
+        runTest(dispatcher) {
+            starter.state.value = brewSession(TimerPhase.RUNNING)
+            starter.other.value = brewSession(TimerPhase.READY)
+                .copy(kind = SessionKind.Brew("s2"), teaName = "Kamille", inSlot = TimerSlot.BREW_2)
+            val vm = viewModel()
+            vm.select(120)
+
+            vm.start()
+            assertThat(vm.state.value.question).isEqualTo(
+                StartQuestion.ChooseTimer(
+                    listOf(
+                        TimerToEnd(TimerSlot.BREW, "Bio Sencha Hisui", "s1"),
+                        TimerToEnd(TimerSlot.BREW_2, "Kamille", "s2"),
+                    ),
+                ),
+            )
+            assertThat(events).isEmpty()
+
+            vm.endTimerAndStart(TimerSlot.BREW_2)
+
+            assertThat(vm.state.value.question).isNull()
+            assertThat(starter.activeIn(TimerSlot.BREW_2)).isNull()
+            assertThat(starter.activeIn(TimerSlot.BREW)?.teaName).isEqualTo("Bio Sencha Hisui")
+            assertThat(starter.quickStarts).containsExactly(120)
+            assertThat(events).containsExactly(QuickTimerEvent.OpenTimer)
+        }
 
     @Test
     fun `Abbrechen keeps the running quick timer`() = runTest(dispatcher) {

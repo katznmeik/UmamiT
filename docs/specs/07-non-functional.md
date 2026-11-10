@@ -1,6 +1,6 @@
 # 07 · Non-Functional Requirements
 
-> Status: **Draft v0.2** · Last updated: 2026-10-28 (NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
+> Status: **Draft v0.2** · Last updated: 2026-11-09 (NFR-PERF-11 with every tea section, D-108; 2026-10-28: NFR-PRIV-02: four network uses, D-094; 2026-10-26: NFR-PERF-11 with Kräutertees, D-093)
 > v0.2: single user, single device (Samsung Galaxy, Android 17 / One UI 9),
 > no store; catalog network access.
 
@@ -35,7 +35,7 @@ Automated instrumented checks run in the CI emulator job on GitHub Actions
 | NFR-PERF-06 | Statistics compute within 500 ms for 10,000 sessions. |
 | NFR-PERF-07 | **Timer accuracy:** pre-alert and alert within 1 s of target (p95 ≤ 250 ms), screen on or off, app foreground, background or killed. Displayed time never deviates > 100 ms from the deadline. |
 | NFR-PERF-08 | Timer screen animates smoothly while visible; no animation work when not visible. |
-| NFR-PERF-11 | Catalog refresh on Wi-Fi without blocking the UI: first refresh ≤ 20 min (D-076; expected ≈ 15–16 min, since parsing and re-encoding overlap the request gaps, D-091; from v0.2.1 the Kräutertees' photos add about 1–2 min, ≈ 16–18 min, D-093), later refreshes ≤ 5 min (rate-limited to 2 req/s, [08 §2.4](08-content.md#24-discovery-variants-and-request-budget)). |
+| NFR-PERF-11 | Catalog refresh on Wi-Fi without blocking the UI: first refresh ≤ 20 min (D-076; expected ≈ 15–16 min, since parsing and re-encoding overlap the request gaps, D-091; from v0.2.1 the Kräutertees' photos add about 1–2 min, ≈ 16–18 min, D-093), later refreshes ≤ 5 min (rate-limited to 2 req/s, [08 §2.4](08-content.md#24-discovery-variants-and-request-budget)). **From v0.5.0 (D-108, #203)** the catalog holds every tea section of the shop: ≈ 1 150–1 360 base numbers in the sitemap, ≈ 900 catalog teas when the release is complete (≈ 120 of them black teas). The first refresh after the update, which reads the skip list's not-green products once, and a first load: **≤ 35 min** (expected ≈ 25–30 min: ≈ 10–12 min of pages at 2 req/s, the rest the new teas' photos); photos ≈ 80–100 MB in all (≈ 100 KB each at 1200 px, ≈ 12 MB for the black teas). Later refreshes stay ≤ 5 min plus the new teas' photos. The setup's and Settings' texts say „etwa eine halbe Stunde" (#206). Rate limit, one connection, `robots.txt`, sitemap discovery and the stop rules are unchanged (GEN-01, CAT-07 AC2). |
 
 ## 3. Reliability & data integrity
 

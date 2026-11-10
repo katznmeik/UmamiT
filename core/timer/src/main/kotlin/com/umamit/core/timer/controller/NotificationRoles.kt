@@ -5,10 +5,11 @@ import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.notification.runsWithService
 
 /**
- * Which notification each active timer has (04 §8.2, §8.3; D-044, D-098, PO Q5). With one timer every effect
- * goes to the service and the notifier as before v0.3.0. With a brew session and a quick timer at once, the
- * [lead] is the timer that ends next ([dueNext]): its notification is the service's (the Live Update 1, the
- * alert 2) while either timer needs the service, else the quiet 4; the other active timer is notification 5 on
+ * Which notification each active timer has (04 §8.2, §8.3; D-044, D-098, D-108, PO Q5). With one timer every effect
+ * goes to the service and the notifier as before v0.3.0. With two active timers (a brew session and the quick
+ * timer, or two brew sessions), the [lead] is the timer that ends next ([dueNext]): its notification is the
+ * service's (the Live Update 1, the alert 2) while either timer needs the service, else the quiet 4; the other
+ * active timer is notification 5 on
  * the LOW channel `timer_other`, never promoted, so the alert stays the app's only notification of importance
  * DEFAULT or higher (D-044). The roles are settled after each transition of either timer ([Transition.finish]):
  * notification 5 first, then the lead's, so a move of the Live Update updates 1 and 5 in that turn and the
@@ -19,7 +20,7 @@ internal class NotificationRoles(
     private val notifier: TimerNotifierPort,
     private val screens: SlotScreens,
 ) {
-    /** The slot whose notification the service shows (1, 2) or the quiet one (4); null while both are idle. */
+    /** The slot whose notification the service shows (1, 2) or the quiet one (4); null while every slot is idle. */
     var lead: TimerSlot? = null
         private set
 
@@ -35,9 +36,12 @@ internal class NotificationRoles(
     /** A transition of [slot] begins, the screens already showing its new state: the roles after it. */
     fun begin(slot: TimerSlot): Transition {
         val before = lead
-        lead = dueNext(screens[TimerSlot.BREW], screens[TimerSlot.QUICK])
-        return Transition(slot, before, alone = screens[slot.other] == null && otherShown == null)
+        lead = dueNext(screens.active)
+        return Transition(slot, before, alone = screens.active.none { it.slot != slot } && otherShown == null)
     }
+
+    /** The active timer that is not the [lead]; null with one timer or none. */
+    private fun other(): TimerUiState.Active? = screens.active.firstOrNull { it.slot != lead }
 
     /**
      * After the recovery of a new process (04 §7.2): a notification 5 the killed process left behind goes when
@@ -109,7 +113,7 @@ internal class NotificationRoles(
         fun finish() {
             if (alone) return
             val leading = lead?.let { screens[it] }
-            val other = lead?.other?.let { screens[it] }
+            val other = lead?.let { other() }
             when {
                 other == null -> if (otherShown != null) showOther(null)
                 otherShown != other.slot || other.slot == slot -> showOther(other)
@@ -150,15 +154,16 @@ internal class NotificationRoles(
 }
 
 /**
- * The slot whose timer ends next (04 §8.3, D-098, PO Q5), the Live Update's: the ringing alert (the brew's
- * first); else a running timer before a waiting one; of two running, the earlier deadline (the brew on a tie);
- * of two waiting, the brew, unless it went quiet (TMR-14) and the quick timer has not. Null while both are idle.
+ * The slot whose timer ends next among the [active] timers in the slot order (04 §8.3, D-098, D-108, PO Q5), the
+ * Live Update's: the ringing alert (of two, the one that rang last, whose sound plays, D-109); else a running timer
+ * before a waiting one; of two running, the earlier deadline (the first in the slot order on a tie, so a brew before
+ * the quick timer); of two waiting, the first in the slot order, unless it went quiet (TMR-14) and the other has
+ * not. Null while every slot is idle.
  */
-internal fun dueNext(brew: TimerUiState.Active?, quick: TimerUiState.Active?): TimerSlot? {
-    val active = listOfNotNull(brew, quick)
+internal fun dueNext(active: List<TimerUiState.Active>): TimerSlot? {
     val running = active.filter { it.phase == TimerPhase.RUNNING }
     return (
-        active.firstOrNull { it.ringing }
+        active.lastRinging()
             ?: running.minByOrNull { checkNotNull(it.deadlineElapsedMs) }
             ?: active.firstOrNull { !it.demoted }
             ?: active.firstOrNull()

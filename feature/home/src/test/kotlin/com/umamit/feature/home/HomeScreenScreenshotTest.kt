@@ -7,7 +7,9 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.lowStockCard
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.TimerUiStep
 import com.umamit.core.timer.engine.SessionKind
@@ -44,6 +46,11 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
         /** 21. Oktober 2026, 09:12 in Berlin. */
         private const val OCT_21 = 1_792_566_720_000L
         private const val DAY_MS = 86_400_000L
+
+        /** „Welchen Timer beenden?" with a brew and the quick timer active (TMR-21, D-108). */
+        val TWO_TIMERS_QUESTION = HomeQuestion(
+            listOf(TimerToEnd(TimerSlot.BREW, "Bio Sencha Hisui"), TimerToEnd(TimerSlot.QUICK, null)),
+        )
 
         val seeded = HomeUiState(
             loading = false,
@@ -145,5 +152,8 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
     fun activeSession() = capture("activeSession", seeded.copy(active = running))
 
     @Test
-    fun question() = capture("question", seeded.copy(active = running, question = HomeQuestion("Bio Sencha Hisui")))
+    fun question() = capture(
+        "question",
+        seeded.copy(active = running, twoTimersActive = true, question = TWO_TIMERS_QUESTION),
+    )
 }

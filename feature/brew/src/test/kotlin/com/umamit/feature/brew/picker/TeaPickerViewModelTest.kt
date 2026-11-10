@@ -103,20 +103,21 @@ class TeaPickerViewModelTest {
     )
 
     /** A brew session of [teaId] waits in READY: the active session (E15). */
-    private suspend fun activeSession(teaId: String, name: String) {
+    private suspend fun activeSession(teaId: String, name: String, slot: TimerSlot = TimerSlot.BREW) {
+        val id = "active-${slot.name}"
         val snapshot = SessionSnapshot(
             teaId, name, null, null, null, null, null, null, BrewMethod.KYUSU, null, null, 5.0, 250, 65,
         )
         val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 65))
         val start = TimerEvent.StartSession(
-            "active",
+            id,
             steps,
             PreAlertSettings.inherited(null, 10),
             longStepsOnly = false,
         )
         val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
-        sessions.sessions.startSession(SessionStart("active", snapshot, steps, 10, 1_000, "UTC"))
-        sessions.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
+        sessions.sessions.startSession(SessionStart(id, snapshot, steps, 10, 1_000, "UTC"))
+        sessions.activeBrew.persist(slot, BrewTimerEngine.snapshot(ready))
     }
 
     private suspend fun seed() {
@@ -242,6 +243,18 @@ class TeaPickerViewModelTest {
 
         assertThat(vm.state.value.removed).isNull()
         assertThat(vm.state.value.all.map { it.id }).containsExactly("h", "k").inOrder()
+    }
+
+    @Test
+    fun `the teas of both active brew sessions can't be removed (E15, D-108)`() = runTest(dispatcher) {
+        seed()
+        activeSession("t", "Bio Sencha Tanabata")
+        activeSession("k", "Kōridashi Gyokuro", TimerSlot.BREW_2)
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.all.associate { it.id to it.removable })
+            .containsExactly("h", true, "t", false, "k", false)
     }
 
     @Test

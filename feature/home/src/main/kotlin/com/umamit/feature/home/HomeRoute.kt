@@ -15,6 +15,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.reliability.startFirstIntent
 
 /**
@@ -26,7 +27,7 @@ import com.umamit.core.timer.reliability.startFirstIntent
 @Composable
 fun HomeRoute(
     actions: HomeActions,
-    onOpenTimer: () -> Unit,
+    onOpenTimer: (TimerSlot?) -> Unit,
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -42,7 +43,7 @@ fun HomeRoute(
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                HomeEvent.OpenTimer -> currentOnOpenTimer()
+                is HomeEvent.OpenTimer -> currentOnOpenTimer(event.slot)
             }
         }
     }
@@ -56,7 +57,7 @@ fun HomeRoute(
             openSetup = actions.openSetup,
             showJournal = actions.showJournal,
             openCatalog = actions.openCatalog,
-            confirmRestart = viewModel::confirmRestart,
+            endTimer = viewModel::endTimerAndStart,
             dismissQuestion = viewModel::dismissQuestion,
             fixReliability = { context.startFirstIntent(viewModel.fixReliability()) },
             reorder = context::openShopPage,

@@ -268,9 +268,9 @@ class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, pri
 
     override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) {
         if (snapshot == null) return clear(slot)
-        require(snapshot.activeBrew.slot == slot) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
+        require(snapshot.activeBrew.fitsIn(slot)) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
         val now = time.nowMs()
-        db.withTransaction { write(snapshot, now) }
+        db.withTransaction { write(slot, snapshot, now) }
     }
 
     override suspend fun clear(slot: TimerSlot) = activeBrew.delete(slot)
@@ -287,12 +287,12 @@ class RoomActiveBrewStore @Inject constructor(private val db: UmamiDatabase, pri
         )
     }
 
-    /** Writes [snapshot]'s row in its slot and its session's step rows; called inside a transaction. */
-    private suspend fun write(snapshot: TimerSnapshot, now: Long) {
+    /** Writes [snapshot]'s row as [slot]'s and its session's step rows; called inside a transaction. */
+    private suspend fun write(slot: TimerSlot, snapshot: TimerSnapshot, now: Long) {
         val row = snapshot.activeBrew
         row.sessionId?.let { syncSteps(it, snapshot, now) }
-        val createdAt = activeBrew.get(row.slot)?.createdAt ?: now
-        activeBrew.upsert(row.toEntity(createdAt = createdAt, updatedAt = now))
+        val createdAt = activeBrew.get(slot)?.createdAt ?: now
+        activeBrew.upsert(row.toEntity(slot = slot, createdAt = createdAt, updatedAt = now))
     }
 
     /** Makes the session's rows equal [snapshot]'s step rows, keeping row ids, notes and creation times. */

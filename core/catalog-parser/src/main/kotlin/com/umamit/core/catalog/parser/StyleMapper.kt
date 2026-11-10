@@ -2,6 +2,7 @@ package com.umamit.core.catalog.parser
 
 import com.umamit.core.domain.style.BuiltInStyles
 import com.umamit.core.domain.style.TeaStyle
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
 
@@ -14,6 +15,7 @@ import com.umamit.core.model.UmamiLevel
  * @property unmapped neither breadcrumb nor name named a style: [style] is `green_generic` and
  *   the tea is flagged `UNMAPPED_STYLE`.
  * @property coldBrewDefault a cold-brew bag (Mizudashi) or a Mizucha: its default recipe is the cold brew.
+ * @property category the tea's category: its style's, but a chai's is its base tea's (v0.5.0, #206).
  */
 data class StyleMatch(
     val style: TeaStyle,
@@ -21,6 +23,7 @@ data class StyleMatch(
     val japanese: Boolean,
     val unmapped: Boolean,
     val coldBrewDefault: Boolean,
+    val category: TeaCategory = style.category,
 )
 
 /** Maps a catalog tea to a built-in style (CAT-06): the breadcrumb's last segment, else name keywords (08 §2.6). */
@@ -89,16 +92,20 @@ object StyleMapper {
      * The style of a tea in the category [categoryPath] (`/tee/gruener-tee/japan/sencha/`) named
      * [name], with the shop's *Sorte* [teaType]. A flavoured sencha is `flavored_green`, and a
      * flavoured tea no keyword names is too (it is no unknown green tea); one from Korea
-     * ([originCountry], *Anbaugebiete*) no keyword names is a Korean green.
+     * ([originCountry], *Anbaugebiete*) no keyword names is a Korean green. A tea whose name says chai, or
+     * filed in the chai section, is a `chai` of its base tea's category (v0.5.0, #206): its section's, green
+     * for a green section's, else the one its name or [ingredients] name, else `OTHER`.
      */
+    @Suppress("LongParameterList")
     fun map(
         categoryPath: String?,
         name: String?,
         teaType: String? = null,
         isFlavored: Boolean = false,
         originCountry: String? = null,
+        ingredients: String? = null,
     ): StyleMatch {
-        if (categoryPath != null && HerbalSection.contains(categoryPath)) return herbal(listOfNotNull(name, teaType))
+        sectionMatch(categoryPath, name, teaType, isFlavored, ingredients)?.let { return it }
         val segment = categoryPath?.trimEnd('/')?.substringAfterLast('/')?.lowercase().orEmpty()
         val text = listOfNotNull(name, teaType).joinToString(" ")
         val byName = KEYWORDS.firstOrNull { (pattern, _) -> pattern.containsMatchIn(text) }?.second
@@ -123,16 +130,38 @@ object StyleMapper {
     }
 
     /**
-     * A Kräutertee (v0.2.1, D-093): the `herbal` style whatever its name names (a „Kräuter-Sencha"
-     * of the herbal section is no sencha), never flagged; in bags when its name says so.
+     * A tea of another tea section ([TeaSections]): its section's style, whatever a green keyword in
+     * its name names (a „Kräuter-Sencha" of the herbal section is no sencha), never flagged; in bags
+     * when its name says so. A Kräutertee is `herbal` (v0.2.1, D-093), a black tea one of the black
+     * styles (v0.5.0, D-108), a chai `chai` (#206); null for a tea of no section whose name says no chai.
      */
-    private fun herbal(names: List<String>): StyleMatch = StyleMatch(
-        style = requireNotNull(BuiltInStyles.byKey(HERBAL)),
-        form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
-        japanese = false,
-        unmapped = false,
-        coldBrewDefault = false,
-    )
+    private fun sectionMatch(
+        categoryPath: String?,
+        name: String?,
+        teaType: String?,
+        isFlavored: Boolean,
+        ingredients: String?,
+    ): StyleMatch? {
+        val section = categoryPath?.let { TeaSections.of(it) ?: TeaSections.ofJapanName(it, name) }
+        if (section == null && !TeaSections.isChai(name)) return null
+        val names = listOfNotNull(name, teaType)
+        val chai = section == TeaSections.CHAI || TeaSections.isChai(name)
+        // A chai's category is its base tea's (#206): its section's, green outside one, else what its texts name.
+        val category = when (section) {
+            null -> TeaCategory.GREEN
+            TeaSections.CHAI -> TeaSections.chaiBase(name, ingredients)?.first ?: TeaCategory.OTHER
+            else -> section.category
+        }
+        val styleSection = if (chai) TeaSections.CHAI else requireNotNull(section)
+        return StyleMatch(
+            style = requireNotNull(BuiltInStyles.byKey(styleSection.style(names.joinToString(" "), isFlavored))),
+            form = if (names.any { TEA_BAGS.containsMatchIn(it) }) TeaForm.TEA_BAG else TeaForm.LOOSE_LEAF,
+            japanese = false,
+            unmapped = false,
+            coldBrewDefault = false,
+            category = category,
+        )
+    }
 
     /**
      * The style key by the breadcrumb's [segment], else the name's [byName]; null when neither
@@ -166,7 +195,7 @@ object StyleMapper {
 
     /**
      * The umami level (08 §2.6): the shop's Umami scale (0 → NONE … 4–5 → VERY_HIGH), else the style's.
-     * The catalog maps only to green and herbal styles (CAT-01), which all have one.
+     * The catalog maps only to the styles of its sections (CAT-01), which all have one.
      */
     fun umamiLevel(scales: List<ShopScale>, style: TeaStyle): UmamiLevel =
         scales.firstOrNull { it.label.equals("Umami", ignoreCase = true) }
@@ -174,7 +203,6 @@ object StyleMapper {
             ?: requireNotNull(style.umami) { "catalog style ${style.key} without an umami level" }
 
     private const val FLAVORED = "flavored_green"
-    private const val HERBAL = "herbal"
     private const val KOREAN_GREEN = "korean_green"
 
     /** *Anbaugebiete* Korea: a green tea no keyword names is a Korean green (D-089). */

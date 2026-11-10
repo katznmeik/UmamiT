@@ -446,7 +446,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
-| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings |
+| `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
 | `ReliabilityBanner` | Quiet warning bar with *Beheben* |
 | `StepsSheet` | Session-only step editor (SCR-31) |
 | `EmptyState` | Illustration, serif title, body, button |
@@ -469,8 +469,11 @@ romanisation with macrons (Kōridashi) where standard. Examples:
    (ONB-06), below *Weiter*.
    The setup is the start destination until completed; details:
    [D-066](10-open-questions-and-decisions.md#d-066).
-3. *Katalog laden* — „Alle Grün- und Kräutertees von Tee-Kontor Kiel offline verfügbar
-   machen" · *Katalog jetzt laden* (progress inline) / *Später*. After
+3. *Katalog laden* — „Alle Tees von Tee-Kontor Kiel offline verfügbar machen,
+   von Grüntee bis Chai. Das erste Laden dauert etwa eine halbe Stunde; die App
+   kannst du währenddessen schon nutzen." (v0.5.0, #206: the whole range and
+   NFR-PERF-11's ≈ 25–30 min; until then „Grün- und Kräutertees … etwa eine
+   Viertelstunde") · *Katalog jetzt laden* (progress inline) / *Später*. After
    *Katalog jetzt laden*, *Weiter* finishes the setup while the load goes on
    in its service with its notification (ONB-03, D-079). *Katalog jetzt
    laden* ends a seed photo download still running first, so two jobs never
@@ -503,6 +506,14 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
   *Aufguss starten* (the bar shows it); with both timers the card shows the
   brew, never switching to the quick timer, and its tap opens the brew.
+  With two brew sessions (v0.5.0, D-108) the card shows the first in the
+  slot order and opens that one; the bar shows both.
+- **Aufguss starten beside one timer (v0.5.0, D-108).** *Aufguss starten*
+  shows while fewer than two timers are active: alone, below the card of one
+  active brew (v0.3.0 hid it while a brew was active), or with a quick timer
+  alone. With two active timers (two brews, or a brew and a quick timer) it
+  is hidden; *Nochmal brühen* and the setup's *Start* then ask „Welchen Timer
+  beenden?" (below).
 - **Two timers (v0.3.0, D-098).** While a brew runs, *Schnelltimer* still
   opens SCR-07 and starts a quick timer alongside it, without a question;
   while a quick timer runs, *Aufguss starten* and *Nochmal brühen* start a
@@ -510,6 +521,14 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   asks „Schnelltimer beenden und neu starten?" (*Beenden & neu starten* /
   *Abbrechen*; §5). The active brew bar above the navigation bar shows both
   timers (§3.8).
+- **Two brews (v0.5.0, D-108).** *Nochmal brühen* of another tea starts the
+  second brew beside the first, without a question, and opens it; of a tea
+  with an active session it opens that session. While two timers are
+  active it asks „Welchen Timer beenden?": the title, „Es laufen schon zwei
+  Timer. Der gewählte endet, dann startet der neue.", one full-width
+  outlined button per active timer in the slot order (the tea's name or
+  *Schnelltimer*; TalkBack „*Hisui* beenden") and *Abbrechen*. The setup
+  (SCR-04) and SCR-07's *Start* ask the same. Never over an alert (rule 8).
 - **Alarm volume (v0.3.0, D-098).** The reliability banner also shows
   „Alarmlautstärke ist aus" with *Beheben* (the system's sound settings)
   when the phone's alarm volume is 0 (TMR-31).
@@ -738,6 +757,12 @@ TalkBack announcements: state changes, pre-alert, 10 s remaining, alert.
   body style, its countdown ticking, and a small text button *Pause* /
   *Weiter* for the quick timer only. A tap on the row opens SCR-07; back
   returns to this screen. Paused: „⏱ Schnelltimer · Pausiert 2:14".
+- **Row for the other brew (v0.5.0, D-108).** With two brew sessions each
+  brew's screen shows the other in the same row: „🍃 Hisui · Aufguss 2 ·
+  0:48" („· bereit", „· Pausiert 0:48", „· fertig"; a held alert „· wartet")
+  with *Pause*/*Weiter* for that brew only; a tap opens it, back returns.
+  TalkBack reads the row as one element with tea, step and time. The space,
+  alert and motion rules below hold for it as for the quick timer's row.
 - **Space.** The row's height is reserved in every phase of a brew while a
   quick timer is active, so the pill never moves when the row comes or goes
   within a phase; when the quick timer starts or ends, the band gives way
@@ -825,6 +850,10 @@ everything fits it keeps its height and nothing moves at *Start* (rule 8).
 - **Held alert.** A quick timer that ends while the brew alerts waits
   silently; its alert surface shows after the brew's *Abgegossen*, with
   the overtime from its own deadline („+12:00").
+- **Two brews (v0.5.0, D-108).** While two brew sessions are active, *Start*
+  asks „Welchen Timer beenden?" with both brews and *Abbrechen* (SCR-02);
+  the chosen session ends as by *Sitzung beenden*, then the quick timer
+  runs.
 - **Polish 1: calm *Vorwarnung* row.** The row is anchored at its label:
   „Vorwarnung" keeps its x position for every choice (*Automatisch*, *Aus*,
   20 s, „· zu kurz"), and the selector grows to its right (#133).
@@ -931,6 +960,26 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
   Sitzungen"). A tea without a recorded price shows none of them. They
   update at once after a purchase, a correction or a history delete. The
   section keeps its title „Vorrat".
+- **Stock warning (v0.5.0, INV-05, INV-09, INV-10, INV-11, D-108, #197):** in
+  VORRAT after the reorder link, above a hairline and before the history:
+  - *Warnung*, one row with a switch (on by default) and „Startkarte und
+    Erinnerung, wenn der Vorrat knapp wird"; the row is the switch, and
+    TalkBack reads it with its state. The switch moves at the tap, before
+    the stored value comes back (v0.5.0 motion review N3). Off: no Start card, no reminder line,
+    and the reorder link stays a text link; the *Knapp* / *Leer* label stays.
+  - *Knapp ab*, a field in whole grams with the suffix „g" and the line
+    „Leer lassen für die Vorgabe aus den Einstellungen (15 g)" (SET-16's
+    value). The input is saved when it is done (*Fertig* on the keyboard,
+    the field losing focus or the detail closing; v0.5.0 review), not per
+    keystroke, and only a valid one (empty, or 1–500); the label, card,
+    reminder, setup marker and reorder highlight then follow it. Anything
+    else says „Gib 1 bis 500 g an oder lass das Feld leer." at the field and
+    keeps the stored value, also a „600" that passed a valid „60". Shown with
+    the warning off too.
+  - The reorder link and the highlighted button take the same height
+    (8 + 48 dp), so *Warnung* and *Knapp ab* never move when a tap or an
+    input there switches between them (motion review S1).
+  - Neither is in the tea editor (SCR-10); the detail is their one place.
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
@@ -1010,6 +1059,9 @@ recipe.
 - **As built (#155, Claude):** the search matches the Sorte name and its
   Kategorie (GEN-10). *Andere / unbekannt* stores no style (05 §3.1) and the
   Kategorie *Andere*.
+- **v0.5.0 (#206):** the Kategorien *Rotbusch* and *Früchtetee* follow
+  *Kräutertee*, each with its one row; *Chai* (Kategorie *Andere* when chosen
+  here) sits above *Andere / unbekannt* in the last, unheaded group.
 
 ### SCR-12 Rezept bearbeiten
 
@@ -1171,13 +1223,54 @@ aromatisiert, „Rezept prüfen"; CAT-10, D-090). The filters are CAT-10's (D-07
   *Herkunft* and the switches Vorrätig, Bio, Neu, Im Besitz stay), and
   *Zurücksetzen* as well as „Filter zurücksetzen" reset the filters but stay
   in the Kräutertee view (#91).
+  From v0.5.0 (D-108 point 8, #204) the sheet adds, after *Umami* and in
+  every kind's view: *Geschmack* (multi-select chips of the shop's taste
+  notes in the view, most frequent first; a tea must name every one
+  chosen) and one row per shop taste scale in the view but Umami, titled by
+  the scale („Süße", „Bitterstoffe" …) with *Egal · ab 1 · ab 2 · ab 3 ·
+  ab 4 · ab 5*. Both count in „Filter (n)" (the notes once, each scale with
+  a minimum once) and are cleared by *Zurücksetzen*. TalkBack reads each
+  chip's state (ausgewählt / nicht ausgewählt), a scale chip with its scale
+  („Süße ab 3").
 - **Kräutertee hint (v0.2.1, D-093 Q20):** until the first successful refresh
   after the update (the last one ran a parser from before the Kräutertees),
   the Kräutertee view shows „Kräutertees kommen mit dem nächsten Abruf
   (≈ 16 min, einmalig)" with *Jetzt laden*, which starts the refresh and
-  opens its sheet (*Fortschritt anzeigen* while one runs). When the view is
+  opens its sheet (*Fortschritt anzeigen* while one runs; from v0.5.0 the
+  list's „Der Katalog wird aktualisiert …" row is then left out in that
+  view, so the hint never moves under the finger that tapped *Jetzt laden*;
+  motion review N2). When the view is
   empty it takes the no-match notice's place; the header still reads
-  „… · 0 Kräutertees · …".
+  „… · 0 Kräutertees · …". From v0.5.0 (D-108, #203) each pending kind's
+  view shows its own hint the same way: „Schwarztees kommen mit dem nächsten
+  Abruf (≈ 30 min, einmalig)", and the Kräutertee hint says ≈ 30 min too.
+- **Schwarztee (v0.5.0, D-108, #203):** the chip *Schwarztee* sits between
+  *Grüntee* and *Kräutertee*; its view is grouped by *Sorte* with folding,
+  the header reads „… · 186 Schwarztees · …", and „Pur" and Umami apply to
+  the green view only, as in the Kräutertee view.
+- **Weißer Tee, Oolong, Pu-Erh (v0.5.0, #205):** their chips follow
+  *Schwarztee* (*Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh ·
+  Kräutertee*, the row scrolls sideways); each view is grouped by *Sorte*
+  with folding, its header reads „… · 2 Weiße Tees / 3 Oolongs / 12 Pu-Erhs
+  · …", and each shows its own pending hint until the first refresh with
+  parser v9. The empty catalog's body names them too: „Lade alle Grün-,
+  Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs von Tee-Kontor Kiel,
+  um offline darin zu stöbern."
+- **Rotbusch, Früchtetee, Chai (v0.5.0, #206):** their chips close the row,
+  *Grüntee · Schwarztee · Weißer Tee · Oolong · Pu-Erh · Kräutertee ·
+  Rotbusch · Früchtetee · Chai* (D-108 point 5); each view is grouped by
+  *Sorte* with folding, its header reads „… · 3 Rotbuschtees / 2 Früchtetees
+  / 9 Chais · …", and each shows its own pending hint until the first refresh
+  with parser v10. Whenever the kind changes (a tap, *Alle zeigen*, back from
+  *Gemerkt*), the row scrolls just enough to show the selected chip with the
+  side margin, with the `standard` token (§3.6; at once under reduced
+  motion, and at the row's first show); only the row scrolls. A row that
+  scrolls back into the list keeps where the user left it (motion review
+  S2, S3). When the kind changes while the chip row is out of view (*Alle
+  zeigen* at the list's end), the list jumps back to the row at once (N1). The empty catalog's body: „Lade alle Tees von Tee-Kontor Kiel,
+  von Grüntee bis Chai, um offline darin zu stöbern." A link's „nicht im
+  Katalog" reads „Dieser Artikel gehört nicht zum Katalog (nur Tees, ohne
+  Sets und Zubehör)."
 - **Merken (v0.2.2, CAT-18, [D-097](10-open-questions-and-decisions.md#d-097)):**
   each row of a tea not in the collection ends with a bookmark toggle
   (48 dp target, outlined / filled, TalkBack „Merken" / „Gemerkt"; a short
@@ -1345,7 +1438,8 @@ Bildschirm beim Brühen anlassen, Beim Ziehen abdunkeln, *Alarm testen*) and
 ([D-066](10-open-questions-and-decisions.md#d-066)). M2 adds *Katalog*
 between them: „Letzter Abruf" with the date of the last successful refresh
 („21. Okt. 2026", „Noch nie"), *Jetzt aktualisieren* (SET-23, D-079) and the
-switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"). v0.2.1 adds
+switch *Fotos laden* (SET-22, „zusammen etwa 30 MB"; from v0.5.0 „zusammen etwa
+80–100 MB", NFR-PERF-11, D-108). v0.2.1 adds
 *Vorwarnton* with *Anhören* below *Vorwarnung* (SET-26, D-093). v0.2.2 adds
 the section *Brühen & Vorrat* between *Timer & Alarm* and *Katalog* with
 „Knapp ab" (SET-16, 0–500 g in 5 g steps, „15 g"; D-097).
@@ -1359,7 +1453,12 @@ v0.3.0 ([D-098](10-open-questions-and-decisions.md#d-098)):
 - *Brühen & Vorrat* gets the switch „Tägliche Vorrats-Erinnerung" (SET-28,
   on) with „Listet jeden Tag alle knappen und leeren Tees." and, while it is
   on, „Uhrzeit" with the time („18:00", SET-29), which opens Material 3's
-  time picker (24 h).
+  time picker (24 h). From v0.5.0 ([D-108](10-open-questions-and-decisions.md#d-108),
+  #198) the switch is the row „Vorrats-Erinnerung" with its choice as the
+  value („Täglich"); it opens a choice dialog with „Listet alle knappen und
+  leeren Tees." and *Täglich · Alle 2 Tage · Alle 3 Tage · Wöchentlich ·
+  Aus* (a pick is stored at once, *Fertig* closes). „Uhrzeit" shows while
+  the choice is not *Aus*.
 - *Timer & Alarm* gets the switch „Bei „Nicht stören" klingeln" (SET-32,
   on; [D-099](10-open-questions-and-decisions.md#d-099)) below *Alarmdauer*,
   with „Vorwarnung und Alarm klingen, wenn „Nicht stören" Alarme erlaubt".
@@ -1536,7 +1635,7 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Catalog refresh, storage full | „Der Katalog konnte nicht gespeichert werden – ist der Speicher voll?" · „Dein bisheriger Katalog bleibt erhalten." |
 | Catalog refresh cancelled | „Laden abgebrochen" · „Dein bisheriger Katalog bleibt erhalten." |
 | Tee per Link: not a shop tea link (CAT-17) | „Das ist kein Tee-Link von Tee-Kontor Kiel." |
-| Tee per Link: not green or herbal (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün- und Kräutertees)." |
+| Tee per Link: not in the catalog's sections (CAT-17) | „Dieser Tee gehört nicht zum Katalog (nur Grün-, Schwarz-, Weiß- und Kräutertees, Oolongs und Pu-Erhs)." |
 | Tee per Link: a refresh runs (CAT-17) | „Gerade läuft ein Abruf – versuch es danach." |
 | Tee per Link: no tea at the link (404/410, a redirect, another 4xx, no or another product; CAT-17, #98) | „Unter diesem Link gibt es im Shop keinen Tee." |
 | Tee per Link: the page can't be read (robots.txt, over the body limit, no breadcrumb; CAT-17, #98) | „Diese Shop-Seite kann die App nicht lesen." |

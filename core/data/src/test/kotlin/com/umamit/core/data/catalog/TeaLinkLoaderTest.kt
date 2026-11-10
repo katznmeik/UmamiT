@@ -289,6 +289,20 @@ class TeaLinkLoaderTest {
     }
 
     @Test
+    fun aBlackTeaIsStoredWithItsStyleAndSorte() = runTest {
+        // v0.5.0 (#203, D-108): a shared link to a black tea is in the catalog (CAT-17).
+        product(BLACK, "Nebelberg Assam – 100g", breadcrumb = SyntheticShop.BLACK_CLASSIC_PATH)
+
+        val outcome = loader().load("$SHOP$BLACK")
+
+        assertThat(outcome).isEqualTo(TeaLinkOutcome.Opened(BLACK_KEY))
+        val tea = requireNotNull(dao.tea(BLACK_KEY))
+        assertThat(tea.styleKey).isEqualTo("assam")
+        assertThat(tea.teaType).isEqualTo("Assam")
+        assertThat(photos.exists(BLACK_KEY)).isTrue()
+    }
+
+    @Test
     fun theStoredTeaIsFoundBySearch() = runTest {
         product(SOLD_OUT, "Nebelhang Sencha – 100g")
 
@@ -447,7 +461,7 @@ class TeaLinkLoaderTest {
 
     @Test
     fun aPageOutOfScopeIsNotStoredAndNotSkipped() = runTest {
-        product(BLACK, "Nebelberg Assam – 100g", breadcrumb = SyntheticShop.BLACK_TEA_PATH)
+        product(BLACK, "Nebelberg Assam – 100g", breadcrumb = SyntheticShop.TEA_BAGS_PATH)
 
         val outcome = loader().load("$SHOP$BLACK")
 
@@ -460,8 +474,8 @@ class TeaLinkLoaderTest {
     }
 
     @Test
-    fun aFruitTeaIsNotStored() = runTest {
-        product(BLACK, "Beerenwiese – 100g", breadcrumb = SyntheticShop.FRUIT_TEA_PATH)
+    fun aProductOfNoTeaSectionIsNotStored() = runTest {
+        product(BLACK, "Beerenwiese – 100g", breadcrumb = SyntheticShop.SWEETS_PATH)
 
         assertThat(loader().load("$SHOP$BLACK")).isEqualTo(TeaLinkOutcome.NotInCatalog)
         assertThat(dao.keys()).isEmpty()
@@ -691,7 +705,7 @@ class TeaLinkLoaderTest {
     fun aTeaFromALinkThatARecentRefreshSkippedStaysWithTheNextRefresh() = runTest {
         listed += SENCHA
         product(SENCHA, "Morgennebel Sencha – 100g")
-        product(SOLD_OUT, "Nebelhang Sencha – 100g", breadcrumb = SyntheticShop.BLACK_TEA_PATH, list = true)
+        product(SOLD_OUT, "Nebelhang Sencha – 100g", breadcrumb = SyntheticShop.TEA_BAGS_PATH, list = true)
         refresher().refresh()
         assertThat(dao.skipList().map { it.baseKey }).containsExactly(SOLD_OUT_KEY)
         // The shop files the product as a green tea now; the user shares its link within the 90 days.

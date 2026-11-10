@@ -98,14 +98,14 @@ class ControllerDiagnosticsLogTest {
             "alarm QUICK.PRE_ALERT received | " +
                 "QUICK.PRE_ALERT scheduled 10:00:20.000 (mono 5020000) actual 10:00:20.030 (mono 5020030) delta +30 ms",
         )
-        assertThat(entries.messageOf("event DeadlineReached")).isEqualTo(
-            "event DeadlineReached from ALARM: RUNNING -> ALERTING accepted | " +
+        assertThat(entries.messageOf("event QUICK.DeadlineReached")).isEqualTo(
+            "event QUICK.DeadlineReached from ALARM: RUNNING -> ALERTING accepted | " +
                 "QUICK.DEADLINE scheduled 10:00:30.000 (mono 5030000) actual 10:00:30.020 (mono 5030020) delta +20 ms",
         )
         // The log reads newest first.
-        val preAlerts = entries.asReversed().map { it.message }.filter { it.startsWith("event PreAlertReached") }
+        val preAlerts = entries.asReversed().map { it.message }.filter { it.contains("PreAlertReached from") }
         assertThat(preAlerts).containsExactly(
-            "event PreAlertReached from ALARM: RUNNING -> RUNNING accepted | " +
+            "event QUICK.PreAlertReached from ALARM: RUNNING -> RUNNING accepted | " +
                 "QUICK.PRE_ALERT scheduled 10:00:20.000 (mono 5020000) actual 10:00:20.030 (mono 5020030) delta +30 ms",
             "event PreAlertReached from ALARM: RUNNING -> RUNNING accepted | " +
                 "PRE_ALERT scheduled 10:00:50.000 (mono 5050000) actual 10:00:50.080 (mono 5050080) delta +80 ms",
@@ -179,17 +179,18 @@ class ControllerDiagnosticsLogTest {
             h.controller.send(TimerEvent.Cancel)
         }
 
-        assertThat(log.entries().map { it.message }.filter { it.startsWith("event StartQuickTimer") }).containsExactly(
-            "event StartQuickTimer (120 s, pre-alert auto, base 10 s, lead 10 s) from APP: IDLE -> READY accepted | " +
-                "mono 5000000 boot 1",
-            "event StartQuickTimer (120 s, pre-alert off, base 10 s, lead none) from APP: IDLE -> READY accepted | " +
-                "mono 5000000 boot 1",
-            "event StartQuickTimer (120 s, pre-alert 20 s, base 10 s, lead 20 s) from APP: IDLE -> READY accepted | " +
-                "mono 5000000 boot 1",
-            "event StartQuickTimer (20 s, pre-alert 20 s, base 10 s, lead none) from APP: IDLE -> READY accepted | " +
-                "mono 5000000 boot 1",
-            "event StartQuickTimer (120 s, pre-alert auto, base 0 s, lead none) from APP: IDLE -> READY accepted | " +
-                "mono 5000000 boot 1",
+        val quickStarts = log.entries().map { it.message }.filter { it.startsWith("event QUICK.StartQuickTimer") }
+        assertThat(quickStarts).containsExactly(
+            "event QUICK.StartQuickTimer (120 s, pre-alert auto, base 10 s, lead 10 s) from APP: " +
+                "IDLE -> READY accepted | mono 5000000 boot 1",
+            "event QUICK.StartQuickTimer (120 s, pre-alert off, base 10 s, lead none) from APP: " +
+                "IDLE -> READY accepted | mono 5000000 boot 1",
+            "event QUICK.StartQuickTimer (120 s, pre-alert 20 s, base 10 s, lead 20 s) from APP: " +
+                "IDLE -> READY accepted | mono 5000000 boot 1",
+            "event QUICK.StartQuickTimer (20 s, pre-alert 20 s, base 10 s, lead none) from APP: " +
+                "IDLE -> READY accepted | mono 5000000 boot 1",
+            "event QUICK.StartQuickTimer (120 s, pre-alert auto, base 0 s, lead none) from APP: " +
+                "IDLE -> READY accepted | mono 5000000 boot 1",
         )
     }
 

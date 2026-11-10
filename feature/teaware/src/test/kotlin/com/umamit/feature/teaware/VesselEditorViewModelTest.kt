@@ -229,6 +229,15 @@ class VesselEditorViewModelTest {
     }
 
     @Test
+    fun `the vessel of the second brew session can't be archived either (WARE-01, D-108)`() = runTest {
+        activeSessionWith(vesselId = "other")
+        activeSessionWith(vesselId = "k", slot = TimerSlot.BREW_2)
+        val vm = viewModel("k")
+
+        assertThat(vm.ready.archiveBlocked).isTrue()
+    }
+
+    @Test
     fun `an archived vessel offers Wiederherstellen`() = runTest {
         collection.vessels.saveVessel(kyusu.copy(isArchived = true))
         val vm = viewModel("k")
@@ -354,15 +363,16 @@ class VesselEditorViewModelTest {
     }
 
     /** A brew session with [vesselId] waits in READY: the active session (E10). */
-    private suspend fun activeSessionWith(vesselId: String) {
+    private suspend fun activeSessionWith(vesselId: String, slot: TimerSlot = TimerSlot.BREW) {
+        val id = "active-${slot.name}"
         val snapshot = SessionSnapshot(
             null, "Hisui", null, null, null, null, null, null, BrewMethod.KYUSU, vesselId, "Kyusu", 5.0, 250, 60,
         )
         val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 60))
         val start =
-            TimerEvent.StartSession("active", steps, PreAlertSettings.inherited(null, 10), longStepsOnly = false)
+            TimerEvent.StartSession(id, steps, PreAlertSettings.inherited(null, 10), longStepsOnly = false)
         val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
-        sessions.sessions.startSession(SessionStart("active", snapshot, steps, 10, 1_000, "UTC"))
-        sessions.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
+        sessions.sessions.startSession(SessionStart(id, snapshot, steps, 10, 1_000, "UTC"))
+        sessions.activeBrew.persist(slot, BrewTimerEngine.snapshot(ready))
     }
 }

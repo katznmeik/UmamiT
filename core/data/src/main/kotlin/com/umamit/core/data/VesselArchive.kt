@@ -5,6 +5,7 @@ import com.umamit.core.common.WallClock
 import com.umamit.core.database.UmamiDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
@@ -13,8 +14,8 @@ import javax.inject.Inject
  * of the active brew session can't be archived until the session ends.
  */
 interface VesselArchive {
-    /** The vessel of the active brew session, or null (no session, or a session without a vessel). */
-    fun observeActiveVesselId(): Flow<String?>
+    /** The vessels of every active brew session, in either brew slot (D-108): none can be archived. */
+    fun observeActiveVesselIds(): Flow<Set<String>>
 
     /** Archives the vessel, unless it belongs to the active brew session; one transaction. */
     suspend fun archive(vesselId: String): ArchiveResult
@@ -26,12 +27,12 @@ interface VesselArchive {
 /** [VesselArchive] on Room: the check against `active_brew` and the write share one transaction. */
 class RoomVesselArchive @Inject constructor(private val db: UmamiDatabase, private val time: WallClock) :
     VesselArchive {
-    override fun observeActiveVesselId(): Flow<String?> =
-        db.activeBrewDao().observeActiveVesselId().distinctUntilChanged()
+    override fun observeActiveVesselIds(): Flow<Set<String>> =
+        db.activeBrewDao().observeActiveVesselIds().map { it.toSet() }.distinctUntilChanged()
 
     override suspend fun archive(vesselId: String): ArchiveResult = db.withTransaction {
         when {
-            db.activeBrewDao().activeVesselId() == vesselId -> ArchiveResult.InActiveSession
+            db.activeBrewDao().isActiveVessel(vesselId) -> ArchiveResult.InActiveSession
             db.vesselDao().setArchived(vesselId, archived = true, now = time.nowMs()) == 0 -> ArchiveResult.NotFound
             else -> ArchiveResult.Archived
         }

@@ -35,6 +35,7 @@ import com.umamit.core.model.GuideInline
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeAddFromCatalog
 import com.umamit.core.testing.FakeBrewStarter
 import com.umamit.core.testing.FakeCatalogRefreshRunner
@@ -205,7 +206,7 @@ class CatalogBrewFlowTest {
 
     /** The setup of the route's tea (its saved state). */
     @Composable
-    private fun Setup(onBack: () -> Unit, onOpenTimer: () -> Unit, onOpenCatalog: (String) -> Unit) {
+    private fun Setup(onBack: () -> Unit, onOpenTimer: (TimerSlot?) -> Unit, onOpenCatalog: (String) -> Unit) {
         BrewSetupScreenRoute(
             onBack = onBack,
             onOpenTimer = onOpenTimer,

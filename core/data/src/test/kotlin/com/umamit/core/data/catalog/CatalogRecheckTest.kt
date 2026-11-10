@@ -314,7 +314,7 @@ class CatalogRecheckTest {
     @Test
     fun aBreadcrumbOutOfScopeLeavesTheRange() = runTest {
         soldOutSinceTheFirstRefresh()
-        product(SOLD_OUT, "Nebelhang Assam – 100g", breadcrumb = SyntheticShop.BLACK_TEA_PATH, list = false)
+        product(SOLD_OUT, "Nebelhang Assam – 100g", breadcrumb = SyntheticShop.TEA_BAGS_PATH, list = false)
 
         val outcome = refresher().refresh()
 

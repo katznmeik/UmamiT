@@ -323,6 +323,70 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-109"></a>
+### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)
+
+**Context.** The T4 review of the v0.5.0 timer path found that a held alarm
+waited until *Abgegossen* on the other timer, or until its 10-min overtime
+timeout, even after the other alarm's sound had ended (SET-14 *Alarmdauer*,
+e.g. *Normal* ≈ 15 s). Example: brew A rings at 10:00 and the PO does not
+pour; brew B's deadline at 10:02 is held with no sound and only a quiet
+notification, so B could steep up to 8 minutes too long without a cue.
+
+**Decision (PO).** A held alarm rings as soon as the alarm that keeps the
+sound has **stopped sounding** (its *Alarmdauer* ended, or it was silenced),
+not only after *Abgegossen*. The first timer stays ALERTING on screen
+(„Jetzt abgießen!", overtime counting) without sound; the released one rings
+its full *Alarmdauer* with its overtime. Two sounds still never overlap, and
+the order stays: the alarm that rang first keeps the sound while it sounds; a
+brew still preempts a ringing quick alarm. The rule is the same for two brews
+and for a quick timer held behind a brew (it amends D-098 point 2 as well).
+
+**Consequences.** The arbitration's „rings" becomes „sounds" (the player's
+report of the alert's end releases the held slot). The held alert's silent
+end still counts 10 min from when it started ringing. 04 §9.3, 02 TMR-22 AC4,
+the accuracy run's held-alert design (#202: the hold now ends at the first
+alert's sound end, not at *Abgegossen*) and the 09 §4 checklist follow in the
+v0.5.0 fix round. Tier T4 (rule 8).
+
+**Build notes (v0.5.0 fix round, T4 timer path, #194; Claude).**
+- *Sounds.* `AlertArbitration` holds and keeps only for an alert that
+  **sounds**: ALERTING, not held, not `alertPlayed` (the player's
+  `alertCompleted` at the end of SET-14 *Alarmdauer*). The release goes to the
+  held alert whose deadline came first once none sounds. A brew alert whose
+  sound ended no longer holds or preempts anything: a quick or brew deadline
+  after it rings at once. A recovered ALERTING row reported played is not
+  replayed and holds nothing. The invariant test now checks „at most one
+  slot sounds" and „a held alert waits only while another sounds"; its v0.3.0
+  rule „a quick alert never starts while the brew alerts" became „… while a
+  brew's alert sounds".
+- *Front.* Of two alerts not held, the one that started ringing last
+  (`ringingSince`, in the UI state) is in front, leads the notifications
+  (notification 2 with its full-screen intent) and takes the timer route; the
+  silent first is notification 5 („Jetzt abgießen!", *Abgegossen*), whose
+  *Abgegossen* never stops the released sound (`PlayerSound.mayStop`).
+- *Deadline order.* A turn's due events and the first turn's recovery take
+  the brew slots first, as before, and of the brews the earlier deadline
+  first (wall clock for recovery), so the step whose deadline came first
+  rings (04 §9.3).
+- *Answers.* „Welchen Timer beenden?" carries the brew session's id; the
+  controller ends the slot only while it holds that session, else the start is
+  refused again (`TwoTimersActive`) and the question asked anew. A session
+  whose row was unreadable at recovery is matched to a start by the tea of its
+  stored session, read in the start's turn. The dialog labels a brew without
+  its tea's name „Aufguss", never „Schnelltimer".
+- *Log.* A handled event and a recovery name the slot of the quick timer and
+  the second brew (`event BREW2.Poured …`, `recovery: stored QUICK.ALERTING …`),
+  the first brew's none; the accuracy parser takes that prefix as optional.
+- *Codes.* The second brew's alarm codes 301–307 equal notification intent
+  codes; they never share a pending intent (a broadcast to the alarm receiver
+  is none of the notification intents), now pinned by a test.
+- *Tests changed under D-109.* None of the controller tests that release on
+  *Abgegossen* changed (the fake player reports no end unless a test sends
+  it); new tests release on the sound's end. Changed: the invariant test's
+  rules above, and the two-brews accuracy run, which no longer pours the
+  first brew to release the second (09 §4a).
+
 <a id="d-108"></a>
 ### D-108 — v0.5.0: two brew sessions, the whole Tee-Kontor tea range, a per-tea stock warning, a flavour filter (GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09, INV-10, INV-11, SET-28, SET-29, NFR-PERF-11; amends D-034, D-093 point 1, D-098 point 1, NG6, NG7) · *Accepted* (PO, 2026-11-09, grilled in two rounds of four questions; details marked „Claude" are Claude's defaults for the spec)
 
@@ -442,6 +506,408 @@ asks the PO only where they change behaviour the PO sees).**
 (`/to-spec`) with the spec edits (01, 02, 03, 04, 05, 07, 08, 09, 11), then
 the tickets (`/to-tickets`); nothing is built before the PO starts
 `/implement-spec` on it.
+
+**Build notes (Claude, 2026-11-09, #196: arbitration over any slots).**
+- **Rules (04 §9.3).** A deadline or recovery is held while another slot's
+  alert *rings* (not merely alerts: after every settle a ringing alert
+  exists whenever one alerts, and this keeps a ringing brew's
+  `ringingSince` when an earlier slot recovers held). Of several ringing
+  alerts the brew's keeps the sound, else the one that started ringing
+  first; a release goes to the held alert whose deadline came first, ties
+  in the slot order `BREW`, `BREW_2`, `QUICK`. A held brew is not released
+  ahead of an earlier quick deadline; with at most two active timers a held
+  brew and a held quick timer never meet.
+- **Held brew in the engine.** Its overtime timeout and the auto-ack of a
+  late *Abgegossen* count from `ringingSince`; leaving a held alert sends no
+  `StopAlert`. A brew row stored without a ringing start is held; only a
+  row reported played (interim v0.3.0 builds) still rings since its
+  deadline. The controller now settles every slot, so such a row rings at
+  recovery instead of staying silent.
+- **Names.** `BREW_2` is stored as `BREW_2`; its alarms 301–307, its
+  notification actions 440–445, its content and full-screen intents 308 and
+  309, prefix `BREW2.`. Recovery reads and cancels the empty slot's alarms
+  like any idle slot's.
+- **Tests changed, not only added.** `HeldAlertTest`'s „the brew is never
+  held" and its brew recovery became held-brew tests; `TwoSlotInvariantsTest`
+  runs the v0.3.0 pair (with its old checks) and all three slots. With one
+  brew and one quick timer the controller tests pass unchanged.
+
+**Build notes (Claude, 2026-11-09, #200: two brews in the controller).**
+- **Admission.** A brew start goes to the first free brew slot (`BREW`,
+  then `BREW_2`) while at most one other timer is active. A start of a tea
+  with an active session (same `tea_id`) goes to that session's slot, where
+  the engine refuses it as `ActiveTimerExists` naming it, as before v0.5.0;
+  so v0.4.1's screens and their tests keep working, and the screens of
+  v0.5.0-03 open that session. A start while two timers are active is
+  refused with the new `RejectionReason.TwoTimersActive(active slots)`,
+  which only the controller gives. A quick timer while one is active stays
+  `ActiveTimerExists` („Schnelltimer beenden und neu starten?"): ending a
+  brew would not free the quick slot. Nothing is written for a refusal.
+- **Ending the chosen timer.** `finishActiveAndStart(request, ending)` and
+  `startQuickTimer(…, ending)` (the `BrewStarter` methods take the slot
+  too, default the v0.4.1 slot) end that slot's timer in the start's turn,
+  as *Beenden & neu starten* did: a session saved with „Sitzung
+  gespeichert" or discarded silently, the quick timer cancelled.
+- **The slot travels with the timer.** `TimerUiState.Active` carries
+  `inSlot` = `BREW_2` for a second brew (null otherwise, so `slot` still
+  follows the kind for `BREW` and `QUICK` and a copy with another kind
+  stays right), the alert player remembers
+  the slot of the alert it plays (`alertCompleted` reaches that slot, not
+  the kind's), notification roles and the timer in front work over the
+  active slots in the slot order, and `ActiveBrewSnapshot` no longer picks
+  its slot: the store writes the row under the slot it is given and refuses
+  only a row of the other kind (`fitsIn`). No schema change: `BREW_2` is a
+  new value of the TEXT key (umamit.db v4 stays frozen), tested side by
+  side with `BREW`.
+- **Recovery, first-rung keeps the sound (open point a of #196).** While
+  the first turn recovers in the slot order, a slot not yet recovered counts
+  with its restored row for the hold of `recover`: a brew whose deadline
+  passed while the process was dead recovers held when a later slot's row
+  was ringing, instead of taking the sound and holding the alert that rang
+  first. The arbitration settles once after all slots are recovered, not
+  after each (which could release an alert held for a slot not yet read).
+  With one brew and the quick timer the result is that of v0.3.0.
+- **Also per session.** The orphan cleanup after a device restore keeps the
+  sessions of both brew slots, and the archive and delete guards for teas
+  and vessels (E15) check every active session (`EXISTS` queries; the
+  single-value `observeActive…Id` flows the screens read stay for -03).
+- **Diagnostics.** `FireTime` maps a line's slot by its prefix, so
+  `BREW2.` lines parse back as `BREW_2` for the accuracy variant of -04.
+- **Left for v0.5.0-03.** The active brew bar, Start and the setup's view
+  models still read `BREW` and `QUICK`, and `FakeBrewStarter` keeps the
+  v0.4.1 rules for their tests. Only the timer route already shows a
+  `BREW_2` timer (its alert, its notification's tap), with the other active
+  timer in the slim row, so a second brew is never left without a screen.
+
+**Build notes (Claude, 2026-11-09, #202: the accuracy variant `two-brews`).**
+- **Overlap.** Both sessions start in one turn sequence of the test
+  activity (first „Testtee" in `BREW`, then „Zweittee" in `BREW_2`, no
+  `tea_id`), the next step pair with *Start* on the first's notification,
+  then the second's. Steps of 60 s and 66 s, both with a 10 s *Vorwarnung*:
+  the second's pre-alert (56 s) comes after the first's has rung out (the
+  3.45 s of 04 §9.3) and before the first's alert (60 s), so neither waits;
+  its deadline (66 s) comes while the first's alert rings and is held. The
+  test taps *Abgegossen* on the first alert only once the hold is in the
+  log, so every pair has exactly one held alert. A pair that did not overlap
+  so (gap under 4.5 s, a deadline not after the first's alert, an alert that
+  rang unheld) fails as a setup error, never as lateness.
+- **What is gated.** Brew 1's pre-alert and alert and brew 2's pre-alert,
+  with p95 ≤ 250 ms and max ≤ 1 s, all 50 pairs. Brew 2's alert is late by
+  design (the hold, ≈ the time to *Abgegossen*), so it is reported in its
+  own table: the hold, the delay from the release to the sound start (the
+  log's `held … ms, released …` timing, D-098) and the handled deadline, with
+  *Within target* „(not gated)". Claude's choice: the release delay is shown
+  against the target but does not gate either, as the brief asks for the
+  held alert to be reported apart.
+- **Report.** One block per brew slot (*Brew 1*, *Brew 2*), the alongside
+  layout; the CSV gains `held_ms` only in this variant. `standard` and
+  `alongside` write exactly what they did (their tests unchanged). Artifact
+  `accuracy-two-brews-api-<level>`, its own concurrency group by variant.
+- **Duration.** About 60–65 min for 50 pairs (66 s plus the taps each),
+  within the job's 115 min.
+
+**Build notes (Claude, 2026-11-09, #201: two brews on screen).**
+- **The screens read the refusal, never decide admission.** A small seam in
+  `core:timer` (`StartRefusal`, `refusalOf`) turns the controller's refusal
+  into what a screen does: `ActiveTimerExists` naming a brew session opens
+  that session's slot, naming the quick timer asks „Schnelltimer beenden und
+  neu starten?", `TwoTimersActive` asks „Welchen Timer beenden?" with the
+  active slots in the slot order. Start, the setup and SCR-07 share it; the
+  answer calls `finishActiveAndStart(…, ending)` /
+  `finishActiveAndStartQuickTimer(…, ending)`. No engine or controller
+  behaviour changed.
+- **The timer that opens.** After an accepted brew start the screens open
+  the slot of the session that was not active before (`startedSlot`), so a
+  second brew from Start or the setup shows itself, not the first
+  (`HomeEvent.OpenTimer(slot)`, `BrewSetupEvent.OpenTimer(slot)`, the setup
+  host's `onOpenTimer(slot)`). A refusal during an alert opens the timer in
+  front (null slot), as before (rule 8).
+- **Same gesture.** On Start a second tile tap within 1 s of an accepted
+  start is ignored, also for another tea (S6, #54): before v0.5.0 the
+  refusal did this; now it would start a second brew.
+- **The card.** Start's *Aufguss fortsetzen* shows the first brew in the slot
+  order and opens it; with only `BREW_2` active it shows that one. *Aufguss
+  starten* stays hidden while a brew is active, as in v0.3.0; a second brew
+  starts from *Nochmal brühen*, *Favoriten* or a tea's page.
+- **The bar** takes the first two active timers in the slot order and names
+  their slots (`ActiveBrewSource.barSlots`), so each half opens its own
+  timer, `BREW_2` included. A held brew reads „wartet" (the quick timer
+  keeps v0.3.0's „fertig"); its TalkBack text names the step; its quiet
+  notification 5 reads „Fertig, wartet auf den anderen Aufguss". The slim
+  row shows „· wartet" for a held brew.
+- **„Welchen Timer beenden?"** is `ChooseTimerToEndDialog` in
+  `core:designsystem`: a short line, one full-width outlined button per
+  timer (a long tea name wraps to two lines) and *Abbrechen*.
+- **Two sessions in the other screens.** The picker's „can't remove" and the
+  vessel editor's archive block read every active session's tea or vessel
+  (`observeActiveTeaIds`, `observeActiveVesselIds`); the setup's stock line
+  finds the tea's session in either brew slot. The tea detail still reads
+  the single `observeActiveTeaId` (left for the low-stock work in
+  `feature:collection`); its archive and delete stay guarded by the
+  controller-side `EXISTS` checks of #200.
+- **Fakes.** `FakeBrewStarter` follows the v0.5.0 admission (first free
+  brew slot, same tea refused naming its session, `TwoTimersActive` for a
+  third timer) and returns the start's outcome after ending a timer.
+
+**Build notes (Claude, 2026-11-09, #197: per-tea stock warning, umamit.db
+v5).**
+- **Schema.** `MIGRATION_4_5` only adds `tea.low_stock_warning INTEGER NOT
+  NULL DEFAULT 1` (05 §9); the entity declares the same default, so a fresh
+  v5 database and a migrated one validate alike.
+- **One rule for card and reminder.** `RoomLowStockRepository` reads the
+  warning with the stock levels and leaves a tea with it off out of both;
+  a purchase writes only its event and the archive flag, so it never touches
+  the warning (tested on the repository and the detail).
+- **Where it is set.** Only on SCR-09's VORRAT, not in the tea editor
+  (allowed by D-108, not needed): *Warnung* as one switch row, *Knapp ab* as
+  a whole-gram field below it, both shown with the warning off. Each valid
+  input (empty or 1–500) is written at once, as the detail does with
+  *Favorit*; anything else is refused at the field and in the view model.
+  An empty field names SET-16's current value in its hint.
+- **Goldens.** Adding the two controls to VORRAT moves everything below it,
+  so the detail's goldens that show VORRAT's lower part (history, FRISCHE,
+  dates) were re-recorded with the new ones.
+
+**Build notes (Claude, 2026-11-09, #198: the reminder interval).**
+- **PO (2026-11-09):** with two timers active, *Aufguss starten* stays hidden on
+  Start (the build's choice below, confirmed in the session).
+- **Model.** `LowStockReminderInterval` (DAILY, EVERY_2_DAYS, EVERY_3_DAYS,
+  WEEKLY, OFF with their days) replaces the Boolean in `UserSettings`. The
+  file keeps the old `lowStockReminder` key for the `schemaVersion` 3 step
+  (`SchemaV3Migration`, after `SchemaV2Migration`) and writes it as „not
+  OFF", so the file stays consistent.
+- **Two dates in one.** Only a posted reminder writes
+  `lowStockReminderLastDate`. A due run with no tea posts nothing, removes an
+  older notification, and schedules its successor as for a failed run
+  (`scheduleNext(skipToday = true)`): the next try is tomorrow's set time,
+  never a second run that day, without a second stored date. After an app
+  start that finds no waiting job the day may run once more; it posts only
+  if a tea became due.
+- **Due date.** `LowStockReminderSchedule` takes the interval's days: the
+  next run is the set time on the later of today (tomorrow when today was
+  handled) and last posted date + N. A change of the interval replaces the
+  job, as a change of the time does.
+- **The row.** SET-28 is a `SettingsRow` („Vorrats-Erinnerung", value
+  „Täglich") opening a choice dialog like *Alarmdauer*; „Listet alle knappen
+  und leeren Tees." moved from the row into the dialog. The settings goldens
+  that show the row (or a dialog over it) were re-recorded, plus a new
+  `Settings_reminderInterval`.
+
+**Build notes (Claude, 2026-11-09, follow-ups of #201).**
+- **The tea detail** reads every active session (`observeActiveTeaIds`), so
+  a tea brewed in `BREW_2` beside another tea counts as active: archive and
+  delete are refused and the stock sheet names the leaf it still deducts.
+- **Aufguss starten beside one timer** (supersedes the #201 note „stays
+  hidden while a brew is active"). Start shows it while fewer than two
+  timers are active (`HomeUiState.twoTimersActive`, from the three slots),
+  below the card of one brew; with two it is hidden, and *Nochmal brühen* or
+  the setup's *Start* asks „Welchen Timer beenden?" as before. Hiding it at
+  two keeps a start that can only end in the question off the card. The
+  `Home_activeSession` goldens were re-recorded with the card's start below
+  the brew; `Home_question` stays as it was.
+
+**Build notes (Claude, 2026-11-09, #203: the black teas end to end).**
+- **Live check (structure only, 08 §2.2).** robots.txt, the sitemap and 6
+  black-tea product pages at ≤ 1 request/s with a plain user agent; no
+  challenge, no 429. Each page shows one breadcrumb (the main category): 5
+  of 6 sat under *Klassischer Schwarztee* although their names name a
+  region, so the *Sorte* and style fall back to the name. Grids have one
+  western row (per litre or per bag, 100 °C, a minute range). No page is
+  stored in the repository; fixtures stay synthetic (D-016).
+- **Sections as entries.** The parser's `TeaSections` list holds the
+  Kräutertee section (since v7, every sub-section a *Sorte*, style
+  `herbal`) and the black section (since v8, kind sub-sections only, name
+  keywords, the black styles), each with its kind. A product's section is
+  that of its deepest breadcrumb crumb in one; teaware by name or segment is
+  out in every such section. Its teas get the new scope `CatalogScope.TEA`
+  (Kräutertees keep `HERBAL`), which the refresh and the link loader keep
+  like green ones; #205/#206 add entries and styles, no new mechanism.
+- **One version step.** `PARSER_VERSION` = 8; `SCOPE_SINCE_VERSION` is the
+  latest section's `since` (8), the threshold of the one-time re-read
+  (replacing `HERBAL_SINCE_VERSION`). The later sections of v0.5.0 keep
+  `since` = 8, so the re-read on the first refresh after the update covers
+  them whatever lands later in the release. An rc refreshed with v8 before
+  a later section landed does not re-read again; the skip entries' 90-day
+  re-check brings those (rc testing only; the PO's v0.4.1 catalog re-reads
+  once with whatever v0.5.0 holds).
+- **Pending kinds.** `observeHerbalPending()` became
+  `observePendingKinds(): Set<CatalogKind>`, the kinds of the sections newer
+  than the last successful refresh's parser; each kind's view shows its
+  own hint (`catalog_black_pending`, `catalog_herbal_pending`). The
+  Kräutertee hint now says ≈ 30 min too: a catalog from before v0.2.1
+  re-reads every section at once.
+- **Styles.** `darjeeling`, `assam`, `ceylon`, `flavored_black` join
+  `black_generic` in `BuiltInStyles` (08 §3) and in *Sorte wählen*'s
+  *Schwarzer Tee* group; `CatalogKind.BLACK` claims the five keys, its chip
+  sits between *Grüntee* and *Kräutertee*. Nepal, China and the other
+  regions brew as `black_generic`. A flavoured black tea is
+  `flavored_black` whatever region its name names; flavoured by *Aroma*,
+  ingredients or any `aromatisierte[rs]-` sub-section.
+- **Japan tree.** `/tee/japantee/koucha-schwarztee/` is a root of the black
+  section with *Sorte* „Japan". Wakoucha on a tea family's page (no type
+  level) stays out, as before (D-089): open for #205 with the other Japan
+  types.
+- **Texts.** The empty catalog's body and the link's „nicht im Katalog"
+  name the black teas (CAT-17 AC5); #205/#206 extend them.
+
+**Build notes (Claude, 2026-11-09, #205: white tea, oolong and Pu-Erh).**
+- **Live check (structure only, 08 §2.2).** robots.txt and 9 product pages
+  (3 per section, from the sitemap) at ≤ 1 request/s, one at a time; no
+  challenge, no 429. One breadcrumb per page again; a Taiwan oolong was
+  filed under *klassisch*, so the oolong *Sorte* falls back to the name.
+  Classic white teas have a western and a Gongfu (gaiwan) row, flavoured
+  white teas and oolongs one western row, classic oolongs and every Pu-Erh
+  one Gongfu row. A yellow tea with a `TW…` number is filed under the green
+  section and stays green. No page is in the repository.
+- **A version step of its own (amends #203's „one step").** The three
+  sections are entries of `TeaSections` with `since` = 9 and
+  `PARSER_VERSION` = 9 (the orchestrator's rule against the ticket's „no
+  new step"): an rc catalog refreshed with v8 re-reads its `NOT_GREEN`
+  entries once more, instead of waiting for the 90-day re-check; a v0.4.1
+  catalog still re-reads once with everything. `kindsSince(8)` is
+  {`WHITE`, `OOLONG`, `DARK`}, so each new view shows its hint on such an rc.
+- **Kinds and styles.** `CatalogKind.WHITE` (`white`: `flavored_white`,
+  `white_generic`), `OOLONG` (`oolong`: `flavored_oolong`,
+  `oolong_generic`) and `DARK` (`dark`: `sheng`, `shou`, `dark_generic`);
+  chips in D-108 point 5's order. The generic rows keep the PO's Q-20
+  values; new rows only where the shop's grids differ (08 §3). The Pu-Erh
+  rows default to Gongfu; the white and oolong rows to western, so a white
+  tea with both grid rows defaults to its western row and keeps the Gongfu
+  row as a second recipe; a tea with only a Gongfu row defaults to it.
+  `BuiltInStyles` lists each category's generic row last, so *Sorte
+  wählen* shows the specific rows first (as for black).
+- ***Sorte*.** Kind sub-sections as ticketed; a tea master's or maker's page
+  (`…-von-…`) and `loose-leaf-loser-pu-erh/` are no kind. White teas'
+  sub-sections name no kind, so their *Sorte* comes from three well-known
+  names (Bai Mu Dan, Silver Needle, Shou Mei; Claude) to give the view
+  groups. „Sheng"/„Shou" match as words („Yesheng" is wild, not Sheng).
+- **Japan tree.** `/tee/japantee/oolong/` and `/tee/japantee/weisstee/` are
+  roots of the oolong and white sections with *Sorte* „Japan", like
+  `koucha-schwarztee/`. Wakoucha on a tea family's page stays out: the
+  sections are matched by path, and a family page names no tea section
+  (D-089's name rule is green-only). Open for the PO if such teas matter.
+- **Texts.** The empty catalog's body and the link's „nicht im Katalog"
+  name the new kinds; #206 extends them again.
+
+**Build notes (Claude, 2026-11-09, #206: Rotbusch, Früchtetee and Chai).**
+- **PO (2026-11-09):** a chai is recognised by its name in any tea section
+  (below), confirmed in the session.
+- **Live check (structure only, 08 §2.2).** robots.txt, the sitemap, 9
+  product pages (3 per section) and the chai section's one listing page, at
+  ≤ 1 request/s, one at a time; no challenge, no 429. One breadcrumb per
+  page; every grid one western row (~10 g/L, 100 °C, ~5 min). **No product
+  has `/tee/chaitee/` as its breadcrumb**: the shop lists its chais there but
+  files each under its base tea's section (black and rooibos chais under the
+  flavoured sub-sections, herbal chais and spice blends under the
+  Kräutertees, a green chai under the green section).
+- **Chai by name (amends the ticket's „`/tee/chaitee/` → Chai").** Matching
+  by path alone would leave the *Chai* view empty, so a tea of any section
+  whose name says „Chai" / „Chaitee" as a word is style `chai`, kind *Chai*,
+  category its section's (green for a green section's), *Sorte* the base
+  („Schwarztee", „Rotbusch", „Grüntee", „Kräutertee", …). `/tee/chaitee/`
+  is still a section (since v10) for a product filed there: its base from
+  the name, then the ingredients (Rotbusch/Rooibos/Honeybush,
+  Schwarztee/Assam/Ceylon/Darjeeling, Grüntee/Sencha), else `OTHER` and no
+  *Sorte*. A spice blend without „Chai" in its name stays a Kräutertee. The
+  catalog stores no category, so the copy into the collection takes it from
+  the same mapping (`StyleMatch.category`, with the ingredients) while it
+  maps to the stored style.
+- **Kinds, styles, categories.** `CatalogKind.ROOIBOS` (`rooibos`),
+  `FRUIT` (`fruit`), `CHAI` (`chai`), last in the chip order; styles
+  `rooibos` (ROOIBOS), `fruit` (FRUIT) and `chai` (OTHER), all the live
+  check's row, no cold brew, no Kyusu. `TeaCategory` gains `ROOIBOS` and
+  `FRUIT` before `OTHER` (stored by name, no schema change): *Meine Tees*'
+  *Kategorie* filter offers them when present, *Sorte wählen* has their
+  groups after *Kräutertee*, `chai` sits above *Andere / unbekannt*. The
+  brew picker's *Alle* groups (D-097) have no group of their own for them:
+  they show under *Andere*. Journal and statistics have no category mapping
+  yet (M4), and the backup stores the category by name.
+- ***Sorte*.** Rotbusch: the `gruener-rotbusch/` sub-section, else the name
+  („Honeybush" first, then „Grüner Rotbusch"); Bio, klassisch and
+  aromatisiert are no kind. Früchtetee: none (its sub-sections are Bio and
+  klassisch).
+- **Wakoucha (follow-up c, decided by 08 §2.4 item 3 and D-108 point 4).**
+  A Japan-tree product without a type level (a tea family's or garden's
+  page) whose name names Koucha/Wakoucha, Oolong or Weißtee is now that
+  section's tea with *Sorte* „Japan", like the Japan tree's
+  `koucha-schwarztee/`, `oolong/` and `weisstee/`: the catalog holds every
+  tea under *Tee*, and D-089's skip of such names only kept the catalog
+  green. Teaware and sets there stay out; green names stay green.
+  `TeeKontorParserTest`'s three skip cases became kept cases.
+- **Version.** Parser **v10**, the sections' `since` 10: a catalog an rc
+  refreshed with v9 re-reads its `NOT_GREEN` entries once more
+  (`CatalogParserV10RefreshTest`), and every known tea is parsed again with
+  the new version, so a black chai moves from *Schwarztee* to *Chai*.
+- **Chip row (follow-up a).** The row scrolls the selected kind's chip into
+  view whenever the kind changes (a tap, *Alle zeigen*, back from
+  *Gemerkt*), by the chips' measured spans, only the row and not the list
+  (a bring-into-view request would scroll the list too); animated unless
+  motion is reduced. The views' goldens with a kind chip off screen moved
+  with it; a new `chipRow` golden shows the full row on a wide canvas.
+- **Texts (follow-up b).** The setup's *Katalog laden* and Settings' refresh
+  detail say „Alle Tees von Tee-Kontor Kiel …, von Grüntee bis Chai" and
+  „etwa eine halbe Stunde" (NFR-PERF-11's ≈ 25–30 min); the empty catalog
+  „Lade alle Tees von Tee-Kontor Kiel, von Grüntee bis Chai, …"; a link
+  outside the catalog „Dieser Artikel gehört nicht zum Katalog (nur Tees,
+  ohne Sets und Zubehör)." (CAT-17 AC5).
+- **Fixtures.** The synthetic fruit-tea path that stood for „out of scope"
+  in older tests is in scope now; those tests use an invented sweets
+  section instead.
+
+**Build notes (Claude, 2026-11-09, #204: the flavour filter).**
+- **Notes.** The list rows now read `taste_notes` too (no schema change);
+  a tea's notes are its *Geschmack* split at commas. A note's key is the
+  note normalised like search (GEN-10: lower case, no diacritics, single
+  spaces), compared whole; the chip shows the note's most frequent
+  spelling in lower case. Offered from the kind's current range, not the
+  filtered list (as *Sorte*), so choosing a note never removes the others.
+- **Scales.** Keyed the same way by label; „ab 1" to „ab 5" (Claude: every
+  leaf count, since „ab 1" means „has any"); the Umami scale is never
+  offered, in any view (it stays the green view's own filter). A scale
+  minimum counts once each in „Filter (n)" like Umami, the notes once
+  together like *Sorte*.
+- **Kind change.** The listing carries each kind's note and scale keys;
+  the view model prunes the filter on any kind change (chip, *Alle
+  zeigen*), so no control needs to know. Claude: scales are pruned too,
+  since a minimum on a scale the view lacks would empty it with no chip to
+  undo it.
+- **TalkBack.** The chips are `FilterChip`s (state read as selected); a
+  scale chip's description names its scale („Süße ab 3", „Süße egal").
+
+**Build notes (Claude, 2026-11-09, the v0.5.0 review fix round outside the
+timer path: the T3 review and the motion review,
+`docs/plans/v0.5.0-motion-review.md`).**
+- **A chai's category on *In Sammlung aufnehmen* (#206, user story 36).**
+  The stored `breadcrumb` is now the path the style was mapped from
+  (`ProductPage.stylePath`): the deepest crumb for a green tea, else the
+  deepest crumb in a tea section, as `CatalogRecipes` maps it. A black
+  chai also filed under *Aufgussbeutel* used to become GREEN on the copy,
+  which mapped the format's path. A row stored before keeps its old path
+  until the next refresh rewrites it; the content hash covers `breadcrumb`,
+  so such a tea counts once as changed.
+- **Taste notes** split at „,", „/" and the word „und" („fruchtig/süß",
+  „mild und grasig"), never inside a word („Wunderbar").
+- ***Knapp ab*** is saved when the input is done (*Fertig*, focus loss, the
+  detail closing), not per keystroke: per-keystroke writes, each a read
+  then a save in its own coroutine, could land out of order („12" stored
+  1 g), and a final invalid „600" kept the „60" typed on the way. VORRAT's
+  writes now run one after another behind a mutex, and a write that has
+  started finishes when the detail closes (`NonCancellable`).
+- **Texts.** *Fotos laden* says „zusammen etwa 80–100 MB" (NFR-PERF-11);
+  the channel „Vorrat" is described „Erinnerung an knappe und leere Tees",
+  as SET-28 is no longer daily only. 06 §5.4 describes the interval.
+- **Motion (03 §3.6, D-041, D-055).** VORRAT's reorder link and button
+  take the same 8 + 48 dp (S1); the kind row reveals its chip only on a
+  real kind change, remembered across the row leaving the list, with the
+  `standard` token instead of Compose's default spring (S2, S3); *Alle
+  zeigen* into another kind jumps the list back to the chip row at once
+  (N1); a pending kind's view leaves out the list's refreshing row while
+  its hint shows (N2); the *Warnung* switch moves at the tap (N3).
+- **For M5's backup code (no change now).** Schema 5's `tea` has
+  `low_stock_warning` as its last column, as the migration appends it,
+  but `5.json` lists the columns in the entity's order. Room compares
+  columns by name, so both pass; a backup or restore must likewise go by
+  column names, never by position.
 
 <a id="d-107"></a>
 ### D-107 — v0.4.1 review and fix round: the PO's five answers and the review outcome (INV-03, INV-08, SCR-06, SCR-09, PRF-06, TEA-05, WARE-01; refines D-104 and D-106) · *Accepted* (PO for the answers, 2026-11-08; Claude for the fixes)
@@ -6074,6 +6540,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |
 | 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |
 | 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |
 | 2026-11-08 | D-106: own photos (v0.4.1): accepted input up to 20 000 px, 250 MP and 128 MB in any platform-decodable format; platform ExifInterface; toasts for errors; the pager shows the cover first and stays on a photo after *Als Titelbild*; the vessel photo is stored with *Speichern*. |

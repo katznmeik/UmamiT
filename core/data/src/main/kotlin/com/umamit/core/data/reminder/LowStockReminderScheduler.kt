@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.umamit.core.common.WallClock
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.LowStockReminderInterval
 import com.umamit.core.model.UserSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -19,8 +20,9 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * Schedules the daily low-stock reminder (INV-11, 06 §5.4, D-098): one unique WorkManager job
- * ([WORK_NAME]) for the next run at SET-29's time, none while SET-28 is off. Inexact by design: no exact
+ * Schedules the low-stock reminder (INV-11, 06 §5.4, D-098; interval D-108): one unique WorkManager job
+ * ([WORK_NAME]) for the next run at SET-29's time on the next due date of SET-28's interval, none while it is
+ * *Aus*. Inexact by design: no exact
  * alarm, no wake-up of its own, no constraints; WorkManager re-arms it after a reboot.
  *
  * - **App start** (also after an app update, whose `MY_PACKAGE_REPLACED` starts the process): [follow]
@@ -41,10 +43,10 @@ class LowStockReminderScheduler @Inject constructor(
     suspend fun follow() {
         var first = true
         settings.settings
-            .map { Choice(it.lowStockReminder, it.lowStockReminderTime) }
+            .map { Choice(it.lowStockReminderInterval, it.lowStockReminderTime) }
             .distinctUntilChanged()
             .collect { choice ->
-                if (!choice.on) {
+                if (!choice.interval.isOn) {
                     workManager.cancelUniqueWork(WORK_NAME)
                     LowStockReminderNotifications.cancel(context)
                 } else {
@@ -57,7 +59,8 @@ class LowStockReminderScheduler @Inject constructor(
     /**
      * Schedules the run after the one that is running now: appended to it, so it starts once the running one
      * has ended, never cancelling it (REPLACE from inside the job would). [skipToday]: the running one failed,
-     * so today counts as had (the next waits for tomorrow's set time, never runs at once again); without readable
+     * or posted nothing, so today counts as had (the next waits for tomorrow's set time at the earliest, never runs
+     * at once again); without readable
      * settings it comes a day later.
      */
     @Suppress("TooGenericExceptionCaught") // unreadable settings never break the chain of days (INV-11)
@@ -81,7 +84,9 @@ class LowStockReminderScheduler @Inject constructor(
             nowMs = now,
             zone = zone,
             minuteOfDay = current.lowStockReminderTime,
-            lastDate = if (skipToday) LowStockReminderSchedule.dateOf(now, zone) else current.lastReminderDate(),
+            everyDays = current.lowStockReminderInterval.days,
+            lastPosted = current.lastReminderDate(),
+            todayHandled = skipToday,
         )
     }
 
@@ -92,7 +97,7 @@ class LowStockReminderScheduler @Inject constructor(
         workManager.enqueueUniqueWork(WORK_NAME, policy, request)
     }
 
-    private data class Choice(val on: Boolean, val minuteOfDay: Int)
+    private data class Choice(val interval: LowStockReminderInterval, val minuteOfDay: Int)
 
     companion object {
         /** The job's unique name (06 §5.4). */
@@ -102,7 +107,7 @@ class LowStockReminderScheduler @Inject constructor(
     }
 }
 
-/** The local date of the reminder's last run that was due; null before the first or when unreadable. */
+/** The local date of the last posted reminder; null before the first or when unreadable. */
 internal fun UserSettings.lastReminderDate(): LocalDate? = lowStockReminderLastDate?.let {
     try {
         LocalDate.parse(it)

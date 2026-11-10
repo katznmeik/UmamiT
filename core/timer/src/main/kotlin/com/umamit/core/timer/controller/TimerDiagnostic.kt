@@ -90,7 +90,7 @@ sealed interface TimerDiagnostic {
     val at: ClockReading
 
     /**
-     * The engine handled [event] from [source] with [outcome], moving from
+     * The engine of [slot] handled [event] from [source] with [outcome], moving from
      * phase [from] to [to] (null: idle). [scheduled] is set for a time-based
      * event: when it was due.
      */
@@ -102,6 +102,7 @@ sealed interface TimerDiagnostic {
         val from: TimerPhase?,
         val to: TimerPhase?,
         val scheduled: ScheduledTime?,
+        val slot: TimerSlot = TimerSlot.BREW,
     ) : TimerDiagnostic
 
     /**
@@ -221,7 +222,7 @@ sealed interface TimerDiagnostic {
     ) : TimerDiagnostic
 
     /**
-     * Recovery restored the persisted [from] state and applied the row of 04 §7.2 that
+     * Recovery restored the persisted [from] state of [slot] and applied the row of 04 §7.2 that
      * [decision] names, leaving [to] (null: idle). [rebooted]: the phone booted since it was
      * persisted, so its elapsed values were moved to the new clock (E2). [service]: the state
      * runs with the foreground service, whose start recovery attempted.
@@ -233,6 +234,7 @@ sealed interface TimerDiagnostic {
         val rebooted: Boolean,
         val decision: RecoveryDecision,
         val service: Boolean,
+        val slot: TimerSlot = TimerSlot.BREW,
     ) : TimerDiagnostic
 
     /**

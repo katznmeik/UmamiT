@@ -77,8 +77,9 @@ fun lockScreenFlags(state: TimerUiState, timerVisible: Boolean): LockScreenFlags
  * with the app in the background. A long step's progress changes only every
  * 10 s (03 §3.6), so the mini ring holds still in between. Its first value is
  * read synchronously from the controller, so a new activity starts with the bar.
- * It reads the two slots (D-098): the brew session first, else the quick timer;
- * the quick timer beside a brew session is [alongside], whichever is in front.
+ * It reads every slot (D-098, D-108): the first active timer in the slot order
+ * (`BREW`, `BREW_2`, `QUICK`) is [activeBrew], the second [alongside],
+ * whichever is in front; [barSlots] names their slots for the taps.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TimerActiveBrewSource(
@@ -95,36 +96,39 @@ class TimerActiveBrewSource(
 
     override val alongsideProgress: () -> Float = { alongsideLevel.floatValue }
 
-    private val brewSlot = timer.state(TimerSlot.BREW)
-    private val quickSlot = timer.state(TimerSlot.QUICK)
+    private val slots = TimerSlot.entries.map(timer::state)
 
-    override val activeBrew: StateFlow<ActiveBrew?> = bar(level) { brew, quick -> brew ?: quick }
+    /** The active timers of [states] (one per slot) in the slot order. */
+    private fun activeOf(states: List<TimerUiState>) = states.filterIsInstance<TimerUiState.Active>()
 
-    override val alongside: StateFlow<ActiveBrew?> =
-        bar(alongsideLevel) { brew, quick -> quick?.takeIf { brew != null } }
+    private fun activeNow() = activeOf(slots.map { it.value })
 
-    /** One part of the bar: the timer [pick] chooses of the two slots', ticking, with its [level]. */
+    override val activeBrew: StateFlow<ActiveBrew?> = bar(level) { it.getOrNull(0) }
+
+    override val alongside: StateFlow<ActiveBrew?> = bar(alongsideLevel) { it.getOrNull(1) }
+
+    override val barSlots: StateFlow<List<TimerSlot>> = combine(slots) { states -> activeOf(states.toList()) }
+        .map { active -> active.map { it.slot } }
+        .distinctUntilChanged()
+        .stateIn(scope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), activeNow().map { it.slot })
+
+    /** One part of the bar: the timer [pick] chooses of the active ones (slot order), ticking, with its [level]. */
     private fun bar(
         level: MutableFloatState,
-        pick: (brew: TimerUiState.Active?, quick: TimerUiState.Active?) -> TimerUiState.Active?,
-    ): StateFlow<ActiveBrew?> {
-        val picked = { brew: TimerUiState, quick: TimerUiState ->
-            pick(brew as? TimerUiState.Active, quick as? TimerUiState.Active)
+        pick: (active: List<TimerUiState.Active>) -> TimerUiState.Active?,
+    ): StateFlow<ActiveBrew?> = combine(slots) { states -> pick(activeOf(states.toList())) }
+        .distinctUntilChanged()
+        .flatMapLatest { state ->
+            state?.displayTicks(clock::elapsedMs)?.map { now -> brewAt(state, now, level) } ?: flowOf(null)
         }
-        return combine(brewSlot, quickSlot, picked)
-            .distinctUntilChanged()
-            .flatMapLatest { state ->
-                state?.displayTicks(clock::elapsedMs)?.map { now -> brewAt(state, now, level) } ?: flowOf(null)
-            }
-            // Synchronous first value from the controller's current state: a shell recreated while a
-            // step alerts (rotation, theme switch, reopening) draws the matcha bar in its first frame
-            // instead of letting it arrive a frame later with its enter motion (03 §3.8, rule 8).
-            .stateIn(
-                scope,
-                SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
-                picked(brewSlot.value, quickSlot.value)?.let { brewAt(it, clock.elapsedMs(), level) },
-            )
-    }
+        // Synchronous first value from the controller's current state: a shell recreated while a
+        // step alerts (rotation, theme switch, reopening) draws the matcha bar in its first frame
+        // instead of letting it arrive a frame later with its enter motion (03 §3.8, rule 8).
+        .stateIn(
+            scope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            pick(activeNow())?.let { brewAt(it, clock.elapsedMs(), level) },
+        )
 
     private fun brewAt(state: TimerUiState.Active, now: Long, level: MutableFloatState): ActiveBrew {
         level.floatValue = state.progressAt(now)

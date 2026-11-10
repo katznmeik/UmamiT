@@ -256,19 +256,21 @@ Exact variant prices are fetched on demand when adding a package (CAT-12).
 | `CatalogRefreshService` (own `dataSync` FGS, not WorkManager) | User action only |
 | `OrphanFileSweepWorker` | Daily, idle; also once after a device restore |
 | `ReminderWorker` | Daily check (backup, freshness digest; not built yet) |
-| `LowStockReminderWorker` (v0.3.0, INV-11, D-098) | A unique one-time job (`low-stock-reminder`) for the next `lowStockReminderTime`: kept if one waits at app start (also after an app update), replaced after a change of SET-28/SET-29, appended by each run for the next day (D-098 build notes); WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is off |
+| `LowStockReminderWorker` (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108) | A unique one-time job (`low-stock-reminder`) for the next `lowStockReminderTime` on the next due date of SET-28's interval: kept if one waits at app start (also after an app update), replaced after a change of SET-28/SET-29, appended by each run for the next due date (D-098, D-108 build notes); WorkManager re-arms it after a reboot. No constraints. Cancelled when SET-28 is *Aus* |
 
-**Daily low-stock reminder (v0.3.0, INV-11, D-098).** The app's first
+**Low-stock reminder (v0.3.0, INV-11, D-098; interval from v0.5.0, D-108).** The app's first
 WorkManager job (Hilt `HiltWorkerFactory`, initialised on demand through
 `Configuration.Provider` instead of the default initializer):
 - **Run:** if it is more than 30 min before the set time (a clock or DST
-  change), it only enqueues itself again. Otherwise, once per local date
-  (`lowStockReminderLastDate`), it queries non-archived teas with stock
+  change), it only enqueues itself again. Otherwise, on a due date (at
+  least SET-28's N days, 1, 2, 3 or 7, after `lowStockReminderLastDate`, the
+  date of the last reminder **posted**; INV-11 AC5), it queries non-archived teas with stock
   events whose stock is *Knapp* or *Leer* by the Start card's rules (a tea's
   own threshold first), ignoring `lowStockHidden`, least stock first, and
   posts notification 12 on the channel `stock` („Vorrat", importance LOW,
-  no sound, no vibration, no full-screen intent; `InboxStyle`). An empty
-  list posts nothing. Then it enqueues the next day.
+  no sound, no vibration, no full-screen intent; `InboxStyle`) and notes the
+  date. An empty list posts nothing and leaves the date, so the next day
+  tries again (INV-11 AC5). Then it enqueues the next run.
 - **Rule 8:** it runs off the timer's threads and channels; LOW importance
   keeps it out of the alert's section (D-044), and it never starts a
   service, wakes the phone with an exact alarm or touches `active_brew`.
@@ -407,7 +409,11 @@ restore, recovery retries that stopped, and a refused service start that was ref
 again. From v0.3.0 (D-098, #137) a quick timer's alarm, time-based event and
 cue name its slot before the alarm kind (`alarm QUICK.DEADLINE received`,
 `… | QUICK.PRE_ALERT scheduled …`), so the accuracy run's `alongside` variant
-tells the two timers apart; the brew's lines are unchanged. The sound of a
+tells the two timers apart; the brew's lines are unchanged. From v0.5.0
+(D-108) a second brew session's lines name their slot the same way
+(`alarm BREW2.DEADLINE received`, `… | BREW2.PRE_ALERT scheduled …`, a
+released one `BREW2.DEADLINE held … ms, released …`), and the accuracy
+report reads them back with their slot. The sound of a
 quick alert released after a hold (04 §9.3) is timed from its release and
 names the hold (`QUICK.DEADLINE held 720000 ms, released 10:12:00.000 … delta
 +15 ms`), so *Diagnose* shows the player's own delay, never the hold as

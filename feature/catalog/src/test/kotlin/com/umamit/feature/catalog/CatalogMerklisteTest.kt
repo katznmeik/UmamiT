@@ -17,10 +17,12 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogTeaSummary
 import com.umamit.core.testing.FakeCatalogBookmarkRepository
@@ -51,7 +53,7 @@ class CatalogMerklisteTest {
         catalogTea("XY0300", "Kirschblüte Sencha").copy(isFlavored = true),
         catalogTea("XY0400", "Schattenblatt Kabusecha", "Kabusecha").copy(owned = true),
         catalogTea("XY0170", "Nebelhang Sencha").copy(discontinued = true),
-        catalogTea("XK0300", "Wiesenzauber", "Mischungen").copy(isHerbal = true, originCountry = null),
+        catalogTea("XK0300", "Wiesenzauber", "Mischungen").copy(kind = CatalogKind.HERBAL, originCountry = null),
     )
     private val bookmarks = FakeCatalogBookmarkRepository()
 
@@ -117,7 +119,7 @@ class CatalogMerklisteTest {
         chip(R.string.catalog_filter_marked).assertIsNotSelected()
         hidden("Nebelhang Sencha")
 
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         // Green and herbal, flavoured and „Nicht mehr im Sortiment", grouped by Sorte (CAT-18 AC1).
@@ -155,11 +157,11 @@ class CatalogMerklisteTest {
     fun leavingGemerktReturnsToTheViewBefore() {
         bookmarks.marked.value = setOf("XK0300")
         show()
-        chip(R.string.catalog_filter_herbal).performClick()
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         chip(R.string.catalog_filter_herbal).assertIsSelected()
@@ -172,7 +174,7 @@ class CatalogMerklisteTest {
     fun unmarkingInGemerktTakesTheTeaOffTheList() {
         bookmarks.marked.value = setOf("XY0200", "XY0300")
         show()
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         toggle("XY0200").performClick()
@@ -186,7 +188,7 @@ class CatalogMerklisteTest {
     fun gemerktWithoutMarksShowsItsEmptyState() {
         show()
 
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         shown(str(R.string.catalog_marked_empty_title))

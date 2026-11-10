@@ -1,6 +1,6 @@
 # 05 · Data Model & Backup Format
 
-> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100)
+> Status: **Draft v0.2** · Last updated: 2026-10-22 (session lifecycle, `active_brew` columns, device backup and restore detection, D-052; schema freeze from rc.1, restore photo sweep, `auto_finished`, D-054; `auto_finished` after a device restore, D-063; 2026-10-26: per-step pre-alert and umamit.db v2, stock correction, `preAlertSound`, `seedVesselsV2Added`, D-093; 2026-10-29: umamit.db v2 as built, #90; the migration keeps every active session's v1 leads, D-096; 2026-10-30: umamit.db v3 with `catalog_bookmark` and the quick timer's pre-alert choice, `lowStockGrams` 15, `quickTimerPreAlert`, `lowStockHidden`, D-097; umamit.db v4 with `active_brew` per slot, settings `alertVolumePercent`, `lowStockReminder`, `lowStockReminderTime`, `catalogFolded`, D-098; 2026-10-31: settings `ringUnderDnd`, D-099; no `tea_fts` and no tags, the collection's search in memory, settings `collectionSort` and `collectionSegment` for v0.4.0, D-100; 2026-11-09: umamit.db v5 with `tea.low_stock_warning`, D-108)
 > v0.2: Tee-Kontor catalog tables, pre-alert per recipe, 5 °C temperature
 > steps, metric only, costs, no sample data.
 
@@ -80,7 +80,8 @@ Table `tea`
 | `opened_date` | TEXT | | ISO date |
 | `best_before` | TEXT | | ISO date |
 | `freshness_days` | INTEGER | | override |
-| `low_stock_grams` | REAL | | override |
+| `low_stock_grams` | REAL | | the tea's own *Knapp ab* (whole grams 1–500 from v0.5.0); null = SET-16 |
+| `low_stock_warning` | INTEGER | ✓ | stock warning (v5, D-108): 0 leaves the tea out of INV-10 and INV-11 and keeps INV-09's link plain; default 1 |
 | `storage_note` | TEXT | | ≤ 120 |
 | `notes` | TEXT | | ≤ 5000 |
 | `recipe_check_reason` | TEXT | | `RecipeCheckReason`; null = no flag (CAT-05, TEA-17) |
@@ -99,7 +100,9 @@ no index and no migration.
 From v0.4.0 (D-100) the editors write the tea's fields; `low_stock_grams`
 and `freshness_days` have no UI (no per-tea threshold or freshness period),
 and `opened_date`, `best_before` and `storage_note` become editable with
-v0.4.1. Deleting a tea removes its recipes, steps, stock events and photo
+v0.4.1. From v0.5.0 (D-108, #197) SCR-09's VORRAT writes
+`low_stock_warning` (*Warnung*) and `low_stock_grams` (*Knapp ab*); a
+purchase changes neither. `freshness_days` keeps no UI. Deleting a tea removes its recipes, steps, stock events and photo
 rows by cascade and its photo files after the commit; sessions keep their
 snapshot with `tea_id` NULL.
 
@@ -352,13 +355,14 @@ are nullable (#30). A device restore clears the row (§8).
 
 | Column | Type | Notes |
 |---|---|---|
-| `slot` | TEXT | **PK**, replaces `id`: `BREW` (a brew session, `is_quick_timer` 0) or `QUICK` (a quick timer, `is_quick_timer` 1). A row whose `slot` and `is_quick_timer` disagree makes the snapshot invalid |
-| `alert_ringing_since_elapsed_ms`, `alert_ringing_since_wall_ms` | INTEGER | ALERTING only: when the alert last started ringing (`ringingSince`, 04 §9.3); null = held (a quick alert waiting for the brew's) or not alerting. A brew row in ALERTING always has it. The quick slot's overtime timeout is 10 min after it; the wall value rebases it after a reboot |
+| `slot` | TEXT | **PK**, replaces `id`: `BREW` (a brew session, `is_quick_timer` 0) or `QUICK` (a quick timer, `is_quick_timer` 1); from v0.5.0 also `BREW_2`, a second brew session (`is_quick_timer` 0; D-108), with no schema change: the slot is stored by name, so the table holds up to two rows of any two slots. A row whose `slot` and `is_quick_timer` disagree (a quick row in a brew slot, a brew row in `QUICK`) makes the snapshot invalid |
+| `alert_ringing_since_elapsed_ms`, `alert_ringing_since_wall_ms` | INTEGER | ALERTING only: when the alert last started ringing (`ringingSince`, 04 §9.3); null = held (an alert waiting for another slot's: a quick alert for a brew's, from v0.5.0 also a brew's for the other brew's) or not alerting. Every slot's overtime timeout is 10 min after it; the wall value rebases it after a reboot |
 
 All other columns stay as above, per row. `ActiveBrewStore` reads and writes
-the snapshot per slot: a write touches only its slot's row (and, for the
+the snapshot per slot: a write touches only its slot's row (and, for a
 brew slot, its session's step rows), clearing a slot deletes only its row,
-and a device restore clears both (§8).
+and a device restore clears all (§8). The snapshot does not name its brew
+slot; the store writes it under the slot it is given.
 
 The earlier `active_elapsed_ms` is dropped: it is derived (RUNNING:
 planned − (deadline − now); PAUSED: planned − remaining) and is not part of
@@ -399,7 +403,7 @@ Table `catalog_tea`
 | `is_organic`, `is_flavored`, `cold_brew_suitable` | INTEGER | badges / aroma / ingredients |
 | `aroma`, `taste_notes`, `manufacturer`, `season`, `matcha_grade` | TEXT | properties table |
 | `taste_scales_json` | TEXT | shop scales, e.g. `{"Umami":4,"Bitterstoffe":1}` |
-| `breadcrumb` | TEXT | category path of the product page |
+| `breadcrumb` | TEXT | category path of the product page: its deepest crumb; for a tea of another section than the green ones, the deepest crumb in a tea section, the path its style and category were mapped from (v0.5.0, #206, D-108) |
 | `ingredients` | TEXT | flavoured teas |
 | `description_html` | TEXT | sanitised HTML/Markdown of the description |
 | `description_text` | TEXT | plain text of the description, for search (D-076) |
@@ -436,7 +440,10 @@ own size (08 §2.4 items 6–7, D-081).
 Table `catalog_skip`: `base_key` PK, `reason` (`NOT_GREEN`, `SET`,
 `NO_TEA`), `checked_at` — base numbers from the sitemap that were classified
 as out of scope, so later refreshes don't fetch them again (re-checked after
-90 days).
+90 days). From v0.5.0 `NOT_GREEN` means „in no tea section of the catalog"
+(D-108: a product outside the green, black and Kräutertee sections, or
+teaware filed there); the stored value keeps its name, so rows of earlier
+versions stay readable.
 
 ### 4.2b CatalogImageFailure
 
@@ -466,7 +473,10 @@ up). Table `catalog_guide_staging` has exactly its columns (D-087).
 
 Table `catalog_refresh_log`: `id`, `started_at`, `finished_at`, `status`
 (`SUCCESS` / `FAILED` / `CANCELLED`), counts (new, changed, discontinued,
-flagged, photos), `parser_version`, `error_summary`. The counts of a
+flagged, photos), `parser_version` (v7 from v0.2.1 with the Kräutertees,
+v8 from v0.5.0 with the black teas, v9 with the white teas, oolongs and Pu-Erhs (#205), v10 with the Rotbusch, Früchtetee and Chai (#206); a kind is still to come while the latest
+successful row has a version below its section's, SCR-19's hint),
+`error_summary`. The counts of a
 successful refresh are its summary (CAT-07 AC3, D-086): `flagged_count`
 counts the teas flagged „Rezept prüfen" since this refresh (new ones
 included), `photos_count` the photos downloaded; a failed run logs zeros.
@@ -498,7 +508,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 | Enum | Values |
 |---|---|
-| `TeaCategory` | `GREEN`, `WHITE`, `YELLOW`, `OOLONG`, `BLACK`, `DARK`, `HERBAL`, `OTHER` |
+| `TeaCategory` | `GREEN`, `WHITE`, `YELLOW`, `OOLONG`, `BLACK`, `DARK`, `HERBAL`, `ROOIBOS`, `FRUIT`, `OTHER` (`ROOIBOS` and `FRUIT` from v0.5.0, #206: the shop's Rotbusch and Früchtetee; stored by name, so no schema change. A chai takes its base tea's category, else `OTHER`) |
 | `TeaForm` | `LOOSE_LEAF`, `POWDER`, `TEA_BAG`, `COMPRESSED` |
 | `UmamiLevel` | `NONE`, `LOW`, `MEDIUM`, `HIGH`, `VERY_HIGH` |
 | `HarvestSeason` | `FIRST_FLUSH`, `SECOND_FLUSH`, `SUMMER`, `AUTUMN`, `WINTER`, `UNKNOWN` |
@@ -508,7 +518,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `VesselMaterial` | `UNGLAZED_CLAY`, `GLAZED_CERAMIC`, `PORCELAIN`, `GLASS`, `CAST_IRON`, `STAINLESS_STEEL`, `OTHER` |
 | `SessionStatus` | `IN_PROGRESS`, `COMPLETED`, `MANUAL` |
 | `TimerPhase` | `READY`, `RUNNING`, `PAUSED`, `ALERTING`, `FINISHED` |
-| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098) |
+| `TimerSlot` | `BREW`, `QUICK` (umamit.db v4, `active_brew.slot`, D-098); `BREW_2` from v0.5.0 (D-108) |
 | `InventoryEventType` | `INITIAL`, `PURCHASE`, `BREW`, `ADJUSTMENT` |
 | `PhotoOrigin` | `OWN`, `CATALOG_COPY` |
 | `RecipeSource` | `CATALOG_TABLE`, `CATALOG_TEXT`, `STYLE_DEFAULT`, `USER` |
@@ -519,7 +529,7 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 
 | Field | Type | Default | Req. |
 |---|---|---|---|
-| `schemaVersion` | Int | 1 | |
+| `schemaVersion` | Int | 1 | 2 from v0.2.2 (D-097), 3 from v0.5.0 (`lowStockReminderInterval`, D-108); a fresh install runs every step |
 | `onboardingCompleted` | Boolean | false | ONB-04 |
 | `theme` | SYSTEM/LIGHT/DARK | SYSTEM | SET-05 |
 | `dynamicColor` | Boolean | false | SET-06 |
@@ -534,10 +544,11 @@ tea is deleted with its packages and photos (CAT-07 AC4, D-086).
 | `lowStockHidden` | Set<String> | ∅ | INV-10 (v0.2.2, D-097): `<tea id>/<event id>` of the latest INITIAL/PURCHASE event when *Ausblenden* was tapped; a newer purchase shows the card again |
 | `alertVolumePercent` | Int (10…100) | 100 | SET-27 (v0.3.0, D-098): the gain of Vorwarnung and alarm on the alarm stream; a written value is snapped to 10 and clamped to 10…100, so the app itself can never silence a cue |
 | `ringUnderDnd` | Boolean | true | SET-32 (v0.3.0, D-099): a silent report under a Do Not Disturb that lets alarms through rings; a file of `v0.3.0-rc.1` or older has no key and reads true |
-| `lowStockReminder` | Boolean | true | SET-28, INV-11 (v0.3.0, D-098) |
+| `lowStockReminder` | Boolean | true | SET-28's switch of v0.3.0 (D-098): read only by the `schemaVersion` 3 step; from v0.5.0 written as „`lowStockReminderInterval` is not OFF" |
+| `lowStockReminderInterval` | DAILY/EVERY_2_DAYS/EVERY_3_DAYS/WEEKLY/OFF | DAILY | SET-28, INV-11 (v0.5.0, D-108): every 1, 2, 3 or 7 days, or off. Settings `schemaVersion` 3 turns a stored `lowStockReminder` true into DAILY and false into OFF once; an unknown name reads DAILY |
 | `lowStockReminderTime` | Int (minute of the day, 0…1439) | 1080 (18:00) | SET-29, INV-11 (v0.3.0, D-098); local time |
-| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last run that was due (posted, or with nothing to post), so a day gets at most one; not shown |
-| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view `green` or `herbal`, „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
+| `lowStockReminderLastDate` | String? (ISO date) | null | INV-11 (v0.3.0, D-098): the local date of the last reminder that was posted, which the interval counts from (v0.5.0, D-108); a due day with nothing to post leaves it (until v0.4.1 it also counted such a day). Not shown |
+| `catalogFolded` | Set<String> | ∅ | CAT-10, SCR-19 (v0.3.0, D-098): folded *Sorte* groups as `<view>/<sorte key>`, view the catalog kind's key (`green`, `herbal`, from v0.5.0 `black`, `white`, `oolong`, `dark`, `rooibos`, `fruit`, `chai`, D-108, #206), „Ohne Sorte" as `<view>/-`; an unknown key is ignored |
 | `keepScreenOn` | Boolean | true | SET-17 |
 | `offerRecipeUpdate` | Boolean | true | SET-18 |
 | `weeklyDigest` | Boolean | false | SET-19 |
@@ -735,6 +746,37 @@ quick timer's own pre-alert, `MIGRATION_2_3` in `UMAMI_MIGRATIONS`:
   builder. `SchemaVersionsTest` opens v1–v4; the v1, v2 and v3 JSON stay
   byte-identical (`check-frozen-schemas.sh`). The v0.3.0 rc checklist
   installs it over v0.2.2 (09 §4).
+
+**umamit.db v5 (v0.5.0, D-108, #197).** One schema step for the per-tea
+stock warning, `MIGRATION_4_5` in `UMAMI_MIGRATIONS`:
+- `ALTER TABLE tea ADD COLUMN low_stock_warning INTEGER NOT NULL DEFAULT 1`
+  (last column): every existing tea keeps its warning on, as before.
+  `low_stock_grams` keeps its values; from v0.5.0 it has a UI (SCR-09).
+- No other table changes: the brew session and the quick timer running
+  during the update keep their slots and alert on time (rule 8).
+- One transaction, never destructive. Tests: `Migration4To5Test` from a
+  populated v4 database (a tea with its own `low_stock_grams` and one
+  without, a running brew session in `BREW` and a running quick timer in
+  `QUICK`); every row and value checked, then opened with the production
+  builder. `SchemaVersionsTest` opens v1–v5; the v1–v4 JSON keep their
+  version and identity hash (`check-frozen-schemas.sh`). The v0.5.0 rc
+  checklist installs it over v0.4.1 (09 §4).
+
+**catalog.db and the black teas (v0.5.0, D-108, #203).** No schema change:
+a black tea is a `catalog_tea` row told apart by its style key (one of the
+black styles, 08 §3), like the Kräutertees by `herbal`. The parser version
+steps to 8 once for the release. While the latest successful refresh in
+`catalog_refresh_log` ran a parser before v8, a refresh treats the
+`NOT_GREEN` skip entries as due and its swap deletes them before adding the
+run's own (the v0.2.1 pattern above, 08 §2.4 item 3); a refresh that stops
+or fails keeps the old skip list, so the next one reads them again. The
+white teas, oolongs and Pu-Erhs (#205) are a second step, parser v9, by the
+same rule: a catalog an rc refreshed with v8 re-reads its `NOT_GREEN`
+entries once more; a v0.4.1 catalog still re-reads only once. The
+Rotbusch, Früchtetee and Chai (#206) are a third step, parser v10, by the
+same rule (a catalog an rc refreshed with v9 re-reads once more). Still no
+schema change: `ROOIBOS` and `FRUIT` are new values of the TEXT column
+`tea.category`.
 
 ## 10. Volume assumptions
 

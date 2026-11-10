@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -26,6 +27,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.catalog.SettingsCatalogFoldRepository
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.UserSettings
@@ -62,7 +64,7 @@ class CatalogFoldingTest {
         catalogTea("XY0210", "Flussufer Bancha", "Bancha"),
         catalogTea("XY0300", "Röstreis Genmaicha", "Genmaicha"),
         catalogTea("XY0400", "Namenloser Grüner", null),
-        catalogTea("XK0100", "Wiesenzauber", "Mischungen").copy(isHerbal = true, originCountry = null),
+        catalogTea("XK0100", "Wiesenzauber", "Mischungen").copy(kind = CatalogKind.HERBAL, originCountry = null),
     )
     private var settings = FakeSettingsRepository()
     private val bookmarks = FakeCatalogBookmarkRepository()
@@ -150,7 +152,7 @@ class CatalogFoldingTest {
         hidden("Namenloser Grüner")
         shown("Röstreis Genmaicha")
 
-        chip(R.string.catalog_filter_herbal).performClick()
+        chip(R.string.catalog_filter_herbal).performScrollTo().performClick()
         compose.waitForIdle()
 
         // The Kräutertee view keeps its own: Mischungen folded there.
@@ -216,7 +218,7 @@ class CatalogFoldingTest {
         bookmarks.marked.value = setOf("XY0200")
         show()
 
-        chip(R.string.catalog_filter_marked).performClick()
+        chip(R.string.catalog_filter_marked).performScrollTo().performClick()
         compose.waitForIdle()
 
         shown("Herbstlaub Bancha")

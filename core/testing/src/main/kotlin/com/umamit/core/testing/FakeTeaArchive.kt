@@ -24,10 +24,14 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
         active[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessions[it] }?.snapshot?.teaId
     }.distinctUntilChanged()
 
+    override fun observeActiveTeaIds(): Flow<Set<String>> = combine(s.activeRows, s.sessionRows) { active, sessions ->
+        active.values.mapNotNull { sessions[it.activeBrew.sessionId]?.snapshot?.teaId }.toSet()
+    }.distinctUntilChanged()
+
     override suspend fun archive(teaId: String): ArchiveResult {
         val tea = s.collection.teas.getTea(teaId)
         return when {
-            s.activeTeaId() == teaId -> ArchiveResult.InActiveSession
+            teaId in s.activeTeaIds() -> ArchiveResult.InActiveSession
 
             tea == null -> ArchiveResult.NotFound
 
@@ -46,7 +50,7 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
     override suspend fun delete(teaId: String): DeleteResult = when {
         s.collection.teas.getTea(teaId) == null -> DeleteResult.NotFound
 
-        s.activeTeaId() == teaId -> DeleteResult.InActiveSession
+        teaId in s.activeTeaIds() -> DeleteResult.InActiveSession
 
         else -> {
             val recipeIds = s.collection.recipeRows.value.values.filter { it.teaId == teaId }.map { it.id }.toSet()
@@ -74,16 +78,18 @@ class FakeTeaArchive(private val s: FakeSessions) : TeaArchive {
 class FakeVesselArchive(private val s: FakeSessions) : VesselArchive {
     val archived = mutableListOf<String>()
 
-    override fun observeActiveVesselId(): Flow<String?> = combine(s.activeRows, s.sessionRows) { active, sessions ->
-        active[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessions[it] }?.snapshot?.vesselId
+    override fun observeActiveVesselIds(): Flow<Set<String>> = combine(s.activeRows, s.sessionRows) {
+            active,
+            sessions,
+        ->
+        active.values.mapNotNull { sessions[it.activeBrew.sessionId]?.snapshot?.vesselId }.toSet()
     }.distinctUntilChanged()
 
     override suspend fun archive(vesselId: String): ArchiveResult {
         val vessel = s.collection.vessels.getVessel(vesselId)
-        val active = s.activeRows.value[TimerSlot.BREW]?.activeBrew?.sessionId
-            ?.let { s.sessionRows.value[it] }?.snapshot?.vesselId
+        val active = s.activeSnapshots().map { it.vesselId }
         return when {
-            active == vesselId -> ArchiveResult.InActiveSession
+            vesselId in active -> ArchiveResult.InActiveSession
 
             vessel == null -> ArchiveResult.NotFound
 
@@ -100,6 +106,9 @@ class FakeVesselArchive(private val s: FakeSessions) : VesselArchive {
     }
 }
 
-/** The tea of the active brew session (E15), as `active_brew` joined with its session. */
-private fun FakeSessions.activeTeaId(): String? =
-    activeRows.value[TimerSlot.BREW]?.activeBrew?.sessionId?.let { sessionRows.value[it] }?.snapshot?.teaId
+/** The teas of the active brew sessions, in either brew slot (E15, D-108), as `active_brew` joined with its session. */
+private fun FakeSessions.activeTeaIds(): List<String?> = activeSnapshots().map { it.teaId }
+
+/** The snapshots of the active brew sessions, in either brew slot (D-108). */
+private fun FakeSessions.activeSnapshots() =
+    activeRows.value.values.mapNotNull { row -> row.activeBrew.sessionId?.let { sessionRows.value[it] }?.snapshot }

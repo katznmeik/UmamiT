@@ -16,10 +16,14 @@ import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
+import com.umamit.core.timer.controller.StartRefusal
+import com.umamit.core.timer.controller.TimerToEnd
 import com.umamit.core.timer.controller.TimerUiState
+import com.umamit.core.timer.controller.activeSessionIds
 import com.umamit.core.timer.controller.alertKey
 import com.umamit.core.timer.controller.brewAgainStart
-import com.umamit.core.timer.engine.RejectionReason
+import com.umamit.core.timer.controller.refusalOf
+import com.umamit.core.timer.controller.startedSlot
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.timer.reliability.ReliabilityProblem
 import com.umamit.core.timer.reliability.TimerReliability
@@ -62,15 +66,19 @@ data class RecentBrew(
     val infusions: Int,
 )
 
-/** „Erst die *[teaName]*-Sitzung beenden?" (TMR-21); [teaName] is null for the quick timer. */
-data class HomeQuestion(val teaName: String?)
+/** „Welchen Timer beenden?" (TMR-21, D-108): one answer per active timer, in the slot order. */
+data class HomeQuestion(val timers: List<TimerToEnd>)
 
 /**
  * What Start (SCR-02) shows.
  *
  * @property active the active brew session: *Aufguss fortsetzen* with a live countdown in place of *Aufguss starten*
  *   (GEN-06). Never the quick timer (SCR-02, D-098): alone it leaves *Aufguss starten*, beside a brew the card stays
- *   the brew's; the active brew bar shows it.
+ *   the brew's; the active brew bar shows it. With two brew sessions the first in the slot order (`BREW`, then
+ *   `BREW_2`; D-108); the bar shows both.
+ * @property twoTimersActive two timers are active, the most there may be (D-108): *Aufguss starten* is hidden, and a
+ *   start from *Nochmal brühen* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
+ *   card of one active brew (v0.5.0; v0.3.0 hid it while a brew was active).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
@@ -80,6 +88,7 @@ data class HomeUiState(
     val loading: Boolean = true,
     val collectionEmpty: Boolean = false,
     val active: TimerUiState.Active? = null,
+    val twoTimersActive: Boolean = false,
     val brewAgain: List<HomeTea> = emptyList(),
     val recent: List<RecentBrew> = emptyList(),
     val favorites: List<HomeTea> = emptyList(),
@@ -90,16 +99,16 @@ data class HomeUiState(
 )
 
 /** What Start asks its host to do once. */
-enum class HomeEvent {
-    /** A brew waits in READY: open the timer. */
-    OpenTimer,
+sealed interface HomeEvent {
+    /** Open the timer of [slot] (the brew just started, or the tea's active session); null: the one in front. */
+    data class OpenTimer(val slot: TimerSlot?) : HomeEvent
 }
 
 /**
  * Start's view model (SCR-02): the collection, the recent sessions and the
  * timer's state. *Nochmal brühen* starts the tea's last session again through
- * the [BrewStarter] (BRW-11) and asks first while another timer is active
- * (TMR-21).
+ * the [BrewStarter] (BRW-11), beside one other active timer (D-108); a tea with an active session opens it, and
+ * while two timers are active it asks „Welchen Timer beenden?" (TMR-21).
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -122,7 +131,14 @@ class HomeViewModel @Inject constructor(
         teas.observeTeas(),
         sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW),
         // The card is the brew's (SCR-02, D-098): a quick timer alone leaves *Aufguss starten*, the bar shows it.
-        starter.state.combine(starter.observeActive(TimerSlot.BREW), ::Timers),
+        combine(
+            starter.state,
+            starter.observeActive(TimerSlot.BREW),
+            starter.observeActive(TimerSlot.BREW_2),
+            starter.observeActive(TimerSlot.QUICK),
+        ) { front, brew, brew2, quick ->
+            Timers(front, brew ?: brew2, active = listOfNotNull(brew, brew2, quick).size)
+        },
         pending,
         reliabilityProblem,
     ) { overviews, recentSessions, timers, question, problem ->
@@ -135,6 +151,7 @@ class HomeViewModel @Inject constructor(
             loading = false,
             collectionEmpty = owned.isEmpty(),
             active = timers.brew,
+            twoTimersActive = timers.active >= MAX_ACTIVE_TIMERS,
             brewAgain = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
                 .mapNotNull { byId[it] }
                 .take(SHOWN)
@@ -198,14 +215,16 @@ class HomeViewModel @Inject constructor(
     fun brewAgain(teaId: String) {
         // A second tap (on this or another tile) while the first start is in flight would only be
         // refused and leave a stale TMR-21 question on Start (#54 S6, as D-065 for the quick timer).
-        if (starting) return
+        // A tap on another tile right after a start is the same gesture, not a second brew (#54 S6, D-108).
+        if (starting || startedJustNow) return
         starting = true
         viewModelScope.launch {
             try {
                 val last = sessions.observeRecentSessions(RECENT_SESSIONS_WINDOW).first()
                     .firstOrNull { it.snapshot.teaId == teaId } ?: return@launch
                 val request = brewAgainStart(last)
-                handle(starter.startSession(request), request)
+                val before = starter.activeSessionIds()
+                handle(starter.startSession(request), request, before)
             } finally {
                 starting = false
             }
@@ -217,49 +236,61 @@ class HomeViewModel @Inject constructor(
     /** The session this view model started last, and when: a refusal by it right after is a double tap. */
     private var started: Started? = null
 
-    /** *Beenden & neu starten* (TMR-21). */
-    fun confirmRestart() {
-        val request = pending.value?.request ?: return
+    /** An answer of „Welchen Timer beenden?" (TMR-21, D-108): the timer of [slot] ends, then the brew starts. */
+    fun endTimerAndStart(slot: TimerSlot) {
+        val asked = pending.value ?: return
+        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
+        val session = asked.question.timers.firstOrNull { it.slot == slot }?.sessionId
         pending.value = null
-        viewModelScope.launch { handle(starter.finishActiveAndStart(request), request) }
+        viewModelScope.launch {
+            val before = starter.activeSessionIds()
+            val outcome = starter.finishActiveAndStart(asked.request, ending = slot, endingSession = session)
+            handle(outcome, asked.request, before)
+        }
     }
 
-    /** *Abbrechen*: the active session stays. */
+    /** *Abbrechen*: both active timers stay. */
     fun dismissQuestion() {
         pending.value = null
     }
 
-    private suspend fun handle(outcome: TransitionOutcome, request: BrewStart) {
+    private suspend fun handle(outcome: TransitionOutcome, request: BrewStart, before: List<String>) {
         when (outcome) {
             TransitionOutcome.Accepted -> {
-                started =
-                    (starter.state.value as? TimerUiState.Active)?.sessionId?.let { Started(it, clock.elapsedMs()) }
-                navigation.send(HomeEvent.OpenTimer)
+                val slot = starter.startedSlot(before)
+                started = slot?.let { starter.activeIn(it)?.sessionId }?.let { Started(it, clock.elapsedMs()) }
+                navigation.send(HomeEvent.OpenTimer(slot))
             }
 
-            is TransitionOutcome.Rejected -> if (outcome.reason is RejectionReason.ActiveTimerExists) {
-                val timer = starter.state.value
-                if (isDoubleTap(timer)) {
-                    // The brew this screen has just started: the timer is opening already, nothing to ask.
-                    Unit
-                } else if (timer.alertKey() != null) {
-                    // No question over an alert (rule 8): the alerting timer is where to go now.
-                    navigation.send(HomeEvent.OpenTimer)
-                } else {
-                    // The brew session that refused it (a quick timer never does, D-098).
-                    pending.value = Pending(request, HomeQuestion(starter.activeIn(TimerSlot.BREW)?.teaName), null)
+            is TransitionOutcome.Rejected -> when (val refusal = starter.refusalOf(outcome.reason)) {
+                // The tea's own session (a tea has at most one, D-108): open it, also during an alert, where the
+                // timer shows the ringing alert first (rule 8).
+                is StartRefusal.OpenSession -> if (!isDoubleTap(refusal.slot)) {
+                    navigation.send(HomeEvent.OpenTimer(refusal.slot))
                 }
+
+                is StartRefusal.ChooseTimer -> if (starter.state.value.alertKey() != null) {
+                    // No question over an alert (rule 8): the alerting timer is where to go now.
+                    navigation.send(HomeEvent.OpenTimer(null))
+                } else {
+                    pending.value = Pending(request, HomeQuestion(refusal.timers), null)
+                }
+
+                // A brew start is never refused for a quick timer of its own (D-098).
+                StartRefusal.RestartQuick, null -> Unit
             }
 
             TransitionOutcome.Ignored -> Unit
         }
     }
 
-    private fun isDoubleTap(timer: TimerUiState): Boolean {
-        val last = started ?: return false
-        val active = (timer as? TimerUiState.Active)?.sessionId
-        return active == last.sessionId && clock.elapsedMs() - last.atElapsedMs < DOUBLE_TAP_WINDOW_MS
-    }
+    /** The session this view model has just started is in [slot]: the timer is opening already (#54 S6). */
+    private fun isDoubleTap(slot: TimerSlot): Boolean =
+        startedJustNow && starter.activeIn(slot)?.sessionId == started?.sessionId
+
+    /** This view model started a session less than a tap's window ago. */
+    private val startedJustNow: Boolean
+        get() = started?.let { clock.elapsedMs() - it.atElapsedMs < DOUBLE_TAP_WINDOW_MS } ?: false
 
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
 
@@ -281,8 +312,8 @@ class HomeViewModel @Inject constructor(
 
     private class Pending(val request: BrewStart, val question: HomeQuestion, val openedIn: String?)
 
-    /** The timer in front of the controller (its alert first) and the active brew session beside it. */
-    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?)
+    /** The timer in front of the controller (its alert first) and the first active brew session (D-108). */
+    private class Timers(val front: TimerUiState, val brew: TimerUiState.Active?, val active: Int)
 
     private class Started(val sessionId: String, val atElapsedMs: Long)
 
@@ -297,5 +328,8 @@ class HomeViewModel @Inject constructor(
         const val DOUBLE_TAP_WINDOW_MS = 1_000L
 
         const val TAG = "UmamiTHome"
+
+        /** Any two timers at once, never a third (D-108). */
+        const val MAX_ACTIVE_TIMERS = 2
     }
 }

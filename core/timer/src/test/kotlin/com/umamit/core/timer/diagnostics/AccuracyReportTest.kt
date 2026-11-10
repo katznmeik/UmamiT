@@ -157,6 +157,22 @@ class AccuracyReportTest {
         assertThat(FireTime.parsePlayed(brewAlert)?.slot).isEqualTo(TimerSlot.BREW)
     }
 
+    @Test
+    fun `the second brew's lines name BREW2 and parse back with its slot (D-108)`() {
+        clock.advanceBy(25)
+        val deadline = TimerDiagnosticFormat.message(
+            handled(TimerEvent.DeadlineReached, EventSource.ALARM, TransitionOutcome.Accepted, 25, TimerSlot.BREW_2),
+        )
+        val alert = TimerDiagnosticFormat.message(played(AlertCue.ALERT, lateMs = 25, slot = TimerSlot.BREW_2))
+
+        assertThat(deadline).startsWith("event BREW2.DeadlineReached from ALARM: ")
+        assertThat(deadline).contains("| BREW2.DEADLINE scheduled 10:00:00.000")
+        assertThat(FireTime.parse(deadline)?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(FireTime.parse(deadline)?.kind).isEqualTo(TimerAlarmKind.DEADLINE)
+        assertThat(FireTime.parsePlayed(alert)?.slot).isEqualTo(TimerSlot.BREW_2)
+        assertThat(FireTime.parsePlayed(alert)?.deltaMs).isEqualTo(25)
+    }
+
     /**
      * A quick deadline reached while the brew alerts is handled as a hold (04 §9.3, D-098): its line is the
      * quick timer's handled deadline, so a held alert shows in the report as handled on time but sounding late.
@@ -540,6 +556,7 @@ class AccuracyReportTest {
         from = TimerPhase.RUNNING,
         to = TimerPhase.RUNNING,
         scheduled = ScheduledTime(TimerAlarmKind.of(event)!!, clock.elapsed - lateMs, slot),
+        slot = slot,
     )
 
     private fun played(cue: AlertCue, lateMs: Long?, slot: TimerSlot = TimerSlot.BREW) = TimerDiagnostic.AlertPlayed(
@@ -553,72 +570,6 @@ class AccuracyReportTest {
             val kind = if (cue == AlertCue.PRE_ALERT) TimerAlarmKind.PRE_ALERT else TimerAlarmKind.DEADLINE
             ScheduledTime(kind, clock.elapsed - it, slot)
         },
-    )
-
-    /** A step whose events were handled [preAlertMs] and [alertMs] late, the sounds started then or as given. */
-    private fun step(
-        step: Int,
-        preAlertMs: Long,
-        alertMs: Long,
-        preAlertPlayedMs: Long = preAlertMs,
-        alertPlayedMs: Long = alertMs,
-    ) = StepFireTimes(
-        step = step,
-        preAlert = CueTimes(
-            handled = fire(TimerAlarmKind.PRE_ALERT, "WAKE_UP", "10:00:50", 50_000, preAlertMs),
-            played = fire(TimerAlarmKind.PRE_ALERT, FireTime.PLAYER, "10:00:50", 50_000, preAlertPlayedMs),
-        ),
-        alert = CueTimes(
-            handled = fire(TimerAlarmKind.DEADLINE, "ALARM", "10:01:00", 60_000, alertMs),
-            played = fire(TimerAlarmKind.DEADLINE, FireTime.PLAYER, "10:01:00", 60_000, alertPlayedMs),
-        ),
-    )
-
-    /**
-     * The quick timer that ran alongside brew step [step] (D-098): its 25 s with a 10 s pre-alert from the step's
-     * start, so its cues come before the brew's, handled [preAlertMs] and [alertMs] late, the sounds then or as given.
-     */
-    private fun quick(
-        step: Int,
-        preAlertMs: Long,
-        alertMs: Long,
-        preAlertPlayedMs: Long = preAlertMs,
-        alertPlayedMs: Long = alertMs,
-    ) = StepFireTimes(
-        step = step,
-        preAlert = CueTimes(
-            handled = fire(TimerAlarmKind.PRE_ALERT, "ALARM", "10:00:15", 15_000, preAlertMs, TimerSlot.QUICK),
-            played = fire(
-                TimerAlarmKind.PRE_ALERT,
-                FireTime.PLAYER,
-                "10:00:15",
-                15_000,
-                preAlertPlayedMs,
-                TimerSlot.QUICK,
-            ),
-        ),
-        alert = CueTimes(
-            handled = fire(TimerAlarmKind.DEADLINE, "WAKE_UP", "10:00:25", 25_000, alertMs, TimerSlot.QUICK),
-            played = fire(TimerAlarmKind.DEADLINE, FireTime.PLAYER, "10:00:25", 25_000, alertPlayedMs, TimerSlot.QUICK),
-        ),
-    )
-
-    private fun fire(
-        kind: TimerAlarmKind,
-        source: String,
-        wall: String,
-        mono: Long,
-        deltaMs: Long,
-        slot: TimerSlot = TimerSlot.BREW,
-    ) = FireTime(
-        kind = kind,
-        source = source,
-        scheduledWall = "$wall.000",
-        scheduledMonoMs = mono,
-        actualWall = "$wall.${deltaMs.toString().padStart(3, '0').takeLast(3)}",
-        actualMonoMs = mono + deltaMs,
-        deltaMs = deltaMs,
-        slot = slot,
     )
 
     private companion object {

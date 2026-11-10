@@ -26,6 +26,8 @@ import com.umamit.core.model.CatalogFilter
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.FlavourFilter
+import com.umamit.core.model.TasteScale
+import com.umamit.core.model.TasteScaleOption
 import com.umamit.core.model.UmamiLevel
 
 /** The filter sheet (SCR-19). */
@@ -34,8 +36,9 @@ const val CATALOG_FILTER_SHEET_TAG = "catalog_filter_sheet"
 /**
  * Every filter and the sort (CAT-10) in Material 3's modal sheet: sort, *Sorte* and *Herkunft*
  * (several each, from the catalog's own values in [listing]), aroma, umami and the chips'
- * switches. In the *Kräutertee* view aroma („Pur", Q14) and umami (Q19) don't apply and are left
- * out. *Zurücksetzen* returns to the default view (D-073) of the kind shown and keeps the search.
+ * switches, and the shop's taste notes and scales of the view (D-108 point 8). In the *Kräutertee*
+ * view aroma („Pur", Q14) and umami (Q19) don't apply and are left out. *Zurücksetzen* returns to the default
+ * view (D-073) of the kind shown and keeps the search.
  * The caller never composes it during an alert (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,10 +75,12 @@ internal fun CatalogFilterSheet(
             ChoiceGroup(stringResource(R.string.catalog_filter_origins), listing.origins, filter.origins) { value ->
                 onFilterChange { it.copy(origins = it.origins.toggle(value)) }
             }
-            if (!filter.herbal) {
+            if (filter.isGreen) {
                 FlavourGroup(filter, onFilterChange)
                 UmamiGroup(filter, onFilterChange)
             }
+            TasteNoteGroup(filter, listing, onFilterChange)
+            listing.tasteScales.forEach { scale -> TasteScaleGroup(scale, filter, onFilterChange) }
             val switches = switchOptions(filter)
             Group(stringResource(R.string.catalog_filter_more)) {
                 switches.forEach { option ->
@@ -83,9 +88,7 @@ internal fun CatalogFilterSheet(
                 }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = {
-                    onFilterChange { CatalogFilter.DEFAULT.copy(search = it.search, herbal = it.herbal) }
-                }) {
+                TextButton(onClick = { onFilterChange { it.resetFilters() } }) {
                     Text(stringResource(R.string.catalog_filter_reset))
                 }
                 TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.catalog_filter_done)) }
@@ -137,6 +140,41 @@ private fun UmamiGroup(filter: CatalogFilter, onFilterChange: (FilterChange) -> 
     }
 }
 
+/** The shop's taste notes of the view (D-108 point 8), most frequent first; a tea must name every one chosen. */
+@Composable
+private fun TasteNoteGroup(filter: CatalogFilter, listing: CatalogListing, onFilterChange: (FilterChange) -> Unit) {
+    if (listing.tasteNotes.isNotEmpty()) {
+        Group(stringResource(R.string.catalog_filter_taste_notes)) {
+            listing.tasteNotes.forEach { note ->
+                CatalogChip(note.label, note.key in filter.notes) { onFilterChange { it.toggleNote(note.key) } }
+            }
+        }
+    }
+}
+
+/**
+ * One of the shop's taste scales (D-108 point 8) like Umami: *Egal* or „ab N" leaves of [TasteScale.MAX_LEAVES].
+ * TalkBack reads each chip with the scale's name („Süße ab 3"), since „ab 3" alone names no scale.
+ */
+@Composable
+private fun TasteScaleGroup(scale: TasteScaleOption, filter: CatalogFilter, onFilterChange: (FilterChange) -> Unit) {
+    val chosen = filter.minScales[scale.key]
+    Group(scale.label) {
+        CatalogChip(
+            stringResource(R.string.catalog_scale_any),
+            chosen == null,
+            description = stringResource(R.string.catalog_scale_any_description, scale.label),
+        ) { onFilterChange { it.withMinScale(scale.key, null) } }
+        for (leaves in 1..TasteScale.MAX_LEAVES) {
+            CatalogChip(
+                stringResource(R.string.catalog_scale_min, leaves),
+                chosen == leaves,
+                description = stringResource(R.string.catalog_scale_min_description, scale.label, leaves),
+            ) { onFilterChange { it.withMinScale(scale.key, leaves) } }
+        }
+    }
+}
+
 /** A multiple choice from the catalog's own [values]; [selected] empty = every one. */
 @Composable
 private fun ChoiceGroup(title: String, values: List<String>, selected: Set<String>, onToggle: (String) -> Unit) {
@@ -164,3 +202,6 @@ private fun Group(title: String, content: @Composable () -> Unit) {
 }
 
 private fun Set<String>.toggle(value: String): Set<String> = if (value in this) this - value else this + value
+
+/** *Zurücksetzen*: the default view (D-073) of the kind shown, the search kept; taste notes and scales cleared too. */
+internal fun CatalogFilter.resetFilters(): CatalogFilter = CatalogFilter.DEFAULT.copy(search = search, kind = kind)

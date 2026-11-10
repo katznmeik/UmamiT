@@ -113,7 +113,7 @@ class BrewAgainFlowTest {
                     startScreen = { tab ->
                         HomeRoute(
                             actions = HomeActions(openSettings = tab.openSettings),
-                            onOpenTimer = tab.navigation.openTimer,
+                            onOpenTimer = { tab.navigation.openTimer() },
                             viewModel = viewModel,
                         )
                     },

@@ -129,17 +129,22 @@ internal object TeaDetailFixture {
         sessions.sessions.completeSession(id, autoFinished = false)
     }
 
-    /** A brew session of the tea waits in READY: the active session (E15). */
-    suspend fun activeSession(sessions: FakeSessions, teaId: String = TEA_ID) {
+    /** A brew session of the tea waits in READY in [slot]: an active session (E15; two brews from v0.5.0, D-108). */
+    suspend fun activeSession(
+        sessions: FakeSessions,
+        teaId: String = TEA_ID,
+        slot: TimerSlot = TimerSlot.BREW,
+        sessionId: String = "active",
+    ) {
         val steps = listOf(PlannedStep(StepKind.INFUSION, 60, 70))
         val start = TimerEvent.StartSession(
-            "active",
+            sessionId,
             steps,
             PreAlertSettings.inherited(null, 10),
             longStepsOnly = false,
         )
         val ready = BrewTimerEngine.reduce(TimerState.Idle, start, ClockReading(1_000, 1_000, ZoneOffset.UTC, 1)).state
-        sessions.sessions.startSession(SessionStart("active", snapshot(teaId), steps, 10, 1_000, "UTC"))
-        sessions.activeBrew.persist(TimerSlot.BREW, BrewTimerEngine.snapshot(ready))
+        sessions.sessions.startSession(SessionStart(sessionId, snapshot(teaId), steps, 10, 1_000, "UTC"))
+        sessions.activeBrew.persist(slot, BrewTimerEngine.snapshot(ready))
     }
 }

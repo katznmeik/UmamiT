@@ -173,8 +173,9 @@ class VesselEditorViewModel @Inject constructor(
         base,
         form,
         flags,
-        archive.observeActiveVesselId(),
-    ) { b, f, flag, activeId ->
+        // Every active session's vessel, in either brew slot (WARE-01, D-108).
+        archive.observeActiveVesselIds(),
+    ) { b, f, flag, activeIds ->
         when {
             b == null -> VesselEditorUiState.Loading
 
@@ -188,7 +189,7 @@ class VesselEditorViewModel @Inject constructor(
                     form = f,
                     isNew = stored == null,
                     isArchived = stored?.isArchived == true,
-                    archiveBlocked = stored != null && stored.id == activeId,
+                    archiveBlocked = stored != null && stored.id in activeIds,
                     hasChanges = f != (stored?.let(VesselForm::of) ?: VesselForm()) || flag.photo != PhotoChange.Keep,
                     errors = if (flag.showErrors) f.errors() else emptySet(),
                     saving = flag.saving,

@@ -48,11 +48,12 @@ enum class TimerAlarmKind(
 
     /**
      * The request code of this kind's alarm in [slot] (04 §6.2, D-098): 101–107 in the brew slot, the codes
-     * of v0.2.2, so a brew running during the update keeps its alarms; 201–207 in the quick slot, so the
-     * slots never replace each other's alarms.
+     * of v0.2.2, so a brew running during the update keeps its alarms; 201–207 in the quick slot and 301–307
+     * in the second brew slot (D-108), so the slots never replace each other's alarms.
      */
     fun requestCodeIn(slot: TimerSlot): Int = when (slot) {
         TimerSlot.BREW -> BREW_CODES
+        TimerSlot.BREW_2 -> BREW_2_CODES
         TimerSlot.QUICK -> QUICK_CODES
     } + codeInSlot
 
@@ -76,6 +77,12 @@ enum class TimerAlarmKind(
 
         /** The quick slot's block of request codes (201–207, D-098). */
         private const val QUICK_CODES = 200
+
+        /**
+         * The second brew slot's block of request codes (301–307, D-108). The timer's notification intents use 301–309
+         * too, but none is a broadcast to the alarm receiver, so no pending intent is shared (PendingIntentCodesTest).
+         */
+        private const val BREW_2_CODES = 300
 
         /** The kinds of the [DueTimes] fields, which `ScheduleAlarms` reconciles (04 §6.2). */
         val DUE: List<TimerAlarmKind> = entries.filter { it.event != null }

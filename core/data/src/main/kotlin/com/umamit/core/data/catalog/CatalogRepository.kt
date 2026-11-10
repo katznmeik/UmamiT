@@ -9,6 +9,7 @@ import com.umamit.core.database.entity.CatalogPackageEntity
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.domain.catalog.CatalogBrowser
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogOverview
 import com.umamit.core.model.CatalogPackage
@@ -43,11 +44,12 @@ interface CatalogRepository {
     fun observeTea(key: String): Flow<CatalogTeaDetail?>
 
     /**
-     * The Kräutertees are still to come (v0.2.1, D-093 Q20): the last successful refresh ran a
-     * parser from before them, so the first refresh after the update, which brings them once, is
-     * still due. False before the first refresh (the empty catalog has its own state).
+     * The catalog kinds still to come (SCR-19's hint; v0.2.1 the Kräutertees, D-093 Q20; v0.5.0
+     * the black teas, D-108): the last successful refresh ran a parser from before their sections,
+     * so the first refresh after the update, which brings them once, is still due. Empty before
+     * the first refresh (the empty catalog has its own state).
      */
-    fun observeHerbalPending(): Flow<Boolean>
+    fun observePendingKinds(): Flow<Set<CatalogKind>>
 }
 
 /** The catalog keys of the collection's teas: `tea.catalog_key` in `umamit.db` (05 §1.6). */
@@ -106,8 +108,13 @@ class RoomCatalogRepository @Inject constructor(
         }.distinctUntilChanged()
     }
 
-    private fun CatalogListRow.toSummary(ownedKeys: Set<String>, marked: Set<String>, discontinued: Boolean = false) =
-        CatalogTeaSummary(
+    private fun CatalogListRow.toSummary(
+        ownedKeys: Set<String>,
+        marked: Set<String>,
+        discontinued: Boolean = false,
+    ): CatalogTeaSummary {
+        val scales = CatalogColumns.tasteScales(tasteScalesJson)
+        return CatalogTeaSummary(
             key = key,
             name = name ?: key,
             secondaryName = secondaryName,
@@ -118,28 +125,27 @@ class RoomCatalogRepository @Inject constructor(
             originCountry = originCountry,
             isOrganic = isOrganic,
             isFlavored = isFlavored,
-            umamiLeaves = CatalogColumns.tasteScales(tasteScalesJson)
-                .firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
+            umamiLeaves = scales.firstOrNull { it.label.equals(UMAMI_SCALE, ignoreCase = true) }?.leaves,
             recipeCheckReason = recipeCheckReason,
             isNew = isNew,
             owned = key in ownedKeys,
-            isHerbal = styleKey == HERBAL_STYLE,
+            kind = CatalogKind.of(styleKey),
             marked = key in marked,
             discontinued = discontinued,
+            tasteNotes = CatalogColumns.tasteNotes(tasteNotes),
+            tasteScales = scales,
         )
+    }
 
     private companion object {
         /** The shop's name of the umami scale (08 §2.3). */
         const val UMAMI_SCALE = "Umami"
-
-        /** The style of the shop's Kräutertees (08 §3, D-093): a herbal tea is told apart by it. */
-        const val HERBAL_STYLE = "herbal"
     }
 
     override fun observeLastRefresh(): Flow<Long?> = dao.observeLastSuccess().distinctUntilChanged()
 
-    override fun observeHerbalPending(): Flow<Boolean> = dao.observeLastSuccessParserVersion()
-        .map { version -> version != null && version < TeeKontorParser.HERBAL_SINCE_VERSION }
+    override fun observePendingKinds(): Flow<Set<CatalogKind>> = dao.observeLastSuccessParserVersion()
+        .map { version -> version?.let(TeeKontorParser::kindsSince).orEmpty() }
         .distinctUntilChanged()
 
     override fun observeTea(key: String): Flow<CatalogTeaDetail?> = combine(

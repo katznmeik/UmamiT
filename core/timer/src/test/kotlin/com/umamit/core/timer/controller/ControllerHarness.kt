@@ -9,8 +9,10 @@ import com.umamit.core.data.RoomDatabaseTransactions
 import com.umamit.core.data.RoomSessionRepository
 import com.umamit.core.data.RoomStockRepository
 import com.umamit.core.data.RoomTeaRepository
+import com.umamit.core.data.SessionRepository
 import com.umamit.core.database.UmamiDatabase
 import com.umamit.core.model.BrewMethod
+import com.umamit.core.model.BrewSession
 import com.umamit.core.model.InventoryEvent
 import com.umamit.core.model.InventoryEventType
 import com.umamit.core.model.SessionSnapshot
@@ -35,6 +37,7 @@ import com.umamit.core.timer.engine.BrewTimerEngine
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.TimerSnapshot
 import kotlinx.coroutines.CompletableDeferred
+import java.io.IOException
 import javax.inject.Provider
 
 /**
@@ -61,7 +64,9 @@ class ControllerHarness(
         .build(),
 ) {
     val log = TimerPortLog()
-    val sessions = RoomSessionRepository(db, settings, clock)
+
+    /** The real session repository, whose [FlakySessions.failNextGets] makes session row reads throw. */
+    val sessions = FlakySessions(RoomSessionRepository(db, settings, clock))
     val teas = RoomTeaRepository(db.teaDao(), clock)
     val stock = RoomStockRepository(db.inventoryDao(), clock)
 
@@ -108,17 +113,19 @@ class ControllerHarness(
     /** Moves time forward by [seconds], letting the in-process wake-up fire whenever it comes due. */
     suspend fun advanceSeconds(seconds: Long) = wakeUp.advanceBy(seconds * MS_PER_SECOND)
 
-    /** Tea „t1" with 100 g bought for 8,50 € a day before the session (8.5 ct/g). */
-    suspend fun teaWithStock() {
-        teas.saveTea(Tea(id = TEA_ID, name = TEA_NAME, category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF))
+    /**
+     * Tea [id] („t1" by default) with 100 g bought for [priceCents] (8,50 €: 8.5 ct/g) a day before the session.
+     */
+    suspend fun teaWithStock(id: String = TEA_ID, name: String = TEA_NAME, priceCents: Long = 850) {
+        teas.saveTea(Tea(id = id, name = name, category = TeaCategory.GREEN, form = TeaForm.LOOSE_LEAF))
         stock.addEvent(
             InventoryEvent(
-                id = "buy",
-                teaId = TEA_ID,
+                id = if (id == TEA_ID) "buy" else "buy-$id",
+                teaId = id,
                 type = InventoryEventType.INITIAL,
                 deltaGrams = 100.0,
                 occurredAtMillis = clock.wall - DAY_MS,
-                priceCents = 850,
+                priceCents = priceCents,
             ),
         )
     }
@@ -126,16 +133,19 @@ class ControllerHarness(
     /**
      * The process died and a new one starts (E3, 04 §7.2): a new controller with fresh ports
      * on the same database, settings and clocks, its alarms on [alarmPort] (the default: a fake).
-     * Close only one of the two harnesses.
+     * Close only one of the two harnesses. With [db] the new process opens that database instead (an update's
+     * migrated one), which the caller closes.
      */
-    fun processRestarted(alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null): ControllerHarness =
-        ControllerHarness(
-            clock = clock,
-            settings = settings,
-            db = db,
-            notificationPorts = notificationPorts,
-            alarmPort = alarmPort,
-        )
+    fun processRestarted(
+        alarmPort: (ControllerHarness.() -> TimerAlarmPort)? = null,
+        db: UmamiDatabase = this.db,
+    ): ControllerHarness = ControllerHarness(
+        clock = clock,
+        settings = settings,
+        db = db,
+        notificationPorts = notificationPorts,
+        alarmPort = alarmPort,
+    )
 
     /**
      * The database came to a new phone (or a reset one) in a device backup (E11, 05 §8): restore
@@ -152,22 +162,28 @@ class ControllerHarness(
     companion object {
         const val TEA_ID = "t1"
         const val TEA_NAME = "Bio Sencha Hisui"
+
+        /** A second tea for a second brew session (D-108). */
+        const val TEA_2_ID = "t2"
+        const val TEA_2_NAME = "Gyokuro Asahi"
         const val MS_PER_SECOND = 1_000L
         const val DAY_MS = 24 * 3_600_000L
     }
 }
 
-/** The request of *Brühen starten* for tea „t1" with 4 g and 200 ml in the „Kyusu" recipe. */
+/** The request of *Brühen starten* for tea [teaId] („t1" by default) with 4 g and 200 ml in the „Kyusu" recipe. */
 fun brewStart(
     vararg steps: PlannedStep,
     recipePreAlertSeconds: Int? = null,
     method: BrewMethod = BrewMethod.KYUSU,
     leafGrams: Double? = 4.0,
     waterMl: Int? = 200,
+    teaId: String? = ControllerHarness.TEA_ID,
+    teaName: String = ControllerHarness.TEA_NAME,
 ) = BrewStart(
     snapshot = SessionSnapshot(
-        teaId = ControllerHarness.TEA_ID,
-        teaName = ControllerHarness.TEA_NAME,
+        teaId = teaId,
+        teaName = teaName,
         teaSecondaryName = "Hisui",
         teaType = "Sencha",
         styleKey = "sencha",
@@ -193,6 +209,19 @@ fun rinse(seconds: Int) = PlannedStep(StepKind.RINSE, seconds, tempC = 70)
 
 /** The persist of [phase] (null: the row was cleared) in the shared port log. */
 data class Persisted(val phase: TimerPhase?) : PortCall
+
+/** A session repository whose next [failNextGets] reads of a session row throw, as a passing database error does. */
+class FlakySessions(private val real: SessionRepository) : SessionRepository by real {
+    var failNextGets = 0
+
+    override suspend fun getSession(id: String): BrewSession? {
+        if (failNextGets > 0) {
+            failNextGets--
+            throw IOException("session row unreadable")
+        }
+        return real.getSession(id)
+    }
+}
 
 /**
  * The real [ActiveBrewStore] with a test handle on the slot methods the controller uses (umamit.db v4): each

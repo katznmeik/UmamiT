@@ -4,6 +4,7 @@ import android.app.ForegroundServiceStartNotAllowedException
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.model.AlertLength
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.timer.alert.AlertConditions
 import com.umamit.core.timer.alert.AlertCue
@@ -11,11 +12,14 @@ import com.umamit.core.timer.alert.AlertOutputs
 import com.umamit.core.timer.alert.CueStart
 import com.umamit.core.timer.alert.DoNotDisturb
 import com.umamit.core.timer.alert.RingerMode
+import com.umamit.core.timer.controller.EventSource
 import com.umamit.core.timer.controller.RecoveryDecision
 import com.umamit.core.timer.controller.RecoveryTrigger
 import com.umamit.core.timer.controller.ScheduledTime
 import com.umamit.core.timer.controller.TimerAlarmKind
 import com.umamit.core.timer.controller.TimerDiagnostic
+import com.umamit.core.timer.engine.TimerEvent
+import com.umamit.core.timer.engine.TransitionOutcome
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -66,6 +70,45 @@ class TimerDiagnosticFormatTest {
             "recovery: retries stopped after 660 s of failed reads; the next input reads again | " +
                 "mono 5000000 boot 1",
         ).inOrder()
+    }
+
+    @Test
+    fun `an event and a recovery of the quick timer or the second brew name their slot, the first brew's none`() {
+        fun event(slot: TimerSlot) = TimerDiagnosticFormat.message(
+            TimerDiagnostic.EventHandled(
+                now,
+                event = TimerEvent.Poured,
+                source = EventSource.APP,
+                outcome = TransitionOutcome.Accepted,
+                from = TimerPhase.ALERTING,
+                to = TimerPhase.READY,
+                scheduled = null,
+                slot = slot,
+            ),
+        )
+        fun recovered(slot: TimerSlot) = TimerDiagnosticFormat.message(
+            TimerDiagnostic.Recovered(
+                now,
+                from = TimerPhase.ALERTING,
+                to = TimerPhase.ALERTING,
+                rebooted = false,
+                decision = RecoveryDecision.ALERT_HELD,
+                service = true,
+                slot = slot,
+            ),
+        )
+
+        assertThat(event(TimerSlot.BREW))
+            .isEqualTo("event Poured from APP: ALERTING -> READY accepted | mono 5000000 boot 1")
+        assertThat(event(TimerSlot.BREW_2))
+            .isEqualTo("event BREW2.Poured from APP: ALERTING -> READY accepted | mono 5000000 boot 1")
+        assertThat(event(TimerSlot.QUICK))
+            .isEqualTo("event QUICK.Poured from APP: ALERTING -> READY accepted | mono 5000000 boot 1")
+        assertThat(recovered(TimerSlot.BREW))
+            .isEqualTo("recovery: stored ALERTING -> ALERTING: alert held, with the service | mono 5000000 boot 1")
+        assertThat(recovered(TimerSlot.BREW_2)).isEqualTo(
+            "recovery: stored BREW2.ALERTING -> ALERTING: alert held, with the service | mono 5000000 boot 1",
+        )
     }
 
     @Test

@@ -109,17 +109,27 @@ interface ActiveBrewDao {
     @Query(ACTIVE_TEA_ID)
     fun observeActiveTeaId(): Flow<String?>
 
-    /** [observeActiveTeaId], read once. */
-    @Query(ACTIVE_TEA_ID)
-    suspend fun activeTeaId(): String?
+    /** The teas of the active brew sessions, in either brew slot (E15, D-108); a session without a tea adds none. */
+    @Query("$ACTIVE_TEA_ID WHERE brew_session.tea_id IS NOT NULL")
+    fun observeActiveTeaIds(): Flow<List<String>>
 
-    /** The vessel of the active brew session; null without one or for a session without a vessel (WARE-01, D-100). */
-    @Query(ACTIVE_VESSEL_ID)
-    fun observeActiveVesselId(): Flow<String?>
+    /** Whether [teaId] is the tea of an active brew session, in either brew slot (E15, D-108). */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.tea_id = :teaId)",
+    )
+    suspend fun isActiveTea(teaId: String): Boolean
 
-    /** [observeActiveVesselId], read once. */
-    @Query(ACTIVE_VESSEL_ID)
-    suspend fun activeVesselId(): String?
+    /** The vessels of the active brew sessions, in either brew slot (WARE-01, D-108). */
+    @Query("$ACTIVE_VESSEL_ID WHERE brew_session.vessel_id IS NOT NULL")
+    fun observeActiveVesselIds(): Flow<List<String>>
+
+    /** Whether [vesselId] is the vessel of an active brew session, in either brew slot (WARE-01, D-108). */
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM active_brew JOIN brew_session ON brew_session.id = active_brew.session_id " +
+            "WHERE brew_session.vessel_id = :vesselId)",
+    )
+    suspend fun isActiveVessel(vesselId: String): Boolean
 }
 
 private const val ACTIVE_TEA_ID = "SELECT brew_session.tea_id FROM active_brew " +

@@ -15,11 +15,14 @@ package com.umamit.core.model
  *   „Rezept prüfen" badge; null when it came straight from the shop's grid.
  * @property isNew first seen in the latest successful refresh (CAT-10 „Neu", D-083).
  * @property owned a collection tea links to it by `catalog_key` („im Besitz", CAT-10).
- * @property isHerbal one of the shop's Kräutertees (style `herbal`, v0.2.1, D-093): shown in the
- *   *Kräutertee* view only.
+ * @property kind the catalog kind, from the tea's style (D-108): a *Kräutertee* (style `herbal`, v0.2.1,
+ *   D-093) is shown in the *Kräutertee* view only, a *Schwarztee* (the black styles, v0.5.0) in its own.
  * @property marked on the Merkliste (*Merken*, CAT-18, D-097).
  * @property discontinued no longer in the range, kept for a collection tea or a mark (CAT-07 AC4,
  *   CAT-18 AC3): shown in the *Gemerkt* view only, as „Nicht mehr im Sortiment".
+ * @property tasteNotes the shop's taste notes (*Geschmack*, 08 §2.3) one by one, as the shop writes them
+ *   („fruchtig", „mild"), for the flavour filter (D-108 point 8).
+ * @property tasteScales the shop's taste scales (Umami, Süße, Bitterstoffe, …) in the shop's order.
  */
 data class CatalogTeaSummary(
     val key: String,
@@ -36,9 +39,11 @@ data class CatalogTeaSummary(
     val recipeCheckReason: RecipeCheckReason? = null,
     val isNew: Boolean = false,
     val owned: Boolean = false,
-    val isHerbal: Boolean = false,
+    val kind: CatalogKind = CatalogKind.GREEN,
     val marked: Boolean = false,
     val discontinued: Boolean = false,
+    val tasteNotes: List<String> = emptyList(),
+    val tasteScales: List<TasteScale> = emptyList(),
 ) {
     /** The growing countries one by one (the shop joins several with „, "). */
     val originCountries: List<String>

@@ -21,6 +21,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.StepKind
 import com.umamit.core.model.TimerPhase
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.testing.FakeClock
 import com.umamit.core.testing.FakeLowStockRepository
 import com.umamit.core.testing.FakeSavedSheet
@@ -131,7 +132,7 @@ class BrewAgainOnControllerTest {
         shadowOf(Looper.getMainLooper()).idle()
         val event = withTimeout(TIMEOUT_MS) { start.events.first() }
 
-        assertThat(event).isEqualTo(HomeEvent.OpenTimer)
+        assertThat(event).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
         val active = controller.state.value as TimerUiState.Active
         assertThat(active.phase).isEqualTo(TimerPhase.READY)
         assertThat(active.teaName).isEqualTo(hisui.name)

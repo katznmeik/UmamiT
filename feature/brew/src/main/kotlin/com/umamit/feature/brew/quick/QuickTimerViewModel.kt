@@ -5,15 +5,17 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.umamit.core.data.SettingsRepository
+import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStarter
 import com.umamit.core.timer.controller.TimerUiState
 import com.umamit.core.timer.controller.alertKey
+import com.umamit.core.timer.controller.refusalOf
 import com.umamit.core.timer.engine.PreAlertChoice
 import com.umamit.core.timer.engine.PreAlertSettings
-import com.umamit.core.timer.engine.RejectionReason
 import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.core.ui.alertCovers
-import com.umamit.feature.brew.setup.ActiveSessionQuestion
+import com.umamit.feature.brew.setup.StartQuestion
+import com.umamit.feature.brew.setup.question
 import com.umamit.feature.brew.steps.PreAlertOptions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -35,7 +37,7 @@ import javax.inject.Inject
  * @property durationSeconds the chosen duration (a chip or the picker).
  * @property preAlertChoice the *Vorwarnung* chosen for it (TMR-22, D-097): the last choice, *Automatisch* at first.
  * @property preAlertBaseSeconds the global *Vorwarnung* (SET-10), B of *Automatisch* (04 §5).
- * @property question „Erst die … -Sitzung beenden?" is open (TMR-21).
+ * @property question „Schnelltimer beenden und neu starten?" or „Welchen Timer beenden?" is open (TMR-21, D-108).
  * @property alertKey the alert playing now, or null: nothing of this screen may cover it (rule 8).
  */
 @Immutable
@@ -43,7 +45,7 @@ data class QuickTimerUiState(
     val durationSeconds: Int = QuickDuration.DEFAULT_SECONDS,
     val preAlertChoice: PreAlertChoice = PreAlertChoice.Inherit,
     val preAlertBaseSeconds: Int = PreAlertSettings.DEFAULT_GLOBAL_SECONDS,
-    val question: ActiveSessionQuestion? = null,
+    val question: StartQuestion? = null,
     val alertKey: String? = null,
 )
 
@@ -59,7 +61,8 @@ enum class QuickTimerEvent {
  * setting `quickTimerPreAlert` for the next quick timer (D-097), and *Start*
  * through the start seam. It starts while a brew session runs (D-098); while
  * another quick timer is active, *Start* asks „Schnelltimer beenden und neu
- * starten?"; while a timer alerts, the alerting timer opens instead (rule 8, D-062).
+ * starten?", while two brew sessions are active „Welchen Timer beenden?" (D-108); while a timer alerts, the
+ * alerting timer opens instead (rule 8, D-062).
  */
 @HiltViewModel
 class QuickTimerViewModel @Inject constructor(
@@ -140,13 +143,20 @@ class QuickTimerViewModel @Inject constructor(
 
     private var starting = false
 
-    /** *Beenden & neu starten*: the active quick timer ends, never the brew (D-098). */
-    fun confirmRestart() {
-        if (pending.value == null) return
+    /**
+     * The answer to the question: the timer of [slot] ends, then the quick timer runs. *Beenden & neu starten* ends
+     * the active quick timer, never the brew (D-098); „Welchen Timer beenden?" the brew session chosen (D-108).
+     */
+    fun endTimerAndStart(slot: TimerSlot) {
+        val asked = pending.value ?: return
+        // The session the answer named: one that started in its slot meanwhile is not ended (#194).
+        val session = (asked.question as? StartQuestion.ChooseTimer)?.timers?.firstOrNull { it.slot == slot }?.sessionId
         pending.value = null
         val seconds = duration.value
         val preAlert = preAlertSeconds()
-        viewModelScope.launch { handle(starter.finishActiveAndStartQuickTimer(seconds, preAlert)) }
+        viewModelScope.launch {
+            handle(starter.finishActiveAndStartQuickTimer(seconds, preAlert, ending = slot, endingSession = session))
+        }
     }
 
     /** *Abbrechen*: the active timer stays. */
@@ -158,14 +168,14 @@ class QuickTimerViewModel @Inject constructor(
         when (outcome) {
             TransitionOutcome.Accepted -> navigation.send(QuickTimerEvent.OpenTimer)
 
-            is TransitionOutcome.Rejected -> if (outcome.reason is RejectionReason.ActiveTimerExists) {
-                val timer = starter.state.value
-                if (timer.alertKey() != null) {
+            is TransitionOutcome.Rejected -> {
+                // Another quick timer (D-098) or two brew sessions (D-108); an invalid duration asks nothing.
+                val question = starter.refusalOf(outcome.reason)?.question() ?: return
+                if (starter.state.value.alertKey() != null) {
                     // No question over an alert (rule 8): the alerting timer is where to go now.
                     navigation.send(QuickTimerEvent.OpenTimer)
                 } else {
-                    // Only another quick timer refuses it (D-098): „Schnelltimer beenden und neu starten?".
-                    pending.value = Pending(ActiveSessionQuestion(teaName = null), openedIn = null)
+                    pending.value = Pending(question, openedIn = null)
                 }
             }
 
@@ -173,7 +183,7 @@ class QuickTimerViewModel @Inject constructor(
         }
     }
 
-    private data class Pending(val question: ActiveSessionQuestion, val openedIn: String?)
+    private data class Pending(val question: StartQuestion, val openedIn: String?)
 
     private companion object {
         const val DURATION = "quick_duration_seconds"

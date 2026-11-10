@@ -60,6 +60,12 @@ const val TEA_DETAIL_PURCHASE_TAG = "tea_detail_purchase"
 /** *Beim Tee-Kontor nachbestellen* (INV-09). */
 const val TEA_DETAIL_REORDER_TAG = "tea_detail_reorder"
 
+/** VORRAT's *Warnung* (D-108): the row is the switch. */
+const val TEA_DETAIL_STOCK_WARNING_TAG = "tea_detail_stock_warning"
+
+/** VORRAT's *Knapp ab* (D-108): the tea's own threshold in g. */
+const val TEA_DETAIL_STOCK_THRESHOLD_TAG = "tea_detail_stock_threshold"
+
 /** FRISCHE (INV-06): the freshness chip and the date it stems from. */
 const val TEA_DETAIL_FRESHNESS_TAG = "tea_detail_freshness"
 
@@ -156,7 +162,8 @@ private fun RecipeSummary.keyValues(): String = listOfNotNull(
  * VORRAT: „38 g übrig" (with *knapp*, or „Leer"), the cost lines of a priced tea (INV-08), *Nachkauf erfassen* and
  * *Bestand korrigieren* (INV-03; side by side where they fit, else one below the other) and INV-09's *Beim
  * Tee-Kontor nachbestellen*: a filled button when *Knapp* or *Leer*, otherwise a text link with the external-link
- * icon. The stock [history] (SCR-29) follows below them.
+ * icon. Then the tea's stock warning (D-108): *Warnung* on or off and *Knapp ab*, its own threshold. The stock
+ * [history] (SCR-29) follows below them.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -165,6 +172,8 @@ internal fun Stock(
     onPurchase: () -> Unit,
     onCorrect: () -> Unit,
     onReorder: (String) -> Unit,
+    onWarning: (Boolean) -> Unit = {},
+    onThreshold: (grams: Int?) -> Unit = {},
     history: @Composable () -> Unit = {},
 ) {
     Section(stringResource(R.string.collection_tea_section_stock)) {
@@ -193,8 +202,10 @@ internal fun Stock(
         val reorder = tea.reorder
         val label = stringResource(R.string.collection_tea_reorder)
         val icon = painterResource(UmamiIcons.OpenInNew)
+        // Both forms take the same height (8 + 48 dp), so *Warnung* and *Knapp ab* below never move when a tap or a
+        // keystroke there switches between them (motion review v0.5.0 S1); only the style swaps.
+        if (reorder != null) Spacer(Modifier.height(UmamiSpacing.Small))
         if (reorder?.prominent == true) {
-            Spacer(Modifier.height(UmamiSpacing.Small))
             PillButton(
                 text = label,
                 onClick = { onReorder(reorder.url) },
@@ -206,13 +217,14 @@ internal fun Stock(
         } else if (reorder != null) {
             TextButton(
                 onClick = { onReorder(reorder.url) },
-                modifier = Modifier.testTag(TEA_DETAIL_REORDER_TAG),
+                modifier = Modifier.heightIn(min = UmamiSpacing.MinTouchTarget).testTag(TEA_DETAIL_REORDER_TAG),
             ) {
                 Text(label)
                 Spacer(Modifier.width(UmamiSpacing.XSmall))
                 Icon(icon, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
             }
         }
+        StockWarning(tea, onWarning, onThreshold)
         history()
     }
 }

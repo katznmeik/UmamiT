@@ -38,6 +38,8 @@
     <string name="my_teas_category_black">Schwarzer Tee</string>
     <string name="my_teas_category_dark">Pu-Erh</string>
     <string name="my_teas_category_herbal">Kräutertee</string>
+    <string name="my_teas_category_rooibos">Rotbusch</string>
+    <string name="my_teas_category_fruit">Früchtetee</string>
     <string name="my_teas_category_other">Andere</string>
     <!-- A row: the stock chip and the star (TalkBack). -->
     <string name="my_teas_stock_grams">%1$s g</string>
@@ -199,6 +201,13 @@
     <string name="collection_tea_history_delete_cancel">Abbrechen</string>
     <string name="collection_tea_history_delete_confirm">Löschen</string>
     <string name="collection_tea_reorder">Beim Tee-Kontor nachbestellen</string>
+    <!-- VORRAT's per-tea stock warning (SCR-09, INV-10, INV-11, D-108). -->
+    <string name="collection_tea_stock_warning">Warnung</string>
+    <string name="collection_tea_stock_warning_detail">Startkarte und Erinnerung, wenn der Vorrat knapp wird</string>
+    <string name="collection_tea_stock_threshold">Knapp ab</string>
+    <string name="collection_tea_stock_threshold_unit">g</string>
+    <string name="collection_tea_stock_threshold_hint">Leer lassen für die Vorgabe aus den Einstellungen (%1$d g)</string>
+    <string name="collection_tea_stock_threshold_error">Gib 1 bis 500 g an oder lass das Feld leer.</string>
     <string name="collection_tea_no_browser">Kein Browser gefunden, der die Shop-Seite öffnen kann.</string>
     <!-- The hero's photo pager (SCR-28, TEA-05): *+ Foto*, greyed out at 10 with „Höchstens 10 Fotos". -->
     <string name="collection_tea_photo_add">+ Foto</string>
@@ -259,10 +268,21 @@
     <string name="sorte_flavored_green">Aromatisierter Grüntee</string>
     <string name="sorte_green_generic">Grüntee (sonstiger)</string>
     <string name="sorte_herbal">Kräutertee</string>
+    <string name="sorte_flavored_white">Aromatisierter Weißer Tee</string>
+    <string name="sorte_flavored_oolong">Aromatisierter Oolong</string>
+    <string name="sorte_sheng">Sheng Pu-Erh</string>
+    <string name="sorte_shou">Shou Pu-Erh</string>
     <string name="sorte_white_generic">Weißer Tee</string>
     <string name="sorte_oolong_generic">Oolong</string>
+    <string name="sorte_darjeeling">Darjeeling</string>
+    <string name="sorte_assam">Assam</string>
+    <string name="sorte_ceylon">Ceylon</string>
+    <string name="sorte_flavored_black">Aromatisierter Schwarztee</string>
     <string name="sorte_black_generic">Schwarzer Tee</string>
     <string name="sorte_dark_generic">Pu-Erh</string>
+    <string name="sorte_rooibos">Rotbusch</string>
+    <string name="sorte_fruit">Früchtetee</string>
+    <string name="sorte_chai">Chai</string>
     <string name="sorte_other">Andere / unbekannt</string>
 
     <!-- SCR-11 Sorte wählen (TEA-01, D-100). -->

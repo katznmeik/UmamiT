@@ -267,19 +267,19 @@ class FakeActiveBrewStore internal constructor(private val s: FakeSessions) : Ac
 
     override suspend fun persist(slot: TimerSlot, snapshot: TimerSnapshot?) {
         if (snapshot == null) return clear(slot)
-        require(snapshot.activeBrew.slot == slot) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
-        write(snapshot)
+        require(snapshot.activeBrew.fitsIn(slot)) { "a ${snapshot.activeBrew.slot} snapshot is not stored as $slot" }
+        write(slot, snapshot)
     }
 
     override suspend fun clear(slot: TimerSlot) = s.activeRows.update { it - slot }
 
-    private fun write(snapshot: TimerSnapshot) {
+    private fun write(slot: TimerSlot, snapshot: TimerSnapshot) {
         snapshot.activeBrew.sessionId?.let { id ->
             check(id in s.sessionRows.value) { "no session $id" }
             val rows = snapshot.steps.map { it.copy(tempC = it.tempC?.let { t -> snap5(t) }) }
             s.updateSession(id) { it.copy(steps = rows) }
         }
-        s.activeRows.update { it + (snapshot.activeBrew.slot to snapshot) }
+        s.activeRows.update { it + (slot to snapshot) }
     }
 }
 

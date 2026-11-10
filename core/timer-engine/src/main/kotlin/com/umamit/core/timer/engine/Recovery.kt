@@ -24,7 +24,7 @@ internal fun recover(state: TimerState.Active, now: ClockReading, holdAlert: Boo
         is TimerState.Running -> when {
             now.elapsedMs < rebased.deadlineElapsedMs -> restored(rebased.withPreAlertAt(now))
 
-            // The brew alerts (04 §7.2 two slots): the quick timer waits for it, however late (D-098).
+            // Another slot's alert sounds (04 §7.2 two slots): this timer waits for it, however late (D-098, D-108).
             holdAlert -> holdAtDeadline(rebased)
 
             isOvertimeTimedOut(rebased.deadlineElapsedMs, now) -> overtimeTimedOut(rebased, now)
@@ -40,7 +40,7 @@ internal fun recover(state: TimerState.Active, now: ClockReading, holdAlert: Boo
 
             rebased.isTimedOut(now) -> overtimeTimedOut(rebased, now)
 
-            // A held alert stays held; the controller releases it once the brew no longer alerts (04 §9.3).
+            // A held alert stays held; the controller releases it once no other alert sounds (04 §9.3).
             rebased.alertPlayed || rebased.held -> restored(rebased)
 
             else -> accepted(rebased, side = listOf(StartForeground, StartAlert, UpdateNotification))

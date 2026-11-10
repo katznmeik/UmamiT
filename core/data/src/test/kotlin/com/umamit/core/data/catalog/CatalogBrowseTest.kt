@@ -11,6 +11,7 @@ import com.umamit.core.database.entity.CatalogRefreshStatus
 import com.umamit.core.database.entity.CatalogTeaEntity
 import com.umamit.core.database.entity.StagedCatalogTeaEntity
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.FlavourFilter
@@ -79,6 +80,8 @@ class CatalogBrowseTest {
         umami: Int? = null,
         flagged: Boolean = false,
         style: String? = null,
+        notes: String? = null,
+        scales: String? = umami?.let { """{"Umami":$it,"Bitterstoffe":1}""" },
     ) = CatalogTeaEntity(
         key = key,
         name = name,
@@ -92,7 +95,8 @@ class CatalogBrowseTest {
         cultivar = cultivar,
         isOrganic = organic,
         isFlavored = flavored,
-        tasteScalesJson = umami?.let { """{"Umami":$it,"Bitterstoffe":1}""" },
+        tasteScalesJson = scales,
+        tasteNotes = notes,
         breadcrumb = null,
         descriptionText = description,
         recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT.takeIf { flagged },
@@ -302,6 +306,32 @@ class CatalogBrowseTest {
         assertThat(tea.originCountry).isEqualTo("Japan")
     }
 
+    @Test
+    fun theFlavourFilterReadsTheShopsGeschmackAndScales() = runTest {
+        refresh(
+            tea("XY0100", "Morgennebel", notes = "fruchtig, mild, süß", scales = """{"Umami":4,"Süße":3}"""),
+            tea("XY0200", "Abendrot", notes = "Mild, grasig", scales = """{"Süße":1,"Bitterstoffe":2}"""),
+            tea("XY0300", "Bergwind"),
+        )
+
+        val listing = browse(all)
+        assertThat(listing.teas.first { it.name == "Morgennebel" }.tasteNotes)
+            .containsExactly("fruchtig", "mild", "süß").inOrder()
+        assertThat(listing.tasteNotes.first().label).isEqualTo("mild")
+        assertThat(listing.tasteScales.map { it.label }).containsExactly("Süße", "Bitterstoffe").inOrder()
+        assertThat(names(all.copy(notes = setOf("mild")))).containsExactly("Abendrot", "Morgennebel")
+        assertThat(names(all.copy(minScales = mapOf("suße" to 2)))).containsExactly("Morgennebel")
+    }
+
+    @Test
+    fun aGeschmackNoteListSplitsOnCommasSlashesAndUnd() = runTest {
+        // The shop also writes „fruchtig/süß" and „mild und grasig" (08 §2.3 *Geschmack*).
+        refresh(tea("XY0100", "Morgennebel", notes = "fruchtig/süß, mild und grasig, Wunderbar"))
+
+        assertThat(browse(all).teas.single().tasteNotes)
+            .containsExactly("fruchtig", "süß", "mild", "grasig", "Wunderbar").inOrder()
+    }
+
     /** Two green teas and three Kräutertees (v0.2.1, D-093), one of them flavoured, one sold out. */
     private suspend fun greenAndHerbal() = refresh(
         tea("XY0100", "Morgennebel", "Sencha", umami = 4),
@@ -321,16 +351,16 @@ class CatalogBrowseTest {
         assertThat(green.types).containsExactly("Sencha")
 
         // The chip (SCR-19): grouped by Sorte; „Vorrätig" still applies, „Pur" does not (Q14).
-        val herbal = browse(CatalogFilter(herbal = true))
+        val herbal = browse(CatalogFilter(kind = CatalogKind.HERBAL))
         assertThat(herbal.sections.map { it.teaType to it.teas.map { tea -> tea.name } }).containsExactly(
             "Mischungen" to listOf("Wiesenzauber", "Zitronenwiese"),
         )
-        assertThat(herbal.teas.all { it.isHerbal }).isTrue()
+        assertThat(herbal.teas.all { (it.kind == CatalogKind.HERBAL) }).isTrue()
         assertThat(herbal.totalCount).isEqualTo(3)
         assertThat(herbal.catalogCount).isEqualTo(5)
         assertThat(herbal.types).containsExactly("Einzelkräuter", "Mischungen").inOrder()
         assertThat(herbal.origins).containsExactly("Deutschland")
-        assertThat(names(CatalogFilter(herbal = true, availableOnly = false, sort = CatalogSort.NAME)))
+        assertThat(names(CatalogFilter(kind = CatalogKind.HERBAL, availableOnly = false, sort = CatalogSort.NAME)))
             .containsExactly("Bergminze", "Wiesenzauber", "Zitronenwiese").inOrder()
     }
 
@@ -338,7 +368,7 @@ class CatalogBrowseTest {
     fun theFlavourAndUmamiFiltersDoNotApplyInTheKraeuterteeView() = runTest {
         greenAndHerbal()
 
-        val herbal = CatalogFilter(herbal = true, sort = CatalogSort.NAME)
+        val herbal = CatalogFilter(kind = CatalogKind.HERBAL, sort = CatalogSort.NAME)
         assertThat(names(herbal.copy(flavour = FlavourFilter.PURE))).containsExactly("Wiesenzauber", "Zitronenwiese")
         assertThat(names(herbal.copy(flavour = FlavourFilter.FLAVOURED)))
             .containsExactly("Wiesenzauber", "Zitronenwiese")
@@ -357,7 +387,7 @@ class CatalogBrowseTest {
         assertThat(green.hiddenMatches).isEqualTo(1)
         assertThat(green.hiddenInOtherView).isEqualTo(1)
 
-        val herbal = browse(CatalogFilter(search = "kirsch", herbal = true))
+        val herbal = browse(CatalogFilter(search = "kirsch", kind = CatalogKind.HERBAL))
         assertThat(herbal.hiddenMatches).isEqualTo(1)
         assertThat(herbal.hiddenInOtherView).isEqualTo(1)
     }
@@ -365,15 +395,19 @@ class CatalogBrowseTest {
     @Test
     fun theKraeuterteeChipCountsAsAChangedFilterAndPurDoesNotInItsView() {
         assertThat(CatalogFilter.DEFAULT.changedFilters).isEqualTo(0)
-        val herbal = CatalogFilter.DEFAULT.withHerbal(true)
-        assertThat(herbal.herbal).isTrue()
+        val herbal = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)
+        assertThat(herbal.kind).isEqualTo(CatalogKind.HERBAL)
         assertThat(herbal.changedFilters).isEqualTo(1)
         assertThat(herbal.copy(flavour = FlavourFilter.ALL, minUmami = UmamiLevel.HIGH).changedFilters).isEqualTo(1)
         // Switching drops the Sorten of the other kind and keeps search, sort and the rest.
-        val switched = CatalogFilter(search = "x", types = setOf("Sencha"), organicOnly = true).withHerbal(true)
-        assertThat(switched).isEqualTo(CatalogFilter(search = "x", organicOnly = true, herbal = true))
-        assertThat(switched.withHerbal(false).herbal).isFalse()
-        assertThat(herbal.withoutFilters().herbal).isTrue()
+        val switched = CatalogFilter(
+            search = "x",
+            types = setOf("Sencha"),
+            organicOnly = true,
+        ).withKind(CatalogKind.HERBAL)
+        assertThat(switched).isEqualTo(CatalogFilter(search = "x", organicOnly = true, kind = CatalogKind.HERBAL))
+        assertThat(switched.withKind(CatalogKind.GREEN).kind).isEqualTo(CatalogKind.GREEN)
+        assertThat(herbal.withoutFilters().kind).isEqualTo(CatalogKind.HERBAL)
     }
 
     @Test

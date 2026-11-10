@@ -89,7 +89,7 @@ internal class TransitionEffects(
     ) {
         val persistAt = transition.effects.indexOf(TimerEffect.Persist)
         persist(slot, transition.effects.take(persistAt), transition.state, start, now)
-        val ui = uiStateOf(transition.state, details, now)
+        val ui = uiStateOf(transition.state, details, now, slot)
         screens.show(slot, ui)
         val turn = Turn(slot, transition, ui, scheduled?.takeIf { it.kind == TimerAlarmKind.PRE_ALERT }, now)
         val notifications = roles.begin(slot)
@@ -113,12 +113,11 @@ internal class TransitionEffects(
     )
 
     /**
-     * The player reported the end of [alert]: true when it is the playing
-     * alert, which then no longer plays; false for any other alert (stopped,
-     * or an earlier step's), which is logged and must change nothing.
+     * The player reported the end of [alert]: the slot of the playing alert, which then no longer plays; null for
+     * any other alert (stopped, or an earlier step's), which is logged and must change nothing.
      */
-    fun alertEnded(alert: StepAlert, now: ClockReading): Boolean = player.alertEnded(alert).also { playing ->
-        if (!playing) record(TimerDiagnostic.StaleAlertCompletion(now, alert))
+    fun alertEnded(alert: StepAlert, now: ClockReading): TimerSlot? = player.alertEnded(alert).also { slot ->
+        if (slot == null) record(TimerDiagnostic.StaleAlertCompletion(now, alert))
     }
 
     /**

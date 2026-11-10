@@ -63,8 +63,12 @@ sealed interface TimerUiState {
      *   (BRW-11, D-097); null without one and for the quick timer.
      * @property waterMl the session's planned water in ml, from its session row, for READY's „250 ml Wasser"
      *   (BRW-11, D-097); null without one (*Ohne Gefäß*) and for the quick timer.
-     * @property alertHeld ALERTING: the quick timer's alert waits for the brew's (04 §9.3, D-098): no sound, no alert
-     *   notification; it rings once the brew's alert is acknowledged.
+     * @property alertHeld ALERTING: the alert waits for another slot's sounding alert (04 §9.3, D-098, D-108): no
+     *   sound, no alert notification; it rings once that alert's sound has ended (D-109).
+     * @property ringingSinceElapsedMs ALERTING, not held: when its alert last started ringing (04 §3.3), so of two
+     *   alerts that are not held the one that rang last, whose sound plays, is in front (D-109).
+     * @property inSlot the controller slot of this timer when it is not the first slot of its [kind]: `BREW_2` for a
+     *   second brew session (D-108); null for `BREW` and `QUICK`, so a copy with another kind follows its kind.
      */
     data class Active(
         val kind: SessionKind,
@@ -88,15 +92,20 @@ sealed interface TimerUiState {
         val leafGrams: Double? = null,
         val waterMl: Int? = null,
         val alertHeld: Boolean = false,
+        val inSlot: TimerSlot? = null,
+        val ringingSinceElapsedMs: Long? = null,
     ) : TimerUiState {
+        /**
+         * The controller slot of this timer (04 §3.3): its user events go there. A brew session runs in `BREW` or
+         * `BREW_2` (D-108), the quick timer in `QUICK`.
+         */
+        val slot: TimerSlot get() = inSlot ?: slotOf(kind)
+
         /** The step ended and the alert plays until *Abgegossen* (03 §3.8, D-051); also while it is held. */
         val alerting: Boolean get() = phase == TimerPhase.ALERTING
 
         /** The step ended and its alert rings, not held (04 §9.3). */
         val ringing: Boolean get() = alerting && !alertHeld
-
-        /** The controller slot of this timer (04 §3.3): its user events go there. */
-        val slot: TimerSlot get() = slotOf(kind)
 
         /** The journal row; null for the quick timer. */
         val sessionId: String? get() = (kind as? SessionKind.Brew)?.sessionId
@@ -129,6 +138,14 @@ fun TimerUiState.alertKey(): String? = (this as? TimerUiState.Active)?.takeIf { 
     "${it.sessionId ?: "quick"}:${it.stepIndex}:${it.deadlineWallMs}"
 }
 
+/**
+ * Of the ringing alerts in [this] list (in the slot order), the one that started ringing last (04 §9.3, D-109): the
+ * alert whose sound plays, or played last, while the other one whose sound ended still alerts; on a tie the first in
+ * the slot order. Null when none rings.
+ */
+fun List<TimerUiState.Active>.lastRinging(): TimerUiState.Active? =
+    filter { it.ringing }.maxByOrNull { it.ringingSinceElapsedMs ?: Long.MIN_VALUE }
+
 private const val MS_PER_SECOND = 1_000L
 
 private fun ceilSeconds(ms: Long): Long = (ms.coerceAtLeast(0) + MS_PER_SECOND - 1) / MS_PER_SECOND
@@ -138,6 +155,7 @@ private fun floorSeconds(ms: Long): Long = ms.coerceAtLeast(0) / MS_PER_SECOND
 /**
  * What the timer shows of a brew session's row besides its timing (the session's snapshot, never the engine's
  * state): its tea's name, whether it is an ice brew (BRW-10), and its planned leaf and water (BRW-11, D-097).
+ * [teaId] is the tea the session brews, so a start of that tea finds its session (D-108); null without a tea.
  * The quick timer has none.
  */
 internal data class SessionDetails(
@@ -145,9 +163,11 @@ internal data class SessionDetails(
     val iceBrew: Boolean = false,
     val leafGrams: Double? = null,
     val waterMl: Int? = null,
+    val teaId: String? = null,
 ) {
     companion object {
         fun of(snapshot: SessionSnapshot): SessionDetails = SessionDetails(
+            teaId = snapshot.teaId,
             teaName = snapshot.teaName,
             iceBrew = snapshot.method == BrewMethod.ICE_BREW,
             leafGrams = snapshot.leafGrams,
@@ -157,10 +177,15 @@ internal data class SessionDetails(
 }
 
 /**
- * The UI state of engine [state] for a session with [details] (null: the quick timer, or a session whose row could
- * not be read), at [now] (the reading of its transition).
+ * The UI state of engine [state] in [slot] (by default the first slot of its kind) for a session with [details]
+ * (null: the quick timer, or a session whose row could not be read), at [now] (the reading of its transition).
  */
-internal fun uiStateOf(state: TimerState, details: SessionDetails?, now: ClockReading): TimerUiState {
+internal fun uiStateOf(
+    state: TimerState,
+    details: SessionDetails?,
+    now: ClockReading,
+    slot: TimerSlot? = null,
+): TimerUiState {
     if (state !is TimerState.Active) return TimerUiState.Idle
     val stepIndex = (state as? TimerState.OnStep)?.stepIndex ?: state.session.steps.size
     val steps = state.session.steps.map {
@@ -195,5 +220,7 @@ internal fun uiStateOf(state: TimerState, details: SessionDetails?, now: ClockRe
         leafGrams = details?.leafGrams,
         waterMl = details?.waterMl,
         alertHeld = (state as? TimerState.Alerting)?.held ?: false,
+        inSlot = slot?.takeIf { it != slotOf(state.session.kind) },
+        ringingSinceElapsedMs = (state as? TimerState.Alerting)?.ringingSinceElapsedMs,
     )
 }

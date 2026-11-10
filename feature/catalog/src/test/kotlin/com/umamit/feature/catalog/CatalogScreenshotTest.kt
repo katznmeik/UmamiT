@@ -25,6 +25,7 @@ import com.umamit.core.model.BrewMethod
 import com.umamit.core.model.BrewTableCell
 import com.umamit.core.model.BrewTableRow
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogPackage
 import com.umamit.core.model.CatalogSort
 import com.umamit.core.model.CatalogTeaDetail
@@ -96,13 +97,22 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
                 .copy(originCountry = "Japan", discontinued = true, marked = true),
             // Kräutertees (v0.2.1, D-093): only in the Kräutertee view.
             catalogTea("XK1100", "Wiesenzauber", "Kräutermischungen", 890, thumbnailPath = "wiese")
-                .copy(isHerbal = true, isOrganic = true, isNew = true, marked = true),
+                .copy(kind = CatalogKind.HERBAL, isOrganic = true, isNew = true, marked = true),
             catalogTea("XK1200", "Zitronenwiese mit Apfelstückchen", "Kräutermischungen", 790)
-                .copy(isHerbal = true, isFlavored = true, owned = true),
+                .copy(kind = CatalogKind.HERBAL, isFlavored = true, owned = true),
             catalogTea("XK1300", "Bergminze", "Einzelkräuter", 1190, thumbnailPath = "minze")
-                .copy(isHerbal = true, originCountry = "Deutschland"),
+                .copy(kind = CatalogKind.HERBAL, originCountry = "Deutschland"),
             catalogTea("XK1400", "Abendruhe", "Ayurveda & Wellness", 1290)
-                .copy(isHerbal = true, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+                .copy(kind = CatalogKind.HERBAL, recipeCheckReason = RecipeCheckReason.FROM_STYLE_DEFAULT),
+            // Schwarztees (v0.5.0, #203, D-108): only in the Schwarztee view.
+            catalogTea("XB1500", "Nebelhang Darjeeling Second Flush", "Darjeeling", 1890, thumbnailPath = "darj")
+                .copy(kind = CatalogKind.BLACK, originCountry = "Darjeeling / Indien", isNew = true),
+            catalogTea("XB1600", "Flussbiegung Assam", "Assam", 990, thumbnailPath = "assam")
+                .copy(kind = CatalogKind.BLACK, originCountry = "Assam / Indien", owned = true),
+            catalogTea("XB1700", "Hochland Ceylon", "Ceylon", 1090)
+                .copy(kind = CatalogKind.BLACK, originCountry = "Ceylon / Sri Lanka", isOrganic = true),
+            catalogTea("XB1800", "Abendrot Bergamotte", teaType = null, basePriceCentsPer100g = 890)
+                .copy(kind = CatalogKind.BLACK, isFlavored = true),
         )
 
         /** A placeholder image in place of a photo (D-016: no shop photos in the repository). */
@@ -317,11 +327,87 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     @Test
     fun listHerbal() = capture("listHerbal") {
         CatalogContent(
-            state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true)),
+            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)),
             onLoad = {},
             onShowProgress = {},
             zone = FakeClock.BERLIN,
             thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /** The Schwarztee view (v0.5.0, #203, D-108): its chip selected, grouped by *Sorte*, flavoured teas shown. */
+    @Test
+    fun listBlack() = capture("listBlack") {
+        CatalogContent(
+            state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /**
+     * The Pu-Erh view (v0.5.0, #205, D-108): its chip selected, grouped by *Sorte* (Sheng, Shou, Aged), on its own
+     * invented teas so the other goldens' lists stay as they are.
+     */
+    @Test
+    fun listDark() = capture("listDark") {
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.DARK)
+        val puErhs = listOf(
+            catalogTea("XP1900", "2019 Nebelberg Bing Cha", "Sheng", 2490, thumbnailPath = "sheng")
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China", isNew = true),
+            catalogTea("XP2000", "Waldboden Shou", "Shou", 1290)
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China", owned = true),
+            catalogTea("XP2100", "1999 Hafenlager", "Aged", 6900, thumbnailPath = "aged")
+                .copy(kind = CatalogKind.DARK, originCountry = "Yunnan / China"),
+        )
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(TEAS + puErhs, filter, null, FakeClock.DEFAULT_WALL_MS),
+                filter = filter,
+                loading = false,
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
+            thumbnail = { path -> path?.let { remember(it) { placeholderPhoto(it) } } },
+        )
+    }
+
+    /**
+     * The full chip row (v0.5.0, #206, D-108 point 5) on a screen wide enough for all of it: *Filter*, *Gemerkt*, the
+     * nine kinds in their order with *Chai* selected, then the switches.
+     */
+    @Test
+    @Config(qualifiers = "w2400dp-h120dp-mdpi")
+    fun chipRow() = capture("chipRow") {
+        CatalogFilterChips(
+            filter = CatalogFilter.DEFAULT.withKind(CatalogKind.CHAI),
+            onFilterChange = {},
+            onOpenFilters = {},
+        )
+    }
+
+    /** The Schwarztee view before the first refresh after the update to v0.5.0 (#203): the hint with *Jetzt laden*. */
+    @Test
+    fun listBlackPending() = capture("listBlackPending") {
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.BLACK)
+        CatalogContent(
+            state = CatalogUiState(
+                listing = CatalogBrowser.listing(
+                    TEAS.filterNot { it.kind == CatalogKind.BLACK },
+                    filter,
+                    null,
+                    FakeClock.DEFAULT_WALL_MS,
+                ),
+                filter = filter,
+                loading = false,
+                pendingKinds = setOf(CatalogKind.BLACK),
+            ),
+            onLoad = {},
+            onShowProgress = {},
+            zone = FakeClock.BERLIN,
         )
     }
 
@@ -331,14 +417,14 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
      */
     @Test
     fun listHerbalPending() = capture("listHerbalPending") {
-        val filter = CatalogFilter.DEFAULT.withHerbal(true)
-        val greenOnly = TEAS.filterNot { it.isHerbal }
+        val filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL)
+        val greenOnly = TEAS.filterNot { (it.kind == CatalogKind.HERBAL) }
         CatalogContent(
             state = CatalogUiState(
                 listing = CatalogBrowser.listing(greenOnly, filter, null, FakeClock.DEFAULT_WALL_MS),
                 filter = filter,
                 loading = false,
-                herbalPending = true,
+                pendingKinds = setOf(CatalogKind.HERBAL),
             ),
             onLoad = {},
             onShowProgress = {},
@@ -387,10 +473,48 @@ class CatalogScreenshotTest(private val dark: Boolean, private val fontScale: Fl
     fun filterSheetHerbal() {
         assumeTrue(fontScale == 1f)
         capture("filterSheetHerbal") {
-            val state = listState(filter = CatalogFilter.DEFAULT.withHerbal(true).copy(organicOnly = true))
+            val state = listState(filter = CatalogFilter.DEFAULT.withKind(CatalogKind.HERBAL).copy(organicOnly = true))
             CatalogContent(state = state, onLoad = {}, onShowProgress = {}, zone = FakeClock.BERLIN)
             CatalogFilterSheet(filter = state.filter, listing = state.listing, onFilterChange = {
             }, onDismissRequest = {})
+        }
+    }
+
+    /**
+     * The filter sheet's taste notes and scales (v0.5.0, #204, D-108 point 8), two notes and one scale chosen; light
+     * and dark, font scale 1.0 and 2.0. Invented notes and scales on the green teas (D-016).
+     */
+    @Test
+    fun filterSheetTaste() {
+        val notes = listOf(
+            listOf("mild", "süß", "grasig"),
+            listOf("mild", "süß", "fruchtig", "blumig"),
+            listOf("mild", "frisch"),
+            listOf("süß", "fruchtig"),
+            listOf("mild", "herb", "nussig"),
+        )
+        val scales = listOf(
+            listOf(TasteScale("Umami", 4), TasteScale("Süße", 3), TasteScale("Bitterstoffe", 1)),
+            listOf(TasteScale("Umami", 5), TasteScale("Süße", 4), TasteScale("Komplexität", 3)),
+            listOf(TasteScale("Süße", 2), TasteScale("Bitterstoffe", 2), TasteScale("Röstnoten", 4)),
+        )
+        val teas = TEAS.mapIndexed { index, tea ->
+            if (tea.kind != CatalogKind.GREEN) {
+                tea
+            } else {
+                tea.copy(tasteNotes = notes[index % notes.size], tasteScales = scales[index % scales.size])
+            }
+        }
+        val filter = CatalogFilter(notes = setOf("mild", "suß"), minScales = mapOf("suße" to 3))
+        val listing = CatalogBrowser.listing(teas, filter, null, FakeClock.DEFAULT_WALL_MS)
+        capture("filterSheetTaste", scrollToText = "Weitere") {
+            CatalogContent(
+                state = CatalogUiState(listing = listing, filter = filter, loading = false),
+                onLoad = {},
+                onShowProgress = {},
+                zone = FakeClock.BERLIN,
+            )
+            CatalogFilterSheet(filter = filter, listing = listing, onFilterChange = {}, onDismissRequest = {})
         }
     }
 

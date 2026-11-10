@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.Flow
 /** The columns of a [CatalogListRow] from `catalog_tea`, with its „Neu" (CAT-10, D-083). */
 private const val LIST_ROW =
     "SELECT key, name, secondary_name, tea_type, base_price_cents_per_100g, available, photo_file, " +
-        "origin_country, is_organic, is_flavored, taste_scales_json, recipe_check_reason, style_key, " +
+        "origin_country, is_organic, is_flavored, taste_scales_json, taste_notes, recipe_check_reason, style_key, " +
         "(first_seen_at = (SELECT l.started_at FROM catalog_refresh_log l WHERE l.status = 'SUCCESS' " +
         "ORDER BY l.finished_at DESC, l.id DESC LIMIT 1) " +
         "AND EXISTS (SELECT 1 FROM catalog_refresh_log e WHERE e.status = 'SUCCESS' " +
@@ -48,6 +48,8 @@ data class CatalogListRow(
     @ColumnInfo(name = "is_new") val isNew: Boolean = false,
     /** The built-in style (`herbal` for a Kräutertee, D-093). */
     @ColumnInfo(name = "style_key") val styleKey: String? = null,
+    /** The shop's *Geschmack*, a comma list (08 §2.3), for the flavour filter (D-108 point 8). */
+    @ColumnInfo(name = "taste_notes") val tasteNotes: String? = null,
 )
 
 /**

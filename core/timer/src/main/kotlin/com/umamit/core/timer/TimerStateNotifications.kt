@@ -60,13 +60,19 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
     /**
      * Notification 5, the other active timer (04 §8.2, D-098), on `timer_other` (LOW, silent, never promoted):
      * the title and text of its phase, a countdown while it runs, its own actions; a held quick alert reads
-     * „Fertig, wartet auf den Aufguss" and has no full-screen intent. It opens the timer.
+     * „Fertig, wartet auf den Aufguss", a held brew „Fertig, wartet auf den anderen Aufguss" (D-108), and neither
+     * has a full-screen intent. It opens the timer.
      */
     fun other(state: TimerUiState.Active, now: ClockReading): Notification {
         val countdown = state.phase == TimerPhase.RUNNING && !state.longStep
         val text = when {
-            state.alertHeld -> context.getString(R.string.timer_text_quick_held)
+            // A held brew waits for the other brew's alert (D-108), a held quick alert for the brew's (D-098).
+            state.alertHeld -> context.getString(
+                if (state.sessionId != null) R.string.timer_text_brew_held else R.string.timer_text_quick_held,
+            )
+
             state.alerting -> texts.alertText(state)
+
             else -> texts.text(state, now)
         }
         return NotificationCompat.Builder(context, TimerNotifications.CHANNEL_TIMER_OTHER)
@@ -205,6 +211,9 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         }
 
     private companion object {
+        // These codes equal the second brew slot's alarm codes 301–307 (TimerAlarmKind, D-108) by design: an alarm is
+        // a broadcast to TimerAlarmReceiver, which none of these intents is, so Android never takes one for the other
+        // (PendingIntentCodesTest pins it). The dismissal (303) is a broadcast to TimerActionReceiver.
         const val RC_CONTENT = 301
         const val RC_FULL_SCREEN = 302
         const val RC_DISMISS = 303
@@ -212,12 +221,21 @@ class TimerStateNotifications @Inject constructor(@ApplicationContext private va
         const val RC_RESUMED = 305
         const val RC_CONTENT_QUICK = 306
         const val RC_FULL_SCREEN_QUICK = 307
+        const val RC_CONTENT_BREW_2 = 308
+        const val RC_FULL_SCREEN_BREW_2 = 309
 
         /** The content intent's request code of [slot]'s notifications (1, 2, 4, 5). */
-        fun contentCodeOf(slot: TimerSlot): Int = if (slot == TimerSlot.QUICK) RC_CONTENT_QUICK else RC_CONTENT
+        fun contentCodeOf(slot: TimerSlot): Int = when (slot) {
+            TimerSlot.BREW -> RC_CONTENT
+            TimerSlot.BREW_2 -> RC_CONTENT_BREW_2
+            TimerSlot.QUICK -> RC_CONTENT_QUICK
+        }
 
         /** The full-screen intent's request code of [slot]'s alert. */
-        fun fullScreenCodeOf(slot: TimerSlot): Int =
-            if (slot == TimerSlot.QUICK) RC_FULL_SCREEN_QUICK else RC_FULL_SCREEN
+        fun fullScreenCodeOf(slot: TimerSlot): Int = when (slot) {
+            TimerSlot.BREW -> RC_FULL_SCREEN
+            TimerSlot.BREW_2 -> RC_FULL_SCREEN_BREW_2
+            TimerSlot.QUICK -> RC_FULL_SCREEN_QUICK
+        }
     }
 }

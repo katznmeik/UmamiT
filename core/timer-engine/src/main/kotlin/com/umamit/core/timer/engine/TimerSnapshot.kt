@@ -137,8 +137,9 @@ internal fun stateOf(snapshot: TimerSnapshot?): TimerState {
 }
 
 /**
- * The ALERTING state of [snapshot] (05 §3.12, D-098): a quick alert without a ringing start is held; a brew alert
- * is never held, so one stored without it (a row the interim builds of v0.3.0 wrote) rings since its deadline.
+ * The ALERTING state of [snapshot] (05 §3.12; D-098, D-108): an alert without a ringing start is held, a brew
+ * session's as the quick timer's. A brew alert reported played without one (a row the interim builds of v0.3.0
+ * wrote, when the brew was never held) rings since its deadline: a held alert is never reported played.
  */
 private fun alertingOf(snapshot: TimerSnapshot): TimerState.Alerting {
     val row = snapshot.activeBrew
@@ -147,7 +148,7 @@ private fun alertingOf(snapshot: TimerSnapshot): TimerState.Alerting {
     }
     val deadlineElapsedMs = required(row.deadlineElapsedMs)
     val deadlineWallMs = required(row.deadlineWallMs)
-    val ringsSinceDeadline = !row.isQuickTimer && row.alertRingingSinceElapsedMs == null
+    val ringsSinceDeadline = !row.isQuickTimer && row.alertPlayed && row.alertRingingSinceElapsedMs == null
     return TimerState.Alerting(
         session = sessionOf(snapshot),
         stepIndex = row.stepIndex,

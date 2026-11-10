@@ -2,12 +2,14 @@ package com.umamit.core.catalog.parser
 
 import com.umamit.core.model.RecipeCheckReason
 import com.umamit.core.model.RecipeTemplate
+import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
 import com.umamit.core.model.UmamiLevel
 
 /**
  * A catalog tea's style (CAT-06) and derived recipes (CAT-04, CAT-05), as the refresh stores
- * them (05 §4.1 `style_key`, `derived_recipes_json`, `recipe_check_reason`).
+ * them (05 §4.1 `style_key`, `derived_recipes_json`, `recipe_check_reason`), and the tea's [category]: its
+ * style's, a chai's its base tea's (#206), as a collection copy gets it.
  */
 data class CatalogRecipes(
     val styleKey: String,
@@ -15,6 +17,7 @@ data class CatalogRecipes(
     val umamiLevel: UmamiLevel,
     val recipes: List<RecipeTemplate>,
     val checkReason: RecipeCheckReason?,
+    val category: TeaCategory,
 ) {
     companion object {
         private val JAPAN = Regex("japan", RegexOption.IGNORE_CASE)
@@ -33,12 +36,14 @@ data class CatalogRecipes(
 
         /** Maps [page] to its style and derives its recipes from its grid, prose and cold-brew badge. */
         fun derive(page: ProductPage): CatalogRecipes {
+            // A tea of another section by its section's crumb, though it is also filed under a format (D-108).
             val mapped = StyleMapper.map(
-                page.categoryPath,
+                page.stylePath,
                 page.name,
                 page.teaType,
                 page.isFlavored,
                 page.originCountry,
+                page.ingredients,
             )
             // A tea from Japan in a generic section is Japanese too (its Kyusu row is the default).
             val match = mapped.copy(
@@ -53,6 +58,7 @@ data class CatalogRecipes(
                 umamiLevel = StyleMapper.umamiLevel(page.tasteScales, match.style),
                 recipes = derived.recipes,
                 checkReason = derived.checkReason,
+                category = match.category,
             )
         }
     }

@@ -197,13 +197,14 @@ class RoomAddFromCatalog @Inject constructor(
     /** The collection fields of [this] catalog tea (05 §3.1; 08 §2.3's conversion table). */
     private fun CatalogTeaEntity.toTea(id: String): Tea {
         val style = CatalogDerivation.style(this)
-        val match = StyleMapper.map(breadcrumb, name, teaType, isFlavored)
+        val match = StyleMapper.map(breadcrumb, name, teaType, isFlavored, ingredients = ingredients)
         val scales = CatalogColumns.tasteScales(tasteScalesJson).map { ShopScale(it.label, it.leaves) }
         val prose = descriptionText
         return Tea(
             id = id,
             name = (name ?: key).take(NAME_MAX),
-            category = style.category,
+            // A chai's is its base tea's (#206): the mapping's, while it maps to the stored style.
+            category = if (match.style.key == style.key) match.category else style.category,
             form = match.form,
             secondaryName = secondaryName?.take(NAME_MAX),
             catalogKey = key,

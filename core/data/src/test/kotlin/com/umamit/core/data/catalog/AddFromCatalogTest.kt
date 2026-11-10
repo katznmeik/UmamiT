@@ -7,6 +7,11 @@ import android.graphics.Color
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
+import com.umamit.core.catalog.parser.CatalogRecipes
+import com.umamit.core.catalog.parser.CatalogScope
+import com.umamit.core.catalog.parser.Crumb
+import com.umamit.core.catalog.parser.ProductPage
 import com.umamit.core.data.ArchiveResult
 import com.umamit.core.data.PhotoFiles
 import com.umamit.core.data.RoomTeaArchive
@@ -453,6 +458,150 @@ class AddFromCatalogTest {
 
         // Repurchase works as for a green tea (CAT-13).
         assertThat(add.add(purchase(key = "XK0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
+    }
+
+    @Test
+    fun `a black tea is added as BLACK with its style, Sorte, recipe and stock`() = runTest {
+        // v0.5.0, #203, D-108: a black tea is added and repurchased as a green tea is (CAT-12, CAT-13).
+        val black = sencha(key = "XB0200", name = "Nebelhang Darjeeling", recipes = null, styleKey = "darjeeling").copy(
+            shopCategory = "Tee › Schwarzer Tee › Darjeeling",
+            teaType = "Darjeeling",
+            breadcrumb = "/tee/schwarzer-tee/darjeeling/",
+            originCountry = "Indien",
+            tasteScalesJson = null,
+            shading = null,
+            steaming = null,
+        )
+        catalog(black to packages("XB0200"))
+
+        val teaId = (add.add(purchase(key = "XB0200")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.category).isEqualTo(TeaCategory.BLACK)
+        assertThat(tea.styleKey).isEqualTo("darjeeling")
+        assertThat(tea.teaType).isEqualTo("Darjeeling")
+        assertThat(tea.umamiLevel).isEqualTo(UmamiLevel.NONE)
+        assertThat(tea.form).isEqualTo(TeaForm.LOOSE_LEAF)
+        // Without stored recipes the style's (08 §3): one western infusion, no second one (green-only).
+        val recipe = data.recipes.observeRecipes(teaId).first().single()
+        assertThat(recipe.method).isEqualTo(BrewMethod.WESTERN)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(2.5 to 250)
+        assertThat(recipe.baseTempC).isEqualTo(95)
+        assertThat(recipe.steps).containsExactly(RecipeStep(StepKind.INFUSION, 150))
+        assertThat(data.stock.observeEvents(teaId).first().single().type).isEqualTo(InventoryEventType.INITIAL)
+
+        assertThat(add.add(purchase(key = "XB0200"))).isInstanceOf(AddFromCatalogResult.Repurchased::class.java)
+    }
+
+    @Test
+    fun `a white tea, an oolong and a Pu-Erh are added with their category and style`() = runTest {
+        // v0.5.0, #205, D-108: each new kind's tea carries its TeaCategory and style into the collection.
+        fun tea(key: String, name: String, styleKey: String, teaType: String?, breadcrumb: String) =
+            sencha(key = key, name = name, recipes = null, styleKey = styleKey).copy(
+                teaType = teaType,
+                breadcrumb = breadcrumb,
+                tasteScalesJson = null,
+                shading = null,
+                steaming = null,
+            )
+        catalog(
+            tea("XW0200", "Mandelwolke", "flavored_white", null, "/tee/weisser-tee/aromatisierter-weisser-tee/") to
+                packages("XW0200"),
+            tea("XO0300", "Bergnebel Oolong", "oolong_generic", "Taiwan", "/tee/oolong/taiwan/") to packages("XO0300"),
+            tea("XP0400", "Nebelberg Bing Cha", "sheng", "Sheng", "/tee/pu-erh/sheng/") to packages("XP0400"),
+        )
+
+        val expected = listOf(
+            Triple("XW0200", TeaCategory.WHITE, "flavored_white"),
+            Triple("XO0300", TeaCategory.OOLONG, "oolong_generic"),
+            Triple("XP0400", TeaCategory.DARK, "sheng"),
+        )
+        val ids = expected.map { (key, category, styleKey) ->
+            val teaId = (add.add(purchase(key = key)) as AddFromCatalogResult.Added).teaId
+            val added = data.teas.getTea(teaId)!!
+            assertThat(added.category).isEqualTo(category)
+            assertThat(added.styleKey).isEqualTo(styleKey)
+            assertThat(added.umamiLevel).isNotNull()
+            teaId
+        }
+        // A Sheng without stored recipes brews its style's Gongfu default (08 §3).
+        val shengId = ids.last()
+        val recipe = data.recipes.observeRecipes(shengId).first().first { it.isDefault }
+        assertThat(recipe.method).isEqualTo(BrewMethod.GONGFU)
+        assertThat(recipe.leafGrams to recipe.waterMl).isEqualTo(5.0 to 120)
+        assertThat(recipe.baseTempC).isEqualTo(100)
+    }
+
+    @Test
+    fun `a Rotbusch, a Fruechtetee and the chais are added with their own or their base tea's category`() = runTest {
+        // v0.5.0, #206, D-108: ROOIBOS and FRUIT; a chai takes its base tea's category, else OTHER.
+        fun tea(key: String, name: String, styleKey: String, breadcrumb: String, ingredients: String? = null) =
+            sencha(key = key, name = name, recipes = null, styleKey = styleKey).copy(
+                teaType = null,
+                breadcrumb = breadcrumb,
+                ingredients = ingredients,
+                tasteScalesJson = null,
+                shading = null,
+                steaming = null,
+            )
+        catalog(
+            tea(
+                "XR0200",
+                "Sonnenfeld Rotbusch",
+                "rooibos",
+                "/tee/rotbusch/klassischer-rotbusch/",
+            ) to packages("XR0200"),
+            tea("XF0300", "Beerenwolke", "fruit", "/tee/fruechtetee/klassischer-fruechtetee/") to packages("XF0300"),
+            tea("XR0400", "Rotbusch Chai Savanne", "chai", "/tee/rotbusch/aromatisierter-rotbusch/") to
+                packages("XR0400"),
+            tea("XS0500", "Gewürzmarkt Chai", "chai", "/tee/schwarzer-tee/aromatisierter-schwarztee/") to
+                packages("XS0500"),
+            tea("XC0600", "Karawane", "chai", "/tee/chaitee/", ingredients = "Zimt, Ingwer, Kardamom") to
+                packages("XC0600"),
+        )
+
+        listOf(
+            "XR0200" to TeaCategory.ROOIBOS,
+            "XF0300" to TeaCategory.FRUIT,
+            "XR0400" to TeaCategory.ROOIBOS,
+            "XS0500" to TeaCategory.BLACK,
+            "XC0600" to TeaCategory.OTHER,
+        ).forEach { (key, category) ->
+            val teaId = (add.add(purchase(key = key)) as AddFromCatalogResult.Added).teaId
+            assertWithMessage(key).that(data.teas.getTea(teaId)!!.category).isEqualTo(category)
+        }
+    }
+
+    @Test
+    fun `a black chai also filed under a format section is added as BLACK, as the parser maps it`() = runTest {
+        // User story 36, #206: the tea's deepest crumb is the shop's Aufgussbeutel (a format, no tea section).
+        val page = ProductPage(
+            articleNumber = "XS0700",
+            key = "XS0700",
+            productUrl = "https://shop.example/abendlicht-chai/XS0700",
+            name = "Abendlicht Chai Aufgussbeutel",
+            secondaryName = null,
+            breadcrumb = listOf(
+                Crumb("Tee", "/tee/"),
+                Crumb("Schwarzer Tee", "/tee/schwarzer-tee/"),
+                Crumb("Aromatisierter Schwarztee", "/tee/schwarzer-tee/aromatisierter-schwarztee/"),
+                Crumb("Aufgussbeutel", "/tee/aufgussbeutel/"),
+            ),
+            scope = CatalogScope.TEA,
+            teaType = null,
+            priceCents = 650,
+            packageGrams = 40.0,
+            basePriceCentsPer100g = 1625,
+            available = true,
+        )
+        catalog(page.toEntity("XS0700", NOW - 1) to packages("XS0700"))
+
+        val teaId = (add.add(purchase(key = "XS0700")) as AddFromCatalogResult.Added).teaId
+
+        val tea = data.teas.getTea(teaId)!!
+        assertThat(tea.styleKey).isEqualTo("chai")
+        assertThat(tea.category).isEqualTo(CatalogRecipes.derive(page).category)
+        assertThat(tea.category).isEqualTo(TeaCategory.BLACK)
     }
 
     private companion object {

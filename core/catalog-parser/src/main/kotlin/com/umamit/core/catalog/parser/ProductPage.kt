@@ -3,7 +3,7 @@ package com.umamit.core.catalog.parser
 /** One breadcrumb item of a product page: its [title] as the shop names it and its URL [path]. */
 data class Crumb(val title: String, val path: String)
 
-/** Whether a product belongs in the catalog (08 §2.4 item 3), by its breadcrumb: green and herbal teas do. */
+/** Whether a product belongs in the catalog (08 §2.4 item 3), by its breadcrumb: the teas of its tea sections do. */
 enum class CatalogScope {
     /** Under the green tea sections: kept. */
     GREEN,
@@ -11,11 +11,17 @@ enum class CatalogScope {
     /** Under the shop's Kräutertee section (v0.2.1, D-093): kept as a herbal tea (style `herbal`). */
     HERBAL,
 
+    /**
+     * Under another of the shop's tea sections (v0.5.0, D-108: the black teas; 08 §2.4 item 3): kept,
+     * its kind following from its style.
+     */
+    TEA,
+
     /** A breadcrumb outside them: remembered in the skip list (05 §4.2a). */
     NOT_GREEN,
 
     /**
-     * Under the green or herbal sections, but a set by its name or breadcrumb, without a set
+     * Under a tea section, but a set by its name or breadcrumb, without a set
      * number (D-091): remembered in the skip list as a set.
      */
     SET,
@@ -100,6 +106,14 @@ data class ProductPage(
 ) {
     /** The deepest category path, e.g. `/tee/gruener-tee/japan/sencha/` (05 §4.1 `breadcrumb`). */
     val categoryPath: String? get() = breadcrumb.lastOrNull()?.path
+
+    /**
+     * The path the style and category are mapped from (05 §4.1 `breadcrumb`): [categoryPath] for a green tea, else the
+     * deepest crumb in a tea section, as another section's tea is also filed under a format such as *Aufgussbeutel*
+     * (D-108); a collection copy maps the same path (CAT-12, #206).
+     */
+    val stylePath: String?
+        get() = if (scope == CatalogScope.GREEN) categoryPath else TeaSections.pathIn(breadcrumb) ?: categoryPath
 
     /** The category titles, e.g. „Tee › Grüner Tee › Japan › Sencha" (05 §4.1 `shop_category`). */
     val shopCategory: String? get() = breadcrumb.takeIf { it.isNotEmpty() }?.joinToString(" › ") { it.title }

@@ -12,6 +12,7 @@ import com.umamit.core.data.catalog.GuideRepository
 import com.umamit.core.data.catalog.TeaLinkLoader
 import com.umamit.core.data.catalog.TeaLinkOutcome
 import com.umamit.core.model.CatalogFilter
+import com.umamit.core.model.CatalogKind
 import com.umamit.core.model.CatalogListing
 import com.umamit.core.model.CatalogSort
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,8 +39,8 @@ import javax.inject.Inject
  * @property refresh the refresh's progress or result for the sheet.
  * @property loading true until the catalog was read once (then nothing is shown yet).
  * @property guideCount the *Ratgeber*'s guides (CAT-09); its row shows only when there are some.
- * @property herbalPending the Kräutertees are still to come with the first refresh after the
- *   update (D-093 Q20): the *Kräutertee* view shows its hint with *Jetzt laden*.
+ * @property pendingKinds the kinds still to come with the first refresh after the update (D-093 Q20,
+ *   D-108): each one's view shows its hint with *Jetzt laden*.
  * @property folded the folded *Sorte* groups of both views as `catalogFolded` keys (CAT-10, D-098).
  */
 data class CatalogUiState(
@@ -48,7 +49,7 @@ data class CatalogUiState(
     val refresh: CatalogRefreshState = CatalogRefreshState.Idle,
     val loading: Boolean = true,
     val guideCount: Int = 0,
-    val herbalPending: Boolean = false,
+    val pendingKinds: Set<CatalogKind> = emptySet(),
     val folded: Set<String> = emptySet(),
 ) {
     val isRefreshing: Boolean get() = refresh is CatalogRefreshState.Running
@@ -64,7 +65,7 @@ data class CatalogUiState(
         get() = !loading && !isEmpty && filter.sort == CatalogSort.TYPE && !filter.marked && filter.search.isBlank()
 
     /** Whether the group of [teaType] (null = „Ohne Sorte") is folded in the view shown. */
-    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.herbal, teaType) in folded
+    fun isFolded(teaType: String?): Boolean = foldable && CatalogFoldKey.of(filter.kind, teaType) in folded
 }
 
 /**
@@ -102,15 +103,15 @@ class CatalogViewModel @Inject constructor(
         filter,
         refresh.state,
         guides.observeGuides().map { it.size },
-        combine(repository.observeHerbalPending(), folds.observeFolded(), ::Pair),
-    ) { listing, filter, refreshState, guideCount, (herbalPending, folded) ->
+        combine(repository.observePendingKinds(), folds.observeFolded(), ::Pair),
+    ) { listing, filter, refreshState, guideCount, (pendingKinds, folded) ->
         CatalogUiState(
             listing = listing,
             filter = filter,
             refresh = refreshState,
             loading = false,
             guideCount = guideCount,
-            herbalPending = herbalPending,
+            pendingKinds = pendingKinds,
             folded = folded,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CatalogUiState())
@@ -123,8 +124,15 @@ class CatalogViewModel @Inject constructor(
     private var linkJob: Job? = null
     private var lastShare: Long? = null
 
-    /** A changed search, filter or sort. */
-    fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update(transform)
+    /**
+     * A changed search, filter or sort. A kind change keeps only the taste notes and scales the new kind's range has
+     * (D-108 point 8), whichever control changed the kind.
+     */
+    fun changeFilter(transform: (CatalogFilter) -> CatalogFilter) = filter.update { old ->
+        val new = transform(old)
+        val listing = state.value.listing
+        if (new.kind == old.kind || listing.flavoursByKind.isEmpty()) new else new.keepingFlavoursOf(listing)
+    }
 
     /** A row's bookmark toggle (CAT-18): marks or unmarks the tea [key]. */
     fun toggleMark(key: String, marked: Boolean) {
@@ -134,7 +142,7 @@ class CatalogViewModel @Inject constructor(
     /** A tap on the header of [teaType]'s group (null = „Ohne Sorte"): folds or unfolds it in the view (D-098). */
     fun toggleFold(teaType: String?) {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val key = CatalogFoldKey.of(shown.filter.herbal, teaType)
+        val key = CatalogFoldKey.of(shown.filter.kind, teaType)
         viewModelScope.launch { folds.update { if (key in it) it - key else it + key } }
     }
 
@@ -144,16 +152,16 @@ class CatalogViewModel @Inject constructor(
      */
     fun foldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val herbal = shown.filter.herbal
+        val kind = shown.filter.kind
         val types = shown.listing.types + shown.listing.sections.map { it.teaType } + null
-        val keys = types.map { CatalogFoldKey.of(herbal, it) }.toSet()
+        val keys = types.map { CatalogFoldKey.of(kind, it) }.toSet()
         viewModelScope.launch { folds.update { it + keys } }
     }
 
     /** ⋮ *Alle ausklappen*: every group of the view shown, also keys of a *Sorte* that is gone (D-098). */
     fun unfoldAll() {
         val shown = state.value.takeIf { it.foldable } ?: return
-        val prefix = CatalogFoldKey.prefix(shown.filter.herbal)
+        val prefix = CatalogFoldKey.prefix(shown.filter.kind)
         viewModelScope.launch { folds.update { folded -> folded.filterNot { it.startsWith(prefix) }.toSet() } }
     }
 

@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /** How [TeaArchive.archive] or [VesselArchive.archive] ended. */
@@ -52,6 +53,9 @@ interface TeaArchive {
      */
     fun observeActiveTeaId(): Flow<String?>
 
+    /** The teas of every active brew session, in either brew slot (E15, D-108): none can be archived or deleted. */
+    fun observeActiveTeaIds(): Flow<Set<String>>
+
     /** Archives the tea, unless it belongs to the active brew session; one transaction. */
     suspend fun archive(teaId: String): ArchiveResult
 
@@ -78,9 +82,12 @@ class RoomTeaArchive @Inject constructor(
 ) : TeaArchive {
     override fun observeActiveTeaId(): Flow<String?> = db.activeBrewDao().observeActiveTeaId().distinctUntilChanged()
 
+    override fun observeActiveTeaIds(): Flow<Set<String>> =
+        db.activeBrewDao().observeActiveTeaIds().map { it.toSet() }.distinctUntilChanged()
+
     override suspend fun archive(teaId: String): ArchiveResult = db.withTransaction {
         when {
-            db.activeBrewDao().activeTeaId() == teaId -> ArchiveResult.InActiveSession
+            db.activeBrewDao().isActiveTea(teaId) -> ArchiveResult.InActiveSession
             db.teaDao().setArchived(teaId, archived = true, now = time.nowMs()) == 0 -> ArchiveResult.NotFound
             else -> ArchiveResult.Archived
         }
@@ -96,7 +103,7 @@ class RoomTeaArchive @Inject constructor(
             when {
                 db.teaDao().get(teaId) == null -> DeleteResult.NotFound
 
-                db.activeBrewDao().activeTeaId() == teaId -> DeleteResult.InActiveSession
+                db.activeBrewDao().isActiveTea(teaId) -> DeleteResult.InActiveSession
 
                 else -> {
                     photoIds = db.teaDao().photoIds(teaId)

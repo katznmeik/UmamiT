@@ -78,8 +78,9 @@ private val RemainingLineHeight = 32.sp
  * side, the brew ([brew]) first, each with its 40 dp mini ring, its name, the step and the countdown, each its own
  * tap target ([onClick], [onAlongsideClick]) with its own description. An alerting half takes the ALERTING style
  * alone (matcha, ink, the full ring and the overtime; „Jetzt abgießen!" only in its description, the half has no
- * room for it); a held quick alert ([ActiveBrew.held]) reads „fertig" without it. The second half comes and goes
- * without motion of its own.
+ * room for it); a held quick alert ([ActiveBrew.held]) reads „fertig" without it, a held brew „wartet" (D-108: its
+ * alert rings after the other brew's *Abgegossen*). Two brew sessions take the halves like a brew and the quick timer,
+ * in the slot order (D-108). The second half comes and goes without motion of its own.
  *
  * @param brew the active brew, or `null` when nothing runs.
  * @param windowInsets system bar insets applied inside the bar, so its background stays
@@ -260,7 +261,13 @@ private fun BarHalfContent(half: BarHalf, modifier: Modifier = Modifier) {
                     )
                     when {
                         brew.held -> Text(
-                            text = stringResource(R.string.ds_active_brew_held),
+                            // A held brew waits for the other brew's sound (D-108, D-109); a quick alert is „fertig".
+                            text = stringResource(
+                                when {
+                                    brew.step != null -> R.string.ds_active_brew_held_brew
+                                    else -> R.string.ds_active_brew_held
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                         )
@@ -293,8 +300,14 @@ private fun BarHalfContent(half: BarHalf, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ActiveBrew.spokenDescription(): String = when {
-    held -> stringResource(R.string.ds_active_brew_held_description, title)
+    held -> if (stepDescription != null) {
+        stringResource(R.string.ds_active_brew_held_brew_description, title, stepDescription)
+    } else {
+        stringResource(R.string.ds_active_brew_held_description, title)
+    }
+
     alerting -> alertingDescription()
+
     else -> runningDescription()
 }
 

@@ -57,7 +57,13 @@ import kotlin.time.TimeSource
  *   which shows as it was, and the alert still comes on time.
  * - With a quick timer beside the step (D-098, #137), due together with it: both come back after
  *   two kills, the brew's alert first and on time, the quick timer's held behind it until
- *   *Abgegossen*, then at once.
+ *   *Abgegossen*, tapped while the brew's replayed alert still sounds, then at once (it would
+ *   ring when that sound ended, too, D-109).
+ * - With a second brew session due a few seconds after the first (D-108, D-109): killed during the
+ *   first's alert while the second still runs, a new process (the second's alarm 302 or its guard
+ *   307, the first's watchdog or the system's restart of the service) replays the first's alert and
+ *   restores the second, held behind it; the second rings once the replayed sound has ended, the
+ *   first not poured.
  *
  * The test runs in its own process (`:runner`, see the androidTest manifest), so it outlives
  * the kill. `am kill` spares a process with a foreground service (it only kills background
@@ -222,8 +228,9 @@ class ProcessDeathTest {
      * - Killed again during the brew's alert, with the screen off: the brew's alert watchdog (or the system's
      *   restart of the service) starts a new process, whose recovery brings the brew's alert back and keeps the
      *   quick timer's held.
-     * - *Abgegossen* releases it: it rings at once, as a new alert notification with its full-screen intent. The
-     *   log shows the brew's alert sound first and the quick timer's once, last.
+     * - *Abgegossen*, while the replayed alert still sounds, releases it: it rings at once, as a new alert
+     *   notification with its full-screen intent. The log shows the brew's alert sound first and the quick timer's
+     *   once, last.
      */
     @Test
     fun aBrewStepAndAQuickTimerDueTogetherSurviveTwoKillsAndAlertTheBrewFirst() {
@@ -246,6 +253,135 @@ class ProcessDeathTest {
         // 4. *Abgegossen* releases the quick timer's alert at once.
         pourAndAwaitQuickAlert(replayed)
     }
+
+    /**
+     * Two brew sessions (D-108, D-109; 04 §7.2 with two slots, §9.3): the first's step of [RELAUNCH_STEP], the
+     * second's [SECOND_GAP] longer, both started together.
+     *
+     * - The first's alert comes on time and takes the screen.
+     * - Killed during it, with the screen off, while the second still runs: a new process (the second's deadline
+     *   alarm 302 or its guard 307, the first's watchdog 107, or the system's restart of the service) replays the
+     *   first's alert, which had not run its cycle, and restores the second, whose deadline is held behind it.
+     * - Not poured, the first's replayed alert ends its sound (SET-14 *Normal*): the second rings then with its
+     *   overtime, a new alert notification with its full-screen intent, while the first stays „Jetzt abgießen!" as
+     *   notification 5. The log shows the first's sounds first and the second's once, last.
+     */
+    @Test
+    fun twoBrewsKilledDuringTheFirstAlertRestoreTheSecondHeldWhichRingsOnceTheFirstSoundEnds() {
+        logDirectory.deleteRecursively()
+        val seconds = RELAUNCH_STEP.inWholeSeconds.toInt()
+        val secondSeconds = (RELAUNCH_STEP + SECOND_GAP).inWholeSeconds.toInt()
+        context.startActivity(TimerTestActivity.twoBrewsIntent(context, seconds, secondSeconds, 1, 0, 0))
+        val outcome = eventually("both brews' start in the timer process", START_TIMEOUT) {
+            TimerTestActivity.outcomeFile(context).takeIf { it.exists() }?.readText()
+        }
+        assertEquals("test setup: both brews started", TimerTestActivity.STARTED, outcome)
+        val firstDeadline = TimerTestActivity.deadlineFile(context).readText().toLong()
+        val secondDeadline = TimerTestActivity.secondDeadlineFile(context).readText().toLong()
+        Log.i(TAG, "the second brew is due ${secondDeadline - firstDeadline} ms after the first")
+        eventually("foreground BrewTimerService", START_TIMEOUT) {
+            serviceBlock()?.takeIf { it.contains("isForeground=true") }
+        }
+
+        // 1. The first's alert at its deadline.
+        shell("input keyevent KEYCODE_SLEEP")
+        val firstAlert = eventually("the first brew's alert (ID 2) at its deadline", RELAUNCH_STEP + ALERT_TIMEOUT) {
+            postedNotification(TimerNotifications.ID_ALERT)
+        }
+        assertEquals("the alert at the first deadline", BREW_ALERT_TEXT, firstAlert.notification.text())
+        val lateMs = firstAlert.postTime - firstDeadline
+        assertTrue(
+            "the first brew's alert came $lateMs ms after its deadline",
+            lateMs in -EARLY_TOLERANCE_MS..LATE_TOLERANCE_MS,
+        )
+
+        // 2. Killed during it, the second still running; a new process replays it and restores the second held.
+        eventually("the screen off during the first brew's alert", START_TIMEOUT) {
+            if (power.isInteractive) shell("input keyevent KEYCODE_SLEEP")
+            Unit.takeIf { !power.isInteractive }
+        }
+        val killBy = minOf(secondDeadline, firstAlert.postTime + KILL_WITHIN_ALERT.inWholeMilliseconds)
+        assertTrue(
+            "test setup: too slow, the kill must come before the second deadline and within the first's alert cycle",
+            System.currentTimeMillis() < killBy,
+        )
+        val kill = killTimer("the first brew alerting, the second running", TimerNotifications.ID_ALERT)
+        val replayed = eventually("the first brew's alert again from a new process", WATCHDOG + ALERT_TIMEOUT) {
+            postedNotification(TimerNotifications.ID_ALERT)?.takeIf { it.postTime > kill.postedAfterWallMs }
+        }
+        assertNotEquals("the alert must come from a new timer process", kill.pid, timerPid())
+        assertEquals("the alert after the kill", BREW_ALERT_TEXT, replayed.notification.text())
+        assertNotSilent(replayed.notification)
+        Log.i(TAG, "the new process: " + newProcessStart())
+        assertSecondHeld()
+
+        // 3. Not poured: the second rings once the replayed sound has ended (D-109).
+        awaitSecondAfterTheFirstSound(replayed)
+    }
+
+    /**
+     * The second brew's alert after [replayed], the first's, has ended its sound (D-109): a new alert notification
+     * with its full-screen intent; the first stays „Jetzt abgießen!" as notification 5; the log's alert sounds are
+     * the first's first and the second's once, last.
+     */
+    private fun awaitSecondAfterTheFirstSound(replayed: StatusBarNotification) {
+        val secondAlert = eventually("the second brew's alert after the first's sound", ALERT_CYCLE + ALERT_TIMEOUT) {
+            postedNotification(TimerNotifications.ID_ALERT)?.takeIf { it.notification.text() == SECOND_ALERT_TEXT }
+        }
+        Log.i(TAG, "the second brew's alert posted ${secondAlert.postTime - replayed.postTime} ms after the replay")
+        assertTrue(
+            "the second brew must ring only after the first's sound, not over it",
+            secondAlert.postTime - replayed.postTime >= MIN_ALERT_SOUND_MS,
+        )
+        assertNotNull("the released alert has no full-screen intent", secondAlert.notification.fullScreenIntent)
+        assertNotSilent(secondAlert.notification)
+        val first = eventually("the first brew as notification 5, still alerting", START_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_OTHER)
+                ?.takeIf { it.title()?.startsWith(TimerTestActivity.TEA) == true }
+        }
+        assertNull("the first brew's silent alert must not take the screen", first.fullScreenIntent)
+        val sounds = eventually("the second brew's alert sound in the log", START_TIMEOUT) {
+            alertSounds().takeIf { it.lastOrNull() == TimerSlot.BREW_2 }
+        }
+        Log.i(TAG, "alert sounds in order: $sounds")
+        assertTrue(
+            "the first brew's alert must sound first and the second's once, last: $sounds",
+            sounds.first() == TimerSlot.BREW && sounds.count { it == TimerSlot.BREW_2 } == 1,
+        )
+    }
+
+    /**
+     * The second brew is held: notification 5 with its tea, without a full-screen intent; the alert (ID 2) is the
+     * first's, the only notification with one. The new process restored it (its recovery's log line).
+     */
+    private fun assertSecondHeld() {
+        val other = eventually("the second brew held as notification 5", ALERT_TIMEOUT) {
+            activeNotification(TimerNotifications.ID_OTHER)?.takeIf {
+                it.title()?.startsWith(TimerTestActivity.SECOND_TEA) == true && it.text() == SECOND_HELD_TEXT
+            }
+        }
+        assertNull("the held second brew must not take the screen", other.fullScreenIntent)
+        assertEquals(
+            "only the first brew's alert may take the screen",
+            listOf(TimerNotifications.ID_ALERT),
+            notificationManager.activeNotifications.filter { it.notification.fullScreenIntent != null }.map { it.id },
+        )
+        assertEquals(
+            "the alert while the second is held",
+            BREW_ALERT_TEXT,
+            activeNotification(TimerNotifications.ID_ALERT)?.text(),
+        )
+        assertNotNull(
+            "the new process restored the second brew",
+            runBlocking { log.entries() }.firstOrNull { it.message.startsWith("recovery: stored BREW2.") },
+        )
+    }
+
+    /** What started the process after the kill, from the log: the alarm it handled first, or the recovery's trigger. */
+    private fun newProcessStart(): String = runBlocking { log.entries() }.asReversed()
+        .map { it.message }
+        .firstOrNull { it.startsWith("alarm ") || it.startsWith("recovery requested") }
+        ?: "(not in the log)"
 
     /** Starts a brew step and a quick timer of [RELAUNCH_STEP] due together; their deadlines on the wall clock. */
     private fun startBothDueTogether(): Pair<Long, Long> {
@@ -286,7 +422,7 @@ class ProcessDeathTest {
         )
         assertEquals(
             "both timers restored as they ran",
-            "BREW RUNNING|$brewDeadline\nQUICK RUNNING|$quickDeadline",
+            "BREW RUNNING|$brewDeadline\nBREW_2 IDLE\nQUICK RUNNING|$quickDeadline",
             TimerStateActivity.slotsFile(context).readText(),
         )
         eventually("notification 1 posted again after the kill ($kill)", START_TIMEOUT) {
@@ -406,7 +542,7 @@ class ProcessDeathTest {
 
     /** The quick timer's deadline in the log, handled as the hold behind the brew's alert (04 §9.3); null before. */
     private fun quickDeadlineHeld(): FireTime? = runBlocking { log.entries() }
-        .filter { it.message.startsWith("event AlertHold ") }
+        .filter { it.message.startsWith("event QUICK.AlertHold ") }
         .firstNotNullOfOrNull { FireTime.parse(it.message) }
         ?.takeIf { it.slot == TimerSlot.QUICK && it.kind == TimerAlarmKind.DEADLINE }
 
@@ -500,6 +636,7 @@ class ProcessDeathTest {
         TimerTestActivity.outcomeFile(context).delete()
         TimerTestActivity.deadlineFile(context).delete()
         TimerTestActivity.quickDeadlineFile(context).delete()
+        TimerTestActivity.secondDeadlineFile(context).delete()
         TimerStateActivity.stateFile(context).delete()
         TimerStateActivity.slotsFile(context).delete()
         notificationManager.cancelAll()
@@ -666,6 +803,20 @@ class ProcessDeathTest {
         /** The quick timer's title and its alert's text; the brew's alert's text. */
         const val QUICK_TITLE = "Schnelltimer"
         const val BREW_ALERT_TEXT = "${TimerTestActivity.TEA} · Aufguss 1"
+
+        /** The second brew's alert text, and its notification 5's while held (D-108). */
+        const val SECOND_ALERT_TEXT = "${TimerTestActivity.SECOND_TEA} · Aufguss 1"
+        const val SECOND_HELD_TEXT = "Fertig, wartet auf den anderen Aufguss"
+
+        /**
+         * The second brew's step is this much longer than the first's: its deadline comes after the kill during the
+         * first's alert ([KILL_WITHIN_ALERT]), well within the first's replayed sound.
+         */
+        val SECOND_GAP = 12.seconds
+
+        /** The longest alert sound (SET-14 *Normal*: up to 15 s) and the shortest one the emulator plays. */
+        val ALERT_CYCLE = 15.seconds
+        const val MIN_ALERT_SOUND_MS = 1_000L
         const val POURED = "Abgegossen"
 
         val SERVICE: String = BrewTimerService::class.java.simpleName

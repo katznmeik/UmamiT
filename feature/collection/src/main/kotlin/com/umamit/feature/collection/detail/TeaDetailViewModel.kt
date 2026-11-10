@@ -41,6 +41,7 @@ import com.umamit.core.model.Vessel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -54,12 +55,16 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.math.roundToInt
 
 /** One-shot outcomes for the host of the tea detail. */
 sealed interface TeaDetailEvent {
@@ -120,12 +125,16 @@ class TeaDetailViewModel @Inject constructor(
 
     private val events = Channel<TeaDetailEvent>(Channel.BUFFERED)
 
+    /** VORRAT's writes of the tea, one at a time ([updateTea]). */
+    private val writes = Mutex()
+
     /** Archive and delete outcomes, once each. */
     val navigation: Flow<TeaDetailEvent> = events.receiveAsFlow()
 
     private val brewed: Flow<Brewed> = combine(
         journal.observeSessions().map { list -> list.map { it.session }.filter { it.snapshot.teaId == teaId } },
-        archive.observeActiveTeaId().map { it == teaId }.distinctUntilChanged(),
+        // Either brew slot (v0.5.0, D-108): the tea's session may be the second brew.
+        archive.observeActiveTeaIds().map { teaId in it }.distinctUntilChanged(),
         settings.settings.map { Globals(it.lowStockGrams, it.deductStock) }.distinctUntilChanged(),
     ) { sessions, active, globals -> Brewed(sessions, active, globals) }
 
@@ -160,6 +169,37 @@ class TeaDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val tea = teas.getTea(teaId) ?: return@launch
             teas.saveTea(tea.copy(isFavorite = !tea.isFavorite))
+        }
+    }
+
+    /** VORRAT's *Warnung* (D-108): the tea's stock warning on or off; a purchase never changes it. */
+    fun setStockWarning(on: Boolean) {
+        updateTea { it.copy(lowStockWarning = on) }
+    }
+
+    /**
+     * VORRAT's *Knapp ab* (D-108): the tea's own threshold in whole grams 1–500, null for the global one (SET-16).
+     * A value outside is refused and the stored one kept.
+     */
+    fun setLowStockGrams(grams: Int?) {
+        if (grams != null && grams !in Tea.OWN_LOW_STOCK_GRAMS) return
+        updateTea { it.copy(lowStockGrams = grams?.toDouble()) }
+    }
+
+    /**
+     * Writes the newest row of the tea changed by [change]; nothing when it is gone or unchanged. The writes go one
+     * after another ([writes]), so a slow earlier one never overwrites a later one, and a write that has started
+     * finishes when the detail closes (*Knapp ab* commits as the field goes, D-108).
+     */
+    private fun updateTea(change: (Tea) -> Tea) {
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                writes.withLock {
+                    val tea = teas.getTea(teaId) ?: return@withLock
+                    val changed = change(tea)
+                    if (changed != tea) teas.saveTea(changed)
+                }
+            }
         }
     }
 
@@ -301,13 +341,16 @@ class TeaDetailViewModel @Inject constructor(
             stockLevel = level,
             freshness = detailFreshness(tea, if (stockEvents.isEmpty()) null else grams, clock.today()),
             recipes = recipeList.sortedBy { it.position }.map { it.summary(vesselNames) },
+            // With the warning off the link stays a text link, Knapp or not (INV-09 AC1, D-108).
             reorder = reorderUrl?.let {
                 Reorder(
                     it,
-                    prominent =
-                    stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
+                    prominent = tea.lowStockWarning && stockEvents.isNotEmpty() && level != StockLevel.AVAILABLE,
                 )
             },
+            stockWarning = tea.lowStockWarning,
+            ownLowStockGrams = tea.lowStockGrams?.roundToInt(),
+            globalLowStockGrams = brew.globals.lowStockGrams.roundToInt(),
             description = tea.description?.takeIf { it.isNotBlank() },
             notes = tea.notes?.takeIf { it.isNotBlank() },
             details = TeaFacts(

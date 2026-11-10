@@ -2,7 +2,10 @@ package com.umamit.core.model
 
 /** The settings of 05 §6 the app has so far (M1 subset, M2 catalog, v0.4.0 collection), with the spec defaults. */
 data class UserSettings(
-    /** The settings' format version (05 §6): 2 since v0.2.2, whose migration moved the old 10 g default (D-097). */
+    /**
+     * The settings' format version (05 §6): 2 since v0.2.2, whose migration moved the old 10 g default (D-097);
+     * 3 since v0.5.0, whose migration turned SET-28's switch into its interval (D-108).
+     */
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
     val onboardingCompleted: Boolean = false,
     val theme: ThemeMode = ThemeMode.SYSTEM,
@@ -32,13 +35,16 @@ data class UserSettings(
      * a newer purchase of the tea has another id, so its card shows again (D-097).
      */
     val lowStockHidden: Set<String> = emptySet(),
-    /** SET-28 *Tägliche Vorrats-Erinnerung* (INV-11, v0.3.0, D-098): the daily low-stock notification. */
-    val lowStockReminder: Boolean = true,
-    /** SET-29 *Uhrzeit* of the daily reminder (INV-11): the minute of the local day, 0…1439; 18:00 by default. */
+    /**
+     * SET-28 *Vorrats-Erinnerung* (INV-11): how often the low-stock notification comes, *Täglich* by default; a
+     * switch in v0.3.0 (D-098), the interval from v0.5.0 (D-108 point 7, settings `schemaVersion` 3).
+     */
+    val lowStockReminderInterval: LowStockReminderInterval = LowStockReminderInterval.DAILY,
+    /** SET-29 *Uhrzeit* of the reminder (INV-11): the minute of the local day, 0…1439; 18:00 by default. */
     val lowStockReminderTime: Int = DEFAULT_LOW_STOCK_REMINDER_TIME,
     /**
-     * INV-11 (D-098), not shown: the local date (ISO, „2026-10-30") of the reminder's last run that was due,
-     * posted or with nothing to post, so a day gets at most one; null before the first.
+     * INV-11 (D-098, D-108), not shown: the local date (ISO, „2026-10-30") of the last reminder that was posted,
+     * which SET-28's interval counts from; a due day with nothing to post leaves it. Null before the first.
      */
     val lowStockReminderLastDate: String? = null,
     val keepScreenOn: Boolean = true,
@@ -65,7 +71,7 @@ data class UserSettings(
         const val DEFAULT_ALERT_SOUND = "klangschale"
 
         /** The settings' format version of this app (05 §6). */
-        const val CURRENT_SCHEMA_VERSION = 2
+        const val CURRENT_SCHEMA_VERSION = 3
 
         /** SET-16's default from v0.2.2 (D-097; was 10 g). */
         const val DEFAULT_LOW_STOCK_GRAMS = 15.0

@@ -55,7 +55,7 @@ sealed interface TeaLinkOutcome {
     /** Not a tea link of the shop (CAT-17 AC2): no request. */
     data object NotATeaLink : TeaLinkOutcome
 
-    /** Not a green or herbal tea (AC5), or a set or sale duplicate: nothing stored. */
+    /** Not a tea of the catalog's sections (AC5), or a set or sale duplicate: nothing stored. */
     data object NotInCatalog : TeaLinkOutcome
 
     /** A catalog refresh runs (AC7): no request. */
@@ -94,7 +94,7 @@ interface TeaLinkLoader {
     /** The tea link in [text] as the app reads it (`https://www.tee-kontor-kiel.de/…`), or null; never a request. */
     fun linkIn(text: String): String?
 
-    /** Fetches the one tea page [text] links to and stores a green or herbal tea in the catalog. */
+    /** Fetches the one tea page [text] links to and stores a tea of the catalog's sections in the catalog. */
     suspend fun load(text: String): TeaLinkOutcome
 
     companion object {
@@ -121,7 +121,7 @@ interface TeaLinkLoader {
  * - and its photo, per SET-22 and only when the catalog has no photo from that URL (CAT-08).
  *
  * The page must show that product (its canonical and own number, [ShopProduct], as the re-check
- * of CAT-16 judges it) and be green or herbal (08 §2.4 item 3). It is then stored as a regular
+ * of CAT-16 judges it) and be a tea of its sections (08 §2.4 item 3). It is then stored as a regular
  * entry ([CatalogDao.putLinkedTea]): the page's own size and the configurator's sizes, the page's
  * stock („nicht vorrätig" when sold out), as #97 keeps a tea missing from the sitemap. A tea out
  * of scope is neither stored nor put onto the skip list. A tea already in the catalog is
@@ -240,7 +240,7 @@ class ShopTeaLinkLoader internal constructor(
                 noTeaPage("shows another product (${page.key})")
             }
             return when (page.scope) {
-                CatalogScope.GREEN, CatalogScope.HERBAL -> store(session, page)
+                CatalogScope.GREEN, CatalogScope.HERBAL, CatalogScope.TEA -> store(session, page)
 
                 CatalogScope.NOT_GREEN, CatalogScope.SET -> TeaLinkOutcome.NotInCatalog.also {
                     log("$where out of scope, not stored")

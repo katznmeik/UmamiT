@@ -16,6 +16,9 @@ class SortePickerTest {
         "oolong_generic" to "Oolong",
         "black_generic" to "Schwarzer Tee",
         "dark_generic" to "Pu-Erh",
+        "rooibos" to "Rotbusch",
+        "fruit" to "Früchtetee",
+        "chai" to "Chai",
         "other" to "Andere / unbekannt",
     )
     private val categories = mapOf(
@@ -25,6 +28,8 @@ class SortePickerTest {
         TeaCategory.BLACK to "Schwarzer Tee",
         TeaCategory.DARK to "Pu-Erh",
         TeaCategory.HERBAL to "Kräutertee",
+        TeaCategory.ROOIBOS to "Rotbusch",
+        TeaCategory.FRUIT to "Früchtetee",
     )
 
     private fun groups(query: String) = SortePicker.groups(query, { names[it] ?: it }, { categories.getValue(it) })
@@ -39,12 +44,27 @@ class SortePickerTest {
             TeaCategory.BLACK,
             TeaCategory.DARK,
             TeaCategory.HERBAL,
+            TeaCategory.ROOIBOS,
+            TeaCategory.FRUIT,
             null,
         ).inOrder()
         assertThat(all.first().styleKeys).containsAtLeast("gyokuro", "sencha", "matcha", "green_generic").inOrder()
         assertThat(all.first().styleKeys).hasSize(19)
-        assertThat(all.last().styleKeys).containsExactly("other")
-        assertThat(all.flatMap { it.styleKeys }).hasSize(25)
+        // #206: Chai has no Kategorie of its own (a chai's is its base tea's): it sits above *Andere / unbekannt*.
+        assertThat(all.last().styleKeys).containsExactly("chai", "other").inOrder()
+        assertThat(all.single { it.category == TeaCategory.ROOIBOS }.styleKeys).containsExactly("rooibos")
+        assertThat(all.single { it.category == TeaCategory.FRUIT }.styleKeys).containsExactly("fruit")
+        // v0.5.0 (D-108): the black group holds the catalog's black styles, the generic row last.
+        assertThat(all.single { it.category == TeaCategory.BLACK }.styleKeys)
+            .containsExactly("darjeeling", "assam", "ceylon", "flavored_black", "black_generic").inOrder()
+        // #205: the white, oolong and Pu-Erh groups hold the catalog's styles of their kinds, the generic row last.
+        assertThat(all.single { it.category == TeaCategory.WHITE }.styleKeys)
+            .containsExactly("flavored_white", "white_generic").inOrder()
+        assertThat(all.single { it.category == TeaCategory.OOLONG }.styleKeys)
+            .containsExactly("flavored_oolong", "oolong_generic").inOrder()
+        assertThat(all.single { it.category == TeaCategory.DARK }.styleKeys)
+            .containsExactly("sheng", "shou", "dark_generic").inOrder()
+        assertThat(all.flatMap { it.styleKeys }).hasSize(36)
     }
 
     @Test
@@ -58,6 +78,8 @@ class SortePickerTest {
         val oolong = groups("oolong")
         assertThat(oolong.map { it.category }).containsExactly(TeaCategory.OOLONG)
         assertThat(groups("unbekannt").single().styleKeys).containsExactly("other")
+        assertThat(groups("rotbusch").single().category).isEqualTo(TeaCategory.ROOIBOS)
+        assertThat(groups("chai").single().styleKeys).containsExactly("chai")
         assertThat(groups("xyz")).isEmpty()
     }
 }
