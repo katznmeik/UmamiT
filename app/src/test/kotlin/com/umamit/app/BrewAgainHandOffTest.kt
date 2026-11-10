@@ -6,7 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -40,6 +44,7 @@ import com.umamit.core.timer.engine.TransitionOutcome
 import com.umamit.feature.brew.picker.TeaPickerViewModel
 import com.umamit.feature.home.HomeViewModel
 import com.umamit.feature.home.homeRecentTag
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
@@ -80,10 +85,19 @@ class BrewAgainHandOffTest {
         override val progress: () -> Float = { 0f }
     }
 
-    /** The controller's start publishes the active brew at once, as the real one does. */
+    /** Lets an accepted start return: until then its new brew is published, but the timer has not opened yet. */
+    private val returned = CompletableDeferred<Unit>()
+
+    /**
+     * The controller's start publishes the active brew at once, as the real one does, and returns only after its
+     * writes ([returned]): Start sees the new brew for a few frames before the timer opens.
+     */
     private val publishing = object : BrewStarter by starter {
         override suspend fun startSession(request: BrewStart): TransitionOutcome = starter.startSession(request).also {
-            if (it == TransitionOutcome.Accepted) brew.value = HISUI_BAR
+            if (it == TransitionOutcome.Accepted) {
+                brew.value = HISUI_BAR
+                returned.await()
+            }
         }
     }
 
@@ -147,17 +161,24 @@ class BrewAgainHandOffTest {
             }
         }
         compose.waitForIdle()
+        assertThat(textShown(START_BREW)).isTrue()
+        assertThat(textShown(CONTINUE_BREW)).isFalse()
 
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).performClick()
-        // Every frame of the timer's fade over Start (`fade`, 300 ms) and past it: no bar.
+        // The brew has started, the timer not yet opened: Start as before the tap, no bar.
+        repeat(STARTING_FRAMES) { assertThat(nextFrame().start).isTrue() }
+        returned.complete(Unit)
+        // Every frame of the timer's fade over Start (`fade`, 300 ms) and past it: no bar, and while Start shows,
+        // Start as before the tap.
         var timerSeen = false
+        var heldFrames = 0
         repeat(FRAMES) {
-            compose.mainClock.advanceTimeByFrame()
-            compose.waitForIdle()
-            timerSeen = timerSeen || compose.onAllNodesWithText(TIMER).fetchSemanticsNodes().isNotEmpty()
-            assertThat(barShown()).isFalse()
+            val frame = nextFrame()
+            timerSeen = timerSeen || frame.timer
+            if (frame.start) heldFrames++
         }
+        assertThat(heldFrames).isGreaterThan(0)
         assertThat(timerSeen).isTrue()
         // The timer covers Start: Start has left the screen.
         assertThat(startShown()).isFalse()
@@ -177,7 +198,33 @@ class BrewAgainHandOffTest {
         compose.waitForIdle()
         compose.onNodeWithContentDescription(BAR_TITLE, substring = true).assertIsDisplayed()
         assertThat(firstHeight).isEqualTo(barHeight())
+        // The card is laid out on the way back too.
+        assertThat(textShown(CONTINUE_BREW)).isTrue()
     }
+
+    /** What a frame shows: Start, the timer. */
+    private class Frame(val start: Boolean, val timer: Boolean)
+
+    /**
+     * The next frame, checked: no bar, and while Start shows it, *Aufguss starten* and no *Aufguss fortsetzen* card
+     * (D-111). One semantics read a frame: Robolectric's clock moves on with every read, and the hold ends by itself
+     * after about a second.
+     */
+    private fun nextFrame(): Frame {
+        compose.mainClock.advanceTimeByFrame()
+        compose.waitForIdle()
+        val nodes = compose.onAllNodes(SemanticsMatcher("any node") { true }).fetchSemanticsNodes()
+        fun shows(matcher: SemanticsMatcher) = nodes.any(matcher::matches)
+        val start = shows(hasTestTag(homeRecentTag(SeedData.HISUI_TEA_ID)))
+        assertThat(shows(hasContentDescription(BAR_TITLE, substring = true))).isFalse()
+        if (start) {
+            assertThat(shows(hasText(CONTINUE_BREW))).isFalse()
+            assertThat(shows(hasText(START_BREW))).isTrue()
+        }
+        return Frame(start, shows(hasText(TIMER)))
+    }
+
+    private fun textShown(text: String) = compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
 
     private fun startShown() =
         compose.onAllNodesWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).fetchSemanticsNodes().isNotEmpty()
@@ -224,11 +271,16 @@ class BrewAgainHandOffTest {
 
     private companion object {
         const val TIMER = "Timer"
+        const val START_BREW = "Aufguss starten"
+        const val CONTINUE_BREW = "Aufguss fortsetzen"
         const val BAR_TITLE = "Laufender Tee"
         const val NEXT_TITLE = "Zweiter Tee"
 
         /** Well past the 300 ms fade at 16 ms a frame. */
         const val FRAMES = 40
+
+        /** Frames between the start and the timer's opening. */
+        const val STARTING_FRAMES = 3
         val HISUI_BAR = ActiveBrew(BAR_TITLE, "Aufguss 1/3", 60, Color(0xFF8DA36B))
     }
 }

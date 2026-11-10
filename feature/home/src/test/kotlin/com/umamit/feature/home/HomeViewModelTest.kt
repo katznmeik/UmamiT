@@ -41,9 +41,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -659,6 +661,36 @@ class HomeViewModelTest {
             assertThat(vm.state.value.active?.teaName).isEqualTo("Bio Sencha Hisui")
             assertThat(vm.handOff.handingOff.value).isFalse()
         }
+
+    @Test
+    fun `with queued dispatch no emission from the start shows the new card while held (D-111)`() = runTest {
+        // Queued, not unconfined: the controller's new state is published before the state's combine runs, so an
+        // emission computed from it must still read the hold.
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        seed()
+        brewed("s1", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 1_000, 60)
+        val vm = viewModel()
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch(StandardTestDispatcher(testScheduler)) { vm.state.collect { seen += it } }
+        runCurrent()
+        assertThat(vm.state.value.loading).isFalse()
+
+        vm.brewAgain(SeedData.HISUI_TEA_ID)
+        // Only what is due now: the hold's own 1 s timeout stays pending.
+        runCurrent()
+
+        val card = starter.activeIn(TimerSlot.BREW)
+        assertThat(card?.teaName).isEqualTo("Bio Sencha Hisui")
+        assertThat(vm.events.first()).isEqualTo(HomeEvent.OpenTimer(TimerSlot.BREW))
+        assertThat(seen.map { it.active }).containsNoneIn(listOf(card))
+        assertThat(vm.state.value.active).isNull()
+
+        vm.handOff.startLeft()
+        runCurrent()
+
+        assertThat(vm.state.value.active).isEqualTo(card)
+        assertThat(seen.last().active).isEqualTo(card)
+    }
 
     @Test
     fun `a second brew keeps Aufguss starten and the first card while the timer opens (D-111, D-108)`() = runTest {
