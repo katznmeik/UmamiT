@@ -324,52 +324,69 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-110"></a>
-### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists) · *Accepted* (PO, 2026-11-10, four points in the session; the details are Claude's)
+### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
 
-**Context.** After v0.5.0 the PO gave four points of feedback; they ship as
-v0.5.1 before M4.
+**Context.** After v0.5.0 the PO gave four points of feedback: Start's
+*Nochmal brühen* and *Zuletzt gebrüht* do nearly the same and should be one
+section with six teas; the tea detail's *Knapp ab* should show its current
+value; the long catalog filter sheet needs a *Fertig* that is in reach; a
+serif reads badly on a small display and needs a sans alternative that fits
+the design. Claude first implemented all four without the process (a draft
+on the working branch); the PO stopped that, and the points were then
+grilled one question at a time. CLAUDE.md rule 1 now says that feedback is
+never a go.
 
-**Decision.**
+**Decision (the PO's answers).**
 
-1. **One list on Start (SCR-02, BRW-11).** *Nochmal brühen* (three tiles)
-   and *Zuletzt gebrüht* (the last three sessions) did nearly the same.
-   Start now has one section, *Zuletzt gebrüht*: the **six** most recently
-   brewed distinct teas of the collection, each a `TeaListItem` row with its
-   last session's „8. Juni · 3 Min. · 80 °C", and *Alle anzeigen* to the
-   journal. A tap on a row is *Nochmal brühen* as before (same start, same
-   questions).
-   - *Claude:* the section keeps the name *Zuletzt gebrüht*, since *Alle
-     anzeigen* belongs to it; the rows get the chevron of a tappable row and
-     TalkBack names the tap „Nochmal brühen".
-   - *Claude:* a row shows the tea's current name and photo. A session whose
-     tea was removed no longer shows on Start (it could not be brewed
-     again); the journal keeps it (D-093 Q13).
-2. **Knapp ab shows its value (SCR-09).** The field showed nothing while the
-   tea had no threshold of its own. It now shows the value in effect: the
-   tea's own, else SET-16's in the quieter colour. Tapping the field gives
-   the empty field with the greyed placeholder as before; what is stored is
-   unchanged (empty = the global value, D-108).
-3. **Filter sheet (SCR-19).** The sheet has grown long (taste notes and
-   scales, D-108 point 8), and *Fertig* was at its end. The title row is now
-   pinned above the scrolling groups with *Fertig* at its end; *Zurücksetzen*
-   stays at the end of the list.
-4. **Display font (03 §3.2; amends D-027).** The serif Cormorant Garamond
-   reads badly on a small display. It is replaced by **Alegreya Sans** (SIL
-   OFL 1.1): a humanist sans with a calligraphic stroke that keeps the calm,
-   brush-like character of the washi design, is about as narrow as the serif
-   (so no layout changes), and has the `lnum` and `tnum` features the timer
-   digits need (the jitter test still guards them). Same weights (Light,
-   Regular, Medium), sizes and roles; body and labels stay in the system
-   sans.
-   - *Claude:* chosen from a rendered comparison with Zen Kaku Gothic New,
-     Jost and Figtree: those are wider and more geometric, and Zen Kaku
-     Gothic New has no tabular-figure feature. Changing it again is a swap
-     of the three font files and a re-record of the goldens.
+1. **One list on Start (SCR-02, BRW-11).**
+   - Q1: the merged section is called *Zuletzt gebrüht*.
+   - Q2: the six teas are six `TeaListItem` rows (not tiles).
+   - Q3: a row's second line is the tea's last brew as before: date, first
+     infusion's duration and temperature („8. Juni · 1 Min. · 65 °C").
+   - Q4: a tap on a row brews the tea again at once (BRW-11: the timer in
+     READY with the last values; „Welchen Timer beenden?" with two active
+     timers). The row has a chevron; TalkBack names the tap „Nochmal
+     brühen".
+   - Q5: *Alle anzeigen* opens the Journal, as before.
+   - Q6: teas removed from the collection (archived or deleted) are left
+     out; their sessions stay in the Journal.
+   - From the feedback itself: six teas instead of three.
+2. **Knapp ab shows its value (SCR-09).**
+   - Q7: without a value of the tea's own, the field shows the global one
+     (SET-16, e.g. „15") in the quieter secondary text colour; an own value
+     shows in the normal colour. The line „Leer lassen für die Vorgabe aus
+     den Einstellungen (15 g)" stays. Nothing is stored for the tea.
+   - Q8: a tap empties the field, with the greyed „15" as its placeholder;
+     typing sets the tea's own value, and left empty the field shows the
+     global value again when it is left.
+3. **Filter sheet (SCR-19).** Q9: the title row stays in place above the
+   scrolling groups with a small *Fertig* at its end; *Zurücksetzen* stays
+   at the end of the list.
+4. **Display font (03 §3.2; amends D-027).**
+   - Q10: **Alegreya Sans** (SIL OFL 1.1) replaces Cormorant Garamond,
+     chosen by the PO from a rendered comparison with Zen Kaku Gothic New,
+     Jost and Figtree. The final judgement is on the phone with the rc.
+   - Q11: body text and labels stay in the system sans.
+   - Q12: the timer digits become Alegreya Sans Light, with tabular figures.
+5. **Release.** Q13: its own release **v0.5.1** before M4 (which stays
+   v0.6.0).
 
-**Consequences.** No schema, timer or network change. Every screenshot
-golden is re-recorded for the font. The mockups (`docs/design/mockup-v2-*`)
-still show the serif and the two Start sections; 03 §1's review notes say
-which wins.
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- A row shows the tea's current name and cover photo (not the session's
+  snapshot name), since it stands for the tea to brew.
+- „Most recently brewed" is by a tea's last finished session, among the last
+  50 sessions, as *Nochmal brühen* did (D-062).
+- The quieter colour of Q7 is `onSurfaceVariant`.
+- The font keeps the weights (Light, Regular, Medium), sizes, roles and the
+  Latin subset of D-027's font; `lnum` on titles and `lnum, tnum` on the
+  timer digits, guarded by the existing jitter test. The About screen's
+  licence line and `CREDITS.md` name the new font.
+- No schema, timer-logic or network change, so the accuracy run is needed
+  only before the final release (09 §4a).
+- Every screenshot golden is re-recorded for the font. The mockups
+  (`docs/design/mockup-v2-*`) still show the serif and the two Start
+  sections; 03 §1's review notes say which wins.
 
 <a id="d-109"></a>
 ### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)

@@ -5,30 +5,29 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1 is in the grilling phase** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1 is specified (D-110) and waits for the PO's go on its tickets** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): grilling phase
+## Feedback round v0.5.1 (in progress): specified, waiting for the PO's go on the tickets
 
 The PO gave four points of feedback on v0.5.0 on 2026-11-10 (Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
-a sans in place of the serif font). **Phase: grilling round** (questions to
-the PO one at a time as selectable options). Then to-spec (specs and D-110
-from the PO's answers), tickets, `/implement-spec` with delegation by tier
-(CLAUDE.md rule 1).
+a sans in place of the serif font).
 
-- **Branch `claude/modest-ptolemy-86vgji` holds an unapproved draft** (WIP
-  commit `feat: v0.5.1 feedback round …`): Claude implemented all four
-  points and wrote specs, D-110 and `umamit.version=0.5.1-rc.1` without the
-  process. Nothing in it is decided. Its D-110 says „Accepted (PO)" for
-  details the PO never saw; that is wrong and is rewritten in to-spec.
-- After the grilling: tell the PO which parts of the draft match the
-  answers and can be reused, and revert the spec, D-110 and version changes
-  that pre-empt decisions.
-- No PR, no release, no goldens re-recorded. Whether this ships as v0.5.1
-  before M4 or with M4 is one of the grilling questions.
-- Font comparison render for the PO: produced in the session (Cormorant
-  Garamond, Alegreya Sans, Zen Kaku Gothic New, Jost, Figtree); not in the
-  repository.
+- **Grilling: done** (Q1–Q13, 2026-11-10). **To-spec: done**: D-110 holds
+  the PO's answers, with Claude's unasked details marked as such; 02 BRW-11,
+  03 (§1, §3.2, SCR-02, SCR-09, SCR-19), 09 (§2, §4 v0.5.1) and 11 follow
+  it. It ships as **v0.5.1 before M4**.
+- **Next:** the spec issue and tickets, then the PO starts
+  `/implement-spec` (delegation by tier; CLAUDE.md rule 1). Nothing is
+  built before that.
+- **Branch `claude/modest-ptolemy-86vgji` holds an unapproved code draft**
+  (in the WIP commit `75e4198b`): Claude implemented all four points
+  without the process. Its behaviour matches the PO's later answers, but it
+  was not delegated, not reviewed, and its goldens are not re-recorded. The
+  PO decides whether the implementers start from it or from `main`'s code.
+  The version is back at `0.5.0`.
+- No PR, no release. Font comparison render: shown to the PO in the session
+  (not in the repository).
 
 ## Phase
 
@@ -40,7 +39,7 @@ from the PO's answers), tickets, `/implement-spec` with delegation by tier
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none |
 | Latest APK | [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
-| Decision numbers | Up to **D-109** used; the next free is **D-110** |
+| Decision numbers | Up to **D-110** used; the next free is **D-111** |
 
 ## Working agreements in effect
 
