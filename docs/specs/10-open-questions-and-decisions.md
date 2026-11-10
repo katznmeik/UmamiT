@@ -324,6 +324,42 @@ personal data or shop content).
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
 <a id="d-110"></a>
+### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** On `v0.5.1-rc.1` the PO saw „a different window" for a split
+second after a tap on a *Zuletzt gebrüht* row, before the timer. A read-only
+diagnosis (three investigators, one adversarial check; no device) found no
+other route: the brew starts before the navigation, so Start recomposes with
+the active brew (the card *Aufguss fortsetzen* is inserted, everything below
+jumps down, with a second timer *Aufguss starten* goes, and the shell's
+active brew bar grows in) while the timer route fades in over the kept shell
+(`fade`, 300 ms). The same happened behind v0.5.0's *Nochmal brühen* tiles;
+D-110's full-width rows made it conspicuous. The PO confirmed that this is
+what they saw.
+
+**Decision (the PO's answers).**
+1. **Start keeps still.** From an accepted *Nochmal brühen* until the timer
+   covers Start, Start keeps its layout from before the tap: no *Aufguss
+   fortsetzen* card appears, *Aufguss starten* stays, and the active brew bar
+   does not grow in. The route transition into the timer (`fade`, D-041)
+   stays as it is. (Chosen over: also animating the card's arrival; changing
+   the transition; leaving it for v0.5.1.)
+2. **Fixed now**, as a fix round on v0.5.1 with `v0.5.1-rc.2` (ticket under
+   #212).
+
+**Details (Claude).**
+- The hold is presentation only. It never delays the start, the navigation,
+  an alert, the „Welchen Timer beenden?" question or a refusal (rule 8); a
+  start that is refused, ignored or asks the question releases it at once.
+- It ends when Start is no longer on screen (the timer covers it), so on the
+  way back Start is already laid out with the card and the bar; if the timer
+  never opens, it ends by itself after a short time (Claude: about 1 s).
+- No timer code changes (`core:timer`, the controller, the timer route); the
+  implementer is still T3, because the change sits on the brew-start
+  hand-off.
+- Not part of this: the same hand-off from the setup, the picker or the
+  Journal, which leave from other screens.
+
 ### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists, and D-096's Start note) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
 
 **Context.** After v0.5.0 the PO gave four points of feedback: Start's

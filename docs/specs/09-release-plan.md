@@ -306,6 +306,7 @@ v0.5.0 changes timer code throughout, so every `v0.5.0-rc.N` needs a PASS of
 - [ ] Start shows one section *Zuletzt gebrüht* with up to six different teas, the tea brewed last on top, each with its last brew („8. Juni · 3 Min. · 80 °C"); no *Nochmal brühen* tiles. A tap on a row opens the timer in READY with that tea's last values; *Alle anzeigen* opens the Journal.
 - [ ] Tea detail › VORRAT › *Knapp ab*: a tea without a value of its own shows the global „15" in the field; after typing 30 and *Fertig* it shows 30; emptied and *Fertig*, it shows 15 again.
 - [ ] Katalog › *Filter*: *Fertig* sits beside the title and stays visible while scrolling through the groups; it closes the sheet from anywhere. *Zurücksetzen* is at the end of the list.
+- [ ] From `v0.5.1-rc.2` (D-111): a tap on a *Zuletzt gebrüht* row fades straight into the timer; Start does not rearrange under it (no *Aufguss fortsetzen* card popping in, no brew bar growing in). Back on Start, the card and the bar are there.
 
 ### M4 — Journal & statistics
 

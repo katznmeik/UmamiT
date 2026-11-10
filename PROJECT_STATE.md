@@ -82,7 +82,7 @@ a sans in place of the serif font. Spec issue #212, plan
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **#219** (draft): v0.5.1 milestone PR |
 | Latest APK | rc [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1) (pre-release, 50101, from `06cf4ea8`, certificate verified); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
-| Decision numbers | Up to **D-110** used; the next free is **D-111** |
+| Decision numbers | Up to **D-111** used; the next free is **D-112** |
 
 ## Working agreements in effect
 

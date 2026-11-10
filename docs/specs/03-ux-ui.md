@@ -518,6 +518,13 @@ romanisation with macrons (Kōridashi) where standard. Examples:
   v0.5.0 Start had two sections for this: three round tiles *Nochmal
   brühen* and the last three sessions under *Zuletzt gebrüht*, whose rows
   did nothing. Below, „*Nochmal brühen*" means the tap on such a row.
+- **Start holds still on the way to the timer (v0.5.1, D-111).** From an
+  accepted *Nochmal brühen* until the timer covers Start, Start keeps its
+  layout from before the tap: the *Aufguss fortsetzen* card does not appear,
+  *Aufguss starten* stays, and the active brew bar does not grow in under the
+  timer's fade (§3.6). The hold is presentation only: an alert, the question
+  „Welchen Timer beenden?" and a refused start show at once. Back on Start,
+  the card and the bar are there.
 - Reliability banner (TMR-31) at top when needed.
 - Active session replaces the card with *Aufguss fortsetzen* + live countdown.
   Only a brew session does (v0.3.0, D-098): a quick timer alone leaves
