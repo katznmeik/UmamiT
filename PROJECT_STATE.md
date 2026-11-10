@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1 is built, reviewed and fixed (D-110; tickets #213–#216 on draft PR #219); the rc `v0.5.1-rc.1` is next** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1) is out (D-110; draft PR #219); waiting on the PO's checklist and design review** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): reviewed and fixed, the rc is next
+## Feedback round v0.5.1 (in progress): rc.1 out, waiting on the PO
 
 The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
@@ -48,20 +48,27 @@ a sans in place of the serif font. Spec issue #212, plan
     checkManifestPermissions, testDebugUnitTest, lint, verifyRoborazziDebug,
     assembleDebugAndroidTest). A fresh container needs the Robolectric SDK 35
     jar fetched first (`v0.4.0-resume.md` §3).
-- **Next phase (fresh session, Sonnet `medium` is enough): the rc** (#217,
-  second part):
-  1. Check CI on PR #219 for the head of the PR branch.
-  2. `umamit.version=0.5.1-rc.1` in `gradle.properties`.
-  3. Design review renders (light and dark, placeholder images only) in
-     `docs/design/review/v0.5.1/` with a README: Start, tea detail *Knapp
-     ab*, the filter sheet, the font.
-  4. CI green on the rc commit; dispatch `release.yml` (`ref` the PR branch,
-     `version` `0.5.1-rc.1`); verify the pre-release and its certificate.
-  5. Update the PR body and #217; notify the PO for the checklist (09 §4
-     „v0.5.1") and the design review. Keep the PR in draft until the PO
-     approves.
-- **Then** #218 after the PO's approval (accuracy run first, 09 §4a; merge;
-  final `v0.5.1` from `main`).
+- **rc phase: done** (2026-11-10; #217, second part).
+  - Commit `06cf4ea8`: `umamit.version=0.5.1-rc.1` (versionCode 50101) and
+    the design review renders `docs/design/review/v0.5.1/` (92 renders,
+    600 px, placeholder images only; README with the points to judge).
+  - CI green on `06cf4ea8` (checks, build, emulator API 35 and 36; run
+    42832175360).
+  - Release run 42834765374: pre-release
+    [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1)
+    (APK SHA-256 `645a6184…0e6d`), certificate `a500e2c6…2f67` =
+    `signing/release-cert-sha256.txt`.
+  - PR #219's body and #217 are updated; the PR stays in draft.
+- **Waiting on the PO:** install `v0.5.1-rc.1` over `v0.5.0`, go through
+  the checklist (09 §4 „v0.5.1", also in PR #219), judge the font on the
+  phone and the design review (`docs/design/review/v0.5.1/`). Approval in a
+  session or as a PR comment; feedback goes through the process (rule 1).
+- **Next phase after the PO's explicit approval (fresh session, Sonnet
+  `medium`): #218.** Accuracy run first (09 §4a); `umamit.version=0.5.1`;
+  CI green; PR out of draft and merged with a merge commit; final `v0.5.1`
+  dispatched from `main`, certificate verified; tickets closed,
+  `docs/history.md` and this file updated; the working branch restarted
+  from `main`.
 - The branch `claude/modest-ptolemy-86vgji` is contained in the PR branch
   and no longer needed.
 
@@ -74,7 +81,7 @@ a sans in place of the serif font. Spec issue #212, plan
 | Working branch | `claude/wonderful-davinci-fu8tqi` (draft PR #219; contains `claude/modest-ptolemy-86vgji`) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | **#219** (draft): v0.5.1 milestone PR |
-| Latest APK | [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
+| Latest APK | rc [`v0.5.1-rc.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.1) (pre-release, 50101, from `06cf4ea8`, certificate verified); [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
 | Decision numbers | Up to **D-110** used; the next free is **D-111** |
 
 ## Working agreements in effect
@@ -90,6 +97,7 @@ a sans in place of the serif font. Spec issue #212, plan
 
 ## Waiting on the PO
 
+0. **v0.5.1-rc.1:** the on-device checklist (09 §4 „v0.5.1") and the design review, then the explicit approval (above).
 1. **M4 → v0.6.0:** nothing blocking; the next step is specifying M4 (e.g. `/to-spec`) when the PO wants to start.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
