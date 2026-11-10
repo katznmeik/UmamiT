@@ -15,6 +15,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -38,7 +39,8 @@ const val CATALOG_FILTER_SHEET_TAG = "catalog_filter_sheet"
  * (several each, from the catalog's own values in [listing]), aroma, umami and the chips'
  * switches, and the shop's taste notes and scales of the view (D-108 point 8). In the *Kräutertee*
  * view aroma („Pur", Q14) and umami (Q19) don't apply and are left out. *Zurücksetzen* returns to the default
- * view (D-073) of the kind shown and keeps the search.
+ * view (D-073) of the kind shown and keeps the search. The title row with *Fertig* stays in place above the
+ * scrolling groups (D-110), so the sheet closes from any scroll position; *Zurücksetzen* ends the list.
  * The caller never composes it during an alert (rule 8).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,23 @@ internal fun CatalogFilterSheet(
         modifier = Modifier.testTag(CATALOG_FILTER_SHEET_TAG),
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        // Pinned: *Fertig* is reachable wherever the list is scrolled to (D-110).
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.XSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.catalog_filter_sheet_title),
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { heading() },
+            )
+            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.catalog_filter_done)) }
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,12 +81,6 @@ internal fun CatalogFilterSheet(
                 .navigationBarsPadding()
                 .padding(start = UmamiSpacing.SideMargin, end = UmamiSpacing.SideMargin, bottom = UmamiSpacing.Large),
         ) {
-            Text(
-                text = stringResource(R.string.catalog_filter_sheet_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { heading() },
-            )
             SortGroup(filter, onFilterChange)
             ChoiceGroup(stringResource(R.string.catalog_filter_types), listing.types, filter.types) { value ->
                 onFilterChange { it.copy(types = it.types.toggle(value)) }
@@ -91,7 +104,6 @@ internal fun CatalogFilterSheet(
                 TextButton(onClick = { onFilterChange { it.resetFilters() } }) {
                     Text(stringResource(R.string.catalog_filter_reset))
                 }
-                TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.catalog_filter_done)) }
             }
         }
     }

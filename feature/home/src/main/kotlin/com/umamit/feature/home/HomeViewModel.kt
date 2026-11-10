@@ -13,6 +13,7 @@ import com.umamit.core.model.BrewSession
 import com.umamit.core.model.LowStockCard
 import com.umamit.core.model.Photo
 import com.umamit.core.model.StepKind
+import com.umamit.core.model.TeaOverview
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.controller.BrewStart
 import com.umamit.core.timer.controller.BrewStarter
@@ -47,15 +48,19 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
 
-/** A tea of *Nochmal brühen* (BRW-11) or *Favoriten*, with its cover photo file (null: the leaf placeholder). */
+/** A tea of *Favoriten*, with its cover photo file (null: the leaf placeholder). */
 data class HomeTea(val id: String, val name: String, val photoPath: String?)
 
 /**
- * A row of *Zuletzt gebrüht* (SCR-02): the `TeaListItem` meta line
- * „8. Juni · 1 Min. · 65 °C" from the start, the first brewed step's planned
- * duration and its temperature.
+ * A row of *Zuletzt gebrüht* (SCR-02, BRW-11, D-110): a tea of the collection with its last session, which a
+ * tap brews again. The `TeaListItem` meta line „8. Juni · 1 Min. · 65 °C" comes from that session's start, its
+ * first brewed step's planned duration and its temperature.
+ *
+ * @property teaId the tea to brew again.
+ * @property sessionId the tea's last session.
  */
 data class RecentBrew(
+    val teaId: String,
     val sessionId: String,
     val teaName: String,
     val photoPath: String?,
@@ -77,8 +82,10 @@ data class HomeQuestion(val timers: List<TimerToEnd>)
  *   the brew's; the active brew bar shows it. With two brew sessions the first in the slot order (`BREW`, then
  *   `BREW_2`; D-108); the bar shows both.
  * @property twoTimersActive two timers are active, the most there may be (D-108): *Aufguss starten* is hidden, and a
- *   start from *Nochmal brühen* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
+ *   start from *Zuletzt gebrüht* or the setup asks „Welchen Timer beenden?". With fewer it shows, also below the
  *   card of one active brew (v0.5.0; v0.3.0 hid it while a brew was active).
+ * @property recent *Zuletzt gebrüht*: the six most recently brewed distinct teas of the collection, each with its
+ *   last session (BRW-11, D-110; until v0.5.0 three tiles *Nochmal brühen* and the last three sessions apart).
  * @property collectionEmpty no tea to brew yet: the empty state (GEN-09).
  * @property alertKey the alert playing now, or null: nothing may cover it (rule 8).
  * @property reliabilityProblem a reliability check is missing: the banner with its message (TMR-31); null: none.
@@ -89,7 +96,6 @@ data class HomeUiState(
     val collectionEmpty: Boolean = false,
     val active: TimerUiState.Active? = null,
     val twoTimersActive: Boolean = false,
-    val brewAgain: List<HomeTea> = emptyList(),
     val recent: List<RecentBrew> = emptyList(),
     val favorites: List<HomeTea> = emptyList(),
     val question: HomeQuestion? = null,
@@ -106,7 +112,7 @@ sealed interface HomeEvent {
 
 /**
  * Start's view model (SCR-02): the collection, the recent sessions and the
- * timer's state. *Nochmal brühen* starts the tea's last session again through
+ * timer's state. *Nochmal brühen* (a tap on a tea of *Zuletzt gebrüht*) starts the tea's last session again through
  * the [BrewStarter] (BRW-11), beside one other active timer (D-108); a tea with an active session opens it, and
  * while two timers are active it asks „Welchen Timer beenden?" (TMR-21).
  */
@@ -144,19 +150,15 @@ class HomeViewModel @Inject constructor(
     ) { overviews, recentSessions, timers, question, problem ->
         val owned = overviews.filter { !it.tea.isArchived }
         val byId = owned.associateBy { it.tea.id }
-        // A session row keeps its tea's photo when the tea was removed, as in the journal (D-093 Q13).
-        val covers = overviews.associate { it.tea.id to it.coverPhoto }
-        val photoOf = { id: String -> covers[id]?.path() }
         HomeUiState(
             loading = false,
             collectionEmpty = owned.isEmpty(),
             active = timers.brew,
             twoTimersActive = timers.active >= MAX_ACTIVE_TIMERS,
-            brewAgain = recentSessions.mapNotNull { it.snapshot.teaId }.distinct()
-                .mapNotNull { byId[it] }
-                .take(SHOWN)
-                .map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
-            recent = recentSessions.take(SHOWN).map { it.toRecent(it.snapshot.teaId?.let(photoOf)) },
+            // Newest first, so a tea's first session here is its last brew; a removed tea is left out (BRW-11).
+            recent = recentSessions.distinctBy { it.snapshot.teaId }
+                .mapNotNull { session -> session.snapshot.teaId?.let(byId::get)?.let { session.toRecent(it) } }
+                .take(SHOWN),
             favorites = owned.filter {
                 it.tea.isFavorite
             }.map { HomeTea(it.tea.id, it.tea.name, it.coverPhoto?.path()) },
@@ -295,13 +297,15 @@ class HomeViewModel @Inject constructor(
     private fun Photo.path(): String? = photos.file(id).takeIf { it.isFile }?.path
 
     /** The session's ended rows only: from v0.4.0 it keeps its never-started ones too (Q-19). */
-    private fun BrewSession.toRecent(photoPath: String?): RecentBrew {
+    private fun BrewSession.toRecent(tea: TeaOverview): RecentBrew {
         val brewed = endedSteps.sortedBy { it.position }.filter { it.kind != StepKind.RINSE && !it.skipped }
         val first = brewed.firstOrNull()
         return RecentBrew(
+            teaId = tea.tea.id,
             sessionId = id,
-            teaName = snapshot.teaName,
-            photoPath = photoPath,
+            // The tea as it is called now: the row brews the tea again, the journal keeps the session's name.
+            teaName = tea.tea.name,
+            photoPath = tea.coverPhoto?.path(),
             startedAtMs = startedAtMs,
             zoneId = zoneId,
             firstStepSeconds = first?.plannedSeconds,
@@ -318,10 +322,10 @@ class HomeViewModel @Inject constructor(
     private class Started(val sessionId: String, val atElapsedMs: Long)
 
     private companion object {
-        /** *Nochmal brühen* and *Zuletzt gebrüht* show three each (SCR-02, BRW-11). */
-        const val SHOWN = 3
+        /** *Zuletzt gebrüht* shows six teas (SCR-02, BRW-11, D-110). */
+        const val SHOWN = 6
 
-        /** Enough recent sessions to find three distinct teas. */
+        /** Enough recent sessions to find six distinct teas. */
         const val RECENT_SESSIONS_WINDOW = 50
 
         /** A second tile tap this soon after a start is the same gesture, not a new brew (#54 S6). */

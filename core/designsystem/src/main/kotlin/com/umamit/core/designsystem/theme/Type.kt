@@ -14,16 +14,15 @@ import androidx.compose.ui.unit.sp
 import com.umamit.core.designsystem.R
 
 /**
- * Cormorant Garamond (OFL, D-027), bundled as Light/Regular/Medium instances of
- * the Google Fonts variable font, subset to Latin with German characters, ẞ and
- * macrons. The subset keeps the `lnum` and `tnum` features for the timer digits
- * (licence and credits: `core/designsystem/licenses/`,
- * `docs/design/assets/source/CREDITS.md`).
+ * Alegreya Sans (OFL, D-110; a humanist sans in place of the serif Cormorant Garamond of D-027, which read
+ * badly on the phone's small display), bundled as its Light/Regular/Medium static fonts, subset to Latin
+ * with German characters, ẞ and macrons. The subset keeps the `lnum` and `tnum` features for the timer
+ * digits (licence and credits: `core/designsystem/licenses/`, `docs/design/assets/source/CREDITS.md`).
  */
-val CormorantGaramond = FontFamily(
-    Font(R.font.cormorant_garamond_light, FontWeight.Light),
-    Font(R.font.cormorant_garamond_regular, FontWeight.Normal),
-    Font(R.font.cormorant_garamond_medium, FontWeight.Medium),
+val AlegreyaSans = FontFamily(
+    Font(R.font.alegreya_sans_light, FontWeight.Light),
+    Font(R.font.alegreya_sans_regular, FontWeight.Normal),
+    Font(R.font.alegreya_sans_medium, FontWeight.Medium),
 )
 
 /** Body and labels use the system sans (03 §3.2). */
@@ -40,21 +39,21 @@ private val GERMAN = LocaleList("de-DE")
 const val TIMER_DIGIT_FEATURES = "lnum, tnum"
 
 /**
- * The 03 §3.2 type scale mapped onto the Material 3 roles: serif display,
- * headline and the two larger title roles; system sans for the rest, which
- * Material components use for their labels.
+ * The 03 §3.2 type scale mapped onto the Material 3 roles: the display sans
+ * (Alegreya Sans, D-110) for display, headline and the two larger title roles;
+ * system sans for the rest, which Material components use for their labels.
  */
 val UmamiTypography = Typography(
-    displayLarge = serif(FontWeight.Light, size = 57, lineHeight = 64),
-    displayMedium = serif(FontWeight.Light, size = 45, lineHeight = 52),
-    displaySmall = serif(FontWeight.Light, size = 36, lineHeight = 44),
-    headlineLarge = serif(FontWeight.Normal, size = 32, lineHeight = 40),
+    displayLarge = display(FontWeight.Light, size = 57, lineHeight = 64),
+    displayMedium = display(FontWeight.Light, size = 45, lineHeight = 52),
+    displaySmall = display(FontWeight.Light, size = 36, lineHeight = 44),
+    headlineLarge = display(FontWeight.Normal, size = 32, lineHeight = 40),
     // „Journal", „Sammlung": 28 / 36 sp.
-    headlineMedium = serif(FontWeight.Normal, size = 28, lineHeight = 36),
-    headlineSmall = serif(FontWeight.Normal, size = 24, lineHeight = 32),
+    headlineMedium = display(FontWeight.Normal, size = 28, lineHeight = 36),
+    headlineSmall = display(FontWeight.Normal, size = 24, lineHeight = 32),
     // Tea names: 20–22 / 28 sp.
-    titleLarge = serif(FontWeight.Medium, size = 22, lineHeight = 28),
-    titleMedium = serif(FontWeight.Medium, size = 20, lineHeight = 28),
+    titleLarge = display(FontWeight.Medium, size = 22, lineHeight = 28),
+    titleMedium = display(FontWeight.Medium, size = 20, lineHeight = 28),
     titleSmall = sans(FontWeight.Medium, size = 14, lineHeight = 20),
     bodyLarge = sans(FontWeight.Normal, size = 16, lineHeight = 24),
     bodyMedium = sans(FontWeight.Normal, size = 14, lineHeight = 20),
@@ -67,9 +66,9 @@ val UmamiTypography = Typography(
 /** Text styles Material 3 has no role for, read with `UmamiTheme.textStyles`. */
 @Immutable
 data class UmamiTextStyles(
-    /** Timer digits: Cormorant Garamond Light, lining tabular figures, 72–96 sp (03 §3.2). */
+    /** Timer digits: Alegreya Sans Light, lining tabular figures, 72–96 sp (03 §3.2). */
     val timerDigits: TextStyle = TextStyle(
-        fontFamily = CormorantGaramond,
+        fontFamily = AlegreyaSans,
         fontWeight = FontWeight.Light,
         fontSize = 80.sp,
         lineHeight = 88.sp,
@@ -92,14 +91,14 @@ data class UmamiTextStyles(
 
 val LocalUmamiTextStyles = staticCompositionLocalOf { UmamiTextStyles() }
 
-private fun serif(weight: FontWeight, size: Int, lineHeight: Int) = TextStyle(
+private fun display(weight: FontWeight, size: Int, lineHeight: Int) = TextStyle(
     localeList = GERMAN,
     hyphens = Hyphens.Auto,
-    fontFamily = CormorantGaramond,
+    fontFamily = AlegreyaSans,
     fontWeight = weight,
     fontSize = size.sp,
     lineHeight = lineHeight.sp,
-    // Old-style figures would bob in titles next to sans numbers; keep them lining.
+    // The default figures are old-style and would bob in titles next to the system sans numbers; keep them lining.
     fontFeatureSettings = "lnum",
 )
 

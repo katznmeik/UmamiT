@@ -2,11 +2,8 @@ package com.umamit.feature.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,18 +21,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.umamit.core.designsystem.component.ChooseTimerToEndDialog
 import com.umamit.core.designsystem.component.EmptyState
@@ -48,7 +40,6 @@ import com.umamit.core.designsystem.component.TeaListItem
 import com.umamit.core.designsystem.component.TimerChoice
 import com.umamit.core.designsystem.icon.UmamiIcons
 import com.umamit.core.designsystem.text.clockText
-import com.umamit.core.designsystem.theme.UmamiShape
 import com.umamit.core.designsystem.theme.UmamiSpacing
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TimerPhase
@@ -65,11 +56,14 @@ import java.util.Locale
 internal const val HOME_ACTIVE_CARD_TAG = "home_active_card"
 internal const val HOME_HEADER_HEIGHT_DP = 120
 
+/** The row of the tea [teaId] under *Zuletzt gebrüht*; its tap brews the tea again (BRW-11). */
+fun homeRecentTag(teaId: String): String = "home_recent_$teaId"
+
 /**
  * Start (SCR-02): the header illustration, *Aufguss fortsetzen* with a live
  * countdown while a brew is active (GEN-06), *Aufguss starten* while fewer than
  * two timers are active (D-108),
- * *Schnelltimer*, *Nochmal brühen*, *Zuletzt gebrüht* and *Favoriten*; with
+ * *Schnelltimer*, *Zuletzt gebrüht* (six teas, a tap brews one again; BRW-11, D-110) and *Favoriten*; with
  * an empty collection the calm empty state (GEN-09). The second-session
  * question never covers an alert: the view model closes it when one starts.
  *
@@ -104,7 +98,7 @@ fun HomeScreen(
                 )
             }
             // The empty state brings its own landscape; one is enough.
-            val empty = state.collectionEmpty && state.brewAgain.isEmpty() && state.recent.isEmpty()
+            val empty = state.collectionEmpty
             if (!empty) Header()
             BrewCards(state, nowElapsedMs, actions)
             QuickTimerEntry(actions.quickTimer)
@@ -167,11 +161,9 @@ private fun BrewCards(state: HomeUiState, nowElapsedMs: () -> Long, actions: Hom
 
 @Composable
 private fun Lists(state: HomeUiState, actions: HomeActions) = Column(modifier = Modifier.fillMaxWidth()) {
-    if (state.brewAgain.isNotEmpty()) {
-        SectionHeader(stringResource(R.string.home_brew_again), Modifier.padding(top = UmamiSpacing.Large))
-        BrewAgainRow(state.brewAgain, actions.brewAgain)
-    }
+    // One list for both (D-110): the last brews, and a tap brews the tea again (BRW-11).
     if (state.recent.isNotEmpty()) {
+        val brewAgain = stringResource(R.string.home_brew_again)
         SectionHeader(
             stringResource(R.string.home_recent),
             Modifier.padding(top = UmamiSpacing.Large),
@@ -181,6 +173,9 @@ private fun Lists(state: HomeUiState, actions: HomeActions) = Column(modifier = 
             TeaListItem(
                 title = brew.teaName,
                 meta = recentMeta(brew),
+                modifier = Modifier.testTag(homeRecentTag(brew.teaId)),
+                onClick = { actions.brewAgain(brew.teaId) },
+                onClickLabel = brewAgain,
                 thumbnail = rememberPhotoPainter(brew.photoPath),
                 showDivider = i < state.recent.lastIndex,
             )
@@ -282,75 +277,6 @@ private fun QuickTimerEntry(onClick: () -> Unit) {
         Icon(painterResource(UmamiIcons.Timer), contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(UmamiSpacing.XSmall))
         Text(stringResource(R.string.home_quick_timer), style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-private val TileSize = 72.dp
-
-/** *Nochmal brühen*: up to three round tea tiles; one tap opens the timer in READY (BRW-11). */
-@Composable
-private fun BrewAgainRow(teas: List<HomeTea>, onBrewAgain: (String) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = UmamiSpacing.SideMargin, vertical = UmamiSpacing.XSmall),
-        horizontalArrangement = Arrangement.spacedBy(UmamiSpacing.Small),
-    ) {
-        teas.forEach { tea ->
-            val description = stringResource(R.string.home_brew_again_description, tea.name)
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(UmamiShape.Card)
-                    .clickable(role = Role.Button) { onBrewAgain(tea.id) }
-                    .semantics(mergeDescendants = true) { contentDescription = description }
-                    .padding(vertical = UmamiSpacing.XSmall),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                TeaTile(tea.photoPath)
-                Spacer(Modifier.height(UmamiSpacing.XSmall))
-                Text(
-                    text = tea.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    maxLines = TILE_NAME_MAX_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        // Keep the tiles their size when fewer than three teas were brewed.
-        repeat(BREW_AGAIN_SLOTS - teas.size) { Spacer(Modifier.weight(1f)) }
-    }
-}
-
-private const val BREW_AGAIN_SLOTS = 3
-private const val TILE_NAME_MAX_LINES = 3
-private const val TILE_PLACEHOLDER_ALPHA = 0.22f
-
-@Composable
-private fun TeaTile(photoPath: String?) {
-    val painter = rememberPhotoPainter(photoPath)
-    val leaf = UmamiTheme.extendedColors.teaTypes.sencha
-    if (painter != null) {
-        Image(
-            painter = painter,
-            contentDescription = null,
-            modifier = Modifier
-                .size(TileSize)
-                .clip(UmamiShape.Thumbnail),
-            contentScale = ContentScale.Crop,
-        )
-    } else {
-        Box(
-            modifier = Modifier
-                .size(TileSize)
-                .clip(UmamiShape.Thumbnail)
-                .background(leaf.copy(alpha = TILE_PLACEHOLDER_ALPHA)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(painterResource(UmamiIcons.Leaf), contentDescription = null, tint = leaf)
-        }
     }
 }
 

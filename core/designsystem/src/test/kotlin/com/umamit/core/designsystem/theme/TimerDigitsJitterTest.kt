@@ -62,13 +62,13 @@ class TimerDigitsJitterTest {
     }
 
     /**
-     * Guards the test above: Cormorant Garamond's default figures are proportional,
+     * Guards the test above: Alegreya Sans's default figures are proportional,
      * so without `tnum` the widths differ. If this fails, the bundled font was not
      * used (the system fallback has tabular figures anyway) and the test above
      * would prove nothing.
      */
     @Test
-    fun `without the tabular figure feature the bundled serif digits would jitter`() {
+    fun `without the tabular figure feature the bundled font's digits would jitter`() {
         val widths = measuredWidths { UmamiTheme.textStyles.timerDigits.copy(fontFeatureSettings = null) }
 
         widths.forEach { (shape, values) ->

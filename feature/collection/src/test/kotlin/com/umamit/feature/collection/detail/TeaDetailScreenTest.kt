@@ -382,14 +382,19 @@ class TeaDetailScreenTest {
         show()
         val field = compose.onNodeWithTag(TEA_DETAIL_STOCK_THRESHOLD_TAG).performScrollTo()
         compose.onNodeWithText("Vorgabe aus den Einstellungen (15 g)", substring = true).assertExists()
+        // The value in effect shows in the field (D-110), and gives way to the input.
+        field.assert(hasText("15"))
 
         field.performTextInput("25")
+        field.assert(hasText("25"))
         assertThat(calls).isEmpty() // nothing per keystroke: „2" is never written
         field.performImeAction()
         field.performTextClearance()
         field.performImeAction()
 
         assertThat(calls).containsExactly("threshold:25", "threshold:null").inOrder()
+        // *Fertig* left the field: emptied, it shows the global threshold again.
+        field.assert(hasText("15"))
     }
 
     @Test

@@ -49,7 +49,8 @@ private const val TITLE_MAX_LINES = 2
  * A tea row (03 §3.8): 48 dp round thumbnail, serif title, meta line
  * („8. Juni · 3 Min. · 80 °C"), trailing „★ 4,5", hairline divider. Without a
  * [thumbnail], a leaf in the tea type's [placeholderColor] stands in (03 §3.5).
- * TalkBack reads the row as one item; with [onClick] it is a button with a chevron. [subtitle]
+ * TalkBack reads the row as one item; with [onClick] it is a button with a chevron, whose action TalkBack names
+ * with [onClickLabel] (e.g. Start's *Nochmal brühen*, BRW-11). [subtitle]
  * is one line under the title, cut off when longer (e.g. a catalog tea's secondary name, CAT-10).
  * [badges] are chips below the meta line, wrapping when they don't fit (e.g. the catalog's „Neu",
  * Bio, „im Besitz" and [CheckRecipeBadge]; SCR-19, CAT-10).
@@ -74,6 +75,7 @@ fun TeaListItem(
     onLongClickLabel: String? = null,
     customActions: List<CustomAccessibilityAction> = emptyList(),
     trailing: (@Composable () -> Unit)? = null,
+    onClickLabel: String? = null,
 ) {
     Column(modifier = modifier) {
         Row(
@@ -83,10 +85,11 @@ fun TeaListItem(
                         onLongClick != null -> Modifier.combinedClickable(
                             onLongClickLabel = onLongClickLabel,
                             onLongClick = onLongClick,
+                            onClickLabel = onClickLabel,
                             onClick = onClick ?: {},
                         )
 
-                        onClick != null -> Modifier.clickable(onClick = onClick)
+                        onClick != null -> Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick)
 
                         else -> Modifier
                     },

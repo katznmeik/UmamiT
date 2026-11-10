@@ -147,22 +147,27 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `Nochmal bruehen shows the three most recently brewed distinct teas, Zuletzt the last three sessions`() =
+    fun `Zuletzt gebrueht shows the six most recently brewed distinct teas, each with its last session (D-110)`() =
         runTest {
             seed()
-            collection.teas.saveTea(SeedData.hisui.copy(id = "third", name = "Gyokuro"))
-            collection.teas.saveTea(SeedData.hisui.copy(id = "fourth", name = "Bancha"))
-            brewed("s1", "fourth", "Bancha", at = 1_000, 60)
-            brewed("s2", "third", "Gyokuro", at = 2_000, 90)
+            // Seven teas brewed, oldest first: the oldest of them is not shown.
+            (1..5).forEach { n ->
+                collection.teas.saveTea(SeedData.hisui.copy(id = "tea$n", name = "Tee $n"))
+                brewed("old$n", "tea$n", "Tee $n", at = n * 100L, 90)
+            }
             brewed("s3", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 3_000, 45, 10)
             brewed("s4", SeedData.HISUI_TEA_ID, "Bio Sencha Hisui", at = 4_000, 60, 10, 10)
             brewed("s5", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 5_000, 45)
 
             val state = viewModel().state.value
 
-            assertThat(state.brewAgain.map { it.name })
-                .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui", "Gyokuro").inOrder()
-            assertThat(state.recent.map { it.sessionId }).containsExactly("s5", "s4", "s3").inOrder()
+            assertThat(state.recent.map { it.teaName })
+                .containsExactly("Bio Sencha Tanabata", "Bio Sencha Hisui", "Tee 5", "Tee 4", "Tee 3", "Tee 2")
+                .inOrder()
+            // A tea brewed twice shows once, with its last session.
+            assertThat(state.recent.map { it.sessionId })
+                .containsExactly("s5", "s4", "old5", "old4", "old3", "old2").inOrder()
+            assertThat(state.recent[0].teaId).isEqualTo(SeedData.TANABATA_TEA_ID)
             assertThat(state.recent[1].infusions).isEqualTo(3)
             assertThat(state.recent[1].firstStepSeconds).isEqualTo(60)
             assertThat(state.recent[1].tempC).isEqualTo(65)
@@ -175,20 +180,19 @@ class HomeViewModelTest {
         brewed("s2", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 2_000, 45)
         collection.teas.saveTea(SeedData.tanabata.copy(isArchived = true))
 
-        assertThat(viewModel().state.value.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+        assertThat(viewModel().state.value.recent.map { it.teaId }).containsExactly(SeedData.HISUI_TEA_ID)
     }
 
     @Test
-    fun `a removed tea keeps its name and photo under Zuletzt gebrueht, like the journal (D-093 Q13)`() = runTest {
+    fun `a removed tea leaves Zuletzt gebrueht, a kept one shows its cover photo (BRW-11, D-110)`() = runTest {
         seed()
         val photos = PhotoFiles(folder.newFolder("photos"))
         photos.write("cover", byteArrayOf(1, 2, 3))
         collection.teas.savePhoto(Photo("cover", PhotoOwner.OfTea(SeedData.TANABATA_TEA_ID), PhotoOrigin.OWN, 1, 1, 3))
         collection.teas.setCoverPhoto(SeedData.TANABATA_TEA_ID, "cover")
         brewed("s1", SeedData.TANABATA_TEA_ID, "Bio Sencha Tanabata", at = 1_000, 45)
-        collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
 
-        val state = HomeViewModel(
+        val home = HomeViewModel(
             collection.teas,
             sessions.sessions,
             starter,
@@ -196,11 +200,15 @@ class HomeViewModelTest {
             photos,
             reliability,
             lowStock,
-        ).state.value
+        )
 
-        assertThat(state.brewAgain).isEmpty()
-        assertThat(state.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
-        assertThat(state.recent.single().photoPath).isEqualTo(photos.file("cover").path)
+        assertThat(home.state.value.recent.single().teaName).isEqualTo("Bio Sencha Tanabata")
+        assertThat(home.state.value.recent.single().photoPath).isEqualTo(photos.file("cover").path)
+
+        // Removed, the tea cannot be brewed again from Start; the journal keeps its sessions (D-093 Q13).
+        collection.teas.saveTea(collection.teas.getTea(SeedData.TANABATA_TEA_ID)!!.copy(isArchived = true))
+
+        assertThat(home.state.value.recent).isEmpty()
     }
 
     @Test
@@ -529,7 +537,7 @@ class HomeViewModelTest {
 
         // No brew replaces the card: the bar shows the quick timer.
         assertThat(state.active).isNull()
-        assertThat(state.brewAgain.map { it.id }).containsExactly(SeedData.HISUI_TEA_ID)
+        assertThat(state.recent.map { it.teaId }).containsExactly(SeedData.HISUI_TEA_ID)
     }
 
     @Test

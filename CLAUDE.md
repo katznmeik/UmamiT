@@ -107,7 +107,7 @@ commit and push.
 | SDK | min 35, target/compile 36 |
 | Stack | Kotlin 2, Compose, Material 3, Room, DataStore, Hilt, WorkManager, OkHttp, Jsoup, Coil 3 |
 | Navigation | Start · Journal · Sammlung (Meine Tees / Katalog) · Statistik |
-| Design | `docs/design/mockup-v2-*.png` (current), serif Cormorant Garamond, washi/matcha palette (`docs/specs/03-ux-ui.md`) |
+| Design | `docs/design/mockup-v2-*.png` (current), display sans Alegreya Sans (D-110; the mockups still show the earlier serif), washi/matcha palette (`docs/specs/03-ux-ui.md`) |
 | Images to produce | `docs/design/assets.md` |
 | Milestones | M0 specs → M1 timer → M2 catalog → M3 collection → M4 journal & stats → M5 1.0 |
 | Current plan | `docs/plans/` (e.g. `M1-timer.md`) |

@@ -10,9 +10,9 @@
     <string name="home_start_brew_subtitle">Tee wählen und los</string>
     <string name="home_continue_brew">Aufguss fortsetzen</string>
     <string name="home_quick_timer">Schnelltimer</string>
-    <string name="home_brew_again">Nochmal brühen</string>
-    <string name="home_brew_again_description">Nochmal brühen: %1$s</string>
+    <!-- Zuletzt gebrüht (D-110): six teas with their last brew. TalkBack names a row's tap „Nochmal brühen" (BRW-11). -->
     <string name="home_recent">Zuletzt gebrüht</string>
+    <string name="home_brew_again">Nochmal brühen</string>
     <string name="home_favorites">Favoriten</string>
     <string name="home_recent_meta">%1$s · %2$s · %3$d\u00A0°C</string>
     <string name="home_recent_meta_no_temperature">%1$s · %2$s</string>

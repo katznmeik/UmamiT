@@ -882,8 +882,11 @@ brühen* (→ setup prefilled, BRW-06, v0.4.0), and Home
 *Nochmal brühen* (→ **directly to the timer**, BRW-11).
 
 **BRW-11 — One-tap brew again** `Must`
-Home *Nochmal brühen* shows the **3 most recently brewed distinct teas**
-(non-archived). Tapping one starts a session immediately and opens the timer
+Home *Zuletzt gebrüht* shows the **6 most recently brewed distinct teas**
+(non-archived), each with its last session's date, first-step duration and
+temperature (v0.5.1, D-110; until v0.5.0 three tiles under *Nochmal brühen*
+and, apart from them, the last three sessions). Tapping one (*Nochmal
+brühen*) starts a session immediately and opens the timer
 in READY with the parameters of that tea's last session (recipe, vessel, leaf,
 water, temperatures, step durations as planned). A session finished early
 starts again with its started steps only (D-062), though from v0.4.0 it keeps

@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +31,7 @@ import com.umamit.feature.brew.timer.TimerScreen
 import com.umamit.feature.home.HomeActions
 import com.umamit.feature.home.HomeRoute
 import com.umamit.feature.home.HomeViewModel
+import com.umamit.feature.home.homeRecentTag
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -121,8 +122,8 @@ class BrewAgainFlowTest {
             }
         }
 
-        // Tap 1: the tea under *Nochmal brühen*.
-        compose.onNodeWithContentDescription("Nochmal brühen: Bio Sencha Hisui").performClick()
+        // Tap 1: the tea under *Zuletzt gebrüht* (D-110).
+        compose.onNodeWithTag(homeRecentTag(SeedData.HISUI_TEA_ID)).performClick()
         compose.waitForIdle()
 
         val ready = starter.state.value as TimerUiState.Active

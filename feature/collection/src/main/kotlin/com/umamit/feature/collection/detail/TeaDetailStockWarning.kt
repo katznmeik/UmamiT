@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,7 +40,8 @@ import com.umamit.feature.collection.R
 
 /**
  * *Warnung* (one row, one switch: TalkBack reads „Warnung", its detail and its state) and *Knapp ab*: the tea's own
- * threshold in whole grams, empty for SET-16's, which the field's hint names. The input is written when it is done
+ * threshold in whole grams, empty for SET-16's, which the field then shows as its value (D-110) and its hint names.
+ * The input is written when it is done
  * (*Fertig*, the field losing focus or the detail closing), and only a valid one (empty, or 1–500 g); anything else
  * says so at the field and keeps the stored value (D-108). Both stay while the
  * warning is off: the threshold still sets *Knapp* (INV-05) and the setup's marker (BRW-08).
@@ -96,6 +98,8 @@ private fun WarningRow(on: Boolean, onWarning: (Boolean) -> Unit) {
 /**
  * *Knapp ab*: whole grams, written once the input is done and only when valid, so „12" never stores „1" on the way
  * and a final „600" keeps the stored value, not the „60" typed before it (D-108); anything else said at the field.
+ * The field always shows the value in effect (D-110): without one of the tea's own, SET-16's in the quieter
+ * colour while the field is not being edited; in the field it is the greyed placeholder, as before.
  */
 @Composable
 private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
@@ -103,6 +107,9 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     // The input not yet written: set by a keystroke, cleared once it is committed.
     var pending by rememberSaveable(tea.id) { mutableStateOf(false) }
     val invalid = text.isNotEmpty() && text.toIntOrNull() !in Tea.OWN_LOW_STOCK_GRAMS
+    var focused by remember { mutableStateOf(false) }
+    // No threshold of its own: the global one is the value in effect.
+    val showsGlobal = text.isEmpty() && !focused
     val focus = LocalFocusManager.current
     val commit by rememberUpdatedState {
         if (pending) {
@@ -117,7 +124,7 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
     }
     DisposableEffect(Unit) { onDispose { commit() } }
     OutlinedTextField(
-        value = text,
+        value = if (showsGlobal) tea.globalLowStockGrams.toString() else text,
         onValueChange = { typed ->
             val digits = typed.filter(Char::isDigit).take(THRESHOLD_DIGITS)
             if (digits != text) {
@@ -128,7 +135,10 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = UmamiSpacing.XSmall)
-            .onFocusChanged { if (!it.isFocused) commit() }
+            .onFocusChanged {
+                focused = it.isFocused
+                if (!it.isFocused) commit()
+            }
             .testTag(TEA_DETAIL_STOCK_THRESHOLD_TAG),
         label = { Text(stringResource(R.string.collection_tea_stock_threshold)) },
         placeholder = { Text(tea.globalLowStockGrams.toString()) },
@@ -144,6 +154,9 @@ private fun ThresholdField(tea: TeaDetail, onThreshold: (grams: Int?) -> Unit) {
         },
         isError = invalid,
         singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedTextColor = with(MaterialTheme.colorScheme) { if (showsGlobal) onSurfaceVariant else onSurface },
+        ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(
             onDone = {

@@ -323,6 +323,54 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
+<a id="d-110"></a>
+### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists) · *Accepted* (PO, 2026-11-10, four points in the session; the details are Claude's)
+
+**Context.** After v0.5.0 the PO gave four points of feedback; they ship as
+v0.5.1 before M4.
+
+**Decision.**
+
+1. **One list on Start (SCR-02, BRW-11).** *Nochmal brühen* (three tiles)
+   and *Zuletzt gebrüht* (the last three sessions) did nearly the same.
+   Start now has one section, *Zuletzt gebrüht*: the **six** most recently
+   brewed distinct teas of the collection, each a `TeaListItem` row with its
+   last session's „8. Juni · 3 Min. · 80 °C", and *Alle anzeigen* to the
+   journal. A tap on a row is *Nochmal brühen* as before (same start, same
+   questions).
+   - *Claude:* the section keeps the name *Zuletzt gebrüht*, since *Alle
+     anzeigen* belongs to it; the rows get the chevron of a tappable row and
+     TalkBack names the tap „Nochmal brühen".
+   - *Claude:* a row shows the tea's current name and photo. A session whose
+     tea was removed no longer shows on Start (it could not be brewed
+     again); the journal keeps it (D-093 Q13).
+2. **Knapp ab shows its value (SCR-09).** The field showed nothing while the
+   tea had no threshold of its own. It now shows the value in effect: the
+   tea's own, else SET-16's in the quieter colour. Tapping the field gives
+   the empty field with the greyed placeholder as before; what is stored is
+   unchanged (empty = the global value, D-108).
+3. **Filter sheet (SCR-19).** The sheet has grown long (taste notes and
+   scales, D-108 point 8), and *Fertig* was at its end. The title row is now
+   pinned above the scrolling groups with *Fertig* at its end; *Zurücksetzen*
+   stays at the end of the list.
+4. **Display font (03 §3.2; amends D-027).** The serif Cormorant Garamond
+   reads badly on a small display. It is replaced by **Alegreya Sans** (SIL
+   OFL 1.1): a humanist sans with a calligraphic stroke that keeps the calm,
+   brush-like character of the washi design, is about as narrow as the serif
+   (so no layout changes), and has the `lnum` and `tnum` features the timer
+   digits need (the jitter test still guards them). Same weights (Light,
+   Regular, Medium), sizes and roles; body and labels stay in the system
+   sans.
+   - *Claude:* chosen from a rendered comparison with Zen Kaku Gothic New,
+     Jost and Figtree: those are wider and more geometric, and Zen Kaku
+     Gothic New has no tabular-figure feature. Changing it again is a swap
+     of the three font files and a re-record of the goldens.
+
+**Consequences.** No schema, timer or network change. Every screenshot
+golden is re-recorded for the font. The mockups (`docs/design/mockup-v2-*`)
+still show the serif and the two Start sections; 03 §1's review notes say
+which wins.
+
 <a id="d-109"></a>
 ### D-109 — A held alarm rings once the other alarm's sound has ended (TMR-22 AC4, 04 §9.3; amends D-098 point 2 and D-108 point 3) · *Accepted* (PO, 2026-11-09, from the v0.5.0 T4 review)
 
@@ -6529,6 +6577,7 @@ T4 Opus `high`; `xhigh` only with the PO's OK.
 ### D-027 — Application ID and display font · *Accepted* (PO, 2026-10-21)
 
 Application ID `com.umamit.app`; serif display font Cormorant Garamond (OFL).
+The font was replaced by the sans Alegreya Sans in v0.5.1 (D-110).
 
 <a id="d-028"></a>
 ### D-028 — No smartwatch support · *Accepted* (PO, 2026-10-21)
@@ -6540,6 +6589,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-10 | D-110: PO feedback after v0.5.0 → v0.5.1: Start's *Nochmal brühen* and *Zuletzt gebrüht* become one section of six teas whose rows brew again; *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* is pinned beside the title; the display font becomes Alegreya Sans in place of Cormorant Garamond (amends D-027). 02 BRW-11, 03 §1, §3.2, SCR-02, SCR-09, SCR-19, 09 and 11 updated. |
 | 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |
 | 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |
 | 2026-11-08 | D-107: v0.4.1 review and fix round: a purchase restores an archived tea; the first package stays a deletable *Kauf*; the reset stays offered in every state; „Vorrat" stays; the opening date only in FRISCHE. Review fixes: guarded „Gespeichert" sheet, 40 MB photo cap with out-of-memory as unreadable, persistable vessel grant, reset rollback on refusal, price 0 refused, motion S1–S5, N2, N3. |

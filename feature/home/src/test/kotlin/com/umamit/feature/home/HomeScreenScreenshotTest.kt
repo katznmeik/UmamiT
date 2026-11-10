@@ -54,14 +54,14 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
 
         val seeded = HomeUiState(
             loading = false,
-            brewAgain = listOf(
-                HomeTea("h", "Bio Sencha Hisui", null),
-                HomeTea("t", "Bio Sencha Tanabata", null),
-            ),
+            // Invented teas besides the two seed teas (D-016): six rows, the most *Zuletzt gebrüht* shows (D-110).
             recent = listOf(
-                RecentBrew("s3", "Bio Sencha Hisui", null, OCT_21, "Europe/Berlin", 60, 65, 3),
-                RecentBrew("s2", "Bio Sencha Tanabata", null, OCT_21 - DAY_MS, "Europe/Berlin", 45, 65, 3),
-                RecentBrew("s1", "Bio Sencha Hisui", null, OCT_21 - 2 * DAY_MS, "Europe/Berlin", 14_400, 5, 1),
+                RecentBrew("h", "s6", "Bio Sencha Hisui", null, OCT_21, "Europe/Berlin", 60, 65, 3),
+                RecentBrew("t", "s5", "Bio Sencha Tanabata", null, OCT_21 - DAY_MS, "Europe/Berlin", 45, 65, 3),
+                RecentBrew("k", "s4", "Kabuse Morgennebel", null, OCT_21 - 2 * DAY_MS, "Europe/Berlin", 14_400, 5, 1),
+                RecentBrew("g", "s3", "Gyokuro Schattenhain", null, OCT_21 - 3 * DAY_MS, "Europe/Berlin", 120, 50, 3),
+                RecentBrew("b", "s2", "Bancha Herbstlaub", null, OCT_21 - 5 * DAY_MS, "Europe/Berlin", 30, 80, 2),
+                RecentBrew("m", "s1", "Kukicha Mondstängel", null, OCT_21 - 9 * DAY_MS, "Europe/Berlin", 60, 70, 2),
             ),
             favorites = listOf(HomeTea("h", "Bio Sencha Hisui", null)),
         )
@@ -117,8 +117,7 @@ class HomeScreenScreenshotTest(private val dark: Boolean, private val fontScale:
         capture(
             "longNames",
             seeded.copy(
-                brewAgain = listOf(HomeTea("l", long, null)),
-                recent = listOf(RecentBrew("s3", long, null, OCT_21, "Europe/Berlin", 60, 65, 3)),
+                recent = listOf(RecentBrew("l", "s3", long, null, OCT_21, "Europe/Berlin", 60, 65, 3)),
                 favorites = listOf(HomeTea("l", long, null)),
             ),
         )
