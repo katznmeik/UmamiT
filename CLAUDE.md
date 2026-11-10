@@ -26,6 +26,16 @@ commit and push.
 1. **No development without the PO's explicit go.** `PROJECT_STATE.md`
    records whether the go was given. Until then, only specs, plans and docs
    are changed.
+   - **Feedback from the PO is input to the process, never a go to
+     implement.** Every change to app behaviour or design, however small,
+     goes through: grilling round (questions to the PO as selectable
+     options) → specs and decision (to-spec) → tickets → `/implement-spec`
+     with delegation by tier. Claude never decides open design questions
+     alone, never records a decision as 'Accepted (PO)' unless the PO
+     answered that point, and never writes implementation code as the
+     orchestrator. Only if the PO explicitly says 'skip the process' for a
+     named task may steps be skipped. If unsure whether something is small
+     enough to skip a step: it is not; ask.
 2. **The specs are the source of truth** (`docs/specs/`). When behaviour
    changes, update the spec in the same PR and record decisions in
    `docs/specs/10-open-questions-and-decisions.md`. Reference requirement IDs

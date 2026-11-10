@@ -5,7 +5,30 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1 is in the grilling phase** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+
+## Feedback round v0.5.1 (in progress): grilling phase
+
+The PO gave four points of feedback on v0.5.0 on 2026-11-10 (Start's two
+sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
+a sans in place of the serif font). **Phase: grilling round** (questions to
+the PO one at a time as selectable options). Then to-spec (specs and D-110
+from the PO's answers), tickets, `/implement-spec` with delegation by tier
+(CLAUDE.md rule 1).
+
+- **Branch `claude/modest-ptolemy-86vgji` holds an unapproved draft** (WIP
+  commit `feat: v0.5.1 feedback round …`): Claude implemented all four
+  points and wrote specs, D-110 and `umamit.version=0.5.1-rc.1` without the
+  process. Nothing in it is decided. Its D-110 says „Accepted (PO)" for
+  details the PO never saw; that is wrong and is rewritten in to-spec.
+- After the grilling: tell the PO which parts of the draft match the
+  answers and can be reused, and revert the spec, D-110 and version changes
+  that pre-empt decisions.
+- No PR, no release, no goldens re-recorded. Whether this ships as v0.5.1
+  before M4 or with M4 is one of the grilling questions.
+- Font comparison render for the PO: produced in the session (Cormorant
+  Garamond, Alegreya Sans, Zen Kaku Gothic New, Jost, Figtree); not in the
+  repository.
 
 ## Phase
 
@@ -13,7 +36,7 @@
 |---|---|
 | Current milestone | **M4 → v0.6.0** (Journal & statistics, 09 §M4): not yet specified or planned. v0.5.0 is done: [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) from `main` `db2ba2b3` |
 | Development go from PO | ✅ **In effect** since 2026-10-22 09:05 Europe/Berlin (D-038) |
-| Working branch | `claude/focused-gauss-vg06j0` (restarted from `main` `db2ba2b3`) |
+| Working branch | `claude/modest-ptolemy-86vgji` (from `main`; holds the unapproved v0.5.1 draft, see above) |
 | Repository | `katznmeik/UmamiT` (renamed from `UmamiTea` on 2026-10-21; old URLs redirect) |
 | Open PR | none |
 | Latest APK | [`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) (full release, versionCode 50099, from `main` `db2ba2b3`, certificate verified); rc `v0.5.0-rc.1` (50001) |
