@@ -5,9 +5,9 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) is out (D-110, D-111; draft PR #219); waiting on the PO's check of the Start hand-off and the explicit approval** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
+**Last updated:** 2026-11-10. **Feedback round v0.5.1: the rc [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2) is out (D-110, D-111; draft PR #219); the PO approved rc.2 on 2026-11-10; next is the final release, #218** (below). **[`v0.5.0`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.0) is released** (from `main` `db2ba2b3`; D-108, D-109; two active timers, the whole tea range, per-tea stock warning, flavour filter). Details in `docs/history.md`. **Next: M4 → v0.6.0** (Journal & statistics); nothing is built for it before it is specified and planned.
 
-## Feedback round v0.5.1 (in progress): rc.2 out, waiting on the PO
+## Feedback round v0.5.1 (in progress): rc.2 approved, final release next
 
 The PO's four points of feedback on v0.5.0 (2026-11-10; D-110): Start's two
 sections into one; *Knapp ab* shows its value; the filter sheet's *Fertig*;
@@ -83,13 +83,12 @@ a sans in place of the serif font. Spec issue #212, plan
     [`v0.5.1-rc.2`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1-rc.2)
     (APK SHA-256 `aee6a142…9402`), certificate `a500e2c6…2f67` =
     `signing/release-cert-sha256.txt`.
-- **Waiting on the PO:** rc.1's checklist points are ticked in PR #219.
-  Open: install `v0.5.1-rc.2` over rc.1 and check the last point of 09 §4
-  „v0.5.1" (a row tap fades straight into the timer; back on Start the
-  card and the bar are there), the design review
-  (`docs/design/review/v0.5.1/`) and the explicit approval, in a session or
-  as a PR comment. Feedback goes through the process (rule 1).
-- **Next phase after the PO's explicit approval (fresh session, Sonnet
+- **PO approval: given** (2026-11-10, in the session, after Claude named
+  the hand-off check and the design review as what the approval covers):
+  „rc.2 works, the transition is clean now, approved". The last checklist
+  point (D-111) passes on the phone. Still to tick by the final session:
+  that point in PR #219's checklist and in #220.
+- **Next phase (fresh session, Sonnet
   `medium`): #218.** Accuracy run first (09 §4a); `umamit.version=0.5.1`;
   CI green; PR out of draft and merged with a merge commit; final `v0.5.1`
   dispatched from `main`, certificate verified; tickets closed,
@@ -123,7 +122,7 @@ a sans in place of the serif font. Spec issue #212, plan
 
 ## Waiting on the PO
 
-0. **v0.5.1-rc.2:** the check of the Start hand-off (09 §4 „v0.5.1", last point) and the design review, then the explicit approval (above).
+0. **v0.5.1:** nothing; the approval is given, the final release (#218) is Claude's next phase.
 1. **M4 → v0.6.0:** nothing blocking; the next step is specifying M4 (e.g. `/to-spec`) when the PO wants to start.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
