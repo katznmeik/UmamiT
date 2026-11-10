@@ -14,10 +14,9 @@ import androidx.compose.ui.unit.sp
 import com.umamit.core.designsystem.R
 
 /**
- * Alegreya Sans (OFL, D-110; a humanist sans in place of the serif Cormorant Garamond of D-027, which read
- * badly on the phone's small display), bundled as its Light/Regular/Medium static fonts, subset to Latin
- * with German characters, ẞ and macrons. The subset keeps the `lnum` and `tnum` features for the timer
- * digits (licence and credits: `core/designsystem/licenses/`, `docs/design/assets/source/CREDITS.md`).
+ * Alegreya Sans (OFL, D-110; a humanist sans for the display roles), bundled as its Light/Regular/Medium
+ * static fonts, subset to Latin with German characters, ẞ and macrons. The subset keeps the `lnum` and
+ * `tnum` features for the timer digits (licence and credits: `core/designsystem/licenses/`, `docs/design/assets/source/CREDITS.md`).
  */
 val AlegreyaSans = FontFamily(
     Font(R.font.alegreya_sans_light, FontWeight.Light),

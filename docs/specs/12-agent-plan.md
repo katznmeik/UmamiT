@@ -96,7 +96,7 @@ Answer the questions in order and take the first tier that matches:
 | Gradle project skeleton, version catalog, convention plugins, **all** module stubs (before parallel work) | T2 |
 | Probe release `v0.0.1-probe` (exact alarm, FGS, Live Update, full-screen alert, synthesised sound) | T3 |
 | CI emulator job (GitHub Actions, API 35/36) | T3 |
-| Design system: colour tokens, typography (Cormorant Garamond), shapes, core components | T2 |
+| Design system: colour tokens, typography (display sans Alegreya Sans, D-110), shapes, core components | T2 |
 | Navigation shell with placeholder tabs | T1 |
 | `BrewTimerEngine` state machine + exhaustive unit tests | T3 (design reviewed at T4) |
 | Background strategy implementation: exact alarms, FGS, wake lock, receivers, boot recovery | T4 |
