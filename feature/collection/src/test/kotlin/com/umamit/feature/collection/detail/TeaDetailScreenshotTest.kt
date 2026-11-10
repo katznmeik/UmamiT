@@ -160,7 +160,7 @@ class TeaDetailScreenshotTest(private val dark: Boolean, private val fontScale: 
         scrollToText = DESCRIPTION_START,
     )
 
-    /** VORRAT's stock warning on without a *Knapp ab* of its own: the global 15 g as the field's value (D-108, D-110). */
+    /** VORRAT's stock warning on, no *Knapp ab* of its own: the global 15 g in the quieter colour (D-108, D-110). */
     @Test
     fun stockWarningOn() = capture(
         "stockWarningOn",
