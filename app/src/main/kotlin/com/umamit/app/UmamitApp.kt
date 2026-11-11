@@ -74,7 +74,6 @@ import com.umamit.feature.collection.CollectionSegment
 import com.umamit.feature.collection.detail.ArchivedTea
 import com.umamit.feature.collection.detail.TeaDetailHost
 import com.umamit.feature.journal.JournalSources
-import com.umamit.feature.journal.JournalTeaRequest
 import com.umamit.feature.journal.SavedSheetHost
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.stats.StatsScreen
@@ -193,13 +192,10 @@ internal fun UmamitApp(
         controllers.getValue(Tab.Start).popToRoot(Tab.Start)
         select(Tab.Start)
     }
-    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea. Each tap is a new request
-    // (a counter), so it applies again for the same tea after the user cleared the chip.
-    var journalTeaKey by rememberSaveable { mutableStateOf<String?>(null) }
-    var journalTeaToken by rememberSaveable { mutableIntStateOf(0) }
+    // LETZTE SITZUNGEN's *Alle anzeigen* (TEA-13): the Journal tab's root, filtered to the tea.
+    val journalRequests = rememberSaveable(saver = JournalTeaRequests.Saver) { JournalTeaRequests() }
     val showInJournal: (String) -> Unit = { teaId ->
-        journalTeaKey = teaId
-        journalTeaToken++
+        journalRequests.ask(teaId)
         brewFlow.leaveFor(Tab.Journal)
         controllers.getValue(Tab.Journal).popToRoot(Tab.Journal)
         select(Tab.Journal)
@@ -292,7 +288,7 @@ internal fun UmamitApp(
                             journal = JournalWiring(
                                 journalScreens,
                                 startNavigation.openSetupFromSession,
-                                teaRequest = journalTeaKey?.let { JournalTeaRequest(it, journalTeaToken) },
+                                teaRequest = journalRequests.current,
                             ),
                             onOpenTimer = onOpenTimer,
                             settings = settings,

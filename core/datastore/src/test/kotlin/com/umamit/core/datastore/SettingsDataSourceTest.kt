@@ -292,7 +292,7 @@ class SettingsDataSourceTest {
     @Test
     fun unknownCollectionSortOrSegmentNamesReadTheDefaults() = runTest {
         val file = File(folder.root, "odd-collection.json")
-        file.writeText("""{"collectionSort":"RATING","collectionSegment":"TEAWARE","alertSound":"glocke"}""")
+        file.writeText("""{"collectionSort":"STARS","collectionSegment":"TEAWARE","alertSound":"glocke"}""")
 
         val settings = dataSource(file).settings.first()
 

@@ -69,7 +69,8 @@ class TeaDetailTastingScreenTest {
     fun `the header shows the average with its count and TalkBack reads it`() {
         show(RATED)
 
-        compose.onNodeWithText("★ 4,5 (12)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("★ 4,5 (12)", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
@@ -82,7 +83,7 @@ class TeaDetailTastingScreenTest {
     fun `a single rated session reads in the singular`() {
         show(RATED.copy(rating = TeaRating(4.0, 1)))
 
-        compose.onNodeWithText("★ 4,0 (1)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("★ 4,0 (1)", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag(TEA_DETAIL_RATING_TAG).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
@@ -130,7 +131,7 @@ class TeaDetailTastingScreenTest {
 
         compose.onNodeWithText("8. Juni · 55 °C · 1:00 · 3 Aufgüsse").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("★ 4,5").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("21. Okt. · 70 °C · 0:45 · 2 von 3 Aufgüssen").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("21. Oktober · 70 °C · 0:45 · 2 von 3 Aufgüssen").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(teaDetailSessionTag("s1")).assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,

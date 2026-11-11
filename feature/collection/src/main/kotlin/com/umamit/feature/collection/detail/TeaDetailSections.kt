@@ -326,9 +326,9 @@ internal val HarvestSeason.label: Int?
 @Composable
 internal fun Section(
     title: String,
+    modifier: Modifier = Modifier,
     padded: Boolean = true,
     onShowAll: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(top = UmamiSpacing.Large)) {

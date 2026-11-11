@@ -2,6 +2,7 @@ package com.umamit.feature.collection.detail
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -63,14 +64,14 @@ internal fun RatingLine(rating: TeaRating, modifier: Modifier = Modifier) {
         value,
         rating.count,
     )
-    Text(
-        text = stringResource(R.string.collection_tea_rating, value, rating.count),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier
-            .testTag(TEA_DETAIL_RATING_TAG)
-            .clearAndSetSemantics { contentDescription = description },
-    )
+    // One node for TalkBack: the sentence, not the figures.
+    Box(modifier = modifier.testTag(TEA_DETAIL_RATING_TAG).clearAndSetSemantics { contentDescription = description }) {
+        Text(
+            text = stringResource(R.string.collection_tea_rating, value, rating.count),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
 }
 
 /**
