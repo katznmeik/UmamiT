@@ -123,6 +123,12 @@ object UmamiIcons {
     /** A7: the empty *Meine Tees* vignette in the dark theme. */
     @DrawableRes val TeasEmptyDark = R.drawable.illustration_teas_empty_dark
 
+    /** A6: the empty journal's vignette in the light theme (SCR-15, „Deine erste Tasse wartet."). */
+    @DrawableRes val JournalEmptyLight = R.drawable.illustration_journal_empty_light
+
+    /** A6: the empty journal's vignette in the dark theme. */
+    @DrawableRes val JournalEmptyDark = R.drawable.illustration_journal_empty_dark
+
     /** A10: a search or filter without results in the light theme (SCR-08, „Kein Tee passt zu deiner Suche."). */
     @DrawableRes val NoResultsLight = R.drawable.illustration_no_results_light
 

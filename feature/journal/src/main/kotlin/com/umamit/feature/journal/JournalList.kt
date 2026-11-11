@@ -1,6 +1,7 @@
 package com.umamit.feature.journal
 
 import com.umamit.core.data.JournalSession
+import com.umamit.core.domain.search.SearchQuery
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
@@ -21,6 +22,11 @@ import java.time.ZoneId
  * @property temperatureC the first infusion's temperature as brewed (its own, else the session's base; D-102).
  * @property infusions poured infusions: ended steps that are neither a rinse nor skipped.
  * @property plannedInfusions the non-rinse steps of the plan, never-started ones included.
+ * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02, JRN-08).
+ * @property hasNotes the session has note text (JRN-09's *Mit Notizen*).
+ * @property teaKey the tea filter's key (JRN-09): the tea's id, or `name:` and the recorded name for a deleted tea.
+ * @property searchWords the normalized words of the tea name, the notes and the chosen descriptors' labels
+ *   (GEN-10), built once with the list so a keystroke only compares them.
  */
 data class JournalEntry(
     val sessionId: String,
@@ -33,10 +39,17 @@ data class JournalEntry(
     val infusions: Int,
     val plannedInfusions: Int,
     val inProgress: Boolean,
+    val rating: Double? = null,
+    val hasNotes: Boolean = false,
+    val teaKey: String = teaKeyOf(null, teaName),
+    val searchWords: List<String> = emptyList(),
 ) {
     val timeOfDay: LocalTime get() = startedAt.toLocalTime().withSecond(0).withNano(0)
     val finishedEarly: Boolean get() = infusions < plannedInfusions
 }
+
+/** The tea filter's key of a session's tea: its id, or its recorded name once the tea is deleted (JRN-09). */
+fun teaKeyOf(teaId: String?, teaName: String): String = teaId ?: "name:$teaName"
 
 /** A day group's header: „Heute", „Gestern", or the date („Montag, 12. Oktober"). */
 sealed interface JournalDay {
@@ -62,10 +75,15 @@ data class JournalList(val inProgress: List<JournalEntry>, val days: List<Journa
 /**
  * Builds the journal from the repository's sessions. A session belongs to the
  * local date of its start in its own time zone, also when it ran past midnight
- * (E13), and shows its time of day in that zone; [today] is the phone's date now.
+ * (E13), and shows its time of day in that zone; [today] is the phone's date now. [descriptorLabel] is a
+ * descriptor key's German label (null for a key the app does not know), for the search (JRN-09).
  */
-fun journalList(sessions: List<JournalSession>, today: LocalDate): JournalList {
-    val entries = sessions.map { it.toEntry() }
+fun journalList(
+    sessions: List<JournalSession>,
+    today: LocalDate,
+    descriptorLabel: (key: String) -> String? = { null },
+): JournalList {
+    val entries = sessions.map { it.toEntry(descriptorLabel) }
     val (running, finished) = entries.partition { it.inProgress }
     val days = finished
         .groupBy { it.startedAt.toLocalDate() }
@@ -80,7 +98,7 @@ private fun dayOf(date: LocalDate, today: LocalDate): JournalDay = when (date) {
     else -> JournalDay.On(date, thisYear = date.year == today.year)
 }
 
-private fun JournalSession.toEntry(): JournalEntry {
+private fun JournalSession.toEntry(descriptorLabel: (String) -> String?): JournalEntry {
     val inProgress = session.status == SessionStatus.IN_PROGRESS
     // A finished session counts only its ended rows, also when it keeps its never-started ones (from
     // v0.4.0, Q-19); its plan lives on in the planned count (TMR-12).
@@ -106,6 +124,16 @@ private fun JournalSession.toEntry(): JournalEntry {
         infusions = poured,
         plannedInfusions = maxOf(planned, poured),
         inProgress = inProgress,
+        rating = session.rating,
+        hasNotes = !session.notes.isNullOrBlank(),
+        teaKey = teaKeyOf(session.snapshot.teaId, session.snapshot.teaName),
+        searchWords = SearchQuery.words(
+            buildString {
+                append(session.snapshot.teaName)
+                session.notes?.let { append(' ').append(it) }
+                session.descriptorKeys.forEach { key -> descriptorLabel(key)?.let { append(' ').append(it) } }
+            },
+        ),
     )
 }
 
