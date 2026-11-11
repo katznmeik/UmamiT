@@ -25,7 +25,7 @@ data class SessionSnapshot(
 
 /**
  * A `brew_session` row with its `session_step` rows in position order
- * (05 §3.6, §3.7). The tasting fields (rating, notes, …) come with M4.
+ * (05 §3.6, §3.7), with its tasting inputs (05 §3.8, JRN-02–JRN-05, D-112), each optional.
  *
  * @property preAlertSeconds the effective pre-alert of the session (04 §5): session override ?: recipe ?: global.
  * @property plannedStepCount steps planned at the finish, never-started ones included („2 von 3 Aufgüssen", TMR-12).
@@ -34,6 +34,11 @@ data class SessionSnapshot(
  * @property zoneId the session's time zone (IANA id).
  * @property steps every row: a session completed from v0.4.0 on keeps its never-started rows, without an actual
  * time (Q-19, D-100); one completed by v0.3.0 or earlier has only its ended rows.
+ * @property rating 0,5–5,0 in half steps; null when unrated (JRN-02).
+ * @property taste the six taste values, each null when unset (JRN-03).
+ * @property notes trimmed, never blank; null without notes (JRN-05).
+ * @property descriptorKeys the ticked descriptor keys in the order ticked (JRN-04, 05 §3.8); keys the app does not
+ * know are kept here and not shown.
  */
 data class BrewSession(
     val id: String,
@@ -47,6 +52,10 @@ data class BrewSession(
     val zoneId: String,
     val autoFinished: Boolean,
     val steps: List<SessionStepRow>,
+    val rating: Double? = null,
+    val taste: TasteProfile = TasteProfile.EMPTY,
+    val notes: String? = null,
+    val descriptorKeys: List<String> = emptyList(),
 ) {
     /**
      * The ended rows, those with an actual time (05 §3.7): all that journal counts, cost and

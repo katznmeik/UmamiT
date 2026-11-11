@@ -127,8 +127,32 @@ internal val MIGRATION_4_5: Migration = object : Migration(4, 5) {
 }
 
 /**
+ * Schema 5 → 6 (v0.6.0, JRN-04, D-112): the descriptors. `session_descriptor` (05 §3.8) is created empty with its
+ * foreign key to `brew_session` (CASCADE), its primary key (`session_id`, `descriptor_key`) and the index on
+ * `descriptor_key`, as Room's v6 schema names them. No other table changes: the rating, taste and notes columns
+ * exist since v1, so every finished session keeps its row, and the timers running during the update keep their
+ * `active_brew` rows and alert on time (rule 8). Room runs it in one transaction: it applies whole or not at all,
+ * and the database is never opened destructively (05 §9).
+ */
+internal val MIGRATION_5_6: Migration = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `session_descriptor` (`session_id` TEXT NOT NULL, " +
+                "`descriptor_key` TEXT NOT NULL, `created_at` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`session_id`, `descriptor_key`), FOREIGN KEY(`session_id`) " +
+                "REFERENCES `brew_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_session_descriptor_descriptor_key` " +
+                "ON `session_descriptor` (`descriptor_key`)",
+        )
+    }
+}
+
+/**
  * Every migration of `umamit.db` (05 §9). [umamiDatabaseBuilder] registers exactly these, and
  * `SchemaVersionsTest` opens a database of every committed schema version with that builder,
  * so a version bump whose migration is missing here fails the unit tests.
  */
-internal val UMAMI_MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+internal val UMAMI_MIGRATIONS: List<Migration> =
+    listOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)

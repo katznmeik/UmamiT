@@ -3,12 +3,14 @@ package com.umamit.core.data
 import com.umamit.core.common.snap5
 import com.umamit.core.database.entity.ActiveBrewEntity
 import com.umamit.core.database.entity.BrewSessionEntity
+import com.umamit.core.database.entity.SessionDescriptorEntity
 import com.umamit.core.database.entity.SessionStepEntity
 import com.umamit.core.model.ActiveBrewSnapshot
 import com.umamit.core.model.BrewSession
 import com.umamit.core.model.SessionSnapshot
 import com.umamit.core.model.SessionStatus
 import com.umamit.core.model.SessionStepRow
+import com.umamit.core.model.TasteProfile
 import com.umamit.core.model.TimerSlot
 import com.umamit.core.timer.engine.PlannedStep
 import com.umamit.core.timer.engine.StepRecord
@@ -55,7 +57,11 @@ internal fun SessionStart.toEntity(now: Long) = BrewSessionEntity(
     updatedAt = now,
 )
 
-internal fun BrewSessionEntity.toModel(steps: List<SessionStepEntity>) = BrewSession(
+/** This row as a session with [steps] and the keys of [descriptors] in the order ticked (05 §3.8). */
+internal fun BrewSessionEntity.toModel(
+    steps: List<SessionStepEntity>,
+    descriptors: List<SessionDescriptorEntity> = emptyList(),
+) = BrewSession(
     id = id,
     status = status,
     snapshot = SessionSnapshot(
@@ -82,6 +88,17 @@ internal fun BrewSessionEntity.toModel(steps: List<SessionStepEntity>) = BrewSes
     zoneId = zoneId,
     autoFinished = autoFinished,
     steps = steps.map { it.toRow() },
+    rating = rating,
+    taste = TasteProfile(
+        umami = tasteUmami,
+        sweetness = tasteSweetness,
+        bitterness = tasteBitterness,
+        astringency = tasteAstringency,
+        body = tasteBody,
+        aroma = tasteAroma,
+    ),
+    notes = notes,
+    descriptorKeys = descriptors.sortedWith(compareBy({ it.createdAt }, { it.descriptorKey })).map { it.descriptorKey },
 )
 
 /** A planned, unstarted row at [position]. */
