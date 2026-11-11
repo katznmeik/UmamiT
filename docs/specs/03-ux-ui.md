@@ -1320,7 +1320,7 @@ hint that something is missing.
   *Löschen*. Errors and TalkBack as SCR-28 („Fotos der Sitzung", „Foto 1
   von 3"). ← and the page's own ⋮ (*Bearbeiten*, *Löschen*) sit over the
   hero on the tea detail's translucent surfaces; a loaded page has no title
-  (as built, Claude; open with the PO, D-112 build notes for #229).
+  (PO, D-112 Q20).
 - **BEWERTUNG:** `RatingStars` (§3.8, JRN-02), empty until tapped.
 - **NOTIZEN:** a multi-line field with the placeholder „Notizen …", growing
   with its text (≤ 5000 characters, a counter from 4500 on). It saves 1 s

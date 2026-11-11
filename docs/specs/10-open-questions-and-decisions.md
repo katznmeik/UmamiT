@@ -480,6 +480,23 @@ the PO as a breakdown on 2026-11-11; plan `docs/plans/v0.6.0.md`.
 tea picker; changing a session's tea or its number of steps; a filter by
 date range or Sorte; the four ideas of point 11.
 
+**After the build (PO, 2026-11-11, Q19–Q22; asked as options).**
+
+13. **Q19, `ProcessDeathTest`'s flaky log read.** It stays as it is: a known
+    flake, CI is rerun when it fails. Nothing under `core/timer` changes in
+    v0.6.0.
+14. **Q20, the session page's top (SCR-16).** As built: ← and the page's ⋮
+    sit over the hero on translucent surfaces, as on the tea detail; a
+    loaded page has no title „Sitzung".
+15. **Q21, the recipe offer after *Sitzung beenden* in the middle of an
+    infusion (PRF-07).** As built: every brewed step that ended before its
+    planned time counts as ended early, whichever button ended it.
+16. **Q22, step notes when the offer is accepted (PRF-07).** The recipe's
+    step notes are kept by position: a step of the proposal takes the note
+    of the recipe's step at its position when both have the same kind
+    (rinse or infusion). *Im Rezept speichern* stays as it is. Built with
+    #236.
+
 **Build notes (Claude, 2026-11-11, #222: the vocabulary).** `TasteDescriptor`
 and `DescriptorGroup` are enums in `core:model` (the order is the
 declaration order; `fromKey` gives nothing for an unknown key). `core:model`
@@ -642,8 +659,7 @@ sheet).**
   *Aufguss jetzt beenden* from a running step that *Sitzung beenden* ended
   (04 §2), so both count, and so does a rinse ended early or a step time
   shortened in the session editor. A step with overtime keeps its planned
-  time. **Open with the PO:** whether ending a session in the middle of an
-  infusion should offer the shorter time.
+  time. The PO confirmed it (Q21 above).
 - Rounding follows the recorded time: to 5 s below 10 min, to 1 min from
   10 min (half up: 0:47 → 0:45, 0:48 → 0:50), so the proposal lands on the
   Schritte-Sheet's steps. A 12 min step ended at 9:47 is proposed as 9:45.
@@ -657,7 +673,8 @@ sheet).**
   temperature changed in the setup therefore counts as a change of every
   step.
 - Accepting replaces the recipe's steps as *Im Rezept speichern* does, so
-  the recipe's step notes are dropped, as there. **Open with the PO.**
+  the recipe's step notes were dropped, as there. The PO chose to keep them
+  by position (Q22 above, #236).
 - A session finished by v0.3.0 or earlier has no rows for its never started
   steps: the recipe's steps at those positions are kept; without them no
   offer applies.
@@ -671,9 +688,8 @@ sheet).**
 - ← and the page's ⋮ sit over the hero on the tea detail's translucent
   surfaces, as the sketch of SCR-16 and the ticket have it; a loaded page
   therefore has no title „Sitzung" (loading and „not found" keep the bar).
-  SCR-16's sentence said the ⋮ „stays in the top bar" and is reworded.
-  **Open with the PO:** this layout, or a solid bar with the title above the
-  hero.
+  SCR-16's sentence said the ⋮ „stays in the top bar" and is reworded. The
+  PO confirmed the layout (Q20 above).
 - *+ Foto* shows only for a finished session. While the hero reads its
   photos it shows the plain tinted box, so the leaf never flashes before a
   photo.

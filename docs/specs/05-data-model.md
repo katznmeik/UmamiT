@@ -264,6 +264,9 @@ effect of the timer engine, 04 §4; D-052):
 - **Accept the recipe offer** (v0.6.0, PRF-07, D-112): in one transaction
   the recipe's `brew_step` rows are replaced by the proposal, as *Im
   Rezept speichern* does (§3.9's note), and `times_applied` becomes 1.
+  Each new row takes the `note` of the recipe's row at its position when
+  both have the same kind (PO, D-112 Q22); *Im Rezept speichern* itself
+  writes no notes.
   Refused, changing nothing, when the offer no longer applies at that
   moment. „The recipe has not changed since the session" is read from the
   recipe's and its steps' `updated_at` / `created_at` against the

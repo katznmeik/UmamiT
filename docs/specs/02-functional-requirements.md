@@ -824,6 +824,8 @@ page (SCR-16).
 - **Deliberate changes:** an infusion ended early with *Aufguss jetzt
   beenden*, or steps edited or added in the Schritte-Sheet without *Im
   Rezept speichern*. Pouring late after the alarm (overtime) never counts.
+  A step that *Sitzung beenden* ended while it ran counts as ended early
+  too (PO, D-112 Q21); so does a rinse.
   Until D-112 any difference of more than max(5 s, 10 %) counted, late
   pouring included.
 - **The proposal** is the session's step plan as it ended (kinds,
@@ -836,8 +838,10 @@ page (SCR-16).
   differs from the recipe's steps.
 - **Accepting** writes the proposal into the recipe as *Im Rezept speichern*
   does and marks the session (`times_applied`); the line then reads „Rezept
-  aktualisiert.". Ignoring it is fine; there is no undo and no setting
-  (SET-18 is retired).
+  aktualisiert.". Unlike *Im Rezept speichern* it keeps the recipe's step
+  notes by position: a step takes the note of the recipe's step at its
+  position when both have the same kind (PO, D-112 Q22). Ignoring it is
+  fine; there is no undo and no setting (SET-18 is retired).
 - AC1: a session brewed as planned and poured 20 s late shows no offer.
 - AC2: a first infusion ended at 0:48 of 1:00 offers the recipe with 0:50
   for that step.
@@ -845,6 +849,8 @@ page (SCR-16).
   is gone from that session's page.
 - AC4: the rule is a pure function with unit tests; session completion and
   the timer are not changed.
+- AC5: accepting an offer for a recipe whose second step has a note keeps
+  that note when the proposal's second step has the same kind.
 
 ---
 
