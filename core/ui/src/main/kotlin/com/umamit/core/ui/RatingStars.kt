@@ -42,6 +42,7 @@ private const val STAR_COUNT = 5
 private val STAR_TARGET = 48.dp
 private val STAR_SIZE = 30.dp
 private const val EMPTY_ALPHA = 0.45f
+private const val HALF_FILL = 0.5f
 
 /** The nine values between 0 and 5 in half steps, as `ProgressBarRangeInfo.steps` counts them. */
 private const val STEP_COUNT = 9
@@ -148,7 +149,7 @@ fun RatingStars(value: Double?, onChange: (Double?) -> Unit, modifier: Modifier 
 private fun starFill(value: Double?, star: Int): Float = when {
     value == null -> 0f
     value >= star -> 1f
-    value >= star - TastingLimits.RATING_STEP -> 0.5f
+    value >= star - TastingLimits.RATING_STEP -> HALF_FILL
     else -> 0f
 }
 

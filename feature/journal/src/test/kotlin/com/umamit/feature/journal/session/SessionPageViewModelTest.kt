@@ -1,6 +1,10 @@
 package com.umamit.feature.journal.session
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
 import com.umamit.core.model.BrewMethod
@@ -31,8 +35,9 @@ import org.junit.Test
 import java.time.LocalDateTime
 
 /**
- * The session page's view model (SCR-16 read-only, BRW-06, D-100) on the fakes of core:testing: the session as
- * stored (05 §3.6, §3.7) with its step table, and the four states of its tea and recipe. An invented tea (D-016).
+ * The session page's view model (SCR-16, BRW-06, D-100; the rating and notes writes of D-112) on the fakes of
+ * core:testing: the session as stored (05 §3.6, §3.7) with its step table, and the four states of its tea and recipe.
+ * An invented tea (D-016).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionPageViewModelTest {
@@ -245,6 +250,20 @@ class SessionPageViewModelTest {
         vm.flushNotes()
 
         assertThat(vm.page.notes).isNull()
+    }
+
+    @Test
+    fun `a pending note is saved when the view model is cleared, the write completes (rule 8)`() = runTest {
+        brewed()
+        val store = ViewModelStore()
+        val vm = ViewModelProvider.create(store, viewModelFactory { initializer { viewModel() } })[
+            SessionPageViewModel::class,
+        ]
+
+        vm.onNotesChanged("Kurz vor dem Verlassen")
+        store.clear()
+
+        assertThat(sessions.sessions.getSession(PAST)!!.notes).isEqualTo("Kurz vor dem Verlassen")
     }
 
     private companion object {

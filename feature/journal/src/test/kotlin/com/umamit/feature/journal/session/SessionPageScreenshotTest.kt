@@ -17,7 +17,8 @@ import java.time.LocalDateTime
 
 /**
  * The session page (SCR-16, D-100, D-112) in light and dark at font scale 1.0 and 2.0 (03 §6): a tea of the
- * collection (unrated, empty note) with a rinse, an infusion run into overtime, a skipped one and one never started; an archived tea (the
+ * collection (unrated, empty note) with a rinse, an infusion run into overtime, a skipped one and one never started;
+ * the same rated 3,5 with a long note; an archived tea (the
  * button greyed out with *Wiederherstellen*); a deleted tea (no link, no button). Goldens: `src/test/screenshots/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)

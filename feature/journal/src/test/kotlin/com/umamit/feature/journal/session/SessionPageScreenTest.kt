@@ -292,11 +292,11 @@ class SessionPageScreenTest {
         show()
 
         compose.onNodeWithTag(SESSION_NOTES_TAG).performTextInput("a".repeat(4_499))
-        compose.onNodeWithText("4499 / 5000").assertDoesNotExist()
+        compose.onNodeWithText("4.499 / 5.000").assertDoesNotExist()
         compose.onNodeWithTag(SESSION_NOTES_TAG).performTextInput("bb")
-        compose.onNodeWithText("4501 / 5000").assertExists()
+        compose.onNodeWithText("4.501 / 5.000").assertExists()
         compose.onNodeWithTag(SESSION_NOTES_TAG).performTextInput("c".repeat(600))
-        compose.onNodeWithText("5000 / 5000").assertExists()
+        compose.onNodeWithText("5.000 / 5.000").assertExists()
     }
 
     @Test
