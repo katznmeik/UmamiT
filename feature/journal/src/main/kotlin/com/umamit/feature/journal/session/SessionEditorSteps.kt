@@ -65,7 +65,14 @@ internal fun StepRow(row: SessionEditorStepRow, actions: SessionEditorActions) {
                 singleLine = true,
                 isError = row.timeInvalid,
                 supportingText = if (row.timeInvalid) {
-                    { Text(stringResource(R.string.session_editor_error_step_time)) }
+                    {
+                        val message = if (row.timeOutOfRange) {
+                            R.string.session_editor_error_step_time_range
+                        } else {
+                            R.string.session_editor_error_step_time
+                        }
+                        Text(stringResource(message))
+                    }
                 } else {
                     null
                 },

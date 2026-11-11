@@ -155,6 +155,12 @@ class SessionEditorScreenTest {
 
         compose.onNodeWithTag(SessionEditorTags.WATER).performTextReplacement("180")
         compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 1).performScrollTo().performTextReplacement("1:")
+        compose.onNodeWithText("Als m:ss, z. B. 1:35.").assertExists()
+        save().assertIsNotEnabled()
+
+        compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 1).performTextReplacement("0:00")
+        compose.onNodeWithText("Zwischen 0:01 und 24:00:00.").assertExists()
+        compose.onNodeWithText("Als m:ss, z. B. 1:35.").assertDoesNotExist()
         save().assertIsNotEnabled()
 
         compose.onNodeWithTag(SessionEditorTags.STEP_TIME + 1).performTextReplacement("1:40")

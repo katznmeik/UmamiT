@@ -131,9 +131,10 @@ class RoomSessionEditor @Inject constructor(private val db: UmamiDatabase, priva
 private fun SessionEdit.inBounds(): Boolean {
     val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS && !it.isNaN() } ?: true
     val waterOk = waterMl?.let { it in SessionEditLimits.WATER_ML } ?: true
-    val stepsOk = steps.all { it.actualSeconds in SessionEditLimits.STEP_SECONDS && (it.tempC == null || snap5(it.tempC) in TEMP_RANGE) } &&
-        steps.map { it.position }.distinct().size == steps.size
-    return leafOk && waterOk && stepsOk
+    val stepsOk = steps.all {
+        it.actualSeconds in SessionEditLimits.STEP_SECONDS && (it.tempC == null || snap5(it.tempC) in TEMP_RANGE)
+    }
+    return leafOk && waterOk && stepsOk && steps.map { it.position }.distinct().size == steps.size
 }
 
 private val TEMP_RANGE = SessionEditLimits.TEMP_C

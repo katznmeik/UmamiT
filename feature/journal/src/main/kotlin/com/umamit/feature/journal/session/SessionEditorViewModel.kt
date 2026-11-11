@@ -41,6 +41,7 @@ data class SessionEditorStepRow(
     val form: SessionEditorStepForm?,
     val skipped: Boolean,
     val timeInvalid: Boolean = false,
+    val timeOutOfRange: Boolean = false,
 ) {
     val notBrewed: Boolean get() = form == null && !skipped
 }
@@ -151,7 +152,7 @@ class SessionEditorViewModel @Inject constructor(
             today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate(),
             vessels = choices,
             vesselName = vesselName(f.vesselId, session, choices),
-            steps = stepRows(session, f, check.invalidSteps),
+            steps = stepRows(session, f, check),
             errors = errors,
             stockChangeGrams = check.leafChange?.takeIf { withTea && stored != null }
                 ?.let { gramsDifference(it, checkNotNull(stored)) },
@@ -169,7 +170,11 @@ class SessionEditorViewModel @Inject constructor(
         else -> choices.firstOrNull { it.id == id }?.name
     }
 
-    private fun stepRows(session: BrewSession, f: SessionEditorForm, invalid: Set<Int>): List<SessionEditorStepRow> {
+    private fun stepRows(
+        session: BrewSession,
+        f: SessionEditorForm,
+        check: SessionEditorCheck,
+    ): List<SessionEditorStepRow> {
         val fields = f.steps.associateBy { it.position }
         return session.steps.sortedBy { it.position }.map { row ->
             SessionEditorStepRow(
@@ -177,7 +182,8 @@ class SessionEditorViewModel @Inject constructor(
                 kind = row.kind,
                 form = fields[row.position],
                 skipped = row.skipped,
-                timeInvalid = row.position in invalid,
+                timeInvalid = row.position in check.invalidSteps,
+                timeOutOfRange = row.position in check.outOfRangeSteps,
             )
         }
     }

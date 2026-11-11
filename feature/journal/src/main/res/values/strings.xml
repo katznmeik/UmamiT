@@ -145,6 +145,8 @@
     <string name="session_editor_error_leaf">0,1 bis 100 g, z. B. 4,5.</string>
     <string name="session_editor_error_water">10 bis 3000 ml, in 5-ml-Schritten.</string>
     <string name="session_editor_error_step_time">Als m:ss, z. B. 1:35.</string>
+    <!-- A well-formed time outside 1 s – 24 h (0:00, or over 24 h). -->
+    <string name="session_editor_error_step_time_range">Zwischen 0:01 und 24:00:00.</string>
     <string name="session_editor_error_future">Die Sitzung kann nicht in der Zukunft liegen.</string>
     <string name="session_editor_save_failed">Die Änderungen konnten nicht gespeichert werden.</string>
     <string name="journal_saved_title">Gespeichert im Journal</string>

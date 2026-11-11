@@ -48,6 +48,22 @@ class SessionEditorFormTest {
     }
 
     @Test
+    fun `a well-formed time out of range is told apart from a malformed one`() {
+        val form = SessionEditorForm.of(session)
+
+        listOf("0:00", "24:00:01", "1500:00").forEach { time ->
+            val result = check(form.withStep(0) { it.copy(time = time) })
+            assertThat(result.invalidSteps).containsExactly(0)
+            assertThat(result.outOfRangeSteps).containsExactly(0)
+        }
+        listOf("1:", "1:60", "1:5", "").forEach { time ->
+            val result = check(form.withStep(0) { it.copy(time = time) })
+            assertThat(result.invalidSteps).containsExactly(0)
+            assertThat(result.outOfRangeSteps).isEmpty()
+        }
+    }
+
+    @Test
     fun `only what differs goes into the edit`() {
         val zone = JournalSessions.BERLIN
         val form = SessionEditorForm.of(session)

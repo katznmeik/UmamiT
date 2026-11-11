@@ -136,7 +136,8 @@ class FakeSessionEditor(private val s: FakeSessions) : SessionEditor {
         val leafOk = leafGrams?.let { it >= 0.0 && it <= SessionEditLimits.MAX_LEAF_GRAMS } ?: true
         val waterOk = waterMl?.let { it in SessionEditLimits.WATER_ML } ?: true
         val stepsOk = steps.all {
-            it.actualSeconds in SessionEditLimits.STEP_SECONDS && (it.tempC?.let { t -> snap5(t) in SessionEditLimits.TEMP_C } ?: true)
+            it.actualSeconds in SessionEditLimits.STEP_SECONDS &&
+                (it.tempC?.let { t -> snap5(t) in SessionEditLimits.TEMP_C } ?: true)
         }
         return leafOk && waterOk && stepsOk && steps.map { it.position }.distinct().size == steps.size
     }

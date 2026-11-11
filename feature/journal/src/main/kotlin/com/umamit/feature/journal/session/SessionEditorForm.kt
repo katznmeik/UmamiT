@@ -112,6 +112,10 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
     /** The positions of the steps whose time is not a valid entry. */
     val invalidSteps: Set<Int> = form.steps.filter { parseClock(it.time) == null }.map { it.position }.toSet()
 
+    /** Of the [invalidSteps], those whose time is well-formed but outside 1 s – 24 h (their own message). */
+    val outOfRangeSteps: Set<Int> = form.steps.filter { it.position in invalidSteps && clockTotal(it.time) != null }
+        .map { it.position }.toSet()
+
     val errors: Set<SessionEditorError> = buildSet {
         if (!leafValid) add(SessionEditorError.Leaf)
         if (!waterValid) add(SessionEditorError.Water)
@@ -172,12 +176,14 @@ internal class SessionEditorCheck(private val session: BrewSession, private val 
             }
 
         /** „1:35", „0:07", „75:00" or „1:15:00" → seconds within 1 s – 24 h; null otherwise. */
-        fun parseClock(text: String): Int? = CLOCK.matchEntire(text.trim())?.destructured?.let { (h, m, sec) ->
+        fun parseClock(text: String): Int? = clockTotal(text)?.takeIf { it in SessionEditLimits.STEP_SECONDS }
+
+        /** A well-formed „m:ss" or „h:mm:ss" → its seconds, whatever the range; null when malformed. */
+        private fun clockTotal(text: String): Int? = CLOCK.matchEntire(text.trim())?.destructured?.let { (h, m, sec) ->
             val minutes = m.toInt()
             val seconds = sec.toInt()
-            val valid = seconds < SECONDS_PER_MINUTE && (h.isEmpty() || minutes < SECONDS_PER_MINUTE)
-            val total = (h.toIntOrNull() ?: 0) * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds
-            total.takeIf { valid && it in SessionEditLimits.STEP_SECONDS }
+            val wellFormed = seconds < SECONDS_PER_MINUTE && (h.isEmpty() || minutes < SECONDS_PER_MINUTE)
+            ((h.toIntOrNull() ?: 0) * SECONDS_PER_HOUR + minutes * SECONDS_PER_MINUTE + seconds).takeIf { wellFormed }
         }
 
         private const val WATER_DIGITS = 4
