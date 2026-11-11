@@ -1,6 +1,6 @@
 # 10 · Open Questions & Decision Log
 
-> Status: **Living document** · Last updated: 2026-11-09
+> Status: **Living document** · Last updated: 2026-11-11
 
 ## Open questions
 
@@ -323,7 +323,161 @@ personal data or shop content).
   check; the PO only saves the backup and adds two GitHub secrets
   ([06 §6.1](06-architecture.md#61-signing-process-d-035)).
 
-<a id="d-110"></a>
+<a id="d-112"></a>
+### D-112 — M4 in two releases; v0.6.0: tasting notes in place, the session editor, journal search, the recipe offer (JRN-02–JRN-05, JRN-07–JRN-11, PRF-07, TMR-12, TEA-05, TEA-08, TEA-11, TEA-13, SET-18; SCR-06, SCR-08, SCR-09, SCR-15–SCR-17, SCR-30; amends D-061's sheet actions and D-100's M4 list) · *Accepted* (PO, 2026-11-11, grilled in the session Q1–Q18 as options; details marked „Claude" are Claude's defaults and were not put to the PO)
+
+**Context.** M4 (journal & statistics, 09 §2) was specified only as
+requirement lines. Since M1 the journal is a read-only list; v0.4.0 added the
+read-only session page with *So nochmal brühen* and *Löschen* (D-100, D-102).
+The PO's scope was asked in five rounds of options. One answer is a rule for
+the whole release, in the PO's words: **„all rating features must be optional
+and must be easy skippable with as little friction for the user as
+possible"**.
+
+**Decision (the PO's answers).**
+
+1. **Q1, two releases.** **v0.6.0** is the journal: notes, rating, taste,
+   descriptors, session photos, the session editor, search, the actions of
+   the „Gespeichert" sheet, and the ratings on the tea screens. **v0.6.1**
+   is Statistik (INS-*), specified on its own after v0.6.0 with its own
+   grilling, as M3 was split (D-100). Until then SCR-18 keeps its
+   placeholder and A9 waits.
+2. **Q2, tasting inputs.** All four optional inputs are built: the rating
+   (JRN-02), the taste sliders with the radar (JRN-03), descriptors
+   (JRN-04) and session photos (JRN-07), besides the notes (JRN-05).
+   **Every one is optional and skippable without friction:** nothing asks
+   for them, nothing is required, nothing reminds, and a session without
+   any of them is complete.
+3. **Q3 and Q13, the session editor (JRN-11).** A finished session's
+   recorded data can be changed: date and time, vessel, leaf, water, and
+   each brewed step's time and temperature. A leaf change corrects the
+   stock deduction and the cost. The tea and the number of steps stay as
+   recorded; a session on the wrong tea is deleted and brewed again.
+4. **Q4 and Q18, journal search (JRN-09).** A search field over tea name,
+   notes and the chosen descriptors, and a small filter set: tea, rating
+   (from … stars) and „with notes". It runs in memory like the search in
+   *Meine Tees* (no full-text index).
+5. **Q5 and Q8, rating on the sheet.** The „Gespeichert" sheet (SCR-06)
+   shows five stars and *Notizen hinzufügen*. One tap on a star rates the
+   session; ignoring the sheet skips it. Half steps come by a second tap:
+   a tap on the 4th star gives 4,0, a second tap on the same star 3,5, a
+   third removes the rating.
+6. **Q6, entry in place.** Rating, notes, taste, descriptors and photos are
+   entered on the session page itself (SCR-16) and saved at once, without
+   *Speichern*. The recorded data is changed in a separate editor behind ⋮
+   *Bearbeiten* (SCR-17), with *Speichern*.
+7. **Q7, Q15 and Q16, *Zeiten ins Rezept übernehmen* (PRF-07).** The offer
+   appears only after deliberate changes: an infusion ended early with
+   *Aufguss jetzt beenden*, or steps edited or added without *Im Rezept
+   speichern*. Pouring late after the alarm never counts. There is no
+   setting for it (SET-18 is retired). Besides the sheet, the session page
+   offers it while it still applies: not yet accepted, and the recipe not
+   changed since that session.
+8. **Q9, where a tea's average rating shows.** In the tea detail's header
+   („★ 4,5 (12)") and in the rows of *Meine Tees*, with a new sort order
+   *Bewertung*. Not on Start's *Zuletzt gebrüht* and not in the tea picker.
+9. **Q10, tea detail.** Both waiting sections are built: LETZTE SITZUNGEN
+   and GESCHMACK.
+10. **Q11 and Q17, photos on the session page.** The page gets a hero like
+    the tea detail's: it swipes over the session's own photos (up to 6,
+    with *+ Foto* on it); without own photos it shows the tea's cover. The
+    setup (SCR-04) stays without a photo.
+11. **Q12, ideas kept for later.** Custom descriptors, notes per infusion,
+    manual journal entries (JRN-12) and brew coach tips (JRN-14) are not
+    built in v0.6.0; the PO: „keeps the ideas for possible later
+    implementation" (09 §5).
+12. **Q14, no dot.** JRN-08's dot for sessions without notes is dropped:
+    nothing in the journal points at what was skipped.
+
+**Details (Claude; not asked, open to the PO's correction in the review).**
+
+- **Stars.** `RatingStars` is one component for the sheet and the page, with
+  48 dp targets and a light tick per change. TalkBack reads „Bewertung,
+  3,5 von 5 Sternen" (or „Bewertung, keine"), adjusts in half steps and has
+  the action „Bewertung entfernen". A star tap on the sheet restarts its
+  10 s, so the second tap for a half step has time; the rating write is
+  never cancelled by an alert (rule 8, as for the sheet's other actions).
+- **Sheet order.** Summary line, stars, *Notizen hinzufügen*, *Zeiten ins
+  Rezept übernehmen* (only when it applies), then the existing lines
+  („Packung als geöffnet markiert", *Rezept passt*). *Notizen hinzufügen*
+  opens the session page above the current tab, without the keyboard.
+- **Session page.** Top to bottom: hero; tea, date, method, vessel, leaf /
+  water / ratio; BEWERTUNG (stars); NOTIZEN (a text field, ≤ 5000
+  characters, saved 1 s after the last key and when the field or the page
+  is left); the step table with the recipe offer below it; GESCHMACK;
+  BESCHREIBUNGEN; sticky *So nochmal brühen*. The page of a session whose
+  tea is gone keeps every input.
+- **Taste.** GESCHMACK is one quiet row „Geschmack hinzufügen" until a value
+  exists. Open, it has six sliders 0–5 (Umami, Süße, Bitterkeit,
+  Adstringenz, Körper, Aroma); an untouched slider stays unset („–") and is
+  not a 0. The radar draws once three axes are set, with unset axes at the
+  centre; *Zurücksetzen* clears all six. A tea's average is per axis over
+  its sessions that set that axis.
+- **Descriptors.** The built-in vocabulary of 08 §4 only, with stable keys;
+  BESCHREIBUNGEN shows the chosen chips and *+ Beschreibung*, which opens
+  the picker sheet (SCR-30: search, the ten groups, *Fertig* pinned as in
+  D-110). At 20 the others are greyed with „Höchstens 20 Beschreibungen".
+  Each tick is saved at once.
+- **Session photos.** Processed and stored like tea photos (06 §5.2,
+  `photo.session_id`); there is no cover, the order is the order added; the
+  hero's ⋮ offers only *Löschen*. At 6, *+ Foto* is greyed with „Höchstens
+  6 Fotos". The journal row keeps the tea's cover. Like the tea's own
+  photos they are not in the device backup until M5's export (D-104).
+- **The recipe offer's rule.** A pure function in `core:domain`, read when
+  the sheet or the page shows: the proposal is the session's step plan as
+  it ended (kinds, temperatures, pre-alerts, edited and added steps), with
+  each early-ended step's time replaced by its recorded time, rounded to
+  5 s (to 1 min from 10 min; at least 5 s). The offer applies when the
+  session has a recipe that still exists and whose tea is in the
+  collection, it was not accepted for this session, the recipe has not
+  changed since the session ended, and the proposal differs from the
+  recipe's steps. Accepting writes the proposal like *Im Rezept speichern*
+  does and sets `times_applied`; the line then reads „Rezept
+  aktualisiert." There is no undo. `times_offered` stays unwritten (the
+  schema is frozen; nothing reads it). Session completion and the timer
+  are not touched.
+- **The editor's effects.** A new date or time shifts the session's start,
+  its end and every step's times by the same amount, never into the future;
+  the BREW stock event moves with the end. A new leaf amount sets the BREW
+  event's deduction (none is created for a session that has none) and the
+  cost as at finish (leaf × the tea's cost per gram now; for a tea that is
+  gone the cost scales with the leaf). A step's new time is its recorded
+  time; its planned time stays. Temperatures move in 5 °C steps. Never
+  started and skipped steps show but cannot be edited. The tea's opening
+  date is not recalculated. A session in progress has no page and so no
+  editor. Leaving with changes asks „Änderungen verwerfen?".
+- **Journal.** Rows show „★ 4,5" when rated. The filter sheet offers *Tee*
+  (the teas that have sessions), *Bewertung* (*ab 3 ★*, *ab 4 ★*,
+  *ab 4,5 ★*) and *Mit Notizen* (sessions with note text); active filters
+  show as chips under the search. Search and filters are not remembered
+  across app starts. While either is active, „LÄUFT GERADE" is hidden. No
+  match: A10 with „Keine Sitzung passt zu deiner Suche." and *Filter
+  zurücksetzen*. The empty journal gets A6.
+- **Tea screens.** The average is over the tea's rated sessions, to one
+  decimal, with their count; hidden without a rating. *Bewertung* sorts the
+  highest average first, unrated teas after the rated ones, empty teas last
+  as in every order (INV-05). LETZTE SITZUNGEN shows the last three
+  sessions (a tap opens the session page) and, with more, *Alle anzeigen*,
+  which opens the Journal filtered to the tea. GESCHMACK shows the tea's
+  radar and its five most frequent descriptors with their counts, only
+  with data.
+- **Schema.** umamit.db v6 adds `session_descriptor` with a tested
+  migration. `custom_descriptor` and `session_fts` are not created (points
+  4 and 11); 05 §9 planned them for M4.
+- **Screen details.** What 03 says about SCR-06, SCR-15–SCR-17 and SCR-30
+  beyond the answers above is Claude's: the layouts drawn there, the
+  editor's stock line, the filter icon's dot, the notes counter, a chosen
+  chip opening the sheet, the copy of the new messages (03 §5).
+- **Timer and accuracy.** No timer code changes (`core:timer`,
+  `core:timer-engine`, the timer screens and wiring), so the accuracy run is
+  needed only before the final release (09 §4a) and the milestone review has
+  no T4 timer part.
+
+**Not in v0.6.0.** Statistik (v0.6.1); the rating on Start's rows and in the
+tea picker; changing a session's tea or its number of steps; a filter by
+date range or Sorte; the four ideas of point 11.
+
+<a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
 **Context.** On `v0.5.1-rc.1` the PO saw „a different window" for a split
@@ -378,6 +532,7 @@ what they saw.
   brew arrives. While held, a bar that was not shown stays away; a bar
   already shown stays live (a second timer only splits it, it does not grow).
 
+<a id="d-110"></a>
 ### D-110 — v0.5.1: the PO's feedback on v0.5.0 (BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2; amends D-027's font and D-062's Start lists, and D-096's Start note) · *Accepted* (PO, 2026-11-10, grilled in the session Q1–Q13; details marked „Claude" are Claude's defaults and were not put to the PO)
 
 **Context.** After v0.5.0 the PO gave four points of feedback: Start's
@@ -6672,6 +6827,7 @@ default but is not a requirement.
 
 | Date | Change |
 |---|---|
+| 2026-11-11 | D-112: M4 is specified with the PO (Q1–Q18) and split: **v0.6.0** is the journal (rating, taste, descriptors, notes and session photos entered in place on the session page, all optional; stars on the „Gespeichert" sheet; the session editor for date, vessel, leaf, water and step times; journal search with three filters; *Zeiten ins Rezept übernehmen* only after deliberate changes, without a setting, SET-18 retired; ratings on the tea detail and in *Meine Tees*; LETZTE SITZUNGEN and GESCHMACK; umamit.db v6), **v0.6.1** is Statistik. JRN-08's no-notes dot is dropped; custom descriptors, notes per infusion, manual entries and coach tips stay ideas for later. The anchors of D-110 and D-111 are corrected. |
 | 2026-11-10 | D-110: PO feedback after v0.5.0 → v0.5.1: Start's *Nochmal brühen* and *Zuletzt gebrüht* become one section of six teas whose rows brew again; *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* is pinned beside the title; the display font becomes Alegreya Sans in place of Cormorant Garamond (amends D-027). 02 BRW-11, 03 §1, §3.2, SCR-02, SCR-09, SCR-19, 09 and 11 updated. |
 | 2026-11-09 | D-109: a held alarm (second brew, or the quick timer behind a brew) rings as soon as the other alarm has stopped sounding, not only after *Abgegossen*; two sounds still never overlap (amends D-098 point 2, D-108 point 3). |
 | 2026-11-09 | D-108: PO feedback after v0.4.1 → v0.5.0 before M4 (M4 becomes v0.6.0): any two active timers (two brews, or a brew and a quick timer) with the v0.3.0 alarm order and display; the catalog loads every tea section of the shop, one category chip at a time; per-tea stock warning (on/off, own threshold) and a global reminder interval (täglich, alle 2 / 3 Tage, wöchentlich); a catalog filter by taste notes and taste scales. NG6, NG7 retired. |

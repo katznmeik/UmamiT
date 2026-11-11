@@ -1,6 +1,6 @@
 # UmamiT — Specifications
 
-> Status: **Draft v0.2 — for review** · Last updated: 2026-10-31 (collection bullet, D-100)
+> Status: **Draft v0.2 — for review** · Last updated: 2026-11-11 (journal bullet, D-112)
 
 Product and technical specification of **UmamiT**, a personal Android app
 for brewing tea, focused on umami-rich Japanese green teas. It provides a
@@ -63,6 +63,9 @@ releases are dispatched and verified).
   v0.4.1 (stock history, freshness, cost, own photos); search in memory, no
   tags; teas are archived or deleted, vessels only archived. — D-100
 - **Journal:** sessions are logged automatically; notes are optional. — D-020
+  - M4 ships as v0.6.0 (rating, taste, descriptors, notes and photos in
+    place on the session page, all optional; session editor; search) and
+    v0.6.1 (Statistik). — D-112
 - **Backup:** Android device backup plus a simple manual export; no in-app
   restore in 1.x. — D-022, D-036
 - **Navigation:** Start · Journal · Sammlung · Statistik. — D-018

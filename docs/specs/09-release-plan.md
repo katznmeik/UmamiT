@@ -1,6 +1,6 @@
 # 09 · Delivery Plan & Roadmap
 
-> Status: **Draft v0.2** · Last updated: 2026-11-09 (the v0.5.0 checklist, D-108, D-109; v0.5.0 inserted before M4, which becomes v0.6.0, D-108; the accuracy variant two-brews, all three per v0.5.0 rc and final, #202; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
+> Status: **Draft v0.2** · Last updated: 2026-11-11 (M4 in two releases, v0.6.0 the journal and v0.6.1 Statistik: milestone rows, the v0.6.0 checklist, the ideas kept in §5, D-112; 2026-11-09: the v0.5.0 checklist, D-108, D-109; v0.5.0 inserted before M4, which becomes v0.6.0, D-108; the accuracy variant two-brews, all three per v0.5.0 rc and final, #202; 2026-11-08: the v0.4.1 checklist from #171, D-104 and D-107; 2026-10-31: M3 in two releases, v0.4.0 and v0.4.1: milestone rows, the v0.4.0 checklist, the M3 items kept for v0.4.1, D-100; v0.3.0: the DND item with SET-32, D-099; 2026-10-30: v0.3.0 specified: milestone row, checklist, both accuracy variants per rc, D-098; v0.2.2 from the PO's feedback on v0.2.1, D-097; 2026-10-28: v0.2.1: sold-out teas and a tea from a shop link, D-094; 2026-10-26: v0.2.1 and v0.3.0 from the PO's feedback, M3 → v0.4.0, M4 → v0.5.0, v0.2.1 checklist, D-093; slowest starts in the accuracy summary, D-092; accuracy run before each rc, §4a, D-067; measured up to the sound, D-068; M1 checklist: Doze, quick timer, *Beenden & neu starten*, refused start; release gate, D-070)
 > v0.2: personal app, built by Claude, delivered as one PR per milestone and
 > installed from GitHub Releases. No store, no beta programme.
 
@@ -48,7 +48,8 @@
 | **v0.4.1** | **Collection (M3), part 2: stock, freshness, cost, photos** (D-100; its own spec after v0.4.0) | Stock history (SCR-29) and *Nachkauf erfassen* for teas not from the catalog; freshness labels, the opened-date snackbar, opened and best-before dates in the editor; price per gram and cost per cup; own photos from the photo picker (up to 10, cover, #58 rotation) for teas and vessels; *Aus Katalog zurücksetzen* (recipes and description) | INV-03, INV-06, INV-08, TEA-05, TEA-02 (dates), WARE-01 (photo), PRF-06, CAT-13 | v0.4.1 |
 | **v0.5.0** | **Feedback on v0.4.1** (D-108; spec and tickets next) | Any two active timers: two brew sessions, or a brew and a quick timer, with the v0.3.0 alarm order, slim row and bar; the catalog loads every tea section of the shop (black, white, oolong, Pu-Erh, Rotbusch, Früchtetee, Chai besides green and Kräutertee) with one category chip at a time and new style rows; per-tea stock warning (on/off, own threshold) and a global reminder interval; a catalog filter by taste notes and taste scales; each rc and the final need all three accuracy variants: standard, alongside, two-brews (§4a, #202) | GEN-03, TMR-21, TMR-22, CAT-01, CAT-06, CAT-10, INV-05, INV-09–INV-11, SET-28, SET-29, NFR-PERF-11 (exact list in the spec) | v0.5.0 |
 | **v0.5.1** | **Feedback on v0.5.0** (D-110; four points) | Start: one section *Zuletzt gebrüht* with six teas, a tap brews again; tea detail: *Knapp ab* shows the value in effect; the catalog filter sheet's *Fertig* stays in view; the display font becomes the sans Alegreya Sans. No timer code changes, so only the final release needs the accuracy run (§4a) | BRW-11, SCR-02, SCR-09, SCR-19, 03 §3.2 | v0.5.1 |
-| **M4** | **Journal & statistics** | Auto-log refinements, notes editor and recipe update added to the „Gespeichert" sheet (TMR-12's sheet itself ships in M1), session detail/edit, rating, taste radar, descriptors, Statistik (Überblick, Bewertungen, Verbrauch) | JRN-*, PRF-07, INS-* | v0.6.0 (was v0.5.0 until D-108) |
+| **v0.6.0** | **Journal (M4), part 1** (D-112; plan `docs/plans/v0.6.0.md`) | Rating, notes, taste sliders with radar, descriptors and session photos, entered in place on the session page, all optional; five stars and both actions on the „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* after deliberate changes, also on the session page; the session editor (date, vessel, leaf with stock and cost, water, step times and temperatures); journal search with the filters *Tee*, *Bewertung*, *Mit Notizen*; the A6 empty state; the tea's cover or the session's photos as the session page's hero; average rating on the tea detail and in *Meine Tees* with the sort *Bewertung*; GESCHMACK and LETZTE SITZUNGEN on the tea detail (umamit.db v6 with a tested migration). No timer code changes, so only the final release needs the accuracy run (§4a) | JRN-02–JRN-05, JRN-07–JRN-11, PRF-07, TMR-12, TEA-05, TEA-08, TEA-11, TEA-13 | v0.6.0 (M4 was v0.5.0 until D-108) |
+| **v0.6.1** | **Statistik (M4), part 2** (D-112; its own spec and grilling after v0.6.0) | Statistik (Überblick, Bewertungen, Verbrauch) with its range selector, charts and table alternatives; the A9 empty state | INS-* | v0.6.1 |
 | **M5** | **Data & polish → 1.0** | Device backup verification (rules exist since M1), simple manual export (no in-app restore, D-036), reminders, all settings, accessibility pass, Baseline Profile, performance budgets, diagnostics log extended to the catalog, final illustrations | BAK-01, BAK-05, BAK-06, SET-*, NFR-* | **v1.0.0** |
 
 There are no calendar estimates: pace depends on session availability and the
@@ -308,10 +309,23 @@ v0.5.0 changes timer code throughout, so every `v0.5.0-rc.N` needs a PASS of
 - [ ] Katalog › *Filter*: *Fertig* sits beside the title and stays visible while scrolling through the groups; it closes the sheet from anywhere. *Zurücksetzen* is at the end of the list.
 - [ ] From `v0.5.1-rc.2` (D-111): a tap on a *Zuletzt gebrüht* row fades straight into the timer; Start does not rearrange under it (no *Aufguss fortsetzen* card popping in, no brew bar growing in). Back on Start, the card and the bar are there.
 
-### M4 — Journal & statistics
+### v0.6.0 — Journal: tasting notes, session editor, search (D-112)
 
-- [ ] Finishing shows the „Gespeichert" sheet; *Zeiten ins Rezept übernehmen* appears only when times differ.
-- [ ] Notes, rating, taste, descriptors can be added later.
+- [ ] `v0.6.0-rc.1` installs over `v0.5.1` without losing data (umamit.db v5 → v6): teas, stock and every journal entry are there; a timer running during the update still alerts.
+- [ ] Skipping costs nothing: finish a session and ignore the „Gespeichert" sheet. It leaves after 10 s; the journal row and the session page show no mark, hint or reminder for the missing rating.
+- [ ] Stars on the sheet: after *Sitzung beenden* tap the 4th star: the journal row shows „★ 4,0". On the session page a second tap on the 4th star gives 3,5, a third removes the rating.
+- [ ] *Notizen hinzufügen* on the sheet opens the session's page. Type a note and go back without saving anything: the note is there when the page is opened again, also after closing the app.
+- [ ] GESCHMACK: *Geschmack hinzufügen* opens six sliders; after three are set the radar appears; an untouched slider stays „–". *Zurücksetzen* clears them.
+- [ ] BESCHREIBUNGEN: *+ Beschreibung* opens the sheet; search „nor" finds Nori; ticked descriptors show as chips on the page; *Fertig* stays in view while scrolling.
+- [ ] Photos: *+ Foto* on the session page's hero adds a photo from the picker (portrait photos upright); the hero swipes over several; ⋮ *Löschen* removes the one shown. A session without own photos shows the tea's cover.
+- [ ] *Zeiten ins Rezept übernehmen*: end a first infusion early with *Aufguss jetzt beenden*, finish: the sheet offers it, and so does the session page under the step table. Accepted, the recipe has the shorter time (rounded to 5 s) and the offer is gone. A session poured 20 s late after the alarm shows no offer.
+- [ ] ⋮ *Bearbeiten*: change the leaf from 5 g to 7 g and save: the tea's stock drops by 2 g more and the session shows 7 g. Change the date to yesterday: the entry moves under „GESTERN". Change a step's time and temperature: the step table shows them.
+- [ ] Journal search: a word from a note, a tea's name and a descriptor each find their sessions. Filter *Bewertung* › *ab 4 ★* and *Mit Notizen* narrow the list; the chips' ✕ and *Filter zurücksetzen* bring everything back.
+- [ ] Tea detail: „★ 4,5 (2)" under the name after two rated sessions; LETZTE SITZUNGEN lists the last three and opens a session; GESCHMACK shows the radar and descriptors once sessions have them. *Meine Tees* shows the average in the row; sort *Bewertung* puts the best tea first.
+- [ ] Statistik still shows „Deine Statistik folgt bald" (v0.6.1).
+
+### v0.6.1 — Statistik (D-112; its checklist comes with its spec)
+
 - [ ] Statistik tabs show plausible numbers for a week of real use.
 
 ### M5 — 1.0
@@ -481,11 +495,13 @@ behaves like a Samsung phone.
 | Item | Ref |
 |---|---|
 | Home-screen widget, app shortcuts, Quick Settings tile | NOT-06…08 |
-| Brew coach tips | JRN-14 |
+| Brew coach tips (idea kept by the PO, D-112) | JRN-14 |
+| Custom descriptors: own words in the descriptor picker (idea kept by the PO, D-112) | JRN-04 |
+| Notes per infusion, ≤ 300 characters per step (idea kept by the PO, D-112) | JRN-05 |
 | Weekly stock digest | INV-07 |
 | CSV export | BAK-04 |
 | Galaxy Watch tile / companion | — |
-| Tags, manual journal entries | TEA-07, JRN-12 |
+| Tags, manual journal entries (the latter an idea kept by the PO, D-112) | TEA-07, JRN-12 |
 | Non-green Tee-Kontor categories in the catalog | NG6 |
 | In-app restore of a `.umamit` file | BAK-02 (D-036) |
 | Direct-boot alert before the first unlock | 04 §7.3 |

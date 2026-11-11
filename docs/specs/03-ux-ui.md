@@ -1,6 +1,6 @@
 # 03 · UX & UI Specification
 
-> Status: **Draft v0.2** · Last updated: 2026-10-31 (v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
+> Status: **Draft v0.2** · Last updated: 2026-11-11 (v0.6.0, the journal: SCR-06 stars and actions, SCR-08 and SCR-09 ratings, GESCHMACK and LETZTE SITZUNGEN, SCR-15 search and filters, SCR-16 in-place tasting inputs and hero, SCR-17 session editor, SCR-30 descriptor sheet, D-112; 2026-10-31: v0.4.0: *Meine Tees*, tea detail, tea and recipe editors, *Sorte wählen*, teaware, *Archivieren* everywhere, setup ⋮ *Tee ansehen* and *Neues Gefäß …*, BRW-08, tappable journal entries and the read-only session page with *So nochmal brühen*, *Bestand abziehen*, D-100; v0.3.0: the switch „Bei „Nicht stören" klingeln", D-099; 2026-10-30: v0.3.0: two timers in the bar and the timer screens, setup ⋮ *Im Katalog ansehen*, stock on READY, foldable *Sorte* groups, *Lautstärke*, the daily reminder's settings, „Alarmlautstärke ist aus", two SCR-07 polish items, D-098; v0.2.2: leaf and water on READY, catalog notifications open the refresh sheet, picker groups, low-stock card, quick timer *Vorwarnung* and 8:00, *Merken*, D-097; 2026-10-29: *Link einfügen* and the share target as built, #98; the timer's band gives way on a short screen, D-096; 2026-10-28: *Link einfügen* and share target, „nicht vorrätig" teas, D-094; 2026-10-26: v0.2.1: timer top bar,
 > per-step pre-alert, *Vorwarnton*, stock correction, removing a tea from the
 > picker, Kräutertee chip, D-093)
 
@@ -57,6 +57,7 @@ added by the PO on 2026-10-21. They are the **current visual reference** (they s
 | Start (both) | NOCHMAL BRÜHEN tiles above ZULETZT GEBRÜHT | Spec wins from v0.5.1 (D-110): one section ZULETZT GEBRÜHT, whose rows brew again |
 | All | Serif titles and timer digits | Spec wins from v0.5.1 (D-110): the humanist sans Alegreya Sans (§3.2) |
 | Start (both) | No *Schnelltimer* entry and no FAVORITEN section | Spec wins: both are present (SCR-02) |
+| Start (both) | ZULETZT GEBRÜHT rows show „★ 4,5" | Spec wins (D-112): no rating on Start; ratings show in the Journal, in *Meine Tees* and on the tea detail |
 | Start (both) | ZULETZT GEBRÜHT rows in a free-form layout | Spec wins: rows use the `TeaListItem` format (§3.8) |
 | Start (single) | The *Matcha* thumbnail shows a brown liquor (looks like hōjicha) | Image glitch; real thumbnails are tea photos |
 | Timer running | Top-right shows an ⓘ icon | Spec wins: ⋮ overflow menu (SCR-05) |
@@ -86,7 +87,8 @@ App
 │   └── Einstellungen (SCR-25) — top-bar action
 ├── Journal (SCR-15)
 │   └── Sitzung (SCR-16) → So nochmal brühen → Brühen (SCR-04); Tee (SCR-09)
-│       └── Sitzung bearbeiten / Notizen (SCR-17) → Beschreibungen (SCR-30) — M4
+│       ├── rating, notes, taste, photos in place; Beschreibungen (SCR-30, sheet) — v0.6.0
+│       └── ⋮ Bearbeiten → Sitzung bearbeiten (SCR-17) — v0.6.0
 ├── Sammlung (Collection) — segmented: [ Meine Tees | Katalog ]
 │   ├── Meine Tees (SCR-08)
 │   │   ├── Tee (SCR-09) → Brühen (SCR-04), Bearbeiten (SCR-10), Rezept (SCR-12); Vorrat (SCR-29), Fotos (SCR-28) — v0.4.1
@@ -454,7 +456,7 @@ romanisation with macrons (Kōridashi) where standard. Examples:
 | `TimerRing` | 3 dp ring, round cap, leaf glyph, digits + caption; pre-alert segment marked as a short tick on the ring |
 | `PillButton` | Cream on dark / green on light; ink with washi text on the alert surface |
 | `KettleHint` | Kettle icon + „Wasserkocher auf 60 °C" |
-| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named |
+| `RatingStars`, `TasteSlider`, `TasteRadar`, `DescriptorChip`, `UmamiMeter` | As named. From v0.6.0 (D-112): `RatingStars` is the one rating input (sheet and session page): five stars, 48 dp targets, a tap sets whole stars, a second tap on the same star takes half off, a third clears; a half star draws half filled; a light tick per change; TalkBack „Bewertung, 3,5 von 5 Sternen" / „Bewertung, keine", adjustable in half steps, action „Bewertung entfernen". Read-only it is the text „★ 4,5". `TasteSlider`: 0–5 in whole steps, „–" while unset. `TasteRadar`: six axes (Umami, Süße, Bitterkeit, Adstringenz, Körper, Aroma), drawn from three set axes on, unset axes at the centre; TalkBack reads the values as a list |
 | `StockChip`, `FreshnessChip`, `CheckRecipeBadge` | „38 g übrig", „Bald genießen", „Rezept prüfen". `FreshnessChip` (v0.4.1, `core:designsystem`): *Frisch* on `primaryContainer`, *Bald genießen* on `secondaryContainer` (as *Knapp*), *Über dem Höhepunkt* on `surfaceContainerHigh`; a compact size in SCR-03 |
 | `CatalogFlagChips` | „Bio", „aromatisiert", „im Besitz", „nicht mehr im Sortiment" |
 | `ActiveBrewBar` | 56 dp mini ring, tea name, step („Aufguss 2/4", `onSurface`: `onSurfaceVariant` is only 4.21:1 on the bar), remaining time. **ALERTING:** static matcha `#6B9845` with ink content (4.55:1), „Jetzt abgießen!" in place of the step, the overtime counting up („+0:07"), the mini ring full in ink without liquor; it snaps in (`alertEnter`), also when the bar first appears already alerting (a recreated activity: no growth, no fade, D-069), and never pulses (the full alert is SCR-05); a tap opens the timer (D-055). **Two timers (v0.3.0, D-098):** with a brew and a quick timer active the bar holds two halves side by side, brew first, each with its 40 dp mini ring, name („Schnelltimer" for the quick timer), step and countdown; each half is its own tap target (≥ 48 dp) and opens its timer; an alerting half takes the ALERTING style alone; a held quick alert shows „fertig" without the alert style until it rings. **Two brews (v0.5.0, D-108):** two brew sessions take the halves the same way, in the slot order (`BREW`, `BREW_2`), each with its step; a held brew shows „wartet" (TalkBack: „*Kamille*, Aufguss 1 von 2 fertig, wartet auf den anderen Aufguss") |
@@ -837,6 +839,35 @@ failed write of either action is logged and changes nothing else (D-090).
 Each action line and the line that replaces it share a 40 dp minimum
 height, so the sheet keeps its height when the action is tapped.
 
+v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)): the sheet gets
+its rating and its two actions. Everything on it is optional; ignoring it
+is the way to skip.
+
+```
+┌──────────────────────────────┐
+│ Gespeichert im Journal       │
+│ 3 Aufgüsse · 2:20            │
+│  ☆   ☆   ☆   ☆   ☆          │  one tap rates (JRN-02)
+│ Notizen hinzufügen         › │  → SCR-16
+│ Zeiten ins Rezept übernehmen │  only when PRF-07 applies
+│ Packung als geöffnet … Rückg.│  as before, when they apply
+│ Rezept passt                 │
+└──────────────────────────────┘
+```
+
+- **Stars** (`RatingStars`, §3.8): a tap rates the session at once; the
+  second and third tap work as on the session page. Each star tap restarts
+  the sheet's 10 s, so a half step has time. No text asks for a rating.
+- ***Notizen hinzufügen*** closes the sheet and opens the session's page
+  (SCR-16) above the current tab, without the keyboard.
+- ***Zeiten ins Rezept übernehmen*** shows only when PRF-07 applies; tapped,
+  its line reads „Rezept aktualisiert.". Missed, it waits on the session
+  page.
+- The order is fixed as drawn; lines that do not apply take no space.
+- A rating or recipe write already started is never cancelled when an alert
+  removes the sheet (rule 8); a failed write is logged and changes nothing
+  else (D-090).
+
 ### SCR-07 Schnelltimer
 
 Dark like SCR-05, with the ink-wash band but no seal (D-095), also before *Start*, where ← sits on the same 40 dp circle as on the timer; chips 0:30 … 5:00 and, from v0.2.2, 8:00 (wrapping onto a second row when needed); tap time for a duration picker; *Start*;
@@ -938,6 +969,11 @@ placeholder („Deine Sammlung folgt bald …", D-069):
   stock chip („Frisch", „Bald genießen", „Über dem Höhepunkt"); none for an
   unopened or an empty tea. TalkBack reads it with the row as „Frische: Bald
   genießen".
+- **Rating (v0.6.0, TEA-08, TEA-11, D-112):** a tea with rated sessions
+  shows their average as „★ 4,5" at the row's end (`TeaListItem`'s trailing
+  slot); TalkBack reads „Bewertung 4,5 von 5". The sort chip offers
+  *Bewertung* (highest first; unrated teas after the rated ones, empty teas
+  last).
 
 ### SCR-09 Tee (my tea detail)
 
@@ -1011,6 +1047,21 @@ v0.4.0 ([D-100](10-open-questions-and-decisions.md#d-100)):
 - **BESCHREIBUNG** (seed and catalog descriptions, D-090), **NOTIZEN** and
   **DETAILS** (origin, cultivar, harvest, vendor …), each only with content.
   FRISCHE follows with v0.4.1; GESCHMACK and LETZTE SITZUNGEN with M4.
+- **Rating, GESCHMACK, LETZTE SITZUNGEN (v0.6.0, TEA-13, D-112):**
+  - **Header:** „★ 4,5 (12)" under the names: the average of the tea's
+    rated sessions and their count; hidden without a rating. TalkBack:
+    „Bewertung 4,5 von 5, aus 12 Sitzungen".
+  - **GESCHMACK** (after FRISCHE; only with data): the tea's average
+    `TasteRadar` (per axis over the sessions that set it; from three axes
+    on) and below it up to five `DescriptorChip`s of its most frequent
+    descriptors with their counts („Nori · 4"), read-only.
+  - **LETZTE SITZUNGEN** (after GESCHMACK; only with finished sessions):
+    the last three as rows „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" with
+    „★ 4,5" when rated; a tap opens the session page (SCR-16) in the same
+    stack. With more than three, the header's *Alle anzeigen* opens the
+    Journal tab filtered to this tea (SCR-15). Above the setup (⋮ *Tee
+    ansehen*) the rows open nothing and *Alle anzeigen* is hidden, as the
+    stock history's brew rows.
 - **FRISCHE (v0.4.1, INV-06, D-104):** after VORRAT, only with a label: the
   `FreshnessChip` and „Geöffnet am 21. Okt. 2026", or „Mindestens haltbar bis
   1. Nov. 2026" once that date has passed (the label then stems from it).
@@ -1177,6 +1228,34 @@ v0.4.0 (D-100): a tap on a past entry opens its session page (SCR-16); the
 in-progress session still opens the timer. A deleted tea's entry shows its
 name and the type leaf in place of the photo.
 
+v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)):
+- **Rows:** „★ 4,5" under the meta line when the session is rated. No dot
+  or other mark for sessions without notes. The photo stays the tea's
+  cover.
+- **Search** (JRN-09): a field „Tees, Notizen …" under the title, over tea
+  name, notes and descriptor labels, ignoring case and accents; it filters
+  as you type and keeps the day groups.
+- **Filter:** the icon beside the search opens the sheet *Filter*, with the
+  title row and *Fertig* pinned as in SCR-19 (D-110):
+  - *Tee*: the teas that have sessions, by name; one at a time. A deleted
+    tea is offered by its recorded name.
+  - *Bewertung*: *ab 3 ★* · *ab 4 ★* · *ab 4,5 ★*; one at a time.
+  - *Mit Notizen*: only sessions with note text.
+  - *Zurücksetzen* at the end.
+  Active filters show as chips under the search, each with ✕; the filter
+  icon carries a dot while one is active.
+- **„LÄUFT GERADE"** is hidden while a search or filter is active.
+- **No match:** asset A10, „Keine Sitzung passt zu deiner Suche." ·
+  *Filter zurücksetzen* (clears search and filters).
+- **Empty journal:** asset A6, „Deine erste Tasse wartet." (an
+  `EmptyState`; until v0.6.0 text only).
+- **From the tea detail:** LETZTE SITZUNGEN's *Alle anzeigen* opens the
+  tab with *Tee* set to that tea.
+- Search and filters are dropped when the app restarts; they survive a tab
+  switch and the way to a session page and back.
+- TalkBack: a row adds „Bewertung 4,5 von 5"; the result count is announced
+  after a search („12 Sitzungen").
+
 ### SCR-16 Sitzung (detail)
 
 Hero, tea (link), date/time, method, vessel, leaf/water/ratio, step table
@@ -1203,10 +1282,100 @@ v0.4.0 (D-100):
 - **Tea deleted:** the tea's name without a link, and no *So nochmal
   brühen*.
 
-### SCR-17 Sitzung bearbeiten / Notizen
+v0.6.0 ([D-112](10-open-questions-and-decisions.md#d-112)): the page is
+where a session's tasting inputs live. Every one is optional, entered in
+place and saved at once; there is no *Speichern*, no required field and no
+hint that something is missing.
 
-Rating, taste sliders with live radar, descriptors (→ SCR-30), notes, photos,
-and (edit mode) date/time, leaf, water, step times.
+```
+┌──────────────────────────────┐
+│ ←  [ hero 4:3 ]     + Foto ⋮ │  session photos, else the tea's cover
+│ Gyokuro Hoshino            › │
+│ 8. Juni 2026 · 09:12         │
+│ Kyusu · 5 g · 60 ml · 1:12   │
+│ BEWERTUNG                    │
+│  ★   ★   ★   ★   ☆          │
+│ NOTIZEN                      │
+│ ┌ Notizen …                ┐ │
+│ SCHRITTE                     │
+│  1 Aufguss  1:00  0:48 55 °C │
+│  Zeiten ins Rezept übernehmen│  only when PRF-07 applies
+│ GESCHMACK                    │
+│  Geschmack hinzufügen      › │
+│ BESCHREIBUNGEN               │
+│  (Nori) (cremig) (+ Beschr.) │
+├──────────────────────────────┤
+│ [    So nochmal brühen     ] │
+└──────────────────────────────┘
+```
+
+- **Hero** (JRN-07, TEA-05): 4:3, like the tea detail's (SCR-28). With
+  session photos it swipes over them in the order added, with dots from two
+  on; without, it shows the tea's cover, and without that the type leaf (a
+  deleted tea: the leaf). ***+ Foto*** opens the photo picker (one image);
+  at 6 it is greyed with „Höchstens 6 Fotos". The hero's ⋮ („Foto-Optionen",
+  only with session photos) offers *Löschen* for the photo shown: „Foto
+  löschen?" · „Das Foto wird aus der App entfernt." · *Abbrechen* /
+  *Löschen*. Errors and TalkBack as SCR-28 („Fotos der Sitzung", „Foto 1
+  von 3"). The page's own ⋮ (*Bearbeiten*, *Löschen*) stays in the top bar.
+- **BEWERTUNG:** `RatingStars` (§3.8, JRN-02), empty until tapped.
+- **NOTIZEN:** a multi-line field with the placeholder „Notizen …", growing
+  with its text (≤ 5000 characters, a counter from 4500 on). It saves 1 s
+  after the last key and when the field or the page is left; nothing is lost
+  on back, on a tab switch or when an alert takes the screen.
+- **SCHRITTE:** the step table as before. Below it, while PRF-07 applies,
+  the text button *Zeiten ins Rezept übernehmen*; tapped, the line reads
+  „Rezept aktualisiert." and is gone the next time the page opens.
+- **GESCHMACK** (JRN-03): without values one row „Geschmack hinzufügen"
+  with a chevron. Open (and always when values exist): the `TasteRadar`
+  once three axes are set, then six `TasteSlider`s (Umami, Süße,
+  Bitterkeit, Adstringenz, Körper, Aroma) and *Zurücksetzen*. Each release
+  of a slider saves.
+- **BESCHREIBUNGEN** (JRN-04): the chosen `DescriptorChip`s in the
+  vocabulary's order and a chip *+ Beschreibung* that opens SCR-30. A tap
+  on a chosen chip opens the sheet too (chips are not removed by a stray
+  tap).
+- **Order of the inputs:** the two quick ones (stars, notes) sit above the
+  step table; the two longer ones below it.
+- **⋮:** *Bearbeiten* (→ SCR-17) above *Löschen*.
+- **Tea archived or deleted:** every input still works; only *So nochmal
+  brühen* follows the v0.4.0 rules above.
+- **Rule 8:** an alert closes the open menu, question or descriptor sheet
+  in its first frame; a write already started completes.
+- **Motion:** the hero, the stars and the folding of GESCHMACK follow §3.6
+  (`sheet` spring for the fold, no animation with reduce motion); judged in
+  the milestone's motion review.
+
+### SCR-17 Sitzung bearbeiten
+
+Until D-112 this was one editor for notes and recorded data. From v0.6.0
+the tasting inputs live on SCR-16; SCR-17 is the editor for a finished
+session's **recorded data** (JRN-11), opened by SCR-16's ⋮ *Bearbeiten*.
+
+- **Top bar:** ✕, „Sitzung bearbeiten", *Speichern* (enabled once
+  something changed and every field is valid).
+- **Fields:**
+  - *Datum* and *Uhrzeit* of the start (the system date and time pickers);
+    a time in the future is refused with „Die Sitzung kann nicht in der
+    Zukunft liegen.".
+  - *Gefäß*: the vessels that are not archived, the session's own vessel
+    even if it is, and *Kein Gefäß*.
+  - *Blattmenge* (g, one decimal) and *Wasser* (ml), with the setup's
+    limits and formats (SCR-04).
+  - **SCHRITTE:** each brewed step as a row „1 · Aufguss" with *Zeit*
+    (m:ss, the recorded time) and *°C* (5 °C steps, the Schritte-Sheet's
+    range). Steps never started („nicht gebrüht") and skipped ones show
+    greyed, without fields.
+- **Not here:** the tea, the recipe, the method, adding or removing steps.
+- ***Speichern*** writes everything in one transaction (05 §3.6), closes the
+  editor and shows the page with the new values; a failed write keeps the
+  editor open with „Die Änderungen konnten nicht gespeichert werden.".
+- **Leaving with changes:** `DiscardChangesDialog`.
+- A line under *Blattmenge* says what a change does, only while it differs:
+  „Dein Vorrat wird um 2 g angepasst." (no line for a session without a
+  stock deduction or without its tea).
+- **Rule 8:** an alert takes the screen; the editor is still there
+  afterwards with its unsaved values, as the other editors.
 
 ### SCR-18 Statistik
 
@@ -1215,7 +1384,7 @@ selector. Überblick: teas total („24 · +3 diesen Monat"), sessions this
 week/month, streak, sessions per week, tea-type donut. Bewertungen: average,
 distribution bars, top teas, taste radar. Verbrauch: grams per month, money
 spent per month, cost per session, running-out list.
-**M1 placeholder** (until M4): „Deine Statistik folgt bald · Sie kommt mit
+**M1 placeholder** (until v0.6.1, D-112): „Deine Statistik folgt bald · Sie kommt mit
 einem späteren Update. Deine Aufgüsse stehen schon im Journal.", true before
 and after the first brew (D-069).
 
@@ -1525,6 +1694,21 @@ Photo pager (zoom, cover, delete); stock sheet (remaining, *Nachkauf
 erfassen*, *Bestand korrigieren*, history); descriptor picker (search,
 groups, custom). SCR-28 and SCR-29 come with v0.4.1, SCR-30 with M4 (D-100).
 
+SCR-30 in v0.6.0 (D-112): a bottom sheet over the session page, not a
+screen.
+- **Title row** „Beschreibungen" with the count („3 von 20") and *Fertig*,
+  pinned above the scrolling content as in SCR-19's filter sheet (D-110).
+- **Search** „Beschreibung suchen …" over the labels, ignoring case and
+  accents; it narrows the groups.
+- **Groups** in the order of 08 §4 (Meer … Fehlnoten), each an overline and
+  a wrapping row of `DescriptorChip`s; a tap ticks or unticks and saves at
+  once.
+- **At 20** the unticked chips are greyed and the count reads „20 von 20 ·
+  Höchstens 20 Beschreibungen".
+- No custom descriptors (an idea kept for later).
+- TalkBack: each chip is a toggle („Nori, ausgewählt"); the groups are
+  headings.
+
 SCR-28 in v0.4.1 (D-104, #183): the photos live in the detail's hero (SCR-09),
 no screen of their own.
 - **Pager:** the hero (4:3) swipes over the tea's photos, the cover first,
@@ -1648,6 +1832,11 @@ editable before *Start*). Never from ALERTING: both entries appear after
 | Situation | Copy |
 |---|---|
 | Unsaved changes | „Änderungen verwerfen?" · Weiter bearbeiten / Verwerfen |
+| Session photo limit (v0.6.0, JRN-07) | „Höchstens 6 Fotos" |
+| Descriptor limit (v0.6.0, JRN-04) | „Höchstens 20 Beschreibungen" |
+| Recipe offer accepted (v0.6.0, PRF-07) | „Rezept aktualisiert." |
+| Session start in the future (v0.6.0, JRN-11) | „Die Sitzung kann nicht in der Zukunft liegen." |
+| Journal search without a match (v0.6.0, JRN-09) | „Keine Sitzung passt zu deiner Suche." · Filter zurücksetzen |
 | Delete tea (v0.4.0, TEA-04) | „*Gyokuro* löschen? Deine 12 Journal-Einträge bleiben erhalten." · Stattdessen archivieren / Löschen |
 | Tea archived (v0.4.0, TEA-04; the picker too) | „*Tanabata* archiviert" · Rückgängig |
 | Archive or delete the tea or vessel of the active brew (v0.4.0) | „Erst die Sitzung beenden" (the item greyed out) |

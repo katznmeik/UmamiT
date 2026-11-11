@@ -158,16 +158,29 @@ Answer the questions in order and take the first tier that matches:
 | *Aus Katalog zurücksetzen* | T2 |
 | Milestone review | T3 |
 
-**M4 — Journal & statistics**
+**M4 — Journal & statistics** (two releases, D-112)
+
+*v0.6.0 — journal* (the tickets and their tiers: `docs/plans/v0.6.0.md`)
 
 | Task | Tier |
 |---|---|
-| Journal list, session detail, notes editor | T2 |
-| Rating, taste sliders, radar chart, descriptor picker | T2 |
-| „Gespeichert" sheet and recipe-update logic (PRF-07) | T3 |
+| German descriptor vocabulary, keys and copy | T1 |
+| umamit.db v6 migration, tasting writes, aggregates | T3 |
+| Rating and notes on the session page; taste sliders and radar; descriptor sheet | T2 |
+| Stars and actions on the „Gespeichert" sheet | T2 |
+| Recipe-update rule and write (PRF-07) | T3 |
+| Session photos and hero | T3 |
+| Session editor (`EditSession`: stock, cost, times) | T3 |
+| Journal search and filters, A6 | T2 |
+| Ratings, GESCHMACK and LETZTE SITZUNGEN on the tea screens | T2 |
+| Milestone review | T3 |
+
+*v0.6.1 — Statistik* (provisional; its spec sets the tickets and tiers)
+
+| Task | Tier |
+|---|---|
 | Statistics computations (streaks, buckets, cost, consumption) + tests | T3 |
 | Charts (Vico bar charts, custom donut) | T2 |
-| German descriptor vocabulary and copy | T1 |
 | Milestone review | T3 |
 
 **M5 — Data & polish → 1.0**
