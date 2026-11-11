@@ -177,6 +177,51 @@ class RecipeOfferTest {
         assertThat(RecipeOffer.of(input(session))).isNull()
     }
 
+    @Test
+    fun `a note is kept at an unchanged position and when only the step's time changed`() {
+        val old = listOf(
+            RecipeStep(StepKind.INFUSION, 60, note = "sanft"),
+            RecipeStep(StepKind.INFUSION, 30, note = "heiß"),
+        )
+        val proposal = listOf(RecipeStep(StepKind.INFUSION, 50), RecipeStep(StepKind.INFUSION, 30))
+
+        assertThat(RecipeOffer.keepingNotes(proposal, old)).containsExactly(
+            RecipeStep(StepKind.INFUSION, 50, note = "sanft"),
+            RecipeStep(StepKind.INFUSION, 30, note = "heiß"),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a position whose kind changed gets no note, an added step gets none`() {
+        val old = listOf(RecipeStep(StepKind.RINSE, 10, note = "kurz"), RecipeStep(StepKind.INFUSION, 60, note = "x"))
+        val proposal = listOf(
+            RecipeStep(StepKind.INFUSION, 10),
+            RecipeStep(StepKind.INFUSION, 60),
+            RecipeStep(StepKind.INFUSION, 45),
+        )
+
+        assertThat(RecipeOffer.keepingNotes(proposal, old)).containsExactly(
+            RecipeStep(StepKind.INFUSION, 10),
+            RecipeStep(StepKind.INFUSION, 60, note = "x"),
+            RecipeStep(StepKind.INFUSION, 45),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a recipe without notes behaves as before`() {
+        val proposal = listOf(RecipeStep(StepKind.INFUSION, 50), RecipeStep(StepKind.INFUSION, 30))
+
+        assertThat(RecipeOffer.keepingNotes(proposal, RECIPE.steps)).isEqualTo(proposal)
+    }
+
+    @Test
+    fun `a note alone never produces an offer`() {
+        val recipe = RECIPE.copy(steps = RECIPE.steps.map { it.copy(note = "n") })
+        val session = session(poured(0, planned = 60, actual = 60), poured(1, planned = 30, actual = 30))
+
+        assertThat(RecipeOffer.of(input(session, recipe = recipe))).isNull()
+    }
+
     private fun input(
         session: BrewSession,
         recipe: Recipe? = RECIPE,

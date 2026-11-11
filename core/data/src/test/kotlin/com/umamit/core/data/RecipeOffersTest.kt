@@ -41,10 +41,10 @@ class RecipeOffersTest {
      * Tea „t1" with recipe „r1" (1:00, 0:30 with a 10 s pre-alert, at the base 60 °C), saved a day before; the session
      * „s1" of that recipe, its first infusion ended at 0:48, its second poured as planned, completed at [ENDED].
      */
-    private suspend fun earlyEndedSession(firstActual: Int = 48) {
+    private suspend fun earlyEndedSession(firstActual: Int = 48, steps: List<RecipeStep> = RECIPE_STEPS) {
         now = START - DAY_MS
         teas.saveTea(tea("t1"))
-        recipes.saveRecipe(recipe("r1", "t1", isDefault = true, steps = RECIPE_STEPS))
+        recipes.saveRecipe(recipe("r1", "t1", isDefault = true, steps = steps))
         now = START
         sessions.startSession(
             SessionStart(
@@ -93,6 +93,34 @@ class RecipeOffersTest {
         // The recipe's own values stay; only its steps change (*Im Rezept speichern*).
         val stored = checkNotNull(recipes.getRecipe("r1"))
         assertThat(stored.copy(steps = RECIPE_STEPS)).isEqualTo(recipe("r1", "t1", isDefault = true, RECIPE_STEPS))
+    }
+
+    @Test
+    fun `accept keeps the recipe's notes by position and kind`() = runTest {
+        earlyEndedSession(
+            steps = listOf(
+                RecipeStep(StepKind.INFUSION, 60, note = "sanft"),
+                RecipeStep(StepKind.INFUSION, 30, note = "heiß", preAlertSeconds = 10),
+            ),
+        )
+
+        assertThat(offers.accept("s1")).isEqualTo(RecipeOfferAccept.ACCEPTED)
+
+        assertThat(recipeSteps()).containsExactly(
+            RecipeStep(StepKind.INFUSION, 50, note = "sanft"),
+            RecipeStep(StepKind.INFUSION, 30, note = "heiß", preAlertSeconds = 10),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a refused accept keeps the notes untouched`() = runTest {
+        val withNotes = listOf(RecipeStep(StepKind.INFUSION, 60, note = "sanft"))
+        earlyEndedSession(firstActual = 60)
+        recipes.replaceSteps("r1", withNotes)
+
+        assertThat(offers.accept("s1")).isEqualTo(RecipeOfferAccept.NOT_APPLICABLE)
+
+        assertThat(recipeSteps()).isEqualTo(withNotes)
     }
 
     @Test
