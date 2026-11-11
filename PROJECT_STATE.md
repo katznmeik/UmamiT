@@ -5,7 +5,7 @@
 > log are in [`docs/history.md`](docs/history.md); read that only when you
 > need it (D-101).
 
-**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1), #224, #231 (wave 2). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
+**Last updated:** 2026-11-11. **v0.6.0 (the journal, M4 part 1; D-112) is being built** on `claude/wonderful-davinci-fu8tqi` (draft PR #235), started by the PO with `/implement-spec #221`. Merged so far: #222, #223 (wave 1), #224, #231 (wave 2), #225, #227 (wave 3). Plan and waves: `docs/plans/v0.6.0.md`. [`v0.5.1`](https://github.com/katznmeik/UmamiT/releases/tag/v0.5.1) is the latest release (from `main` `73a97fc5`); details in `docs/history.md`.
 
 ## v0.6.0 (build phase in progress)
 
@@ -22,8 +22,19 @@
     #231's 10 000-session criterion is met by JVM timing only (D-112 build
     notes); the list build on the composition thread is an item for the
     milestone review.
-  - **Next:** waves 3–6 of the plan (#225 ‖ #227, #226 ‖ #230, #228 ‖ #232,
-    #229).
+  - **Wave 3, merged (`08ae3d86`, gate passed):** #225 (T2) GESCHMACK
+    sliders and radar; #227 (T2) stars and *Notizen hinzufügen* on the
+    „Gespeichert" sheet (`SavedSheetRequests` in `core:timer` unchanged).
+  - **CI:** run 43005004378 (wave 2 push) failed in „Emulator tests (API
+    36)": `ProcessDeathTest` (two brews, process death) did not find the
+    recovery's log line. Diagnosed read-only (T3): the test reads the
+    diagnostics log once from its own process while the timer process
+    writes that line asynchronously after posting the held notification; the
+    recovery itself worked, and the `core:timer` test APK is the same as in
+    the green run before. The same test flaked once before
+    (`docs/history.md`). A fix is test-only but under
+    `core/timer/src/androidTest`, so it waits for the PO's answer (below).
+  - **Next:** waves 4–6 of the plan (#226 ‖ #230, #228 ‖ #232, #229).
   - **Environment:** Maven Central answered HTTP 429 all day; a local Gradle
     init script (`~/.gradle/init.d`, not in the repository) points
     `repo.maven.apache.org` at Google's Maven Central mirror
@@ -75,7 +86,7 @@
 
 ## Waiting on the PO
 
-1. **v0.6.0:** the start of the build with `/implement-spec #221` in a fresh session (the prompt is at the end of the specify session's last message). Corrections to D-112's details marked „Claude" are welcome before or during the build.
+1. **v0.6.0, `ProcessDeathTest`'s log read (see „CI" above):** leave it as a known flake and rerun; or fix the test in v0.6.0 (a test-only change under `core/timer`); or fix it after v0.6.0. Until answered nothing under `core/timer` changes. Corrections to D-112's details and build notes marked „Claude" are welcome at any time.
 2. **Optional, at any time:** the PO's own alarm or Vorwarnung recordings (`docs/design/assets/source/sound-alert-<name>.wav`, `sound-prealert-<name>.wav`; WAV, sound from the first sample). Each becomes one more entry in `PreAlertSound` / `AlertSound`.
 3. **Optional:** install the Claude GitHub App on the repository (https://github.com/apps/claude/installations/select_target). Without it, PR CI results don't wake a session; the sessions check CI themselves.
 4. **Environment:** cloud sessions must run in the personal environment **„UmamiT"** (created 2026-11-08: `dl.google.com`, Gradle and Maven hosts, `raw.githubusercontent.com`, `www.tee-kontor-kiel.de`). The plain „Default" environment blocks `dl.google.com`, so the Android plugin doesn't resolve.

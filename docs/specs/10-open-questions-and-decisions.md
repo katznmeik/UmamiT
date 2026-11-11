@@ -550,6 +550,36 @@ page).**
 - A6 is cut from its source with a motif mask on the theme's background
   colour, so no paper rectangle shows in light or dark.
 
+**Build notes (Claude, 2026-11-11, #225: GESCHMACK).**
+- `TasteRadar` (`core:ui`, a Canvas) takes a value per axis as a decimal, so
+  the tea detail can show averages (#232). It draws from three set axes on;
+  a 0 is a set axis. TalkBack reads the set axes as a list
+  („Geschmacksprofil: Umami 4 von 5, …"); a slider reads „3 von 5" or
+  „nicht gesetzt".
+- `TasteSlider` is a Material slider 0–5. A touch on an unset slider sets it
+  (a tap at its left end stores 0); an axis is not unset on its own, only
+  all six by *Zurücksetzen* (as specified). TalkBack cannot move an unset
+  slider to 0; an item for the milestone review.
+- The shown value is kept until the stored one equals it, so a late
+  emission cannot fold the section open again after *Zurücksetzen*.
+- The section is open once opened or with any value (remembered per
+  session). The radar grows with the font scale (up to 40 %). With reduce
+  motion the fold's spring snaps while its short fade stays; the motion
+  review looks at it.
+
+**Build notes (Claude, 2026-11-11, #227: the „Gespeichert" sheet).**
+- The sheet's stars start empty and show the sheet's own taps; the write is
+  queued in the host's scope above the alert's early return, so an alert
+  never cancels it. A refused or failed write is logged and the stars stay
+  as tapped (D-090: nothing else changes).
+- Every star tap restarts the full 10 s through a counter in the host;
+  `SavedSheetRequests` (`core:timer`) is unchanged.
+- *Notizen hinzufügen* is a text button without „›"; it dismisses the
+  request and opens the session page in the stack of the tab in use, with
+  no field focused.
+- The check mark aligns to the top of the taller column, which re-recorded
+  the sheet's goldens.
+
 <a id="d-111"></a>
 ### D-111 — v0.5.1: Start holds still while *Nochmal brühen* opens the timer (SCR-02, BRW-11, 03 §3.6) · *Accepted* (PO, 2026-11-10, on `v0.5.1-rc.1`; three questions answered as options in the session; details marked „Claude" are Claude's defaults and were not put to the PO)
 
