@@ -78,6 +78,8 @@ class JournalTeaRequestTest {
             }
         }
         compose.waitForIdle()
+        // The list is built off the main thread: wait for it.
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Gyokuro Asahi").fetchSemanticsNodes().isNotEmpty() }
     }
 
     private fun chip() = compose.onNodeWithContentDescription(GYOKURO_CHIP)

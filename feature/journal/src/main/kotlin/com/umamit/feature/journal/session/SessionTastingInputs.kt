@@ -7,6 +7,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,7 +48,12 @@ internal fun TastingInputs(page: SessionPage, actions: SessionPageActions, modif
 /** BEWERTUNG (JRN-02): the stars, empty until tapped; the shown value follows the tap before the write returns. */
 @Composable
 private fun RatingSection(page: SessionPage, actions: SessionPageActions) {
-    var shown by remember(page.sessionId, page.rating) { mutableStateOf(page.rating) }
+    // The rating as the last tap said it, kept until the repository shows exactly that: a stale emission still
+    // carrying an older value (a later write is queued) must not flick the stars back.
+    var pending by remember(page.sessionId) { mutableStateOf<PendingRating?>(null) }
+    LaunchedEffect(page.rating, pending) { if (pending?.value == page.rating) pending = null }
+    val tapped = pending
+    val shown = if (tapped != null) tapped.value else page.rating
     Column {
         SectionHeader(
             title = stringResource(R.string.session_rating),
@@ -56,13 +62,16 @@ private fun RatingSection(page: SessionPage, actions: SessionPageActions) {
         RatingStars(
             value = shown,
             onChange = {
-                shown = it
+                pending = PendingRating(it)
                 actions.setRating(it)
             },
             modifier = Modifier.padding(horizontal = UmamiSpacing.SideMargin - UmamiSpacing.XSmall),
         )
     }
 }
+
+/** A tapped rating not yet seen in the store; null inside is „no rating" (the third tap on a star). */
+private data class PendingRating(val value: Double?)
 
 /**
  * NOTIZEN (JRN-05): a multi-line field that grows with its text, at most 5000 characters with a counter from 4500.

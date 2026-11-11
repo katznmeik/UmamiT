@@ -1,7 +1,6 @@
 package com.umamit.core.ui
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -70,15 +69,11 @@ fun <T> PhotoHero(
     val pager = rememberPagerState { photos.size.coerceAtLeast(1) }
     // An added photo goes after the others: glide to it (from the page before it when further away).
     val shown = remember { mutableIntStateOf(photos.size) }
-    val reduceMotion = UmamiTheme.reduceMotion
+    val glide = UmamiTheme.motion.sheet<Float>()
     LaunchedEffect(photos.size) {
         if (photos.size > shown.intValue && shown.intValue > 0) {
             if (pager.currentPage < photos.lastIndex - 1) pager.scrollToPage(photos.lastIndex - 1)
-            if (reduceMotion) {
-                pager.scrollToPage(photos.lastIndex)
-            } else {
-                pager.animateScrollToPage(photos.lastIndex, animationSpec = spring(dampingRatio = 1f, stiffness = 320f))
-            }
+            pager.animateScrollToPage(photos.lastIndex, animationSpec = glide)
         }
         shown.intValue = photos.size
     }

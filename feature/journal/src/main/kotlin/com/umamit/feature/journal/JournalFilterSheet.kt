@@ -28,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -104,7 +104,12 @@ internal fun JournalFilterSheet(
             )
             TextButton(onClick = leave) { Text(stringResource(R.string.journal_filter_done)) }
         }
-        HorizontalDivider(modifier = Modifier.alpha(dividerAlpha), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            modifier = Modifier.graphicsLayer {
+                alpha = dividerAlpha
+            },
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()

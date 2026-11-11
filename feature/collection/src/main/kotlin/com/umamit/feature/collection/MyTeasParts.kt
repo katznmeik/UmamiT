@@ -296,7 +296,7 @@ internal fun MyTeaItem(
         onClick = onClick,
         thumbnail = thumbnail,
         placeholderColor = placeholderColor(row.sorte),
-        rating = row.rating?.toFloat(),
+        rating = row.rating,
         badges = if (hasBadges) {
             {
                 StockChip(row)

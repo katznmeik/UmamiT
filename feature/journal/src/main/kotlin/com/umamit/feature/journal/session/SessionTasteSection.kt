@@ -38,6 +38,7 @@ import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.model.TasteAxis
 import com.umamit.core.model.TasteProfile
 import com.umamit.core.ui.TasteRadar
+import com.umamit.core.ui.TasteRadarShape
 import com.umamit.core.ui.TasteSlider
 import com.umamit.core.ui.radarValues
 import com.umamit.feature.journal.R
@@ -127,8 +128,17 @@ private fun AddRow(onClick: () -> Unit) {
 /** The open form: the radar from three axes on, the six sliders and *Zurücksetzen*. */
 @Composable
 private fun TasteInputs(taste: TasteProfile, onSet: (TasteAxis, Int) -> Unit, onReset: () -> Unit) {
+    val motion = UmamiTheme.motion
+    val values = taste.radarValues()
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = UmamiSpacing.SideMargin)) {
-        TasteRadar(taste.radarValues())
+        // The radar eases in above the sliders instead of pushing them down in one frame (M1, 03 §3.6).
+        AnimatedVisibility(
+            visible = TasteRadarShape.isDrawn(values),
+            enter = expandVertically(motion.sheet()) + fadeIn(motion.fade()),
+            exit = shrinkVertically(motion.sheet()) + fadeOut(motion.exitFade()),
+        ) {
+            TasteRadar(values)
+        }
         TasteAxis.entries.forEach { axis ->
             TasteSlider(axis = axis, value = taste[axis], onChange = { onSet(axis, it) })
         }

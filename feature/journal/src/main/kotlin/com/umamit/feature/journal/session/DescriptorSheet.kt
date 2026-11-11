@@ -30,7 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
@@ -104,7 +104,12 @@ internal fun DescriptorSheet(
     ) {
         TitleRow(total, onDone = leave)
         SearchField(query, onChange = { query = it })
-        HorizontalDivider(modifier = Modifier.alpha(dividerAlpha), color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            modifier = Modifier.graphicsLayer {
+                alpha = dividerAlpha
+            },
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
         Groups(query, chosen, total, onToggle, Modifier.verticalScroll(scroll))
     }
 }

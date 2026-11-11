@@ -2,6 +2,7 @@ package com.umamit.feature.journal
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import com.umamit.core.designsystem.theme.UmamiTheme
 import com.umamit.core.testing.FakeClock
@@ -48,13 +49,33 @@ class JournalRouteTest {
             }
         }
         compose.mainClock.advanceTimeBy(100)
+        // The list is built off the main thread: wait for it.
+        awaitText("HEUTE")
         compose.onNodeWithText("HEUTE").assertIsDisplayed()
 
         // Ten seconds later the phone's date is the 23rd.
         clock.advanceBy(10_000)
         compose.mainClock.advanceTimeBy(10_000)
+        awaitText("GESTERN")
 
         compose.onNodeWithText("GESTERN").assertIsDisplayed()
         compose.onNodeWithText("HEUTE").assertDoesNotExist()
+    }
+
+    /** Steps the paused clock until [text] shows: the list is built on another thread, which the clock cannot see. */
+    private fun awaitText(text: String) {
+        val deadline = System.currentTimeMillis() + WAIT_MS
+        while (compose.onAllNodesWithText(text).fetchSemanticsNodes().isEmpty() &&
+            System.currentTimeMillis() < deadline
+        ) {
+            Thread.sleep(STEP_MS)
+            compose.mainClock.advanceTimeBy(FRAME_MS)
+        }
+    }
+
+    private companion object {
+        const val WAIT_MS = 5_000L
+        const val STEP_MS = 10L
+        const val FRAME_MS = 16L
     }
 }
