@@ -5,17 +5,27 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.umamit.core.model.TasteDescriptor
+import com.umamit.core.ui.labelRes
 import kotlinx.coroutines.delay
 
 /**
  * The journal tab: the sessions as the repository writes them, so a finished
  * brew appears at once (JRN-01). „Heute" moves on at midnight and on resume.
  * A past entry's tap calls [onOpenSession] with its id (SCR-16, D-100).
+ *
+ * The search and filters (JRN-09) live here: they survive a tab switch and a visit to a session page, and not an
+ * app restart. [initialTeaKey], a tea's id, opens the tab with *Tee* set to it (the tea detail's *Alle anzeigen*,
+ * TEA-13); it is applied once per value. [alerting]: an alert plays, so the filter sheet gives way (rule 8).
  */
 @Composable
 fun JournalRoute(
@@ -25,6 +35,8 @@ fun JournalRoute(
     modifier: Modifier = Modifier,
     scrollToTopRequest: Int = 0,
     onOpenSession: (sessionId: String) -> Unit = {},
+    initialTeaKey: String? = null,
+    alerting: Boolean = false,
 ) {
     val sessionsFlow = remember(sources) { sources.journal.observeSessions() }
     val sessions by sessionsFlow.collectAsStateWithLifecycle(initialValue = sources.lastSessions)
@@ -38,7 +50,29 @@ fun JournalRoute(
         delay(sources.millisUntilTomorrow())
         today = sources.today()
     }
-    val list = remember(sessions, today) { sessions?.let { journalList(it, today) } }
+    var filter by rememberSaveable(stateSaver = JournalFilter.Saver) { mutableStateOf(JournalFilter()) }
+    var appliedTeaKey by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(initialTeaKey) {
+        if (initialTeaKey != null && initialTeaKey != appliedTeaKey) {
+            appliedTeaKey = initialTeaKey
+            filter = filter.copy(teaKey = initialTeaKey)
+        }
+    }
+    val descriptorLabels = TasteDescriptor.entries.associate { it.key to stringResource(it.labelRes()) }
+    // Keyed by the locale, not by the label list: the labels change only with it, and a list key is rebuilt per frame.
+    val locale = LocalConfiguration.current.locales.toLanguageTags()
+    val list = remember(sessions, today, locale) {
+        sessions?.let { journalList(it, today, descriptorLabels::get) }
+    }
+    // A tea without finished sessions is no filter option, so its name is looked up (a deleted tea carries it).
+    val teaKey = filter.teaKey
+    val teaNameFallback by produceState<String?>(null, sources, teaKey) {
+        value = when {
+            teaKey == null -> null
+            teaKey.startsWith(DELETED_TEA_PREFIX) -> teaKey.removePrefix(DELETED_TEA_PREFIX)
+            else -> sources.teas.getTea(teaKey)?.name
+        }
+    }
     JournalScreen(
         list = list,
         onOpenSettings = onOpenSettings,
@@ -46,5 +80,9 @@ fun JournalRoute(
         modifier = modifier,
         scrollToTopRequest = scrollToTopRequest,
         onOpenSession = onOpenSession,
+        filter = filter,
+        onFilterChange = { filter = it },
+        alerting = alerting,
+        teaNameFallback = teaNameFallback,
     )
 }

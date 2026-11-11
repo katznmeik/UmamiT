@@ -614,7 +614,7 @@ private fun TabHost(
         },
     ) {
         composable<StartRoute> { start(openSettings, scrollToTopRequest) }
-        composable<JournalRoute> {
+        composable<JournalRoute> { entry ->
             JournalTab(
                 journalSources,
                 openSettings,
@@ -622,6 +622,9 @@ private fun TabHost(
                 scrollToTopRequest = scrollToTopRequest,
                 // Only from the resumed list: a double tap opens one page (D-090).
                 onOpenSession = resumedOnly { navController.navigate(JournalSessionRoute(it)) },
+                initialTeaKey = entry.toRoute<JournalRoute>().teaId,
+                // An alert plays: the filter sheet gives way (rule 8).
+                alerting = alertKey != null,
             )
         }
         // A past session's page (SCR-16, D-100): its tea's detail in this stack; *So nochmal brühen* opens the setup
