@@ -152,6 +152,31 @@ class RecipeOfferTest {
         assertThat(RecipeOffer.of(input(session, recipe = recipe))).isNull()
     }
 
+    @Test
+    fun `a legacy session without rows for its never started steps keeps the recipe's steps there`() {
+        // Completed by v0.3.0 or earlier: „2 von 3 Aufgüssen", only the two ended rows are stored (TMR-12).
+        val recipe = RECIPE.copy(steps = RECIPE.steps + RecipeStep(StepKind.INFUSION, 90, tempC = 70))
+        val asPlanned = session(poured(0, planned = 60, actual = 60), poured(1, planned = 30, actual = 30))
+            .copy(plannedStepCount = 3)
+        val endedEarly = session(poured(0, planned = 60, actual = 48), poured(1, planned = 30, actual = 30))
+            .copy(plannedStepCount = 3)
+
+        assertThat(RecipeOffer.of(input(asPlanned, recipe = recipe))).isNull()
+        assertThat(RecipeOffer.of(input(endedEarly, recipe = recipe))).containsExactly(
+            RecipeStep(StepKind.INFUSION, 50),
+            RecipeStep(StepKind.INFUSION, 30),
+            RecipeStep(StepKind.INFUSION, 90, tempC = 70),
+        ).inOrder()
+    }
+
+    @Test
+    fun `a legacy session missing rows the recipe cannot fill offers nothing`() {
+        val session = session(poured(0, planned = 60, actual = 48), poured(1, planned = 30, actual = 30))
+            .copy(plannedStepCount = 3)
+
+        assertThat(RecipeOffer.of(input(session))).isNull()
+    }
+
     private fun input(
         session: BrewSession,
         recipe: Recipe? = RECIPE,

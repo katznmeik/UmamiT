@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.umamit.core.data.SessionStart
@@ -176,6 +177,59 @@ class SessionRecipeOfferTest {
         compose.waitForIdle()
 
         assertThat(offers.accepted).containsExactly(PAST)
+    }
+
+    @Test
+    fun `a recipe changed on another page drops the line when the page resumes`() {
+        offers.proposals[PAST] = PROPOSAL
+        show()
+        offerButton().performScrollTo().assertIsDisplayed()
+
+        // Tee, then Rezept: the recipe is edited there, and back on the page from the back stack.
+        offers.proposals.clear()
+        compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitForIdle()
+
+        offerButton().assertDoesNotExist()
+        assertThat(offers.accepted).isEmpty()
+    }
+
+    @Test
+    fun `restoring the archived tea on the page brings the line`() {
+        runBlocking { archive.archive(TEA) }
+        show()
+        offerButton().assertDoesNotExist()
+
+        offers.proposals[PAST] = PROPOSAL
+        val viewModel = checkNotNull(page.value)
+        compose.runOnUiThread { viewModel.restore() }
+        compose.waitForIdle()
+
+        offerButton().performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failed read shows the page without the line`() {
+        offers.failure = IllegalStateException("database closed")
+        show()
+
+        compose.onNode(hasContentDescription("Aufgüsse")).assertIsDisplayed()
+        offerButton().assertDoesNotExist()
+    }
+
+    @Test
+    fun `a failed accept removes the line and never reads Rezept aktualisiert`() {
+        offers.proposals[PAST] = PROPOSAL
+        show()
+        offers.failure = IllegalStateException("database closed")
+
+        offerButton().performScrollTo().performClick()
+        compose.waitForIdle()
+
+        offerButton().assertDoesNotExist()
+        compose.onNodeWithText("Rezept aktualisiert.").assertDoesNotExist()
+        compose.onNode(hasContentDescription("Aufgüsse")).assertExists()
     }
 
     private companion object {

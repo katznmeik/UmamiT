@@ -53,11 +53,9 @@ object RecipeOffer {
             input.teaInCollection &&
             !input.applied &&
             changedAt <= endedAt
-        return if (applies) {
-            proposal(session, recipe.baseTempC).takeIf { it != recipe.steps.comparable(recipe.baseTempC) }
-        } else {
-            null
-        }
+        if (!applies) return null
+        val current = recipe.steps.comparable(recipe.baseTempC)
+        return proposal(session, recipe.baseTempC, current)?.takeIf { it != current }
     }
 
     /**
@@ -65,17 +63,28 @@ object RecipeOffer {
      * (null where it is the recipe's base, as *Im Rezept speichern* stores them) and pre-alerts, edited and added steps
      * included, each early-ended step with its recorded time ([recordedTime]); every other step, a late-poured, a
      * skipped or a never started one, as planned. Step notes are not part of a session and stay out.
+     *
+     * A session completed by v0.3.0 or earlier has no rows for its never started steps (TMR-12): those positions up
+     * to `plannedStepCount` keep [recipeSteps]' step there (the recipe has not changed since, so it is the plan);
+     * null when the recipe has no step at such a position.
      */
-    fun proposal(session: BrewSession, recipeBaseTempC: Int): List<RecipeStep> =
-        session.steps.sortedBy { it.position }.map { row ->
-            val temp = row.tempC ?: session.snapshot.baseTempC ?: recipeBaseTempC
-            RecipeStep(
-                kind = row.kind,
-                durationSeconds = row.earlyEndedSeconds()?.let(::recordedTime) ?: row.plannedSeconds,
-                tempC = temp.takeIf { it != recipeBaseTempC },
-                preAlertSeconds = row.preAlertSeconds,
-            )
+    private fun proposal(session: BrewSession, recipeBaseTempC: Int, recipeSteps: List<RecipeStep>): List<RecipeStep>? {
+        val rows = session.steps.associateBy { it.position }
+        val count = maxOf(session.plannedStepCount, (rows.keys.maxOrNull() ?: -1) + 1)
+        return (0 until count).map { position ->
+            rows[position]?.toRecipeStep(session, recipeBaseTempC) ?: recipeSteps.getOrNull(position) ?: return null
         }
+    }
+
+    private fun SessionStepRow.toRecipeStep(session: BrewSession, recipeBaseTempC: Int): RecipeStep {
+        val temp = tempC ?: session.snapshot.baseTempC ?: recipeBaseTempC
+        return RecipeStep(
+            kind = kind,
+            durationSeconds = earlyEndedSeconds()?.let(::recordedTime) ?: plannedSeconds,
+            tempC = temp.takeIf { it != recipeBaseTempC },
+            preAlertSeconds = preAlertSeconds,
+        )
+    }
 
     /** [actualSeconds] rounded half up to 5 s, or to 1 min from [MINUTE_ROUNDING_FROM_SECONDS]; at least 5 s. */
     fun recordedTime(actualSeconds: Int): Int {

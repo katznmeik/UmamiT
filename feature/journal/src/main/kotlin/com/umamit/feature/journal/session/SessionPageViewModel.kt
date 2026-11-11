@@ -21,7 +21,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -87,8 +86,11 @@ class SessionPageViewModel @Inject constructor(
             if (session == null) {
                 flowOf(SessionPageUiState.NotFound)
             } else {
-                combine(teaOf(session.snapshot.teaId), recipeOffer.of(session)) { tea, offer ->
-                    SessionPageUiState.Ready(sessionPage(session, tea).copy(recipeOffer = offer))
+                // The offer is read again with each tea state: *Wiederherstellen* can make it apply (PRF-07).
+                teaOf(session.snapshot.teaId).flatMapLatest { tea ->
+                    recipeOffer.of(session).map { offer ->
+                        SessionPageUiState.Ready(sessionPage(session, tea).copy(recipeOffer = offer))
+                    }
                 }
             }
         }
