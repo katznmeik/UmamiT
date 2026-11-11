@@ -138,19 +138,22 @@ a sans in place of the serif font. Spec issue #212, plan
 ## Side track: promo video (waiting on the PO)
 
 Not part of a milestone and no app change. On 2026-11-11 the PO asked for a
-storyboard and a five-second test scene of a promotional video, with music
-and without voiceover. Both are in `promo/` on the branch
-`claude/keen-hamilton-ek7hlx` (no PR yet):
+promotional video (no voiceover, with music) and, after a storyboard draft
+and a five-second test scene, decided: make it now, 44 s, 9:16 for phones,
+captions chosen by Claude, Tee-Kontor named, music with more singing bowls
+and leaves in the wind (`promo/storyboard.md` §5). Everything is in `promo/`
+on the branch `claude/keen-hamilton-ek7hlx` (no PR yet):
 
-- `promo/storyboard.md`: draft 1, nine scenes in 44 s; its §5 lists the open
-  points for the PO (now or after M4, length, captions, naming Tee-Kontor,
-  formats, the music's direction). None of them is decided.
-- `promo/scenes/timer.html`, `promo/render.js`, `promo/music.js`: the test
-  scene (the running timer, rebuilt from the app's screen and checked against
-  its golden), the renderer and the music sketch; `promo/README.md` says how
-  to render. Renders are not committed (`promo/out/`).
-- **Next:** the PO's feedback on the test scene, the music and the
-  storyboard's open points. Only then are further scenes built.
+- `promo/storyboard.md`: draft 2, eleven scenes in 44 s, as built.
+- `promo/scenes/film.html`: the whole film on one timeline. Static screens
+  are the Roborazzi goldens; the timer is rebuilt and checked against its
+  golden.
+- `promo/render.js`, `promo/music.js`, `promo/README.md`: the renderer, the
+  sound (music, wind, the app's tick and Klangschale) and how to render.
+  Renders are not committed (`promo/out/`).
+- **Next:** the PO's verdict on the film (pacing, captions, whether the
+  music sounds natural enough; Claude cannot listen to it). Whether Tee-Kontor
+  Kiel should be asked before the film is shown is the PO's call.
 
 ## Known caveats
 

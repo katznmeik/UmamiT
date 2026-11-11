@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>UmamiT promo film</title>
+<!--
+  The whole film of promo/storyboard.md: 44 s, 1080 × 1920.
+
+  - Static app screens are the Roborazzi goldens, loaded by path.
+  - The timer is rebuilt from the real screen with the app's own colours,
+    fonts, icons and artwork (03 §3.1, §3.2, §3.6; TimerRing.kt, TimerBand.kt,
+    Motion.kt), so the ring, the liquor, the digits and the alert can move.
+    Compare it with its golden: `node render.js film --compare` (README.md).
+
+  Nothing here runs on its own clock. `window.seek(t)` draws the frame at
+  second `t`, so the renderer gets the same picture for the same time.
+-->
+<style>
+  @font-face { font-family: "Alegreya Sans"; font-weight: 300; src: url("/core/designsystem/src/main/res/font/alegreya_sans_light.ttf"); }
+  @font-face { font-family: "Alegreya Sans"; font-weight: 400; src: url("/core/designsystem/src/main/res/font/alegreya_sans_regular.ttf"); }
+  @font-face { font-family: "Alegreya Sans"; font-weight: 500; src: url("/core/designsystem/src/main/res/font/alegreya_sans_medium.ttf"); }
+  @font-face { font-family: "Roboto"; font-weight: 400; src: url("/promo/node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2"); }
+  @font-face { font-family: "Roboto"; font-weight: 500; src: url("/promo/node_modules/@fontsource/roboto/files/roboto-latin-500-normal.woff2"); }
+
+  :root {
+    --washi: #F3F0E9;
+    --ink: #2B2D27;
+    --matcha: #4A5643;
+    /* The phone: 411 × 891 dp, drawn at this many px per dp. */
+    --dp: 1.75;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--washi); }
+  body { font-family: "Roboto", sans-serif; -webkit-font-smoothing: antialiased; }
+
+  /* ---------- Stage ---------- */
+  .stage { position: absolute; inset: 0; background: var(--washi); overflow: hidden; }
+  .light {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1200px 900px at 50% 8%, rgba(255, 253, 246, 0.9), transparent 70%),
+      radial-gradient(1400px 1200px at 50% 110%, rgba(138, 123, 94, 0.16), transparent 70%);
+  }
+  .branch {
+    position: absolute; right: -350px; top: -340px; width: 1240px;
+    /* The artwork's own paper turns white, so multiply leaves only the ink on the washi. */
+    filter: brightness(1.22) contrast(1.05);
+    mix-blend-mode: multiply;
+    transform-origin: 100% 30%;
+    -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent 100%);
+  }
+  .grain { position: absolute; inset: 0; width: 1080px; height: 1920px; opacity: 0.09; mix-blend-mode: multiply; }
+
+  /* ---------- Brand (opening and close) ---------- */
+  .brand { position: absolute; left: 0; right: 0; top: 966px; text-align: center; color: var(--ink); }
+  /* A child of the stage, not of .brand: multiply must meet the washi, not an isolated group. */
+  .sprig {
+    position: absolute; left: 340px; top: 560px; width: 400px; height: 400px;
+    background: url("/docs/design/assets/source/A1-logo-sprig.png") 50% 50% / 190%;
+    filter: brightness(1.2) contrast(1.08); mix-blend-mode: multiply;
+  }
+  .wordmark { margin-top: 6px; font: 400 168px/180px "Alegreya Sans", sans-serif; letter-spacing: 0.01em; }
+  .wordmark span { display: inline-block; }
+  .claim { margin-top: 26px; font: 300 56px/68px "Alegreya Sans", sans-serif; color: #3d3f38; }
+
+  /* ---------- Caption ---------- */
+  .caption { position: absolute; left: 0; right: 0; top: 118px; text-align: center; color: var(--ink); }
+  .overline { font: 500 25px/32px "Roboto", sans-serif; letter-spacing: 0.24em; text-indent: 0.24em; color: var(--matcha); }
+  .headline { margin-top: 20px; font: 300 88px/98px "Alegreya Sans", sans-serif; letter-spacing: -0.005em; }
+  .headline span { display: block; white-space: nowrap; }
+
+  /* ---------- Phone ---------- */
+  .phone {
+    position: absolute; left: 50%; top: 404px;
+    width: calc(411px * var(--dp) + 22px); height: calc(891px * var(--dp) + 22px);
+    margin-left: calc((411px * var(--dp) + 22px) / -2);
+    padding: 11px; border-radius: 74px;
+    background: linear-gradient(160deg, #2a302b, #0f1310 40%, #171c18);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+      0 90px 140px -40px rgba(43, 45, 39, 0.42),
+      0 30px 50px -24px rgba(43, 45, 39, 0.34);
+    transform-origin: 50% 46%;
+  }
+  .glass { width: 100%; height: 100%; border-radius: 63px; overflow: hidden; position: relative; background: var(--washi); }
+  .screen { position: absolute; left: 0; top: 0; width: 411px; height: 891px; transform: scale(var(--dp)); transform-origin: 0 0; overflow: hidden; }
+  .layer { position: absolute; inset: 0; width: 411px; height: 891px; display: none; }
+  .layer img { display: block; width: 411px; height: 891px; }
+  .scrim { position: absolute; inset: 0; background: #000; display: none; }
+  .touch {
+    position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%;
+    background: rgba(43, 45, 39, 0.22); box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.55) inset; display: none;
+  }
+  .touch.on-dark { background: rgba(236, 232, 222, 0.3); }
+
+  /* ---------- The timer screen, in dp (1 CSS px = 1 dp) ---------- */
+  #timer {
+    --surface: #1C231D; --content: #ECE8DE; --track: #4A544A; --progress: #B9C8A6; --marker: #A9A99D;
+    --pill: #E5DFCF; --on-pill: #2B2D27; --button: rgba(35, 43, 36, 0.6); --on-button: #ECE8DE;
+    background: var(--surface); color: var(--content);
+  }
+  /* The alert surface (03 §3.1): everything in the alert ink. */
+  #timer.alert {
+    --content: #1F271B; --track: rgba(31, 39, 27, 0.3); --progress: #1F271B; --marker: #1F271B;
+    --pill: #1F271B; --on-pill: #F3F0E9; --button: #1F271B; --on-button: #F3F0E9;
+  }
+  .band {
+    position: absolute; left: 0; top: 0; width: 411px; height: 210px;
+    background: url("/core/designsystem/src/main/res/drawable-nodpi/illustration_timer_band.webp") center / cover;
+  }
+  .band::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 35%, #1C231D 100%); }
+  .icon-button { position: absolute; top: 4px; width: 40px; height: 40px; border-radius: 50%; background: var(--button); display: grid; place-items: center; }
+  .icon-button svg { width: 24px; height: 24px; fill: var(--on-button); }
+  .seal { position: absolute; left: 161.5px; top: 166px; width: 88px; height: 88px; border-radius: 50%; background: #F3F0E9; }
+  .seal::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; border: 1px solid rgba(43, 45, 39, 0.3); }
+  .seal .photo { position: absolute; inset: 6px; border-radius: 50%; background: url("/docs/design/assets/source/A1-logo-sprig.png") 50% 52% / 150%; }
+  #timer.alert .band, #timer.alert .seal { visibility: hidden; }
+  /* No liquor on the alert surface (liquorAlpha 0), so nothing softens the pulse. */
+  #timer.alert #liquor { visibility: hidden; }
+  /* With the other brew's row (D-098) the band gives way and the seal moves up. */
+  #timer.two .band { height: 162px; }
+  #timer.two .seal { top: 118px; }
+  .brew-row {
+    position: absolute; left: 0; right: 0; top: 219px; height: 20px; display: none;
+    align-items: center; justify-content: center; gap: 8px; font: 400 14px/20px "Roboto", sans-serif;
+  }
+  #timer.two .brew-row { display: flex; }
+  .brew-row svg { width: 16px; height: 16px; }
+  .brew-row b { font-weight: 500; margin-left: 20px; }
+  .title { position: absolute; left: 24px; right: 24px; top: 262px; text-align: center; font: 400 28px/36px "Alegreya Sans", sans-serif; }
+  .subtitle { position: absolute; left: 24px; right: 24px; top: 295px; text-align: center; font: 400 16px/24px "Roboto", sans-serif; }
+  .dots { position: absolute; left: 0; right: 0; top: 328px; display: flex; justify-content: center; gap: 8px; }
+  .dots i { width: 12px; height: 12px; display: grid; place-items: center; }
+  .dots i::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--content) 60%, transparent); }
+  .dots i.current::before { background: var(--content); border-color: var(--content); }
+
+  .ring { position: absolute; left: 73.5px; top: 364px; width: 264px; height: 264px; }
+  .ring > svg { position: absolute; inset: 0; width: 264px; height: 264px; overflow: visible; }
+  .ring-content { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-content svg { position: relative; top: 6.5px; width: 28px; height: 28px; stroke: var(--content); }
+  .digits { font: 300 80px/88px "Alegreya Sans", sans-serif; font-feature-settings: "lnum", "tnum"; white-space: nowrap; position: relative; top: 2.5px; }
+  .ring-caption { font: 400 16px/24px "Roboto", sans-serif; position: relative; top: -3.5px; }
+  .overtime { position: absolute; left: 0; right: 0; top: 665px; text-align: center; font: 500 22px/28px "Alegreya Sans", sans-serif; font-feature-settings: "lnum", "tnum"; }
+
+  .pill {
+    position: absolute; left: 105.5px; top: 739px; width: 200px; height: 72px; border-radius: 36px;
+    background: var(--pill); color: var(--on-pill);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font: 500 14px/20px "Roboto", sans-serif; letter-spacing: 0.1px;
+  }
+  .pill svg { width: 18px; height: 18px; fill: var(--on-pill); }
+  #timer.alert .pill svg { display: none; }
+
+  /* Compare mode: only the timer, at 2 px per dp like the Roborazzi goldens. */
+  body.compare { width: 822px; height: 1782px; }
+  body.compare .stage > :not(.phone) { display: none; }
+  body.compare .phone { left: 0; top: 0; margin: 0; padding: 0; border-radius: 0; width: 822px; height: 1782px; --dp: 2; box-shadow: none; transform: none !important; opacity: 1 !important; }
+  body.compare .glass { border-radius: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="light"></div>
+  <img class="branch" id="branch" src="/docs/design/assets/source/A13-timer-band-bamboo-light.png" alt="">
+  <canvas class="grain" id="grain" width="540" height="960"></canvas>
+
+  <div class="sprig" id="sprig"></div>
+  <div class="brand" id="brand">
+    <div class="wordmark" id="wordmark"></div>
+    <div class="claim" id="claim"></div>
+  </div>
+
+  <div class="caption">
+    <div class="overline" id="overline"></div>
+    <div class="headline"><span id="line1"></span><span id="line2"></span></div>
+  </div>
+
+  <div class="phone" id="phone">
+    <div class="glass">
+      <div class="screen" id="screen">
+        <div class="layer" id="home"><img src="/feature/home/src/test/screenshots/Home_seeded_light_font1_0.png" alt=""></div>
+        <div class="scrim" id="scrim-picker"></div>
+        <div class="layer" id="picker"><img src="/feature/brew/src/test/screenshots/TeaPicker_light_font1_0.png" alt=""></div>
+        <div class="layer" id="setup"><img src="/feature/brew/src/test/screenshots/BrewSetup_kyusu_light_font1_0.png" alt=""></div>
+
+        <div class="layer" id="timer">
+          <div class="band"></div>
+          <div class="icon-button" style="left: 8px">
+            <svg viewBox="0 -960 960 960"><path d="m294.92-450 227.85 227.85L480-180 180-480l300-300 42.77 42.15L294.92-510H780v60H294.92Z"/></svg>
+          </div>
+          <div class="icon-button" style="right: 8px">
+            <svg viewBox="0 -960 960 960"><path d="M480-189.23q-24.75 0-42.37-17.63Q420-224.48 420-249.23q0-24.75 17.63-42.38 17.62-17.62 42.37-17.62 24.75 0 42.37 17.62Q540-273.98 540-249.23q0 24.75-17.63 42.37-17.62 17.63-42.37 17.63ZM480-420q-24.75 0-42.37-17.63Q420-455.25 420-480q0-24.75 17.63-42.37Q455.25-540 480-540q24.75 0 42.37 17.63Q540-504.75 540-480q0 24.75-17.63 42.37Q504.75-420 480-420Zm0-230.77q-24.75 0-42.37-17.62Q420-686.02 420-710.77q0-24.75 17.63-42.37 17.62-17.63 42.37-17.63 24.75 0 42.37 17.63Q540-735.52 540-710.77q0 24.75-17.63 42.38-17.62 17.62-42.37 17.62Z"/></svg>
+          </div>
+          <div class="seal"><div class="photo"></div></div>
+          <div class="brew-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12,21V11M12,14C12,9 8,6 4,6C4,11 7,14 12,14ZM12,12C12,7 15,4 20,4C20,9 17,12 12,12Z"/></svg>
+            <span id="row-text"></span><b>Pause</b>
+          </div>
+          <div class="title" id="tea-name"></div>
+          <div class="subtitle" id="subtitle"></div>
+          <div class="dots"><i class="current"></i><i></i><i></i></div>
+
+          <div class="ring">
+            <svg viewBox="0 0 264 264">
+              <defs>
+                <radialGradient id="glow-fill"><stop offset="0" stop-color="#B9C8A6"/><stop offset="1" stop-color="#B9C8A6" stop-opacity="0"/></radialGradient>
+              </defs>
+              <path id="liquor" fill="#C9D58F" fill-opacity="0.32"/>
+              <circle cx="132" cy="132" r="118" fill="none" stroke="var(--track)" stroke-width="3"/>
+              <path id="progress" fill="none" stroke="var(--progress)" stroke-width="3" stroke-linecap="round"/>
+              <circle id="glow" r="14" fill="url(#glow-fill)" opacity="0"/>
+              <line id="marker" stroke="var(--marker)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-content">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12,21V11M12,14C12,9 8,6 4,6C4,11 7,14 12,14ZM12,12C12,7 15,4 20,4C20,9 17,12 12,12Z"/></svg>
+              <div class="digits" id="digits"></div>
+              <div class="ring-caption" id="ring-caption"></div>
+            </div>
+          </div>
+          <div class="overtime" id="overtime"></div>
+
+          <div class="pill">
+            <svg viewBox="0 -960 960 960"><path d="M530-220v-520h210v520H530Zm-310 0v-520h210v520H220Zm370-60h90v-400h-90v400Zm-310 0h90v-400h-90v400Zm0-400v400-400Zm310 0v400-400Z"/></svg>
+            <span id="pill-label"></span>
+          </div>
+        </div>
+
+        <div class="layer" id="catalog"><img src="/feature/catalog/src/test/screenshots/Catalog_list_light_font1_0.png" alt=""></div>
+        <div class="layer" id="catalog-filtered"><img src="/feature/catalog/src/test/screenshots/Catalog_listFiltered_light_font1_0.png" alt=""></div>
+        <div class="scrim" id="scrim-filter"></div>
+        <div class="layer" id="filter"><img src="/feature/catalog/src/test/screenshots/Catalog_filterSheetTaste_light_font1_0.png" alt=""></div>
+        <div class="layer" id="teas"><img src="/feature/collection/src/test/screenshots/Collection_myTeas_light_font1_0.png" alt=""></div>
+        <div class="layer" id="tea"><img src="/feature/collection/src/test/screenshots/TeaDetail_stockWarningOn_light_font1_0.png" alt=""></div>
+        <div class="layer" id="journal"><img src="/feature/journal/src/test/screenshots/Journal_withSessions_light_font1_0.png" alt=""></div>
+        <div class="layer" id="session"><img src="/feature/journal/src/test/screenshots/SessionPage_available_light_font1_0.png" alt=""></div>
+        <div class="touch" id="touch"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  'use strict';
+  const COMPARE = new URLSearchParams(location.search).has('compare');
+  if (COMPARE) document.body.classList.add('compare');
+
+  /** Film length in seconds; the renderer reads it. */
+  window.DURATION = 44;
+
+  // ---------- Helpers ----------
+  const clamp = (x) => Math.min(1, Math.max(0, x));
+  const span = (t, from, to) => clamp((t - from) / (to - from));
+  const lerp = (a, b, x) => a + (b - a) * x;
+  const outQuart = (x) => 1 - Math.pow(1 - x, 4);
+  const outExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
+  const inOutSine = (x) => -(Math.cos(Math.PI * x) - 1) / 2;
+  const inCubic = (x) => x * x * x;
+  /** A cubic Bézier easing as in Compose's CubicBezierEasing. */
+  function bezier(x1, y1, x2, y2) {
+    const curve = (a, b, s) => 3 * a * s * (1 - s) * (1 - s) + 3 * b * s * s * (1 - s) + s * s * s;
+    return (x) => {
+      let low = 0, high = 1;
+      for (let i = 0; i < 24; i++) { const mid = (low + high) / 2; if (curve(x1, x2, mid) < x) low = mid; else high = mid; }
+      return curve(y1, y2, (low + high) / 2);
+    };
+  }
+  // Motion.kt
+  const calmEaseOut = bezier(0.2, 0.8, 0.2, 1);
+  const sineInOut = bezier(0.37, 0, 0.63, 1);
+  const el = (id) => document.getElementById(id);
+  const show = (node, on) => { node.style.display = on ? 'block' : 'none'; };
+  const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  const mix = (from, to, x) => `rgb(${from.map((c, i) => Math.round(lerp(c, to[i], x))).join(' ')})`;
+
+  // ---------- The film's times (seconds). Bars of 4 s; the music's beats fall at 0.5 + n. ----------
+  const T = {
+    phoneIn: 4.0,
+    tapStart: 5.55, pickerUp: 5.7,
+    tapTea: 6.95, setupIn: 7.15,
+    tapBrew: 11.35, timerIn: 11.6,
+    countFrom: 12.5,          // 0:48 until here, then real time
+    lapse1: 16.0, preAlert: 17.5, lapse2: 19.0,
+    alert: 20.5,              // the step ends on a beat
+    tapPoured: 23.25, twoIn: 23.45,
+    catalogIn: 27.75, tapFilter: 29.25, filterUp: 29.4, tapDone: 30.75, filterDown: 30.9,
+    teasIn: 31.75, tapTeaRow: 33.55, teaIn: 33.75,
+    journalIn: 35.75, tapSession: 37.75, sessionIn: 37.95,
+    phoneOut: 39.9, brandIn: 40.4,
+  };
+
+  const CAPTIONS = [
+    { from: 4.15, to: 7.9, overline: 'START', lines: ['Tee wählen', 'und los.'] },
+    { from: 8.0, to: 11.9, overline: 'DEIN REZEPT', lines: ['Temperatur, Menge, Zeit:', 'alles in deinem Rezept.'] },
+    { from: 12.0, to: 15.9, overline: 'DER TIMER', lines: ['Jeder Aufguss', 'auf die Sekunde.'] },
+    { from: 16.0, to: 19.9, overline: 'DIE VORWARNUNG', lines: ['Ein leiser Ton', 'kurz vor Schluss.'] },
+    { from: 20.0, to: 23.9, overline: 'DER ALARM', lines: ['Die Klangschale,', 'wenn es so weit ist.'] },
+    { from: 24.0, to: 27.9, overline: 'ZWEI TIMER', lines: ['Zwei Tees gleichzeitig?', 'Geht.'] },
+    { from: 28.0, to: 31.9, overline: 'DER KATALOG', lines: ['Das ganze Sortiment', 'von Tee-Kontor Kiel.'] },
+    { from: 32.0, to: 35.9, overline: 'MEINE TEES', lines: ['Dein Vorrat', 'immer im Blick.'] },
+    { from: 36.0, to: 39.8, overline: 'DAS JOURNAL', lines: ['Dein Tee-Tagebuch', 'schreibt sich von selbst.'] },
+  ];
+
+  /** Taps: where (dp on the screen) and when the finger lands. */
+  const TAPS = [
+    { at: T.tapStart, x: 205, y: 219, dark: true },   // Aufguss starten
+    { at: T.tapTea, x: 205, y: 511 },                  // Bio Sencha Hisui
+    { at: T.tapBrew, x: 205, y: 676, dark: true },     // Brühen starten
+    { at: T.tapPoured, x: 205.5, y: 775, dark: true }, // Abgegossen
+    { at: T.tapFilter, x: 59, y: 194 },                // Filter
+    { at: T.tapDone, x: 371, y: 71 },                  // Fertig
+    { at: T.tapTeaRow, x: 150, y: 305 },               // a tea in Meine Tees
+    { at: T.tapSession, x: 170, y: 261 },              // a session in the journal
+  ];
+
+  // ---------- Stage ----------
+  {
+    // Paper grain, drawn once from a seeded generator (the same on every render).
+    const context = el('grain').getContext('2d');
+    const image = context.createImageData(540, 960);
+    let seed = 7;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    for (let i = 0; i < image.data.length; i += 4) {
+      const fibre = random();
+      image.data[i] = 52; image.data[i + 1] = 48; image.data[i + 2] = 38;
+      image.data[i + 3] = Math.round(255 * fibre * fibre * 0.9);
+    }
+    context.putImageData(image, 0, 0);
+  }
+
+  function rise(node, p, distance) {
+    node.style.opacity = clamp(p * 1.6);
+    node.style.transform = `translateY(${(1 - p) * distance}px)`;
+    node.style.filter = p < 1 ? `blur(${(1 - p) * 10}px)` : 'none';
+  }
+
+  const overline = el('overline'), line1 = el('line1'), line2 = el('line2');
+  let shownCaption = null;
+  function drawCaption(t) {
+    const caption = CAPTIONS.find((c) => t >= c.from && t < c.to);
+    if (!caption) { overline.style.opacity = line1.style.opacity = line2.style.opacity = 0; return; }
+    if (caption !== shownCaption) {
+      shownCaption = caption;
+      overline.textContent = caption.overline; line1.textContent = caption.lines[0]; line2.textContent = caption.lines[1];
+    }
+    const local = t - caption.from;
+    rise(overline, outQuart(span(local, 0, 0.6)), 18);
+    rise(line1, outQuart(span(local, 0.1, 0.8)), 34);
+    rise(line2, outQuart(span(local, 0.22, 0.95)), 34);
+    const leave = 1 - span(t, caption.to - 0.3, caption.to);
+    for (const node of [overline, line1, line2]) node.style.opacity = Number(node.style.opacity) * leave;
+  }
+
+  // ---------- Brand ----------
+  const brand = el('brand'), sprig = el('sprig'), wordmark = el('wordmark'), claim = el('claim');
+  'UmamiT'.split('').forEach((letter) => { const s = document.createElement('span'); s.textContent = letter; wordmark.appendChild(s); });
+  const letters = [...wordmark.children];
+  function drawBrand(t) {
+    const closing = t >= T.brandIn - 0.5;
+    const local = closing ? t - T.brandIn : t - 0.35;
+    const visible = closing ? t >= T.brandIn : t < 4.2;
+    brand.style.display = sprig.style.display = visible ? 'block' : 'none';
+    if (!visible) return;
+    claim.textContent = closing ? 'Mehr Umami in jeder Tasse.' : 'Grüner Tee, auf den Punkt gebrüht.';
+    // The sprig appears from the stem upwards, as if brushed.
+    const brushed = inOutSine(span(local, 0, 1.3));
+    const edge = lerp(110, -25, brushed);
+    sprig.style.webkitMaskImage = `linear-gradient(to top, #000 ${100 - edge - 25}%, transparent ${100 - edge}%)`;
+    const grow = lerp(0.94, 1, outQuart(span(local, 0, 1.6)));
+    letters.forEach((letter, i) => rise(letter, outQuart(span(local, 0.55 + i * 0.07, 1.35 + i * 0.07)), 40));
+    rise(claim, outQuart(span(local, 1.15, 2.1)), 24);
+    // The opening leaves upwards as the phone arrives.
+    const leave = closing ? 0 : inCubic(span(t, 3.55, 4.15));
+    brand.style.opacity = sprig.style.opacity = 1 - leave;
+    brand.style.transform = `translateY(${-70 * leave}px)`;
+    sprig.style.transform = `translateY(${-70 * leave}px) scale(${grow})`;
+  }
+
+  // ---------- Phone and screens ----------
+  const phone = el('phone'), branch = el('branch'), touch = el('touch');
+  const NAV = 0.32; // the route fade
+
+  /** A screen that arrives like a route: fades in, a few dp from the right. */
+  function route(node, t, from, until) {
+    const on = t >= from && t < until + NAV;
+    show(node, on);
+    if (!on) return;
+    const p = calmEaseOut(span(t, from, from + NAV));
+    node.style.opacity = p;
+    node.style.transform = `translateX(${(1 - p) * 14}px)`;
+  }
+
+  /** A bottom sheet cut out of its golden: slides up at `up`, down at `down`; the scrim follows. */
+  function sheet(node, scrim, t, top, up, down) {
+    const p = down !== null && t >= down ? 1 - calmEaseOut(span(t, down, down + 0.36)) : calmEaseOut(span(t, up, up + 0.42));
+    const on = t >= up && p > 0;
+    show(node, on); show(scrim, on);
+    if (!on) return;
+    node.style.clipPath = `inset(${top}px 0 0 0 round 28px 28px 0 0)`;
+    node.style.transform = `translateY(${(1 - p) * (891 - top)}px)`;
+    scrim.style.opacity = 0.35 * p;
+  }
+
+  function drawTouch(t) {
+    const tap = TAPS.find((candidate) => t >= candidate.at - 0.22 && t < candidate.at + 0.4);
+    show(touch, Boolean(tap));
+    if (!tap) return;
+    touch.className = tap.dark ? 'touch on-dark' : 'touch';
+    touch.style.left = `${tap.x}px`; touch.style.top = `${tap.y}px`;
+    const landing = outQuart(span(t, tap.at - 0.22, tap.at));
+    const lifting = span(t, tap.at + 0.05, tap.at + 0.4);
+    touch.style.opacity = landing * (1 - lifting);
+    touch.style.transform = `scale(${lerp(1.5, 0.82, landing) + 0.9 * outQuart(lifting)})`;
+  }
+
+  // ---------- The timer ----------
+  const timer = el('timer'), digits = el('digits'), ringCaption = el('ring-caption'), overtime = el('overtime');
+  const liquor = el('liquor'), progress = el('progress'), marker = el('marker'), glow = el('glow');
+  const teaName = el('tea-name'), subtitle = el('subtitle'), rowText = el('row-text'), pillLabel = el('pill-label');
+  // Ring geometry (TimerRing.kt): radius = box / 2 − 14 dp, liquor 6 dp + half the stroke inside it.
+  const C = 132, R = 118, LIQUOR_R = R - (1.5 + 6), MARKER_HALF = 6;
+  const WASHI = [243, 240, 233], MATCHA = [107, 152, 69], STEEPING = [28, 35, 29];
+  const polar = (radius, fraction) => {
+    const a = (-90 + 360 * fraction) * Math.PI / 180;
+    return [C + radius * Math.cos(a), C + radius * Math.sin(a)];
+  };
+
+  /** Track and progress arc from the top, clockwise (drawRing); the segment below the water line (drawLiquor). */
+  function drawRing(level) {
+    if (level <= 0) { progress.setAttribute('d', ''); liquor.setAttribute('d', ''); return; }
+    const capped = Math.min(level, 1);
+    if (capped >= 1) {
+      progress.setAttribute('d', `M ${C} ${C - R} A ${R} ${R} 0 1 1 ${C} ${C + R} A ${R} ${R} 0 1 1 ${C} ${C - R}`);
+    } else {
+      const [px, py] = polar(R, capped);
+      progress.setAttribute('d', `M ${C} ${C - R} A ${R} ${R} 0 ${capped > 0.5 ? 1 : 0} 1 ${px} ${py}`);
+    }
+    const half = Math.acos(1 - 2 * capped);
+    const dx = LIQUOR_R * Math.sin(half), y = C + LIQUOR_R * Math.cos(half);
+    liquor.setAttribute('d', capped >= 1
+      ? `M ${C} ${C - LIQUOR_R} A ${LIQUOR_R} ${LIQUOR_R} 0 1 1 ${C} ${C + LIQUOR_R} A ${LIQUOR_R} ${LIQUOR_R} 0 1 1 ${C} ${C - LIQUOR_R}`
+      : `M ${C + dx} ${y} A ${LIQUOR_R} ${LIQUOR_R} 0 ${half > Math.PI / 2 ? 1 : 0} 1 ${C - dx} ${y} Z`);
+  }
+
+  /** The pre-alert tick on the ring; `swell` 0..1 is its glow (preAlertGlow: up in 0.2 s, down by 0.8 s). */
+  function drawMarker(position, swell) {
+    marker.style.display = position === null ? 'none' : 'block';
+    if (position === null) { glow.setAttribute('opacity', 0); return; }
+    const half = MARKER_HALF * (1 + 0.8 * swell);
+    const [x1, y1] = polar(R - half, position), [x2, y2] = polar(R + half, position), [gx, gy] = polar(R, position);
+    marker.setAttribute('x1', x1); marker.setAttribute('y1', y1); marker.setAttribute('x2', x2); marker.setAttribute('y2', y2);
+    marker.setAttribute('stroke-width', 3 * (1 + 0.8 * swell));
+    glow.setAttribute('cx', gx); glow.setAttribute('cy', gy);
+    glow.setAttribute('r', 14 * (0.4 + 0.6 * swell)); glow.setAttribute('opacity', 0.7 * swell);
+  }
+
+  /** The first brew's remaining seconds: real time, with two time-lapses to the pre-alert and to the end. */
+  function remainingAt(t) {
+    if (t < T.countFrom) return 48;
+    if (t < T.lapse1) return 48 - (t - T.countFrom);
+    const beforeLapse = 48 - (T.lapse1 - T.countFrom);
+    if (t < T.preAlert) return lerp(beforeLapse, 10, inOutSine(span(t, T.lapse1, T.preAlert)));
+    if (t < T.lapse2) return 10 - (t - T.preAlert);
+    const beforeEnd = 10 - (T.lapse2 - T.preAlert);
+    return lerp(beforeEnd, 0, inOutSine(span(t, T.lapse2, T.alert)));
+  }
+
+  function drawTimer(t) {
+    const two = t >= T.twoIn + NAV / 2;
+    const alerting = !two && t >= T.alert;
+    timer.className = `layer${alerting ? ' alert' : ''}${two ? ' two' : ''}`;
+    timer.style.display = 'block';
+
+    if (two) {
+      // The second tea: a 2-minute step, 20 s left at the first beat of the scene; the first brew waits in its row.
+      const elapsed = Math.max(0, t - 24.5);
+      const remaining = 20 - elapsed;
+      teaName.textContent = 'Bio Uji Gyokuro Gokō';
+      subtitle.textContent = '55 °C · Aufguss 1 von 3';
+      rowText.textContent = `Hisui · Aufguss 2 · ${clock(Math.ceil(48 - elapsed - 1e-6))}`;
+      digits.textContent = clock(Math.ceil(remaining - 1e-6));
+      ringCaption.textContent = 'Zieht …'; overtime.textContent = ''; pillLabel.textContent = 'Pause';
+      liquor.setAttribute('fill', '#D7DF9F');
+      timer.style.background = '';
+      drawRing((120 - remaining) / 120);
+      drawMarker(110 / 120, 0);
+      return;
+    }
+
+    teaName.textContent = COMPARE ? 'Bio Uji Gyokuro Gokō' : 'Bio Sencha Hisui';
+    subtitle.textContent = COMPARE ? '55 °C · Aufguss 1 von 3' : '65 °C · Aufguss 1 von 3';
+    liquor.setAttribute('fill', '#C9D58F');
+    if (alerting) {
+      // AlertSurface: washi ↔ matcha, 0.75 s each way with SineInOut (alertPulse).
+      const cycle = ((t - T.alert) / 0.75) % 2;
+      const pulse = sineInOut(cycle < 1 ? cycle : 2 - cycle);
+      const arrive = span(t, T.alert, T.alert + 0.12);
+      timer.style.background = mix(STEEPING, WASHI.map((c, i) => lerp(c, MATCHA[i], pulse)), arrive);
+      const over = Math.floor(t - T.alert);
+      digits.textContent = '0:00'; ringCaption.textContent = 'Jetzt abgießen!';
+      overtime.textContent = over >= 1 ? `+${clock(over)}` : '';
+      pillLabel.textContent = 'Abgegossen';
+      drawRing(1); drawMarker(50 / 60, 0);
+      return;
+    }
+    timer.style.background = '';
+    const remaining = remainingAt(t);
+    digits.textContent = clock(Math.ceil(remaining - 1e-6));
+    ringCaption.textContent = 'Zieht …'; overtime.textContent = ''; pillLabel.textContent = 'Pause';
+    // Opening flourish: ring and liquor run up to the brew's level as the screen arrives.
+    const reveal = COMPARE ? 1 : outQuart(span(t, T.timerIn + 0.15, T.timerIn + 1.35));
+    drawRing((60 - remaining) / 60 * reveal);
+    const sinceTick = t - T.preAlert;
+    const swell = sinceTick < 0 || sinceTick > 0.8 ? 0
+      : sinceTick < 0.2 ? calmEaseOut(sinceTick / 0.2) : 1 - sineInOut((sinceTick - 0.2) / 0.6);
+    drawMarker(50 / 60, swell);
+  }
+
+  // ---------- One frame ----------
+  window.seek = (t) => {
+    if (COMPARE) { drawTimer(0); return; }
+
+    // Stage: the ink branch sways a little, all film long.
+    const sway = Math.sin(t * 0.8 + 0.6) + 0.4 * Math.sin(t * 2.1);
+    branch.style.transform = `translate(${sway * 5}px, ${Math.cos(t * 0.63) * 3}px) rotate(${sway * 0.5}deg)`;
+    branch.style.opacity = 0.5 * span(t, 0, 0.9);
+
+    drawBrand(t);
+    drawCaption(t);
+
+    // Phone: arrives from below, breathes slowly, sinks away before the close.
+    const onStage = t >= T.phoneIn && t < T.phoneOut + 1.1;
+    phone.style.display = onStage ? 'block' : 'none';
+    if (!onStage) return;
+    const arrive = outExpo(span(t, T.phoneIn, T.phoneIn + 1.3));
+    const leave = inCubic(span(t, T.phoneOut, T.phoneOut + 1.0));
+    const breath = 1 + 0.016 * (0.5 - 0.5 * Math.cos((t - T.phoneIn) * Math.PI / 4));
+    phone.style.opacity = clamp(span(t, T.phoneIn, T.phoneIn + 0.25)) * (1 - span(t, T.phoneOut + 0.35, T.phoneOut + 1.0));
+    phone.style.transform =
+      `translateY(${(1 - arrive) * 190 + leave * 420}px) scale(${(0.955 + 0.045 * arrive) * breath * (1 - 0.04 * leave)})`;
+
+    // Screens, bottom to top.
+    show(el('home'), t < T.setupIn + NAV);
+    sheet(el('picker'), el('scrim-picker'), Math.min(t, T.setupIn + NAV - 0.001), 163.5, T.pickerUp, null);
+    if (t >= T.setupIn + NAV) { show(el('picker'), false); show(el('scrim-picker'), false); }
+    route(el('setup'), t, T.setupIn, T.timerIn);
+    if (t >= T.timerIn && t < T.catalogIn + NAV) {
+      drawTimer(t);
+      const p = calmEaseOut(span(t, T.timerIn, T.timerIn + NAV));
+      // From the alert to the second brew: a short dip, as the screen changes under the finger.
+      const swap = 1 - 0.25 * Math.sin(Math.PI * span(t, T.twoIn, T.twoIn + NAV));
+      timer.style.opacity = p * swap;
+      timer.style.transform = `translateX(${(1 - p) * 14}px)`;
+    } else {
+      timer.style.display = 'none';
+    }
+    route(el('catalog'), t, T.catalogIn, T.filterDown);
+    show(el('catalog-filtered'), t >= T.filterDown - 0.05 && t < T.teasIn + NAV);
+    if (t >= T.filterDown - 0.05) show(el('catalog'), false);
+    sheet(el('filter'), el('scrim-filter'), t, 0, T.filterUp, T.filterDown);
+    route(el('teas'), t, T.teasIn, T.teaIn);
+    route(el('tea'), t, T.teaIn, T.journalIn);
+    route(el('journal'), t, T.journalIn, T.sessionIn);
+    route(el('session'), t, T.sessionIn, window.DURATION);
+    drawTouch(t);
+  };
+
+  window.ready = (async () => {
+    await Promise.all([
+      '300 80px "Alegreya Sans"', '400 28px "Alegreya Sans"', '500 20px "Alegreya Sans"',
+      '400 16px "Roboto"', '500 14px "Roboto"',
+    ].map((font) => document.fonts.load(font)));
+    await document.fonts.ready;
+    await Promise.all([...document.images].map((img) => img.decode()));
+    window.seek(0);
+  })();
+</script>
+</body>
+</html>
