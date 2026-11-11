@@ -20,6 +20,35 @@
         <item quantity="one">%1$d von %2$d Aufguss</item>
         <item quantity="other">%1$d von %2$d Aufgüssen</item>
     </plurals>
+    <!-- SCR-15 rows (JRN-08, D-112): „★ 4,5" under the meta line, and for TalkBack. -->
+    <string name="journal_rating">★ %1$s</string>
+    <string name="journal_rating_description">Bewertung %1$s von 5</string>
+    <!-- SCR-15 search and filters (JRN-09, D-112). -->
+    <string name="journal_search_hint">Tees, Notizen …</string>
+    <string name="journal_search_clear">Suche leeren</string>
+    <string name="journal_filter_open">Filter</string>
+    <string name="journal_filter_open_active">Filter, aktiv</string>
+    <string name="journal_filter_sheet_title">Filter</string>
+    <string name="journal_filter_done">Fertig</string>
+    <string name="journal_filter_tea">Tee</string>
+    <string name="journal_filter_rating">Bewertung</string>
+    <string name="journal_filter_rating_3">ab 3 ★</string>
+    <string name="journal_filter_rating_4">ab 4 ★</string>
+    <string name="journal_filter_rating_45">ab 4,5 ★</string>
+    <string name="journal_filter_rating_3_description">Bewertung ab 3 Sternen</string>
+    <string name="journal_filter_rating_4_description">Bewertung ab 4 Sternen</string>
+    <string name="journal_filter_rating_45_description">Bewertung ab 4,5 Sternen</string>
+    <string name="journal_filter_notes">Mit Notizen</string>
+    <string name="journal_filter_reset">Zurücksetzen</string>
+    <!-- TalkBack on an active filter's chip: „Filter entfernen: Mit Notizen". -->
+    <string name="journal_filter_remove">Filter entfernen: %1$s</string>
+    <string name="journal_no_match_title">Keine Sitzung passt zu deiner Suche.</string>
+    <string name="journal_no_match_action">Filter zurücksetzen</string>
+    <!-- Announced after a search or filter change (TalkBack live region). -->
+    <plurals name="journal_result_count">
+        <item quantity="one">%1$d Sitzung</item>
+        <item quantity="other">%1$d Sitzungen</item>
+    </plurals>
     <string name="journal_open_timer">Zum Timer</string>
     <!-- TalkBack: „doppeltippen zum Sitzung öffnen" on a past entry (SCR-15, D-100). -->
     <string name="journal_open_session">Sitzung öffnen</string>

@@ -22,7 +22,7 @@
 
 | # | Asset | Where | Format | Milestone |
 |---|---|---|---|---|
-| A6 | **Empty state: Journal** („Deine erste Tasse wartet.") ✓ delivered | SCR-15 | ≥ 1200 × 900 vignette | M4 |
+| A6 | **Empty state: Journal** („Deine erste Tasse wartet.") ✓ delivered, built in with v0.6.0 (#231) | SCR-15 | ≥ 1200 × 900 vignette | M4 |
 | A7 | **Empty state: Meine Tees** ✓ delivered, built in with v0.4.0 | SCR-08 | ≥ 1200 × 900 vignette | M3 |
 | A8 | **Empty state: Katalog** (never loaded) ✓ delivered, built in with v0.2.1 | SCR-19 | ≥ 1200 × 900 vignette | M2 |
 | A9 | **Empty state: Statistik** (not enough data) ✓ delivered | SCR-18 | ≥ 1200 × 900 vignette | M4 |
