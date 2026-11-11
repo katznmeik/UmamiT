@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import com.umamit.core.designsystem.theme.UmamiTheme
+import com.umamit.core.model.CollectionSort
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,7 +44,7 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
 
     private val variant get() = "${if (dark) "dark" else "light"}_font${fontScale.toString().replace('.', '_')}"
 
-    private fun capture(name: String, state: MyTeasUiState) {
+    private fun capture(name: String, state: MyTeasUiState, beforeCapture: () -> Unit = {}) {
         RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent {
             UmamiTheme(darkTheme = dark, reduceMotion = true) {
@@ -59,11 +62,19 @@ class CollectionScreenshotTest(private val dark: Boolean, private val fontScale:
             }
         }
         compose.waitForIdle()
+        beforeCapture()
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/Collection_${name}_$variant.png")
     }
 
     @Test
     fun myTeas() = capture("myTeas", MyTeasStates.list)
+
+    /** The sort chip's menu with *Bewertung* (TEA-11, D-112), the rows rated. */
+    @Test
+    fun sortMenu() = capture("sortMenu", MyTeasStates.list.copy(sort = CollectionSort.RATING)) {
+        compose.onNodeWithTag(MY_TEAS_SORT_TAG).performClick()
+        compose.waitForIdle()
+    }
 
     @Test
     fun archived() = capture("archived", MyTeasStates.archived)

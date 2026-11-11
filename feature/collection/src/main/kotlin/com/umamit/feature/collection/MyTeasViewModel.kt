@@ -39,6 +39,7 @@ import javax.inject.Inject
  *
  * @property freshness *Frisch*, *Bald genießen* or *Über dem Höhepunkt*; null for none (FreshnessRule).
  * @property photoPath the cover photo's file, or null for the leaf placeholder (03 §3.5).
+ * @property rating the average of the tea's rated sessions (TEA-08, D-112), for the row's „★ 4,5"; null without one.
  */
 data class MyTeaRow(
     val id: String,
@@ -53,6 +54,7 @@ data class MyTeaRow(
     val checkRecipe: Boolean,
     val isArchived: Boolean,
     val photoPath: String?,
+    val rating: Double? = null,
 )
 
 /** The empty states of *Meine Tees* (TEA-08): no tea yet (A7), or none that matches (A10). */
@@ -171,5 +173,6 @@ class MyTeasViewModel @Inject constructor(
         checkRecipe = tea.recipeCheckReason != null,
         isArchived = tea.isArchived,
         photoPath = photoPath,
+        rating = rating?.average,
     )
 }

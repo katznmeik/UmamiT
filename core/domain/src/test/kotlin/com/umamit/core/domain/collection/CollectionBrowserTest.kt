@@ -8,6 +8,7 @@ import com.umamit.core.model.StockLevel
 import com.umamit.core.model.Tea
 import com.umamit.core.model.TeaCategory
 import com.umamit.core.model.TeaForm
+import com.umamit.core.model.TeaRating
 import org.junit.Test
 
 /** *Meine Tees*' search, filters and sort (TEA-09–TEA-11, D-100), on synthetic teas. */
@@ -21,7 +22,8 @@ class CollectionBrowserTest {
         brewed: Long? = null,
         grams: Double? = null,
         lowStockGrams: Double = 15.0,
-    ) = CollectionRow.of(tea, added, brewed, grams, lowStockGrams)
+        rating: Double? = null,
+    ) = CollectionRow.of(tea, added, brewed, grams, lowStockGrams, rating?.let { TeaRating(it, 3) })
 
     private fun ids(rows: List<CollectionRow>, filter: CollectionFilter = CollectionFilter(), sort: CollectionSort) =
         CollectionBrowser.listing(rows, filter, sort).rows.map { it.tea.id }
@@ -236,6 +238,31 @@ class CollectionBrowserTest {
 
         assertThat(ids(rows, sort = CollectionSort.STOCK))
             .containsExactly("low", "plenty", "untracked2", "untracked", "empty").inOrder()
+    }
+
+    @Test
+    fun bewertungRunsHighToLowThenUnratedTeasThenTheEmpty() {
+        val rows = listOf(
+            row(tea("unrated", name = "Bancha"), grams = 30.0),
+            row(tea("good", name = "Zeta"), grams = 30.0, rating = 4.5),
+            row(tea("best", name = "Yuki"), grams = 30.0, rating = 4.75),
+            row(tea("low", name = "Aaa"), grams = 30.0, rating = 2.0),
+            row(tea("emptyBest", name = "Leer"), grams = 0.0, rating = 5.0),
+            row(tea("unrated2", name = "Aracha")),
+        )
+
+        assertThat(ids(rows, sort = CollectionSort.RATING))
+            .containsExactly("best", "good", "low", "unrated2", "unrated", "emptyBest").inOrder()
+    }
+
+    @Test
+    fun equalRatingsKeepTheNameOrder() {
+        val rows = listOf(
+            row(tea("b", name = "Sencha"), rating = 4.0),
+            row(tea("a", name = "Bancha"), rating = 4.0),
+        )
+
+        assertThat(ids(rows, sort = CollectionSort.RATING)).containsExactly("a", "b").inOrder()
     }
 
     @Test

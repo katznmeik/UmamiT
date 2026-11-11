@@ -29,6 +29,7 @@
     <string name="my_teas_sort_name">Name</string>
     <string name="my_teas_sort_recently_added">Zuletzt hinzugefügt</string>
     <string name="my_teas_sort_stock">Vorrat</string>
+    <string name="my_teas_sort_rating">Bewertung</string>
     <string name="my_teas_sort_description">Sortierung: %1$s</string>
     <!-- Categories (TeaCategory, glossary *Kategorie*). -->
     <string name="my_teas_category_green">Grüntee</string>
@@ -122,6 +123,23 @@
     <string name="collection_tea_section_recipes">Rezepte</string>
     <string name="collection_tea_section_stock">Vorrat</string>
     <string name="collection_tea_section_freshness">Frische</string>
+    <string name="collection_tea_section_taste">Geschmack</string>
+    <string name="collection_tea_section_recent">Letzte Sitzungen</string>
+    <!-- The header's „★ 4,5 (12)" (TEA-13, D-112): the average of the rated sessions and their count. -->
+    <string name="collection_tea_rating">★ %1$s (%2$d)</string>
+    <plurals name="collection_tea_rating_description">
+        <item quantity="one">Bewertung %1$s von 5, aus %2$d Sitzung</item>
+        <item quantity="other">Bewertung %1$s von 5, aus %2$d Sitzungen</item>
+    </plurals>
+    <!-- LETZTE SITZUNGEN rows (TEA-13, D-112): „8. Juni · 55 °C · 1:00 · 3 Aufgüsse" and „★ 4,5"; for TalkBack. -->
+    <string name="collection_tea_session_spoken_separator">", "</string>
+    <string name="collection_tea_session_rating">★ %1$s</string>
+    <string name="collection_tea_session_rating_description">Bewertung %1$s von 5</string>
+    <!-- „2 von 3 Aufgüssen": fewer infusions poured than planned (TMR-12). The quantity is the planned count. -->
+    <plurals name="collection_tea_session_infusions_of">
+        <item quantity="one">%1$d von %2$d Aufguss</item>
+        <item quantity="other">%1$d von %2$d Aufgüssen</item>
+    </plurals>
     <string name="collection_tea_section_description">Beschreibung</string>
     <string name="collection_tea_section_notes">Notizen</string>
     <string name="collection_tea_section_details">Details</string>

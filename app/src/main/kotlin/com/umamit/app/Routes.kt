@@ -103,11 +103,11 @@ internal data class CatalogRefreshRoute(val sheetToken: Long)
 internal data object StartRoute
 
 /**
- * The Journal tab's root (SCR-15). [teaId] opens it with the filter *Tee* set to that tea (JRN-09, the tea detail's
- * *Alle anzeigen*, TEA-13); null is the plain tab.
+ * The Journal tab's root (SCR-15). The tea detail's *Alle anzeigen* (TEA-13) filters it to a tea through a request
+ * the shell holds (`JournalTeaRequest`), not through the route, so the root is never pushed a second time.
  */
 @Serializable
-internal data class JournalRoute(val teaId: String? = null)
+internal data object JournalRoute
 
 @Serializable
 internal data object CollectionRoute
@@ -184,7 +184,7 @@ internal data class VesselEditorRoute(val vesselId: String? = null)
 /** The four areas of 03 §2.2, in navigation order. */
 internal enum class Tab(val root: Any, @StringRes val label: Int, @DrawableRes val icon: Int) {
     Start(StartRoute, R.string.tab_start, UmamiIcons.Start),
-    Journal(JournalRoute(), R.string.tab_journal, UmamiIcons.Journal),
+    Journal(JournalRoute, R.string.tab_journal, UmamiIcons.Journal),
     Collection(CollectionRoute, R.string.tab_collection, UmamiIcons.Collection),
     Stats(StatsRoute, R.string.tab_stats, UmamiIcons.Statistics),
 }

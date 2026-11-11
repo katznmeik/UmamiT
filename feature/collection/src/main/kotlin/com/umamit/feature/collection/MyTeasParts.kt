@@ -161,7 +161,7 @@ internal fun MyTeasChips(state: MyTeasUiState, actions: MyTeasActions, alertKey:
 
 private fun <T> Set<T>.toggle(value: T): Set<T> = if (value in this) this - value else this + value
 
-/** The sort (TEA-11): the chip names the order; its menu offers the four. */
+/** The sort (TEA-11): the chip names the order; its menu offers the five (*Bewertung* from v0.6.0, D-112). */
 @Composable
 private fun SortChip(sort: CollectionSort, onSortChange: (CollectionSort) -> Unit, alertKey: String?) {
     val menu = rememberAlertGate(alertKey)
@@ -295,6 +295,7 @@ internal fun MyTeaItem(
         onClick = onClick,
         thumbnail = thumbnail,
         placeholderColor = placeholderColor(row.sorte),
+        rating = row.rating?.toFloat(),
         badges = if (hasBadges) {
             {
                 StockChip(row)
@@ -415,4 +416,5 @@ private val CollectionSort.label: Int
         CollectionSort.NAME -> R.string.my_teas_sort_name
         CollectionSort.RECENTLY_ADDED -> R.string.my_teas_sort_recently_added
         CollectionSort.STOCK -> R.string.my_teas_sort_stock
+        CollectionSort.RATING -> R.string.my_teas_sort_rating
     }

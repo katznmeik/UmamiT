@@ -7,6 +7,7 @@ import com.umamit.core.model.HarvestSeason
 import com.umamit.core.model.Photo
 import com.umamit.core.model.Recipe
 import com.umamit.core.model.StockLevel
+import com.umamit.core.model.TeaRating
 import com.umamit.core.model.UmamiLevel
 import com.umamit.core.model.UserSettings
 import java.time.LocalDate
@@ -49,6 +50,10 @@ sealed interface TeaDetailUiState {
  * @property cost VORRAT's cost lines (INV-08, D-104): price per 100 g, the default recipe's estimate and the
  *   average of the priced sessions; null without a recorded price („no price, no cost").
  * @property catalogReset ⋮ *Aus Katalog zurücksetzen* (PRF-06), or null when the catalog doesn't hold the tea.
+ * @property rating the header's „★ 4,5 (12)": the average of the tea's rated sessions and their count (TEA-13,
+ *   D-112); null without a rated session.
+ * @property taste GESCHMACK: the average radar and the top descriptors (TEA-13, D-112).
+ * @property recentSessions LETZTE SITZUNGEN: the last [RECENT_SESSIONS] finished sessions, newest first.
  */
 data class TeaDetail(
     val id: String,
@@ -82,7 +87,13 @@ data class TeaDetail(
     val history: List<StockEntry> = emptyList(),
     val cost: TeaCost? = null,
     val catalogReset: CatalogResetOffer? = null,
+    val rating: TeaRating? = null,
+    val taste: DetailTasting = DetailTasting(),
+    val recentSessions: List<RecentSession> = emptyList(),
 ) {
+    /** LETZTE SITZUNGEN has more finished sessions than it lists: *Alle anzeigen* (TEA-13). */
+    val hasMoreSessions: Boolean get() = sessionCount > recentSessions.size
+
     /** *Rezept hinzufügen* is offered below 10 recipes (PRF-01, D-100). */
     val canAddRecipe: Boolean get() = recipes.size < Recipe.MAX_PER_TEA
 

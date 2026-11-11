@@ -1,6 +1,7 @@
 package com.umamit.app
 
 import androidx.compose.runtime.Composable
+import com.umamit.feature.journal.JournalTeaRequest
 import com.umamit.feature.journal.session.SessionPageHost
 import com.umamit.feature.journal.session.SessionPageRoute
 
@@ -13,5 +14,10 @@ internal class JournalStackScreens(val session: @Composable (SessionPageHost) ->
 /**
  * What the Journal tab's screens get from the shell: the [screens] and [openSetupFromSession], *So nochmal brühen*
  * (BRW-06): the setup prefilled with a past session above the shell, or the alerting timer during an alert (rule 8).
+ * [teaRequest] filters the list to a tea (the tea detail's *Alle anzeigen*, TEA-13), null for none.
  */
-internal class JournalWiring(val screens: JournalStackScreens, val openSetupFromSession: (sessionId: String) -> Unit)
+internal class JournalWiring(
+    val screens: JournalStackScreens,
+    val openSetupFromSession: (sessionId: String) -> Unit,
+    val teaRequest: JournalTeaRequest? = null,
+)

@@ -30,6 +30,10 @@ object DatabaseModule {
     @Provides
     fun sessionDao(db: UmamiDatabase) = db.sessionDao()
 
+    /** The tasting reads (05 §3.8): per-tea ratings for the lists, TEA-08. */
+    @Provides
+    fun tastingDao(db: UmamiDatabase) = db.tastingDao()
+
     @Provides
     fun activeBrewDao(db: UmamiDatabase) = db.activeBrewDao()
 
