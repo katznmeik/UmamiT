@@ -129,6 +129,14 @@ class SessionPageViewModel @Inject constructor(
         launchWrite { tasteLock.withLock { tasting.clearTaste(sessionId) } }
     }
 
+    /** Descriptor writes run one after another in tap order, so the last tap is the one stored (JRN-04). */
+    private val descriptorLock = Mutex()
+
+    /** A chip ticked or unticked in the descriptor sheet (JRN-04): saved at once, after any earlier tick. */
+    fun setDescriptor(key: String, ticked: Boolean) {
+        launchWrite { descriptorLock.withLock { tasting.setDescriptor(sessionId, key, ticked) } }
+    }
+
     /** The notes field changed to [text] (JRN-05): saved 1 s after the last key, or sooner by [flushNotes]. */
     fun onNotesChanged(text: String) {
         pendingNotes = text.take(TastingLimits.MAX_NOTES_LENGTH)

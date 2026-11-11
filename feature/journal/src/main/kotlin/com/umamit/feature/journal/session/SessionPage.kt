@@ -71,6 +71,8 @@ data class SessionPage(
     val notes: String? = null,
     /** The six taste values, each null while unset (JRN-03). */
     val taste: TasteProfile = TasteProfile.EMPTY,
+    /** The ticked descriptor keys (JRN-04); keys the vocabulary lacks are kept and not shown. */
+    val descriptorKeys: List<String> = emptyList(),
 ) {
     /** The tasting inputs are offered for a finished session only (05 §3.7: the writes refuse one in progress). */
     val canTaste: Boolean get() = !inProgress
@@ -122,6 +124,7 @@ fun sessionPage(session: BrewSession, tea: SessionTea): SessionPage {
         rating = session.rating,
         notes = session.notes,
         taste = session.taste,
+        descriptorKeys = session.descriptorKeys,
     )
 }
 

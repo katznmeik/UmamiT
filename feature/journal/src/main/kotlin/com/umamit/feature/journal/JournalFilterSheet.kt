@@ -189,7 +189,7 @@ private fun SheetChip(label: String, selected: Boolean, description: String? = n
 /** Always fully expanded; under reduce motion it starts expanded, so it appears without the slide (03 §3.6). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun rememberJournalSheetState(reduceMotion: Boolean): SheetState {
+internal fun rememberJournalSheetState(reduceMotion: Boolean): SheetState {
     val density = LocalDensity.current
     return remember(reduceMotion) {
         SheetState(
